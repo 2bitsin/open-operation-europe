@@ -1,0 +1,16 @@
+# Local dependencies and reproducible build products
+.venv/
+/build/
+/reference/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Generated binary views, emulator states and transient diagnostics
+/analysis/images/
+/analysis/native-ghidra/*.bin
+/analysis/native-ghidra/*.stderr.txt
+/analysis/scenarios/*.state.bin
+/analysis/fmdrv/*.COM
+/analysis/*.log
+/analysis/*.lst

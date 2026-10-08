@@ -1,0 +1,4 @@
+# Preserve the supplied DOS fixtures byte for byte.
+/binaries/** binary
+# Generated evidence may retain spacing from the original data or tools.
+/analysis/** -whitespace
