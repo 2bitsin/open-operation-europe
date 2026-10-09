@@ -6,8 +6,8 @@
 
 #include <stdint.h>
 
-#define OPL_CLOCK 3579545u
-#define OPL_SAMPLE_RATE 49716           /* OPL_CLOCK / 72, rounded */
+inline constexpr auto OPL_CLOCK{ 3579545u };
+inline constexpr auto OPL_SAMPLE_RATE{ 49716 }; /* OPL_CLOCK / 72, rounded */
 
 void opl_reset(void);
 /* One register write (address port 388h, then data port 389h). */

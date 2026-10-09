@@ -11,7 +11,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
-#define EMM_FAILURE 0x80
+namespace {
+constexpr auto EMM_FAILURE{ 0x80 };
+}
 
 int16_t opeu_ems_present(void) {
   return 0;

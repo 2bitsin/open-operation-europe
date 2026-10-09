@@ -39,9 +39,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PIT_UNITS_PER_FRAME FMD_PIT_HZ_NUM
-#define PIT_UNITS_PER_TICK (FMD_PIT_DIVISOR * (uint32_t)OPL_SAMPLE_RATE)
-#define STALL_US 200000u
+namespace {
+constexpr auto PIT_UNITS_PER_FRAME{ FMD_PIT_HZ_NUM };
+constexpr auto PIT_UNITS_PER_TICK{ FMD_PIT_DIVISOR * (uint32_t)OPL_SAMPLE_RATE };
+constexpr auto STALL_US{ 200000u };
+}
 
 static FmDriver driver;
 static int installed;

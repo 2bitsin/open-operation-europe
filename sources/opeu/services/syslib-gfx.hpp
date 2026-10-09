@@ -18,7 +18,7 @@
 
 #include <stdint.h>
 
-#define SYSLIB_CELL_BYTES 520u      /* 26 rows * 20 bytes */
+inline constexpr auto SYSLIB_CELL_BYTES{ 520u }; /* 26 rows * 20 bytes */
 
 /* 34B8: copy a 520-byte cell buffer to the screen at byte column x, line y
  * (5 bytes = 40 pixels wide, 26 lines). */

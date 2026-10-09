@@ -27,11 +27,14 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <cstdint>
 #include <string.h>
 
 /* ---- keyboard ---------------------------------------------------------- */
 
-#define KEY_BUFFER 16                     /* 15 usable entries, as the BIOS */
+namespace {
+constexpr auto KEY_BUFFER{ 16 }; /* 15 usable entries, as the BIOS */
+}
 static uint16_t keys[KEY_BUFFER];
 static unsigned key_head, key_tail;
 
@@ -159,8 +162,9 @@ static const char* const arrow[16] = {
   "#.......#", "#........#", "#.....#####", "#..#..#", "#.# #..#", "##  #..#", "     #..#", "     ####",
 };
 
-#define POINTER_BLACK 254
-#define POINTER_WHITE 255
+namespace {
+enum PointerColor : std::uint8_t { POINTER_BLACK = 254, POINTER_WHITE = 255 };
+}
 
 int port_input_pointer_dirty(void) {
   int visible = mouse.counter >= 0;

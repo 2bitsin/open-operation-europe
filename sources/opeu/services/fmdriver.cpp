@@ -69,11 +69,9 @@ enum {
 };
 
 /* Drum bits of register BDh / of the rhythm events. */
-#define DRUM_HH 0x01
-#define DRUM_CYM 0x02
-#define DRUM_TOM 0x04
-#define DRUM_SD 0x08
-#define DRUM_BD 0x10
+namespace {
+enum Drum : std::uint8_t { DRUM_HH = 0x01, DRUM_CYM = 0x02, DRUM_TOM = 0x04, DRUM_SD = 0x08, DRUM_BD = 0x10 };
+}
 
 /* [0710] vibrato depths (index 0-12) and [072a]... LFO depth steps. */
 static const uint16_t modulation_depth_table[13] = { 0x0000, 0x079c, 0x0fad, 0x1838, 0x2145, 0x2adc, 0x3505,

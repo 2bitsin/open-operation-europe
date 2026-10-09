@@ -9,11 +9,10 @@
  * services or, in the battle modules, with the routine's original address
  * as its identifier.
  *
- * The port compiles the generated game/ tree (tools/make_game_tree.py),
- * where each module's services are direct calls in its native-build section
- * (tools/game-services.json). This header provides what those sections and
- * the platform glue (port/include/glue.h) need to reach the recovered
- * routines and the hand-written native services (port/services):
+ * In the game/ tree each module's services are direct calls. This header
+ * provides what those calls and the platform glue (glue/include/glue.hpp)
+ * need to reach the recovered routines and the hand-written native services
+ * (services/):
  *
  *  - the data layout: one far-data arena holding the original FAR_DATA
  *    segments, DGROUP (`port_ds`) and the DOS memory blocks the game
@@ -30,25 +29,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* ---- data layout ------------------------------------------------------- */
 
-#define PORT_DS_SEGMENT 0x4712u     /* DGROUP paragraph in the original layout */
-#define PORT_DS_END 0xebe0u     /* _end: first byte past DGROUP data+BSS */
-#define PORT_STACK_TOP 0xffe0u     /* _end + /STACK:5120 */
-#define PORT_HEAP_SEGMENT 0x5712u     /* first paragraph handed out by the DOS allocator */
-#define PORT_ARENA_SIZE 0xa0000u    /* conventional memory: segments below A000 */
+inline constexpr auto PORT_DS_SEGMENT{ 0x4712u };   /* DGROUP paragraph in the original layout */
+inline constexpr auto PORT_DS_END{ 0xebe0u };       /* _end: first byte past DGROUP data+BSS */
+inline constexpr auto PORT_STACK_TOP{ 0xffe0u };    /* _end + /STACK:5120 */
+inline constexpr auto PORT_HEAP_SEGMENT{ 0x5712u }; /* first paragraph handed out by the DOS allocator */
+inline constexpr auto PORT_ARENA_SIZE{ 0xa0000u };  /* conventional memory: segments below A000 */
 
 extern uint8_t* port_arena;           /* PORT_ARENA_SIZE bytes, linear = seg*16+off */
 extern uint8_t* port_ds;              /* port_arena + PORT_DS_SEGMENT*16 */
 
 /* Byte at segment:offset (fatal outside the arena). */
 uint8_t* port_far(uint16_t seg, uint16_t off);
-/* Host pointer of a DS offset. */
-#define PORT_DS(off) (port_ds + (uint16_t)(off))
+/* Host pointer of a DS offset (16-bit wrap of the offset). */
+inline auto PORT_DS(auto off) -> uint8_t* {
+  return port_ds + (uint16_t)off;
+}
 /* Little-endian word access into ds[] (16-bit wrap of the offset). */
 uint16_t port_ds_word(uint16_t off);
 void port_ds_set_word(uint16_t off, uint16_t value);
@@ -60,7 +57,7 @@ uint16_t port_offset_of(const void* p, uint16_t seg);
 uint16_t port_dos_alloc(uint16_t paragraphs);
 int port_dos_free(uint16_t segment);
 
-/* Image of the recovered data modules (generated port/gen/data_image.c). */
+/* Image of the recovered data modules (game/link/gen/data-image.cpp). */
 typedef struct {
   const void* object;
   uint16_t seg, off;
@@ -71,8 +68,8 @@ extern const PortImageObject port_image_objects[];
 extern const unsigned port_image_object_count;
 
 /* Initialized DGROUP data that code modules own in their DOS builds (string
- * literals and static tables of their _DATA segments), generated from the
- * recovered source text (port/gen/module_data.c, port/tools/gen_module_data.py). */
+ * literals and static tables of their _DATA segments), taken from the
+ * recovered source text (game/link/gen/module-data.cpp). */
 typedef struct {
   uint16_t seg, off;
   uint16_t size;
@@ -100,7 +97,7 @@ void port_memory_init(void);
  * routines it calls internally with sp-n (use the module's documented frame
  * when larger). For a `frame`/`scratch` parameter that names the BP or a
  * buffer rather than the entry SP, convert as that module documents. */
-#define PORT_FRAME 0x100u
+inline constexpr auto PORT_FRAME{ 0x100u };
 extern uint16_t port_sp;
 uint16_t port_stack_enter(uint16_t bytes);
 void port_stack_leave(uint16_t bytes);
@@ -120,9 +117,10 @@ typedef struct {
   PortRoutine routine;    /* NULL: not linked yet */
 } PortLink;
 
-/* Define a linked routine handler for recovered/native routine `name`.
- * port/tools/gen_link_table.py collects every PORT_ROUTINE in port/ and
- * builds port/gen/link_table.c from the routine's address. */
+/* Define a linked routine handler for recovered/native routine `name`;
+ * game/link/gen/link-table.cpp lists every one under its routine address.
+ * It stays a macro: it names the handler port_routine_<name> by token
+ * pasting, which no C++ declaration can do. */
 #define PORT_ROUTINE(name) uint32_t port_routine_##name(uint8_t* ds, const uint16_t* args, unsigned count)
 
 /* Call a routine by its identifier; fatal (with its name) when unlinked. */
@@ -162,7 +160,3 @@ typedef struct {
   int mute;                /* window mode: no audio device */
 } PortOptions;
 extern PortOptions port_options;
-
-#ifdef __cplusplus
-}
-#endif

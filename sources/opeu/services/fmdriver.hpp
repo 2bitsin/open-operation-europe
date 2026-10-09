@@ -25,10 +25,11 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <stdint.h>
 
-#define FMD_PIT_HZ_NUM 1193182u       /* PIT input clock */
-#define FMD_PIT_DIVISOR 4096u          /* counts per driver tick */
+inline constexpr auto FMD_PIT_HZ_NUM{ 1193182u }; /* PIT input clock */
+inline constexpr auto FMD_PIT_DIVISOR{ 4096u };   /* counts per driver tick */
 
 /* Registers of one driver call (in and out). AH = function, AL = argument;
  * DS:DX is a far pointer argument (song bank, instrument, callback). */
@@ -92,22 +93,26 @@ typedef struct FmdVoice {
 } FmdVoice;
 
 /* FmdVoice.flags */
-#define FMD_VOICE_WAITING 0x01    /* first event of the track not read yet */
-#define FMD_VOICE_VIBRATO 0x02    /* software vibrato (F6h/F7h) set */
-#define FMD_VOICE_LFO_AVAILABLE 0x04    /* instrument has an LFO */
-#define FMD_VOICE_LFO_WANTED 0x08    /* F8h: run the instrument LFO */
-#define FMD_VOICE_LEGATO 0x20    /* gate longer than length: tie the next note */
-#define FMD_VOICE_SOUNDED 0x40    /* keyed on since the last silence */
-#define FMD_VOICE_KEY_ON 0x80    /* key is on */
+enum FmdVoiceFlag : std::uint8_t {
+  FMD_VOICE_WAITING = 0x01,       /* first event of the track not read yet */
+  FMD_VOICE_VIBRATO = 0x02,       /* software vibrato (F6h/F7h) set */
+  FMD_VOICE_LFO_AVAILABLE = 0x04, /* instrument has an LFO */
+  FMD_VOICE_LFO_WANTED = 0x08,    /* F8h: run the instrument LFO */
+  FMD_VOICE_LEGATO = 0x20,        /* gate longer than length: tie the next note */
+  FMD_VOICE_SOUNDED = 0x40,       /* keyed on since the last silence */
+  FMD_VOICE_KEY_ON = 0x80,        /* key is on */
+};
 
 /* FmdVoice.lfo_flags */
-#define FMD_LFO_STATE 0x03    /* 0 idle, 1 delay, 2 running, 3 (re)start */
-#define FMD_LFO_DOWN 0x04    /* software vibrato bends downwards */
-#define FMD_LFO_RAMP 0x40    /* software vibrato ramp in progress */
-#define FMD_LFO_ON 0x80    /* instrument LFO enabled */
+enum FmdLfoFlag : std::uint8_t {
+  FMD_LFO_STATE = 0x03, /* 0 idle, 1 delay, 2 running, 3 (re)start */
+  FMD_LFO_DOWN = 0x04,  /* software vibrato bends downwards */
+  FMD_LFO_RAMP = 0x40,  /* software vibrato ramp in progress */
+  FMD_LFO_ON = 0x80,    /* instrument LFO enabled */
+};
 
-#define FMD_VOICES 6
-#define FMD_RHYTHM 6
+inline constexpr auto FMD_VOICES{ 6 };
+inline constexpr auto FMD_RHYTHM{ 6 };
 
 typedef struct FmDriver {
   FmdHost host;

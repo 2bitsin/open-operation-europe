@@ -9,7 +9,9 @@ uint8_t* port_ds;
 uint16_t port_sp = PORT_STACK_TOP;
 
 /* DOS memory blocks: a first-fit list of [segment, paragraphs). */
-#define MAX_BLOCKS 64
+namespace {
+constexpr auto MAX_BLOCKS{ 64 };
+}
 static struct {
   uint16_t seg, paras;
 } blocks[MAX_BLOCKS];

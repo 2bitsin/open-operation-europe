@@ -33,12 +33,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DOS_HANDLES 20
-#define DOS_FIRST_FILE 5
+namespace {
+constexpr auto DOS_HANDLES{ 20 };
+constexpr auto DOS_FIRST_FILE{ 5 };
 
-#define DOS_ERR_NOT_FOUND 2
-#define DOS_ERR_INVALID_HANDLE 6
-#define DOS_ERR_ACCESS 5
+/* DOS error codes (INT 21h, carry set). */
+enum DosError { DOS_ERR_NOT_FOUND = 2, DOS_ERR_ACCESS = 5, DOS_ERR_INVALID_HANDLE = 6 };
+}
 
 static struct {
   int used;

@@ -26,9 +26,9 @@
 
 #include <stdint.h>
 
-#define VGA_PLANE_SIZE 0x10000u
-#define VGA_PITCH 80u
-#define VGA_TOP 40u           /* first game line on the 480-line screen */
+inline constexpr auto VGA_PLANE_SIZE{ 0x10000u };
+inline constexpr auto VGA_PITCH{ 80u };
+inline constexpr auto VGA_TOP{ 40u }; /* first game line on the 480-line screen */
 
 extern uint8_t vga_plane[4][VGA_PLANE_SIZE];
 extern uint8_t vga_dac[256 * 3];     /* 6-bit R,G,B */
@@ -58,15 +58,15 @@ int16_t opeu_bitmap_restore(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint
 int16_t koei_27c2(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 27C2 */
 int16_t opeu_blit_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 27CA */
 int16_t opeu_draw_near(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 28A8 */
-#define opeu_code_0000_28a8 opeu_draw_near
+inline constexpr auto& opeu_code_0000_28a8{ opeu_draw_near };
 int16_t opeu_draw_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 28B0 */
 void opeu_code_0000_28c5(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 28C5 */
 int16_t opeu_vga_glyph(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 2A81 */
 int16_t opeu_gfx_blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data); /* 2A96 */
-#define opeu_bitmap_draw opeu_gfx_blit
+inline constexpr auto& opeu_bitmap_draw{ opeu_gfx_blit };
 int16_t opeu_vga_clear(void); /* 2AAC */
 int16_t opeu_ui_box(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color); /* 2AD2 */
-#define opeu_vga_fill_rect opeu_ui_box
+inline constexpr auto& opeu_vga_fill_rect{ opeu_ui_box };
 int16_t opeu_ui_highlight(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color); /* 2B0E */
 void koei_2ce4(uint16_t x, uint16_t y, uint16_t color); /* 2CE4 */
 void opeu_ui_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color); /* 2D16 */
@@ -78,6 +78,6 @@ void opeu_ui_fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t c
 void koei_2fea(void); /* 2FEA */
 void opeu_text_mode(void); /* 300C */
 void opeu_screen_copy(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t x2, uint16_t y2); /* 301F */
-#define opeu_vga_copy opeu_screen_copy
+inline constexpr auto& opeu_vga_copy{ opeu_screen_copy };
 int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, VgaByteReader reader); /* 3490 */
 int16_t opeu_picture_decode(uint16_t x, uint16_t y, VgaByteReader reader); /* 34A4 */

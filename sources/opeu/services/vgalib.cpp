@@ -31,10 +31,12 @@ uint8_t vga_pel_mask = 0xFF;
 int vga_text_mode = 1;
 int vga_dirty = 1;
 
-#define P0 vga_plane[0]
-#define P1 vga_plane[1]
-#define P2 vga_plane[2]
-#define P3 vga_plane[3]
+namespace {
+constexpr auto& P0{ vga_plane[0] };
+constexpr auto& P1{ vga_plane[1] };
+constexpr auto& P2{ vga_plane[2] };
+constexpr auto& P3{ vga_plane[3] };
+}
 
 /* (y + 40) * 80 as the original computes it (16-bit). */
 static uint16_t line_addr(uint16_t y) {
