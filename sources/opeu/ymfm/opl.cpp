@@ -29,7 +29,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "opl.hpp"
-#include "fm.ipp"
+#include "fm-imp.hpp"
 
 namespace ymfm
 {
