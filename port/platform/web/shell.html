@@ -29,6 +29,15 @@
   #zoom button:disabled { opacity: 0.35; cursor: default; }
   #zoom #zoomlabel { min-width: 72px; text-align: center; cursor: pointer; padding: 0 4px; }
   #zoom #zoomlabel:hover { color: #fff; text-decoration: underline; }
+  #saves { position: fixed; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px;
+           padding: 4px; border-radius: 6px; background: rgba(20, 20, 20, 0.75); color: #ddd;
+           font: 13px/1 ui-monospace, Menlo, Consolas, monospace; user-select: none; opacity: 0.55;
+           transition: opacity 0.15s; }
+  #saves:hover, #saves:focus-within { opacity: 1; }
+  #saves button { height: 28px; padding: 0 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a;
+                  color: #eee; font: 13px/1 system-ui, sans-serif; cursor: pointer; }
+  #saves button:hover { background: #3a3a3a; }
+  #saves #savemsg { max-width: 40vw; padding: 0 4px; color: #bbb; }
   #overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
              align-items: center; justify-content: center; gap: 12px;
              background: rgba(0, 0, 0, 0.82); cursor: pointer; user-select: none; }
@@ -130,6 +139,12 @@
       window.addEventListener('pointercancel', endPan, true);
     })();
   </script>
+  <div id="saves" title="Saved games are kept in this browser's IndexedDB for localhost. Export writes the original SAVEDATA file (20 slots); Import replaces it. Import before using Load Game.">
+    <button id="exportsaves" type="button" tabindex="-1">Export saves</button>
+    <button id="importsaves" type="button" tabindex="-1">Import saves</button>
+    <input id="importfile" type="file" hidden>
+    <span id="savemsg"></span>
+  </div>
   <div id="overlay">
     <h1>Operation Europe</h1>
     <div class="hint" id="hint">Click to start</div>
@@ -182,6 +197,39 @@
       statusEl.textContent = String(what || '');
     }
   };
+  /* Save-game export/import (helpers in pre.js). The file is the game's own
+     SAVEDATA, so it also works in a DOS installation and in the native port. */
+  (function () {
+    var SAVE_BYTES = 202420;
+    var msg = document.getElementById('savemsg');
+    var picker = document.getElementById('importfile');
+    function say(text) { msg.textContent = text; clearTimeout(say.t); say.t = setTimeout(function () { msg.textContent = ''; }, 6000); }
+    document.getElementById('saves').addEventListener('mousedown', function (e) { e.preventDefault(); });
+    document.getElementById('exportsaves').addEventListener('click', function () {
+      if (!Module.opeuExportSaves) { say('Not loaded yet'); return; }
+      var bytes = Module.opeuExportSaves();
+      if (!bytes) { say('No saved games yet'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+      a.download = 'SAVEDATA';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      say('Exported SAVEDATA (' + bytes.length + ' bytes)');
+      canvas.focus();
+    });
+    document.getElementById('importsaves').addEventListener('click', function () { picker.value = ''; picker.click(); });
+    picker.addEventListener('change', function () {
+      var f = picker.files && picker.files[0];
+      if (!f) return;
+      if (f.size !== SAVE_BYTES) { say('Not a SAVEDATA file (expected ' + SAVE_BYTES + ' bytes, got ' + f.size + ')'); return; }
+      f.arrayBuffer().then(function (buf) {
+        Module.opeuImportSaves(new Uint8Array(buf), function (err) {
+          say(err ? 'Import failed: ' + err : 'Imported ' + f.name + '; use Load Game to continue');
+          canvas.focus();
+        });
+      });
+    });
+  })();
   if (autostart) start();
   window.addEventListener('error', function (e) {
     statusEl.textContent = 'Error: ' + e.message;

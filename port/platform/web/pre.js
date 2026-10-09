@@ -63,3 +63,24 @@ Module['preRun'].push(function () {
     if (chained) chained();
   };
 })();
+
+/* Save-game export/import for the shell page (shell.html). The game writes
+ * its saves to SAVEDATA in its directory (created as "Savedata": the port
+ * resolves DOS names case-insensitively, so either spelling is the same
+ * file). Export hands the bytes to the page; import replaces the file and
+ * flushes IDBFS so the copy in IndexedDB is current. The file is the
+ * original format (20 slots, 202,420 bytes), interchangeable with a DOS
+ * installation of the game. */
+Module['opeuSaveFileName'] = function () {
+  var names = FS.readdir('/data').filter(function (n) { return n.toLowerCase() === 'savedata'; });
+  return names.length ? '/data/' + names[0] : null;
+};
+Module['opeuExportSaves'] = function () {
+  var name = Module['opeuSaveFileName']();
+  return name ? FS.readFile(name) : null;
+};
+Module['opeuImportSaves'] = function (bytes, done) {
+  var name = Module['opeuSaveFileName']() || '/data/Savedata';
+  FS.writeFile(name, bytes);
+  FS.syncfs(false, function (err) { if (done) done(err); });
+};
