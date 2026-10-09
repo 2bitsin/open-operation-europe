@@ -225,7 +225,7 @@ struct SaveSlot {
 
 // Bits of Unit::flags.
 enum class UnitFlag : std::uint8_t {
-  BIT_0 = 0x01,
+  SELECTED = 0x01, // the unit selected in its division (units/select)
   BIT_1 = 0x02,
   READY = 0x04, // "ready" (core/advregt, core/advtide): fielded and selectable
   BIT_4 = 0x10,
@@ -235,8 +235,8 @@ enum class UnitFlag : std::uint8_t {
 
 // Bits of Group::flags.
 enum class GroupFlag : std::uint8_t {
-  RESERVE = 0x01, // a reserve division (core/divstr)
-  BIT_1   = 0x02,
+  RESERVE  = 0x01, // a reserve division (core/divstr)
+  SELECTED = 0x02, // the division selected on its side (units/select)
   READY   = 0x04, // an active division (core/advenemy, core/aiops5)
   AI_MARK =
       0x08, // set on every ready group by the computer side (core/aiops5 1ac2:15c0)
@@ -245,7 +245,7 @@ enum class GroupFlag : std::uint8_t {
 
 // Bits of Element::flags.
 enum class ElementFlag : std::uint8_t {
-  BIT_0 = 0x01,
+  SELECTED = 0x01, // the element selected in its unit (units/select)
   BIT_1 = 0x02, // counted by units/vwlist (flag-2 elements of a kind)
   BIT_2 = 0x04,
   BIT_4 = 0x10,
@@ -263,6 +263,16 @@ enum class PersonRole : std::uint8_t {
   POOR_HEALTH = 0x40,
   BIT_7       = 0x80,
 };
+
+// Person::assignment: the low two bits are the division, 0x04 marks a general assigned to it; the top five bits
+// are the general's counter (core/counter).
+enum class Assignment : std::uint8_t {
+  DIVISION_MASK = 0x03,
+  DIVISION      = 0x04,
+};
+
+// Person::status of an unused record (otherwise the general's nation bits, matched against side_masks).
+inline constexpr std::uint8_t PERSON_VACANT{ 0xff };
 
 // ElementType::category (core/divstr).
 enum class Category : std::uint8_t {
@@ -355,7 +365,7 @@ struct DataSegment {
         std::array<std::uint8_t, 56> move_costs;
       };
       std::array<std::uint8_t, 144> weather_odds;     // DS:00ae
-      std::array<std::uint8_t, 2>   daily_side_flags; // DS:013e
+      std::array<std::uint8_t, 2>   side_masks; // DS:013e: the nation bits of each side (Person::status, ElementType::sides)
       std::array<std::uint8_t, 2>   side_stance;      // DS:0140
     };
   };
@@ -2143,11 +2153,7 @@ struct DataSegment {
       std::array<char, 12>         text_9029;               // DS:9029
       std::array<char, 16>         text_9035;               // DS:9035
       std::array<char, 27>         advice_prompt;           // DS:9045
-      FarPointer                   advice_actions;          // DS:9060
-      FarPointer                   far_code_9064;           // DS:9064
-      FarPointer                   far_code_9068;           // DS:9068
-      FarPointer                   far_code_906c;           // DS:906c
-      FarPointer                   far_code_9070;           // DS:9070
+      std::array<FarPointer, 5>    advice_actions;          // DS:9060: the action of each advice topic
       std::uint16_t                advice_menu[4];          // DS:9074
       std::uint16_t                near_907c;               // DS:907c
       std::array<std::uint8_t, 10> bytes_907e;              // DS:907e
@@ -2162,9 +2168,7 @@ struct DataSegment {
       std::array<char, 11>         text_90bc;               // DS:90bc
       std::array<char, 13>         text_90c7;               // DS:90c7
       std::array<char, 14>         staff_prompt;            // DS:90d4
-      std::array<std::uint8_t, 4>  staff_actions;           // DS:90e2
-      FarPointer                   far_code_90e6;           // DS:90e6
-      FarPointer                   far_code_90ea;           // DS:90ea
+      std::array<FarPointer, 3>    staff_actions;           // DS:90e2: the action of each staff officer
       std::uint16_t                staff_menu[4];           // DS:90ee
       std::uint16_t                near_90f6;               // DS:90f6
       std::array<std::uint8_t, 10> bytes_90f8;              // DS:90f8
@@ -3192,7 +3196,7 @@ struct DataSegment {
   std::array<std::uint8_t, 256> flash_buffers;   // DS:c76a
   std::uint8_t                  transfer_unit;   // DS:c86a
   std::uint8_t                  transfer_group;  // DS:c86b
-  std::array<std::uint8_t, 500> advice_messages; // DS:c86c
+  std::array<std::array<char, 100>, 5> advice_messages; // DS:c86c: the staff's advice text per topic, empty when none
   union {                                        // DS:ca60
     std::uint16_t               supply_objective;
     std::array<std::uint8_t, 2> supply_objective_bytes;
@@ -3208,9 +3212,9 @@ struct DataSegment {
   std::uint8_t                 tally_reject_count; // DS:caec
   std::array<std::uint8_t, 1>  unknown_caed;
   std::uint16_t                supply_others[12]; // DS:caee
-  std::array<std::uint8_t, 48> supply_sum_b;      // DS:cb06
-  std::array<std::uint8_t, 48> supply_sum_a;      // DS:cb36
-  std::array<std::uint8_t, 48> supply_sum_c;      // DS:cb66
+  std::uint32_t                supply_sum_b[12];  // DS:cb06
+  std::uint32_t                supply_sum_a[12];  // DS:cb36
+  std::uint32_t                supply_sum_c[12];  // DS:cb66
   std::array<std::uint8_t, 12> supply_avg_b;      // DS:cb96
   std::array<std::uint8_t, 12> supply_avg_a;      // DS:cba2
   std::array<std::uint8_t, 12> supply_avg_c;      // DS:cbae
@@ -3218,12 +3222,12 @@ struct DataSegment {
     std::uint16_t tally_unit;
     std::uint16_t alloc_units;
   };
-  std::array<std::uint8_t, 2> tally_other_unit; // DS:cbbc
+  std::uint16_t               tally_other_unit; // DS:cbbc
   union {                                       // DS:cbbe
     std::uint16_t tally_source;
     std::uint16_t alloc_objective;
   };
-  std::array<std::uint8_t, 30>  supply_spare;  // DS:cbc0
+  std::array<Item, 6>           supply_spare;  // DS:cbc0; tally: the stock items of another class
   std::uint8_t                  supply_slots;  // DS:cbde
   std::array<std::uint8_t, 59>  alloc_amounts; // DS:cbdf
   std::array<std::uint8_t, 158> rq_type_list;  // DS:cc1a
@@ -3533,7 +3537,7 @@ static_assert(offsetof(DataSegment, context_group_record_bytes) == 0x0074);
 static_assert(offsetof(DataSegment, terrain_ratings) == 0x0076);
 static_assert(offsetof(DataSegment, move_costs) == 0x0076);
 static_assert(offsetof(DataSegment, weather_odds) == 0x00ae);
-static_assert(offsetof(DataSegment, daily_side_flags) == 0x013e);
+static_assert(offsetof(DataSegment, side_masks) == 0x013e);
 static_assert(offsetof(DataSegment, side_stance) == 0x0140);
 static_assert(offsetof(DataSegment, special) == 0x0142);
 static_assert(offsetof(DataSegment, request_configs) == 0x0142);
@@ -5214,10 +5218,6 @@ static_assert(offsetof(DataSegment, text_9029) == 0x9029);
 static_assert(offsetof(DataSegment, text_9035) == 0x9035);
 static_assert(offsetof(DataSegment, advice_prompt) == 0x9045);
 static_assert(offsetof(DataSegment, advice_actions) == 0x9060);
-static_assert(offsetof(DataSegment, far_code_9064) == 0x9064);
-static_assert(offsetof(DataSegment, far_code_9068) == 0x9068);
-static_assert(offsetof(DataSegment, far_code_906c) == 0x906c);
-static_assert(offsetof(DataSegment, far_code_9070) == 0x9070);
 static_assert(offsetof(DataSegment, advice_menu) == 0x9074);
 static_assert(offsetof(DataSegment, near_907c) == 0x907c);
 static_assert(offsetof(DataSegment, bytes_907e) == 0x907e);
@@ -5233,8 +5233,6 @@ static_assert(offsetof(DataSegment, text_90bc) == 0x90bc);
 static_assert(offsetof(DataSegment, text_90c7) == 0x90c7);
 static_assert(offsetof(DataSegment, staff_prompt) == 0x90d4);
 static_assert(offsetof(DataSegment, staff_actions) == 0x90e2);
-static_assert(offsetof(DataSegment, far_code_90e6) == 0x90e6);
-static_assert(offsetof(DataSegment, far_code_90ea) == 0x90ea);
 static_assert(offsetof(DataSegment, staff_menu) == 0x90ee);
 static_assert(offsetof(DataSegment, near_90f6) == 0x90f6);
 static_assert(offsetof(DataSegment, bytes_90f8) == 0x90f8);
@@ -6399,6 +6397,8 @@ template <typename T>
 
 namespace opeu::game {
 using detail::data_segment::AirDrop;
+using detail::data_segment::Assignment;
+using detail::data_segment::PERSON_VACANT;
 using detail::data_segment::AirStrike;
 using detail::data_segment::BATTLE_WIDTH;
 using detail::data_segment::Bits;
