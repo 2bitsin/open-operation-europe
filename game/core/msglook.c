@@ -10,6 +10,14 @@
 #include "core/msglook.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/memory.h"
+#endif
+
 /* Host model: ds is the 64 KiB data segment. Callees are event(ds,id,args,
  * count): daily_context=0 (side), string_copy_far=1 (DS:e668, table offset
  * word, table segment word; the table index wraps at 16 bits) and
@@ -40,3 +48,37 @@ RESULT opeu_message_lookup(uint8_t ds[65536], HostEvent event, int16_t id) {
     ERROR();
   return BUFFER;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/msglook.c (312c:000c opeu_message_lookup). Events, from the
+ * host branch's comment:
+ *   0 daily_context(side) 1389:000e opeu_daily_context
+ *   1 string_copy_far(DS:e668, table offset, table segment) 09cc:00f4
+ *   2 request_format(DS:e668, DS:bc86) 0480:0b9a */
+uint16_t svc_msglook(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 1:
+      r = opeu_string_copy_far(ds, ARG(0), port_far(ARG(2), 0), ARG(1));
+      break;
+    case 2:  b1_request_format(ds, args, count); break;
+    default: port_unhandled("msglook", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

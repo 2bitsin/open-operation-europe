@@ -11,6 +11,13 @@
 #include "core/airforce.h"
 #include "units/labels.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/airbomb.h"
+#endif
 #include <stddef.h>
 #include <string.h>
 /* Host model: near pointers are DS offsets into ds[65536]. Service events
@@ -141,3 +148,37 @@ void opeu_turn_action_8(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     DAILY(CURRENT);
   } while (!DELAYS[CURRENT]);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/airforce.c (23b2:106e..1230, Air Force command). Services: ids
+ * 0 (also location_name's label format), 4, 8, 9, 12, 13 and 14 (far
+ * mission action from DS:a62e: 23b2:05b0/0b28/0e20, PORT_ROUTINE handlers
+ * in game/core/air{bomb,drop,lift}.c) of the 23b2 table shared by
+ * the air-force modules (svc_air, game/core/airbomb.c). */
+uint16_t svc_airforce(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_air(ds, "airforce", id, args, count);
+}
+
+PORT_ROUTINE(opeu_turn_action_8) {
+  uint16_t sp = c2_air_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_turn_action_8(ds, svc_airforce, sp);
+  c2_air_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

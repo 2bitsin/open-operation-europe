@@ -10,6 +10,13 @@
 #include "core/vwcity.h"
 #include "units/vwlist.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/vwarms.h"
+#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -177,3 +184,57 @@ void opeu_view_cities_menu(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   while ((a = MENU()) != 0xffff)
     ACTION(a);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_SP_CALL(bytes, call)            \
+  do {                                     \
+    uint16_t sp = port_stack_enter(bytes); \
+    call;                                  \
+    port_stack_leave(bytes);               \
+  } while (0)
+
+/* Services of core/vwcity.c (1fe6:0760..08cf city lists and menu).
+ * Services: the shared HostEvent protocol of the 1fe6 view modules
+ * (svc_view in game/core/vwarms.c; ids as the module's host enum). */
+uint16_t svc_vwcity(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  return svc_view(ds, "vwcity", id, args, count);
+}
+
+/* 1fe6:0894 */
+PORT_ROUTINE(opeu_view_cities_menu) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_cities_menu(ds, svc_vwcity, sp));
+  return 0;
+}
+
+/* 1fe6:085e */
+PORT_ROUTINE(opeu_view_enemy_cities) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_enemy_cities(ds, svc_vwcity, sp));
+  return 0;
+}
+
+/* 1fe6:082e */
+PORT_ROUTINE(opeu_view_own_cities) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_own_cities(ds, svc_vwcity, sp));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_SP_CALL
+#endif /* OPEU_HOST_EVENTS */

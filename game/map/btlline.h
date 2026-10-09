@@ -8,4 +8,10 @@
 void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0,
                            int16_t y0, int16_t x1, int16_t y1);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlline(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

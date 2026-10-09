@@ -10,6 +10,35 @@
 #include "core/dialogs.h"
 #include "types/events.h"
 #include "types/host.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/emsmap.h"
+#include "core/msglook.h"
+#include "core/people.h"
+#include "core/personfl.h"
+#include "core/perssel.h"
+#include "core/recindex.h"
+#include "core/sideutil.h"
+#include "core/strings.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "io/keyboard.h"
+#include "io/sound.h"
+#include "io/soundcue.h"
+#include "io/waitkey.h"
+#include "map/mappos.h"
+#include "map/mapunit.h"
+#include "map/objeleg.h"
+#include "map/query.h"
+#include "map/support.h"
+#include "units/labels.h"
+#include "units/stats.h"
+#include "units/unitname.h"
+#endif
 /* Host model. Near pointers are 16-bit DS offsets, far pointers seg<<16|off.
  * Every callee outside segment 1707 is one host event (id, argument words):
  * 0 bitmap_restore(7) 1 bitmap_save(6) 2 ui_box(5) 3 vga_clear 4 display_prepare
@@ -525,3 +554,203 @@ void opeu_element_panel(P_ PTR(uint8_t) element) {
   ARMY_POSITION(0x30, 0xea);
   ARMY_PRINT(ELEMENT_FORMAT, WORD_AT(element + 1), WORD_AT(element + 3));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define KEY_SCRATCH 16u
+
+/* Services of core/dialogs.c (1707:0002..0bd5 turn frame, context panels, speaker
+ * dialogs and reports). The module takes a DialogHost structure; its events,
+ * from the host branch's comment, resolved by address (symbols.json):
+ *   0 bitmap_restore 0000:2674  1 bitmap_save 0000:2ed8  2 ui_box 0000:2ad2
+ *   3 vga_clear 0000:2aac  4 display_prepare 06ac:007e
+ *   5 picture_memory_masked 0a04:022c  6 palette_for_hour 0a04:07f4
+ *   7 picture_file 0a04:01a0  8 ui_outline 0a04:065a  9 context_frame 0a04:02a0
+ *  10 context_portrait 0a04:046c  11 face_draw 0a04:0602
+ *  12 context_save 0480:0844  13 context_restore 0480:086a
+ *  14 army_position 0480:0808  15 ui_text 0480:0484  16 army_print 0480:0bb8
+ *  17 request_format 0480:0b9a  18 text_scroll_mode 0480:06f2
+ *  19 text_window 0480:0704  20 text_window_reset 0480:07a4
+ *  21 text_putc 0480:0944  22 choose_value 0541:0238  23 yes_no 0541:060a
+ *  24 delay_units 0a8e:004c  25 music_command7 0d65:01b0  26 sound_cue16 0d92:0088
+ *  27 person_lacks_side0_flag 0b73:02bc  28 person_selected_unit 145c:0ce6
+ *  29 unit_selection_eligible 145c:0fc4  30 daily_context 1389:000e
+ *  31 string_length 09cc:022a  32 string_append 09cc:01f6
+ *  33 message_lookup 312c:000c  34 unit_side 145c:006c  35 unit_name 0b73:0188
+ *  36 arrival_location 15c4:1408  37 unit_group_index 145c:0048
+ *  38 find_group_record 0b73:0334  39 arrival_view 15c4:0808
+ *  40 objective_side 145c:01b8  41 objective_eligible 145c:101a
+ *  42 find_side_record 0b73:02ee  43 arrival_flash 15c4:0848
+ *  44 opposite_side 0b73:04c8  45 unit_special 145c:04de  46 type_name 0b73:01de
+ *  47 present(offset,segment): far routine read from data -> port_call. */
+uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0, f;
+  switch (id) {
+    case 0:
+      r = (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                                        port_far(ARG(5), ARG(6)));
+      break;
+    case 1:
+      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
+                       port_far(ARG(4), ARG(5)));
+      break;
+    case 2:
+      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 3: r = (uint16_t)opeu_vga_clear(); break;
+    case 4: opeu_display_prepare(ds, svc_emsmap); break;
+    case 5:
+      opeu_picture_memory_masked(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                                 ARG(3));
+      break;
+    case 6: opeu_palette_for_hour(ds, port_uiprim_host()); break;
+    case 7:
+      opeu_picture_file(ds, port_uiprim_host(), ARG(0), ARG(1), (int16_t)ARG(2),
+                        ARG(3));
+      break;
+    case 8:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    case 9:
+      opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 10:
+      opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 11:
+      opeu_face_draw(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                     (uint8_t)ARG(3));
+      break;
+    case 12: opeu_context_save(ds, port_textout_host()); break;
+    case 13: opeu_context_restore(ds, port_textout_host()); break;
+    case 14:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 15: opeu_ui_text(ds, port_textout_host(), ARG(0)); break;
+    case 16: b1_cursor_print(ds, args, count); break;
+    case 17: b1_request_format(ds, args, count); break;
+    case 18:
+      r = (uint16_t)opeu_text_scroll_mode(ds, port_textout_host(),
+                                          (int16_t)ARG(0));
+      break;
+    case 19:
+      opeu_text_window(ds, port_textout_host(), (int16_t)ARG(0),
+                       (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
+      break;
+    case 20: opeu_text_window_reset(ds, port_textout_host()); break;
+    case 21: r = opeu_text_put(ds, port_textout_host(), (uint8_t)ARG(0)); break;
+    case 22:
+      f = b1_stack_alloc(KEY_SCRATCH);
+      r = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1), (int16_t)ARG(2),
+                            ARG(3), f);
+      port_scratch_leave(KEY_SCRATCH);
+      break;
+    case 23:
+      f = b1_stack_alloc(KEY_SCRATCH);
+      r = (uint16_t)opeu_yes_no(ds, svc_keyboard, f);
+      port_scratch_leave(KEY_SCRATCH);
+      break;
+    case 24: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 25: opeu_music_command7(ds, svc_sound); break;
+    case 26: opeu_sound_cue16(ds, svc_soundcue); break;
+    case 27: r = opeu_person_lacks_side0_flag(ds, ARG(0)); break;
+    case 28: r = opeu_person_selected_unit(ds, ARG(0)); break;
+    case 29: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 30: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 31: r = opeu_string_length(ds, ARG(0)); break;
+    case 32: r = opeu_string_append(ds, ARG(0), ARG(1)); break;
+    case 33: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 34: r = opeu_unit_side(ARG(0)); break;
+    case 35: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 36:
+      f = b1_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, f, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                            (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 37: r = opeu_unit_group_index(ARG(0)); break;
+    case 38:
+      r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    case 39:
+      f = b1_frame_enter();
+      opeu_arrival_view(ds, svc_mapunit, f, ARG(0));
+      port_frame_leave();
+      break;
+    case 40: r = opeu_objective_side(ds, ARG(0)); break;
+    case 41: r = opeu_objective_eligible(ds, ARG(0)); break;
+    case 42:
+      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    case 43:
+      f = b1_frame_enter();
+      opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 44: r = opeu_opposite_side((uint8_t)ARG(0)); break;
+    case 45: r = opeu_unit_special(ds, ARG(0)); break;
+    case 46: r = opeu_type_name(ds, ARG(0), ARG(1)); break;
+    case 47:
+      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      break;
+    default: port_unhandled("dialogs", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_army_title) {
+  opeu_army_title(ds, port_dialogs_host(), ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_confirm_ok) {
+  return opeu_confirm_ok(ds, port_dialogs_host(), ARG(0));
+}
+
+PORT_ROUTINE(opeu_control_choose) {
+  return opeu_control_choose(ds, port_dialogs_host(), ARG(2), ARG(0), ARG(1),
+                             ARG(3), ARG(4), ARG(5));
+}
+
+PORT_ROUTINE(opeu_control_message) {
+  opeu_control_message(ds, port_dialogs_host(), ARG(1), ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_info_panel_begin) {
+  (void)args;
+  (void)count;
+  opeu_info_panel_begin(ds, port_dialogs_host());
+  return 0;
+}
+
+PORT_ROUTINE(opeu_screen_reset) {
+  (void)args;
+  (void)count;
+  opeu_screen_reset(ds, port_dialogs_host());
+  return 0;
+}
+
+PORT_ROUTINE(opeu_title_panel_begin) {
+  (void)args;
+  (void)count;
+  opeu_title_panel_begin(ds, port_dialogs_host());
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef KEY_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

@@ -10,4 +10,9 @@ uint8_t opeu_side_for_status(const uint8_t* ds, uint8_t side);
 void    opeu_select_side_color(uint8_t* ds, SideColorEvent event, uint8_t side);
 uint8_t opeu_record_side(const uint8_t* ds, uint16_t record);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+void svc_sideutil(uint8_t* ds, uint16_t color);
+#endif
+
 #endif

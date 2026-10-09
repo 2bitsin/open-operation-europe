@@ -5,6 +5,13 @@
 #include "types.h"
 #include "units/ordbridg.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/engineer.h"
+#endif
 /* Host model: ds is the 64 KiB data/stack segment and pointers are DS offsets
  * with 16-bit wrap. Callees are event(ds,id,args,count) with the service ids
  * of tests/validate_order_handlers.py; byte results use the low byte. frame
@@ -86,3 +93,67 @@ uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event,
 #undef CUR
 #undef SIDE
 #undef SLOT
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/ordbridg.c (3131:0596..06a9 destroy-bridge order handler).
+ * Services of tests/validate_order_handlers.py used here: 0 unit_average11,
+ * 1 rand_bounded, 2 restore_unit_order, 8 unit_report, 12 daily_show,
+ * 15 move_adjacent, 16 move_level_lower, 17 cell_side, 24 unit_person,
+ * 25 unit_average10, 27 unit_order_destination, 28 map_code,
+ * 29 map_mark_5, 30 map_erase, 31 pending_finish, 33 sound_cue5
+ * (see svc_order_handler (game/units/engineer.c)). */
+uint16_t svc_ordbridg(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+    case 1:
+    case 2:
+    case 8:
+    case 12:
+    case 15:
+    case 16:
+    case 17:
+    case 24:
+    case 25:
+    case 27:
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 33: svc_order_handler(ds, id, args, count, &r); break;
+    default: port_unhandled("ordbridg", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_destroy_present) {
+  (void)args;
+  (void)count;
+  opeu_order_destroy_present(ds, svc_ordbridg);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_order_destroy_run) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_order_destroy_run(ds, svc_ordbridg, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

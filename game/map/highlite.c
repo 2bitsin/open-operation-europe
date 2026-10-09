@@ -8,6 +8,13 @@
 #include "map/highlite.h"
 #include "map/mappixel.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model: DS (and the stack inside it) is explicit; near offsets wrap at
  * 16 bits. frame is the original BP: the pixel words a/b live at frame-2 and
  * frame-4 because the MAPPIXEL converters receive their near addresses. Far
@@ -79,3 +86,32 @@ void opeu_map_highlight_overview(uint8_t ds[65536], HostEvent event,
   OVERVIEW_PIXEL();
   DRAW_NEAR(A, B, 1, 8, 7, CURSOR_GLYPH);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/highlite.c (17c4:0006 tactical cell frame, 17c4:0080 overview
+ * cursor glyph). Events (host branch comment): draw_far=0
+ * (x,y,w,h,mode,seg,off) 0000:28b0, draw_near=1 (x,y,w,h,mode,ptr)
+ * 0000:28a8 -- the same callees and words as the 15c4 kinds 0 and 1. */
+uint16_t svc_highlite(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                      uint16_t count) {
+  switch (kind) {
+    case 0:
+    case 1:  return svc_map_plan(ds, "highlite", kind, args, count);
+    default: port_unhandled("highlite", kind, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

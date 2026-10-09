@@ -13,6 +13,14 @@
 #include "units/stats.h"
 #include "units/unitname.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/textout.h"
+#endif
 /* Host adapter. frame is the original BP, a near offset into the modeled
  * 65,536-byte DS/SS; the caller supplies frame-46..frame-1 as workspace.
  * x/y are whole incoming AX/DX words; only their low bytes reach callees.
@@ -99,3 +107,43 @@ void opeu_map_cursor(uint8_t ds[65536], HostEvent event, uint16_t frame, ARGS) {
   }
   TEXT(END_TEXT);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/cursor.c (17c4:0164 map cursor status line). Events (host
+ * branch comment):
+ *   0 begin          1707:020c opeu_turn_active_begin (DIALOGS)
+ *   1 text(ptr)      0480:0484 cursor_text = opeu_ui_text (TEXTOUT)
+ *   2 UNITNAME's formatter (buffer, format, name, number), raised by the
+ *     recovered opeu_unit_name that CURSOR runs with this event:
+ *                    0480:0b9a request_format (sprintf)
+ *   3 print(format, two vararg words)
+ *                    0480:0bb8 cursor_print (printf) */
+uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  switch (id) {
+    case 0:
+      opeu_turn_active_begin(ds, port_dialogs_host());
+      break; /* 1707:020c */
+    case 1:
+      opeu_ui_text(ds, port_textout_host(), ARG(0));
+      break;                                             /* 0480:0484 */
+    case 2:  map_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 3:  map_cursor_print(ds, args, count); break;   /* 0480:0bb8 */
+    default: port_unhandled("cursor", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

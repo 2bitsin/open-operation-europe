@@ -19,6 +19,18 @@
 #include "core/selunit.h"
 #include "map/grid.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "map/mappos.h"
+#include "map/mapunit.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. The side, person,
  * map, RNG and byte-arithmetic helpers run recovered host code; the UI and
@@ -221,3 +233,97 @@ void opeu_angel_event(uint8_t ds[65536], HostEvent event,
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evangel.c (108c:0c4e..0fd7 Sister Angelique's visit).
+ * Services from the host branch comment:
+ * 0 message panel (1707:0346), 1 frame(x,y,width), 2 print(format),
+ * 3 seek(handle,offset low,offset high,origin), 4 draw(x,y,w,h,mode,handle),
+ * 5 lookup(id) -> text, 6 format(buffer,format,text), 7 position(x,y),
+ * 8 text(buffer), 9 arrival_location(x,y,side), 10 15c4:087e(x,y,side),
+ * 11 daily_show(id,side,callback offset,callback segment),
+ * 12 far action through DS:7cec other than this module's own (person,unit). */
+uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0:
+      opeu_message_panel_begin(ds, port_dialogs_host());
+      break; /* 1707:0346 */
+    case 1:
+      opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;                                         /* 0a04:02a0 */
+    case 2: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 army_print */
+    case 3: {                                        /* FILEIO 009b dos_seek */
+      int32_t position =
+          opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1), (int16_t)ARG(3));
+      r = (uint16_t)position;
+      break;
+    }
+    case 4:
+      opeu_image_read_draw(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                           ARG(3), ARG(4), (int16_t)ARG(5));
+      break;
+    case 5:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      break;                                           /* 312c:000c */
+    case 6: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 7:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break; /* 0480:0808 */
+    case 8:
+      opeu_text_feed(ds, port_dialogs_host(), ARG(0));
+      break; /* 1707:0652 message_text */
+    case 9:  /* 15c4:1408 */
+      frame = port_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
+                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 10: /* 15c4:087e */
+      frame = port_frame_enter();
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
+                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 11:
+      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      break; /* 1707:03e4 */
+    case 12:
+      port_fatal("evangel: far action outside 108c without its address (person "
+                 "%04x unit %04x)",
+                 ARG(0), ARG(1));
+      break;
+    default: port_unhandled("evangel", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_angel_event) {
+  (void)args;
+  (void)count;
+  opeu_angel_event(ds, svc_evangel, 0x108c);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_angel_present) {
+  (void)args;
+  (void)count;
+  opeu_angel_present(ds, svc_evangel, 0x108c);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

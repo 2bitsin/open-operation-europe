@@ -11,4 +11,10 @@ uint16_t opeu_element_name(uint8_t* ds, uint16_t element, uint16_t buffer);
 uint16_t opeu_location_name(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y,
                             uint16_t buffer);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_labels(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count);
+#endif
+
 #endif

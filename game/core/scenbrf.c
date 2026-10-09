@@ -13,6 +13,15 @@
 #include "core/scenbrf.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "map/maperase.h"
+#include "map/mappixel.h"
+#endif
+
 /* Services (event, arguments): 0 daily activate (side), 1 control message
  * (text, speaker), 2 overview pixel (x pointer, y pointer), 3 invert
  * (x, y, width, height, mode), 4 format (destination, format, person).
@@ -338,3 +347,93 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
     return;
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/scenbrf.c (0d9b:0000..0933 scenario briefings). Services, from
+ * the host branch's comment:
+ *   0 daily activate(side) 15c4:0ff8 opeu_daily_activate (MAPERASE, BP frame)
+ *   1 control message(text,speaker) 1707:0672 opeu_control_message (DIALOGS)
+ *   2 overview pixel(x pointer,y pointer) 15c4:054a opeu_overview_pixel
+ *   3 invert(x,y,w,h,mode) 0000:2b0e opeu_ui_invert (VGALIB opeu_ui_highlight)
+ *   4 format(destination,format,person) 0480:0b9a opeu_request_format
+ * The briefings and the message hook are reached through far code pointers
+ * (side-initializer table DS:735a, message hook DS:3ec2): their PORT_ROUTINE
+ * handlers are in game/core/scenbrf.c. */
+uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0, f;
+  switch (id) {
+    case 0:
+      f = b1_frame_enter();
+      opeu_daily_activate(ds, svc_maperase, f, (uint8_t)ARG(0));
+      port_frame_leave();
+      break;
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 2: opeu_overview_pixel(ds, ARG(0), ARG(1)); break;
+    case 3:
+      r = (uint16_t)opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 4:  b1_request_format(ds, args, count); break;
+    default: port_unhandled("scenbrf", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_brief_africa) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_africa);
+}
+
+PORT_ROUTINE(opeu_brief_ardennes) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_ardennes);
+}
+
+PORT_ROUTINE(opeu_brief_berlin) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_berlin);
+}
+
+PORT_ROUTINE(opeu_brief_blink) {
+  (void)args;
+  (void)count;
+  opeu_brief_blink(ds, svc_scenbrf);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_brief_france) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_france);
+}
+
+PORT_ROUTINE(opeu_brief_kursk) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_kursk);
+}
+
+PORT_ROUTINE(opeu_brief_normandy) {
+  (void)args;
+  (void)count;
+  return port_run_briefing(ds, opeu_brief_normandy);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

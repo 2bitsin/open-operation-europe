@@ -10,4 +10,10 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame,
 void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame,
                          uint16_t x, uint16_t y);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_mapview(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

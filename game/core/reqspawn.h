@@ -9,4 +9,10 @@ void opeu_request_action2(uint8_t* ds,
                                             uint16_t, uint16_t, uint16_t),
                           uint8_t side, uint16_t request);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
+                      uint16_t c, uint16_t d);
+#endif
+
 #endif

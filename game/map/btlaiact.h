@@ -22,4 +22,12 @@ void opeu_battle_ai_act(uint8_t* ds, BattleEvent event, uint16_t element,
 void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element,
                           uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_battle_ai(uint8_t* ds, uint32_t address, const uint16_t* args,
+                       unsigned count);
+uint16_t svc_btlaiact(uint8_t* ds, uint32_t service, const uint16_t* args,
+                      unsigned int count);
+#endif
+
 #endif

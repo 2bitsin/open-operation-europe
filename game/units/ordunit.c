@@ -21,6 +21,13 @@
 #include "map/support.h"
 #include "units/orders.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/ordact.h"
+#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]. Events as in
  * ORDTGT (2 confirm_message(text,person)); order clearing and selection
@@ -112,3 +119,38 @@ void opeu_order_layout_pair(uint8_t ds[65536], uint16_t kind) {
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/ordunit.c (1c23:01fa..02ee unit order helpers). The only
+ * service is 2 confirm_message(text,person) (1707:076c); the module's
+ * callers (ordissue, ordact) pass their own order event, so their link
+ * files serve it too. svc_ordunit serves a direct use of this module. */
+uint16_t svc_ordunit(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 2:  svc_orders(ds, id, args, count, &r); break;
+    default: port_unhandled("ordunit", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_supply_unit_enabled) {
+  (void)args;
+  (void)count;
+  return opeu_supply_unit_enabled(ds);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

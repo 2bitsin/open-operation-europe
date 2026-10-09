@@ -12,6 +12,21 @@
 #include "map/blast.h"
 #include "map/mappixel.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/emsmap.h"
+#include "core/memory.h"
+#include "core/sideutil.h"
+#include "io/sound.h"
+#include "io/soundcue.h"
+#include "io/waitkey.h"
+#include "map/maperase.h"
+#include "map/mappos.h"
+#endif
 /* Host model: DS (and the stack inside it) is explicit; frame is the
  * original BP: the pixel words a/b live at frame-2/frame-4 because the
  * MAPPIXEL converters receive their near addresses. Far data segment 361c
@@ -122,3 +137,130 @@ void opeu_blast_erase(uint8_t ds[65536], HostEvent event, uint8_t x,
 void opeu_blast_pause(uint8_t ds[65536], HostEvent event) {
   WAIT(30);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)          ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)        ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define FAR(segi, offi) port_far(ARG(segi), ARG(offi))
+#define W(i)            ARG(i)
+
+/* Services of map/blast.c (17c4:0744 location blast, 0860 blast erase, 0866 blast
+ * pause). Events (host branch comment; callees from the DOS branch):
+ *   0 side_for_status(side) -> low byte   0b73:04d0 opeu_side_for_status
+ *   1 arrival_location(x,y,side)          15c4:1408 (MAPPOS)
+ *   2 sound cue 5                         0d92:0030 opeu_sound_cue5
+ *   3 wait(units)                         0a8e:004c opeu_delay_units
+ *   4 blit_far(x,y,w,h,mode,seg,off)      0000:27ca opeu_blit_far
+ *   5 sprite_compose (11 words)           0000:3e0a opeu_sprite_compose
+ *   6 effect_finish                       0d65:02bc opeu_effect_finish
+ *   7 map_erase(x,y)                      15c4:0f7c (MAPERASE)
+ * 4 and 5 are the 15c4 kinds 9 and 8 (svc_map_plan, game/map/blast.c) word for word. */
+uint16_t svc_blast(uint8_t* ds, uint16_t id, const uint16_t* args,
+                   uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0:
+      r = opeu_side_for_status(ds, (uint8_t)ARG(0));
+      break; /* 0b73:04d0 */
+    case 1:  /* 15c4:1408 */
+      frame = map_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
+                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      map_frame_leave();
+      break;
+    case 2: opeu_sound_cue5(ds, svc_soundcue); break; /* 0d92:0030 */
+    case 3:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+      break;                                                  /* 0a8e:004c */
+    case 4: svc_map_plan(ds, "blast", 9, args, count); break; /* 0000:27ca */
+    case 5: svc_map_plan(ds, "blast", 8, args, count); break; /* 0000:3e0a */
+    case 6: opeu_effect_finish(ds, svc_sound); break;         /* 0d65:02bc */
+    case 7:                                                   /* 15c4:0f7c */
+      frame = map_frame_enter();
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      map_frame_leave();
+      break;
+    default: port_unhandled("blast", id, count);
+  }
+  return r;
+}
+
+/* The 15c4 map segment's shared service kinds (svc_map_plan, game/map/blast.c). Each kind is
+ * the original callee of the host branches' event; argument words in the
+ * DOS declaration order of that callee:
+ *   0 draw_far(x,y,w,h,mode,seg,off)          0000:28b0 opeu_draw_far
+ *   1 draw_near(x,y,w,h,mode,ptr)             0000:28a8 opeu_draw_near
+ *   2 bitmap_restore_near(x,y,w,h,mode,ptr)   0000:266c koei_266c
+ *   3 bitmap_save_near(x,y,w,h,ptr)           0000:2e72 koei_2e72
+ *   4 glyph_draw_near(x,y,w,h,color,ptr)      0000:2a81 opeu_vga_glyph
+ *   5 ui_line(x1,y1,x2,y2,color)              0000:2d16 opeu_ui_line
+ *   6 bitmap_restore(x,y,w,h,mode,seg,off)    0000:2674 opeu_bitmap_restore
+ *   7 draw_masked_near(x,y,w,h,mode,ptr)      0000:28c5 opeu_code_0000_28c5
+ *   8 sprite_compose(x,y,w,h,image off,seg,mask off,seg,buffer off,seg,flags)
+ *                                             0000:3e0a opeu_sprite_compose
+ *     (SYSLIB reads the image at [bp+0e], the mask at [bp+12], the buffer
+ *     at [bp+16] and tests flags at [bp+1a]; MAPVIEW's DOS prototype names
+ *     the last three words "mode, segment, offset", MAPOVER's "target off,
+ *     target seg, mode" -- the positions are the same)
+ *   9 blit_far(x,y,w,h,mode,seg,off)          0000:27ca opeu_blit_far
+ *  10 pattern_draw(x,y,w,h,mode,ptr)          0000:27c2 koei_27c2
+ *  11 screen_shift(x1,y1,x2,y2)               0000:3bc5 koei_3bc5
+ *  12 wait_ticks(ticks)                       0a8e:004c opeu_delay_units
+ *  13 control_message(text,person)            1707:0672 opeu_control_message
+ *  14 status_mode(mode)                       1707:015a opeu_turn_frame
+ *  15 view_prepare()                          06ac:0042 opeu_view_prepare
+ *  16 read_far_bytes(off,seg,destination,size) 09cc:00a8 opeu_read_far_bytes
+ * The VGALIB "far" routines take (segment, offset) on the stack
+ * (vgalib.asm 2674/27ca/28b0 load DS from [bp+10], the offset from [bp+12]).
+ */
+uint16_t svc_map_plan(uint8_t* ds, const char* module, uint16_t kind,
+                      const uint16_t* args, uint16_t count) {
+  switch (kind) {
+    case 0: opeu_draw_far(W(0), W(1), W(2), W(3), W(4), FAR(5, 6)); break;
+    case 1: opeu_draw_near(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5))); break;
+    case 2: koei_266c(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5))); break;
+    case 3: koei_2e72(W(0), W(1), W(2), W(3), PORT_DS(W(4))); break;
+    case 4: opeu_vga_glyph(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5))); break;
+    case 5: opeu_ui_line(W(0), W(1), W(2), W(3), W(4)); break;
+    case 6: opeu_bitmap_restore(W(0), W(1), W(2), W(3), W(4), FAR(5, 6)); break;
+    case 7:
+      opeu_code_0000_28c5(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5)));
+      break;
+    case 8:
+      opeu_sprite_compose(W(0), W(1), W(2), W(3), FAR(5, 4), FAR(7, 6),
+                          FAR(9, 8), W(10));
+      break;
+    case 9:  opeu_blit_far(W(0), W(1), W(2), W(3), W(4), FAR(5, 6)); break;
+    case 10: koei_27c2(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5))); break;
+    case 11: koei_3bc5(W(0), W(1), W(2), W(3)); break;
+    case 12: opeu_delay_units(ds, svc_waitkey, (uint8_t)W(0)); break;
+    case 13: opeu_control_message(ds, port_dialogs_host(), W(0), W(1)); break;
+    case 14: opeu_turn_frame(ds, port_dialogs_host(), (uint8_t)W(0)); break;
+    case 15: opeu_view_prepare(ds, svc_emsmap); break;
+    case 16:
+      opeu_read_far_bytes(ds, port_far(W(1), 0), W(0), W(2), W(3));
+      break;
+    default: port_unhandled(module, kind, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_blast_pause) {
+  (void)args;
+  (void)count;
+  opeu_blast_pause(ds, svc_blast);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef FAR
+#undef W
+#endif /* OPEU_HOST_EVENTS */

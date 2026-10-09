@@ -6,6 +6,14 @@
 #include "map/arrplace.h"
 #include "map/query.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "map/reqcells.h"
+#endif
 #define REQUEST ((RequestSlotView*)(ds + request))
 #define REASON  ds[0xc760]
 #define SET_REQUEST(p) \
@@ -62,3 +70,42 @@ uint16_t opeu_request_valid(uint8_t ds[65536],
   SHOW(side);
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/reqvalid.c (1270:036e request validation). The same callback
+ * is handed to opeu_arrival_locate (map/arrplace.c, 1270:000e), whose only
+ * service is id 0 with the same meaning.
+ * Services (host branch macros, word arguments a,b,c,d):
+ * 0 request_cells(side, predicate offset, predicate segment) 145c:1208
+ *   (predicates 145c:1114 request_cell_allowed, 145c:1152
+ *   arrival_cell_allowed), 1 daily_show(id, side, present offset, present
+ *   segment) 1707:03e4. */
+uint16_t svc_reqvalid(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
+                      uint16_t c, uint16_t d) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      r = opeu_request_cells(ds, (uint8_t)a, c2_cell_predicate(b, c));
+      break; /* 145c:1208 */
+    case 1:
+      opeu_daily_show(ds, port_dialogs_host(), a, (uint8_t)b,
+                      (uint32_t)d << 16 | c);
+      break;
+    default: port_unhandled("reqvalid", id, 4);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

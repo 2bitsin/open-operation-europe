@@ -11,4 +11,10 @@ void opeu_battle_unmark_exits(uint8_t* ds, BattleEvent event, uint16_t element);
 uint16_t opeu_battle_lone_withdrawal(uint8_t* ds, BattleEvent event,
                                      uint16_t element);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlreach(uint8_t* ds, uint32_t service, const uint16_t* args,
+                      unsigned int count);
+#endif
+
 #endif

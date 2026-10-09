@@ -10,6 +10,13 @@
 #include "map/grid.h"
 #include "map/query.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/airbomb.h"
+#endif
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]. sp is the
  * DS offset of SP at entry (pointing at the far return address); automatic
  * buffers whose address reaches a callee live at their original frame
@@ -118,3 +125,27 @@ uint16_t opeu_air_confirm(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   HOST_UNUSED(sp)
   return CONFIRM(LOOKUP(0x67), PERSON);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/airhelp.c (23b2:0006..0169, air-force dialog helpers).
+ * Services: ids 0..7 of the 23b2 table shared by the air-force modules
+ * (svc_air, game/core/airbomb.c). The helpers are called directly by airbomb/airdrop/airlift
+ * with those modules' own callbacks. */
+uint16_t svc_airhelp(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_air(ds, "airhelp", id, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

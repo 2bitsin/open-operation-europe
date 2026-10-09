@@ -13,4 +13,10 @@ void opeu_battle_init_elements(uint8_t* ds, BattleEvent event);
 void opeu_battle_objective_damage(uint8_t* ds, BattleEvent event);
 void opeu_notice_other(uint8_t* ds, BattleEvent event);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlend(uint8_t* ds, uint32_t address, const uint16_t* args,
+                    unsigned int count);
+#endif
+
 #endif

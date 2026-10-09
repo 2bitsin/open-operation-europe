@@ -28,6 +28,15 @@
 #include "core/random.h"
 #include "core/strings.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "io/sound.h"
+#include "io/waitkey.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Person side, deputy
  * initialization, record counter, side records, strings, byte arithmetic and
@@ -147,3 +156,63 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evwound.c (11e5:0004..01a4 hourly wound recovery). Services
+ * from the host branch comment: 0 delay_units(units),
+ * 1 set_turn_context(value), 2 finish_side_initialization(value),
+ * 3 daily_show(id,side,callback offset,callback segment),
+ * 4 control_message(text,person). */
+uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  switch (id) {
+    case 0:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+      break; /* 0a8e:004c */
+    case 1:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+      break; /* 0d65:00fe */
+    case 2:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      break; /* 0d65:0032 */
+    case 3:
+      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      break; /* 1707:03e4 */
+    case 4:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    default: port_unhandled("evwound", id, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_death_present) {
+  (void)args;
+  (void)count;
+  opeu_death_present(ds, svc_evwound);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_wound_event) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_wound_event(ds, svc_evwound, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

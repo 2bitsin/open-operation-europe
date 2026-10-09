@@ -18,6 +18,13 @@
 #include "units/release.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/airbomb.h"
+#endif
 #pragma pack(1)
 /* Side record +29: airdrop order (site, troops, planes, hours, due hour). */
 #pragma pack()
@@ -365,3 +372,64 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   if (c == 0 || DROP_ORDER(0x10, SITE_X, SITE_Y, c))
     SIDE_DELAY(CURRENT) = 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/airdrop.c (23b2:06ca..0c79, paratroop command). Services: ids
+ * 0,1,2,3,10,11 of the 23b2 table shared by the air-force modules
+ * (svc_air, game/core/airbomb.c). The list-dialog callbacks it stores as far pointers
+ * (23b2:06ca/06de/077a) are PORT_ROUTINE handlers in
+ * game/core/airdrop.c. */
+uint16_t svc_airdrop(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_air(ds, "airdrop", id, args, count);
+}
+
+PORT_ROUTINE(opeu_air_assign_troops) {
+  uint16_t sp = c2_air_sp_enter(), r;
+  (void)args;
+  (void)count;
+  r = opeu_air_assign_troops(ds, svc_airdrop, sp);
+  c2_air_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_air_mark_battalion) {
+  uint16_t sp = c2_air_sp_enter(), r;
+  (void)args;
+  (void)count;
+  r = opeu_air_mark_battalion(ds, svc_airdrop, sp);
+  c2_air_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_air_mark_regiment) {
+  uint16_t sp = c2_air_sp_enter(), r;
+  (void)args;
+  (void)count;
+  r = opeu_air_mark_regiment(ds, svc_airdrop, sp);
+  c2_air_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_air_drop_command) {
+  uint16_t sp = c2_air_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_air_drop_command(ds, svc_airdrop, sp);
+  c2_air_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

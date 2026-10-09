@@ -16,4 +16,10 @@ void     opeu_end_nothing(void);
 void     opeu_end_losses(uint8_t* ds, HostEvent event, uint16_t bp);
 void     opeu_notice_end(uint8_t* ds, HostEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count);
+#endif
+
 #endif

@@ -15,6 +15,19 @@
 #include "map/grid.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "core/textout.h"
+#include "io/keyboard.h"
+#include "io/listdlg.h"
+#include "map/mappick.h"
+#endif
 #include <string.h>
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]. sp is the
  * DS offset of SP at entry (pointing at the far return address); automatic
@@ -252,3 +265,103 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
       SET_DELAY();
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Service table shared by the 23b2 air-force modules (airbomb, airdrop,
+ * airforce, airhelp, airlift): every one documents the same ids (host
+ * branch comments of airbomb.c, airhelp.c, airdrop.c, airforce.c):
+ *  0 request_format(dest,format,...)   0480:0b9a
+ *  1 control_message(text,person)      1707:0672
+ *  2 control_confirm(text,person)      1707:076c (= confirm_message)
+ *  3 message_lookup(id)                312c:000c
+ *  4 army_print(format,...)            0480:0bb8 (= cursor_print)
+ *  5 speaker_panel(person,show)        1707:04d4
+ *  6 text_feed(text)                   1707:0652
+ *  7 choose_value(first,last,cancel,items) 0541:0238
+ *  8 delay_dialog(text,x,person,menu)  1707:0726
+ *  9 army_title(text)                  1707:03aa
+ * 10 map_pick_location(x addr,y addr)  17c4:0274
+ * 11 list_dialog(window,limit,flags)   0a8e:0bc0
+ * 12 army_position(x,y)                0480:0808
+ * 13 daily_context(side)               1389:000e
+ * 14 far action (segment, offset) of the DGAIR mission table (DS:a62e)
+ * Conversion only; no game logic. */
+uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
+                 const uint16_t* args, uint16_t count) {
+  uint16_t r = 0, frame, scratch;
+  switch (id) {
+    case 0: c2_request_format(ds, args, count); break;
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 2:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 3: r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0)); break;
+    case 4: c2_cursor_print(ds, args, count); break;
+    case 5:
+      r = opeu_speaker_panel(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 6: opeu_text_feed(ds, port_dialogs_host(), ARG(0)); break;
+    case 7:
+      scratch = port_scratch_enter(0x40);
+      r       = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1),
+                                  (int)(int16_t)ARG(2), ARG(3), scratch);
+      port_scratch_leave(0x40);
+      break;
+    case 8:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 9: opeu_army_title(ds, port_dialogs_host(), ARG(0)); break;
+    case 10:
+      frame = port_frame_enter();
+      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      port_frame_leave();
+      break;
+    case 11:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 12:
+      opeu_army_position(ds, port_textout_host(), (short)ARG(0), (short)ARG(1));
+      break;
+    case 13: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 14:
+      r = (uint16_t)port_call(ds, (uint32_t)ARG(0) * 16u + ARG(1), 0, 0);
+      break;
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+/* Services of core/airbomb.c (23b2:016a..06c9, bombing attack). Services: ids
+ * 0,1,2,3,4,8,9,10 of the 23b2 table shared by the air-force modules
+ * (svc_air, game/core/airbomb.c). */
+uint16_t svc_airbomb(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_air(ds, "airbomb", id, args, count);
+}
+
+PORT_ROUTINE(opeu_air_bomb_command) {
+  uint16_t sp = c2_air_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_air_bomb_command(ds, svc_airbomb, sp);
+  c2_air_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

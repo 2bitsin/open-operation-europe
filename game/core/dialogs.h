@@ -54,4 +54,10 @@ void opeu_group_element_panel(uint8_t* ds, const DialogHost* host,
                               uint16_t group);
 void opeu_element_panel(uint8_t* ds, const DialogHost* host, uint16_t element);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

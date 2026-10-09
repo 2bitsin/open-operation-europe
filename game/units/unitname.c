@@ -3,6 +3,12 @@
 #include "types.h"
 #include "units/unitname.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #define RESULT uint16_t
 #define INDEX                                            \
   (((int32_t)(uint16_t)(unit - 0x14fc) -                 \
@@ -24,3 +30,36 @@ RESULT opeu_unit_name(uint8_t ds[65536], HostEvent event, uint16_t unit,
   FORMAT(a);
   return buffer;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/unitname.c (0b73:0188 unit name). The only service is the
+ * one opeu_unit_name raises through the event it receives:
+ * 2 request_format(buffer, 0x537c, entry name, number) (0480:0b9a),
+ * numbered as kind 2 of the HostEvent protocol. */
+uint16_t svc_unitname(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 2:  r = lf_request_format(ds, args, count); break;
+    default: port_unhandled("unitname", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_unit_name) {
+  return opeu_unit_name(ds, svc_unitname, ARG(1), ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -9,6 +9,16 @@
 #include "types/events.h"
 #include "types/misc.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "io/soundcue.h"
+#include "map/mappos.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint16_t name;
@@ -91,3 +101,46 @@ void opeu_request_action1(uint8_t ds[65536], HostEvent event, uint8_t side,
     MESSAGE();
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/reqequip.c (1270:06bc request action 1, equipment delivery).
+ * Services (host branch macros): 0 arrival_location(x,y,side) 15c4:1408,
+ * 1 message_lookup(id) 312c:000c -> text, 2 request_format(dest,format,...)
+ * 0480:0b9a, 3 request_message(text,person) = control_message 1707:0672,
+ * 4 request_wait 0d92:0060. */
+uint16_t svc_reqequip(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0: /* 15c4:1408 */
+      frame = port_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
+                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 1:
+      r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0));
+      break;                                           /* 312c:000c */
+    case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 3:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;                                             /* 1707:0672 */
+    case 4:  opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
+    default: port_unhandled("reqequip", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

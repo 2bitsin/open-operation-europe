@@ -8,6 +8,13 @@
 #include "types.h"
 #include "map/mapframe.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model: DS is explicit; near offsets and int arithmetic wrap at 16 bits.
  * Events (PLAN kinds): glyph_draw=4 (x,y,w,h,color,ptr), ui_line=5
  * (x1,y1,x2,y2,color). */
@@ -116,3 +123,26 @@ void opeu_view_frame(uint8_t ds[65536], HostEvent event, int16_t x, int16_t y) {
   LABEL_Y(0x142, 0xa1, 15, 0, SCALED(y + 3));
   LABEL_Y(0x142, 0x119, 15, 0, SCALED(y + 8));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/mapframe.c (15c4:012a..0549 view numbers, scale labels, rulers).
+ * Its HostEvent uses the 15c4 segment's shared service kinds
+ * (svc_map_plan, game/map/blast.c); this module raises 4 glyph_draw_near, 5 ui_line. */
+uint16_t svc_mapframe(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                      uint16_t count) {
+  return svc_map_plan(ds, "mapframe", kind, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

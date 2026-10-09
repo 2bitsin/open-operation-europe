@@ -27,6 +27,15 @@
 #include "map/support.h"
 #include "units/orders.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "map/mappick.h"
+#include "map/mappos.h"
+#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address), so BP = sp-2 and the picked
@@ -152,3 +161,67 @@ void opeu_group_set_target(uint8_t ds[65536], HostEvent event, uint16_t sp,
       CLEAR_ORDERS(a);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/ordtgt.c (1c23:0006 group-row predicate, 1c23:0040 always,
+ * 1c23:0044 set a group's order target). Events used by ORDTGT (host branch
+ * comment; the numbering is shared with ORDUNIT/ORDLIST, whose own ids 5..8
+ * ORDTGT never raises):
+ *   0 request_format(dest,fmt,args...)   0480:0b9a (TEXTOUT, sprintf)
+ *   1 control_message(text,person)       1707:0672 (DIALOGS)
+ *   2 confirm_message(text,person) -> word  1707:076c (DIALOGS)
+ *   3 arrival_location(x,y,side)         15c4:1408 (MAPPOS)
+ *   4 pick_location(x_address,y_address) -> word  17c4:0274 (MAPPICK) */
+uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0: map_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 2:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:076c */
+    case 3:  /* 15c4:1408 */
+      frame = map_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
+                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      map_frame_leave();
+      break;
+    case 4: /* 17c4:0274 */
+      frame = map_frame_enter();
+      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      map_frame_leave();
+      break;
+    default: port_unhandled("ordtgt", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_group_target_enabled) {
+  (void)args;
+  (void)count;
+  return opeu_group_target_enabled(ds);
+}
+
+PORT_ROUTINE(opeu_menu_always) {
+  (void)ds;
+  (void)args;
+  (void)count;
+  return opeu_menu_always();
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

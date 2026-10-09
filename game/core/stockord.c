@@ -21,6 +21,12 @@
 #include "types.h"
 #include "core/stockord.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event/sp first; near pointers are DS offsets and sp is the DS
  * offset of the far return address at entry (BP = sp-2). Every callee outside
  * segment 1d1e is an event service named by its linear MAIN image address
@@ -186,3 +192,66 @@ void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t sp,
     height = 6;
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/stockord.c (1d1e, the city stockpile order). Its host branch
+ * names every callee by linear routine address with the arguments in source
+ * order (stack arguments in prototype order); the routine handlers take the
+ * register words in AX, DX, BX order (port.h), so the services with more
+ * than one register argument are reordered here:
+ *   14ebc objective_capacities (objective, a, b, c) -> (a, b, objective, c)
+ *   1624e unit_flash (record, ticks)                -> (ticks, record)
+ *   176e2 control_message (text, person)            -> (person, text)
+ *   17754 control_choose (text, first, last, flag, person, menu)
+ *                                                   -> (first, last, text, ...)
+ *   0b4a0 list_dialog (window, limit, flags)        -> (limit, flags, window)
+ * Every other service has one register word or is cdecl and forwards as is
+ * (validate_stock_order.py token lists). */
+uint16_t svc_stockord(uint8_t* ds, uint32_t service, const uint16_t* args,
+                      unsigned int count) {
+  static const unsigned char capacities[]  = { 1, 2, 0, 3 };
+  static const unsigned char swap[]        = { 1, 0 };
+  static const unsigned char choose[]      = { 1, 2, 0, 3, 4, 5 };
+  static const unsigned char list_dialog[] = { 1, 2, 0 };
+  switch (service) {
+    case 0x14ebcu: return btl_reorder(ds, service, args, count, capacities, 4);
+    case 0x1624eu:
+    case 0x176e2u: return btl_reorder(ds, service, args, count, swap, 2);
+    case 0x17754u: return btl_reorder(ds, service, args, count, choose, 6);
+    case 0x0b4a0u: return btl_reorder(ds, service, args, count, list_dialog, 3);
+    default:       return port_service(ds, service, args, count);
+  }
+}
+
+PORT_ROUTINE(opeu_stock_city_enabled) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  (void)args;
+  (void)count;
+  r = opeu_stock_city_enabled(ds, svc_stockord, sp);
+  btl_sp_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_turn_action_2) {
+  uint16_t sp = btl_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_turn_action_2(ds, svc_stockord, sp, 0x1d1eu);
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

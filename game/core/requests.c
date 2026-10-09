@@ -8,6 +8,18 @@
 #include "core/people.h"
 #include "core/random.h"
 #include "core/template.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/reqcheck.h"
+#include "core/reqequip.h"
+#include "core/reqpend.h"
+#include "core/reqres.h"
+#include "core/reqspawn.h"
+#include "core/reqvalid.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint16_t target;
@@ -117,3 +129,53 @@ void opeu_hourly_c_stage_b(uint8_t ds[65536],
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/requests.c (1270:08e0 timed and pending side requests).
+ * Services (host branch comment): 0 request_valid(side,request) 1270:036e,
+ * 1/2/3 request_action0/1/2(side,request) 1270:05ac/06bc/0876,
+ * 4 request_complete(side) 1270:0242, 5 request_start(side,request)
+ * 1270:047c, 6 request_fallback(side,request) 1270:0570. */
+uint16_t svc_requests(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
+                      uint16_t c, uint16_t d) {
+  uint16_t r = 0;
+  (void)c;
+  (void)d;
+  switch (id) {
+    case 0:
+      r = opeu_request_valid(ds, svc_reqvalid, (uint8_t)a, b);
+      break; /* 1270:036e */
+    case 1:
+      opeu_request_action0(ds, svc_reqres, (uint8_t)a, b);
+      break; /* 1270:05ac */
+    case 2:
+      opeu_request_action1(ds, svc_reqequip, (uint8_t)a, b);
+      break; /* 1270:06bc */
+    case 3:
+      opeu_request_action2(ds, svc_reqspawn, (uint8_t)a, b);
+      break;                                              /* 1270:0876 */
+    case 4: opeu_request_complete(ds, (uint8_t)a); break; /* 1270:0242 */
+    case 5:
+      opeu_request_start(ds, svc_reqpend, (uint8_t)a, b);
+      break; /* 1270:047c */
+    case 6:
+      opeu_request_fallback(ds, svc_reqpend, (uint8_t)a, b);
+      break; /* 1270:0570 */
+    default: port_unhandled("requests", id, 4);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

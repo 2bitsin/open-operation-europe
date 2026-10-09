@@ -19,6 +19,12 @@
 #include "core/strings.h"
 #include "units/labels.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements and byte pointers are DS offsets and
  * arithmetic wraps like the 16-bit original. Callees in other segments
  * (2864 element accessors, cell occupancy and drawing, 2808 terrain, step
@@ -247,3 +253,50 @@ void opeu_battle_spot_enemies(uint8_t* ds, BattleEvent event, uint16_t element,
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+uint16_t svc_btlpath(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_path_flood) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  r = opeu_battle_path_flood(ds, svc_btlpath, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                             (uint8_t)ARG(2), (uint8_t)ARG(3), ARG(4),
+                             (uint8_t)ARG(5), BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_battle_path_step) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  r = opeu_battle_path_step(ds, svc_btlpath, ARG(1), ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_battle_spot_enemies) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_spot_enemies(ds, svc_btlpath, ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

@@ -12,4 +12,10 @@ void opeu_pending_fallback_present(uint8_t* ds, PendingEvent event);
 void opeu_request_fallback(uint8_t* ds, PendingEvent event, uint8_t side,
                            uint16_t request);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
+                     uint16_t c, uint16_t d);
+#endif
+
 #endif

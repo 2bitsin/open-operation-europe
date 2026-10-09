@@ -7,6 +7,14 @@
 #include "types/misc.h"
 #include "types/units.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/arrivals.h"
+#include "core/requests.h"
+#endif
+
 #define UNITS                 ((UnitPlaceView*)(ds + 0x14fc))
 #define OBJECTIVES            ((ObjectivePlaceView*)(ds + 0x1a7c))
 #define MAP                   ((int16_t (*)[10])(ds + 0x26f6))
@@ -65,3 +73,46 @@ void opeu_turn_hourly_c(uint8_t ds[65536],
   STAGE_B();
   STAGE_C();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/influenc.c (1270:0d8e influence map, 1270:0efc hourly stage C
+ * entry). Events (host branch STAGE_B/STAGE_C):
+ *   0 hourly_c_stage_b()   1270:08e0 opeu_hourly_c_stage_b (REQUESTS)
+ *   1 hourly_c_stage_c()   1270:0c32 opeu_hourly_c_stage_c (ARRIVALS)
+ * REQUESTS' host entry takes `stale_threshold`, the word the original reads
+ * from its uninitialized threshold local (src/main/core/requests.c "Host
+ * model"; tests/validate_requests_arrivals.py places it at entry SP - 10h).
+ * It is passed from that slot of the modeled DGROUP stack. */
+uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
+                      uint16_t c, uint16_t d) {
+  uint16_t sp;
+  (void)a;
+  (void)b;
+  (void)c;
+  (void)d;
+  switch (id) {
+    case 0: /* 1270:08e0 */
+      sp = port_stack_enter(PORT_FRAME);
+      opeu_hourly_c_stage_b(ds, svc_requests,
+                            port_ds_word((uint16_t)(sp - 0x10u)));
+      port_stack_leave(PORT_FRAME);
+      break;
+    case 1:  opeu_hourly_c_stage_c(ds, svc_arrivals); break; /* 1270:0c32 */
+    default: port_unhandled("influenc", id, 0);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

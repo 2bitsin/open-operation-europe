@@ -6,6 +6,12 @@
 #include "map/btlmove.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements are DS offsets. Recovered 2864 callees
  * run as host functions; the 2808 BTLCALC helpers (element_strength,
  * move_cost), 29f5:050e and the group-A 2673 functions (0008..0510) are event
@@ -252,3 +258,60 @@ void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element,
                                        (uint16_t)(frame - 0x0e)) == 3)
     opeu_battle_update_element(ds, event, element);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+uint16_t svc_btlorder(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_advance) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_advance(ds, svc_btlorder, ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_attack_or_hold) {
+  opeu_battle_attack_or_hold(ds, svc_btlorder, ARG(1), ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_continue_order) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_continue_order(ds, svc_btlorder, ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_execute_order) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  r = opeu_battle_execute_order(ds, svc_btlorder, ARG(1), (uint8_t)ARG(0),
+                                BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+PORT_ROUTINE(opeu_battle_seek_target) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_seek_target(ds, svc_btlorder, ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

@@ -33,6 +33,16 @@
 #include "units/orders.h"
 #include "units/stats.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "io/waitkey.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. String copy, unit side,
  * selection eligibility, element average, order restoration and capacities run
@@ -191,3 +201,58 @@ void opeu_turn_hourly_b(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   CALL(opeu_objective_comms_event, 0x11e5, 0x01a4);
   CALL(opeu_unit_hourly_event, 0x11e5, 0x0606);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evreport.c (108c:1302..1594 hourly unit reports, 108c:155c
+ * opeu_turn_hourly_b). Services from the host branch comment:
+ * 0 pending_finish(value), 1 message_lookup(id) -> text offset,
+ * 2 unit_message(unit,text), 3 daily_show(id,side,callback offset,callback
+ * segment), 4 daily_context(side), 5 far/near event call(segment,offset). */
+uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      break; /* 0a8e:005c */
+    case 1:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      break; /* 312c:000c */
+    case 2:
+      opeu_unit_report(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:07ec unit_message */
+    case 3:
+      opeu_daily_show(ds, port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+                      (uint32_t)ARG(3) << 16 | ARG(2));
+      break;
+    case 4:
+      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      break; /* 1389:000e */
+    case 5:
+      port_call(ds, (uint32_t)ARG(0) * 16u + ARG(1), NULL, 0);
+      break; /* segment, offset */
+    default: port_unhandled("evreport", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_report_present) {
+  (void)args;
+  (void)count;
+  opeu_report_present(ds, svc_evreport);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -5,6 +5,12 @@
 #include "map/btlloss.h"
 #include "map/btlcmdr.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: opeu_battle_loss_check(ds, event, attacker, target); elements are
  * DS offsets. element_destroy (BTLCMDR) is called natively; every other callee
  * is an event service named by its linear MAIN image
@@ -40,3 +46,29 @@ void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker,
       call(ds, event, UPDATE_ELEMENT, 1, attacker, 0);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/btlloss.c, address-keyed BattleEvent: commander group (BX-before-AX words, see svc_battle_commander in game/map/btlcmdr.c). */
+uint16_t svc_btlloss(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_commander(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_loss_check) {
+  opeu_battle_loss_check(ds, svc_btlloss, ARG(1), ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

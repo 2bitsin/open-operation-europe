@@ -20,4 +20,12 @@ void opeu_battle_order_defend(uint8_t* ds, BattleEvent event, uint16_t element);
 void opeu_battle_order_rest(uint8_t* ds, BattleEvent event, uint16_t element);
 void opeu_battle_order_refused(uint8_t* ds, BattleEvent event, uint8_t kind);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_battle_orders(uint8_t* ds, uint32_t address, const uint16_t* args,
+                           unsigned count);
+uint16_t svc_btlcmds(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

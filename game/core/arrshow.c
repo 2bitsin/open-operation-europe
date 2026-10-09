@@ -4,6 +4,16 @@
 #include "core/arrshow.h"
 #include "units/unitname.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "io/soundcue.h"
+#endif
 #include <stddef.h>
 /* The host caller supplies the emulated near-stack workspace explicitly. */
 #define LOCAL        uint16_t a = scratch
@@ -37,3 +47,54 @@ void opeu_arrival_present(uint8_t ds[65536], HostEvent event,
   FORMAT(a);
   MESSAGE();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/arrshow.c (1270:0816 opeu_arrival_present). Services, from
+ * the host branch and tests/validate_arrival_presentation.py SERVICES:
+ * 1 message_lookup(id), 2 request_format(destination, format, ...) (cdecl;
+ * also issued by units/unitname.c, which receives this callback),
+ * 3 request_message(text, person), 4 request_wait, 5 daily_context(side). */
+uint16_t svc_arrshow(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 1:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      break;                                           /* 312c:000c */
+    case 2: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 3:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;                                            /* 1707:0672 */
+    case 4: opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
+    case 5:
+      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      break; /* 1389:000e */
+    default: port_unhandled("arrshow", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_arrival_present) {
+  uint16_t sp;
+  (void)args;
+  (void)
+      count; /* scratch is the 32-byte name buffer at BP-20h (entry SP - 2 - 20h). */
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_arrival_present(ds, svc_arrshow, (uint16_t)(sp - 2 - 0x20));
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

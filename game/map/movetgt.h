@@ -14,4 +14,12 @@ uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame,
 uint16_t opeu_move_level_raise(uint8_t* ds, uint16_t record, uint8_t value);
 uint16_t opeu_move_level_lower(uint8_t* ds, uint16_t record, uint8_t value);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
+                      const uint16_t* args, uint16_t count);
+uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

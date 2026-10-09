@@ -33,6 +33,33 @@
 #include "units/engineer.h"
 #include "core/limits.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/objrank.h"
+#include "core/recindex.h"
+#include "core/sideutil.h"
+#include "io/soundcue.h"
+#include "io/waitkey.h"
+#include "map/cellflag.h"
+#include "map/grid.h"
+#include "map/maperase.h"
+#include "map/movesup.h"
+#include "map/movetgt.h"
+#include "map/moveunit.h"
+#include "map/occupy.h"
+#include "map/query.h"
+#include "map/stepmap.h"
+#include "map/support.h"
+#include "units/orders.h"
+#include "units/stats.h"
+#include "units/unitname.h"
+#include "units/unitpers.h"
+#include "units/value.h"
+#endif
 static uint16_t host_word(const uint8_t* ds, uint16_t at) {
   return (uint16_t)(ds[at] | ds[(uint16_t)(at + 1)] << 8);
 }
@@ -314,3 +341,257 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event,
   RESTORE();
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/engineer.c (319e:0002..0566 engineering order completion).
+ * Services, from the host branch's list (tests/validate_engineer_orders.py):
+ *  0 unit_person 145c:01c4        1 rand_bounded 09f6:00d4
+ *  2 unit_quantity(unit,kind,&n) 145c:0596  3 unit_average10 145c:052e
+ *  4 unit_average11 145c:0562     5 unit_order_destination 145c:02ea
+ *  6 cell_marked(x,y,side) 145c:0eb2  7 move_adjacent 32e6:0a92
+ *  8 move_level_lower 32e6:0c3e   9 cell_side 145c:0e42
+ * 10 unit_report 1707:07ec       11 mark_cell(x,y,side) 145c:0e76
+ * 12 map_erase 15c4:0f7c         13 daily_show(id,side,off,seg) 1707:03e4
+ * 14 restore_unit_order 145c:02b4 15 unmark_cell(x,y,side) 145c:0e94
+ * 16 map_code 145c:0dc0          17 map_mark_10(x,y) 145c:0d8c
+ * 18 move_objective_target 32e6:0ae8  19 move_unit_target 32e6:0b38
+ * 20 pending_finish 0a8e:005c
+ * Callees shared with the 3131 order handlers go through svc_order_handler (game/units/engineer.c) with
+ * that numbering (same callee, same argument packing). */
+uint16_t svc_engineer(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  /* engineer id -> order-handler id (svc_order_handler, game/units/engineer.c); 0xff: handled below */
+  static const uint8_t handler_id[21] = { 24, 1,    0xff, 25,   0,    27, 0xff,
+                                          15, 16,   17,   8,    0xff, 30, 12,
+                                          2,  0xff, 28,   0xff, 14,   21, 31 };
+  uint16_t             r              = 0;
+  switch (id) {
+    case 2:
+      r = opeu_unit_quantity(ds, ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      break;
+    case 6:
+      r = opeu_cell_marked(ds, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 11:
+      opeu_mark_cell(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      break;
+    case 15:
+      opeu_unmark_cell(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      break;
+    case 17: opeu_map_mark_10(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    default:
+      if (id >= 21 || !svc_order_handler(ds, handler_id[id], args, count, &r))
+        port_unhandled("engineer", id, count);
+  }
+  return r;
+}
+
+/* Shared services of the order handlers of segment 3131 (ORDATTK, ORDDEFND,
+ * ORDBRIDG), numbered as tests/validate_order_handlers.py SERVICES:
+ *  0 unit_average11(unit)          145c:0562
+ *  1 rand_bounded(bound)           09f6:00d4
+ *  2 restore_unit_order(unit)      145c:02b4
+ *  3 grid_step(&x,&y,dir)          145c:0d3e
+ *  4 find_unit_at(x,y)             145c:011c
+ *  5 unit_side(unit)               145c:006c
+ *  6 unit_value(unit)              0b73:011e
+ *  7 move_supplied()               32e6:0288
+ *  8 unit_report(unit,text)        1707:07ec
+ *  9 unit_selection_eligible(unit) 145c:0fc4
+ * 10 request_format(dest,fmt,...)  0480:0b9a
+ * 11 confirm_message(text,person)  1707:076c
+ * 12 daily_show(id,side,off,seg)   1707:03e4
+ * 13 opposite_side(side)           0b73:04c8
+ * 14 move_objective_target(&x,&y,side) 32e6:0ae8
+ * 15 move_adjacent(x,y)            32e6:0a92
+ * 16 move_level_lower(record,v)    32e6:0c3e
+ * 17 cell_side(x,y)                145c:0e42
+ * 18 objective_quantity(obj,cat,&n) 145c:06c4
+ * 19 move_unit(repeat)             32e6:0732
+ * 20 side_groups_retarget(side)    190a:06d2
+ * 21 move_unit_target(&x,&y)       32e6:0b38
+ * 22 unit_name(unit,buffer)        0b73:0188
+ * 23 abs16_bits(value)             09cc:029c
+ * 24 unit_person(unit)             145c:01c4
+ * 25 unit_average10(unit)          145c:052e
+ * 26 unit_average9(unit)           145c:04fa
+ * 27 unit_order_destination(unit,&x,&y) 145c:02ea
+ * 28 map_code(x,y)                 145c:0dc0
+ * 29 map_mark_5(x,y)               145c:0da6
+ * 30 map_erase(x,y)                15c4:0f7c
+ * 31 pending_finish(value)         0a8e:005c
+ * 32 wait_units(units)             0a8e:004c (delay_units)
+ * 33 sound_cue5()                  0d92:0030
+ * Pointer arguments are DS offsets; byte arguments narrow. */
+int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count, uint16_t* result) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: r = opeu_unit_average11(ds, ARG(0)); break;
+    case 1: r = port_rand_bounded(ds, ARG(0)); break;
+    case 2: opeu_restore_unit_order(ds, ARG(0)); break;
+    case 3:
+      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      break;
+    case 4:  r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 5:  r = opeu_unit_side(ARG(0)); break;
+    case 6:  r = opeu_unit_value(ds, ARG(0)); break;
+    case 7:  r = opeu_move_supplied(ds); break;
+    case 8:  opeu_unit_report(ds, port_dialogs_host(), ARG(0), ARG(1)); break;
+    case 9:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 10: r = lf_request_format(ds, args, count); break;
+    case 11:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 12:
+      opeu_daily_show(ds, port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+                      ARG32(2));
+      break;
+    case 13: r = opeu_opposite_side((uint8_t)ARG(0)); break;
+    case 14:
+      r = opeu_move_objective_target(ds, svc_movetgt, ARG(0), ARG(1),
+                                     (uint8_t)ARG(2));
+      break;
+    case 15:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_move_adjacent(ds, svc_movetgt, (uint16_t)(sp - 2u),
+                              (uint8_t)ARG(0), (uint8_t)ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 16: r = opeu_move_level_lower(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 17: r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 18:
+      r = opeu_objective_quantity(ds, ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      break;
+    case 19:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_move_unit(ds, svc_moveunit, (uint16_t)(sp - 2u), ARG(0));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 20: opeu_side_groups_retarget(ds, (uint8_t)ARG(0)); break;
+    case 21:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_move_unit_target(ds, svc_movetgt, (uint16_t)(sp - 2u), ARG(0),
+                                 ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 22: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 23: r = opeu_abs16_bits(ARG(0)); break;
+    case 24: r = opeu_unit_person(ds, ARG(0)); break;
+    case 25: r = opeu_unit_average10(ds, ARG(0)); break;
+    case 26: r = opeu_unit_average9(ds, ARG(0)); break;
+    case 27:
+      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
+                                      PORT_DS(ARG(2)));
+      break;
+    case 28: r = opeu_map_code(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 29: opeu_map_mark_5(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 30:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_map_erase(ds, svc_maperase, (uint16_t)(sp - 2u), (uint8_t)ARG(0),
+                     (uint8_t)ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 31: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 32: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 33: opeu_sound_cue5(ds, svc_soundcue); break;
+    default: return 0;
+  }
+  *result = r;
+  return 1;
+}
+
+PORT_ROUTINE(opeu_arms_repaired_finish) {
+  (void)args;
+  (void)count;
+  opeu_arms_repaired_finish(ds, svc_engineer);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_bridge_built_finish) {
+  (void)args;
+  (void)count;
+  opeu_bridge_built_finish(ds, svc_engineer);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_engineer_build_bridge) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_engineer_build_bridge(ds, svc_engineer, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_engineer_lay_mines) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_engineer_lay_mines(ds, svc_engineer, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_engineer_remove_mines) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_engineer_remove_mines(ds, svc_engineer, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_engineer_repair_objective) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_engineer_repair_objective(ds, svc_engineer, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_engineer_repair_unit) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_engineer_repair_unit(ds, svc_engineer, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_mines_laid_finish) {
+  (void)args;
+  (void)count;
+  opeu_mines_laid_finish(ds, svc_engineer);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mines_removed_finish) {
+  (void)args;
+  (void)count;
+  opeu_mines_removed_finish(ds, svc_engineer);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

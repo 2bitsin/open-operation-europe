@@ -49,6 +49,16 @@
 #include "map/support.h"
 #include "units/selelem.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "io/listdlg.h"
+#include "io/waitkey.h"
+#include "map/mapunit.h"
+#endif
 #define WORD(n)                (*(uint16_t*)(ds + (uint16_t)(n)))
 #define TEXT(o)                (o)
 #define HOUR_8D0F              0x8d0f
@@ -227,3 +237,108 @@ element:
   } else
     goto element;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/cmdxfer.c (1d42:0000..0403, turn action 3: transfer command).
+ * Services from the host branch's list (cmdxfer.c header comment):
+ *  0 request_format(dest,format,args...) 0480:0b9a
+ *  1 control_message(text,person)        1707:0672
+ *  2 confirm_message(text,person)->word  1707:076c
+ *  3 control_panel()                     1707:02e2 (opeu_title_panel_begin)
+ *  4 list_dialog(window,limit,flags)     0a8e:0bc0
+ *  5 group_show(group,index)             15c4:0692
+ *  6 unit_announce(index,unit)           15c4:064a: the original passes the
+ *    index in AL and the unit in BX (tests/validate_command_transfer.py
+ *    'albx'); the callee takes only the unit (BX), so args[1] is passed.
+ *  7 daily_show(id,side,offset,segment)  1707:03e4, far presenter seg:off
+ *  8 pending_finish(value)               0a8e:005c */
+uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: r = lf_request_format(ds, args, count); break;
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 2:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 3: opeu_title_panel_begin(ds, port_dialogs_host()); break;
+    case 4:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 5:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0),
+                      (uint8_t)ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 6:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 7:
+      opeu_daily_show(ds, port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+                      (unsigned int)((uint32_t)ARG(3) << 16 | ARG(2)));
+      break;
+    case 8:  opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    default: port_unhandled("cmdxfer", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_transfer_element_enabled) {
+  (void)args;
+  (void)count;
+  return opeu_transfer_element_enabled(ds);
+}
+
+PORT_ROUTINE(opeu_transfer_group_enabled) {
+  (void)args;
+  (void)count;
+  return opeu_transfer_group_enabled(ds);
+}
+
+PORT_ROUTINE(opeu_transfer_present) {
+  (void)args;
+  (void)count;
+  opeu_transfer_present(ds, svc_cmdxfer);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_transfer_unit_enabled) {
+  (void)args;
+  (void)count;
+  return opeu_transfer_unit_enabled(ds);
+}
+
+/* 1d42:01d2, turn action 3, an entry of the control action table DS:7fb4
+ * (control1 service 10). No arguments; the host entry takes its entry SP
+ * and the paragraph of code segment 1d42 (stored with the predicates). */
+PORT_ROUTINE(opeu_turn_action_3) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(0x200u);
+  opeu_turn_action_3(ds, svc_cmdxfer, sp, 0x1d42u);
+  port_stack_leave(0x200u);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

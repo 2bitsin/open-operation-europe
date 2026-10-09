@@ -7,6 +7,13 @@
 #include "map/query.h"
 #include "types/events.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/rqcommon.h"
+#endif
 /* Host: ds[] is the original DS; near pointers are 16-bit DS offsets. The
  * map-pick coordinates live at scratch+0/+1 and the frame buffer at
  * scratch+4. Services of `event` (request-menu service table):
@@ -88,3 +95,47 @@ void opeu_request_supplies(uint8_t ds[65536], HostEvent event,
 uint8_t opeu_rq_type_selectable(void) {
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define RQSUPPLY_SCRATCH 0x40u
+
+/* Services of core/rqsupply.c (22f9:0136 supplies request).
+ * Services raised (host branch comment): 3 request_pending, 4
+ * cancel_prompt, 6 request_file(target, argument, kind), 10
+ * control_message, 16 army_title, 19 request_format, 20 confirm_message,
+ * 23 map_pick_location; the request-menu table is in svc_request (game/core/rqcommon.c). */
+uint16_t svc_rqsupply(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_request("rqsupply", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_request_supplies) {
+  uint16_t scratch;
+  (void)args;
+  (void)count;
+  scratch = port_scratch_enter(RQSUPPLY_SCRATCH);
+  opeu_request_supplies(ds, svc_rqsupply, scratch);
+  port_scratch_leave(RQSUPPLY_SCRATCH);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_rq_type_selectable) {
+  (void)ds;
+  (void)args;
+  (void)count;
+  return opeu_rq_type_selectable();
+}
+
+#undef ARG
+#undef ARG32
+#undef RQSUPPLY_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

@@ -18,4 +18,12 @@ void opeu_deploy_put_at(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y,
 void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit);
 void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_battle_deploy(uint8_t* ds, uint32_t address, const uint16_t* args,
+                           unsigned count);
+uint16_t svc_dplauto(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

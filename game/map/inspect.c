@@ -3,6 +3,13 @@
 #include "types.h"
 #include "map/inspect.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/highlite.h"
+#endif
 /* Events: view=0 (17c4:0006), overview=1 (17c4:0080), each with byte x,y.
  * Both drawing wrappers are unrecovered service boundaries. */
 #define CACHE_Y        ds[0x2f91]
@@ -16,3 +23,42 @@ void opeu_map_inspect(uint8_t ds[65536], HostEvent event, uint8_t x,
   else
     OVERVIEW(x, y);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/inspect.c (17c4:00bc highlight an inspected cell). Events
+ * (host branch comment): view=0 (17c4:0006), overview=1 (17c4:0080), each
+ * with byte x,y; both are the recovered HIGHLITE routines. */
+uint16_t svc_inspect(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t frame;
+  switch (id) {
+    case 0: /* 17c4:0006 */
+      frame = map_frame_enter();
+      opeu_map_highlight_view(ds, svc_highlite, frame, (uint8_t)ARG(0),
+                              (uint8_t)ARG(1));
+      map_frame_leave();
+      break;
+    case 1: /* 17c4:0080 */
+      frame = map_frame_enter();
+      opeu_map_highlight_overview(ds, svc_highlite, frame, (uint8_t)ARG(0),
+                                  (uint8_t)ARG(1));
+      map_frame_leave();
+      break;
+    default: port_unhandled("inspect", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

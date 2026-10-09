@@ -5,6 +5,12 @@
 #include "types.h"
 #include "map/btlcmdr.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: opeu_battle_<name>(ds, event, ...). Elements, units, records and
  * strings are DS offsets. Functions of this segment call each other natively; every
  * other callee is an event service named by its linear MAIN image address
@@ -277,3 +283,122 @@ void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event,
   }
   call(ds, event, REMOVE_LIST, 1, unit, 0, 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+/*
+ * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
+ * PORT_ROUTINE handlers of the routines they reach).
+ * Conversion only; no game logic.
+ *
+ * Address-keyed word convention of the handlers (port.h): the register words
+ * in AX, DX, BX order (bytes zero-extended), then the stack words in
+ * prototype order; for the MSC C 6.0a _fastcall callees that is the order in
+ * which the arguments take registers: left to right, a near pointer goes to
+ * BX when it is free, any other byte/word (and a pointer when BX is taken) to
+ * the first free of AX, DX, BX; far pointers, longs and the arguments left
+ * over go to the stack (cdecl/asm routines: all stack words in order). */
+/* BTLCMDR and BTLLOSS (element_destroy is called natively from btlloss):
+ * two-pointer services pass BX before AX (validate_commander_names.py). */
+uint16_t svc_battle_commander(uint8_t* ds, uint32_t address,
+                              const uint16_t* args, unsigned count) {
+  static const unsigned char swap[] = { 1, 0 };
+  switch (address) {
+    case 0x09e90u: /* string_copy (BX destination, AX source) */
+    case 0x2990eu: /* remove_unit (BX unit, AX element) */
+    case 0x2e828u: return btl_reorder(ds, address, args, count, swap, 2);
+    default:       return port_service(ds, address, args, count);
+  }
+}
+
+/* Services of map/btlcmdr.c, address-keyed BattleEvent: commander group (BX-before-AX words, see svc_battle_commander in game/map/btlcmdr.c). */
+uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_commander(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_commander_message) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_commander_message(ds, svc_btlcmdr, ARG(2), (uint8_t)ARG(0),
+                                (uint8_t)ARG(1), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_commander_panel) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_commander_panel(ds, svc_btlcmdr, (uint8_t)ARG(0), ARG(1),
+                              BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_commander_wait) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_commander_wait(ds, svc_btlcmdr, ARG(2), (uint8_t)ARG(0),
+                             (uint8_t)ARG(1), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_info_clear) {
+  (void)args;
+  (void)count;
+  opeu_battle_info_clear(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_name_clear_left) {
+  (void)args;
+  (void)count;
+  opeu_battle_name_clear_left(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_name_clear_right) {
+  (void)args;
+  (void)count;
+  opeu_battle_name_clear_right(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_panel_begin) {
+  (void)args;
+  (void)count;
+  opeu_battle_panel_begin(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_panel_side0) {
+  (void)args;
+  (void)count;
+  opeu_battle_panel_side0(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_panel_side1) {
+  (void)args;
+  (void)count;
+  opeu_battle_panel_side1(ds, svc_btlcmdr);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_restore_tile) {
+  opeu_battle_restore_tile(ds, svc_btlcmdr, (uint8_t)ARG(0), (uint8_t)ARG(1));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

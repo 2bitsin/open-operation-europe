@@ -7,6 +7,13 @@
 #include "core/random.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/uiprim.h"
+#endif
+
 /* People are 31-byte records at DS:029c (20 per side).  DS:c482 holds the
  * unrandomized base records of the candidates; DS:ea2a is the word table of
  * candidate records indexed by the selected row (DS:e2f4) and DS:4600 caches
@@ -88,3 +95,37 @@ uint8_t opeu_staff_reroll_selected(uint8_t ds[65536], HostNotify event) {
   REROLL(ROW);
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/staffgen.c (06db:0c20..0d64 candidate person attributes).
+ * Services, from the host branch: portrait=0 (x, y, person offset) ->
+ * 0a04:046c opeu_context_portrait. */
+void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args,
+                  uint16_t count) {
+  switch (id) {
+    case 0:
+      opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    default: port_unhandled("staffgen", id, count);
+  }
+}
+
+PORT_ROUTINE(opeu_staff_reroll_selected) {
+  (void)args;
+  (void)count;
+  return opeu_staff_reroll_selected(ds, svc_staffgen);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

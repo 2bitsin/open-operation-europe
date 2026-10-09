@@ -17,4 +17,9 @@ uint8_t  opeu_transfer_level(uint8_t* ds, HostWordsEvent event);
 uint16_t opeu_order_supply_objective(uint8_t* ds, HostWordsEvent event);
 uint16_t opeu_order_supply_unit(uint8_t* ds, HostWordsEvent event);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_xferunit(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count);
+#endif
+
 #endif

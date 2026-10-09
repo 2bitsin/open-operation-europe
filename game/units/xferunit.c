@@ -11,6 +11,12 @@
 #include "units/xferpnl.h"
 #include "units/xferstep.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host: ds is the 64 KiB DOS data segment and units/objectives are DS
  * offsets. The original's frame buffers and output words (unit names, the
  * capacity/percentage results, the target cell) live at scratch offsets in
@@ -214,3 +220,40 @@ uint16_t opeu_order_supply_objective(uint8_t ds[65536], HostWordsEvent event) {
 uint16_t opeu_order_supply_unit(uint8_t ds[65536], HostWordsEvent event) {
   return supply_order(ds, event, 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/xferunit.c (31f4:0982..0d61 transfer table load/store and the
+ * supply-unit / supply-objective order handlers). The module uses the
+ * transfer-panel numbering (svc_transfer, game/units/xferpnl.c, xferpnl.c): 19, 27..40; the panel
+ * and step routines it calls (draw, run) raise the others through this
+ * module's event. */
+uint16_t svc_xferunit(uint8_t* ds, uint16_t id, uint16_t* args,
+                      uint16_t count) {
+  return svc_transfer(ds, "xferunit", id, args, count);
+}
+
+PORT_ROUTINE(opeu_order_supply_objective) {
+  (void)args;
+  (void)count;
+  return opeu_order_supply_objective(ds, svc_xferunit);
+}
+
+PORT_ROUTINE(opeu_order_supply_unit) {
+  (void)args;
+  (void)count;
+  return opeu_order_supply_unit(ds, svc_xferunit);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

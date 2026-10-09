@@ -5,6 +5,32 @@
 #include "types.h"
 #include "map/movetgt.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/recindex.h"
+#include "map/cellflag.h"
+#include "map/distance.h"
+#include "map/maperase.h"
+#include "map/mappos.h"
+#include "map/mapunit.h"
+#include "map/movecost.h"
+#include "map/movemine.h"
+#include "map/movespot.h"
+#include "map/movesup.h"
+#include "map/occupy.h"
+#include "map/query.h"
+#include "map/stepmap.h"
+#include "map/support.h"
+#include "map/toward.h"
+#include "units/orders.h"
+#include "units/stats.h"
+#include "units/unitname.h"
+#include "units/value.h"
+#endif
 /* Host model: ds is the 64 KiB data/stack segment; pointers are DS
  * offsets with 16-bit wrap. Calls go through event(ds,id,args,count) with the
  * ids of tests/validate_move_unit.py. frame is the original BP: adjacent's
@@ -130,3 +156,153 @@ uint16_t opeu_move_level_lower(uint8_t ds[65536], RECORD_P record,
     return 1;
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define MAP_PATH_SEGMENT 0x4582u
+
+/* The movement source file's shared service ids (MOVEUNIT 32e6:0732 and
+ * MOVETGT 32e6:0a92..0c7e: "ids of tests/validate_move_unit.py", whose
+ * SERVICES table names each callee address). Pointer words are DS offsets;
+ * byte arguments arrive zero-extended; byte results use the low byte.
+ *   0 move_rating             32e6:06ba (MOVEMINE)
+ *   1 grid_step(x*,y*,dir)    145c:0d3e
+ *   2 move_cost(x,y,unit)     32e6:0008
+ *   3 grid_distance(x,y,x2,y2) 17c4:1424
+ *   4 unit_order_destination(unit,x*,y*) 145c:02ea
+ *   5 move_reachable(x,y,tx,ty,unit)     32e6:00d8 (host branch when OPEU_HAVE_MOVE_REACHABLE)
+ *   6 category_6(code)        0b73:004a
+ *   7 grid_step_toward(x*,y*,tx,ty) 17c4:1346 (path grid FAR_DATA 4582)
+ *   8 move_clear(x,y)         32e6:00bc (path grid FAR_DATA 4582)
+ *   9 find_objective_at(x,y)  145c:016a
+ *  10 objective_side(obj)     145c:01b8
+ *  11 find_unit_at(x,y)       145c:011c
+ *  12 unit_side(unit)         145c:006c
+ *  13 cell_side(x,y)          145c:0e42
+ *  14 move_supplied()         32e6:0288 (MOVESUP)
+ *  15 arrival_location(x,y,side) 15c4:1408 (MAPPOS)
+ *  16 arrival_view(unit)      15c4:0808 (MAPUNIT)
+ *  17 unit_erase(unit)        15c4:0fe4 opeu_unit_remove_draw (MAPERASE)
+ *  18 arrival_prepare(unit)   15c4:0fd0 (MAPERASE)
+ *  19 move_clamp()            32e6:0686 (MOVEMINE)
+ *  20 cell_marked(x,y,side)   145c:0eb2
+ *  21 move_mines(x,y)         32e6:05a8 (MOVEMINE)
+ *  22 move_spot()             32e6:0368 (MOVESPOT)
+ *  23 move_consume()          32e6:02e4 (MOVESUP)
+ *  24 move_enemy_adjacent()   32e6:051e (MOVESPOT)
+ *  25 restore_unit_order(unit) 145c:02b4
+ *  26 unit_selection_eligible(unit) 145c:0fc4
+ *  27 unit_special(unit)      145c:04de
+ *  28 unit_name(unit,buffer)  0b73:0188 (UNITNAME)
+ *  29 request_format(dest,fmt,v,s,n) 0480:0b9a (TEXTOUT, sprintf)
+ *  30 unit_message(unit,text) 1707:07ec opeu_unit_report (DIALOGS)
+ */
+uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
+                      const uint16_t* args, uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0: r = opeu_move_rating(ds, svc_movemine); break;
+    case 1:
+      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      break;
+    case 2:
+      r = opeu_move_cost(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), ARG(2));
+      break;
+    case 3:
+      r = opeu_grid_distance((uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                             (uint8_t)ARG(3));
+      break;
+    case 4:
+      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
+                                      PORT_DS(ARG(2)));
+      break;
+    case 5:
+      r = opeu_move_reachable(ds, (uint16_t*)port_far(MAP_PATH_SEGMENT, 0),
+                              (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                              (uint8_t)ARG(3), ARG(4));
+      break;
+    case 6: r = opeu_category_6((uint8_t)ARG(0)); break;
+    case 7:
+      r = opeu_grid_step_toward(ds, port_far(MAP_PATH_SEGMENT, 0), ARG(0),
+                                ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3));
+      break;
+    case 8:
+      opeu_move_clear(port_far(MAP_PATH_SEGMENT, 0), (uint8_t)ARG(0),
+                      (uint8_t)ARG(1));
+      break;
+    case 9:
+      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    case 10: r = opeu_objective_side(ds, ARG(0)); break;
+    case 11: r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 12: r = opeu_unit_side(ARG(0)); break;
+    case 13: r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 14: r = opeu_move_supplied(ds); break;
+    case 15:
+      frame = map_frame_enter();
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
+                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      map_frame_leave();
+      break;
+    case 16:
+      frame = map_frame_enter();
+      opeu_arrival_view(ds, svc_mapunit, frame, ARG(0));
+      map_frame_leave();
+      break;
+    case 17:
+      frame = map_frame_enter();
+      opeu_unit_remove_draw(ds, svc_maperase, frame, ARG(0));
+      map_frame_leave();
+      break;
+    case 18:
+      frame = map_frame_enter();
+      opeu_arrival_prepare(ds, svc_maperase, frame, ARG(0));
+      map_frame_leave();
+      break;
+    case 19: opeu_move_clamp(ds); break;
+    case 20:
+      r = opeu_cell_marked(ds, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 21:
+      opeu_move_mines(ds, svc_movemine, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    case 22: opeu_move_spot(ds, svc_movespot); break;
+    case 23: opeu_move_consume(ds, svc_movesup); break;
+    case 24:
+      frame = map_frame_enter();
+      r     = opeu_move_enemy_adjacent(ds, svc_movespot, frame);
+      map_frame_leave();
+      break;
+    case 25: opeu_restore_unit_order(ds, ARG(0)); break;
+    case 26: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 27: r = opeu_unit_special(ds, ARG(0)); break;
+    case 28: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 29: map_request_format(ds, args, count); break;
+    case 30: opeu_unit_report(ds, port_dialogs_host(), ARG(0), ARG(1)); break;
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+/* Services of map/movetgt.c (32e6:0a92 adjacent cell, 0ae8 objective target, 0b38
+ * unit target, 0c00/0c3e level counters). Its HostEvent ids are the
+ * movement file's shared ids (map_move.c); MOVETGT raises 1, 4, 9..12 and
+ * 25..30. */
+uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_map_move(ds, "movetgt", id, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#undef MAP_PATH_SEGMENT
+#endif /* OPEU_HOST_EVENTS */

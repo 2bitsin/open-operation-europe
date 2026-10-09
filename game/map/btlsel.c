@@ -11,6 +11,13 @@
 #include "map/btlcurs.h"
 #include "map/btlinfo.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/btlcmds.h"
+#endif
 /* Host ABI: ds/event first; all address arithmetic wraps at 16 bits.
  *   mouse_select(ds, event, show_info, frame) -> 0/1; frame is its emulated BP
  *     (SS = DS): the mouse/cell words are x at frame-6 and y at frame-8.
@@ -125,3 +132,38 @@ uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event, uint16_t sp) {
     return opeu_battle_mouse_select(ds, event, 1, (uint16_t)(sp - 6));
   return opeu_battle_key_select(ds, event, 1);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+/* Services of map/btlsel.c, address-keyed BattleEvent: player orders segment 2ec8 (hex mask reads, see svc_battle_orders in game/map/btlcmds.c). */
+uint16_t svc_btlsel(uint8_t* ds, uint32_t service, const uint16_t* args,
+                    unsigned int count) {
+  return svc_battle_orders(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_key_select) {
+  return opeu_battle_key_select(ds, svc_btlsel, ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_mouse_select) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  r = opeu_battle_mouse_select(ds, svc_btlsel, ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

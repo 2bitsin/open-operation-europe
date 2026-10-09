@@ -9,6 +9,12 @@
 #include "io/sound.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 /* Host model: the data segment and INT 66h service of io/sound.c. */
 #define PLAY(n) opeu_effect_play(ds, service, n)
 
@@ -63,3 +69,95 @@ void opeu_sound_cue15(uint8_t ds[65536], HostService service) {
 void opeu_sound_cue16(uint8_t ds[65536], HostService service) {
   PLAY(16);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of io/soundcue.c (0d92:0008..008f effect cues 0..16). Each cue calls
+ * 0d65:02b0 opeu_effect_play with the service it received, so the service
+ * is SOUND's INT 66h boundary (src/main/io/soundcue.c "Host model"). */
+uint16_t svc_soundcue(uint8_t* ds, uint16_t call, uint16_t* words) {
+  return svc_sound(ds, call, words);
+}
+
+PORT_ROUTINE(opeu_control_begin) {
+  (void)args;
+  (void)count;
+  opeu_control_begin(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue0) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue0(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue1) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue1(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue2) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue2(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue3) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue3(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue4) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue4(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue5) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue5(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue6) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue6(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue7) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue7(ds, svc_soundcue);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_sound_cue9) {
+  (void)args;
+  (void)count;
+  opeu_sound_cue9(ds, svc_soundcue);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

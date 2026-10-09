@@ -9,6 +9,12 @@
 #include "types/events.h"
 #include "types/host.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 /* Host model: ds is the original 64 KiB data segment and near pointers are
  * DS offsets. service(ds, 1, words) is the int86(0x33) boundary: seven REGS
  * words (ax bx cx dx si di cflag) in and out. Unassigned fields are zero here
@@ -177,3 +183,79 @@ void opeu_mouse_window(STATE_ int16_t x, int16_t y, int16_t width,
   r.x.dx = y + height + 40;
   INT86(r);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of io/mouse.c (05a8:000c..0265 INT 33h mouse services).
+ * The module's service is the shared 05a8 input boundary; MOUSE itself
+ * issues only call 1 = int86(0x33) with seven REGS words (ax bx cx dx si di
+ * cflag) in and out. The call sites issue AX = 0 (reset), 1 (show), 2 (hide),
+ * 3 (position and buttons), 4 (set position, CX/DX), 7 (x range CX..DX) and
+ * 8 (y range CX..DX); each goes to the matching native driver function.
+ * Other modules sharing the boundary (KEYBOARD, MENUDRAW, NUMDLG) forward
+ * their call 1 here. */
+uint16_t svc_mouse(uint8_t* ds, uint16_t call, uint16_t* words) {
+  (void)ds;
+  switch (call) {
+    case 1:  return port_mouse_int33(words);
+    default: port_unhandled("mouse", call, 7);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_input_reset) {
+  (void)args;
+  (void)count;
+  opeu_input_reset(ds, svc_mouse);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mouse_buttons) {
+  (void)args;
+  (void)count;
+  return opeu_mouse_buttons(ds, svc_mouse);
+}
+
+PORT_ROUTINE(opeu_mouse_hide) {
+  (void)args;
+  (void)count;
+  opeu_mouse_hide(ds, svc_mouse);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mouse_left) {
+  (void)args;
+  (void)count;
+  return (uint16_t)opeu_mouse_left(ds, svc_mouse);
+}
+
+PORT_ROUTINE(opeu_mouse_position) {
+  opeu_mouse_position(ds, svc_mouse, ARG(1), ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mouse_right) {
+  (void)args;
+  (void)count;
+  return (uint16_t)opeu_mouse_right(ds, svc_mouse);
+}
+
+PORT_ROUTINE(opeu_mouse_show) {
+  (void)args;
+  (void)count;
+  opeu_mouse_show(ds, svc_mouse);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

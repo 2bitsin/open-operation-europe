@@ -10,6 +10,13 @@
 #include "core/strings.h"
 #include "types/events.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/msnkill.h"
+#endif
 /* Host model (see msnrept.c); scripted services 0 rand_bounded(bound) and
  * 6 unit_name(unit,buffer), plus those of the report helpers. */
 #define PTR        uint16_t
@@ -84,3 +91,40 @@ void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint16_t frame,
   } else
     FAILURE(side, n);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/msnrecon.c (0e8e:0910..0a77 reconnaissance missions).
+ * Services 0, 6 and, through the msnrept helpers it calls with this event,
+ * the rest of the mission table (svc_mission, game/core/msnkill.c). */
+uint16_t svc_msnrecon(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_mission("msnrecon", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_mission_recon_objective) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_recon_objective(ds, svc_msnrecon, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_recon_unit) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_recon_unit(ds, svc_msnrecon, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

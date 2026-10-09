@@ -39,4 +39,10 @@ void     opeu_noon_leader(uint8_t* ds, const uint8_t* far_text, HostEvent event,
 void opeu_turn_noon_events(uint8_t* ds, const uint8_t* far_text,
                            HostEvent event, uint16_t sp, uint16_t code_segment);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_noonevt(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

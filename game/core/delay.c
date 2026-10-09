@@ -4,6 +4,14 @@
 #include "core/delay.h"
 #include "core/strings.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#endif
 /* Events: text=0 (id), dialog=1 (buffer,24,person,0), confirm=2 (word,person).
  * Scratch is the original near-stack buffer (efd8 at entry SPf000). It reserves
  * 36 text bytes followed by the result word. The caller supplies that complete,
@@ -31,3 +39,56 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event,
   if (a != 65535 && CONFIRM(a, PERSON))
     DELAYS[CURRENT] = a;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define DELAY_FRAME 38u
+
+/* Services of core/delay.c (1389:012c opeu_choose_turn_delay). Events, from the
+ * host branch's comment:
+ *   0 text(id) 312c:000c opeu_message_lookup
+ *   1 dialog(buffer,24,person,0) 1707:0726 opeu_delay_dialog
+ *   2 confirm(word,person) 1707:07aa opeu_delay_confirm. The original passes
+ *     the value in AX and the person in BX; DIALOGS takes (person in BX,
+ *     hours in AL), so the host routine's argument order is (person, hours).
+ * The routine itself is entry 0 of the far-action table DS:opeu_control_actions
+ * (data/ctrltext.c); its PORT_ROUTINE is in game/core/delay.c. */
+uint16_t svc_delay(uint8_t* ds, uint16_t id, const uint16_t* args,
+                   uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 1:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 2:
+      r = opeu_delay_confirm(ds, port_dialogs_host(), ARG(1), (uint8_t)ARG(0));
+      break;
+    default: port_unhandled("delay", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_choose_turn_delay) {
+  uint16_t scratch;
+  (void)args;
+  (void)count;
+  scratch = b1_stack_alloc(DELAY_FRAME);
+  opeu_choose_turn_delay(ds, svc_delay, scratch);
+  port_scratch_leave(DELAY_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef DELAY_FRAME
+#endif /* OPEU_HOST_EVENTS */

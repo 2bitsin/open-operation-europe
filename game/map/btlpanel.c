@@ -9,6 +9,12 @@
 #include "units/labels.h"
 #include "units/unitname.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first, near pointers as DS offsets. The DOS name buffers
  * live in the caller-supplied frame: g at frame-0x2c and h at frame-0x4c
  * (frame = emulated BP). Unrecovered callees are event services addressed by
@@ -131,3 +137,32 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   call(ds, event, UI_BOX, 4, d ? 0 : 0x38, 0x140, 0, type);
   call(ds, event, UI_TEXT, 1, 0xb409, 0, 0, 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_element_panel) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_element_panel(ds, svc_btlpanel, ARG(1), ARG(0), BTL_BP(sp));
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

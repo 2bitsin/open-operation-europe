@@ -14,4 +14,10 @@ void opeu_unit_remove_draw(uint8_t* ds, HostEvent event, uint16_t frame,
 void opeu_daily_activate(uint8_t* ds, HostEvent event, uint16_t frame,
                          uint8_t side);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_maperase(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                      uint16_t count);
+#endif
+
 #endif

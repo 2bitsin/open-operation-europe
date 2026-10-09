@@ -6,6 +6,12 @@
 #include "map/occupy.h"
 #include "types/units.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 #pragma pack(1)
 typedef struct {
   uint8_t active, bytes[20], x, y, tail[44], flags;
@@ -52,3 +58,30 @@ OBJECTIVE_RESULT opeu_find_objective_at(const uint8_t ds[65536], uint8_t x,
 uint8_t opeu_objective_side(const uint8_t ds[65536], uint16_t objective) {
   return (OBJECTIVE_FLAGS & 0x10) != 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_find_objective_at) {
+  return opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+}
+
+PORT_ROUTINE(opeu_find_unit_at) {
+  return opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+}
+
+PORT_ROUTINE(opeu_objective_side) {
+  return opeu_objective_side(ds, ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

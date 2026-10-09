@@ -11,6 +11,13 @@
 #include "types/events.h"
 #include "types/misc.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/rqarms.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint16_t next;
@@ -234,3 +241,37 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
   FILE_REQUEST(h);
   DELAYS[SIDE] = 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/rqreinf.c (22f9:0620 reinforcement element, 22f9:0780
+ * regiment request). Services from the host branch's table (request-menu
+ * numbering, svc_units_request (game/units/rqarms.c)): 0..18; opeu_reinf_element receives this module's
+ * event and raises 0, 1, 2 through it. */
+uint16_t svc_rqreinf(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  if (id <= 18)
+    return svc_units_request("rqreinf", ds, id, args, count);
+  port_unhandled("rqreinf", id, count);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_request_regiment) {
+  (void)args;
+  (void)count;
+  opeu_request_regiment(ds, svc_rqreinf);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -14,4 +14,10 @@ void opeu_battle_withdraw_step(uint8_t* ds, BattleEvent event,
 void opeu_battle_hold_step(uint8_t* ds, BattleEvent event, uint16_t element);
 void opeu_battle_element_step(uint8_t* ds, BattleEvent event, uint16_t element);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btladv(uint8_t* ds, uint32_t address, const uint16_t* args,
+                    unsigned int count);
+#endif
+
 #endif

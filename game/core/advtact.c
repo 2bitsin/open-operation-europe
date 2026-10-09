@@ -28,6 +28,13 @@
 #include "units/unitname.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/advenemy.h"
+#endif
 #include <string.h>
 /* Host model: ds is DGROUP and near pointers are 16-bit DS offsets;
  * far_text is the base of the advice text segment 3ad9 (FADVICE offsets).
@@ -471,3 +478,38 @@ void opeu_advice_tactical(uint8_t ds[65536], const uint8_t* far_text,
       !opeu_advice_tactical_air_special_forces(ds, far_text, event, inner))
     opeu_advice_tactical_linked_objective(ds, far_text, event, inner);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define C2_ADVICE_TEXT() ((const uint8_t*)port_far(0x3ad9u, 0))
+
+/* Services of core/advtact.c (1dd2:0004..0a9d "Tactical Advice"). Services 0
+ * request_format, 1 control_message (svc_advice, game/core/advenemy.c); unit_name's own event is
+ * remapped to 0 inside the host branch. */
+uint16_t svc_advtact(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_advice("advtact", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_advice_tactical) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_advice_tactical(ds, C2_ADVICE_TEXT(), svc_advtact, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef C2_ADVICE_TEXT
+#endif /* OPEU_HOST_EVENTS */

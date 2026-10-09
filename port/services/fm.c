@@ -246,7 +246,7 @@ static void driver_call(FmdRegs *r)
     plat_audio_unlock();
 }
 
-/* Full-register INT 66h (port/link/io/sound.c). */
+/* Full-register INT 66h (port_sound_int66, port/core/glue.c). */
 void port_fm_int66(uint16_t *ax, uint16_t *bx, uint16_t *dx, uint16_t *ds)
 {
     FmdRegs r;

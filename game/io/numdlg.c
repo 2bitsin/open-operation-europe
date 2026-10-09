@@ -11,6 +11,14 @@
 #include "types/events.h"
 #include "types/host.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/emsmap.h"
+#include "io/menudraw.h"
+#endif
+
 /* Host model: ds is the original 64 KiB data segment and near pointers are
  * DS offsets; long values are 32-bit and 16-bit unsigned sums wrap as on
  * DOS. service is the shared 05a8 input boundary (see MOUSE and MENUDRAW):
@@ -465,3 +473,56 @@ uint16_t opeu_numdlg_run(STATE_ uint16_t lo, uint16_t hi,
   INPUT_RESET();
   return r;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of io/numdlg.c (05a8:0574..0f59 numeric entry dialog with slider).
+ * The module's service is the shared 05a8 input boundary (host-branch
+ * comment, src/main/io/numdlg.c "Host model"): calls 1..8 are MENUDRAW's
+ * (1 int86(0x33), 2 context save, 3 position, 4 print(format,digit),
+ * 5 context restore, 7 bitmap save, 8 bitmap restore) and are forwarded to
+ * svc_menudraw; the dialog's own calls are
+ *  10 ui_fill 0000:2fa5 (x1,y1,x2,y2,colour)
+ *  11 ui_invert 0000:2b0e (x,y,w,h,mode)   [VGALIB opeu_ui_highlight]
+ *  12 EMS dialog mapping 06ac:0056 opeu_ems_map_dialog
+ *  13 ui_line 0000:2d16 (x1,y1,x2,y2,colour), raised by the recovered UIPRIM
+ *     outline that numdlg runs with its own bridge host.
+ * In the game the dialog runs from KEYBOARD (opeu_choose_value), which
+ * passes its own service (svc_keyboard) down; svc_numdlg serves direct
+ * callers. */
+uint16_t svc_numdlg(uint8_t* ds, uint16_t call, uint16_t* words) {
+  switch (call) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 7:
+    case 8: return svc_menudraw(ds, call, words);
+    case 10:
+      opeu_ui_fill(words[0], words[1], words[2], words[3], words[4]);
+      break;
+    case 11:
+      opeu_ui_highlight(words[0], words[1], words[2], words[3], words[4]);
+      break;
+    case 12: opeu_ems_map_dialog(ds, svc_emsmap); break;
+    case 13:
+      opeu_ui_line(words[0], words[1], words[2], words[3], words[4]);
+      break;
+    default: port_unhandled("numdlg", call, 7);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

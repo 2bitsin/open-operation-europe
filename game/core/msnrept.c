@@ -15,6 +15,13 @@
 #include "core/strings.h"
 #include "core/template.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/msnkill.h"
+#endif
 /* Host model: pointers are DS offsets into ds[65536]; local buffers are
  * carved downward from the caller-supplied scratch frame (the emulated
  * stack). Side/person records, templates, string and byte arithmetic run
@@ -153,3 +160,39 @@ void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event,
     SHOW_DELAY(s);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/msnrept.c (0e8e:0000..028b special-mission report helpers).
+ * Services 1..6 and 9..13 of the mission table (svc_mission, game/core/msnkill.c). */
+uint16_t svc_msnrept(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_mission("msnrept", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_mission_delay_present) {
+  (void)args;
+  (void)count;
+  opeu_mission_delay_present(ds, svc_msnrept);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_finish_present) {
+  (void)args;
+  (void)count;
+  opeu_mission_finish_present(ds, svc_msnrept);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -18,6 +18,21 @@
 #include "map/movespot.h"
 #include "map/movesup.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/sideutil.h"
+#include "io/waitkey.h"
+#include "map/distance.h"
+#include "map/occupy.h"
+#include "map/query.h"
+#include "map/stepmap.h"
+#include "map/support.h"
+#include "units/stats.h"
+#include "units/value.h"
+#endif
 #define UNIT_P           uint16_t
 #define ELEMENT_P        uint16_t
 #define STEP_LOCALS      uint8_t c, d, e;
@@ -118,3 +133,67 @@ uint16_t opeu_move_enemy_adjacent(uint8_t ds[65536], HostEvent event,
 void opeu_move_mines_finish(uint8_t ds[65536], HostEvent event) {
   PENDING_FINISH(3);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/movespot.c (32e6:0368 spotting, 051e enemy adjacent, 05a0
+ * mines finish). Events (host branch comment; callees from the DOS branch):
+ *   3 opposite_side(side)          0b73:04c8
+ *   4 code_outside_5_to_19(hour)   0b73:0178
+ *   5 rand_bounded(n)              09f6:00d4 (state in DS:c6f4)
+ *   6 unit_special(unit)           145c:04de
+ *   7 unit_selection_eligible(unit) 145c:0fc4
+ *   8 grid_distance(x,y,x2,y2)     17c4:1424
+ *   9 grid_step(x*,y*,dir)         145c:0d3e (DS offsets of the bytes)
+ *  10 cell_side(x,y)               145c:0e42
+ *  11 find_unit_at(x,y)            145c:011c
+ *  12 pending_finish(value)        0a8e:005c (WAITKEY) */
+uint16_t svc_movespot(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 3: r = opeu_opposite_side((uint8_t)ARG(0)); break;      /* 0b73:04c8 */
+    case 4: r = opeu_hour_is_night((uint8_t)ARG(0)); break;      /* 0b73:0178 */
+    case 5: r = port_rand_bounded(ds, ARG(0)); break;            /* 09f6:00d4 */
+    case 6: r = opeu_unit_special(ds, ARG(0)); break;            /* 145c:04de */
+    case 7: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
+    case 8:
+      r = opeu_grid_distance((uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                             (uint8_t)ARG(3));
+      break; /* 17c4:1424 */
+    case 9:
+      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      break; /* 145c:0d3e */
+    case 10:
+      r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 145c:0e42 */
+    case 11:
+      r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 145c:011c */
+    case 12:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      break; /* 0a8e:005c */
+    default: port_unhandled("movespot", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_move_mines_finish) {
+  (void)args;
+  (void)count;
+  opeu_move_mines_finish(ds, svc_movespot);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

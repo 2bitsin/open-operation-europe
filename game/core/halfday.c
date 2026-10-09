@@ -3,6 +3,14 @@
 #include "types.h"
 #include "core/halfday.h"
 #include "core/periodic.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/noonevt.h"
+#endif
 #define HOUR        ds[0x47]
 #define PREPARE()   event(ds, 0, 0, 0, 0, 0)
 #define RESOURCES() opeu_apply_daily_side_resources(ds)
@@ -20,3 +28,42 @@ void opeu_turn_half_day(uint8_t ds[65536],
     NOON();
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)       ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)     ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define NOON_RESERVE 0x200u
+
+/* Services of core/halfday.c (0e47:00e0 opeu_turn_half_day). Services:
+ * prepare=0, noon events=1. */
+uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
+                     uint16_t a2, uint16_t a3) {
+  uint16_t sp;
+  (void)a0;
+  (void)a1;
+  (void)a2;
+  (void)a3;
+  switch (id) {
+    case 0: opeu_turn_prepare(ds, port_dialogs_host()); break; /* 1707:00c8 */
+    case 1: /* 0e57:0296 */ /* far_text: base of the far text segment 3895; the records' far
+* actions are compared with this code segment 0e57. */
+      sp = port_stack_enter(NOON_RESERVE);
+      opeu_turn_noon_events(ds, port_far(0x3895, 0), svc_noonevt, sp, 0x0e57);
+      port_stack_leave(NOON_RESERVE);
+      break;
+    default: port_unhandled("halfday", id, 4);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef NOON_RESERVE
+#endif /* OPEU_HOST_EVENTS */

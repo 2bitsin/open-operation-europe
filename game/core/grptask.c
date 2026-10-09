@@ -9,6 +9,14 @@
 #include "map/query.h"
 #include "map/support.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/groupai.h"
+#include "core/unitai.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint8_t bytes[14], order_kind, tail[7];
@@ -106,3 +114,34 @@ uint16_t opeu_turn_final_predicate(uint8_t ds[65536],
   }
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/grptask.c (1389:0b0e group action, 1389:0b4c final
+ * predicate). Services: group task service=0, unit task service=1. */
+uint16_t svc_grptask(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
+                     uint16_t a2, uint16_t a3) {
+  (void)a0;
+  (void)a1;
+  (void)a2;
+  (void)a3;
+  switch (id) {
+    case 0:  opeu_group_task_service(ds); break; /* 1983:04ca */
+    case 1:  opeu_unit_task_service(ds); break;  /* 19df:0db2 */
+    default: port_unhandled("grptask", id, 4);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -9,4 +9,10 @@ void opeu_control_prepare(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_staff_advice_menu(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_turn_action_5(uint8_t* ds, HostEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

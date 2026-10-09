@@ -7,6 +7,14 @@
 #include "core/strings.h"
 #include "units/typetext.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#endif
 /* Host UI boundary. Event numbers and argument words:
  * 0 position(x,y) 1 print(format,...) 2 fill(x,y,w,h,colour)
  * 3 outline(x1,y1,x2,y2,colour) 4 backdrop(mode).
@@ -129,3 +137,47 @@ void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first,
   OUTLINE(0x80, 0x1c, 0xa8, 0xf9, 7);
   SHOW(count);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/allocscr.c (20b3:15b8..1907 allocation screen). Services from
+ * the host branch's list: 0 army_position(x,y) 0480:0808, 1 army_print
+ * (format,...) 0480:0bb8, 2 vga_fill_rect(x,y,w,h,colour) VGALIB 2AD2,
+ * 3 ui_outline(x1,y1,x2,y2,colour) 0a04:065a, 4 side_backdrop(mode)
+ * 0a04:0720 (opeu_backdrop_fill_color). */
+uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 1: r = lf_cursor_print(ds, args, count); break;
+    case 2:
+      r = (uint16_t)opeu_vga_fill_rect(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 3:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    case 4:
+      opeu_backdrop_fill_color(ds, port_uiprim_host(), (uint8_t)ARG(0));
+      break;
+    default: port_unhandled("allocscr", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

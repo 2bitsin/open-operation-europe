@@ -9,6 +9,12 @@
 #include "map/dplauto.h"
 #include "map/dplcell.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; units, elements and result cells are DS offsets.
  * Callees outside this segment are event services named by linear MAIN
  * address (argument words as in tests/validate_deployment.py). The cells
@@ -255,3 +261,63 @@ void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
       opeu_deploy_put_at(ds, event, ds[AUTO_X], ds[AUTO_Y], b);
     }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/*
+ * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
+ * PORT_ROUTINE handlers of the routines they reach).
+ * Conversion only; no game logic.
+ *
+ * Address-keyed word convention of the handlers (port.h): the register words
+ * in AX, DX, BX order (bytes zero-extended), then the stack words in
+ * prototype order; for the MSC C 6.0a _fastcall callees that is the order in
+ * which the arguments take registers: left to right, a near pointer goes to
+ * BX when it is free, any other byte/word (and a pointer when BX is taken) to
+ * the first free of AX, DX, BX; far pointers, longs and the arguments left
+ * over go to the stack (cdecl/asm routines: all stack words in order). */
+/* Deployment (dplauto, dplcell, dplrows, dplside, dplunit): words in source
+ * (prototype) order, tests/validate_deployment.py. */
+uint16_t svc_battle_deploy(uint8_t* ds, uint32_t address, const uint16_t* args,
+                           unsigned count) {
+  static const unsigned char unit_name[]   = { 1, 0 }; /* (unit, buffer) */
+  static const unsigned char list_dialog[] = { 1, 2,
+                                               0 }; /* (window, limit, flags) */
+  static const unsigned char set_order[]   = { 1, 0 }; /* (element, order) */
+  static const unsigned char grid_step[]   = { 1, 2,
+                                               0 }; /* (x*, y*, direction) */
+  static const unsigned char put_range[] = { 1, 2, 0 }; /* (s, start, count) */
+  static const unsigned char columns[]   = {
+    0, 2, 1, 3, 4
+  }; /* (column, first, rows, second, third) */
+  static const unsigned char message[] = { 1, 2, 0 }; /* (text, side, value) */
+  switch (address) {
+    case 0x0b8b8u: return btl_reorder(ds, address, args, count, unit_name, 2);
+    case 0x0b4a0u: return btl_reorder(ds, address, args, count, list_dialog, 3);
+    case 0x29d7au: return btl_reorder(ds, address, args, count, set_order, 2);
+    case 0x152feu: return btl_reorder(ds, address, args, count, grid_step, 3);
+    case 0x053d0u: return btl_reorder(ds, address, args, count, put_range, 3);
+    case 0x0aa20u: return btl_reorder(ds, address, args, count, columns, 5);
+    case 0x2a2b2u: return btl_reorder(ds, address, args, count, message, 3);
+    default:       return port_service(ds, address, args, count);
+  }
+}
+
+/* Services of map/dplauto.c, address-keyed BattleEvent: deployment group (source-order words, see svc_battle_deploy in game/map/dplauto.c). */
+uint16_t svc_dplauto(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_deploy(ds, service, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

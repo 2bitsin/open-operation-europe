@@ -12,6 +12,24 @@
 #include "map/viewstep.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/armysum.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "core/vwpanel.h"
+#include "io/keyboard.h"
+#include "io/mouse.h"
+#include "map/cursor.h"
+#include "map/inspect.h"
+#include "map/maperase.h"
+#include "map/mappos.h"
+#include "map/viewpan.h"
+#include "units/ordact.h"
+#endif
+
 #include <stddef.h>
 /* Native caller supplies aligned DS storage with 65,537 accessible bytes and
  * a nonwrapping 144-byte workspace [scratch-144,scratch); scratch is original
@@ -332,3 +350,103 @@ done:
   COORD_RESTORE(0, 0, 80, 24, 0, opeu_bitmap_buffer, 0x120);
   return COORD_RESULT;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
+#define B2_SP_CALL(bytes, call)            \
+  do {                                     \
+    uint16_t sp = port_stack_enter(bytes); \
+    call;                                  \
+    port_stack_leave(bytes);               \
+  } while (0)
+
+/* Services of core/coords.c (1389:02a0 opeu_control_coordinates, keyboard/mouse
+ * map-coordinate selection). Services, from the host branch's macros:
+ *  0 location(x,y,side)   15c4:1408    1 input reset         05a8:01b4
+ *  2 save(x,y,w,h,seg,off) VGALIB 2ED8  3 erase(x,y)           15c4:0f7c
+ *  4 inspect(x,y)         17c4:00bc    5 cursor(x,y)          17c4:0164
+ *  6 objective panel(o)   1fe6:0270    7 unit panel(u)        1fe6:037a
+ *  8 army summary()       0bc3:0042    9 mouse show           05a8:003e
+ * 10 mouse buttons -> AL  05a8:0170   11 mouse position(&x,&y) 05a8:0086
+ * 12 mouse hide           05a8:0062   13 pan(dx,dy,x,side,y)  17c4:0242
+ * 14 unit action(unit,g)  1c23:09aa   15 message lookup(id)   312c:000c
+ * 16 control message(text,person) 1707:0672  17 keyboard key -> AL 0541:00ba
+ * 18 restore(x,y,w,h,mode,seg,off) VGALIB 2674
+ * Service 13 packs the _fastcall stack words in memory order (side, then
+ * y) after the register words dx, dy, x (tests/validate_coordinates.py). */
+uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
+                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
+                                       (uint8_t)ARG(2)));
+      break;
+    case 1: opeu_input_reset(ds, svc_mouse); break;
+    case 2:
+      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3), B2_FAR(ARG(4), ARG(5)));
+      break;
+    case 3:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_map_erase(ds, svc_maperase, (uint16_t)(sp - 2),
+                                (uint8_t)ARG(0), (uint8_t)ARG(1)));
+      break;
+    case 4:
+      opeu_map_inspect(ds, svc_inspect, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    case 5:
+      B2_SP_CALL(PORT_FRAME, opeu_map_cursor(ds, svc_cursor, (uint16_t)(sp - 2),
+                                             ARG(0), ARG(1)));
+      break;
+    case 6:
+      B2_SP_CALL(PORT_FRAME, opeu_objective_panel(ds, svc_vwpanel, sp, ARG(0)));
+      break;
+    case 7:
+      B2_SP_CALL(PORT_FRAME, opeu_unit_panel(ds, svc_vwpanel, sp, ARG(0)));
+      break;
+    case 8:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_army_summary(ds, svc_armysum, (uint16_t)(sp - 2 - 0x50)));
+      break;
+    case 9:  opeu_mouse_show(ds, svc_mouse); break;
+    case 10: r = opeu_mouse_buttons(ds, svc_mouse); break;
+    case 11: opeu_mouse_position(ds, svc_mouse, ARG(0), ARG(1)); break;
+    case 12: opeu_mouse_hide(ds, svc_mouse); break;
+    case 13:
+      opeu_viewport_pan(ds, svc_viewpan, (int16_t)ARG(0), (int16_t)ARG(1),
+                        (uint8_t)ARG(2), (uint8_t)ARG(4), (uint8_t)ARG(3));
+      break;
+    case 14:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_unit_action(ds, svc_ordact, sp, ARG(0), ARG(1)));
+      break;
+    case 15: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 16:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 17: r = opeu_keyboard_key(ds, svc_keyboard); break;
+    case 18:
+      opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                          B2_FAR(ARG(5), ARG(6)));
+      break;
+    default: port_unhandled("coords", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_FAR
+#undef B2_SP_CALL
+#endif /* OPEU_HOST_EVENTS */

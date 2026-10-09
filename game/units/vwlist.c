@@ -12,6 +12,17 @@
 #include "types.h"
 #include "units/vwlist.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/recindex.h"
+#include "core/selunit.h"
+#include "map/objeleg.h"
+#include "map/query.h"
+#include "map/support.h"
+#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -259,3 +270,112 @@ uint8_t opeu_list_element_types(uint8_t ds[65536], HostEvent event, uint16_t sp,
       PUT_TYPE(a, b);
   return TYPE_COUNT(a, list);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/vwlist.c (1fe6:0004..026f view list builders and list-dialog
+ * row checks). Services of the shared view numbering (vwlist.c host enum)
+ * that this module raises:
+ *   1 objective_side(objective) -> AL     145c:01b8
+ *   2 objective_eligible(objective) -> AX 145c:101a
+ *   3 group_selected_unit(group) -> AX    145c:0c46 find_group_selected_unit
+ *   4 unit_eligible(unit) -> AX           145c:0fc4 unit_selection_eligible
+ *   5 unit_side(unit) -> AL               145c:006c
+ * The row checks are reached by identifier (far pointers 1fe6:xxxx stored in
+ * the list dialogs): game/units/vwlist.c. */
+uint16_t svc_vwlist(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 1:  r = opeu_objective_side(ds, ARG(0)); break;
+    case 2:  r = opeu_objective_eligible(ds, ARG(0)); break;
+    case 3:  r = opeu_find_group_selected_unit(ds, ARG(0)); break;
+    case 4:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 5:  r = opeu_unit_side(ARG(0)); break;
+    default: port_unhandled("vwlist", id, count);
+  }
+  return r;
+}
+
+/* 1fe6:016e */
+PORT_ROUTINE(opeu_view_false) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_false(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:0200 */
+PORT_ROUTINE(opeu_view_false_2) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_false_2(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:0204 */
+PORT_ROUTINE(opeu_view_false_3) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_false_3(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:0172 */
+PORT_ROUTINE(opeu_view_group_ok) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_group_ok(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:0120 */
+PORT_ROUTINE(opeu_view_objective_ok) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_objective_ok(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:0208 */
+PORT_ROUTINE(opeu_view_true) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_true(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+/* 1fe6:01ac */
+PORT_ROUTINE(opeu_view_unit_ok) {
+  uint16_t sp = port_stack_enter(PORT_FRAME);
+  uint8_t  r  = opeu_view_unit_ok(ds, svc_vwlist, sp);
+  (void)args;
+  (void)count;
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

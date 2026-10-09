@@ -4,6 +4,17 @@
 #include "core/context.h"
 #include "core/people.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/armysum.h"
+#include "core/dialogs.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "io/sound.h"
+#endif
 #include <stddef.h>
 #define POINTER       uint16_t
 #define NAME          uint16_t
@@ -67,3 +78,65 @@ void opeu_daily_context(uint8_t ds[65536], HostEvent event, uint8_t side) {
 void opeu_turn_pre_context(uint8_t ds[65536], HostEvent event) {
   CONTEXT(TABLE[SCENARIO & 127]);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)         ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)       ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define ARMY_WORKSPACE 82u
+
+/* Services of core/context.c (1389:000e opeu_daily_context, 1389:011a
+ * opeu_turn_pre_context). Events, resolved from the DOS branch's macros:
+ *   0 begin 1707:0260 opeu_context_begin (DIALOGS)
+ *   1 save 0480:0844 opeu_context_save
+ *   2 frame(44,24,w) 0a04:02a0 opeu_context_frame (UIPRIM)
+ *   3 print(format,...) 0480:0bb8 opeu_context_print (host opeu_cursor_print)
+ *   4 restore 0480:086a opeu_context_restore
+ *   5 portrait(70,40,person) 0a04:046c opeu_context_portrait (UIPRIM)
+ *   6 position(45,y) 0480:0808 opeu_context_position (host opeu_army_position)
+ *   7 finish 0bc3:0042 opeu_army_summary (82-byte workspace scratch-2..+79)
+ *   8 context(v) 0d65:00fe opeu_set_turn_context */
+uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t s;
+  switch (id) {
+    case 0: opeu_context_begin(ds, port_dialogs_host()); break;
+    case 1: opeu_context_save(ds, port_textout_host()); break;
+    case 2:
+      opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 3: b1_cursor_print(ds, args, count); break;
+    case 4: opeu_context_restore(ds, port_textout_host()); break;
+    case 5:
+      opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 6:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 7:
+      s = b1_stack_alloc(ARMY_WORKSPACE);
+      opeu_army_summary(ds, svc_armysum, (uint16_t)(s + 2));
+      port_scratch_leave(ARMY_WORKSPACE);
+      break;
+    case 8:  opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    default: port_unhandled("context", id, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_daily_context) {
+  opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef ARMY_WORKSPACE
+#endif /* OPEU_HOST_EVENTS */

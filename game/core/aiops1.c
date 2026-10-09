@@ -17,6 +17,16 @@
 #include "map/support.h"
 #include "units/stats.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/aibudget.h"
+#include "core/daylist.h"
+#include "map/objeleg.h"
+#include "units/release.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint8_t  x, y;
@@ -311,3 +321,32 @@ uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
   k->d        = (k->c = opeu_rand_bounded(5) + 1) + 6;
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_ai_unrecovered(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t dx,
+                            uint16_t* bx) {
+  switch (id) {
+    case 0: return opeu_release_side_units(ds, *bx, (uint8_t)ax);
+    case 1: return opeu_release_side_elements(ds, *bx, (uint8_t)ax);
+    case 2: return opeu_list_due_records(ds, *bx, (uint8_t)ax, (uint8_t)dx);
+    case 3: return opeu_objective_level(ds, *bx);
+    case 4: return opeu_objective_eligible(ds, *bx);
+    case 5: return opeu_ai_supply_share(ds, bx, ax, (uint8_t)dx);
+  }
+  port_unhandled("ai_unrecovered", id, 3);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

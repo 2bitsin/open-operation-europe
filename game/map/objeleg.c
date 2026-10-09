@@ -7,6 +7,12 @@
 #include "map/query.h"
 #include "map/stepmap.h"
 #include "map/support.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #define UNIT_POINTER     uint16_t
 #define FIELD(n)         ds[(uint16_t)(objective + (n))]
 #define UNIT_FLAGS(unit) ds[(uint16_t)((unit) + 21)]
@@ -35,3 +41,22 @@ supported:
   a = SELECTED(OBJECTIVE_SIDE());
   return SUPPORT(a);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_objective_eligible) {
+  return opeu_objective_eligible(ds, ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -2,7 +2,8 @@
 
 The game program MAIN of Operation Europe, built natively for macOS (and
 portable to Linux, Windows and Emscripten) from the **recovered C** of
-`src/main`, with hand-written native C for everything the original did in
+`src/main` as the generated `game/` tree presents it (`make game`), with
+hand-written native C for everything the original did in
 assembly or through DOS/BIOS/driver interrupts. Nothing is emulated: there is
 no CPU interpreter, no 8086 emulator, no interrupt/trap layer, no DOS
 runtime and no translated machine code. `python3 tools/port_lint.py
@@ -38,11 +39,10 @@ Environment: `OPEU_TRACE=link,svc,mem` (or `all`) logs calls to `port.log`
 (`OPEU_LOG` overrides the path); `OPEU_BACKTRACE=1` prints the native call
 stack on a crash and when a headless run stops (macOS/Linux).
 
-Reference tree: the build compiles `src/` of this checkout. To compile
-another recovered tree (for example a checkout with newer recoveries), pass
-`-DOPEU_SRC=/path/to/src` to CMake or `PORT_SRC=/path/to/src` to make.
-CMake reports which optional host branches the tree has
-(`OPEU_HAVE_PATH_FILL`, `OPEU_HAVE_MOVE_REACHABLE`, see "Missing" below).
+Game tree: the build compiles `game/` of this checkout, generated from
+`src/main` by `make game` (run it first; CMake stops if `game/` is
+missing). To compile another generated tree pass `-DOPEU_GAME=/path/to/game`.
+`-DOPEU_SRC` (`make port PORT_SRC=...`) is no longer used and only warns.
 
 ### Scripted input (`--input`)
 
@@ -173,13 +173,12 @@ IndexedDB; Safari needs the ASYNCIFY build (the default).
   frames; with no emscripten main loop the call only warns); letterbox
   instead of integer-scale presentation (the CSS box is rarely an integer
   multiple of 640x480).
-- `core/wasm_abi.c` + `CMakeLists.txt` (web only): aiops5.c declares six AI
-  routines of aiops3/aiops4 (`opeu_ai_08f8 093c 0a5a 0c3c 0d82 1064`) as
-  `void` while they return `uint16_t`. Native ABIs ignore the unread
-  return value; WebAssembly checks call types, wasm-ld replaces such calls
-  with a trap stub and Binaryen then rejects the module. aiops5.c is
-  compiled with each name mapped to a `void` forwarder that calls the
-  recovered routine and drops the value. `src/` is unchanged.
+- No call-signature glue any more. src/main/core/aiops5.c declares six AI
+  routines of aiops2/3/4 as `void` while they return `uint16_t`; native
+  ABIs ignore the unread value, WebAssembly does not (wasm-ld makes such a
+  call a trap stub). `game/core/aiops5.c` calls them through their owners'
+  prototypes instead (the generator's "declarations" in
+  `tools/game-renames.json`), which replaced `core/wasm_abi.c`.
 - `CMakeLists.txt`: the `if(EMSCRIPTEN)` block (SDL3 port, link flags,
   data packaging, `/data` as the default data directory; the host test
   programs are not built for the web).
@@ -264,32 +263,70 @@ Verification without ears:
 
 ## How it is put together
 
-    src/main/**/*.c          recovered game (host branches), compiled unchanged
+    game/<area>/*.c          recovered game (generated from src/main), each with its services
     port/main.c              crt0's role: data image, devices, then the recovered main()
-    port/core/               data arena, DGROUP stack model, routine link table, diagnostics, event pump
+    port/core/               data arena, DGROUP stack model, routine link table, diagnostics,
+                             event pump, platform glue of the services
+    port/include/            port.h (layer contract), glue.h, services.h
     port/services/           native assembly-library and DOS/BIOS/driver services
-    port/link/<area>/M.c     the service callback of recovered module M
-    port/link/routines/      handlers for routines reached by identifier
     port/platform/           platform contract (platform.h) and SDL3 backend
     port/third_party/ymfm/   the OPL2 sound-chip emulator (BSD-3-Clause, vendored)
-    port/gen/                generated: prototypes, data placement, index
+    port/gen/                generated: data placement, module data, symbols
     port/open/               the opening (OPEN.EXE): link callbacks, image, process, start-up, tests
     port/tools/              the generators
 
 The host branch of every recovered module keeps the original 16-bit data
 layout and reports each call that leaves the module to a service callback
 (a numbered service, or in the battle modules the callee's original
-address). `port/link` implements those callbacks: each service calls the
-recovered routine the original called (its host entry, with that module's
-own callback) or the native replacement of an assembly/DOS/BIOS service.
-Link files contain no game logic, only argument conversion.
+address). `tools/make_game_tree.py` resolves those callbacks in `game/`
+itself: every module ends with a native-build section (`#ifndef
+OPEU_HOST_EVENTS`) holding its service tables `svc_<module>`, whose cases
+call the recovered routine the original called (its host entry, with that
+module's own table) or the native replacement of an assembly/DOS/BIOS
+service, and the `PORT_ROUTINE` handlers of its routines. The tables come
+from `tools/game-services.json` (mined from the former `port/link`, see
+argument conversion. The validators build the same files with
+`-DOPEU_HOST_EVENTS` (tools/host_tree/cc), which leaves the host branch
+exactly as in `src/`.
+
+### Recovered code and platform glue
+
+The former `port/link` (342 files, 10,208 lines; 8,849 in per-module
+files) is gone. What could not become a direct call inside a module stays
+in port/, all of it platform glue:
+
+- `include/glue.h`, `core/glue.c` (about 630 lines): the DGROUP stack
+  helpers (scratch and frame enter/leave) and the frame-call helpers of the
+  variadic `request_format`/`cursor_print`, one per module family because
+  each family lays the words out differently in its stack frame (they are
+  kept apart so the frames stay byte-identical); the battle reorder and
+  call-by-name helpers over the link table; the INT 33h/66h register-block
+  adapters; the prompt and file helpers (scenario load, picture reader,
+  closing message); the bounded random helper that syncs the generator word
+  at DS:c6f4; `port_install_hooks` (installs `svc_ai_unrecovered`). Shared
+  by many modules or tied to the DGROUP model, so not part of any one
+  module.
+- `core/hosts.c` (about 100 lines): the host structs that textout, uiprim,
+  dialogs and numdlg take instead of a bare callback (their callback plus
+  the segment, stack and buffer addresses of the platform's DS layout).
+- `core/routines.c` (about 110 lines): `PORT_ROUTINE` handlers of the 16
+  native services named by address (VGALIB, SYSLIB, `getch`); the
+  handlers of recovered routines are generated into their modules.
+- `core/link.c` + `gen/link_table.c` (generated by `tools/gen_link_table.py`
+  from `port/gen/symbols.json` and the `PORT_ROUTINE` handlers of `game/`
+  and `port/`): the routine link table, see "Provenance".
 
 ## Provenance
 
-- **Code.** All 332 `src/main` modules are compiled from source into
-  `libopeu_recovered`; the port adds the link callbacks, the native services
-  and the start-up. No port file defines a function named like a recovered
-  routine (lint-checked).
+- **Code.** All 332 `src/main` modules are compiled into
+  `libopeu_recovered` as their generated `game/<area>/<m>.c` counterparts
+  (same code, names from `tools/game-renames.json`, one header per module,
+  plus each module's generated services); the port adds the platform glue,
+  the native services and the start-up. `tools/port_lint.py
+  --compile-commands=...` maps each compiled `game/<area>/<m>.c` to
+  `src/main/<area>/<m>.c` (a game/ file without one is rejected), requires
+  90% of them, and rejects any port/ file that defines a recovered routine
+  (reference or game/ name) or a generated `svc_` table.
 - **Initial data image.** `port/core/memory.c` builds the 640 KiB data arena
   (FAR_DATA segments 349B..4582, DGROUP at 4712, DOS blocks from 5712; plain
   data, nothing executes from it) from:
@@ -317,11 +354,13 @@ Link files contain no game logic, only argument conversion.
   and display modules (and stockord) pass the callee's linear address as the
   service id, and about 30 modules read far code pointers from data tables
   (segment:offset words in the recovered data) and hand the unknown ones to
-  their service callback. `port/gen/link_table.c` (generated by
-  `port/tools/gen_link_table.py` from the symbol names and the
-  `PORT_ROUTINE(name)` handlers in `port/link`) maps such an identifier to
-  the native C handler that calls the recovered routine. It is a sorted
-  table lookup of names; it executes nothing but C functions.
+  their service callback. The link table (`<build>/gen/link_table.c`,
+  generated by `port/tools/gen_link_table.py` from the symbol names and the
+  `PORT_ROUTINE(name)` handlers in `game/` and `port/core/routines.c`;
+  renamed routines are listed under their reference names through
+  `game/compat/aliases.json`) maps such an identifier to the native C
+  handler that calls the recovered routine. It is a sorted table lookup of
+  names; it executes nothing but C functions.
 
 ## OPEN.EXE (the opening)
 
@@ -529,16 +568,10 @@ all byte-identical to the native build's.
 
 ### Screens reached (headless runs, PNG captures)
 
-With this checkout's `src/` (which lacks the two fills listed below):
-input prompt, New Game / Load Game, the scenario list, the France briefing
+Input prompt, New Game / Load Game, the scenario list, the France briefing
 (picture and text), the players menu, side, map type, battle view and
 difficulty choices, the staff screens (Army Commander and Chief of
-Operations assignment). With Enter accepted throughout, the briefing
-closes and the first computer unit order stops at the AI path fill with
-the "not linkable" message.
-
-With a reference that has both fills recovered (`-DOPEU_SRC` pointing at the
-main checkout's staged `src/`, 2026-10-09): everything above, then the
+Operations assignment), then the
 operational map with the army panel, hour-by-hour turn processing (units
 moving, "executing orders" reports, weather changes, the date advancing
 past the first day), supply transfers with the Supplies panel and unit
@@ -585,21 +618,26 @@ routine.
 - `services/clock.c`: the BIOS tick count and `getch` from SDL time.
 - `core/memory.c`, `core/link.c`: the data arena, the DGROUP stack model,
   the routine link table lookup, diagnostics.
+- `core/glue.c`, `core/hosts.c`, `core/routines.c`: the platform glue of
+  the services (see "Recovered code and platform glue").
 - `main.c`: crt0's role (data image, devices, then `opeu_application_entry`).
 - `platform/`: SDL3 window/present, events, time, PNG writer; for the
-  web build also the page shell and file-system set-up (`platform/web/`)
-  and `core/wasm_abi.c` (see "Web platform edits").
+  web build also the page shell and file-system set-up (`platform/web/`).
 
 ### Edited recovered routines
 
-None. No file under `src/` is changed or copied; every recovered module is
-compiled as is. Platform differences live in `port/link` (argument
-conversion) and `port/services`.
+None. No file under `src/` is changed; `game/` is generated from it and
+not edited by hand. Differences from the host branches are the generator's:
+the native-build sections (argument conversion only) and the six aiops5
+declarations replaced by their owners' prototypes. Native replacements live
+in `port/services`.
 
 ### Boundary pointers installed by the port
 
 - `opeu_ai_unrecovered` (aiops1.c:143): the AI modules' boundary for six
-  callees, all now recovered. `link/core/aiops.c` maps the ids to them
+  callees, all now recovered. `svc_ai_unrecovered` (native-build section
+  of `game/core/aiops1.c`, installed by `port_install_hooks`) maps the ids
+  to them
   (0 `opeu_release_side_units`, 1 `opeu_release_side_elements`,
   2 `opeu_list_due_records`, 3 `opeu_objective_level`,
   4 `opeu_objective_eligible`, 5 `opeu_ai_05a8`), following
@@ -607,14 +645,11 @@ conversion) and `port/services`.
 
 ### Recovered routines that are missing (blockers)
 
-- `opeu_path_fill` (19DF:006E) and `opeu_move_reachable` (32E6:00D8) have no
-  host branch in this checkout's `src/`. With such a reference the computer
-  player's route search (`opeu_path_fill_hook`) and the movement
-  reachability check (moveunit/movetgt service 5) stop the game with a
-  "not linkable" message; the port does not substitute its own fill. Both
-  are recovered in the main checkout (staged); a build against that tree
-  links them automatically (`OPEU_HAVE_PATH_FILL`,
-  `OPEU_HAVE_MOVE_REACHABLE`).
+- None for the turn loop: `opeu_path_fill` (19DF:006E) and
+  `opeu_move_reachable` (32E6:00D8) are recovered in `src/`, and the
+  services that reach them call them directly (the miner resolved the old
+  `OPEU_HAVE_PATH_FILL`/`OPEU_HAVE_MOVE_REACHABLE` switches of `port/link`
+  to "present").
 
 ### Known issues (reported by the link work, not yet fixed)
 

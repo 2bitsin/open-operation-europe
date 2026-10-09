@@ -20,6 +20,16 @@
 #include "types.h"
 #include "core/armypanl.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "map/support.h"
+#include "units/labels.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint8_t  type;
@@ -229,3 +239,56 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, UNIT_P units,
       opeu_panel_elements(units, y SP_ARG(16));
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
+
+/* Services of core/armypanl.c (0bc3:037c..078f division regiment panel).
+ * Services, from the host branch (source-order words):
+ *  0 fill(x1,y1,x2,y2,colour)      VGALIB 2FA5 opeu_ui_fill
+ *  1 outline(x1,y1,x2,y2,colour)   0a04:065a opeu_ui_outline
+ *  2 line(x1,y1,x2,y2,colour)      VGALIB 2D16 opeu_ui_line
+ *  3 position(x,y)                 0480:0808 army_position
+ *  4 print(format,...)             0480:0bb8 army_print (cdecl)
+ *  5 draw_far(x,y,w,h,mode,seg,off) VGALIB 28B0 opeu_draw_far
+ *  6 element_name(element,buffer) -> AX  0b73:0234
+ *  7 selection_eligible(unit) -> AX      145c:0fc4 */
+uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 1:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    case 2: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 3:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 4: b2_cursor_print(ds, args, count); break;
+    case 5:
+      opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                    B2_FAR(ARG(5), ARG(6)));
+      break;
+    case 6:  r = opeu_element_name(ds, ARG(0), ARG(1)); break;
+    case 7:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    default: port_unhandled("armypanl", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_FAR
+#endif /* OPEU_HOST_EVENTS */

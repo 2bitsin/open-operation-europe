@@ -15,6 +15,19 @@
 #include "core/people.h"
 #include "core/perssel.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/evvisit.h"
+#include "core/msglook.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "io/keyboard.h"
+#include "io/sound.h"
+#endif
 #include <stddef.h>
 /* Host model: pointers are DS offsets into ds[65536]. Side records, the
  * selected unit and byte arithmetic run recovered host code; every other
@@ -172,3 +185,108 @@ void opeu_spy_event(uint8_t ds[65536], HostEvent event) {
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evspy.c (108c:0fd8..1301 the evening visitor event). Services
+ * from the host branch comment:
+ * 0 visit_unit_safe(unit), 1 message panel (1707:0346), 2 context_frame(x,y,w),
+ * 3 army_print(format), 4 dos_seek(handle,low,high,origin),
+ * 5 image_read_draw(x,y,w,h,mode,handle), 6 army_position(x,y),
+ * 7 request_format(destination,format[,argument]), 8 message_text(text),
+ * 9 ui_text(text), 10 answer (0541:060a), 11 set_turn_context(value),
+ * 12 finish_side_initialization(value), 13 daily_show(id,side,offset,segment),
+ * 14 control_message(text,person), 15 control_ask(text,person),
+ * 16 message_lookup(id). */
+uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args,
+                   uint16_t count) {
+  uint16_t scratch, r = 0;
+  switch (id) {
+    case 0: r = opeu_visit_unit_safe(ds, ARG(0)); break; /* 108c:000e */
+    case 1:
+      opeu_message_panel_begin(ds, port_dialogs_host());
+      break; /* 1707:0346 */
+    case 2:
+      opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;                                         /* 0a04:02a0 */
+    case 3: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 */
+    case 4:
+      r = (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
+                                  (int16_t)ARG(3));
+      break;
+    case 5:
+      opeu_image_read_draw(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                           ARG(3), ARG(4), (int16_t)ARG(5));
+      break;
+    case 6:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;                                           /* 0480:0808 */
+    case 7: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 8:
+      opeu_text_feed(ds, port_dialogs_host(), ARG(0));
+      break; /* 1707:0652 message_text */
+    case 9:
+      opeu_ui_text(ds, port_textout_host(), ARG(0));
+      break; /* 0480:0484 */
+    case 10: /* 0541:060a yes_no */
+      scratch = port_scratch_enter(16);
+      r       = (uint16_t)opeu_yes_no(ds, svc_keyboard, scratch);
+      port_scratch_leave(16);
+      break;
+    case 11:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+      break; /* 0d65:00fe */
+    case 12:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      break; /* 0d65:0032 */
+    case 13:
+      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      break; /* 1707:03e4 */
+    case 14:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 15:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:076c control_ask */
+    case 16:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      break; /* 312c:000c */
+    default: port_unhandled("evspy", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_spy_event) {
+  (void)args;
+  (void)count;
+  opeu_spy_event(ds, svc_evspy);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_spy_present_a) {
+  (void)args;
+  (void)count;
+  opeu_spy_present_a(ds, svc_evspy);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_spy_present_b) {
+  (void)args;
+  (void)count;
+  opeu_spy_present_b(ds, svc_evspy);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

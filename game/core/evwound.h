@@ -10,4 +10,10 @@ void opeu_commander_death(uint8_t* ds, HostEvent event, uint16_t bp,
                           uint16_t person);
 void opeu_wound_event(uint8_t* ds, HostEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

@@ -13,6 +13,13 @@
 #include "types.h"
 #include "core/vwpanel.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/vwarms.h"
+#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -218,3 +225,26 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t sp,
     PRINT3(ELEMENT_ROW, TYPE_NAME(k), STOCK_AMOUNT(k));
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/vwpanel.c (1fe6:0270..04f9 objective and regiment information panels).
+ * Services: the shared HostEvent protocol of the 1fe6 view modules
+ * (svc_view in game/core/vwarms.c; ids as the module's host enum). */
+uint16_t svc_vwpanel(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_view(ds, "vwpanel", id, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

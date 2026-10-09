@@ -5,6 +5,12 @@
 #include "records.h"
 #include "core/recindex.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 #define GROUP_RESULT  uint16_t
 #define GROUP_INDEX   record_index(group, 0x774, 17)
 #define UNIT_INDEX    record_index(unit, 0x14fc, 22)
@@ -47,3 +53,28 @@ GROUP_RESULT opeu_unit_group(uint16_t unit) {
 uint8_t opeu_element_side(uint16_t element) {
   return ELEMENT_INDEX / 128;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_unit_group_index) {
+  (void)ds;
+  return opeu_unit_group_index(ARG(0));
+}
+
+PORT_ROUTINE(opeu_unit_side) {
+  (void)ds;
+  return opeu_unit_side(ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

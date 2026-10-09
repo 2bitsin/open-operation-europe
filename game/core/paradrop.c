@@ -39,6 +39,27 @@
 #include "core/paradrop.h"
 #include "core/limits.h"
 #include "core/numeric.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/airshow.h"
+#include "core/airstrk.h"
+#include "core/dialogs.h"
+#include "core/msnrept.h"
+#include "core/paraunit.h"
+#include "core/people.h"
+#include "core/recindex.h"
+#include "core/sideutil.h"
+#include "core/template.h"
+#include "io/sound.h"
+#include "io/soundcue.h"
+#include "io/waitkey.h"
+#include "map/maperase.h"
+#include "map/mappixel.h"
+#include "map/mappos.h"
+#endif
 #include <string.h>
 typedef uint16_t (*ParaEvent)(uint8_t* ds, uint16_t id, const uint16_t* args,
                               uint16_t count);
@@ -232,3 +253,116 @@ void opeu_para_drop_event(uint8_t ds[65536], ParaEvent event, uint16_t segment,
   CLEAR();
   ZERO_COUNT(drops);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/paradrop.c (0f43:0c22..0f46 paratroop drop). Services from the
+ * host branch comment (tests/validate_para_drop.py SERVICES):
+ *   0 unit_group(unit)            1 para_cell_ok(x,y)      2 air_report(days,text)
+ *   3 find_side_record(side,kind) 4 find_person_template(mask,kind)
+ *   5 opposite_side(side)         6 request_message(text,person)
+ *   7 0d92:0028()                 8 side_for_status(side)  9 map_center(x,y,side)
+ *   10 view_pixel(&x,&y)          11 daily_show(id,side,offset,segment)
+ *   12 music_command7()           13 para_unit_create(side,order)
+ *   14 para_land(unit,losses)     15 arrival_prepare(unit) 16 input_delay(ticks)
+ *   17 air_sprite_draw(x,y,side)  18 air_sprite_restore(x,y)
+ *   19 air_damage_roll(x,y,n)     20 air_destroyed_message(text)
+ *   21 officer_gain(side,kind)
+ * AIRSHOW/AIRSTRK `load` parameters are 0 (original segment numbering);
+ * their `bp` parameters are the callee's BP (entry SP - 2). */
+uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0: r = opeu_unit_group(ARG(0)); break; /* 145c:0086 */
+    case 1:
+      r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;                /* 0f43:089a */
+    case 2: /* 0f43:01da */ /* air_report(what, wait): the text is BX, the days byte AL. */
+      frame = port_frame_enter();
+      r     = opeu_air_report(ds, svc_airshow, frame, ARG(1), (uint8_t)ARG(0));
+      port_frame_leave();
+      break;
+    case 3:
+      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0b73:02ee */
+    case 4:
+      r = opeu_find_person_template(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;                                                /* 0b73:03d2 */
+    case 5: r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
+    case 6:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 request_message */
+    case 7: opeu_sound_cue4(ds, svc_soundcue); break; /* 0d92:0028 */
+    case 8:
+      r = opeu_side_for_status(ds, (uint8_t)ARG(0));
+      break; /* 0b73:04d0 */
+    case 9:  /* 15c4:13f6 */
+      frame = port_frame_enter();
+      opeu_map_center(ds, svc_mappos, frame, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                      (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 10: opeu_view_pixel(ds, ARG(0), ARG(1)); break; /* 15c4:055c */
+    case 11:
+      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      break;                                            /* 1707:03e4 */
+    case 12: opeu_music_command7(ds, svc_sound); break; /* 0d65:01b0 */
+    case 13:
+      r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)ARG(0),
+                                (void*)PORT_DS(ARG(1)));
+      break; /* 0f43:0722 */
+    case 14:
+      r = opeu_para_land(ds, svc_paraunit, (void*)PORT_DS(ARG(0)), ARG(1));
+      break; /* 0f43:0954 */
+    case 15: /* 15c4:0fd0 */
+      frame = port_frame_enter();
+      opeu_arrival_prepare(ds, svc_maperase, frame, ARG(0));
+      port_frame_leave();
+      break;
+    case 16: opeu_delay_ticks(ds, svc_waitkey, ARG(0)); break; /* 0a8e:000c */
+    case 17:                                                   /* 0f43:00e0 */
+      frame = port_frame_enter();
+      opeu_air_sprite_draw(ds, svc_airshow, 0, frame, ARG(0), ARG(1),
+                           (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 18:
+      opeu_air_sprite_restore(ds, svc_airshow, 0, ARG(0), ARG(1));
+      break; /* 0f43:01ac */
+    case 19:
+      r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)ARG(0),
+                               (uint8_t)ARG(1), (uint8_t)ARG(2));
+      break; /* 0f43:028a */
+    case 20: /* 0f43:0362 */
+      frame = port_frame_enter();
+      opeu_air_destroyed_message(ds, svc_airstrk, frame, ARG(0));
+      port_frame_leave();
+      break;
+    case 21:
+      opeu_officer_gain(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0e8e:002c */
+    default: port_unhandled("paradrop", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_para_drop_present) {
+  (void)args;
+  (void)count;
+  opeu_para_drop_present(ds, svc_paradrop);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

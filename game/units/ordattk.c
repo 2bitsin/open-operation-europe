@@ -5,6 +5,13 @@
 #include "types.h"
 #include "units/ordattk.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/engineer.h"
+#endif
 /* Host model: ds is the 64 KiB data/stack segment and pointers are DS offsets
  * with 16-bit wrap. Every callee is event(ds,id,args,count) with the service
  * ids of tests/validate_order_handlers.py; byte results use the low byte.
@@ -231,3 +238,64 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event,
 #undef CUR
 #undef SIDE
 #undef SLOT
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/ordattk.c (3131:000c..0508 occupy and attack order handlers).
+ * Services 0..26, 31 pending_finish and 32 wait_units in the numbering of
+ * tests/validate_order_handlers.py (see svc_order_handler (game/units/engineer.c)). */
+uint16_t svc_ordattk(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  if ((id > 26 && id != 31 && id != 32) ||
+      !svc_order_handler(ds, id, args, count, &r))
+    port_unhandled("ordattk", id, count);
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_attack_present) {
+  (void)args;
+  (void)count;
+  opeu_order_attack_present(ds, svc_ordattk);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_order_attack_run) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(0x200);
+  r  = opeu_order_attack_run(ds, svc_ordattk, (uint16_t)(sp - 2));
+  port_stack_leave(0x200);
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_occupied_present) {
+  (void)args;
+  (void)count;
+  opeu_order_occupied_present(ds, svc_ordattk);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_order_occupy_run) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(0x200);
+  r  = opeu_order_occupy_run(ds, svc_ordattk, (uint16_t)(sp - 2));
+  port_stack_leave(0x200);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

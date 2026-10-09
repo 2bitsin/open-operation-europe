@@ -4,6 +4,13 @@
 #include "core/divstr.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#endif
+
 /* Groups are 17-byte records at DS:0774 (flag bit 0 of byte 16 marks a
  * reserve division), units 22-byte records at DS:14fc (eight per group),
  * elements are linked from a unit's first word: next word, type byte,
@@ -73,3 +80,37 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event,
         artillery);
   SET_LEFT(0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/divstr.c (06db:0d64 opeu_show_division_strength). Events, from
+ * the host branch's comment, resolved by address (symbols.json):
+ *   0 set text left(x) 0480:0790 opeu_text_set_left
+ *   1 position(x,y) 0480:0808 opeu_context_position (host opeu_army_position)
+ *   2 print(format,division,suffix,infantry,tanks,artillery) 0480:0bb8
+ *     opeu_context_print (host opeu_cursor_print) */
+void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args,
+                uint16_t count) {
+  switch (id) {
+    case 0: opeu_text_set_left(ds, port_textout_host(), (int16_t)ARG(0)); break;
+    case 1:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 2:  b1_cursor_print(ds, args, count); break;
+    default: port_unhandled("divstr", id, count);
+  }
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -5,6 +5,13 @@
 #include "map/btllist.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/btlcmds.h"
+#endif
 /* Host ABI: opeu_battle_cursor_info(ds, event). Elements are DS offsets.
  * 2864 element_side/element_flag2 are called directly (host ABI); every other
  * callee is an event service named by its linear MAIN image address with the
@@ -87,3 +94,24 @@ void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event) {
   }
   call(ds, event, PAPER_SET, 1, 0, 0, 0, 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/btlinfo.c, address-keyed BattleEvent: player orders segment 2ec8 (hex mask reads, see svc_battle_orders in game/map/btlcmds.c). */
+uint16_t svc_btlinfo(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_orders(ds, service, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

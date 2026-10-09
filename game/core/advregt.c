@@ -21,6 +21,13 @@
 #include "units/unitname.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/advenemy.h"
+#endif
 #include <string.h>
 #define UNUSED_SP (void)sp
 #define CALL(f)   f(ds, far_text, event, (uint16_t)(sp - 4))
@@ -407,3 +414,38 @@ uint16_t opeu_advice_regiment_status(uint8_t ds[65536], const uint8_t* far_text,
     a = CALL(opeu_advice_regiment_nothing);
   return a;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define C2_ADVICE_TEXT() ((const uint8_t*)port_far(0x3ad9u, 0))
+
+/* Services of core/advregt.c (1dd2:0a9e..116d "Regiment Status"). Services 0
+ * request_format, 1 control_message (svc_advice, game/core/advenemy.c); unit_name's own event is
+ * remapped to 0 inside the host branch. */
+uint16_t svc_advregt(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_advice("advregt", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_advice_regiment_status) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_advice_regiment_status(ds, C2_ADVICE_TEXT(), svc_advregt, sp);
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef C2_ADVICE_TEXT
+#endif /* OPEU_HOST_EVENTS */

@@ -44,6 +44,12 @@
 #include "units/stats.h"
 #include "units/value.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #pragma pack(1)
 typedef struct {
   uint8_t x, y, code, progress;
@@ -617,3 +623,24 @@ void opeu_unit_task_service(S0) {
       ORDER(UNIT, TARGET(a), 0, 0, 12, 0);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_unitai(void* a0) {
+  (void)a0;
+  port_unhandled("unitai (no service table)", (unsigned)(0), 0);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

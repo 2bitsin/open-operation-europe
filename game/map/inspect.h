@@ -7,4 +7,10 @@
 
 void opeu_map_inspect(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_inspect(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

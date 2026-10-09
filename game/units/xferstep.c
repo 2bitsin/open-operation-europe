@@ -9,6 +9,12 @@
 #include "core/limits.h"
 #include "units/xferpnl.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host: ds is the 64 KiB DOS data segment. The selected-row byte, which the
  * original keeps in its frame (BP-8) and passes to the input routine, lives
  * at the scratch offset XFER_SELECTION inside the original stack window.
@@ -223,3 +229,34 @@ uint16_t opeu_transfer_run(uint8_t ds[65536], HostWordsEvent event,
   CONTEXT(SIDE);
   return INTERACTIVE;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/xferstep.c (31f4:05a8 transfer step, 31f4:08fe run). The
+ * module uses the transfer-panel numbering (svc_transfer, game/units/xferpnl.c, xferpnl.c): 15..20,
+ * 22..26; the panel routines it calls (draw_row, input) raise 1..11, 14
+ * through this module's event. */
+uint16_t svc_xferstep(uint8_t* ds, uint16_t id, uint16_t* args,
+                      uint16_t count) {
+  return svc_transfer(ds, "xferstep", id, args, count);
+}
+
+PORT_ROUTINE(opeu_transfer_step) {
+  (void)args;
+  (void)count;
+  opeu_transfer_step(ds, svc_xferstep);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

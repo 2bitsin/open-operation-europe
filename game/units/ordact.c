@@ -39,6 +39,23 @@
 #include "units/stats.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "core/textout.h"
+#include "io/keyboard.h"
+#include "io/listdlg.h"
+#include "io/waitkey.h"
+#include "map/mappick.h"
+#include "map/mappos.h"
+#include "map/mapunit.h"
+#include "units/ordissue.h"
+#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address), so BP = sp-2. The picked x/y
@@ -277,3 +294,148 @@ done:
   CACHED_X = 0xff;
   CACHED_Y = 0xff;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/ordact.c (1c23:09aa unit action of the map cursor). Services,
+ * from the host branch's list (shared order-module numbering, svc_orders (game/units/ordact.c)):
+ * 0 request_format, 1 control_message, 3 arrival_location, 4 pick_location,
+ * 5 control_panel, 9 speaker_panel, 11 army_position,
+ * 12 prompt_value_cancel, 13 control_position, 14 message_lookup,
+ * 15 delay_dialog, 16 delay_units, 17 daily_context; plus
+ * 2 confirm_message, raised through this callback by
+ * opeu_cancel_unit_orders (ordunit, CANCEL passes ordact's event). */
+uint16_t svc_ordact(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 9:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17: svc_orders(ds, id, args, count, &r); break;
+    default: port_unhandled("ordact", id, count);
+  }
+  return r;
+}
+
+/*
+ * (orders, organization, transfers, allocation, tables, supply).
+ * Only calling conventions live here: modeled DGROUP frames for the host
+ * entries that take `sp`/`frame`/`scratch`, the variadic request_format
+ * argument block, and the numbered services that the order modules share
+ * (ORDTGT/ORDUNIT/ORDLIST/ORDISSUE/ORDACT document one numbering). */
+/* Shared order-module services (ORDTGT host comment, map/ordtgt.c):
+ * 0 request_format(dest,fmt,args...)   0480:0b9a
+ * 1 control_message(text,person)       1707:0672
+ * 2 confirm_message(text,person)       1707:076c
+ * 3 arrival_location(x,y,side)         15c4:1408
+ * 4 pick_location(x_address,y_address) 17c4:0274
+ * 5 control_panel()                    1707:02e2 (title_panel_begin)
+ * 6 group_show(group,person)           15c4:0692
+ * 7 list_dialog(list,mode,flags)       0a8e:0bc0
+ * 8 unit_order_menu(group)             1c23:03c0
+ * 9 speaker_panel(person,show)         1707:04d4
+ * 10 unit_announce(unit,group)         15c4:064a (takes the unit only)
+ * 11 army_position(x,y)                0480:0808
+ * 12 prompt_value_cancel(text,max,items) 0541:0462
+ * 13 control_position(x,y)             15c4:13d8
+ * 14 message_lookup(id)                312c:000c
+ * 15 delay_dialog(text,x,person,menu)  1707:0726
+ * 16 delay_units(units)                0a8e:004c
+ * 17 daily_context(side)               1389:000e
+ * Returns 1 and stores the result when `id` is one of them. */
+int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
+               uint16_t* result) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: r = lf_request_format(ds, args, count); break;
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 2:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 3:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u),
+                            (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 4:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u), ARG(0),
+                                  ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 5: opeu_title_panel_begin(ds, port_dialogs_host()); break;
+    case 6:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0),
+                      (uint8_t)ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 7:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 8:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)ARG(0));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 9:
+      r = opeu_speaker_panel(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 10:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 11:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 12:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_prompt_value_cancel(ds, svc_keyboard, ARG(0), ARG(1), ARG(2),
+                                    (uint16_t)(sp - 0x10u));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 13: opeu_control_position(ds, ARG(0), ARG(1)); break;
+    case 14: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 15:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 16: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 17: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    default: return 0;
+  }
+  *result = r;
+  return 1;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

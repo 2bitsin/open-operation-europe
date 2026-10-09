@@ -5,6 +5,13 @@
 #include "types.h"
 #include "units/orddefnd.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/engineer.h"
+#endif
 /* Host model: ds is the 64 KiB data/stack segment and pointers are DS offsets
  * with 16-bit wrap. Callees are event(ds,id,args,count) with the service ids
  * of tests/validate_order_handlers.py. frame is the original BP: the order
@@ -50,3 +57,46 @@ uint16_t opeu_order_defend_run(uint8_t ds[65536], HostEvent event,
 #undef AT
 #undef CUR
 #undef SLOT
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/orddefnd.c (3131:0508..0596 defend order handler). Services
+ * of tests/validate_order_handlers.py used here: 0 unit_average11,
+ * 16 move_level_lower, 24 unit_person, 25 unit_average10,
+ * 27 unit_order_destination (see svc_order_handler (game/units/engineer.c)). */
+uint16_t svc_orddefnd(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+    case 16:
+    case 24:
+    case 25:
+    case 27: svc_order_handler(ds, id, args, count, &r); break;
+    default: port_unhandled("orddefnd", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_defend_run) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_order_defend_run(ds, svc_orddefnd, (uint16_t)(sp - 2));
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

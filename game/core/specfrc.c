@@ -14,6 +14,13 @@
 #include "types.h"
 #include "core/specfrc.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/specops.h"
+#endif
 /* Evaluates the stored value once (it may come from a service). */
 static void frc_set_word(uint8_t* ds, uint16_t at, uint16_t value) {
   ds[at]                 = (uint8_t)value;
@@ -118,3 +125,39 @@ void opeu_turn_action_9(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   } while (!DELAYS[CURRENT]);
   DAILY(CURRENT);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/specfrc.c (24d5:0a82..0c2a the Special Forces command). Its
+ * host branch uses the service numbering of SPECOPS ("Host service ids are
+ * listed in specops.c"): 2 confirm_message, 4 army_print, 8 delay_dialog,
+ * 9 army_title, 12 army_position, 13 daily_context, 14 far action
+ * (segment, offset) from DS:adb2, 18 unit_name, 20 find_person_template.
+ * The callees are the same, so the service goes to SPECOPS's adapter. */
+uint16_t svc_specfrc(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_specops(ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_turn_action_9) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_turn_action_9(ds, svc_specfrc, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

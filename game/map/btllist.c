@@ -3,6 +3,12 @@
 #include "types.h"
 #include "map/btllist.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements and units are DS offsets. Element +0 is
  * the next link and +0xc its flags; a unit's +0 word is its first element.
  * opeu_battle_lists is the [2][9] unit pointer table at DS 0x2fae.
@@ -47,3 +53,39 @@ uint8_t opeu_battle_element_count(uint8_t* ds, BattleEvent event,
     a = word_at(ds, a);
   return b;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_btllist(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_element_count) {
+  return opeu_battle_element_count(ds, svc_btllist, ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_element_side) {
+  return opeu_battle_element_side(ds, svc_btllist, ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_element_unit) {
+  return opeu_battle_element_unit(ds, svc_btllist, ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_unit_side) {
+  return opeu_battle_unit_side(ds, svc_btllist, ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

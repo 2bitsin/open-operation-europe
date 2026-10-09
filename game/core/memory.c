@@ -7,6 +7,12 @@
  */
 #include "types.h"
 #include "core/memory.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #define NEAR               uint16_t
 #define TEXT               uint16_t
 #define FAR(segment, name) uint8_t *segment, uint16_t name
@@ -116,3 +122,23 @@ LONG opeu_parse_decimal(uint8_t ds[65536], TEXT text) {
   }
   return value;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_read_far_bytes) {
+  opeu_read_far_bytes(ds, port_far(ARG(3), 0), ARG(2), ARG(1), ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

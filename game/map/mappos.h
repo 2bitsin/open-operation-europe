@@ -11,4 +11,10 @@ void opeu_map_center(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x,
 void opeu_arrival_location(uint8_t* ds, HostEvent event, uint16_t frame,
                            uint8_t x, uint8_t y, uint8_t side);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_mappos(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                    uint16_t count);
+#endif
+
 #endif

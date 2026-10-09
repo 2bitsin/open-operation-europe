@@ -7,6 +7,22 @@
 #include "map/query.h"
 #include "types/events.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/daylist.h"
+#include "core/dialogs.h"
+#include "core/limits.h"
+#include "core/random.h"
+#include "core/recindex.h"
+#include "core/rqcommon.h"
+#include "io/listdlg.h"
+#include "map/mappick.h"
+#include "units/release.h"
+#include "units/value.h"
+#endif
 /* Host: ds[] is the original DS; near pointers are 16-bit DS offsets. The
  * map-pick coordinates live at scratch+0/+1 and the frame buffer at
  * scratch+4. Services of `event` (request-menu service table):
@@ -105,3 +121,158 @@ void opeu_request_arms(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
 uint8_t opeu_rq_unit_selectable(void) {
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)        ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)      ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME      0x200u
+#define LF_RQ_SCRATCH 0x80u
+
+/* Services of units/rqarms.c (22f9:03b6 battalion request, 22f9:04ce row
+ * predicate). Services from the host branch's list (request-menu
+ * numbering, svc_units_request (game/units/rqarms.c)): 3 request_pending, 4 cancel_prompt, 6 request_file,
+ * 9 control_panel, 10 control_message, 11 list_dialog, 19 request_format,
+ * 20 confirm_message, 23 map_pick_location, 25 available_element_types. */
+uint16_t svc_rqarms(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  switch (id) {
+    case 3:
+    case 4:
+    case 6:
+    case 9:
+    case 10:
+    case 11:
+    case 19:
+    case 20:
+    case 23:
+    case 25: return svc_units_request("rqarms", ds, id, args, count);
+    default: port_unhandled("rqarms", id, count);
+  }
+  return 0;
+}
+
+/* The request-menu service numbering (tests/validate_request_menu.py
+ * SERVICES) as RQARMS and RQREINF raise it. Conversion only; each module's
+ * link callback passes its name for diagnostics.
+ *  0 rand_bounded(bound)              09f6:00d4
+ *  1 min16(a,b)                       09cc:027e
+ *  2 max16(a,b)                       09cc:028c
+ *  3 request_pending(kind)            22f9:0036
+ *  4 request_cancel_prompt(text)      22f9:0072 (scratch: buffer at +4)
+ *  5 request_no_more(text)            22f9:000e (scratch: buffer at +4)
+ *  6 request_file(target,argument,kind) 22f9:00a2: the original passes the
+ *    address of its 4-byte request local; the words are laid out on the
+ *    modeled stack
+ *  7 collect_free_units(list,mask)    145c:154e (opeu_release_side_units)
+ *  8 collect_free_elements(list,mask) 145c:14d2 (opeu_release_side_elements)
+ *  9 control_panel()                  1707:02e2 (opeu_title_panel_begin)
+ * 10 control_message(text,person)     1707:0672
+ * 11 list_dialog(dialog,mode,height)  0a8e:0bc0
+ * 12 unit_index(unit)                 145c:0034
+ * 13 category_0_to_3(code)            0b73:002e
+ * 14 category_4_or_5(code)            0b73:003a
+ * 15 category_6(code)                 0b73:004a
+ * 16 army_title(text)                 1707:03aa
+ * 17 delay_dialog(text,last,person,menu) 1707:0726
+ * 18 confirm_ok(person)               1707:079e
+ * 19 request_format(dest,format,...)  0480:0b9a
+ * 20 confirm_message(text,person)     1707:076c
+ * 23 map_pick_location(x_address,y_address) 17c4:0274 (frame)
+ * 25 available_element_types(mask,category,out) 145c:10a2
+ *    (opeu_list_due_records(list=out, mask, kind=category); registers
+ *    AL mask, DL category, BX out) */
+uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id,
+                           const uint16_t* args, uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: r = opeu_rand_bounded(ARG(0)); break;
+    case 1: r = opeu_min16(ARG(0), ARG(1)); break;
+    case 2: r = opeu_max16(ARG(0), ARG(1)); break;
+    case 3: r = opeu_request_pending(ds, (uint8_t)ARG(0)); break;
+    case 4:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_request_cancel_prompt(ds, svc_rqcommon,
+                                      (uint16_t)(sp - LF_RQ_SCRATCH), ARG(0));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 5:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_request_no_more(ds, svc_rqcommon, (uint16_t)(sp - LF_RQ_SCRATCH),
+                           ARG(0));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 6:
+      sp = port_stack_enter(LF_FRAME);
+      port_ds_set_word((uint16_t)(sp - 4u), ARG(0));
+      ds[(uint16_t)(sp - 2u)] = (uint8_t)ARG(1);
+      ds[(uint16_t)(sp - 1u)] = (uint8_t)ARG(2);
+      opeu_request_file(ds, svc_rqcommon, (uint16_t)(sp - 4u));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 7: r = opeu_release_side_units(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 8: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 9: opeu_title_panel_begin(ds, port_dialogs_host()); break;
+    case 10:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 11:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 12: r = opeu_unit_index(ARG(0)); break;
+    case 13: r = opeu_category_0_to_3((uint8_t)ARG(0)); break;
+    case 14: r = opeu_category_4_or_5((uint8_t)ARG(0)); break;
+    case 15: r = opeu_category_6((uint8_t)ARG(0)); break;
+    case 16: opeu_army_title(ds, port_dialogs_host(), ARG(0)); break;
+    case 17:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 18: r = opeu_confirm_ok(ds, port_dialogs_host(), ARG(0)); break;
+    case 19: r = lf_request_format(ds, args, count); break;
+    case 20:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 23:
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u), ARG(0),
+                                  ARG(1));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 25:
+      r = opeu_list_due_records(ds, ARG(2), (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_request_arms) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(LF_FRAME);
+  opeu_request_arms(ds, svc_rqarms, (uint16_t)(sp - LF_RQ_SCRATCH));
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_rq_unit_selectable) {
+  (void)ds;
+  (void)args;
+  (void)count;
+  return opeu_rq_unit_selectable();
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#undef LF_RQ_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

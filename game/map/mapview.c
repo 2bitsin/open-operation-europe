@@ -22,6 +22,13 @@
 #include "units/orders.h"
 #include "units/selelem.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model. DS/SS are one explicit 65,536-byte array; near offsets wrap.
  * frame is the original BP of the routine (0e04 calls 0c00 with frame-0x1c);
  * the caller provides frame-0xf0..frame-1 (0c00) or frame-0x12..frame-1
@@ -227,3 +234,26 @@ void opeu_view_cell_draw(uint8_t ds[65536], HostEvent event, uint16_t frame,
   if (SET_UNIT() != 0 && VISIBLE(CELL_UNIT))
     DRAW_UNIT();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/mapview.c (15c4:0c00..0f7b tactical unit sprite and cell redraw).
+ * Its HostEvent uses the 15c4 segment's shared service kinds
+ * (svc_map_plan, game/map/blast.c); this module raises 6, 8, 15, 16; runs MAPCELL (0..3) and MAPFRAME (4, 5) with this event. */
+uint16_t svc_mapview(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                     uint16_t count) {
+  return svc_map_plan(ds, "mapview", kind, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -6,6 +6,14 @@
 #include "units/allocpnl.h"
 #include "core/strings.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#endif
 /* Host UI boundary. Event numbers and argument words:
  * 0 vga_copy(x,y,w,h,tx,ty) 1 frame(x,y,w) 2 print(format,...)
  * 3 type_symbol(x,y,p,code) 4 position(x,y).
@@ -143,3 +151,47 @@ uint16_t opeu_alloc_scaled(uint8_t ds[65536], HostWordsEvent event, LONG value,
   a = MULTIPLY((LONG)amount * 100 / total, value) / 100;
   return (uint16_t)(a > 60000L ? 60000L : a);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/allocpnl.c (20b3:1908..1b4d allocation type panel). Services
+ * from the host branch's list: 0 vga_copy(x,y,w,h,tx,ty) VGALIB 301F,
+ * 1 context_frame(x,y,w) 0a04:02a0, 2 army_print(format,...) 0480:0bb8,
+ * 3 type_symbol(x,y,p,code) 0a04:0602 (opeu_face_draw), 4 army_position(x,y)
+ * 0480:0808. */
+uint16_t svc_allocpnl(uint8_t* ds, uint16_t id, uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      opeu_vga_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      break;
+    case 1:
+      opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 2: r = lf_cursor_print(ds, args, count); break;
+    case 3:
+      opeu_face_draw(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                     (uint8_t)ARG(3));
+      break;
+    case 4:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    default: port_unhandled("allocpnl", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

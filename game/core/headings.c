@@ -4,6 +4,14 @@
 #include "core/headings.h"
 #include "core/sideutil.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#endif
 /* The color callback is explicit so nested display calls need no global bridge. */
 #define PERSON  uint16_t
 #define CURRENT ds[0x62]
@@ -47,3 +55,44 @@ void opeu_division_heading(uint8_t ds[65536], HostNotify event, PERSON person) {
   PRINT(DIVISION_NAME, CURRENT ? 5 : 6, person);
   PORTRAIT(1, 144, person);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args,
+                  uint16_t count) {
+  switch (id) {
+    case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 1:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    case 2:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 3: opeu_ui_text(ds, port_textout_host(), ARG(0)); break;
+    case 5: b1_cursor_print(ds, args, count); break;
+    case 6:
+      opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 7:  opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    default: port_unhandled("headings", id, count);
+  }
+}
+
+void svc_headings_color(uint8_t* ds, uint16_t color) {
+  opeu_text_color(ds, port_textout_host(), color);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

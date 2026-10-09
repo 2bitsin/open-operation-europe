@@ -7,6 +7,12 @@
 #include "types.h"
 #include "core/setmark.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host: DS is explicit; opeu_gfx_source is the far pointer at DS:e700
  * (offset word, then segment word 35e4). Graphics services are scripted
  * events receiving the original argument words: 0 = bitmap save
@@ -61,3 +67,45 @@ void opeu_setup_marker_hide(uint8_t ds[65536], HostEvent event, uint8_t index) {
   SOURCE_BUFFER();
   RESTORE(a, b);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
+
+/* Services of core/setmark.c (06db:0006/0074 setup-screen marker show/hide).
+ * Services, from the host branch (original argument words):
+ * 0 bitmap save (x, y, w, h, segment, offset)        -> VGALIB 2ED8
+ * 1 far blit (x, y, w, h, mode, segment, offset)     -> VGALIB 27CA
+ * 2 bitmap restore (x, y, w, h, mode, segment, offset) -> VGALIB 2674 */
+uint16_t svc_setmark(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  (void)ds;
+  switch (id) {
+    case 0:
+      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3), B2_FAR(ARG(4), ARG(5)));
+      break;
+    case 1:
+      opeu_blit_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                    B2_FAR(ARG(5), ARG(6)));
+      break;
+    case 2:
+      opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                          B2_FAR(ARG(5), ARG(6)));
+      break;
+    default: port_unhandled("setmark", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_FAR
+#endif /* OPEU_HOST_EVENTS */

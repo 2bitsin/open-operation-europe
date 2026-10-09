@@ -15,4 +15,10 @@ uint16_t opeu_ops_chief_number(uint8_t* ds, HostEvent event, uint16_t text,
                                uint16_t d, uint16_t buffer);
 uint16_t opeu_ops_chief_wait(uint8_t* ds, HostEvent event, uint16_t text);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_chief(uint8_t* ds, uint16_t id, const uint16_t* args,
+                   uint16_t count);
+#endif
+
 #endif

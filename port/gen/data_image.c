@@ -4,30 +4,30 @@
  * taken here; their types and contents stay in the recovered sources. */
 #include "port.h"
 
-extern unsigned char opeu_fg349b_0000[];
-extern unsigned char opeu_fg349b_0120[];
-extern unsigned char opeu_fg349b_0360[];
-extern unsigned char opeu_fg349b_0660[];
-extern unsigned char opeu_fg352d_0000[];
-extern unsigned char opeu_fg3546_0000[];
-extern unsigned char opeu_fg3546_03c0[];
-extern unsigned char opeu_fg3546_03e0[];
-extern unsigned char opeu_fg3546_06e0[];
-extern unsigned char opeu_fg35c0_0000[];
-extern unsigned char opeu_fg35e4_0000[];
-extern unsigned char opeu_fg35e4_0200[];
-extern unsigned char opeu_fg361c_0000[];
-extern unsigned char opeu_fg361c_0050[];
-extern unsigned char opeu_fg361c_0140[];
-extern unsigned char opeu_fg361c_0188[];
-extern unsigned char opeu_fg361c_0260[];
-extern unsigned char opeu_fg361c_0290[];
-extern unsigned char opeu_fg361c_05f0[];
-extern unsigned char opeu_fg361c_1010[];
-extern unsigned char opeu_fg361c_10a0[];
-extern unsigned char opeu_fg361c_1838[];
-extern unsigned char opeu_fg361c_1fd0[];
-extern unsigned char opeu_fg361c_20a8[];
+extern unsigned char opeu_view_cell_tiles[];
+extern unsigned char opeu_turn_frame_short_tiles[];
+extern unsigned char opeu_turn_frame_tall_tiles[];
+extern unsigned char opeu_element_type_icons[];
+extern unsigned char opeu_battle_hex_masks[];
+extern unsigned char opeu_yes_no_pointer_save[];
+extern unsigned char opeu_text_cursor_tile[];
+extern unsigned char opeu_yes_no_pointer_image[];
+extern unsigned char opeu_yes_no_pointer_shape[];
+extern unsigned char opeu_menu_button_tiles[];
+extern unsigned char opeu_setup_marker_save[];
+extern unsigned char opeu_setup_marker_image[];
+extern unsigned char opeu_overview_type_masks[];
+extern unsigned char opeu_overview_type_sprites[];
+extern unsigned char opeu_overview_order_masks[];
+extern unsigned char opeu_overview_order_sprites[];
+extern unsigned char opeu_overview_blast_frames[];
+extern unsigned char opeu_view_type_sprites[];
+extern unsigned char opeu_view_type_masks[];
+extern unsigned char opeu_view_shadow_images[];
+extern unsigned char opeu_view_order_sprites[];
+extern unsigned char opeu_view_order_masks[];
+extern unsigned char opeu_view_blast_sprites[];
+extern unsigned char opeu_view_blast_masks[];
 extern unsigned char opeu_battle_report_0[];
 extern unsigned char opeu_battle_report_1[];
 extern unsigned char opeu_battle_report_2[];
@@ -35,8 +35,8 @@ extern unsigned char opeu_battle_report_3[];
 extern unsigned char opeu_battle_report_4[];
 extern unsigned char opeu_battle_report_5[];
 extern unsigned char opeu_battle_report_6[];
-extern unsigned char opeu_fg3873_0000[];
-extern unsigned char opeu_fg3885_0000[];
+extern unsigned char opeu_context_frame_tiles[];
+extern unsigned char opeu_list_arrow_tiles[];
 extern unsigned char opeu_war_news_000[];
 extern unsigned char opeu_war_news_001[];
 extern unsigned char opeu_war_news_002[];
@@ -179,10 +179,10 @@ extern unsigned char opeu_war_news_138[];
 extern unsigned char opeu_war_news_139[];
 extern unsigned char opeu_war_news_140[];
 extern unsigned char opeu_war_news_141[];
-extern unsigned char opeu_fg3a64_0000[];
-extern unsigned char opeu_fg3a64_014a[];
-extern unsigned char opeu_fg3a99_0000[];
-extern unsigned char opeu_fg3ab9_0000[];
+extern unsigned char opeu_weather_terrain_ratings[];
+extern unsigned char opeu_air_sprite_save[];
+extern unsigned char opeu_bomb_sprite_save[];
+extern unsigned char opeu_panel_border_tiles[];
 extern unsigned char opeu_advice_00[];
 extern unsigned char opeu_advice_01[];
 extern unsigned char opeu_advice_02[];
@@ -405,8 +405,8 @@ extern unsigned char opeu_music_tracks[];
 extern unsigned char opeu_music_voices[];
 extern unsigned char opeu_music_events[];
 extern unsigned char opeu_sound_effects[];
-extern unsigned char opeu_fg4582_0000[];
-extern unsigned char opeu_fg4582_0c80[];
+extern unsigned char opeu_path_cell_queue[];
+extern unsigned char opeu_path_cost_grid[];
 extern unsigned char opeu_scenario_header[];
 extern unsigned char opeu_request_configs[];
 extern unsigned char opeu_request_weights1[];
@@ -487,30 +487,30 @@ extern unsigned char opeu_combat_text[];
 extern unsigned char opeu_battle_text[];
 
 const PortImageObject port_image_objects[] = {
-    { opeu_fg349b_0000, 0x349bu, 0x0000u, 288u, "opeu_fg349b_0000" }, /* fg349b.c */
-    { opeu_fg349b_0120, 0x349bu, 0x0120u, 576u, "opeu_fg349b_0120" }, /* fg349b.c */
-    { opeu_fg349b_0360, 0x349bu, 0x0360u, 768u, "opeu_fg349b_0360" }, /* fg349b.c */
-    { opeu_fg349b_0660, 0x349bu, 0x0660u, 704u, "opeu_fg349b_0660" }, /* fg349b.c */
-    { opeu_fg352d_0000, 0x352du, 0x0000u, 390u, "opeu_fg352d_0000" }, /* fg352d.c */
-    { opeu_fg3546_0000, 0x3546u, 0x0000u, 960u, "opeu_fg3546_0000" }, /* fg3546.c */
-    { opeu_fg3546_03c0, 0x3546u, 0x03c0u, 32u, "opeu_fg3546_03c0" }, /* fg3546.c */
-    { opeu_fg3546_03e0, 0x3546u, 0x03e0u, 768u, "opeu_fg3546_03e0" }, /* fg3546.c */
-    { opeu_fg3546_06e0, 0x3546u, 0x06e0u, 192u, "opeu_fg3546_06e0" }, /* fg3546.c */
-    { opeu_fg35c0_0000, 0x35c0u, 0x0000u, 576u, "opeu_fg35c0_0000" }, /* fg35c0.c */
-    { opeu_fg35e4_0000, 0x35e4u, 0x0000u, 512u, "opeu_fg35e4_0000" }, /* fg35e4.c */
-    { opeu_fg35e4_0200, 0x35e4u, 0x0200u, 384u, "opeu_fg35e4_0200" }, /* fg35e4.c */
-    { opeu_fg361c_0000, 0x361cu, 0x0000u, 80u, "opeu_fg361c_0000" }, /* fg361c.c */
-    { opeu_fg361c_0050, 0x361cu, 0x0050u, 240u, "opeu_fg361c_0050" }, /* fg361c.c */
-    { opeu_fg361c_0140, 0x361cu, 0x0140u, 72u, "opeu_fg361c_0140" }, /* fg361c.c */
-    { opeu_fg361c_0188, 0x361cu, 0x0188u, 216u, "opeu_fg361c_0188" }, /* fg361c.c */
-    { opeu_fg361c_0260, 0x361cu, 0x0260u, 48u, "opeu_fg361c_0260" }, /* fg361c.c */
-    { opeu_fg361c_0290, 0x361cu, 0x0290u, 864u, "opeu_fg361c_0290" }, /* fg361c.c */
-    { opeu_fg361c_05f0, 0x361cu, 0x05f0u, 2592u, "opeu_fg361c_05f0" }, /* fg361c.c */
-    { opeu_fg361c_1010, 0x361cu, 0x1010u, 144u, "opeu_fg361c_1010" }, /* fg361c.c */
-    { opeu_fg361c_10a0, 0x361cu, 0x10a0u, 1944u, "opeu_fg361c_10a0" }, /* fg361c.c */
-    { opeu_fg361c_1838, 0x361cu, 0x1838u, 1944u, "opeu_fg361c_1838" }, /* fg361c.c */
-    { opeu_fg361c_1fd0, 0x361cu, 0x1fd0u, 216u, "opeu_fg361c_1fd0" }, /* fg361c.c */
-    { opeu_fg361c_20a8, 0x361cu, 0x20a8u, 648u, "opeu_fg361c_20a8" }, /* fg361c.c */
+    { opeu_view_cell_tiles, 0x349bu, 0x0000u, 288u, "opeu_fg349b_0000" }, /* fg349b.c */
+    { opeu_turn_frame_short_tiles, 0x349bu, 0x0120u, 576u, "opeu_fg349b_0120" }, /* fg349b.c */
+    { opeu_turn_frame_tall_tiles, 0x349bu, 0x0360u, 768u, "opeu_fg349b_0360" }, /* fg349b.c */
+    { opeu_element_type_icons, 0x349bu, 0x0660u, 704u, "opeu_fg349b_0660" }, /* fg349b.c */
+    { opeu_battle_hex_masks, 0x352du, 0x0000u, 390u, "opeu_fg352d_0000" }, /* fg352d.c */
+    { opeu_yes_no_pointer_save, 0x3546u, 0x0000u, 960u, "opeu_fg3546_0000" }, /* fg3546.c */
+    { opeu_text_cursor_tile, 0x3546u, 0x03c0u, 32u, "opeu_fg3546_03c0" }, /* fg3546.c */
+    { opeu_yes_no_pointer_image, 0x3546u, 0x03e0u, 768u, "opeu_fg3546_03e0" }, /* fg3546.c */
+    { opeu_yes_no_pointer_shape, 0x3546u, 0x06e0u, 192u, "opeu_fg3546_06e0" }, /* fg3546.c */
+    { opeu_menu_button_tiles, 0x35c0u, 0x0000u, 576u, "opeu_fg35c0_0000" }, /* fg35c0.c */
+    { opeu_setup_marker_save, 0x35e4u, 0x0000u, 512u, "opeu_fg35e4_0000" }, /* fg35e4.c */
+    { opeu_setup_marker_image, 0x35e4u, 0x0200u, 384u, "opeu_fg35e4_0200" }, /* fg35e4.c */
+    { opeu_overview_type_masks, 0x361cu, 0x0000u, 80u, "opeu_fg361c_0000" }, /* fg361c.c */
+    { opeu_overview_type_sprites, 0x361cu, 0x0050u, 240u, "opeu_fg361c_0050" }, /* fg361c.c */
+    { opeu_overview_order_masks, 0x361cu, 0x0140u, 72u, "opeu_fg361c_0140" }, /* fg361c.c */
+    { opeu_overview_order_sprites, 0x361cu, 0x0188u, 216u, "opeu_fg361c_0188" }, /* fg361c.c */
+    { opeu_overview_blast_frames, 0x361cu, 0x0260u, 48u, "opeu_fg361c_0260" }, /* fg361c.c */
+    { opeu_view_type_sprites, 0x361cu, 0x0290u, 864u, "opeu_fg361c_0290" }, /* fg361c.c */
+    { opeu_view_type_masks, 0x361cu, 0x05f0u, 2592u, "opeu_fg361c_05f0" }, /* fg361c.c */
+    { opeu_view_shadow_images, 0x361cu, 0x1010u, 144u, "opeu_fg361c_1010" }, /* fg361c.c */
+    { opeu_view_order_sprites, 0x361cu, 0x10a0u, 1944u, "opeu_fg361c_10a0" }, /* fg361c.c */
+    { opeu_view_order_masks, 0x361cu, 0x1838u, 1944u, "opeu_fg361c_1838" }, /* fg361c.c */
+    { opeu_view_blast_sprites, 0x361cu, 0x1fd0u, 216u, "opeu_fg361c_1fd0" }, /* fg361c.c */
+    { opeu_view_blast_masks, 0x361cu, 0x20a8u, 648u, "opeu_fg361c_20a8" }, /* fg361c.c */
     { opeu_battle_report_0, 0x384fu, 0x0000u, 73u, "opeu_battle_report_0" }, /* fbattle.c */
     { opeu_battle_report_1, 0x384fu, 0x0049u, 125u, "opeu_battle_report_1" }, /* fbattle.c */
     { opeu_battle_report_2, 0x384fu, 0x00c6u, 125u, "opeu_battle_report_2" }, /* fbattle.c */
@@ -518,8 +518,8 @@ const PortImageObject port_image_objects[] = {
     { opeu_battle_report_4, 0x384fu, 0x01bcu, 46u, "opeu_battle_report_4" }, /* fbattle.c */
     { opeu_battle_report_5, 0x384fu, 0x01eau, 48u, "opeu_battle_report_5" }, /* fbattle.c */
     { opeu_battle_report_6, 0x384fu, 0x021au, 38u, "opeu_battle_report_6" }, /* fbattle.c */
-    { opeu_fg3873_0000, 0x3873u, 0x0000u, 288u, "opeu_fg3873_0000" }, /* fg3873.c */
-    { opeu_fg3885_0000, 0x3885u, 0x0000u, 256u, "opeu_fg3885_0000" }, /* fg3885.c */
+    { opeu_context_frame_tiles, 0x3873u, 0x0000u, 288u, "opeu_fg3873_0000" }, /* fg3873.c */
+    { opeu_list_arrow_tiles, 0x3885u, 0x0000u, 256u, "opeu_fg3885_0000" }, /* fg3885.c */
     { opeu_war_news_000, 0x3895u, 0x0000u, 46u, "opeu_war_news_000" }, /* fnews.c */
     { opeu_war_news_001, 0x3895u, 0x002eu, 47u, "opeu_war_news_001" }, /* fnews.c */
     { opeu_war_news_002, 0x3895u, 0x005du, 59u, "opeu_war_news_002" }, /* fnews.c */
@@ -662,10 +662,10 @@ const PortImageObject port_image_objects[] = {
     { opeu_war_news_139, 0x3895u, 0x1c74u, 43u, "opeu_war_news_139" }, /* fnews.c */
     { opeu_war_news_140, 0x3895u, 0x1c9fu, 30u, "opeu_war_news_140" }, /* fnews.c */
     { opeu_war_news_141, 0x3895u, 0x1cbdu, 49u, "opeu_war_news_141" }, /* fnews.c */
-    { opeu_fg3a64_0000, 0x3a64u, 0x0000u, 330u, "opeu_fg3a64_0000" }, /* fg3a64.c */
-    { opeu_fg3a64_014a, 0x3a64u, 0x014au, 518u, "opeu_fg3a64_014a" }, /* fg3a64.c */
-    { opeu_fg3a99_0000, 0x3a99u, 0x0000u, 512u, "opeu_fg3a99_0000" }, /* fg3a99.c */
-    { opeu_fg3ab9_0000, 0x3ab9u, 0x0000u, 512u, "opeu_fg3ab9_0000" }, /* fg3ab9.c */
+    { opeu_weather_terrain_ratings, 0x3a64u, 0x0000u, 330u, "opeu_fg3a64_0000" }, /* fg3a64.c */
+    { opeu_air_sprite_save, 0x3a64u, 0x014au, 518u, "opeu_fg3a64_014a" }, /* fg3a64.c */
+    { opeu_bomb_sprite_save, 0x3a99u, 0x0000u, 512u, "opeu_fg3a99_0000" }, /* fg3a99.c */
+    { opeu_panel_border_tiles, 0x3ab9u, 0x0000u, 512u, "opeu_fg3ab9_0000" }, /* fg3ab9.c */
     { opeu_advice_00, 0x3ad9u, 0x0000u, 37u, "opeu_advice_00" }, /* fadvice.c */
     { opeu_advice_01, 0x3ad9u, 0x0025u, 33u, "opeu_advice_01" }, /* fadvice.c */
     { opeu_advice_02, 0x3ad9u, 0x0046u, 75u, "opeu_advice_02" }, /* fadvice.c */
@@ -888,8 +888,8 @@ const PortImageObject port_image_objects[] = {
     { opeu_music_voices, 0x3d91u, 0x00beu, 1629u, "opeu_music_voices" }, /* fmusic.c */
     { opeu_music_events, 0x3d91u, 0x071bu, 29855u, "opeu_music_events" }, /* fmusic.c */
     { opeu_sound_effects, 0x3d91u, 0x7bbau, 847u, "opeu_sound_effects" }, /* fmusic.c */
-    { opeu_fg4582_0000, 0x4582u, 0x0000u, 3200u, "opeu_fg4582_0000" }, /* fg4582.c */
-    { opeu_fg4582_0c80, 0x4582u, 0x0c80u, 3200u, "opeu_fg4582_0c80" }, /* fg4582.c */
+    { opeu_path_cell_queue, 0x4582u, 0x0000u, 3200u, "opeu_fg4582_0000" }, /* fg4582.c */
+    { opeu_path_cost_grid, 0x4582u, 0x0c80u, 3200u, "opeu_fg4582_0c80" }, /* fg4582.c */
     { opeu_scenario_header, 0x4712u, 0x0042u, 256u, "opeu_scenario_header" }, /* dgscen.c */
     { opeu_request_configs, 0x4712u, 0x0142u, 26u, "opeu_request_configs" }, /* dgscen.c */
     { opeu_request_weights1, 0x4712u, 0x015cu, 158u, "opeu_request_weights1" }, /* dgscen.c */

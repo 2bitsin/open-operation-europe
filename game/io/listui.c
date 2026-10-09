@@ -14,6 +14,16 @@
 #include "core/limits.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "io/keyboard.h"
+#include "io/mouse.h"
+#endif
+
 /* Host model: ds is the original 64 KiB data segment; windows and width
  * tables are DS offsets. event(ds, kind, args, count) is the shared list
  * boundary (see LISTDLG): 0 draw_far(x,y,w,h,mode,seg,off) 1 outline(x1,y1,
@@ -354,3 +364,116 @@ void opeu_list_scroll(L_STATE_ WINDOW_T window, uint8_t column, uint8_t row) {
   DRAW_ROW(window, column, row, lcol, r1, area);
   PAPER(0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define KEY_SCRATCH 16u /* keyboard.c: 16-byte caller scratch area */
+
+/* Services of io/listui.c (0a8e:006a..0817 list windows). The shared list
+ * boundary of LISTUI and LISTDLG (host-branch comment of listui.c):
+ *   0 draw_far(x,y,w,h,mode,seg,off) 0000:28b0
+ *   1 outline(x1,y1,x2,y2,color) 0a04:065a opeu_ui_outline
+ *   2 mouse_show 05a8:003e   3 mouse_hide 05a8:0062
+ *   4 mouse_position 05a8:0086 (stores x, y in args[0], args[1])
+ *   5 mouse_buttons 05a8:0170 -> AL   6 input_reset 05a8:01b4
+ *   7 highlight(x,y,w,h,color) 0000:2b0e   8 line 0000:2d16
+ *   9 screen_copy(6 words) 0000:301f   10 box 0000:2ad2
+ *  11 bitmap_save(x,y,w,h,seg,off) 0000:2ed8
+ *  12 bitmap_restore(x,y,w,h,mode,seg,off) 0000:2674
+ *  13 paper(value) 0480:0838 opeu_text_paper_set
+ *  14 text_color(value) 0480:082e   15 position(x,y) 0480:0808
+ *  16 print(format, 7 words) 0480:0bb8 opeu_cursor_print
+ *  17 keyboard_key 0541:00ba -> AL   18 yes_no(text) 0541:0664 -> AX
+ *  19 draw callback(off,seg,al,dl,bl,s1,s0): far row-draw routine read from
+ *     the window record -> port_call (AX,DX,BX, then stack words)
+ *  20 select callback(off,seg,al) -> AL: far select routine -> port_call. */
+/* keyboard.c: 16-byte caller scratch area */
+uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args,
+                    uint16_t count) {
+  uint16_t r = 0, s;
+  switch (kind) {
+    case 0:
+      r = (uint16_t)opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                                  port_far(ARG(5), ARG(6)));
+      break;
+    case 1:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    case 2: opeu_mouse_show(ds, svc_mouse); break;
+    case 3: opeu_mouse_hide(ds, svc_mouse); break;
+    case 4:
+      s = b1_stack_alloc(4);
+      opeu_mouse_position(ds, svc_mouse, s, (uint16_t)(s + 2));
+      if (count >= 2) {
+        args[0] = port_ds_word(s);
+        args[1] = port_ds_word((uint16_t)(s + 2));
+      }
+      port_scratch_leave(4);
+      break;
+    case 5: r = opeu_mouse_buttons(ds, svc_mouse); break;
+    case 6: opeu_input_reset(ds, svc_mouse); break;
+    case 7:
+      r = (uint16_t)opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 8: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 9:
+      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      break;
+    case 10:
+      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 11:
+      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
+                       port_far(ARG(4), ARG(5)));
+      break;
+    case 12:
+      r = (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                                        port_far(ARG(5), ARG(6)));
+      break;
+    case 13:
+      opeu_text_paper_set(ds, port_textout_host(), (uint8_t)ARG(0));
+      break;
+    case 14: opeu_text_color(ds, port_textout_host(), ARG(0)); break;
+    case 15:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 16: b1_cursor_print(ds, args, count); break;
+    case 17: r = opeu_keyboard_key(ds, svc_keyboard); break;
+    case 18:
+      s = b1_stack_alloc(KEY_SCRATCH);
+      r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, ARG(0), s);
+      port_scratch_leave(KEY_SCRATCH);
+      break;
+    case 19:
+      port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), args + 2,
+                count >= 2 ? count - 2u : 0u);
+      break;
+    case 20:
+      r = (uint8_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), args + 2,
+                             count >= 2 ? count - 2u : 0u);
+      break;
+    default: port_unhandled("listui", kind, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_table_columns) {
+  opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1), ARG(2),
+                     ARG(3), ARG(4));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef KEY_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

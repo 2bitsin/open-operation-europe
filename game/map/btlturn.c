@@ -12,6 +12,12 @@
 #include "map/query.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; units, elements and objectives are DS offsets.
  * Unrecovered callees are event services named by linear MAIN address with
  * their register words (AX, DX, BX order). Functions that reach the 2864
@@ -236,3 +242,62 @@ void opeu_battle_clear_positions(uint8_t* ds, BattleEvent event) {
         for (b = word_at(ds, a); b; b = word_at(ds, b))
           put_word(ds, (uint16_t)(b + 7), 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+uint16_t svc_btlturn(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_clear_positions) {
+  (void)args;
+  (void)count;
+  opeu_battle_clear_positions(ds, svc_btlturn);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_computer_turn) {
+  (void)args;
+  (void)count;
+  return opeu_battle_computer_turn(ds, svc_btlturn);
+}
+
+PORT_ROUTINE(opeu_battle_daily_condition) {
+  (void)args;
+  (void)count;
+  opeu_battle_daily_condition(ds, svc_btlturn);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_return_garrison) {
+  (void)args;
+  (void)count;
+  opeu_battle_return_garrison(ds, svc_btlturn);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_battle_turn_loop) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  (void)args;
+  (void)count;
+  r = opeu_battle_turn_loop(ds, svc_btlturn, BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

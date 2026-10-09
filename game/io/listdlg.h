@@ -11,4 +11,10 @@ uint16_t opeu_commander_list_dialog(uint8_t* ds, HostWordsEvent event,
 uint16_t opeu_list_dialog(uint8_t* ds, HostWordsEvent event, uint16_t window,
                           uint8_t limit, uint8_t flags);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_listdlg(uint8_t* ds, uint16_t kind, uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

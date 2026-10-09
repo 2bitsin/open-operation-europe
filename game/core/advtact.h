@@ -36,4 +36,10 @@ uint16_t opeu_advice_tactical_linked_objective(uint8_t*       ds,
 void opeu_advice_tactical(uint8_t* ds, const uint8_t* far_text, HostEvent event,
                           uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_advtact(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

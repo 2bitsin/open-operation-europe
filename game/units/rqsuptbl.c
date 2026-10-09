@@ -12,6 +12,13 @@
 #include "core/personfl.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/rqarmtbl.h"
+#endif
+
 /* Host model: the HostEvent protocol of TBLGROUP (0 column layout,
  * 1 position, 2 sprintf into DS, 3 text color, 6 print, 7 put range);
  * the frame buffer is at scratch+4. */
@@ -86,3 +93,37 @@ void opeu_rq_draw_types(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   }
   TEXT_COLOR(7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/rqsuptbl.c (22f9:01f6 element type request table). Services: the HostEvent protocol of
+ * TBLGROUP (kinds 0..3, 6, 7 used here); the conversions are shared with the
+ * other row-draw modules in tblunit.c (svc_unit_table). */
+uint16_t svc_rqsuptbl(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_unit_table(ds, "rqsuptbl", id, args, count);
+}
+
+PORT_ROUTINE(opeu_rq_draw_types) {
+  uint16_t sp = port_stack_enter(LF_FRAME);
+  opeu_rq_draw_types(ds, svc_rqsuptbl, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
+                     (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
+                     (uint8_t)ARG(4));
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

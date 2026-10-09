@@ -30,4 +30,9 @@ int      opeu_yes_no(uint8_t* ds, HostService service, uint16_t scratch);
 int      opeu_prompt_yes_no(uint8_t* ds, HostService service, uint16_t text,
                             uint16_t scratch);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_keyboard(uint8_t* ds, uint16_t call, uint16_t* w);
+#endif
+
 #endif

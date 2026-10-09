@@ -9,6 +9,13 @@
 #include "types.h"
 #include "map/dplrows.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/dplauto.h"
+#endif
 /* Host ABI: ds/event first; elements and the list window are DS offsets.
  * Callees are event services named by linear MAIN address; their argument
  * words follow tests/validate_deployment.py (formatted prints pass every
@@ -100,3 +107,36 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column,
 #undef COLUMN_X
   service(ds, event, TEXT_COLOR, 1, 7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/dplrows.c, address-keyed BattleEvent: deployment group (source-order words, see svc_battle_deploy in game/map/dplauto.c). */
+uint16_t svc_dplrows(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_deploy(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_deploy_draw_rows) {
+  opeu_deploy_draw_rows(ds, svc_dplrows, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                        (uint8_t)ARG(2), (uint8_t)ARG(3), (uint8_t)ARG(4));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_deploy_true) {
+  (void)args;
+  (void)count;
+  return opeu_deploy_true(ds, svc_dplrows);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

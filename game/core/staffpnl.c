@@ -4,6 +4,13 @@
 #include "core/staffpnl.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/uiprim.h"
+#endif
+
 /* The screen-copy service restores 2x16 tiles from the back page:
  * (mode, source page, width, height, x, y).  Local names below are
  * reconstruction labels chosen so C 6.0a assigns the original stack slots.
@@ -82,3 +89,35 @@ void opeu_staff_frame_option(uint8_t ds[65536], HostNotify event,
             (uint16_t)(option * 0xa0 + 0x4f), 0xd6, 7);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/staffpnl.c (06db:09c8..0c20 staff selection panel). Services,
+ * from the host branch: copy=0 (six words) -> VGALIB 301F opeu_screen_copy,
+ * outline=1 (x1, y1, x2, y2, colour) -> 0a04:065a opeu_ui_outline. */
+void svc_staffpnl(uint8_t* ds, uint16_t id, const uint16_t* args,
+                  uint16_t count) {
+  switch (id) {
+    case 0:
+      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      break;
+    case 1:
+      opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                      ARG(4));
+      break;
+    default: port_unhandled("staffpnl", id, count);
+  }
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

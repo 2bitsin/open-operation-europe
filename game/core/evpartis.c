@@ -18,6 +18,18 @@
 #include "map/occupy.h"
 #include "map/query.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "io/soundcue.h"
+#include "map/maperase.h"
+#include "map/mapunit.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. RNG, byte arithmetic,
  * map/cell queries, mark 5, objective side/eligibility and side records run
@@ -128,3 +140,72 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
     SUB_BYTE(RANDOM(10) + (wet == 0 ? 3 : 5), STRENGTH_P(ob));
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evpartis.c (108c:0396 hurricane presenter, 108c:0402 partisan
+ * event). Services from the host branch comment:
+ * 0 sound_cue15(), 1 daily_context(side), 2 message_lookup(id) -> text,
+ * 3 request_format(destination,format,arguments...) (cdecl),
+ * 4 control_message(text,person), 5 daily_show(id,side,callback offset,
+ * callback segment), 6 15c4:087e location_flash(x,y,side), 7 map_erase(x,y). */
+uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t frame, r = 0;
+  switch (id) {
+    case 0: opeu_sound_cue15(ds, svc_soundcue); break; /* 0d92:0080 */
+    case 1:
+      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      break; /* 1389:000e */
+    case 2:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      break;                                           /* 312c:000c */
+    case 3: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 4:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 5:
+      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      break; /* 1707:03e4 */
+    case 6:  /* 15c4:087e */
+      frame = port_frame_enter();
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
+                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    case 7: /* 15c4:0f7c */
+      frame = port_frame_enter();
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      port_frame_leave();
+      break;
+    default: port_unhandled("evpartis", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_hurricane_present) {
+  (void)args;
+  (void)count;
+  opeu_hurricane_present(ds, svc_evpartis);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_partisan_event) {
+  (void)args;
+  (void)count;
+  opeu_partisan_event(ds, svc_evpartis);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

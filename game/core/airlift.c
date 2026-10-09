@@ -14,6 +14,13 @@
 #include "core/random.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/airbomb.h"
+#endif
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]. sp is the
  * DS offset of SP at entry (pointing at the far return address); automatic
  * variables whose address reaches a callee (the text buffers at BP-66 and
@@ -209,3 +216,35 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     return;
   SIDE_DELAY(CURRENT_SIDE) = 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/airlift.c (23b2:0c7a..106d, airlift command). Services: ids
+ * 0,1,2,3,10 of the 23b2 table shared by the air-force modules
+ * (svc_air, game/core/airbomb.c). */
+uint16_t svc_airlift(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_air(ds, "airlift", id, args, count);
+}
+
+PORT_ROUTINE(opeu_air_lift_command) {
+  uint16_t sp = c2_air_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_air_lift_command(ds, svc_airlift, sp);
+  c2_air_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

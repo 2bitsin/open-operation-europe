@@ -10,6 +10,13 @@
 #include "units/capacity.h"
 #include "units/resagg.h"
 #include "units/unitname.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/supstep.h"
+#endif
 /* Host: records and fields are near DS offsets; words wrap byte by byte.
  * a/b are the caller's emulated near addresses of the original 32-byte
  * unit-name stack arrays. The transfer panel (20b3:0332 draw, 20b3:05b8 step,
@@ -117,3 +124,41 @@ void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event,
   PUT(OBJECTIVE_SUPPLY(objective, 1), GET(CELL(1, 1, 0)));
   PUT(OBJECTIVE_SUPPLY(objective, 2), GET(CELL(1, 2, 0)));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/supply.c (20b3:08d0..0a4d supply exchange). Services from the
+ * host branch's list: 100 supply_draw(first,second) 20b3:0332,
+ * 101 supply_step() 20b3:05b8 -> done; and 2 request_format(buffer,format,
+ * name,number) 0480:0b9a, which opeu_unit_name (unitname, 0b73:0188) raises
+ * through the event it receives from this module (supply.c NAME). */
+uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 2:   r = lf_request_format(ds, args, count); break;
+    case 100: opeu_supply_draw(ds, svc_suppanel, ARG(0), ARG(1)); break;
+    case 101: /* selection: the selected-row byte of supply_step's frame (BP-8) */
+      sp = port_stack_enter(LF_FRAME);
+      r  = opeu_supply_step(ds, svc_supstep, (uint16_t)(sp - 2u - 8u));
+      port_stack_leave(LF_FRAME);
+      break;
+    default: port_unhandled("supply", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

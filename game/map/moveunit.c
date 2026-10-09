@@ -8,6 +8,13 @@
 #include "core/limits.h"
 #include "core/numeric.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/movetgt.h"
+#endif
 /* Host model: ds is the 64 KiB data/stack segment. Every call that is not a
  * pure recovered helper goes through event(ds,id,args,count); ids follow
  * tests/validate_move_unit.py. frame is the original BP: locals whose
@@ -192,3 +199,33 @@ moved:
     }
   } while (g);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/moveunit.c (32e6:0732 move the current unit toward its order
+ * destination). Its HostEvent ids are the movement file's shared ids
+ * (map_move.c); MOVEUNIT raises 0..24.
+ *
+ * Id 5, 32e6:00d8 opeu_move_reachable (REACHABLE(x,y,tx,ty,unit) in
+ * src/main/map/moveunit.c), is called when the compiled reference has its
+ * host branch (OPEU_HAVE_MOVE_REACHABLE); otherwise map_move.c stops with
+ * a fatal message when it is raised. */
+uint16_t svc_moveunit(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  if (id > 24)
+    port_unhandled("moveunit", id, count);
+  return svc_map_move(ds, "moveunit", id, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

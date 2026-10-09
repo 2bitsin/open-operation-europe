@@ -20,4 +20,9 @@ uint8_t opeu_mouse_wait_click(uint8_t* ds, HostService service);
 void opeu_mouse_window(uint8_t* ds, HostService service, int16_t x, int16_t y,
                        int16_t width, int16_t height);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_mouse(uint8_t* ds, uint16_t call, uint16_t* words);
+#endif
+
 #endif

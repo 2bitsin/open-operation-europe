@@ -13,6 +13,16 @@
 #include "units/unitname.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/msglook.h"
+#include "core/sideutil.h"
+#include "core/textout.h"
+#include "io/listui.h"
+#endif
+
 /* Host model: the HostEvent protocol of TBLGROUP (0 column layout,
  * 1 position, 2 sprintf into DS, 3 text color, 4 side color, 6 print,
  * 7 put range) plus the recovered unit-name and string-copy helpers; the
@@ -83,3 +93,64 @@ void opeu_rq_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   }
   TEXT_COLOR(7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/rqarmtbl.c (22f9:04d2 regiment request table). Services: the HostEvent protocol of
+ * TBLGROUP (kinds 0..4, 6, 7 (and 2 raised by unit_name 0b73:0188) used here); the conversions are shared with the
+ * other row-draw modules in tblunit.c (svc_unit_table). */
+uint16_t svc_rqarmtbl(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_unit_table(ds, "rqarmtbl", id, args, count);
+}
+
+uint16_t svc_unit_table(uint8_t* ds, const char* module, uint16_t id,
+                        const uint16_t* args, uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                         ARG(2), ARG(3), ARG(4));
+      break;
+    case 1:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 2: r = lf_request_format(ds, args, count); break;
+    case 3: opeu_text_color(ds, port_textout_host(), ARG(0)); break;
+    case 4: opeu_select_side_color(ds, svc_sideutil, (uint8_t)ARG(0)); break;
+    case 5: opeu_ui_text(ds, port_textout_host(), ARG(0)); break;
+    case 6: r = lf_cursor_print(ds, args, count); break;
+    case 7:
+      opeu_text_put_range(ds, port_textout_host(), ARG(0), (uint8_t)ARG(1),
+                          (uint8_t)ARG(2));
+      break;
+    case 8:  r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_rq_draw_units) {
+  uint16_t sp = port_stack_enter(LF_FRAME);
+  opeu_rq_draw_units(ds, svc_rqarmtbl, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
+                     (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
+                     (uint8_t)ARG(4));
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

@@ -13,6 +13,12 @@
 #include "map/cellflag.h"
 #include "map/query.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 /* Host: near pointers are explicit 16-bit DS offsets into ds[]. */
 #define OBJ_T                uint16_t
 #define WORD(o)              (*(uint16_t*)(ds + (uint16_t)(o)))
@@ -146,3 +152,23 @@ void opeu_turn_selected_begin(uint8_t ds[65536]) {
       }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_side_groups_retarget) {
+  opeu_side_groups_retarget(ds, (uint8_t)ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

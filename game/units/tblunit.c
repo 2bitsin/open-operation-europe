@@ -19,6 +19,13 @@
 #include "units/unitname.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/rqarmtbl.h"
+#endif
+
 /* Host model and event kinds as in TBLGROUP: 0 column layout, 1 position,
  * 2 sprintf into DS, 3 text color, 4 side color, 5 ui text, 6 print,
  * 7 put range, 8 request text (returns a DS offset). Recovered data helpers
@@ -178,3 +185,58 @@ void opeu_tbl_draw_orders(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   }
   TEXT_COLOR(7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/tblunit.c (0c45:03a6 unit table, 0c45:0650 unit orders
+ * table). Services: the HostEvent protocol of TBLGROUP (core/tblgroup.c
+ * host comment), shared by the row-draw modules TBLUNIT, TBLTYPE, TBLELEM,
+ * TBLSUPP, TBLSTR, RQARMTBL and RQSUPTBL:
+ *   0 column layout (column,row,out0,out1,out2) 0a8e:0140 table_columns
+ *   1 position (x,y)                            0480:0808 army_position
+ *   2 sprintf (dest,format,args...)             0480:0b9a request_format
+ *   3 text color (color)                        0480:082e text_color
+ *   4 side color (side)                         0b73:04e2 select_side_color
+ *   5 ui text (text)                            0480:0484 ui_text
+ *   6 print (format,args...)                    0480:0bb8 cursor_print (army_print)
+ *   7 put range (s,start,count)                 0480:0bd0 text_put_range
+ *   8 request text (id) -> DS offset            312c:000c message_lookup
+ * The recovered name helpers called with this module's event
+ * (unit_name 0b73:0188, location_name 0b73:023c) raise kind 2 as well. */
+uint16_t svc_tblunit(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_unit_table(ds, "tblunit", id, args, count);
+}
+
+PORT_ROUTINE(opeu_tbl_draw_orders) {
+  uint16_t sp = port_stack_enter(LF_FRAME);
+  opeu_tbl_draw_orders(ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
+                       (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
+                       (uint8_t)ARG(4));
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_tbl_draw_units) {
+  uint16_t sp = port_stack_enter(LF_FRAME);
+  opeu_tbl_draw_units(ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
+                      (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
+                      (uint8_t)ARG(4));
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

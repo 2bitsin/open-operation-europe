@@ -16,6 +16,13 @@
 #include "core/suprow.h"
 #include "core/suppanel.h"
 #include "units/ratio.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#endif
 /* Host: ds is the 64 KiB DOS data segment; near offsets wrap at 16 bits.
  * Text output and box fills are delegated to event(ds,id,args,count):
  * 9 position(x,y), 10 print(format,value), 12 fill(x,y,3,6,0), 13 print(format).
@@ -71,3 +78,44 @@ void opeu_supply_draw_row(uint8_t ds[65536], SupplyEvent event, uint8_t row,
   }
   (void)column;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/suprow.c (20b3:0452 opeu_supply_draw_row). Services, from the
+ * host branch (the SUPPANEL numbering; 11 is raised by opeu_supply_digits,
+ * which the row redraw calls with this callback):
+ *  9 army_position(x, y)        0480:0808
+ * 10 army_print(format, value)  0480:0bb8 (cdecl)
+ * 11 glyph(x, y, w, h, colour, near glyph)  VGALIB 2A81 opeu_vga_glyph
+ * 12 fill(x, y, 3, 6, 0)        VGALIB 2AD2 opeu_vga_fill_rect = ui_box
+ * 13 army_print(format)         0480:0bb8 (cdecl) */
+uint16_t svc_suprow(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  switch (id) {
+    case 9:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 10:
+    case 13: b2_cursor_print(ds, args, count); break;
+    case 11:
+      opeu_vga_glyph(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), PORT_DS(ARG(5)));
+      break;
+    case 12: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    default: port_unhandled("suprow", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

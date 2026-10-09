@@ -19,4 +19,10 @@ void opeu_para_drop_event(uint8_t* ds,
                                             uint16_t),
                           uint16_t segment, uint16_t bp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count);
+#endif
+
 #endif

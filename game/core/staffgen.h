@@ -10,4 +10,10 @@ void    opeu_staff_roll_flag(uint8_t* ds, uint16_t p);
 void    opeu_staff_reroll_person(uint8_t* ds, uint8_t idx);
 uint8_t opeu_staff_reroll_selected(uint8_t* ds, HostNotify event);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args,
+                  uint16_t count);
+#endif
+
 #endif

@@ -26,4 +26,9 @@ void opeu_effect_start(uint8_t* ds, HostService service, uint8_t effect);
 void opeu_effect_play(uint8_t* ds, HostService service, uint8_t effect);
 void opeu_effect_finish(uint8_t* ds, HostService service);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_sound(uint8_t* ds, uint16_t call, uint16_t* words);
+#endif
+
 #endif

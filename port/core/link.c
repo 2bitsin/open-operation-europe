@@ -64,16 +64,6 @@ uint16_t port_service(uint8_t *ds, uint32_t address, const uint16_t *args, unsig
     return (uint16_t)port_call(ds, address, args, count);
 }
 
-/* Declared in port/link/link.h. */
-uint32_t link_call_named(uint8_t *ds, const char *name, const uint16_t *args, unsigned count);
-uint32_t link_call_named(uint8_t *ds, const char *name, const uint16_t *args, unsigned count)
-{
-    uint32_t address = port_routine_address(name);
-    if (!address)
-        port_fatal("no routine named %s", name);
-    return port_call(ds, address, args, count);
-}
-
 /* ---- diagnostics ------------------------------------------------------- */
 
 static FILE *log_file;

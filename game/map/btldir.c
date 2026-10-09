@@ -10,6 +10,12 @@
 #include "core/limits.h"
 #include "map/distance.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements are DS offsets. */
 
 static uint16_t pos(const uint8_t* ds, uint16_t element) {
@@ -45,3 +51,37 @@ uint8_t opeu_battle_terrain_mode(uint8_t* ds, BattleEvent event,
   return opeu_grid_distance(ds[p], ds[(uint16_t)(p + 1)], ds[q],
                             ds[(uint16_t)(q + 1)]);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_btldir(uint8_t* ds, uint32_t address, const uint16_t* args,
+                    unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_cell_facing) {
+  return opeu_battle_cell_facing(ds, svc_btldir, (uint8_t)ARG(0),
+                                 (uint8_t)ARG(1), (uint8_t)ARG(2),
+                                 (uint8_t)ARG(3));
+}
+
+PORT_ROUTINE(opeu_battle_element_facing) {
+  return opeu_battle_element_facing(ds, svc_btldir, ARG(1), ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_terrain_mode) {
+  return opeu_battle_terrain_mode(ds, svc_btldir, ARG(1), ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -37,6 +37,15 @@
 #include "types/events.h"
 #include "types/host.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "io/keyboard.h"
+#include "io/sound.h"
+#include "io/waitkey.h"
+#endif
 /* Host model: DS is explicit and near pointers are 16-bit DS offsets. The
  * original's automatic buffers live on the DGROUP stack (SS = DS); the host
  * allocates them below host->sp so that callees receive DS offsets too.
@@ -753,3 +762,145 @@ void opeu_text_erase_char(uint8_t   ds[65536],
   opeu_ui_text(ds, host, ERASE_TEXT);
   opeu_text_paper = a;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/textout.c (0480:0002..0c17 key read, formatter, text console).
+ * The module takes a TextHost {event, sp}. Events, from the host branch's
+ * comment (src/main/core/textout.c "Host model"):
+ *   0 keyboard read: INT 16h AH=00h, returns AX      port_key_read
+ *   1 keyboard poll: 0000:4066 turn_input_b          opeu_turn_input_b
+ *   2 0541:011e wait_confirm(value)                  opeu_wait_confirm (KEYBOARD)
+ *   3 box(x,y,w,h,color): 0000:2ad2                  opeu_ui_box
+ *   4 screen clear: 0000:2aac                        opeu_vga_clear
+ *   5 0d65:0028 sound reset (the unused 6)           opeu_sound_reset (SOUND)
+ *   6 0a8e:005c pending finish(value)                opeu_pending_finish (WAITKEY)
+ *   7 glyph draw: far routine (offset, segment) read from DS:44ec/44f0,
+ *     then x, y, 1, 16, attribute, bits (DS offset): 0000:28a8 opeu_draw_near
+ *     (transparent) or 0000:28c5 opeu_code_0000_28c5 (opaque).
+ *
+ * Stack: textout keeps its automatic buffers below host->sp (ENTER/LEAVE).
+ * The getter hands out the instance with sp = port_sp, the modeled SP of
+ * the caller; while textout calls out through an event, port_sp is lowered
+ * to textout's current sp so that nested callers (which take the host again
+ * through the getter or reserve with port_stack_enter) allocate below
+ * textout's live buffers. Both are restored when the event returns.
+ */
+uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r             = 0;
+  uint16_t saved_port_sp = port_sp, saved_host_sp = *port_textout_host_sp();
+  if (*port_textout_host_sp() < port_sp)
+    port_sp = *port_textout_host_sp();
+  switch (id) {
+    case 0: r = port_key_read(); break;     /* INT 16h AH=0 */
+    case 1: r = opeu_turn_input_b(); break; /* 0000:4066 */
+    case 2:
+      opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0));
+      break; /* 0541:011e */
+    case 3:
+      opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;                                        /* 0000:2ad2 */
+    case 4: opeu_vga_clear(); break;                /* 0000:2aac */
+    case 5: opeu_sound_reset(ds, svc_sound); break; /* 0d65:0028 */
+    case 6:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      break;  /* 0a8e:005c */
+    case 7: { /* (*DS:44ec[i])() */
+      uint16_t       off = ARG(0), seg = ARG(1);
+      const uint8_t* bits = PORT_DS(ARG(7));
+      if (seg == 0 && off == 0x28a8)
+        opeu_draw_near(ARG(2), ARG(3), ARG(4), ARG(5), ARG(6), bits);
+      else if (seg == 0 && off == 0x28c5)
+        opeu_code_0000_28c5(ARG(2), ARG(3), ARG(4), ARG(5), ARG(6), bits);
+      else
+        port_fatal(
+            "textout: glyph routine %04x:%04x is not a known VGALIB entry", seg,
+            off);
+      break;
+    }
+    default: port_unhandled("textout", id, count);
+  }
+  port_sp                 = saved_port_sp;
+  *port_textout_host_sp() = saved_host_sp;
+  return r;
+}
+
+void svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2) {
+  (void)a0;
+  (void)a1;
+  (void)a2;
+  port_unhandled("textout (no service table)", (unsigned)(a2), 0);
+}
+
+PORT_ROUTINE(opeu_army_position) {
+  opeu_army_position(ds, port_textout_host(), (short)ARG(0), (short)ARG(1));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_context_restore) {
+  (void)args;
+  (void)count;
+  opeu_context_restore(ds, port_textout_host());
+  return 0;
+}
+
+PORT_ROUTINE(opeu_context_save) {
+  (void)args;
+  (void)count;
+  opeu_context_save(ds, port_textout_host());
+  return 0;
+}
+
+/* printf to the text cursor (army_print/context_print/turn_label). */
+PORT_ROUTINE(opeu_cursor_print) {
+  btl_cursor_print(ds, args, count);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_input_flush) {
+  (void)args;
+  (void)count;
+  opeu_input_flush(ds, port_textout_host());
+  return 0;
+}
+
+/* sprintf(destination, format, ...): every word as pushed. */
+PORT_ROUTINE(opeu_request_format) {
+  btl_request_format(ds, args, count);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_text_color) {
+  opeu_text_color(ds, port_textout_host(), ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_text_paper_set) {
+  opeu_text_paper_set(ds, port_textout_host(), (uint8_t)ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_text_put_range) {
+  opeu_text_put_range(ds, port_textout_host(), ARG(2), (uint8_t)ARG(0),
+                      (uint8_t)ARG(1));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_ui_text) {
+  opeu_ui_text(ds, port_textout_host(), ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

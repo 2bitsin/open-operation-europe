@@ -9,9 +9,11 @@
  * services or, in the battle modules, with the routine's original address
  * as its identifier.
  *
- * This header provides what the link layer (port/link) needs to connect
- * those callbacks to the recovered routines and to the hand-written native
- * services (port/services):
+ * The port compiles the generated game/ tree (tools/make_game_tree.py),
+ * where each module's services are direct calls in its native-build section
+ * (tools/game-services.json). This header provides what those sections and
+ * the platform glue (port/include/glue.h) need to reach the recovered
+ * routines and the hand-written native services (port/services):
  *
  *  - the data layout: one far-data arena holding the original FAR_DATA
  *    segments, DGROUP (`port_ds`) and the DOS memory blocks the game
@@ -90,7 +92,7 @@ void port_memory_init(void);
  * stack addresses. port_sp is the modeled SP (free space below it). An
  * adapter calling such a routine does
  *     uint16_t sp = port_stack_enter(PORT_FRAME);   entry SP (return-address slot)
- *     opeu_x(ds, link_x, sp);
+ *     opeu_x(ds, svc_x, sp);
  *     port_stack_leave(PORT_FRAME);
  * where the reserve covers the callee's locals plus the frames of the
  * routines it calls internally with sp-n (use the module's documented frame

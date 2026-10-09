@@ -3,6 +3,15 @@
 #include "types.h"
 #include "core/sideinit.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/people.h"
+#include "core/template.h"
+#include "io/sound.h"
+#endif
+
 /* Callback ids: find side=0, find template=1, context=2, scenario=3, finish=4.
  * Scenario callback arguments are its original far offset and segment.
  */
@@ -40,3 +49,48 @@ void opeu_initialize_turn_side(uint8_t ds[65536],
   }
   ACTIVE = 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/sideinit.c (0d9b:0934 opeu_initialize_turn_side). Services,
+ * from the host branch: find side=0 (side, kind), find template=1 (mask,
+ * kind), context=2 (value), scenario=3 (offset, segment of the DS:735a
+ * opeu_side_initializers entry), finish=4 (value). */
+uint16_t svc_sideinit(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
+                      uint16_t a2, uint16_t a3) {
+  uint16_t r = 0;
+  (void)a2;
+  (void)a3;
+  switch (id) {
+    case 0:
+      r = opeu_find_side_record(ds, (uint8_t)a0, (uint8_t)a1);
+      break; /* 0b73:02ee */
+    case 1:
+      r = opeu_find_person_template(ds, (uint8_t)a0, (uint8_t)a1);
+      break; /* 0b73:03d2 */
+    case 2:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)a0);
+      break; /* 0d65:00fe */
+    case 3:
+      r = (uint16_t)port_call(ds, (uint32_t)a1 * 16u + a0, NULL, 0);
+      break; /* far scenario briefing */
+    case 4:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0);
+      break; /* 0d65:0032 */
+    default: port_unhandled("sideinit", id, 4);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

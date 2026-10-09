@@ -3,6 +3,15 @@
 #include "types.h"
 #include "core/daily.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/context.h"
+#include "core/dialogs.h"
+#include "map/maperase.h"
+#endif
+
 /* Callback ids: prepare=0, side context=1, activate=2, show=3.
  * Show arguments are event id, side, far callback offset, far callback segment.
  */
@@ -56,3 +65,43 @@ void opeu_turn_daily(uint8_t ds[65536],
   PREPARE();
   SCAN();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/daily.c (0e36:005c scan, 0e36:010a turn_daily). Services:
+ * prepare=0, side context=1 (side), activate=2 (side), show=3 (event id,
+ * side, far callback offset, far callback segment). */
+uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
+                   uint16_t a2, uint16_t a3) {
+  uint16_t sp;
+  switch (id) {
+    case 0: opeu_turn_prepare(ds, port_dialogs_host()); break; /* 1707:00c8 */
+    case 1:
+      opeu_daily_context(ds, svc_context, (uint8_t)a0);
+      break;                /* 1389:000e */
+    case 2: /* 15c4:0ff8 */ /* MAPERASE frame convention: the routine's BP (entry SP - 2). */
+      sp = port_stack_enter(PORT_FRAME);
+      opeu_daily_activate(ds, svc_maperase, (uint16_t)(sp - 2), (uint8_t)a0);
+      port_stack_leave(PORT_FRAME);
+      break;
+    case 3:
+      opeu_daily_show(ds, port_dialogs_host(), a0, (uint8_t)a1,
+                      (uint32_t)a3 << 16 | a2);
+      break;
+    default: port_unhandled("daily", id, 4);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

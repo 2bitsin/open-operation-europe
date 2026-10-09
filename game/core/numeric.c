@@ -6,6 +6,12 @@
 #include "core/numeric.h"
 #include "core/limits.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 /* 09f6:000a. AX=a, DX=b, BX=denominator. Zero divisor returns 0xffff.
  * MUL produces 32 product bits, then the original calls SIGNED long division.
  * Multiply unsigned to preserve all product bits without signed C overflow,
@@ -49,3 +55,33 @@ uint16_t opeu_sub_word(uint16_t amount, uint16_t* value) {
   *value -= opeu_min16(*value, amount);
   return *value;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_mul_div) {
+  (void)ds;
+  return opeu_mul_div(ARG(0), ARG(1), ARG(2));
+}
+
+PORT_ROUTINE(opeu_sub_byte) {
+  (void)ds;
+  return opeu_sub_byte(ARG(0), PORT_DS(ARG(1)));
+}
+
+PORT_ROUTINE(opeu_sub_word) {
+  (void)ds;
+  return opeu_sub_word(ARG(0), (uint16_t*)(void*)PORT_DS(ARG(1)));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

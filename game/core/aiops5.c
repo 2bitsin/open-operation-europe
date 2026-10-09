@@ -5,6 +5,9 @@
 #include "types.h"
 #include "core/aiops5.h"
 #include "core/aiops1.h"
+#include "core/aiops2.h"
+#include "core/aiops3.h"
+#include "core/aiops4.h"
 #include "core/limits.h"
 #include "core/random.h"
 #include "core/recindex.h"
@@ -105,14 +108,6 @@ static uint8_t host_free_units(uint8_t* ds, uint16_t list, uint8_t mask) {
 static uint8_t host_free_elements(uint8_t* ds, uint16_t list, uint8_t mask) {
   return (uint8_t)opeu_ai_unrecovered(ds, 1, mask, 0, &list);
 }
-extern uint16_t opeu_ai_request_pending(uint8_t ds[65536], uint8_t kind),
-    opeu_ai_config_kind_is(uint8_t ds[65536], uint8_t kind);
-extern void opeu_ai_request_resources(uint8_t ds[65536]),
-    opeu_ai_request_equipment(uint8_t ds[65536]);
-extern void opeu_ai_daytime_plans(uint8_t ds[65536]),
-    opeu_ai_refresh_capacities(uint8_t ds[65536]);
-extern void opeu_ai_choose_target(uint8_t ds[65536]),
-    opeu_ai_rotate_staff(uint8_t ds[65536]);
 
 /* 1ac2:10f8. Pick a random available equipment type suitable for KIND/SIDE
  * and load the element with a random quantity of it. */

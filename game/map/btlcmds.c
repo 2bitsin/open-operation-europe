@@ -9,6 +9,12 @@
 #include "map/btlcmds.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements are DS offsets. The 2864 accessors run
  * natively; the 29f5:0362 message box is the event service 0x2a2b2 with
  * words (AX side, DX flag, BX text).
@@ -96,3 +102,45 @@ void opeu_battle_order_refused(uint8_t* ds, BattleEvent event, uint8_t kind) {
   args[2] = kind == 1 ? 0xbaf2 : 0xbb0b;
   event(ds, MESSAGE, args, 3);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)        ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)      ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_HEX_MASKS 0x352d0u
+
+/*
+ * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
+ * PORT_ROUTINE handlers of the routines they reach).
+ * Conversion only; no game logic.
+ *
+ * Address-keyed word convention of the handlers (port.h): the register words
+ * in AX, DX, BX order (bytes zero-extended), then the stack words in
+ * prototype order; for the MSC C 6.0a _fastcall callees that is the order in
+ * which the arguments take registers: left to right, a near pointer goes to
+ * BX when it is free, any other byte/word (and a pointer when BX is taken) to
+ * the first free of AX, DX, BX; far pointers, longs and the arguments left
+ * over go to the stack (cdecl/asm routines: all stack words in order). */
+uint16_t svc_battle_orders(uint8_t* ds, uint32_t address, const uint16_t* args,
+                           unsigned count) {
+  if (address >= BTL_HEX_MASKS && address < BTL_HEX_MASKS + 390u)
+    return *port_far(0x352du, (uint16_t)(address - BTL_HEX_MASKS));
+  return port_service(ds, address, args, count);
+}
+
+/* Services of map/btlcmds.c, address-keyed BattleEvent: player orders segment 2ec8 (hex mask reads, see svc_battle_orders in game/map/btlcmds.c). */
+uint16_t svc_btlcmds(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_orders(ds, service, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_HEX_MASKS
+#endif /* OPEU_HOST_EVENTS */

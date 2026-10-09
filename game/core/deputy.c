@@ -5,6 +5,12 @@
 #include "core/personfl.h"
 #include "core/random.h"
 #include "core/strings.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #include <string.h>
 #define POINTER     uint16_t
 #define START(s)    ((uint16_t)(0x29cu + (s) * 620u))
@@ -61,3 +67,23 @@ void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
   VALUE27(person)  = 0;
   IDENTITY(person) = CHOOSE(SIDE(person));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_initialize_deputy) {
+  opeu_initialize_deputy(ds, ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

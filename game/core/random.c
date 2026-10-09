@@ -7,6 +7,13 @@
 #include "types.h"
 #include "core/random.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include <string.h>
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 uint32_t opeu_random_state;
 
 uint16_t opeu_rand_next(void) {
@@ -25,3 +32,26 @@ uint16_t opeu_rand_bounded(uint16_t bound) {
     return bound;
   return opeu_rand_next() % bound;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_rand_bounded) {
+  uint16_t r;
+  memcpy(&opeu_random_state, ds + 0xc6f4, 4);
+  r = opeu_rand_bounded(ARG(0));
+  memcpy(ds + 0xc6f4, &opeu_random_state, 4);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

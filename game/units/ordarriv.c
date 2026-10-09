@@ -9,6 +9,13 @@
 #include "units/ordarriv.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/engineer.h"
+#endif
+
 /* Host model: ds is the 64 KiB data/stack segment and sp the original SP at
  * entry (BP = sp-2); x,y live in their original stack bytes. Callees are
  * event(ds,id,args,count): destination=0 (unit,&x,&y), unit_message=1 (unit,
@@ -110,3 +117,65 @@ uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   }
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/ordarriv.c (32ca:0002..0125 arrive/reach/hold order handlers).
+ * Services, from the host branch's list: 0 unit_order_destination(unit,
+ * &x,&y) 145c:02ea, 1 unit_message(unit,text) 1707:07ec (unit_report),
+ * 2 restore_unit_order(unit) 145c:02b4, 3 move_unit_target(&x,&y)
+ * 32e6:0b38, 4 move_adjacent(x,y) 32e6:0a92, 5 unit_person(unit)
+ * 145c:01c4, 6 move_level_lower(slot,value) 32e6:0c3e, 7 rand_bounded(15)
+ * 09f6:00d4. */
+uint16_t svc_ordarriv(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  /* Same callees as the 3131 order-handler numbering (svc_order_handler, game/units/engineer.c). */
+  static const uint8_t handler_id[8] = { 27, 8, 2, 21, 15, 24, 16, 1 };
+  uint16_t             r             = 0;
+  if (id >= 8 || !svc_order_handler(ds, handler_id[id], args, count, &r))
+    port_unhandled("ordarriv", id, count);
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_arrive) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_order_arrive(ds, svc_ordarriv, sp);
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_hold) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_order_hold(ds, svc_ordarriv, sp);
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+PORT_ROUTINE(opeu_order_reach_unit) {
+  uint16_t sp, r;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  r  = opeu_order_reach_unit(ds, svc_ordarriv, sp);
+  port_stack_leave(PORT_FRAME);
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

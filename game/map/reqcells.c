@@ -4,6 +4,12 @@
  */
 #include "types.h"
 #include "map/reqcells.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 #include <string.h>
 #define GRID           ((uint8_t (*)[40])(ds + 0xd9c6))
 #define DIRECTIONS     ((uint16_t (*)[8])(ds + 0x1fa))
@@ -89,3 +95,27 @@ uint16_t opeu_request_cells(uint8_t ds[65536], uint8_t side,
   }
   return COUNT();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3) {
+  (void)a0;
+  (void)a1;
+  (void)a2;
+  (void)a3;
+  port_unhandled("reqcells (no service table)", (unsigned)(a1), 0);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

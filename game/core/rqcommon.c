@@ -11,6 +11,16 @@
 #include "map/query.h"
 #include "types/events.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/textout.h"
+#include "io/waitkey.h"
+#include "map/mappick.h"
+#endif
 /* Host: ds[] is the original DS; near pointers are 16-bit DS offsets and
  * frame buffers live at scratch+4. Services of `event` (the request-menu
  * service table shared by the 22f9 modules):
@@ -115,3 +125,105 @@ uint16_t opeu_side_has_city(const uint8_t ds[65536]) {
   }
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)        ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)      ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define C2_RQ_SCRATCH 0x80u
+
+/* The request-menu service table shared by the 22f9 modules (rqcommon,
+ * rqmenu, rqsupply; the ids and argument packing are those of their host
+ * branches and of tests/validate_request_menu.py SERVICES). Only the ids
+ * the C2-owned modules raise are linked here; each module's link callback
+ * passes its own name for diagnostics. Conversion only. */
+uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id,
+                     const uint16_t* args, uint16_t count) {
+  uint16_t r = 0, scratch, frame;
+  switch (id) {
+    case 3:
+      r = opeu_request_pending(ds, (uint8_t)ARG(0));
+      break; /* 22f9:0036 */
+    case 4:  /* 22f9:0072 */
+      scratch = port_scratch_enter(C2_RQ_SCRATCH);
+      r       = opeu_request_cancel_prompt(ds, svc_rqcommon, scratch, ARG(0));
+      port_scratch_leave(C2_RQ_SCRATCH);
+      break;
+    case 6: /* 22f9:00a2 */ /* The original passes the address of its 4-byte request local
+* (target word, argument byte, kind byte). */
+      scratch                     = port_scratch_enter(4);
+      ds[scratch]                 = (uint8_t)ARG(0);
+      ds[(uint16_t)(scratch + 1)] = (uint8_t)(ARG(0) >> 8);
+      ds[(uint16_t)(scratch + 2)] = (uint8_t)ARG(1);
+      ds[(uint16_t)(scratch + 3)] = (uint8_t)ARG(2);
+      opeu_request_file(ds, svc_rqcommon, scratch);
+      port_scratch_leave(4);
+      break;
+    case 10:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 16:
+      opeu_army_title(ds, port_dialogs_host(), ARG(0));
+      break; /* 1707:03aa */
+    case 17:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 19: c2_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 20:
+      r = opeu_confirm_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:076c */
+    case 21:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      break; /* 0a8e:005c */
+    case 22:
+      opeu_daily_show(ds, port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+                      ARG32(2));
+      break;
+    case 23: /* 17c4:0274 */
+      frame = port_frame_enter();
+      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      port_frame_leave();
+      break;
+    case 26:
+      opeu_army_position(ds, port_textout_host(), (short)ARG(0), (short)ARG(1));
+      break;                                          /* 0480:0808 */
+    case 27: c2_cursor_print(ds, args, count); break; /* 0480:0bb8 */
+    case 28:
+      r = opeu_request_mode_is(ds, (uint8_t)ARG(0));
+      break;                                    /* 22f9:0052 */
+    case 29: r = opeu_side_has_city(ds); break; /* 22f9:00f6 */
+    case 30:
+      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      break;
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+/* Services of core/rqcommon.c (22f9:000e..0135 request-menu helpers).
+ * Services raised (host branch comment): 10 control_message, 19
+ * request_format, 20 confirm_message, 21 pending_finish, 22 daily_show;
+ * the request-menu table is in svc_request (game/core/rqcommon.c). */
+uint16_t svc_rqcommon(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  return svc_request("rqcommon", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_request_finish) {
+  (void)args;
+  (void)count;
+  opeu_request_finish(ds, svc_rqcommon);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef C2_RQ_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

@@ -13,6 +13,14 @@
 #include "io/mouse.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "io/waitkey.h"
+#endif
+
 /* Host model: ds is the original 64 KiB data segment; items, labels and the
  * format are DS offsets. The far stream pointer DS:e700/e702 receives the
  * tile offset and segment 35c0h (relative to the load segment). service is
@@ -205,3 +213,56 @@ uint16_t opeu_menu_select(STATE_ ITEM items, int cancel SCRATCH_DECL) {
   opeu_menu_restore(ds, service, items);
   return r;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of io/menudraw.c (05a8:0266..0573 menu rendering and mouse selection).
+ * The module's service is the shared 05a8 input boundary (host-branch
+ * comment, src/main/io/menudraw.c "Host model"):
+ *   1 int86(0x33) with seven REGS words: MOUSE's boundary (svc_mouse 1)
+ *   2 context save 0480:0844      3 position(x,y) 0480:0808
+ *   4 print(format,char,label) 0480:0bb8 (opeu_context_print, host opeu_cursor_print)
+ *   5 context restore 0480:086a   6 tile blit(x,y,w,h,seg,off) 0000:2e57
+ *   7 bitmap save(x,y,w,h,seg,off) 0000:2ed8
+ *   8 bitmap restore(x,y,w,h,mode,seg,off) 0000:2674
+ *   9 delay(units) 0a8e:004c opeu_delay_units */
+uint16_t svc_menudraw(uint8_t* ds, uint16_t call, uint16_t* words) {
+  switch (call) {
+    case 1: return svc_mouse(ds, 1, words);
+    case 2: opeu_context_save(ds, port_textout_host()); break;
+    case 3:
+      opeu_army_position(ds, port_textout_host(), (int16_t)words[0],
+                         (int16_t)words[1]);
+      break;
+    case 4: b1_cursor_print(ds, words, 3); break;
+    case 5: opeu_context_restore(ds, port_textout_host()); break;
+    case 6:
+      koei_2e57(words[0], words[1], words[2], words[3],
+                port_far(words[4], words[5]));
+      break;
+    case 7:
+      opeu_bitmap_save(words[0], words[1], words[2], words[3],
+                       port_far(words[4], words[5]));
+      break;
+    case 8:
+      opeu_bitmap_restore(words[0], words[1], words[2], words[3], words[4],
+                          port_far(words[5], words[6]));
+      break;
+    case 9:  opeu_delay_units(ds, svc_waitkey, (uint8_t)words[0]); break;
+    default: port_unhandled("menudraw", call, 7);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

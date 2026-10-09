@@ -6,6 +6,21 @@
 #include "units/allocdst.h"
 #include "units/allocpnl.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/chief.h"
+#include "io/listdlg.h"
+#include "io/waitkey.h"
+#include "units/capacity.h"
+#include "units/elemlink.h"
+#include "units/release.h"
+#include "units/resagg.h"
+#include "units/supply.h"
+#include "units/unitname.h"
+#endif
 /* Host boundary for every callee outside 20b3:1908..1f4d. Event numbers and
  * argument words (results in args[1..3] or the return value):
  * 0 remove(unit,element) 1 insert(unit,element) 2 release(list,mask)
@@ -236,3 +251,82 @@ void opeu_alloc_choose_hq(uint8_t              ds[65536],
 void opeu_alloc_finish(uint8_t ds[65536], HostWordsEvent event) {
   FINISH(3);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/allocdst.c (20b3:1b4e..1f4d distribution, headquarters
+ * choice, finish). Services from the host branch's list:
+ *  0 remove_element(unit,element) 145c:0428
+ *  1 insert_element(unit,element) 145c:03ac
+ *  2 release_side_elements(list,mask) 145c:14d2
+ *  3 unit_capacities(unit) 145c:072c -> args[1..3]
+ *  4 objective_capacities(objective) 145c:08fc -> args[1..3]
+ *  5 supply_exchange_units(unit,other) 20b3:096e
+ *  6 supply_exchange_objective(unit,objective) 20b3:09e6
+ *  7 unit_name(unit,buffer) 0b73:0188 -> text
+ *  8 request_format(buffer,format,text) 0480:0b9a
+ *  9 ops_chief_text(text) 20b3:007a
+ * 10 list_dialog(dialog,mode,height) 0a8e:0bc0
+ * 11 pending_finish(code) 0a8e:005c
+ * opeu_alloc_element_values (allocpnl) receives this event but raises
+ * nothing. */
+uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args,
+                      uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: r = opeu_remove_element(ds, ARG(0), ARG(1)); break;
+    case 1: opeu_insert_element(ds, ARG(0), ARG(1)); break;
+    case 2: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 3:
+      opeu_unit_capacities(ds, ARG(0), &args[1], &args[2], &args[3]);
+      break;
+    case 4:
+      opeu_objective_capacities(ds, ARG(0), &args[1], &args[2], &args[3]);
+      break;
+    case 5: /* a, b: the two 32-byte unit-name arrays of the original frame */
+      sp = port_stack_enter(LF_FRAME);
+      opeu_supply_exchange_units(ds, svc_supply, ARG(0), ARG(1),
+                                 (uint16_t)(sp - 2u - 0x20u),
+                                 (uint16_t)(sp - 2u - 0x40u));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 6:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_supply_exchange_objective(ds, svc_supply, ARG(0), ARG(1),
+                                     (uint16_t)(sp - 2u - 0x20u));
+      port_stack_leave(LF_FRAME);
+      break;
+    case 7: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 8: r = lf_request_format(ds, args, count); break;
+    case 9: opeu_ops_chief_text(ds, svc_chief, ARG(0)); break;
+    case 10:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 11: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    default: port_unhandled("allocdst", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_alloc_finish) {
+  (void)args;
+  (void)count;
+  opeu_alloc_finish(ds, svc_allocdst);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

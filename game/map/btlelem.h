@@ -22,4 +22,10 @@ void opeu_battle_animate_element(uint8_t* ds, BattleEvent event, uint8_t x,
                                  uint16_t offset, uint16_t element,
                                  uint16_t frame);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlelem(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

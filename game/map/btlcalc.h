@@ -35,4 +35,9 @@ uint16_t opeu_battle_unit_controlled(uint8_t* ds, BattleService service,
 uint16_t opeu_battle_element_at(uint8_t* ds, BattleService service, uint8_t x,
                                 uint8_t y);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlcalc(uint8_t* ds, uint16_t id, uint16_t arg);
+#endif
+
 #endif

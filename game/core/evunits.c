@@ -21,6 +21,13 @@
 #include "units/stats.h"
 #include "units/unitrout.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Unit statistics,
  * arithmetic, the random generator (state DS:c6f4) and the morale check run
@@ -130,3 +137,38 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evunits.c (11e5:0606 hourly unit condition event). The only
+ * service, from the host branch comment: 7 unit message dialog (unit,text). */
+uint16_t svc_evunits(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  switch (id) {
+    case 7:
+      opeu_unit_report(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:07ec unit_message */
+    default: port_unhandled("evunits", id, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_unit_hourly_event) {
+  (void)args;
+  (void)count;
+  opeu_unit_hourly_event(ds, svc_evunits);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

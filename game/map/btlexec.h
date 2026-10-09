@@ -9,4 +9,10 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event,
                                    uint16_t element, uint8_t command,
                                    uint16_t frame);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlexec(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

@@ -14,6 +14,13 @@
 #include "core/personfl.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/tblgroup.h"
+#endif
+
 /* Host model and events: as TBLGROUP (0c45:0002); the row buffer is at
  * scratch+4. */
 static uint16_t get16(const uint8_t* ds, uint16_t at) {
@@ -103,3 +110,43 @@ void opeu_tbl_draw_staff(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   }
   TEXT_COLOR(7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_SP_CALL(bytes, call)            \
+  do {                                     \
+    uint16_t sp = port_stack_enter(bytes); \
+    call;                                  \
+    port_stack_leave(bytes);               \
+  } while (0)
+#define B2_TABLE_SCRATCH(sp) ((uint16_t)((sp) - 2 - 0x70))
+
+/* Services of core/tblpers.c (0c45:092c general/personnel row-draw callback).
+ * Services: the HostEvent protocol of TBLGROUP, ids 0..4, 6, 7 and
+ * 8 request text = 312c:000c message_lookup (svc_table). */
+uint16_t svc_tblpers(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_table(ds, "tblpers", id, args, count);
+}
+
+PORT_ROUTINE(opeu_tbl_draw_staff) {
+  B2_SP_CALL(PORT_FRAME, opeu_tbl_draw_staff(
+                             ds, svc_tblpers, B2_TABLE_SCRATCH(sp),
+                             (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                             (uint8_t)ARG(3), (uint8_t)ARG(4)));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_SP_CALL
+#undef B2_TABLE_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

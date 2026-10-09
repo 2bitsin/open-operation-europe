@@ -3,6 +3,13 @@
 #include "types.h"
 #include "core/sideutil.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#endif
 #define STATUS(s) \
   ((uint16_t)(ds[0x5a + (s) * 2] | ((uint16_t)ds[0x5b + (s) * 2] << 8)))
 #define FLAG        ds[0x13e]
@@ -27,3 +34,25 @@ uint8_t opeu_record_side(const uint8_t ds[65536], uint16_t record) {
     return 0;
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/sideutil.c (0b73:04c8..0501 side helpers). The only service is
+ * opeu_select_side_color's text colour: event(ds, colour) -> 0480:082e
+ * opeu_text_color(colour). */
+void svc_sideutil(uint8_t* ds, uint16_t color) {
+  opeu_text_color(ds, port_textout_host(), color);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

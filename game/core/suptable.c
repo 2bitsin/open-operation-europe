@@ -7,6 +7,14 @@
 #include "core/suptable.h"
 #include "map/support.h"
 #include "units/typetext.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#include "io/listui.h"
+#endif
 /* UI boundaries: 0 column layout (column,row), 1 position (x,y),
  * 2 formatted print (format, arguments...), 3 highlight (x,y,w,h,color).
  * Near buffers of the original frame are supplied as DS offsets: scratch
@@ -192,3 +200,90 @@ void opeu_supply_draw_slots(uint8_t ds[65536], SupplyEvent event,
       PRINT(EMPTY_B, d < COUNT ? 3 : 5);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_SP_CALL(bytes, call)            \
+  do {                                     \
+    uint16_t sp = port_stack_enter(bytes); \
+    call;                                  \
+    port_stack_leave(bytes);               \
+  } while (0)
+#define SUPPLY_SCRATCH(sp) ((uint16_t)((sp) - 2 - 0x40))
+
+/* Services of core/suptable.c (20b3:0d40..10b7 supply-allocation table views).
+ * Services, from the host branch:
+ *  0 column layout(column, row) -> 0a8e:0140 opeu_table_columns; the three
+ *    byte outputs the original writes into unused frame bytes go to a
+ *    modeled stack area (the host discards them, as the original does)
+ *  1 position(x, y)               0480:0808 army_position
+ *  2 print(format, arguments...)  0480:0bb8 army_print (cdecl)
+ *  3 highlight(x, y, w, h, color) VGALIB 2B0E opeu_ui_highlight */
+void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args,
+                  uint16_t count) {
+  switch (id) {
+    case 0: {
+      uint16_t out = (uint16_t)(port_stack_enter(4) - 4);
+      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1), out,
+                         (uint16_t)(out + 1), (uint16_t)(out + 2));
+      port_stack_leave(4);
+      break;
+    }
+    case 1:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 2:  b2_cursor_print(ds, args, count); break;
+    case 3:  opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    default: port_unhandled("suptable", id, count);
+  }
+}
+
+PORT_ROUTINE(opeu_supply_draw_slots) {
+  B2_SP_CALL(PORT_FRAME, opeu_supply_draw_slots(
+                             ds, svc_suptable, SUPPLY_SCRATCH(sp),
+                             (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                             (uint8_t)ARG(3), (uint8_t)ARG(4)));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_supply_draw_types) {
+  B2_SP_CALL(PORT_FRAME, opeu_supply_draw_types(
+                             ds, svc_suptable, SUPPLY_SCRATCH(sp),
+                             (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
+                             (uint8_t)ARG(3), (uint8_t)ARG(4)));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_supply_return_slot) {
+  (void)args;
+  (void)count;
+  return opeu_supply_return_slot(ds, svc_suptable);
+}
+
+PORT_ROUTINE(opeu_supply_true) {
+  (void)ds;
+  (void)args;
+  (void)count;
+  return opeu_supply_true();
+}
+
+PORT_ROUTINE(opeu_supply_unit_eligible) {
+  (void)args;
+  (void)count;
+  return opeu_supply_unit_eligible(ds);
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_SP_CALL
+#undef SUPPLY_SCRATCH
+#endif /* OPEU_HOST_EVENTS */

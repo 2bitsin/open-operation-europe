@@ -19,6 +19,12 @@
 #include "map/btlmove.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements and units are uint16_t DS offsets and
  * all address arithmetic wraps at 16 bits. The 2864 helpers (btllist,
  * btlunit, btlmove) and the other 2c49 functions (btlaiunt, btlaient,
@@ -277,3 +283,56 @@ void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element,
     default: break;
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/*
+ * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
+ * PORT_ROUTINE handlers of the routines they reach).
+ * Conversion only; no game logic.
+ *
+ * Address-keyed word convention of the handlers (port.h): the register words
+ * in AX, DX, BX order (bytes zero-extended), then the stack words in
+ * prototype order; for the MSC C 6.0a _fastcall callees that is the order in
+ * which the arguments take registers: left to right, a near pointer goes to
+ * BX when it is free, any other byte/word (and a pointer when BX is taken) to
+ * the first free of AX, DX, BX; far pointers, longs and the arguments left
+ * over go to the stack (cdecl/asm routines: all stack words in order). */
+/* Battle AI segment 2c49 (btlaiact, btlaient, btlaimov, btlaipwr, btlaitrn,
+ * btlaiunt): path_step {x, y} carries the VALUES of the two frame bytes whose
+ * addresses the original passes (it never reads them back). The handler
+ * takes the pointers (AX y, BX x): the values go to two modeled stack bytes
+ * that stand for the original's frame bytes. */
+uint16_t svc_battle_ai(uint8_t* ds, uint32_t address, const uint16_t* args,
+                       unsigned count) {
+  if (address == 0x2a528u) {
+    uint16_t cell             = port_scratch_enter(2), words[2], r;
+    ds[cell]                  = (uint8_t)(count > 0 ? args[0] : 0);
+    ds[(uint16_t)(cell + 1u)] = (uint8_t)(count > 1 ? args[1] : 0);
+    words[0]                  = (uint16_t)(cell + 1u);
+    words[1]                  = cell;
+    r                         = (uint16_t)port_call(ds, address, words, 2);
+    port_scratch_leave(2);
+    return r;
+  }
+  return port_service(ds, address, args, count);
+}
+
+/* Services of map/btlaiact.c, address-keyed battle AI group (path_step by value, see svc_battle_ai in game/map/btlaiact.c). */
+uint16_t svc_btlaiact(uint8_t* ds, uint32_t service, const uint16_t* args,
+                      unsigned int count) {
+  return svc_battle_ai(ds, service, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

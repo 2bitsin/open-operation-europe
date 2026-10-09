@@ -21,6 +21,12 @@
 #include "core/selunit.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 /* Host ABI: ds/event first; elements, units and people records are DS
  * offsets. Callees that do more than read DS are event services named by
  * linear MAIN address with their register words in AX, DX, BX order:
@@ -134,3 +140,28 @@ void opeu_battle_element_lost(uint8_t* ds, BattleEvent event,
     put_word(ds, LOST_UNIT, 0);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_btldepty(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_element_lost) {
+  opeu_battle_element_lost(ds, svc_btldepty, ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -33,6 +33,12 @@
 #include "units/genconf.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 #include <stddef.h>
 /* Event ids and 16-bit word arguments (strings and buffers are DS offsets):
  * 0 army print(format[,argument]), 1 request format(dest,format,argument),
@@ -403,3 +409,147 @@ start:
   opeu_dos_close(handle);
   return new_game;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#undef opeu_army_position
+#undef opeu_confirm_generals
+#undef opeu_delay_units
+#undef opeu_dos_close
+#undef opeu_finish_side_initialization
+#undef opeu_load_message_graphics
+#undef opeu_load_saved_game
+#undef opeu_load_scenario_graphics
+#undef opeu_load_scenario_text
+#undef opeu_music_stop
+#undef opeu_open_resource
+#undef opeu_palette_title_screen
+#undef opeu_picture_file_masked
+#undef opeu_scenario_clear_panel
+#undef opeu_scenario_clear_text
+#undef opeu_scenario_description
+#undef opeu_scenario_frame
+#undef opeu_scenario_message
+#undef opeu_set_turn_context
+#undef opeu_setup_marker_hide
+#undef opeu_setup_marker_show
+#undef opeu_staff_restore_bottom
+#undef opeu_string_append
+#undef opeu_string_copy
+#undef opeu_ui_box
+#undef opeu_ui_text
+#undef opeu_vga_clear
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
+                                 uint16_t count);
+
+/* Services of core/scensel.c (06db:1700 opeu_new_game_setup). Events, from the
+ * host branch's comment, resolved by address (symbols.json):
+ *   0 army print(format[,arg]) 0480:0bb8   1 request format(dest,format,arg) 0480:0b9a
+ *   2 position(x,y) 0480:0808   3 ui text(text) 0480:0484
+ *   4 prompt with cancel(text,max,items) 0541:0462
+ *   5 prompt without cancel(text,max,items) 0541:0470
+ *   6 yes/no(text) 0541:0664 (opeu_ask_yes_no = host opeu_prompt_yes_no)
+ *   7 open resource(name) 0977:000e   8 turn context(track) 0d65:00fe
+ *   9 music stop 0d65:0060   10 finish side initialization(value) 0d65:0032
+ *  11 VGA clear 0000:2aac   12 masked picture(x,y,handle,block) 0a04:01ce
+ *  13 title palette 0a04:0884   14 string copy 09cc:01d0   15 string append 09cc:01f6
+ *  16 ui box 0000:2ad2   17 wait(tenths) 0a8e:004c opeu_delay_units
+ *  18 text attribute(value) 0480:0838 (host opeu_text_paper_set)
+ *  19 framed text(x,y,text) 0a04:0788 (host opeu_title_box)
+ *  20 DOS close 0000:0032   21 load scenario(scenario) 06db:0378
+ *  22 near call to 06db:offset(offset[,arguments]):
+ *     0006 setup_marker_show  0074 setup_marker_hide  0416 load_scenario_text
+ *     0468 load_message_graphics  04a2 load_scenario_graphics  081c load_saved_game
+ *     09c8 staff_restore_bottom  157a confirm_generals  163a scenario_frame
+ *     165e scenario_message  167c scenario_clear_panel  169a scenario_clear_text
+ *     16c2 scenario_description.
+ *
+ * Callers of opeu_new_game_setup must pass an entry SP with at least
+ * 0x64c bytes reserved below it: the 1600-byte text buffer is at
+ * BP-0x648 (sp-2-0x648) on the modeled DGROUP stack. */
+uint16_t svc_scensel(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: b1_cursor_print(ds, args, count); break;
+    case 1: b1_request_format(ds, args, count); break;
+    case 2:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 3: opeu_ui_text(ds, port_textout_host(), ARG(0)); break;
+    case 4: r = port_prompt_cancel(ds, ARG(0), ARG(1), ARG(2)); break;
+    case 5: r = port_prompt_required(ds, ARG(0), ARG(1), ARG(2)); break;
+    case 6: r = port_prompt_yes_no(ds, ARG(0)); break;
+    case 7: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 8: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 9: opeu_music_stop(ds, svc_sound); break;
+    case 10:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      break;
+    case 11: r = (uint16_t)opeu_vga_clear(); break;
+    case 12:
+      opeu_picture_file_masked(ds, port_uiprim_host(), ARG(0), ARG(1),
+                               (int16_t)ARG(2), ARG(3));
+      break;
+    case 13: opeu_palette_title_screen(ds, port_uiprim_host()); break;
+    case 14: r = opeu_string_copy(ds, ARG(0), ARG(1)); break;
+    case 15: r = opeu_string_append(ds, ARG(0), ARG(1)); break;
+    case 16:
+      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      break;
+    case 17: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 18:
+      opeu_text_paper_set(ds, port_textout_host(), (uint8_t)ARG(0));
+      break;
+    case 19:
+      r = opeu_title_box(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 20: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 21: port_load_scenario(ds, ARG(0)); break;
+    case 22: r = svc_scensel_near(ds, args, count); break;
+    default: port_unhandled("scensel", id, count);
+  }
+  return r;
+}
+
+/* Near calls into segment 06db, keyed by offset. */
+static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
+                                 uint16_t count) {
+  uint16_t r = 0;
+  switch (ARG(0)) {
+    case 0x0006:
+      opeu_setup_marker_show(ds, svc_setmark, (uint8_t)ARG(1));
+      break;
+    case 0x0074:
+      opeu_setup_marker_hide(ds, svc_setmark, (uint8_t)ARG(1));
+      break;
+    case 0x0416:
+      opeu_load_scenario_text(ds, svc_scenres, (uint8_t)ARG(1), ARG(2));
+      break;
+    case 0x0468: opeu_load_message_graphics(ds, svc_scenres); break;
+    case 0x04a2: opeu_load_scenario_graphics(ds, svc_scenres); break;
+    case 0x081c: r = opeu_load_saved_game(ds, svc_loadgame); break;
+    case 0x09c8: opeu_staff_restore_bottom(ds, svc_staffpnl); break;
+    case 0x157a: opeu_confirm_generals(ds, svc_genconf); break;
+    case 0x163a: opeu_scenario_frame(ds, svc_scenui); break;
+    case 0x165e: opeu_scenario_message(ds, svc_scenui, ARG(1)); break;
+    case 0x167c: opeu_scenario_clear_panel(ds, svc_scenui); break;
+    case 0x169a: opeu_scenario_clear_text(ds, svc_scenui); break;
+    case 0x16c2: opeu_scenario_description(ds, svc_scenui, ARG(1)); break;
+    default: port_unhandled("scensel (near call 06db:offset)", ARG(0), count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

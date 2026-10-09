@@ -6,6 +6,12 @@
 #include "map/stepmap.h"
 #include "map/step.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
   uint8_t next_x = *x, next_y = *y;
   opeu_grid_step_unchecked(&next_x, &next_y, direction);
@@ -16,3 +22,23 @@ uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
   }
   return 0;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+PORT_ROUTINE(opeu_grid_step) {
+  (void)ds;
+  return opeu_grid_step(PORT_DS(ARG(2)), PORT_DS(ARG(0)), (uint8_t)ARG(1));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

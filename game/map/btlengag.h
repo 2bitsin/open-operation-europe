@@ -21,4 +21,10 @@ uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event,
                                        uint16_t element, uint16_t x, uint16_t y,
                                        uint16_t frame);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlengag(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count);
+#endif
+
 #endif

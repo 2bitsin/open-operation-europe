@@ -7,6 +7,13 @@
 #include "map/mapcell.h"
 #include "map/mappixel.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model: DS (and the stack inside it) is explicit; near offsets wrap at
  * 16 bits. opeu_map_cell_flash takes frame, the original BP: its pixel words
  * a/b live at frame-2/frame-4 because the MAPPIXEL converters receive their
@@ -101,3 +108,26 @@ void opeu_map_cell_flash(uint8_t ds[65536], HostEvent event, uint16_t frame,
     PAINT(A, B, 7);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/mapcell.c (15c4:0008..0129 cell paint, cell flash).
+ * Its HostEvent uses the 15c4 segment's shared service kinds
+ * (svc_map_plan, game/map/blast.c); this module raises 0 draw_far, 1 draw_near, 2 bitmap_restore_near, 3 bitmap_save_near. */
+uint16_t svc_mapcell(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                     uint16_t count) {
+  return svc_map_plan(ds, "mapcell", kind, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

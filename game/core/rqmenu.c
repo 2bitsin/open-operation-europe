@@ -13,6 +13,13 @@
 #include "types/events.h"
 #include "types/requests.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/rqcommon.h"
+#endif
+
 /* Host model.  Every external callee is a service of `event`
  * (ds, id, args, count); ds offsets are 16-bit near pointers.
  *   id 26 army_position(x, y)                         -> ignored
@@ -143,3 +150,37 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
       RQ_HANDLER(choice);
   } while (RQ_DELAY(RQ_SIDE) == 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/rqmenu.c (22f9:0958..0b95 request menu, turn action 7).
+ * Services raised (host branch comment): 3 request_pending, 10
+ * control_message, 16 army_title, 17 delay_dialog, 26 army_position, 27
+ * army_print, 28 request_mode_is, 29 side_has_city, 30 far handler from
+ * DS:a01e (request_supplies 22f9:0136 / request_arms 22f9:03b6 /
+ * request_regiment 22f9:0780 through the routine link table); the
+ * request-menu table is in svc_request (game/core/rqcommon.c). */
+uint16_t svc_rqmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  return svc_request("rqmenu", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_turn_action_7) {
+  (void)args;
+  (void)count;
+  opeu_turn_action_7(ds, svc_rqmenu);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

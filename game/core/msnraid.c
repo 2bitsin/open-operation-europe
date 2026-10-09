@@ -13,6 +13,13 @@
 #include "core/strings.h"
 #include "types/events.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/msnkill.h"
+#endif
 /* Host model (see msnrept.c): DS offsets, a scratch frame for local buffers,
  * recovered helpers for records and strings, and scripted services:
  *   0 rand_bounded(bound)  1 request_text(id)  6 unit_name(unit,buffer)
@@ -182,3 +189,61 @@ void opeu_mission_unit_4(uint8_t ds[65536], HostEvent event, uint16_t frame,
   } else
     FAILURE(side, n);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/msnraid.c (0e8e:028c..06f7 raid and sabotage missions).
+ * Services 0, 1, 6, 7, 8 and, through the msnrept helpers it calls with
+ * this event, the rest of the mission table (svc_mission, game/core/msnkill.c). */
+uint16_t svc_msnraid(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  return svc_mission("msnraid", ds, id, args, count);
+}
+
+PORT_ROUTINE(opeu_mission_objective_3) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_objective_3(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_raid_objective) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_raid_objective(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_raid_unit) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_raid_unit(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_sabotage) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_sabotage(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+PORT_ROUTINE(opeu_mission_unit_4) {
+  uint16_t frame = port_frame_enter();
+  opeu_mission_unit_4(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  port_frame_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

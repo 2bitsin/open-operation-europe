@@ -16,6 +16,14 @@
 #include "core/random.h"
 #include "map/query.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "map/mapunit.h"
+#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Objective side, side
  * records, byte arithmetic and the random generator (state DS:c6f4) run
@@ -86,3 +94,51 @@ void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event,
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/evcomms.c (11e5:01a4 hourly objective events). Services from
+ * the host branch comment: 4 control_message(text,person),
+ * 5 request_format(destination,format,objective) (cdecl),
+ * 6 location_flash(x,y,side). Ids 0..3 are not used. */
+uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t frame;
+  switch (id) {
+    case 4:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;                                           /* 1707:0672 */
+    case 5: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 6:                                            /* 15c4:087e */
+      frame = port_frame_enter();
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
+                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      port_frame_leave();
+      break;
+    default: port_unhandled("evcomms", id, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_objective_comms_event) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_objective_comms_event(ds, svc_evcomms, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

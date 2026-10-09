@@ -19,6 +19,12 @@
 #include "map/btlmines.h"
 #include "core/limits.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI (as BTLHIT): ds/event first, elements are DS offsets; report and
  * hit also take sp, the DS offset of the far return address at entry. Every
  * callee outside segment 2eab except the NUMERIC/STRINGS helpers (which run
@@ -154,3 +160,60 @@ void opeu_battle_mine_hit(uint8_t* ds, BattleEvent event, uint16_t sp,
   MCALL4(REDRAW_CELL, x, y, element, (uint8_t)MCALL1(BATTLE_MODE, element));
   MCALL2(SET_ORDER, element, 0);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/*
+ * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
+ * PORT_ROUTINE handlers of the routines they reach).
+ * Conversion only; no game logic.
+ *
+ * Address-keyed word convention of the handlers (port.h): the register words
+ * in AX, DX, BX order (bytes zero-extended), then the stack words in
+ * prototype order; for the MSC C 6.0a _fastcall callees that is the order in
+ * which the arguments take registers: left to right, a near pointer goes to
+ * BX when it is free, any other byte/word (and a pointer when BX is taken) to
+ * the first free of AX, DX, BX; far pointers, longs and the arguments left
+ * over go to the stack (cdecl/asm routines: all stack words in order). */
+/* BTLMINES (BattleEvent): words in prototype order (btlmines.c host branch,
+ * validate_battle_mines.py). */
+uint16_t svc_battle_mines(uint8_t* ds, uint32_t address, const uint16_t* args,
+                          unsigned count) {
+  static const unsigned char set_order[] = { 1, 0 }; /* (element, order) */
+  static const unsigned char report[] = { 1, 2, 0 }; /* (text, side, value) */
+  switch (address) {
+    case 0x29d7au: return btl_reorder(ds, address, args, count, set_order, 2);
+    case 0x2a284u: return btl_reorder(ds, address, args, count, report, 3);
+    default:       return port_service(ds, address, args, count);
+  }
+}
+
+/* Services of map/btlmines.c, address-keyed BattleEvent, prototype-order words (see svc_battle_mines in game/map/btlmines.c). */
+uint16_t svc_btlmines(uint8_t* ds, uint32_t service, const uint16_t* args,
+                      unsigned int count) {
+  return svc_battle_mines(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_mine_damage) {
+  return opeu_battle_mine_damage(ds, svc_btlmines, ARG(0));
+}
+
+PORT_ROUTINE(opeu_battle_mine_hit) {
+  uint16_t sp = btl_sp_enter();
+  opeu_battle_mine_hit(ds, svc_btlmines, sp, ARG(0));
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

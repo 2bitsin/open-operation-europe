@@ -10,4 +10,10 @@ void    opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column,
                               uint8_t first, uint8_t row, uint8_t last,
                               uint8_t flags);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_dplrows(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

@@ -4,13 +4,13 @@
  * recovered application entry (core/app.c, opeu_application_entry at
  * 0977:03dc). Here the host prepares what crt0 and DOS provided (the
  * initialized data segment, the memory arena, the display and input
- * devices) and then calls the same entry with app.c's link callback.
+ * devices) and then calls the same entry with app.c's service table.
  */
 #include "port.h"
 #include "services.h"
 #include "platform.h"
-#include "callbacks.h"
-#include "recovered.h"
+#include "glue.h"
+#include "core/app.h"
 #include "open.h"                    /* OPEN.EXE, the opening (port/open) */
 
 #include <stdio.h>
@@ -27,7 +27,6 @@
 #endif
 
 PortOptions port_options;
-void link_install_ai_hooks(void);
 
 static void usage(const char *argv0)
 {
@@ -126,11 +125,9 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    /* Boundary pointers the recovered host branches expect the embedding
-     * driver to install (aiops1.c:143). A reference without the recovered
-     * path fill 19df:006e declares opeu_path_fill_hook (unitai.c:173)
-     * instead; the port leaves it unset (see README, blockers). */
-    link_install_ai_hooks();
+    /* The boundary pointer the AI host branches expect the embedding driver
+     * to install (opeu_ai_unrecovered, game/core/aiops1.c). */
+    port_install_hooks();
 
     /* FMDRV was installed by OPEU.BAT before MAIN started. */
     port_fm_init();
@@ -139,7 +136,7 @@ int main(int argc, char **argv)
     open_intro_run();
 
     /* crt0 -> main(): the recovered application entry. */
-    opeu_application_entry(port_ds, link_app);
+    opeu_application_entry(port_ds, svc_app);
 
     /* The entry returns after the scenario end (FINISH); crt0 then exits 0,
      * which made the launcher run the ending program. */

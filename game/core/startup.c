@@ -9,6 +9,15 @@
 #include "core/startup.h"
 #include "core/random.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/scensel.h"
+#include "core/segsetup.h"
+#include "io/sound.h"
+#endif
 /* Host: near pointers are 16-bit DS offsets into ds[]. Service events:
  * 0 = BIOS INT 1Ah AH=0 (returns DX, the low clock tick word),
  * 1 = 08ea:01ea, 2 = 06db:1700 (returns the new-game flag word),
@@ -145,3 +154,53 @@ void opeu_app_startup_service(uint8_t ds[65536], HostEvent event) {
   VGA_CLEAR();
   FINISH(1);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)         ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)       ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define NEW_GAME_FRAME 0x900u
+#define PREPARE_FRAME  0x200u
+
+/* Services of core/startup.c (06db:1e08..20f0 new-game start-up service).
+ * Events, from the host branch's comment (src/main/core/startup.c):
+ *   0 BIOS INT 1Ah AH=0 -> DX (low tick word)   port_clock_ticks_low
+ *   1 08ea:01ea opeu_app_prepare (SEGSETUP; entry SP)
+ *   2 06db:1700 opeu_new_game_setup -> flag word (SCENSEL; entry SP)
+ *   3 VGA clear 0000:2aac opeu_vga_clear
+ *   4 0d65:0032 opeu_finish_side_initialization(value) (SOUND) */
+uint16_t svc_startup(uint8_t* ds, uint16_t service, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (service) {
+    case 0: r = port_clock_ticks_low(); break;
+    case 1:
+      sp = port_stack_enter(PREPARE_FRAME);
+      opeu_app_prepare(ds, svc_segsetup, sp);
+      port_stack_leave(PREPARE_FRAME);
+      break;
+    case 2:
+      sp = port_stack_enter(NEW_GAME_FRAME);
+      r  = (uint16_t)opeu_new_game_setup(ds, svc_scensel, sp);
+      port_stack_leave(NEW_GAME_FRAME);
+      break;
+    case 3: opeu_vga_clear(); break;
+    case 4:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      break;
+    default: port_unhandled("startup", service, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef NEW_GAME_FRAME
+#undef PREPARE_FRAME
+#endif /* OPEU_HOST_EVENTS */

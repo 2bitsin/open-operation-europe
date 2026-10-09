@@ -13,6 +13,12 @@
 #include "types/events.h"
 #include "types/host.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
+
 typedef struct {
   uint16_t es, cs, ss, ds;
 } SegRegs;
@@ -267,3 +273,83 @@ void opeu_effect_finish(uint8_t ds[65536], HostService service) {
     opeu_effect_stop(ds, service);
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)             ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)           ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define SOUND_CODE_SEGMENT 0x0d65u
+
+/* Services of io/sound.c (0d65:0002..02d7 INT 66h music/effect interface).
+ * Service calls, from the host branch's comment (src/main/io/sound.c):
+ *   0 driver open (driver off/seg, effects off/seg): 0000:4074 opeu_sound_open
+ *   1 int86(0x66): seven REGS words in/out, returns AX
+ *   2 int86x(0x66): REGS then four SREGS words (es cs ss ds) in/out
+ *   3 segread: four SREGS words out
+ * The int86 call sites issue AH = 1 (music start), 2 (stop), 3 (status),
+ * 4 (loop), 5 (load, int86x), 6 (select), 7, 10h (effect data, int86x),
+ * 11h (effect start), 12h (effect stop), 13h (effect status); each goes to
+ * the native driver (port_fm_int66, port/services/fmdriver.c) with the
+ * registers it reads and returns. */
+uint16_t svc_sound(uint8_t* ds, uint16_t call, uint16_t* words) {
+  (void)ds;
+  switch (call) {
+    case 0:
+      return (uint16_t)opeu_sound_open(words[0], words[1], words[2], words[3]);
+    case 1: {
+      uint16_t ds_seg = PORT_DS_SEGMENT;
+      return port_sound_int66(words, &ds_seg);
+    }
+    case 2: return port_sound_int66(words, &words[10]);
+    case 3:
+      words[0] = PORT_DS_SEGMENT;    /* ES */
+      words[1] = SOUND_CODE_SEGMENT; /* CS */
+      words[2] = PORT_DS_SEGMENT;    /* SS */
+      words[3] = PORT_DS_SEGMENT;    /* DS */
+      return 0;
+    default: port_unhandled("sound", call, 0);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_effect_finish) {
+  (void)args;
+  (void)count;
+  opeu_effect_finish(ds, svc_sound);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_finish_side_initialization) {
+  opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_music_command7) {
+  (void)args;
+  (void)count;
+  opeu_music_command7(ds, svc_sound);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_music_stop) {
+  (void)args;
+  (void)count;
+  opeu_music_stop(ds, svc_sound);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_set_turn_context) {
+  opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef SOUND_CODE_SEGMENT
+#endif /* OPEU_HOST_EVENTS */

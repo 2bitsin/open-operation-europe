@@ -13,4 +13,10 @@ uint16_t opeu_air_target_valid(uint8_t* ds, HostEvent event, uint16_t sp,
                                uint8_t x, uint8_t y, uint16_t what);
 uint16_t opeu_air_confirm(uint8_t* ds, HostEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_airhelp(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

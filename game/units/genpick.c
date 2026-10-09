@@ -10,6 +10,20 @@
 #include "units/genpick.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/divstr.h"
+#include "core/personfl.h"
+#include "core/sideutil.h"
+#include "core/staffpnl.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "core/vacancy.h"
+#include "io/listui.h"
+#endif
+
 /* Host UI boundary: event(ds, kind, args, count) with near DS offsets.
  * 0 set_role(person,value) 1 set_group(person,value) 2 portrait(x,y,person)
  * 3 attribute(value) 4 text_color(color) 5 position(x,y)
@@ -215,3 +229,91 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event,
   }
   TEXT_COLOR(7);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/genpick.c (06db:0f3e general choice, 06db:121e row draw).
+ * Services from the host branch's list:
+ *  0 person_set_role(person,value) 0b73:02cc
+ *  1 person_set_group(person,value) 0b73:02d8
+ *  2 context_portrait(x,y,person) 0a04:046c
+ *  3 text_attribute(value) 0480:0838 (opeu_text_paper_set)
+ *  4 text_color(color) 0480:082e      5 army_position(x,y) 0480:0808
+ *  6 army_print(format,...) 0480:0bb8 7 select_side_color(side) 0b73:04e2
+ *  8 table_columns(column,row) 0a8e:0140 -> first column byte. The original
+ *    passes the addresses of three frame bytes (first, second, third); they
+ *    are placed in a modeled frame here and only `first` is returned.
+ *  9 staff_restore_bottom 06db:09c8   10 staff_mark_option(slot) 06db:0a5c
+ * 11 staff_frame_option(slot) 06db:0b04
+ * 12 show_division_strength(division) 06db:0d64
+ * 13 find_vacant_post() 06db:0ea4 -> byte
+ * 14 clear_staff_role(side,kind) 06db:0f26
+ * 15 clear_division_command(side,group) 06db:0f32 */
+uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t sp, r = 0;
+  switch (id) {
+    case 0: opeu_person_set_role(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 1: opeu_person_set_group(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 2:
+      opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      break;
+    case 3:
+      opeu_text_paper_set(ds, port_textout_host(), (uint8_t)ARG(0));
+      break;
+    case 4: opeu_text_color(ds, port_textout_host(), ARG(0)); break;
+    case 5:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 6: r = lf_cursor_print(ds, args, count); break;
+    case 7: opeu_select_side_color(ds, svc_sideutil, (uint8_t)ARG(0)); break;
+    case 8:
+      sp = port_stack_enter(LF_FRAME);
+      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                         (uint16_t)(sp - 2u), (uint16_t)(sp - 4u),
+                         (uint16_t)(sp - 6u));
+      r = ds[(uint16_t)(sp - 2u)];
+      port_stack_leave(LF_FRAME);
+      break;
+    case 9:  opeu_staff_restore_bottom(ds, svc_staffpnl); break;
+    case 10: opeu_staff_mark_option(ds, svc_staffpnl, (int16_t)ARG(0)); break;
+    case 11: opeu_staff_frame_option(ds, svc_staffpnl, (int16_t)ARG(0)); break;
+    case 12:
+      opeu_show_division_strength(ds, svc_divstr, (uint8_t)ARG(0));
+      break;
+    case 13: r = opeu_find_vacant_post(ds); break;
+    case 14: opeu_clear_staff_role(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 15:
+      opeu_clear_division_command(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break;
+    default: port_unhandled("genpick", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_general_assign_choice) {
+  return opeu_general_assign_choice(ds, svc_genpick, (uint8_t)ARG(0));
+}
+
+PORT_ROUTINE(opeu_general_list_draw_rows) {
+  opeu_general_list_draw_rows(ds, svc_genpick, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                              (uint8_t)ARG(2), (uint8_t)ARG(3),
+                              (uint8_t)ARG(4));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

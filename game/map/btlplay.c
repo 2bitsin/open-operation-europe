@@ -11,6 +11,13 @@
 #include "map/btlsel.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/btlcmds.h"
+#endif
 /* Host ABI (elements/units are DS offsets, frame = the emulated DOS BP of the
  * function, sp = the emulated SP at opeu_battle_player_turn entry):
  *   opeu_battle_player_orders(ds, event, frame)
@@ -160,3 +167,33 @@ void opeu_battle_player_turn(uint8_t* ds, BattleEvent event, uint16_t sp) {
   }
   opeu_battle_redraw_side(ds, event, 2, frame);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/btlplay.c, address-keyed BattleEvent: player orders segment 2ec8 (hex mask reads, see svc_battle_orders in game/map/btlcmds.c). */
+uint16_t svc_btlplay(uint8_t* ds, uint32_t service, const uint16_t* args,
+                     unsigned int count) {
+  return svc_battle_orders(ds, service, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_player_turn) {
+  uint16_t sp = btl_sp_enter();
+  (void)args;
+  (void)count;
+  opeu_battle_player_turn(ds, svc_btlplay, sp);
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

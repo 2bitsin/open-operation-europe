@@ -14,6 +14,12 @@
 #include "map/btllist.h"
 #include "map/btlunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first, then frame = the original BP inside the function
  * (the name buffer is frame-0x2c, the " " copy frame-0x2e). Units are DS
  * offsets. Callees outside 2864 are event services named by linear MAIN
@@ -78,3 +84,35 @@ uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event,
   }
   return c;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+uint16_t svc_btlready(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_announce_ready) {
+  uint16_t sp = btl_sp_enter();
+  uint32_t r;
+  (void)args;
+  (void)count;
+  r = opeu_battle_announce_ready(ds, svc_btlready, BTL_BP(sp));
+  btl_sp_leave();
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

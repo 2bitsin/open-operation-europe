@@ -20,6 +20,13 @@
 #include "map/mapframe.h"
 #include "map/mapview.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model: DS is explicit. Events (global map kinds): 10 pattern_draw
  * (x,y,3,2,0,0x8124), 11 screen_shift(x1,y1,x2,y2), 14 status_mode(mode).
  * The 15c4 painters/pixel helper are their host functions; LIMITS runs
@@ -239,3 +246,26 @@ void opeu_map_scroll_to(STATEF int16_t x, int16_t y, uint8_t side) {
     SCROLL_TO(x, y);
   FRAME(x, y);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/mapscrol.c (15c4:1054..13d7 tactical view clear/redraw/scroll).
+ * Its HostEvent uses the 15c4 segment's shared service kinds
+ * (svc_map_plan, game/map/blast.c); this module raises 10 pattern_draw, 11 screen_shift, 14 status_mode; runs MAPVIEW and MAPFRAME with this event. */
+uint16_t svc_mapscrol(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                      uint16_t count) {
+  return svc_map_plan(ds, "mapscrol", kind, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

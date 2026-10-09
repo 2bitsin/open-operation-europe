@@ -8,6 +8,16 @@
 #include "core/daypres.h"
 #include "types/events.h"
 
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/people.h"
+#include "core/template.h"
+#include "io/soundcue.h"
+#endif
+
 /* Host model: ds is the 64 KiB data/stack segment and sp the original SP at
  * entry; the 100-byte text is at BP-64h (sp-66h). Callees are event(ds,id,
  * args,count): request_wait=0, element_type_panel=1 (record),
@@ -42,3 +52,55 @@ void opeu_daily_present(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   FORMAT(a, NAME(RECORD), CATEGORY(RECORD) == 3 ? TANK : PERIOD);
   MESSAGE(a, SPEAKER());
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/daypres.c (0e36:0000 opeu_daily_present). Services:
+ * request_wait=0, element_type_panel=1 (record), request_format=2 (text,
+ * format, name, suffix; cdecl), find_side_record=3 (side, kind),
+ * find_person_template=4 (mask, kind), control_message=5 (text, person). */
+uint16_t svc_daypres(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
+    case 1:
+      opeu_element_type_panel(ds, port_dialogs_host(), ARG(0));
+      break;                                           /* 1707:0a22 */
+    case 2: c1_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 3:
+      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0b73:02ee */
+    case 4:
+      r = opeu_find_person_template(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0b73:03d2 */
+    case 5:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    default: port_unhandled("daypres", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_daily_present) {
+  uint16_t sp;
+  (void)args;
+  (void)count; /* The 100-byte text lives at BP-64h (sp-66h). */
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_daily_present(ds, svc_daypres, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

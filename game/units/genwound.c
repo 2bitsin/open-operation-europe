@@ -25,6 +25,17 @@
 #include "core/numeric.h"
 #include "core/random.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/deputy.h"
+#include "core/dialogs.h"
+#include "core/personfl.h"
+#include "io/keyboard.h"
+#include "io/sound.h"
+#endif
 #include <string.h>
 static uint16_t wound_word(const uint8_t* ds, uint16_t at) {
   return (uint16_t)(ds[at] | ds[(uint16_t)(at + 1)] << 8);
@@ -117,3 +128,54 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t bp,
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of units/genwound.c (17c4:086e general casualty). Services from the
+ * host branch's list:
+ *  0 person_lacks_side0_flag(person) 0b73:02bc -> byte
+ *  1 request_format(buffer,format,person,text) 0480:0b9a
+ *  2 initialize_deputy(person) 0b73:048a
+ *  3 control_message(text,person) 1707:0672
+ *  4 wait_confirm(value) 0541:011e
+ *  5 set_turn_context(value) 0d65:00fe
+ *  6 finish_side_initialization(value) 0d65:0032
+ *  7 daily_show(id,side,0866h,17c4h) 1707:03e4; the presenter 17c4:0866
+ *    (opeu_blast_pause) is reached by identifier through the dialogs
+ *    service 47 (routines/blast_F.c). */
+uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0: r = opeu_person_lacks_side0_flag(ds, ARG(0)); break;
+    case 1: r = lf_request_format(ds, args, count); break;
+    case 2: opeu_initialize_deputy(ds, ARG(0)); break;
+    case 3:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;
+    case 4: opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0)); break;
+    case 5: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 6:
+      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      break;
+    case 7:
+      opeu_daily_show(ds, port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+                      (uint32_t)ARG(3) << 16 | ARG(2));
+      break;
+    default: port_unhandled("genwound", id, count);
+  }
+  return r;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

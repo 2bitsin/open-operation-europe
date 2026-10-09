@@ -12,6 +12,13 @@
 #include "map/mappixel.h"
 #include "map/mappos.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/blast.h"
+#endif
 /* Host model: near pointers are DS offsets, record steps wrap at 64 KiB.
  * opeu_group_show also takes frame, the original BP (a DS/SS offset): its
  * pixel words c/e live at frame-6/frame-10 because overview_pixel receives
@@ -190,3 +197,35 @@ void opeu_location_flash(uint8_t ds[65536], HostEvent event, uint16_t frame,
   for (a = 0; a < 2; a++)
     SIDE_FLASH(x, y, side);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define BTL_BP(sp) ((uint16_t)((sp) - 2u))
+
+/* Services of map/mapunit.c (15c4:060e..08a9 unit/group/arrival flashes and position reports).
+ * Its HostEvent uses the 15c4 segment's shared service kinds
+ * (svc_map_plan, game/map/blast.c); this module raises 1, 2, 3, 12 wait_ticks, 13 control_message; runs MAPCELL, MAPPOS, MAPERASE with this event. */
+uint16_t svc_mapunit(uint8_t* ds, uint16_t kind, const uint16_t* args,
+                     uint16_t count) {
+  return svc_map_plan(ds, "mapunit", kind, args, count);
+}
+
+PORT_ROUTINE(opeu_unit_flash) {
+  uint16_t sp = btl_sp_enter();
+  opeu_unit_flash(ds, svc_mapunit, BTL_BP(sp), ARG(1), (uint8_t)ARG(0));
+  btl_sp_leave();
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef BTL_BP
+#endif /* OPEU_HOST_EVENTS */

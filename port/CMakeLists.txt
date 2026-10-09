@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(opeu_port C CXX)
 
-# Operation Europe, native build: the recovered C of src/main compiled for
-# the host, linked with the port layer (port/link, port/services, port/core)
-# and an SDL3 platform backend.
+# Operation Europe, native build: the recovered C of the generated game/ tree
+# (tools/make_game_tree.py from src/main) compiled for the host, with its
+# services resolved to direct calls, linked with the port layer (port/core,
+# port/services) and an SDL3 platform backend.
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -18,22 +19,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 get_filename_component(OPEU_REPO ${CMAKE_CURRENT_SOURCE_DIR}/.. ABSOLUTE)
-set(OPEU_SRC ${OPEU_REPO}/src CACHE PATH "Recovered reference tree to compile (default: this checkout's src)")
-
-# Two routines gained host branches after the first port snapshot: the AI
-# path fill 19df:006e (unitai.c, replacing the opeu_path_fill_hook boundary)
-# and the movement reachability fill 32e6:00d8 (movecost.c). The link layer
-# calls them when the compiled reference defines them.
-file(READ ${OPEU_SRC}/main/core/unitai.c OPEU_UNITAI_TEXT)
-file(READ ${OPEU_SRC}/main/map/movecost.c OPEU_MOVECOST_TEXT)
-set(OPEU_SOURCE_FEATURES)
-if(OPEU_UNITAI_TEXT MATCHES "uint16_t opeu_path_fill\\(uint8_t \\*ds")
-  list(APPEND OPEU_SOURCE_FEATURES OPEU_HAVE_PATH_FILL=1)
+set(OPEU_GAME ${OPEU_REPO}/game CACHE PATH "Generated game tree to compile (default: this checkout's game/, `make game`)")
+if(NOT EXISTS ${OPEU_GAME}/compat/aliases.json)
+  message(FATAL_ERROR "${OPEU_GAME} is not a generated game tree (run `make game`)")
 endif()
-if(OPEU_MOVECOST_TEXT MATCHES "uint16_t opeu_move_reachable\\(DS_ARG WORDS_ARG")
-  list(APPEND OPEU_SOURCE_FEATURES OPEU_HAVE_MOVE_REACHABLE=1)
+message(STATUS "Recovered game tree: ${OPEU_GAME}")
+if(DEFINED OPEU_SRC)
+  # `make port PORT_SRC=...` still passes it; the port compiles a generated
+  # game/ tree now (generate one from another checkout and pass -DOPEU_GAME).
+  message(WARNING "OPEU_SRC is ignored: the port compiles the game tree ${OPEU_GAME} (-DOPEU_GAME=...)")
 endif()
-message(STATUS "Recovered reference: ${OPEU_SRC} (${OPEU_SOURCE_FEATURES})")
 set(OPEU_PORT ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ---- SDL3: installed package first, otherwise a static build from source ----
@@ -86,38 +81,39 @@ if(EMSCRIPTEN)
   target_compile_options(opeu_opl PRIVATE -fno-exceptions)
 endif()
 
-# ---- the recovered game: every host branch of src/main ---------------------
+# ---- the recovered game: every module of game/ ----------------------------
+# Compiled without OPEU_HOST_EVENTS: each module's services are the direct
+# calls of its native-build section (tools/game-services.json); the
+# validators build the same files with -DOPEU_HOST_EVENTS.
 file(GLOB OPEU_RECOVERED CONFIGURE_DEPENDS
-  ${OPEU_SRC}/main/core/*.c
-  ${OPEU_SRC}/main/data/*.c
-  ${OPEU_SRC}/main/io/*.c
-  ${OPEU_SRC}/main/map/*.c
-  ${OPEU_SRC}/main/units/*.c)
+  ${OPEU_GAME}/core/*.c
+  ${OPEU_GAME}/data/*.c
+  ${OPEU_GAME}/io/*.c
+  ${OPEU_GAME}/map/*.c
+  ${OPEU_GAME}/units/*.c)
 add_library(opeu_recovered STATIC ${OPEU_RECOVERED})
-target_include_directories(opeu_recovered PRIVATE ${OPEU_SRC}/common ${OPEU_SRC}/main/include)
-# The recovered sources are compiled as the validators compile them, minus
-# -Werror (warnings stay visible; the reference is frozen).
+target_include_directories(opeu_recovered PRIVATE ${OPEU_GAME}/common ${OPEU_GAME}
+  ${OPEU_PORT}/include ${OPEU_PORT}/services)
+# As the generator checks them (tools/make_game_tree.py NATIVE_CFLAGS), minus
+# -Werror; the `event` parameters are unused once the services are direct.
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(opeu_recovered PRIVATE -Wall -Wextra -fno-strict-aliasing)
+  target_compile_options(opeu_recovered PRIVATE -Wall -Wextra -Wno-unused-parameter -fno-strict-aliasing)
 endif()
 
-# ---- generated link glue ----------------------------------------------------
-file(GLOB_RECURSE OPEU_LINK_SOURCES CONFIGURE_DEPENDS ${OPEU_PORT}/link/*.c)
+# ---- generated routine link table -------------------------------------------
+# identifier (original address) -> PORT_ROUTINE handler, for the services
+# the recovered code names by address (battle modules, far code pointers).
 file(GLOB OPEU_SERVICE_SOURCES CONFIGURE_DEPENDS ${OPEU_PORT}/services/*.c)
+file(GLOB OPEU_CORE_SOURCES CONFIGURE_DEPENDS ${OPEU_PORT}/core/*.c)
 set(OPEU_GEN ${CMAKE_CURRENT_BINARY_DIR}/gen)
 add_custom_command(
   OUTPUT ${OPEU_GEN}/link_table.c
-  COMMAND ${Python3_EXECUTABLE} ${OPEU_PORT}/tools/gen_link_table.py ${OPEU_GEN}/link_table.c
-  DEPENDS ${OPEU_LINK_SOURCES} ${OPEU_SERVICE_SOURCES} ${OPEU_PORT}/tools/gen_link_table.py ${OPEU_PORT}/gen/symbols.json
+  COMMAND ${Python3_EXECUTABLE} ${OPEU_PORT}/tools/gen_link_table.py ${OPEU_GEN}/link_table.c ${OPEU_GAME}
+  DEPENDS ${OPEU_RECOVERED} ${OPEU_CORE_SOURCES} ${OPEU_PORT}/tools/gen_link_table.py
+          ${OPEU_PORT}/gen/symbols.json ${OPEU_GAME}/compat/aliases.json
   COMMENT "Generating the routine link table")
-add_custom_command(
-  OUTPUT ${OPEU_GEN}/callbacks.h ${OPEU_GEN}/link_defaults.c
-  COMMAND ${Python3_EXECUTABLE} ${OPEU_PORT}/tools/gen_callbacks.py ${CMAKE_C_COMPILER} ${OPEU_GEN}
-  DEPENDS ${OPEU_LINK_SOURCES} ${OPEU_PORT}/tools/gen_callbacks.py ${OPEU_PORT}/gen/callback_types.json
-  COMMENT "Generating module callback declarations")
 
 # ---- the game executable ----------------------------------------------------
-file(GLOB OPEU_CORE_SOURCES CONFIGURE_DEPENDS ${OPEU_PORT}/core/*.c)
 set(OPEU_PLATFORM_SOURCES
   ${OPEU_PORT}/platform/png_write.c
   ${OPEU_PORT}/platform/sdl3/platform_sdl3.c)
@@ -125,15 +121,13 @@ add_executable(opeu
   ${OPEU_PORT}/main.c
   ${OPEU_CORE_SOURCES}
   ${OPEU_SERVICE_SOURCES}
-  ${OPEU_LINK_SOURCES}
   ${OPEU_PORT}/gen/data_image.c
   ${OPEU_PORT}/gen/module_data.c
   ${OPEU_GEN}/link_table.c
-  ${OPEU_GEN}/link_defaults.c
   ${OPEU_PLATFORM_SOURCES})
 target_include_directories(opeu PRIVATE
-  ${OPEU_PORT}/include ${OPEU_PORT}/link ${OPEU_PORT}/services ${OPEU_PORT}/platform
-  ${OPEU_PORT}/gen ${OPEU_GEN} ${OPEU_SRC}/common)
+  ${OPEU_PORT}/include ${OPEU_PORT}/services ${OPEU_PORT}/platform
+  ${OPEU_PORT}/gen ${OPEU_GEN} ${OPEU_GAME}/common ${OPEU_GAME})
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(opeu PRIVATE -Wall -Wextra -Wno-unused-parameter)
 elseif(MSVC)
@@ -145,7 +139,7 @@ if(EMSCRIPTEN)
 else()
   set(OPEU_DEFAULT_DATA_DIR ${OPEU_REPO}/binaries)
 endif()
-target_compile_definitions(opeu PRIVATE OPEU_DEFAULT_DATA_DIR="${OPEU_DEFAULT_DATA_DIR}" ${OPEU_SOURCE_FEATURES})
+target_compile_definitions(opeu PRIVATE OPEU_DEFAULT_DATA_DIR="${OPEU_DEFAULT_DATA_DIR}")
 
 # ---- OPEN.EXE: the opening, run before MAIN (port/open) --------------------
 # The recovered C of src/open compiled as is. OPEN and MAIN were separate DOS
@@ -242,13 +236,9 @@ if(EMSCRIPTEN)
   else()
     set(OPEU_WEB_ASYNC -sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=1048576)
   endif()
-  # Call-signature glue: see port/core/wasm_abi.c.
-  set(OPEU_WASM_VOID_DEFS)
-  foreach(r ai_08f8 ai_093c ai_0a5a ai_0c3c ai_0d82 ai_1064)
-    list(APPEND OPEU_WASM_VOID_DEFS opeu_${r}=opeu_wasm_void_${r})
-  endforeach()
-  set_source_files_properties(${OPEU_SRC}/main/core/aiops5.c
-    PROPERTIES COMPILE_DEFINITIONS "${OPEU_WASM_VOID_DEFS}")
+  # No call-signature glue: game/core/aiops5.c calls the six AI routines it
+  # used to declare void through their owners' prototypes (tools/game-renames.json
+  # "declarations"), so every call matches its definition, as WebAssembly requires.
   set(OPEU_WEB_DIR ${OPEU_PORT}/platform/web)
   target_link_options(opeu PRIVATE
     ${OPEU_SDL3_PORT}
@@ -294,8 +284,8 @@ endif()
 set(OPEU_TEST_PYTHON ${OPEU_TEST_PYTHON_DEFAULT} CACHE FILEPATH "Python with unicorn for the FM driver comparison")
 add_executable(opeu_fmdriver_trace ${OPEU_PORT}/tests/fmdriver_trace.c ${OPEU_PORT}/services/fmdriver.c)
 target_include_directories(opeu_fmdriver_trace PRIVATE ${OPEU_PORT}/services)
-add_executable(opeu_dump_open_bank ${OPEU_PORT}/tests/dump_open_bank.c ${OPEU_SRC}/open/data/ofmusic.c)
-target_include_directories(opeu_dump_open_bank PRIVATE ${OPEU_SRC}/common)
+add_executable(opeu_dump_open_bank ${OPEU_PORT}/tests/dump_open_bank.c ${OPEU_REPO}/src/open/data/ofmusic.c)
+target_include_directories(opeu_dump_open_bank PRIVATE ${OPEU_REPO}/src/common)
 add_test(NAME fmdriver_registers
   COMMAND ${OPEU_TEST_PYTHON} ${OPEU_PORT}/tests/fmdriver_diff.py $<TARGET_FILE:opeu_fmdriver_trace>
           $<TARGET_FILE:opeu> --open-dump=$<TARGET_FILE:opeu_dump_open_bank>

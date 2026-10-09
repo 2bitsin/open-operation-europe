@@ -10,6 +10,13 @@
 #include "types/events.h"
 #include "types/host.h"
 #include "types/misc.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/textout.h"
+#endif
 #include <stddef.h>
 /* Host model: DS is explicit; far pointers are (offset, segment) pairs that
  * resolve into DS when they alias it, otherwise into a flat 0x110000-byte
@@ -449,3 +456,113 @@ void opeu_palette_title_screen(uint8_t ds[65536], const UiHost* host) {
 void opeu_palette_map_screen(uint8_t ds[65536], const UiHost* host) {
   SET_PALETTE(0, 16, PALETTE_MAP);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/uiprim.c (0a04:000c..08ab image streams, portrait/face caches,
+ * frames and palettes). The module takes a UiHost structure; its events,
+ * from the host branch's comment (src/main/core/uiprim.c "Host model"):
+ *   0 seek(handle,lo,hi,origin) -> DX:AX   FILEIO opeu_dos_seek
+ *   1 read(handle,seg,off,count) -> AX     FILEIO opeu_dos_read_far
+ *   2 blit(x,y,w,h,mode,seg,off)           VGALIB opeu_blit_far    0000:27ca
+ *   3 draw(x,y,w,h,mode,seg,off)           VGALIB opeu_draw_far    0000:28b0
+ *   4 draw_near(x,y,w,h,mode,ptr)          VGALIB opeu_draw_near   0000:28a8
+ *   5 line(x1,y1,x2,y2,color)              VGALIB opeu_ui_line     0000:2d16
+ *   6 box(x,y,w,h,color)                   VGALIB opeu_ui_box      0000:2ad2
+ *   7 copy(a..f)                           VGALIB opeu_screen_copy 0000:301f
+ *   8 palette(first,count,ptr)             VGALIB opeu_set_palette 0000:23d5
+ *   9 decode(x,y,reader off,reader seg)    VGALIB opeu_picture_decode        0000:34a4
+ *  10 decode_masked(x,y,reader off,seg)    VGALIB opeu_picture_decode_masked 0000:3490
+ *  11 cursor(x,y)                          TEXTOUT opeu_context_position = 0480:0808
+ *                                          (host opeu_army_position)
+ * The decoder's reader is a far code pointer into this module's own segment:
+ * 0a04:0132 opeu_stream_file_byte or 0a04:01fc opeu_stream_memory_byte
+ * (FILE_READER / MEMORY_READER); both are recovered here and are called
+ * through the same host instance. */
+uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id,
+                    const uint16_t* args, uint16_t count) {
+  (void)ds;
+  (void)memory;
+  switch (id) {
+    case 0:
+      return (uint32_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
+                                     (int16_t)ARG(3));
+    case 1:
+      return (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2),
+                                         ARG(3));
+    case 2:
+      opeu_blit_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                    port_far(ARG(5), ARG(6)));
+      return 0;
+    case 3:
+      opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                    port_far(ARG(5), ARG(6)));
+      return 0;
+    case 4:
+      opeu_draw_near(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), PORT_DS(ARG(5)));
+      return 0;
+    case 5: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
+    case 6: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
+    case 7:
+      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      return 0;
+    case 8:
+      opeu_set_palette((uint8_t)ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      return 0;
+    case 9:
+      opeu_picture_decode(ARG(0), ARG(1), port_picture_reader(ARG(2), ARG(3)));
+      return 0;
+    case 10:
+      opeu_picture_decode_masked(ARG(0), ARG(1),
+                                 port_picture_reader(ARG(2), ARG(3)));
+      return 0;
+    case 11:
+      opeu_army_position(port_ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      return 0;
+    default: port_unhandled("uiprim", id, count);
+  }
+  return 0;
+}
+
+PORT_ROUTINE(opeu_context_frame) {
+  opeu_context_frame(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_context_portrait) {
+  opeu_context_portrait(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_face_draw) {
+  opeu_face_draw(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                 (uint8_t)ARG(3));
+  return 0;
+}
+
+PORT_ROUTINE(opeu_palette_for_hour) {
+  (void)args;
+  (void)count;
+  opeu_palette_for_hour(ds, port_uiprim_host());
+  return 0;
+}
+
+PORT_ROUTINE(opeu_ui_outline) {
+  opeu_ui_outline(ds, port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
+                  ARG(4));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

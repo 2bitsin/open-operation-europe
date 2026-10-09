@@ -4,6 +4,12 @@
 #include "map/btlline.h"
 #include "core/limits.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host: words are int16_t; WRAP keeps C 6.0a's 16-bit product before IDIV. */
 #define WORD          int16_t
 #define WRAP(v)       ((int16_t)(v))
@@ -82,3 +88,23 @@ void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, WORD x0, WORD y0,
     }
   }
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_btlline(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

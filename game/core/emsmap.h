@@ -20,4 +20,10 @@ int16_t opeu_ems_alloc_tile(uint8_t* ds, HostEvent event, uint16_t sp);
 int16_t opeu_ems_alloc_frame(uint8_t* ds, HostEvent event, uint16_t sp);
 int16_t opeu_ems_detect(uint8_t* ds, HostEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_emsmap(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count);
+#endif
+
 #endif

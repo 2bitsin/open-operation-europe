@@ -6,6 +6,14 @@
 #include "types.h"
 #include "map/viewpan.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "map/maperase.h"
+#include "map/mapscrol.h"
+#endif
 /* Host: DS explicit; the far MAPERASE/MAPSCROL calls are scripted events
  * 0 = erase (x,y) and 1 = scroll_to (x,y,side), x/y as 16-bit words. */
 #define VIEW_X ((int16_t)((uint16_t)ds[0x2f92] | ((uint16_t)ds[0x2f93] << 8)))
@@ -19,3 +27,41 @@ void opeu_viewport_pan(uint8_t ds[65536], HostEvent event, int16_t dx,
   ERASE(x, y);
   SCROLL(VIEW_X + dx, VIEW_Y + dy, side);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of map/viewpan.c (17c4:0242 pan the tactical view). Events (host
+ * branch comment): 0 = erase (x,y) 15c4:0f7c, 1 = scroll_to (x,y,side)
+ * 15c4:135e, x/y as 16-bit words. */
+uint16_t svc_viewpan(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t frame;
+  switch (id) {
+    case 0: /* 15c4:0f7c */
+      frame = map_frame_enter();
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      map_frame_leave();
+      break;
+    case 1: /* 15c4:135e */
+      frame = map_frame_enter();
+      opeu_map_scroll_to(ds, svc_mapscrol, frame, (int16_t)ARG(0),
+                         (int16_t)ARG(1), (uint8_t)ARG(2));
+      map_frame_leave();
+      break;
+    default: port_unhandled("viewpan", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

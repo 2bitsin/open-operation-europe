@@ -11,6 +11,37 @@
 #include "core/vwarms.h"
 #include "units/vwlist.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/armypanl.h"
+#include "core/context.h"
+#include "core/credits.h"
+#include "core/dialogs.h"
+#include "core/headings.h"
+#include "core/memory.h"
+#include "core/people.h"
+#include "core/recindex.h"
+#include "core/selunit.h"
+#include "core/sideutil.h"
+#include "core/textout.h"
+#include "core/uiprim.h"
+#include "io/listdlg.h"
+#include "map/mappos.h"
+#include "map/mapunit.h"
+#include "map/objeleg.h"
+#include "map/query.h"
+#include "map/support.h"
+#include "units/capacity.h"
+#include "units/labels.h"
+#include "units/objpct.h"
+#include "units/orders.h"
+#include "units/ratio.h"
+#include "units/stats.h"
+#include "units/unitname.h"
+#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -200,3 +231,211 @@ uint16_t opeu_view_menu_loop(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   } while (a != 1);
   return 1;
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define B2_DS_WORDS(off) ((uint16_t*)(void*)PORT_DS(off))
+#define B2_SP_CALL(bytes, call)            \
+  do {                                     \
+    uint16_t sp = port_stack_enter(bytes); \
+    call;                                  \
+    port_stack_leave(bytes);               \
+  } while (0)
+
+/* The shared HostEvent protocol of the MAIN 1fe6 view modules (VWPANEL,
+ * VWDIV, VWPEOPLE, VWCITY, VWREGT, VWARMS: the same enum is repeated in each
+ * host branch). Words are the callee's arguments (register arguments first,
+ * then stack words in push-reversed order), bytes zero-extended; AX is
+ * returned. Conversion only. */
+uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
+                  const uint16_t* args, uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 1: r = opeu_objective_side(ds, ARG(0)); break;     /* 145c:01b8 */
+    case 2: r = opeu_objective_eligible(ds, ARG(0)); break; /* 145c:101a */
+    case 3:
+      r = opeu_find_group_selected_unit(ds, ARG(0));
+      break;                                                     /* 145c:0c46 */
+    case 4: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
+    case 5: r = opeu_unit_side(ARG(0)); break;                   /* 145c:006c */
+    case 6:
+      opeu_army_title(ds, port_dialogs_host(), ARG(0));
+      break; /* 1707:03aa */
+    case 7:
+      opeu_objective_resource_percentages(ds, ARG(0), B2_DS_WORDS(ARG(1)),
+                                          B2_DS_WORDS(ARG(2)),
+                                          B2_DS_WORDS(ARG(3)));
+      break;
+    case 8:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    case 9: b2_cursor_print(ds, args, count); break; /* 0480:0bb8 */
+    case 10:
+      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
+      break; /* 0b73:0188 */
+    case 11:
+      opeu_unit_capacities(ds, ARG(0), B2_DS_WORDS(ARG(1)), B2_DS_WORDS(ARG(2)),
+                           B2_DS_WORDS(ARG(3)));
+      break;
+    case 12:
+      r = opeu_resource_percent(ARG(0), ARG(2));
+      break; /* 145c:09aa (cur lo,hi, cap lo,hi) */
+    case 13:
+      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
+                                      PORT_DS(ARG(2)));
+      break;
+    case 14:
+      r = opeu_location_name(ds, svc_labels, (uint8_t)ARG(0), (uint8_t)ARG(1),
+                             ARG(2));
+      break;
+    case 15:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2), ARG(0),
+                                 (uint8_t)ARG(1)));
+      break;
+    case 16:
+      opeu_backdrop_fill_color(ds, port_uiprim_host(), (uint8_t)ARG(0));
+      break; /* 0a04:0720 */
+    case 17:
+      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0b73:02ee */
+    case 18:
+      r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      break; /* 0b73:0334 */
+    case 19:
+      opeu_army_heading(ds, svc_headings, svc_headings_color, ARG(0));
+      break;
+    case 20:
+      opeu_division_heading(ds, svc_headings, ARG(0));
+      break; /* 0bc3:02e6 */
+    case 21:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_division_regiments(ds, svc_armypanl, ARG(0), ARG(1), sp));
+      break;
+    case 22: opeu_division_credits(ds, svc_credits); break;     /* 0bc3:0790 */
+    case 23: opeu_screen_reset(ds, port_dialogs_host()); break; /* 1707:038e */
+    case 24:
+      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      break;                                                   /* 1389:000e */
+    case 25: opeu_control_position(ds, ARG(0), ARG(1)); break; /* 15c4:13d8 */
+    case 26:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
+                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
+                                       (uint8_t)ARG(2)));
+      break;
+    case 27:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 28:
+      opeu_turn_active_begin(ds, port_dialogs_host());
+      break; /* 1707:020c */
+    case 29:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 30:
+      opeu_title_panel_begin(ds, port_dialogs_host());
+      break; /* 1707:02e2 */
+    case 31:
+      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
+                           (uint8_t)ARG(2));
+      break;
+    case 32: r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
+    case 33:
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_unit_flash(ds, svc_mapunit, (uint16_t)(sp - 2), ARG(0),
+                                 (uint8_t)ARG(1)));
+      break;
+    case 34: b2_request_format(ds, args, count); break;          /* 0480:0b9a */
+    case 35: opeu_copy_bytes(ds, ARG(0), ARG(1), ARG(2)); break; /* 09cc:000a */
+    case 36:
+      B2_SP_CALL(PORT_FRAME, opeu_unit_announce(ds, svc_mapunit,
+                                                (uint16_t)(sp - 2), ARG(0)));
+      break;
+    case 37: r = opeu_unit_special(ds, ARG(0)); break; /* 145c:04de */
+    case 38:
+      opeu_element_type_panel(ds, port_dialogs_host(), ARG(0));
+      break; /* 1707:0a22 */
+    case 39:
+      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), NULL, 0);
+      break; /* far call */
+    case 40:
+      r = 0x1fe6;
+      break; /* code segment of 1fe6 in the identifier numbering */
+    default: port_unhandled(module, id, count);
+  }
+  return r;
+}
+
+/* Services of core/vwarms.c (1fe6:0b02..0cb3 information, weapons, arms and victory views).
+ * Services: the shared HostEvent protocol of the 1fe6 view modules
+ * (svc_view in game/core/vwarms.c; ids as the module's host enum). */
+uint16_t svc_vwarms(uint8_t* ds, uint16_t id, const uint16_t* args,
+                    uint16_t count) {
+  return svc_view(ds, "vwarms", id, args, count);
+}
+
+/* 1fe6:0c28 */
+PORT_ROUTINE(opeu_view_arms_menu) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_arms_menu(ds, svc_vwarms, sp));
+  return 0;
+}
+
+/* 1fe6:0be4 */
+PORT_ROUTINE(opeu_view_enemy_weapons) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_enemy_weapons(ds, svc_vwarms, sp));
+  return 0;
+}
+
+/* 1fe6:0b02 */
+PORT_ROUTINE(opeu_view_info_menu) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_info_menu(ds, svc_vwarms, sp));
+  return 0;
+}
+
+/* 1fe6:0c90 -> AX */
+PORT_ROUTINE(opeu_view_menu_loop) {
+  uint16_t r = 0;
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, r = opeu_view_menu_loop(ds, svc_vwarms, sp));
+  return r;
+}
+
+/* 1fe6:0ba6 */
+PORT_ROUTINE(opeu_view_own_weapons) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_own_weapons(ds, svc_vwarms, sp));
+  return 0;
+}
+
+/* 1fe6:0c64 */
+PORT_ROUTINE(opeu_view_victory) {
+  (void)args;
+  (void)count;
+  B2_SP_CALL(0x200u, opeu_view_victory(ds, svc_vwarms, sp));
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef B2_DS_WORDS
+#undef B2_SP_CALL
+#endif /* OPEU_HOST_EVENTS */

@@ -12,6 +12,10 @@ Addresses come from port/gen/symbols.json (the placement map resolved by the
 DOS fragment linker); sizes from compiling a probe that includes each data
 module and prints sizeof of every exported object.
 
+The port compiles the generated game/ tree, where some objects carry the
+names of tools/game-renames.json; the identifiers are written with those
+names (game/compat/aliases.json), the quoted names stay the reference ones.
+
 Usage: port/tools/gen_ds_image.py [cc]
 """
 import json
@@ -62,6 +66,8 @@ def main(argv):
                 seg, off = symbols[key]
                 entries.append((seg*16+off, int(sizes[n]), n, src.name, seg, off))
     entries.sort()
+    aliases = json.loads((ROOT/'game/compat/aliases.json').read_text())['aliases']
+    game_name = {v['old']: new for new, v in aliases.items()}
     overlaps = []
     for a, b in zip(entries, entries[1:]):
         if a[0]+a[1] > b[0]:
@@ -72,10 +78,10 @@ def main(argv):
              ' * taken here; their types and contents stay in the recovered sources. */',
              '#include "port.h"', '']
     for e in entries:
-        lines.append(f'extern unsigned char {e[2]}[];')
+        lines.append(f'extern unsigned char {game_name.get(e[2], e[2])}[];')
     lines += ['', 'const PortImageObject port_image_objects[] = {']
     for linear, size, n, mod, seg, off in entries:
-        lines.append(f'    {{ {n}, 0x{seg:04x}u, 0x{off:04x}u, {size}u, "{n}" }}, /* {mod} */')
+        lines.append(f'    {{ {game_name.get(n, n)}, 0x{seg:04x}u, 0x{off:04x}u, {size}u, "{n}" }}, /* {mod} */')
     lines += ['};', f'const unsigned port_image_object_count = {len(entries)};', '']
     (ROOT/'port/gen/data_image.c').write_text('\n'.join(lines))
     print(f'{len(entries)} objects; missing addresses: {missing}; overlaps: {len(overlaps)}')

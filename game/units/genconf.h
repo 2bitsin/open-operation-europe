@@ -10,4 +10,10 @@ void opeu_reinforce_screen(uint8_t* ds, HostEvent event);
 void opeu_play_screen(uint8_t* ds, HostEvent event);
 void opeu_confirm_generals(uint8_t* ds, HostEvent event);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_genconf(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count);
+#endif
+
 #endif

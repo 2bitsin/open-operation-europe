@@ -13,4 +13,10 @@ uint16_t opeu_battle_element_unit(uint8_t* ds, BattleEvent event,
 uint8_t  opeu_battle_element_count(uint8_t* ds, BattleEvent event,
                                    uint16_t unit);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btllist(uint8_t* ds, uint32_t address, const uint16_t* args,
+                     unsigned int count);
+#endif
+
 #endif

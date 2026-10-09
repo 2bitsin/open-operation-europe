@@ -4,6 +4,16 @@
 #include "core/reqerror.h"
 #include "types/events.h"
 #include "types/requests.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/msglook.h"
+#include "io/soundcue.h"
+#include "io/waitkey.h"
+#endif
 #include <stddef.h>
 #define REASON    ds[0xc760]
 #define REQUEST   ((RequestSlotView*)(ds + *(uint16_t*)(ds + 0xc768)))
@@ -43,3 +53,50 @@ void opeu_request_error_present(uint8_t ds[65536], HostEvent event) {
   if (CONTROL[1] == 0 && CONTROL[0] == 0)
     FINISH();
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/reqerror.c (1270:02e4 request-failure presentation).
+ * Services (host branch macros): 1 message_lookup(id) 312c:000c -> text,
+ * 2 request_format(dest,format,...) 0480:0b9a, 3 request_message(text,person)
+ * = control_message 1707:0672, 4 pending_prepare 0d92:0070,
+ * 5 pending_finish(value) 0a8e:005c. */
+uint16_t svc_reqerror(uint8_t* ds, uint16_t id, const uint16_t* args,
+                      uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 1:
+      r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0));
+      break;                                           /* 312c:000c */
+    case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 3:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break;                                               /* 1707:0672 */
+    case 4: opeu_pending_prepare(ds, svc_soundcue); break; /* 0d92:0070 */
+    case 5:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      break; /* 0a8e:005c */
+    default: port_unhandled("reqerror", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_request_error_present) {
+  (void)args;
+  (void)count;
+  opeu_request_error_present(ds, svc_reqerror);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

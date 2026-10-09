@@ -11,6 +11,13 @@
 #include "types.h"
 #include "core/advmenu.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#endif
 /* Host: near pointers are DS offsets. sp is the DS offset of SP at entry;
  * the far-call temporary is stored at its original frame slot (BP-6 in the
  * advice menu, BP-8 in action 5) before the call. Unrecovered services go
@@ -75,3 +82,62 @@ void opeu_turn_action_5(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     b = STAFF_ACTION(a);
   } while (a != 2 || b != 1);
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/advmenu.c (1dd2:2088..20fc staff advice menus). Services
+ * (host branch comment): 1 control_message(text,person) 1707:0672,
+ * 2 delay_dialog(text,last,person,menu) 1707:0726 -> choice, 3 far call
+ * (offset,segment) of the DS:9060 advice / DS:90e2 staff action tables
+ * through the routine link table, AX returned. */
+uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 1:
+      opeu_control_message(ds, port_dialogs_host(), ARG(0), ARG(1));
+      break; /* 1707:0672 */
+    case 2:
+      r = opeu_delay_dialog(ds, port_dialogs_host(), ARG(0), ARG(1), ARG(2),
+                            ARG(3));
+      break;
+    case 3:
+      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      break;
+    default: port_unhandled("advmenu", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_staff_advice_menu) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_staff_advice_menu(ds, svc_advmenu, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+PORT_ROUTINE(opeu_turn_action_5) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(PORT_FRAME);
+  opeu_turn_action_5(ds, svc_advmenu, sp);
+  port_stack_leave(PORT_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

@@ -19,6 +19,12 @@
 #include "map/btllist.h"
 #include "units/value.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#endif
 /* Host ABI: ds/event first; elements, units and the bunker flag are DS
  * offsets. Callees that do more than read DS are event services named by
  * linear MAIN address with their register words in AX, DX, BX order (then
@@ -247,3 +253,27 @@ uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event,
   return (uint16_t)(r + MUL16(base / (ds[(uint16_t)(type + 4)] == 0 ? 7 : 70),
                               rand_bounded(ds, event, 6) == 0 ? 2 : 1));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+uint16_t svc_btlrcalc(uint8_t* ds, uint32_t address, const uint16_t* args,
+                      unsigned int count) {
+  return port_service(ds, address, args, count);
+}
+
+PORT_ROUTINE(opeu_battle_type_skill) {
+  return opeu_battle_type_skill(ds, svc_btlrcalc, ARG(0));
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

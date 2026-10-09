@@ -25,6 +25,13 @@
 #include "map/ordtgt.h"
 #include "units/ordunit.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "units/ordact.h"
+#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address): the frame has BP = sp-2 and
@@ -123,3 +130,55 @@ reset:
   } while (SET_ELIGIBLE(GROUP_LIST, opeu_group_target_enabled, 0x0006),
            MESSAGE(TEXT(0x8b48), PERSON2), LIST(LIST_REF(GROUP_LIST)));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+#define LF_FRAME 0x200u
+
+/* Services of units/ordlist.c (1c23:0e42 order unit rows, 1c23:0e86 turn action 1,
+ * the Orders command). Services from the host branch's list: 1
+ * control_message, 2 confirm_message, 5 control_panel, 6 group_show,
+ * 7 list_dialog, 8 unit_order_menu; and the services opeu_group_set_target
+ * (map/ordtgt.c, 1c23:0044) raises through the event it receives from this
+ * module (ordlist.c:132): 0 request_format, 1, 2, 3 arrival_location,
+ * 4 pick_location. One numbering for all (svc_orders, game/units/ordact.c). */
+uint16_t svc_ordlist(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  uint16_t r = 0;
+  switch (id) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:  svc_orders(ds, id, args, count, &r); break;
+    default: port_unhandled("ordlist", id, count);
+  }
+  return r;
+}
+
+PORT_ROUTINE(opeu_turn_action_1) {
+  uint16_t sp;
+  (void)args;
+  (void)count;
+  sp = port_stack_enter(LF_FRAME);
+  opeu_turn_action_1(ds, svc_ordlist, sp, 0x1c23u);
+  port_stack_leave(LF_FRAME);
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#undef LF_FRAME
+#endif /* OPEU_HOST_EVENTS */

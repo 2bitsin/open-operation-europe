@@ -9,6 +9,14 @@
 #include "units/stats.h"
 #include "units/unitname.h"
 #include "types/events.h"
+
+#ifndef OPEU_HOST_EVENTS
+#include "port.h"
+#include "glue.h"
+#include "services.h"
+#include "core/dialogs.h"
+#include "core/textout.h"
+#endif
 #include <stddef.h>
 /* This ABI supplies the emulated near address of name[32]. Its enclosing
  * 82-byte caller workspace spans scratch-2 .. scratch+79, without wrapping.
@@ -139,3 +147,40 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
   POSITION(54, 138);
   PRINT(FMT_HQ, NAME(SELECTED(SIDE), j));
 }
+
+#ifndef OPEU_HOST_EVENTS
+/* ---- services (native build) ----------------------------------------
+ * The host branch above reports each call that leaves the module to its
+ * service callback. In the native build every service is the direct call
+ * below (tools/game-services.json): the routine the original called, with
+ * the conversions of the 16-bit memory model (DS offsets, far pointers,
+ * the modeled stack of port/include/glue.h). The validators build with
+ * -DOPEU_HOST_EVENTS and see only the host branch. */
+#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
+#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
+
+/* Services of core/armysum.c (0bc3:0042 opeu_army_summary). Services, from the
+ * host branch: 0 army_title(text) 1707:03aa, 1 army_text(text) = ui_text
+ * 0480:0484, 2 request_format(dest, format, ...) 0480:0b9a (raised by
+ * units/unitname.c 0b73:0188, which the summary calls with this callback),
+ * 3 army_print(format, ...) = cursor_print 0480:0bb8 (cdecl words as the
+ * format converts them), 4 army_position(x, y) 0480:0808. */
+uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args,
+                     uint16_t count) {
+  switch (id) {
+    case 0: opeu_army_title(ds, port_dialogs_host(), ARG(0)); break;
+    case 1: opeu_ui_text(ds, port_textout_host(), ARG(0)); break;
+    case 2: b2_request_format(ds, args, count); break;
+    case 3: b2_cursor_print(ds, args, count); break;
+    case 4:
+      opeu_army_position(ds, port_textout_host(), (int16_t)ARG(0),
+                         (int16_t)ARG(1));
+      break;
+    default: port_unhandled("armysum", id, count);
+  }
+  return 0;
+}
+
+#undef ARG
+#undef ARG32
+#endif /* OPEU_HOST_EVENTS */

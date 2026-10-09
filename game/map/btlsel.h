@@ -11,4 +11,10 @@ uint16_t opeu_battle_key_select(uint8_t* ds, BattleEvent event,
                                 uint16_t show_info);
 uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event, uint16_t sp);
 
+#ifndef OPEU_HOST_EVENTS
+/* Services of this module in the native build (tools/game-services.json). */
+uint16_t svc_btlsel(uint8_t* ds, uint32_t service, const uint16_t* args,
+                    unsigned int count);
+#endif
+
 #endif
