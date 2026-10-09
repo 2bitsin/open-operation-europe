@@ -2,23 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Operation Europe</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #000; color: #ccc;
+  html, body { margin: 0; height: 100%; background: #000; color: #ccc; overflow: hidden;
                font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  /* The canvas sits in a scrollable stage: margin:auto centres it when it
-     fits and lets the stage scroll (instead of clipping) when a manual zoom
-     makes it larger than the window. */
-  #stage { position: relative; display: flex; width: 100vw; height: 100vh; overflow: auto; }
+  /* The canvas sits in a scrollable stage that fills the window exactly
+     (position: fixed follows the browser's own toolbars on phones, where
+     100vh does not). margin: auto centres the canvas when it fits and lets
+     the stage scroll (instead of clipping) when a manual zoom makes it
+     larger than the window. touch-action: none keeps the browser's own
+     pinch zoom and scrolling off the page: the gestures below do that in
+     integer steps instead, and one-finger touches reach the game. */
+  #stage { position: fixed; inset: 0; display: flex; overflow: auto; touch-action: none; }
   /* The game frame is 640x480; the script below sizes the canvas to an
      integer multiple in device pixels, so glyphs stay sharp: the largest that
-     fits the window by default, or the multiple chosen with the zoom buttons.
+     fits the stage by default, or the multiple chosen with the zoom buttons.
      SDL3 sees that CSS size and integer-scales into it. */
   #canvas { display: block; flex: none; margin: auto; width: 640px; height: 480px;
             image-rendering: pixelated; image-rendering: crisp-edges;
-            outline: none; cursor: none; background: #000; }
-  #zoom { position: fixed; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 4px;
+            outline: none; cursor: none; background: #000; touch-action: none; }
+  /* The two control groups share one bottom bar that wraps on narrow
+     screens instead of overlapping, clear of a phone's home indicator. */
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap;
+         justify-content: space-between; align-items: flex-end; gap: 6px;
+         padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+         pointer-events: none; }
+  #bar > * { pointer-events: auto; }
+  #zoom { display: flex; align-items: center; gap: 4px; margin-left: auto;
           padding: 4px; border-radius: 6px; background: rgba(20, 20, 20, 0.75); color: #ddd;
           font: 13px/1 ui-monospace, Menlo, Consolas, monospace; user-select: none; opacity: 0.55;
           transition: opacity 0.15s; }
@@ -29,7 +40,7 @@
   #zoom button:disabled { opacity: 0.35; cursor: default; }
   #zoom #zoomlabel { min-width: 72px; text-align: center; cursor: pointer; padding: 0 4px; }
   #zoom #zoomlabel:hover { color: #fff; text-decoration: underline; }
-  #saves { position: fixed; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px;
+  #saves { display: flex; align-items: center; gap: 6px;
            padding: 4px; border-radius: 6px; background: rgba(20, 20, 20, 0.75); color: #ddd;
            font: 13px/1 ui-monospace, Menlo, Consolas, monospace; user-select: none; opacity: 0.55;
            transition: opacity 0.15s; }
@@ -38,8 +49,11 @@
                   color: #eee; font: 13px/1 system-ui, sans-serif; cursor: pointer; }
   #saves button:hover { background: #3a3a3a; }
   #saves #savemsg { max-width: 40vw; padding: 0 4px; color: #bbb; }
-  #overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
-             align-items: center; justify-content: center; gap: 12px;
+  #saves #savemsg:empty { display: none; }
+  /* On a touch screen the controls have no hover: keep them readable. */
+  @media (hover: none) { #zoom, #saves { opacity: 0.85; } }
+  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 16px;
              background: rgba(0, 0, 0, 0.82); cursor: pointer; user-select: none; }
   #overlay h1 { margin: 0; font-size: 28px; font-weight: 600; color: #eee; letter-spacing: 0.02em; }
   #overlay .hint { font-size: 15px; }
@@ -51,105 +65,172 @@
 <div id="stage">
   <canvas id="canvas" width="640" height="480" tabindex="0"
           oncontextmenu="event.preventDefault()"></canvas>
-  <div id="zoom" title="Integer zoom. Click the value to return to automatic fit. When the picture is larger than the window: scroll to pan, or drag with the middle button or Alt+drag. Keys: Cmd/Ctrl+Alt and + / - / 0.">
-    <button id="zoomout" type="button" tabindex="-1" aria-label="Zoom out">&minus;</button>
-    <span id="zoomlabel" tabindex="-1" role="button" aria-label="Fit to window"></span>
-    <button id="zoomin" type="button" tabindex="-1" aria-label="Zoom in">+</button>
-  </div>
-  <script>
-    (function () {
-      var c = document.getElementById('canvas');
-      var label = document.getElementById('zoomlabel');
-      var out = document.getElementById('zoomout'), inn = document.getElementById('zoomin');
-      var manual = 0;                 /* 0 = automatic (largest multiple that fits) */
-      function dpr() { return window.devicePixelRatio || 1; }
-      function fitting() {
-        /* Work in device pixels: on a 2x display a 640x480 CSS box is already
-           1280x960 device pixels, and the next exact step is 3x device
-           (960x720 CSS), which CSS-pixel arithmetic could never choose. */
-        return Math.max(1, Math.min(Math.floor(window.innerWidth * dpr() / 640),
-                                    Math.floor(window.innerHeight * dpr() / 480)));
-      }
-      function fit() {
-        var k = manual || fitting();
-        c.style.width = (640 * k / dpr()) + 'px';
-        c.style.height = (480 * k / dpr()) + 'px';
-        label.textContent = k + '\u00d7' + (manual ? '' : ' auto');
-        out.disabled = k <= 1;
-      }
-      /* SDL's Emscripten backend re-reads the canvas CSS size only on a window
-         resize event, so after a manual zoom one is dispatched; otherwise the
-         canvas backing store keeps its old size and the browser stretches it
-         by a non-integer factor. */
-      function apply() { fit(); window.dispatchEvent(new Event('resize')); c.focus(); }
-      function set(k) { manual = Math.max(1, k); apply(); }
-      out.addEventListener('click', function () { set((manual || fitting()) - 1); });
-      inn.addEventListener('click', function () { set((manual || fitting()) + 1); });
-      label.addEventListener('click', function () { manual = 0; apply(); });
-      /* Cmd/Ctrl + Alt + '+' / '-' step the zoom, '0' returns to auto. Capturing
-         on window so the game never sees these key presses. */
-      window.addEventListener('keydown', function (e) {
-        if (!((e.metaKey || e.ctrlKey) && e.altKey)) return;
-        var k = manual || fitting();
-        if (e.code === 'Equal' || e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') set(k + 1);
-        else if (e.code === 'Minus' || e.code === 'NumpadSubtract' || e.key === '-' || e.key === '_') set(k - 1);
-        else if (e.code === 'Digit0' || e.code === 'Numpad0') { manual = 0; apply(); }
-        else return;
-        e.preventDefault(); e.stopPropagation();
-      }, true);
-      /* keep keyboard focus on the game */
-      document.getElementById('zoom').addEventListener('mousedown', function (e) { e.preventDefault(); });
-      window.addEventListener('resize', fit);
-      fit();
-
-      /* Panning when the canvas is larger than the window. The listeners are
-         capturing on the stage, so they run before SDL's handlers on the
-         canvas and can keep the event from reaching the game. The original
-         game has no mouse wheel, so the wheel is free to scroll; dragging with
-         the middle button or with Alt held pans without clicking in the game. */
-      var stage = document.getElementById('stage');
-      function overflowing() {
-        return stage.scrollWidth > stage.clientWidth || stage.scrollHeight > stage.clientHeight;
-      }
-      stage.addEventListener('wheel', function (e) {
-        if (!overflowing()) return;
-        stage.scrollLeft += e.deltaX;
-        stage.scrollTop += e.deltaY;
-        e.preventDefault(); e.stopPropagation();
-      }, { capture: true, passive: false });
-      var pan = null;
-      stage.addEventListener('pointerdown', function (e) {
-        if (!(e.button === 1 || (e.button === 0 && e.altKey)) || !overflowing()) return;
-        pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop };
-        stage.style.cursor = 'grabbing';
-        e.preventDefault(); e.stopPropagation();
-      }, true);
-      window.addEventListener('pointermove', function (e) {
-        if (!pan) return;
-        stage.scrollLeft = pan.left - (e.clientX - pan.x);
-        stage.scrollTop = pan.top - (e.clientY - pan.y);
-        e.preventDefault(); e.stopPropagation();
-      }, true);
-      function endPan(e) {
-        if (!pan) return;
-        pan = null; stage.style.cursor = '';
-        e.preventDefault(); e.stopPropagation();
-      }
-      window.addEventListener('pointerup', endPan, true);
-      window.addEventListener('pointercancel', endPan, true);
-    })();
-  </script>
+</div>
+<div id="bar">
   <div id="saves" title="Saved games are kept in this browser's IndexedDB for localhost. Export writes the original SAVEDATA file (20 slots); Import replaces it. Import before using Load Game.">
     <button id="exportsaves" type="button" tabindex="-1">Export saves</button>
     <button id="importsaves" type="button" tabindex="-1">Import saves</button>
     <input id="importfile" type="file" hidden>
     <span id="savemsg"></span>
   </div>
-  <div id="overlay">
-    <h1>Operation Europe</h1>
-    <div class="hint" id="hint">Click to start</div>
-    <div id="status">Loading&hellip;</div>
+  <div id="zoom" title="Integer zoom. Click the value to return to automatic fit. When the picture is larger than the window: scroll to pan, or drag with the middle button or Alt+drag; on a touch screen pinch with two fingers to zoom and drag with two fingers to pan. Keys: Cmd/Ctrl+Alt and + / - / 0.">
+    <button id="zoomout" type="button" tabindex="-1" aria-label="Zoom out">&minus;</button>
+    <span id="zoomlabel" tabindex="-1" role="button" aria-label="Fit to window"></span>
+    <button id="zoomin" type="button" tabindex="-1" aria-label="Zoom in">+</button>
   </div>
+</div>
+<script>
+  (function () {
+    var c = document.getElementById('canvas');
+    var stage = document.getElementById('stage');
+    var label = document.getElementById('zoomlabel');
+    var out = document.getElementById('zoomout'), inn = document.getElementById('zoomin');
+    var manual = 0;                 /* 0 = automatic (largest multiple that fits) */
+    function dpr() { return window.devicePixelRatio || 1; }
+    /* The CSS size for k: whole CSS pixels (SDL truncates fractions, and
+       213.333px on a 3x screen became 639 device pixels, one short of the
+       frame), rounded up, so the canvas holds at least 640k x 480k device
+       pixels and the renderer's integer scaling fills it bar a hairline. */
+    function cssSize(k) { return [Math.ceil(640 * k / dpr()), Math.ceil(480 * k / dpr())]; }
+    function fitting() {
+      /* Work in device pixels: on a 2x display a 640x480 CSS box is already
+         1280x960 device pixels, and the next exact step is 3x device
+         (960x720 CSS), which CSS-pixel arithmetic could never choose. The
+         stage's own box is the measure, not window.innerWidth: on phones
+         the latter follows the pinch-zoomed visual viewport and lags a
+         rotation, and the canvas got sized for a window that was not there. */
+      var k = Math.min(Math.floor(stage.clientWidth * dpr() / 640),
+                       Math.floor(stage.clientHeight * dpr() / 480));
+      while (k > 1 && (cssSize(k)[0] > stage.clientWidth || cssSize(k)[1] > stage.clientHeight)) k--;
+      return Math.max(1, k);
+    }
+    function current() { return manual || fitting(); }
+    function fit() {
+      var k = current(), size = cssSize(k);
+      var w = size[0] + 'px', h = size[1] + 'px';
+      var changed = c.style.width !== w || c.style.height !== h;
+      c.style.width = w;
+      c.style.height = h;
+      label.textContent = k + '×' + (manual ? '' : ' auto');
+      out.disabled = k <= 1;
+      /* SDL's Emscripten backend re-reads the canvas CSS size only on a
+         window resize event, so one is dispatched whenever the size changed
+         here; otherwise the canvas backing store keeps its old size and the
+         browser stretches it by a non-integer factor. */
+      if (changed) window.dispatchEvent(new Event('resize'));
+    }
+    function apply() { fit(); c.focus(); }
+    function set(k) { manual = Math.max(1, k); apply(); }
+    out.addEventListener('click', function () { set(current() - 1); });
+    inn.addEventListener('click', function () { set(current() + 1); });
+    label.addEventListener('click', function () { manual = 0; apply(); });
+    /* Cmd/Ctrl + Alt + '+' / '-' step the zoom, '0' returns to auto. Capturing
+       on window so the game never sees these key presses. */
+    window.addEventListener('keydown', function (e) {
+      if (!((e.metaKey || e.ctrlKey) && e.altKey)) return;
+      var k = current();
+      if (e.code === 'Equal' || e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') set(k + 1);
+      else if (e.code === 'Minus' || e.code === 'NumpadSubtract' || e.key === '-' || e.key === '_') set(k - 1);
+      else if (e.code === 'Digit0' || e.code === 'Numpad0') { manual = 0; apply(); }
+      else return;
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+    /* keep keyboard focus on the game */
+    document.getElementById('bar').addEventListener('mousedown', function (e) { e.preventDefault(); });
+    /* Refit whenever the stage's box changes: a window resize, a rotation
+       (the observer fires after the new layout, when the size is final) or
+       the browser's toolbars coming and going on a phone. */
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+    else window.addEventListener('resize', fit);
+    fit();
+
+    /* Panning when the canvas is larger than the stage. The listeners are
+       capturing on the stage, so they run before SDL's handlers on the
+       canvas and can keep the event from reaching the game. The original
+       game has no mouse wheel, so the wheel is free to scroll; dragging with
+       the middle button or with Alt held pans without clicking in the game. */
+    function overflowing() {
+      return stage.scrollWidth > stage.clientWidth || stage.scrollHeight > stage.clientHeight;
+    }
+    stage.addEventListener('wheel', function (e) {
+      if (!overflowing()) return;
+      stage.scrollLeft += e.deltaX;
+      stage.scrollTop += e.deltaY;
+      e.preventDefault(); e.stopPropagation();
+    }, { capture: true, passive: false });
+    var pan = null;
+    stage.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;
+      if (!(e.button === 1 || (e.button === 0 && e.altKey)) || !overflowing()) return;
+      pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+      stage.style.cursor = 'grabbing';
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+    window.addEventListener('pointermove', function (e) {
+      if (!pan) return;
+      stage.scrollLeft = pan.left - (e.clientX - pan.x);
+      stage.scrollTop = pan.top - (e.clientY - pan.y);
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+    function endPan(e) {
+      if (!pan) return;
+      pan = null; stage.style.cursor = '';
+      e.preventDefault(); e.stopPropagation();
+    }
+    window.addEventListener('pointerup', endPan, true);
+    window.addEventListener('pointercancel', endPan, true);
+
+    /* Touch screens: one finger is the game's mouse (SDL turns it into
+       clicks). Two fingers are the page's: a pinch steps the integer zoom
+       (the factor since the gesture began, rounded, times the zoom at its
+       start) and a two-finger drag pans. The second finger's start and the
+       moves of both stop here, so the game's pointer stays put; every
+       finger's end still reaches SDL, which keeps its finger table whole
+       (an end for a finger it never saw is ignored). */
+    var touches = {}, gesture = null;
+    function pair() {
+      var ids = Object.keys(touches);
+      if (ids.length !== 2) return null;
+      var a = touches[ids[0]], b = touches[ids[1]];
+      return { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+    }
+    stage.addEventListener('touchstart', function (e) {
+      var i;
+      for (i = 0; i < e.changedTouches.length; i++)
+        touches[e.changedTouches[i].identifier] = { x: e.changedTouches[i].clientX, y: e.changedTouches[i].clientY };
+      var p = pair();
+      if (!p) return;
+      gesture = { k: current(), dist: p.dist, cx: p.cx, cy: p.cy, left: stage.scrollLeft, top: stage.scrollTop };
+      e.preventDefault(); e.stopPropagation();
+    }, { capture: true, passive: false });
+    stage.addEventListener('touchmove', function (e) {
+      var i;
+      for (i = 0; i < e.changedTouches.length; i++)
+        if (touches[e.changedTouches[i].identifier])
+          touches[e.changedTouches[i].identifier] = { x: e.changedTouches[i].clientX, y: e.changedTouches[i].clientY };
+      var p = gesture && pair();
+      if (!p) return;
+      var k = Math.max(1, Math.round(gesture.k * p.dist / gesture.dist));
+      if (k !== current()) { manual = k; fit(); }
+      stage.scrollLeft = gesture.left - (p.cx - gesture.cx);
+      stage.scrollTop = gesture.top - (p.cy - gesture.cy);
+      e.preventDefault(); e.stopPropagation();
+    }, { capture: true, passive: false });
+    function touchEnd(e) {
+      var i;
+      for (i = 0; i < e.changedTouches.length; i++) delete touches[e.changedTouches[i].identifier];
+      if (!gesture) return;
+      if (!pair()) gesture = null;
+      e.preventDefault();
+    }
+    stage.addEventListener('touchend', touchEnd, { capture: true, passive: false });
+    stage.addEventListener('touchcancel', touchEnd, { capture: true, passive: false });
+  })();
+</script>
+<div id="overlay">
+  <h1>Operation Europe</h1>
+  <div class="hint" id="hint">Click or tap to start</div>
+  <div id="status">Loading&hellip;</div>
 </div>
 <script>
   var overlay = document.getElementById('overlay');
@@ -204,7 +285,6 @@
     var msg = document.getElementById('savemsg');
     var picker = document.getElementById('importfile');
     function say(text) { msg.textContent = text; clearTimeout(say.t); say.t = setTimeout(function () { msg.textContent = ''; }, 6000); }
-    document.getElementById('saves').addEventListener('mousedown', function (e) { e.preventDefault(); });
     document.getElementById('exportsaves').addEventListener('click', function () {
       if (!Module.opeuExportSaves) { say('Not loaded yet'); return; }
       var bytes = Module.opeuExportSaves();

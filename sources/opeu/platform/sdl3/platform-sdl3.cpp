@@ -16,10 +16,12 @@
  * plat_sleep_ms() (the pump's idle sleep).  SDL's own automatic
  * emscripten_sleep() calls are switched off so that these are the only
  * yields.  The page's CSS sizes the canvas to an integer multiple of the
- * frame (shell.html) and SDL follows that size on window resize events, so
- * the renderer's integer scaling applies there too; the canvas takes the
- * keyboard events itself and has no vsync setting (the browser paces
- * frames).
+ * frame in device pixels (shell.html); SDL follows that size on window
+ * resize events and, with SDL_WINDOW_HIGH_PIXEL_DENSITY, gives the canvas
+ * that many device pixels, so the renderer's integer scaling applies there
+ * too.  The browser blanks a canvas whose size changes, so a resize or
+ * exposure redraws the last frame.  The canvas takes the keyboard events
+ * itself and has no vsync setting (the browser paces frames).
  */
 #include "platform.hpp"
 
@@ -123,18 +125,24 @@ int plat_init(const PlatConfig *cfg)
         wflags = SDL_WINDOW_RESIZABLE;
         if (cfg->fullscreen)
             wflags |= SDL_WINDOW_FULLSCREEN;
-        P.window = SDL_CreateWindow(cfg->title ? cfg->title : "Operation Europe",
-                                    w * scale, h * scale, wflags);
-        if (!P.window) {
-            fprintf(stderr, "plat_init: SDL_CreateWindow: %s\n", SDL_GetError());
-            SDL_Quit();
-            return -1;
-        }
-        P.renderer = SDL_CreateRenderer(P.window, NULL);
-        if (!P.renderer) {
-            fprintf(stderr, "plat_init: SDL_CreateRenderer: %s\n", SDL_GetError());
-            SDL_DestroyWindow(P.window);
+#ifdef __EMSCRIPTEN__
+        /* The canvas gets CSS size x devicePixelRatio pixels. Without this
+         * the backing store is CSS pixels: on a 2x or 3x display the page's
+         * integer multiple of 640x480 device pixels is then a fraction of
+         * the frame, and the integer-scale presentation crops it. The WebGL
+         * renderer needs an OpenGL window; given the flag up front, it does
+         * not recreate the window, which would leave the canvas's CSS size
+         * at 1px (SDL's destroy) and make the new window ignore the page's
+         * size. */
+        wflags |= SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
+#endif
+        if (!SDL_CreateWindowAndRenderer(cfg->title ? cfg->title : "Operation Europe",
+                                         w * scale, h * scale, wflags, &P.window, &P.renderer)) {
+            fprintf(stderr, "plat_init: SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
+            if (P.window)
+                SDL_DestroyWindow(P.window);
             P.window = NULL;
+            P.renderer = NULL;
             SDL_Quit();
             return -1;
         }
@@ -184,6 +192,20 @@ void plat_shutdown(void)
 }
 
 /* ---- video -------------------------------------------------------------- */
+
+/* Show the last converted frame again: after each present, and after a
+ * window resize or exposure, when the window's contents are gone (a browser
+ * blanks a canvas whose size changed) and the game, waiting for input, may
+ * not draw again for a long time. */
+static void redraw(void)
+{
+    if (!P.renderer || !P.texture)
+        return;
+    SDL_SetRenderDrawColor(P.renderer, 0, 0, 0, 255);
+    SDL_RenderClear(P.renderer);
+    SDL_RenderTexture(P.renderer, P.texture, NULL, NULL);
+    SDL_RenderPresent(P.renderer);
+}
 
 void plat_present(const uint8_t *pixels, int width, int height,
                   const uint8_t palette[256 * 3])
@@ -241,10 +263,7 @@ void plat_present(const uint8_t *pixels, int width, int height,
         }
         SDL_UnlockTexture(P.texture);
     }
-    SDL_SetRenderDrawColor(P.renderer, 0, 0, 0, 255);
-    SDL_RenderClear(P.renderer);
-    SDL_RenderTexture(P.renderer, P.texture, NULL, NULL);
-    SDL_RenderPresent(P.renderer);
+    redraw();
 #ifdef __EMSCRIPTEN__
     /* Return to the browser so it shows the frame and queues input. */
     emscripten_sleep(0);
@@ -473,6 +492,11 @@ int plat_poll_event(PlatEvent *ev)
         case SDL_EVENT_QUIT:
             ev->type = PLAT_EV_QUIT;
             return 1;
+        case SDL_EVENT_WINDOW_RESIZED:
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        case SDL_EVENT_WINDOW_EXPOSED:
+            redraw();
+            break;
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP: {
             /* SDL key repeat arrives as further KEY_DOWN events (repeat=1),
