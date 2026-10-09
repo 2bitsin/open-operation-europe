@@ -21,15 +21,69 @@ Chip &chip()
     return instance;
 }
 
+// Key retriggers. ymfm latches a key-on bit when it is written and compares
+// it with the previous state once per output sample, so a key released and
+// struck again between two samples never retriggers. The FM driver does
+// exactly that within one timer tick (the opening's snare march writes BDh
+// 20h then 28h), and a real chip or DOSBox's OPL, which act on each write,
+// play every stroke. When a key released since the last sample is struck
+// again, the chip is advanced by one sample first, as the microseconds
+// between the writes would on hardware; that sample is queued and handed
+// out by the next opl_render, so the output keeps its length.
+uint8_t key_regs[9];                // last B0h-B8h values (bit 5: key on)
+uint8_t rhythm_reg;                 // last BDh value (bits 0-4: drum keys)
+uint32_t released;                  // keys turned off since the last sample: bit n = channel n, bit 9+d = drum d
+int16_t queued[64];                 // samples generated ahead by a retrigger
+int queued_count;
+
+int16_t next_sample()
+{
+    ymfm::ym3812::output_data out;
+    chip().m_chip.generate(&out, 1);
+    released = 0;
+    return (int16_t)out.data[0];
+}
+
+void retrigger_gap(uint32_t struck)
+{
+    if ((struck & released) == 0)
+        return;
+    if (queued_count < (int)(sizeof queued / sizeof queued[0]))
+        queued[queued_count++] = next_sample();
+    else
+        next_sample();
+}
+
 } // namespace
 
 void opl_reset(void)
 {
     chip().m_chip.reset();
+    for (uint8_t &r : key_regs)
+        r = 0;
+    rhythm_reg = 0;
+    released = 0;
+    queued_count = 0;
 }
 
 void opl_write(uint8_t reg, uint8_t value)
 {
+    if (reg >= 0xb0 && reg <= 0xb8) {
+        int const ch = reg - 0xb0;
+        uint32_t const bit = 1u << ch;
+        bool const was = key_regs[ch] & 0x20, now = value & 0x20;
+        if (!was && now)
+            retrigger_gap(bit);
+        else if (was && !now)
+            released |= bit;
+        key_regs[ch] = value;
+    } else if (reg == 0xbd) {
+        uint32_t const was = rhythm_reg & 0x1f, now = value & 0x1f;
+        if (value & 0x20)
+            retrigger_gap((now & ~was) << 9);
+        released |= (was & ~now) << 9;
+        rhythm_reg = value;
+    }
     chip().m_chip.write(0, reg);
     chip().m_chip.write(1, value);
 }
@@ -41,10 +95,9 @@ static const int32_t OUTPUT_GAIN = 3;
 
 void opl_render(int16_t *stereo, int frames)
 {
-    ymfm::ym3812::output_data out;
+    int used = 0;
     for (int i = 0; i < frames; i++) {
-        chip().m_chip.generate(&out, 1);
-        int32_t s = out.data[0] * OUTPUT_GAIN;
+        int32_t s = (used < queued_count ? queued[used++] : next_sample()) * OUTPUT_GAIN;
         if (s > 32767)
             s = 32767;
         else if (s < -32768)
@@ -52,4 +105,7 @@ void opl_render(int16_t *stereo, int frames)
         stereo[2 * i] = (int16_t)s;
         stereo[2 * i + 1] = (int16_t)s;
     }
+    for (int i = used; i < queued_count; i++)
+        queued[i - used] = queued[i];
+    queued_count -= used;
 }
