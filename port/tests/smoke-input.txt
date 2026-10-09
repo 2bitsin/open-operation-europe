@@ -1,0 +1,5 @@
+# Smoke run: choose the mouse, New Game, then the first scenario.
+500 click 320 240
+3000 move 90 211
+3500 click 90 211
+6000 click 150 195

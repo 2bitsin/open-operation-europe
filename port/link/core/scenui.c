@@ -1,0 +1,28 @@
+/* Link: core/scenui.c (06db:163a..1700 scenario-selection panels). Events,
+ * from the host branch's comment:
+ *   0 outline(x1,y1,x2,y2,color) 0a04:065a opeu_ui_outline
+ *   1 position(x,y) 0480:0808 opeu_army_position
+ *   2 print(format,arguments...) 0480:0bb8 opeu_army_print (host opeu_cursor_print)
+ *   3 ui_text(text) 0480:0484   4 box(x,y,w,h,style) 0000:2ad2 opeu_ui_box
+ *   5 scroll_mode(mode) 0480:06f2   6 window(l,r,t,b) 0480:0704
+ *   7 window_reset() 0480:07a4 */
+#include "b1_util.h"
+
+uint16_t link_scenui(uint8_t *ds, uint16_t kind, const uint16_t *args, uint16_t count)
+{
+    uint16_t r = 0;
+    switch (kind) {
+    case 0: opeu_ui_outline(ds, link_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 1: opeu_army_position(ds, link_textout_host(), (int16_t)ARG(0), (int16_t)ARG(1)); break;
+    case 2: b1_cursor_print(ds, args, count); break;
+    case 3: opeu_ui_text(ds, link_textout_host(), ARG(0)); break;
+    case 4: r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 5: r = (uint16_t)opeu_text_scroll_mode(ds, link_textout_host(), (int16_t)ARG(0)); break;
+    case 6:
+        opeu_text_window(ds, link_textout_host(), (int16_t)ARG(0), (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
+        break;
+    case 7: opeu_text_window_reset(ds, link_textout_host()); break;
+    default: port_unhandled("scenui", kind, count);
+    }
+    return r;
+}

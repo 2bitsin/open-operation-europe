@@ -1,0 +1,2246 @@
+[
+ {
+  "area": "core",
+  "module": "advenemy",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "advhints",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "advmenu",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "advregt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "advtact",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "advtide",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AdviceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airbomb",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "aircargo",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airdrop",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airforce",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airhelp",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airlift",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airshow",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "airstrk",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AirEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "app",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "appinit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "StartupEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "armypanl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PanelEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "armysum",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ArmyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "arrivals",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "arrshow",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ArrivalEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "chief",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ChiefEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "context",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ContextEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "control1",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ControlEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "control2",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ControlOtherEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "coords",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "CoordinateEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "credits",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "CreditsEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "daily",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "daypres",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PresentEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "delay",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "DelayEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "dispatch",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "divstr",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "DivisionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "emsmap",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "EmsEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evangel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "AngelEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evbomb",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "BombEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evcomms",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "CommsEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evloss",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "LossEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evpartis",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PartisanEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evreport",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ReportEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evspy",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SpyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evunits",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "UnitsEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evvisit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "VisitEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "evwound",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "WoundEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "grptask",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "halfday",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "headings",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "HeadingEvent"
+   ],
+   [
+    "void (*)(uint8_t *, uint16_t)",
+    "HeadingColorEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msglook",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "LookupEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msnkill",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MissionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msnraid",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MissionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msnrecon",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MissionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msnrept",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MissionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "msntick",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MissionEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "noonevt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "NoonService"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "notend",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "EndEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "notice",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "NoticeEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "paradrop",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ParaEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "paraunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "ParaEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "persmenu",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PersEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqequip",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "EquipmentEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqerror",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ErrorEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqpend",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "PendingEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqres",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "DeliveryEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqspawn",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "requests",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "reqvalid",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "rqcommon",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "RqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "rqmenu",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "RqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "rqsupply",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "RqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "scenbrf",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "BriefEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "scenend",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "EndEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "scensel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ScenselEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "scenui",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ScenEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "segsetup",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SetupEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "setmark",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MarkerEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "settings",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SettingsEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "sideinit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "sideutil",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t)",
+    "SideColorEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "specfrc",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SpecialEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "specops",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SpecialEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "staffgen",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "StaffGenEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "staffpnl",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "StaffPanelEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "startup",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "StartupServiceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "stockord",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "StockEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "suppanel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SupplyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "suprow",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SupplyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "supstep",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SupplyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "suptable",
+  "types": [
+   [
+    "void (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SupplyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "tblgroup",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "tblpers",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "textout",
+  "types": [
+   [
+    "void (*)(uint8_t *, void *, uint16_t)",
+    "TextOut"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "unitai",
+  "types": [
+   [
+    "uint16_t (*)(void *)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwarms",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwcity",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwdiv",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwpanel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwpeople",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "core",
+  "module": "vwregt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "keyboard",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "InputService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "listdlg",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "ListEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "listui",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "ListEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "loadgame",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "LoadGameEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "menudraw",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "InputService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "mouse",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "InputService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "numdlg",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "InputService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "resopen",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ResourceEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "scenres",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ScenresEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "sound",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "SoundService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "soundcue",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *)",
+    "SoundService"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "tblsave",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "io",
+  "module": "waitkey",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "WaitEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "arrplace",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "blast",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "BlastEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btladv",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaiact",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaient",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaimov",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaipwr",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaitrn",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlaiunt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlcalc",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t)",
+    "BattleService"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlcell",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlcmdr",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlcmds",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlcurs",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btldepty",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btldir",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btldraw",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlelem",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlend",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlengag",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlexec",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlexit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlfight",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlfire",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlhit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlicon",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlinfo",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlline",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btllist",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlloss",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlmap",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlmenu",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlmines",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "MineEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlmove",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlorder",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlpanel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlpath",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlplay",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlrcalc",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlreach",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlready",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlretr",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlrfire",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlround",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlrpanl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlsel",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlsetup",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlspend",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlsprt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlturn",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "btlunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "cursor",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "CursorEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "dplauto",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "dplcell",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "dplrows",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "dplside",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "dplunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "BattleEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "highlite",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "HighlightEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "hqloss",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint32_t, const uint16_t *, unsigned int)",
+    "HqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "influenc",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "inspect",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "InspectEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapcell",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "maperase",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapframe",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapover",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mappick",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PickEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mappos",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapscrol",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "mapview",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MapEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "movemine",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MoveEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "movespot",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MoveEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "movesup",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MoveEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "movetgt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MoveEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "moveunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "MoveEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "objdamag",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "DamageEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "ordtgt",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "reqcells",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint8_t, uint8_t, uint8_t)",
+    "callback"
+   ]
+  ]
+ },
+ {
+  "area": "map",
+  "module": "viewpan",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "PanEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "allocdst",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "AllocEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "allocpnl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "AllocEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "allocscr",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "AllocEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "casualty",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "CasEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "cmdxfer",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "XferEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "engineer",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "EngEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "finalact",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "FinalEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "genconf",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "GenEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "genpick",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "GenEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "genwound",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "WoundEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "labels",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "LabelEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordact",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordarriv",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ArrivEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordattk",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordbridg",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "orddefnd",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordissue",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordlist",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "ordunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrderEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "organize",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "OrganizeEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "rqarms",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "RqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "rqarmtbl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "rqreinf",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "RqEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "rqsuptbl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "supply",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "SupplyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tally",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TallyEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tblelem",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tblstr",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tblsupp",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tbltype",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "tblunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "TableEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "unitname",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "NameEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "vwlist",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, const uint16_t *, uint16_t)",
+    "ViewEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "xferpnl",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "TransferEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "xferstep",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "TransferEvent"
+   ]
+  ]
+ },
+ {
+  "area": "units",
+  "module": "xferunit",
+  "types": [
+   [
+    "uint16_t (*)(uint8_t *, uint16_t, uint16_t *, uint16_t)",
+    "TransferEvent"
+   ]
+  ]
+ }
+]
