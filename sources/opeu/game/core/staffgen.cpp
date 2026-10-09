@@ -111,7 +111,8 @@ void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args,
                   uint16_t count) {
   switch (id) {
     case 0:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     default: port_unhandled("staffgen", id, count);
   }

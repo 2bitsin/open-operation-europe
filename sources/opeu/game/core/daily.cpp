@@ -81,7 +81,9 @@ uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
                    uint16_t a2, uint16_t a3) {
   uint16_t sp;
   switch (id) {
-    case 0: opeu_turn_prepare(ds, (const DialogHost *)port_dialogs_host()); break; /* 1707:00c8 */
+    case 0:
+      opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host());
+      break; /* 1707:00c8 */
     case 1:
       opeu_daily_context(ds, svc_context, (uint8_t)a0);
       break;                /* 1389:000e */
@@ -91,8 +93,8 @@ uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
       port_stack_leave(PORT_FRAME);
       break;
     case 3:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), a0, (uint8_t)a1,
-                      (uint32_t)a3 << 16 | a2);
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0,
+                      (uint8_t)a1, (uint32_t)a3 << 16 | a2);
       break;
     default: port_unhandled("daily", id, 4);
   }

@@ -10,15 +10,14 @@ extern unsigned char opeu_music_voices[447];
 extern unsigned char opeu_music_events[8379];
 
 /* main.cpp calls this. */
-int opeu_dump_open_bank(void)
-{
-    int song, track;
-    for (song = 0; song < 3; song++)
-        for (track = 0; track < 5; track++) {
-            putchar(opeu_music_tracks[song][track] & 0xff);
-            putchar(opeu_music_tracks[song][track] >> 8);
-        }
-    fwrite(opeu_music_voices, 1, sizeof opeu_music_voices, stdout);
-    fwrite(opeu_music_events, 1, sizeof opeu_music_events, stdout);
-    return 0;
+int opeu_dump_open_bank(void) {
+  int song, track;
+  for (song = 0; song < 3; song++)
+    for (track = 0; track < 5; track++) {
+      putchar(opeu_music_tracks[song][track] & 0xff);
+      putchar(opeu_music_tracks[song][track] >> 8);
+    }
+  fwrite(opeu_music_voices, 1, sizeof opeu_music_voices, stdout);
+  fwrite(opeu_music_events, 1, sizeof opeu_music_events, stdout);
+  return 0;
 }

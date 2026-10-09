@@ -2,8 +2,7 @@
  * Old (reference) names of renamed symbols, for code written against src/.
  * Validators reach the old names through linker aliases (aliases.json,
  * tools/host_tree/cc), not through this header. */
-#ifndef GAME_COMPAT_ALIASES_H
-#define GAME_COMPAT_ALIASES_H
+#pragma once
 
 #define AdviceEvent               HostEvent
 #define AdviceNameEvent           HostEvent
@@ -325,5 +324,3 @@
 #define opeu_staff_1df4           opeu_advice_tide_no_advances
 #define opeu_staff_1e44           opeu_advice_situational_hint
 #define opeu_staff_204a           opeu_advice_general_tip
-
-#endif

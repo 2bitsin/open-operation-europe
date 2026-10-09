@@ -185,10 +185,12 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: map_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 2:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break; /* 1707:076c */
     case 3:  /* 15c4:1408 */
       frame = map_frame_enter();

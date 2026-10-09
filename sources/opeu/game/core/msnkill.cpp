@@ -178,11 +178,12 @@ uint16_t svc_mission(const char* module, uint8_t* ds, uint16_t id,
       break;                                           /* 312c:000c */
     case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 4:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      ARG32(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), ARG32(2));
       break;
     case 5: /* 15c4:087e */
       frame = port_frame_enter();
@@ -217,9 +218,11 @@ uint16_t svc_mission(const char* module, uint8_t* ds, uint16_t id,
       break; /* 0a8e:005c */
     case 13:
       opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
-      break;                                                    /* 0a8e:004c */
-    case 14: opeu_weather_update(ds); break;                    /* 0f43:000e */
-    case 15: opeu_turn_prepare(ds, (const DialogHost *)port_dialogs_host()); break; /* 1707:00c8 */
+      break;                                 /* 0a8e:004c */
+    case 14: opeu_weather_update(ds); break; /* 0f43:000e */
+    case 15:
+      opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host());
+      break; /* 1707:00c8 */
     case 16: /* 0f43:1452, entry SP */
       sp = port_stack_enter(PORT_FRAME);
       opeu_air_operations(ds, svc_aircargo, sp);

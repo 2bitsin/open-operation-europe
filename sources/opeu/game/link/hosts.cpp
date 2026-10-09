@@ -20,53 +20,50 @@
  * allocate below textout's live buffers. */
 static TextHost textout_host = { svc_textout, PORT_STACK_TOP };
 
-void *port_textout_host(void)
-{
-    textout_host.sp = port_sp;
-    return &textout_host;
+void* port_textout_host(void) {
+  textout_host.sp = port_sp;
+  return &textout_host;
 }
 
 /* svc_textout saves and restores the host's sp around an event. */
-uint16_t *port_textout_host_sp(void)
-{
-    return &textout_host.sp;
+uint16_t* port_textout_host_sp(void) {
+  return &textout_host.sp;
 }
 
 /* ---- UIPRIM: UiHost {memory, ds_segment, tiles_segment, code_segment, event} - */
-#define UIPRIM_CODE_SEGMENT  0x0a04u   /* C0A04_UI */
-#define UIPRIM_TILES_SEGMENT 0x3873u   /* _opeu_frame_tiles = 3873:0000 (symbols.json) */
-#define UIPRIM_FILE_READER   0x0132u   /* 0a04:0132 opeu_stream_file_byte */
-#define UIPRIM_MEMORY_READER 0x01fcu   /* 0a04:01fc opeu_stream_memory_byte */
+#define UIPRIM_CODE_SEGMENT 0x0a04u /* C0A04_UI */
+#define UIPRIM_TILES_SEGMENT \
+  0x3873u /* _opeu_frame_tiles = 3873:0000 (symbols.json) */
+#define UIPRIM_FILE_READER   0x0132u /* 0a04:0132 opeu_stream_file_byte */
+#define UIPRIM_MEMORY_READER 0x01fcu /* 0a04:01fc opeu_stream_memory_byte */
 
-static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT, UIPRIM_CODE_SEGMENT, svc_uiprim };
+static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT,
+                              UIPRIM_CODE_SEGMENT, svc_uiprim };
 
-void *port_uiprim_host(void)
-{
-    uiprim_host.memory = port_arena;
-    return &uiprim_host;
+void* port_uiprim_host(void) {
+  uiprim_host.memory = port_arena;
+  return &uiprim_host;
 }
 
 /* The decoder's reader is a far code pointer into UIPRIM's own segment:
  * 0a04:0132 opeu_stream_file_byte or 0a04:01fc opeu_stream_memory_byte;
  * both are recovered and called through the same host instance. */
-static uint8_t read_file_stream(void)
-{
-    return opeu_stream_file_byte(port_ds, (const UiHost *)port_uiprim_host());
+static uint8_t read_file_stream(void) {
+  return opeu_stream_file_byte(port_ds, (const UiHost*)port_uiprim_host());
 }
 
-static uint8_t read_memory_stream(void)
-{
-    return opeu_stream_memory_byte(port_ds, (const UiHost *)port_uiprim_host());
+static uint8_t read_memory_stream(void) {
+  return opeu_stream_memory_byte(port_ds, (const UiHost*)port_uiprim_host());
 }
 
-PortByteReader port_picture_reader(uint16_t off, uint16_t seg)
-{
-    if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_FILE_READER)
-        return read_file_stream;
-    if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_MEMORY_READER)
-        return read_memory_stream;
-    port_fatal("uiprim: picture reader %04x:%04x is not a known stream reader", seg, off);
-    return 0;
+PortByteReader port_picture_reader(uint16_t off, uint16_t seg) {
+  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_FILE_READER)
+    return read_file_stream;
+  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_MEMORY_READER)
+    return read_memory_stream;
+  port_fatal("uiprim: picture reader %04x:%04x is not a known stream reader",
+             seg, off);
+  return 0;
 }
 
 /* ---- DIALOGS: DialogHost {event, load, scratch} ------------------------------ *
@@ -77,9 +74,8 @@ PortByteReader port_picture_reader(uint16_t off, uint16_t seg)
  * Segments are the original paragraph numbers (load segment 0). */
 static const DialogHost dialogs_host = { svc_dialogs, 0u, PORT_DS_END };
 
-void *port_dialogs_host(void)
-{
-    return (void *)&dialogs_host;
+void* port_dialogs_host(void) {
+  return (void*)&dialogs_host;
 }
 
 /* ---- NUMDLG ------------------------------------------------------------------ *
@@ -87,11 +83,12 @@ void *port_dialogs_host(void)
  * opeu_ui_outline internally (OutlineBridge, io/numdlg.c). The getter
  * returns that bridge shape ({ service }) for callers that want the
  * service through a host pointer. */
-typedef uint16_t (*InputService)(uint8_t *ds, uint16_t call, uint16_t *words);
-typedef struct { InputService service; } OutlineBridge;
+typedef uint16_t (*InputService)(uint8_t* ds, uint16_t call, uint16_t* words);
+typedef struct {
+  InputService service;
+} OutlineBridge;
 static const OutlineBridge numdlg_bridge = { svc_numdlg };
 
-void *port_numdlg_host(void)
-{
-    return (void *)&numdlg_bridge;
+void* port_numdlg_host(void) {
+  return (void*)&numdlg_bridge;
 }

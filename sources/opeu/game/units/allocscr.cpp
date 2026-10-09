@@ -156,7 +156,7 @@ uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 1: r = lf_cursor_print(ds, args, count); break;
@@ -164,11 +164,12 @@ uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args,
       r = (uint16_t)opeu_vga_fill_rect(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
       break;
     case 3:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 4:
-      opeu_backdrop_fill_color(ds, (const UiHost *)port_uiprim_host(), (uint8_t)ARG(0));
+      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
+                               (uint8_t)ARG(0));
       break;
     default: port_unhandled("allocscr", id, count);
   }

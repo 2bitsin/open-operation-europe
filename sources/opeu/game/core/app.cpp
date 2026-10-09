@@ -78,8 +78,10 @@ typedef struct {
  * run). A loop without side effects is undefined in C++, so the native
  * build pumps the host instead: the window still closes and a headless run
  * still stops at --ms. */
-#define HANG()         for (;;) port_pump()
-#define SUB_ONE(p)     opeu_sub_byte(1, p)
+#define HANG() \
+  for (;;)     \
+  port_pump()
+#define SUB_ONE(p) opeu_sub_byte(1, p)
 static void host_shuffle(uint8_t* ds) {
   opeu_random_state = (uint32_t)ds[0xc6f4] | ((uint32_t)ds[0xc6f5] << 8) |
                       ((uint32_t)ds[0xc6f6] << 16) |

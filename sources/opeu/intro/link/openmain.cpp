@@ -56,114 +56,106 @@
  * native blitter the same bytes (a wrapped copy when a rectangle would run
  * past offset FFFFh; OPEN's own rectangles never do).
  */
-#include "port.hpp"
-#include "services.hpp"
-#include "process.hpp"
 #include "open-services.hpp"
+#include "port.hpp"
+#include "process.hpp"
+#include "services.hpp"
 
 #define ARG(i) ((uint16_t)((i) < count ? args[(i)] : 0))
 #define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-static const uint8_t *source_bytes(uint16_t segment, uint16_t offset, uint32_t size)
-{
-    static uint8_t wrapped[0x10000];
-    uint32_t i;
-    if ((uint32_t)offset + size <= 0x10000u)
-        return port_far(segment, offset);
-    for (i = 0; i < size && i < sizeof wrapped; i++)
-        wrapped[i] = *port_far(segment, (uint16_t)(offset + i));
-    return wrapped;
+static const uint8_t* source_bytes(uint16_t segment, uint16_t offset, uint32_t size) {
+  static uint8_t wrapped[0x10000];
+  uint32_t i;
+  if ((uint32_t)offset + size <= 0x10000u) return port_far(segment, offset);
+  for (i = 0; i < size && i < sizeof wrapped; i++) wrapped[i] = *port_far(segment, (uint16_t)(offset + i));
+  return wrapped;
 }
 
 /* Rows of the blitters' sources: blit4 (2674) reads 4 bytes per byte column,
  * draw1 (28B0) one; row doubling (mode bit 15) reads each row once. */
-static uint32_t blit_size(uint16_t w, uint16_t h, int planes)
-{
-    return (uint32_t)w * h * (uint32_t)planes;
+static uint32_t blit_size(uint16_t w, uint16_t h, int planes) {
+  return (uint32_t)w * h * (uint32_t)planes;
 }
 
 /* INT 66h from OPENMAIN's int86: AX from the REGS block; BX, DX and DS are
  * not read by the two functions it issues (AH=1 start, AH=2 stop). */
-static uint16_t openmain_int86(uint16_t number, uint16_t ax)
-{
-    uint16_t bx = 0, dx = 0, ds_seg = OPEN_DS_SEGMENT;
-    if (number != 0x66)
-        port_fatal("OPEN: int86(%02x) is not issued by the opening", number);
-    port_fm_int66(&ax, &bx, &dx, &ds_seg);
-    return ax;
+static uint16_t openmain_int86(uint16_t number, uint16_t ax) {
+  uint16_t bx = 0, dx = 0, ds_seg = OPEN_DS_SEGMENT;
+  if (number != 0x66) port_fatal("OPEN: int86(%02x) is not issued by the opening", number);
+  port_fm_int66(&ax, &bx, &dx, &ds_seg);
+  return ax;
 }
 
-uint16_t link_openmain(uint8_t *ds, uint16_t id, const uint16_t *args, uint16_t count)
-{
-    switch (id) {
-    case 0: opeu_open_sfx_play(ARG(0)); return 0;
-    case 1: return opeu_open_sfx_busy();
-    case 2: return opeu_fm_busy();
-    case 3: return (uint16_t)opeu_open_input_poll(ds, link_outil);
-    case 4: return (uint16_t)opeu_vga_clear();
-    case 5: return (uint16_t)opeu_open_palette_fade(ds, link_outil, ds + ARG(1), ARG(0));
-    case 6: return (uint16_t)opeu_open_palette_step(ds, link_outil, ds + ARG(0));
-    case 7: opeu_open_palette_set(ds, link_outil, ds + ARG(0)); return 0;
-    case 8: return (uint16_t)opeu_open_fade_in(ds, link_outil);
-    case 9: return (uint16_t)opeu_open_fade_in_wait(ds, link_outil);
-    case 10: opeu_picture_file_at(ds, link_outil, ARG(0), ARG(1), (int32_t)ARG32(2)); return 0;
-    case 11: opeu_gfx_wait(ds, link_oemsmap); return 0;
-    case 12: opeu_music_start(ds, link_osound, (uint8_t)ARG(0)); return 0;
-    case 13: opeu_finish_side_initialization(ds, link_osound, (uint8_t)ARG(0)); return 0;
-    case 14: return (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1), (int16_t)ARG(3));
-    case 15: return (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2), ARG(3));
-    case 16:
-        return (uint16_t)opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                       source_bytes(ARG(5), ARG(6), blit_size(ARG(2), ARG(3), 1)));
-    case 17:
-        return (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                             source_bytes(ARG(5), ARG(6), blit_size(ARG(2), ARG(3), 4)));
-    case 18: opeu_open_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
-    case 19: opeu_open_dissolve_blit(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
-    case 20: opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
-    case 21: return (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
-    case 22: opeu_open_far_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
-    case 23: opeu_open_buf_or(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
-    case 24: opeu_open_buf_and_mask(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
-    case 25: opeu_fm_wait_start(ARG(0)); return 0;
-    case 26: opeu_fm_noop(); return 0;
-    case 27: koei_install_dos_handlers(); return 0;
-    case 28: return open_dos_alloc(ARG(0));
-    case 29: return open_dos_free(ARG(0)) == 0 ? 1 : 0;
-    case 30: return (uint16_t)opeu_dos_close((int16_t)ARG(0));
-    case 31: {
-        int16_t found = opeu_dos_exists((const char *)ds + ARG(0));
-        /* The shutdown busy-waits for SCESEL.DAT with this call; keep the
+uint16_t link_openmain(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+  switch (id) {
+  case 0: opeu_open_sfx_play(ARG(0)); return 0;
+  case 1: return opeu_open_sfx_busy();
+  case 2: return opeu_fm_busy();
+  case 3: return (uint16_t)opeu_open_input_poll(ds, link_outil);
+  case 4: return (uint16_t)opeu_vga_clear();
+  case 5: return (uint16_t)opeu_open_palette_fade(ds, link_outil, ds + ARG(1), ARG(0));
+  case 6: return (uint16_t)opeu_open_palette_step(ds, link_outil, ds + ARG(0));
+  case 7: opeu_open_palette_set(ds, link_outil, ds + ARG(0)); return 0;
+  case 8: return (uint16_t)opeu_open_fade_in(ds, link_outil);
+  case 9: return (uint16_t)opeu_open_fade_in_wait(ds, link_outil);
+  case 10: opeu_picture_file_at(ds, link_outil, ARG(0), ARG(1), (int32_t)ARG32(2)); return 0;
+  case 11: opeu_gfx_wait(ds, link_oemsmap); return 0;
+  case 12: opeu_music_start(ds, link_osound, (uint8_t)ARG(0)); return 0;
+  case 13: opeu_finish_side_initialization(ds, link_osound, (uint8_t)ARG(0)); return 0;
+  case 14: return (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1), (int16_t)ARG(3));
+  case 15: return (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2), ARG(3));
+  case 16:
+    return (uint16_t)opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                                   source_bytes(ARG(5), ARG(6), blit_size(ARG(2), ARG(3), 1)));
+  case 17:
+    return (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
+                                         source_bytes(ARG(5), ARG(6), blit_size(ARG(2), ARG(3), 4)));
+  case 18: opeu_open_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
+  case 19: opeu_open_dissolve_blit(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
+  case 20: opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
+  case 21: return (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+  case 22: opeu_open_far_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
+  case 23: opeu_open_buf_or(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
+  case 24: opeu_open_buf_and_mask(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5)); return 0;
+  case 25: opeu_fm_wait_start(ARG(0)); return 0;
+  case 26: opeu_fm_noop(); return 0;
+  case 27: koei_install_dos_handlers(); return 0;
+  case 28: return open_dos_alloc(ARG(0));
+  case 29: return open_dos_free(ARG(0)) == 0 ? 1 : 0;
+  case 30: return (uint16_t)opeu_dos_close((int16_t)ARG(0));
+  case 31: {
+    int16_t found = opeu_dos_exists((const char*)ds + ARG(0));
+    /* The shutdown busy-waits for SCESEL.DAT with this call; keep the
          * host responsive while it is missing (no effect on the result). */
-        if (!found)
-            port_pump();
-        return (uint16_t)found;
-    }
-    case 32: koei_09b7(ARG(0), ARG(1)); return 0;
-    case 33: return openmain_int86(ARG(0), ARG(1));
-    case 34: opeu_ui_text(ds, link_otext_host(), ARG(0)); return 0;
-    case 35: link_otext_print(ds, args, 1); return 0;
-    case 36: return (uint16_t)opeu_memory_release(ds, link_oemsmap);
-    case 37: {
-        uint16_t sp = open_stack_enter(0x10);
-        uint16_t r = (uint16_t)opeu_ems_alloc_sprite(ds, link_oemsmap, sp);
-        open_stack_leave(0x10);
-        return r;
-    }
-    case 38: {
-        uint16_t sp = open_stack_enter(0x110);    /* 00f8: 106h bytes of locals */
-        uint16_t r = (uint16_t)opeu_ems_detect(ds, link_oemsmap, sp);
-        open_stack_leave(0x110);
-        return r;
-    }
-    case 39: opeu_sound_initialize(ds, link_osound); return 0;
-    case 40: return (uint16_t)opeu_music_playing(ds, link_osound);
-    case 41: return opeu_mouse_reset(ds, link_outil);
-    case 42: return (uint16_t)opeu_open_fade_alt(ds, link_outil);
-    case 43: opeu_open_identity_palette(ds, link_outil); return 0;
-    case 44: return (uint16_t)opeu_open_file_or_die(ds, link_outil, ARG(0));
-    case 45: port_pump(); return 0;               /* HANG(): the stop after an allocation failure */
-    default: port_unhandled("openmain", id, count);
-    }
-    return 0;
+    if (!found) port_pump();
+    return (uint16_t)found;
+  }
+  case 32: koei_09b7(ARG(0), ARG(1)); return 0;
+  case 33: return openmain_int86(ARG(0), ARG(1));
+  case 34: opeu_ui_text(ds, link_otext_host(), ARG(0)); return 0;
+  case 35: link_otext_print(ds, args, 1); return 0;
+  case 36: return (uint16_t)opeu_memory_release(ds, link_oemsmap);
+  case 37: {
+    uint16_t sp = open_stack_enter(0x10);
+    uint16_t r = (uint16_t)opeu_ems_alloc_sprite(ds, link_oemsmap, sp);
+    open_stack_leave(0x10);
+    return r;
+  }
+  case 38: {
+    uint16_t sp = open_stack_enter(0x110);    /* 00f8: 106h bytes of locals */
+    uint16_t r = (uint16_t)opeu_ems_detect(ds, link_oemsmap, sp);
+    open_stack_leave(0x110);
+    return r;
+  }
+  case 39: opeu_sound_initialize(ds, link_osound); return 0;
+  case 40: return (uint16_t)opeu_music_playing(ds, link_osound);
+  case 41: return opeu_mouse_reset(ds, link_outil);
+  case 42: return (uint16_t)opeu_open_fade_alt(ds, link_outil);
+  case 43: opeu_open_identity_palette(ds, link_outil); return 0;
+  case 44: return (uint16_t)opeu_open_file_or_die(ds, link_outil, ARG(0));
+  case 45: port_pump(); return 0;               /* HANG(): the stop after an allocation failure */
+  default: port_unhandled("openmain", id, count);
+  }
+  return 0;
 }

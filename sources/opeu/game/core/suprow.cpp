@@ -99,7 +99,7 @@ uint16_t svc_suprow(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count) {
   switch (id) {
     case 9:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 10:

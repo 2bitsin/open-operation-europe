@@ -352,7 +352,8 @@ uint16_t svc_btlmap(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_backdrop_fill_color(ds, (const UiHost *)port_uiprim_host(), (uint8_t)ARG(0));
+      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
+                               (uint8_t)ARG(0));
       break;
     case 1:
       koei_3f26(ARG(0), ARG(1), ARG(2), ARG(3), port_far(ARG(5), ARG(4)),
@@ -368,18 +369,22 @@ uint16_t svc_btlmap(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 5: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
     case 6:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (short)ARG(0), (short)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
+                         (short)ARG(1));
       break;
     case 7:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
-    case 8: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 8: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 9: btl_cursor_print(ds, args, count); break;
     case 10:
       r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break;
     case 11: r = (uint16_t)opeu_vga_clear(); break;
-    case 12: opeu_palette_title_screen(ds, (const UiHost *)port_uiprim_host()); break;
+    case 12:
+      opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
+      break;
     case 13:
       opeu_battle_draw_cell_above(ds, svc_btlcell, (uint8_t)ARG(0),
                                   (uint8_t)ARG(1));

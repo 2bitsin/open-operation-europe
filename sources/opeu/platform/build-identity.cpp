@@ -11,12 +11,12 @@ namespace opeu::platform::detail::build_identity {
 namespace {
 
 constexpr auto THIS_BUILD{ BuildIdentity{
-  .version = OPEU_BUILD_VERSION,
-  .commit  = OPEU_BUILD_COMMIT,
-  .tag     = OPEU_BUILD_TAG,
-  .time    = OPEU_BUILD_TIME,
-  .dirty   = OPEU_BUILD_DIRTY != 0,
-  .number  = OPEU_BUILD_NUMBER,
+    .version = OPEU_BUILD_VERSION,
+    .commit = OPEU_BUILD_COMMIT,
+    .tag = OPEU_BUILD_TAG,
+    .time = OPEU_BUILD_TIME,
+    .dirty = OPEU_BUILD_DIRTY != 0,
+    .number = OPEU_BUILD_NUMBER,
 } };
 
 }
@@ -29,8 +29,7 @@ auto Describe(BuildIdentity const& build) -> std::string {
   if (build.time.empty()) {
     return std::format("opeu {} (build {})", build.version, build.number);
   }
-  return std::format("opeu {} (build {}, {})", build.version, build.number,
-                     build.time);
+  return std::format("opeu {} (build {}, {})", build.version, build.number, build.time);
 }
 
 }

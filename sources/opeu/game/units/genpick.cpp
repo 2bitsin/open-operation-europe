@@ -263,14 +263,15 @@ uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: opeu_person_set_role(ds, ARG(0), (uint8_t)ARG(1)); break;
     case 1: opeu_person_set_group(ds, ARG(0), (uint8_t)ARG(1)); break;
     case 2:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     case 3:
-      opeu_text_paper_set(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
       break;
-    case 4: opeu_text_color(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 4: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 5:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 6: r = lf_cursor_print(ds, args, count); break;

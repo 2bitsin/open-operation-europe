@@ -759,18 +759,21 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: b1_cursor_print(ds, args, count); break;
     case 1: b1_request_format(ds, args, count); break;
     case 2:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 3:
-      r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1),
-                                      ARG(2), ARG(3));
+      r = (uint8_t)opeu_choose_dialog(ds,
+                                      (const DialogHost*)port_dialogs_host(),
+                                      ARG(0), ARG(1), ARG(2), ARG(3));
       break;
     case 4:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 5:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 6:
       f = b1_frame_enter();
@@ -780,15 +783,18 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 7: opeu_music_stop(ds, svc_sound); break;
     case 8: opeu_turn_pre_context(ds, svc_context); break;
-    case 9: opeu_screen_reset(ds, (const DialogHost *)port_dialogs_host()); break;
+    case 9:
+      opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
+      break;
     case 10:
-      opeu_text_paper_set(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
       break;
     case 11: opeu_disk_reset(ds, svc_resopen); break;
     case 12:
-      r = opeu_title_box(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
-    case 13: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 13: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 14: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
     case 15: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
     case 16:
@@ -796,22 +802,30 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
                            (uint8_t)ARG(2));
       break;
     case 17:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 18:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
-    case 19: opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 19:
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 20:
       f = b1_stack_alloc(KEY_SCRATCH);
       r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, ARG(0), f);
       port_scratch_leave(KEY_SCRATCH);
       break;
-    case 21: opeu_turn_active_begin(ds, (const DialogHost *)port_dialogs_host()); break;
-    case 22: opeu_palette_title_screen(ds, (const UiHost *)port_uiprim_host()); break;
-    case 23: opeu_palette_daylight(ds, (const UiHost *)port_uiprim_host()); break;
+    case 21:
+      opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
+    case 22:
+      opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
+      break;
+    case 23:
+      opeu_palette_daylight(ds, (const UiHost*)port_uiprim_host());
+      break;
     case 24:
       opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
       break;

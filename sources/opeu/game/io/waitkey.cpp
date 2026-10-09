@@ -69,7 +69,7 @@ uint16_t svc_waitkey(uint8_t* ds, uint16_t kind, const uint16_t* args,
     case 0:  opeu_fm_wait_start(ARG(0)); break;
     case 1:  return opeu_fm_busy();
     case 2:  return opeu_turn_input_b();
-    case 3:  return opeu_key_read(ds, (TextHost *)port_textout_host());
+    case 3:  return opeu_key_read(ds, (TextHost*)port_textout_host());
     case 4:  opeu_quit_to_dos(ds, svc_settings); break;
     default: port_unhandled("waitkey", kind, count);
   }

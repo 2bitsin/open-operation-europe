@@ -303,7 +303,8 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;                                            /* 312c:000c */
     case 12: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 13:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 14:
       port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));

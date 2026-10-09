@@ -439,25 +439,27 @@ uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 6:
       r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break;
-    case 7:  b1_request_format(ds, args, count); break;
-    case 8:  r = (uint16_t)opeu_vga_clear(); break;
-    case 9:  opeu_palette_map_screen(ds, (const UiHost *)port_uiprim_host()); break;
+    case 7: b1_request_format(ds, args, count); break;
+    case 8: r = (uint16_t)opeu_vga_clear(); break;
+    case 9:
+      opeu_palette_map_screen(ds, (const UiHost*)port_uiprim_host());
+      break;
     case 10: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
     case 11:
-      opeu_picture_file(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), (int16_t)ARG(2),
-                        ARG(3));
+      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                        (int16_t)ARG(2), ARG(3));
       break;
     case 12:
-      opeu_picture_file_masked(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1),
-                               (int16_t)ARG(2), ARG(3));
+      opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                               ARG(1), (int16_t)ARG(2), ARG(3));
       break;
     case 13:
-      opeu_picture_file_at(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1),
-                           (int16_t)ARG(2), (int32_t)ARG32(3));
+      opeu_picture_file_at(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                           ARG(1), (int16_t)ARG(2), (int32_t)ARG32(3));
       break;
     case 14: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
     case 15:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 16: b1_cursor_print(ds, args, count); break;
@@ -470,7 +472,7 @@ uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args,
                                      PORT_DS(ARG(2)));
       break;
     case 20: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
-    case 21: opeu_input_flush(ds, (TextHost *)port_textout_host()); break;
+    case 21: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
     case 22: r = (uint16_t)opeu_music_playing(ds, svc_sound); break;
     case 23: r = (uint16_t)opeu_turn_input_a(ds, svc_mouse); break;
     case 24: r = opeu_turn_input_b(); break;

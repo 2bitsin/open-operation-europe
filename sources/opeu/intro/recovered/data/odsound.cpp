@@ -9,5 +9,5 @@
 
 uint8_t opeu_music_current = 0xff;     /* DS:0182 */
 uint8_t opeu_effect_current = 0xff;    /* DS:0183 */
-char opeu_music_bank[26] = {0};        /* DS:0184 */
-char opeu_music_path[14] = {0};        /* DS:019e */
+char opeu_music_bank[26] = { 0 };        /* DS:0184 */
+char opeu_music_path[14] = { 0 };        /* DS:019e */

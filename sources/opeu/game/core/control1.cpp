@@ -143,17 +143,18 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args,
                  opeu_army_summary(ds, svc_armysum, (uint16_t)(sp - 2 - 0x50)));
       break;
     case 5:
-      opeu_turn_active_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:020c */
     case 6:
       b2_request_format(ds, args, count);
       break; /* 0480:0b9a (dest, fmt, rec1) */
     case 7:
-      r = opeu_control_choose(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                              ARG(3), ARG(4), ARG(5));
+      r = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(),
+                              ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
       break;
     case 8:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 9:
       B2_SP_CALL(PORT_FRAME, r = opeu_control_coordinates(ds, svc_coords,

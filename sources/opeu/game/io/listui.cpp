@@ -402,8 +402,8 @@ uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args,
                                   port_far(ARG(5), ARG(6)));
       break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 2: opeu_mouse_show(ds, svc_mouse); break;
     case 3: opeu_mouse_hide(ds, svc_mouse); break;
@@ -437,11 +437,11 @@ uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args,
                                         port_far(ARG(5), ARG(6)));
       break;
     case 13:
-      opeu_text_paper_set(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
       break;
-    case 14: opeu_text_color(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 14: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 15:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 16: b1_cursor_print(ds, args, count); break;

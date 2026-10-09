@@ -210,10 +210,11 @@ uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: r = opeu_visit_unit_safe(ds, ARG(0)); break; /* 108c:000e */
     case 1:
-      opeu_message_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:0346 */
     case 2:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;                                         /* 0a04:02a0 */
     case 3: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 */
     case 4:
@@ -221,19 +222,19 @@ uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args,
                                   (int16_t)ARG(3));
       break;
     case 5:
-      opeu_image_read_draw(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                           ARG(3), ARG(4), (int16_t)ARG(5));
+      opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                           ARG(1), ARG(2), ARG(3), ARG(4), (int16_t)ARG(5));
       break;
     case 6:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;                                           /* 0480:0808 */
     case 7: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 8:
-      opeu_text_feed(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:0652 message_text */
     case 9:
-      opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0));
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0));
       break; /* 0480:0484 */
     case 10: /* 0541:060a yes_no */
       scratch = port_scratch_enter(16);
@@ -250,10 +251,12 @@ uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args,
       port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
       break; /* 1707:03e4 */
     case 14:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 15:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break; /* 1707:076c control_ask */
     case 16:
       r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));

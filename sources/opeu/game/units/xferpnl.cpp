@@ -335,7 +335,7 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id,
                                         port_far(ARG(5), ARG(6)));
       break;
     case 9:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 10: r = lf_cursor_print(ds, args, count); break;
@@ -343,7 +343,9 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id,
       r = (uint16_t)opeu_vga_glyph(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
                                    PORT_DS(ARG(5)));
       break;
-    case 12: opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 12:
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 13: opeu_ems_map_dialog(ds, svc_emsmap); break;
     case 14:
       r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
@@ -353,15 +355,21 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id,
     case 17: opeu_music_command7(ds, svc_sound); break;
     case 18: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
     case 19: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
-    case 20: r = opeu_confirm_ok(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 20:
+      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 22: opeu_input_reset(ds, svc_mouse); break;
     case 23:
       r = (uint16_t)opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
       break;
-    case 24: opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1)); break;
+    case 24:
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
+      break;
     case 25: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
     case 26:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1),
                       (unsigned int)((uint32_t)ARG(3) << 16 | ARG(2)));
       break;
     case 27:

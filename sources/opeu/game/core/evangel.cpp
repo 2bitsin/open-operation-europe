@@ -255,10 +255,11 @@ uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t frame, r = 0;
   switch (id) {
     case 0:
-      opeu_message_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:0346 */
     case 1:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;                                         /* 0a04:02a0 */
     case 2: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 army_print */
     case 3: {                                        /* FILEIO 009b dos_seek */
@@ -268,19 +269,19 @@ uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     }
     case 4:
-      opeu_image_read_draw(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                           ARG(3), ARG(4), (int16_t)ARG(5));
+      opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                           ARG(1), ARG(2), ARG(3), ARG(4), (int16_t)ARG(5));
       break;
     case 5:
       r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
       break;                                           /* 312c:000c */
     case 6: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 7:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break; /* 0480:0808 */
     case 8:
-      opeu_text_feed(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:0652 message_text */
     case 9:  /* 15c4:1408 */
       frame = port_frame_enter();

@@ -376,7 +376,8 @@ uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
       port_frame_leave();
       break;
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 2: opeu_overview_pixel(ds, ARG(0), ARG(1)); break;
     case 3:

@@ -16,48 +16,45 @@
  * routine is empty in OPEN itself.
  */
 #include "port.hpp"
-#include "services.hpp"
 #include "process.hpp"
+#include "services.hpp"
 
 #define ARG(i) ((uint16_t)((i) < count ? args[(i)] : 0))
 
 static TextHost host;
 
-uint16_t link_otext(uint8_t *ds, uint16_t id, const uint16_t *args, uint16_t count)
-{
-    switch (id) {
-    case 0: return port_key_read();
-    case 1: return opeu_turn_input_b();
-    case 2: opeu_open_stub_a(ds, link_outil); return 0;
-    case 3: return (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
-    case 4: return (uint16_t)opeu_vga_clear();
-    case 5: opeu_open_stub_b(ds, link_outil); return 0;
-    case 6: opeu_open_stub_c(ds, link_outil); return 0;
-    default: port_unhandled("otext", id, count);
-    }
-    return 0;
+uint16_t link_otext(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+  switch (id) {
+  case 0: return port_key_read();
+  case 1: return opeu_turn_input_b();
+  case 2: opeu_open_stub_a(ds, link_outil); return 0;
+  case 3: return (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+  case 4: return (uint16_t)opeu_vga_clear();
+  case 5: opeu_open_stub_b(ds, link_outil); return 0;
+  case 6: opeu_open_stub_c(ds, link_outil); return 0;
+  default: port_unhandled("otext", id, count);
+  }
+  return 0;
 }
 
 /* The caller's SP minus the return address: the text engine's free stack. */
-TextHost *link_otext_host(void)
-{
-    host.event = link_otext;
-    host.sp = (uint16_t)(open_sp - 4);
-    return &host;
+TextHost* link_otext_host(void) {
+  host.event = link_otext;
+  host.sp = (uint16_t)(open_sp - 4);
+  return &host;
 }
 
 /* cursor_print(format, ...): the caller pushes the argument words; the
  * variadic host entry receives the DS offset of the first (the format). */
-void link_otext_print(uint8_t *ds, const uint16_t *words, unsigned count)
-{
-    uint16_t saved = open_sp, frame;
-    unsigned i;
-    open_sp = (uint16_t)(open_sp - 2 * count);
-    frame = open_sp;
-    for (i = 0; i < count; i++) {
-        ds[(uint16_t)(frame + 2 * i)] = (uint8_t)words[i];
-        ds[(uint16_t)(frame + 2 * i + 1)] = (uint8_t)(words[i] >> 8);
-    }
-    opeu_cursor_print(ds, link_otext_host(), frame);
-    open_sp = saved;
+void link_otext_print(uint8_t* ds, const uint16_t* words, unsigned count) {
+  uint16_t saved = open_sp, frame;
+  unsigned i;
+  open_sp = (uint16_t)(open_sp - 2 * count);
+  frame = open_sp;
+  for (i = 0; i < count; i++) {
+    ds[(uint16_t)(frame + 2 * i)] = (uint8_t)words[i];
+    ds[(uint16_t)(frame + 2 * i + 1)] = (uint8_t)(words[i] >> 8);
+  }
+  opeu_cursor_print(ds, link_otext_host(), frame);
+  open_sp = saved;
 }

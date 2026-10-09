@@ -101,11 +101,12 @@ uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 2:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 3:
       r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);

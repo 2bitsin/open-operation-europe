@@ -95,7 +95,7 @@ uint16_t svc_reqvalid(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
       r = opeu_request_cells(ds, (uint8_t)a, c2_cell_predicate(b, c));
       break; /* 145c:1208 */
     case 1:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), a, (uint8_t)b,
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b,
                       (uint32_t)d << 16 | c);
       break;
     default: port_unhandled("reqvalid", id, 4);

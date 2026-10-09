@@ -7,8 +7,7 @@
 #include <string>
 #include <string_view>
 
-auto opeu_asset_find(char const* const dos_name, unsigned char const** const data, std::size_t* const size)
-    -> int {
+auto opeu_asset_find(char const* const dos_name, unsigned char const** const data, std::size_t* const size) -> int {
   if (dos_name == nullptr || data == nullptr || size == nullptr) {
     return 0;
   }

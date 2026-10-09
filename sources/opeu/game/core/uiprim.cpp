@@ -523,8 +523,8 @@ uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id,
                                  port_picture_reader(ARG(2), ARG(3)));
       return 0;
     case 11:
-      opeu_army_position(port_ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(port_ds, (TextHost*)port_textout_host(),
+                         (int16_t)ARG(0), (int16_t)ARG(1));
       return 0;
     default: port_unhandled("uiprim", id, count);
   }
@@ -532,17 +532,19 @@ uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id,
 }
 
 PORT_ROUTINE(opeu_context_frame) {
-  opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+  opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                     ARG(2));
   return 0;
 }
 
 PORT_ROUTINE(opeu_context_portrait) {
-  opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+  opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                        ARG(2));
   return 0;
 }
 
 PORT_ROUTINE(opeu_face_draw) {
-  opeu_face_draw(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+  opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
                  (uint8_t)ARG(3));
   return 0;
 }
@@ -550,13 +552,13 @@ PORT_ROUTINE(opeu_face_draw) {
 PORT_ROUTINE(opeu_palette_for_hour) {
   (void)args;
   (void)count;
-  opeu_palette_for_hour(ds, (const UiHost *)port_uiprim_host());
+  opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host());
   return 0;
 }
 
 PORT_ROUTINE(opeu_ui_outline) {
-  opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                  ARG(4));
+  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
+                  ARG(3), ARG(4));
   return 0;
 }
 

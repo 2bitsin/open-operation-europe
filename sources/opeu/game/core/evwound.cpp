@@ -186,7 +186,8 @@ uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args,
       port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
       break; /* 1707:03e4 */
     case 4:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     default: port_unhandled("evwound", id, count);
   }

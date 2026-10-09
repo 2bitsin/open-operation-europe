@@ -384,7 +384,8 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break;
     case 15:
-      opeu_unit_side_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1));
       break;
     case 16:
       sp = port_stack_enter(LF_FRAME);
@@ -398,9 +399,13 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 20: opeu_select_first_unit(ds, ARG(0)); break;
     case 21: opeu_set_record_counter(PORT_DS(ARG(0)), (uint8_t)ARG(1)); break;
     case 22: opeu_select_first_group(ds, (uint8_t)ARG(0)); break;
-    case 23: opeu_group_element_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 23:
+      opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0));
+      break;
     case 24:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 25:
       a = port_ds_word(ARG(1));

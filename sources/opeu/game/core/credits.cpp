@@ -95,14 +95,15 @@ uint16_t svc_credits(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: opeu_input_flush(ds, (TextHost *)port_textout_host()); break;
+    case 0: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
     case 1: r = (uint16_t)opeu_turn_input_a(ds, svc_mouse); break;
     case 2: r = (uint16_t)port_getch(); break;
     case 3:
-      opeu_backdrop_fill_color(ds, (const UiHost *)port_uiprim_host(), (uint8_t)ARG(0));
+      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
+                               (uint8_t)ARG(0));
       break;
     case 4:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 5:  b1_cursor_print(ds, args, count); break;

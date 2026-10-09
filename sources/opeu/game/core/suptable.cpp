@@ -235,7 +235,7 @@ void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     }
     case 1:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 2:  b2_cursor_print(ds, args, count); break;

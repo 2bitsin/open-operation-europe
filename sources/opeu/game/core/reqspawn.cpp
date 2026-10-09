@@ -83,7 +83,7 @@ uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
       port_frame_leave();
       break;
     case 5:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), a, (uint8_t)b,
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b,
                       (uint32_t)d << 16 | c);
       break;
     case 6:

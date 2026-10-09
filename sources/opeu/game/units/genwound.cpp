@@ -157,7 +157,8 @@ uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 1: r = lf_request_format(ds, args, count); break;
     case 2: opeu_initialize_deputy(ds, ARG(0)); break;
     case 3:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 4: opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0)); break;
     case 5: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
@@ -165,8 +166,8 @@ uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
       break;
     case 7:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     default: port_unhandled("genwound", id, count);
   }

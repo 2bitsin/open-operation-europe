@@ -8,17 +8,17 @@
 
 namespace {
 
-class Chip : public ymfm::ymfm_interface
-{
+class Chip : public ymfm::ymfm_interface {
 public:
-    Chip() : m_chip(*this) { m_chip.reset(); }
-    ymfm::ym3812 m_chip;
+  Chip() : m_chip(*this) {
+    m_chip.reset();
+  }
+  ymfm::ym3812 m_chip;
 };
 
-Chip &chip()
-{
-    static Chip instance;
-    return instance;
+Chip& chip() {
+  static Chip instance;
+  return instance;
 }
 
 // Key retriggers. ymfm latches a key-on bit when it is written and compares
@@ -36,56 +36,49 @@ uint32_t released;                  // keys turned off since the last sample: bi
 int16_t queued[64];                 // samples generated ahead by a retrigger
 int queued_count;
 
-int16_t next_sample()
-{
-    ymfm::ym3812::output_data out;
-    chip().m_chip.generate(&out, 1);
-    released = 0;
-    return (int16_t)out.data[0];
+int16_t next_sample() {
+  ymfm::ym3812::output_data out;
+  chip().m_chip.generate(&out, 1);
+  released = 0;
+  return (int16_t)out.data[0];
 }
 
-void retrigger_gap(uint32_t struck)
-{
-    if ((struck & released) == 0)
-        return;
-    if (queued_count < (int)(sizeof queued / sizeof queued[0]))
-        queued[queued_count++] = next_sample();
-    else
-        next_sample();
+void retrigger_gap(uint32_t struck) {
+  if ((struck & released) == 0) return;
+  if (queued_count < (int)(sizeof queued / sizeof queued[0]))
+    queued[queued_count++] = next_sample();
+  else
+    next_sample();
 }
 
 } // namespace
 
-void opl_reset(void)
-{
-    chip().m_chip.reset();
-    for (uint8_t &r : key_regs)
-        r = 0;
-    rhythm_reg = 0;
-    released = 0;
-    queued_count = 0;
+void opl_reset(void) {
+  chip().m_chip.reset();
+  for (uint8_t& r : key_regs) r = 0;
+  rhythm_reg = 0;
+  released = 0;
+  queued_count = 0;
 }
 
-void opl_write(uint8_t reg, uint8_t value)
-{
-    if (reg >= 0xb0 && reg <= 0xb8) {
-        int const ch = reg - 0xb0;
-        uint32_t const bit = 1u << ch;
-        bool const was = key_regs[ch] & 0x20, now = value & 0x20;
-        if (!was && now)
-            retrigger_gap(bit);
-        else if (was && !now)
-            released |= bit;
-        key_regs[ch] = value;
-    } else if (reg == 0xbd) {
-        uint32_t const was = rhythm_reg & 0x1f, now = value & 0x1f;
-        if (value & 0x20)
-            retrigger_gap((now & ~was) << 9);
-        released |= (was & ~now) << 9;
-        rhythm_reg = value;
-    }
-    chip().m_chip.write(0, reg);
-    chip().m_chip.write(1, value);
+void opl_write(uint8_t reg, uint8_t value) {
+  if (reg >= 0xb0 && reg <= 0xb8) {
+    int const ch = reg - 0xb0;
+    uint32_t const bit = 1u << ch;
+    bool const was = key_regs[ch] & 0x20, now = value & 0x20;
+    if (!was && now)
+      retrigger_gap(bit);
+    else if (was && !now)
+      released |= bit;
+    key_regs[ch] = value;
+  } else if (reg == 0xbd) {
+    uint32_t const was = rhythm_reg & 0x1f, now = value & 0x1f;
+    if (value & 0x20) retrigger_gap((now & ~was) << 9);
+    released |= (was & ~now) << 9;
+    rhythm_reg = value;
+  }
+  chip().m_chip.write(0, reg);
+  chip().m_chip.write(1, value);
 }
 
 // Output gain: ymfm's YM3812 output for one full-level voice peaks near
@@ -93,19 +86,17 @@ void opl_write(uint8_t reg, uint8_t value)
 // x3 brings them to a normal listening level and keeps headroom.
 static const int32_t OUTPUT_GAIN = 3;
 
-void opl_render(int16_t *stereo, int frames)
-{
-    int used = 0;
-    for (int i = 0; i < frames; i++) {
-        int32_t s = (used < queued_count ? queued[used++] : next_sample()) * OUTPUT_GAIN;
-        if (s > 32767)
-            s = 32767;
-        else if (s < -32768)
-            s = -32768;
-        stereo[2 * i] = (int16_t)s;
-        stereo[2 * i + 1] = (int16_t)s;
-    }
-    for (int i = used; i < queued_count; i++)
-        queued[i - used] = queued[i];
-    queued_count -= used;
+void opl_render(int16_t* stereo, int frames) {
+  int used = 0;
+  for (int i = 0; i < frames; i++) {
+    int32_t s = (used < queued_count ? queued[used++] : next_sample()) * OUTPUT_GAIN;
+    if (s > 32767)
+      s = 32767;
+    else if (s < -32768)
+      s = -32768;
+    stereo[2 * i] = (int16_t)s;
+    stereo[2 * i + 1] = (int16_t)s;
+  }
+  for (int i = used; i < queued_count; i++) queued[i - used] = queued[i];
+  queued_count -= used;
 }

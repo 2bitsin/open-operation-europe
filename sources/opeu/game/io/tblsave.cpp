@@ -161,14 +161,14 @@ uint16_t svc_tblsave(uint8_t* ds, uint16_t kind, const uint16_t* args,
                          ARG(2), ARG(3), ARG(4));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 2: b1_request_format(ds, args, count); break;
     case 6: b1_cursor_print(ds, args, count); break;
     case 7:
-      opeu_text_put_range(ds, (TextHost *)port_textout_host(), ARG(0), (uint8_t)ARG(1),
-                          (uint8_t)ARG(2));
+      opeu_text_put_range(ds, (TextHost*)port_textout_host(), ARG(0),
+                          (uint8_t)ARG(1), (uint8_t)ARG(2));
       break;
     default: port_unhandled("tblsave", kind, count);
   }

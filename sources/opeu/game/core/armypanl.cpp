@@ -265,12 +265,12 @@ uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 2: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
     case 3:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 4: b2_cursor_print(ds, args, count); break;

@@ -15,9 +15,7 @@
  * unless --intro is given, so the existing scripted runs, their PNGs and
  * audio checks keep their timings.
  */
-#ifndef PORT_OPEN_H
-#define PORT_OPEN_H
+#pragma once
 
-void open_intro_options(int *argc, char **argv);
+void open_intro_options(int* argc, char** argv);
 void open_intro_run(void);
-#endif

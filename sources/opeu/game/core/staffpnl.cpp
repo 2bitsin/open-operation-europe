@@ -108,8 +108,8 @@ void svc_staffpnl(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
       break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     default: port_unhandled("staffpnl", id, count);
   }

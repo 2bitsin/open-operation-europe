@@ -382,37 +382,40 @@ uint16_t svc_noonevt(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   switch (id) {
     case 0:
-      opeu_message_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:0346 */
     case 1:
-      opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0));
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0));
       break; /* 0480:0484 */
     case 2:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;                                         /* 0a04:02a0 */
     case 3: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 */
     case 4:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break; /* 0a04:046c */
     case 5:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break; /* 0480:0808 */
     case 6:
       opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0));
       break; /* 0541:011e */
     case 7:
-      opeu_text_feed(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:0652 */
     case 8:
       opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
       break; /* 1389:000e */
     case 9:
-      opeu_turn_active_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break;                                            /* 1707:020c */
     case 10: opeu_sound_cue10(ds, svc_soundcue); break; /* 0d92:0058 */
     case 11:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 12:
       port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), NULL, 0);

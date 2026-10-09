@@ -511,7 +511,8 @@ uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break; /* 0b73:02ee */
     case 12:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break; /* 1707:076c */
     case 13:
       opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
@@ -522,14 +523,16 @@ uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;                                                  /* 0b73:0188 */
     case 16: r = opeu_string_copy(ds, ARG(0), ARG(1)); break; /* 09cc:01d0 */
     case 17:
-      opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
       break; /* 1707:07ec */
     case 18:
-      opeu_objective_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1));
       break; /* 1707:0890 */
     case 19:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     default: port_unhandled("notice", id, count);
   }

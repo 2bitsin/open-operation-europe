@@ -157,7 +157,8 @@ uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 4: c2_request_format(ds, args, count); break;
     case 5:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     default: port_unhandled("airshow", id, count);
   }

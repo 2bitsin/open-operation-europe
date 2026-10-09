@@ -430,7 +430,8 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 15: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
     case 16:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 17: r = opeu_keyboard_key(ds, svc_keyboard); break;
     case 18:

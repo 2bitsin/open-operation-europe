@@ -64,11 +64,12 @@ uint16_t svc_delay(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
     case 1:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 2:
-      r = opeu_delay_confirm(ds, (const DialogHost *)port_dialogs_host(), ARG(1), (uint8_t)ARG(0));
+      r = opeu_delay_confirm(ds, (const DialogHost*)port_dialogs_host(), ARG(1),
+                             (uint8_t)ARG(0));
       break;
     default: port_unhandled("delay", id, count);
   }

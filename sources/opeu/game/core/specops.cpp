@@ -474,10 +474,12 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 2:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break; /* 1707:076c */
     case 3:
       r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
@@ -493,11 +495,11 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break; /* 145c:016a */
     case 8:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break; /* 1707:0726 */
     case 9:
-      opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break;                 /* 1707:03aa */
     case 10: /* 17c4:0274 */ /* frame: the callee's BP; its 20-byte workspace lies below it. */
       frame = port_frame_enter();
@@ -506,7 +508,7 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 11: r = opeu_objective_side(ds, ARG(0)); break; /* 145c:01b8 */
     case 12:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break; /* 0480:0808 */
     case 13:

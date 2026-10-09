@@ -165,12 +165,14 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
 uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   switch (id) {
-    case 0: opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
-    case 1: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 0:
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
+    case 1: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 2: b2_request_format(ds, args, count); break;
     case 3: b2_cursor_print(ds, args, count); break;
     case 4:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     default: port_unhandled("armysum", id, count);

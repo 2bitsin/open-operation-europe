@@ -299,17 +299,22 @@ uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
   switch (id) {
     case 0: c2_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 2:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 3: r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0)); break;
     case 4: c2_cursor_print(ds, args, count); break;
     case 5:
-      r = opeu_speaker_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                             ARG(1));
       break;
-    case 6: opeu_text_feed(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 6:
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 7:
       scratch = port_scratch_enter(0x40);
       r       = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1),
@@ -317,10 +322,12 @@ uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
       port_scratch_leave(0x40);
       break;
     case 8:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
-    case 9: opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 9:
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 10:
       frame = port_frame_enter();
       r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
@@ -331,7 +338,8 @@ uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
                            (uint8_t)ARG(2));
       break;
     case 12:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (short)ARG(0), (short)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
+                         (short)ARG(1));
       break;
     case 13: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
     case 14:

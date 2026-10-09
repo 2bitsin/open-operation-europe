@@ -532,7 +532,8 @@ uint16_t svc_advice(const char* module, uint8_t* ds, uint16_t id,
   switch (id) {
     case 0: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     default: port_unhandled(module, id, count);
   }

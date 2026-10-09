@@ -264,7 +264,7 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
     case 4: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
     case 5: r = opeu_unit_side(ARG(0)); break;                   /* 145c:006c */
     case 6:
-      opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:03aa */
     case 7:
       opeu_objective_resource_percentages(ds, ARG(0), B2_DS_WORDS(ARG(1)),
@@ -272,7 +272,7 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
                                           B2_DS_WORDS(ARG(3)));
       break;
     case 8:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 9: b2_cursor_print(ds, args, count); break; /* 0480:0bb8 */
@@ -300,7 +300,8 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
                                  (uint8_t)ARG(1)));
       break;
     case 16:
-      opeu_backdrop_fill_color(ds, (const UiHost *)port_uiprim_host(), (uint8_t)ARG(0));
+      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
+                               (uint8_t)ARG(0));
       break; /* 0a04:0720 */
     case 17:
       r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
@@ -318,8 +319,10 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
       B2_SP_CALL(PORT_FRAME,
                  opeu_division_regiments(ds, svc_armypanl, ARG(0), ARG(1), sp));
       break;
-    case 22: opeu_division_credits(ds, svc_credits); break;     /* 0bc3:0790 */
-    case 23: opeu_screen_reset(ds, (const DialogHost *)port_dialogs_host()); break; /* 1707:038e */
+    case 22: opeu_division_credits(ds, svc_credits); break; /* 0bc3:0790 */
+    case 23:
+      opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
+      break; /* 1707:038e */
     case 24:
       opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
       break;                                                   /* 1389:000e */
@@ -331,17 +334,18 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
                                        (uint8_t)ARG(2)));
       break;
     case 27:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 28:
-      opeu_turn_active_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:020c */
     case 29:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 30:
-      opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:02e2 */
     case 31:
       r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
@@ -361,7 +365,8 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
       break;
     case 37: r = opeu_unit_special(ds, ARG(0)); break; /* 145c:04de */
     case 38:
-      opeu_element_type_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_element_type_panel(ds, (const DialogHost*)port_dialogs_host(),
+                              ARG(0));
       break; /* 1707:0a22 */
     case 39:
       r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), NULL, 0);

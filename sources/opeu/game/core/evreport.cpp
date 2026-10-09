@@ -226,11 +226,12 @@ uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
       break; /* 312c:000c */
     case 2:
-      opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
       break; /* 1707:07ec unit_message */
     case 3:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 4:
       opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));

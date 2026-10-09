@@ -2,12 +2,11 @@
  * sound chip (port/third_party/ymfm, BSD-3-Clause) behind a C interface.
  * The FM driver (fmdriver.c) writes registers; the audio path pulls
  * samples at the chip's own rate (3579545 Hz / 72 = 49716 Hz, mono). */
-#ifndef OPEU_OPL_H
-#define OPEU_OPL_H
+#pragma once
 
 #include <stdint.h>
 
-#define OPL_CLOCK       3579545u
+#define OPL_CLOCK 3579545u
 #define OPL_SAMPLE_RATE 49716           /* OPL_CLOCK / 72, rounded */
 
 void opl_reset(void);
@@ -15,5 +14,4 @@ void opl_reset(void);
 void opl_write(uint8_t reg, uint8_t value);
 /* Render `frames` samples as interleaved stereo int16 (both channels carry
  * the chip's mono output). */
-void opl_render(int16_t *stereo, int frames);
-#endif
+void opl_render(int16_t* stereo, int frames);

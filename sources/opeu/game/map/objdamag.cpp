@@ -242,17 +242,18 @@ uint16_t svc_objdamag(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 1: map_request_format(ds, args, count); break; /* 0480:0b9a */
     case 2:
-      opeu_objective_side_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_objective_side_report(ds, (const DialogHost*)port_dialogs_host(),
+                                 ARG(0), ARG(1));
       break; /* 1707:09b2 */
     case 3:
-      opeu_element_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_element_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break;                                                   /* 1707:0b76 */
     case 4: r = opeu_string_append(ds, ARG(0), ARG(1)); break; /* 09cc:01f6 */
     case 5:
       opeu_blast_erase(ds, svc_blast, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break; /* 17c4:0860 */
     case 6:
-      opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break;                                                 /* 1707:02e2 */
     case 7:  r = opeu_objective_side(ds, ARG(0)); break;     /* 145c:01b8 */
     case 8:  r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */

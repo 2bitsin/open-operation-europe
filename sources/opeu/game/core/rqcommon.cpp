@@ -163,25 +163,27 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id,
       port_scratch_leave(4);
       break;
     case 10:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     case 16:
-      opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:03aa */
     case 17:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 19: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 20:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break; /* 1707:076c */
     case 21:
       opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
       break; /* 0a8e:005c */
     case 22:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      ARG32(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), ARG32(2));
       break;
     case 23: /* 17c4:0274 */
       frame = port_frame_enter();
@@ -189,7 +191,8 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id,
       port_frame_leave();
       break;
     case 26:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (short)ARG(0), (short)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
+                         (short)ARG(1));
       break;                                          /* 0480:0808 */
     case 27: c2_cursor_print(ds, args, count); break; /* 0480:0bb8 */
     case 28:

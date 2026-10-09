@@ -238,8 +238,14 @@ uint16_t svc_map_plan(uint8_t* ds, const char* module, uint16_t kind,
     case 10: koei_27c2(W(0), W(1), W(2), W(3), W(4), PORT_DS(W(5))); break;
     case 11: koei_3bc5(W(0), W(1), W(2), W(3)); break;
     case 12: opeu_delay_units(ds, svc_waitkey, (uint8_t)W(0)); break;
-    case 13: opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), W(0), W(1)); break;
-    case 14: opeu_turn_frame(ds, (const DialogHost *)port_dialogs_host(), (uint8_t)W(0)); break;
+    case 13:
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), W(0),
+                           W(1));
+      break;
+    case 14:
+      opeu_turn_frame(ds, (const DialogHost*)port_dialogs_host(),
+                      (uint8_t)W(0));
+      break;
     case 15: opeu_view_prepare(ds, svc_emsmap); break;
     case 16:
       opeu_read_far_bytes(ds, port_far(W(1), 0), W(0), W(2), W(3));

@@ -103,18 +103,22 @@ uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t s;
   switch (id) {
-    case 0: opeu_context_begin(ds, (const DialogHost *)port_dialogs_host()); break;
-    case 1: opeu_context_save(ds, (TextHost *)port_textout_host()); break;
+    case 0:
+      opeu_context_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
+    case 1: opeu_context_save(ds, (TextHost*)port_textout_host()); break;
     case 2:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
     case 3: b1_cursor_print(ds, args, count); break;
-    case 4: opeu_context_restore(ds, (TextHost *)port_textout_host()); break;
+    case 4: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
     case 5:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     case 6:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 7:

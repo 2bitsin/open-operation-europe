@@ -219,9 +219,9 @@ void CDECL opeu_format(uint8_t   ds[65536],
   PCHAR j;              /* format */
   I16   k;              /* explicit plus */
   BUFFER(char, l, 50);  /* conversion buffer */
-  I16            m;     /* precision given */
-  PCHAR          n;     /* output position */
-  PARGS p;     /* next argument */
+  I16   m;              /* precision given */
+  PCHAR n;              /* output position */
+  PARGS p;              /* next argument */
   ENTER(g, 200)
   ENTER(l, 50)
   j = ARG_PTR(args);
@@ -840,21 +840,22 @@ void svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2) {
 }
 
 PORT_ROUTINE(opeu_army_position) {
-  opeu_army_position(ds, (TextHost *)port_textout_host(), (short)ARG(0), (short)ARG(1));
+  opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
+                     (short)ARG(1));
   return 0;
 }
 
 PORT_ROUTINE(opeu_context_restore) {
   (void)args;
   (void)count;
-  opeu_context_restore(ds, (TextHost *)port_textout_host());
+  opeu_context_restore(ds, (TextHost*)port_textout_host());
   return 0;
 }
 
 PORT_ROUTINE(opeu_context_save) {
   (void)args;
   (void)count;
-  opeu_context_save(ds, (TextHost *)port_textout_host());
+  opeu_context_save(ds, (TextHost*)port_textout_host());
   return 0;
 }
 
@@ -867,7 +868,7 @@ PORT_ROUTINE(opeu_cursor_print) {
 PORT_ROUTINE(opeu_input_flush) {
   (void)args;
   (void)count;
-  opeu_input_flush(ds, (TextHost *)port_textout_host());
+  opeu_input_flush(ds, (TextHost*)port_textout_host());
   return 0;
 }
 
@@ -878,23 +879,23 @@ PORT_ROUTINE(opeu_request_format) {
 }
 
 PORT_ROUTINE(opeu_text_color) {
-  opeu_text_color(ds, (TextHost *)port_textout_host(), ARG(0));
+  opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0));
   return 0;
 }
 
 PORT_ROUTINE(opeu_text_paper_set) {
-  opeu_text_paper_set(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0));
+  opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
   return 0;
 }
 
 PORT_ROUTINE(opeu_text_put_range) {
-  opeu_text_put_range(ds, (TextHost *)port_textout_host(), ARG(2), (uint8_t)ARG(0),
-                      (uint8_t)ARG(1));
+  opeu_text_put_range(ds, (TextHost*)port_textout_host(), ARG(2),
+                      (uint8_t)ARG(0), (uint8_t)ARG(1));
   return 0;
 }
 
 PORT_ROUTINE(opeu_ui_text) {
-  opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0));
+  opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0));
   return 0;
 }
 

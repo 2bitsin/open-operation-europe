@@ -221,7 +221,9 @@ uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 15: koei_2fea(); break;
     case 16: koei_vga_identity_palette(); break;
     case 17: opeu_vga_clear(); break;
-    case 18: opeu_palette_title_screen(ds, (const UiHost *)port_uiprim_host()); break;
+    case 18:
+      opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
+      break;
     case 19: opeu_sound_initialize(ds, svc_sound); break;
     default: port_unhandled("segsetup", id, count);
   }

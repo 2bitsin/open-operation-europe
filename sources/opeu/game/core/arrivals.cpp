@@ -158,8 +158,8 @@ uint16_t svc_arrivals(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
       port_stack_leave(PORT_FRAME);
       break;
     case 5:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), a0, (uint8_t)a1,
-                      (uint32_t)a3 << 16 | a2);
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0,
+                      (uint8_t)a1, (uint32_t)a3 << 16 | a2);
       break;
     case 6:
       opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0);

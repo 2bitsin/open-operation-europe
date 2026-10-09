@@ -23,7 +23,7 @@ inline constexpr auto CONTRACTS_HALT{ CONTRACT_MODE == ContractMode::HALT };
 inline auto Quoted(std::string_view text) -> std::string {
   constexpr auto SPECIAL{ std::string_view{ R"(\^$.[]|()*+?{})" } };
 
-  auto result{ std::string{ } };
+  auto result{ std::string{} };
   for (auto const letter : text) {
     if (SPECIAL.find(letter) != SPECIAL.npos) {
       result.push_back('\\');
@@ -34,13 +34,11 @@ inline auto Quoted(std::string_view text) -> std::string {
 }
 
 // ContractLine()'s shape, with the place left open and the text exact.
-inline auto ContractPattern(std::string_view kind, std::string_view text)
-    -> std::string {
+inline auto ContractPattern(std::string_view kind, std::string_view text) -> std::string {
   return std::format("{}: [^ ]+:[0-9]+ [^ ].*: {}", kind, Quoted(text));
 }
 
-inline auto SaysContract(std::string const& said, std::string_view kind,
-                         std::string_view text) -> bool {
+inline auto SaysContract(std::string const& said, std::string_view kind, std::string_view text) -> bool {
   return std::regex_search(said, std::regex{ ContractPattern(kind, text) });
 }
 
@@ -48,7 +46,7 @@ inline auto SaysContract(std::string const& said, std::string_view kind,
 // passing test says nothing; empty when nothing was thrown.
 template <typename _Broken>
 auto ThrownContract(_Broken&& broken) -> std::string {
-  auto thrown{ std::string{ } };
+  auto thrown{ std::string{} };
   testing::internal::CaptureStderr();
   try {
     broken();
@@ -102,5 +100,4 @@ using detail::contract_test::ThrownContract;
 #define EXPECT_CONTRACT_POSTCONDITION(statement, text) \
   OPEU_EXPECT_STOPPED(::opeu::CONTRACTS_STOP, statement, "postcondition", text)
 // Unreachable has no continuation in any mode, so only halt survives it.
-#define EXPECT_CONTRACT_UNREACHABLE(statement, text) \
-  OPEU_EXPECT_STOPPED(true, statement, "unreachable", text)
+#define EXPECT_CONTRACT_UNREACHABLE(statement, text) OPEU_EXPECT_STOPPED(true, statement, "unreachable", text)

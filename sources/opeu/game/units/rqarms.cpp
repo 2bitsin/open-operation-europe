@@ -215,9 +215,12 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id,
       break;
     case 7: r = opeu_release_side_units(ds, ARG(0), (uint8_t)ARG(1)); break;
     case 8: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 9: opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host()); break;
+    case 9:
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
     case 10:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 11:
       r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
@@ -227,15 +230,20 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id,
     case 13: r = opeu_category_0_to_3((uint8_t)ARG(0)); break;
     case 14: r = opeu_category_4_or_5((uint8_t)ARG(0)); break;
     case 15: r = opeu_category_6((uint8_t)ARG(0)); break;
-    case 16: opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
-    case 17:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+    case 16:
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break;
-    case 18: r = opeu_confirm_ok(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 17:
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
+      break;
+    case 18:
+      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
     case 19: r = lf_request_format(ds, args, count); break;
     case 20:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 23:
       sp = port_stack_enter(LF_FRAME);

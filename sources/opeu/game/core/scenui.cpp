@@ -88,27 +88,27 @@ uint16_t svc_scenui(uint8_t* ds, uint16_t kind, const uint16_t* args,
   uint16_t r = 0;
   switch (kind) {
     case 0:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 2: b1_cursor_print(ds, args, count); break;
-    case 3: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 3: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 4:
       r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
       break;
     case 5:
-      r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost *)port_textout_host(),
+      r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(),
                                           (int16_t)ARG(0));
       break;
     case 6:
-      opeu_text_window(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                        (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
       break;
-    case 7:  opeu_text_window_reset(ds, (TextHost *)port_textout_host()); break;
+    case 7:  opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
     default: port_unhandled("scenui", kind, count);
   }
   return r;

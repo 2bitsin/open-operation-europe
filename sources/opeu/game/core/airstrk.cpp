@@ -363,7 +363,8 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break;
     case 8:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 9: /* (count, text) */
       bp = c2_air_bp_enter();
@@ -405,8 +406,8 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args,
       c2_air_leave();
       break;
     case 22:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 23: opeu_music_command7(ds, svc_sound); break;
     case 24: opeu_delay_ticks(ds, svc_waitkey, ARG(0)); break;

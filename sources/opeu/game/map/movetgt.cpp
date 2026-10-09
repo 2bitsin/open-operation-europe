@@ -284,7 +284,10 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
     case 27: r = opeu_unit_special(ds, ARG(0)); break;
     case 28: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
     case 29: map_request_format(ds, args, count); break;
-    case 30: opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1)); break;
+    case 30:
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
+      break;
     default: port_unhandled(module, id, count);
   }
   return r;

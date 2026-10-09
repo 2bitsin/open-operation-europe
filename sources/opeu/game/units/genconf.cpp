@@ -212,22 +212,23 @@ uint16_t svc_genconf(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t sp, r = 0;
   switch (id) {
     case 0:
-      opeu_backdrop_fill_color(ds, (const UiHost *)port_uiprim_host(), (uint8_t)ARG(0));
+      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
+                               (uint8_t)ARG(0));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 2: r = lf_cursor_print(ds, args, count); break;
-    case 3: opeu_text_color(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 3: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 4:
-      opeu_text_paper_set(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
       break;
     case 5:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
-    case 6: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 6: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 7:
       r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
                            (uint8_t)ARG(2));

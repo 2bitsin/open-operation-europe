@@ -472,11 +472,15 @@ uint16_t svc_keyboard(uint8_t* ds, uint16_t call, uint16_t* w) {
     case 11:
     case 12:
     case 13: return svc_numdlg(ds, call, w);
-    case 20: return opeu_key_read(ds, (TextHost *)port_textout_host());
-    case 21: opeu_input_flush(ds, (TextHost *)port_textout_host()); break;
-    case 22: opeu_text_set_y(ds, (TextHost *)port_textout_host(), (int16_t)w[0]); break;
-    case 23: opeu_text_put(ds, (TextHost *)port_textout_host(), (uint8_t)w[0]); break;
-    case 24: opeu_text_erase_char(ds, (TextHost *)port_textout_host()); break;
+    case 20: return opeu_key_read(ds, (TextHost*)port_textout_host());
+    case 21: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
+    case 22:
+      opeu_text_set_y(ds, (TextHost*)port_textout_host(), (int16_t)w[0]);
+      break;
+    case 23:
+      opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)w[0]);
+      break;
+    case 24: opeu_text_erase_char(ds, (TextHost*)port_textout_host()); break;
     case 25: opeu_fm_wait_start(w[0]); break;
     case 26: return opeu_fm_busy();
     case 27: return opeu_turn_input_b();

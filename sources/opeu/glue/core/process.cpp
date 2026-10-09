@@ -6,8 +6,7 @@
 
 PortOptions port_options;
 
-void port_exit(int code)
-{
-    port_trace("svc", "exit(%d)", code);
-    exit(code == 100 ? 0 : code);
+void port_exit(int code) {
+  port_trace("svc", "exit(%d)", code);
+  exit(code == 100 ? 0 : code);
 }

@@ -43,7 +43,7 @@ void opeu_copy_bytes(uint8_t ds[65536], NEAR source, NEAR destination,
 }
 
 /* 09cc:005a. Far source on the stack, BX=destination, AX=size. */
-void opeu_copy_far_to_near(uint8_t       ds[65536], FAR(source_segment, source),
+void opeu_copy_far_to_near(uint8_t ds[65536], FAR(source_segment, source),
                            NEAR destination, uint16_t size) {
   while (size) {
     WRITE(destination, FAR_READ(source_segment, source));

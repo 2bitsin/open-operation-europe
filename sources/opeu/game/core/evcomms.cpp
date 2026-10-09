@@ -112,7 +112,8 @@ uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t frame;
   switch (id) {
     case 4:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;                                           /* 1707:0672 */
     case 5: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 6:                                            /* 15c4:087e */

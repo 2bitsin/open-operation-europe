@@ -297,7 +297,8 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;                                                /* 0b73:03d2 */
     case 5: r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
     case 6:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 request_message */
     case 7: opeu_sound_cue4(ds, svc_soundcue); break; /* 0d92:0028 */
     case 8:
@@ -316,10 +317,10 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 12: opeu_music_command7(ds, svc_sound); break; /* 0d65:01b0 */
     case 13:
       r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)ARG(0),
-                                (uint8_t *)PORT_DS(ARG(1)));
+                                (uint8_t*)PORT_DS(ARG(1)));
       break; /* 0f43:0722 */
     case 14:
-      r = opeu_para_land(ds, svc_paraunit, (ParaUnit *)PORT_DS(ARG(0)), ARG(1));
+      r = opeu_para_land(ds, svc_paraunit, (ParaUnit*)PORT_DS(ARG(0)), ARG(1));
       break; /* 0f43:0954 */
     case 15: /* 15c4:0fd0 */
       frame = port_frame_enter();

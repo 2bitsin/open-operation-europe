@@ -417,7 +417,8 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 11: r = opeu_opposite_side((uint8_t)ARG(0)); break;
     case 12: r = opeu_side_for_status(ds, (uint8_t)ARG(0)); break;
     case 13:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 14: opeu_sound_cue4(ds, svc_soundcue); break;
     case 15: c2_request_format(ds, args, count); break;
@@ -429,8 +430,8 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 17: opeu_view_pixel(ds, ARG(0), ARG(1)); break;
     case 18:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 19: opeu_music_command7(ds, svc_sound); break;
     case 20: opeu_delay_ticks(ds, svc_waitkey, ARG(0)); break;

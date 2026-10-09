@@ -25,11 +25,10 @@
  *    native C function, for the address-keyed service callbacks;
  *  - diagnostics.
  */
-#ifndef PORT_H
-#define PORT_H
+#pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,25 +36,25 @@ extern "C" {
 
 /* ---- data layout ------------------------------------------------------- */
 
-#define PORT_DS_SEGMENT   0x4712u     /* DGROUP paragraph in the original layout */
-#define PORT_DS_END       0xebe0u     /* _end: first byte past DGROUP data+BSS */
-#define PORT_STACK_TOP    0xffe0u     /* _end + /STACK:5120 */
+#define PORT_DS_SEGMENT 0x4712u     /* DGROUP paragraph in the original layout */
+#define PORT_DS_END 0xebe0u     /* _end: first byte past DGROUP data+BSS */
+#define PORT_STACK_TOP 0xffe0u     /* _end + /STACK:5120 */
 #define PORT_HEAP_SEGMENT 0x5712u     /* first paragraph handed out by the DOS allocator */
-#define PORT_ARENA_SIZE   0xa0000u    /* conventional memory: segments below A000 */
+#define PORT_ARENA_SIZE 0xa0000u    /* conventional memory: segments below A000 */
 
-extern uint8_t *port_arena;           /* PORT_ARENA_SIZE bytes, linear = seg*16+off */
-extern uint8_t *port_ds;              /* port_arena + PORT_DS_SEGMENT*16 */
+extern uint8_t* port_arena;           /* PORT_ARENA_SIZE bytes, linear = seg*16+off */
+extern uint8_t* port_ds;              /* port_arena + PORT_DS_SEGMENT*16 */
 
 /* Byte at segment:offset (fatal outside the arena). */
-uint8_t *port_far(uint16_t seg, uint16_t off);
+uint8_t* port_far(uint16_t seg, uint16_t off);
 /* Host pointer of a DS offset. */
 #define PORT_DS(off) (port_ds + (uint16_t)(off))
 /* Little-endian word access into ds[] (16-bit wrap of the offset). */
 uint16_t port_ds_word(uint16_t off);
 void port_ds_set_word(uint16_t off, uint16_t value);
 /* Segment:offset of a host pointer into the arena (fatal otherwise). */
-uint16_t port_segment_of(const void *p);
-uint16_t port_offset_of(const void *p, uint16_t seg);
+uint16_t port_segment_of(const void* p);
+uint16_t port_offset_of(const void* p, uint16_t seg);
 
 /* DOS memory blocks (INT 21h AH=48h/49h semantics): paragraphs -> segment, 0 on failure. */
 uint16_t port_dos_alloc(uint16_t paragraphs);
@@ -63,10 +62,10 @@ int port_dos_free(uint16_t segment);
 
 /* Image of the recovered data modules (generated port/gen/data_image.c). */
 typedef struct {
-    const void *object;
-    uint16_t seg, off;
-    uint32_t size;
-    const char *name;
+  const void* object;
+  uint16_t seg, off;
+  uint32_t size;
+  const char* name;
 } PortImageObject;
 extern const PortImageObject port_image_objects[];
 extern const unsigned port_image_object_count;
@@ -75,10 +74,10 @@ extern const unsigned port_image_object_count;
  * literals and static tables of their _DATA segments), generated from the
  * recovered source text (port/gen/module_data.c, port/tools/gen_module_data.py). */
 typedef struct {
-    uint16_t seg, off;
-    uint16_t size;
-    const uint8_t *bytes;
-    const char *module;
+  uint16_t seg, off;
+  uint16_t size;
+  const uint8_t* bytes;
+  const char* module;
 } PortImageBytes;
 extern const PortImageBytes port_module_data[];
 extern const unsigned port_module_data_count;
@@ -113,58 +112,57 @@ void port_stack_leave(uint16_t bytes);
  * then stack arguments in prototype order; far pointers are (offset,
  * segment), 32-bit values (low, high). Near pointers are DS offsets. The
  * result is DX:AX (AX in the low half). */
-typedef uint32_t (*PortRoutine)(uint8_t *ds, const uint16_t *args, unsigned count);
+typedef uint32_t (*PortRoutine)(uint8_t* ds, const uint16_t* args, unsigned count);
 
 typedef struct {
-    uint32_t address;       /* original linear routine address (identifier only) */
-    const char *name;
-    PortRoutine routine;    /* NULL: not linked yet */
+  uint32_t address;       /* original linear routine address (identifier only) */
+  const char* name;
+  PortRoutine routine;    /* NULL: not linked yet */
 } PortLink;
 
 /* Define a linked routine handler for recovered/native routine `name`.
  * port/tools/gen_link_table.py collects every PORT_ROUTINE in port/ and
  * builds port/gen/link_table.c from the routine's address. */
-#define PORT_ROUTINE(name) uint32_t port_routine_##name(uint8_t *ds, const uint16_t *args, unsigned count)
+#define PORT_ROUTINE(name) uint32_t port_routine_##name(uint8_t* ds, const uint16_t* args, unsigned count)
 
 /* Call a routine by its identifier; fatal (with its name) when unlinked. */
-uint32_t port_call(uint8_t *ds, uint32_t address, const uint16_t *args, unsigned count);
+uint32_t port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);
 /* The address-keyed service callback signature used by the battle modules. */
-uint16_t port_service(uint8_t *ds, uint32_t address, const uint16_t *args, unsigned count);
+uint16_t port_service(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);
 /* Name of a routine identifier (for diagnostics), or NULL. */
-const char *port_routine_name(uint32_t address);
+const char* port_routine_name(uint32_t address);
 /* Identifier of a routine by name (the DOS symbol without _ / @ prefix), 0 if unknown. */
-uint32_t port_routine_address(const char *name);
+uint32_t port_routine_address(const char* name);
 
 /* ---- diagnostics ------------------------------------------------------- */
 
 /* Abort with a message (also written to port.log). Never returns. */
-void port_fatal(const char *fmt, ...);
+void port_fatal(const char* fmt, ...);
 /* An event id a link adapter does not handle. Never returns. */
-void port_unhandled(const char *module, unsigned id, unsigned count);
+void port_unhandled(const char* module, unsigned id, unsigned count);
 /* Trace line when OPEU_TRACE is set (category filter: OPEU_TRACE=all|link|svc|...) */
-void port_trace(const char *category, const char *fmt, ...);
-int port_trace_enabled(const char *category);
+void port_trace(const char* category, const char* fmt, ...);
+int port_trace_enabled(const char* category);
 
 /* Leave the game (quit to DOS). */
 void port_exit(int code);
 
 /* ---- run-time options (glue/core/process.cpp, set by the entry) -------- */
 typedef struct {
-    int headless;            /* no window; virtual time; scripted input */
-    uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
-    const char *png_path;    /* write the last frame here when stopping */
-    const char *input_path;  /* scripted input log (see docs/port.md) */
-    const char *save_dir;    /* saved games (NULL: the platform's default) */
-    int scale;               /* initial window scale */
-    const char *shot_dir;    /* headless: write a frame every shot_every_ms here */
-    uint32_t shot_every_ms;
-    const char *wav_path;    /* write the audio output (49716 Hz stereo) here */
-    const char *opl_log_path;/* log every OPL register write (frame, register, value) */
-    int mute;                /* window mode: no audio device */
+  int headless;            /* no window; virtual time; scripted input */
+  uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
+  const char* png_path;    /* write the last frame here when stopping */
+  const char* input_path;  /* scripted input log (see docs/port.md) */
+  const char* save_dir;    /* saved games (NULL: the platform's default) */
+  int scale;               /* initial window scale */
+  const char* shot_dir;    /* headless: write a frame every shot_every_ms here */
+  uint32_t shot_every_ms;
+  const char* wav_path;    /* write the audio output (49716 Hz stereo) here */
+  const char* opl_log_path;/* log every OPL register write (frame, register, value) */
+  int mute;                /* window mode: no audio device */
 } PortOptions;
 extern PortOptions port_options;
 
 #ifdef __cplusplus
 }
-#endif
 #endif

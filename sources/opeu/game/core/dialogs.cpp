@@ -606,47 +606,51 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 3: r = (uint16_t)opeu_vga_clear(); break;
     case 4: opeu_display_prepare(ds, svc_emsmap); break;
     case 5:
-      opeu_picture_memory_masked(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                                 ARG(3));
+      opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                                 ARG(1), ARG(2), ARG(3));
       break;
-    case 6: opeu_palette_for_hour(ds, (const UiHost *)port_uiprim_host()); break;
+    case 6: opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host()); break;
     case 7:
-      opeu_picture_file(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), (int16_t)ARG(2),
-                        ARG(3));
+      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                        (int16_t)ARG(2), ARG(3));
       break;
     case 8:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 9:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
     case 10:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     case 11:
-      opeu_face_draw(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                     (uint8_t)ARG(3));
+      opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                     ARG(2), (uint8_t)ARG(3));
       break;
-    case 12: opeu_context_save(ds, (TextHost *)port_textout_host()); break;
-    case 13: opeu_context_restore(ds, (TextHost *)port_textout_host()); break;
+    case 12: opeu_context_save(ds, (TextHost*)port_textout_host()); break;
+    case 13: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
     case 14:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
-    case 15: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 15: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 16: b1_cursor_print(ds, args, count); break;
     case 17: b1_request_format(ds, args, count); break;
     case 18:
-      r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost *)port_textout_host(),
+      r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(),
                                           (int16_t)ARG(0));
       break;
     case 19:
-      opeu_text_window(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                        (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
       break;
-    case 20: opeu_text_window_reset(ds, (TextHost *)port_textout_host()); break;
-    case 21: r = opeu_text_put(ds, (TextHost *)port_textout_host(), (uint8_t)ARG(0)); break;
+    case 20: opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
+    case 21:
+      r = opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      break;
     case 22:
       f = b1_stack_alloc(KEY_SCRATCH);
       r = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1), (int16_t)ARG(2),
@@ -708,42 +712,43 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 PORT_ROUTINE(opeu_army_title) {
-  opeu_army_title(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
   return 0;
 }
 
 PORT_ROUTINE(opeu_confirm_ok) {
-  return opeu_confirm_ok(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+  return opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
 }
 
 PORT_ROUTINE(opeu_control_choose) {
-  return opeu_control_choose(ds, (const DialogHost *)port_dialogs_host(), ARG(2), ARG(0), ARG(1),
-                             ARG(3), ARG(4), ARG(5));
+  return opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), ARG(2),
+                             ARG(0), ARG(1), ARG(3), ARG(4), ARG(5));
 }
 
 PORT_ROUTINE(opeu_control_message) {
-  opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(1), ARG(0));
+  opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(1),
+                       ARG(0));
   return 0;
 }
 
 PORT_ROUTINE(opeu_info_panel_begin) {
   (void)args;
   (void)count;
-  opeu_info_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+  opeu_info_panel_begin(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 
 PORT_ROUTINE(opeu_screen_reset) {
   (void)args;
   (void)count;
-  opeu_screen_reset(ds, (const DialogHost *)port_dialogs_host());
+  opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 
 PORT_ROUTINE(opeu_title_panel_begin) {
   (void)args;
   (void)count;
-  opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host());
+  opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 

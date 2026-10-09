@@ -47,7 +47,7 @@ uint8_t opeu_record_side(const uint8_t ds[65536], uint16_t record) {
  * opeu_select_side_color's text colour: event(ds, colour) -> 0480:082e
  * opeu_text_color(colour). */
 void svc_sideutil(uint8_t* ds, uint16_t color) {
-  opeu_text_color(ds, (TextHost *)port_textout_host(), color);
+  opeu_text_color(ds, (TextHost*)port_textout_host(), color);
 }
 
 #undef ARG

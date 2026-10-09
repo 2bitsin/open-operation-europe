@@ -235,13 +235,13 @@ uint16_t opeu_menu_select(STATE_ ITEM items, int cancel SCRATCH_DECL) {
 uint16_t svc_menudraw(uint8_t* ds, uint16_t call, uint16_t* words) {
   switch (call) {
     case 1: return svc_mouse(ds, 1, words);
-    case 2: opeu_context_save(ds, (TextHost *)port_textout_host()); break;
+    case 2: opeu_context_save(ds, (TextHost*)port_textout_host()); break;
     case 3:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)words[0],
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)words[0],
                          (int16_t)words[1]);
       break;
     case 4: b1_cursor_print(ds, words, 3); break;
-    case 5: opeu_context_restore(ds, (TextHost *)port_textout_host()); break;
+    case 5: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
     case 6:
       koei_2e57(words[0], words[1], words[2], words[3],
                 port_far(words[4], words[5]));

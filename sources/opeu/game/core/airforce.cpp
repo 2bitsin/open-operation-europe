@@ -24,8 +24,8 @@
  * 9 army_title(text), 12 army_position(x,y), 13 daily_context(side),
  * 14 far action(segment,offset) for the mission table entry. The person
  * template and location label run their recovered host code. */
-extern uint16_t  opeu_find_person_template(const uint8_t ds[65536], uint8_t mask,
-                                           uint8_t kind);
+extern uint16_t opeu_find_person_template(const uint8_t ds[65536], uint8_t mask,
+                                          uint8_t kind);
 static HostEvent air_event;
 static uint16_t  label_event(uint8_t* ds, uint16_t id, const uint16_t* args,
                              uint16_t count) {

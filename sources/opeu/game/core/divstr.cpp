@@ -98,9 +98,11 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event,
 void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args,
                 uint16_t count) {
   switch (id) {
-    case 0: opeu_text_set_left(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0)); break;
+    case 0:
+      opeu_text_set_left(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0));
+      break;
     case 1:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 2:  b1_cursor_print(ds, args, count); break;

@@ -392,14 +392,20 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 0: opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host()); break;
-    case 1: opeu_screen_reset(ds, (const DialogHost *)port_dialogs_host()); break;
+    case 0:
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
+    case 1:
+      opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
+      break;
     case 2: r = lf_request_format(ds, args, count); break;
     case 3:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 4:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 5:
       r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
@@ -414,8 +420,8 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 7: opeu_copy_bytes(ds, ARG(0), ARG(1), ARG(2)); break;
     case 8: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
     case 9:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 10: r = opeu_unit_index(ARG(0)); break;
     case 11: r = opeu_category_0_to_3((uint8_t)ARG(0)); break;

@@ -442,19 +442,23 @@ int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 3:
       r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
       break;
-    case 4:  r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
-    case 5:  r = opeu_unit_side(ARG(0)); break;
-    case 6:  r = opeu_unit_value(ds, ARG(0)); break;
-    case 7:  r = opeu_move_supplied(ds); break;
-    case 8:  opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1)); break;
+    case 4: r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 5: r = opeu_unit_side(ARG(0)); break;
+    case 6: r = opeu_unit_value(ds, ARG(0)); break;
+    case 7: r = opeu_move_supplied(ds); break;
+    case 8:
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
+      break;
     case 9:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
     case 10: r = lf_request_format(ds, args, count); break;
     case 11:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 12:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      ARG32(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), ARG32(2));
       break;
     case 13: r = opeu_opposite_side((uint8_t)ARG(0)); break;
     case 14:

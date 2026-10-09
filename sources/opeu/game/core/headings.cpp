@@ -69,17 +69,18 @@ void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2), ARG(3),
-                      ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                      ARG(2), ARG(3), ARG(4));
       break;
     case 2:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
-    case 3: opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 3: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 5: b1_cursor_print(ds, args, count); break;
     case 6:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     case 7:  opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
     default: port_unhandled("headings", id, count);
@@ -87,7 +88,7 @@ void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 void svc_headings_color(uint8_t* ds, uint16_t color) {
-  opeu_text_color(ds, (TextHost *)port_textout_host(), color);
+  opeu_text_color(ds, (TextHost*)port_textout_host(), color);
 }
 
 #undef ARG

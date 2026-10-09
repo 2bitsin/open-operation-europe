@@ -90,12 +90,12 @@ uint16_t svc_appinit(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_mouse_window(ds, svc_mouse, (int16_t)ARG(0), (int16_t)ARG(1),
                         (int16_t)ARG(2), (int16_t)ARG(3));
       break;
-    case 3: opeu_input_flush(ds, (TextHost *)port_textout_host()); break;
+    case 3: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
     case 4:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
-    case 5:  opeu_ui_text(ds, (TextHost *)port_textout_host(), ARG(0)); break;
+    case 5:  opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
     case 6:  return (uint16_t)opeu_turn_input_a(ds, svc_mouse);
     case 7:  return opeu_turn_input_b();
     default: port_unhandled("appinit", id, count);

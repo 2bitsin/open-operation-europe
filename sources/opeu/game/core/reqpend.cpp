@@ -119,7 +119,7 @@ uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), a, (uint8_t)b,
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b,
                       (uint32_t)d << 16 | c);
       break;
     case 1:
@@ -132,7 +132,7 @@ uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
       c2_request_format(ds, words, 3);
       break;
     case 3:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), a, b);
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), a, b);
       break;                                               /* 1707:0672 */
     case 4: opeu_pending_prepare(ds, svc_soundcue); break; /* 0d92:0070 */
     case 5:

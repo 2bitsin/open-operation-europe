@@ -48,7 +48,9 @@ uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
   (void)a2;
   (void)a3;
   switch (id) {
-    case 0: opeu_turn_prepare(ds, (const DialogHost *)port_dialogs_host()); break; /* 1707:00c8 */
+    case 0:
+      opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host());
+      break;                /* 1707:00c8 */
     case 1: /* 0e57:0296 */ /* far_text: base of the far text segment 3895; the records' far
 * actions are compared with this code segment 0e57. */
       sp = port_stack_enter(NOON_RESERVE);

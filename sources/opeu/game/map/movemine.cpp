@@ -144,7 +144,8 @@ uint16_t svc_movemine(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: r = opeu_category_6((uint8_t)ARG(0)); break; /* 0b73:004a */
     case 1:
-      opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
       break;                                                     /* 1707:07ec */
     case 2: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
     case 3: r = opeu_unit_special(ds, ARG(0)); break;            /* 145c:04de */

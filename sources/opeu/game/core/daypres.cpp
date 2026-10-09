@@ -71,7 +71,8 @@ uint16_t svc_daypres(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
     case 1:
-      opeu_element_type_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_element_type_panel(ds, (const DialogHost*)port_dialogs_host(),
+                              ARG(0));
       break;                                           /* 1707:0a22 */
     case 2: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
@@ -81,7 +82,8 @@ uint16_t svc_daypres(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = opeu_find_person_template(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
       break; /* 0b73:03d2 */
     case 5:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break; /* 1707:0672 */
     default: port_unhandled("daypres", id, count);
   }

@@ -167,7 +167,7 @@ uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
       r = opeu_find_group_record(ds, (uint8_t)a0, (uint8_t)a1);
       break; /* 0b73:0334 */
     case 10:
-      opeu_turn_active_begin(ds, (const DialogHost *)port_dialogs_host());
+      opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break;   /* 1707:020c */
     case 11: { /* 0480:0bb8 turn_label (cdecl) */
       const uint16_t words[4] = { a0, a1, a2, a3 };

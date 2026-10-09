@@ -345,12 +345,15 @@ uint16_t svc_persmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: b2_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
-    case 2: opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host()); break;
+    case 2:
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
     case 3:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 4: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
     case 5:
@@ -358,8 +361,8 @@ uint16_t svc_persmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
                            (uint8_t)ARG(2));
       break;
     case 6:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 7: r = opeu_find_group_selected_unit(ds, ARG(0)); break;
     case 8: r = opeu_unit_selection_eligible(ds, ARG(0)); break;

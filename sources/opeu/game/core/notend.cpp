@@ -477,11 +477,12 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 5: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 6:
-      opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
       break; /* 1707:07ec */
     case 7:
-      opeu_daily_show(ds, (const DialogHost *)port_dialogs_host(), ARG(0), (uint8_t)ARG(1),
-                      (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
       break;
     case 8:
       r = opeu_battle_element_side(ds, svc_btllist, ARG(0));
@@ -494,15 +495,19 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 12: r = opeu_string_copy(ds, ARG(0), ARG(1)); break;   /* 09cc:01d0 */
     case 13: r = opeu_string_append(ds, ARG(0), ARG(1)); break; /* 09cc:01f6 */
     case 14:
-      opeu_group_element_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0));
       break; /* 1707:0b00 report_element */
     case 15:
-      opeu_element_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0));
+      opeu_element_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
       break; /* 1707:0b76 report_element_type */
     case 16:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
-      break;                                                    /* 1707:0672 */
-    case 17: opeu_turn_prepare(ds, (const DialogHost *)port_dialogs_host()); break; /* 1707:00c8 */
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
+      break; /* 1707:0672 */
+    case 17:
+      opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host());
+      break; /* 1707:00c8 */
     case 18:
       opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
       break; /* 1389:000e */

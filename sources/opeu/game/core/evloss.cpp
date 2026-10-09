@@ -250,10 +250,12 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;                                           /* 312c:000c */
     case 6: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 7:
-      opeu_unit_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                       ARG(1));
       break; /* 1707:07ec unit_message */
     case 8:
-      opeu_unit_side_report(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1));
       break; /* 1707:091a */
     case 9:  /* 15c4:087e */
       frame = port_frame_enter();

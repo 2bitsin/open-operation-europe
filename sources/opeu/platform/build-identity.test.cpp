@@ -12,9 +12,8 @@ TEST(BuildIdentity, StampsEveryFieldTheDriverWrites) {
   EXPECT_FALSE(build.version.empty());
   EXPECT_FALSE(build.commit.empty());
   EXPECT_GE(build.number, 1u);
-  EXPECT_TRUE(std::regex_match(
-      std::string{ build.time },
-      std::regex{ R"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z)" }))
+  EXPECT_TRUE(
+      std::regex_match(std::string{ build.time }, std::regex{ R"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z)" }))
       << build.time;
   // An exact tag is what describe prints for that commit, dirt aside.
   if (!build.tag.empty()) {
@@ -24,17 +23,13 @@ TEST(BuildIdentity, StampsEveryFieldTheDriverWrites) {
 }
 
 TEST(BuildIdentity, DescribesVersionNumberAndTime) {
-  auto const build{ BuildIdentity{ .version = "v1.2.3-4-gabcdef0",
-                                   .commit  = "abcdef0",
-                                   .time    = "2026-10-09T21:05Z",
-                                   .number  = 17u } };
-  EXPECT_EQ(Describe(build),
-            "opeu v1.2.3-4-gabcdef0 (build 17, 2026-10-09T21:05Z)");
+  auto const build{ BuildIdentity{
+      .version = "v1.2.3-4-gabcdef0", .commit = "abcdef0", .time = "2026-10-09T21:05Z", .number = 17u } };
+  EXPECT_EQ(Describe(build), "opeu v1.2.3-4-gabcdef0 (build 17, 2026-10-09T21:05Z)");
 }
 
 TEST(BuildIdentity, LeavesOutATimeTheStampDidNotCarry) {
-  auto const build{ BuildIdentity{
-    .version = "unknown", .commit = "unknown", .number = 0u } };
+  auto const build{ BuildIdentity{ .version = "unknown", .commit = "unknown", .number = 0u } };
   EXPECT_EQ(Describe(build), "opeu unknown (build 0)");
 }
 

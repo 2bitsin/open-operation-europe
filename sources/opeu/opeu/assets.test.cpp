@@ -16,10 +16,10 @@ auto Size(char const* const name) -> std::size_t {
 
 TEST(Assets, HoldEveryShippedDataFile) {
   constexpr auto names{ std::array{
-      "ARMS.SIL",    "BIGMAP.DAT",  "EMSG",        "EMSG.16P",    "ENDGRP.NPK",   "EVENT.DAT",  "FACE.DAT",
+      "ARMS.SIL",    "BIGMAP.DAT",  "EMSG",         "EMSG.16P",   "ENDGRP.NPK",   "EVENT.DAT",    "FACE.DAT",
       "HEXDISP.DAT", "HEXFONT.DAT", "HEXFONTS.DAT", "HEXMAP.DAT", "HEXUNIT.DAT",  "KOEILOGO.FNT", "MAPINF.DAT",
-      "MAPPNO.DAT",  "MENDGRP.DAT", "MGAMEN.DAT",  "MIDMAP.DAT",  "MOPENGRP.DAT", "MSG",        "MSG.16P",
-      "MSGRP.DAT",   "OPENGRP.NPK", "SCEDATA",     "SCEEND.DAT",  "SCESEL.DAT" } };
+      "MAPPNO.DAT",  "MENDGRP.DAT", "MGAMEN.DAT",   "MIDMAP.DAT", "MOPENGRP.DAT", "MSG",          "MSG.16P",
+      "MSGRP.DAT",   "OPENGRP.NPK", "SCEDATA",      "SCEEND.DAT", "SCESEL.DAT" } };
   for (auto const* const name : names) {
     EXPECT_GT(Size(name), 0U) << name;
   }

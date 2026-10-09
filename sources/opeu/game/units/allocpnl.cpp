@@ -173,15 +173,16 @@ uint16_t svc_allocpnl(uint8_t* ds, uint16_t id, uint16_t* args,
       opeu_vga_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
       break;
     case 1:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
     case 2: r = lf_cursor_print(ds, args, count); break;
     case 3:
-      opeu_face_draw(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                     (uint8_t)ARG(3));
+      opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                     ARG(2), (uint8_t)ARG(3));
       break;
     case 4:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     default: port_unhandled("allocpnl", id, count);

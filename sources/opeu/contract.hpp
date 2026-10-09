@@ -26,8 +26,7 @@ enum class ContractMode : std::uint8_t {
 };
 // OFF, not IGNORE: <winbase.h> defines IGNORE as a macro.
 
-consteval auto ContractModeNamed(std::string_view name)
-    -> std::optional<ContractMode> {
+consteval auto ContractModeNamed(std::string_view name) -> std::optional<ContractMode> {
   if (name == "stop") return ContractMode::STOP;
   if (name == "halt") return ContractMode::HALT;
   if (name == "complain") return ContractMode::COMPLAIN;
@@ -36,26 +35,24 @@ consteval auto ContractModeNamed(std::string_view name)
 }
 
 inline constexpr auto NAMED_MODE{ ContractModeNamed(OPEU_CONTRACTS) };
-static_assert(NAMED_MODE.has_value(),
-              "contracts is stop, halt, complain or ignore");
+static_assert(NAMED_MODE.has_value(), "contracts is stop, halt, complain or ignore");
 inline constexpr auto CONTRACT_MODE{ *NAMED_MODE };
 
 // What the halt mode throws: the same line the report printed.
 class ContractFailure : public std::logic_error {
- public:
+public:
   using std::logic_error::logic_error;
 };
 
 // "<kind>: <file>:<line> <function>: <text>", the one shape every mode says.
-inline auto ContractLine(std::string_view kind, std::string_view text,
-                         std::source_location const& where) -> std::string {
-  return std::format("{}: {}:{} {}: {}", kind, where.file_name(), where.line(),
-                     where.function_name(), text);
+inline auto ContractLine(std::string_view kind, std::string_view text, std::source_location const& where)
+    -> std::string {
+  return std::format("{}: {}:{} {}: {}", kind, where.file_name(), where.line(), where.function_name(), text);
 }
 
 // The out-of-line half of a broken contract; a held one never reaches it.
-[[gnu::cold]] inline auto Broken(std::string_view kind, std::string_view text,
-                                 std::source_location const& where) -> void {
+[[gnu::cold]] inline auto Broken(std::string_view kind, std::string_view text, std::source_location const& where)
+    -> void {
   auto const line{ ContractLine(kind, text, where) };
   std::println(stderr, "{}", line);
   std::fflush(stderr);
@@ -66,9 +63,8 @@ inline auto ContractLine(std::string_view kind, std::string_view text,
   }
 }
 
-constexpr auto Expects(
-    bool held, std::string_view text,
-    std::source_location where = std::source_location::current()) -> void {
+constexpr auto Expects(bool held, std::string_view text, std::source_location where = std::source_location::current())
+    -> void {
   if constexpr (CONTRACT_MODE != ContractMode::OFF) {
     if (!held) {
       Broken("precondition", text, where);
@@ -76,9 +72,8 @@ constexpr auto Expects(
   }
 }
 
-constexpr auto Ensures(
-    bool held, std::string_view text,
-    std::source_location where = std::source_location::current()) -> void {
+constexpr auto Ensures(bool held, std::string_view text, std::source_location where = std::source_location::current())
+    -> void {
   if constexpr (CONTRACT_MODE != ContractMode::OFF) {
     if (!held) {
       Broken("postcondition", text, where);
@@ -90,10 +85,9 @@ constexpr auto Ensures(
 // halt ends the program here, ignore included. An enumeration is said as
 // its number, which is what the original's tables and save files carry.
 template <typename _Value>
-[[noreturn]] auto Unreachable(
-    _Value const&        value,
-    std::source_location where = std::source_location::current()) -> void {
-  auto said{ std::string{ } };
+[[noreturn]] auto Unreachable(_Value const& value, std::source_location where = std::source_location::current())
+    -> void {
+  auto said{ std::string{} };
   if constexpr (std::is_enum_v<_Value>) {
     said = std::format("{}", std::to_underlying(value));
   } else {

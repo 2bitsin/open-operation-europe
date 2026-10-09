@@ -367,10 +367,12 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
   switch (id) {
     case 0: r = lf_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                           ARG(1));
       break;
     case 2:
-      r = opeu_confirm_message(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
+                               ARG(0), ARG(1));
       break;
     case 3:
       sp = port_stack_enter(LF_FRAME);
@@ -384,7 +386,9 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
                                   ARG(1));
       port_stack_leave(LF_FRAME);
       break;
-    case 5: opeu_title_panel_begin(ds, (const DialogHost *)port_dialogs_host()); break;
+    case 5:
+      opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
+      break;
     case 6:
       sp = port_stack_enter(LF_FRAME);
       opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0),
@@ -401,7 +405,8 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
       port_stack_leave(LF_FRAME);
       break;
     case 9:
-      r = opeu_speaker_panel(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1));
+      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                             ARG(1));
       break;
     case 10:
       sp = port_stack_enter(LF_FRAME);
@@ -409,7 +414,7 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
       port_stack_leave(LF_FRAME);
       break;
     case 11:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 12:
@@ -421,8 +426,8 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
     case 13: opeu_control_position(ds, ARG(0), ARG(1)); break;
     case 14: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
     case 15:
-      r = opeu_delay_dialog(ds, (const DialogHost *)port_dialogs_host(), ARG(0), ARG(1), ARG(2),
-                            ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
+                            ARG(1), ARG(2), ARG(3));
       break;
     case 16: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
     case 17: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;

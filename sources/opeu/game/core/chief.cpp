@@ -124,19 +124,26 @@ uint16_t svc_chief(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
     case 1:
-      opeu_context_frame(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
+                         ARG(2));
       break;
     case 2: b2_request_format(ds, args, count); break;
     case 3: b2_cursor_print(ds, args, count); break;
     case 4:
-      opeu_context_portrait(ds, (const UiHost *)port_uiprim_host(), ARG(0), ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
+                            ARG(1), ARG(2));
       break;
     case 5:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
-    case 6: opeu_text_feed(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
-    case 7: r = opeu_confirm_prompt(ds, (const DialogHost *)port_dialogs_host(), ARG(0)); break;
+    case 6:
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      break;
+    case 7:
+      r = opeu_confirm_prompt(ds, (const DialogHost*)port_dialogs_host(),
+                              ARG(0));
+      break;
     case 8:
       B2_SP_CALL(PORT_FRAME,
                  r = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1),

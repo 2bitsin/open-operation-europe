@@ -244,7 +244,7 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args,
                           B2_FAR(ARG(5), ARG(6)));
       break;
     case 9:
-      opeu_army_position(ds, (TextHost *)port_textout_host(), (int16_t)ARG(0),
+      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
                          (int16_t)ARG(1));
       break;
     case 10: b2_cursor_print(ds, args, count); break;

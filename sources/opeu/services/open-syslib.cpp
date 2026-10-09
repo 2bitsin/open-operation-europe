@@ -10,28 +10,24 @@
  * opening's uninterruptible delay uses (these two). Both run at 60.3 Hz in
  * the driver (port/services/fmdriver.c).
  */
+#include "open-services.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "open-services.hpp"
 
 /* 133E: INT 66h AX=F001h, BX=ticks. */
-void opeu_open_sfx_play(uint16_t ticks)
-{
-    port_fm_function(0xf0, 0x01, ticks, 0, 0);
+void opeu_open_sfx_play(uint16_t ticks) {
+  port_fm_function(0xf0, 0x01, ticks, 0, 0);
 }
 
 /* 134B: INT 66h AX=F000h; returns BX (xchg bx,ax). */
-uint16_t opeu_open_sfx_busy(void)
-{
-    return port_fm_function(0xf0, 0x00, 0, 0, 0);
+uint16_t opeu_open_sfx_busy(void) {
+  return port_fm_function(0xf0, 0x00, 0, 0, 0);
 }
 
 /* 13E0: AH=00h with DS:DX = the song bank (MAIN's 4074 without its second,
  * AH=10h effect-bank call). AX = 0 from the driver gives 1, anything else 0. */
-int16_t opeu_open_sound_open(uint16_t offset, uint16_t segment)
-{
-    uint16_t ax = port_fm_function(0x00, 0, 0, offset, segment);
-    if (ax != 0)
-        ax = 0xffff;
-    return (int16_t)(uint16_t)(ax + 1);
+int16_t opeu_open_sound_open(uint16_t offset, uint16_t segment) {
+  uint16_t ax = port_fm_function(0x00, 0, 0, offset, segment);
+  if (ax != 0) ax = 0xffff;
+  return (int16_t)(uint16_t)(ax + 1);
 }
