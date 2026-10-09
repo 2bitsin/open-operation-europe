@@ -2,8 +2,9 @@
 
 The tree is the build script. `./buildutil` at the root is buildutil's own
 launcher. On first use it creates the project venv in `_pyvenv/`, installs
-buildutil 0.100 and the Python dependencies declared in `buildutil.toml`
-`[venv] extra_deps`, and reads `buildutil.toml`. From then on every command
+buildutil 0.100 (and pytest; the project declares no further Python
+dependencies, which would go in `buildutil.toml` `[venv] extra_deps`), and
+reads `buildutil.toml`. From then on every command
 is `./buildutil <verb>`.
 
 ## Prerequisites
@@ -28,6 +29,7 @@ is `./buildutil <verb>`.
 ./buildutil test --option contracts=halt  # the C++ suites in another contract mode
 ./buildutil run                           # build, install and start the game
 ./buildutil run -- --headless --ms 15000 --png out.png
+./buildutil run -- --saves /tmp/opeu-saves   # another save directory
 ./buildutil clean                         # drop _build/; --nuke also drops _pyvenv/ and _conanhome/
 ./buildutil --help                        # every verb and option
 ```
@@ -48,10 +50,19 @@ compiles SDL's whole dependency graph from source.
 Every directory under `sources/opeu/` with a `CMakeLists.txt` is a module.
 That file holds `Init_submodule()` and `Link_dependencies(...)`, with a
 comment for each dependency saying why. Anything a module generates at build
-time is in its `configure.py`. `*.test.cpp` and `*.test/` directories make the
-module's GoogleTest suite. Python `*.test/` suites run under pytest in the
+time is in its `configure.py`; here every `configure.py` only declares its C
+sources' flags and include roots (the old port's `-std=c99 -Wall -Wextra ...`,
+make the module's GoogleTest suite. Python `*.test/` suites run under pytest in the
 same `./buildutil test`. `assets.embed/` in `sources/opeu/opeu/` is compiled
 into the executable as `opeu::resources`. The layout reference is
+
+The suites `./buildutil test` runs: build identity (platform), the VGALIB
+and SYSLIB drawing checks and the file service (services), the embedded
+asset table (opeu), the fixtures (integration), and two pytest cases in
+integration: `open.test/` (the opening's skip, title key and plain runs)
+and `audio.test/` (the smoke script's music: song starts, key-ons, audible
+and unclipped WAV). Every test runs from a clean clone with only conan and
+the embedded assets.
 
 `buildutil.toml` sets the project name, `cxx_standard = 23`, the `contracts`
 option and `[run] default = "opeu"`. The `contracts` option is one of
@@ -66,7 +77,7 @@ same line feeds `find_package` and the conan graph:
 | Package | Used for |
 |---|---|
 | SDL3 (3.4 series) | window, input, timer and audio (`sources/opeu/platform/`); conan's `sdl` natively, the Emscripten SDK's own port in the browser |
-| stb | `stb_image_write`, the headless `--png` and `--shots` output |
+| stb | `stb_image_write`, the headless `--png` and `--shots` output (one header and one call; libpng would add zlib, setjmp error handling and a write-struct lifecycle). Rows are written with filter type 0, as the port's own writer did, so the pixels are the same as v1.0's and the PNG readers need no unfiltering |
 | GTest | the C++ test suites |
 | benchmark | benchmarks (built only when benchmarks are) |
 

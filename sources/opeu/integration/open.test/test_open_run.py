@@ -23,8 +23,6 @@ import sys
 import zlib
 from pathlib import Path
 
-# The original data files (sources/opeu/opeu/assets.embed).
-DATA = ['--data', str(Path(__file__).resolve().parents[2] / 'opeu' / 'assets.embed')]
 
 
 def read_png(path):
@@ -51,7 +49,7 @@ def lit(rows, y0, y1, x0, x1):
 
 def run(opeu, out, name, args, key_ms=None):
     log = out/f'{name}.log'
-    cmd = [str(opeu), '--headless'] + DATA + args + ['--png', str(out/f'{name}.png')]
+    cmd = [str(opeu), '--headless', '--saves', str(out / 'saves')] + args + ['--png', str(out/f'{name}.png')]
     if key_ms is not None:
         script = out/f'{name}-input.txt'
         script.write_text(f'{key_ms} key space\n')

@@ -13,13 +13,22 @@
  *  - exists: open(name, 0) and close; 1 when both succeed, else 0;
  *  - alloc: the segment or 0; free: 1 on success, 0 on failure.
  *
- * Open mode (AL of 3Dh): 0 read, 1 write, 2 read/write. Read/write opens
- * fall back to read-only when the file cannot be opened for writing (the
- * original game directory may be read-only).
+ * Open mode (AL of 3Dh): 0 read, 1 write, 2 read/write.
+ *
+ * Where files are: the shipped data files are compiled into the executable
+ * (asset-table.h); only the save directory (platform.h) is on disk. A name
+ * is looked up in the save directory first, so a file there shadows the
+ * shipped one, then in the table. A shipped file is served from memory.
+ * The game opens every data file read/write (opeu_open_resource, mode 2)
+ * though it writes only SAVEDATA; should it ever write to a shipped file,
+ * the file is first copied into the save directory (copy on write) and the
+ * handle continues on that copy. A read/write open of a save-directory file
+ * that cannot be written falls back to read-only, as before.
  */
 #include "port.h"
 #include "services.h"
 #include "platform.h"
+#include "asset-table.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -32,35 +41,58 @@
 #define DOS_ERR_ACCESS 5
 
 static struct {
-    void *file;
+    int used;
+    void *file;             /* a save-directory file, or NULL for a shipped one */
+    const unsigned char *asset;   /* a shipped file's bytes (file == NULL) */
+    size_t asset_size;
+    long asset_pos;
+    char name[80];          /* the DOS name, for a copy on write */
     uint16_t mode;          /* 0 read, 1 write, 2 read/write */
     int last_write;         /* the previous transfer was a write */
 } handles[DOS_HANDLES];
 
-static int16_t new_handle(void *file, uint16_t mode)
+static OpeuAssetFind asset_find;
+
+void opeu_files_use_assets(OpeuAssetFind find)
+{
+    asset_find = find;
+}
+
+static int16_t new_handle(void *file, const unsigned char *asset, size_t asset_size,
+                          const char *name, uint16_t mode)
 {
     int h;
     for (h = DOS_FIRST_FILE; h < DOS_HANDLES; h++)
-        if (!handles[h].file) {
+        if (!handles[h].used) {
+            handles[h].used = 1;
             handles[h].file = file;
+            handles[h].asset = asset;
+            handles[h].asset_size = asset_size;
+            handles[h].asset_pos = 0;
+            strncpy(handles[h].name, name, sizeof handles[h].name - 1);
+            handles[h].name[sizeof handles[h].name - 1] = '\0';
             handles[h].mode = mode;
             handles[h].last_write = 0;
             return (int16_t)h;
         }
-    plat_fclose(file);      /* DOS error 4: too many open files */
+    if (file)
+        plat_fclose(file);  /* DOS error 4: too many open files */
     return -1;
 }
 
 static int valid(int16_t h)
 {
-    return h >= DOS_FIRST_FILE && h < DOS_HANDLES && handles[h].file != NULL;
+    return h >= DOS_FIRST_FILE && h < DOS_HANDLES && handles[h].used;
 }
 
 int16_t opeu_dos_open(const char *name, uint16_t mode)
 {
     void *f = NULL;
+    const unsigned char *asset = NULL;
+    size_t asset_size = 0;
+    int shipped = 0;
     uint16_t access = (uint16_t)(mode & 7);
-    int16_t h;
+    int16_t h = -1;
     switch (access) {
     case 0: f = plat_fopen(name, "rb"); break;
     case 1:
@@ -74,7 +106,10 @@ int16_t opeu_dos_open(const char *name, uint16_t mode)
         break;
     default: break;
     }
-    h = f ? new_handle(f, access) : -1;
+    if (!f && access <= 2 && asset_find)
+        shipped = asset_find(name, &asset, &asset_size);
+    if (f || shipped)
+        h = new_handle(f, asset, asset_size, name, access);
     port_trace("svc", "dos_open(%s, %u) = %d", name, mode, h);
     return h;
 }
@@ -82,8 +117,11 @@ int16_t opeu_dos_open(const char *name, uint16_t mode)
 int16_t opeu_dos_close(int16_t handle)
 {
     if (valid(handle)) {
-        plat_fclose(handles[handle].file);
+        if (handles[handle].file)
+            plat_fclose(handles[handle].file);
+        handles[handle].used = 0;
         handles[handle].file = NULL;
+        handles[handle].asset = NULL;
     }
     port_trace("svc", "dos_close(%d)", handle);
     return 0;
@@ -93,9 +131,42 @@ int16_t opeu_dos_close(int16_t handle)
 static void switch_direction(int16_t handle, int writing)
 {
     if (handles[handle].last_write != writing) {
-        plat_fseek(handles[handle].file, 0, SEEK_CUR);
+        if (handles[handle].file)
+            plat_fseek(handles[handle].file, 0, SEEK_CUR);
         handles[handle].last_write = writing;
     }
+}
+
+static size_t asset_read(int16_t handle, uint8_t *data, uint16_t size)
+{
+    long pos = handles[handle].asset_pos;
+    size_t left, n;
+    if (pos < 0 || (size_t)pos >= handles[handle].asset_size)
+        return 0;
+    left = handles[handle].asset_size - (size_t)pos;
+    n = size < left ? size : left;
+    memcpy(data, handles[handle].asset + pos, n);
+    handles[handle].asset_pos = pos + (long)n;
+    return n;
+}
+
+/* The first write to a shipped file: its bytes become a file of the save
+ * directory, and the handle carries on there at the same position. */
+static int copy_on_write(int16_t handle)
+{
+    void *f = plat_fopen(handles[handle].name, "w+b");
+    size_t size = handles[handle].asset_size;
+    if (!f)
+        return -1;
+    if ((size && plat_fwrite(handles[handle].asset, size, f) != size)
+        || plat_fseek(f, handles[handle].asset_pos, SEEK_SET) < 0) {
+        plat_fclose(f);
+        return -1;
+    }
+    port_trace("svc", "dos_write %s: copied the shipped file into the save directory", handles[handle].name);
+    handles[handle].file = f;
+    handles[handle].asset = NULL;
+    return 0;
 }
 
 static int16_t do_read(int16_t handle, uint8_t *data, uint16_t size)
@@ -106,7 +177,10 @@ static int16_t do_read(int16_t handle, uint8_t *data, uint16_t size)
     if (handles[handle].mode == 1)
         return DOS_ERR_ACCESS;
     switch_direction(handle, 0);
-    n = plat_fread(data, size, handles[handle].file);
+    if (handles[handle].file)
+        n = plat_fread(data, size, handles[handle].file);
+    else
+        n = asset_read(handle, data, size);
     return (int16_t)(uint16_t)n;
 }
 
@@ -120,6 +194,8 @@ static int16_t do_write(int16_t handle, const uint8_t *data, uint16_t size)
     switch_direction(handle, 1);
     if (size == 0)
         return 0;   /* DOS truncates at the position; nothing MAIN relies on */
+    if (!handles[handle].file && copy_on_write(handle) != 0)
+        return DOS_ERR_ACCESS;
     n = plat_fwrite(data, size, handles[handle].file);
     return (int16_t)(uint16_t)n;
 }
@@ -169,9 +245,19 @@ int32_t opeu_dos_seek(int16_t handle, int32_t position, int16_t origin)
         return (int32_t)((uint32_t)low << 16 | 1);   /* invalid function */
     /* DOS takes CX:DX as a signed 32-bit offset for origins 1 and 2 and as
      * unsigned for 0. */
-    r = plat_fseek(handles[handle].file,
-                   al == 0 ? (long)(uint32_t)position : (long)position,
-                   al == 0 ? SEEK_SET : al == 1 ? SEEK_CUR : SEEK_END);
+    if (handles[handle].file) {
+        r = plat_fseek(handles[handle].file,
+                       al == 0 ? (long)(uint32_t)position : (long)position,
+                       al == 0 ? SEEK_SET : al == 1 ? SEEK_CUR : SEEK_END);
+    } else {
+        /* as fseek on a file: before the start fails, past the end is allowed */
+        r = (al == 0 ? 0 : al == 1 ? handles[handle].asset_pos : (long)handles[handle].asset_size)
+            + (al == 0 ? (long)(uint32_t)position : (long)position);
+        if (r < 0)
+            r = -1;
+        else
+            handles[handle].asset_pos = r;
+    }
     handles[handle].last_write = 0;
     port_trace("svc", "dos_seek(%d, %ld, %d) = %ld", handle, (long)position, origin, r);
     if (r < 0)
@@ -182,7 +268,7 @@ int32_t opeu_dos_seek(int16_t handle, int32_t position, int16_t origin)
 int16_t opeu_dos_create(const char *name)
 {
     void *f = plat_fopen(name, "w+b");
-    int16_t h = f ? new_handle(f, 2) : -1;
+    int16_t h = f ? new_handle(f, NULL, 0, name, 2) : -1;
     port_trace("svc", "dos_create(%s) = %d", name, h);
     return h;
 }
@@ -212,6 +298,6 @@ void port_disk_reset(void)
 {
     int h;
     for (h = DOS_FIRST_FILE; h < DOS_HANDLES; h++)
-        if (handles[h].file)
+        if (handles[h].used && handles[h].file)
             fflush((FILE *)handles[h].file);
 }

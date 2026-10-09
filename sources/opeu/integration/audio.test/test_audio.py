@@ -26,8 +26,6 @@ import sys
 from pathlib import Path
 
 OPEU = Path(__file__).resolve().parents[2]
-# The original data files (sources/opeu/opeu/assets.embed).
-DATA = ['--data', str(OPEU / 'opeu' / 'assets.embed')]
 
 RATE = 49716
 
@@ -62,7 +60,7 @@ def main(argv):
     outdir.mkdir(parents=True, exist_ok=True)
     wav, log, trace = outdir / 'audio.wav', outdir / 'opl.log', outdir / 'fm-trace.log'
     env = dict(os.environ, OPEU_TRACE='fm', OPEU_LOG=str(trace))
-    subprocess.run([opeu, '--headless'] + DATA + ['--ms', str(ms), '--input', script, '--wav', str(wav),
+    subprocess.run([opeu, '--headless', '--saves', str(outdir / 'saves'), '--ms', str(ms), '--input', script, '--wav', str(wav),
                     '--opl-log', str(log), '--png', str(outdir / 'last.png')], check=True, env=env,
                    stdout=subprocess.DEVNULL)
 

@@ -22,17 +22,13 @@
 #include <unistd.h>
 #endif
 
-#ifndef OPEU_DEFAULT_DATA_DIR
-#define OPEU_DEFAULT_DATA_DIR "binaries"
-#endif
-
 PortOptions port_options;
 
 static void usage(const char *argv0)
 {
     fprintf(stderr,
-        "usage: %s [--data DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
-        "  --data DIR    original game directory (default %s)\n"
+        "usage: %s [--saves DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
+        "  --saves DIR   saved games (default: the per-user data directory)\n"
         "  --headless    no window; virtual time; use with --ms/--input/--png\n"
         "  --ms N        headless: stop after N ms of virtual time\n"
         "  --input FILE  scripted input log (see port/README.md)\n"
@@ -40,7 +36,7 @@ static void usage(const char *argv0)
         "  --wav FILE    write the music and sound (49716 Hz stereo WAV)\n"
         "  --opl-log F   log every OPL2 register write (frame, register, value)\n"
         "  --mute        no audio device\n",
-        argv0, OPEU_DEFAULT_DATA_DIR);
+        argv0);
 }
 
 #if defined(__APPLE__) || defined(__linux__)
@@ -75,11 +71,10 @@ int opeu_main(int argc, char **argv)
     const char *dump_path = 0;
     int i;
 
-    port_options.data_dir = OPEU_DEFAULT_DATA_DIR;
     port_options.scale = 2;
     open_intro_options(&argc, argv);     /* --no-intro / --intro */
     for (i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--data") && i + 1 < argc) port_options.data_dir = argv[++i];
+        if (!strcmp(argv[i], "--saves") && i + 1 < argc) port_options.save_dir = argv[++i];
         else if (!strcmp(argv[i], "--scale") && i + 1 < argc) port_options.scale = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--headless")) port_options.headless = 1;
         else if (!strcmp(argv[i], "--ms") && i + 1 < argc) port_options.stop_ms = (uint32_t)strtoul(argv[++i], 0, 0);
@@ -109,7 +104,8 @@ int opeu_main(int argc, char **argv)
     cfg.height = 480;
     cfg.scale = port_options.scale > 0 ? port_options.scale : 2;
     cfg.headless = port_options.headless;
-    plat_set_data_dir(port_options.data_dir);
+    if (port_options.save_dir)
+        plat_set_save_dir(port_options.save_dir);
     if (plat_init(&cfg) != 0)
         return 1;
     atexit(shutdown_platform);

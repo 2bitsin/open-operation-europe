@@ -84,12 +84,15 @@ void     plat_sleep_ms(int ms); /* yields; never called on Emscripten frames */
 
 /* ---- files -------------------------------------------------------------- */
 
-/* The game directory (binaries/ by default).  Paths given to plat_fopen are
- * DOS names relative to it ("SCEDATA", "OPEU.SAV"); lookup is
+/* The save directory: the only place the game's files touch the file
+ * system (the shipped data files are compiled into the executable and
+ * served by services/fileio.c).  Default: SDL's per-user pref path
+ * natively, /saves (the page's IDBFS mount) in the browser.  Paths given to
+ * plat_fopen are DOS names relative to it ("SAVEDATA"); lookup is
  * case-insensitive.  mode is a C stdio mode string.  Returns NULL if
  * missing.  The handle is a stdio FILE* on every current backend. */
-void  plat_set_data_dir(const char *dir);
-const char *plat_data_dir(void);
+void  plat_set_save_dir(const char *dir);
+const char *plat_save_dir(void);
 void *plat_fopen(const char *dos_name, const char *mode);
 int   plat_fclose(void *f);
 size_t plat_fread(void *buf, size_t n, void *f);

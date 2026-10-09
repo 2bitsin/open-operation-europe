@@ -5,7 +5,7 @@
  * palette into a streaming XRGB8888 texture, shown with SDL's logical
  * presentation (integer scaling + letterbox).  Input is translated to PC
  * set-1 make codes plus the BIOS INT 16h ASCII of a US keyboard.  Files are
- * stdio FILE* handles on paths resolved case-insensitively inside the data
+ * stdio FILE* handles on paths resolved case-insensitively inside the save
  * directory.  Audio is a pull callback on an SDL_AudioStream.
  *
  * Emscripten (web build, port/README.md "Web build"): the game's waits are
@@ -74,7 +74,7 @@ static struct {
     void *audio_user;
     int audio_rate;
 
-    char data_dir[PLAT_PATH_MAX];
+    char save_dir[PLAT_PATH_MAX];
 } P;
 
 /* ---- lifecycle ---------------------------------------------------------- */
@@ -92,9 +92,6 @@ int plat_init(const PlatConfig *cfg)
     w = cfg->width > 0 ? cfg->width : 640;
     h = cfg->height > 0 ? cfg->height : 480;
     scale = cfg->scale >= 1 ? cfg->scale : 1;
-
-    if (P.data_dir[0] == '\0')
-        plat_set_data_dir("binaries");
 
     if (P.headless) {
         /* No subsystems: timers and the filesystem helpers need none. */
@@ -556,22 +553,32 @@ void plat_sleep_ms(int ms)
 
 /* ---- files -------------------------------------------------------------- */
 
-void plat_set_data_dir(const char *dir)
+void plat_set_save_dir(const char *dir)
 {
     size_t n;
     if (!dir || !*dir)
         dir = ".";
-    SDL_strlcpy(P.data_dir, dir, sizeof P.data_dir);
-    n = strlen(P.data_dir);
-    while (n > 1 && (P.data_dir[n - 1] == '/' || P.data_dir[n - 1] == '\\'))
-        P.data_dir[--n] = '\0';
+    SDL_strlcpy(P.save_dir, dir, sizeof P.save_dir);
+    n = strlen(P.save_dir);
+    while (n > 1 && (P.save_dir[n - 1] == '/' || P.save_dir[n - 1] == '\\'))
+        P.save_dir[--n] = '\0';
+#ifndef __EMSCRIPTEN__
+    SDL_CreateDirectory(P.save_dir);     /* a first run's --saves DIR */
+#endif
 }
 
-const char *plat_data_dir(void)
+const char *plat_save_dir(void)
 {
-    if (P.data_dir[0] == '\0')
-        plat_set_data_dir("binaries");
-    return P.data_dir;
+    if (P.save_dir[0] == '\0') {
+#ifdef __EMSCRIPTEN__
+        plat_set_save_dir("/saves");     /* web/pre.js mounts IDBFS there */
+#else
+        char *pref = SDL_GetPrefPath("opeu", "Operation Europe");
+        plat_set_save_dir(pref ? pref : ".");
+        SDL_free(pref);
+#endif
+    }
+    return P.save_dir;
 }
 
 typedef struct FindCtx {
@@ -612,7 +619,7 @@ static int resolve(const char *dos_name, char *out, size_t outsz, int create)
 
     if (!dos_name || !*dos_name)
         return -1;
-    SDL_strlcpy(out, plat_data_dir(), outsz);
+    SDL_strlcpy(out, plat_save_dir(), outsz);
 
     while (*p) {
         size_t n = 0;
