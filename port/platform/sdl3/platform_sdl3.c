@@ -39,13 +39,9 @@
 
 /* SDL_LOGICAL_PRESENTATION_INTEGER_SCALE or SDL_LOGICAL_PRESENTATION_LETTERBOX */
 #ifndef PLAT_PRESENTATION
-#ifdef __EMSCRIPTEN__
-/* The page's CSS sizes the canvas to any 4:3 box, rarely an integer
- * multiple of 640x480. */
-#define PLAT_PRESENTATION SDL_LOGICAL_PRESENTATION_LETTERBOX
-#else
+/* The web shell sizes the canvas to an integer multiple of 640x480 (see
+ * port/platform/web/shell.html), so integer scaling applies there too. */
 #define PLAT_PRESENTATION SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
-#endif
 #endif
 
 #define PLAT_PATH_MAX 1024
