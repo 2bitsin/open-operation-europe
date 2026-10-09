@@ -68,7 +68,8 @@ void port_exit(int code)
     exit(code == 100 ? 0 : code);
 }
 
-int main(int argc, char **argv)
+/* main.cpp of the application module (sources/opeu/opeu) calls this. */
+int opeu_main(int argc, char **argv)
 {
     PlatConfig cfg;
     const char *dump_path = 0;

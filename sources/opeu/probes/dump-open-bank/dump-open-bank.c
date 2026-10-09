@@ -9,7 +9,8 @@ extern uint16_t opeu_music_tracks[3][5];
 extern unsigned char opeu_music_voices[447];
 extern unsigned char opeu_music_events[8379];
 
-int main(void)
+/* main.cpp calls this. */
+int opeu_dump_open_bank(void)
 {
     int song, track;
     for (song = 0; song < 3; song++)

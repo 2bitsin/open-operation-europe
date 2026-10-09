@@ -1,19 +1,11 @@
-# buildutil drives the native build of the Operation Europe port: conan
-# resolves SDL3 (and GoogleTest for the C++ suites), cmake configures the
-# root CMakeLists.txt, ninja builds and ctest runs every suite. The DOS
-# reference build (src/, the gate, the validators) stays on the Makefile and
-# is untouched by this file. Notes, commands and Linux status:
-# docs/buildutil-notes.md.
-
 [project]
-name = "opeurptv"
-# The machinery's own prefix (OPEURPTV_OPTION_*, OPEURPTV_BUILD_*,
-# OPEURPTV_<MODULE>_ENABLED). Deliberately not the port's OPEU_*: the C
-# port's cache variables and defines (OPEU_SRC, OPEU_TEST_PYTHON,
-# OPEU_DEFAULT_DATA_DIR, OPEU_HAVE_*) keep their names and meanings.
-cmake_option_prefix = "OPEURPTV"
-module_define_prefix = "OPEURPTV"
-# port under port/ keeps its own C99/C++14 settings and is not a module.
+name = "opeu"
+# The machinery's macros (OPEU_CONTRACTS, OPEU_BUILD_*, OPEU_<MODULE>_ENABLED)
+# share the port's OPEU_ prefix without clashing with its own OPEU_HOST_EVENTS,
+# OPEU_FAR, OPEU_TRACE or OPEU_LOG: no option may be named host_events, far,
+# trace or log.
+cmake_option_prefix = "OPEU"
+module_define_prefix = "OPEU"
 cxx_standard = 23
 
 [options]
@@ -27,8 +19,7 @@ contracts = "stop"
 extensions = []
 
 [run]
-# The game executable once it lives in sources/ (the reorganisation moves
-# the port there); until then `make port` builds and runs it.
+# `buildutil run` builds + launches this installed binary
 default = "opeu"
 
 [conan]
@@ -36,7 +27,7 @@ default = "opeu"
 # source. PulseAudio 17 and sndio are dropped: ALSA reaches PipeWire and
 # PulseAudio desktops through their ALSA plugins, and sndio is the BSDs'.
 # X11, Wayland, OpenGL/EGL, udev and D-Bus stay; their */system recipes need
-# the host's -dev packages (docs/buildutil-notes.md, "Linux").
+# the host's -dev packages.
 options_linux = [
   "sdl/*:pulseaudio=False",
   "sdl/*:sndio=False",

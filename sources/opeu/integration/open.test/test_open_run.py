@@ -11,15 +11,20 @@
   plain  --headless without --intro: the opening does not run (the smoke
          scripts and their PNGs are unchanged by it).
 
-Usage: check_open_run.py <opeu> <output dir>
+Run by `./buildutil test opeu-integration` (test_open_run below), or as
+  test_open_run.py <opeu> <output dir>
 """
 import os
 import re
+import shutil
 import struct
 import subprocess
 import sys
 import zlib
 from pathlib import Path
+
+# The original data files (sources/opeu/opeu/assets.embed).
+DATA = ['--data', str(Path(__file__).resolve().parents[2] / 'opeu' / 'assets.embed')]
 
 
 def read_png(path):
@@ -46,7 +51,7 @@ def lit(rows, y0, y1, x0, x1):
 
 def run(opeu, out, name, args, key_ms=None):
     log = out/f'{name}.log'
-    cmd = [str(opeu), '--headless'] + args + ['--png', str(out/f'{name}.png')]
+    cmd = [str(opeu), '--headless'] + DATA + args + ['--png', str(out/f'{name}.png')]
     if key_ms is not None:
         script = out/f'{name}-input.txt'
         script.write_text(f'{key_ms} key space\n')
@@ -88,6 +93,12 @@ def main(argv):
 
     print('open run: ' + ('PASS' if not failures else f'{len(failures)} FAILED'))
     return 1 if failures else 0
+
+
+def test_open_run(tmp_path):
+    opeu = shutil.which('opeu')
+    assert opeu, 'opeu is not on PATH (buildutil puts <build>/bin there)'
+    assert main(['test_open_run.py', opeu, str(tmp_path)]) == 0
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ consteval auto ContractModeNamed(std::string_view name)
   return std::nullopt;
 }
 
-inline constexpr auto NAMED_MODE{ ContractModeNamed(OPEURPTV_CONTRACTS) };
+inline constexpr auto NAMED_MODE{ ContractModeNamed(OPEU_CONTRACTS) };
 static_assert(NAMED_MODE.has_value(),
               "contracts is stop, halt, complain or ignore");
 inline constexpr auto CONTRACT_MODE{ *NAMED_MODE };

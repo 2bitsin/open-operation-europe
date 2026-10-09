@@ -376,7 +376,8 @@ static void test_palette_render(void)
     CHECK(out[40 * 640] == 0, "text mode renders blank");
 }
 
-int main(void)
+/* Run by services.test/c-suites.cpp; returns non-zero on a failure. */
+int opeu_test_vgalib(void)
 {
     vgalib_init();
     koei_2fea();

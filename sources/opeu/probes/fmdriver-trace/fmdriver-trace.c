@@ -109,7 +109,8 @@ static int hex(const char *s, unsigned *out)
     return 1;
 }
 
-int main(void)
+/* main.cpp calls this. */
+int opeu_fmdriver_trace(void)
 {
     char line[1 << 16];
     FmdHost host;

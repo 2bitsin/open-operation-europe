@@ -130,7 +130,8 @@ static void test_load_draw(void)              /* 3B1E, 3A04 */
     CHECK(v[0] == 0x81 && v[519] == 0x81);
 }
 
-int main(void)
+/* Run by services.test/c-suites.cpp; returns non-zero on a failure. */
+int opeu_test_syslib_gfx(void)
 {
     test_restore_odd();
     test_save_odd_and_roundtrip();

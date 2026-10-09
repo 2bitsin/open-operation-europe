@@ -4,7 +4,7 @@
 // service behind the platform layer), not of the CPU.
 #include "opl.h"
 
-#include "ymfm_opl.h"
+#include "opeu/ymfm/ymfm_opl.h"
 
 namespace {
 

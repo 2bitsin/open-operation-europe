@@ -21,7 +21,7 @@ struct BuildIdentity {
 
 [[nodiscard]] auto ThisBuild() noexcept -> BuildIdentity const&;
 
-// "opeurptv <version> (build <number>, <time>)"; a missing time is left out.
+// "opeu <version> (build <number>, <time>)"; a missing time is left out.
 [[nodiscard]] auto Describe(BuildIdentity const& build) -> std::string;
 
 }

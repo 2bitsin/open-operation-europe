@@ -1,4 +1,3 @@
-# opeu-platform: what the native port knows about the machine and the build
-# it runs from. The SDL3 layer itself is still port/platform/sdl3 (C) until
-# its rewrite lands here.
 Init_submodule()
+Link_dependencies(SDL3::SDL3  # The window, the renderer, the audio device, input and the clock.
+                  stb::stb)   # stb_image_write, the headless --png frame writer.

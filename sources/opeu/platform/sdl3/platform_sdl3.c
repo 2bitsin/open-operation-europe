@@ -22,9 +22,12 @@
  * frames).
  */
 #include "platform.h"
-#include "png_write.h"
 
 #include <SDL3/SDL.h>
+/* The headless --png writer: stb_image_write (conan stb), implemented here,
+ * its only user. */
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -269,7 +272,11 @@ int plat_write_png(const char *path)
         rgb[i * 3 + 1] = c[1];
         rgb[i * 3 + 2] = c[2];
     }
-    rc = png_write_rgb(path, rgb, P.frame_w, P.frame_h);
+    /* 8-bit truecolour, filter type 0 on every row (as the port's own
+     * writer had it, so the image readers of the integration suites need
+     * no unfiltering); stb compresses the IDAT where that writer stored it. */
+    stbi_write_force_png_filter = 0;
+    rc = stbi_write_png(path, P.frame_w, P.frame_h, 3, rgb, P.frame_w * 3) ? 0 : -1;
     free(rgb);
     return rc;
 }

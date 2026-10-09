@@ -13,14 +13,21 @@ FM driver calls with their frames (OPEU_TRACE=fm). Then checks:
      100 ms windows have an RMS above -50 dBFS, and it is not clipped flat;
   4. before the first song start the WAV is silent.
 
-Usage: check_audio.py <opeu> <input script> <output dir> [<ms>]
+Run by `./buildutil test opeu-integration` (test_audio below, on the smoke
+script), or as
+  test_audio.py <opeu> <input script> <output dir> [<ms>]
 """
 import os
 import re
+import shutil
 import struct
 import subprocess
 import sys
 from pathlib import Path
+
+OPEU = Path(__file__).resolve().parents[2]
+# The original data files (sources/opeu/opeu/assets.embed).
+DATA = ['--data', str(OPEU / 'opeu' / 'assets.embed')]
 
 RATE = 49716
 
@@ -55,7 +62,7 @@ def main(argv):
     outdir.mkdir(parents=True, exist_ok=True)
     wav, log, trace = outdir / 'audio.wav', outdir / 'opl.log', outdir / 'fm-trace.log'
     env = dict(os.environ, OPEU_TRACE='fm', OPEU_LOG=str(trace))
-    subprocess.run([opeu, '--headless', '--ms', str(ms), '--input', script, '--wav', str(wav),
+    subprocess.run([opeu, '--headless'] + DATA + ['--ms', str(ms), '--input', script, '--wav', str(wav),
                     '--opl-log', str(log), '--png', str(outdir / 'last.png')], check=True, env=env,
                    stdout=subprocess.DEVNULL)
 
@@ -102,6 +109,13 @@ def main(argv):
         return 1
     print('audio check passed')
     return 0
+
+
+def test_audio(tmp_path):
+    opeu = shutil.which('opeu')
+    assert opeu, 'opeu is not on PATH (buildutil puts <build>/bin there)'
+    script = OPEU / 'integration' / 'fixtures' / 'smoke-input.txt'
+    assert main(['test_audio.py', opeu, str(script), str(tmp_path)]) == 0
 
 
 if __name__ == '__main__':
