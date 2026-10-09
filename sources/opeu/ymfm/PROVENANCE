@@ -6,7 +6,12 @@ ymfm_pcm.{cpp,h}, copied flat. Here they drop the redundant ymfm_ prefix
 and use the tree's extensions: headers end in .hpp, and the template
 implementation ymfm_fm.ipp is fm-imp.hpp. So: adpcm.{cpp,hpp}, fm.hpp,
 fm-imp.hpp, opl.{cpp,hpp}, pcm.{cpp,hpp} and ymfm.hpp; their #include lines
-name the files accordingly. One further
-local change: in opl.cpp `case 0x0f:` is spelled `case 15:`, with a
-comment at the line (docs/port.md "Chip"). The port uses the YM3812 (OPL2)
-model only, fed by services/opl-ymfm.cpp.
+name the files accordingly. Further local changes (docs/port.md "Chip"):
+in opl.cpp `case 0x0f:` is spelled `case 15:`, with a comment at the line;
+the files define no preprocessor macros: in fm-imp.hpp the X and ALGORITHM
+table helpers are constexpr lambdas, the debug WAV logging behind
+YMFM_DEBUG_LOG_WAVFILES (fm.hpp, fm-imp.hpp) and its ymfm_wavfile class
+(ymfm.hpp) are removed, and so is ymfm.hpp's _CRT_SECURE_NO_WARNINGS for
+MSVC, which only that logging's fopen needed; each header has one
+#pragma once. The port uses the YM3812 (OPL2) model only, fed by
+services/opl-ymfm.cpp.

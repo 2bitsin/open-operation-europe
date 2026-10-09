@@ -89,7 +89,7 @@ inline uint32_t attenuation_to_volume(uint32_t input) {
   // as a nod to performance, the implicit 0x400 bit is pre-incorporated, and
   // the values are left-shifted by 2 so that a simple right shift is all that
   // is needed; also the order is reversed to save a NOT on the input
-#define X(a) (((a) | 0x400) << 2)
+  constexpr auto X = [](uint32_t a) { return int((a | 0x400) << 2); };
   static uint16_t const s_power_table[256] = {
     X(0x3fa), X(0x3f5), X(0x3ef), X(0x3ea), X(0x3e4), X(0x3df), X(0x3da), X(0x3d4), X(0x3cf), X(0x3c9), X(0x3c4),
     X(0x3bf), X(0x3b9), X(0x3b4), X(0x3ae), X(0x3a9), X(0x3a4), X(0x39f), X(0x399), X(0x394), X(0x38f), X(0x38a),
@@ -116,7 +116,6 @@ inline uint32_t attenuation_to_volume(uint32_t input) {
     X(0x025), X(0x022), X(0x01f), X(0x01c), X(0x019), X(0x016), X(0x014), X(0x011), X(0x00e), X(0x00b), X(0x008),
     X(0x006), X(0x003), X(0x000)
   };
-#undef X
 
   // look up the fractional part, then shift by the whole
   return s_power_table[input & 0xff] >> (input >> 8);
@@ -856,31 +855,32 @@ void fm_channel<RegisterType>::output_4op(output_data& output, uint32_t rshift, 
   // are clear; no need to do all this work for nothing
   if (m_regs.ch_output_any(m_choffs) == 0) return;
 
-// OPM/OPN offer 8 different connection algorithms for 4 operators,
-// and OPL3 offers 4 more, which we designate here as 8-11.
-//
-// The operators are computed in order, with the inputs pulled from
-// an array of values (opout) that is populated as we go:
-//    0 = 0
-//    1 = O1
-//    2 = O2
-//    3 = O3
-//    4 = (O4)
-//    5 = O1+O2
-//    6 = O1+O3
-//    7 = O2+O3
-//
-// The s_algorithm_ops table describes the inputs and outputs of each
-// algorithm as follows:
-//
-//      ---------x use opout[x] as operator 2 input
-//      ------xxx- use opout[x] as operator 3 input
-//      ---xxx---- use opout[x] as operator 4 input
-//      --x------- include opout[1] in final sum
-//      -x-------- include opout[2] in final sum
-//      x--------- include opout[3] in final sum
-#define ALGORITHM(op2in, op3in, op4in, op1out, op2out, op3out) \
-  ((op2in) | ((op3in) << 1) | ((op4in) << 4) | ((op1out) << 7) | ((op2out) << 8) | ((op3out) << 9))
+  // OPM/OPN offer 8 different connection algorithms for 4 operators,
+  // and OPL3 offers 4 more, which we designate here as 8-11.
+  //
+  // The operators are computed in order, with the inputs pulled from
+  // an array of values (opout) that is populated as we go:
+  //    0 = 0
+  //    1 = O1
+  //    2 = O2
+  //    3 = O3
+  //    4 = (O4)
+  //    5 = O1+O2
+  //    6 = O1+O3
+  //    7 = O2+O3
+  //
+  // The s_algorithm_ops table describes the inputs and outputs of each
+  // algorithm as follows:
+  //
+  //      ---------x use opout[x] as operator 2 input
+  //      ------xxx- use opout[x] as operator 3 input
+  //      ---xxx---- use opout[x] as operator 4 input
+  //      --x------- include opout[1] in final sum
+  //      -x-------- include opout[2] in final sum
+  //      x--------- include opout[3] in final sum
+  constexpr auto ALGORITHM = [](int op2in, int op3in, int op4in, int op1out, int op2out, int op3out) {
+    return op2in | (op3in << 1) | (op4in << 4) | (op1out << 7) | (op2out << 8) | (op3out << 9);
+  };
   static uint16_t const s_algorithm_ops[8 + 4] = {
     ALGORITHM(1, 2, 3, 0, 0, 0),    //  0: O1 -> O2 -> O3 -> O4 -> out (O4)
     ALGORITHM(0, 5, 3, 0, 0, 0),    //  1: (O1 + O2) -> O3 -> O4 -> out (O4)
@@ -1045,10 +1045,6 @@ fm_engine_base<RegisterType>::fm_engine_base(ymfm_interface& intf)
   for (uint32_t opnum = 0; opnum < OPERATORS; opnum++)
     m_operator[opnum] = std::make_unique<fm_operator<RegisterType>>(*this, RegisterType::operator_offset(opnum));
 
-#if (YMFM_DEBUG_LOG_WAVFILES)
-  for (uint32_t chnum = 0; chnum < CHANNELS; chnum++) m_wavfile[chnum].set_index(chnum);
-#endif
-
   // do the initial operator assignment
   assign_operators();
 }
@@ -1161,7 +1157,7 @@ void fm_engine_base<RegisterType>::output(output_data& output, uint32_t rshift, 
   chanmask &= debug::GLOBAL_FM_CHANNEL_MASK;
 
   // mask out inactive channels
-  if (!YMFM_DEBUG_LOG_WAVFILES) chanmask &= m_active_channels;
+  chanmask &= m_active_channels;
 
   // handle the rhythm case, where some of the operators are dedicated
   // to percussion (this is an OPL-specific feature)
@@ -1178,9 +1174,6 @@ void fm_engine_base<RegisterType>::output(output_data& output, uint32_t rshift, 
     // sum over all the desired channels
     for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
       if (bitfield(chanmask, chnum)) {
-#if (YMFM_DEBUG_LOG_WAVFILES)
-        auto reference = output;
-#endif
         if (chnum == 6)
           m_channel[chnum]->output_rhythm_ch6(output, rshift, clipmax);
         else if (chnum == 7)
@@ -1191,24 +1184,15 @@ void fm_engine_base<RegisterType>::output(output_data& output, uint32_t rshift, 
           m_channel[chnum]->output_4op(output, rshift, clipmax);
         else
           m_channel[chnum]->output_2op(output, rshift, clipmax);
-#if (YMFM_DEBUG_LOG_WAVFILES)
-        m_wavfile[chnum].add(output, reference);
-#endif
       }
   } else {
     // sum over all the desired channels
     for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
       if (bitfield(chanmask, chnum)) {
-#if (YMFM_DEBUG_LOG_WAVFILES)
-        auto reference = output;
-#endif
         if (m_channel[chnum]->is4op())
           m_channel[chnum]->output_4op(output, rshift, clipmax);
         else
           m_channel[chnum]->output_2op(output, rshift, clipmax);
-#if (YMFM_DEBUG_LOG_WAVFILES)
-        m_wavfile[chnum].add(output, reference);
-#endif
       }
   }
 }

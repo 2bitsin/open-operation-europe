@@ -2,5 +2,5 @@
 import buildutil_configure as bc
 
 flags = ["-Wall", "-Wextra", "-Wno-unused-parameter"]
-for source in sorted((bc.source_dir() / "sdl3").rglob("*.cpp")):
-  bc.declare(source, options=flags)
+# The backend is stb_image_write's only user and compiles its implementation.
+bc.declare(bc.source_dir() / "sdl3/platform-sdl3.cpp", options=flags + ["-DSTB_IMAGE_WRITE_IMPLEMENTATION"])

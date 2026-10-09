@@ -30,10 +30,6 @@
 
 #pragma once
 
-#pragma once
-
-#define YMFM_DEBUG_LOG_WAVFILES (0)
-
 namespace ymfm {
 
 //*********************************************************
@@ -412,10 +408,6 @@ public:
 
   // compute sample rate
   uint32_t sample_rate(uint32_t baseclock) const {
-#if (YMFM_DEBUG_LOG_WAVFILES)
-    for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
-      m_wavfile[chnum].set_samplerate(baseclock / (m_clock_prescale * OPERATORS));
-#endif
     return baseclock / (m_clock_prescale * OPERATORS);
   }
 
@@ -474,9 +466,6 @@ protected:
   RegisterType m_regs;             // register accessor
   std::unique_ptr<fm_channel<RegisterType>> m_channel[CHANNELS]; // channel pointers
   std::unique_ptr<fm_operator<RegisterType>> m_operator[OPERATORS]; // operator pointers
-#if (YMFM_DEBUG_LOG_WAVFILES)
-  mutable ymfm_wavfile<1> m_wavfile[CHANNELS]; // for debugging
-#endif
 };
 
 }

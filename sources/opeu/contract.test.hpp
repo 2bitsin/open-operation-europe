@@ -9,6 +9,7 @@
 
 #include <format>
 #include <regex>
+#include <source_location>
 #include <string>
 #include <string_view>
 
@@ -57,47 +58,49 @@ auto ThrownContract(_Broken&& broken) -> std::string {
   return thrown;
 }
 
+// A broken contract of `kind` in whichever mode the build chose: halt throws,
+// a mode that stops for this kind dies, any other carries on past the break,
+// so `broken` is compiled (what it names is still used) but never run.
+// Failures are reported at the caller's line.
+template <bool _Stopping, typename _Broken>
+auto ExpectStopped(_Broken&& broken, std::string_view kind, std::string_view text, std::source_location where) -> void {
+  auto const trace{ testing::ScopedTrace{ where.file_name(), static_cast<int>(where.line()), "broken contract" } };
+  if constexpr (CONTRACTS_HALT) {
+    auto const thrown{ ThrownContract(broken) };
+    EXPECT_TRUE(SaysContract(thrown, kind, text)) << thrown;
+  } else if constexpr (_Stopping) {
+    EXPECT_DEATH(broken(), ContractPattern(kind, text));
+  }
+}
+
+template <typename _Broken>
+auto ExpectContractPrecondition(_Broken&& broken, std::string_view text,
+                                std::source_location where = std::source_location::current()) -> void {
+  ExpectStopped<CONTRACTS_STOP>(broken, "precondition", text, where);
+}
+
+template <typename _Broken>
+auto ExpectContractPostcondition(_Broken&& broken, std::string_view text,
+                                 std::source_location where = std::source_location::current()) -> void {
+  ExpectStopped<CONTRACTS_STOP>(broken, "postcondition", text, where);
+}
+
+// Unreachable has no continuation in any mode, so only halt survives it.
+template <typename _Broken>
+auto ExpectContractUnreachable(_Broken&& broken, std::string_view text,
+                               std::source_location where = std::source_location::current()) -> void {
+  ExpectStopped<true>(broken, "unreachable", text, where);
+}
+
 }
 
 namespace opeu {
 using detail::contract_test::CONTRACTS_HALT;
 using detail::contract_test::CONTRACTS_STOP;
 using detail::contract_test::ContractPattern;
+using detail::contract_test::ExpectContractPostcondition;
+using detail::contract_test::ExpectContractPrecondition;
+using detail::contract_test::ExpectContractUnreachable;
 using detail::contract_test::SaysContract;
 using detail::contract_test::ThrownContract;
 }
-
-// Compiled and unevaluated: the statement still type-checks, and what it
-// names is still used, but a mode that carries on past a break never runs it.
-#define OPEU_SKIP_CONTRACT(statement, text) \
-  do {                                      \
-    if (false) {                            \
-      statement;                            \
-    }                                       \
-    static_cast<void>(text);                \
-  } while (false)
-
-#define OPEU_EXPECT_THROWN(statement, kind, text)                    \
-  do {                                                               \
-    auto const thrown{ ::opeu::ThrownContract([&] { statement; }) }; \
-    EXPECT_TRUE(::opeu::SaysContract(thrown, kind, text)) << thrown; \
-  } while (false)
-
-// halt throws, a mode that stops for this kind dies, any other skips.
-#define OPEU_EXPECT_STOPPED(stopping, statement, kind, text)        \
-  do {                                                              \
-    if constexpr (::opeu::CONTRACTS_HALT) {                         \
-      OPEU_EXPECT_THROWN(statement, kind, text);                    \
-    } else if constexpr (stopping) {                                \
-      EXPECT_DEATH(statement, ::opeu::ContractPattern(kind, text)); \
-    } else {                                                        \
-      OPEU_SKIP_CONTRACT(statement, text);                          \
-    }                                                               \
-  } while (false)
-
-#define EXPECT_CONTRACT_PRECONDITION(statement, text) \
-  OPEU_EXPECT_STOPPED(::opeu::CONTRACTS_STOP, statement, "precondition", text)
-#define EXPECT_CONTRACT_POSTCONDITION(statement, text) \
-  OPEU_EXPECT_STOPPED(::opeu::CONTRACTS_STOP, statement, "postcondition", text)
-// Unreachable has no continuation in any mode, so only halt survives it.
-#define EXPECT_CONTRACT_UNREACHABLE(statement, text) OPEU_EXPECT_STOPPED(true, statement, "unreachable", text)

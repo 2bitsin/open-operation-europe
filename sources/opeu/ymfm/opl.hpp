@@ -30,8 +30,6 @@
 
 #pragma once
 
-#pragma once
-
 #include "adpcm.hpp"
 #include "fm.hpp"
 #include "pcm.hpp"

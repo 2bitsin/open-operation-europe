@@ -27,8 +27,8 @@
 
 #include <SDL3/SDL.h>
 /* The headless --png writer: stb_image_write (conan stb), implemented here,
- * its only user. */
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+ * its only user (platform/configure.py defines STB_IMAGE_WRITE_IMPLEMENTATION
+ * for this file). */
 #include <stb_image_write.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -38,20 +38,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 1: hide the host cursor while it is over the window (the game draws its
- * own mouse pointer).  0: leave the OS cursor visible. */
-#ifndef PLAT_HIDE_CURSOR
-#define PLAT_HIDE_CURSOR 1
-#endif
+namespace {
 
-/* SDL_LOGICAL_PRESENTATION_INTEGER_SCALE or SDL_LOGICAL_PRESENTATION_LETTERBOX */
-#ifndef PLAT_PRESENTATION
-/* The web shell sizes the canvas to an integer multiple of 640x480 (see
- * port/platform/web/shell.html), so integer scaling applies there too. */
-#define PLAT_PRESENTATION SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
-#endif
+/* true: hide the host cursor while it is over the window (the game draws its
+ * own mouse pointer).  false: leave the OS cursor visible. */
+constexpr auto PLAT_HIDE_CURSOR{ true };
 
-#define PLAT_PATH_MAX 1024
+/* SDL_LOGICAL_PRESENTATION_INTEGER_SCALE or SDL_LOGICAL_PRESENTATION_LETTERBOX.
+ * The web shell sizes the canvas to an integer multiple of 640x480 (see
+ * web/shell.html), so integer scaling applies there too. */
+constexpr auto PLAT_PRESENTATION{ SDL_LOGICAL_PRESENTATION_INTEGER_SCALE };
+
+constexpr auto PLAT_PATH_MAX{ 1024 };
+
+}
 
 /* ---- state -------------------------------------------------------------- */
 
@@ -144,9 +144,9 @@ int plat_init(const PlatConfig* cfg) {
     SDL_SetRenderVSync(P.renderer, 1);
 #endif
     SDL_SetRenderLogicalPresentation(P.renderer, w, h, PLAT_PRESENTATION);
-#if PLAT_HIDE_CURSOR
-    SDL_HideCursor();
-#endif
+    if constexpr (PLAT_HIDE_CURSOR) {
+      SDL_HideCursor();
+    }
     /* Never deliver text-input events; we derive ASCII ourselves. */
     SDL_StopTextInput(P.window);
     SDL_SetRenderDrawColor(P.renderer, 0, 0, 0, 255);

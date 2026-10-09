@@ -30,8 +30,6 @@
 
 #pragma once
 
-#pragma once
-
 #include "ymfm.hpp"
 
 namespace ymfm {
