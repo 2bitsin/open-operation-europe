@@ -15,9 +15,11 @@
  * frame (so the canvas is shown and input events are delivered) and in
  * plat_sleep_ms() (the pump's idle sleep).  SDL's own automatic
  * emscripten_sleep() calls are switched off so that these are the only
- * yields.  The canvas is scaled by the page's CSS (letterboxed, not integer
- * scaled), takes the keyboard events itself, and has no vsync setting (the
- * browser paces frames).
+ * yields.  The page's CSS sizes the canvas to an integer multiple of the
+ * frame (shell.html) and SDL follows that size on window resize events, so
+ * the renderer's integer scaling applies there too; the canvas takes the
+ * keyboard events itself and has no vsync setting (the browser paces
+ * frames).
  */
 #include "platform.h"
 #include "png_write.h"
