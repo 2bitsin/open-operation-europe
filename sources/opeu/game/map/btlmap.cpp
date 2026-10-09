@@ -332,8 +332,6 @@ void opeu_battle_map_setup(uint8_t* ds, HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/btlmap.c (2a96, battle map set-up). Event ids from the host
  * branch and tests/validate_battle_map.py (SERVICES, segment:offset):
@@ -353,57 +351,71 @@ uint16_t svc_btlmap(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0:
       opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
-                               (uint8_t)ARG(0));
+                               (uint8_t)Arg(args, count, 0));
       break;
     case 1:
-      koei_3f26(ARG(0), ARG(1), ARG(2), ARG(3), port_far(ARG(5), ARG(4)),
-                port_far(ARG(7), ARG(6)), port_far(ARG(9), ARG(8)), ARG(10));
+      koei_3f26(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+                Arg(args, count, 3),
+                port_far(Arg(args, count, 5), Arg(args, count, 4)),
+                port_far(Arg(args, count, 7), Arg(args, count, 6)),
+                port_far(Arg(args, count, 9), Arg(args, count, 8)),
+                Arg(args, count, 10));
       break;
-    case 2: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 2:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
     case 3:
-      r = (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
-                                  (int16_t)ARG(3));
+      r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0),
+                                  (int32_t)Arg32(args, count, 1),
+                                  (int16_t)Arg(args, count, 3));
       break;
     case 4:
-      r = (uint16_t)opeu_dos_read((int16_t)ARG(0), PORT_DS(ARG(1)), ARG(2));
+      r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0),
+                                  PORT_DS(Arg(args, count, 1)),
+                                  Arg(args, count, 2));
       break;
-    case 5: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 5: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
     case 6:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
-                         (short)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (short)Arg(args, count, 0),
+                         (short)Arg(args, count, 1));
       break;
     case 7:
-      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
-    case 8: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 8:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 9: btl_cursor_print(ds, args, count); break;
     case 10:
-      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break;
     case 11: r = (uint16_t)opeu_vga_clear(); break;
     case 12:
       opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
       break;
     case 13:
-      opeu_battle_draw_cell_above(ds, svc_btlcell, (uint8_t)ARG(0),
-                                  (uint8_t)ARG(1));
+      opeu_battle_draw_cell_above(ds, svc_btlcell, (uint8_t)Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1));
       break;
     case 14:
-      opeu_battle_draw_cell(ds, svc_btlcell, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_battle_draw_cell(ds, svc_btlcell, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
       break;
-    case 15: r = *port_far(ARG(0), ARG(1)); break;
+    case 15: r = *port_far(Arg(args, count, 0), Arg(args, count, 1)); break;
     default: port_unhandled("btlmap", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_battle_map_setup) {
+auto port_routine_opeu_battle_map_setup(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_map_setup(ds, svc_btlmap);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

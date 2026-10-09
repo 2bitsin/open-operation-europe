@@ -143,10 +143,8 @@ void opeu_blast_pause(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)          ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)        ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
-#define FAR(segi, offi) port_far(ARG(segi), ARG(offi))
-#define W(i)            ARG(i)
+#define FAR(segi, offi) port_far(Arg(args, count, segi), Arg(args, count, offi))
+#define W(i)            Arg(args, count, i)
 
 /* Services of map/blast.c (17c4:0744 location blast, 0860 blast erase, 0866 blast
  * pause). Events (host branch comment; callees from the DOS branch):
@@ -164,24 +162,26 @@ uint16_t svc_blast(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t frame, r = 0;
   switch (id) {
     case 0:
-      r = opeu_side_for_status(ds, (uint8_t)ARG(0));
+      r = opeu_side_for_status(ds, (uint8_t)Arg(args, count, 0));
       break; /* 0b73:04d0 */
     case 1:  /* 15c4:1408 */
       frame = map_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     case 2: opeu_sound_cue5(ds, svc_soundcue); break; /* 0d92:0030 */
     case 3:
-      opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break;                                                  /* 0a8e:004c */
     case 4: svc_map_plan(ds, "blast", 9, args, count); break; /* 0000:27ca */
     case 5: svc_map_plan(ds, "blast", 8, args, count); break; /* 0000:3e0a */
     case 6: opeu_effect_finish(ds, svc_sound); break;         /* 0d65:02bc */
     case 7:                                                   /* 15c4:0f7c */
       frame = map_frame_enter();
-      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1));
       map_frame_leave();
       break;
     default: port_unhandled("blast", id, count);
@@ -255,14 +255,13 @@ uint16_t svc_map_plan(uint8_t* ds, const char* module, uint16_t kind,
   return 0;
 }
 
-PORT_ROUTINE(opeu_blast_pause) {
+auto port_routine_opeu_blast_pause(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_blast_pause(ds, svc_blast);
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef FAR
 #undef W

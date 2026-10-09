@@ -139,8 +139,6 @@ void opeu_load_scenario_graphics(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/scenres.c (06db:0416..07c5 scenario text, message pictures and
  * per-scenario resources). Events, from the host branch's comment:
@@ -155,18 +153,25 @@ uint16_t svc_scenres(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 0:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
     case 1:
-      r = (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
-                                  (int16_t)ARG(3));
+      r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0),
+                                  (int32_t)Arg32(args, count, 1),
+                                  (int16_t)Arg(args, count, 3));
       break;
     case 2:
-      r = (uint16_t)opeu_dos_read((int16_t)ARG(0), PORT_DS(ARG(1)), ARG(2));
+      r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0),
+                                  PORT_DS(Arg(args, count, 1)),
+                                  Arg(args, count, 2));
       break;
     case 3:
-      r = (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2), ARG(3));
+      r = (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0),
+                                      Arg(args, count, 1), Arg(args, count, 2),
+                                      Arg(args, count, 3));
       break;
-    case 4:  r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 4:  r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
     case 5:  opeu_ems_map_dialog(ds, svc_emsmap); break;
     case 6:  opeu_display_prepare(ds, svc_emsmap); break;
     case 7:  opeu_view_prepare(ds, svc_emsmap); break;
@@ -175,6 +180,3 @@ uint16_t svc_scenres(uint8_t* ds, uint16_t id, const uint16_t* args,
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

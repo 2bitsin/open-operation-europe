@@ -300,8 +300,6 @@ done:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/ordact.c (1c23:09aa unit action of the map cursor). Services,
@@ -367,23 +365,24 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
   switch (id) {
     case 0: r = lf_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 2:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 3:
       sp = port_stack_enter(LF_FRAME);
-      opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u),
-                            (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(
+          ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0),
+          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
       port_stack_leave(LF_FRAME);
       break;
     case 4:
       sp = port_stack_enter(LF_FRAME);
-      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u), ARG(0),
-                                  ARG(1));
+      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u),
+                                  Arg(args, count, 0), Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
     case 5:
@@ -391,52 +390,63 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
       break;
     case 6:
       sp = port_stack_enter(LF_FRAME);
-      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0),
-                      (uint8_t)ARG(1));
+      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
     case 7:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 8:
       sp = port_stack_enter(LF_FRAME);
-      opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)ARG(0));
+      opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
     case 9:
-      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                             ARG(1));
+      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(),
+                             Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 10:
       sp = port_stack_enter(LF_FRAME);
-      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0));
+      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u),
+                         Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
     case 11:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 12:
       sp = port_stack_enter(LF_FRAME);
-      r  = opeu_prompt_value_cancel(ds, svc_keyboard, ARG(0), ARG(1), ARG(2),
+      r  = opeu_prompt_value_cancel(ds, svc_keyboard, Arg(args, count, 0),
+                                    Arg(args, count, 1), Arg(args, count, 2),
                                     (uint16_t)(sp - 0x10u));
       port_stack_leave(LF_FRAME);
       break;
-    case 13: opeu_control_position(ds, ARG(0), ARG(1)); break;
-    case 14: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
-    case 15:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+    case 13:
+      opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 16: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
-    case 17: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 14:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
+    case 15:
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
+      break;
+    case 16:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
+    case 17:
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break;
     default: return 0;
   }
   *result = r;
   return 1;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

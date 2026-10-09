@@ -26,8 +26,8 @@
  */
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 /* ---- data layout ------------------------------------------------------- */
 
@@ -117,11 +117,19 @@ typedef struct {
   PortRoutine routine;    /* NULL: not linked yet */
 } PortLink;
 
-/* Define a linked routine handler for recovered/native routine `name`;
- * game/link/gen/link-table.cpp lists every one under its routine address.
- * It stays a macro: it names the handler port_routine_<name> by token
- * pasting, which no C++ declaration can do. */
-#define PORT_ROUTINE(name) uint32_t port_routine_##name(uint8_t* ds, const uint16_t* args, unsigned count)
+/* The signature of a linked routine handler port_routine_<name>;
+ * game/link/gen/link-table.cpp declares every one with it and lists it
+ * under its routine address. */
+using PortHandler = auto(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t;
+
+/* Argument word i of a routine call with count words (0 past the end). */
+inline auto Arg(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint16_t {
+  return i < count ? args[i] : std::uint16_t{ 0 };
+}
+/* The 32-bit argument in words i (low) and i + 1 (high). */
+inline auto Arg32(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint32_t {
+  return static_cast<std::uint32_t>(Arg(args, count, i)) | static_cast<std::uint32_t>(Arg(args, count, i + 1)) << 16;
+}
 
 /* Call a routine by its identifier; fatal (with its name) when unlinked. */
 uint32_t port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);

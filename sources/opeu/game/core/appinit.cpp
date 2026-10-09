@@ -66,8 +66,6 @@ void opeu_app_initialize(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/appinit.c (0977:0372 app_startup, 0977:037c app_initialize,
  * the first-run input-device prompt). Events, from the host branch's
@@ -87,21 +85,23 @@ uint16_t svc_appinit(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: opeu_app_startup_service(ds, svc_startup); break;
     case 1: opeu_vga_clear(); break;
     case 2:
-      opeu_mouse_window(ds, svc_mouse, (int16_t)ARG(0), (int16_t)ARG(1),
-                        (int16_t)ARG(2), (int16_t)ARG(3));
+      opeu_mouse_window(ds, svc_mouse, (int16_t)Arg(args, count, 0),
+                        (int16_t)Arg(args, count, 1),
+                        (int16_t)Arg(args, count, 2),
+                        (int16_t)Arg(args, count, 3));
       break;
     case 3: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
     case 4:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
-    case 5:  opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 5:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 6:  return (uint16_t)opeu_turn_input_a(ds, svc_mouse);
     case 7:  return opeu_turn_input_b();
     default: port_unhandled("appinit", id, count);
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

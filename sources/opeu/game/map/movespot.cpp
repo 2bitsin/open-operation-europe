@@ -139,8 +139,6 @@ void opeu_move_mines_finish(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/movespot.c (32e6:0368 spotting, 051e enemy adjacent, 05a0
  * mines finish). Events (host branch comment; callees from the DOS branch):
@@ -158,38 +156,52 @@ uint16_t svc_movespot(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 3: r = opeu_opposite_side((uint8_t)ARG(0)); break;      /* 0b73:04c8 */
-    case 4: r = opeu_hour_is_night((uint8_t)ARG(0)); break;      /* 0b73:0178 */
-    case 5: r = port_rand_bounded(ds, ARG(0)); break;            /* 09f6:00d4 */
-    case 6: r = opeu_unit_special(ds, ARG(0)); break;            /* 145c:04de */
-    case 7: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
+    case 3:
+      r = opeu_opposite_side((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:04c8 */
+    case 4:
+      r = opeu_hour_is_night((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:0178 */
+    case 5:
+      r = port_rand_bounded(ds, Arg(args, count, 0));
+      break; /* 09f6:00d4 */
+    case 6:
+      r = opeu_unit_special(ds, Arg(args, count, 0));
+      break; /* 145c:04de */
+    case 7:
+      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0));
+      break; /* 145c:0fc4 */
     case 8:
-      r = opeu_grid_distance((uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
-                             (uint8_t)ARG(3));
+      r = opeu_grid_distance(
+          (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+          (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3));
       break; /* 17c4:1424 */
     case 9:
-      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      r = opeu_grid_step(PORT_DS(Arg(args, count, 0)),
+                         PORT_DS(Arg(args, count, 1)),
+                         (uint8_t)Arg(args, count, 2));
       break; /* 145c:0d3e */
     case 10:
-      r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1));
       break; /* 145c:0e42 */
     case 11:
-      r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
       break; /* 145c:011c */
     case 12:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:005c */
     default: port_unhandled("movespot", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_move_mines_finish) {
+auto port_routine_opeu_move_mines_finish(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_move_mines_finish(ds, svc_movespot);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

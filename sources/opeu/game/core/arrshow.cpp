@@ -53,8 +53,6 @@ void opeu_arrival_present(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/arrshow.c (1270:0816 opeu_arrival_present). Services, from
  * the host branch and tests/validate_arrival_presentation.py SERVICES:
@@ -66,23 +64,25 @@ uint16_t svc_arrshow(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 1:
-      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 2: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;                                            /* 1707:0672 */
     case 4: opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
     case 5:
-      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
       break; /* 1389:000e */
     default: port_unhandled("arrshow", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_arrival_present) {
+auto port_routine_opeu_arrival_present(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)
@@ -92,6 +92,3 @@ PORT_ROUTINE(opeu_arrival_present) {
   port_stack_leave(PORT_FRAME);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

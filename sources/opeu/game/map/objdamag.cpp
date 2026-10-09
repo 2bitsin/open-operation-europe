@@ -216,8 +216,6 @@ void opeu_objective_damage(uint8_t ds[65536], HostEvent event, uint16_t bp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/objdamag.c (17c4:102a objective loss line, 17c4:10cc objective
  * damage report). Events (host branch comment; callees from the DOS branch):
@@ -236,31 +234,37 @@ uint16_t svc_objdamag(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: /* 17c4:0744 */
       frame = map_frame_enter();
-      opeu_location_blast(ds, svc_blast, frame, (uint8_t)ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_location_blast(ds, svc_blast, frame, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     case 1: map_request_format(ds, args, count); break; /* 0480:0b9a */
     case 2:
       opeu_objective_side_report(ds, (const DialogHost*)port_dialogs_host(),
-                                 ARG(0), ARG(1));
+                                 Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:09b2 */
     case 3:
-      opeu_element_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
-      break;                                                   /* 1707:0b76 */
-    case 4: r = opeu_string_append(ds, ARG(0), ARG(1)); break; /* 09cc:01f6 */
+      opeu_element_panel(ds, (const DialogHost*)port_dialogs_host(),
+                         Arg(args, count, 0));
+      break; /* 1707:0b76 */
+    case 4:
+      r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break; /* 09cc:01f6 */
     case 5:
-      opeu_blast_erase(ds, svc_blast, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1));
       break; /* 17c4:0860 */
     case 6:
       opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
-      break;                                                 /* 1707:02e2 */
-    case 7:  r = opeu_objective_side(ds, ARG(0)); break;     /* 145c:01b8 */
-    case 8:  r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
+      break; /* 1707:02e2 */
+    case 7:
+      r = opeu_objective_side(ds, Arg(args, count, 0));
+      break; /* 145c:01b8 */
+    case 8:
+      r = opeu_opposite_side((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:04c8 */
     default: port_unhandled("objdamag", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

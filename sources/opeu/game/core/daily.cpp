@@ -71,8 +71,6 @@ void opeu_turn_daily(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/daily.c (0e36:005c scan, 0e36:010a turn_daily). Services:
  * prepare=0, side context=1 (side), activate=2 (side), show=3 (event id,
@@ -100,6 +98,3 @@ uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

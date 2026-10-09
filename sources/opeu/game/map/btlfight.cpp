@@ -165,13 +165,8 @@ void opeu_battle_finish_none(uint8_t* ds, BattleEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 uint16_t svc_btlfight(uint8_t* ds, uint32_t address, const uint16_t* args,
                       unsigned int count) {
   return port_service(ds, address, args, count);
 }
-
-#undef ARG
-#undef ARG32

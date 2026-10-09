@@ -300,8 +300,6 @@ ELEMENT opeu_battle_element_at(uint8_t* ds, BattleService service, uint8_t x,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/btlcalc.c (2864, battle calculations). BattleService ids of the
  * host branch (src/main/map/btlcalc.c WAIT / ELEMENT_SIDE / UNIT_SIDE /
@@ -320,67 +318,96 @@ uint16_t svc_btlcalc(uint8_t* ds, uint16_t id, uint16_t arg) {
   }
 }
 
-PORT_ROUTINE(opeu_battle_can_enter) {
-  return opeu_battle_can_enter(ds, svc_btlcalc, (uint8_t)ARG(0),
-                               (uint8_t)ARG(1), ARG(2));
+auto port_routine_opeu_battle_can_enter(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  return opeu_battle_can_enter(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0),
+                               (uint8_t)Arg(args, count, 1),
+                               Arg(args, count, 2));
 }
 
-PORT_ROUTINE(opeu_battle_cell_terrain) {
-  return opeu_battle_cell_terrain(ds, svc_btlcalc, (uint8_t)ARG(0),
-                                  (uint8_t)ARG(1));
+auto port_routine_opeu_battle_cell_terrain(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
+  return opeu_battle_cell_terrain(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_battle_element_at) {
-  return opeu_battle_element_at(ds, svc_btlcalc, (uint8_t)ARG(0),
-                                (uint8_t)ARG(1));
+auto port_routine_opeu_battle_element_at(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  return opeu_battle_element_at(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_battle_element_range) {
-  return opeu_battle_element_range(ds, svc_btlcalc, ARG(0));
+auto port_routine_opeu_battle_element_range(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_element_range(ds, svc_btlcalc, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_element_rating) {
-  return opeu_battle_element_rating(ds, svc_btlcalc, ARG(1), ARG(0));
+auto port_routine_opeu_battle_element_rating(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
+  return opeu_battle_element_rating(ds, svc_btlcalc, Arg(args, count, 1),
+                                    Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_element_shots) {
-  return opeu_battle_element_shots(ds, svc_btlcalc, ARG(1), ARG(0));
+auto port_routine_opeu_battle_element_shots(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_element_shots(ds, svc_btlcalc, Arg(args, count, 1),
+                                   Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_element_strength) {
-  return opeu_battle_element_strength(ds, svc_btlcalc, ARG(0));
+auto port_routine_opeu_battle_element_strength(std::uint8_t*        ds,
+                                               std::uint16_t const* args,
+                                               unsigned             count)
+    -> std::uint32_t {
+  return opeu_battle_element_strength(ds, svc_btlcalc, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_move_cost) {
-  return opeu_battle_move_cost(ds, svc_btlcalc, (uint8_t)ARG(0),
-                               (uint8_t)ARG(1), ARG(2));
+auto port_routine_opeu_battle_move_cost(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  return opeu_battle_move_cost(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0),
+                               (uint8_t)Arg(args, count, 1),
+                               Arg(args, count, 2));
 }
 
-PORT_ROUTINE(opeu_battle_odds) {
-  return opeu_battle_odds(ds, svc_btlcalc, (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_battle_odds(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
+  return opeu_battle_odds(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_battle_pause) {
-  opeu_battle_pause(ds, svc_btlcalc, (uint8_t)ARG(0));
+auto port_routine_opeu_battle_pause(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
+  opeu_battle_pause(ds, svc_btlcalc, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_skill) {
-  return opeu_battle_skill(ds, svc_btlcalc, ARG(1), (uint8_t)ARG(0));
+auto port_routine_opeu_battle_skill(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
+  return opeu_battle_skill(ds, svc_btlcalc, Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_step) {
-  return opeu_battle_step(ds, svc_btlcalc, PORT_DS(ARG(2)), PORT_DS(ARG(0)),
-                          (uint8_t)ARG(1));
+auto port_routine_opeu_battle_step(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
+  return opeu_battle_step(ds, svc_btlcalc, PORT_DS(Arg(args, count, 2)),
+                          PORT_DS(Arg(args, count, 0)),
+                          (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_battle_unit_controlled) {
-  return opeu_battle_unit_controlled(ds, svc_btlcalc, ARG(0));
+auto port_routine_opeu_battle_unit_controlled(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
+  return opeu_battle_unit_controlled(ds, svc_btlcalc, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_unit_direction) {
-  return opeu_battle_unit_direction(ds, svc_btlcalc, ARG(0));
+auto port_routine_opeu_battle_unit_direction(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
+  return opeu_battle_unit_direction(ds, svc_btlcalc, Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

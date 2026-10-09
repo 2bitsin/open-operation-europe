@@ -347,8 +347,6 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/engineer.c (319e:0002..0566 engineering order completion).
@@ -375,19 +373,29 @@ uint16_t svc_engineer(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t             r              = 0;
   switch (id) {
     case 2:
-      r = opeu_unit_quantity(ds, ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      r = opeu_unit_quantity(ds, Arg(args, count, 0),
+                             (uint8_t)Arg(args, count, 1),
+                             PORT_DS(Arg(args, count, 2)));
       break;
     case 6:
-      r = opeu_cell_marked(ds, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_cell_marked(ds, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 11:
-      opeu_mark_cell(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_mark_cell(ds, (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1),
+                     (uint8_t)Arg(args, count, 2));
       break;
     case 15:
-      opeu_unmark_cell(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_unmark_cell(ds, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1),
+                       (uint8_t)Arg(args, count, 2));
       break;
-    case 17: opeu_map_mark_10(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 17:
+      opeu_map_mark_10(ds, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1));
+      break;
     default:
       if (id >= 21 || !svc_order_handler(ds, handler_id[id], args, count, &r))
         port_unhandled("engineer", id, count);
@@ -436,77 +444,109 @@ int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count, uint16_t* result) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 0: r = opeu_unit_average11(ds, ARG(0)); break;
-    case 1: r = port_rand_bounded(ds, ARG(0)); break;
-    case 2: opeu_restore_unit_order(ds, ARG(0)); break;
+    case 0: r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
+    case 1: r = port_rand_bounded(ds, Arg(args, count, 0)); break;
+    case 2: opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
     case 3:
-      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      r = opeu_grid_step(PORT_DS(Arg(args, count, 0)),
+                         PORT_DS(Arg(args, count, 1)),
+                         (uint8_t)Arg(args, count, 2));
       break;
-    case 4: r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
-    case 5: r = opeu_unit_side(ARG(0)); break;
-    case 6: r = opeu_unit_value(ds, ARG(0)); break;
+    case 4:
+      r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
+      break;
+    case 5: r = opeu_unit_side(Arg(args, count, 0)); break;
+    case 6: r = opeu_unit_value(ds, Arg(args, count, 0)); break;
     case 7: r = opeu_move_supplied(ds); break;
     case 8:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                       ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 9:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 9:  r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
     case 10: r = lf_request_format(ds, args, count); break;
     case 11:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 12:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), ARG32(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      Arg32(args, count, 2));
       break;
-    case 13: r = opeu_opposite_side((uint8_t)ARG(0)); break;
+    case 13: r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
     case 14:
-      r = opeu_move_objective_target(ds, svc_movetgt, ARG(0), ARG(1),
-                                     (uint8_t)ARG(2));
+      r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0),
+                                     Arg(args, count, 1),
+                                     (uint8_t)Arg(args, count, 2));
       break;
     case 15:
       sp = port_stack_enter(LF_FRAME);
       r  = opeu_move_adjacent(ds, svc_movetgt, (uint16_t)(sp - 2u),
-                              (uint8_t)ARG(0), (uint8_t)ARG(1));
+                              (uint8_t)Arg(args, count, 0),
+                              (uint8_t)Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
-    case 16: r = opeu_move_level_lower(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 17: r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 16:
+      r = opeu_move_level_lower(ds, Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
+      break;
+    case 17:
+      r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1));
+      break;
     case 18:
-      r = opeu_objective_quantity(ds, ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      r = opeu_objective_quantity(ds, Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1),
+                                  PORT_DS(Arg(args, count, 2)));
       break;
     case 19:
       sp = port_stack_enter(LF_FRAME);
-      opeu_move_unit(ds, svc_moveunit, (uint16_t)(sp - 2u), ARG(0));
+      opeu_move_unit(ds, svc_moveunit, (uint16_t)(sp - 2u),
+                     Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
-    case 20: opeu_side_groups_retarget(ds, (uint8_t)ARG(0)); break;
+    case 20: opeu_side_groups_retarget(ds, (uint8_t)Arg(args, count, 0)); break;
     case 21:
       sp = port_stack_enter(LF_FRAME);
-      r  = opeu_move_unit_target(ds, svc_movetgt, (uint16_t)(sp - 2u), ARG(0),
-                                 ARG(1));
+      r  = opeu_move_unit_target(ds, svc_movetgt, (uint16_t)(sp - 2u),
+                                 Arg(args, count, 0), Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
-    case 22: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
-    case 23: r = opeu_abs16_bits(ARG(0)); break;
-    case 24: r = opeu_unit_person(ds, ARG(0)); break;
-    case 25: r = opeu_unit_average10(ds, ARG(0)); break;
-    case 26: r = opeu_unit_average9(ds, ARG(0)); break;
-    case 27:
-      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
-                                      PORT_DS(ARG(2)));
+    case 22:
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break;
-    case 28: r = opeu_map_code(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
-    case 29: opeu_map_mark_5(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 23: r = opeu_abs16_bits(Arg(args, count, 0)); break;
+    case 24: r = opeu_unit_person(ds, Arg(args, count, 0)); break;
+    case 25: r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
+    case 26: r = opeu_unit_average9(ds, Arg(args, count, 0)); break;
+    case 27:
+      r = opeu_unit_order_destination(ds, Arg(args, count, 0),
+                                      PORT_DS(Arg(args, count, 1)),
+                                      PORT_DS(Arg(args, count, 2)));
+      break;
+    case 28:
+      r = opeu_map_code(ds, (uint8_t)Arg(args, count, 0),
+                        (uint8_t)Arg(args, count, 1));
+      break;
+    case 29:
+      opeu_map_mark_5(ds, (uint8_t)Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
+      break;
     case 30:
       sp = port_stack_enter(LF_FRAME);
-      opeu_map_erase(ds, svc_maperase, (uint16_t)(sp - 2u), (uint8_t)ARG(0),
-                     (uint8_t)ARG(1));
+      opeu_map_erase(ds, svc_maperase, (uint16_t)(sp - 2u),
+                     (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
-    case 31: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
-    case 32: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 31:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
+    case 32:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 33: opeu_sound_cue5(ds, svc_soundcue); break;
     default: return 0;
   }
@@ -514,21 +554,27 @@ int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args,
   return 1;
 }
 
-PORT_ROUTINE(opeu_arms_repaired_finish) {
+auto port_routine_opeu_arms_repaired_finish(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_arms_repaired_finish(ds, svc_engineer);
   return 0;
 }
 
-PORT_ROUTINE(opeu_bridge_built_finish) {
+auto port_routine_opeu_bridge_built_finish(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_bridge_built_finish(ds, svc_engineer);
   return 0;
 }
 
-PORT_ROUTINE(opeu_engineer_build_bridge) {
+auto port_routine_opeu_engineer_build_bridge(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -538,7 +584,9 @@ PORT_ROUTINE(opeu_engineer_build_bridge) {
   return r;
 }
 
-PORT_ROUTINE(opeu_engineer_lay_mines) {
+auto port_routine_opeu_engineer_lay_mines(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -548,7 +596,9 @@ PORT_ROUTINE(opeu_engineer_lay_mines) {
   return r;
 }
 
-PORT_ROUTINE(opeu_engineer_remove_mines) {
+auto port_routine_opeu_engineer_remove_mines(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -558,7 +608,10 @@ PORT_ROUTINE(opeu_engineer_remove_mines) {
   return r;
 }
 
-PORT_ROUTINE(opeu_engineer_repair_objective) {
+auto port_routine_opeu_engineer_repair_objective(std::uint8_t*        ds,
+                                                 std::uint16_t const* args,
+                                                 unsigned             count)
+    -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -568,7 +621,9 @@ PORT_ROUTINE(opeu_engineer_repair_objective) {
   return r;
 }
 
-PORT_ROUTINE(opeu_engineer_repair_unit) {
+auto port_routine_opeu_engineer_repair_unit(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -578,20 +633,22 @@ PORT_ROUTINE(opeu_engineer_repair_unit) {
   return r;
 }
 
-PORT_ROUTINE(opeu_mines_laid_finish) {
+auto port_routine_opeu_mines_laid_finish(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mines_laid_finish(ds, svc_engineer);
   return 0;
 }
 
-PORT_ROUTINE(opeu_mines_removed_finish) {
+auto port_routine_opeu_mines_removed_finish(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mines_removed_finish(ds, svc_engineer);
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

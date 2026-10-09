@@ -256,8 +256,6 @@ uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define BTL_BP(sp) ((uint16_t)((sp) - 2u))
 
 uint16_t svc_btlengag(uint8_t* ds, uint32_t address, const uint16_t* args,
@@ -265,57 +263,73 @@ uint16_t svc_btlengag(uint8_t* ds, uint32_t address, const uint16_t* args,
   return port_service(ds, address, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_animate_facing) {
+auto port_routine_opeu_battle_animate_facing(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_animate_facing(ds, svc_btlengag, ARG(1), (uint8_t)ARG(0),
-                             BTL_BP(sp));
+  opeu_battle_animate_facing(ds, svc_btlengag, Arg(args, count, 1),
+                             (uint8_t)Arg(args, count, 0), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_cell_in_range) {
-  return opeu_battle_cell_in_range(ds, svc_btlengag, ARG(0));
+auto port_routine_opeu_battle_cell_in_range(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_cell_in_range(ds, svc_btlengag, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_element_path_step) {
+auto port_routine_opeu_battle_element_path_step(std::uint8_t*        ds,
+                                                std::uint16_t const* args,
+                                                unsigned             count)
+    -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
   uint32_t r;
-  r = opeu_battle_element_path_step(ds, svc_btlengag, ARG(2), ARG(0), ARG(1),
+  r = opeu_battle_element_path_step(ds, svc_btlengag, Arg(args, count, 2),
+                                    Arg(args, count, 0), Arg(args, count, 1),
                                     BTL_BP(sp));
   btl_sp_leave();
   return r;
 }
 
-PORT_ROUTINE(opeu_battle_next_step) {
+auto port_routine_opeu_battle_next_step(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
   uint32_t r;
-  r = opeu_battle_next_step(ds, svc_btlengag, ARG(2), ARG(0), ARG(1),
+  r = opeu_battle_next_step(ds, svc_btlengag, Arg(args, count, 2),
+                            Arg(args, count, 0), Arg(args, count, 1),
                             BTL_BP(sp));
   btl_sp_leave();
   return r;
 }
 
-PORT_ROUTINE(opeu_battle_step_into) {
+auto port_routine_opeu_battle_step_into(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
   uint32_t r;
-  r = opeu_battle_step_into(ds, svc_btlengag, ARG(2), (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), BTL_BP(sp));
+  r = opeu_battle_step_into(ds, svc_btlengag, Arg(args, count, 2),
+                            (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1), BTL_BP(sp));
   btl_sp_leave();
   return r;
 }
 
-PORT_ROUTINE(opeu_battle_supply_notice) {
+auto port_routine_opeu_battle_supply_notice(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_supply_notice(ds, svc_btlengag, ARG(1), (uint8_t)ARG(0),
-                            BTL_BP(sp));
+  opeu_battle_supply_notice(ds, svc_btlengag, Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 0), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_target_in_range) {
-  return opeu_battle_target_in_range(ds, svc_btlengag, ARG(0));
+auto port_routine_opeu_battle_target_in_range(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
+  return opeu_battle_target_in_range(ds, svc_btlengag, Arg(args, count, 0));
 }
 
-#undef ARG
-#undef ARG32
 #undef BTL_BP

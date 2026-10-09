@@ -395,8 +395,6 @@ void opeu_app_finish(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/scenend.c (090d:0008..06ae scenario end, image accessors,
  * shutdown helpers). Service ids, from the host branch's comment, resolved
@@ -428,60 +426,76 @@ uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
-    case 1:
-      r = opeu_string_copy_far(ds, ARG(0), port_far(ARG(2), 0), ARG(1));
+    case 0:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
       break;
-    case 2: r = opeu_min16(ARG(0), ARG(1)); break;
-    case 3: r = opeu_unit_value(ds, ARG(0)); break;
-    case 4: r = opeu_objective_side(ds, ARG(0)); break;
-    case 5: r = opeu_opposite_side((uint8_t)ARG(0)); break;
+    case 1:
+      r = opeu_string_copy_far(ds, Arg(args, count, 0),
+                               port_far(Arg(args, count, 2), 0),
+                               Arg(args, count, 1));
+      break;
+    case 2: r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
+    case 3: r = opeu_unit_value(ds, Arg(args, count, 0)); break;
+    case 4: r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+    case 5: r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
     case 6:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break;
     case 7: b1_request_format(ds, args, count); break;
     case 8: r = (uint16_t)opeu_vga_clear(); break;
     case 9:
       opeu_palette_map_screen(ds, (const UiHost*)port_uiprim_host());
       break;
-    case 10: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 10:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
     case 11:
-      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                        (int16_t)ARG(2), ARG(3));
+      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(),
+                        Arg(args, count, 0), Arg(args, count, 1),
+                        (int16_t)Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 12:
-      opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                               ARG(1), (int16_t)ARG(2), ARG(3));
+      opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(),
+                               Arg(args, count, 0), Arg(args, count, 1),
+                               (int16_t)Arg(args, count, 2),
+                               Arg(args, count, 3));
       break;
     case 13:
-      opeu_picture_file_at(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                           ARG(1), (int16_t)ARG(2), (int32_t)ARG32(3));
+      opeu_picture_file_at(ds, (const UiHost*)port_uiprim_host(),
+                           Arg(args, count, 0), Arg(args, count, 1),
+                           (int16_t)Arg(args, count, 2),
+                           (int32_t)Arg32(args, count, 3));
       break;
-    case 14: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 14: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
     case 15:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 16: b1_cursor_print(ds, args, count); break;
     case 17:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break;
-    case 18: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 18:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 19:
-      r = (uint16_t)opeu_set_palette((uint8_t)ARG(0), (uint8_t)ARG(1),
-                                     PORT_DS(ARG(2)));
+      r = (uint16_t)opeu_set_palette((uint8_t)Arg(args, count, 0),
+                                     (uint8_t)Arg(args, count, 1),
+                                     PORT_DS(Arg(args, count, 2)));
       break;
-    case 20: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 20:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
     case 21: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
     case 22: r = (uint16_t)opeu_music_playing(ds, svc_sound); break;
     case 23: r = (uint16_t)opeu_turn_input_a(ds, svc_mouse); break;
     case 24: r = opeu_turn_input_b(); break;
     case 25: opeu_quit_to_dos(ds, svc_settings); break;
-    case 26: r = (uint16_t)opeu_dos_free(ARG(0)); break;
+    case 26: r = (uint16_t)opeu_dos_free(Arg(args, count, 0)); break;
     default: port_unhandled("scenend", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

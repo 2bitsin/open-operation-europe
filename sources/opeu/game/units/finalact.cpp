@@ -76,8 +76,6 @@ void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/finalact.c (32dc:0006 final turn action). Services, from the
  * host branch's list: 0 unit_order_destination(unit,&x,&y) 145c:02ea,
@@ -92,17 +90,21 @@ uint16_t svc_finalact(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: svc_order_handler(ds, 27, args, count, &r); break;
     case 6: svc_order_handler(ds, 16, args, count, &r); break;
-    case 8: opeu_clear_unit_orders(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 9:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+    case 8:
+      opeu_clear_unit_orders(ds, Arg(args, count, 0),
+                             (uint8_t)Arg(args, count, 1));
       break;
-    case 10: r = opeu_move_level_raise(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 9:
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0);
+      break;
+    case 10:
+      r = opeu_move_level_raise(ds, Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
+      break;
     case 11: svc_order_handler(ds, 26, args, count, &r); break;
     case 12: svc_order_handler(ds, 19, args, count, &r); break;
     default: port_unhandled("finalact", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

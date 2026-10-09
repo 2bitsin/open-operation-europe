@@ -462,8 +462,6 @@ void opeu_notice_begin(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/notice.c (33ad:0766 opeu_notice_begin). Services, from the
  * host branch and tests/validate_notice.py SERVICES:
@@ -484,67 +482,85 @@ uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break; /* 145c:016a */
     case 1:
-      r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
       break;  /* 145c:011c */
     case 2: { /* 145c:072c */
       uint16_t a, b, c;
-      opeu_unit_capacities(ds, ARG(0), &a, &b, &c);
-      port_set_word(ds, ARG(1), a);
-      port_set_word(ds, ARG(2), b);
-      port_set_word(ds, ARG(3), c);
+      opeu_unit_capacities(ds, Arg(args, count, 0), &a, &b, &c);
+      port_set_word(ds, Arg(args, count, 1), a);
+      port_set_word(ds, Arg(args, count, 2), b);
+      port_set_word(ds, Arg(args, count, 3), c);
       break;
     }
-    case 3: r = opeu_unit_side(ARG(0)); break; /* 145c:006c */
+    case 3: r = opeu_unit_side(Arg(args, count, 0)); break; /* 145c:006c */
     case 4:
-      r = opeu_grid_step(ds + ARG(0), ds + ARG(1), (uint8_t)ARG(2));
-      break;                                                     /* 145c:0d3e */
-    case 5: r = opeu_find_element_unit(ds, ARG(0)); break;       /* 145c:00d0 */
-    case 6: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
-    case 7: r = opeu_objective_eligible(ds, ARG(0)); break;      /* 145c:101a */
-    case 8: r = opeu_unit_group(ARG(0)); break;                  /* 145c:0086 */
-    case 9: r = opeu_objective_side(ds, ARG(0)); break;          /* 145c:01b8 */
-    case 10: c1_request_format(ds, args, count); break;          /* 0480:0b9a */
+      r = opeu_grid_step(ds + Arg(args, count, 0), ds + Arg(args, count, 1),
+                         (uint8_t)Arg(args, count, 2));
+      break; /* 145c:0d3e */
+    case 5:
+      r = opeu_find_element_unit(ds, Arg(args, count, 0));
+      break; /* 145c:00d0 */
+    case 6:
+      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0));
+      break; /* 145c:0fc4 */
+    case 7:
+      r = opeu_objective_eligible(ds, Arg(args, count, 0));
+      break;                                                 /* 145c:101a */
+    case 8: r = opeu_unit_group(Arg(args, count, 0)); break; /* 145c:0086 */
+    case 9:
+      r = opeu_objective_side(ds, Arg(args, count, 0));
+      break;                                            /* 145c:01b8 */
+    case 10: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 11:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break; /* 0b73:02ee */
     case 12:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:076c */
     case 13:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
-      break;                                           /* 0a8e:005c */
-    case 14: r = opeu_unit_special(ds, ARG(0)); break; /* 145c:04de */
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break; /* 0a8e:005c */
+    case 14:
+      r = opeu_unit_special(ds, Arg(args, count, 0));
+      break; /* 145c:04de */
     case 15:
-      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
-      break;                                                  /* 0b73:0188 */
-    case 16: r = opeu_string_copy(ds, ARG(0), ARG(1)); break; /* 09cc:01d0 */
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
+      break; /* 0b73:0188 */
+    case 16:
+      r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break; /* 09cc:01d0 */
     case 17:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                       ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:07ec */
     case 18:
-      opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1));
+      opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0890 */
     case 19:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      (uint32_t)Arg(args, count, 3) << 16 |
+                          Arg(args, count, 2));
       break;
     default: port_unhandled("notice", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_notice_view_finish) {
+auto port_routine_opeu_notice_view_finish(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_notice_view_finish(ds, svc_notice);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

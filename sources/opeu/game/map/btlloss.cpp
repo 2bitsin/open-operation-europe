@@ -52,8 +52,6 @@ void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/btlloss.c, address-keyed BattleEvent: commander group (BX-before-AX words, see svc_battle_commander in game/map/btlcmdr.c). */
 uint16_t svc_btlloss(uint8_t* ds, uint32_t service, const uint16_t* args,
@@ -61,10 +59,10 @@ uint16_t svc_btlloss(uint8_t* ds, uint32_t service, const uint16_t* args,
   return svc_battle_commander(ds, service, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_loss_check) {
-  opeu_battle_loss_check(ds, svc_btlloss, ARG(1), ARG(0));
+auto port_routine_opeu_battle_loss_check(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  opeu_battle_loss_check(ds, svc_btlloss, Arg(args, count, 1),
+                         Arg(args, count, 0));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

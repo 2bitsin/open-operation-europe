@@ -59,18 +59,16 @@ uint8_t opeu_element_side(uint16_t element) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_unit_group_index) {
+auto port_routine_opeu_unit_group_index(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_unit_group_index(ARG(0));
+  return opeu_unit_group_index(Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_unit_side) {
+auto port_routine_opeu_unit_side(std::uint8_t* ds, std::uint16_t const* args,
+                                 unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_unit_side(ARG(0));
+  return opeu_unit_side(Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

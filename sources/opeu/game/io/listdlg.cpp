@@ -330,8 +330,6 @@ finish:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/listdlg.c (0a8e list dialogs). LISTDLG raises the same list
  * boundary as LISTUI ("Host model and event numbering: see LISTUI"), and
@@ -342,10 +340,9 @@ uint16_t svc_listdlg(uint8_t* ds, uint16_t kind, uint16_t* args,
   return svc_listui(ds, kind, args, count);
 }
 
-PORT_ROUTINE(opeu_list_dialog) {
-  return opeu_list_dialog(ds, svc_listdlg, ARG(2), (uint8_t)ARG(0),
-                          (uint8_t)ARG(1));
+auto port_routine_opeu_list_dialog(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
+  return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 2),
+                          (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1));
 }
-
-#undef ARG
-#undef ARG32

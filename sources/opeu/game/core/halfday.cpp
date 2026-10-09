@@ -34,8 +34,6 @@ void opeu_turn_half_day(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)       ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)     ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define NOON_RESERVE 0x200u
 
 /* Services of core/halfday.c (0e47:00e0 opeu_turn_half_day). Services:
@@ -62,6 +60,4 @@ uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef NOON_RESERVE

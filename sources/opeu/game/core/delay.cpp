@@ -45,8 +45,6 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define DELAY_FRAME 38u
 
 /* Services of core/delay.c (1389:012c opeu_choose_turn_delay). Events, from the
@@ -57,26 +55,31 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event,
  *     the value in AX and the person in BX; DIALOGS takes (person in BX,
  *     hours in AL), so the host routine's argument order is (person, hours).
  * The routine itself is entry 0 of the far-action table DS:opeu_control_actions
- * (data/ctrltext.c); its PORT_ROUTINE is in game/core/delay.c. */
+ * (data/ctrltext.c); its routine handler is in game/core/delay.c. */
 uint16_t svc_delay(uint8_t* ds, uint16_t id, const uint16_t* args,
                    uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 0:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
     case 1:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 2:
-      r = opeu_delay_confirm(ds, (const DialogHost*)port_dialogs_host(), ARG(1),
-                             (uint8_t)ARG(0));
+      r = opeu_delay_confirm(ds, (const DialogHost*)port_dialogs_host(),
+                             Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
       break;
     default: port_unhandled("delay", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_choose_turn_delay) {
+auto port_routine_opeu_choose_turn_delay(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t scratch;
   (void)args;
   (void)count;
@@ -86,6 +89,4 @@ PORT_ROUTINE(opeu_choose_turn_delay) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef DELAY_FRAME

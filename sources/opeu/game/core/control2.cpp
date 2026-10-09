@@ -39,8 +39,6 @@ void opeu_turn_control_other(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -56,8 +54,9 @@ uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0:
       B2_SP_CALL(PORT_FRAME,
                  opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
-                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
-                                       (uint8_t)ARG(2)));
+                                       (uint8_t)Arg(args, count, 0),
+                                       (uint8_t)Arg(args, count, 1),
+                                       (uint8_t)Arg(args, count, 2)));
       break;
     case 1:  opeu_control_other_finish(ds); break; /* 1ac2:15f4 */
     default: port_unhandled("control2", id, count);
@@ -65,6 +64,4 @@ uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args,
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

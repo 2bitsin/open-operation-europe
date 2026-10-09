@@ -289,13 +289,11 @@ void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define BTL_BP(sp) ((uint16_t)((sp) - 2u))
 
 /*
  * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
- * PORT_ROUTINE handlers of the routines they reach).
+ * linked routine handlers of the routines they reach).
  * Conversion only; no game logic.
  *
  * Address-keyed word convention of the handlers (port.h): the register words
@@ -324,77 +322,100 @@ uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args,
   return svc_battle_commander(ds, service, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_commander_message) {
+auto port_routine_opeu_battle_commander_message(std::uint8_t*        ds,
+                                                std::uint16_t const* args,
+                                                unsigned             count)
+    -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_commander_message(ds, svc_btlcmdr, ARG(2), (uint8_t)ARG(0),
-                                (uint8_t)ARG(1), BTL_BP(sp));
+  opeu_battle_commander_message(ds, svc_btlcmdr, Arg(args, count, 2),
+                                (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_commander_panel) {
+auto port_routine_opeu_battle_commander_panel(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_commander_panel(ds, svc_btlcmdr, (uint8_t)ARG(0), ARG(1),
-                              BTL_BP(sp));
+  opeu_battle_commander_panel(ds, svc_btlcmdr, (uint8_t)Arg(args, count, 0),
+                              Arg(args, count, 1), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_commander_wait) {
+auto port_routine_opeu_battle_commander_wait(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_commander_wait(ds, svc_btlcmdr, ARG(2), (uint8_t)ARG(0),
-                             (uint8_t)ARG(1), BTL_BP(sp));
+  opeu_battle_commander_wait(ds, svc_btlcmdr, Arg(args, count, 2),
+                             (uint8_t)Arg(args, count, 0),
+                             (uint8_t)Arg(args, count, 1), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_info_clear) {
+auto port_routine_opeu_battle_info_clear(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_info_clear(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_name_clear_left) {
+auto port_routine_opeu_battle_name_clear_left(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_name_clear_left(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_name_clear_right) {
+auto port_routine_opeu_battle_name_clear_right(std::uint8_t*        ds,
+                                               std::uint16_t const* args,
+                                               unsigned             count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_name_clear_right(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_panel_begin) {
+auto port_routine_opeu_battle_panel_begin(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_panel_begin(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_panel_side0) {
+auto port_routine_opeu_battle_panel_side0(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_panel_side0(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_panel_side1) {
+auto port_routine_opeu_battle_panel_side1(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_panel_side1(ds, svc_btlcmdr);
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_restore_tile) {
-  opeu_battle_restore_tile(ds, svc_btlcmdr, (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_battle_restore_tile(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
+  opeu_battle_restore_tile(ds, svc_btlcmdr, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef BTL_BP

@@ -113,8 +113,6 @@ void opeu_map_cursor(uint8_t ds[65536], HostEvent event, uint16_t frame, ARGS) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/cursor.c (17c4:0164 map cursor status line). Events (host
  * branch comment):
@@ -132,7 +130,7 @@ uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:020c */
     case 1:
-      opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0));
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
       break;                                             /* 0480:0484 */
     case 2:  map_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:  map_cursor_print(ds, args, count); break;   /* 0480:0bb8 */
@@ -140,6 +138,3 @@ uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

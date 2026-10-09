@@ -316,8 +316,6 @@ void opeu_turn_action_4(uint8_t ds[65536], HostEvent event, uint16_t sp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -345,44 +343,56 @@ uint16_t svc_persmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: b2_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 2:
       opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break;
     case 3:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      (uint32_t)Arg(args, count, 3) << 16 |
+                          Arg(args, count, 2));
       break;
-    case 4: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 4:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 5:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 6:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
-    case 7: r = opeu_find_group_selected_unit(ds, ARG(0)); break;
-    case 8: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 7: r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
+    case 8: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
     case 9:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(0) * 16u + ARG(1), NULL, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), NULL,
+          0);
       break;
     default: port_unhandled("persmenu", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_commander_always) {
+auto port_routine_opeu_commander_always(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint8_t r = 0;
   B2_SP_CALL(PORT_FRAME,
              r = opeu_commander_always(ds, svc_persmenu, sp, PERS_SEGMENT,
-                                       (uint8_t)ARG(0)));
+                                       (uint8_t)Arg(args, count, 0)));
   return r;
 }
 
-PORT_ROUTINE(opeu_commander_assign) {
+auto port_routine_opeu_commander_assign(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(PERS_STACK,
@@ -390,7 +400,9 @@ PORT_ROUTINE(opeu_commander_assign) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_commander_rest) {
+auto port_routine_opeu_commander_rest(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(PORT_FRAME,
@@ -398,7 +410,10 @@ PORT_ROUTINE(opeu_commander_rest) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_division_commander_menu) {
+auto port_routine_opeu_division_commander_menu(std::uint8_t*        ds,
+                                               std::uint16_t const* args,
+                                               unsigned             count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(PORT_FRAME,
@@ -406,15 +421,19 @@ PORT_ROUTINE(opeu_division_commander_menu) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_division_toggle) {
+auto port_routine_opeu_division_toggle(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   uint8_t r = 0;
   B2_SP_CALL(PORT_FRAME,
              r = opeu_division_toggle(ds, svc_persmenu, sp, PERS_SEGMENT,
-                                      (uint8_t)ARG(0)));
+                                      (uint8_t)Arg(args, count, 0)));
   return r;
 }
 
-PORT_ROUTINE(opeu_personnel_finish) {
+auto port_routine_opeu_personnel_finish(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(PORT_FRAME,
@@ -422,7 +441,9 @@ PORT_ROUTINE(opeu_personnel_finish) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_turn_action_4) {
+auto port_routine_opeu_turn_action_4(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(PORT_FRAME,
@@ -430,8 +451,6 @@ PORT_ROUTINE(opeu_turn_action_4) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL
 #undef PERS_SEGMENT
 #undef PERS_STACK

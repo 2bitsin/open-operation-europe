@@ -153,8 +153,6 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/armysum.c (0bc3:0042 opeu_army_summary). Services, from the
  * host branch: 0 army_title(text) 1707:03aa, 1 army_text(text) = ui_text
@@ -166,19 +164,20 @@ uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   switch (id) {
     case 0:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break;
-    case 1: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 1:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 2: b2_request_format(ds, args, count); break;
     case 3: b2_cursor_print(ds, args, count); break;
     case 4:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     default: port_unhandled("armysum", id, count);
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

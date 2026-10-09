@@ -442,8 +442,6 @@ start:
 #undef opeu_ui_box
 #undef opeu_ui_text
 #undef opeu_vga_clear
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
                                  uint16_t count);
 
@@ -479,42 +477,68 @@ uint16_t svc_scensel(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: b1_cursor_print(ds, args, count); break;
     case 1: b1_request_format(ds, args, count); break;
     case 2:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
-    case 3: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
-    case 4: r = port_prompt_cancel(ds, ARG(0), ARG(1), ARG(2)); break;
-    case 5: r = port_prompt_required(ds, ARG(0), ARG(1), ARG(2)); break;
-    case 6: r = port_prompt_yes_no(ds, ARG(0)); break;
-    case 7: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
-    case 8: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 3:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
+    case 4:
+      r = port_prompt_cancel(ds, Arg(args, count, 0), Arg(args, count, 1),
+                             Arg(args, count, 2));
+      break;
+    case 5:
+      r = port_prompt_required(ds, Arg(args, count, 0), Arg(args, count, 1),
+                               Arg(args, count, 2));
+      break;
+    case 6: r = port_prompt_yes_no(ds, Arg(args, count, 0)); break;
+    case 7:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
+    case 8:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
+      break;
     case 9: opeu_music_stop(ds, svc_sound); break;
     case 10:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break;
     case 11: r = (uint16_t)opeu_vga_clear(); break;
     case 12:
-      opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                               ARG(1), (int16_t)ARG(2), ARG(3));
+      opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(),
+                               Arg(args, count, 0), Arg(args, count, 1),
+                               (int16_t)Arg(args, count, 2),
+                               Arg(args, count, 3));
       break;
     case 13:
       opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
       break;
-    case 14: r = opeu_string_copy(ds, ARG(0), ARG(1)); break;
-    case 15: r = opeu_string_append(ds, ARG(0), ARG(1)); break;
-    case 16:
-      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+    case 14:
+      r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 17: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 15:
+      r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 16:
+      r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1),
+                                Arg(args, count, 2), Arg(args, count, 3),
+                                Arg(args, count, 4));
+      break;
+    case 17:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 18:
-      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                          (uint8_t)Arg(args, count, 0));
       break;
     case 19:
-      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
-    case 20: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
-    case 21: port_load_scenario(ds, ARG(0)); break;
+    case 20: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
+    case 21: port_load_scenario(ds, Arg(args, count, 0)); break;
     case 22: r = svc_scensel_near(ds, args, count); break;
     default: port_unhandled("scensel", id, count);
   }
@@ -525,15 +549,16 @@ uint16_t svc_scensel(uint8_t* ds, uint16_t id, const uint16_t* args,
 static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
                                  uint16_t count) {
   uint16_t r = 0;
-  switch (ARG(0)) {
+  switch (Arg(args, count, 0)) {
     case 0x0006:
-      opeu_setup_marker_show(ds, svc_setmark, (uint8_t)ARG(1));
+      opeu_setup_marker_show(ds, svc_setmark, (uint8_t)Arg(args, count, 1));
       break;
     case 0x0074:
-      opeu_setup_marker_hide(ds, svc_setmark, (uint8_t)ARG(1));
+      opeu_setup_marker_hide(ds, svc_setmark, (uint8_t)Arg(args, count, 1));
       break;
     case 0x0416:
-      opeu_load_scenario_text(ds, svc_scenres, (uint8_t)ARG(1), ARG(2));
+      opeu_load_scenario_text(ds, svc_scenres, (uint8_t)Arg(args, count, 1),
+                              Arg(args, count, 2));
       break;
     case 0x0468: opeu_load_message_graphics(ds, svc_scenres); break;
     case 0x04a2: opeu_load_scenario_graphics(ds, svc_scenres); break;
@@ -541,14 +566,17 @@ static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
     case 0x09c8: opeu_staff_restore_bottom(ds, svc_staffpnl); break;
     case 0x157a: opeu_confirm_generals(ds, svc_genconf); break;
     case 0x163a: opeu_scenario_frame(ds, svc_scenui); break;
-    case 0x165e: opeu_scenario_message(ds, svc_scenui, ARG(1)); break;
+    case 0x165e:
+      opeu_scenario_message(ds, svc_scenui, Arg(args, count, 1));
+      break;
     case 0x167c: opeu_scenario_clear_panel(ds, svc_scenui); break;
     case 0x169a: opeu_scenario_clear_text(ds, svc_scenui); break;
-    case 0x16c2: opeu_scenario_description(ds, svc_scenui, ARG(1)); break;
-    default: port_unhandled("scensel (near call 06db:offset)", ARG(0), count);
+    case 0x16c2:
+      opeu_scenario_description(ds, svc_scenui, Arg(args, count, 1));
+      break;
+    default:
+      port_unhandled("scensel (near call 06db:offset)", Arg(args, count, 0),
+                     count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

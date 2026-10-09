@@ -235,8 +235,6 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/genpick.c (06db:0f3e general choice, 06db:121e row draw).
@@ -260,57 +258,82 @@ uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 0: opeu_person_set_role(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 1: opeu_person_set_group(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 0:
+      opeu_person_set_role(ds, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1));
+      break;
+    case 1:
+      opeu_person_set_group(ds, Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
+      break;
     case 2:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                            ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2));
       break;
     case 3:
-      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                          (uint8_t)Arg(args, count, 0));
       break;
-    case 4: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 4:
+      opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 5:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 6: r = lf_cursor_print(ds, args, count); break;
-    case 7: opeu_select_side_color(ds, svc_sideutil, (uint8_t)ARG(0)); break;
+    case 7:
+      opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0));
+      break;
     case 8:
       sp = port_stack_enter(LF_FRAME);
-      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                         (uint16_t)(sp - 2u), (uint16_t)(sp - 4u),
-                         (uint16_t)(sp - 6u));
+      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1), (uint16_t)(sp - 2u),
+                         (uint16_t)(sp - 4u), (uint16_t)(sp - 6u));
       r = ds[(uint16_t)(sp - 2u)];
       port_stack_leave(LF_FRAME);
       break;
-    case 9:  opeu_staff_restore_bottom(ds, svc_staffpnl); break;
-    case 10: opeu_staff_mark_option(ds, svc_staffpnl, (int16_t)ARG(0)); break;
-    case 11: opeu_staff_frame_option(ds, svc_staffpnl, (int16_t)ARG(0)); break;
+    case 9: opeu_staff_restore_bottom(ds, svc_staffpnl); break;
+    case 10:
+      opeu_staff_mark_option(ds, svc_staffpnl, (int16_t)Arg(args, count, 0));
+      break;
+    case 11:
+      opeu_staff_frame_option(ds, svc_staffpnl, (int16_t)Arg(args, count, 0));
+      break;
     case 12:
-      opeu_show_division_strength(ds, svc_divstr, (uint8_t)ARG(0));
+      opeu_show_division_strength(ds, svc_divstr, (uint8_t)Arg(args, count, 0));
       break;
     case 13: r = opeu_find_vacant_post(ds); break;
-    case 14: opeu_clear_staff_role(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 14:
+      opeu_clear_staff_role(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
+      break;
     case 15:
-      opeu_clear_division_command(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_clear_division_command(ds, (uint8_t)Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1));
       break;
     default: port_unhandled("genpick", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_general_assign_choice) {
-  return opeu_general_assign_choice(ds, svc_genpick, (uint8_t)ARG(0));
+auto port_routine_opeu_general_assign_choice(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
+  return opeu_general_assign_choice(ds, svc_genpick,
+                                    (uint8_t)Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_general_list_draw_rows) {
-  opeu_general_list_draw_rows(ds, svc_genpick, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                              (uint8_t)ARG(2), (uint8_t)ARG(3),
-                              (uint8_t)ARG(4));
+auto port_routine_opeu_general_list_draw_rows(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
+  opeu_general_list_draw_rows(
+      ds, svc_genpick, (uint8_t)Arg(args, count, 0),
+      (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+      (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

@@ -422,8 +422,6 @@ int opeu_prompt_yes_no(STATE_ TEXT text SCRATCH_DECL) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define KEY_SCRATCH 0x10u
 
 /* Services of io/keyboard.c (0541:0008..067b keyboard waits, cursor blink,
@@ -501,27 +499,32 @@ uint16_t svc_keyboard(uint8_t* ds, uint16_t call, uint16_t* w) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_keyboard_key) {
+auto port_routine_opeu_keyboard_key(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_keyboard_key(ds, svc_keyboard);
 }
 
-PORT_ROUTINE(opeu_prompt_value) {
+auto port_routine_opeu_prompt_value(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t scratch = port_scratch_enter(KEY_SCRATCH), r;
-  r                = opeu_prompt_value(ds, svc_keyboard, ARG(2), ARG(0), ARG(1),
-                                       (int)(int16_t)ARG(3), ARG(4), scratch);
+  r = opeu_prompt_value(ds, svc_keyboard, Arg(args, count, 2),
+                        Arg(args, count, 0), Arg(args, count, 1),
+                        (int)(int16_t)Arg(args, count, 3), Arg(args, count, 4),
+                        scratch);
   port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
-PORT_ROUTINE(opeu_prompt_yes_no) {
+auto port_routine_opeu_prompt_yes_no(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t scratch = port_scratch_enter(KEY_SCRATCH), r;
-  r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, ARG(0), scratch);
+  r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0),
+                                   scratch);
   port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef KEY_SCRATCH

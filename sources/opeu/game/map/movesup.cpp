@@ -91,8 +91,6 @@ void opeu_move_sighted(uint8_t ds[65536], uint16_t unit,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/movesup.c (32e6:0288 supplied, 02e4 consume, 0366 sighted).
  * Events (host branch comment; callees from the DOS branch):
@@ -104,18 +102,16 @@ uint16_t svc_movesup(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t r = 0, value;
   switch (id) {
-    case 0: r = opeu_min16(ARG(0), ARG(1)); break;
-    case 1: r = opeu_max16(ARG(0), ARG(1)); break;
+    case 0: r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
+    case 1: r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
     case 2:
-      value      = (uint16_t)(ds[ARG(1)] | ds[(uint16_t)(ARG(1) + 1u)] << 8);
-      r          = opeu_sub_word(ARG(0), &value);
-      ds[ARG(1)] = (uint8_t)value;
-      ds[(uint16_t)(ARG(1) + 1u)] = (uint8_t)(value >> 8);
+      value = (uint16_t)(ds[Arg(args, count, 1)] |
+                         ds[(uint16_t)(Arg(args, count, 1) + 1u)] << 8);
+      r     = opeu_sub_word(Arg(args, count, 0), &value);
+      ds[Arg(args, count, 1)]                  = (uint8_t)value;
+      ds[(uint16_t)(Arg(args, count, 1) + 1u)] = (uint8_t)(value >> 8);
       break;
     default: port_unhandled("movesup", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

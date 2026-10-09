@@ -130,8 +130,6 @@ void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/supply.c (20b3:08d0..0a4d supply exchange). Services from the
@@ -143,8 +141,11 @@ uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 2:   r = lf_request_format(ds, args, count); break;
-    case 100: opeu_supply_draw(ds, svc_suppanel, ARG(0), ARG(1)); break;
+    case 2: r = lf_request_format(ds, args, count); break;
+    case 100:
+      opeu_supply_draw(ds, svc_suppanel, Arg(args, count, 0),
+                       Arg(args, count, 1));
+      break;
     case 101: /* selection: the selected-row byte of supply_step's frame (BP-8) */
       sp = port_stack_enter(LF_FRAME);
       r  = opeu_supply_step(ds, svc_supstep, (uint16_t)(sp - 2u - 8u));
@@ -155,6 +156,4 @@ uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

@@ -84,8 +84,6 @@ void opeu_turn_pre_context(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)         ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)       ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define ARMY_WORKSPACE 82u
 
 /* Services of core/context.c (1389:000e opeu_daily_context, 1389:011a
@@ -108,35 +106,40 @@ uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 1: opeu_context_save(ds, (TextHost*)port_textout_host()); break;
     case 2:
-      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
     case 3: b1_cursor_print(ds, args, count); break;
     case 4: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
     case 5:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                            ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2));
       break;
     case 6:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 7:
       s = b1_stack_alloc(ARMY_WORKSPACE);
       opeu_army_summary(ds, svc_armysum, (uint16_t)(s + 2));
       port_scratch_leave(ARMY_WORKSPACE);
       break;
-    case 8:  opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 8:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
+      break;
     default: port_unhandled("context", id, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_daily_context) {
-  opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+auto port_routine_opeu_daily_context(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef ARMY_WORKSPACE

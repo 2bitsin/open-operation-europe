@@ -28,13 +28,11 @@ uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_grid_step) {
+auto port_routine_opeu_grid_step(std::uint8_t* ds, std::uint16_t const* args,
+                                 unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_grid_step(PORT_DS(ARG(2)), PORT_DS(ARG(0)), (uint8_t)ARG(1));
+  return opeu_grid_step(PORT_DS(Arg(args, count, 2)),
+                        PORT_DS(Arg(args, count, 0)),
+                        (uint8_t)Arg(args, count, 1));
 }
-
-#undef ARG
-#undef ARG32

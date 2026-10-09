@@ -768,8 +768,6 @@ void opeu_text_erase_char(uint8_t   ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/textout.c (0480:0002..0c17 key read, formatter, text console).
  * The module takes a TextHost {event, sp}. Events, from the host branch's
@@ -802,23 +800,28 @@ uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: r = port_key_read(); break;     /* INT 16h AH=0 */
     case 1: r = opeu_turn_input_b(); break; /* 0000:4066 */
     case 2:
-      opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0));
+      opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0));
       break; /* 0541:011e */
     case 3:
-      opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+                  Arg(args, count, 3), Arg(args, count, 4));
       break;                                        /* 0000:2ad2 */
     case 4: opeu_vga_clear(); break;                /* 0000:2aac */
     case 5: opeu_sound_reset(ds, svc_sound); break; /* 0d65:0028 */
     case 6:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break;  /* 0a8e:005c */
     case 7: { /* (*DS:44ec[i])() */
-      uint16_t       off = ARG(0), seg = ARG(1);
-      const uint8_t* bits = PORT_DS(ARG(7));
+      uint16_t       off = Arg(args, count, 0), seg = Arg(args, count, 1);
+      const uint8_t* bits = PORT_DS(Arg(args, count, 7));
       if (seg == 0 && off == 0x28a8)
-        opeu_draw_near(ARG(2), ARG(3), ARG(4), ARG(5), ARG(6), bits);
+        opeu_draw_near(Arg(args, count, 2), Arg(args, count, 3),
+                       Arg(args, count, 4), Arg(args, count, 5),
+                       Arg(args, count, 6), bits);
       else if (seg == 0 && off == 0x28c5)
-        opeu_code_0000_28c5(ARG(2), ARG(3), ARG(4), ARG(5), ARG(6), bits);
+        opeu_code_0000_28c5(Arg(args, count, 2), Arg(args, count, 3),
+                            Arg(args, count, 4), Arg(args, count, 5),
+                            Arg(args, count, 6), bits);
       else
         port_fatal(
             "textout: glyph routine %04x:%04x is not a known VGALIB entry", seg,
@@ -839,20 +842,25 @@ void svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2) {
   port_unhandled("textout (no service table)", (unsigned)(a2), 0);
 }
 
-PORT_ROUTINE(opeu_army_position) {
-  opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
-                     (short)ARG(1));
+auto port_routine_opeu_army_position(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_army_position(ds, (TextHost*)port_textout_host(),
+                     (short)Arg(args, count, 0), (short)Arg(args, count, 1));
   return 0;
 }
 
-PORT_ROUTINE(opeu_context_restore) {
+auto port_routine_opeu_context_restore(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_context_restore(ds, (TextHost*)port_textout_host());
   return 0;
 }
 
-PORT_ROUTINE(opeu_context_save) {
+auto port_routine_opeu_context_save(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_context_save(ds, (TextHost*)port_textout_host());
@@ -860,12 +868,14 @@ PORT_ROUTINE(opeu_context_save) {
 }
 
 /* printf to the text cursor (army_print/context_print/turn_label). */
-PORT_ROUTINE(opeu_cursor_print) {
+auto port_routine_opeu_cursor_print(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   btl_cursor_print(ds, args, count);
   return 0;
 }
 
-PORT_ROUTINE(opeu_input_flush) {
+auto port_routine_opeu_input_flush(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_input_flush(ds, (TextHost*)port_textout_host());
@@ -873,31 +883,38 @@ PORT_ROUTINE(opeu_input_flush) {
 }
 
 /* sprintf(destination, format, ...): every word as pushed. */
-PORT_ROUTINE(opeu_request_format) {
+auto port_routine_opeu_request_format(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   btl_request_format(ds, args, count);
   return 0;
 }
 
-PORT_ROUTINE(opeu_text_color) {
-  opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0));
+auto port_routine_opeu_text_color(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
+  opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_text_paper_set) {
-  opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+auto port_routine_opeu_text_paper_set(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                      (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_text_put_range) {
-  opeu_text_put_range(ds, (TextHost*)port_textout_host(), ARG(2),
-                      (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_text_put_range(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 2),
+                      (uint8_t)Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
   return 0;
 }
 
-PORT_ROUTINE(opeu_ui_text) {
-  opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0));
+auto port_routine_opeu_ui_text(std::uint8_t* ds, std::uint16_t const* args,
+                               unsigned count) -> std::uint32_t {
+  opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

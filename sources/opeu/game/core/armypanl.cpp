@@ -245,8 +245,6 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, UNIT_P units,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
 
 /* Services of core/armypanl.c (0bc3:037c..078f division regiment panel).
@@ -263,28 +261,41 @@ uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
-    case 1:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+    case 0:
+      opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
       break;
-    case 2: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 1:
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
+      break;
+    case 2:
+      opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
+      break;
     case 3:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 4: b2_cursor_print(ds, args, count); break;
     case 5:
-      opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                    B2_FAR(ARG(5), ARG(6)));
+      opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1),
+                    Arg(args, count, 2), Arg(args, count, 3),
+                    Arg(args, count, 4),
+                    B2_FAR(Arg(args, count, 5), Arg(args, count, 6)));
       break;
-    case 6:  r = opeu_element_name(ds, ARG(0), ARG(1)); break;
-    case 7:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 6:
+      r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 7:  r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
     default: port_unhandled("armypanl", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_FAR

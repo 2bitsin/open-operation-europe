@@ -90,8 +90,6 @@ void opeu_request_action0(uint8_t ds[65536], HostEvent event, uint8_t side,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/reqres.c (1270:05ac request action 0, resource delivery).
  * Services (host branch macros): 0 arrival_location(x,y,side) 15c4:1408,
@@ -104,23 +102,21 @@ uint16_t svc_reqres(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: /* 15c4:1408 */
       frame = port_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 1:
-      r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;                                             /* 1707:0672 */
     case 4:  opeu_request_wait(ds, svc_soundcue); break; /* 0d92:0060 */
     default: port_unhandled("reqres", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

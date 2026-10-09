@@ -247,8 +247,6 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/rqreinf.c (22f9:0620 reinforcement element, 22f9:0780
  * regiment request). Services from the host branch's table (request-menu
@@ -262,12 +260,11 @@ uint16_t svc_rqreinf(uint8_t* ds, uint16_t id, const uint16_t* args,
   return 0;
 }
 
-PORT_ROUTINE(opeu_request_regiment) {
+auto port_routine_opeu_request_regiment(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_request_regiment(ds, svc_rqreinf);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

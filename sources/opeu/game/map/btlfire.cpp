@@ -143,25 +143,28 @@ uint16_t opeu_battle_fire_defense(uint8_t* ds, BattleEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 uint16_t svc_btlfire(uint8_t* ds, uint32_t address, const uint16_t* args,
                      unsigned int count) {
   return port_service(ds, address, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_fire_defense) {
-  return opeu_battle_fire_defense(ds, svc_btlfire, ARG(0));
+auto port_routine_opeu_battle_fire_defense(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_defense(ds, svc_btlfire, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_fire_hits) {
-  return opeu_battle_fire_hits(ds, svc_btlfire, ARG(1), ARG(0));
+auto port_routine_opeu_battle_fire_hits(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_hits(ds, svc_btlfire, Arg(args, count, 1),
+                               Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_fire_power) {
-  return opeu_battle_fire_power(ds, svc_btlfire, ARG(1), ARG(0));
+auto port_routine_opeu_battle_fire_power(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_power(ds, svc_btlfire, Arg(args, count, 1),
+                                Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

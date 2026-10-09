@@ -194,8 +194,6 @@ void opeu_visit_event(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/evvisit.c (108c:000e..0395 the commander-visit event).
  * Services from the host branch comment:
@@ -209,49 +207,52 @@ uint16_t svc_evvisit(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t frame, r = 0;
   switch (id) {
     case 0:
-      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 1: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 2:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 3:
-      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
       break; /* 1389:000e */
     case 4:
-      opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
       break; /* 0d65:00fe */
     case 5:  /* 15c4:087e */
       frame = port_frame_enter();
-      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 6:
-      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3));
       break; /* 1707:03e4 */
     case 7:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break; /* 0d65:0032 */
     default: port_unhandled("evvisit", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_visit_event) {
+auto port_routine_opeu_visit_event(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_visit_event(ds, svc_evvisit);
   return 0;
 }
 
-PORT_ROUTINE(opeu_visit_present) {
+auto port_routine_opeu_visit_present(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_visit_present(ds, svc_evvisit);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

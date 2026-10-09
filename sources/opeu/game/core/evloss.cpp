@@ -219,8 +219,6 @@ void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t bp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/evloss.c (108c:05d8..094a hourly unit-loss events). Services
  * from the host branch comment:
@@ -237,52 +235,66 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t frame, r = 0;
   switch (id) {
     case 0:
-      r = opeu_unit_quantity(ds, ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
-      break;                                                     /* 145c:0596 */
-    case 1: r = opeu_category_7((uint8_t)ARG(0)); break;         /* 0b73:0056 */
-    case 2: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
-    case 3: r = opeu_unit_special(ds, ARG(0)); break;            /* 145c:04de */
+      r = opeu_unit_quantity(ds, Arg(args, count, 0),
+                             (uint8_t)Arg(args, count, 1),
+                             PORT_DS(Arg(args, count, 2)));
+      break; /* 145c:0596 */
+    case 1:
+      r = opeu_category_7((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:0056 */
+    case 2:
+      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0));
+      break; /* 145c:0fc4 */
+    case 3:
+      r = opeu_unit_special(ds, Arg(args, count, 0));
+      break; /* 145c:04de */
     case 4:
-      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break; /* 0b73:0188 */
     case 5:
-      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 6: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 7:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                       ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:07ec unit_message */
     case 8:
-      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1));
+      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:091a */
     case 9:  /* 15c4:087e */
       frame = port_frame_enter();
-      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 10:
-      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3));
       break;                                            /* 1707:03e4 */
     case 11: opeu_music_command7(ds, svc_sound); break; /* 0d65:01b0 */
     case 12:                                            /* 17c4:0b1c */
       frame = port_frame_enter();
-      opeu_unit_casualties(ds, svc_casualty, frame, ARG(0), ARG(1), ARG(2),
-                           ARG(3), ARG(4), ARG(5));
+      opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0),
+                           Arg(args, count, 1), Arg(args, count, 2),
+                           Arg(args, count, 3), Arg(args, count, 4),
+                           Arg(args, count, 5));
       port_frame_leave();
       break;
     case 13: opeu_sound_cue12(ds, svc_soundcue); break; /* 0d92:0068 */
     case 14:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:005c */
     default: port_unhandled("evloss", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_loss_event_a) {
+auto port_routine_opeu_loss_event_a(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -292,7 +304,8 @@ PORT_ROUTINE(opeu_loss_event_a) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_loss_event_b) {
+auto port_routine_opeu_loss_event_b(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -302,19 +315,20 @@ PORT_ROUTINE(opeu_loss_event_b) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_loss_present_a) {
+auto port_routine_opeu_loss_present_a(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_loss_present_a(ds, svc_evloss);
   return 0;
 }
 
-PORT_ROUTINE(opeu_loss_present_b) {
+auto port_routine_opeu_loss_present_b(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_loss_present_b(ds, svc_evloss);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

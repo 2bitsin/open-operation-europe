@@ -84,8 +84,6 @@ void opeu_supply_draw_row(uint8_t ds[65536], SupplyEvent event, uint8_t row,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/suprow.c (20b3:0452 opeu_supply_draw_row). Services, from the
  * host branch (the SUPPANEL numbering; 11 is raised by opeu_supply_digits,
@@ -99,19 +97,22 @@ uint16_t svc_suprow(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count) {
   switch (id) {
     case 9:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 10:
     case 13: b2_cursor_print(ds, args, count); break;
     case 11:
-      opeu_vga_glyph(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), PORT_DS(ARG(5)));
+      opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1),
+                     Arg(args, count, 2), Arg(args, count, 3),
+                     Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
       break;
-    case 12: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 12:
+      opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+                  Arg(args, count, 3), Arg(args, count, 4));
+      break;
     default: port_unhandled("suprow", id, count);
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

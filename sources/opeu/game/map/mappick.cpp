@@ -269,8 +269,6 @@ done:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/mappick.c (17c4:0274 interactive map location picker).
  * Events (host branch comment; callees from the DOS branch and
@@ -300,47 +298,54 @@ uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: /* 15c4:1408 */
       frame = map_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     case 1: opeu_input_reset(ds, svc_mouse); break; /* 05a8:01b4 */
     case 2:
-      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
-                       port_far(ARG(4), ARG(5)));
+      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       port_far(Arg(args, count, 4), Arg(args, count, 5)));
       break;
     case 3: /* 15c4:0f7c */
       frame = map_frame_enter();
-      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1));
       map_frame_leave();
       break;
     case 4:
-      opeu_map_inspect(ds, svc_inspect, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_map_inspect(ds, svc_inspect, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1));
       break; /* 17c4:00bc */
     case 5:  /* 17c4:0164 */
       frame = map_frame_enter();
-      opeu_map_cursor(ds, svc_cursor, frame, ARG(0), ARG(1));
+      opeu_map_cursor(ds, svc_cursor, frame, Arg(args, count, 0),
+                      Arg(args, count, 1));
       map_frame_leave();
       break;
     case 9:  opeu_mouse_show(ds, svc_mouse); break;        /* 05a8:003e */
     case 10: r = opeu_mouse_buttons(ds, svc_mouse); break; /* 05a8:0170 */
     case 11:
-      opeu_mouse_position(ds, svc_mouse, ARG(0), ARG(1));
+      opeu_mouse_position(ds, svc_mouse, Arg(args, count, 0),
+                          Arg(args, count, 1));
       break;                                        /* 05a8:0086 */
     case 12: opeu_mouse_hide(ds, svc_mouse); break; /* 05a8:0062 */
     case 13:
-      opeu_viewport_pan(ds, svc_viewpan, (int16_t)ARG(0), (int16_t)ARG(1),
-                        (uint8_t)ARG(2), (uint8_t)ARG(4), (uint8_t)ARG(3));
+      opeu_viewport_pan(
+          ds, svc_viewpan, (int16_t)Arg(args, count, 0),
+          (int16_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+          (uint8_t)Arg(args, count, 4), (uint8_t)Arg(args, count, 3));
       break;
     case 17: r = opeu_keyboard_key(ds, svc_keyboard); break; /* 0541:00ba */
     case 18:
-      opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                          port_far(ARG(5), ARG(6)));
+      opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1),
+                          Arg(args, count, 2), Arg(args, count, 3),
+                          Arg(args, count, 4),
+                          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     default: port_unhandled("mappick", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

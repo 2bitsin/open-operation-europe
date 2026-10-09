@@ -86,8 +86,6 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/divstr.c (06db:0d64 opeu_show_division_strength). Events, from
  * the host branch's comment, resolved by address (symbols.json):
@@ -99,16 +97,15 @@ void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args,
                 uint16_t count) {
   switch (id) {
     case 0:
-      opeu_text_set_left(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0));
+      opeu_text_set_left(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 2:  b1_cursor_print(ds, args, count); break;
     default: port_unhandled("divstr", id, count);
   }
 }
-
-#undef ARG
-#undef ARG32

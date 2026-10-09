@@ -108,23 +108,22 @@ uint16_t opeu_hour_is_night(uint8_t code) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_category_6) {
+auto port_routine_opeu_category_6(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_category_6((uint8_t)ARG(0));
+  return opeu_category_6((uint8_t)Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_category_7) {
+auto port_routine_opeu_category_7(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_category_7((uint8_t)ARG(0));
+  return opeu_category_7((uint8_t)Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_hour_is_night) {
+auto port_routine_opeu_hour_is_night(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)ds;
-  return opeu_hour_is_night((uint8_t)ARG(0));
+  return opeu_hour_is_night((uint8_t)Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

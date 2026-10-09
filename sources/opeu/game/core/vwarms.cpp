@@ -237,8 +237,6 @@ uint16_t opeu_view_menu_loop(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_DS_WORDS(off) ((uint16_t*)(void*)PORT_DS(off))
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
@@ -256,120 +254,152 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id,
                   const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 1: r = opeu_objective_side(ds, ARG(0)); break;     /* 145c:01b8 */
-    case 2: r = opeu_objective_eligible(ds, ARG(0)); break; /* 145c:101a */
+    case 1:
+      r = opeu_objective_side(ds, Arg(args, count, 0));
+      break; /* 145c:01b8 */
+    case 2:
+      r = opeu_objective_eligible(ds, Arg(args, count, 0));
+      break; /* 145c:101a */
     case 3:
-      r = opeu_find_group_selected_unit(ds, ARG(0));
-      break;                                                     /* 145c:0c46 */
-    case 4: r = opeu_unit_selection_eligible(ds, ARG(0)); break; /* 145c:0fc4 */
-    case 5: r = opeu_unit_side(ARG(0)); break;                   /* 145c:006c */
+      r = opeu_find_group_selected_unit(ds, Arg(args, count, 0));
+      break; /* 145c:0c46 */
+    case 4:
+      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0));
+      break;                                                /* 145c:0fc4 */
+    case 5: r = opeu_unit_side(Arg(args, count, 0)); break; /* 145c:006c */
     case 6:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break; /* 1707:03aa */
     case 7:
-      opeu_objective_resource_percentages(ds, ARG(0), B2_DS_WORDS(ARG(1)),
-                                          B2_DS_WORDS(ARG(2)),
-                                          B2_DS_WORDS(ARG(3)));
+      opeu_objective_resource_percentages(
+          ds, Arg(args, count, 0), B2_DS_WORDS(Arg(args, count, 1)),
+          B2_DS_WORDS(Arg(args, count, 2)), B2_DS_WORDS(Arg(args, count, 3)));
       break;
     case 8:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 9: b2_cursor_print(ds, args, count); break; /* 0480:0bb8 */
     case 10:
-      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break; /* 0b73:0188 */
     case 11:
-      opeu_unit_capacities(ds, ARG(0), B2_DS_WORDS(ARG(1)), B2_DS_WORDS(ARG(2)),
-                           B2_DS_WORDS(ARG(3)));
+      opeu_unit_capacities(
+          ds, Arg(args, count, 0), B2_DS_WORDS(Arg(args, count, 1)),
+          B2_DS_WORDS(Arg(args, count, 2)), B2_DS_WORDS(Arg(args, count, 3)));
       break;
     case 12:
-      r = opeu_resource_percent(ARG(0), ARG(2));
+      r = opeu_resource_percent(Arg(args, count, 0), Arg(args, count, 2));
       break; /* 145c:09aa (cur lo,hi, cap lo,hi) */
     case 13:
-      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
-                                      PORT_DS(ARG(2)));
+      r = opeu_unit_order_destination(ds, Arg(args, count, 0),
+                                      PORT_DS(Arg(args, count, 1)),
+                                      PORT_DS(Arg(args, count, 2)));
       break;
     case 14:
-      r = opeu_location_name(ds, svc_labels, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                             ARG(2));
+      r = opeu_location_name(ds, svc_labels, (uint8_t)Arg(args, count, 0),
+                             (uint8_t)Arg(args, count, 1), Arg(args, count, 2));
       break;
     case 15:
       B2_SP_CALL(PORT_FRAME,
-                 opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2), ARG(0),
-                                 (uint8_t)ARG(1)));
+                 opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2),
+                                 Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1)));
       break;
     case 16:
       opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
-                               (uint8_t)ARG(0));
+                               (uint8_t)Arg(args, count, 0));
       break; /* 0a04:0720 */
     case 17:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break; /* 0b73:02ee */
     case 18:
-      r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break; /* 0b73:0334 */
     case 19:
-      opeu_army_heading(ds, svc_headings, svc_headings_color, ARG(0));
+      opeu_army_heading(ds, svc_headings, svc_headings_color,
+                        Arg(args, count, 0));
       break;
     case 20:
-      opeu_division_heading(ds, svc_headings, ARG(0));
+      opeu_division_heading(ds, svc_headings, Arg(args, count, 0));
       break; /* 0bc3:02e6 */
     case 21:
       B2_SP_CALL(PORT_FRAME,
-                 opeu_division_regiments(ds, svc_armypanl, ARG(0), ARG(1), sp));
+                 opeu_division_regiments(ds, svc_armypanl, Arg(args, count, 0),
+                                         Arg(args, count, 1), sp));
       break;
     case 22: opeu_division_credits(ds, svc_credits); break; /* 0bc3:0790 */
     case 23:
       opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:038e */
     case 24:
-      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
-      break;                                                   /* 1389:000e */
-    case 25: opeu_control_position(ds, ARG(0), ARG(1)); break; /* 15c4:13d8 */
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break; /* 1389:000e */
+    case 25:
+      opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break; /* 15c4:13d8 */
     case 26:
       B2_SP_CALL(PORT_FRAME,
                  opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
-                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
-                                       (uint8_t)ARG(2)));
+                                       (uint8_t)Arg(args, count, 0),
+                                       (uint8_t)Arg(args, count, 1),
+                                       (uint8_t)Arg(args, count, 2)));
       break;
     case 27:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 28:
       opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:020c */
     case 29:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 30:
       opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break; /* 1707:02e2 */
     case 31:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
-    case 32: r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
+    case 32:
+      r = opeu_opposite_side((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:04c8 */
     case 33:
       B2_SP_CALL(PORT_FRAME,
-                 opeu_unit_flash(ds, svc_mapunit, (uint16_t)(sp - 2), ARG(0),
-                                 (uint8_t)ARG(1)));
+                 opeu_unit_flash(ds, svc_mapunit, (uint16_t)(sp - 2),
+                                 Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1)));
       break;
-    case 34: b2_request_format(ds, args, count); break;          /* 0480:0b9a */
-    case 35: opeu_copy_bytes(ds, ARG(0), ARG(1), ARG(2)); break; /* 09cc:000a */
+    case 34: b2_request_format(ds, args, count); break; /* 0480:0b9a */
+    case 35:
+      opeu_copy_bytes(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2));
+      break; /* 09cc:000a */
     case 36:
-      B2_SP_CALL(PORT_FRAME, opeu_unit_announce(ds, svc_mapunit,
-                                                (uint16_t)(sp - 2), ARG(0)));
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2),
+                                    Arg(args, count, 0)));
       break;
-    case 37: r = opeu_unit_special(ds, ARG(0)); break; /* 145c:04de */
+    case 37:
+      r = opeu_unit_special(ds, Arg(args, count, 0));
+      break; /* 145c:04de */
     case 38:
       opeu_element_type_panel(ds, (const DialogHost*)port_dialogs_host(),
-                              ARG(0));
+                              Arg(args, count, 0));
       break; /* 1707:0a22 */
     case 39:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), NULL, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), NULL,
+          0);
       break; /* far call */
     case 40:
       r = 0x1fe6;
@@ -388,7 +418,9 @@ uint16_t svc_vwarms(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 /* 1fe6:0c28 */
-PORT_ROUTINE(opeu_view_arms_menu) {
+auto port_routine_opeu_view_arms_menu(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_arms_menu(ds, svc_vwarms, sp));
@@ -396,7 +428,9 @@ PORT_ROUTINE(opeu_view_arms_menu) {
 }
 
 /* 1fe6:0be4 */
-PORT_ROUTINE(opeu_view_enemy_weapons) {
+auto port_routine_opeu_view_enemy_weapons(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_enemy_weapons(ds, svc_vwarms, sp));
@@ -404,7 +438,9 @@ PORT_ROUTINE(opeu_view_enemy_weapons) {
 }
 
 /* 1fe6:0b02 */
-PORT_ROUTINE(opeu_view_info_menu) {
+auto port_routine_opeu_view_info_menu(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_info_menu(ds, svc_vwarms, sp));
@@ -412,7 +448,9 @@ PORT_ROUTINE(opeu_view_info_menu) {
 }
 
 /* 1fe6:0c90 -> AX */
-PORT_ROUTINE(opeu_view_menu_loop) {
+auto port_routine_opeu_view_menu_loop(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t r = 0;
   (void)args;
   (void)count;
@@ -421,7 +459,9 @@ PORT_ROUTINE(opeu_view_menu_loop) {
 }
 
 /* 1fe6:0ba6 */
-PORT_ROUTINE(opeu_view_own_weapons) {
+auto port_routine_opeu_view_own_weapons(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_own_weapons(ds, svc_vwarms, sp));
@@ -429,14 +469,13 @@ PORT_ROUTINE(opeu_view_own_weapons) {
 }
 
 /* 1fe6:0c64 */
-PORT_ROUTINE(opeu_view_victory) {
+auto port_routine_opeu_view_victory(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_victory(ds, svc_vwarms, sp));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_DS_WORDS
 #undef B2_SP_CALL

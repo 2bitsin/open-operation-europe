@@ -206,8 +206,6 @@ void opeu_supply_draw_slots(uint8_t ds[65536], SupplyEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -229,57 +227,74 @@ void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: {
       uint16_t out = (uint16_t)(port_stack_enter(4) - 4);
-      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1), out,
-                         (uint16_t)(out + 1), (uint16_t)(out + 2));
+      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1), out, (uint16_t)(out + 1),
+                         (uint16_t)(out + 2));
       port_stack_leave(4);
       break;
     }
     case 1:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
-    case 2:  b2_cursor_print(ds, args, count); break;
-    case 3:  opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 2: b2_cursor_print(ds, args, count); break;
+    case 3:
+      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1),
+                        Arg(args, count, 2), Arg(args, count, 3),
+                        Arg(args, count, 4));
+      break;
     default: port_unhandled("suptable", id, count);
   }
 }
 
-PORT_ROUTINE(opeu_supply_draw_slots) {
-  B2_SP_CALL(PORT_FRAME, opeu_supply_draw_slots(
-                             ds, svc_suptable, SUPPLY_SCRATCH(sp),
-                             (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
-                             (uint8_t)ARG(3), (uint8_t)ARG(4)));
+auto port_routine_opeu_supply_draw_slots(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  B2_SP_CALL(PORT_FRAME,
+             opeu_supply_draw_slots(
+                 ds, svc_suptable, SUPPLY_SCRATCH(sp),
+                 (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                 (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+                 (uint8_t)Arg(args, count, 4)));
   return 0;
 }
 
-PORT_ROUTINE(opeu_supply_draw_types) {
-  B2_SP_CALL(PORT_FRAME, opeu_supply_draw_types(
-                             ds, svc_suptable, SUPPLY_SCRATCH(sp),
-                             (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
-                             (uint8_t)ARG(3), (uint8_t)ARG(4)));
+auto port_routine_opeu_supply_draw_types(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  B2_SP_CALL(PORT_FRAME,
+             opeu_supply_draw_types(
+                 ds, svc_suptable, SUPPLY_SCRATCH(sp),
+                 (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                 (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+                 (uint8_t)Arg(args, count, 4)));
   return 0;
 }
 
-PORT_ROUTINE(opeu_supply_return_slot) {
+auto port_routine_opeu_supply_return_slot(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_supply_return_slot(ds, svc_suptable);
 }
 
-PORT_ROUTINE(opeu_supply_true) {
+auto port_routine_opeu_supply_true(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)ds;
   (void)args;
   (void)count;
   return opeu_supply_true();
 }
 
-PORT_ROUTINE(opeu_supply_unit_eligible) {
+auto port_routine_opeu_supply_unit_eligible(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_supply_unit_eligible(ds);
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL
 #undef SUPPLY_SCRATCH

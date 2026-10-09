@@ -108,13 +108,11 @@ void opeu_battle_order_refused(uint8_t* ds, BattleEvent event, uint8_t kind) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)        ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)      ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define BTL_HEX_MASKS 0x352d0u
 
 /*
  * src/main/map btl*.c, dpl*.c, hqloss.c modules and core/stockord.c, plus the
- * PORT_ROUTINE handlers of the routines they reach).
+ * linked routine handlers of the routines they reach).
  * Conversion only; no game logic.
  *
  * Address-keyed word convention of the handlers (port.h): the register words
@@ -137,6 +135,4 @@ uint16_t svc_btlcmds(uint8_t* ds, uint32_t service, const uint16_t* args,
   return svc_battle_orders(ds, service, args, count);
 }
 
-#undef ARG
-#undef ARG32
 #undef BTL_HEX_MASKS

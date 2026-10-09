@@ -163,8 +163,6 @@ void opeu_view_division_contact(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -181,13 +179,13 @@ uint16_t svc_vwdiv(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 /* 1fe6:04fa */
-PORT_ROUTINE(opeu_view_division_contact) {
+auto port_routine_opeu_view_division_contact(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_division_contact(ds, svc_vwdiv, sp));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

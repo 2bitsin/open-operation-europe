@@ -155,8 +155,6 @@ void opeu_battle_animate_element(uint8_t* ds, BattleEvent event, uint8_t x,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define BTL_BP(sp) ((uint16_t)((sp) - 2u))
 
 uint16_t svc_btlelem(uint8_t* ds, uint32_t address, const uint16_t* args,
@@ -164,38 +162,48 @@ uint16_t svc_btlelem(uint8_t* ds, uint32_t address, const uint16_t* args,
   return port_service(ds, address, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_animate_element) {
+auto port_routine_opeu_battle_animate_element(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_animate_element(ds, svc_btlelem, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                              ARG(2), ARG(3), ARG(4), ARG(5), BTL_BP(sp));
+  opeu_battle_animate_element(ds, svc_btlelem, (uint8_t)Arg(args, count, 0),
+                              (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                              Arg(args, count, 3), Arg(args, count, 4),
+                              Arg(args, count, 5), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_draw_element_at) {
+auto port_routine_opeu_battle_draw_element_at(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_draw_element_at(ds, svc_btlelem, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                              ARG(2), (uint8_t)ARG(3), BTL_BP(sp));
+  opeu_battle_draw_element_at(ds, svc_btlelem, (uint8_t)Arg(args, count, 0),
+                              (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                              (uint8_t)Arg(args, count, 3), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_redraw_cell) {
+auto port_routine_opeu_battle_redraw_cell(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_redraw_cell(ds, svc_btlelem, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                          ARG(2), (uint8_t)ARG(3), BTL_BP(sp));
+  opeu_battle_redraw_cell(ds, svc_btlelem, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                          (uint8_t)Arg(args, count, 3), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_refresh_cell) {
+auto port_routine_opeu_battle_refresh_cell(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
-  opeu_battle_refresh_cell(ds, svc_btlelem, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                           BTL_BP(sp));
+  opeu_battle_refresh_cell(ds, svc_btlelem, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1), BTL_BP(sp));
   btl_sp_leave();
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef BTL_BP

@@ -189,8 +189,6 @@ void opeu_mouse_window(STATE_ int16_t x, int16_t y, int16_t width,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/mouse.c (05a8:000c..0265 INT 33h mouse services).
  * The module's service is the shared 05a8 input boundary; MOUSE itself
@@ -209,49 +207,55 @@ uint16_t svc_mouse(uint8_t* ds, uint16_t call, uint16_t* words) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_input_reset) {
+auto port_routine_opeu_input_reset(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_input_reset(ds, svc_mouse);
   return 0;
 }
 
-PORT_ROUTINE(opeu_mouse_buttons) {
+auto port_routine_opeu_mouse_buttons(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_mouse_buttons(ds, svc_mouse);
 }
 
-PORT_ROUTINE(opeu_mouse_hide) {
+auto port_routine_opeu_mouse_hide(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mouse_hide(ds, svc_mouse);
   return 0;
 }
 
-PORT_ROUTINE(opeu_mouse_left) {
+auto port_routine_opeu_mouse_left(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return (uint16_t)opeu_mouse_left(ds, svc_mouse);
 }
 
-PORT_ROUTINE(opeu_mouse_position) {
-  opeu_mouse_position(ds, svc_mouse, ARG(1), ARG(0));
+auto port_routine_opeu_mouse_position(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_mouse_position(ds, svc_mouse, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_mouse_right) {
+auto port_routine_opeu_mouse_right(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return (uint16_t)opeu_mouse_right(ds, svc_mouse);
 }
 
-PORT_ROUTINE(opeu_mouse_show) {
+auto port_routine_opeu_mouse_show(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mouse_show(ds, svc_mouse);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

@@ -127,8 +127,6 @@ uint8_t opeu_rq_unit_selectable(void) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)        ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)      ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME      0x200u
 #define LF_RQ_SCRATCH 0x80u
 
@@ -189,77 +187,91 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id,
                            const uint16_t* args, uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 0: r = opeu_rand_bounded(ARG(0)); break;
-    case 1: r = opeu_min16(ARG(0), ARG(1)); break;
-    case 2: r = opeu_max16(ARG(0), ARG(1)); break;
-    case 3: r = opeu_request_pending(ds, (uint8_t)ARG(0)); break;
+    case 0: r = opeu_rand_bounded(Arg(args, count, 0)); break;
+    case 1: r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
+    case 2: r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
+    case 3: r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
     case 4:
       sp = port_stack_enter(LF_FRAME);
       r  = opeu_request_cancel_prompt(ds, svc_rqcommon,
-                                      (uint16_t)(sp - LF_RQ_SCRATCH), ARG(0));
+                                      (uint16_t)(sp - LF_RQ_SCRATCH),
+                                      Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
     case 5:
       sp = port_stack_enter(LF_FRAME);
       opeu_request_no_more(ds, svc_rqcommon, (uint16_t)(sp - LF_RQ_SCRATCH),
-                           ARG(0));
+                           Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
     case 6:
       sp = port_stack_enter(LF_FRAME);
-      port_ds_set_word((uint16_t)(sp - 4u), ARG(0));
-      ds[(uint16_t)(sp - 2u)] = (uint8_t)ARG(1);
-      ds[(uint16_t)(sp - 1u)] = (uint8_t)ARG(2);
+      port_ds_set_word((uint16_t)(sp - 4u), Arg(args, count, 0));
+      ds[(uint16_t)(sp - 2u)] = (uint8_t)Arg(args, count, 1);
+      ds[(uint16_t)(sp - 1u)] = (uint8_t)Arg(args, count, 2);
       opeu_request_file(ds, svc_rqcommon, (uint16_t)(sp - 4u));
       port_stack_leave(LF_FRAME);
       break;
-    case 7: r = opeu_release_side_units(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 8: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 7:
+      r = opeu_release_side_units(ds, Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1));
+      break;
+    case 8:
+      r = opeu_release_side_elements(ds, Arg(args, count, 0),
+                                     (uint8_t)Arg(args, count, 1));
+      break;
     case 9:
       opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break;
     case 10:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 11:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
-    case 12: r = opeu_unit_index(ARG(0)); break;
-    case 13: r = opeu_category_0_to_3((uint8_t)ARG(0)); break;
-    case 14: r = opeu_category_4_or_5((uint8_t)ARG(0)); break;
-    case 15: r = opeu_category_6((uint8_t)ARG(0)); break;
+    case 12: r = opeu_unit_index(Arg(args, count, 0)); break;
+    case 13: r = opeu_category_0_to_3((uint8_t)Arg(args, count, 0)); break;
+    case 14: r = opeu_category_4_or_5((uint8_t)Arg(args, count, 0)); break;
+    case 15: r = opeu_category_6((uint8_t)Arg(args, count, 0)); break;
     case 16:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break;
     case 17:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 18:
-      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(),
+                          Arg(args, count, 0));
       break;
     case 19: r = lf_request_format(ds, args, count); break;
     case 20:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 23:
       sp = port_stack_enter(LF_FRAME);
-      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u), ARG(0),
-                                  ARG(1));
+      r  = opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - 2u),
+                                  Arg(args, count, 0), Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
     case 25:
-      r = opeu_list_due_records(ds, ARG(2), (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_list_due_records(ds, Arg(args, count, 2),
+                                (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break;
     default: port_unhandled(module, id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_request_arms) {
+auto port_routine_opeu_request_arms(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -269,14 +281,14 @@ PORT_ROUTINE(opeu_request_arms) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_rq_unit_selectable) {
+auto port_routine_opeu_rq_unit_selectable(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)ds;
   (void)args;
   (void)count;
   return opeu_rq_unit_selectable();
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME
 #undef LF_RQ_SCRATCH

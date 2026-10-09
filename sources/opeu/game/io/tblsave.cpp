@@ -137,8 +137,6 @@ void opeu_tbl_draw_saves(uint8_t ds[65536], HostEvent event, uint16_t scratch,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)          ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)        ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define TBLSAVE_SCRATCH 0x68u
 
 /* Services of io/tblsave.c (0c45:0ff0..1201 saved-game list table callbacks).
@@ -157,40 +155,46 @@ uint16_t svc_tblsave(uint8_t* ds, uint16_t kind, const uint16_t* args,
                      uint16_t count) {
   switch (kind) {
     case 0:
-      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                         ARG(2), ARG(3), ARG(4));
+      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                         Arg(args, count, 3), Arg(args, count, 4));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 2: b1_request_format(ds, args, count); break;
     case 6: b1_cursor_print(ds, args, count); break;
     case 7:
-      opeu_text_put_range(ds, (TextHost*)port_textout_host(), ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_text_put_range(ds, (TextHost*)port_textout_host(),
+                          Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       break;
     default: port_unhandled("tblsave", kind, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_tbl_draw_saves) {
+auto port_routine_opeu_tbl_draw_saves(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t scratch = b1_stack_alloc(TBLSAVE_SCRATCH);
-  opeu_tbl_draw_saves(ds, svc_tblsave, scratch, (uint8_t)ARG(0),
-                      (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
-                      (uint8_t)ARG(4));
+  opeu_tbl_draw_saves(
+      ds, svc_tblsave, scratch, (uint8_t)Arg(args, count, 0),
+      (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+      (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   port_scratch_leave(TBLSAVE_SCRATCH);
   return 0;
 }
 
-PORT_ROUTINE(opeu_tbl_save_accept) {
+auto port_routine_opeu_tbl_save_accept(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   (void)ds;
   (void)args;
   (void)count;
   return opeu_tbl_save_accept();
 }
 
-#undef ARG
-#undef ARG32
 #undef TBLSAVE_SCRATCH

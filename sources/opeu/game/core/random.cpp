@@ -38,16 +38,12 @@ uint16_t opeu_rand_bounded(uint16_t bound) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_rand_bounded) {
+auto port_routine_opeu_rand_bounded(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t r;
   memcpy(&opeu_random_state, ds + 0xc6f4, 4);
-  r = opeu_rand_bounded(ARG(0));
+  r = opeu_rand_bounded(Arg(args, count, 0));
   memcpy(ds + 0xc6f4, &opeu_random_state, 4);
   return r;
 }
-
-#undef ARG
-#undef ARG32

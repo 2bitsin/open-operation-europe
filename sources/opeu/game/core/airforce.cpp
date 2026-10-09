@@ -154,12 +154,10 @@ void opeu_turn_action_8(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/airforce.c (23b2:106e..1230, Air Force command). Services: ids
  * 0 (also location_name's label format), 4, 8, 9, 12, 13 and 14 (far
- * mission action from DS:a62e: 23b2:05b0/0b28/0e20, PORT_ROUTINE handlers
+ * mission action from DS:a62e: 23b2:05b0/0b28/0e20, linked routine handlers
  * in game/core/air{bomb,drop,lift}.c) of the 23b2 table shared by
  * the air-force modules (svc_air, game/core/airbomb.c). */
 uint16_t svc_airforce(uint8_t* ds, uint16_t id, const uint16_t* args,
@@ -167,7 +165,9 @@ uint16_t svc_airforce(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_air(ds, "airforce", id, args, count);
 }
 
-PORT_ROUTINE(opeu_turn_action_8) {
+auto port_routine_opeu_turn_action_8(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter();
   (void)args;
   (void)count;
@@ -175,6 +175,3 @@ PORT_ROUTINE(opeu_turn_action_8) {
   c2_air_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

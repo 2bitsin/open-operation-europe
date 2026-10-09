@@ -462,8 +462,6 @@ void opeu_palette_map_screen(uint8_t ds[65536], const UiHost* host) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/uiprim.c (0a04:000c..08ab image streams, portrait/face caches,
  * frames and palettes). The module takes a UiHost structure; its events,
@@ -491,76 +489,107 @@ uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id,
   (void)memory;
   switch (id) {
     case 0:
-      return (uint32_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
-                                     (int16_t)ARG(3));
+      return (uint32_t)opeu_dos_seek((int16_t)Arg(args, count, 0),
+                                     (int32_t)Arg32(args, count, 1),
+                                     (int16_t)Arg(args, count, 3));
     case 1:
-      return (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2),
-                                         ARG(3));
+      return (uint16_t)opeu_dos_read_far(
+          (int16_t)Arg(args, count, 0), Arg(args, count, 1),
+          Arg(args, count, 2), Arg(args, count, 3));
     case 2:
-      opeu_blit_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                    port_far(ARG(5), ARG(6)));
+      opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1),
+                    Arg(args, count, 2), Arg(args, count, 3),
+                    Arg(args, count, 4),
+                    port_far(Arg(args, count, 5), Arg(args, count, 6)));
       return 0;
     case 3:
-      opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                    port_far(ARG(5), ARG(6)));
+      opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1),
+                    Arg(args, count, 2), Arg(args, count, 3),
+                    Arg(args, count, 4),
+                    port_far(Arg(args, count, 5), Arg(args, count, 6)));
       return 0;
     case 4:
-      opeu_draw_near(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), PORT_DS(ARG(5)));
+      opeu_draw_near(Arg(args, count, 0), Arg(args, count, 1),
+                     Arg(args, count, 2), Arg(args, count, 3),
+                     Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
       return 0;
-    case 5: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
-    case 6: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); return 0;
+    case 5:
+      opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
+      return 0;
+    case 6:
+      opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+                  Arg(args, count, 3), Arg(args, count, 4));
+      return 0;
     case 7:
-      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       Arg(args, count, 4), Arg(args, count, 5));
       return 0;
     case 8:
-      opeu_set_palette((uint8_t)ARG(0), (uint8_t)ARG(1), PORT_DS(ARG(2)));
+      opeu_set_palette((uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1),
+                       PORT_DS(Arg(args, count, 2)));
       return 0;
     case 9:
-      opeu_picture_decode(ARG(0), ARG(1), port_picture_reader(ARG(2), ARG(3)));
+      opeu_picture_decode(
+          Arg(args, count, 0), Arg(args, count, 1),
+          port_picture_reader(Arg(args, count, 2), Arg(args, count, 3)));
       return 0;
     case 10:
-      opeu_picture_decode_masked(ARG(0), ARG(1),
-                                 port_picture_reader(ARG(2), ARG(3)));
+      opeu_picture_decode_masked(
+          Arg(args, count, 0), Arg(args, count, 1),
+          port_picture_reader(Arg(args, count, 2), Arg(args, count, 3)));
       return 0;
     case 11:
       opeu_army_position(port_ds, (TextHost*)port_textout_host(),
-                         (int16_t)ARG(0), (int16_t)ARG(1));
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       return 0;
     default: port_unhandled("uiprim", id, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_context_frame) {
-  opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                     ARG(2));
+auto port_routine_opeu_context_frame(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0),
+                     Arg(args, count, 1), Arg(args, count, 2));
   return 0;
 }
 
-PORT_ROUTINE(opeu_context_portrait) {
-  opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                        ARG(2));
+auto port_routine_opeu_context_portrait(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                        Arg(args, count, 0), Arg(args, count, 1),
+                        Arg(args, count, 2));
   return 0;
 }
 
-PORT_ROUTINE(opeu_face_draw) {
-  opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                 (uint8_t)ARG(3));
+auto port_routine_opeu_face_draw(std::uint8_t* ds, std::uint16_t const* args,
+                                 unsigned count) -> std::uint32_t {
+  opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0),
+                 Arg(args, count, 1), Arg(args, count, 2),
+                 (uint8_t)Arg(args, count, 3));
   return 0;
 }
 
-PORT_ROUTINE(opeu_palette_for_hour) {
+auto port_routine_opeu_palette_for_hour(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host());
   return 0;
 }
 
-PORT_ROUTINE(opeu_ui_outline) {
-  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1), ARG(2),
-                  ARG(3), ARG(4));
+auto port_routine_opeu_ui_outline(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
+  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0),
+                  Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
+                  Arg(args, count, 4));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

@@ -276,8 +276,6 @@ uint8_t opeu_list_element_types(uint8_t ds[65536], HostEvent event, uint16_t sp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/vwlist.c (1fe6:0004..026f view list builders and list-dialog
  * row checks). Services of the shared view numbering (vwlist.c host enum)
@@ -293,18 +291,19 @@ uint16_t svc_vwlist(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 1:  r = opeu_objective_side(ds, ARG(0)); break;
-    case 2:  r = opeu_objective_eligible(ds, ARG(0)); break;
-    case 3:  r = opeu_find_group_selected_unit(ds, ARG(0)); break;
-    case 4:  r = opeu_unit_selection_eligible(ds, ARG(0)); break;
-    case 5:  r = opeu_unit_side(ARG(0)); break;
+    case 1:  r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+    case 2:  r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
+    case 3:  r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
+    case 4:  r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+    case 5:  r = opeu_unit_side(Arg(args, count, 0)); break;
     default: port_unhandled("vwlist", id, count);
   }
   return r;
 }
 
 /* 1fe6:016e */
-PORT_ROUTINE(opeu_view_false) {
+auto port_routine_opeu_view_false(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_false(ds, svc_vwlist, sp);
   (void)args;
@@ -314,7 +313,8 @@ PORT_ROUTINE(opeu_view_false) {
 }
 
 /* 1fe6:0200 */
-PORT_ROUTINE(opeu_view_false_2) {
+auto port_routine_opeu_view_false_2(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_false_2(ds, svc_vwlist, sp);
   (void)args;
@@ -324,7 +324,8 @@ PORT_ROUTINE(opeu_view_false_2) {
 }
 
 /* 1fe6:0204 */
-PORT_ROUTINE(opeu_view_false_3) {
+auto port_routine_opeu_view_false_3(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_false_3(ds, svc_vwlist, sp);
   (void)args;
@@ -334,7 +335,9 @@ PORT_ROUTINE(opeu_view_false_3) {
 }
 
 /* 1fe6:0172 */
-PORT_ROUTINE(opeu_view_group_ok) {
+auto port_routine_opeu_view_group_ok(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_group_ok(ds, svc_vwlist, sp);
   (void)args;
@@ -344,7 +347,9 @@ PORT_ROUTINE(opeu_view_group_ok) {
 }
 
 /* 1fe6:0120 */
-PORT_ROUTINE(opeu_view_objective_ok) {
+auto port_routine_opeu_view_objective_ok(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_objective_ok(ds, svc_vwlist, sp);
   (void)args;
@@ -354,7 +359,8 @@ PORT_ROUTINE(opeu_view_objective_ok) {
 }
 
 /* 1fe6:0208 */
-PORT_ROUTINE(opeu_view_true) {
+auto port_routine_opeu_view_true(std::uint8_t* ds, std::uint16_t const* args,
+                                 unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_true(ds, svc_vwlist, sp);
   (void)args;
@@ -364,7 +370,8 @@ PORT_ROUTINE(opeu_view_true) {
 }
 
 /* 1fe6:01ac */
-PORT_ROUTINE(opeu_view_unit_ok) {
+auto port_routine_opeu_view_unit_ok(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(PORT_FRAME);
   uint8_t  r  = opeu_view_unit_ok(ds, svc_vwlist, sp);
   (void)args;
@@ -372,6 +379,3 @@ PORT_ROUTINE(opeu_view_unit_ok) {
   port_stack_leave(PORT_FRAME);
   return r;
 }
-
-#undef ARG
-#undef ARG32

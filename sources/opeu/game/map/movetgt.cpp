@@ -162,8 +162,6 @@ uint16_t opeu_move_level_lower(uint8_t ds[65536], RECORD_P record,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define MAP_PATH_SEGMENT 0x4582u
 
 /* The movement source file's shared service ids (MOVEUNIT 32e6:0732 and
@@ -208,69 +206,89 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
   switch (id) {
     case 0: r = opeu_move_rating(ds, svc_movemine); break;
     case 1:
-      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      r = opeu_grid_step(PORT_DS(Arg(args, count, 0)),
+                         PORT_DS(Arg(args, count, 1)),
+                         (uint8_t)Arg(args, count, 2));
       break;
     case 2:
-      r = opeu_move_cost(ds, (uint8_t)ARG(0), (uint8_t)ARG(1), ARG(2));
+      r = opeu_move_cost(ds, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1), Arg(args, count, 2));
       break;
     case 3:
-      r = opeu_grid_distance((uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
-                             (uint8_t)ARG(3));
+      r = opeu_grid_distance(
+          (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+          (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3));
       break;
     case 4:
-      r = opeu_unit_order_destination(ds, ARG(0), PORT_DS(ARG(1)),
-                                      PORT_DS(ARG(2)));
+      r = opeu_unit_order_destination(ds, Arg(args, count, 0),
+                                      PORT_DS(Arg(args, count, 1)),
+                                      PORT_DS(Arg(args, count, 2)));
       break;
     case 5:
-      r = opeu_move_reachable(ds, (uint16_t*)port_far(MAP_PATH_SEGMENT, 0),
-                              (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2),
-                              (uint8_t)ARG(3), ARG(4));
+      r = opeu_move_reachable(
+          ds, (uint16_t*)port_far(MAP_PATH_SEGMENT, 0),
+          (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+          (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+          Arg(args, count, 4));
       break;
-    case 6: r = opeu_category_6((uint8_t)ARG(0)); break;
+    case 6: r = opeu_category_6((uint8_t)Arg(args, count, 0)); break;
     case 7:
-      r = opeu_grid_step_toward(ds, port_far(MAP_PATH_SEGMENT, 0), ARG(0),
-                                ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3));
+      r = opeu_grid_step_toward(ds, port_far(MAP_PATH_SEGMENT, 0),
+                                Arg(args, count, 0), Arg(args, count, 1),
+                                (uint8_t)Arg(args, count, 2),
+                                (uint8_t)Arg(args, count, 3));
       break;
     case 8:
-      opeu_move_clear(port_far(MAP_PATH_SEGMENT, 0), (uint8_t)ARG(0),
-                      (uint8_t)ARG(1));
+      opeu_move_clear(port_far(MAP_PATH_SEGMENT, 0),
+                      (uint8_t)Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
       break;
     case 9:
-      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break;
-    case 10: r = opeu_objective_side(ds, ARG(0)); break;
-    case 11: r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
-    case 12: r = opeu_unit_side(ARG(0)); break;
-    case 13: r = opeu_cell_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1)); break;
+    case 10: r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+    case 11:
+      r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
+      break;
+    case 12: r = opeu_unit_side(Arg(args, count, 0)); break;
+    case 13:
+      r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1));
+      break;
     case 14: r = opeu_move_supplied(ds); break;
     case 15:
       frame = map_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     case 16:
       frame = map_frame_enter();
-      opeu_arrival_view(ds, svc_mapunit, frame, ARG(0));
+      opeu_arrival_view(ds, svc_mapunit, frame, Arg(args, count, 0));
       map_frame_leave();
       break;
     case 17:
       frame = map_frame_enter();
-      opeu_unit_remove_draw(ds, svc_maperase, frame, ARG(0));
+      opeu_unit_remove_draw(ds, svc_maperase, frame, Arg(args, count, 0));
       map_frame_leave();
       break;
     case 18:
       frame = map_frame_enter();
-      opeu_arrival_prepare(ds, svc_maperase, frame, ARG(0));
+      opeu_arrival_prepare(ds, svc_maperase, frame, Arg(args, count, 0));
       map_frame_leave();
       break;
     case 19: opeu_move_clamp(ds); break;
     case 20:
-      r = opeu_cell_marked(ds, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_cell_marked(ds, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 21:
-      opeu_move_mines(ds, svc_movemine, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_move_mines(ds, svc_movemine, (uint8_t)Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
       break;
     case 22: opeu_move_spot(ds, svc_movespot); break;
     case 23: opeu_move_consume(ds, svc_movesup); break;
@@ -279,14 +297,17 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
       r     = opeu_move_enemy_adjacent(ds, svc_movespot, frame);
       map_frame_leave();
       break;
-    case 25: opeu_restore_unit_order(ds, ARG(0)); break;
-    case 26: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
-    case 27: r = opeu_unit_special(ds, ARG(0)); break;
-    case 28: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 25: opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
+    case 26: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+    case 27: r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+    case 28:
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
+      break;
     case 29: map_request_format(ds, args, count); break;
     case 30:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                       ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 0), Arg(args, count, 1));
       break;
     default: port_unhandled(module, id, count);
   }
@@ -302,6 +323,4 @@ uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_map_move(ds, "movetgt", id, args, count);
 }
 
-#undef ARG
-#undef ARG32
 #undef MAP_PATH_SEGMENT

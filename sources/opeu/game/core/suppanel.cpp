@@ -206,8 +206,6 @@ void opeu_supply_digits(uint8_t ds[65536], SupplyEvent event, uint16_t x,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
 
 /* Services of core/suppanel.c (20b3:0116..0451 supply-allocation panel). Services,
@@ -225,7 +223,7 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 1: opeu_mouse_show(ds, svc_mouse); break;
-    case 2: opeu_delay_ticks(ds, svc_waitkey, ARG(0)); break;
+    case 2: opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
     case 3: { /* x/y words in the modeled stack, copied back to the caller's words. */
       uint16_t  at  = (uint16_t)(port_stack_enter(4) - 4);
       uint16_t* out = (uint16_t*)(uintptr_t)args;
@@ -240,22 +238,25 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 6: opeu_mouse_hide(ds, svc_mouse); break;
     case 7: r = opeu_keyboard_key(ds, svc_keyboard); break;
     case 8:
-      opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                          B2_FAR(ARG(5), ARG(6)));
+      opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1),
+                          Arg(args, count, 2), Arg(args, count, 3),
+                          Arg(args, count, 4),
+                          B2_FAR(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 9:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 10: b2_cursor_print(ds, args, count); break;
     case 11:
-      opeu_vga_glyph(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), PORT_DS(ARG(5)));
+      opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1),
+                     Arg(args, count, 2), Arg(args, count, 3),
+                     Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
       break;
     default: port_unhandled("suppanel", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_FAR

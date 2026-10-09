@@ -101,8 +101,6 @@ uint16_t opeu_request_cells(uint8_t ds[65536], uint8_t side,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3) {
   (void)a0;
@@ -112,6 +110,3 @@ uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3) {
   port_unhandled("reqcells (no service table)", (unsigned)(a1), 0);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

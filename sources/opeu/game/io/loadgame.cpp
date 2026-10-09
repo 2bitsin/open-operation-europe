@@ -124,8 +124,6 @@ uint16_t opeu_load_saved_game(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/loadgame.c (06db:07c6..09c7 saved-game check and load menu).
  * Events, from the host branch's comment:
@@ -143,38 +141,49 @@ uint16_t svc_loadgame(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: r = (uint16_t)opeu_dos_exists((const char*)PORT_DS(ARG(0))); break;
-    case 1: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 0:
+      r = (uint16_t)opeu_dos_exists((const char*)PORT_DS(Arg(args, count, 0)));
+      break;
+    case 1:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
     case 2:
-      r = (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
-                                  (int16_t)ARG(3));
+      r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0),
+                                  (int32_t)Arg32(args, count, 1),
+                                  (int16_t)Arg(args, count, 3));
       break;
     case 3:
-      r = (uint16_t)opeu_dos_read((int16_t)ARG(0), PORT_DS(ARG(1)), ARG(2));
+      r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0),
+                                  PORT_DS(Arg(args, count, 1)),
+                                  Arg(args, count, 2));
       break;
-    case 4: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 4: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
     case 5: b1_cursor_print(ds, args, count); break;
     case 6:
-      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                          (uint8_t)Arg(args, count, 0));
       break;
     case 7:
-      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
-    case 8: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
-    case 9: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 8:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
+    case 9:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 10:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 11:
       opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
-                               (uint8_t)ARG(0));
+                               (uint8_t)Arg(args, count, 0));
       break;
     default: port_unhandled("loadgame", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

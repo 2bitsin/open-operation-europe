@@ -356,8 +356,6 @@ done:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_FAR(seg, off) port_far((uint16_t)(seg), (uint16_t)(off))
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
@@ -387,30 +385,38 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0:
       B2_SP_CALL(PORT_FRAME,
                  opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
-                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
-                                       (uint8_t)ARG(2)));
+                                       (uint8_t)Arg(args, count, 0),
+                                       (uint8_t)Arg(args, count, 1),
+                                       (uint8_t)Arg(args, count, 2)));
       break;
     case 1: opeu_input_reset(ds, svc_mouse); break;
     case 2:
-      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3), B2_FAR(ARG(4), ARG(5)));
+      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       B2_FAR(Arg(args, count, 4), Arg(args, count, 5)));
       break;
     case 3:
       B2_SP_CALL(PORT_FRAME,
                  opeu_map_erase(ds, svc_maperase, (uint16_t)(sp - 2),
-                                (uint8_t)ARG(0), (uint8_t)ARG(1)));
+                                (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1)));
       break;
     case 4:
-      opeu_map_inspect(ds, svc_inspect, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_map_inspect(ds, svc_inspect, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1));
       break;
     case 5:
-      B2_SP_CALL(PORT_FRAME, opeu_map_cursor(ds, svc_cursor, (uint16_t)(sp - 2),
-                                             ARG(0), ARG(1)));
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_map_cursor(ds, svc_cursor, (uint16_t)(sp - 2),
+                                 Arg(args, count, 0), Arg(args, count, 1)));
       break;
     case 6:
-      B2_SP_CALL(PORT_FRAME, opeu_objective_panel(ds, svc_vwpanel, sp, ARG(0)));
+      B2_SP_CALL(PORT_FRAME, opeu_objective_panel(ds, svc_vwpanel, sp,
+                                                  Arg(args, count, 0)));
       break;
     case 7:
-      B2_SP_CALL(PORT_FRAME, opeu_unit_panel(ds, svc_vwpanel, sp, ARG(0)));
+      B2_SP_CALL(PORT_FRAME,
+                 opeu_unit_panel(ds, svc_vwpanel, sp, Arg(args, count, 0)));
       break;
     case 8:
       B2_SP_CALL(PORT_FRAME,
@@ -418,32 +424,40 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 9:  opeu_mouse_show(ds, svc_mouse); break;
     case 10: r = opeu_mouse_buttons(ds, svc_mouse); break;
-    case 11: opeu_mouse_position(ds, svc_mouse, ARG(0), ARG(1)); break;
+    case 11:
+      opeu_mouse_position(ds, svc_mouse, Arg(args, count, 0),
+                          Arg(args, count, 1));
+      break;
     case 12: opeu_mouse_hide(ds, svc_mouse); break;
     case 13:
-      opeu_viewport_pan(ds, svc_viewpan, (int16_t)ARG(0), (int16_t)ARG(1),
-                        (uint8_t)ARG(2), (uint8_t)ARG(4), (uint8_t)ARG(3));
+      opeu_viewport_pan(
+          ds, svc_viewpan, (int16_t)Arg(args, count, 0),
+          (int16_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+          (uint8_t)Arg(args, count, 4), (uint8_t)Arg(args, count, 3));
       break;
     case 14:
       B2_SP_CALL(PORT_FRAME,
-                 opeu_unit_action(ds, svc_ordact, sp, ARG(0), ARG(1)));
+                 opeu_unit_action(ds, svc_ordact, sp, Arg(args, count, 0),
+                                  Arg(args, count, 1)));
       break;
-    case 15: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 15:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
     case 16:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 17: r = opeu_keyboard_key(ds, svc_keyboard); break;
     case 18:
-      opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                          B2_FAR(ARG(5), ARG(6)));
+      opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1),
+                          Arg(args, count, 2), Arg(args, count, 3),
+                          Arg(args, count, 4),
+                          B2_FAR(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     default: port_unhandled("coords", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_FAR
 #undef B2_SP_CALL

@@ -88,8 +88,6 @@ void opeu_turn_action_5(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/advmenu.c (1dd2:2088..20fc staff advice menus). Services
  * (host branch comment): 1 control_message(text,person) 1707:0672,
@@ -101,22 +99,26 @@ uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 2:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 3:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0);
       break;
     default: port_unhandled("advmenu", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_staff_advice_menu) {
+auto port_routine_opeu_staff_advice_menu(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -126,7 +128,9 @@ PORT_ROUTINE(opeu_staff_advice_menu) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_turn_action_5) {
+auto port_routine_opeu_turn_action_5(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -135,6 +139,3 @@ PORT_ROUTINE(opeu_turn_action_5) {
   port_stack_leave(PORT_FRAME);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

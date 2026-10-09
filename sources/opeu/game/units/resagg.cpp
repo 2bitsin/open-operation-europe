@@ -103,15 +103,13 @@ void opeu_objective_capacities(uint8_t ds[65536], uint16_t objective,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_objective_capacities) {
-  opeu_objective_capacities(ds, ARG(2), (uint16_t*)(void*)PORT_DS(ARG(0)),
-                            (uint16_t*)(void*)PORT_DS(ARG(1)),
-                            (uint16_t*)(void*)PORT_DS(ARG(3)));
+auto port_routine_opeu_objective_capacities(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  opeu_objective_capacities(ds, Arg(args, count, 2),
+                            (uint16_t*)(void*)PORT_DS(Arg(args, count, 0)),
+                            (uint16_t*)(void*)PORT_DS(Arg(args, count, 1)),
+                            (uint16_t*)(void*)PORT_DS(Arg(args, count, 3)));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

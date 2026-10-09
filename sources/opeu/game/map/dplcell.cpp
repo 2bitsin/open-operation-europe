@@ -171,14 +171,9 @@ uint16_t opeu_deploy_manual(uint8_t* ds, BattleEvent event, uint16_t element) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/dplcell.c, address-keyed BattleEvent: deployment group (source-order words, see svc_battle_deploy in game/map/dplauto.c). */
 uint16_t svc_dplcell(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count) {
   return svc_battle_deploy(ds, service, args, count);
 }
-
-#undef ARG
-#undef ARG32

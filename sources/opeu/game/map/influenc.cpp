@@ -79,8 +79,6 @@ void opeu_turn_hourly_c(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/influenc.c (1270:0d8e influence map, 1270:0efc hourly stage C
  * entry). Events (host branch STAGE_B/STAGE_C):
@@ -109,6 +107,3 @@ uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

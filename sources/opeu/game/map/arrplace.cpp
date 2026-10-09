@@ -57,8 +57,6 @@ uint16_t opeu_arrival_locate(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/arrplace.c (1270:000e pick an arrival cell from the candidate
  * grid). Event (host branch COUNT):
@@ -85,6 +83,3 @@ uint16_t svc_arrplace(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

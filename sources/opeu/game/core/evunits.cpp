@@ -143,8 +143,6 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/evunits.c (11e5:0606 hourly unit condition event). The only
  * service, from the host branch comment: 7 unit message dialog (unit,text). */
@@ -152,20 +150,19 @@ uint16_t svc_evunits(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   switch (id) {
     case 7:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                       ARG(1));
+      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:07ec unit_message */
     default: port_unhandled("evunits", id, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_unit_hourly_event) {
+auto port_routine_opeu_unit_hourly_event(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_unit_hourly_event(ds, svc_evunits);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

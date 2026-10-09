@@ -560,8 +560,6 @@ void opeu_element_panel(P_ PTR(uint8_t) element) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define KEY_SCRATCH 16u
 
 /* Services of core/dialogs.c (1707:0002..0bd5 turn frame, context panels, speaker
@@ -593,68 +591,87 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0, f;
   switch (id) {
     case 0:
-      r = (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                        port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_bitmap_restore(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 1:
-      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
-                       port_far(ARG(4), ARG(5)));
+      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       port_far(Arg(args, count, 4), Arg(args, count, 5)));
       break;
     case 2:
-      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1),
+                                Arg(args, count, 2), Arg(args, count, 3),
+                                Arg(args, count, 4));
       break;
     case 3: r = (uint16_t)opeu_vga_clear(); break;
     case 4: opeu_display_prepare(ds, svc_emsmap); break;
     case 5:
-      opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                                 ARG(1), ARG(2), ARG(3));
+      opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(),
+                                 Arg(args, count, 0), Arg(args, count, 1),
+                                 Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 6: opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host()); break;
     case 7:
-      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                        (int16_t)ARG(2), ARG(3));
+      opeu_picture_file(ds, (const UiHost*)port_uiprim_host(),
+                        Arg(args, count, 0), Arg(args, count, 1),
+                        (int16_t)Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 8:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 9:
-      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
     case 10:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                            ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2));
       break;
     case 11:
-      opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                     ARG(2), (uint8_t)ARG(3));
+      opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0),
+                     Arg(args, count, 1), Arg(args, count, 2),
+                     (uint8_t)Arg(args, count, 3));
       break;
     case 12: opeu_context_save(ds, (TextHost*)port_textout_host()); break;
     case 13: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
     case 14:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
-    case 15: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 15:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 16: b1_cursor_print(ds, args, count); break;
     case 17: b1_request_format(ds, args, count); break;
     case 18:
       r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(),
-                                          (int16_t)ARG(0));
+                                          (int16_t)Arg(args, count, 0));
       break;
     case 19:
-      opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                       (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
+      opeu_text_window(
+          ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0),
+          (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2),
+          (int16_t)Arg(args, count, 3));
       break;
     case 20: opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
     case 21:
-      r = opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      r = opeu_text_put(ds, (TextHost*)port_textout_host(),
+                        (uint8_t)Arg(args, count, 0));
       break;
     case 22:
       f = b1_stack_alloc(KEY_SCRATCH);
-      r = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1), (int16_t)ARG(2),
-                            ARG(3), f);
+      r = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0),
+                            Arg(args, count, 1), (int16_t)Arg(args, count, 2),
+                            Arg(args, count, 3), f);
       port_scratch_leave(KEY_SCRATCH);
       break;
     case 23:
@@ -662,96 +679,127 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args,
       r = (uint16_t)opeu_yes_no(ds, svc_keyboard, f);
       port_scratch_leave(KEY_SCRATCH);
       break;
-    case 24: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 24:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     case 25: opeu_music_command7(ds, svc_sound); break;
     case 26: opeu_sound_cue16(ds, svc_soundcue); break;
-    case 27: r = opeu_person_lacks_side0_flag(ds, ARG(0)); break;
-    case 28: r = opeu_person_selected_unit(ds, ARG(0)); break;
-    case 29: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
-    case 30: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
-    case 31: r = opeu_string_length(ds, ARG(0)); break;
-    case 32: r = opeu_string_append(ds, ARG(0), ARG(1)); break;
-    case 33: r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
-    case 34: r = opeu_unit_side(ARG(0)); break;
-    case 35: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
+    case 27: r = opeu_person_lacks_side0_flag(ds, Arg(args, count, 0)); break;
+    case 28: r = opeu_person_selected_unit(ds, Arg(args, count, 0)); break;
+    case 29: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+    case 30:
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break;
+    case 31: r = opeu_string_length(ds, Arg(args, count, 0)); break;
+    case 32:
+      r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 33:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
+    case 34: r = opeu_unit_side(Arg(args, count, 0)); break;
+    case 35:
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
+      break;
     case 36:
       f = b1_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, f, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                            (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
-    case 37: r = opeu_unit_group_index(ARG(0)); break;
+    case 37: r = opeu_unit_group_index(Arg(args, count, 0)); break;
     case 38:
-      r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break;
     case 39:
       f = b1_frame_enter();
-      opeu_arrival_view(ds, svc_mapunit, f, ARG(0));
+      opeu_arrival_view(ds, svc_mapunit, f, Arg(args, count, 0));
       port_frame_leave();
       break;
-    case 40: r = opeu_objective_side(ds, ARG(0)); break;
-    case 41: r = opeu_objective_eligible(ds, ARG(0)); break;
+    case 40: r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+    case 41: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
     case 42:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break;
     case 43:
       f = b1_frame_enter();
-      opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
-    case 44: r = opeu_opposite_side((uint8_t)ARG(0)); break;
-    case 45: r = opeu_unit_special(ds, ARG(0)); break;
-    case 46: r = opeu_type_name(ds, ARG(0), ARG(1)); break;
+    case 44: r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
+    case 45: r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+    case 46:
+      r = opeu_type_name(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
     case 47:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0);
       break;
     default: port_unhandled("dialogs", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_army_title) {
-  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+auto port_routine_opeu_army_title(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
+  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                  Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_confirm_ok) {
-  return opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+auto port_routine_opeu_confirm_ok(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
+  return opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(),
+                         Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_control_choose) {
-  return opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), ARG(2),
-                             ARG(0), ARG(1), ARG(3), ARG(4), ARG(5));
+auto port_routine_opeu_control_choose(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  return opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(),
+                             Arg(args, count, 2), Arg(args, count, 0),
+                             Arg(args, count, 1), Arg(args, count, 3),
+                             Arg(args, count, 4), Arg(args, count, 5));
 }
 
-PORT_ROUTINE(opeu_control_message) {
-  opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(1),
-                       ARG(0));
+auto port_routine_opeu_control_message(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
+  opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                       Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_info_panel_begin) {
+auto port_routine_opeu_info_panel_begin(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_info_panel_begin(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 
-PORT_ROUTINE(opeu_screen_reset) {
+auto port_routine_opeu_screen_reset(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 
-PORT_ROUTINE(opeu_title_panel_begin) {
+auto port_routine_opeu_title_panel_begin(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef KEY_SCRATCH

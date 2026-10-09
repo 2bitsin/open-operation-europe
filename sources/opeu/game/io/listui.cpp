@@ -370,8 +370,6 @@ void opeu_list_scroll(L_STATE_ WINDOW_T window, uint8_t column, uint8_t row) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define KEY_SCRATCH 16u /* keyboard.c: 16-byte caller scratch area */
 
 /* Services of io/listui.c (0a8e:006a..0817 list windows). The shared list
@@ -398,12 +396,16 @@ uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args,
   uint16_t r = 0, s;
   switch (kind) {
     case 0:
-      r = (uint16_t)opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                  port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_draw_far(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 2: opeu_mouse_show(ds, svc_mouse); break;
     case 3: opeu_mouse_hide(ds, svc_mouse); break;
@@ -419,57 +421,77 @@ uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args,
     case 5: r = opeu_mouse_buttons(ds, svc_mouse); break;
     case 6: opeu_input_reset(ds, svc_mouse); break;
     case 7:
-      r = (uint16_t)opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1),
+                                      Arg(args, count, 2), Arg(args, count, 3),
+                                      Arg(args, count, 4));
       break;
-    case 8: opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 8:
+      opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
+      break;
     case 9:
-      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       Arg(args, count, 4), Arg(args, count, 5));
       break;
     case 10:
-      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1),
+                                Arg(args, count, 2), Arg(args, count, 3),
+                                Arg(args, count, 4));
       break;
     case 11:
-      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
-                       port_far(ARG(4), ARG(5)));
+      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       port_far(Arg(args, count, 4), Arg(args, count, 5)));
       break;
     case 12:
-      r = (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                        port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_bitmap_restore(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 13:
-      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                          (uint8_t)Arg(args, count, 0));
       break;
-    case 14: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 14:
+      opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 15:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 16: b1_cursor_print(ds, args, count); break;
     case 17: r = opeu_keyboard_key(ds, svc_keyboard); break;
     case 18:
       s = b1_stack_alloc(KEY_SCRATCH);
-      r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, ARG(0), s);
+      r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0),
+                                       s);
       port_scratch_leave(KEY_SCRATCH);
       break;
     case 19:
-      port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), args + 2,
-                count >= 2 ? count - 2u : 0u);
+      port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0),
+                args + 2, count >= 2 ? count - 2u : 0u);
       break;
     case 20:
-      r = (uint8_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), args + 2,
-                             count >= 2 ? count - 2u : 0u);
+      r = (uint8_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0),
+          args + 2, count >= 2 ? count - 2u : 0u);
       break;
     default: port_unhandled("listui", kind, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_table_columns) {
-  opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1), ARG(2),
-                     ARG(3), ARG(4));
+auto port_routine_opeu_table_columns(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                     Arg(args, count, 3), Arg(args, count, 4));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef KEY_SCRATCH

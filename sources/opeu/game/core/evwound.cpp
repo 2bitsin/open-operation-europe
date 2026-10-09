@@ -162,8 +162,6 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/evwound.c (11e5:0004..01a4 hourly wound recovery). Services
  * from the host branch comment: 0 delay_units(units),
@@ -174,34 +172,39 @@ uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   switch (id) {
     case 0:
-      opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:004c */
     case 1:
-      opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
       break; /* 0d65:00fe */
     case 2:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break; /* 0d65:0032 */
     case 3:
-      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3));
       break; /* 1707:03e4 */
     case 4:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     default: port_unhandled("evwound", id, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_death_present) {
+auto port_routine_opeu_death_present(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_death_present(ds, svc_evwound);
   return 0;
 }
 
-PORT_ROUTINE(opeu_wound_event) {
+auto port_routine_opeu_wound_event(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -210,6 +213,3 @@ PORT_ROUTINE(opeu_wound_event) {
   port_stack_leave(PORT_FRAME);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

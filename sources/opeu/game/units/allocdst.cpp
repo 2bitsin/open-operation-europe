@@ -257,8 +257,6 @@ void opeu_alloc_finish(uint8_t ds[65536], HostWordsEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/allocdst.c (20b3:1b4e..1f4d distribution, headquarters
@@ -281,48 +279,63 @@ uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args,
                       uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 0: r = opeu_remove_element(ds, ARG(0), ARG(1)); break;
-    case 1: opeu_insert_element(ds, ARG(0), ARG(1)); break;
-    case 2: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
+    case 0:
+      r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 1:
+      opeu_insert_element(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 2:
+      r = opeu_release_side_elements(ds, Arg(args, count, 0),
+                                     (uint8_t)Arg(args, count, 1));
+      break;
     case 3:
-      opeu_unit_capacities(ds, ARG(0), &args[1], &args[2], &args[3]);
+      opeu_unit_capacities(ds, Arg(args, count, 0), &args[1], &args[2],
+                           &args[3]);
       break;
     case 4:
-      opeu_objective_capacities(ds, ARG(0), &args[1], &args[2], &args[3]);
+      opeu_objective_capacities(ds, Arg(args, count, 0), &args[1], &args[2],
+                                &args[3]);
       break;
     case 5: /* a, b: the two 32-byte unit-name arrays of the original frame */
       sp = port_stack_enter(LF_FRAME);
-      opeu_supply_exchange_units(ds, svc_supply, ARG(0), ARG(1),
-                                 (uint16_t)(sp - 2u - 0x20u),
-                                 (uint16_t)(sp - 2u - 0x40u));
+      opeu_supply_exchange_units(
+          ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1),
+          (uint16_t)(sp - 2u - 0x20u), (uint16_t)(sp - 2u - 0x40u));
       port_stack_leave(LF_FRAME);
       break;
     case 6:
       sp = port_stack_enter(LF_FRAME);
-      opeu_supply_exchange_objective(ds, svc_supply, ARG(0), ARG(1),
+      opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0),
+                                     Arg(args, count, 1),
                                      (uint16_t)(sp - 2u - 0x20u));
       port_stack_leave(LF_FRAME);
       break;
-    case 7: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
-    case 8: r = lf_request_format(ds, args, count); break;
-    case 9: opeu_ops_chief_text(ds, svc_chief, ARG(0)); break;
-    case 10:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+    case 7:
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break;
-    case 11: opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 8: r = lf_request_format(ds, args, count); break;
+    case 9: opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
+    case 10:
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
+      break;
+    case 11:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     default: port_unhandled("allocdst", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_alloc_finish) {
+auto port_routine_opeu_alloc_finish(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_alloc_finish(ds, svc_allocdst);
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

@@ -54,8 +54,6 @@ RESULT opeu_message_lookup(uint8_t ds[65536], HostEvent event, int16_t id) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/msglook.c (312c:000c opeu_message_lookup). Events, from the
  * host branch's comment:
@@ -66,15 +64,16 @@ uint16_t svc_msglook(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 0:
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break;
     case 1:
-      r = opeu_string_copy_far(ds, ARG(0), port_far(ARG(2), 0), ARG(1));
+      r = opeu_string_copy_far(ds, Arg(args, count, 0),
+                               port_far(Arg(args, count, 2), 0),
+                               Arg(args, count, 1));
       break;
     case 2:  b1_request_format(ds, args, count); break;
     default: port_unhandled("msglook", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

@@ -59,8 +59,6 @@ void opeu_request_error_present(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/reqerror.c (1270:02e4 request-failure presentation).
  * Services (host branch macros): 1 message_lookup(id) 312c:000c -> text,
@@ -72,28 +70,27 @@ uint16_t svc_reqerror(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 1:
-      r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;                                               /* 1707:0672 */
     case 4: opeu_pending_prepare(ds, svc_soundcue); break; /* 0d92:0070 */
     case 5:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:005c */
     default: port_unhandled("reqerror", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_request_error_present) {
+auto port_routine_opeu_request_error_present(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_request_error_present(ds, svc_reqerror);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

@@ -176,52 +176,66 @@ uint16_t opeu_battle_level_allowed(uint8_t* ds, BattleEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 uint16_t svc_btlunit(uint8_t* ds, uint32_t address, const uint16_t* args,
                      unsigned int count) {
   return port_service(ds, address, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_cell_occupied) {
-  return opeu_battle_cell_occupied(ds, svc_btlunit, (uint8_t)ARG(0),
-                                   (uint8_t)ARG(1));
+auto port_routine_opeu_battle_cell_occupied(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_cell_occupied(ds, svc_btlunit,
+                                   (uint8_t)Arg(args, count, 0),
+                                   (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_battle_clear_cell) {
-  opeu_battle_clear_cell(ds, svc_btlunit, (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_battle_clear_cell(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  opeu_battle_clear_cell(ds, svc_btlunit, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1));
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_element_active) {
-  return opeu_battle_element_active(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_element_active(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
+  return opeu_battle_element_active(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_element_flag2) {
-  return opeu_battle_element_flag2(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_element_flag2(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_element_flag2(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_level_allowed) {
-  return opeu_battle_level_allowed(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_level_allowed(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  return opeu_battle_level_allowed(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_mode) {
-  return opeu_battle_mode(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_mode(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
+  return opeu_battle_mode(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_order) {
-  return opeu_battle_order(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_order(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
+  return opeu_battle_order(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_set_order) {
-  opeu_battle_set_order(ds, svc_btlunit, ARG(1), (uint8_t)ARG(0));
+auto port_routine_opeu_battle_set_order(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  opeu_battle_set_order(ds, svc_btlunit, Arg(args, count, 1),
+                        (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_battle_unit_active) {
-  return opeu_battle_unit_active(ds, svc_btlunit, ARG(0));
+auto port_routine_opeu_battle_unit_active(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
+  return opeu_battle_unit_active(ds, svc_btlunit, Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

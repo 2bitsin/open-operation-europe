@@ -271,8 +271,6 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Service table shared by the 23b2 air-force modules (airbomb, airdrop,
  * airforce, airhelp, airlift): every one documents the same ids (host
@@ -299,51 +297,63 @@ uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
   switch (id) {
     case 0: c2_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 2:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 3: r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0)); break;
+    case 3:
+      r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0));
+      break;
     case 4: c2_cursor_print(ds, args, count); break;
     case 5:
-      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                             ARG(1));
+      r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(),
+                             Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 6:
-      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(),
+                     Arg(args, count, 0));
       break;
     case 7:
       scratch = port_scratch_enter(0x40);
-      r       = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1),
-                                  (int)(int16_t)ARG(2), ARG(3), scratch);
+      r       = opeu_choose_value(
+          ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1),
+          (int)(int16_t)Arg(args, count, 2), Arg(args, count, 3), scratch);
       port_scratch_leave(0x40);
       break;
     case 8:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 9:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break;
     case 10:
       frame = port_frame_enter();
-      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0),
+                                 Arg(args, count, 1));
       port_frame_leave();
       break;
     case 11:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 12:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (short)ARG(0),
-                         (short)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (short)Arg(args, count, 0),
+                         (short)Arg(args, count, 1));
       break;
-    case 13: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
+    case 13:
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break;
     case 14:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(0) * 16u + ARG(1), 0, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), 0, 0);
       break;
     default: port_unhandled(module, id, count);
   }
@@ -358,7 +368,9 @@ uint16_t svc_airbomb(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_air(ds, "airbomb", id, args, count);
 }
 
-PORT_ROUTINE(opeu_air_bomb_command) {
+auto port_routine_opeu_air_bomb_command(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter();
   (void)args;
   (void)count;
@@ -366,6 +378,3 @@ PORT_ROUTINE(opeu_air_bomb_command) {
   c2_air_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

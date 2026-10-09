@@ -64,20 +64,22 @@ uint8_t opeu_objective_side(const uint8_t ds[65536], uint16_t objective) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_find_objective_at) {
-  return opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_find_objective_at(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  return opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_find_unit_at) {
-  return opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+auto port_routine_opeu_find_unit_at(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
+  return opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_objective_side) {
-  return opeu_objective_side(ds, ARG(0));
+auto port_routine_opeu_objective_side(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  return opeu_objective_side(ds, Arg(args, count, 0));
 }
-
-#undef ARG
-#undef ARG32

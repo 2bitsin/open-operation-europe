@@ -226,8 +226,6 @@ uint16_t opeu_order_supply_unit(uint8_t ds[65536], HostWordsEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/xferunit.c (31f4:0982..0d61 transfer table load/store and the
  * supply-unit / supply-objective order handlers). The module uses the
@@ -239,17 +237,18 @@ uint16_t svc_xferunit(uint8_t* ds, uint16_t id, uint16_t* args,
   return svc_transfer(ds, "xferunit", id, args, count);
 }
 
-PORT_ROUTINE(opeu_order_supply_objective) {
+auto port_routine_opeu_order_supply_objective(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_order_supply_objective(ds, svc_xferunit);
 }
 
-PORT_ROUTINE(opeu_order_supply_unit) {
+auto port_routine_opeu_order_supply_unit(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_order_supply_unit(ds, svc_xferunit);
 }
-
-#undef ARG
-#undef ARG32

@@ -134,8 +134,6 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t bp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/genwound.c (17c4:086e general casualty). Services from the
  * host branch's list:
@@ -153,26 +151,30 @@ uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: r = opeu_person_lacks_side0_flag(ds, ARG(0)); break;
+    case 0: r = opeu_person_lacks_side0_flag(ds, Arg(args, count, 0)); break;
     case 1: r = lf_request_format(ds, args, count); break;
-    case 2: opeu_initialize_deputy(ds, ARG(0)); break;
+    case 2: opeu_initialize_deputy(ds, Arg(args, count, 0)); break;
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 4: opeu_wait_confirm(ds, svc_keyboard, (int16_t)ARG(0)); break;
-    case 5: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 4:
+      opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0));
+      break;
+    case 5:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
+      break;
     case 6:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break;
     case 7:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      (uint32_t)Arg(args, count, 3) << 16 |
+                          Arg(args, count, 2));
       break;
     default: port_unhandled("genwound", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

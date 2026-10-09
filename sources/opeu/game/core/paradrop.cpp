@@ -259,8 +259,6 @@ void opeu_para_drop_event(uint8_t ds[65536], ParaEvent event, uint16_t segment,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/paradrop.c (0f43:0c22..0f46 paratroop drop). Services from the
  * host branch comment (tests/validate_para_drop.py SERVICES):
@@ -280,86 +278,102 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t frame, r = 0;
   switch (id) {
-    case 0: r = opeu_unit_group(ARG(0)); break; /* 145c:0086 */
+    case 0: r = opeu_unit_group(Arg(args, count, 0)); break; /* 145c:0086 */
     case 1:
-      r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
       break;                /* 0f43:089a */
     case 2: /* 0f43:01da */ /* air_report(what, wait): the text is BX, the days byte AL. */
       frame = port_frame_enter();
-      r     = opeu_air_report(ds, svc_airshow, frame, ARG(1), (uint8_t)ARG(0));
+      r     = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 1),
+                              (uint8_t)Arg(args, count, 0));
       port_frame_leave();
       break;
     case 3:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break; /* 0b73:02ee */
     case 4:
-      r = opeu_find_person_template(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
-      break;                                                /* 0b73:03d2 */
-    case 5: r = opeu_opposite_side((uint8_t)ARG(0)); break; /* 0b73:04c8 */
+      r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0),
+                                    (uint8_t)Arg(args, count, 1));
+      break; /* 0b73:03d2 */
+    case 5:
+      r = opeu_opposite_side((uint8_t)Arg(args, count, 0));
+      break; /* 0b73:04c8 */
     case 6:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 request_message */
     case 7: opeu_sound_cue4(ds, svc_soundcue); break; /* 0d92:0028 */
     case 8:
-      r = opeu_side_for_status(ds, (uint8_t)ARG(0));
+      r = opeu_side_for_status(ds, (uint8_t)Arg(args, count, 0));
       break; /* 0b73:04d0 */
     case 9:  /* 15c4:13f6 */
       frame = port_frame_enter();
-      opeu_map_center(ds, svc_mappos, frame, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                      (uint8_t)ARG(2));
+      opeu_map_center(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1),
+                      (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
-    case 10: opeu_view_pixel(ds, ARG(0), ARG(1)); break; /* 15c4:055c */
+    case 10:
+      opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break; /* 15c4:055c */
     case 11:
-      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3));
       break;                                            /* 1707:03e4 */
     case 12: opeu_music_command7(ds, svc_sound); break; /* 0d65:01b0 */
     case 13:
-      r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)ARG(0),
-                                (uint8_t*)PORT_DS(ARG(1)));
+      r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)Arg(args, count, 0),
+                                (uint8_t*)PORT_DS(Arg(args, count, 1)));
       break; /* 0f43:0722 */
     case 14:
-      r = opeu_para_land(ds, svc_paraunit, (ParaUnit*)PORT_DS(ARG(0)), ARG(1));
+      r = opeu_para_land(ds, svc_paraunit,
+                         (ParaUnit*)PORT_DS(Arg(args, count, 0)),
+                         Arg(args, count, 1));
       break; /* 0f43:0954 */
     case 15: /* 15c4:0fd0 */
       frame = port_frame_enter();
-      opeu_arrival_prepare(ds, svc_maperase, frame, ARG(0));
+      opeu_arrival_prepare(ds, svc_maperase, frame, Arg(args, count, 0));
       port_frame_leave();
       break;
-    case 16: opeu_delay_ticks(ds, svc_waitkey, ARG(0)); break; /* 0a8e:000c */
-    case 17:                                                   /* 0f43:00e0 */
+    case 16:
+      opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0));
+      break; /* 0a8e:000c */
+    case 17: /* 0f43:00e0 */
       frame = port_frame_enter();
-      opeu_air_sprite_draw(ds, svc_airshow, 0, frame, ARG(0), ARG(1),
-                           (uint8_t)ARG(2));
+      opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0),
+                           Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 18:
-      opeu_air_sprite_restore(ds, svc_airshow, 0, ARG(0), ARG(1));
+      opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0),
+                              Arg(args, count, 1));
       break; /* 0f43:01ac */
     case 19:
-      r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)ARG(0),
-                               (uint8_t)ARG(1), (uint8_t)ARG(2));
+      r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)Arg(args, count, 0),
+                               (uint8_t)Arg(args, count, 1),
+                               (uint8_t)Arg(args, count, 2));
       break; /* 0f43:028a */
     case 20: /* 0f43:0362 */
       frame = port_frame_enter();
-      opeu_air_destroyed_message(ds, svc_airstrk, frame, ARG(0));
+      opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
       port_frame_leave();
       break;
     case 21:
-      opeu_officer_gain(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_officer_gain(ds, (uint8_t)Arg(args, count, 0),
+                        (uint8_t)Arg(args, count, 1));
       break; /* 0e8e:002c */
     default: port_unhandled("paradrop", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_para_drop_present) {
+auto port_routine_opeu_para_drop_present(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_para_drop_present(ds, svc_paradrop);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

@@ -190,8 +190,6 @@ void opeu_view_cities_menu(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -208,7 +206,9 @@ uint16_t svc_vwcity(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 /* 1fe6:0894 */
-PORT_ROUTINE(opeu_view_cities_menu) {
+auto port_routine_opeu_view_cities_menu(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_cities_menu(ds, svc_vwcity, sp));
@@ -216,7 +216,9 @@ PORT_ROUTINE(opeu_view_cities_menu) {
 }
 
 /* 1fe6:085e */
-PORT_ROUTINE(opeu_view_enemy_cities) {
+auto port_routine_opeu_view_enemy_cities(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_enemy_cities(ds, svc_vwcity, sp));
@@ -224,13 +226,13 @@ PORT_ROUTINE(opeu_view_enemy_cities) {
 }
 
 /* 1fe6:082e */
-PORT_ROUTINE(opeu_view_own_cities) {
+auto port_routine_opeu_view_own_cities(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_own_cities(ds, svc_vwcity, sp));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

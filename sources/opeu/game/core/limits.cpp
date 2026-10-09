@@ -35,18 +35,15 @@ uint16_t opeu_negative_to_minus_one(uint16_t value) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_max16) {
+auto port_routine_opeu_max16(std::uint8_t* ds, std::uint16_t const* args,
+                             unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_max16(ARG(0), ARG(1));
+  return opeu_max16(Arg(args, count, 0), Arg(args, count, 1));
 }
 
-PORT_ROUTINE(opeu_min16) {
+auto port_routine_opeu_min16(std::uint8_t* ds, std::uint16_t const* args,
+                             unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_min16(ARG(0), ARG(1));
+  return opeu_min16(Arg(args, count, 0), Arg(args, count, 1));
 }
-
-#undef ARG
-#undef ARG32

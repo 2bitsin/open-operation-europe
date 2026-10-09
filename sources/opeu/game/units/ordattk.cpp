@@ -244,8 +244,6 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/ordattk.c (3131:000c..0508 occupy and attack order handlers).
  * Services 0..26, 31 pending_finish and 32 wait_units in the numbering of
@@ -259,14 +257,18 @@ uint16_t svc_ordattk(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_order_attack_present) {
+auto port_routine_opeu_order_attack_present(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_order_attack_present(ds, svc_ordattk);
   return 0;
 }
 
-PORT_ROUTINE(opeu_order_attack_run) {
+auto port_routine_opeu_order_attack_run(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -276,14 +278,18 @@ PORT_ROUTINE(opeu_order_attack_run) {
   return r;
 }
 
-PORT_ROUTINE(opeu_order_occupied_present) {
+auto port_routine_opeu_order_occupied_present(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_order_occupied_present(ds, svc_ordattk);
   return 0;
 }
 
-PORT_ROUTINE(opeu_order_occupy_run) {
+auto port_routine_opeu_order_occupy_run(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -292,6 +298,3 @@ PORT_ROUTINE(opeu_order_occupy_run) {
   port_stack_leave(0x200);
   return r;
 }
-
-#undef ARG
-#undef ARG32

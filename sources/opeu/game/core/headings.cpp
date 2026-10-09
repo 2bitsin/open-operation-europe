@@ -61,28 +61,40 @@ void opeu_division_heading(uint8_t ds[65536], HostNotify event, PERSON person) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args,
                   uint16_t count) {
   switch (id) {
-    case 0: opeu_ui_fill(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 0:
+      opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
+      break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 2:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
-    case 3: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 3:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 5: b1_cursor_print(ds, args, count); break;
     case 6:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                            ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2));
       break;
-    case 7:  opeu_ui_line(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 7:
+      opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1),
+                   Arg(args, count, 2), Arg(args, count, 3),
+                   Arg(args, count, 4));
+      break;
     default: port_unhandled("headings", id, count);
   }
 }
@@ -90,6 +102,3 @@ void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args,
 void svc_headings_color(uint8_t* ds, uint16_t color) {
   opeu_text_color(ds, (TextHost*)port_textout_host(), color);
 }
-
-#undef ARG
-#undef ARG32

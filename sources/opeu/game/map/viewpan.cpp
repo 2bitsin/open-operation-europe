@@ -33,8 +33,6 @@ void opeu_viewport_pan(uint8_t ds[65536], HostEvent event, int16_t dx,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/viewpan.c (17c4:0242 pan the tactical view). Events (host
  * branch comment): 0 = erase (x,y) 15c4:0f7c, 1 = scroll_to (x,y,side)
@@ -45,19 +43,18 @@ uint16_t svc_viewpan(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: /* 15c4:0f7c */
       frame = map_frame_enter();
-      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_map_erase(ds, svc_maperase, frame, (uint8_t)Arg(args, count, 0),
+                     (uint8_t)Arg(args, count, 1));
       map_frame_leave();
       break;
     case 1: /* 15c4:135e */
       frame = map_frame_enter();
-      opeu_map_scroll_to(ds, svc_mapscrol, frame, (int16_t)ARG(0),
-                         (int16_t)ARG(1), (uint8_t)ARG(2));
+      opeu_map_scroll_to(ds, svc_mapscrol, frame, (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1),
+                         (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     default: port_unhandled("viewpan", id, count);
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

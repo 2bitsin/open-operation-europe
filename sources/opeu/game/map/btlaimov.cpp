@@ -133,14 +133,9 @@ void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/btlaimov.c, address-keyed battle AI group (path_step by value, see svc_battle_ai in game/map/btlaiact.c). */
 uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args,
                       unsigned int count) {
   return svc_battle_ai(ds, service, args, count);
 }
-
-#undef ARG
-#undef ARG32

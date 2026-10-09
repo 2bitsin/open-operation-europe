@@ -195,8 +195,6 @@ void opeu_mission_unit_4(uint8_t ds[65536], HostEvent event, uint16_t frame,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/msnraid.c (0e8e:028c..06f7 raid and sabotage missions).
  * Services 0, 1, 6, 7, 8 and, through the msnrept helpers it calls with
@@ -206,40 +204,49 @@ uint16_t svc_msnraid(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_mission("msnraid", ds, id, args, count);
 }
 
-PORT_ROUTINE(opeu_mission_objective_3) {
+auto port_routine_opeu_mission_objective_3(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_objective_3(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  opeu_mission_objective_3(ds, svc_msnraid, frame,
+                           (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_mission_raid_objective) {
+auto port_routine_opeu_mission_raid_objective(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_raid_objective(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  opeu_mission_raid_objective(ds, svc_msnraid, frame,
+                              (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_mission_raid_unit) {
+auto port_routine_opeu_mission_raid_unit(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_raid_unit(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  opeu_mission_raid_unit(ds, svc_msnraid, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_mission_sabotage) {
+auto port_routine_opeu_mission_sabotage(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_sabotage(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  opeu_mission_sabotage(ds, svc_msnraid, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-PORT_ROUTINE(opeu_mission_unit_4) {
+auto port_routine_opeu_mission_unit_4(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_unit_4(ds, svc_msnraid, frame, (uint8_t)ARG(0));
+  opeu_mission_unit_4(ds, svc_msnraid, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

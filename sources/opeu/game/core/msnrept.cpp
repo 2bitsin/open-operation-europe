@@ -166,8 +166,6 @@ void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/msnrept.c (0e8e:0000..028b special-mission report helpers).
  * Services 1..6 and 9..13 of the mission table (svc_mission, game/core/msnkill.c). */
@@ -176,19 +174,20 @@ uint16_t svc_msnrept(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_mission("msnrept", ds, id, args, count);
 }
 
-PORT_ROUTINE(opeu_mission_delay_present) {
+auto port_routine_opeu_mission_delay_present(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mission_delay_present(ds, svc_msnrept);
   return 0;
 }
 
-PORT_ROUTINE(opeu_mission_finish_present) {
+auto port_routine_opeu_mission_finish_present(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mission_finish_present(ds, svc_msnrept);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

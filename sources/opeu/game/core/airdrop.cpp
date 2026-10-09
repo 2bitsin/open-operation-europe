@@ -378,20 +378,20 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/airdrop.c (23b2:06ca..0c79, paratroop command). Services: ids
  * 0,1,2,3,10,11 of the 23b2 table shared by the air-force modules
  * (svc_air, game/core/airbomb.c). The list-dialog callbacks it stores as far pointers
- * (23b2:06ca/06de/077a) are PORT_ROUTINE handlers in
+ * (23b2:06ca/06de/077a) are linked routine handlers in
  * game/core/airdrop.c. */
 uint16_t svc_airdrop(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   return svc_air(ds, "airdrop", id, args, count);
 }
 
-PORT_ROUTINE(opeu_air_assign_troops) {
+auto port_routine_opeu_air_assign_troops(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter(), r;
   (void)args;
   (void)count;
@@ -400,7 +400,9 @@ PORT_ROUTINE(opeu_air_assign_troops) {
   return r;
 }
 
-PORT_ROUTINE(opeu_air_mark_battalion) {
+auto port_routine_opeu_air_mark_battalion(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter(), r;
   (void)args;
   (void)count;
@@ -409,7 +411,9 @@ PORT_ROUTINE(opeu_air_mark_battalion) {
   return r;
 }
 
-PORT_ROUTINE(opeu_air_mark_regiment) {
+auto port_routine_opeu_air_mark_regiment(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter(), r;
   (void)args;
   (void)count;
@@ -418,7 +422,9 @@ PORT_ROUTINE(opeu_air_mark_regiment) {
   return r;
 }
 
-PORT_ROUTINE(opeu_air_drop_command) {
+auto port_routine_opeu_air_drop_command(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter();
   (void)args;
   (void)count;
@@ -426,6 +432,3 @@ PORT_ROUTINE(opeu_air_drop_command) {
   c2_air_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

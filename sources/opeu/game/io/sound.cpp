@@ -279,8 +279,6 @@ void opeu_effect_finish(uint8_t ds[65536], HostService service) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)             ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)           ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define SOUND_CODE_SEGMENT 0x0d65u
 
 /* Services of io/sound.c (0d65:0002..02d7 INT 66h music/effect interface).
@@ -315,37 +313,45 @@ uint16_t svc_sound(uint8_t* ds, uint16_t call, uint16_t* words) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_effect_finish) {
+auto port_routine_opeu_effect_finish(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_effect_finish(ds, svc_sound);
   return 0;
 }
 
-PORT_ROUTINE(opeu_finish_side_initialization) {
-  opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+auto port_routine_opeu_finish_side_initialization(std::uint8_t*        ds,
+                                                  std::uint16_t const* args,
+                                                  unsigned             count)
+    -> std::uint32_t {
+  opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-PORT_ROUTINE(opeu_music_command7) {
+auto port_routine_opeu_music_command7(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_music_command7(ds, svc_sound);
   return 0;
 }
 
-PORT_ROUTINE(opeu_music_stop) {
+auto port_routine_opeu_music_stop(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_music_stop(ds, svc_sound);
   return 0;
 }
 
-PORT_ROUTINE(opeu_set_turn_context) {
-  opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+auto port_routine_opeu_set_turn_context(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
+  opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef SOUND_CODE_SEGMENT

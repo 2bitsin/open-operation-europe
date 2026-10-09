@@ -50,8 +50,6 @@ void opeu_request_action2(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/reqspawn.c (1270:0876 request action 2, request unit).
  * Services (host branch macros, word arguments a,b,c,d):
@@ -93,6 +91,3 @@ uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

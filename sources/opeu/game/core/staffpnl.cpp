@@ -95,8 +95,6 @@ void opeu_staff_frame_option(uint8_t ds[65536], HostNotify event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/staffpnl.c (06db:09c8..0c20 staff selection panel). Services,
  * from the host branch: copy=0 (six words) -> VGALIB 301F opeu_screen_copy,
@@ -105,15 +103,16 @@ void svc_staffpnl(uint8_t* ds, uint16_t id, const uint16_t* args,
                   uint16_t count) {
   switch (id) {
     case 0:
-      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       Arg(args, count, 4), Arg(args, count, 5));
       break;
     case 1:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     default: port_unhandled("staffpnl", id, count);
   }
 }
-
-#undef ARG
-#undef ARG32

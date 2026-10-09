@@ -182,8 +182,6 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/segsetup.c (08ea:0000..0237 start-up memory and file set-up).
  * Events, from the host branch's comment (src/main/core/segsetup.c):
@@ -215,8 +213,9 @@ uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 9:  a_cursor_print(ds, args, 1); break;
     case 10: return opeu_turn_input_b();
     case 11: opeu_quit_to_dos(ds, svc_settings); break;
-    case 12: return opeu_dos_alloc(ARG(0));
-    case 13: return (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0));
+    case 12: return opeu_dos_alloc(Arg(args, count, 0));
+    case 13:
+      return (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
     case 14: koei_install_dos_handlers(); break;
     case 15: koei_2fea(); break;
     case 16: koei_vga_identity_palette(); break;
@@ -229,6 +228,3 @@ uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args,
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

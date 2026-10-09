@@ -222,8 +222,6 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/airlift.c (23b2:0c7a..106d, airlift command). Services: ids
  * 0,1,2,3,10 of the 23b2 table shared by the air-force modules
@@ -233,7 +231,9 @@ uint16_t svc_airlift(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_air(ds, "airlift", id, args, count);
 }
 
-PORT_ROUTINE(opeu_air_lift_command) {
+auto port_routine_opeu_air_lift_command(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp = c2_air_sp_enter();
   (void)args;
   (void)count;
@@ -241,6 +241,3 @@ PORT_ROUTINE(opeu_air_lift_command) {
   c2_air_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

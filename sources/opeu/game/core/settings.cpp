@@ -716,8 +716,6 @@ void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)      ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)    ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define KEY_SCRATCH 16u /* keyboard.c: 16-byte caller scratch area */
 
 /* Services of core/settings.c (2597:000a..0dc7 the Settings command). Events,
@@ -759,26 +757,28 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0: b1_cursor_print(ds, args, count); break;
     case 1: b1_request_format(ds, args, count); break;
     case 2:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 3:
-      r = (uint8_t)opeu_choose_dialog(ds,
-                                      (const DialogHost*)port_dialogs_host(),
-                                      ARG(0), ARG(1), ARG(2), ARG(3));
+      r = (uint8_t)opeu_choose_dialog(
+          ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0),
+          Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
       break;
     case 4:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 5:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 6:
       f = b1_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, f, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                            (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 7: opeu_music_stop(ds, svc_sound); break;
@@ -787,34 +787,48 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host());
       break;
     case 10:
-      opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)ARG(0));
+      opeu_text_paper_set(ds, (TextHost*)port_textout_host(),
+                          (uint8_t)Arg(args, count, 0));
       break;
     case 11: opeu_disk_reset(ds, svc_resopen); break;
     case 12:
-      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
-    case 13: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
-    case 14: opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0)); break;
-    case 15: r = (uint16_t)opeu_open_resource(ds, svc_resopen, ARG(0)); break;
+    case 13:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
+    case 14:
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
+    case 15:
+      r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0));
+      break;
     case 16:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 17:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 18:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 19:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break;
     case 20:
       f = b1_stack_alloc(KEY_SCRATCH);
-      r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, ARG(0), f);
+      r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0),
+                                       f);
       port_scratch_leave(KEY_SCRATCH);
       break;
     case 21:
@@ -827,57 +841,83 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args,
       opeu_palette_daylight(ds, (const UiHost*)port_uiprim_host());
       break;
     case 24:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
       break;
-    case 25: opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0)); break;
+    case 25:
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
+      break;
     case 26: opeu_free_segments(ds, svc_scenend); break;
     case 27: r = (uint16_t)opeu_memory_release(ds, svc_emsmap); break;
     case 28: opeu_close_data_files(ds, svc_scenend); break;
     case 29: opeu_application_entry(ds, svc_app); break;
-    case 30: r = (uint16_t)opeu_dos_create((const char*)PORT_DS(ARG(0))); break;
-    case 31: r = (uint16_t)opeu_dos_exists((const char*)PORT_DS(ARG(0))); break;
+    case 30:
+      r = (uint16_t)opeu_dos_create((const char*)PORT_DS(Arg(args, count, 0)));
+      break;
+    case 31:
+      r = (uint16_t)opeu_dos_exists((const char*)PORT_DS(Arg(args, count, 0)));
+      break;
     case 32:
-      r = (uint16_t)opeu_dos_write((int16_t)ARG(0), PORT_DS(ARG(1)), ARG(2));
+      r = (uint16_t)opeu_dos_write((int16_t)Arg(args, count, 0),
+                                   PORT_DS(Arg(args, count, 1)),
+                                   Arg(args, count, 2));
       break;
     case 33:
-      r = (uint16_t)opeu_dos_read((int16_t)ARG(0), PORT_DS(ARG(1)), ARG(2));
+      r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0),
+                                  PORT_DS(Arg(args, count, 1)),
+                                  Arg(args, count, 2));
       break;
     case 34:
-      r = (uint16_t)opeu_dos_read_far((int16_t)ARG(0), ARG(1), ARG(2), ARG(3));
+      r = (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0),
+                                      Arg(args, count, 1), Arg(args, count, 2),
+                                      Arg(args, count, 3));
       break;
-    case 35: r = (uint16_t)opeu_dos_close((int16_t)ARG(0)); break;
+    case 35: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
     case 36:
-      r = (uint16_t)opeu_dos_seek((int16_t)ARG(0), (int32_t)ARG32(1),
-                                  (int16_t)ARG(3));
+      r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0),
+                                  (int32_t)Arg32(args, count, 1),
+                                  (int16_t)Arg(args, count, 3));
       break;
     case 37:
-      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1),
+                                Arg(args, count, 2), Arg(args, count, 3),
+                                Arg(args, count, 4));
       break;
     case 38:
-      opeu_screen_copy(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+      opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       Arg(args, count, 4), Arg(args, count, 5));
       break;
     case 39:
-      r = (uint16_t)opeu_gfx_blit(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                  port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_gfx_blit(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
-    case 40: opeu_fm_wait_start(ARG(0)); break;
+    case 40: opeu_fm_wait_start(Arg(args, count, 0)); break;
     case 41:
       r = opeu_fm_busy();
       break; /* opeu_sound_open(0L): one null far pointer is pushed; the effects * pointer words the routine also reads are passed as 0. */
-    case 42: r = (uint16_t)opeu_sound_open(ARG(0), ARG(1), 0, 0); break;
+    case 42:
+      r = (uint16_t)opeu_sound_open(Arg(args, count, 0), Arg(args, count, 1), 0,
+                                    0);
+      break;
     case 43: opeu_fm_noop(); break;
     case 44: opeu_text_mode(); break;
-    case 45: port_exit((int16_t)ARG(0)); break;
+    case 45: port_exit((int16_t)Arg(args, count, 0)); break;
     case 46: r = (uint16_t)opeu_vga_clear(); break;
     case 47:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), 0, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0);
       break;
     default: port_unhandled("settings", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_turn_action_10) {
+auto port_routine_opeu_turn_action_10(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp = b1_sp_enter();
   (void)args;
   (void)count;
@@ -886,6 +926,4 @@ PORT_ROUTINE(opeu_turn_action_10) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef KEY_SCRATCH

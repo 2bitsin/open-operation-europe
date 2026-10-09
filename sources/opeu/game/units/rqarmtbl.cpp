@@ -99,8 +99,6 @@ void opeu_rq_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/rqarmtbl.c (22f9:04d2 regiment request table). Services: the HostEvent protocol of
@@ -116,37 +114,49 @@ uint16_t svc_unit_table(uint8_t* ds, const char* module, uint16_t id,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_table_columns(ds, svc_listui, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                         ARG(2), ARG(3), ARG(4));
+      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0),
+                         (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                         Arg(args, count, 3), Arg(args, count, 4));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 2: r = lf_request_format(ds, args, count); break;
-    case 3: opeu_text_color(ds, (TextHost*)port_textout_host(), ARG(0)); break;
-    case 4: opeu_select_side_color(ds, svc_sideutil, (uint8_t)ARG(0)); break;
-    case 5: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 3:
+      opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
+    case 4:
+      opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0));
+      break;
+    case 5:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 6: r = lf_cursor_print(ds, args, count); break;
     case 7:
-      opeu_text_put_range(ds, (TextHost*)port_textout_host(), ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_text_put_range(ds, (TextHost*)port_textout_host(),
+                          Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       break;
-    case 8:  r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0)); break;
+    case 8:
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
+      break;
     default: port_unhandled(module, id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_rq_draw_units) {
+auto port_routine_opeu_rq_draw_units(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp = port_stack_enter(LF_FRAME);
-  opeu_rq_draw_units(ds, svc_rqarmtbl, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
-                     (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
-                     (uint8_t)ARG(4));
+  opeu_rq_draw_units(ds, svc_rqarmtbl, (uint16_t)(sp - 0xc0u),
+                     (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                     (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+                     (uint8_t)Arg(args, count, 4));
   port_stack_leave(LF_FRAME);
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

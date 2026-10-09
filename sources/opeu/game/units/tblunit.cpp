@@ -191,8 +191,6 @@ void opeu_tbl_draw_orders(uint8_t ds[65536], HostEvent event, uint16_t scratch,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/tblunit.c (0c45:03a6 unit table, 0c45:0650 unit orders
@@ -215,24 +213,28 @@ uint16_t svc_tblunit(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_unit_table(ds, "tblunit", id, args, count);
 }
 
-PORT_ROUTINE(opeu_tbl_draw_orders) {
+auto port_routine_opeu_tbl_draw_orders(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   uint16_t sp = port_stack_enter(LF_FRAME);
-  opeu_tbl_draw_orders(ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
-                       (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
-                       (uint8_t)ARG(4));
+  opeu_tbl_draw_orders(
+      ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)Arg(args, count, 0),
+      (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+      (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   port_stack_leave(LF_FRAME);
   return 0;
 }
 
-PORT_ROUTINE(opeu_tbl_draw_units) {
+auto port_routine_opeu_tbl_draw_units(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp = port_stack_enter(LF_FRAME);
-  opeu_tbl_draw_units(ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)ARG(0),
-                      (uint8_t)ARG(1), (uint8_t)ARG(2), (uint8_t)ARG(3),
-                      (uint8_t)ARG(4));
+  opeu_tbl_draw_units(
+      ds, svc_tblunit, (uint16_t)(sp - 0xc0u), (uint8_t)Arg(args, count, 0),
+      (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+      (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   port_stack_leave(LF_FRAME);
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

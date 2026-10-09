@@ -252,8 +252,6 @@ void opeu_map_scroll_to(STATEF int16_t x, int16_t y, uint8_t side) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/mapscrol.c (15c4:1054..13d7 tactical view clear/redraw/scroll).
  * Its HostEvent uses the 15c4 segment's shared service kinds
@@ -262,6 +260,3 @@ uint16_t svc_mapscrol(uint8_t* ds, uint16_t kind, const uint16_t* args,
                       uint16_t count) {
   return svc_map_plan(ds, "mapscrol", kind, args, count);
 }
-
-#undef ARG
-#undef ARG32

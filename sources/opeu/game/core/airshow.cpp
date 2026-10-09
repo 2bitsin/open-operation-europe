@@ -121,8 +121,6 @@ uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t bp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/airshow.c (0f43:00a4..028a, air-operation display). Services,
  * from the host branch's event list (airshow.c host comment):
@@ -139,31 +137,36 @@ uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_bitmap_save(ARG(0), ARG(1), ARG(2), ARG(3),
-                       port_far(ARG(4), ARG(5)));
+      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2), Arg(args, count, 3),
+                       port_far(Arg(args, count, 4), Arg(args, count, 5)));
       break;
     case 1:
-      r = (uint16_t)opeu_draw_far(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                  port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_draw_far(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 2:
-      opeu_sprite_compose(ARG(0), ARG(1), ARG(2), ARG(3),
-                          port_far(ARG(5), ARG(4)), port_far(ARG(7), ARG(6)),
-                          port_far(ARG(9), ARG(10)), ARG(8));
+      opeu_sprite_compose(Arg(args, count, 0), Arg(args, count, 1),
+                          Arg(args, count, 2), Arg(args, count, 3),
+                          port_far(Arg(args, count, 5), Arg(args, count, 4)),
+                          port_far(Arg(args, count, 7), Arg(args, count, 6)),
+                          port_far(Arg(args, count, 9), Arg(args, count, 10)),
+                          Arg(args, count, 8));
       break;
     case 3:
-      r = (uint16_t)opeu_bitmap_restore(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4),
-                                        port_far(ARG(5), ARG(6)));
+      r = (uint16_t)opeu_bitmap_restore(
+          Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+          Arg(args, count, 3), Arg(args, count, 4),
+          port_far(Arg(args, count, 5), Arg(args, count, 6)));
       break;
     case 4: c2_request_format(ds, args, count); break;
     case 5:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     default: port_unhandled("airshow", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

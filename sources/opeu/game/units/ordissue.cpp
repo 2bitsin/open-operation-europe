@@ -326,8 +326,6 @@ nine:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/ordissue.c (1c23:03c0 unit order menu). Services, from the
  * host branch's list (shared order-module numbering, see svc_orders (game/units/ordact.c)):
@@ -358,6 +356,3 @@ uint16_t svc_ordissue(uint8_t* ds, uint16_t id, const uint16_t* args,
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

@@ -99,8 +99,6 @@ uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/ordbridg.c (3131:0596..06a9 destroy-bridge order handler).
  * Services of tests/validate_order_handlers.py used here: 0 unit_average11,
@@ -134,14 +132,18 @@ uint16_t svc_ordbridg(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_order_destroy_present) {
+auto port_routine_opeu_order_destroy_present(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_order_destroy_present(ds, svc_ordbridg);
   return 0;
 }
 
-PORT_ROUTINE(opeu_order_destroy_run) {
+auto port_routine_opeu_order_destroy_run(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -150,6 +152,3 @@ PORT_ROUTINE(opeu_order_destroy_run) {
   port_stack_leave(PORT_FRAME);
   return r;
 }
-
-#undef ARG
-#undef ARG32

@@ -179,8 +179,6 @@ void opeu_begin_hour(uint8_t ds[65536]) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/app.c (0977:03dc application entry). Services, from the host
  * branch's event list: initialize=0, startup=1, turn=2, notice
@@ -213,6 +211,3 @@ uint16_t svc_app(uint8_t* ds, uint16_t id) {
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

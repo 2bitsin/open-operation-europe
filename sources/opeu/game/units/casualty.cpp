@@ -314,8 +314,6 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/casualty.c (17c4:0b1c unit casualties). Services from the
@@ -347,83 +345,99 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count) {
   uint16_t sp, r = 0, a, b, c;
   switch (id) {
-    case 0: r = opeu_unit_side(ARG(0)); break;
-    case 1: r = opeu_unit_group_index(ARG(0)); break;
-    case 2: r = opeu_find_side_selected_unit(ds, (uint8_t)ARG(0)); break;
-    case 3: r = opeu_find_group_selected_unit(ds, ARG(0)); break;
-    case 4: r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1)); break;
-    case 5: r = opeu_unit_special(ds, ARG(0)); break;
-    case 6: r = opeu_unit_selection_eligible(ds, ARG(0)); break;
+    case 0: r = opeu_unit_side(Arg(args, count, 0)); break;
+    case 1: r = opeu_unit_group_index(Arg(args, count, 0)); break;
+    case 2:
+      r = opeu_find_side_selected_unit(ds, (uint8_t)Arg(args, count, 0));
+      break;
+    case 3: r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
+    case 4:
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
+      break;
+    case 5: r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+    case 6: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
     case 7:
       sp = port_stack_enter(LF_FRAME);
-      opeu_location_blast(ds, svc_blast, (uint16_t)(sp - 2u), (uint8_t)ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_location_blast(
+          ds, svc_blast, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0),
+          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
       port_stack_leave(LF_FRAME);
       break;
     case 8:
-      a = port_ds_word(ARG(1));
-      b = port_ds_word(ARG(2));
-      c = port_ds_word(ARG(3));
-      opeu_unit_resource_percentages(ds, ARG(0), &a, &b, &c);
-      port_ds_set_word(ARG(1), a);
-      port_ds_set_word(ARG(2), b);
-      port_ds_set_word(ARG(3), c);
+      a = port_ds_word(Arg(args, count, 1));
+      b = port_ds_word(Arg(args, count, 2));
+      c = port_ds_word(Arg(args, count, 3));
+      opeu_unit_resource_percentages(ds, Arg(args, count, 0), &a, &b, &c);
+      port_ds_set_word(Arg(args, count, 1), a);
+      port_ds_set_word(Arg(args, count, 2), b);
+      port_ds_set_word(Arg(args, count, 3), c);
       break;
-    case 9:  r = opeu_element_name(ds, ARG(0), ARG(1)); break;
-    case 10: r = port_rand_bounded(ds, ARG(0)); break;
+    case 9:
+      r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 10: r = port_rand_bounded(ds, Arg(args, count, 0)); break;
     case 11: r = lf_request_format(ds, args, count); break;
     case 12:
-      r = opeu_find_side_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0),
+                                (uint8_t)Arg(args, count, 1));
       break;
     case 13:
       sp = port_stack_enter(LF_FRAME);
-      opeu_general_casualty(ds, svc_genwound, (uint16_t)(sp - 2u), ARG(0));
+      opeu_general_casualty(ds, svc_genwound, (uint16_t)(sp - 2u),
+                            Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
     case 14:
-      r = opeu_find_group_record(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break;
     case 15:
-      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1));
+      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 16:
       sp = port_stack_enter(LF_FRAME);
-      opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u),
-                            (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(
+          ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0),
+          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
       port_stack_leave(LF_FRAME);
       break;
-    case 17: r = opeu_isqrt(ARG(0)); break;
-    case 18: r = opeu_remove_element(ds, ARG(0), ARG(1)); break;
-    case 19: opeu_select_preferred_element(ds, ARG(0)); break;
-    case 20: opeu_select_first_unit(ds, ARG(0)); break;
-    case 21: opeu_set_record_counter(PORT_DS(ARG(0)), (uint8_t)ARG(1)); break;
-    case 22: opeu_select_first_group(ds, (uint8_t)ARG(0)); break;
+    case 17: r = opeu_isqrt(Arg(args, count, 0)); break;
+    case 18:
+      r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 19: opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
+    case 20: opeu_select_first_unit(ds, Arg(args, count, 0)); break;
+    case 21:
+      opeu_set_record_counter(PORT_DS(Arg(args, count, 0)),
+                              (uint8_t)Arg(args, count, 1));
+      break;
+    case 22: opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
     case 23:
       opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0));
+                               Arg(args, count, 0));
       break;
     case 24:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 25:
-      a = port_ds_word(ARG(1));
-      b = port_ds_word(ARG(2));
-      c = port_ds_word(ARG(3));
-      opeu_unit_capacities(ds, ARG(0), &a, &b, &c);
-      port_ds_set_word(ARG(1), a);
-      port_ds_set_word(ARG(2), b);
-      port_ds_set_word(ARG(3), c);
+      a = port_ds_word(Arg(args, count, 1));
+      b = port_ds_word(Arg(args, count, 2));
+      c = port_ds_word(Arg(args, count, 3));
+      opeu_unit_capacities(ds, Arg(args, count, 0), &a, &b, &c);
+      port_ds_set_word(Arg(args, count, 1), a);
+      port_ds_set_word(Arg(args, count, 2), b);
+      port_ds_set_word(Arg(args, count, 3), c);
       break;
     case 26:
-      opeu_blast_erase(ds, svc_blast, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0),
+                       (uint8_t)Arg(args, count, 1));
       break;
     default: port_unhandled("casualty", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

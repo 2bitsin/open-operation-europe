@@ -97,8 +97,6 @@ void opeu_turn_hourly_a(uint8_t ds[65536], HostEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/msntick.c (0e8e:0a78..0b5d mission countdown, hourly step A).
  * Services 14 weather_update, 15 turn_prepare, 16 air_operations, 17 the
@@ -107,6 +105,3 @@ uint16_t svc_msntick(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   return svc_mission("msntick", ds, id, args, count);
 }
-
-#undef ARG
-#undef ARG32

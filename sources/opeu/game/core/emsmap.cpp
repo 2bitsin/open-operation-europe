@@ -234,8 +234,6 @@ fail:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/emsmap.c (06ac:0006..02f0 EMS page mapping). Events, from the
  * host branch's comment (src/main/core/emsmap.c), the EMSDRV assembly
@@ -257,29 +255,33 @@ uint16_t svc_emsmap(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: return (uint16_t)opeu_ems_present();
     case 1: return (uint16_t)opeu_ems_status();
-    case 2: return (uint16_t)opeu_ems_page_count((int16_t*)PORT_DS(ARG(0)));
+    case 2:
+      return (uint16_t)opeu_ems_page_count(
+          (int16_t*)PORT_DS(Arg(args, count, 0)));
     case 3:
-      return (uint16_t)opeu_ems_free_pages((int16_t*)PORT_DS(ARG(0)),
-                                           (int16_t*)PORT_DS(ARG(1)));
-    case 4: return (uint16_t)opeu_ems_frame((uint16_t*)PORT_DS(ARG(0)));
+      return (uint16_t)opeu_ems_free_pages(
+          (int16_t*)PORT_DS(Arg(args, count, 0)),
+          (int16_t*)PORT_DS(Arg(args, count, 1)));
+    case 4:
+      return (uint16_t)opeu_ems_frame((uint16_t*)PORT_DS(Arg(args, count, 0)));
     case 5:
-      return (uint16_t)opeu_ems_allocate((int16_t)ARG(0),
-                                         (int16_t*)PORT_DS(ARG(1)));
-    case 6: return (uint16_t)opeu_ems_page_array(PORT_DS(ARG(0)));
+      return (uint16_t)opeu_ems_allocate(
+          (int16_t)Arg(args, count, 0), (int16_t*)PORT_DS(Arg(args, count, 1)));
+    case 6: return (uint16_t)opeu_ems_page_array(PORT_DS(Arg(args, count, 0)));
     case 7:
-      return (uint16_t)opeu_ems_map((int16_t)ARG(0), ARG(1), (int16_t)ARG(2));
-    case 8:  return (uint16_t)opeu_ems_release((int16_t)ARG(0));
+      return (uint16_t)opeu_ems_map((int16_t)Arg(args, count, 0),
+                                    Arg(args, count, 1),
+                                    (int16_t)Arg(args, count, 2));
+    case 8:  return (uint16_t)opeu_ems_release((int16_t)Arg(args, count, 0));
     default: port_unhandled("emsmap", id, count);
   }
   return 0;
 }
 
-PORT_ROUTINE(opeu_gfx_wait) {
+auto port_routine_opeu_gfx_wait(std::uint8_t* ds, std::uint16_t const* args,
+                                unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_gfx_wait(ds, svc_emsmap);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

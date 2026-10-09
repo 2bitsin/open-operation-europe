@@ -143,8 +143,6 @@ void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/allocscr.c (20b3:15b8..1907 allocation screen). Services from
  * the host branch's list: 0 army_position(x,y) 0480:0808, 1 army_print
@@ -156,25 +154,27 @@ uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args,
   uint16_t r = 0;
   switch (id) {
     case 0:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 1: r = lf_cursor_print(ds, args, count); break;
     case 2:
-      r = (uint16_t)opeu_vga_fill_rect(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_vga_fill_rect(Arg(args, count, 0), Arg(args, count, 1),
+                                       Arg(args, count, 2), Arg(args, count, 3),
+                                       Arg(args, count, 4));
       break;
     case 3:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 4:
       opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
-                               (uint8_t)ARG(0));
+                               (uint8_t)Arg(args, count, 0));
       break;
     default: port_unhandled("allocscr", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

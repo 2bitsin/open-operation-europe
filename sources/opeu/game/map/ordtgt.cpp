@@ -167,8 +167,6 @@ void opeu_group_set_target(uint8_t ds[65536], HostEvent event, uint16_t sp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/ordtgt.c (1c23:0006 group-row predicate, 1c23:0040 always,
  * 1c23:0044 set a group's order target). Events used by ORDTGT (host branch
@@ -185,22 +183,24 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: map_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 2:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:076c */
     case 3:  /* 15c4:1408 */
       frame = map_frame_enter();
-      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)ARG(0),
-                            (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2));
       map_frame_leave();
       break;
     case 4: /* 17c4:0274 */
       frame = map_frame_enter();
-      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0),
+                                 Arg(args, count, 1));
       map_frame_leave();
       break;
     default: port_unhandled("ordtgt", id, count);
@@ -208,18 +208,18 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_group_target_enabled) {
+auto port_routine_opeu_group_target_enabled(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_group_target_enabled(ds);
 }
 
-PORT_ROUTINE(opeu_menu_always) {
+auto port_routine_opeu_menu_always(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)ds;
   (void)args;
   (void)count;
   return opeu_menu_always();
 }
-
-#undef ARG
-#undef ARG32

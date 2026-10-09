@@ -128,13 +128,11 @@ LONG opeu_parse_decimal(uint8_t ds[65536], TEXT text) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_read_far_bytes) {
-  opeu_read_far_bytes(ds, port_far(ARG(3), 0), ARG(2), ARG(1), ARG(0));
+auto port_routine_opeu_read_far_bytes(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
+  opeu_read_far_bytes(ds, port_far(Arg(args, count, 3), 0), Arg(args, count, 2),
+                      Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

@@ -104,8 +104,6 @@ void opeu_request_fallback(uint8_t ds[65536], PendingEvent event, uint8_t side,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/reqpend.c (1270:0430..05ab pending-request start/fallback).
  * Services (host branch macros, word arguments a,b,c,d):
@@ -143,19 +141,21 @@ uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
   return r;
 }
 
-PORT_ROUTINE(opeu_pending_fallback_present) {
+auto port_routine_opeu_pending_fallback_present(std::uint8_t*        ds,
+                                                std::uint16_t const* args,
+                                                unsigned             count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_pending_fallback_present(ds, svc_reqpend);
   return 0;
 }
 
-PORT_ROUTINE(opeu_pending_start_present) {
+auto port_routine_opeu_pending_start_present(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_pending_start_present(ds, svc_reqpend);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

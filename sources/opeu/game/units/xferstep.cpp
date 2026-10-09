@@ -235,8 +235,6 @@ uint16_t opeu_transfer_run(uint8_t ds[65536], HostWordsEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/xferstep.c (31f4:05a8 transfer step, 31f4:08fe run). The
  * module uses the transfer-panel numbering (svc_transfer, game/units/xferpnl.c, xferpnl.c): 15..20,
@@ -247,12 +245,11 @@ uint16_t svc_xferstep(uint8_t* ds, uint16_t id, uint16_t* args,
   return svc_transfer(ds, "xferstep", id, args, count);
 }
 
-PORT_ROUTINE(opeu_transfer_step) {
+auto port_routine_opeu_transfer_step(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_transfer_step(ds, svc_xferstep);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

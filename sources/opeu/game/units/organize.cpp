@@ -364,8 +364,6 @@ done:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)              ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)            ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME            0x200u
 #define LF_ORGANIZE_SEGMENT 0x20b3u
 #define LF_ORGANIZE_RESERVE 0x300u
@@ -400,81 +398,118 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args,
       break;
     case 2: r = lf_request_format(ds, args, count); break;
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 4:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 5:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 6: /* The original pushes (flags, unit) to 15c4:064a, whose single
 * parameter is the unit: it receives the flags word. */
       sp = port_stack_enter(LF_FRAME);
-      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0));
+      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u),
+                         Arg(args, count, 0));
       port_stack_leave(LF_FRAME);
       break;
-    case 7: opeu_copy_bytes(ds, ARG(0), ARG(1), ARG(2)); break;
-    case 8: opeu_daily_context(ds, svc_context, (uint8_t)ARG(0)); break;
-    case 9:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), (uint32_t)ARG(3) << 16 | ARG(2));
+    case 7:
+      opeu_copy_bytes(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2));
       break;
-    case 10: r = opeu_unit_index(ARG(0)); break;
-    case 11: r = opeu_category_0_to_3((uint8_t)ARG(0)); break;
+    case 8:
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
+      break;
+    case 9:
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      (uint32_t)Arg(args, count, 3) << 16 |
+                          Arg(args, count, 2));
+      break;
+    case 10: r = opeu_unit_index(Arg(args, count, 0)); break;
+    case 11: r = opeu_category_0_to_3((uint8_t)Arg(args, count, 0)); break;
     case 12:
-      r = opeu_grid_step(PORT_DS(ARG(0)), PORT_DS(ARG(1)), (uint8_t)ARG(2));
+      r = opeu_grid_step(PORT_DS(Arg(args, count, 0)),
+                         PORT_DS(Arg(args, count, 1)),
+                         (uint8_t)Arg(args, count, 2));
       break;
     case 13:
-      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break;
-    case 14: r = opeu_objective_side(ds, ARG(0)); break;
-    case 15: r = opeu_release_side_elements(ds, ARG(0), (uint8_t)ARG(1)); break;
-    case 16: opeu_control_position(ds, ARG(0), ARG(1)); break;
+    case 14: r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+    case 15:
+      r = opeu_release_side_elements(ds, Arg(args, count, 0),
+                                     (uint8_t)Arg(args, count, 1));
+      break;
+    case 16:
+      opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
     case 17:
       sp = port_stack_enter(LF_FRAME);
-      opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u),
-                            (uint8_t)ARG(0), (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_arrival_location(
+          ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0),
+          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
       port_stack_leave(LF_FRAME);
       break;
-    case 18: r = opeu_list_length(ds, ARG(0)); break;
-    case 19: r = opeu_side_supported_units(ds, (uint8_t)ARG(0), ARG(1)); break;
-    case 20: r = opeu_neighbor_units(ds, ARG(0), ARG(1)); break;
-    case 21: opeu_ops_chief_text(ds, svc_chief, ARG(0)); break;
-    case 22: r = opeu_ops_chief_wait(ds, svc_chief, ARG(0)); break;
+    case 18: r = opeu_list_length(ds, Arg(args, count, 0)); break;
+    case 19:
+      r = opeu_side_supported_units(ds, (uint8_t)Arg(args, count, 0),
+                                    Arg(args, count, 1));
+      break;
+    case 20:
+      r = opeu_neighbor_units(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
+    case 21: opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
+    case 22: r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
     case 23: /* buffer: the 30-byte prompt text of the callee's frame (BP-1e) */
       sp = port_stack_enter(LF_FRAME);
-      r  = opeu_ops_chief_number(ds, svc_chief, ARG(0), ARG(1), ARG(2), ARG(3),
-                                 ARG(4), (uint16_t)(sp - 2u - 0x1eu));
+      r  = opeu_ops_chief_number(ds, svc_chief, Arg(args, count, 0),
+                                 Arg(args, count, 1), Arg(args, count, 2),
+                                 Arg(args, count, 3), Arg(args, count, 4),
+                                 (uint16_t)(sp - 2u - 0x1eu));
       port_stack_leave(LF_FRAME);
       break;
     case 24: opeu_supply_reset(ds); break;
-    case 25: r = opeu_tally_unit_stock(ds, svc_tally, ARG(0), ARG(1)); break;
-    case 26: r = opeu_tally_units(ds, svc_tally, ARG(0), ARG(1)); break;
+    case 25:
+      r = opeu_tally_unit_stock(ds, svc_tally, Arg(args, count, 0),
+                                Arg(args, count, 1));
+      break;
+    case 26:
+      r = opeu_tally_units(ds, svc_tally, Arg(args, count, 0),
+                           Arg(args, count, 1));
+      break;
     case 27: /* buffer: the 22-byte nation text of the callee's frame (BP-1a) */
       sp = port_stack_enter(LF_FRAME);
-      opeu_alloc_screen(ds, svc_allocscr, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                        (uint8_t)ARG(2), (uint8_t)ARG(3),
-                        (uint16_t)(sp - 2u - 0x1au));
+      opeu_alloc_screen(
+          ds, svc_allocscr, (uint8_t)Arg(args, count, 0),
+          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2),
+          (uint8_t)Arg(args, count, 3), (uint16_t)(sp - 2u - 0x1au));
       port_stack_leave(LF_FRAME);
       break;
     case 28:
-      opeu_alloc_take(ds, svc_allocscr, ARG(0), (uint8_t)ARG(1), ARG(2),
-                      (uint8_t)ARG(3));
+      opeu_alloc_take(ds, svc_allocscr, Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
+                      (uint8_t)Arg(args, count, 3));
       break;
     case 29:
-      r = opeu_alloc_groups_nonempty(ds, svc_allocpnl, (uint8_t)ARG(0),
-                                     (uint8_t)ARG(1));
+      r = opeu_alloc_groups_nonempty(ds, svc_allocpnl,
+                                     (uint8_t)Arg(args, count, 0),
+                                     (uint8_t)Arg(args, count, 1));
       break;
     case 30:
-      opeu_alloc_type_panel(ds, svc_allocpnl, (uint8_t)ARG(0), ARG(1));
+      opeu_alloc_type_panel(ds, svc_allocpnl, (uint8_t)Arg(args, count, 0),
+                            Arg(args, count, 1));
       break;
     case 31:
-      opeu_alloc_distribute(ds, svc_allocdst, (uint8_t)ARG(0), (uint8_t)ARG(1),
-                            (uint8_t)ARG(2), (uint8_t)ARG(3));
+      opeu_alloc_distribute(ds, svc_allocdst, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1),
+                            (uint8_t)Arg(args, count, 2),
+                            (uint8_t)Arg(args, count, 3));
       break;
     case 32: /* text, name: the 100- and 32-byte buffers of the callee's frame */
       sp = port_stack_enter(LF_FRAME);
@@ -487,7 +522,9 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_turn_action_6) {
+auto port_routine_opeu_turn_action_6(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -497,8 +534,6 @@ PORT_ROUTINE(opeu_turn_action_6) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME
 #undef LF_ORGANIZE_SEGMENT
 #undef LF_ORGANIZE_RESERVE

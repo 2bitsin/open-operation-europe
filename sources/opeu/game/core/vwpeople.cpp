@@ -168,8 +168,6 @@ void opeu_view_generals_menu(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -186,7 +184,9 @@ uint16_t svc_vwpeople(uint8_t* ds, uint16_t id, const uint16_t* args,
 }
 
 /* 1fe6:06ae */
-PORT_ROUTINE(opeu_view_enemy_generals) {
+auto port_routine_opeu_view_enemy_generals(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_enemy_generals(ds, svc_vwpeople, sp));
@@ -194,7 +194,9 @@ PORT_ROUTINE(opeu_view_enemy_generals) {
 }
 
 /* 1fe6:0724 */
-PORT_ROUTINE(opeu_view_generals_menu) {
+auto port_routine_opeu_view_generals_menu(std::uint8_t*        ds,
+                                          std::uint16_t const* args,
+                                          unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_generals_menu(ds, svc_vwpeople, sp));
@@ -202,13 +204,13 @@ PORT_ROUTINE(opeu_view_generals_menu) {
 }
 
 /* 1fe6:0656 */
-PORT_ROUTINE(opeu_view_own_generals) {
+auto port_routine_opeu_view_own_generals(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   B2_SP_CALL(0x200u, opeu_view_own_generals(ds, svc_vwpeople, sp));
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

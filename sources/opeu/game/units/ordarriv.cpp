@@ -123,8 +123,6 @@ uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/ordarriv.c (32ca:0002..0125 arrive/reach/hold order handlers).
  * Services, from the host branch's list: 0 unit_order_destination(unit,
@@ -143,7 +141,8 @@ uint16_t svc_ordarriv(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_order_arrive) {
+auto port_routine_opeu_order_arrive(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -153,7 +152,8 @@ PORT_ROUTINE(opeu_order_arrive) {
   return r;
 }
 
-PORT_ROUTINE(opeu_order_hold) {
+auto port_routine_opeu_order_hold(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -163,7 +163,9 @@ PORT_ROUTINE(opeu_order_hold) {
   return r;
 }
 
-PORT_ROUTINE(opeu_order_reach_unit) {
+auto port_routine_opeu_order_reach_unit(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp, r;
   (void)args;
   (void)count;
@@ -172,6 +174,3 @@ PORT_ROUTINE(opeu_order_reach_unit) {
   port_stack_leave(PORT_FRAME);
   return r;
 }
-
-#undef ARG
-#undef ARG32

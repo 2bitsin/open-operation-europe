@@ -180,8 +180,6 @@ one:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/supstep.c (20b3:05b8 opeu_supply_step, interactive supply
  * allocation). Services, from the host branch:
@@ -207,16 +205,18 @@ uint16_t svc_supstep(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 6:
     case 7: r = svc_suppanel(ds, id, args, count); break;
     case 20:
-      opeu_supply_draw_row(ds, svc_suprow, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      opeu_supply_draw_row(ds, svc_suprow, (uint8_t)Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1));
       break;
-    case 21: opeu_ops_chief_text(ds, svc_chief, ARG(0)); break;
+    case 21: opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
     case 22: opeu_input_reset(ds, svc_mouse); break;
-    case 23: opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
-    case 24: r = opeu_ops_chief_wait(ds, svc_chief, ARG(0)); break;
+    case 23:
+      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1),
+                        Arg(args, count, 2), Arg(args, count, 3),
+                        Arg(args, count, 4));
+      break;
+    case 24: r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
     default: port_unhandled("supstep", id, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

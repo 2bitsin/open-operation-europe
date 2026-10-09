@@ -479,8 +479,6 @@ uint16_t opeu_numdlg_run(STATE_ uint16_t lo, uint16_t hi,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/numdlg.c (05a8:0574..0f59 numeric entry dialog with slider).
  * The module's service is the shared 05a8 input boundary (host-branch
@@ -519,6 +517,3 @@ uint16_t svc_numdlg(uint8_t* ds, uint16_t call, uint16_t* words) {
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32

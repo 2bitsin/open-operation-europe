@@ -145,8 +145,6 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* The special-mission service table shared by the 0e8e modules (msnrept,
  * msnkill, msnraid, msnrecon, msntick). The report helpers of msnrept are
@@ -172,52 +170,64 @@ uint16_t svc_mission(const char* module, uint8_t* ds, uint16_t id,
                      const uint16_t* args, uint16_t count) {
   uint16_t r = 0, frame, sp, words[1];
   switch (id) {
-    case 0: r = port_rand_bounded(ds, ARG(0)); break; /* 09f6:00d4 */
+    case 0:
+      r = port_rand_bounded(ds, Arg(args, count, 0));
+      break; /* 09f6:00d4 */
     case 1:
-      r = opeu_message_lookup(ds, svc_msglook, (short)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0));
       break;                                           /* 312c:000c */
     case 2: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 3:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 4:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1), ARG32(2));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      Arg32(args, count, 2));
       break;
     case 5: /* 15c4:087e */
       frame = port_frame_enter();
-      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)ARG(0),
-                          (uint8_t)ARG(1), (uint8_t)ARG(2));
+      opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)Arg(args, count, 0),
+                          (uint8_t)Arg(args, count, 1),
+                          (uint8_t)Arg(args, count, 2));
       port_frame_leave();
       break;
     case 6:
-      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break; /* 0b73:0188 */
     case 7:  /* 17c4:10cc */
       frame = port_frame_enter();
-      opeu_objective_damage(ds, svc_objdamag, frame, ARG(0), ARG(1), ARG(2),
-                            ARG(3), ARG(4), ARG(5), ARG(6));
+      opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0),
+                            Arg(args, count, 1), Arg(args, count, 2),
+                            Arg(args, count, 3), Arg(args, count, 4),
+                            Arg(args, count, 5), Arg(args, count, 6));
       port_frame_leave();
       break;
     case 8: /* 17c4:0b1c */
       frame = port_frame_enter();
-      opeu_unit_casualties(ds, svc_casualty, frame, ARG(0), ARG(1), ARG(2),
-                           ARG(3), ARG(4), ARG(5));
+      opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0),
+                           Arg(args, count, 1), Arg(args, count, 2),
+                           Arg(args, count, 3), Arg(args, count, 4),
+                           Arg(args, count, 5));
       port_frame_leave();
       break;
     case 9:
-      opeu_set_turn_context(ds, svc_sound, (uint8_t)ARG(0));
+      opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0));
       break; /* 0d65:00fe */
     case 10:
-      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)ARG(0));
-      break;                                            /* 0d65:0032 */
-    case 11: opeu_initialize_deputy(ds, ARG(0)); break; /* 0b73:048a */
+      opeu_finish_side_initialization(ds, svc_sound,
+                                      (uint8_t)Arg(args, count, 0));
+      break; /* 0d65:0032 */
+    case 11:
+      opeu_initialize_deputy(ds, Arg(args, count, 0));
+      break; /* 0b73:048a */
     case 12:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:005c */
     case 13:
-      opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break;                                 /* 0a8e:004c */
     case 14: opeu_weather_update(ds); break; /* 0f43:000e */
     case 15:
@@ -229,8 +239,9 @@ uint16_t svc_mission(const char* module, uint8_t* ds, uint16_t id,
       port_stack_leave(PORT_FRAME);
       break;
     case 17: /* far handler (off,seg)(side) */
-      words[0] = ARG(2);
-      port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), words, 1);
+      words[0] = Arg(args, count, 2);
+      port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0),
+                words, 1);
       break;
     default: port_unhandled(module, id, count);
   }
@@ -245,12 +256,12 @@ uint16_t svc_msnkill(uint8_t* ds, uint16_t id, const uint16_t* args,
   return svc_mission("msnkill", ds, id, args, count);
 }
 
-PORT_ROUTINE(opeu_mission_assassinate) {
+auto port_routine_opeu_mission_assassinate(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
-  opeu_mission_assassinate(ds, svc_msnkill, frame, (uint8_t)ARG(0));
+  opeu_mission_assassinate(ds, svc_msnkill, frame,
+                           (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
-
-#undef ARG
-#undef ARG32

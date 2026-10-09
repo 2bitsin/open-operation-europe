@@ -450,8 +450,6 @@ end:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)          ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)        ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define SPECIAL_RESERVE PORT_FRAME
 
 /* Services of core/specops.c (24d5:0000..0a82 Special Forces missions). Service
@@ -474,69 +472,86 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: c1_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 2:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:076c */
     case 3:
-      r = opeu_message_lookup(ds, svc_msglook, (int16_t)ARG(0));
+      r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
       break;                                         /* 312c:000c */
     case 4: c1_cursor_print(ds, args, count); break; /* 0480:0bb8 army_print */
     case 5:
-      opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0));
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
       break; /* 0a8e:005c */
     case 6:
-      port_daily_show(ds, ARG(0), ARG(1), ARG(2), ARG(3));
+      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3));
       break; /* 1707:03e4 */
     case 7:
-      r = opeu_find_objective_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0),
+                                 (uint8_t)Arg(args, count, 1));
       break; /* 145c:016a */
     case 8:
-      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                            ARG(1), ARG(2), ARG(3));
+      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2), Arg(args, count, 3));
       break; /* 1707:0726 */
     case 9:
-      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0));
       break;                 /* 1707:03aa */
     case 10: /* 17c4:0274 */ /* frame: the callee's BP; its 20-byte workspace lies below it. */
       frame = port_frame_enter();
-      r     = opeu_map_pick_location(ds, svc_mappick, frame, ARG(0), ARG(1));
+      r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0),
+                                 Arg(args, count, 1));
       port_frame_leave();
       break;
-    case 11: r = opeu_objective_side(ds, ARG(0)); break; /* 145c:01b8 */
+    case 11:
+      r = opeu_objective_side(ds, Arg(args, count, 0));
+      break; /* 145c:01b8 */
     case 12:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break; /* 0480:0808 */
     case 13:
-      opeu_daily_context(ds, svc_context, (uint8_t)ARG(0));
+      opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0));
       break; /* 1389:000e */
     case 14:
-      port_call(ds, (uint32_t)ARG(0) * 16u + ARG(1), NULL, 0);
+      port_call(ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1),
+                NULL, 0);
       break; /* DS:adb2 far action (segment, offset) */
     case 15:
-      r = opeu_find_unit_at(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
-      break;                                           /* 145c:011c */
-    case 16: r = opeu_unit_side(ARG(0)); break;        /* 145c:006c */
-    case 17: r = opeu_unit_special(ds, ARG(0)); break; /* 145c:04de */
+      r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0),
+                            (uint8_t)Arg(args, count, 1));
+      break;                                                 /* 145c:011c */
+    case 16: r = opeu_unit_side(Arg(args, count, 0)); break; /* 145c:006c */
+    case 17:
+      r = opeu_unit_special(ds, Arg(args, count, 0));
+      break; /* 145c:04de */
     case 18:
-      r = opeu_unit_name(ds, svc_unitname, ARG(0), ARG(1));
+      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
+                         Arg(args, count, 1));
       break; /* 0b73:0188 */
     case 19:
-      r = opeu_cell_influence_side(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_cell_influence_side(ds, (uint8_t)Arg(args, count, 0),
+                                   (uint8_t)Arg(args, count, 1));
       break; /* 145c:0f14 */
     case 20:
-      r = opeu_find_person_template(ds, (uint8_t)ARG(0), (uint8_t)ARG(1));
+      r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0),
+                                    (uint8_t)Arg(args, count, 1));
       break; /* 0b73:03d2 */
     default: port_unhandled("specops", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_special_assassinate) {
+auto port_routine_opeu_special_assassinate(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -546,7 +561,9 @@ PORT_ROUTINE(opeu_special_assassinate) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_special_cut_comm) {
+auto port_routine_opeu_special_cut_comm(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -556,7 +573,9 @@ PORT_ROUTINE(opeu_special_cut_comm) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_special_present) {
+auto port_routine_opeu_special_present(std::uint8_t*        ds,
+                                       std::uint16_t const* args,
+                                       unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -566,7 +585,8 @@ PORT_ROUTINE(opeu_special_present) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_special_raid) {
+auto port_routine_opeu_special_raid(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -576,7 +596,9 @@ PORT_ROUTINE(opeu_special_raid) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_special_recon) {
+auto port_routine_opeu_special_recon(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -586,7 +608,9 @@ PORT_ROUTINE(opeu_special_recon) {
   return 0;
 }
 
-PORT_ROUTINE(opeu_special_sabotage) {
+auto port_routine_opeu_special_sabotage(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -596,6 +620,4 @@ PORT_ROUTINE(opeu_special_sabotage) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef SPECIAL_RESERVE

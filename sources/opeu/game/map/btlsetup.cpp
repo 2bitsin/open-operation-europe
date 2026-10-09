@@ -198,20 +198,17 @@ void opeu_notice_one(uint8_t* ds, BattleEvent event) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 uint16_t svc_btlsetup(uint8_t* ds, uint32_t address, const uint16_t* args,
                       unsigned int count) {
   return port_service(ds, address, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_tire_leaders) {
+auto port_routine_opeu_battle_tire_leaders(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_battle_tire_leaders(ds, svc_btlsetup);
   return 0;
 }
-
-#undef ARG
-#undef ARG32

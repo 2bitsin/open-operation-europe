@@ -158,13 +158,10 @@ void opeu_turn_selected_begin(uint8_t ds[65536]) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
-PORT_ROUTINE(opeu_side_groups_retarget) {
-  opeu_side_groups_retarget(ds, (uint8_t)ARG(0));
+auto port_routine_opeu_side_groups_retarget(std::uint8_t*        ds,
+                                            std::uint16_t const* args,
+                                            unsigned count) -> std::uint32_t {
+  opeu_side_groups_retarget(ds, (uint8_t)Arg(args, count, 0));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

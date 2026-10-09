@@ -231,8 +231,6 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t sp,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/vwpanel.c (1fe6:0270..04f9 objective and regiment information panels).
  * Services: the shared HostEvent protocol of the 1fe6 view modules
@@ -241,6 +239,3 @@ uint16_t svc_vwpanel(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
   return svc_view(ds, "vwpanel", id, args, count);
 }
-
-#undef ARG
-#undef ARG32

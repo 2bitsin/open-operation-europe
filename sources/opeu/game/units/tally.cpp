@@ -209,8 +209,6 @@ uint8_t opeu_tally_units(uint8_t ds[65536], HostEvent event, uint16_t unit,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of units/tally.c (20b3:10b8..15b7 allocation tallies). The module's
  * only service use is opeu_unit_name (unitname, 0b73:0188), which receives
@@ -226,11 +224,9 @@ uint16_t svc_tally(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_tally_mark) {
+auto port_routine_opeu_tally_mark(std::uint8_t* ds, std::uint16_t const* args,
+                                  unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_tally_mark(ds);
 }
-
-#undef ARG
-#undef ARG32

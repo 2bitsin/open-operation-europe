@@ -505,8 +505,6 @@ void opeu_advice_enemy_conditions(uint8_t ds[65536], const uint8_t* far_text,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)           ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)         ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define C2_ADVICE_TEXT() ((const uint8_t*)port_far(0x3ad9u, 0))
 
 /* Services of core/advenemy.c (1dd2:116e..19e1 "Enemy Conditions"). Services 0
@@ -532,15 +530,18 @@ uint16_t svc_advice(const char* module, uint8_t* ds, uint16_t id,
   switch (id) {
     case 0: c2_request_format(ds, args, count); break; /* 0480:0b9a */
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     default: port_unhandled(module, id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_advice_enemy_conditions) {
+auto port_routine_opeu_advice_enemy_conditions(std::uint8_t*        ds,
+                                               std::uint16_t const* args,
+                                               unsigned             count)
+    -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -550,6 +551,4 @@ PORT_ROUTINE(opeu_advice_enemy_conditions) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef C2_ADVICE_TEXT

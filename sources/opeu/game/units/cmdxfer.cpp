@@ -243,8 +243,6 @@ element:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define LF_FRAME 0x200u
 
 /* Services of units/cmdxfer.c (1d42:0000..0403, turn action 3: transfer command).
@@ -266,62 +264,76 @@ uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: r = lf_request_format(ds, args, count); break;
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 2:
       r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                               ARG(0), ARG(1));
+                               Arg(args, count, 0), Arg(args, count, 1));
       break;
     case 3:
       opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host());
       break;
     case 4:
-      r = opeu_list_dialog(ds, svc_listdlg, ARG(0), (uint8_t)ARG(1),
-                           (uint8_t)ARG(2));
+      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0),
+                           (uint8_t)Arg(args, count, 1),
+                           (uint8_t)Arg(args, count, 2));
       break;
     case 5:
       sp = port_stack_enter(LF_FRAME);
-      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(0),
-                      (uint8_t)ARG(1));
+      opeu_group_show(ds, svc_mapunit, (uint16_t)(sp - 2u), Arg(args, count, 0),
+                      (uint8_t)Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
     case 6:
       sp = port_stack_enter(LF_FRAME);
-      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), ARG(1));
+      opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u),
+                         Arg(args, count, 1));
       port_stack_leave(LF_FRAME);
       break;
     case 7:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                      (uint8_t)ARG(1),
-                      (unsigned int)((uint32_t)ARG(3) << 16 | ARG(2)));
+      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
+                      Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
+                      (unsigned int)((uint32_t)Arg(args, count, 3) << 16 |
+                                     Arg(args, count, 2)));
       break;
-    case 8:  opeu_pending_finish(ds, svc_waitkey, (uint8_t)ARG(0)); break;
+    case 8:
+      opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
+      break;
     default: port_unhandled("cmdxfer", id, count);
   }
   return r;
 }
 
-PORT_ROUTINE(opeu_transfer_element_enabled) {
+auto port_routine_opeu_transfer_element_enabled(std::uint8_t*        ds,
+                                                std::uint16_t const* args,
+                                                unsigned             count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_element_enabled(ds);
 }
 
-PORT_ROUTINE(opeu_transfer_group_enabled) {
+auto port_routine_opeu_transfer_group_enabled(std::uint8_t*        ds,
+                                              std::uint16_t const* args,
+                                              unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_group_enabled(ds);
 }
 
-PORT_ROUTINE(opeu_transfer_present) {
+auto port_routine_opeu_transfer_present(std::uint8_t*        ds,
+                                        std::uint16_t const* args,
+                                        unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_transfer_present(ds, svc_cmdxfer);
   return 0;
 }
 
-PORT_ROUTINE(opeu_transfer_unit_enabled) {
+auto port_routine_opeu_transfer_unit_enabled(std::uint8_t*        ds,
+                                             std::uint16_t const* args,
+                                             unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_unit_enabled(ds);
@@ -330,7 +342,9 @@ PORT_ROUTINE(opeu_transfer_unit_enabled) {
 /* 1d42:01d2, turn action 3, an entry of the control action table DS:7fb4
  * (control1 service 10). No arguments; the host entry takes its entry SP
  * and the paragraph of code segment 1d42 (stored with the predicates). */
-PORT_ROUTINE(opeu_turn_action_3) {
+auto port_routine_opeu_turn_action_3(std::uint8_t*        ds,
+                                     std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   uint16_t sp;
   (void)args;
   (void)count;
@@ -340,6 +354,4 @@ PORT_ROUTINE(opeu_turn_action_3) {
   return 0;
 }
 
-#undef ARG
-#undef ARG32
 #undef LF_FRAME

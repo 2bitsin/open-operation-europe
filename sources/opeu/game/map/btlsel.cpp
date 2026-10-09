@@ -138,8 +138,6 @@ uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event, uint16_t sp) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)     ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i)   ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define BTL_BP(sp) ((uint16_t)((sp) - 2u))
 
 /* Services of map/btlsel.c, address-keyed BattleEvent: player orders segment 2ec8 (hex mask reads, see svc_battle_orders in game/map/btlcmds.c). */
@@ -148,18 +146,20 @@ uint16_t svc_btlsel(uint8_t* ds, uint32_t service, const uint16_t* args,
   return svc_battle_orders(ds, service, args, count);
 }
 
-PORT_ROUTINE(opeu_battle_key_select) {
-  return opeu_battle_key_select(ds, svc_btlsel, ARG(0));
+auto port_routine_opeu_battle_key_select(std::uint8_t*        ds,
+                                         std::uint16_t const* args,
+                                         unsigned count) -> std::uint32_t {
+  return opeu_battle_key_select(ds, svc_btlsel, Arg(args, count, 0));
 }
 
-PORT_ROUTINE(opeu_battle_mouse_select) {
+auto port_routine_opeu_battle_mouse_select(std::uint8_t*        ds,
+                                           std::uint16_t const* args,
+                                           unsigned count) -> std::uint32_t {
   uint16_t sp = btl_sp_enter();
   uint32_t r;
-  r = opeu_battle_mouse_select(ds, svc_btlsel, ARG(0), BTL_BP(sp));
+  r = opeu_battle_mouse_select(ds, svc_btlsel, Arg(args, count, 0), BTL_BP(sp));
   btl_sp_leave();
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef BTL_BP

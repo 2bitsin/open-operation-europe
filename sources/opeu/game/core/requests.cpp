@@ -135,8 +135,6 @@ void opeu_hourly_c_stage_b(uint8_t ds[65536],
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/requests.c (1270:08e0 timed and pending side requests).
  * Services (host branch comment): 0 request_valid(side,request) 1270:036e,
@@ -172,6 +170,3 @@ uint16_t svc_requests(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

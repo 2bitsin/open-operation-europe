@@ -72,8 +72,6 @@ void opeu_scenario_description(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/scenui.c (06db:163a..1700 scenario-selection panels). Events,
  * from the host branch's comment:
@@ -88,31 +86,37 @@ uint16_t svc_scenui(uint8_t* ds, uint16_t kind, const uint16_t* args,
   uint16_t r = 0;
   switch (kind) {
     case 0:
-      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                      ARG(2), ARG(3), ARG(4));
+      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(),
+                      Arg(args, count, 0), Arg(args, count, 1),
+                      Arg(args, count, 2), Arg(args, count, 3),
+                      Arg(args, count, 4));
       break;
     case 1:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 2: b1_cursor_print(ds, args, count); break;
-    case 3: opeu_ui_text(ds, (TextHost*)port_textout_host(), ARG(0)); break;
+    case 3:
+      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+      break;
     case 4:
-      r = (uint16_t)opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1),
+                                Arg(args, count, 2), Arg(args, count, 3),
+                                Arg(args, count, 4));
       break;
     case 5:
       r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(),
-                                          (int16_t)ARG(0));
+                                          (int16_t)Arg(args, count, 0));
       break;
     case 6:
-      opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                       (int16_t)ARG(1), (int16_t)ARG(2), (int16_t)ARG(3));
+      opeu_text_window(
+          ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0),
+          (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2),
+          (int16_t)Arg(args, count, 3));
       break;
     case 7:  opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
     default: port_unhandled("scenui", kind, count);
   }
   return r;
 }
-
-#undef ARG
-#undef ARG32

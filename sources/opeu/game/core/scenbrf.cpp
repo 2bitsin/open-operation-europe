@@ -353,8 +353,6 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of core/scenbrf.c (0d9b:0000..0933 scenario briefings). Services, from
  * the host branch's comment:
@@ -364,7 +362,7 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
  *   3 invert(x,y,w,h,mode) 0000:2b0e opeu_ui_invert (VGALIB opeu_ui_highlight)
  *   4 format(destination,format,person) 0480:0b9a opeu_request_format
  * The briefings and the message hook are reached through far code pointers
- * (side-initializer table DS:735a, message hook DS:3ec2): their PORT_ROUTINE
+ * (side-initializer table DS:735a, message hook DS:3ec2): their routine handler
  * handlers are in game/core/scenbrf.c. */
 uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count) {
@@ -372,16 +370,20 @@ uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0:
       f = b1_frame_enter();
-      opeu_daily_activate(ds, svc_maperase, f, (uint8_t)ARG(0));
+      opeu_daily_activate(ds, svc_maperase, f, (uint8_t)Arg(args, count, 0));
       port_frame_leave();
       break;
     case 1:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break;
-    case 2: opeu_overview_pixel(ds, ARG(0), ARG(1)); break;
+    case 2:
+      opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break;
     case 3:
-      r = (uint16_t)opeu_ui_highlight(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4));
+      r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1),
+                                      Arg(args, count, 2), Arg(args, count, 3),
+                                      Arg(args, count, 4));
       break;
     case 4:  b1_request_format(ds, args, count); break;
     default: port_unhandled("scenbrf", id, count);
@@ -389,48 +391,54 @@ uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-PORT_ROUTINE(opeu_brief_africa) {
+auto port_routine_opeu_brief_africa(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_africa);
 }
 
-PORT_ROUTINE(opeu_brief_ardennes) {
+auto port_routine_opeu_brief_ardennes(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_ardennes);
 }
 
-PORT_ROUTINE(opeu_brief_berlin) {
+auto port_routine_opeu_brief_berlin(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_berlin);
 }
 
-PORT_ROUTINE(opeu_brief_blink) {
+auto port_routine_opeu_brief_blink(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_brief_blink(ds, svc_scenbrf);
   return 0;
 }
 
-PORT_ROUTINE(opeu_brief_france) {
+auto port_routine_opeu_brief_france(std::uint8_t* ds, std::uint16_t const* args,
+                                    unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_france);
 }
 
-PORT_ROUTINE(opeu_brief_kursk) {
+auto port_routine_opeu_brief_kursk(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_kursk);
 }
 
-PORT_ROUTINE(opeu_brief_normandy) {
+auto port_routine_opeu_brief_normandy(std::uint8_t*        ds,
+                                      std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_normandy);
 }
-
-#undef ARG
-#undef ARG32

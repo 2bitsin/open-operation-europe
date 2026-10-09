@@ -97,8 +97,6 @@ uint16_t opeu_ops_chief_wait(uint8_t ds[65536], HostEvent event,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -122,39 +120,45 @@ uint16_t svc_chief(uint8_t* ds, uint16_t id, const uint16_t* args,
                    uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 0: opeu_ui_box(ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
+    case 0:
+      opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
+                  Arg(args, count, 3), Arg(args, count, 4));
+      break;
     case 1:
-      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), ARG(0), ARG(1),
-                         ARG(2));
+      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(),
+                         Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2));
       break;
     case 2: b2_request_format(ds, args, count); break;
     case 3: b2_cursor_print(ds, args, count); break;
     case 4:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), ARG(0),
-                            ARG(1), ARG(2));
+      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
+                            Arg(args, count, 0), Arg(args, count, 1),
+                            Arg(args, count, 2));
       break;
     case 5:
-      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)ARG(0),
-                         (int16_t)ARG(1));
+      opeu_army_position(ds, (TextHost*)port_textout_host(),
+                         (int16_t)Arg(args, count, 0),
+                         (int16_t)Arg(args, count, 1));
       break;
     case 6:
-      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), ARG(0));
+      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(),
+                     Arg(args, count, 0));
       break;
     case 7:
       r = opeu_confirm_prompt(ds, (const DialogHost*)port_dialogs_host(),
-                              ARG(0));
+                              Arg(args, count, 0));
       break;
     case 8:
       B2_SP_CALL(PORT_FRAME,
-                 r = opeu_choose_value(ds, svc_keyboard, ARG(0), ARG(1),
-                                       (int16_t)ARG(2), ARG(3),
-                                       (uint16_t)(sp - 2 - 16)));
+                 r = opeu_choose_value(
+                     ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1),
+                     (int16_t)Arg(args, count, 2), Arg(args, count, 3),
+                     (uint16_t)(sp - 2 - 16)));
       break;
     default: port_unhandled("chief", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

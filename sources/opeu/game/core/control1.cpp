@@ -108,8 +108,6 @@ again:
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 #define B2_SP_CALL(bytes, call)            \
   do {                                     \
     uint16_t sp = port_stack_enter(bytes); \
@@ -130,13 +128,16 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args,
     case 0:
       B2_SP_CALL(PORT_FRAME, opeu_control_prepare(ds, svc_advmenu, sp));
       break;
-    case 1: opeu_control_begin(ds, svc_soundcue); break;      /* 0d92:0048 */
-    case 2: opeu_control_position(ds, ARG(0), ARG(1)); break; /* 15c4:13d8 */
+    case 1: opeu_control_begin(ds, svc_soundcue); break; /* 0d92:0048 */
+    case 2:
+      opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1));
+      break; /* 15c4:13d8 */
     case 3:
       B2_SP_CALL(PORT_FRAME,
                  opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2),
-                                       (uint8_t)ARG(0), (uint8_t)ARG(1),
-                                       (uint8_t)ARG(2)));
+                                       (uint8_t)Arg(args, count, 0),
+                                       (uint8_t)Arg(args, count, 1),
+                                       (uint8_t)Arg(args, count, 2)));
       break;
     case 4:
       B2_SP_CALL(PORT_FRAME,
@@ -150,25 +151,27 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args,
       break; /* 0480:0b9a (dest, fmt, rec1) */
     case 7:
       r = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(),
-                              ARG(0), ARG(1), ARG(2), ARG(3), ARG(4), ARG(5));
+                              Arg(args, count, 0), Arg(args, count, 1),
+                              Arg(args, count, 2), Arg(args, count, 3),
+                              Arg(args, count, 4), Arg(args, count, 5));
       break;
     case 8:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), ARG(0),
-                           ARG(1));
+      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
+                           Arg(args, count, 0), Arg(args, count, 1));
       break; /* 1707:0672 */
     case 9:
-      B2_SP_CALL(PORT_FRAME, r = opeu_control_coordinates(ds, svc_coords,
-                                                          (uint16_t)(sp - 2),
-                                                          ARG(0), ARG(1)));
+      B2_SP_CALL(PORT_FRAME, r = opeu_control_coordinates(
+                                 ds, svc_coords, (uint16_t)(sp - 2),
+                                 Arg(args, count, 0), Arg(args, count, 1)));
       break;
     case 10:
-      r = (uint16_t)port_call(ds, (uint32_t)ARG(1) * 16u + ARG(0), NULL, 0);
+      r = (uint16_t)port_call(
+          ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), NULL,
+          0);
       break;
     default: port_unhandled("control1", id, count);
   }
   return r;
 }
 
-#undef ARG
-#undef ARG32
 #undef B2_SP_CALL

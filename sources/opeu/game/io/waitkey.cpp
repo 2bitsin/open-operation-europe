@@ -53,8 +53,6 @@ void opeu_pending_finish(uint8_t ds[65536], HostEvent event, uint8_t value) {
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of io/waitkey.c (0a8e:000c..0069 timed waits). Events, from the host
  * branch's comment (src/main/io/waitkey.c):
@@ -66,7 +64,7 @@ void opeu_pending_finish(uint8_t ds[65536], HostEvent event, uint8_t value) {
 uint16_t svc_waitkey(uint8_t* ds, uint16_t kind, const uint16_t* args,
                      uint16_t count) {
   switch (kind) {
-    case 0:  opeu_fm_wait_start(ARG(0)); break;
+    case 0:  opeu_fm_wait_start(Arg(args, count, 0)); break;
     case 1:  return opeu_fm_busy();
     case 2:  return opeu_turn_input_b();
     case 3:  return opeu_key_read(ds, (TextHost*)port_textout_host());
@@ -76,10 +74,8 @@ uint16_t svc_waitkey(uint8_t* ds, uint16_t kind, const uint16_t* args,
   return 0;
 }
 
-PORT_ROUTINE(opeu_delay_units) {
-  opeu_delay_units(ds, svc_waitkey, (uint8_t)ARG(0));
+auto port_routine_opeu_delay_units(std::uint8_t* ds, std::uint16_t const* args,
+                                   unsigned count) -> std::uint32_t {
+  opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0));
   return 0;
 }
-
-#undef ARG
-#undef ARG32

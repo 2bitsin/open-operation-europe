@@ -29,8 +29,6 @@ void opeu_map_inspect(uint8_t ds[65536], HostEvent event, uint8_t x,
  * the conversions of the 16-bit memory model (DS offsets, far pointers,
  * the modeled stack of port/include/glue.h). The validators build with
  * -DOPEU_HOST_EVENTS and see only the host branch. */
-#define ARG(i)   ((uint16_t)((i) < count ? args[(i)] : 0))
-#define ARG32(i) ((uint32_t)ARG(i) | (uint32_t)ARG((i) + 1) << 16)
 
 /* Services of map/inspect.c (17c4:00bc highlight an inspected cell). Events
  * (host branch comment): view=0 (17c4:0006), overview=1 (17c4:0080), each
@@ -41,20 +39,19 @@ uint16_t svc_inspect(uint8_t* ds, uint16_t id, const uint16_t* args,
   switch (id) {
     case 0: /* 17c4:0006 */
       frame = map_frame_enter();
-      opeu_map_highlight_view(ds, svc_highlite, frame, (uint8_t)ARG(0),
-                              (uint8_t)ARG(1));
+      opeu_map_highlight_view(ds, svc_highlite, frame,
+                              (uint8_t)Arg(args, count, 0),
+                              (uint8_t)Arg(args, count, 1));
       map_frame_leave();
       break;
     case 1: /* 17c4:0080 */
       frame = map_frame_enter();
-      opeu_map_highlight_overview(ds, svc_highlite, frame, (uint8_t)ARG(0),
-                                  (uint8_t)ARG(1));
+      opeu_map_highlight_overview(ds, svc_highlite, frame,
+                                  (uint8_t)Arg(args, count, 0),
+                                  (uint8_t)Arg(args, count, 1));
       map_frame_leave();
       break;
     default: port_unhandled("inspect", id, count);
   }
   return 0;
 }
-
-#undef ARG
-#undef ARG32
