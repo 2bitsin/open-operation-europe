@@ -1,21 +1,16 @@
 /* OPEN file-backed DGROUP DS:01ac..0355 (426 bytes): data of the opening
- * program (code segment 03ac, src/open/core/openmain.c).
+ * program (code segment 03ac, core/openmain.cpp).
  *
  * Scene tables (frame rows/heights/capture offsets, the two bobbing curves of
  * the aircraft, explosion, flak and shell animation tables), the flash state
  * and the strings the opening passes to the allocator and the text console.
- * Each object is a separate export bound by name from OPENMAIN.
- *
- * C 6.0a word-aligns arrays and words within a section and emits no data
- * for the alignment bytes; the zero bytes after the two 3-byte slot tables
- * (DS:0227, 024f) are explicit one-byte objects, so every byte of the range
- * comes from this source. The strings were packed without alignment; each
- * one that starts at an odd offset opens a new section (OPEN_STR1..5),
- * which the placement map puts at its original DS offset.
+ * The zero bytes after the two 3-byte slot tables (DS:0227, 024f) are
+ * explicit one-byte objects, so every byte of the range comes from this
+ * source.
  */
-#include "types.hpp"
+#include "recovered.hpp"
 
-#define OD_SEG(n)
+namespace opeu::intro::detail::odopen {
 
 int16_t opeu_open_aborted = 0;                   /* DS:01ac input abort flag */
 
@@ -63,12 +58,14 @@ int16_t opeu_open_flash_phase = 0;               /* DS:02e4 */
  * console reset sequence (ESC R blank: left 0; ESC C 7: ink 7; ESC M 0:
  * paper 0; ESC B 0: background 0) and the scenario selection file. */
 char opeu_open_text_alloc_err1[] = "alloc_err1";
-char OD_SEG("OPEN_STR1") opeu_open_text_alloc_err2[] = "alloc_err2";
-char OD_SEG("OPEN_STR1") opeu_open_text_alloc_err3[] = "alloc_err3";
-char OD_SEG("OPEN_STR2") opeu_open_text_alloc_err4[] = "alloc_err4";
-char OD_SEG("OPEN_STR2") opeu_open_text_alloc_err5[] = "alloc_err5";
-char OD_SEG("OPEN_STR3") opeu_open_text_alloc_err6[] = "alloc_err6";
-char OD_SEG("OPEN_STR3") opeu_open_text_alloc_err7[] = "alloc_err7";
-char OD_SEG("OPEN_STR4") opeu_open_text_alloc_err9[] = "alloc_err9";
-char OD_SEG("OPEN_STR4") opeu_open_text_console[] = "\033R \033C7\033M0\033B0";
-char OD_SEG("OPEN_STR5") opeu_open_name_scesel[] = "SCESEL.DAT";
+char opeu_open_text_alloc_err2[] = "alloc_err2";
+char opeu_open_text_alloc_err3[] = "alloc_err3";
+char opeu_open_text_alloc_err4[] = "alloc_err4";
+char opeu_open_text_alloc_err5[] = "alloc_err5";
+char opeu_open_text_alloc_err6[] = "alloc_err6";
+char opeu_open_text_alloc_err7[] = "alloc_err7";
+char opeu_open_text_alloc_err9[] = "alloc_err9";
+char opeu_open_text_console[] = "\033R \033C7\033M0\033B0";
+char opeu_open_name_scesel[] = "SCESEL.DAT";
+
+}

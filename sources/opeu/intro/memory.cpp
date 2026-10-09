@@ -1,17 +1,21 @@
 /* OPEN.EXE's process memory in the data arena: DGROUP and far-data image,
- * the DOS memory blocks and the modeled stack. See open_process.h. */
+ * the DOS memory blocks and the modeled stack. See process.hpp. */
 #include "port.hpp"
 #include "process.hpp"
 
 #include <stdlib.h>
 #include <string.h>
 
+namespace opeu::intro {
+namespace {
+constexpr int MAX_BLOCKS{ 16 };
+}
+
 uint8_t* open_ds;
 uint16_t open_sp = OPEN_STACK_TOP;
 
 /* DOS memory blocks of the OPEN process: [segment, paragraphs), first fit
  * from OPEN_HEAP_SEGMENT, one arena paragraph (the MCB) before each. */
-#define MAX_BLOCKS 16
 static struct {
   uint16_t seg, paras;
 } blocks[MAX_BLOCKS];
@@ -85,4 +89,6 @@ uint16_t open_stack_enter(uint16_t bytes) {
 
 void open_stack_leave(uint16_t bytes) {
   open_sp = (uint16_t)(open_sp + 4 + bytes);
+}
+
 }

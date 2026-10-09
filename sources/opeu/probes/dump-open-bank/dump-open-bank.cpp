@@ -1,16 +1,13 @@
-/* Writes OPEN.EXE's FM music bank (src/open/data/ofmusic.c, compiled
- * natively: tracks, voices and events in declaration order, which is the
- * bank's layout at 0710:0002) to stdout, for port/tests/fmdriver_diff.py. */
+/* Writes OPEN.EXE's FM music bank (recovered/data/ofmusic.cpp of the intro:
+ * tracks, voices and events in declaration order, which is the bank's layout
+ * at 0710:0002) to stdout. */
 #include <stdio.h>
 
-#include "types.hpp"
-
-extern uint16_t opeu_music_tracks[3][5];
-extern unsigned char opeu_music_voices[447];
-extern unsigned char opeu_music_events[8379];
+#include "recovered.hpp"
 
 /* main.cpp calls this. */
 int opeu_dump_open_bank(void) {
+  using namespace opeu::intro::detail::ofmusic;
   int song, track;
   for (song = 0; song < 3; song++)
     for (track = 0; track < 5; track++) {

@@ -1,5 +1,5 @@
 /* OPEN file-backed DGROUP DS:0356..0417 (194 bytes): data of the helper
- * segment 062d (src/open/core/outil.c).
+ * segment 062d (core/outil.cpp).
  *
  * The image-stream byte count, the current palette and the black palette the
  * fade helpers step between (16 RGB triples of 6-bit DAC levels 0..15 as
@@ -7,7 +7,9 @@
  * no recovered routine addresses, and the fatal-error format of the
  * open-or-die helper. All objects start at even offsets.
  */
-#include "types.hpp"
+#include "recovered.hpp"
+
+namespace opeu::intro::detail::odutil {
 
 uint16_t opeu_stream_count = 0;                  /* DS:0356 */
 uint8_t opeu_open_palette[48] = { 0 };             /* DS:0358 current palette */
@@ -26,3 +28,5 @@ uint8_t opeu_open_icon[16][2] = { { 0x3f, 0xfc }, { 0x60, 0x06 }, { 0xc0, 0x03 }
                                   { 0x86, 0x01 }, { 0xc2, 0x03 }, { 0x60, 0x06 }, { 0x3f, 0xfc } };
 
 char opeu_open_error_format[] = "OPEN ERROR=  %s";  /* DS:0408 */
+
+}

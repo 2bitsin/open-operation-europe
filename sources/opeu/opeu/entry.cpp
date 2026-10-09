@@ -60,7 +60,7 @@ int opeu_main(int argc, char** argv) {
   int i;
 
   port_options.scale = 2;
-  open_intro_options(&argc, argv);     /* --no-intro / --intro */
+  opeu::intro::open_intro_options(&argc, argv);     /* --no-intro / --intro */
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--saves") && i + 1 < argc)
       port_options.save_dir = argv[++i];
@@ -128,7 +128,7 @@ int opeu_main(int argc, char** argv) {
   port_fm_init();
 
   /* KOEI.COM ran OPEN.EXE between FMDRV and MAIN (port/open). */
-  open_intro_run();
+  opeu::intro::open_intro_run();
 
   /* crt0 -> main(): the recovered application entry. */
   opeu_application_entry(port_ds, svc_app);

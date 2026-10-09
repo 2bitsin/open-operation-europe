@@ -1,19 +1,19 @@
 /* OPEN file-backed DGROUP DS:0418..1973 (5,468 bytes): the opening's file
  * names, its two file handles and the palette table.
  *
- * The names and handles are used by the opening (src/open/core/openmain.c);
- * OUTIL's picture-stream helpers read the same OPENGRP.NPK handle
+ * The names and handles are used by the opening (core/openmain.cpp); OUTIL's
+ * picture-stream helpers read the same OPENGRP.NPK handle
  * (opeu_picture_handle). Both handles start at -1 (closed). The table holds
  * 113 palettes of 16 RGB triples (DAC levels 0..15); the opening addresses
- * rows 0..111 by index (PALETTE(n) = opeu_open_palettes[n]) and OUTIL's
- * alternative fade uses the last row by its own name, so the row DS:1944 is
- * the separate object opeu_open_fade_target that ends the table.
- *
- * C 6.0a word-aligns arrays and words and emits no data for the alignment
- * bytes; the zero bytes DS:0425 and DS:043f after the odd-length names are
- * explicit one-byte objects, so every byte of the range comes from source.
+ * rows 0..111 by index and OUTIL's alternative fade uses the last row by its
+ * own name, so the row DS:1944 is the separate object opeu_open_fade_target
+ * that ends the table. The zero bytes DS:0425 and DS:043f after the
+ * odd-length names are explicit one-byte objects, so every byte of the range
+ * comes from source.
  */
-#include "types.hpp"
+#include "recovered.hpp"
+
+namespace opeu::intro::detail::odpal {
 
 char opeu_open_name_fnt[] = "KOEILOGO.FNT";        /* DS:0418 */
 uint8_t opeu_open_z_0425 = 0;                      /* alignment byte */
@@ -255,3 +255,5 @@ uint8_t opeu_open_palettes[112][48] = {
 uint8_t opeu_open_fade_target[48] = { 0, 0,  0,  9,  1,  4,  3,  13, 3,  11, 13, 7,  4,  4,  9,  11,
                                       7, 11, 6,  15, 12, 15, 15, 15, 6,  6,  6,  9,  4,  7,  7,  15,
                                       8, 3,  11, 6,  3,  1,  6,  13, 11, 13, 11, 15, 14, 11, 11, 11 };
+
+}

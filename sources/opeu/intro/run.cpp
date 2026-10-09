@@ -1,5 +1,5 @@
-/* OPEN.EXE in the port's start-up: the launcher's sequence (src/koei/
- * launcher.asm: BIOS mode 12h, FMDRV, OPEN, MAIN) in one process.
+/* OPEN.EXE in the port's start-up: the launcher's sequence (KOEI.COM: BIOS
+ * mode 12h, FMDRV, OPEN, MAIN) in one process.
  *
  * What carries over from OPEN to MAIN is what carried over between the two
  * DOS programs: the VGA (VRAM, DAC and attribute palette: MAIN's first
@@ -17,7 +17,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int intro_mode = -1;      /* -1 default, 0 --no-intro, 1 --intro */
+namespace opeu::intro {
+namespace {
+int intro_mode = -1;      /* -1 default, 0 --no-intro, 1 --intro */
+}
 
 void open_intro_options(int* argc, char** argv) {
   int i, j;
@@ -46,8 +49,8 @@ void open_intro_run(void) {
   {
     /* Diagnostic (OPEU_OPEN_DUMP=file): OPEN's memory from the song
          * bank's segment on (64 KB), as the resident driver saw it at the
-         * exit; port/open/tests/open_music_diff.py replays the shutdown's
-         * song 5 (garbage track offsets into this memory) from it. */
+         * exit, to replay the shutdown's song 5 (garbage track offsets into
+         * this memory) from it. */
     const char* path = getenv("OPEU_OPEN_DUMP");
     FILE* f = path ? fopen(path, "wb") : NULL;
     if (path && (!f || fwrite(port_arena + (uint32_t)OPEN_BANK_SEGMENT * 16u, 1, 0x10000, f) != 0x10000))
@@ -55,4 +58,6 @@ void open_intro_run(void) {
     if (f) fclose(f);
   }
   port_memory_init();
+}
+
 }

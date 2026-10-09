@@ -1,84 +1,32 @@
 /* OPEN 0349:0002..02b1 (image 0x3492..0x3742): INT 66h music and sound-effect
- * driver interface, the OPEN build of MAIN's SOUND (0d65, src/main/io/sound.c),
- * whose C text is copied here; the routines that differ are marked OPEN.
- * DS:1c20 holds the driver-open result, DS:1c2e the sound-enabled flag,
- * DS:0182/0183 the current music track/effect, and DS:0184/019e the 7- and
- * 13-byte music bank/path buffers. Music commands are AH=1 start, 2 stop,
- * 3 status, 4 control, 5 load, 6 select, 7; effect commands are AH=10h load,
- * 11h start, 12h stop, 13h status. The REGS/SREGS layouts follow Microsoft
- * C's <dos.h>. OPEN has no sound reset or effect finish; the driver is opened
- * with the FM driver image at 0710:0002 only (0000:13e0).
- */
-#include "types.hpp"
-
-typedef struct {
-  uint16_t ax, bx, cx, dx, si, di, cflag;
-} WordRegs;
-typedef struct {
-  uint8_t al, ah, bl, bh, cl, ch, dl, dh;
-} ByteRegs;
-typedef union {
-  WordRegs x;
-  ByteRegs h;
-} Regs;
-typedef struct {
-  uint16_t es, cs, ss, ds;
-} SegRegs;
-
-/* Host model: ds is the original 64 KiB data segment; near pointers are DS
- * offsets and far pointers are segment:offset values relative to the load
- * segment. The service is the INT 66h boundary: call 0 is the driver open
- * routine 0000:13e0 (words: driver image offset/segment), call 1 is
- * int86 (seven REGS words in/out), call 2 int86x (REGS then four SREGS
- * words), call 3 segread (four SREGS words out). The original passes the
+ * driver interface, the OPEN build of MAIN's SOUND (0d65), whose C text is
+ * copied here; the routines that differ are marked OPEN. Music commands are
+ * AH=1 start, 2 stop, 3 status, 4 control, 5 load, 6 select, 7; effect
+ * commands are AH=10h load, 11h start, 12h stop, 13h status. OPEN has no
+ * sound reset or effect finish; the driver is opened with the FM driver image
+ * at 0710:0002 only (0000:13e0).
+ *
+ * ds is the original 64 KiB data segment; near pointers are DS offsets and
+ * far pointers are segment:offset values relative to the load segment. The
+ * service is the INT 66h boundary (SoundServiceId). The original passes the
  * same REGS as input and output; unassigned fields are zero here.
  */
-typedef uint16_t (*SoundService)(uint8_t* ds, uint16_t call, uint16_t* words);
-#define STATE uint8_t ds[65536], SoundService service
-#define STATE_ STATE,
-#define WITH ds, service
-#define WITH_ ds, service,
-#define NEAR uint16_t
-#define FAR uint32_t
-#define REGS Regs r = { { 0, 0, 0, 0, 0, 0, 0 } }
-#define FRAME_PAD
-#define WORD_AT(n) ((uint16_t)(ds[n] | (uint16_t)ds[(n) + 1] << 8))
-#define DRIVER WORD_AT(0x1c20)
-#define ENABLED WORD_AT(0x1c2e)
-#define OPEN() host_set_word(ds, 0x1c20, host_open(ds, service))
-#define SET_ENABLED(v) host_set_word(ds, 0x1c2e, (uint16_t)(v))
-#define MUSIC_CURRENT ds[0x182]
-#define EFFECT_CURRENT ds[0x183]
-#define MUSIC_BANK 0x184
-#define MUSIC_PATH 0x19e
-#define BANK_OFFSET 0x184
-#define COPY(s, d, n) host_copy(ds, s, d, n)
-#define INT86(r) host_int86(ds, service, &r, 0)
-#define INT86X(r, s) host_int86(ds, service, &r, &s)
-#define SEGREAD(s) host_segread(ds, service, &s)
-int opeu_music_playing(STATE);
-int opeu_effect_playing(STATE);
-void opeu_music_stop(STATE);
-void opeu_effect_stop(STATE);
-void opeu_music_start(STATE_ uint8_t track);
-void opeu_effect_start(STATE_ uint8_t effect);
-void opeu_finish_side_initialization(STATE_ uint8_t value);
-void opeu_music_load(STATE_ NEAR bank, NEAR path);
-void opeu_music_select(STATE_ uint8_t value);
+#include "recovered.hpp"
 
-static void host_set_word(uint8_t* ds, uint16_t at, uint16_t value) {
-  ds[at] = (uint8_t)value;
-  ds[(uint16_t)(at + 1)] = (uint8_t)(value >> 8);
-}
+namespace opeu::intro::detail::osound {
+namespace {
+struct SegRegs {
+  uint16_t es, cs, ss, ds;
+};
 
-static uint16_t host_open(uint8_t* ds, SoundService service) {
-  uint16_t words[2] = { 0x0002, 0x0710 };
-  return service(ds, 0, words);
+auto host_open(uint8_t* ds, SoundService service) -> uint16_t {
+  uint16_t words[2] = { BANK_OFFSET, BANK_FRAME };
+  return service(ds, SoundServiceId::DRIVER_OPEN, words);
 }
 
 /* 09cc:000a copies forward when destination < source, else backward;
  * both near pointers wrap within DS. */
-static void host_copy(uint8_t* ds, uint16_t source, uint16_t destination, uint16_t size) {
+auto host_copy(uint8_t* ds, uint16_t source, uint16_t destination, uint16_t size) -> void {
   uint16_t i;
   if (destination < source)
     for (i = 0; i < size; i++) ds[(uint16_t)(destination + i)] = ds[(uint16_t)(source + i)];
@@ -86,7 +34,7 @@ static void host_copy(uint8_t* ds, uint16_t source, uint16_t destination, uint16
     for (i = size; i; i--) ds[(uint16_t)(destination + i - 1)] = ds[(uint16_t)(source + i - 1)];
 }
 
-static uint16_t host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* s) {
+auto host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* s) -> uint16_t {
   uint16_t words[11], result;
   words[0] = r->x.ax;
   words[1] = r->x.bx;
@@ -101,7 +49,7 @@ static uint16_t host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* 
     words[9] = s->ss;
     words[10] = s->ds;
   }
-  result = service(ds, s ? 2 : 1, words);
+  result = service(ds, s ? SoundServiceId::INT86X : SoundServiceId::INT86, words);
   r->x.ax = words[0];
   r->x.bx = words[1];
   r->x.cx = words[2];
@@ -118,151 +66,161 @@ static uint16_t host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* 
   return result;
 }
 
-static void host_segread(uint8_t* ds, SoundService service, SegRegs* s) {
+auto host_segread(uint8_t* ds, SoundService service, SegRegs* s) -> void {
   uint16_t words[4] = { 0, 0, 0, 0 };
-  service(ds, 3, words);
+  service(ds, SoundServiceId::SEGREAD, words);
   s->es = words[0];
   s->cs = words[1];
   s->ss = words[2];
   s->ds = words[3];
 }
-
-void opeu_sound_initialize(STATE) {
-  OPEN();
-  SET_ENABLED(DRIVER != 0);
 }
 
-void opeu_finish_side_initialization(STATE_ uint8_t value) {
-  REGS;
-  if (DRIVER && ENABLED) {
+int opeu_music_playing(uint8_t* ds, SoundService service);
+int opeu_effect_playing(uint8_t* ds, SoundService service);
+void opeu_music_stop(uint8_t* ds, SoundService service);
+void opeu_effect_stop(uint8_t* ds, SoundService service);
+void opeu_effect_start(uint8_t* ds, SoundService service, uint8_t effect);
+void opeu_music_load(uint8_t* ds, SoundService service, uint16_t bank, uint16_t path);
+void opeu_music_select(uint8_t* ds, SoundService service, uint8_t value);
+
+void opeu_sound_initialize(uint8_t* ds, SoundService service) {
+  Data(ds).driver = host_open(ds, service);
+  Data(ds).sound_enabled = (uint16_t)(Data(ds).driver != 0);
+}
+
+void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t value) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (Data(ds).driver && Data(ds).sound_enabled) {
     r.h.ah = 4;
     r.h.al = value;
-    INT86(r);
+    host_int86(ds, service, &r, nullptr);
   }
 }
 
 /* OPEN: no driver test. */
-void opeu_music_stop(STATE) {
-  REGS;
+void opeu_music_stop(uint8_t* ds, SoundService service) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   r.h.ah = 2;
   r.h.al = 20;
-  INT86(r);
+  host_int86(ds, service, &r, nullptr);
 }
 
 /* OPEN: tests the driver like opeu_effect_playing. */
-int opeu_music_playing(STATE) {
+int opeu_music_playing(uint8_t* ds, SoundService service) {
   int state;
-  REGS;
-  if (!DRIVER) return 0;
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (!Data(ds).driver) return 0;
   r.h.ah = 3;
-  state = INT86(r);
+  state = host_int86(ds, service, &r, nullptr);
   return (state & 0xff) != 0;
 }
 
-void opeu_music_start(STATE_ uint8_t track) {
-  REGS;
-  if (!DRIVER) return;
-  if (opeu_music_playing(WITH)) {
-    if (MUSIC_CURRENT == track) return;
-    opeu_music_stop(WITH);
-    while (opeu_music_playing(WITH));
+void opeu_music_start(uint8_t* ds, SoundService service, uint8_t track) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (!Data(ds).driver) return;
+  if (opeu_music_playing(ds, service)) {
+    if (Data(ds).music_current == track) return;
+    opeu_music_stop(ds, service);
+    while (opeu_music_playing(ds, service));
   }
   r.h.ah = 1;
   r.h.al = track + 1;
-  INT86(r);
-  MUSIC_CURRENT = track;
+  host_int86(ds, service, &r, nullptr);
+  Data(ds).music_current = track;
 }
 
-void opeu_set_turn_context(STATE_ uint8_t track) {
-  if (ENABLED) {
-    opeu_music_start(WITH_ track);
-    opeu_finish_side_initialization(WITH_ 1);
+void opeu_set_turn_context(uint8_t* ds, SoundService service, uint8_t track) {
+  if (Data(ds).sound_enabled) {
+    opeu_music_start(ds, service, track);
+    opeu_finish_side_initialization(ds, service, 1);
   }
 }
 
-void opeu_music_load(STATE_ NEAR bank, NEAR path) {
-  REGS;
+void opeu_music_load(uint8_t* ds, SoundService service, uint16_t bank, uint16_t path) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   SegRegs segs;
-  if (!DRIVER) return;
-  COPY(bank, MUSIC_BANK, 7);
-  COPY(path, MUSIC_PATH, 13);
-  SEGREAD(segs);
+  if (!Data(ds).driver) return;
+  host_copy(ds, bank, Near(ds, Data(ds).music_bank), 7);
+  host_copy(ds, path, Near(ds, Data(ds).music_path), 13);
+  host_segread(ds, service, &segs);
   r.h.al = 0;
-  r.x.dx = BANK_OFFSET;
+  r.x.dx = Near(ds, Data(ds).music_bank);
   r.h.ah = 5;
-  INT86X(r, segs);
+  host_int86(ds, service, &r, &segs);
 }
 
-void opeu_music_select(STATE_ uint8_t value) {
-  REGS;
-  if (DRIVER) {
+void opeu_music_select(uint8_t* ds, SoundService service, uint8_t value) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (Data(ds).driver) {
     r.h.al = 0;
     r.h.dl = value;
     r.h.ah = 6;
-    INT86(r);
+    host_int86(ds, service, &r, nullptr);
   }
 }
 
-void opeu_music_load_select(STATE_ NEAR bank, NEAR path, uint8_t value) {
-  if (!ENABLED) return;
-  opeu_music_load(WITH_ bank, path);
-  opeu_music_select(WITH_ value);
+void opeu_music_load_select(uint8_t* ds, SoundService service, uint16_t bank, uint16_t path, uint8_t value) {
+  if (!Data(ds).sound_enabled) return;
+  opeu_music_load(ds, service, bank, path);
+  opeu_music_select(ds, service, value);
 }
 
 /* OPEN: tests the driver. */
-void opeu_music_command7(STATE) {
-  REGS;
-  if (DRIVER) {
+void opeu_music_command7(uint8_t* ds, SoundService service) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (Data(ds).driver) {
     r.h.al = 0;
     r.h.ah = 7;
-    INT86(r);
+    host_int86(ds, service, &r, nullptr);
   }
 }
 
-void opeu_effect_stop(STATE) {
-  REGS;
-  if (DRIVER) {
+void opeu_effect_stop(uint8_t* ds, SoundService service) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (Data(ds).driver) {
     r.h.ah = 18;
-    INT86(r);
+    host_int86(ds, service, &r, nullptr);
   }
 }
 
-int opeu_effect_playing(STATE) {
+int opeu_effect_playing(uint8_t* ds, SoundService service) {
   int state;
-  REGS;
-  if (!DRIVER) return 0;
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (!Data(ds).driver) return 0;
   r.h.ah = 19;
-  state = INT86(r);
+  state = host_int86(ds, service, &r, nullptr);
   return (state & 0xff) != 0;
 }
 
-void opeu_effect_load(STATE_ FAR data) {
-  REGS;
+void opeu_effect_load(uint8_t* ds, SoundService service, uint32_t data) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   SegRegs segs;
-  if (DRIVER) {
+  if (Data(ds).driver) {
     r.h.ah = 16;
     segs.ds = (uint16_t)((uint32_t)data >> 16);
     r.x.dx = (uint16_t)(uint32_t)data;
-    INT86X(r, segs);
+    host_int86(ds, service, &r, &segs);
   }
 }
 
-void opeu_effect_start(STATE_ uint8_t effect) {
-  REGS;
-  FRAME_PAD
-  if (!DRIVER) return;
-  if (opeu_effect_playing(WITH)) {
-    if (EFFECT_CURRENT == effect) return;
-    opeu_effect_stop(WITH);
-    while (opeu_effect_playing(WITH));
+void opeu_effect_start(uint8_t* ds, SoundService service, uint8_t effect) {
+  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  if (!Data(ds).driver) return;
+  if (opeu_effect_playing(ds, service)) {
+    if (Data(ds).effect_current == effect) return;
+    opeu_effect_stop(ds, service);
+    while (opeu_effect_playing(ds, service));
   }
   /* OPEN: always starts effect slot 1 and records the requested effect. */
   r.h.ah = 17;
   r.h.al = 1;
-  INT86(r);
-  EFFECT_CURRENT = effect;
+  host_int86(ds, service, &r, nullptr);
+  Data(ds).effect_current = effect;
 }
 
-void opeu_effect_play(STATE_ uint8_t effect) {
-  if (ENABLED) opeu_effect_start(WITH_ effect);
+void opeu_effect_play(uint8_t* ds, SoundService service, uint8_t effect) {
+  if (Data(ds).sound_enabled) opeu_effect_start(ds, service, effect);
+}
+
 }

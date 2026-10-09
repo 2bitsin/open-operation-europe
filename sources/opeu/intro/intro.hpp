@@ -1,10 +1,10 @@
 /* The opening program OPEN.EXE in the native port.
  *
- * The original launcher (KOEI.COM, src/koei/launcher.asm:186-194) sets BIOS
- * mode 12h, runs FMDRV.COM (resident), then OPEN.EXE, then MAIN.EXE. The
- * port does the same in one process: port/main.c installs the FM driver,
- * open_intro_run() runs OPEN's recovered main() (src/open/core/openmain.c)
- * and then MAIN starts with the same window, VGA state and driver.
+ * The original launcher (KOEI.COM) sets BIOS mode 12h, runs FMDRV.COM
+ * (resident), then OPEN.EXE, then MAIN.EXE. The port does the same in one
+ * process: the entry installs the FM driver, open_intro_run() runs OPEN's
+ * recovered main() (recovered/core/openmain.cpp) and then MAIN starts with
+ * the same window, VGA state and driver.
  *
  *   open_intro_options()  takes --no-intro / --intro out of argv (call
  *                         before the port's own option parser)
@@ -17,5 +17,9 @@
  */
 #pragma once
 
+namespace opeu::intro {
+
 void open_intro_options(int* argc, char** argv);
 void open_intro_run(void);
+
+}
