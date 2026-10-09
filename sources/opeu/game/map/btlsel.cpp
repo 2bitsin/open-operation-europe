@@ -12,12 +12,10 @@
 #include "map/btlinfo.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI: ds/event first; all address arithmetic wraps at 16 bits.
  *   mouse_select(ds, event, show_info, frame) -> 0/1; frame is its emulated BP
  *     (SS = DS): the mouse/cell words are x at frame-6 and y at frame-8.
@@ -133,7 +131,6 @@ uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event, uint16_t sp) {
   return opeu_battle_key_select(ds, event, 1);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -166,4 +163,3 @@ PORT_ROUTINE(opeu_battle_mouse_select) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

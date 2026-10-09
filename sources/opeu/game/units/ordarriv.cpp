@@ -9,12 +9,10 @@
 #include "units/ordarriv.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/engineer.hpp"
-#endif
 
 /* Host model: ds is the 64 KiB data/stack segment and sp the original SP at
  * entry (BP = sp-2); x,y live in their original stack bytes. Callees are
@@ -118,7 +116,6 @@ uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -178,4 +175,3 @@ PORT_ROUTINE(opeu_order_reach_unit) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

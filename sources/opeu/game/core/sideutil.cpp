@@ -4,12 +4,10 @@
 #include "core/sideutil.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
-#endif
 #define STATUS(s) \
   ((uint16_t)(ds[0x5a + (s) * 2] | ((uint16_t)ds[0x5b + (s) * 2] << 8)))
 #define FLAG        ds[0x13e]
@@ -35,7 +33,6 @@ uint8_t opeu_record_side(const uint8_t ds[65536], uint16_t record) {
   return 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -55,4 +52,3 @@ void svc_sideutil(uint8_t* ds, uint16_t color) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

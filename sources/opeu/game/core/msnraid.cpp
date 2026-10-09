@@ -14,12 +14,10 @@
 #include "types/events.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/msnkill.hpp"
-#endif
 /* Host model (see msnrept.c): DS offsets, a scratch frame for local buffers,
  * recovered helpers for records and strings, and scripted services:
  *   0 rand_bounded(bound)  1 request_text(id)  6 unit_name(unit,buffer)
@@ -190,7 +188,6 @@ void opeu_mission_unit_4(uint8_t ds[65536], HostEvent event, uint16_t frame,
     FAILURE(side, n);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -246,4 +243,3 @@ PORT_ROUTINE(opeu_mission_unit_4) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

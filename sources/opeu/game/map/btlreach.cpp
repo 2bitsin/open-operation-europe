@@ -14,12 +14,10 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI: ds/event first; elements and units are DS offsets.
  *   opeu_battle_mark_exits(ds, event, element) -> word
  *   opeu_battle_unmark_exits(ds, event, element)
@@ -89,7 +87,6 @@ uint16_t opeu_battle_lone_withdrawal(uint8_t* ds, BattleEvent event,
   return count == 1 && last == element;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -108,4 +105,3 @@ uint16_t svc_btlreach(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

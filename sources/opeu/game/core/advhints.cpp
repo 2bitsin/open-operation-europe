@@ -14,12 +14,10 @@
 #include "data/fadvice.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/advenemy.hpp"
-#endif
 #include <string.h>
 /* Host: near pointers are DS offsets wrapping at 16 bits. far_text is the
  * base of far segment 3ad9 (FADVICE); sp is the DS offset of SP at entry, so
@@ -148,7 +146,6 @@ uint16_t opeu_advice_operation_hints(uint8_t ds[65536], const uint8_t* far_text,
   return a;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -180,4 +177,3 @@ PORT_ROUTINE(opeu_advice_operation_hints) {
 #undef ARG
 #undef ARG32
 #undef C2_ADVICE_TEXT
-#endif /* OPEU_HOST_EVENTS */

@@ -14,10 +14,8 @@ uint16_t opeu_battle_rounds(uint8_t* ds, BattleEvent event);
 void     opeu_battle_finish_turn(uint8_t* ds, BattleEvent event);
 void     opeu_battle_finish_none(uint8_t* ds, BattleEvent event);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlfight(uint8_t* ds, uint32_t address, const uint16_t* args,
                       unsigned int count);
-#endif
 
 #endif

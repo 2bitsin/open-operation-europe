@@ -8,11 +8,9 @@
 #include "map/query.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host ABI: ds/event first; elements, units and objectives are DS offsets.
  * The run loop calls this module group's host rounds/finish functions
@@ -158,7 +156,6 @@ void opeu_notice_other(uint8_t* ds, BattleEvent event) {
   opeu_battle_run(ds, event);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -176,4 +173,3 @@ uint16_t svc_btlend(uint8_t* ds, uint32_t address, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

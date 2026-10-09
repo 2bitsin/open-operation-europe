@@ -16,9 +16,7 @@ uint16_t opeu_menu_track(uint8_t* ds, HostService service, uint16_t items,
 uint16_t opeu_menu_select(uint8_t* ds, HostService service, uint16_t items,
                           int cancel, uint16_t scratch);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_menudraw(uint8_t* ds, uint16_t call, uint16_t* words);
-#endif
 
 #endif

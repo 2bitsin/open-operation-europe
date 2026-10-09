@@ -14,12 +14,10 @@
 #include "core/personfl.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/tblgroup.hpp"
-#endif
 
 /* Host model and events: as TBLGROUP (0c45:0002); the row buffer is at
  * scratch+4. */
@@ -111,7 +109,6 @@ void opeu_tbl_draw_staff(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -149,4 +146,3 @@ PORT_ROUTINE(opeu_tbl_draw_staff) {
 #undef ARG32
 #undef B2_SP_CALL
 #undef B2_TABLE_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

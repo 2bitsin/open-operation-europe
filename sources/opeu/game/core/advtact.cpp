@@ -29,12 +29,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/advenemy.hpp"
-#endif
 #include <string.h>
 /* Host model: ds is DGROUP and near pointers are 16-bit DS offsets;
  * far_text is the base of the advice text segment 3ad9 (FADVICE offsets).
@@ -479,7 +477,6 @@ void opeu_advice_tactical(uint8_t ds[65536], const uint8_t* far_text,
     opeu_advice_tactical_linked_objective(ds, far_text, event, inner);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -512,4 +509,3 @@ PORT_ROUTINE(opeu_advice_tactical) {
 #undef ARG
 #undef ARG32
 #undef C2_ADVICE_TEXT
-#endif /* OPEU_HOST_EVENTS */

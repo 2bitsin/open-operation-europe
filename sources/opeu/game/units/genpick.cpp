@@ -10,7 +10,6 @@
 #include "units/genpick.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -22,7 +21,6 @@
 #include "core/uiprim.hpp"
 #include "core/vacancy.hpp"
 #include "io/listui.hpp"
-#endif
 
 /* Host UI boundary: event(ds, kind, args, count) with near DS offsets.
  * 0 set_role(person,value) 1 set_group(person,value) 2 portrait(x,y,person)
@@ -230,7 +228,6 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -316,4 +313,3 @@ PORT_ROUTINE(opeu_general_list_draw_rows) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

@@ -8,11 +8,7 @@
 #include "types.hpp"
 
 #define VALUE_TYPE int32_t
-#if defined(OPEU_LONG_RATIO)
-#define RATIO_NAME opeu_resource_percent
-#else
 #define RATIO_NAME opeu_resource_percent_wide
-#endif
 /* Define multiplication wrap and quotient truncation for modern C, including
  * the INT32_MIN/-1 bit pattern handled by the DOS runtime helper.
  */
@@ -31,9 +27,7 @@ uint16_t RATIO_NAME(VALUE_TYPE current, VALUE_TYPE capacity) {
   return a;
 }
 
-#if !defined(OPEU_LONG_RATIO)
 /* Preserve the word-domain API used by the earlier recovered host callers. */
 uint16_t opeu_resource_percent(uint16_t current, uint16_t capacity) {
   return opeu_resource_percent_wide(current, capacity);
 }
-#endif

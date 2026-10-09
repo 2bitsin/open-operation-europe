@@ -19,7 +19,6 @@
 #include "map/movesup.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -32,7 +31,6 @@
 #include "map/support.hpp"
 #include "units/stats.hpp"
 #include "units/value.hpp"
-#endif
 #define UNIT_P           uint16_t
 #define ELEMENT_P        uint16_t
 #define STEP_LOCALS      uint8_t c, d, e;
@@ -134,7 +132,6 @@ void opeu_move_mines_finish(uint8_t ds[65536], HostEvent event) {
   PENDING_FINISH(3);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -196,4 +193,3 @@ PORT_ROUTINE(opeu_move_mines_finish) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

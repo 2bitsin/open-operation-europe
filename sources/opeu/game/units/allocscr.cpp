@@ -8,13 +8,11 @@
 #include "units/typetext.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#endif
 /* Host UI boundary. Event numbers and argument words:
  * 0 position(x,y) 1 print(format,...) 2 fill(x,y,w,h,colour)
  * 3 outline(x1,y1,x2,y2,colour) 4 backdrop(mode).
@@ -138,7 +136,6 @@ void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first,
   SHOW(count);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -180,4 +177,3 @@ uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -9,11 +9,9 @@
 #include "io/sound.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host model: the data segment and INT 66h service of io/sound.c. */
 #define PLAY(n) opeu_effect_play(ds, service, n)
@@ -70,7 +68,6 @@ void opeu_sound_cue16(uint8_t ds[65536], HostService service) {
   PLAY(16);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -160,4 +157,3 @@ PORT_ROUTINE(opeu_sound_cue9) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

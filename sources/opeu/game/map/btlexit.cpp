@@ -15,12 +15,10 @@
 #include "map/stepmap.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI: ds/event first; elements and units are DS offsets, all address
  * arithmetic wraps at 16 bits.
  *   opeu_battle_exit_ok(ds, event, x, y, element) -> word
@@ -120,7 +118,6 @@ uint16_t opeu_battle_cursor_exit_ok(uint8_t* ds, BattleEvent event,
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -139,4 +136,3 @@ uint16_t svc_btlexit(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

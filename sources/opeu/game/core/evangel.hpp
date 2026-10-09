@@ -18,10 +18,8 @@ void     opeu_angel_judge_side(uint8_t* ds, HostEvent event, uint16_t person,
 void opeu_angel_present(uint8_t* ds, HostEvent event, uint16_t code_segment);
 void opeu_angel_event(uint8_t* ds, HostEvent event, uint16_t code_segment);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

@@ -15,9 +15,7 @@ void     opeu_alloc_element_values(uint8_t* ds, HostWordsEvent event,
 uint16_t opeu_alloc_scaled(uint8_t* ds, HostWordsEvent event, int32_t value,
                            uint16_t amount, int32_t total);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_allocpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count);
-#endif
 
 #endif

@@ -21,12 +21,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
-#endif
 #include <string.h>
 /* Host model: DS offsets stand for near pointers (16-bit wrap). far_text is
  * the far advice segment 3ad9 (FADVICE offsets index it). sp is the DS
@@ -500,7 +498,6 @@ void opeu_advice_enemy_conditions(uint8_t ds[65536], const uint8_t* far_text,
   opeu_advice_enemy_need_recon(ds, far_text, event, (uint16_t)(sp - 4));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -555,4 +552,3 @@ PORT_ROUTINE(opeu_advice_enemy_conditions) {
 #undef ARG
 #undef ARG32
 #undef C2_ADVICE_TEXT
-#endif /* OPEU_HOST_EVENTS */

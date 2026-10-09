@@ -6,7 +6,6 @@
 #include "map/movetgt.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -30,7 +29,6 @@
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
 #include "units/value.hpp"
-#endif
 /* Host model: ds is the 64 KiB data/stack segment; pointers are DS
  * offsets with 16-bit wrap. Calls go through event(ds,id,args,count) with the
  * ids of tests/validate_move_unit.py. frame is the original BP: adjacent's
@@ -157,7 +155,6 @@ uint16_t opeu_move_level_lower(uint8_t ds[65536], RECORD_P record,
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -305,4 +302,3 @@ uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef MAP_PATH_SEGMENT
-#endif /* OPEU_HOST_EVENTS */

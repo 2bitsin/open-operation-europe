@@ -13,11 +13,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; units, elements and records are DS offsets.
  * Callees outside 2864 and this group are event services named by linear MAIN
  * address with their register words in AX, DX, BX order (bytes zero-extended),
@@ -193,7 +191,6 @@ void opeu_notice_one(uint8_t* ds, BattleEvent event) {
   call(ds, event, DAILY_CONTEXT, 1, ds[0x62], 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -218,4 +215,3 @@ PORT_ROUTINE(opeu_battle_tire_leaders) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

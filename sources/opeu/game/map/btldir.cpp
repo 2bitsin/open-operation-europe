@@ -11,11 +11,9 @@
 #include "map/distance.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements are DS offsets. */
 
 static uint16_t pos(const uint8_t* ds, uint16_t element) {
@@ -52,7 +50,6 @@ uint8_t opeu_battle_terrain_mode(uint8_t* ds, BattleEvent event,
                             ds[(uint16_t)(q + 1)]);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -84,4 +81,3 @@ PORT_ROUTINE(opeu_battle_terrain_mode) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

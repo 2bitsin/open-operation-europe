@@ -5,11 +5,9 @@
 #include "types.hpp"
 #include "core/strings.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #define POINTER     uint16_t
 #define RESULT      uint16_t
 #define READ(p)     ds[(p)++]
@@ -56,7 +54,6 @@ uint8_t opeu_ascii_lower(uint8_t code) {
   return code;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -73,4 +70,3 @@ PORT_ROUTINE(opeu_string_copy) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

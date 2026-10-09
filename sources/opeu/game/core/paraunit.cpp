@@ -35,7 +35,6 @@
 #include "core/random.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -53,7 +52,6 @@
 #include "units/orders.hpp"
 #include "units/stats.hpp"
 #include "units/value.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint16_t next;
@@ -329,7 +327,6 @@ done:
   return unit->flags & 4;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -435,4 +432,3 @@ uint16_t svc_paraunit(uint8_t* ds, uint16_t id, uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

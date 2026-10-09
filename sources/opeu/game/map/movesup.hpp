@@ -9,10 +9,8 @@ uint16_t opeu_move_supplied(uint8_t* ds);
 void     opeu_move_consume(uint8_t* ds, HostEvent event);
 void     opeu_move_sighted(uint8_t* ds, uint16_t unit, uint16_t other);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_movesup(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

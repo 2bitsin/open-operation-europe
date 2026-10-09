@@ -22,10 +22,8 @@ void opeu_supply_digits(uint8_t* ds,
                                           uint16_t),
                         uint16_t x, uint16_t y, uint16_t value);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

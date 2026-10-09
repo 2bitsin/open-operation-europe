@@ -8,11 +8,9 @@
 #include "types.hpp"
 #include "core/memory.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #define NEAR               uint16_t
 #define TEXT               uint16_t
 #define FAR(segment, name) uint8_t *segment, uint16_t name
@@ -123,7 +121,6 @@ LONG opeu_parse_decimal(uint8_t ds[65536], TEXT text) {
   return value;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -141,4 +138,3 @@ PORT_ROUTINE(opeu_read_far_bytes) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

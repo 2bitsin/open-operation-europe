@@ -4,11 +4,9 @@
 #include "units/unitname.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #define RESULT uint16_t
 #define INDEX                                            \
   (((int32_t)(uint16_t)(unit - 0x14fc) -                 \
@@ -31,7 +29,6 @@ RESULT opeu_unit_name(uint8_t ds[65536], HostEvent event, uint16_t unit,
   return buffer;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -62,4 +59,3 @@ PORT_ROUTINE(opeu_unit_name) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

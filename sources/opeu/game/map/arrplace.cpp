@@ -7,13 +7,11 @@
 #include "map/arrplace.hpp"
 #include "core/random.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/cellpred.hpp"
 #include "map/reqcells.hpp"
-#endif
 #include <string.h>
 #define X         ds[x]
 #define Y         ds[y]
@@ -52,7 +50,6 @@ uint16_t opeu_arrival_locate(uint8_t ds[65536],
   return 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -91,4 +88,3 @@ uint16_t svc_arrplace(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

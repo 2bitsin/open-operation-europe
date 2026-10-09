@@ -16,62 +16,6 @@ typedef struct { uint8_t al, ah, bl, bh, cl, ch, dl, dh; } ByteRegs;
 typedef union { WordRegs x; ByteRegs h; } Regs;
 typedef struct { uint16_t es, cs, ss, ds; } SegRegs;
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-/* Unused declarations (no EXTDEF): C 6.0a orders the operands of the
- * `MUSIC_CURRENT == track` and `EFFECT_CURRENT == effect` tests by identifier
- * number. Two names here and one before the opeu_effect_start prototype give
- * OPEN's `mov al,[current]; cmp [bp-n],al` in both routines (a scratch sweep
- * of 0..16 names at both places found this as the first exact fit). */
-extern int opeu_sound_unused1, opeu_sound_unused2;
-extern int opeu_sound_driver, opeu_sound_enabled;
-extern uint8_t opeu_music_current, opeu_effect_current;
-extern char opeu_music_bank[], opeu_music_path[];
-extern char far opeu_music_tracks[];
-/* C library 0000:1f40, 0000:1fc0, 0000:2056; driver open 0000:13e0. */
-extern int _cdecl int86(int number, Regs *in, Regs *out);
-extern int _cdecl int86x(int number, Regs *in, Regs *out, SegRegs *segments);
-extern void _cdecl segread(SegRegs *segments);
-extern int _cdecl opeu_open_sound_open(char far *driver);
-extern void opeu_copy_bytes(const void *source, void *destination, uint16_t size);
-void opeu_sound_initialize(void);
-void opeu_finish_side_initialization(uint8_t value);
-void opeu_music_stop(void);
-int opeu_music_playing(void);
-void opeu_music_start(uint8_t track);
-void opeu_set_turn_context(uint8_t track);
-void opeu_music_load(char *bank, char *path);
-void opeu_music_select(uint8_t value);
-void opeu_music_load_select(char *bank, char *path, uint8_t value);
-void opeu_music_command7(void);
-void opeu_effect_stop(void);
-int opeu_effect_playing(void);
-void opeu_effect_load(char far *data);
-extern int opeu_sound_unused3;
-void opeu_effect_start(uint8_t effect);
-void opeu_effect_play(uint8_t effect);
-#pragma alloc_text(C0349_SND, opeu_sound_initialize, opeu_finish_side_initialization, opeu_music_stop, opeu_music_playing, opeu_music_start, opeu_set_turn_context, opeu_music_load, opeu_music_select, opeu_music_load_select, opeu_music_command7, opeu_effect_stop, opeu_effect_playing, opeu_effect_load, opeu_effect_start, opeu_effect_play)
-#define STATE void
-#define STATE_
-#define WITH
-#define WITH_
-#define NEAR char *
-#define FAR char far *
-#define REGS Regs r
-#define FRAME_PAD long state; /* unused: the original frame reserves four bytes above r */
-#define DRIVER opeu_sound_driver
-#define ENABLED opeu_sound_enabled
-#define OPEN() (opeu_sound_driver = opeu_open_sound_open(opeu_music_tracks))
-#define SET_ENABLED(v) (opeu_sound_enabled = (v))
-#define MUSIC_CURRENT opeu_music_current
-#define EFFECT_CURRENT opeu_effect_current
-#define MUSIC_BANK opeu_music_bank
-#define MUSIC_PATH opeu_music_path
-#define BANK_OFFSET (uint16_t)opeu_music_bank
-#define COPY(s, d, n) opeu_copy_bytes(s, d, n)
-#define INT86(r) int86(0x66, &r, &r)
-#define INT86X(r, s) int86x(0x66, &r, &r, &s)
-#define SEGREAD(s) segread(&s)
-#else
 /* Host model: ds is the original 64 KiB data segment; near pointers are DS
  * offsets and far pointers are segment:offset values relative to the load
  * segment. The service is the INT 66h boundary: call 0 is the driver open
@@ -161,7 +105,6 @@ static void host_segread(uint8_t *ds, SoundService service, SegRegs *s)
     service(ds, 3, words);
     s->es = words[0]; s->cs = words[1]; s->ss = words[2]; s->ds = words[3];
 }
-#endif
 
 void opeu_sound_initialize(STATE)
 {

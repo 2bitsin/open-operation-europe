@@ -4,12 +4,10 @@
 #include "core/divstr.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
-#endif
 
 /* Groups are 17-byte records at DS:0774 (flag bit 0 of byte 16 marks a
  * reserve division), units 22-byte records at DS:14fc (eight per group),
@@ -81,7 +79,6 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event,
   SET_LEFT(0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -113,4 +110,3 @@ void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -6,14 +6,12 @@
 #include "core/appinit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/startup.hpp"
 #include "core/textout.hpp"
 #include "io/mouse.hpp"
-#endif
 /* Events: startup service=0, VGA clear=1, mouse window=2 (x,y,width,height),
  * input flush=3, text position=4 (x,y), text=5 (DS offset), keyboard poll=6
  * and mouse poll=7 return words. Polls repeat until one returns nonzero.
@@ -61,7 +59,6 @@ void opeu_app_initialize(uint8_t ds[65536], HostEvent event) {
   FLUSH();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -108,4 +105,3 @@ uint16_t svc_appinit(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

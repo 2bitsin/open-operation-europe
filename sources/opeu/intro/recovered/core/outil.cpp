@@ -20,107 +20,6 @@ typedef struct { uint16_t ax, bx, cx, dx, si, di, cflag; } WordRegs;
 typedef struct { uint8_t al, ah, bl, bh, cl, ch, dl, dh; } ByteRegs;
 typedef union { WordRegs x; ByteRegs h; } Regs;
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-#define FP_SEG(p) (*((uint16_t *)&(p)+1))
-#define FP_OFF(p) (*((uint16_t *)&(p)))
-/* The C 6.0a <dos.h> REGS layout: seven words, AH at byte offset 1. */
-struct opeu_word_registers { uint16_t ax, bx, cx, dx, si, di, cflag; };
-struct opeu_byte_registers { uint8_t al, ah, bl, bh, cl, ch, dl, dh; };
-union opeu_registers { struct opeu_word_registers x; struct opeu_byte_registers h; };
-typedef uint8_t (far *ByteReader)(void);
-/* C library 0000:1f40 (int86, bound under both names). */
-extern int _cdecl int86(int number, Regs *in, Regs *out);
-extern int16_t _cdecl opeu_int86(int16_t number, union opeu_registers *in, union opeu_registers *out);
-/* KOEI library (segment 0000). */
-extern uint16_t _cdecl opeu_fm_busy(void);
-extern int16_t _cdecl opeu_dos_open();
-extern uint16_t _cdecl opeu_dos_read_far(int16_t handle,uint16_t segment,uint16_t offset,uint16_t count);
-extern int32_t _cdecl opeu_dos_seek(int16_t handle,int32_t position,int16_t origin);
-extern void _cdecl opeu_set_palette(uint8_t first,uint8_t count,uint8_t *rgb);
-extern void _cdecl koei_vga_identity_palette(void);
-extern void _cdecl opeu_ui_fill(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2,uint16_t color);
-extern void _cdecl opeu_picture_decode_masked(uint16_t x,uint16_t y,ByteReader reader);
-extern void opeu_vga_clear(void);
-extern int opeu_turn_input_b(void);
-/* OTEXT (02a0) and OPENMAIN (03ac). */
-extern void opeu_input_flush(void);
-extern void _cdecl opeu_cursor_print(char *format, ...);
-extern void opeu_text_put(uint8_t c);
-extern void opeu_open_delay(uint16_t ticks);
-extern int16_t opeu_picture_handle;
-extern uint16_t opeu_stream_count, opeu_image_segment;
-extern uint8_t far *opeu_stream_ptr;
-extern uint8_t opeu_open_palette[], opeu_open_black[], opeu_open_fade_target[];
-extern char opeu_open_error_format[];
-int16_t opeu_open_wait_ticks(uint16_t ticks);
-void opeu_mouse_window(int16_t x, int16_t y, int16_t width, int16_t height);
-uint16_t opeu_mouse_reset(void);
-int opeu_mouse_left(void);
-int opeu_mouse_right(void);
-int opeu_turn_input_a(void);
-uint8_t opeu_stream_file_byte(void);
-void opeu_stream_seek(int32_t position);
-void opeu_picture_file_at(uint16_t x,uint16_t y,int32_t position);
-void opeu_open_palette_set(uint8_t *palette);
-int16_t opeu_open_palette_step(uint8_t *target);
-int16_t opeu_open_palette_fade(uint8_t *target, uint16_t mode);
-int16_t opeu_open_fade_in(void);
-int16_t opeu_open_fade_in_wait(void);
-int16_t opeu_open_fade_alt(void);
-void opeu_open_identity_palette(void);
-int16_t opeu_open_input_poll(void);
-int16_t opeu_open_file_or_die(char *name);
-void opeu_disk_reset(void);
-void opeu_open_text_clear(void);
-void opeu_ui_outline(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2,uint16_t color);
-void opeu_open_stub_a(void);
-void opeu_open_stub_b(void);
-void opeu_open_stub_c(void);
-#pragma alloc_text(C062D_UTIL, opeu_open_wait_ticks, opeu_mouse_window, opeu_mouse_reset, opeu_mouse_left, opeu_mouse_right, opeu_turn_input_a)
-#pragma alloc_text(C062D_UTIL, opeu_stream_file_byte, opeu_stream_seek, opeu_picture_file_at, opeu_open_palette_set, opeu_open_palette_step)
-#pragma alloc_text(C062D_UTIL, opeu_open_palette_fade, opeu_open_fade_in, opeu_open_fade_in_wait, opeu_open_fade_alt, opeu_open_identity_palette)
-#pragma alloc_text(C062D_UTIL, opeu_open_input_poll, opeu_open_file_or_die, opeu_disk_reset, opeu_open_text_clear, opeu_ui_outline)
-#pragma alloc_text(C062D_UTIL, opeu_open_stub_a, opeu_open_stub_b, opeu_open_stub_c)
-#define STATE void
-#define STATE_
-#define WITH
-#define WITH_
-#define NOARGS void
-#define ARGS
-#define REGS Regs r
-#define INT86(r) int86(0x33, &r, &r)
-#define LOCALS union opeu_registers registers
-#define DISK_RESET() (registers.h.ah = 0x0d, opeu_int86(0x21,&registers,&registers))
-#define PAL uint8_t *
-#define NAME char *
-#define UNUSED()
-#define TICKS() opeu_fm_busy()
-#define POLL() opeu_open_input_poll()
-#define STREAM_COUNT opeu_stream_count
-#define PICTURE_HANDLE opeu_picture_handle
-#define IMAGE_SEG opeu_image_segment
-#define STREAM_SEG FP_SEG(opeu_stream_ptr)
-#define STREAM_OFF FP_OFF(opeu_stream_ptr)
-#define STREAM_NEXT() *opeu_stream_ptr++
-#define FILE_READER opeu_stream_file_byte
-#define CURRENT opeu_open_palette
-#define BLACK opeu_open_black
-#define FADE_TARGET opeu_open_fade_target
-#define SEEK(h,p,o) opeu_dos_seek(h,p,o)
-#define READ_FAR(h,s,o,c) opeu_dos_read_far(h,s,o,c)
-#define LINE(a,b,c,d,e) opeu_ui_fill(a,b,c,d,e)
-#define SET_PALETTE(a,b,c) opeu_set_palette(a,b,c)
-#define DECODE_MASKED(x,y,r) opeu_picture_decode_masked(x,y,r)
-#define IDENTITY_PALETTE() koei_vga_identity_palette()
-#define INPUT_B() opeu_turn_input_b()
-#define FLUSH() opeu_input_flush()
-#define DELAY(n) opeu_open_delay(n)
-#define OPEN(name, mode) opeu_dos_open(name, mode)
-#define CLEAR() opeu_vga_clear()
-#define ERROR_PRINT(name) opeu_cursor_print(opeu_open_error_format, name)
-#define HANG() for (;;)
-#define TEXT_PUT(c) opeu_text_put(c)
-#else
 /* Host model: ds is DGROUP; near pointers are DS offsets except the palette
  * pointers, which are host pointers into ds. Every routine outside this
  * segment is a scripted service event(ds, id, words, count) returning DX:AX:
@@ -226,7 +125,6 @@ static uint8_t util_stream_next(uint8_t *ds, UtilService event)
 #define ERROR_PRINT(name) util_call(ds, event, 12, 2, 0x408, name, 0, 0, 0)
 #define HANG() while (!util_call(ds, event, 13, 0, 0, 0, 0, 0, 0))
 #define TEXT_PUT(c) util_call(ds, event, 14, 1, c, 0, 0, 0, 0)
-#endif
 
 /* 062d:0008. AX=ticks. Waits until the FM driver's down-counter has run
  * `ticks` further; 1 if the input poll reported a key or button first. */
@@ -242,13 +140,6 @@ int16_t opeu_open_wait_ticks(STATE_ uint16_t ticks)
     return 0;
 }
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-/* Unused declarations (no EXTDEF): C 6.0a orders the operands of
- * `width+x` by identifier number. With 2..15 more names here the routine
- * gives OPEN's `add ax,bx` (MAIN's text, MAIN's declarations give `add
- * bx,ax`); 0, 1 and 16 do not. */
-extern int opeu_util_unused1, opeu_util_unused2;
-#endif
 /* 062d:003e (MAIN 05a8:0210). AX=x, DX=y, BX=width, stack height; RETF 2. */
 void opeu_mouse_window(STATE_ int16_t x, int16_t y, int16_t width, int16_t height)
 {
@@ -445,11 +336,7 @@ int16_t opeu_open_file_or_die(STATE_ NAME name)
 }
 
 /* 062d:0388 (MAIN 0977:0038). */
-#if defined(_MSC_VER) && _MSC_VER < 1000
-void opeu_disk_reset(void)
-#else
 void opeu_disk_reset(uint8_t ds[65536],UtilService event)
-#endif
 {
     LOCALS;
     DISK_RESET();

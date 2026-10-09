@@ -13,10 +13,8 @@ void     opeu_battle_cursor_step(uint8_t* ds, BattleEvent event, int16_t dx,
 void     opeu_battle_mouse_cell(uint8_t* ds, BattleEvent event, uint16_t x_at,
                                 uint16_t y_at);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlcurs(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

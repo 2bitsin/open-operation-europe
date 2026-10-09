@@ -12,7 +12,6 @@
 #include "units/vwlist.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -41,7 +40,6 @@
 #include "units/ratio.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
-#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -232,7 +230,6 @@ uint16_t opeu_view_menu_loop(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   return 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -438,4 +435,3 @@ PORT_ROUTINE(opeu_view_victory) {
 #undef ARG32
 #undef B2_DS_WORDS
 #undef B2_SP_CALL
-#endif /* OPEU_HOST_EVENTS */

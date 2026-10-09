@@ -16,13 +16,11 @@
 #include "map/stepmap.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "io/waitkey.hpp"
 #include "map/btllist.hpp"
-#endif
 
 /* Host ABI: ds first, then a service callback for the unrecovered 2864
  * list helpers and the UI delay. Records are DOS DS offsets; table reads use
@@ -295,7 +293,6 @@ ELEMENT opeu_battle_element_at(uint8_t* ds, BattleService service, uint8_t x,
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -387,4 +384,3 @@ PORT_ROUTINE(opeu_battle_unit_direction) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

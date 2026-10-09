@@ -12,12 +12,10 @@
 #include "types/misc.hpp"
 #include "types/requests.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/rqarms.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint16_t next;
@@ -242,7 +240,6 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
   DELAYS[SIDE] = 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -274,4 +271,3 @@ PORT_ROUTINE(opeu_request_regiment) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

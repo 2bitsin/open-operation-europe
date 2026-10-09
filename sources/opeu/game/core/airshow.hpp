@@ -13,10 +13,8 @@ void    opeu_air_sprite_restore(uint8_t* ds, HostEvent event, uint16_t load,
 uint8_t opeu_air_report(uint8_t* ds, HostEvent event, uint16_t bp,
                         uint16_t what, uint8_t wait);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

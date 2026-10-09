@@ -47,7 +47,6 @@
 #include "core/random.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -63,7 +62,6 @@
 #include "map/query.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
-#endif
 #include <string.h>
 /* Evaluates the stored value once (it may come from a service). */
 static void ops_set_word(uint8_t* ds, uint16_t at, uint16_t value) {
@@ -445,7 +443,6 @@ end:
   SET_DELAY();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -600,4 +597,3 @@ PORT_ROUTINE(opeu_special_sabotage) {
 #undef ARG
 #undef ARG32
 #undef SPECIAL_RESERVE
-#endif /* OPEU_HOST_EVENTS */

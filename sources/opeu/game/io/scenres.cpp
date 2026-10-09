@@ -5,13 +5,11 @@
 #include "io/scenres.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/emsmap.hpp"
 #include "io/resopen.hpp"
-#endif
 
 /* Host shape: the original DS offsets are kept and every DOS/UI service is a
  * scripted event. Event ids and 16-bit arguments: 0 open(name), 1 seek(h,lo,
@@ -134,7 +132,6 @@ void opeu_load_scenario_graphics(uint8_t ds[65536], HostEvent event) {
   CLOSE(b);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -181,4 +178,3 @@ uint16_t svc_scenres(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

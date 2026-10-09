@@ -4,11 +4,9 @@
 #include "io/resopen.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Events: open=0 (name offset, mode) -> handle word; close=1 (handle);
  * interrupt=2 (0x21, AH). The original passes only AH=0Dh: the other REGS
  * words are uninitialized stack bytes, so the host does not invent them.
@@ -34,7 +32,6 @@ void opeu_disk_reset(uint8_t ds[65536], HostEvent event) {
   DISK_RESET();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -72,4 +69,3 @@ uint16_t svc_resopen(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -8,13 +8,11 @@
 #include "map/support.hpp"
 #include "units/typetext.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "io/listui.hpp"
-#endif
 /* UI boundaries: 0 column layout (column,row), 1 position (x,y),
  * 2 formatted print (format, arguments...), 3 highlight (x,y,w,h,color).
  * Near buffers of the original frame are supplied as DS offsets: scratch
@@ -201,7 +199,6 @@ void opeu_supply_draw_slots(uint8_t ds[65536], SupplyEvent event,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -286,4 +283,3 @@ PORT_ROUTINE(opeu_supply_unit_eligible) {
 #undef ARG32
 #undef B2_SP_CALL
 #undef SUPPLY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

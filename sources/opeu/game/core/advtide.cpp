@@ -19,12 +19,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/advenemy.hpp"
-#endif
 #include <string.h>
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]; far
  * advice strings are offsets into far_text (the base of far segment 3ad9).
@@ -308,7 +306,6 @@ void opeu_advice_tide_of_war(uint8_t ds[65536], const uint8_t* far_text,
     CALL(opeu_advice_tide_no_advances);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -340,4 +337,3 @@ PORT_ROUTINE(opeu_advice_tide_of_war) {
 #undef ARG
 #undef ARG32
 #undef C2_ADVICE_TEXT
-#endif /* OPEU_HOST_EVENTS */

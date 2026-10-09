@@ -22,12 +22,10 @@
 #include "units/unitrout.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Unit statistics,
  * arithmetic, the random generator (state DS:c6f4) and the morale check run
@@ -138,7 +136,6 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -171,4 +168,3 @@ PORT_ROUTINE(opeu_unit_hourly_event) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

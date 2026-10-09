@@ -13,7 +13,6 @@
 #include "units/vwlist.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -22,7 +21,6 @@
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"
-#endif
 /* Host model of the MAIN 1fe6 view modules (the same text is repeated in each of them (VWLIST, VWPANEL, VWDIV,
  * VWPEOPLE, VWCITY, VWREGT, VWARMS).
  *
@@ -271,7 +269,6 @@ uint8_t opeu_list_element_types(uint8_t ds[65536], HostEvent event, uint16_t sp,
   return TYPE_COUNT(a, list);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -378,4 +375,3 @@ PORT_ROUTINE(opeu_view_unit_ok) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -6,11 +6,9 @@
 #include "map/stepmap.hpp"
 #include "map/step.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
   uint8_t next_x = *x, next_y = *y;
@@ -23,7 +21,6 @@ uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -41,4 +38,3 @@ PORT_ROUTINE(opeu_grid_step) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -21,7 +21,6 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -34,7 +33,6 @@
 #include "map/mappos.hpp"
 #include "units/casualty.hpp"
 #include "units/unitname.hpp"
-#endif
 #include <string.h>
 /* Host model: near pointers are DS offsets into ds[65536]; far segments are
  * the original image-relative segments plus the caller's load segment.
@@ -238,7 +236,6 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -342,4 +339,3 @@ PORT_ROUTINE(opeu_bomb_present) {
 #undef ARG
 #undef ARG32
 #undef BOMB_RESERVE
-#endif /* OPEU_HOST_EVENTS */

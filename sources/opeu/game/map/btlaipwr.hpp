@@ -12,10 +12,8 @@ uint8_t  opeu_battle_ai_power_ratio(uint8_t* ds, BattleEvent event,
 uint8_t  opeu_battle_ai_choose_plan(uint8_t* ds, BattleEvent event,
                                     uint16_t unit);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlaipwr(uint8_t* ds, uint32_t service, const uint16_t* args,
                       unsigned int count);
-#endif
 
 #endif

@@ -13,12 +13,10 @@
 #include "types/events.hpp"
 #include "types/requests.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/rqcommon.hpp"
-#endif
 
 /* Host model.  Every external callee is a service of `event`
  * (ds, id, args, count); ds offsets are 16-bit near pointers.
@@ -151,7 +149,6 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
   } while (RQ_DELAY(RQ_SIDE) == 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -183,4 +180,3 @@ PORT_ROUTINE(opeu_turn_action_7) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

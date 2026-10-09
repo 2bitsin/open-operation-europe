@@ -21,12 +21,10 @@
 #include "map/mapview.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: DS is explicit. Events (global map kinds): 10 pattern_draw
  * (x,y,3,2,0,0x8124), 11 screen_shift(x1,y1,x2,y2), 14 status_mode(mode).
  * The 15c4 painters/pixel helper are their host functions; LIMITS runs
@@ -247,7 +245,6 @@ void opeu_map_scroll_to(STATEF int16_t x, int16_t y, uint8_t side) {
   FRAME(x, y);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -268,4 +265,3 @@ uint16_t svc_mapscrol(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -7,10 +7,8 @@
 
 void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlinfo(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

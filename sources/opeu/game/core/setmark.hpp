@@ -8,10 +8,8 @@
 void opeu_setup_marker_show(uint8_t* ds, HostEvent event, uint8_t index);
 void opeu_setup_marker_hide(uint8_t* ds, HostEvent event, uint8_t index);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_setmark(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

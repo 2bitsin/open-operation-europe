@@ -5,7 +5,6 @@
 #include "core/requnit.hpp"
 #include "types/units.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -14,7 +13,6 @@
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
-#endif
 #define UNIT              ((UnitPlaceView*)(ds + *(uint16_t*)(ds + 0xc75a)))
 #define SIDE              ds[0xc766]
 #define STATUS            ((uint16_t*)(ds + 0x5a))
@@ -45,7 +43,6 @@ void opeu_request_action2(uint8_t ds[65536],
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -99,4 +96,3 @@ uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

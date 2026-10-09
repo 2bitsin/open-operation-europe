@@ -23,12 +23,10 @@
 #include "units/selelem.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model. DS/SS are one explicit 65,536-byte array; near offsets wrap.
  * frame is the original BP of the routine (0e04 calls 0c00 with frame-0x1c);
  * the caller provides frame-0xf0..frame-1 (0c00) or frame-0x12..frame-1
@@ -235,7 +233,6 @@ void opeu_view_cell_draw(uint8_t ds[65536], HostEvent event, uint16_t frame,
     DRAW_UNIT();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -256,4 +253,3 @@ uint16_t svc_mapview(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -13,12 +13,10 @@
 #include "units/labels.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/rqarmtbl.hpp"
-#endif
 
 /* Host model and events: as TBLGROUP (0c45:0002). The element name buffer
  * is at scratch+104, the row buffer at scratch+4. */
@@ -102,7 +100,6 @@ void opeu_tbl_draw_elements(uint8_t ds[65536], HostEvent event,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -134,4 +131,3 @@ PORT_ROUTINE(opeu_tbl_draw_elements) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

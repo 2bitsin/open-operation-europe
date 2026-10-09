@@ -17,20 +17,9 @@
  */
 #include "types.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-typedef void (_far *od_far_code)(void);
-#define OD_FAR_CODE(function, segment, offset) (function)
-typedef char *od_near_text;
-/* OVGALIB 0000:0680 (= opeu_draw_near) and 0000:069d, exported under the
- * names of the same routines in MAIN (0000:28a8, 0000:28c5), which MAIN's
- * setup data (src/main/data/dgsetup.c) also stores as far pointers. */
-extern void _far opeu_code_0000_28a8(void);
-extern void _far opeu_code_0000_28c5(void);
-#else
 typedef uint32_t od_far_code;
 #define OD_FAR_CODE(function, segment, offset) ((uint32_t)(segment) << 16 | (offset))
 typedef uint16_t od_near_text;
-#endif
 
 /* DS:0092, 10 x 16 bytes: 8x16 digit glyphs '0'..'9' (one byte per row).
  * No recovered OPEN routine addresses it. */

@@ -11,7 +11,6 @@
 #include "core/memory.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -22,7 +21,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/listdlg.hpp"
-#endif
 
 #include <stddef.h>
 /* Host UI boundary: event(ds, kind, args, count) with near DS offsets.
@@ -186,7 +184,6 @@ void opeu_confirm_generals(uint8_t ds[65536], HostEvent event) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -260,4 +257,3 @@ uint16_t svc_genconf(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

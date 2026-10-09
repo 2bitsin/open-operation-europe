@@ -14,10 +14,8 @@ uint16_t opeu_battle_side_commands(const uint8_t* ds);
 void     opeu_battle_hq_shaken(uint8_t* ds, BattleEvent event, uint16_t unit);
 void     opeu_battle_hq_lost(uint8_t* ds, BattleEvent event, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_hqloss(uint8_t* ds, uint32_t address, const uint16_t* args,
                     unsigned int count);
-#endif
 
 #endif

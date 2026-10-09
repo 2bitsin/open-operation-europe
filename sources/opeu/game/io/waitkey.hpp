@@ -9,10 +9,8 @@ void opeu_delay_ticks(uint8_t* ds, HostEvent event, uint16_t ticks);
 void opeu_delay_units(uint8_t* ds, HostEvent event, uint8_t units);
 void opeu_pending_finish(uint8_t* ds, HostEvent event, uint8_t value);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_waitkey(uint8_t* ds, uint16_t kind, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

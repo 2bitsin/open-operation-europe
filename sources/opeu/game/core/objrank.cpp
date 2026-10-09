@@ -13,11 +13,9 @@
 #include "map/cellflag.hpp"
 #include "map/query.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host: near pointers are explicit 16-bit DS offsets into ds[]. */
 #define OBJ_T                uint16_t
@@ -153,7 +151,6 @@ void opeu_turn_selected_begin(uint8_t ds[65536]) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -171,4 +168,3 @@ PORT_ROUTINE(opeu_side_groups_retarget) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

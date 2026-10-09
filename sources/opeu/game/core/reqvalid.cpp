@@ -7,13 +7,11 @@
 #include "map/query.hpp"
 #include "types/requests.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "map/reqcells.hpp"
-#endif
 #define REQUEST ((RequestSlotView*)(ds + request))
 #define REASON  ds[0xc760]
 #define SET_REQUEST(p) \
@@ -71,7 +69,6 @@ uint16_t opeu_request_valid(uint8_t ds[65536],
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -108,4 +105,3 @@ uint16_t svc_reqvalid(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

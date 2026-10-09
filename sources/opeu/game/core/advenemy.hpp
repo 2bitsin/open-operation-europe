@@ -32,12 +32,10 @@ uint16_t opeu_advice_enemy_need_recon(uint8_t* ds, const uint8_t* far_text,
 void     opeu_advice_enemy_conditions(uint8_t* ds, const uint8_t* far_text,
                                       HostEvent event, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_advenemy(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
 uint16_t svc_advice(const char* module, uint8_t* ds, uint16_t id,
                     const uint16_t* args, uint16_t count);
-#endif
 
 #endif

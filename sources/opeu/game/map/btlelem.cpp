@@ -10,11 +10,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, near pointers as DS offsets. Each function that
  * reaches draw_icon also takes frame, its emulated DOS BP; callee frames follow
  * the original pushes (0f1e: frame-0x1c to draw_icon; 10d2: frame-0x1e; 1060:
@@ -150,7 +148,6 @@ void opeu_battle_animate_element(uint8_t* ds, BattleEvent event, uint8_t x,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -202,4 +199,3 @@ PORT_ROUTINE(opeu_battle_refresh_cell) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

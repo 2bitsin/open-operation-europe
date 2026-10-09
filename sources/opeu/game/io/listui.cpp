@@ -14,7 +14,6 @@
 #include "core/limits.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -22,7 +21,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
-#endif
 
 /* Host model: ds is the original 64 KiB data segment; windows and width
  * tables are DS offsets. event(ds, kind, args, count) is the shared list
@@ -365,7 +363,6 @@ void opeu_list_scroll(L_STATE_ WINDOW_T window, uint8_t column, uint8_t row) {
   PAPER(0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -476,4 +473,3 @@ PORT_ROUTINE(opeu_table_columns) {
 #undef ARG
 #undef ARG32
 #undef KEY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

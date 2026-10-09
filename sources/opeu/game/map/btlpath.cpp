@@ -20,11 +20,9 @@
 #include "units/labels.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements and byte pointers are DS offsets and
  * arithmetic wraps like the 16-bit original. Callees in other segments
  * (2864 element accessors, cell occupancy and drawing, 2808 terrain, step
@@ -254,7 +252,6 @@ void opeu_battle_spot_enemies(uint8_t* ds, BattleEvent event, uint16_t element,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -299,4 +296,3 @@ PORT_ROUTINE(opeu_battle_spot_enemies) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

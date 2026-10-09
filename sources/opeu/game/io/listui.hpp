@@ -21,9 +21,7 @@ uint8_t opeu_list_frame(uint8_t* ds, HostWordsEvent event, uint16_t window,
 void    opeu_list_scroll(uint8_t* ds, HostWordsEvent event, uint16_t window,
                          uint8_t column, uint8_t row);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_listui(uint8_t* ds, uint16_t kind, uint16_t* args, uint16_t count);
-#endif
 
 #endif

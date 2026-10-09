@@ -9,12 +9,10 @@
 #include "core/numeric.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/movetgt.hpp"
-#endif
 /* Host model: ds is the 64 KiB data/stack segment. Every call that is not a
  * pure recovered helper goes through event(ds,id,args,count); ids follow
  * tests/validate_move_unit.py. frame is the original BP: locals whose
@@ -200,7 +198,6 @@ moved:
   } while (g);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -228,4 +225,3 @@ uint16_t svc_moveunit(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

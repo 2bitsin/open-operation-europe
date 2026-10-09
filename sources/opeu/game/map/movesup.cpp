@@ -13,13 +13,11 @@
 #include "map/movesup.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#endif
 #define ELEMENT_P uint16_t
 #define BODY_P    uint16_t
 #define TYPE_P    uint16_t
@@ -86,7 +84,6 @@ void opeu_move_consume(uint8_t ds[65536], HostEvent event) {
 /* 32e6:0366: empty hook, called by opeu_move_spot with (spotter, spotted). */
 void opeu_move_sighted(uint8_t ds[65536], uint16_t unit,
                        uint16_t other){ SIGHTED_ARGS(unit, other) }
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -122,4 +119,3 @@ uint16_t svc_movesup(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

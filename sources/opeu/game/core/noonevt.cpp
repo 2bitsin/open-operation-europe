@@ -40,7 +40,6 @@
 #include "core/strings.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -50,7 +49,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/soundcue.hpp"
-#endif
 #include <string.h>
 #define STATE_ \
   uint8_t ds[65536], const uint8_t *far_text, HostEvent event, uint16_t sp,
@@ -362,7 +360,6 @@ void opeu_turn_noon_events(NOON_STATE) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -427,4 +424,3 @@ uint16_t svc_noonevt(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

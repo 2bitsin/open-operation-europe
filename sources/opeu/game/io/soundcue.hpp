@@ -23,9 +23,7 @@ void opeu_sound_cue14(uint8_t* ds, HostService service);
 void opeu_sound_cue15(uint8_t* ds, HostService service);
 void opeu_sound_cue16(uint8_t* ds, HostService service);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_soundcue(uint8_t* ds, uint16_t call, uint16_t* words);
-#endif
 
 #endif

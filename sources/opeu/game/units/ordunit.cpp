@@ -22,12 +22,10 @@
 #include "units/orders.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"
-#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]. Events as in
  * ORDTGT (2 confirm_message(text,person)); order clearing and selection
@@ -120,7 +118,6 @@ void opeu_order_layout_pair(uint8_t ds[65536], uint16_t kind) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -153,4 +150,3 @@ PORT_ROUTINE(opeu_supply_unit_enabled) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

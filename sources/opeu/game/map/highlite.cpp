@@ -9,12 +9,10 @@
 #include "map/mappixel.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: DS (and the stack inside it) is explicit; near offsets wrap at
  * 16 bits. frame is the original BP: the pixel words a/b live at frame-2 and
  * frame-4 because the MAPPIXEL converters receive their near addresses. Far
@@ -87,7 +85,6 @@ void opeu_map_highlight_overview(uint8_t ds[65536], HostEvent event,
   DRAW_NEAR(A, B, 1, 8, 7, CURSOR_GLYPH);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -114,4 +111,3 @@ uint16_t svc_highlite(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

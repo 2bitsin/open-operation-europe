@@ -17,12 +17,10 @@
 #include "core/suppanel.hpp"
 #include "units/ratio.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
-#endif
 /* Host: ds is the 64 KiB DOS data segment; near offsets wrap at 16 bits.
  * Text output and box fills are delegated to event(ds,id,args,count):
  * 9 position(x,y), 10 print(format,value), 12 fill(x,y,3,6,0), 13 print(format).
@@ -79,7 +77,6 @@ void opeu_supply_draw_row(uint8_t ds[65536], SupplyEvent event, uint8_t row,
   (void)column;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -118,4 +115,3 @@ uint16_t svc_suprow(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

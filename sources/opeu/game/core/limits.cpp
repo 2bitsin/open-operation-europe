@@ -5,11 +5,9 @@
 #include "types.hpp"
 #include "core/limits.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 uint16_t opeu_min16(uint16_t a, uint16_t b) {
   return a < b ? a : b;
@@ -30,7 +28,6 @@ uint16_t opeu_negative_to_minus_one(uint16_t value) {
   return (int16_t)value < 0 ? 0xffff : value;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -53,4 +50,3 @@ PORT_ROUTINE(opeu_min16) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

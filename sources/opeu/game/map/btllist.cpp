@@ -4,11 +4,9 @@
 #include "map/btllist.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements and units are DS offsets. Element +0 is
  * the next link and +0xc its flags; a unit's +0 word is its first element.
  * opeu_battle_lists is the [2][9] unit pointer table at DS 0x2fae.
@@ -54,7 +52,6 @@ uint8_t opeu_battle_element_count(uint8_t* ds, BattleEvent event,
   return b;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -88,4 +85,3 @@ PORT_ROUTINE(opeu_battle_unit_side) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

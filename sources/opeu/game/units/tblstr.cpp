@@ -15,12 +15,10 @@
 #include "core/sideutil.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/rqarmtbl.hpp"
-#endif
 
 /* Host model: see TBLGROUP. Events: 0 column layout (column,row,out0,out1,
  * out2: writes three DS bytes), 1 position (x,y), 2 sprintf (destination,
@@ -95,7 +93,6 @@ void opeu_tbl_draw_strength(uint8_t ds[65536], HostEvent event,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -127,4 +124,3 @@ PORT_ROUTINE(opeu_tbl_draw_strength) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

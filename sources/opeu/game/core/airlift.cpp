@@ -15,12 +15,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/airbomb.hpp"
-#endif
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]. sp is the
  * DS offset of SP at entry (pointing at the far return address); automatic
  * variables whose address reaches a callee (the text buffers at BP-66 and
@@ -217,7 +215,6 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   SIDE_DELAY(CURRENT_SIDE) = 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -247,4 +244,3 @@ PORT_ROUTINE(opeu_air_lift_command) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

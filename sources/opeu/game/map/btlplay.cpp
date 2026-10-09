@@ -12,12 +12,10 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI (elements/units are DS offsets, frame = the emulated DOS BP of the
  * function, sp = the emulated SP at opeu_battle_player_turn entry):
  *   opeu_battle_player_orders(ds, event, frame)
@@ -168,7 +166,6 @@ void opeu_battle_player_turn(uint8_t* ds, BattleEvent event, uint16_t sp) {
   opeu_battle_redraw_side(ds, event, 2, frame);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -196,4 +193,3 @@ PORT_ROUTINE(opeu_battle_player_turn) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

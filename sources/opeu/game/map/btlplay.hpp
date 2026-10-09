@@ -11,10 +11,8 @@ void     opeu_battle_redraw_side(uint8_t* ds, BattleEvent event, uint8_t index,
                                  uint16_t frame);
 void     opeu_battle_player_turn(uint8_t* ds, BattleEvent event, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlplay(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

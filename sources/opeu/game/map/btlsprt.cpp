@@ -9,11 +9,9 @@
 #include "map/btldraw.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 static uint16_t host_word(const uint8_t* ds, uint16_t at) {
   return (uint16_t)(ds[at] | ds[(uint16_t)(at + 1)] << 8);
 }
@@ -164,7 +162,6 @@ void opeu_battle_draw_neighbors(uint8_t* ds, BattleEvent event, uint8_t x,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -182,4 +179,3 @@ uint16_t svc_btlsprt(uint8_t* ds, uint32_t address, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

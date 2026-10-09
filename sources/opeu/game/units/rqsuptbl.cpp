@@ -12,12 +12,10 @@
 #include "core/personfl.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/rqarmtbl.hpp"
-#endif
 
 /* Host model: the HostEvent protocol of TBLGROUP (0 column layout,
  * 1 position, 2 sprintf into DS, 3 text color, 6 print, 7 put range);
@@ -94,7 +92,6 @@ void opeu_rq_draw_types(uint8_t ds[65536], HostEvent event, uint16_t scratch,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -126,4 +123,3 @@ PORT_ROUTINE(opeu_rq_draw_types) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

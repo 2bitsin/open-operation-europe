@@ -7,9 +7,7 @@
 
 void opeu_show_division_strength(uint8_t* ds, HostNotify event, uint8_t div);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
-#endif
 
 #endif

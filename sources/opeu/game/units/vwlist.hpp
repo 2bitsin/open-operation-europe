@@ -23,10 +23,8 @@ uint8_t  opeu_view_true(uint8_t* ds, HostEvent event, uint16_t sp);
 uint8_t  opeu_list_element_types(uint8_t* ds, HostEvent event, uint16_t sp,
                                  uint16_t list, uint8_t mask, uint8_t side);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_vwlist(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count);
-#endif
 
 #endif

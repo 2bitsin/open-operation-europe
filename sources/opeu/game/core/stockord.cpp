@@ -22,11 +22,9 @@
 #include "core/stockord.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event/sp first; near pointers are DS offsets and sp is the DS
  * offset of the far return address at entry (BP = sp-2). Every callee outside
  * segment 1d1e is an event service named by its linear MAIN image address
@@ -193,7 +191,6 @@ void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t sp,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -254,4 +251,3 @@ PORT_ROUTINE(opeu_turn_action_2) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

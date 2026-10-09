@@ -32,7 +32,6 @@
 #include "units/stats.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -41,7 +40,6 @@
 #include "core/msglook.hpp"
 #include "io/sound.hpp"
 #include "map/mapunit.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Map, unit, side-record,
  * template and RNG helpers run the recovered host code (the RNG state is the
@@ -189,7 +187,6 @@ void opeu_visit_event(uint8_t ds[65536], HostEvent event) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -257,4 +254,3 @@ PORT_ROUTINE(opeu_visit_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

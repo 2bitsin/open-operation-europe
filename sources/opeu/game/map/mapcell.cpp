@@ -8,12 +8,10 @@
 #include "map/mappixel.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: DS (and the stack inside it) is explicit; near offsets wrap at
  * 16 bits. opeu_map_cell_flash takes frame, the original BP: its pixel words
  * a/b live at frame-2/frame-4 because the MAPPIXEL converters receive their
@@ -109,7 +107,6 @@ void opeu_map_cell_flash(uint8_t ds[65536], HostEvent event, uint16_t frame,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -130,4 +127,3 @@ uint16_t svc_mapcell(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

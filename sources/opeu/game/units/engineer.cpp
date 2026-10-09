@@ -34,7 +34,6 @@
 #include "core/limits.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -59,7 +58,6 @@
 #include "units/unitname.hpp"
 #include "units/unitpers.hpp"
 #include "units/value.hpp"
-#endif
 static uint16_t host_word(const uint8_t* ds, uint16_t at) {
   return (uint16_t)(ds[at] | ds[(uint16_t)(at + 1)] << 8);
 }
@@ -342,7 +340,6 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event,
   return 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -594,4 +591,3 @@ PORT_ROUTINE(opeu_mines_removed_finish) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

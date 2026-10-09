@@ -9,13 +9,11 @@
 #include "io/waitkey.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/settings.hpp"
 #include "core/textout.hpp"
-#endif
 
 /* Host boundary: event(ds, kind, args, count) -> AX.
  * 0 timer start(ticks)  1 timer busy() -> word  2 key available() -> word
@@ -48,7 +46,6 @@ void opeu_pending_finish(uint8_t ds[65536], HostEvent event, uint8_t value) {
   opeu_delay_units(ds, event, (uint8_t)(W_SPEED * 3));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -86,4 +83,3 @@ PORT_ROUTINE(opeu_delay_units) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

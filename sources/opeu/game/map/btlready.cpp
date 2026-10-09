@@ -15,11 +15,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, then frame = the original BP inside the function
  * (the name buffer is frame-0x2c, the " " copy frame-0x2e). Units are DS
  * offsets. Callees outside 2864 are event services named by linear MAIN
@@ -85,7 +83,6 @@ uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event,
   return c;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -115,4 +112,3 @@ PORT_ROUTINE(opeu_battle_announce_ready) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

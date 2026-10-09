@@ -3,14 +3,12 @@
 #include "types.hpp"
 #include "core/daily.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
 #include "map/maperase.hpp"
-#endif
 
 /* Callback ids: prepare=0, side context=1, activate=2, show=3.
  * Show arguments are event id, side, far callback offset, far callback segment.
@@ -66,7 +64,6 @@ void opeu_turn_daily(uint8_t ds[65536],
   SCAN();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -104,4 +101,3 @@ uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

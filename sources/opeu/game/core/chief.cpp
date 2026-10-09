@@ -7,7 +7,6 @@
 #include "core/personfl.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -15,7 +14,6 @@
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
-#endif
 /* Host UI boundary. Event numbers and argument words:
  * 0 fill(x,y,w,h,color) 1 frame(x,y,w) 2 format(buffer,format,low,high)
  * 3 print(format,person) 4 portrait(x,y,person) 5 position(x,y)
@@ -92,7 +90,6 @@ uint16_t opeu_ops_chief_wait(uint8_t ds[65536], HostEvent event,
   return WAIT(text);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -154,4 +151,3 @@ uint16_t svc_chief(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef B2_SP_CALL
-#endif /* OPEU_HOST_EVENTS */

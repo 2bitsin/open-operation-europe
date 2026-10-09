@@ -20,11 +20,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements and units are uint16_t DS offsets and
  * all address arithmetic wraps at 16 bits. The 2864 helpers (btllist,
  * btlunit, btlmove) and the other 2c49 functions (btlaiunt, btlaient,
@@ -284,7 +282,6 @@ void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -335,4 +332,3 @@ uint16_t svc_btlaiact(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

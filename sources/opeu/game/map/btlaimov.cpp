@@ -6,12 +6,10 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlaiact.hpp"
-#endif
 /* Host ABI: ds/event first; elements/units are uint16_t DS offsets and all
  * address arithmetic wraps at 16 bits. The 2864 accessors and the other 2c49
  * functions are called directly with the same ABI; this module has no event
@@ -128,7 +126,6 @@ void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element,
                         (uint16_t)(sp - 10));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -147,4 +144,3 @@ uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

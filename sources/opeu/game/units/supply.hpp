@@ -16,10 +16,8 @@ void opeu_supply_exchange_objective(
     uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t),
     uint16_t unit, uint16_t objective, uint16_t a);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count);
-#endif
 
 #endif

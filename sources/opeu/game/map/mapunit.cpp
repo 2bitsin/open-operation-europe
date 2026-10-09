@@ -13,12 +13,10 @@
 #include "map/mappos.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: near pointers are DS offsets, record steps wrap at 64 KiB.
  * opeu_group_show also takes frame, the original BP (a DS/SS offset): its
  * pixel words c/e live at frame-6/frame-10 because overview_pixel receives
@@ -198,7 +196,6 @@ void opeu_location_flash(uint8_t ds[65536], HostEvent event, uint16_t frame,
     SIDE_FLASH(x, y, side);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -228,4 +225,3 @@ PORT_ROUTINE(opeu_unit_flash) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

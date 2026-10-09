@@ -13,11 +13,9 @@
 #include "units/labels.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, elements as DS offsets. Text output, the panel
  * services (29f5:006c/01fa/0334) and request_format are event services named
  * by linear MAIN address with their register words (AX, DX, BX order) then
@@ -105,7 +103,6 @@ void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter,
   call1(ds, event, TEXT_ATTRIBUTE, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -132,4 +129,3 @@ PORT_ROUTINE(opeu_battle_wiped_notice) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

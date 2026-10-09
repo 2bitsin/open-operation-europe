@@ -11,12 +11,10 @@
 #include "map/query.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/airbomb.hpp"
-#endif
 /* Host model: near pointers are 16-bit DS offsets into ds[65536]. sp is the
  * DS offset of SP at entry (pointing at the far return address); automatic
  * buffers whose address reaches a callee live at their original frame
@@ -126,7 +124,6 @@ uint16_t opeu_air_confirm(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   return CONFIRM(LOOKUP(0x67), PERSON);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -148,4 +145,3 @@ uint16_t svc_airhelp(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

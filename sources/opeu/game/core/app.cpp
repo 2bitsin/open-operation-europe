@@ -11,7 +11,6 @@
 #include "core/turnord.hpp"
 #include "data/mapstate.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -23,7 +22,6 @@
 #include "core/victory.hpp"
 #include "map/btlend.hpp"
 #include "map/btlsetup.hpp"
-#endif
 
 #pragma pack(1)
 typedef struct {
@@ -80,11 +78,7 @@ typedef struct {
  * run). A loop without side effects is undefined in C++, so the native
  * build pumps the host instead: the window still closes and a headless run
  * still stops at --ms. */
-#ifndef OPEU_HOST_EVENTS
 #define HANG()         for (;;) port_pump()
-#else
-#define HANG()         for (;;) ; /* the host branch: the original form */
-#endif
 #define SUB_ONE(p)     opeu_sub_byte(1, p)
 static void host_shuffle(uint8_t* ds) {
   opeu_random_state = (uint32_t)ds[0xc6f4] | ((uint32_t)ds[0xc6f5] << 8) |
@@ -176,7 +170,6 @@ void opeu_begin_hour(uint8_t ds[65536]) {
   BEGIN_HOUR();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -221,4 +214,3 @@ uint16_t svc_app(uint8_t* ds, uint16_t id) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

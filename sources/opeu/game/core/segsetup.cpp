@@ -32,7 +32,6 @@
 #include "core/emsmap.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -40,7 +39,6 @@
 #include "core/uiprim.hpp"
 #include "io/resopen.hpp"
 #include "io/sound.hpp"
-#endif
 static uint16_t setup_service(uint8_t* ds, HostEvent event, uint16_t id,
                               uint16_t count, uint16_t argument) {
   uint16_t args[1];
@@ -177,7 +175,6 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   (void)buffer;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -233,4 +230,3 @@ uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

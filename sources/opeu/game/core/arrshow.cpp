@@ -5,7 +5,6 @@
 #include "units/unitname.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -13,7 +12,6 @@
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "io/soundcue.hpp"
-#endif
 #include <stddef.h>
 /* The host caller supplies the emulated near-stack workspace explicitly. */
 #define LOCAL        uint16_t a = scratch
@@ -48,7 +46,6 @@ void opeu_arrival_present(uint8_t ds[65536], HostEvent event,
   MESSAGE();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -97,4 +94,3 @@ PORT_ROUTINE(opeu_arrival_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

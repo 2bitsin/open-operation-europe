@@ -14,10 +14,8 @@ uint16_t opeu_ai_free_cell_near(uint8_t* ds, uint16_t objective, uint8_t* x,
                                 uint8_t* y);
 uint16_t opeu_ai_03e2(uint8_t* ds);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_ai_unrecovered(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t dx,
                             uint16_t* bx);
-#endif
 
 #endif

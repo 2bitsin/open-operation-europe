@@ -13,14 +13,12 @@
 #include "core/scenbrf.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "map/maperase.hpp"
 #include "map/mappixel.hpp"
-#endif
 
 /* Services (event, arguments): 0 daily activate (side), 1 control message
  * (text, speaker), 2 overview pixel (x pointer, y pointer), 3 invert
@@ -348,7 +346,6 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -436,4 +433,3 @@ PORT_ROUTINE(opeu_brief_normandy) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

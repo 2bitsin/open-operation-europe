@@ -45,11 +45,9 @@
 #include "units/value.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint8_t x, y, code, progress;
@@ -624,7 +622,6 @@ void opeu_unit_task_service(S0) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -643,4 +640,3 @@ uint16_t svc_unitai(void* a0) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

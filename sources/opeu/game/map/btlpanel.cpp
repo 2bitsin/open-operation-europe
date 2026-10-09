@@ -10,11 +10,9 @@
 #include "units/unitname.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, near pointers as DS offsets. The DOS name buffers
  * live in the caller-supplied frame: g at frame-0x2c and h at frame-0x4c
  * (frame = emulated BP). Unrecovered callees are event services addressed by
@@ -138,7 +136,6 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   call(ds, event, UI_TEXT, 1, 0xb409, 0, 0, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -165,4 +162,3 @@ PORT_ROUTINE(opeu_battle_element_panel) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

@@ -10,11 +10,9 @@
 #include "map/dplunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; units are DS offsets. The side and controller
  * queries are event services named by linear MAIN address. */
 #define UNIT_SIDE       0x2865cUL
@@ -51,7 +49,6 @@ void opeu_deploy_battle(uint8_t* ds, BattleEvent event) {
   opeu_deploy_side(ds, event, 1);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -77,4 +74,3 @@ PORT_ROUTINE(opeu_deploy_battle) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

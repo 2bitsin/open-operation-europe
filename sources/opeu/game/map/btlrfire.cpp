@@ -20,11 +20,9 @@
 #include "map/query.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, elements and near pointers as DS offsets.
  * Scripted callees (2808 pause/element_shots, ui_line, music_command7,
  * panel_begin) are event services named by linear MAIN address with their
@@ -246,7 +244,6 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter,
   opeu_battle_set_order(ds, event, shooter, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -273,4 +270,3 @@ PORT_ROUTINE(opeu_battle_ranged_fire) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

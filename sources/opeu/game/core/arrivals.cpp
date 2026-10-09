@@ -9,7 +9,6 @@
 #include "types/misc.hpp"
 #include "types/units.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -19,7 +18,6 @@
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
-#endif
 #pragma pack(1)
 #define FIRST(b) ((b)->first ? (ElementNextFlagsView*)(ds + (b)->first) : 0)
 #pragma pack()
@@ -118,7 +116,6 @@ void opeu_hourly_c_stage_c(uint8_t ds[65536],
     }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -174,4 +171,3 @@ uint16_t svc_arrivals(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

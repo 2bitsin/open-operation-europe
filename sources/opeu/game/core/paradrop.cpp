@@ -40,7 +40,6 @@
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -59,7 +58,6 @@
 #include "map/maperase.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
-#endif
 #include <string.h>
 typedef uint16_t (*ParaEvent)(uint8_t* ds, uint16_t id, const uint16_t* args,
                               uint16_t count);
@@ -254,7 +252,6 @@ void opeu_para_drop_event(uint8_t ds[65536], ParaEvent event, uint16_t segment,
   ZERO_COUNT(drops);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -365,4 +362,3 @@ PORT_ROUTINE(opeu_para_drop_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

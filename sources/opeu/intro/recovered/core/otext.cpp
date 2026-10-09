@@ -33,99 +33,6 @@
  * insensitive; any other character after % is copied literally.
  */
 #include "types.hpp"
-#if defined(_MSC_VER) && _MSC_VER < 1000
-typedef struct { uint16_t ax, bx, cx, dx, si, di, cflag; } WordRegs;
-typedef struct { uint8_t al, ah, bl, bh, cl, ch, dl, dh; } ByteRegs;
-typedef union { WordRegs x; ByteRegs h; } Regs;
-extern int _cdecl int86(int number, Regs *in, Regs *out);
-extern int opeu_turn_input_b(void);
-extern void opeu_open_stub_a(int value);
-extern void _cdecl opeu_ui_box(int x, int y, int width, int height, int color);
-extern void opeu_vga_clear(void);
-extern void opeu_open_stub_b(int value);
-extern void opeu_open_stub_c(uint8_t value);
-extern uint16_t opeu_string_length(char *s);
-extern uint8_t opeu_ascii_upper(uint8_t c);
-extern int opeu_text_x, opeu_text_y, opeu_text_left;
-extern uint8_t opeu_text_paper, opeu_text_ink, opeu_text_background;
-extern int opeu_text_large;
-extern uint8_t opeu_text_lead;
-extern int opeu_text_state;
-extern char *opeu_format_output;
-extern uint8_t opeu_text_erase[];
-uint8_t opeu_key_read(void);
-void opeu_input_flush(void);
-int opeu_format_decimal(char **p);
-int _cdecl opeu_put_unsigned(char **p, uint16_t v, uint16_t base);
-int _cdecl opeu_put_long(char **p, long v, int base);
-void _cdecl opeu_format(int *args, void (*out)(int));
-uint16_t opeu_open_sjis_to_jis(uint16_t code);
-void opeu_text_clamp(void);
-void opeu_army_position(int x, int y);
-void opeu_text_set_x(int x);
-void opeu_text_set_y(int y);
-void opeu_text_color(uint16_t color);
-void opeu_text_paper_set(uint8_t paper);
-void opeu_text_glyph(int x, int y, int attribute, uint16_t code);
-void opeu_text_newline(void);
-void opeu_text_control(uint8_t c);
-uint8_t opeu_text_put(uint8_t c);
-void opeu_format_store(char c);
-void opeu_ui_text(uint8_t *s);
-void _cdecl opeu_cursor_print(char *format, ...);
-void _cdecl opeu_request_format(char *destination, char *format, ...);
-void opeu_text_put_range(char *s, uint8_t start, uint8_t count);
-void opeu_text_erase_char(void);
-#pragma alloc_text(C02A0_TEXT,opeu_key_read,opeu_input_flush,opeu_format_decimal,opeu_put_unsigned,opeu_put_long,opeu_format)
-#pragma alloc_text(C02A0_TEXT,opeu_open_sjis_to_jis,opeu_text_clamp,opeu_army_position,opeu_text_set_x,opeu_text_set_y)
-#pragma alloc_text(C02A0_TEXT,opeu_text_color,opeu_text_paper_set,opeu_text_glyph,opeu_text_newline,opeu_text_control)
-#pragma alloc_text(C02A0_TEXT,opeu_text_put,opeu_format_store,opeu_ui_text,opeu_cursor_print,opeu_request_format)
-#pragma alloc_text(C02A0_TEXT,opeu_text_put_range,opeu_text_erase_char)
-#define STATE
-#define STATE0 void
-#define ARGS
-#define ARGS0
-#define CDECL _cdecl
-#define I16 int
-#define I32 long
-#define PCHAR char *
-#define PBYTE uint8_t *
-#define PPCHAR char **
-#define PARGS int *
-#define OUT_FN(name) void (*name)(int)
-#define OUT(name, v) (*name)(v)
-#define BUFFER(type, name, size) type name[size]
-#define AT(p) (*(p))
-#define U16(e) (e)
-#define NEGATE_LONG(e) (-(e))
-#define ARG_PTR(p) (*(char **)(p))
-#define ARG_REST(p) ((p)+1)
-#define ARG_INT(p) (*(p))
-#define ARG_LONG(p) (*(long *)(p))
-#define ARG_INT_NEXT(p) (*(p)++)
-#define ARG_PTR_NEXT(p) (*(char **)(p)++)
-#define KEY_REGS Regs r
-#define KEY_READ(r) r.h.ah = 0; int86(0x16, &r, &r)
-#define KEY_CHAR(r) r.h.al
-#define KEY_WAITING() opeu_turn_input_b()
-#define CODE_0541_011E(v) opeu_open_stub_a(v)
-#define BOX(x, y, w, h, c) opeu_ui_box(x, y, w, h, c)
-#define CLEAR() opeu_vga_clear()
-#define SOUND_RESET(v) opeu_open_stub_b(v)
-#define PENDING_FINISH(v) opeu_open_stub_c(v)
-#define LENGTH(s) opeu_string_length(s)
-#define STORE_OUT (void (*)(int))opeu_format_store
-#define PUT_OUT (void (*)(int))opeu_text_put
-#define REQUEST_PARAMS char *destination, char *format, ...
-#define REQUEST_DESTINATION destination
-#define REQUEST_ARGS (int *)&format
-#define PRINT_PARAMS char *format, ...
-#define PRINT_ARGS (int *)&format
-#define ERASE_TEXT opeu_text_erase
-#define ENTER(name, size)
-#define LEAVE(size)
-#define UNUSED(v)
-#else
 /* Host model: DS is explicit and near pointers are 16-bit DS offsets. The
  * original's automatic conversion buffer lives on the DGROUP stack (SS =
  * DS); the host allocates it below host->sp so that callees receive DS
@@ -236,7 +143,6 @@ static void host_store_out(uint8_t *ds, TextHost *host, uint16_t c)
 {
     opeu_format_store(ds, host, (char)c);
 }
-#endif
 
 /* 0002: wait for a key (INT 16h) and return its character. */
 uint8_t opeu_key_read(STATE0)

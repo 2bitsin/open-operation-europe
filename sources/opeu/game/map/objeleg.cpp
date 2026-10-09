@@ -8,11 +8,9 @@
 #include "map/stepmap.hpp"
 #include "map/support.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #define UNIT_POINTER     uint16_t
 #define FIELD(n)         ds[(uint16_t)(objective + (n))]
 #define UNIT_FLAGS(unit) ds[(uint16_t)((unit) + 21)]
@@ -42,7 +40,6 @@ supported:
   return SUPPORT(a);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -59,4 +56,3 @@ PORT_ROUTINE(opeu_objective_eligible) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

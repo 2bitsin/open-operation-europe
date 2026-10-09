@@ -11,14 +11,12 @@
 #include "units/finalact.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/movetgt.hpp"
 #include "units/engineer.hpp"
 #include "units/orders.hpp"
-#endif
 
 /* Host model: ds is the 64 KiB data/stack segment and sp the original SP at
  * entry; x,y live at BP-2/BP-4 (sp-4/sp-6). Callees are event(ds,id,args,
@@ -71,7 +69,6 @@ void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -109,4 +106,3 @@ uint16_t svc_finalact(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

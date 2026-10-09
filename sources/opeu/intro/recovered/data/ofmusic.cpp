@@ -25,11 +25,7 @@
 #include "types.hpp"
 /* C 6.0a /AM emits a module's initialized far objects, in declaration order
  * and without padding, as one paragraph-aligned FAR_DATA segment. */
-#if defined(_MSC_VER) && _MSC_VER < 1000
-#define OPEU_FAR far
-#else
 #define OPEU_FAR
-#endif
 
 uint16_t OPEU_FAR opeu_music_tracks[3][5] = {
     {0x01dd, 0x034b, 0x0637, 0x07b1, 0x09de},

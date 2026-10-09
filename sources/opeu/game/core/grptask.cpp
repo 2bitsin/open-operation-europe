@@ -10,13 +10,11 @@
 #include "map/support.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/groupai.hpp"
 #include "core/unitai.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint8_t bytes[14], order_kind, tail[7];
@@ -115,7 +113,6 @@ uint16_t opeu_turn_final_predicate(uint8_t ds[65536],
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -144,4 +141,3 @@ uint16_t svc_grptask(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

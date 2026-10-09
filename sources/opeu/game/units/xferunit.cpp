@@ -12,11 +12,9 @@
 #include "units/xferstep.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host: ds is the 64 KiB DOS data segment and units/objectives are DS
  * offsets. The original's frame buffers and output words (unit names, the
  * capacity/percentage results, the target cell) live at scratch offsets in
@@ -221,7 +219,6 @@ uint16_t opeu_order_supply_unit(uint8_t ds[65536], HostWordsEvent event) {
   return supply_order(ds, event, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -256,4 +253,3 @@ PORT_ROUTINE(opeu_order_supply_unit) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

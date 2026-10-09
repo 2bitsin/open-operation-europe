@@ -19,7 +19,6 @@
 #include "map/query.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -29,7 +28,6 @@
 #include "io/soundcue.hpp"
 #include "map/maperase.hpp"
 #include "map/mapunit.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. RNG, byte arithmetic,
  * map/cell queries, mark 5, objective side/eligibility and side records run
@@ -141,7 +139,6 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -208,4 +205,3 @@ PORT_ROUTINE(opeu_partisan_event) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

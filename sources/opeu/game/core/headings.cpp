@@ -5,13 +5,11 @@
 #include "core/sideutil.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#endif
 /* The color callback is explicit so nested display calls need no global bridge. */
 #define PERSON  uint16_t
 #define CURRENT ds[0x62]
@@ -56,7 +54,6 @@ void opeu_division_heading(uint8_t ds[65536], HostNotify event, PERSON person) {
   PORTRAIT(1, 144, person);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -95,4 +92,3 @@ void svc_headings_color(uint8_t* ds, uint16_t color) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

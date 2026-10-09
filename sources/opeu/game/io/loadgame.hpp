@@ -9,10 +9,8 @@ uint16_t opeu_saved_game_valid(uint8_t* ds, uint8_t slot);
 uint16_t opeu_save_record_size(void);
 uint16_t opeu_load_saved_game(uint8_t* ds, HostEvent event);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_loadgame(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

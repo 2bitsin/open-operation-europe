@@ -23,12 +23,10 @@ void opeu_battle_commander_message(uint8_t* ds, BattleEvent event,
 void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event,
                                  uint16_t element);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_battle_commander(uint8_t* ds, uint32_t address,
                               const uint16_t* args, unsigned count);
 uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

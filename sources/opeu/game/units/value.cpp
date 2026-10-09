@@ -5,11 +5,9 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint8_t bytes[4], category, tail[7], flags;
@@ -103,7 +101,6 @@ uint16_t opeu_hour_is_night(uint8_t code) {
   return code >= 20 || code <= 4;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -131,4 +128,3 @@ PORT_ROUTINE(opeu_hour_is_night) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

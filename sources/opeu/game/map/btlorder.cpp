@@ -7,11 +7,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements are DS offsets. Recovered 2864 callees
  * run as host functions; the 2808 BTLCALC helpers (element_strength,
  * move_cost), 29f5:050e and the group-A 2673 functions (0008..0510) are event
@@ -259,7 +257,6 @@ void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element,
     opeu_battle_update_element(ds, event, element);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -314,4 +311,3 @@ PORT_ROUTINE(opeu_battle_seek_target) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

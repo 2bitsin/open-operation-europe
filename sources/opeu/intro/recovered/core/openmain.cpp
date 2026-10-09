@@ -51,102 +51,6 @@
  * Near pointers are DS offsets; all arithmetic wraps at 16 bits.
  */
 #include "types.hpp"
-#if defined(_MSC_VER) && _MSC_VER < 1000
-extern void _cdecl opeu_open_sfx_play(uint16_t ticks);
-extern int _cdecl opeu_open_sfx_busy(void);
-extern uint16_t _cdecl opeu_fm_busy(void);
-extern int opeu_open_input_poll(void);
-extern void opeu_vga_clear(void);
-extern int opeu_open_palette_fade(int mode,uint8_t *palette);
-extern int opeu_open_palette_step(uint8_t *palette);
-extern void opeu_open_palette_set(uint8_t *palette);
-extern int opeu_open_fade_in(void);
-extern int opeu_open_fade_in_wait(void);
-extern void opeu_picture_file_at(int x,int y,long position);
-extern void opeu_gfx_wait(void);
-extern void opeu_music_start(uint8_t track);
-extern void opeu_finish_side_initialization(uint8_t value);
-extern long _cdecl opeu_dos_seek(int handle,long position,int origin);
-extern int _cdecl opeu_dos_read_far(int handle,uint16_t segment,uint16_t offset,uint16_t count);
-extern void _cdecl opeu_draw_far(uint16_t x,uint16_t y,uint16_t w,uint16_t h,uint16_t mode,uint16_t segment,uint16_t offset);
-extern void _cdecl opeu_bitmap_restore(uint16_t x,uint16_t y,uint16_t w,uint16_t h,uint16_t mode,uint16_t segment,uint16_t offset);
-extern void _cdecl opeu_open_bitmap_save(uint16_t x,uint16_t y,uint16_t w,uint16_t h,uint16_t segment,uint16_t offset);
-extern void _cdecl opeu_open_dissolve_blit(uint16_t x,uint16_t y,uint16_t segment,uint16_t offset,uint16_t pattern);
-extern void _cdecl opeu_open_screen_copy(uint16_t x,uint16_t y,uint16_t w,uint16_t h,uint16_t to_x,uint16_t to_y);
-extern void _cdecl opeu_ui_box(uint16_t x,uint16_t y,uint16_t w,uint16_t h,uint16_t color);
-extern uint8_t opeu_open_palettes[][48];           /* DS:0444 */
-extern int opeu_open_logo_file;                    /* DS:0442, KOEILOGO.FNT */
-extern uint16_t opeu_open_buffer_a,opeu_open_buffer_b,opeu_open_buffer_c,
-    opeu_open_buffer_d,opeu_open_buffer_e,opeu_open_buffer_f; /* DS:1c22..1c2c */
-void opeu_open_delay(uint16_t ticks);
-int opeu_open_wait(uint16_t ticks);
-int opeu_open_wait_until(uint16_t target);
-void opeu_open_clear_screen(void);
-int opeu_open_fade_to_palette(uint8_t slot,int mode);
-void opeu_open_load_koei_logo(void);
-void opeu_open_show_koei_logo(void);
-void opeu_open_show_logo_caption_a(void);
-void opeu_open_show_logo_caption_b(void);
-void opeu_open_scene_koei(void);
-int opeu_open_prologue_pictures(void);
-int opeu_open_scene_prologue(void);
-int opeu_open_descend_animation(void);
-int opeu_open_scene_color_cycle(void);
-int opeu_open_scene_flicker(void);
-int opeu_open_sprite_march(void);
-int opeu_open_panorama_scroll(void);
-int opeu_open_panorama_flashes(void);
-int opeu_open_panorama_exit(void);
-int opeu_open_scene_panorama(void);
-#pragma alloc_text(C03AC_OPEN,opeu_open_delay,opeu_open_wait,opeu_open_wait_until)
-#pragma alloc_text(C03AC_OPEN,opeu_open_clear_screen,opeu_open_fade_to_palette)
-#pragma alloc_text(C03AC_OPEN,opeu_open_load_koei_logo,opeu_open_show_koei_logo)
-#pragma alloc_text(C03AC_OPEN,opeu_open_show_logo_caption_a,opeu_open_show_logo_caption_b)
-#pragma alloc_text(C03AC_OPEN,opeu_open_scene_koei,opeu_open_prologue_pictures)
-#pragma alloc_text(C03AC_OPEN,opeu_open_scene_prologue,opeu_open_descend_animation)
-#pragma alloc_text(C03AC_OPEN,opeu_open_scene_color_cycle,opeu_open_scene_flicker)
-#pragma alloc_text(C03AC_OPEN,opeu_open_sprite_march,opeu_open_panorama_scroll)
-#pragma alloc_text(C03AC_OPEN,opeu_open_panorama_flashes,opeu_open_panorama_exit)
-#pragma alloc_text(C03AC_OPEN,opeu_open_scene_panorama)
-#define OPEN_STATE void
-#define OPEN_STATE_
-#define OPEN_ARGS
-#define OPEN_ARGS_
-#define FAROFF uint8_t *
-#define UNUSED
-#define OFFSET(v) (uint8_t *)v
-#define FM_WAIT_START(t) opeu_open_sfx_play(t)
-#define HANG() for (;;)
-#define SFX_BUSY() opeu_open_sfx_busy()
-#define FM_BUSY() opeu_fm_busy()
-#define INPUT_POLL() opeu_open_input_poll()
-#define VGA_CLEAR() opeu_vga_clear()
-#define PALETTE_FADE(mode,palette) opeu_open_palette_fade(mode,palette)
-#define PALETTE_STEP(palette) opeu_open_palette_step(palette)
-#define PALETTE_SET(palette) opeu_open_palette_set(palette)
-#define FADE_OUT() opeu_open_fade_in()
-#define FADE_OUT_WAIT() opeu_open_fade_in_wait()
-#define PICTURE_AT(x,y,position) opeu_picture_file_at(x,y,position)
-#define GFX_WAIT() opeu_gfx_wait()
-#define MUSIC_START(track) opeu_music_start(track)
-#define MUSIC_COMMAND4(value) opeu_finish_side_initialization(value)
-#define DOS_SEEK(handle,position,origin) opeu_dos_seek(handle,position,origin)
-#define DOS_READ_FAR(handle,s,o,n) opeu_dos_read_far(handle,s,o,n)
-#define BITMAP_RESTORE(x,y,w,h,m,s,o) opeu_draw_far(x,y,w,h,m,s,o)
-#define BLIT_FAR(x,y,w,h,m,s,o) opeu_bitmap_restore(x,y,w,h,m,s,o)
-#define BITMAP_SAVE(x,y,w,h,s,o) opeu_open_bitmap_save(x,y,w,h,s,o)
-#define DISSOLVE(x,y,s,o,pattern) opeu_open_dissolve_blit(x,y,s,o,pattern)
-#define SCREEN_COPY(x,y,w,h,tx,ty) opeu_open_screen_copy(x,y,w,h,tx,ty)
-#define UI_BOX(x,y,w,h,c) opeu_ui_box(x,y,w,h,c)
-#define PALETTE(n) opeu_open_palettes[n]
-#define LOGO_FILE opeu_open_logo_file
-#define BUFFER_A opeu_open_buffer_a
-#define BUFFER_B opeu_open_buffer_b
-#define BUFFER_C opeu_open_buffer_c
-#define BUFFER_D opeu_open_buffer_d
-#define BUFFER_E opeu_open_buffer_e
-#define BUFFER_F opeu_open_buffer_f
-#else
 typedef uint16_t (*OpenEvent)(uint8_t *ds,uint16_t id,const uint16_t *args,uint16_t count);
 static uint16_t open_call(uint8_t *ds,OpenEvent event,uint16_t id,uint16_t count,
     uint16_t a0,uint16_t a1,uint16_t a2,uint16_t a3,uint16_t a4,uint16_t a5,uint16_t a6)
@@ -228,7 +132,6 @@ int opeu_open_panorama_scroll(OPEN_STATE);
 int opeu_open_panorama_flashes(OPEN_STATE);
 int opeu_open_panorama_exit(OPEN_STATE);
 int opeu_open_scene_panorama(OPEN_STATE);
-#endif
 
 void opeu_open_delay(OPEN_STATE_ uint16_t ticks)
 {
@@ -711,143 +614,6 @@ int opeu_open_scene_panorama(OPEN_STATE)
  * 43 identity_palette()              062d:0328
  * 44 file_or_die(name) -> AX         062d:0350
  */
-#if defined(_MSC_VER) && _MSC_VER < 1000
-typedef struct { uint16_t ax, bx, cx, dx, si, di, cflag; } WordRegs;
-typedef struct { uint8_t al, ah, bl, bh, cl, ch, dl, dh; } ByteRegs;
-typedef union { WordRegs x; ByteRegs h; } Regs;
-extern int opeu_sprite_mapped;                          /* DS:0180, OEMSMAP flag */
-extern int opeu_open_aborted;                           /* DS:01ac */
-extern int opeu_open_frame_y[11], opeu_open_frame_h[11]; /* DS:01ae, 01c4 */
-extern uint16_t opeu_open_frame_off[11];                /* DS:01da */
-extern uint16_t opeu_open_bob_a[20];                    /* DS:01f0 */
-extern int opeu_open_blast_steps[6];                    /* DS:0218 */
-extern uint8_t opeu_open_blast_slots[3];                /* DS:0224 */
-extern int opeu_open_blast_x[3], opeu_open_blast_y[3];  /* DS:0228, 022e */
-extern uint16_t opeu_open_blast_masks[6];               /* DS:0234 */
-extern uint16_t opeu_open_blast_sprites[6];             /* DS:0240 */
-extern uint8_t opeu_open_flash_slots[3];                /* DS:024c */
-extern uint16_t opeu_open_bob_b[20];                    /* DS:0250 */
-extern int opeu_open_flak_x[4], opeu_open_flak_y[4];    /* DS:0278, 0280 */
-extern int opeu_open_gun_flips[3];                      /* DS:0288 */
-extern int opeu_open_shell_x[6], opeu_open_shell_y[6];  /* DS:028e, 029a */
-extern int opeu_open_shell_w[6], opeu_open_shell_ws[6]; /* DS:02a6, 02b2 */
-extern int opeu_open_shell_h[6];                        /* DS:02be */
-extern uint16_t opeu_open_shell_sprite[6];              /* DS:02ca */
-extern uint16_t opeu_open_shell_save[6];                /* DS:02d6 */
-extern int opeu_open_flash_on, opeu_open_flash_phase;   /* DS:02e2, 02e4 */
-extern char opeu_open_text_alloc_err1[], opeu_open_text_alloc_err2[]; /* DS:02e6, 02f1 */
-extern char opeu_open_text_alloc_err3[], opeu_open_text_alloc_err4[]; /* DS:02fc, 0307 */
-extern char opeu_open_text_alloc_err5[], opeu_open_text_alloc_err6[]; /* DS:0312, 031d */
-extern char opeu_open_text_alloc_err7[], opeu_open_text_alloc_err9[]; /* DS:0328, 0333 */
-extern char opeu_open_text_console[];                   /* DS:033e */
-extern char opeu_open_name_scesel[];                    /* DS:034b */
-extern char opeu_open_name_fnt[], opeu_open_name_npk[]; /* DS:0418, 0426 */
-extern char opeu_open_name_mopengrp[];                  /* DS:0432 */
-extern int opeu_picture_handle;                         /* DS:0440, OPENGRP.NPK */
-extern uint16_t opeu_open_buffer_g, opeu_open_buffer_h; /* DS:1c30, 1c32 */
-extern uint16_t _cdecl opeu_dos_alloc(uint16_t paragraphs);
-extern int _cdecl opeu_dos_free(uint16_t segment);
-extern int _cdecl opeu_dos_close(int handle);
-extern int _cdecl opeu_dos_exists(char *name);
-extern void _cdecl koei_09b7(uint16_t a,uint16_t b);
-extern void _cdecl koei_install_dos_handlers(void);
-extern void _cdecl opeu_fm_wait_start(uint16_t ticks);
-extern void _cdecl opeu_fm_noop(void);
-extern void _cdecl opeu_open_far_copy(uint16_t source_segment,uint16_t source_offset,uint16_t segment,uint16_t offset,uint16_t count);
-extern void _cdecl opeu_open_buf_or(uint16_t segment,uint16_t offset,uint16_t w,uint16_t h,uint16_t source_segment,uint16_t source_offset);
-extern void _cdecl opeu_open_buf_and_mask(uint16_t segment,uint16_t offset,uint16_t w,uint16_t h,uint16_t mask_segment,uint16_t mask_offset);
-extern int _cdecl int86(int number,Regs *in,Regs *out);
-extern void opeu_ui_text(char *text);
-extern int _cdecl opeu_cursor_print(char *format,...);
-extern void opeu_memory_release(void);
-extern int16_t opeu_ems_alloc_sprite(void);
-extern int16_t opeu_ems_detect(void);
-extern void opeu_sound_initialize(void);
-extern int opeu_music_playing(void);
-extern uint16_t opeu_mouse_reset(void);
-extern int opeu_open_fade_alt(void);
-extern void opeu_open_identity_palette(void);
-extern int opeu_open_file_or_die(char *name);
-#define FAR_COPY(ss,so,s,o,n) opeu_open_far_copy(ss,so,s,o,n)
-#define BUF_OR(s,o,w,h,ss,so) opeu_open_buf_or(s,o,w,h,ss,so)
-#define BUF_AND_MASK(s,o,w,h,ms,mo) opeu_open_buf_and_mask(s,o,w,h,ms,mo)
-#define TIMELINE_START(t) opeu_fm_wait_start(t)
-#define FM_NOOP() opeu_fm_noop()
-#define INSTALL_HANDLERS() koei_install_dos_handlers()
-#define DOS_ALLOC(n) opeu_dos_alloc(n)
-#define DOS_FREE(s) opeu_dos_free(s)
-#define DOS_CLOSE(h) opeu_dos_close(h)
-#define DOS_EXISTS(name) opeu_dos_exists(name)
-#define STUB_09B7(a,b) koei_09b7(a,b)
-#define INT86(n,in,out) int86(n,in,out)
-#define UI_TEXT(text) opeu_ui_text(text)
-#define CURSOR_PRINT(text) opeu_cursor_print(text)
-#define MEMORY_RELEASE() opeu_memory_release()
-#define EMS_ALLOC_SPRITE() opeu_ems_alloc_sprite()
-#define EMS_DETECT() opeu_ems_detect()
-#define SOUND_INITIALIZE() opeu_sound_initialize()
-#define MUSIC_PLAYING() opeu_music_playing()
-#define MOUSE_RESET() opeu_mouse_reset()
-#define FADE_ALT() opeu_open_fade_alt()
-#define IDENTITY_PALETTE() opeu_open_identity_palette()
-#define FILE_OR_DIE(name) opeu_open_file_or_die(name)
-#define EMS_USED opeu_sprite_mapped
-#define ABORTED opeu_open_aborted
-#define SET_ABORTED(v) (opeu_open_aborted = (v))
-#define FRAME_Y(i) opeu_open_frame_y[i]
-#define FRAME_H(i) opeu_open_frame_h[i]
-#define FRAME_OFF(i) opeu_open_frame_off[i]
-#define BOB_A(i) opeu_open_bob_a[i]
-#define BLAST_STEPS(i) opeu_open_blast_steps[i]
-#define BLAST_SLOT(i) opeu_open_blast_slots[i]
-#define BLAST_X(i) opeu_open_blast_x[i]
-#define BLAST_Y(i) opeu_open_blast_y[i]
-#define BLAST_MASK(i) opeu_open_blast_masks[i]
-#define BLAST_SPRITE(i) opeu_open_blast_sprites[i]
-#define FLASH_SLOT(i) opeu_open_flash_slots[i]
-#define BOB_B(i) opeu_open_bob_b[i]
-#define FLAK_X(i) opeu_open_flak_x[i]
-#define FLAK_Y(i) opeu_open_flak_y[i]
-#define GUN_FLIPS(i) opeu_open_gun_flips[i]
-#define SHELL_X(i) opeu_open_shell_x[i]
-#define SHELL_Y(i) opeu_open_shell_y[i]
-#define SHELL_W(i) opeu_open_shell_w[i]
-#define SHELL_WS(i) opeu_open_shell_ws[i]
-#define SHELL_H(i) opeu_open_shell_h[i]
-#define SHELL_SPRITE(i) opeu_open_shell_sprite[i]
-#define SHELL_SAVE(i) opeu_open_shell_save[i]
-#define FLASH_ON opeu_open_flash_on
-#define FLASH_PHASE opeu_open_flash_phase
-#define FLIP_FLASH_ON() (opeu_open_flash_on ^= 1)
-#define FLIP_FLASH_PHASE() (opeu_open_flash_phase ^= 1)
-#define ALLOC_ERR1 opeu_open_text_alloc_err1
-#define ALLOC_ERR2 opeu_open_text_alloc_err2
-#define ALLOC_ERR3 opeu_open_text_alloc_err3
-#define ALLOC_ERR4 opeu_open_text_alloc_err4
-#define ALLOC_ERR5 opeu_open_text_alloc_err5
-#define ALLOC_ERR6 opeu_open_text_alloc_err6
-#define ALLOC_ERR7 opeu_open_text_alloc_err7
-#define ALLOC_ERR9 opeu_open_text_alloc_err9
-#define TEXT_CONSOLE opeu_open_text_console
-#define NAME_SCESEL opeu_open_name_scesel
-#define NAME_FNT opeu_open_name_fnt
-#define NAME_NPK opeu_open_name_npk
-#define NAME_MOPENGRP opeu_open_name_mopengrp
-#define NPK_FILE opeu_picture_handle
-#define SET_NPK_FILE(v) (opeu_picture_handle = (v))
-#define SET_LOGO_FILE(v) (opeu_open_logo_file = (v))
-#define BUFFER_G opeu_open_buffer_g
-#define BUFFER_H opeu_open_buffer_h
-#define SET_BUFFER_A(v) (opeu_open_buffer_a = (v))
-#define SET_BUFFER_B(v) (opeu_open_buffer_b = (v))
-#define SET_BUFFER_C(v) (opeu_open_buffer_c = (v))
-#define SET_BUFFER_D(v) (opeu_open_buffer_d = (v))
-#define SET_BUFFER_E(v) (opeu_open_buffer_e = (v))
-#define SET_BUFFER_F(v) (opeu_open_buffer_f = (v))
-#define SET_BUFFER_G(v) (opeu_open_buffer_g = (v))
-#define SET_BUFFER_H(v) (opeu_open_buffer_h = (v))
-#define RETURN_LAST_TEST
-#else
 typedef struct { uint16_t ax, bx, cx, dx, si, di, cflag; } WordRegs;
 typedef struct { uint8_t al, ah, bl, bh, cl, ch, dl, dh; } ByteRegs;
 typedef union { WordRegs x; ByteRegs h; } Regs;
@@ -938,7 +704,6 @@ static uint16_t open_set(uint8_t *ds,uint16_t at,uint16_t value)
 #define SET_BUFFER_G(v) open_set(ds,0x1c30,v)
 #define SET_BUFFER_H(v) open_set(ds,0x1c32,v)
 #define RETURN_LAST_TEST return 0;
-#endif
 int opeu_open_units_drive_in(OPEN_STATE);
 int opeu_open_units_animate(OPEN_STATE);
 int opeu_open_scene_units(OPEN_STATE);
@@ -962,16 +727,6 @@ void opeu_open_shutdown(OPEN_STATE);
 void opeu_open_files_open(OPEN_STATE);
 void opeu_open_files_close(OPEN_STATE);
 void opeu_open_main(OPEN_STATE);
-#if defined(_MSC_VER) && _MSC_VER < 1000
-#pragma alloc_text(C03AC_OPEN,opeu_open_units_drive_in,opeu_open_units_animate,opeu_open_scene_units)
-#pragma alloc_text(C03AC_OPEN,opeu_open_bomber_approach,opeu_open_bomb_explosions,opeu_open_scene_bombing)
-#pragma alloc_text(C03AC_OPEN,opeu_open_flash_preload,opeu_open_bomber_flak,opeu_open_scene_flak)
-#pragma alloc_text(C03AC_OPEN,opeu_open_gun_setup,opeu_open_gun_pan,opeu_open_flash_toggle)
-#pragma alloc_text(C03AC_OPEN,opeu_open_shell_run,opeu_open_shell_run_pair,opeu_open_gun_fire)
-#pragma alloc_text(C03AC_OPEN,opeu_open_scene_artillery,opeu_open_title,opeu_open_init)
-#pragma alloc_text(C03AC_OPEN,opeu_open_free_buffers,opeu_open_shutdown,opeu_open_files_open)
-#pragma alloc_text(C03AC_OPEN,opeu_open_files_close,opeu_open_main)
-#endif
 
 /* x: strip column, off_a/off_b: strip offsets in buffer C. */
 int opeu_open_units_drive_in(OPEN_STATE)

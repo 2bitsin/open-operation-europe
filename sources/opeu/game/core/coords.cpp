@@ -12,7 +12,6 @@
 #include "map/viewstep.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -28,7 +27,6 @@
 #include "map/mappos.hpp"
 #include "map/viewpan.hpp"
 #include "units/ordact.hpp"
-#endif
 
 #include <stddef.h>
 /* Native caller supplies aligned DS storage with 65,537 accessible bytes and
@@ -351,7 +349,6 @@ done:
   return COORD_RESULT;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -449,4 +446,3 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG32
 #undef B2_FAR
 #undef B2_SP_CALL
-#endif /* OPEU_HOST_EVENTS */

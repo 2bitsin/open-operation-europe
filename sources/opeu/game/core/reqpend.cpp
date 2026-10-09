@@ -6,7 +6,6 @@
 #include "core/reqcheck.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -14,7 +13,6 @@
 #include "core/msglook.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint16_t target;
@@ -99,7 +97,6 @@ void opeu_request_fallback(uint8_t ds[65536], PendingEvent event, uint8_t side,
   REQUEST->kind = 255;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -162,4 +159,3 @@ PORT_ROUTINE(opeu_pending_start_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

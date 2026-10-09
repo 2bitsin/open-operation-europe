@@ -33,11 +33,9 @@
 #include "units/genconf.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 #include <stddef.h>
 /* Event ids and 16-bit word arguments (strings and buffers are DS offsets):
@@ -410,7 +408,6 @@ start:
   return new_game;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -552,4 +549,3 @@ static uint16_t svc_scensel_near(uint8_t* ds, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -15,12 +15,10 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI: ds/event first; elements are DS offsets, all address arithmetic
  * wraps at 16 bits; int values are the 16-bit words of the DOS code.
  *   cell_open(ds, event, x, y, element) -> 0/1
@@ -131,7 +129,6 @@ void opeu_battle_mouse_cell(uint8_t* ds, BattleEvent event, uint16_t x_at,
   put_word(ds, y_at, d);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -150,4 +147,3 @@ uint16_t svc_btlcurs(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

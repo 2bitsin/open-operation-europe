@@ -9,10 +9,8 @@ void opeu_rq_draw_types(uint8_t* ds, HostEvent event, uint16_t scratch,
                         uint8_t column, uint8_t first, uint8_t row,
                         uint8_t last, uint8_t flags);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_rqsuptbl(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

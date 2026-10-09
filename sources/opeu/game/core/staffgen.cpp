@@ -7,12 +7,10 @@
 #include "core/random.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/uiprim.hpp"
-#endif
 
 /* People are 31-byte records at DS:029c (20 per side).  DS:c482 holds the
  * unrandomized base records of the candidates; DS:ea2a is the word table of
@@ -96,7 +94,6 @@ uint8_t opeu_staff_reroll_selected(uint8_t ds[65536], HostNotify event) {
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -128,4 +125,3 @@ PORT_ROUTINE(opeu_staff_reroll_selected) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

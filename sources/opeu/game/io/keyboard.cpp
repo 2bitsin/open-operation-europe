@@ -12,13 +12,11 @@
 #include "io/numdlg.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
-#endif
 
 /* Host model: ds is the original 64 KiB data segment; texts, descriptors
  * and digit buffers are DS offsets. Far pointers are stored as offset and
@@ -417,7 +415,6 @@ int opeu_prompt_yes_no(STATE_ TEXT text SCRATCH_DECL) {
   return opeu_yes_no(ds, service SCRATCH_);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -524,4 +521,3 @@ PORT_ROUTINE(opeu_prompt_yes_no) {
 #undef ARG
 #undef ARG32
 #undef KEY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

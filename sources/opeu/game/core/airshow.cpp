@@ -18,12 +18,10 @@
 #include "data/fg361c.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
-#endif
 /* Host model: near pointers are DS offsets into ds[65536] (SS = DS); far
  * segments are the original image-relative segments plus the load segment.
  * The far plane mask comes from the host build of FG361C (same bytes as
@@ -116,7 +114,6 @@ uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t bp,
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -169,4 +166,3 @@ uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

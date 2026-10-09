@@ -6,11 +6,9 @@
 #include "map/btlcmdr.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: opeu_battle_<name>(ds, event, ...). Elements, units, records and
  * strings are DS offsets. Functions of this segment call each other natively; every
  * other callee is an event service named by its linear MAIN image address
@@ -284,7 +282,6 @@ void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event,
   call(ds, event, REMOVE_LIST, 1, unit, 0, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -401,4 +398,3 @@ PORT_ROUTINE(opeu_battle_restore_tile) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

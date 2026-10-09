@@ -15,10 +15,8 @@ uint16_t opeu_turn_final_predicate(uint8_t* ds,
                                                      uint16_t, uint16_t,
                                                      uint16_t, uint16_t));
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_grptask(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
                      uint16_t a2, uint16_t a3);
-#endif
 
 #endif

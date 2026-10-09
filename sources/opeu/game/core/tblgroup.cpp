@@ -19,7 +19,6 @@
 #include "units/aggpct.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -27,7 +26,6 @@
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
 #include "io/listui.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint8_t x, y, order, extra;
@@ -200,7 +198,6 @@ void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event,
   TEXT_COLOR(7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -284,4 +281,3 @@ PORT_ROUTINE(opeu_tbl_draw_missions) {
 #undef ARG32
 #undef B2_SP_CALL
 #undef B2_TABLE_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

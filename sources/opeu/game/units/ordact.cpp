@@ -40,7 +40,6 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -55,7 +54,6 @@
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "units/ordissue.hpp"
-#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address), so BP = sp-2. The picked x/y
@@ -295,7 +293,6 @@ done:
   CACHED_Y = 0xff;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -438,4 +435,3 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count,
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

@@ -20,12 +20,10 @@
 #include "units/selelem.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model. frame is the original BP (a near DS/SS offset); 08aa uses the
  * 94 bytes frame-94..frame-1 (locals plus the BX/AX/DX spills) and 0a72 the
  * 22 bytes frame-22..frame-1 (locals, compiler copies and spills). Memory
@@ -237,7 +235,6 @@ void opeu_overview_cell_draw(uint8_t ds[65536], HostEvent event, uint16_t frame,
     UNIT_DRAW(CELL_UNIT);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -258,4 +255,3 @@ uint16_t svc_mapover(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

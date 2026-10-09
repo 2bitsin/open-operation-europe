@@ -38,14 +38,12 @@
 #include "types/host.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#endif
 /* Host model: DS is explicit and near pointers are 16-bit DS offsets. The
  * original's automatic buffers live on the DGROUP stack (SS = DS); the host
  * allocates them below host->sp so that callees receive DS offsets too.
@@ -763,7 +761,6 @@ void opeu_text_erase_char(uint8_t   ds[65536],
   opeu_text_paper = a;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -903,4 +900,3 @@ PORT_ROUTINE(opeu_ui_text) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

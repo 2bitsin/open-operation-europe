@@ -11,12 +11,10 @@ uint16_t opeu_air_bomb_order(uint8_t* ds, HostEvent event, uint16_t sp,
                              uint8_t x, uint8_t y, uint16_t type);
 void     opeu_air_bomb_command(uint8_t* ds, HostEvent event, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id,
                  const uint16_t* args, uint16_t count);
 uint16_t svc_airbomb(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

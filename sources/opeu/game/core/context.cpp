@@ -5,7 +5,6 @@
 #include "core/people.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -14,7 +13,6 @@
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/sound.hpp"
-#endif
 #include <stddef.h>
 #define POINTER       uint16_t
 #define NAME          uint16_t
@@ -79,7 +77,6 @@ void opeu_turn_pre_context(uint8_t ds[65536], HostEvent event) {
   CONTEXT(TABLE[SCENARIO & 127]);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -139,4 +136,3 @@ PORT_ROUTINE(opeu_daily_context) {
 #undef ARG
 #undef ARG32
 #undef ARMY_WORKSPACE
-#endif /* OPEU_HOST_EVENTS */

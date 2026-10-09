@@ -8,12 +8,10 @@
 #include "types/events.hpp"
 #include "types/requests.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/rqcommon.hpp"
-#endif
 /* Host: ds[] is the original DS; near pointers are 16-bit DS offsets. The
  * map-pick coordinates live at scratch+0/+1 and the frame buffer at
  * scratch+4. Services of `event` (request-menu service table):
@@ -96,7 +94,6 @@ uint8_t opeu_rq_type_selectable(void) {
   return 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -138,4 +135,3 @@ PORT_ROUTINE(opeu_rq_type_selectable) {
 #undef ARG
 #undef ARG32
 #undef RQSUPPLY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

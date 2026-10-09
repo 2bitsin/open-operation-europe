@@ -16,9 +16,7 @@ uint16_t opeu_unit_attack_order(uint8_t* ds);
 uint16_t opeu_unit_combat_order(uint8_t* ds);
 void     opeu_unit_task_service(uint8_t* ds);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_unitai(void* a0);
-#endif
 
 #endif

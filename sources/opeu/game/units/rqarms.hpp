@@ -8,12 +8,10 @@
 void    opeu_request_arms(uint8_t* ds, HostEvent event, uint16_t scratch);
 uint8_t opeu_rq_unit_selectable(void);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_rqarms(uint8_t* ds, uint16_t id, const uint16_t* args,
                     uint16_t count);
 uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id,
                            const uint16_t* args, uint16_t count);
-#endif
 
 #endif

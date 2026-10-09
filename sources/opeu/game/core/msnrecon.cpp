@@ -11,12 +11,10 @@
 #include "types/events.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/msnkill.hpp"
-#endif
 /* Host model (see msnrept.c); scripted services 0 rand_bounded(bound) and
  * 6 unit_name(unit,buffer), plus those of the report helpers. */
 #define PTR        uint16_t
@@ -92,7 +90,6 @@ void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint16_t frame,
     FAILURE(side, n);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -127,4 +124,3 @@ PORT_ROUTINE(opeu_mission_recon_unit) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -18,7 +18,6 @@
 #include "units/organize.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -41,7 +40,6 @@
 #include "units/tally.hpp"
 #include "units/typetext.hpp"
 #include "units/value.hpp"
-#endif
 /* Host: records are near DS offsets. Every callee is a service boundary
  * reached through event(ds,id,args,count); ids and argument words follow the
  * original registers/stack (byte arguments as bytes):
@@ -359,7 +357,6 @@ done:
     DAILY_SHOW(SIDE);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -499,4 +496,3 @@ PORT_ROUTINE(opeu_turn_action_6) {
 #undef LF_FRAME
 #undef LF_ORGANIZE_SEGMENT
 #undef LF_ORGANIZE_RESERVE
-#endif /* OPEU_HOST_EVENTS */

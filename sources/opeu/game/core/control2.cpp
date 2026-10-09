@@ -5,13 +5,11 @@
 #include "core/context.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/aiops5.hpp"
 #include "map/mappos.hpp"
-#endif
 #include <stddef.h>
 /* Control events:0 location(x,y,side),1 final service(). Actual CONTEXT executes
  * through its separate established context_event callback ABI. */
@@ -34,7 +32,6 @@ void opeu_turn_control_other(uint8_t ds[65536], HostEvent event,
   FINISH();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -71,4 +68,3 @@ uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef B2_SP_CALL
-#endif /* OPEU_HOST_EVENTS */

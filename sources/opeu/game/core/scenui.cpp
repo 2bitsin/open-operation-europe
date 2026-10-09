@@ -6,13 +6,11 @@
 #include "core/scenui.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#endif
 
 /* Host UI boundary: event(ds, kind, args, count) with near DS offsets.
  * 0 outline(x1,y1,x2,y2,color) 1 position(x,y) 2 print(format,arguments...)
@@ -67,7 +65,6 @@ void opeu_scenario_description(uint8_t ds[65536], HostEvent event,
   SCROLL_MODE(0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -119,4 +116,3 @@ uint16_t svc_scenui(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

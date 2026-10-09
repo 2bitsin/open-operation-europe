@@ -29,14 +29,12 @@
 #include "core/strings.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Person side, deputy
  * initialization, record counter, side records, strings, byte arithmetic and
@@ -157,7 +155,6 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -215,4 +212,3 @@ PORT_ROUTINE(opeu_wound_event) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

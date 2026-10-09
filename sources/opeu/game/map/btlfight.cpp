@@ -5,11 +5,9 @@
 #include "map/query.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host ABI: ds/event first; elements and units are DS offsets. Every callee
  * outside this file except the DS objective lookup is an event service named
@@ -160,7 +158,6 @@ void opeu_battle_finish_none(uint8_t* ds, BattleEvent event) {
   call0(ds, event, END_REDRAW);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -178,4 +175,3 @@ uint16_t svc_btlfight(uint8_t* ds, uint32_t address, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

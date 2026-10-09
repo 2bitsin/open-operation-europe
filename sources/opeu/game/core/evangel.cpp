@@ -20,7 +20,6 @@
 #include "map/grid.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -30,7 +29,6 @@
 #include "core/uiprim.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. The side, person,
  * map, RNG and byte-arithmetic helpers run recovered host code; the UI and
@@ -234,7 +232,6 @@ void opeu_angel_event(uint8_t ds[65536], HostEvent event,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -326,4 +323,3 @@ PORT_ROUTINE(opeu_angel_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

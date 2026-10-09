@@ -8,7 +8,6 @@
 #include "core/daypres.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -16,7 +15,6 @@
 #include "core/people.hpp"
 #include "core/template.hpp"
 #include "io/soundcue.hpp"
-#endif
 
 /* Host model: ds is the 64 KiB data/stack segment and sp the original SP at
  * entry; the 100-byte text is at BP-64h (sp-66h). Callees are event(ds,id,
@@ -53,7 +51,6 @@ void opeu_daily_present(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   MESSAGE(a, SPEAKER());
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -103,4 +100,3 @@ PORT_ROUTINE(opeu_daily_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

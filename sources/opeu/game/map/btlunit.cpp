@@ -6,11 +6,9 @@
 #include "map/btllist.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; element pointers are DS offsets. Element +7 holds
  * the position record, +0xc the flags. Battle cells are [13][14] at 0x3ca2;
  * group levels are bytes at 0x32f2 and the level limit is DS 0x3d9e.
@@ -171,7 +169,6 @@ uint16_t opeu_battle_level_allowed(uint8_t* ds, BattleEvent event,
   return opeu_battle_level_gap(ds, event, element) <= ds[0x3d9e] ? 1 : 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -228,4 +225,3 @@ PORT_ROUTINE(opeu_battle_unit_active) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

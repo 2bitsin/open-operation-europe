@@ -6,11 +6,9 @@
 #include "map/btlsprt.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 static void host_vram(uint8_t* ds, BattleEvent event, uint32_t service,
                       uint16_t x, uint16_t y) {
   uint16_t args[3];
@@ -81,7 +79,6 @@ void opeu_battle_draw_cell_above(uint8_t* ds, BattleEvent event, uint8_t x,
     RESTORE(a >> 3, b);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -104,4 +101,3 @@ PORT_ROUTINE(opeu_battle_draw_cell) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

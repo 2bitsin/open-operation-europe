@@ -19,12 +19,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/airbomb.hpp"
-#endif
 #pragma pack(1)
 /* Side record +29: airdrop order (site, troops, planes, hours, due hour). */
 #pragma pack()
@@ -373,7 +371,6 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     SIDE_DELAY(CURRENT) = 1;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -432,4 +429,3 @@ PORT_ROUTINE(opeu_air_drop_command) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

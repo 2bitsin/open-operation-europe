@@ -5,7 +5,6 @@
 #include "core/context.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -15,7 +14,6 @@
 #include "core/dialogs.hpp"
 #include "io/soundcue.hpp"
 #include "map/mappos.hpp"
-#endif
 #include <stddef.h>
 /* event: prepare=0, begin=1, position=2, location=3, summary=4,
  * active=5, format=6, menu=7, message=8, coordinates=9, far action=10.
@@ -103,7 +101,6 @@ again:
   SELECTED = 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -174,4 +171,3 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef B2_SP_CALL
-#endif /* OPEU_HOST_EVENTS */

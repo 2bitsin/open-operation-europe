@@ -16,12 +16,10 @@
 #include "core/template.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/msnkill.hpp"
-#endif
 /* Host model: pointers are DS offsets into ds[65536]; local buffers are
  * carved downward from the caller-supplied scratch frame (the emulated
  * stack). Side/person records, templates, string and byte arithmetic run
@@ -161,7 +159,6 @@ void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -195,4 +192,3 @@ PORT_ROUTINE(opeu_mission_finish_present) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

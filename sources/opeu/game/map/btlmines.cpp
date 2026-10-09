@@ -20,11 +20,9 @@
 #include "core/limits.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI (as BTLHIT): ds/event first, elements are DS offsets; report and
  * hit also take sp, the DS offset of the far return address at entry. Every
  * callee outside segment 2eab except the NUMERIC/STRINGS helpers (which run
@@ -161,7 +159,6 @@ void opeu_battle_mine_hit(uint8_t* ds, BattleEvent event, uint16_t sp,
   MCALL2(SET_ORDER, element, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -216,4 +213,3 @@ PORT_ROUTINE(opeu_battle_mine_hit) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

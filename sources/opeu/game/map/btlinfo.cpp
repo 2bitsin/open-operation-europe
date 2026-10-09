@@ -6,12 +6,10 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/btlcmds.hpp"
-#endif
 /* Host ABI: opeu_battle_cursor_info(ds, event). Elements are DS offsets.
  * 2864 element_side/element_flag2 are called directly (host ABI); every other
  * callee is an event service named by its linear MAIN image address with the
@@ -95,7 +93,6 @@ void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event) {
   call(ds, event, PAPER_SET, 1, 0, 0, 0, 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -114,4 +111,3 @@ uint16_t svc_btlinfo(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

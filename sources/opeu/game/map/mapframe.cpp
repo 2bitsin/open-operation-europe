@@ -9,12 +9,10 @@
 #include "map/mapframe.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: DS is explicit; near offsets and int arithmetic wrap at 16 bits.
  * Events (PLAN kinds): glyph_draw=4 (x,y,w,h,color,ptr), ui_line=5
  * (x1,y1,x2,y2,color). */
@@ -124,7 +122,6 @@ void opeu_view_frame(uint8_t ds[65536], HostEvent event, int16_t x, int16_t y) {
   LABEL_Y(0x142, 0x119, 15, 0, SCALED(y + 8));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -145,4 +142,3 @@ uint16_t svc_mapframe(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

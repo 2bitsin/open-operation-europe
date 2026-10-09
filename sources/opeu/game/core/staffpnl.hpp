@@ -10,10 +10,8 @@ void opeu_staff_restore_left(uint8_t* ds, HostNotify event);
 void opeu_staff_mark_option(uint8_t* ds, HostNotify event, int16_t option);
 void opeu_staff_frame_option(uint8_t* ds, HostNotify event, int16_t option);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 void svc_staffpnl(uint8_t* ds, uint16_t id, const uint16_t* args,
                   uint16_t count);
-#endif
 
 #endif

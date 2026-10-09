@@ -5,7 +5,6 @@
 #include "types.hpp"
 #include "core/dispatch.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -26,7 +25,6 @@
 #include "io/mouse.hpp"
 #include "map/influenc.hpp"
 #include "units/finalact.hpp"
-#endif
 
 /* Host callback ABI: event(ds,id,arg0,arg1,arg2,arg3) returns a DOS word.
  * Event ids in call order: normalize=0, initialize=1, daily=2, half-day=3,
@@ -129,7 +127,6 @@ void opeu_process_selected_turn(PARAMETERS) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -215,4 +212,3 @@ uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

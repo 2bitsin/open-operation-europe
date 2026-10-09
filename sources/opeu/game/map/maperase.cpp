@@ -11,12 +11,10 @@
 #include "map/occupy.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/blast.hpp"
-#endif
 /* Host model: DS is explicit; near pointers are 16-bit DS offsets. Recovered
  * OCCUPY runs directly; the 15c4 cell/frame painters are their host
  * functions. Event 14 is the unrecovered status-mode service 1707:015a. */
@@ -95,7 +93,6 @@ void opeu_daily_activate(uint8_t ds[65536], HostEvent event, uint16_t frame,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -116,4 +113,3 @@ uint16_t svc_maperase(uint8_t* ds, uint16_t kind, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

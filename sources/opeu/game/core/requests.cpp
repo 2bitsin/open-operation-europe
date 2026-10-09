@@ -9,7 +9,6 @@
 #include "core/random.hpp"
 #include "core/template.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -19,7 +18,6 @@
 #include "core/reqres.hpp"
 #include "core/reqspawn.hpp"
 #include "core/reqvalid.hpp"
-#endif
 #pragma pack(1)
 typedef struct {
   uint16_t target;
@@ -130,7 +128,6 @@ void opeu_hourly_c_stage_b(uint8_t ds[65536],
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -178,4 +175,3 @@ uint16_t svc_requests(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

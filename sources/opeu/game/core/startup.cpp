@@ -10,14 +10,12 @@
 #include "core/random.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/scensel.hpp"
 #include "core/segsetup.hpp"
 #include "io/sound.hpp"
-#endif
 /* Host: near pointers are 16-bit DS offsets into ds[]. Service events:
  * 0 = BIOS INT 1Ah AH=0 (returns DX, the low clock tick word),
  * 1 = 08ea:01ea, 2 = 06db:1700 (returns the new-game flag word),
@@ -155,7 +153,6 @@ void opeu_app_startup_service(uint8_t ds[65536], HostEvent event) {
   FINISH(1);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -203,4 +200,3 @@ uint16_t svc_startup(uint8_t* ds, uint16_t service, const uint16_t* args,
 #undef ARG32
 #undef NEW_GAME_FRAME
 #undef PREPARE_FRAME
-#endif /* OPEU_HOST_EVENTS */

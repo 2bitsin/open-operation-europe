@@ -15,11 +15,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements/units are DS offsets (16-bit wrap).
  * 2864 callees (element_unit, element_side, unit_side, element_flag2) and
  * the 2ec8 siblings (order_*, order_refused, cell_open, select_cell,
@@ -178,7 +176,6 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -197,4 +194,3 @@ uint16_t svc_btlexec(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

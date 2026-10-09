@@ -6,11 +6,9 @@
 #include "core/random.hpp"
 #include "core/strings.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #include <string.h>
 #define POINTER     uint16_t
 #define START(s)    ((uint16_t)(0x29cu + (s) * 620u))
@@ -68,7 +66,6 @@ void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
   IDENTITY(person) = CHOOSE(SIDE(person));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -86,4 +83,3 @@ PORT_ROUTINE(opeu_initialize_deputy) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

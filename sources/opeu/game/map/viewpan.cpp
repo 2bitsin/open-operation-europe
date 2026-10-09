@@ -7,13 +7,11 @@
 #include "map/viewpan.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/maperase.hpp"
 #include "map/mapscrol.hpp"
-#endif
 /* Host: DS explicit; the far MAPERASE/MAPSCROL calls are scripted events
  * 0 = erase (x,y) and 1 = scroll_to (x,y,side), x/y as 16-bit words. */
 #define VIEW_X ((int16_t)((uint16_t)ds[0x2f92] | ((uint16_t)ds[0x2f93] << 8)))
@@ -28,7 +26,6 @@ void opeu_viewport_pan(uint8_t ds[65536], HostEvent event, int16_t dx,
   SCROLL(VIEW_X + dx, VIEW_Y + dy, side);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -64,4 +61,3 @@ uint16_t svc_viewpan(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

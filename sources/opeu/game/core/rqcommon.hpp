@@ -15,12 +15,10 @@ void     opeu_request_finish(uint8_t* ds, HostEvent event);
 void     opeu_request_file(uint8_t* ds, HostEvent event, uint16_t request);
 uint16_t opeu_side_has_city(const uint8_t* ds);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id,
                      const uint16_t* args, uint16_t count);
 uint16_t svc_rqcommon(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

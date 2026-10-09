@@ -7,7 +7,6 @@
 #include "units/allocpnl.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -20,7 +19,6 @@
 #include "units/resagg.hpp"
 #include "units/supply.hpp"
 #include "units/unitname.hpp"
-#endif
 /* Host boundary for every callee outside 20b3:1908..1f4d. Event numbers and
  * argument words (results in args[1..3] or the return value):
  * 0 remove(unit,element) 1 insert(unit,element) 2 release(list,mask)
@@ -252,7 +250,6 @@ void opeu_alloc_finish(uint8_t ds[65536], HostWordsEvent event) {
   FINISH(3);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -329,4 +326,3 @@ PORT_ROUTINE(opeu_alloc_finish) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

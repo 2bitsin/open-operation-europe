@@ -10,12 +10,10 @@
 #include "map/dplrows.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "map/dplauto.hpp"
-#endif
 /* Host ABI: ds/event first; elements and the list window are DS offsets.
  * Callees are event services named by linear MAIN address; their argument
  * words follow tests/validate_deployment.py (formatted prints pass every
@@ -108,7 +106,6 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column,
   service(ds, event, TEXT_COLOR, 1, 7);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -139,4 +136,3 @@ PORT_ROUTINE(opeu_deploy_true) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

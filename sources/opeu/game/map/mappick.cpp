@@ -17,7 +17,6 @@
 #include "map/viewstep.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -28,7 +27,6 @@
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
 #include "map/viewpan.hpp"
-#endif
 
 #include <stddef.h>
 /* Native adapter. ds models DS=SS with one extra accessible byte (word reads
@@ -264,7 +262,6 @@ done:
   return PICK_RESULT;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -347,4 +344,3 @@ uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

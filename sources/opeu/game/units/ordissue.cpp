@@ -38,12 +38,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"
-#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address), so BP = sp-2. The count
@@ -321,7 +319,6 @@ nine:
   CACHED_Y = 0xff;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -364,4 +361,3 @@ uint16_t svc_ordissue(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

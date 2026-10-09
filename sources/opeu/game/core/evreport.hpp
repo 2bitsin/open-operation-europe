@@ -11,10 +11,8 @@ void opeu_report_units_b(uint8_t* ds, HostEvent event, uint16_t list);
 void opeu_report_event(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_turn_hourly_b(uint8_t* ds, HostEvent event, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

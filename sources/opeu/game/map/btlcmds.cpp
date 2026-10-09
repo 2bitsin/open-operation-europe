@@ -10,11 +10,9 @@
 #include "map/btlunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements are DS offsets. The 2864 accessors run
  * natively; the 29f5:0362 message box is the event service 0x2a2b2 with
  * words (AX side, DX flag, BX text).
@@ -103,7 +101,6 @@ void opeu_battle_order_refused(uint8_t* ds, BattleEvent event, uint8_t kind) {
   event(ds, MESSAGE, args, 3);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -143,4 +140,3 @@ uint16_t svc_btlcmds(uint8_t* ds, uint32_t service, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef BTL_HEX_MASKS
-#endif /* OPEU_HOST_EVENTS */

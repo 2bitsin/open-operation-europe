@@ -19,11 +19,9 @@ void     opeu_transfer_draw_row(uint8_t* ds, HostWordsEvent event, uint8_t row,
                                 uint8_t column);
 uint8_t  opeu_transfer_auto_key(uint8_t* ds, uint8_t row);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id,
                       uint16_t* args, uint16_t count);
 uint16_t svc_xferpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count);
-#endif
 
 #endif

@@ -50,7 +50,6 @@
 #include "units/selelem.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -58,7 +57,6 @@
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
 #include "map/mapunit.hpp"
-#endif
 #define WORD(n)                (*(uint16_t*)(ds + (uint16_t)(n)))
 #define TEXT(o)                (o)
 #define HOUR_8D0F              0x8d0f
@@ -238,7 +236,6 @@ element:
     goto element;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -341,4 +338,3 @@ PORT_ROUTINE(opeu_turn_action_3) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

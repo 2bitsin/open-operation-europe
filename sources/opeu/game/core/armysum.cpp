@@ -10,13 +10,11 @@
 #include "units/unitname.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "core/textout.hpp"
-#endif
 #include <stddef.h>
 /* This ABI supplies the emulated near address of name[32]. Its enclosing
  * 82-byte caller workspace spans scratch-2 .. scratch+79, without wrapping.
@@ -148,7 +146,6 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
   PRINT(FMT_HQ, NAME(SELECTED(SIDE), j));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -183,4 +180,3 @@ uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

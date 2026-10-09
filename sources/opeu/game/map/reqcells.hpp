@@ -9,9 +9,7 @@ uint16_t opeu_request_cells(uint8_t* ds, uint8_t side,
                             uint16_t (*predicate)(uint8_t*, uint8_t, uint8_t,
                                                   uint8_t));
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3);
-#endif
 
 #endif

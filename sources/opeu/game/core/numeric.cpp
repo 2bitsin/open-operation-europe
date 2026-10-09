@@ -6,11 +6,9 @@
 #include "core/numeric.hpp"
 #include "core/limits.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* 09f6:000a. AX=a, DX=b, BX=denominator. Zero divisor returns 0xffff.
  * MUL produces 32 product bits, then the original calls SIGNED long division.
@@ -56,7 +54,6 @@ uint16_t opeu_sub_word(uint16_t amount, uint16_t* value) {
   return *value;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -84,4 +81,3 @@ PORT_ROUTINE(opeu_sub_word) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

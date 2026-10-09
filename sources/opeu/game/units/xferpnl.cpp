@@ -11,7 +11,6 @@
 #include "units/ratio.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -34,7 +33,6 @@
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
 #include "units/value.hpp"
-#endif
 /* Host: ds is the 64 KiB DOS data segment; near offsets wrap at 16 bits.
  * UI services are delegated to event(ds,id,args,count) with the service ids
  * of tests/validate_supply_transfer.py; id 3 returns the mouse position in
@@ -303,7 +301,6 @@ uint8_t opeu_transfer_auto_key(uint8_t ds[65536], uint8_t row) {
   return '2';
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -460,4 +457,3 @@ uint16_t svc_xferpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

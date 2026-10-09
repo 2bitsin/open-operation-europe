@@ -11,7 +11,6 @@
 #include "types/events.hpp"
 #include "types/host.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -38,7 +37,6 @@
 #include "units/labels.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
-#endif
 /* Host model. Near pointers are 16-bit DS offsets, far pointers seg<<16|off.
  * Every callee outside segment 1707 is one host event (id, argument words):
  * 0 bitmap_restore(7) 1 bitmap_save(6) 2 ui_box(5) 3 vga_clear 4 display_prepare
@@ -555,7 +553,6 @@ void opeu_element_panel(P_ PTR(uint8_t) element) {
   ARMY_PRINT(ELEMENT_FORMAT, WORD_AT(element + 1), WORD_AT(element + 3));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -753,4 +750,3 @@ PORT_ROUTINE(opeu_title_panel_begin) {
 #undef ARG
 #undef ARG32
 #undef KEY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

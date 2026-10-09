@@ -13,13 +13,11 @@
 #include "io/mouse.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
-#endif
 
 /* Host model: ds is the original 64 KiB data segment; items, labels and the
  * format are DS offsets. The far stream pointer DS:e700/e702 receives the
@@ -214,7 +212,6 @@ uint16_t opeu_menu_select(STATE_ ITEM items, int cancel SCRATCH_DECL) {
   return r;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -265,4 +262,3 @@ uint16_t svc_menudraw(uint8_t* ds, uint16_t call, uint16_t* words) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

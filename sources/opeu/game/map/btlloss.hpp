@@ -8,10 +8,8 @@
 void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker,
                             uint16_t target);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlloss(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

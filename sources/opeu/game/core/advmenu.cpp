@@ -12,12 +12,10 @@
 #include "core/advmenu.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
-#endif
 /* Host: near pointers are DS offsets. sp is the DS offset of SP at entry;
  * the far-call temporary is stored at its original frame slot (BP-6 in the
  * advice menu, BP-8 in action 5) before the call. Unrecovered services go
@@ -83,7 +81,6 @@ void opeu_turn_action_5(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   } while (a != 2 || b != 1);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -140,4 +137,3 @@ PORT_ROUTINE(opeu_turn_action_5) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

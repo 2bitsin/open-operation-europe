@@ -13,11 +13,9 @@
 #include "types/events.hpp"
 #include "types/host.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 typedef struct {
   uint16_t es, cs, ss, ds;
@@ -274,7 +272,6 @@ void opeu_effect_finish(uint8_t ds[65536], HostService service) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -352,4 +349,3 @@ PORT_ROUTINE(opeu_set_turn_context) {
 #undef ARG
 #undef ARG32
 #undef SOUND_CODE_SEGMENT
-#endif /* OPEU_HOST_EVENTS */

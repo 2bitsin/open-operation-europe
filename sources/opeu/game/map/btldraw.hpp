@@ -16,10 +16,8 @@ void     opeu_battle_draw_frame(uint8_t* ds, BattleEvent event, uint8_t x,
                                 uint8_t y);
 void opeu_battle_draw_number(uint8_t* ds, BattleEvent event, uint16_t value);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btldraw(uint8_t* ds, uint32_t address, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

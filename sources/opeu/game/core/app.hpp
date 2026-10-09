@@ -8,9 +8,7 @@ void opeu_application_entry(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t));
 void opeu_select_turn_context(uint8_t* ds);
 void opeu_begin_hour(uint8_t* ds);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_app(uint8_t* ds, uint16_t id);
-#endif
 
 #endif

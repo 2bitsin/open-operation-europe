@@ -9,11 +9,9 @@
 #include "types/events.hpp"
 #include "types/host.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host model: ds is the original 64 KiB data segment and near pointers are
  * DS offsets. service(ds, 1, words) is the int86(0x33) boundary: seven REGS
@@ -184,7 +182,6 @@ void opeu_mouse_window(STATE_ int16_t x, int16_t y, int16_t width,
   INT86(r);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -258,4 +255,3 @@ PORT_ROUTINE(opeu_mouse_show) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

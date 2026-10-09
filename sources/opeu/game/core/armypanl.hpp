@@ -13,10 +13,8 @@ void     opeu_panel_battle_frame(uint8_t* ds, HostEvent event, int y);
 void     opeu_division_regiments(uint8_t* ds, HostEvent event, uint16_t units,
                                  uint16_t person, uint16_t sp);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args,
                       uint16_t count);
-#endif
 
 #endif

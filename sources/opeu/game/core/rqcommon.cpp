@@ -12,7 +12,6 @@
 #include "types/events.hpp"
 #include "types/requests.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -20,7 +19,6 @@
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
 #include "map/mappick.hpp"
-#endif
 /* Host: ds[] is the original DS; near pointers are 16-bit DS offsets and
  * frame buffers live at scratch+4. Services of `event` (the request-menu
  * service table shared by the 22f9 modules):
@@ -126,7 +124,6 @@ uint16_t opeu_side_has_city(const uint8_t ds[65536]) {
   return 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -226,4 +223,3 @@ PORT_ROUTINE(opeu_request_finish) {
 #undef ARG
 #undef ARG32
 #undef C2_RQ_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

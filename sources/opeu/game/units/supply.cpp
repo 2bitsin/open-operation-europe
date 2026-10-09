@@ -11,12 +11,10 @@
 #include "units/resagg.hpp"
 #include "units/unitname.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/supstep.hpp"
-#endif
 /* Host: records and fields are near DS offsets; words wrap byte by byte.
  * a/b are the caller's emulated near addresses of the original 32-byte
  * unit-name stack arrays. The transfer panel (20b3:0332 draw, 20b3:05b8 step,
@@ -125,7 +123,6 @@ void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event,
   PUT(OBJECTIVE_SUPPLY(objective, 2), GET(CELL(1, 2, 0)));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -161,4 +158,3 @@ uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

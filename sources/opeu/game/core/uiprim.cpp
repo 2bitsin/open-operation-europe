@@ -11,12 +11,10 @@
 #include "types/host.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/textout.hpp"
-#endif
 #include <stddef.h>
 /* Host model: DS is explicit; far pointers are (offset, segment) pairs that
  * resolve into DS when they alias it, otherwise into a flat 0x110000-byte
@@ -457,7 +455,6 @@ void opeu_palette_map_screen(uint8_t ds[65536], const UiHost* host) {
   SET_PALETTE(0, 16, PALETTE_MAP);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -565,4 +562,3 @@ PORT_ROUTINE(opeu_ui_outline) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

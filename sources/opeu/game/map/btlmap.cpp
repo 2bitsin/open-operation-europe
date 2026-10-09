@@ -15,7 +15,6 @@
 #include "map/btlmap.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -24,7 +23,6 @@
 #include "io/resopen.hpp"
 #include "map/btlcell.hpp"
 #include "map/query.hpp"
-#endif
 /* Host ABI: an explicit DGROUP image plus an event callback for every callee
  * outside the segment (ids listed in tests/validate_battle_map.py). Near
  * pointers are DS offsets; the far HEXDISP byte is read through event 15. */
@@ -327,7 +325,6 @@ void opeu_battle_map_setup(uint8_t* ds, HostEvent event) {
   opeu_battle_draw_title(ds, event);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -405,4 +402,3 @@ PORT_ROUTINE(opeu_battle_map_setup) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

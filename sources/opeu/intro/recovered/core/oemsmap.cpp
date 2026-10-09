@@ -22,69 +22,6 @@
  * original stack slots, derived from the entry SP passed as `sp`.
  */
 #include "types.hpp"
-#if defined(_MSC_VER) && _MSC_VER < 1000
-typedef struct { uint16_t segment, number; } EmsPage;
-extern EmsPage opeu_ems_pages[];
-extern int16_t opeu_sprite_ems_handle;
-extern int16_t opeu_sprite_mapped;
-extern uint16_t opeu_sprite_segment;
-extern int _cdecl opeu_ems_present(void);
-extern int _cdecl opeu_ems_status(void);
-extern int _cdecl opeu_ems_page_count(int16_t *count);
-extern int _cdecl opeu_ems_free_pages(int16_t *total, int16_t *available);
-extern int _cdecl opeu_ems_frame(uint16_t *segment);
-extern int _cdecl opeu_ems_allocate(int16_t pages, int16_t *handle);
-extern int _cdecl opeu_ems_page_array(EmsPage *pages);
-extern int _cdecl opeu_ems_map(int16_t handle, uint16_t physical, int16_t logical);
-extern int _cdecl opeu_ems_release(int16_t handle);
-extern void opeu_copy_bytes(const void *source, void *destination, uint16_t size);
-void opeu_ems_map_pages(int16_t handle, int16_t count, int16_t first);
-void opeu_gfx_wait(void);
-int16_t opeu_memory_release(void);
-int16_t opeu_ems_reserve(int16_t *handle, int16_t pages);
-int16_t opeu_ems_alloc_sprite(void);
-int16_t opeu_ems_detect(void);
-#pragma alloc_text(C032A_EMS,opeu_ems_map_pages,opeu_gfx_wait,opeu_memory_release,opeu_ems_reserve)
-#pragma alloc_text(C032A_EMS,opeu_ems_alloc_sprite,opeu_ems_detect)
-#define STATE
-#define VOID_STATE void
-#define SP_STATE void
-#define PASS
-#define PASS_VOID
-#define PASS_SP(n)
-#define HANDLE_PTR int16_t *
-#define PAGE_NUMBER(i) opeu_ems_pages[i].number
-#define PAGE_SEGMENT(i) opeu_ems_pages[i].segment
-#define SPRITE_MAPPED opeu_sprite_mapped
-#define SPRITE_HANDLE opeu_sprite_ems_handle
-#define SPRITE_HANDLE_AT &opeu_sprite_ems_handle
-#define SP_ARG
-#define ALLOC_RESULT(segment, mapped, value, flag) if (flag) segment = value; return mapped = flag
-#define SPRITE_RESULT(v) ALLOC_RESULT(opeu_sprite_segment, opeu_sprite_mapped, opeu_ems_pages[0].segment, v)
-#define RESERVE_LOCALS int16_t total, unallocated
-#define AT_TOTAL &total
-#define AT_UNALLOCATED &unallocated
-#define UNALLOCATED unallocated
-#define DETECT_LOCALS EmsPage pages[64]; int16_t count; uint16_t frame
-#define AT_PAGES pages
-#define AT_PAGE(i) &pages[i]
-#define AT_COUNT &count
-#define AT_FRAME &frame
-#define COUNT count
-#define FRAME frame
-#define LOCAL_PAGE(i) pages[i].segment
-#define EMS_PAGES opeu_ems_pages
-#define EMS_PRESENT() opeu_ems_present()
-#define EMS_STATUS() opeu_ems_status()
-#define EMS_PAGE_COUNT(p) opeu_ems_page_count(p)
-#define EMS_FREE_PAGES(t,u) opeu_ems_free_pages(t,u)
-#define EMS_FRAME(p) opeu_ems_frame(p)
-#define EMS_ALLOCATE(n,h) opeu_ems_allocate(n,h)
-#define EMS_PAGE_ARRAY(p) opeu_ems_page_array(p)
-#define EMS_MAP(h,p,l) opeu_ems_map(h,p,l)
-#define EMS_RELEASE(h) opeu_ems_release(h)
-#define COPY(s,d,n) opeu_copy_bytes(s,d,n)
-#else
 typedef uint16_t (*EmsEvent)(uint8_t *ds, uint16_t id, const uint16_t *args, uint16_t count);
 void opeu_copy_bytes(uint8_t ds[65536], uint16_t source, uint16_t destination, uint16_t size);
 void opeu_ems_map_pages(uint8_t ds[65536], EmsEvent event, int16_t handle, int16_t count, int16_t first);
@@ -159,7 +96,6 @@ static int16_t ems_result(uint8_t *ds, uint16_t segment, uint16_t mapped, uint16
 #define EMS_MAP(h,p,l) ems_service(ds, event, 7, 3, (uint16_t)(h), p, (uint16_t)(l))
 #define EMS_RELEASE(h) ems_service(ds, event, 8, 1, (uint16_t)(h), 0, 0)
 #define COPY(s,d,n) opeu_copy_bytes(ds, s, d, n)
-#endif
 
 /* 032a:000e. AX=handle, DX=count, BX=first physical page. */
 void opeu_ems_map_pages(STATE int16_t handle, int16_t count, int16_t first)
@@ -188,14 +124,6 @@ int16_t opeu_memory_release(VOID_STATE)
     return ok;
 }
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-/* Unused declarations: C 6.0a orders the operands of `unallocated >= pages`
- * by identifier number (mod 17). Four to six more identifiers before 008a
- * give OPEN's `cmp si,[bp-4]; jg` instead of MAIN's `cmp [bp-4],si; jl`
- * (the same expression); 0..3 and 7..8 extra give MAIN's order. They emit
- * no EXTDEF. */
-extern int16_t opeu_ems_unused1, opeu_ems_unused2, opeu_ems_unused3, opeu_ems_unused4, opeu_ems_unused5;
-#endif
 /* 032a:008a. BX=handle variable, AX=pages. 1 if the pages were allocated. */
 int16_t opeu_ems_reserve(SP_ARG HANDLE_PTR handle, int16_t pages)
 {

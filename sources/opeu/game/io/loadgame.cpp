@@ -5,7 +5,6 @@
 #include "io/rebase.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -14,7 +13,6 @@
 #include "io/listdlg.hpp"
 #include "io/resopen.hpp"
 #include "io/waitkey.hpp"
-#endif
 
 /* Host shape: original DS offsets; DOS and UI services are scripted events.
  * Event ids and 16-bit arguments: 0 exists(name), 1 open(name), 2 seek(h,lo,
@@ -119,7 +117,6 @@ uint16_t opeu_load_saved_game(uint8_t ds[65536], HostEvent event) {
   return a;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -179,4 +176,3 @@ uint16_t svc_loadgame(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

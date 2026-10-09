@@ -15,11 +15,7 @@
  */
 #include "types.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1000
-#define OD_SEG(n) _based(_segname(n))
-#else
 #define OD_SEG(n)
-#endif
 
 int16_t opeu_open_aborted = 0;                   /* DS:01ac input abort flag */
 

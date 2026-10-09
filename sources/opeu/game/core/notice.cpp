@@ -17,7 +17,6 @@
 #include "core/sideutil.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -34,7 +33,6 @@
 #include "units/capacity.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
-#endif
 #include <string.h>
 /* Host model: pointers are DS offsets into ds[65536]. Arithmetic, copy, RNG
  * and side helpers run recovered host code; every other callee is a service
@@ -457,7 +455,6 @@ void opeu_notice_begin(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   RECORDS_BUILD();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -548,4 +545,3 @@ PORT_ROUTINE(opeu_notice_view_finish) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

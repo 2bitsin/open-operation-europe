@@ -10,11 +10,9 @@
 #include "units/xferpnl.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host: ds is the 64 KiB DOS data segment. The selected-row byte, which the
  * original keeps in its frame (BP-8) and passes to the input routine, lives
  * at the scratch offset XFER_SELECTION inside the original stack window.
@@ -230,7 +228,6 @@ uint16_t opeu_transfer_run(uint8_t ds[65536], HostWordsEvent event,
   return INTERACTIVE;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -259,4 +256,3 @@ PORT_ROUTINE(opeu_transfer_step) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

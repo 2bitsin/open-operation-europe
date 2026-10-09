@@ -23,10 +23,8 @@ uint16_t opeu_mission_target_name(uint8_t* ds, HostEvent event, uint16_t frame,
 void opeu_mission_person_killed(uint8_t* ds, HostEvent event, uint16_t frame,
                                 uint16_t person);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_msnrept(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

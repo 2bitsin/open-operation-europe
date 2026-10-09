@@ -26,12 +26,10 @@
 #include "units/ordunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"
-#endif
 #include <stddef.h>
 /* Host model: near pointers are DS offsets into ds[65536]; sp is the DS
  * offset of SP at entry (far return address): the frame has BP = sp-2 and
@@ -131,7 +129,6 @@ reset:
            MESSAGE(TEXT(0x8b48), PERSON2), LIST(LIST_REF(GROUP_LIST)));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -181,4 +178,3 @@ PORT_ROUTINE(opeu_turn_action_1) {
 #undef ARG
 #undef ARG32
 #undef LF_FRAME
-#endif /* OPEU_HOST_EVENTS */

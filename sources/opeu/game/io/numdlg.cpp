@@ -11,13 +11,11 @@
 #include "types/events.hpp"
 #include "types/host.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/emsmap.hpp"
 #include "io/menudraw.hpp"
-#endif
 
 /* Host model: ds is the original 64 KiB data segment and near pointers are
  * DS offsets; long values are 32-bit and 16-bit unsigned sums wrap as on
@@ -474,7 +472,6 @@ uint16_t opeu_numdlg_run(STATE_ uint16_t lo, uint16_t hi,
   return r;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -525,4 +522,3 @@ uint16_t svc_numdlg(uint8_t* ds, uint16_t call, uint16_t* words) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

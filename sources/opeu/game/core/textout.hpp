@@ -51,11 +51,9 @@ void opeu_text_put_range(uint8_t* ds, TextHost* host, uint16_t s, uint8_t start,
                          uint8_t count);
 void opeu_text_erase_char(uint8_t* ds, TextHost* host);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
 void     svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2);
-#endif
 
 #endif

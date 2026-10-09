@@ -28,11 +28,9 @@
 #include "core/selunit.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first, then the entry SP (the address of the far return
  * address; near calls inside the segment push CS too, so every function's
  * frame starts at sp-2) so that stack buffers handed to services carry the
@@ -271,7 +269,6 @@ void opeu_battle_hq_lost(uint8_t* ds, BattleEvent event, uint16_t sp) {
     opeu_battle_officer_losses(ds, event, (uint16_t)(sp - 4));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -307,4 +304,3 @@ PORT_ROUTINE(opeu_battle_hq_lost) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

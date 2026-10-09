@@ -13,7 +13,6 @@
 #include "map/mappixel.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -26,7 +25,6 @@
 #include "io/waitkey.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
-#endif
 /* Host model: DS (and the stack inside it) is explicit; frame is the
  * original BP: the pixel words a/b live at frame-2/frame-4 because the
  * MAPPIXEL converters receive their near addresses. Far data segment 361c
@@ -138,7 +136,6 @@ void opeu_blast_pause(uint8_t ds[65536], HostEvent event) {
   WAIT(30);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -263,4 +260,3 @@ PORT_ROUTINE(opeu_blast_pause) {
 #undef ARG32
 #undef FAR
 #undef W
-#endif /* OPEU_HOST_EVENTS */

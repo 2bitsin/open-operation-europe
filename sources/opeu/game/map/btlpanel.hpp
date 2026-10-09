@@ -8,10 +8,8 @@
 void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
                                uint16_t orders_hidden, uint16_t frame);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args,
                       unsigned int count);
-#endif
 
 #endif

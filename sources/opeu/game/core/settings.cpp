@@ -13,7 +13,6 @@
 #include "types/misc.hpp"
 #include "types/units.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -30,7 +29,6 @@
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
 #include "map/mappos.hpp"
-#endif
 
 #pragma pack(1)
 typedef struct {
@@ -711,7 +709,6 @@ void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -878,4 +875,3 @@ PORT_ROUTINE(opeu_turn_action_10) {
 #undef ARG
 #undef ARG32
 #undef KEY_SCRATCH
-#endif /* OPEU_HOST_EVENTS */

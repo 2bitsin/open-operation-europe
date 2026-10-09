@@ -3,14 +3,12 @@
 #include "types.hpp"
 #include "core/sideinit.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/people.hpp"
 #include "core/template.hpp"
 #include "io/sound.hpp"
-#endif
 
 /* Callback ids: find side=0, find template=1, context=2, scenario=3, finish=4.
  * Scenario callback arguments are its original far offset and segment.
@@ -50,7 +48,6 @@ void opeu_initialize_turn_side(uint8_t ds[65536],
   ACTIVE = 0;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -93,4 +90,3 @@ uint16_t svc_sideinit(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

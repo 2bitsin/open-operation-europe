@@ -14,11 +14,9 @@
 #include "map/stepmap.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements, units and objectives are DS offsets.
  * Recovered 2864 callees run as host functions; the 2808 BTLCALC helpers,
  * 29f5:050e, 2a4a:03ca and the other 2673 functions are event services named
@@ -181,7 +179,6 @@ void opeu_battle_element_step(uint8_t* ds, BattleEvent event,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -204,4 +201,3 @@ PORT_ROUTINE(opeu_battle_element_step) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

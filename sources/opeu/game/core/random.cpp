@@ -7,12 +7,10 @@
 #include "types.hpp"
 #include "core/random.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include <string.h>
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 uint32_t opeu_random_state;
 
@@ -33,7 +31,6 @@ uint16_t opeu_rand_bounded(uint16_t bound) {
   return opeu_rand_next() % bound;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -54,4 +51,3 @@ PORT_ROUTINE(opeu_rand_bounded) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

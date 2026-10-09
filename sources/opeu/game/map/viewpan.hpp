@@ -8,10 +8,8 @@
 void opeu_viewport_pan(uint8_t* ds, HostEvent event, int16_t dx, int16_t dy,
                        uint8_t x, uint8_t y, uint8_t side);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_viewpan(uint8_t* ds, uint16_t id, const uint16_t* args,
                      uint16_t count);
-#endif
 
 #endif

@@ -22,12 +22,10 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/advenemy.hpp"
-#endif
 #include <string.h>
 #define UNUSED_SP (void)sp
 #define CALL(f)   f(ds, far_text, event, (uint16_t)(sp - 4))
@@ -415,7 +413,6 @@ uint16_t opeu_advice_regiment_status(uint8_t ds[65536], const uint8_t* far_text,
   return a;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -448,4 +445,3 @@ PORT_ROUTINE(opeu_advice_regiment_status) {
 #undef ARG
 #undef ARG32
 #undef C2_ADVICE_TEXT
-#endif /* OPEU_HOST_EVENTS */

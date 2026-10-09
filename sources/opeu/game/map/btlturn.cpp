@@ -13,11 +13,9 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; units, elements and objectives are DS offsets.
  * Unrecovered callees are event services named by linear MAIN address with
  * their register words (AX, DX, BX order). Functions that reach the 2864
@@ -243,7 +241,6 @@ void opeu_battle_clear_positions(uint8_t* ds, BattleEvent event) {
           put_word(ds, (uint16_t)(b + 7), 0);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -300,4 +297,3 @@ PORT_ROUTINE(opeu_battle_turn_loop) {
 #undef ARG
 #undef ARG32
 #undef BTL_BP
-#endif /* OPEU_HOST_EVENTS */

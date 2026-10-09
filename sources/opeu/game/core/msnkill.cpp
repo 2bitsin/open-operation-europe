@@ -19,7 +19,6 @@
 #include "types/events.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -34,7 +33,6 @@
 #include "map/objdamag.hpp"
 #include "units/casualty.hpp"
 #include "units/unitname.hpp"
-#endif
 /* Host model (see msnrept.c). Group/side selection, record lookups, byte and
  * string arithmetic run recovered host code; scripted services are
  *   0 rand_bounded(bound)  1 request_text(id)  3 control_message(text,person)
@@ -140,7 +138,6 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event,
   FAILURE(side, n);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -254,4 +251,3 @@ PORT_ROUTINE(opeu_mission_assassinate) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

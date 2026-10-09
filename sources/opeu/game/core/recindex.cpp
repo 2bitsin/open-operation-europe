@@ -5,11 +5,9 @@
 #include "records.hpp"
 #include "core/recindex.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 #define GROUP_RESULT  uint16_t
 #define GROUP_INDEX   record_index(group, 0x774, 17)
@@ -54,7 +52,6 @@ uint8_t opeu_element_side(uint16_t element) {
   return ELEMENT_INDEX / 128;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -77,4 +74,3 @@ PORT_ROUTINE(opeu_unit_side) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

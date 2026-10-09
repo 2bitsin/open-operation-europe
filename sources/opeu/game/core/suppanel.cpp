@@ -6,7 +6,6 @@
 #include "core/suppanel.hpp"
 #include "core/strings.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -14,7 +13,6 @@
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
 #include "io/waitkey.hpp"
-#endif
 /* Host: ds is the 64 KiB DOS data segment; near offsets wrap at 16 bits.
  * UI services are delegated to event(ds,id,args,count); see the validator. */
 typedef uint16_t (*SupplyEvent)(uint8_t* ds, uint16_t id, const uint16_t* args,
@@ -201,7 +199,6 @@ void opeu_supply_digits(uint8_t ds[65536], SupplyEvent event, uint16_t x,
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -262,4 +259,3 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args,
 #undef ARG
 #undef ARG32
 #undef B2_FAR
-#endif /* OPEU_HOST_EVENTS */

@@ -7,14 +7,12 @@
 #include "core/limits.hpp"
 #include "core/suppanel.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/chief.hpp"
 #include "core/suprow.hpp"
 #include "io/mouse.hpp"
-#endif
 /* Host: selection is the DS offset that holds the selected-row byte (the
  * original keeps it in its stack frame at BP-8 and passes its address to the
  * input routine). UI services, the unrecovered row redraw (20b3:0452) and the
@@ -175,7 +173,6 @@ one:
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -223,4 +220,3 @@ uint16_t svc_supstep(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

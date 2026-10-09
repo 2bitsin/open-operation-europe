@@ -6,11 +6,9 @@
 #include "units/value.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 
 /* Host ABI: ds/event first; elements and units are DS offsets. Callees outside
  * this module that touch more than plain arithmetic are event services named
@@ -184,7 +182,6 @@ void opeu_battle_resolve_attack(uint8_t* ds, BattleEvent event,
     call1(ds, event, ELEMENT_LOST, target);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -207,4 +204,3 @@ PORT_ROUTINE(opeu_battle_resolve_attack) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

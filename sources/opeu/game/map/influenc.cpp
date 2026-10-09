@@ -7,13 +7,11 @@
 #include "types/misc.hpp"
 #include "types/units.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/arrivals.hpp"
 #include "core/requests.hpp"
-#endif
 
 #define UNITS                 ((UnitPlaceView*)(ds + 0x14fc))
 #define OBJECTIVES            ((ObjectivePlaceView*)(ds + 0x1a7c))
@@ -74,7 +72,6 @@ void opeu_turn_hourly_c(uint8_t ds[65536],
   STAGE_C();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -115,4 +112,3 @@ uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

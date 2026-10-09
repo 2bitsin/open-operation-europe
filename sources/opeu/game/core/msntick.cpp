@@ -13,12 +13,10 @@
 #include "types/events.hpp"
 #include "types/misc.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/msnkill.hpp"
-#endif
 /* Host model: DS offsets; objective/unit predicates run recovered host code.
  * Scripted services: 14 weather_update  15 turn_prepare  16 air_operations
  * 17 a mission handler called through the DS:7a54 far-pointer table
@@ -92,7 +90,6 @@ void opeu_turn_hourly_a(uint8_t ds[65536], HostEvent event) {
   opeu_mission_tick(ds, event);
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -113,4 +110,3 @@ uint16_t svc_msntick(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

@@ -54,10 +54,8 @@ void     opeu_palette_daylight(uint8_t* ds, const UiHost* host);
 void     opeu_palette_title_screen(uint8_t* ds, const UiHost* host);
 void     opeu_palette_map_screen(uint8_t* ds, const UiHost* host);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id,
                     const uint16_t* args, uint16_t count);
-#endif
 
 #endif

@@ -10,10 +10,8 @@ uint16_t opeu_battle_exit_ok(uint8_t* ds, BattleEvent event, uint8_t x,
 uint16_t opeu_battle_cursor_exit_ok(uint8_t* ds, BattleEvent event,
                                     uint16_t element);
 
-#ifndef OPEU_HOST_EVENTS
 /* Services of this module in the native build (tools/game-services.json). */
 uint16_t svc_btlexit(uint8_t* ds, uint32_t service, const uint16_t* args,
                      unsigned int count);
-#endif
 
 #endif

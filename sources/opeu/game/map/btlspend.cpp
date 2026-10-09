@@ -13,11 +13,9 @@
 #include "map/btllist.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; elements and units are DS offsets. The unit
  * lookup runs the recovered BTLLIST host code; NUMERIC runs natively on a
  * local copy of the DS word. */
@@ -86,7 +84,6 @@ void opeu_battle_spend_stores(uint8_t* ds, BattleEvent event, uint16_t element,
   spend(ds, a, element, before, 10, 0x3150, word_at(ds, (uint16_t)(a + 10)));
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -119,4 +116,3 @@ PORT_ROUTINE(opeu_battle_spend_stores) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

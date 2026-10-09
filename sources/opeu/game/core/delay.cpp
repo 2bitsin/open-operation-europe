@@ -5,13 +5,11 @@
 #include "core/strings.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
-#endif
 /* Events: text=0 (id), dialog=1 (buffer,24,person,0), confirm=2 (word,person).
  * Scratch is the original near-stack buffer (efd8 at entry SPf000). It reserves
  * 36 text bytes followed by the result word. The caller supplies that complete,
@@ -40,7 +38,6 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event,
     DELAYS[CURRENT] = a;
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -91,4 +88,3 @@ PORT_ROUTINE(opeu_choose_turn_delay) {
 #undef ARG
 #undef ARG32
 #undef DELAY_FRAME
-#endif /* OPEU_HOST_EVENTS */

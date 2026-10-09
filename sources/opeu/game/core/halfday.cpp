@@ -4,13 +4,11 @@
 #include "core/halfday.hpp"
 #include "core/periodic.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
 #include "core/dialogs.hpp"
 #include "core/noonevt.hpp"
-#endif
 #define HOUR        ds[0x47]
 #define PREPARE()   event(ds, 0, 0, 0, 0, 0)
 #define RESOURCES() opeu_apply_daily_side_resources(ds)
@@ -29,7 +27,6 @@ void opeu_turn_half_day(uint8_t ds[65536],
   }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -66,4 +63,3 @@ uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
 #undef ARG
 #undef ARG32
 #undef NOON_RESERVE
-#endif /* OPEU_HOST_EVENTS */

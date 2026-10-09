@@ -10,11 +10,9 @@
 #include "map/dplcell.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 /* Host ABI: ds/event first; units, elements and result cells are DS offsets.
  * Callees outside this segment are event services named by linear MAIN
  * address (argument words as in tests/validate_deployment.py). The cells
@@ -262,7 +260,6 @@ void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
     }
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -320,4 +317,3 @@ uint16_t svc_dplauto(uint8_t* ds, uint32_t service, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

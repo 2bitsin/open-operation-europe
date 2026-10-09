@@ -5,11 +5,9 @@
 #include "types.hpp"
 #include "map/reqcells.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
-#endif
 #include <string.h>
 #define GRID           ((uint8_t (*)[40])(ds + 0xd9c6))
 #define DIRECTIONS     ((uint16_t (*)[8])(ds + 0x1fa))
@@ -96,7 +94,6 @@ uint16_t opeu_request_cells(uint8_t ds[65536], uint8_t side,
   return COUNT();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -118,4 +115,3 @@ uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3) {
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */

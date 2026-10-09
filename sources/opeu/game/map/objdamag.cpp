@@ -28,7 +28,6 @@
 #include "core/random.hpp"
 #include "types/events.hpp"
 
-#ifndef OPEU_HOST_EVENTS
 #include "port.hpp"
 #include "glue.hpp"
 #include "services.hpp"
@@ -37,7 +36,6 @@
 #include "core/strings.hpp"
 #include "map/blast.hpp"
 #include "map/query.hpp"
-#endif
 #include <string.h>
 static uint16_t damage_word(const uint8_t* ds, uint16_t at) {
   return (uint16_t)(ds[at] | ds[(uint16_t)(at + 1)] << 8);
@@ -211,7 +209,6 @@ void opeu_objective_damage(uint8_t ds[65536], HostEvent event, uint16_t bp,
   TITLE();
 }
 
-#ifndef OPEU_HOST_EVENTS
 /* ---- services (native build) ----------------------------------------
  * The host branch above reports each call that leaves the module to its
  * service callback. In the native build every service is the direct call
@@ -266,4 +263,3 @@ uint16_t svc_objdamag(uint8_t* ds, uint16_t id, const uint16_t* args,
 
 #undef ARG
 #undef ARG32
-#endif /* OPEU_HOST_EVENTS */
