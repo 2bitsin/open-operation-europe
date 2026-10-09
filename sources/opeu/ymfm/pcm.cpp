@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "pcm.h"
-#include "fm.h"
+#include "pcm.hpp"
+#include "fm.hpp"
 #include "fm.ipp"
 
 namespace ymfm

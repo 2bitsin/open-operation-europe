@@ -1,7 +1,7 @@
 /* INT 66h: the KOEI FM driver (FMDRV, src/fmdrv/driver.asm) for the port.
  *
  * The driver's logic is the native rewrite in fmdriver.c; its register
- * writes go to the OPL2 chip (opl.h, ymfm) and the chip's samples to the
+ * writes go to the OPL2 chip (opl.hpp, ymfm) and the chip's samples to the
  * SDL3 audio stream. This file is the hardware side the original driver
  * found on the PC: the PIT that clocked it, the OPL ports, the memory it
  * read the banks from, and the audio output.

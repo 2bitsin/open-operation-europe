@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "ymfm.h"
+#include "ymfm.hpp"
 
 namespace ymfm
 {

@@ -33,10 +33,10 @@
 
 #pragma once
 
-#include "ymfm.h"
-#include "adpcm.h"
-#include "fm.h"
-#include "pcm.h"
+#include "ymfm.hpp"
+#include "adpcm.hpp"
+#include "fm.hpp"
+#include "pcm.hpp"
 
 namespace ymfm
 {
