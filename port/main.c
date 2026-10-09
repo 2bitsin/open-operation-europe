@@ -31,12 +31,15 @@ void link_install_ai_hooks(void);
 static void usage(const char *argv0)
 {
     fprintf(stderr,
-        "usage: %s [--data DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE]\n"
+        "usage: %s [--data DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
         "  --data DIR    original game directory (default %s)\n"
         "  --headless    no window; virtual time; use with --ms/--input/--png\n"
         "  --ms N        headless: stop after N ms of virtual time\n"
         "  --input FILE  scripted input log (see port/README.md)\n"
-        "  --png FILE    write the final frame as PNG\n",
+        "  --png FILE    write the final frame as PNG\n"
+        "  --wav FILE    write the music and sound (49716 Hz stereo WAV)\n"
+        "  --opl-log F   log every OPL2 register write (frame, register, value)\n"
+        "  --mute        no audio device\n",
         argv0, OPEU_DEFAULT_DATA_DIR);
 }
 
@@ -84,6 +87,9 @@ int main(int argc, char **argv)
             port_options.shot_dir = argv[++i];
             port_options.shot_every_ms = (uint32_t)strtoul(argv[++i], 0, 0);
         }
+        else if (!strcmp(argv[i], "--wav") && i + 1 < argc) port_options.wav_path = argv[++i];
+        else if (!strcmp(argv[i], "--opl-log") && i + 1 < argc) port_options.opl_log_path = argv[++i];
+        else if (!strcmp(argv[i], "--mute")) port_options.mute = 1;
         else if (!strcmp(argv[i], "--dump-arena") && i + 1 < argc) { dump_path = argv[++i]; port_options.headless = 1; }
         else { usage(argv[0]); return 2; }
     }
@@ -123,6 +129,9 @@ int main(int argc, char **argv)
      * path fill 19df:006e declares opeu_path_fill_hook (unitai.c:173)
      * instead; the port leaves it unset (see README, blockers). */
     link_install_ai_hooks();
+
+    /* FMDRV was installed by OPEU.BAT before MAIN started. */
+    port_fm_init();
 
     /* crt0 -> main(): the recovered application entry. */
     opeu_application_entry(port_ds, link_app);

@@ -7,14 +7,28 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; color: #ccc;
                font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  #stage { position: relative; display: flex; align-items: center; justify-content: center;
-           width: 100vw; height: 100vh; overflow: hidden; }
-  /* The game frame is 640x480; the script below sizes the canvas to the
-     largest integer multiple that fits the window (1x, 2x, 3x...), so glyphs
-     stay sharp. SDL3 sees that CSS size and integer-scales into it. */
-  #canvas { display: block; width: 640px; height: 480px;
+  /* The canvas sits in a scrollable stage: margin:auto centres it when it
+     fits and lets the stage scroll (instead of clipping) when a manual zoom
+     makes it larger than the window. */
+  #stage { position: relative; display: flex; width: 100vw; height: 100vh; overflow: auto; }
+  /* The game frame is 640x480; the script below sizes the canvas to an
+     integer multiple in device pixels, so glyphs stay sharp: the largest that
+     fits the window by default, or the multiple chosen with the zoom buttons.
+     SDL3 sees that CSS size and integer-scales into it. */
+  #canvas { display: block; flex: none; margin: auto; width: 640px; height: 480px;
             image-rendering: pixelated; image-rendering: crisp-edges;
             outline: none; cursor: none; background: #000; }
+  #zoom { position: fixed; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 4px;
+          padding: 4px; border-radius: 6px; background: rgba(20, 20, 20, 0.75); color: #ddd;
+          font: 13px/1 ui-monospace, Menlo, Consolas, monospace; user-select: none; opacity: 0.55;
+          transition: opacity 0.15s; }
+  #zoom:hover, #zoom:focus-within { opacity: 1; }
+  #zoom button { width: 28px; height: 28px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a;
+                 color: #eee; font: 16px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }
+  #zoom button:hover { background: #3a3a3a; }
+  #zoom button:disabled { opacity: 0.35; cursor: default; }
+  #zoom #zoomlabel { min-width: 72px; text-align: center; cursor: pointer; padding: 0 4px; }
+  #zoom #zoomlabel:hover { color: #fff; text-decoration: underline; }
   #overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
              align-items: center; justify-content: center; gap: 12px;
              background: rgba(0, 0, 0, 0.82); cursor: pointer; user-select: none; }
@@ -28,17 +42,87 @@
 <div id="stage">
   <canvas id="canvas" width="640" height="480" tabindex="0"
           oncontextmenu="event.preventDefault()"></canvas>
+  <div id="zoom" title="Integer zoom. Click the value to return to automatic fit. When the picture is larger than the window: scroll to pan, or drag with the middle button or Alt+drag. Keys: Cmd/Ctrl+Alt and + / - / 0.">
+    <button id="zoomout" type="button" tabindex="-1" aria-label="Zoom out">&minus;</button>
+    <span id="zoomlabel" tabindex="-1" role="button" aria-label="Fit to window"></span>
+    <button id="zoomin" type="button" tabindex="-1" aria-label="Zoom in">+</button>
+  </div>
   <script>
     (function () {
       var c = document.getElementById('canvas');
-      function fit() {
-        var k = Math.max(1, Math.min(Math.floor(window.innerWidth / 640),
-                                     Math.floor(window.innerHeight / 480)));
-        c.style.width = (640 * k) + 'px';
-        c.style.height = (480 * k) + 'px';
+      var label = document.getElementById('zoomlabel');
+      var out = document.getElementById('zoomout'), inn = document.getElementById('zoomin');
+      var manual = 0;                 /* 0 = automatic (largest multiple that fits) */
+      function dpr() { return window.devicePixelRatio || 1; }
+      function fitting() {
+        /* Work in device pixels: on a 2x display a 640x480 CSS box is already
+           1280x960 device pixels, and the next exact step is 3x device
+           (960x720 CSS), which CSS-pixel arithmetic could never choose. */
+        return Math.max(1, Math.min(Math.floor(window.innerWidth * dpr() / 640),
+                                    Math.floor(window.innerHeight * dpr() / 480)));
       }
+      function fit() {
+        var k = manual || fitting();
+        c.style.width = (640 * k / dpr()) + 'px';
+        c.style.height = (480 * k / dpr()) + 'px';
+        label.textContent = k + '\u00d7' + (manual ? '' : ' auto');
+        out.disabled = k <= 1;
+      }
+      function set(k) { manual = Math.max(1, k); fit(); c.focus(); }
+      out.addEventListener('click', function () { set((manual || fitting()) - 1); });
+      inn.addEventListener('click', function () { set((manual || fitting()) + 1); });
+      label.addEventListener('click', function () { manual = 0; fit(); c.focus(); });
+      /* Cmd/Ctrl + Alt + '+' / '-' step the zoom, '0' returns to auto. Capturing
+         on window so the game never sees these key presses. */
+      window.addEventListener('keydown', function (e) {
+        if (!((e.metaKey || e.ctrlKey) && e.altKey)) return;
+        var k = manual || fitting();
+        if (e.code === 'Equal' || e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') set(k + 1);
+        else if (e.code === 'Minus' || e.code === 'NumpadSubtract' || e.key === '-' || e.key === '_') set(k - 1);
+        else if (e.code === 'Digit0' || e.code === 'Numpad0') { manual = 0; fit(); }
+        else return;
+        e.preventDefault(); e.stopPropagation();
+      }, true);
+      /* keep keyboard focus on the game */
+      document.getElementById('zoom').addEventListener('mousedown', function (e) { e.preventDefault(); });
       window.addEventListener('resize', fit);
       fit();
+
+      /* Panning when the canvas is larger than the window. The listeners are
+         capturing on the stage, so they run before SDL's handlers on the
+         canvas and can keep the event from reaching the game. The original
+         game has no mouse wheel, so the wheel is free to scroll; dragging with
+         the middle button or with Alt held pans without clicking in the game. */
+      var stage = document.getElementById('stage');
+      function overflowing() {
+        return stage.scrollWidth > stage.clientWidth || stage.scrollHeight > stage.clientHeight;
+      }
+      stage.addEventListener('wheel', function (e) {
+        if (!overflowing()) return;
+        stage.scrollLeft += e.deltaX;
+        stage.scrollTop += e.deltaY;
+        e.preventDefault(); e.stopPropagation();
+      }, { capture: true, passive: false });
+      var pan = null;
+      stage.addEventListener('pointerdown', function (e) {
+        if (!(e.button === 1 || (e.button === 0 && e.altKey)) || !overflowing()) return;
+        pan = { x: e.clientX, y: e.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+        stage.style.cursor = 'grabbing';
+        e.preventDefault(); e.stopPropagation();
+      }, true);
+      window.addEventListener('pointermove', function (e) {
+        if (!pan) return;
+        stage.scrollLeft = pan.left - (e.clientX - pan.x);
+        stage.scrollTop = pan.top - (e.clientY - pan.y);
+        e.preventDefault(); e.stopPropagation();
+      }, true);
+      function endPan(e) {
+        if (!pan) return;
+        pan = null; stage.style.cursor = '';
+        e.preventDefault(); e.stopPropagation();
+      }
+      window.addEventListener('pointerup', endPan, true);
+      window.addEventListener('pointercancel', endPan, true);
     })();
   </script>
   <div id="overlay">

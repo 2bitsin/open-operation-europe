@@ -797,6 +797,11 @@ int plat_audio_open(int rate, PlatAudioFn fn, void *user)
     return 0;
 }
 
+int plat_audio_active(void)
+{
+    return P.audio != NULL;
+}
+
 void plat_audio_lock(void)
 {
     if (P.audio)

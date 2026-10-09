@@ -27,6 +27,9 @@ use another copy. Options of `port/build/release/opeu`:
     --input FILE    scripted input log (format below)
     --png FILE      write the final frame as PNG when stopping
     --shots DIR MS  headless: also write DIR/<ms>.png every MS ms of virtual time
+    --wav FILE      write the sound output (49716 Hz 16-bit stereo WAV)
+    --opl-log FILE  log every OPL2 register write: frame (at 49716 Hz), register, value
+    --mute          window mode: do not open an audio device
     --dump-arena F  write the initial data arena (diagnostic) and exit
 
 Environment: `OPEU_TRACE=link,svc,mem` (or `all`) logs calls to `port.log`
@@ -51,7 +54,9 @@ One event per line, `#` starts a comment; `<ms>` is virtual time in ms.
     <ms> click <x> <y> [left|right]   press at <ms>, release 100 ms later
     <ms> press|release <x> <y> [left|right]
 
-Headless, every input poll advances virtual time by 1 ms; at `--ms` the
+In a window, `--input` plays the same script against host time (ms since
+start), e.g. to listen to the music unattended. Headless, every input poll
+advances virtual time by 1 ms; at `--ms` the
 frame is written to `--png` and the program exits 0. Scripts in
 `port/tests/`: `smoke-input.txt` (mouse: title, New Game, scenario list,
 France briefing; `make smoke-play`) and `smoke-turn.txt` (Enter every 1.5 s
@@ -135,7 +140,21 @@ processing) and mouse (mouse selection, New Game, scenario, briefing) work
 with the CSS-scaled canvas, and a file written to `/data` survives a page
 reload.
 
-Known limitations: silent (as native); a long computation that does not
+Sound: SDL3's Emscripten audio backend (a ScriptProcessorNode on the
+page's AudioContext, resampled by SDL from 49716 Hz to the context rate)
+calls the same audio callback as the native build, on the main thread,
+whenever the browser runs its event loop (the game yields at every frame
+and idle sleep; calling into the module while it is suspended by ASYNCIFY
+is allowed because the callback itself never sleeps). The click on the
+start overlay is the user gesture browsers want before audio starts.
+Checked 2026-10-09 in headless Chromium with `port/tools/web_audio_check.mjs`
+(it measures the page's audio buffers over CDP): the AudioContext runs at
+48 kHz and, after the input prompt, the title song plays (RMS about 0.17
+of full scale, no clipping). Under Node (no Web Audio) the build clocks the
+driver from the event pump as headless; `--wav` there writes a WAV
+byte-identical to the native build's.
+
+Known limitations: a long computation that does not
 poll input keeps the tab busy until it polls again (as the original kept
 the PC busy); the first visit stores the original files (about 2.3 MB) in
 IndexedDB; Safari needs the ASYNCIFY build (the default).
@@ -167,6 +186,80 @@ IndexedDB; Safari needs the ASYNCIFY build (the default).
   toolchain environment and a local server (`.wasm` as `application/wasm`,
   `Cache-Control: no-store`).
 
+## Sound
+
+The music and sound effects are those of the original: MAIN's song bank
+(19 songs) and effect bank (19 effects) at 3D91:0000/7BBA in the data
+arena, played by the KOEI FM driver on an emulated YM3812 (OPL2).
+
+- **Driver** (`services/fmdriver.c`, `fmdriver.h`): FMDRV.COM 3.30
+  rewritten by hand as readable C: named voice records (six melodic voices
+  on OPL channels 0-5, the rhythm voice on 6-8), the song/effect sequencer
+  with one function per track command, repeat/loop, tempo, fade-out,
+  queued songs, the end-of-song callback, software vibrato and the five
+  instrument LFO shapes, rhythm mode, the countdowns and the INT 66h /
+  far-call API. It writes registers through `write_register(reg, value)`
+  and reads the caller's banks through `peek(seg, off)`. The original
+  binary is never loaded or executed. Two cases where the original would
+  fault (a divide overflow at extreme LFO settings, a note table index
+  past its end for transposes over 160 semitones) are defined in C and
+  documented at the spot.
+- **Clock** (`services/fm.c`): the original programmed the PIT to 1000h
+  counts (1193182/4096 = 291.304 Hz, every 16th tick chained to the BIOS
+  clock). The tick is derived sample-accurately from the audio clock: each
+  output frame (49716 Hz, the OPL2's own rate) adds 1193182 to a phase,
+  each 4096 * 49716 is one tick, run before the frame where it falls due.
+  In a window the SDL audio callback renders frames and so clocks the
+  driver (music and the game's countdown waits keep running while the
+  game computes, as with the PIT interrupt); game-side driver calls take
+  the audio stream lock. If the device stops pulling samples for 200 ms the
+  event pump clocks the driver from host time instead. Headless (and with
+  `--mute` or no audio device) the pump clocks it from virtual/host time,
+  so headless runs are reproducible: the same script gives byte-identical
+  WAV, OPL log and PNG (also from the web build under Node).
+- **Chip**: [ymfm](https://github.com/aaronsgiles/ymfm) by Aaron Giles,
+  BSD-3-Clause (`third_party/ymfm/LICENSE`), pinned to commit
+  `81aec25ccbb98f4873a255f7551ac4dadac59b4a` (2026-07-27; ymfm has no
+  release tags). Vendored files: `ymfm.h`, `ymfm_opl.{h,cpp}`,
+  `ymfm_fm.{h,ipp}`, `ymfm_adpcm.{h,cpp}`, `ymfm_pcm.{h,cpp}` (the OPL
+  family source needs the ADPCM/PCM units for its Y8950/OPL4 classes).
+  One local change: in `ymfm_opl.cpp` (Y8950 register switch) `case 0x0f:`
+  is spelled `case 15:`, because `tools/port_lint.py` reads `case 0x0f:`
+  as an opcode switch; same value, comment at the line. Chosen over
+  Nuked-OPL3 (LGPL-2.1) and DOSBox's DBOPL (GPL) for the licence. This is
+  emulation of the sound chip (a hardware service behind the platform
+  layer), not of the CPU. Output gain x3 (`opl_ymfm.cpp`): the game's songs
+  peak around 23000 of 32767.
+- **Output**: SDL3 audio stream, 16-bit stereo at 49716 Hz (SDL resamples
+  to the device rate).
+
+How to hear it: `make play` (window with sound), or write it to a file:
+
+    port/build/release/opeu --headless --ms 60000 --input port/tests/smoke-turn.txt --wav music.wav
+
+Verification without ears:
+
+- `ctest -R fmdriver_registers` (`port/tests/fmdriver_diff.py`): the register
+  stream of the native driver against the original FMDRV.COM, which runs
+  under `tests/validate_fmdrv.py`'s Unicorn harness (its machine, session
+  and synthetic banks reused; the original is the fixture, the port never
+  runs it). Every step (install, each INT 66h / far call, each PIT tick,
+  each installer run) must produce the same OPL writes in the same order
+  and the same AX/BX/DX/DS. Sessions: the validator's (songs, effects,
+  fade, queue, callback, effect-voice and rhythm commands, uninstall, no
+  chip), all 19 MAIN songs (8000 ticks each with repeat, then MAIN's fade
+  20), all 19 MAIN effects, OPEN's three songs (`port/tests/dump_open_bank.c`
+  compiles `src/open/data/ofmusic.c`). Needs a Python with `unicorn`
+  (the repository's `.venv`; `-DOPEU_TEST_PYTHON=...`); skipped otherwise.
+  Result 2026-10-09: 205,166 of 205,166 steps identical (79,279 OPL
+  writes, 204,960 PIT ticks, 194 calls); per-session numbers in
+  `<build>/fmdriver-diff.json`.
+- `ctest -R fm_headless_audio` (`port/tests/check_audio.py`): a headless run of
+  `smoke-input.txt` with `--wav`/`--opl-log`/`OPEU_TRACE=fm`: the game
+  starts a song, key-ons follow each song start within one second, the WAV
+  is silent before and audible after (>= 60% of 100 ms windows above
+  -50 dBFS) and does not clip.
+
 ## How it is put together
 
     src/main/**/*.c          recovered game (host branches), compiled unchanged
@@ -176,6 +269,7 @@ IndexedDB; Safari needs the ASYNCIFY build (the default).
     port/link/<area>/M.c     the service callback of recovered module M
     port/link/routines/      handlers for routines reached by identifier
     port/platform/           platform contract (platform.h) and SDL3 backend
+    port/third_party/ymfm/   the OPL2 sound-chip emulator (BSD-3-Clause, vendored)
     port/gen/                generated: prototypes, data placement, index
     port/tools/              the generators
 
@@ -270,9 +364,16 @@ routine.
   memory blocks, disk reset) through stdio on the data directory and the
   arena's DOS block allocator.
 - `services/ems.c`: the EMS driver (INT 67h) as plain memory.
-- `services/fm.c`: the FM driver (INT 66h): countdown and request words
-  answered as the driver does (AH=3 and AH=13h return AL=0); silent, with
-  `port_fm_requests` as the hook for an OPL backend.
+- `services/fmdriver.c`: the KOEI FM driver FMDRV.COM ("OPL-II Sound
+  Driver 3.30", `src/fmdrv/driver.asm`) rewritten by hand as native C (see
+  "Sound" below). Hardware service: the original is a DOS TSR, not part of
+  the game program.
+- `services/fm.c`: the PC side of that driver: INT 66h entry for the
+  recovered SOUND module and the SYSLIB helpers, the PIT clock (derived
+  from the audio sample clock), bank memory reads from the arena, the
+  audio callback, `--wav`/`--opl-log`.
+- `services/opl_ymfm.cpp`, `services/opl.h`: the YM3812 chip (ymfm) behind
+  `opl_write(reg, value)` / `opl_render()`.
 - `services/input.c`, `core/pump.c`: BIOS keyboard (INT 16h) and the
   mouse driver (INT 33h) from SDL events, keeping the polling semantics;
   pointer drawing; the headless script player.
@@ -331,4 +432,6 @@ conversion) and `port/services`.
   (1389:0186 vs 1389:012c). Both are real routine entries
   (`opeu_turn_control_one`, `opeu_choose_turn_delay`) and the turn runs
   without a fault; not confirmed as a bug.
-- Sound is silent (no OPL emulation yet).
+- Sound: OPEN.EXE (the opening, with its own song bank) and END.EXE are not
+  part of the port, so their music is only exercised by the driver
+  comparison (OPEN's three songs), not heard in the game.

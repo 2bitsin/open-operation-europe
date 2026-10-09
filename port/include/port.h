@@ -153,6 +153,9 @@ typedef struct {
     int scale;               /* initial window scale */
     const char *shot_dir;    /* headless: write a frame every shot_every_ms here */
     uint32_t shot_every_ms;
+    const char *wav_path;    /* write the audio output (49716 Hz stereo) here */
+    const char *opl_log_path;/* log every OPL register write (frame, register, value) */
+    int mute;                /* window mode: no audio device */
 } PortOptions;
 extern PortOptions port_options;
 

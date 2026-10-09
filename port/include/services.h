@@ -66,10 +66,16 @@ void     port_mouse_set_position(uint16_t x, uint16_t y);               /* AX=4 
 void     port_mouse_x_range(uint16_t min, uint16_t max);                 /* AX=7 */
 void     port_mouse_y_range(uint16_t min, uint16_t max);                 /* AX=8 */
 
-/* ---- FM sound driver (INT 66h), silent with a clear OPL hook ----------- */
-/* Music/effect requests are recorded (port_fm_*) and answered as an idle
- * driver: status queries return AL=0 so the original busy-waits end. */
+/* ---- FM sound driver (INT 66h): native FMDRV rewrite on an OPL2 -------- */
+/* INT 66h for the SYSLIB helpers: countdown reads (F0h/F1h AL=0) return BX,
+ * countdown sets 0, everything else AX (port/services/fm.c). */
 uint16_t port_fm_function(uint8_t ah, uint8_t al, uint16_t bx, uint16_t dx_off, uint16_t ds_seg);
+/* INT 66h with the registers the FM driver reads and returns (AX BX DX DS). */
+void port_fm_int66(uint16_t *ax, uint16_t *bx, uint16_t *dx, uint16_t *ds);
+/* Install the FM driver and open the audio output (port/services/fm.c). */
+void port_fm_init(void);
+/* Clock the FM driver up to the current time (called by the event pump). */
+void port_fm_clock(void);
 
 /* ---- BIOS clock (INT 1Ah AH=0) and DOS odds and ends -------------------- */
 uint16_t port_clock_ticks_low(void);           /* DX of INT 1Ah AH=0 */

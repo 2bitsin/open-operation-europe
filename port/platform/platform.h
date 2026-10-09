@@ -107,6 +107,7 @@ int   plat_frename(const char *from, const char *to);
  * headless mode) means silence. */
 typedef void (*PlatAudioFn)(void *user, int16_t *out, int frames, int rate);
 int  plat_audio_open(int rate, PlatAudioFn fn, void *user);
+int  plat_audio_active(void);           /* 1 when a device stream is open */
 void plat_audio_lock(void);
 void plat_audio_unlock(void);
 

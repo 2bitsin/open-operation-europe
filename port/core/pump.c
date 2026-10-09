@@ -257,6 +257,7 @@ static void headless_pump(void)
             script_load(port_options.input_path);
     }
     virtual_us += 1000;
+    port_fm_clock();
     now_ms = (uint32_t)(virtual_us / 1000);
     script_run(now_ms);
     if (port_options.shot_dir && port_options.shot_every_ms &&
@@ -303,6 +304,7 @@ void port_pump(void)
         return;
     }
     last_poll_us = now;
+    port_fm_clock();
     while (plat_poll_event(&ev)) {
         any = 1;
         switch (ev.type) {
@@ -322,6 +324,15 @@ void port_pump(void)
         default:
             break;
         }
+    }
+    /* --input in a window: the script's times are host milliseconds since
+     * start (unattended windowed runs, e.g. to hear the music) */
+    if (port_options.input_path) {
+        if (!script_loaded) {
+            script_loaded = 1;
+            script_load(port_options.input_path);
+        }
+        script_run((uint32_t)(plat_ticks_us() / 1000));
     }
     now = plat_ticks_us();
     if (now - last_present_us >= 16667u) {

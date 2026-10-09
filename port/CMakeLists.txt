@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(opeu_port C)
+project(opeu_port C CXX)
 
 # Operation Europe, native build: the recovered C of src/main compiled for
 # the host, linked with the port layer (port/link, port/services, port/core)
@@ -8,6 +8,9 @@ project(opeu_port C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 14)              # ymfm (the OPL2 chip)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -69,6 +72,20 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+# ---- the OPL2 sound chip: ymfm (BSD-3-Clause), port/third_party/ymfm ---------
+# Pinned to aaronsgiles/ymfm commit 81aec25 (2026-07-27); see port/README.md.
+# Emulation of the YM3812 sound chip is a hardware service behind the
+set(OPEU_YMFM ${OPEU_PORT}/third_party/ymfm/src)
+add_library(opeu_opl STATIC
+  ${OPEU_PORT}/services/opl_ymfm.cpp
+  ${OPEU_YMFM}/ymfm_opl.cpp
+  ${OPEU_YMFM}/ymfm_adpcm.cpp
+  ${OPEU_YMFM}/ymfm_pcm.cpp)
+target_include_directories(opeu_opl PUBLIC ${OPEU_PORT}/services PRIVATE ${OPEU_YMFM})
+if(EMSCRIPTEN)
+  target_compile_options(opeu_opl PRIVATE -fno-exceptions)
+endif()
+
 # ---- the recovered game: every host branch of src/main ---------------------
 file(GLOB OPEU_RECOVERED CONFIGURE_DEPENDS
   ${OPEU_SRC}/main/core/*.c
@@ -122,7 +139,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 elseif(MSVC)
   target_compile_options(opeu PRIVATE /W3)
 endif()
-target_link_libraries(opeu PRIVATE opeu_recovered ${OPEU_SDL3})
+target_link_libraries(opeu PRIVATE opeu_recovered opeu_opl ${OPEU_SDL3})
 if(EMSCRIPTEN)
   set(OPEU_DEFAULT_DATA_DIR /data)
 else()
@@ -206,3 +223,31 @@ add_executable(opeu_test_syslib_gfx ${OPEU_PORT}/tests/test_syslib_gfx.c
   ${OPEU_PORT}/services/syslib_gfx.c ${OPEU_PORT}/services/vgalib.c)
 target_include_directories(opeu_test_syslib_gfx PRIVATE ${OPEU_PORT}/services)
 add_test(NAME syslib_gfx COMMAND opeu_test_syslib_gfx)
+
+# FM driver: the native driver's register stream against the original
+# FMDRV.COM run under tests/validate_fmdrv.py's Unicorn harness (needs a
+# Python with unicorn: the repository's .venv by default; exit 77 = skipped
+# when it is missing). See port/tests/fmdriver_diff.py.
+if(EXISTS ${OPEU_REPO}/.venv/bin/python)
+  set(OPEU_TEST_PYTHON_DEFAULT ${OPEU_REPO}/.venv/bin/python)
+else()
+  set(OPEU_TEST_PYTHON_DEFAULT ${Python3_EXECUTABLE})
+endif()
+set(OPEU_TEST_PYTHON ${OPEU_TEST_PYTHON_DEFAULT} CACHE FILEPATH "Python with unicorn for the FM driver comparison")
+add_executable(opeu_fmdriver_trace ${OPEU_PORT}/tests/fmdriver_trace.c ${OPEU_PORT}/services/fmdriver.c)
+target_include_directories(opeu_fmdriver_trace PRIVATE ${OPEU_PORT}/services)
+add_executable(opeu_dump_open_bank ${OPEU_PORT}/tests/dump_open_bank.c ${OPEU_SRC}/open/data/ofmusic.c)
+target_include_directories(opeu_dump_open_bank PRIVATE ${OPEU_SRC}/common)
+add_test(NAME fmdriver_registers
+  COMMAND ${OPEU_TEST_PYTHON} ${OPEU_PORT}/tests/fmdriver_diff.py $<TARGET_FILE:opeu_fmdriver_trace>
+          $<TARGET_FILE:opeu> --open-dump=$<TARGET_FILE:opeu_dump_open_bank>
+          --json=${CMAKE_CURRENT_BINARY_DIR}/fmdriver-diff.json)
+set_tests_properties(fmdriver_registers PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
+
+# The game's music in a headless run: title -> scenario briefing with
+# --wav/--opl-log; the WAV must be audible and the key-ons must come when
+# the game starts its songs. See port/tests/check_audio.py.
+add_test(NAME fm_headless_audio
+  COMMAND ${Python3_EXECUTABLE} ${OPEU_PORT}/tests/check_audio.py $<TARGET_FILE:opeu>
+          ${OPEU_PORT}/tests/smoke-input.txt ${CMAKE_CURRENT_BINARY_DIR}/fm-smoke)
+set_tests_properties(fm_headless_audio PROPERTIES TIMEOUT 600)
