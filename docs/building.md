@@ -144,9 +144,8 @@ python3 tools/ci/lane.py web --buildutil-src ~/path/to/buildutil
 `buildutil` is `tools/ci/buildutil_lane.py`. It installs the packages above
 and gcc 14 as the default, installs buildutil and a current cmake into a
 venv, and then runs `./buildutil build` and `./buildutil test`. At v1.0 it
-passed on arm64 with gcc 14.2. Since the layout move it stops at linking
-`opeu-services-tests` (a static-library cycle that GNU ld needs to scan three
-else, including the `opeu` executable, compiles and links with gcc 14. An
+passed on arm64 with gcc 14.2, and it passes again since the modules were
+wiring"): every executable links with GNU ld and the 14 tests pass. An
 x86_64 Linux machine is the same source but has not been run.
 
 `web` is `tools/ci/web_lane.py`, the Emscripten lane below. It clones emsdk

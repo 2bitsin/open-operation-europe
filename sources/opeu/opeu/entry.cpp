@@ -22,8 +22,6 @@
 #include <unistd.h>
 #endif
 
-PortOptions port_options;
-
 static void usage(const char *argv0)
 {
     fprintf(stderr,
@@ -56,12 +54,6 @@ static void crash_backtrace(int sig)
 static void shutdown_platform(void)
 {
     plat_shutdown();
-}
-
-void port_exit(int code)
-{
-    port_trace("svc", "exit(%d)", code);
-    exit(code == 100 ? 0 : code);
 }
 
 /* main.cpp of the application module (sources/opeu/opeu) calls this. */

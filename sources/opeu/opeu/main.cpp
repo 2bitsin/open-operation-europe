@@ -1,6 +1,6 @@
 // Operation Europe, native: the application. The shipped data files are
 // compiled in (assets.embed/) and handed to the services' file layer; the
-// entry is then the glue's opeu_main (sources/opeu/glue/entry.cpp), crt0's role
+// entry is then opeu_main (entry.cpp, beside this file), crt0's role
 // for the recovered MAIN.
 #include "assets.hpp"
 

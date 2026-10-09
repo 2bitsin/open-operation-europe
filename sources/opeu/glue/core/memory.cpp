@@ -13,9 +13,11 @@ uint16_t port_sp = PORT_STACK_TOP;
 static struct { uint16_t seg, paras; } blocks[MAX_BLOCKS];
 static int block_count;
 
-void port_memory_init(void)
+/* The arena (allocated once, cleared on every later call), DS, the DOS block
+ * list and the stack pointer as a program finds them at load. The image is
+ * the game's (port_memory_init, game/link/image.cpp). */
+void port_memory_reset(void)
 {
-    unsigned i;
     if (!port_arena) {
         port_arena = (uint8_t *)calloc(1, PORT_ARENA_SIZE + 0x10000u);
         if (!port_arena)
@@ -24,20 +26,6 @@ void port_memory_init(void)
         memset(port_arena, 0, PORT_ARENA_SIZE);
     }
     port_ds = port_arena + (uint32_t)PORT_DS_SEGMENT * 16u;
-    for (i = 0; i < port_image_object_count; i++) {
-        const PortImageObject *o = &port_image_objects[i];
-        uint32_t linear = (uint32_t)o->seg * 16u + o->off;
-        if (linear + o->size > PORT_ARENA_SIZE)
-            port_fatal("data object %s outside the arena", o->name);
-        memcpy(port_arena + linear, o->object, o->size);
-    }
-    for (i = 0; i < port_module_data_count; i++) {
-        const PortImageBytes *b = &port_module_data[i];
-        uint32_t linear = (uint32_t)b->seg * 16u + b->off;
-        if (linear + b->size > PORT_ARENA_SIZE)
-            port_fatal("module data of %s outside the arena", b->module);
-        memcpy(port_arena + linear, b->bytes, b->size);
-    }
     block_count = 0;
     port_sp = PORT_STACK_TOP;
 }

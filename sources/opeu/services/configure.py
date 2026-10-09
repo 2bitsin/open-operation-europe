@@ -1,4 +1,4 @@
-"""The services, C++23 since phase 2, with the old port's flags; port.hpp and services.hpp live in the glue."""
+"""The services and the event pump, C++23 since phase 2, with the old port's flags; port.hpp and services.hpp live in the glue."""
 import buildutil_configure as bc
 
 opeu = bc.source_dir().parent

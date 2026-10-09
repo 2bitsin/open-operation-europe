@@ -1,10 +1,9 @@
-"""The glue (the old port/main.c, core/ and gen/), C++23 since phase 2, with the old port's flags and include roots."""
+"""The glue's base: the 16-bit memory model, the diagnostics and the run's options, C++23, with the old port's flags."""
 import buildutil_configure as bc
 
 opeu = bc.source_dir().parent
-# The headers the glue reads unqualified: its own include/, the services, the
-# platform layer, the recovered game (common/ first, then its areas) and intro.
-roots = ["glue/include", "services", "platform", "game/common", "game", "intro"]
+# port.hpp, the layer contract, is the only header the base reads.
+roots = ["glue/include"]
 flags = ["-Wall", "-Wextra", "-Wno-unused-parameter"]
 for source in sorted(bc.source_dir().rglob("*.cpp")):
   bc.declare(source, options=flags + [f"-I{opeu / root}" for root in roots])

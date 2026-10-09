@@ -83,7 +83,10 @@ typedef struct {
 extern const PortImageBytes port_module_data[];
 extern const unsigned port_module_data_count;
 
-/* Allocate the arena and copy every recovered data object to its address. */
+/* Allocate (or clear) the arena and reset DS, the DOS blocks and SP (glue). */
+void port_memory_reset(void);
+/* port_memory_reset, then copy every recovered data object to its address
+ * (game/link/image.cpp). */
 void port_memory_init(void);
 
 /* ---- DGROUP stack model ------------------------------------------------ */
@@ -145,7 +148,7 @@ int port_trace_enabled(const char *category);
 /* Leave the game (quit to DOS). */
 void port_exit(int code);
 
-/* ---- run-time options (port/main.c) ------------------------------------ */
+/* ---- run-time options (glue/core/process.cpp, set by the entry) -------- */
 typedef struct {
     int headless;            /* no window; virtual time; scripted input */
     uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
