@@ -1,0 +1,509 @@
+{
+ "comment": "new name -> old name and the reference module defining it; generated",
+ "aliases": {
+  "opeu_advice_division_commander_condition": {
+   "old": "opeu_staff_0d68",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_enemy_air_operations": {
+   "old": "opeu_staff_12c8",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_attack_plans": {
+   "old": "opeu_staff_1360",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_commander_location": {
+   "old": "opeu_staff_18c8",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_conditions": {
+   "old": "opeu_code_1dd2_1994",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_division_unfit": {
+   "old": "opeu_staff_11e8",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_mines_or_bombardment": {
+   "old": "opeu_staff_116e",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_need_recon": {
+   "old": "opeu_staff_1972",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_objective_intent": {
+   "old": "opeu_staff_158e",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_plentiful_materials": {
+   "old": "opeu_staff_16ea",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_recon_activity": {
+   "old": "opeu_staff_1624",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_enemy_unit_activity": {
+   "old": "opeu_staff_177c",
+   "module": "src/main/core/advenemy.c"
+  },
+  "opeu_advice_general_tip": {
+   "old": "opeu_staff_204a",
+   "module": "src/main/core/advhints.c"
+  },
+  "opeu_advice_operation_hints": {
+   "old": "opeu_code_1dd2_207a",
+   "module": "src/main/core/advhints.c"
+  },
+  "opeu_advice_regiment_damage_or_comms": {
+   "old": "opeu_staff_0e42",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_regiment_fatigue_morale": {
+   "old": "opeu_staff_0f94",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_regiment_nothing": {
+   "old": "opeu_staff_111e",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_regiment_order_finishing": {
+   "old": "opeu_staff_0a9e",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_regiment_status": {
+   "old": "opeu_code_1dd2_1140",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_regiment_supply_shortage": {
+   "old": "opeu_staff_0bd0",
+   "module": "src/main/core/advregt.c"
+  },
+  "opeu_advice_situational_hint": {
+   "old": "opeu_staff_1e44",
+   "module": "src/main/core/advhints.c"
+  },
+  "opeu_advice_tactical": {
+   "old": "opeu_code_1dd2_0a60",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_air_special_forces": {
+   "old": "opeu_staff_08fe",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_command": {
+   "old": "opeu_staff_019a",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_land_mines": {
+   "old": "opeu_staff_07ac",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_linked_objective": {
+   "old": "opeu_staff_09fc",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_objective_threat": {
+   "old": "opeu_staff_0004",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_reorganize": {
+   "old": "opeu_staff_02f0",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_supply_reinforce": {
+   "old": "opeu_staff_0684",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tactical_unit_deployment": {
+   "old": "opeu_staff_043a",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_advice_tide_air_superiority": {
+   "old": "opeu_staff_1d9c",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_advice_tide_isolation": {
+   "old": "opeu_staff_19e2",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_advice_tide_no_advances": {
+   "old": "opeu_staff_1df4",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_advice_tide_of_war": {
+   "old": "opeu_code_1dd2_1e16",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_advice_tide_strength_balance": {
+   "old": "opeu_staff_1ba8",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_advice_tide_territory_control": {
+   "old": "opeu_staff_1cbc",
+   "module": "src/main/core/advtide.c"
+  },
+  "opeu_ai_choose_target": {
+   "old": "opeu_ai_0a5a",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_config_kind_is": {
+   "old": "opeu_ai_0ce0",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_daytime_plans": {
+   "old": "opeu_ai_08f8",
+   "module": "src/main/core/aiops2.c"
+  },
+  "opeu_ai_destination_for_type": {
+   "old": "opeu_ai_0dca",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_equip_element": {
+   "old": "opeu_ai_10f8",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_exposed_enemy_objective": {
+   "old": "opeu_ai_02b6",
+   "module": "src/main/core/aiops1.c"
+  },
+  "opeu_ai_first_allowed_type": {
+   "old": "opeu_ai_026c",
+   "module": "src/main/core/aiops1.c"
+  },
+  "opeu_ai_free_cell_near": {
+   "old": "opeu_ai_0316",
+   "module": "src/main/core/aiops1.c"
+  },
+  "opeu_ai_mark_group_leaders": {
+   "old": "opeu_ai_153a",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_neediest_objective": {
+   "old": "opeu_ai_0628",
+   "module": "src/main/core/aiops2.c"
+  },
+  "opeu_ai_neediest_unit": {
+   "old": "opeu_ai_06ee",
+   "module": "src/main/core/aiops2.c"
+  },
+  "opeu_ai_person_merit": {
+   "old": "opeu_ai_0ac8",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_pick_enemy_objective": {
+   "old": "opeu_ai_0998",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_pick_enemy_unit": {
+   "old": "opeu_ai_09f8",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_plan_supply": {
+   "old": "opeu_ai_07a8",
+   "module": "src/main/core/aiops2.c"
+  },
+  "opeu_ai_raise_unit": {
+   "old": "opeu_ai_1244",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_random_category": {
+   "old": "opeu_ai_1054",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_rank_people": {
+   "old": "opeu_ai_0af6",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_refresh_capacities": {
+   "old": "opeu_ai_093c",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_reinforce": {
+   "old": "opeu_ai_13ca",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_replace_person": {
+   "old": "opeu_ai_0bae",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_request_equipment": {
+   "old": "opeu_ai_1064",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_request_pending": {
+   "old": "opeu_ai_0cc4",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_request_resources": {
+   "old": "opeu_ai_0d82",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_restock_from_objectives": {
+   "old": "opeu_ai_1494",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_restock_unit": {
+   "old": "opeu_ai_13fa",
+   "module": "src/main/core/aiops5.c"
+  },
+  "opeu_ai_rotate_staff": {
+   "old": "opeu_ai_0c3c",
+   "module": "src/main/core/aiops3.c"
+  },
+  "opeu_ai_short_category": {
+   "old": "opeu_ai_0ed4",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_short_objective": {
+   "old": "opeu_ai_0d00",
+   "module": "src/main/core/aiops4.c"
+  },
+  "opeu_ai_spare_cargo": {
+   "old": "opeu_ai_0004",
+   "module": "src/main/core/aiops1.c"
+  },
+  "opeu_ai_supply_share": {
+   "old": "opeu_ai_05a8",
+   "module": "src/main/core/aibudget.c"
+  },
+  "opeu_air_bomb_command": {
+   "old": "opeu_code_23b2_05b0",
+   "module": "src/main/core/airbomb.c"
+  },
+  "opeu_air_drop_command": {
+   "old": "opeu_code_23b2_0b28",
+   "module": "src/main/core/airdrop.c"
+  },
+  "opeu_air_lift_command": {
+   "old": "opeu_code_23b2_0e20",
+   "module": "src/main/core/airlift.c"
+  },
+  "opeu_air_sprite_save": {
+   "old": "opeu_fg3a64_014a",
+   "module": "src/main/data/fg3a64.c"
+  },
+  "opeu_angel_demoralize": {
+   "old": "opeu_code_108c_0db8",
+   "module": "src/main/core/evangel.c"
+  },
+  "opeu_angel_inspire": {
+   "old": "opeu_code_108c_0e0e",
+   "module": "src/main/core/evangel.c"
+  },
+  "opeu_angel_judge_side": {
+   "old": "opeu_code_108c_0e4e",
+   "module": "src/main/core/evangel.c"
+  },
+  "opeu_battle_hex_masks": {
+   "old": "opeu_fg352d_0000",
+   "module": "src/main/data/fg352d.c"
+  },
+  "opeu_battle_player_turn": {
+   "old": "opeu_code_2ec8_11ea",
+   "module": "src/main/map/btlplay.c"
+  },
+  "opeu_bomb_sprite_save": {
+   "old": "opeu_fg3a99_0000",
+   "module": "src/main/data/fg3a99.c"
+  },
+  "opeu_context_frame_tiles": {
+   "old": "opeu_fg3873_0000",
+   "module": "src/main/data/fg3873.c"
+  },
+  "opeu_element_type_icons": {
+   "old": "opeu_fg349b_0660",
+   "module": "src/main/data/fg349b.c"
+  },
+  "opeu_general_assign_choice": {
+   "old": "opeu_code_06db_0f3e",
+   "module": "src/main/units/genpick.c"
+  },
+  "opeu_general_list_draw_rows": {
+   "old": "opeu_code_06db_121e",
+   "module": "src/main/units/genpick.c"
+  },
+  "opeu_hour_is_dawn": {
+   "old": "opeu_code_5_to_7",
+   "module": "src/main/units/value.c"
+  },
+  "opeu_hour_is_day": {
+   "old": "opeu_code_8_to_16",
+   "module": "src/main/units/value.c"
+  },
+  "opeu_hour_is_dusk": {
+   "old": "opeu_code_17_to_19",
+   "module": "src/main/units/value.c"
+  },
+  "opeu_hour_is_night": {
+   "old": "opeu_code_outside_5_to_19",
+   "module": "src/main/units/value.c"
+  },
+  "opeu_list_arrow_tiles": {
+   "old": "opeu_fg3885_0000",
+   "module": "src/main/data/fg3885.c"
+  },
+  "opeu_menu_button_tiles": {
+   "old": "opeu_fg35c0_0000",
+   "module": "src/main/data/fg35c0.c"
+  },
+  "opeu_noon_allow_axis_bns_regts": {
+   "old": "opeu_code_0e57_0022",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_axis_morale_blockade": {
+   "old": "opeu_code_0e57_00d2",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_block_axis_bns_regts": {
+   "old": "opeu_code_0e57_0018",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_block_axis_regts": {
+   "old": "opeu_code_0e57_0006",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_block_axis_sup_bns": {
+   "old": "opeu_code_0e57_000e",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_lower_allied_morale": {
+   "old": "opeu_code_0e57_009c",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_lower_axis_morale": {
+   "old": "opeu_code_0e57_0066",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_no_action": {
+   "old": "opeu_code_0e57_0004",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_noon_raise_axis_morale": {
+   "old": "opeu_code_0e57_002c",
+   "module": "src/main/core/noonevt.c"
+  },
+  "opeu_overview_blast_frames": {
+   "old": "opeu_fg361c_0260",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_overview_order_masks": {
+   "old": "opeu_fg361c_0140",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_overview_order_sprites": {
+   "old": "opeu_fg361c_0188",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_overview_type_masks": {
+   "old": "opeu_fg361c_0000",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_overview_type_sprites": {
+   "old": "opeu_fg361c_0050",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_panel_border_tiles": {
+   "old": "opeu_fg3ab9_0000",
+   "module": "src/main/data/fg3ab9.c"
+  },
+  "opeu_path_cell_queue": {
+   "old": "opeu_fg4582_0000",
+   "module": "src/main/data/fg4582.c"
+  },
+  "opeu_path_cost_grid": {
+   "old": "opeu_fg4582_0c80",
+   "module": "src/main/data/fg4582.c"
+  },
+  "opeu_ready_group_has_idle_unit": {
+   "old": "opeu_staff_0870",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_setup_marker_image": {
+   "old": "opeu_fg35e4_0200",
+   "module": "src/main/data/fg35e4.c"
+  },
+  "opeu_setup_marker_save": {
+   "old": "opeu_fg35e4_0000",
+   "module": "src/main/data/fg35e4.c"
+  },
+  "opeu_side_objective_slot_pending": {
+   "old": "opeu_staff_0648",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_side_request_kind_is": {
+   "old": "opeu_staff_0664",
+   "module": "src/main/core/advtact.c"
+  },
+  "opeu_staff_advice_menu": {
+   "old": "opeu_code_1dd2_209a",
+   "module": "src/main/core/advmenu.c"
+  },
+  "opeu_staff_reroll_selected": {
+   "old": "opeu_code_06db_0d28",
+   "module": "src/main/core/staffgen.c"
+  },
+  "opeu_text_cursor_tile": {
+   "old": "opeu_fg3546_03c0",
+   "module": "src/main/data/fg3546.c"
+  },
+  "opeu_turn_frame_short_tiles": {
+   "old": "opeu_fg349b_0120",
+   "module": "src/main/data/fg349b.c"
+  },
+  "opeu_turn_frame_tall_tiles": {
+   "old": "opeu_fg349b_0360",
+   "module": "src/main/data/fg349b.c"
+  },
+  "opeu_view_blast_masks": {
+   "old": "opeu_fg361c_20a8",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_blast_sprites": {
+   "old": "opeu_fg361c_1fd0",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_cell_tiles": {
+   "old": "opeu_fg349b_0000",
+   "module": "src/main/data/fg349b.c"
+  },
+  "opeu_view_order_masks": {
+   "old": "opeu_fg361c_1838",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_order_sprites": {
+   "old": "opeu_fg361c_10a0",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_shadow_images": {
+   "old": "opeu_fg361c_1010",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_type_masks": {
+   "old": "opeu_fg361c_05f0",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_view_type_sprites": {
+   "old": "opeu_fg361c_0290",
+   "module": "src/main/data/fg361c.c"
+  },
+  "opeu_weather_terrain_ratings": {
+   "old": "opeu_fg3a64_0000",
+   "module": "src/main/data/fg3a64.c"
+  },
+  "opeu_yes_no_pointer_image": {
+   "old": "opeu_fg3546_03e0",
+   "module": "src/main/data/fg3546.c"
+  },
+  "opeu_yes_no_pointer_save": {
+   "old": "opeu_fg3546_0000",
+   "module": "src/main/data/fg3546.c"
+  },
+  "opeu_yes_no_pointer_shape": {
+   "old": "opeu_fg3546_06e0",
+   "module": "src/main/data/fg3546.c"
+  }
+ }
+}

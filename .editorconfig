@@ -1,0 +1,17 @@
+# Editor settings for the workable game/ tree (scooby-engine style; the full
+# C layout is game/.clang-format). src/ is the byte-exact reference and keeps
+# its original layout, so no rules apply to it.
+root = true
+
+[game/**.{c,h}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+max_line_length = 80
+
+[game/**.json]
+indent_style = space
+indent_size = 1
