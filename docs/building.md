@@ -132,31 +132,73 @@ ymfm. None of them is an error.
 
 `tools/ci/lane.py` runs a lane in a Docker `ubuntu:24.04` container. It uses
 `arm64v8/ubuntu:24.04` on an arm64 host. The checkout is mounted read-only
-and copied inside, so no Linux output lands in the tree.
+and copied inside, so no Linux output lands in the tree. What a lane hands
+back goes to `--out` (default `_local/lane-out/<lane>/`).
 
 ```
 python3 tools/ci/lane.py buildutil --buildutil-src ~/path/to/buildutil
+python3 tools/ci/lane.py web --buildutil-src ~/path/to/buildutil
 ```
 
-The lane is `tools/ci/buildutil_lane.py`. It installs the packages above and
-gcc 14 as the default, installs buildutil and a current cmake into a venv,
-and then runs `./buildutil build` and `./buildutil test`. At v1.0 it passed
-on arm64 with gcc 14.2. An x86_64 Linux machine is the same source but has
-not been run.
+`buildutil` is `tools/ci/buildutil_lane.py`. It installs the packages above
+and gcc 14 as the default, installs buildutil and a current cmake into a
+venv, and then runs `./buildutil build` and `./buildutil test`. At v1.0 it
+passed on arm64 with gcc 14.2. An x86_64 Linux machine is the same source but
+has not been run.
+
+`web` is `tools/ci/web_lane.py`, the Emscripten lane below. It clones emsdk
+inside the container and installs the pinned SDK (6.0.10, whose SDL3 port is
+3.4.2), installs buildutil and cmake into a venv, runs `./buildutil build
+--compiler emscripten --release --no-tests`, fails if a `.data` preload file
+was installed, and runs the smoke script headless under the SDK's node from
+the installed `opeu.js`. It writes `opeu.{html,js,wasm}`, `sizes.txt`,
+`build.log`, the smoke's `web-smoke.{png,wav,opl}` and their SHA-1 sums in
+`web-smoke.sha1` to the out directory. Compare those with a native run of the
+same script:
+
+```
+./buildutil run -- --saves _local/smoke/saves --headless --ms 15000 \
+  --input sources/opeu/integration/fixtures/smoke-input.txt \
+  --png _local/smoke/native.png --wav _local/smoke/native.wav --opl-log _local/smoke/native.opl
+```
+
+On 2026-10-09 (arm64, emsdk 6.0.10) the three files were byte-identical to
+the macOS native build's.
 
 ## Emscripten (the browser build)
 
 ```
-./buildutil build --compiler emscripten --release
+./buildutil build --compiler emscripten --release --no-tests
 python3 tools/web/serve.py --dir _install/opeu
 ```
 
 buildutil offers the `emscripten` compiler only on Linux hosts. The SDK is
 `$EMSDK/upstream/emscripten/em++`, else `em++` on `PATH`. `EMSDK` can be set
 in `.env`. The output is `_install/opeu/opeu.html`, `opeu.js` and
-`opeu.wasm`. The data files are inside the wasm, so there is no `.data`
-preload file. The page source is `web/shell.html`. `web/pre.js` sets up the
-IndexedDB mount for saved games and the export and import helpers.
+`opeu.wasm` (7.9 KB, 206 KB and 4.9 MB with emsdk 6.0.10). The data files are
+inside the wasm, so there is no `.data` preload file. The test suites are
+native-only, hence `--no-tests`.
+
+Nothing in `buildutil.toml` selects the lane. `sources/CMakeLists.txt`
+requires SDL3 from the SDK's own port on Emscripten (`Require(SDL3 ...
+SYSTEM PLATFORM Emscripten)`). `cmake/browser.cmake` (a no-op outside
+Emscripten) prepares that port, puts `cmake/modules/` with `FindSDL3.cmake`
+on the module path, and gives the application its link options: ASYNCIFY,
+memory and stack sizes, the file system with IDBFS and NODEFS,
+`--pre-js web/pre.js` and `--shell-file web/shell.html`. It follows
+scooby-engine's `cmake/browser.cmake`. A `configure.py` can link libraries
+and set source flags but not an executable's link options, which is why this
+§4.9).
+
+The page source is `web/shell.html`. `web/pre.js` mounts IDBFS at `/saves`,
+the save directory on Emscripten, and provides the export and import helpers.
+Under node, `/saves` is MEMFS and the host file system is at `/host`, so a
+headless run reads and writes host files:
+
+```
+node _install/opeu/opeu.js --headless --ms 15000 --input /host/$PWD/sources/opeu/integration/fixtures/smoke-input.txt --png /host/tmp/web.png
+```
+
 `tools/web/serve.py` serves the build with `.wasm` as `application/wasm` and
 `Cache-Control: no-store`. Open `http://localhost:8765/opeu.html`. Add
 `?autostart` to skip the click-to-start overlay in automated checks.
