@@ -1,5 +1,5 @@
 // The embedded table answers every name the game and the opening open.
-#include "assets.h"
+#include "assets.hpp"
 
 #include <gtest/gtest.h>
 

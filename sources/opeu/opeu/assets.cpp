@@ -1,4 +1,4 @@
-#include "assets.h"
+#include "assets.hpp"
 
 #include "opeu-opeu/resources.hpp"
 
@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-extern "C" auto opeu_asset_find(char const* const dos_name, unsigned char const** const data, std::size_t* const size)
+auto opeu_asset_find(char const* const dos_name, unsigned char const** const data, std::size_t* const size)
     -> int {
   if (dos_name == nullptr || data == nullptr || size == nullptr) {
     return 0;

@@ -1,6 +1,6 @@
-"""The trace runner reads fmdriver.h from the services."""
+"""The trace runner reads fmdriver.hpp from the services."""
 import buildutil_configure as bc
 
 services = bc.source_dir().parents[1] / "services"
-for source in sorted(bc.source_dir().rglob("*.c")):
-  bc.declare(source, options=["-std=c99", "-Wall", "-Wextra", f"-I{services}"])
+for source in [bc.source_dir() / "fmdriver-trace.cpp"]:  # main.cpp keeps buildutil's defaults
+  bc.declare(source, options=["-Wall", "-Wextra", f"-I{services}"])

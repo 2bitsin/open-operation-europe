@@ -1,7 +1,7 @@
-"""The bank dump names OPEN's symbols through the intro's forced open_names.h, as ofmusic.c is compiled."""
+"""The bank dump names OPEN's symbols through the intro's forced names.hpp, as ofmusic.cpp is compiled."""
 import buildutil_configure as bc
 
 intro = bc.source_dir().parents[1] / "intro"
-for source in sorted(bc.source_dir().rglob("*.c")):
-  bc.declare(source, options=["-Wall", "-Wextra", f"-include{intro / 'open_names.h'}",
+for source in [bc.source_dir() / "dump-open-bank.cpp"]:  # main.cpp keeps buildutil's defaults
+  bc.declare(source, options=["-Wall", "-Wextra", f"-include{intro / 'names.hpp'}",
                               f"-I{intro / 'recovered'}"])

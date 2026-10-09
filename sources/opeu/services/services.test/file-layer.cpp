@@ -1,6 +1,6 @@
-// fileio.c over the embedded table: shipped files from memory, the save
+// fileio.cpp over the embedded table: shipped files from memory, the save
 // directory first, writes only there (a shipped file copied on its first write).
-#include "opeu/services/asset-table.h"
+#include "opeu/services/asset-table.hpp"
 
 #include <gtest/gtest.h>
 
@@ -12,7 +12,6 @@
 #include <iterator>
 #include <string>
 
-extern "C" {
 auto opeu_dos_open(char const* name, std::uint16_t mode) -> std::int16_t;
 auto opeu_dos_close(std::int16_t handle) -> std::int16_t;
 auto opeu_dos_read(std::int16_t handle, std::uint8_t* data, std::uint16_t size) -> std::int16_t;
@@ -21,7 +20,6 @@ auto opeu_dos_seek(std::int16_t handle, std::int32_t position, std::int16_t orig
 auto opeu_dos_create(char const* name) -> std::int16_t;
 auto opeu_dos_exists(char const* name) -> std::int16_t;
 void plat_set_save_dir(char const* dir);
-}
 
 namespace {
 

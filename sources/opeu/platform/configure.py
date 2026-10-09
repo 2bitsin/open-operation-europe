@@ -1,6 +1,6 @@
-"""The SDL3 backend's C with the old port's flags."""
+"""The SDL3 backend (C++23 since phase 2) with the old port's flags; the build identity keeps buildutil's defaults."""
 import buildutil_configure as bc
 
-flags = ["-std=c99", "-Wall", "-Wextra", "-Wno-unused-parameter"]
-for source in sorted(bc.source_dir().rglob("*.c")):
+flags = ["-Wall", "-Wextra", "-Wno-unused-parameter"]
+for source in sorted((bc.source_dir() / "sdl3").rglob("*.cpp")):
   bc.declare(source, options=flags)

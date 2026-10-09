@@ -50,8 +50,9 @@ compiles SDL's whole dependency graph from source.
 Every directory under `sources/opeu/` with a `CMakeLists.txt` is a module.
 That file holds `Init_submodule()` and `Link_dependencies(...)`, with a
 comment for each dependency saying why. Anything a module generates at build
-time is in its `configure.py`; here every `configure.py` only declares its C
-sources' flags and include roots (the old port's `-std=c99 -Wall -Wextra ...`,
+time is in its `configure.py`; here every `configure.py` only declares its
+sources' flags and include roots (the old port's `-Wall -Wextra ...`,
+buildutil compiles it as C++23 (`cxx_standard` below); the recovered code is
 make the module's GoogleTest suite. Python `*.test/` suites run under pytest in the
 same `./buildutil test`. `assets.embed/` in `sources/opeu/opeu/` is compiled
 into the executable as `opeu::resources`. The layout reference is
@@ -143,8 +144,10 @@ python3 tools/ci/lane.py web --buildutil-src ~/path/to/buildutil
 `buildutil` is `tools/ci/buildutil_lane.py`. It installs the packages above
 and gcc 14 as the default, installs buildutil and a current cmake into a
 venv, and then runs `./buildutil build` and `./buildutil test`. At v1.0 it
-passed on arm64 with gcc 14.2. An x86_64 Linux machine is the same source but
-has not been run.
+passed on arm64 with gcc 14.2. Since the layout move it stops at linking
+`opeu-services-tests` (a static-library cycle that GNU ld needs to scan three
+else, including the `opeu` executable, compiles and links with gcc 14. An
+x86_64 Linux machine is the same source but has not been run.
 
 `web` is `tools/ci/web_lane.py`, the Emscripten lane below. It clones emsdk
 inside the container and installs the pinned SDK (6.0.10, whose SDL3 port is
