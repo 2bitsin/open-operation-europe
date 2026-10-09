@@ -76,6 +76,15 @@ typedef struct {
 #define VICTORY()      event(ds, 7)
 #define FINISH()       event(ds, 8)
 #define SHUFFLE()      host_shuffle(ds)
+/* After the tenth year the original spins forever (its interrupts still
+ * run). A loop without side effects is undefined in C++, so the native
+ * build pumps the host instead: the window still closes and a headless run
+ * still stops at --ms. */
+#ifndef OPEU_HOST_EVENTS
+#define HANG()         for (;;) port_pump()
+#else
+#define HANG()         for (;;) ; /* the host branch: the original form */
+#endif
 #define SUB_ONE(p)     opeu_sub_byte(1, p)
 static void host_shuffle(uint8_t* ds) {
   opeu_random_state = (uint32_t)ds[0xc6f4] | ((uint32_t)ds[0xc6f5] << 8) |
@@ -154,8 +163,7 @@ check_victory:
     MONTH = 1;
   } while (++YEAR < 10);
 stopped:
-  for (;;)
-    ;
+  HANG();
 }
 
 /* Original block ranges 0977:0446..04af and 04d3..050b, respectively.

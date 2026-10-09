@@ -162,6 +162,7 @@ uint16_t link_openmain(uint8_t *ds, uint16_t id, const uint16_t *args, uint16_t 
     case 42: return (uint16_t)opeu_open_fade_alt(ds, link_outil);
     case 43: opeu_open_identity_palette(ds, link_outil); return 0;
     case 44: return (uint16_t)opeu_open_file_or_die(ds, link_outil, ARG(0));
+    case 45: port_pump(); return 0;               /* HANG(): the stop after an allocation failure */
     default: port_unhandled("openmain", id, count);
     }
     return 0;

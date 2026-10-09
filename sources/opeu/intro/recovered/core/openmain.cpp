@@ -116,6 +116,7 @@ int opeu_open_scene_panorama(void);
 #define UNUSED
 #define OFFSET(v) (uint8_t *)v
 #define FM_WAIT_START(t) opeu_open_sfx_play(t)
+#define HANG() for (;;)
 #define SFX_BUSY() opeu_open_sfx_busy()
 #define FM_BUSY() opeu_fm_busy()
 #define INPUT_POLL() opeu_open_input_poll()
@@ -174,6 +175,10 @@ static uint16_t open_word(const uint8_t *ds,uint16_t at)
 #define EV6(id,a,b,c,d,e,f) open_call(ds,event,id,6,(uint16_t)(a),(uint16_t)(b),(uint16_t)(c),(uint16_t)(d),(uint16_t)(e),(uint16_t)(f),0)
 #define EV7(id,a,b,c,d,e,f,g) open_call(ds,event,id,7,(uint16_t)(a),(uint16_t)(b),(uint16_t)(c),(uint16_t)(d),(uint16_t)(e),(uint16_t)(f),(uint16_t)(g))
 #define FM_WAIT_START(t) EV1(0,t)
+/* The allocation failures stop the program in an empty loop; the host
+ * pumps its events instead (a loop without side effects is undefined in
+ * C++), so the window still closes and a headless run still stops. */
+#define HANG() for (;;) EV0(45)
 #define SFX_BUSY() EV0(1)
 #define FM_BUSY() EV0(2)
 #define INPUT_POLL() EV0(3)
@@ -1530,44 +1535,36 @@ void opeu_open_init(OPEN_STATE)
     int ems, handle;
     if (SET_BUFFER_G(DOS_ALLOC(0x501)) == 0) {
         CURSOR_PRINT(ALLOC_ERR1);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_H(DOS_ALLOC(0x6d5)) == 0) {
         CURSOR_PRINT(ALLOC_ERR2);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_A(DOS_ALLOC(0x1000)) == 0) {
         CURSOR_PRINT(ALLOC_ERR3);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_B(DOS_ALLOC(0x1000)) == 0) {
         CURSOR_PRINT(ALLOC_ERR4);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_C(DOS_ALLOC(0x1000)) == 0) {
         CURSOR_PRINT(ALLOC_ERR5);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_D(DOS_ALLOC(0x1000)) == 0) {
         CURSOR_PRINT(ALLOC_ERR6);
-        for (;;)
-            ;
+        HANG();
     }
     if (SET_BUFFER_E(DOS_ALLOC(0x1000)) == 0) {
         CURSOR_PRINT(ALLOC_ERR7);
-        for (;;)
-            ;
+        HANG();
     }
     ems = EMS_DETECT();
     if (SET_BUFFER_F(DOS_ALLOC(0x1000)) == 0 && (!ems || !EMS_ALLOC_SPRITE())) {
         CURSOR_PRINT(ALLOC_ERR9);
-        for (;;)
-            ;
+        HANG();
     }
     handle = FILE_OR_DIE(NAME_MOPENGRP);
     DOS_READ_FAR(handle,BUFFER_H,0,0x6d40);
