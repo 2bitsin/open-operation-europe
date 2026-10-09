@@ -11,6 +11,7 @@
 #include "platform.h"
 #include "callbacks.h"
 #include "recovered.h"
+#include "open.h"                    /* OPEN.EXE, the opening (port/open) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
 
     port_options.data_dir = OPEU_DEFAULT_DATA_DIR;
     port_options.scale = 2;
+    open_intro_options(&argc, argv);     /* --no-intro / --intro */
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--data") && i + 1 < argc) port_options.data_dir = argv[++i];
         else if (!strcmp(argv[i], "--scale") && i + 1 < argc) port_options.scale = atoi(argv[++i]);
@@ -132,6 +134,9 @@ int main(int argc, char **argv)
 
     /* FMDRV was installed by OPEU.BAT before MAIN started. */
     port_fm_init();
+
+    /* KOEI.COM ran OPEN.EXE between FMDRV and MAIN (port/open). */
+    open_intro_run();
 
     /* crt0 -> main(): the recovered application entry. */
     opeu_application_entry(port_ds, link_app);
