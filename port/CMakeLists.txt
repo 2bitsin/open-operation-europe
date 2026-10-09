@@ -149,12 +149,15 @@ target_compile_definitions(opeu PRIVATE OPEU_DEFAULT_DATA_DIR="${OPEU_DEFAULT_DA
 # (MAIN's STRINGS/MEMORY routines, linked into OPEN.EXE unchanged) resolves
 # to opeu_recovered. Link layer, image and start-up: port/open; OPEN-only
 # assembly services: port/services/open_*.c (globbed above).
+# OPEN is compiled from the reference tree: the game/ generator covers MAIN
+# only (docs/game-tree-notes.txt), so src/open is the one source of OPEN.
+set(OPEU_OPEN_SRC ${OPEU_REPO}/src)
 file(GLOB OPEU_OPEN_RECOVERED CONFIGURE_DEPENDS
-  ${OPEU_SRC}/open/core/*.c
-  ${OPEU_SRC}/open/data/*.c
-  ${OPEU_SRC}/open/io/*.c)
+  ${OPEU_OPEN_SRC}/open/core/*.c
+  ${OPEU_OPEN_SRC}/open/data/*.c
+  ${OPEU_OPEN_SRC}/open/io/*.c)
 add_library(opeu_open_recovered STATIC ${OPEU_OPEN_RECOVERED})
-target_include_directories(opeu_open_recovered PRIVATE ${OPEU_SRC}/common)
+target_include_directories(opeu_open_recovered PRIVATE ${OPEU_OPEN_SRC}/common)
 if(MSVC)
   target_compile_options(opeu_open_recovered PRIVATE /FI${OPEU_PORT}/open/open_names.h)
 else()

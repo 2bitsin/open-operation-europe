@@ -72,9 +72,9 @@ The same sources build for the browser with Emscripten (tested with
 emscripten 6.0.10 from Homebrew; SDL3 is emscripten's own port, pinned by
 that release to SDL 3.4.2 and checked by SHA-512 when emcc fetches it):
 
-    . port/tools/web_env.sh          # only if emcc is not configured (see below)
-    emcmake cmake -S port -B port/build/web -DCMAKE_BUILD_TYPE=Release
-    cmake --build port/build/web -j8
+    # web_env.py is only needed when emcc is not configured (see below)
+    python3 port/tools/web_env.py emcmake cmake -S port -B port/build/web -DCMAKE_BUILD_TYPE=Release
+    python3 port/tools/web_env.py cmake --build port/build/web -j8
     python3 port/tools/serve_web.py  # or: python3 -m http.server 8765 --directory port/build/web
     open http://localhost:8765/opeu.html
 
@@ -85,7 +85,8 @@ programs `*.EXE`/`*.COM`, the batch files and the eXoDOS marker are left
 out). The native build is unchanged by any of this (everything web-only is
 under `if(EMSCRIPTEN)` / `#ifdef __EMSCRIPTEN__`).
 
-`port/tools/web_env.sh` (source it) is needed with Homebrew's emscripten:
+`port/tools/web_env.py` (it runs the command given to it with the variables
+below set) is needed with Homebrew's emscripten:
 that package has no `.emscripten` config and its launcher picks the first
 `python3` in `PATH`, which on macOS can be the system 3.9 (emscripten 6
 needs >= 3.10). The script sets `EMSDK_PYTHON`, writes
@@ -183,7 +184,7 @@ IndexedDB; Safari needs the ASYNCIFY build (the default).
   data packaging, `/data` as the default data directory; the host test
   programs are not built for the web).
 - `platform/web/shell.html`, `platform/web/pre.js`: the page and the file
-  system set-up described above. `tools/web_env.sh`, `tools/serve_web.py`:
+  system set-up described above. `tools/web_env.py`, `tools/serve_web.py`:
   toolchain environment and a local server (`.wasm` as `application/wasm`,
   `Cache-Control: no-store`).
 

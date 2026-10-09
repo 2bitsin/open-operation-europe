@@ -1,0 +1,79 @@
+# Style of the C++ modules under sources/, following scooby-engine's
+# sources/ (docs/cpp-style.md there): 2-space indent, 80 columns, attached
+# braces, `{ x }` brace initialisers with interior spaces, aligned
+# consecutive declarations/assignments, left-bound `&`/`*`, one-space access
+# modifiers, unindented namespaces closed by a bare `}`. game/.clang-format
+# is the same layout for the generated C tree; src/ is never formatted.
+---
+Language: Cpp
+Standard: Latest
+BasedOnStyle: LLVM
+IndentWidth: 2
+ContinuationIndentWidth: 4
+ColumnLimit: 80
+UseTab: Never
+BreakBeforeBraces: Attach
+AccessModifierOffset: -1
+NamespaceIndentation: None
+FixNamespaceComments: false
+CompactNamespaces: false
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+QualifierAlignment: Leave
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignEscapedNewlines: Left
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BracedInitializerIndentWidth: 2
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+IncludeBlocks: Preserve
+IndentCaseLabels: true
+IndentGotoLabels: false
+IndentPPDirectives: None
+IndentRequiresClause: true
+InsertNewlineAtEOF: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+ReflowComments: false
+SortIncludes: CaseSensitive
+# Re-export blocks are sorted by byte value (CONTRACT_MODE before Contract),
+# which no clang-format ordering reproduces.
+SortUsingDeclarations: Never
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceInEmptyBraces: Always
+SpacesBeforeTrailingComments: 2
+PenaltyReturnTypeOnItsOwnLine: 1000
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+...
