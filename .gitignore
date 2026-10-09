@@ -19,3 +19,4 @@ __pycache__/
 /analysis/*-validation.json
 !/analysis/linked-fragments-validation.json
 !/analysis/open-linked-fragments-validation.json
+!/analysis/end-linked-fragments-validation.json
