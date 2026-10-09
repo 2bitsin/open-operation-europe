@@ -1,5 +1,5 @@
 // The OPL2 chip for the port: a thin C wrapper around ymfm::ym3812.
-// ymfm is vendored (one token changed, see port/README.md) under
+// ymfm is vendored (one token changed, see docs/port.md) under
 // port/third_party/ymfm; this is emulation of the sound chip (a hardware
 // service behind the platform layer), not of the CPU.
 #include "opl.h"

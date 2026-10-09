@@ -8,7 +8,7 @@
  * stdio FILE* handles on paths resolved case-insensitively inside the save
  * directory.  Audio is a pull callback on an SDL_AudioStream.
  *
- * Emscripten (web build, port/README.md "Web build"): the game's waits are
+ * Emscripten (web build, docs/port.md "The browser build"): the game's waits are
  * polling loops that never return to a main loop, so the build uses
  * ASYNCIFY (or JSPI) and this backend hands control back to the browser at
  * exactly two places, both marked __EMSCRIPTEN__: after each presented

@@ -150,7 +150,7 @@ typedef struct {
     int headless;            /* no window; virtual time; scripted input */
     uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
     const char *png_path;    /* write the last frame here when stopping */
-    const char *input_path;  /* scripted input log (see port/README.md) */
+    const char *input_path;  /* scripted input log (see docs/port.md) */
     const char *save_dir;    /* saved games (NULL: the platform's default) */
     int scale;               /* initial window scale */
     const char *shot_dir;    /* headless: write a frame every shot_every_ms here */

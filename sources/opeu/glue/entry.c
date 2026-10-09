@@ -31,7 +31,7 @@ static void usage(const char *argv0)
         "  --saves DIR   saved games (default: the per-user data directory)\n"
         "  --headless    no window; virtual time; use with --ms/--input/--png\n"
         "  --ms N        headless: stop after N ms of virtual time\n"
-        "  --input FILE  scripted input log (see port/README.md)\n"
+        "  --input FILE  scripted input log (see docs/port.md)\n"
         "  --png FILE    write the final frame as PNG\n"
         "  --wav FILE    write the music and sound (49716 Hz stereo WAV)\n"
         "  --opl-log F   log every OPL2 register write (frame, register, value)\n"

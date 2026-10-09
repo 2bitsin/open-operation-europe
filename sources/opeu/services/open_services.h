@@ -1,7 +1,7 @@
 /* Native services of OPEN.EXE (the opening) where its assembly library
  * differs from MAIN's. Everything OPEN's C calls in its KOEI library that is
  * byte-identical to MAIN's (checked instruction by instruction, see
- * port/README.md "OPEN.EXE") uses the MAIN service unchanged (vgalib.c,
+ * docs/port.md "OPEN.EXE") uses the MAIN service unchanged (vgalib.c,
  * syslib.c, fileio.c, ems.c, input.c, fm.c).
  *
  * Far (segment, offset) arguments stay segment:offset here: the routines
