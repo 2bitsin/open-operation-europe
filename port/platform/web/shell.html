@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operation Europe</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #ccc;
+               font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #stage { position: relative; display: flex; align-items: center; justify-content: center;
+           width: 100vw; height: 100vh; overflow: hidden; }
+  /* The game frame is 640x480; CSS scales it to the largest 4:3 box that fits.
+     SDL3 sees the CSS size and maps it back to 640x480 (letterboxed). */
+  #canvas { display: block; width: min(100vw, calc(100vh * 4 / 3)); aspect-ratio: 4 / 3;
+            image-rendering: pixelated; image-rendering: crisp-edges;
+            outline: none; cursor: none; background: #000; }
+  #overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; gap: 12px;
+             background: rgba(0, 0, 0, 0.82); cursor: pointer; user-select: none; }
+  #overlay h1 { margin: 0; font-size: 28px; font-weight: 600; color: #eee; letter-spacing: 0.02em; }
+  #overlay .hint { font-size: 15px; }
+  #status { font-size: 13px; color: #999; min-height: 1.4em; }
+  #overlay.done { cursor: default; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="canvas" width="640" height="480" tabindex="0"
+          oncontextmenu="event.preventDefault()"></canvas>
+  <div id="overlay">
+    <h1>Operation Europe</h1>
+    <div class="hint" id="hint">Click to start</div>
+    <div id="status">Loading&hellip;</div>
+  </div>
+</div>
+<script>
+  var overlay = document.getElementById('overlay');
+  var statusEl = document.getElementById('status');
+  var hintEl = document.getElementById('hint');
+  var canvas = document.getElementById('canvas');
+  var started = false;
+
+  function start() {
+    if (started) return;
+    started = true;
+    overlay.hidden = true;
+    overlay.style.display = 'none';
+    canvas.focus();
+    if (Module.opeuStart) Module.opeuStart();
+  }
+  overlay.addEventListener('click', start);
+  canvas.addEventListener('mousedown', function () { canvas.focus(); });
+
+  /* ?autostart skips the click (automated browser checks); there is then
+     no user gesture, so keyboard focus and audio may need a click later. */
+  var autostart = new URLSearchParams(location.search).has('autostart');
+
+  var Module = {
+    canvas: canvas,
+    opeuAutoStart: autostart,
+    arguments: [],
+    print: function (text) { console.log(text); },
+    printErr: function (text) { console.warn(text); },
+    setStatus: function (text) { statusEl.textContent = text || ''; },
+    monitorRunDependencies: function (left) {
+      /* one dependency stays open until the click: show "ready" then */
+      if (left <= 1 && !started) statusEl.textContent = 'Ready';
+    },
+    onExit: function (code) {
+      overlay.style.display = 'flex';
+      overlay.classList.add('done');
+      hintEl.textContent = 'The program has ended (exit code ' + code + '). Reload the page to play again.';
+      statusEl.textContent = '';
+    },
+    onAbort: function (what) {
+      overlay.style.display = 'flex';
+      overlay.classList.add('done');
+      hintEl.textContent = 'The program stopped with an error; see the browser console.';
+      statusEl.textContent = String(what || '');
+    }
+  };
+  if (autostart) start();
+  window.addEventListener('error', function (e) {
+    statusEl.textContent = 'Error: ' + e.message;
+  });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

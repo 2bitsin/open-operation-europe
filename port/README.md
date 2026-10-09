@@ -15,7 +15,8 @@ runtime and no translated machine code. `python3 tools/port_lint.py
     make port-lint            # emulation lint + provenance check of the build
 
 Requirements: CMake >= 3.16, a C99 compiler, Python 3, SDL3 (found with
-`find_package(SDL3)`, otherwise fetched and built statically). The game data is
+`find_package(SDL3)`, otherwise fetched and built statically). For the
+browser build see "Web build (Emscripten)" below. The game data is
 read from `binaries/` (the original game directory); pass `--data DIR` to
 use another copy. Options of `port/build/release/opeu`:
 
@@ -57,6 +58,114 @@ France briefing; `make smoke-play`) and `smoke-turn.txt` (Enter every 1.5 s
 through set-up and briefing into turn processing; `make smoke-play
 SMOKE_INPUT=port/tests/smoke-turn.txt SMOKE_MS=120000`, needs a reference
 with both fills recovered).
+
+## Web build (Emscripten)
+
+The same sources build for the browser with Emscripten (tested with
+emscripten 6.0.10 from Homebrew; SDL3 is emscripten's own port, pinned by
+that release to SDL 3.4.2 and checked by SHA-512 when emcc fetches it):
+
+    . port/tools/web_env.sh          # only if emcc is not configured (see below)
+    emcmake cmake -S port -B port/build/web -DCMAKE_BUILD_TYPE=Release
+    cmake --build port/build/web -j8
+    python3 port/tools/serve_web.py  # or: python3 -m http.server 8765 --directory port/build/web
+    open http://localhost:8765/opeu.html
+
+Output in `port/build/web`: `opeu.html` (from `platform/web/shell.html`),
+`opeu.js`, `opeu.wasm` (about 2.7 MB) and `opeu.data` (about 2.3 MB: the
+original data files of `binaries/`, or of `-DOPEU_WEB_DATA=DIR`; the DOS
+programs `*.EXE`/`*.COM`, the batch files and the eXoDOS marker are left
+out). The native build is unchanged by any of this (everything web-only is
+under `if(EMSCRIPTEN)` / `#ifdef __EMSCRIPTEN__`).
+
+`port/tools/web_env.sh` (source it) is needed with Homebrew's emscripten:
+that package has no `.emscripten` config and its launcher picks the first
+`python3` in `PATH`, which on macOS can be the system 3.9 (emscripten 6
+needs >= 3.10). The script sets `EMSDK_PYTHON`, writes
+`port/build/emscripten.config` (LLVM and Binaryen of the install) as
+`EM_CONFIG`, and puts the emscripten cache in `port/build/emcache`, so the
+first build compiles libc and SDL3 into the checkout (about a minute)
+instead of into the Homebrew prefix. Variables already set are kept.
+
+**Page.** The canvas is 640x480 scaled by CSS to the largest 4:3 box of the
+browser window (nearest-neighbour, letterboxed by SDL); the game draws its
+own pointer and the host cursor is hidden over it; right clicks go to the
+game. A "Click to start" overlay holds `main()` until the first click
+(gives the canvas keyboard focus and is the user gesture browsers want
+before audio). `opeu.html?autostart` skips it (automated checks). When the
+program ends (scenario finish) the overlay says so; reload to play again.
+No external resources are loaded.
+
+**Waits.** The game never returns to a main loop: it polls the keyboard,
+mouse and FM driver in loops (all through `port_pump`). The build links
+with `-sASYNCIFY` and the SDL3 backend gives control back to the browser
+with `emscripten_sleep()` at two places only: after each presented frame
+(at most about 60 per second) and in `plat_sleep_ms()` (the pump's idle
+sleep, every 64 idle polls). SDL's own automatic `emscripten_sleep()` calls
+are disabled (`SDL_HINT_EMSCRIPTEN_ASYNCIFY=0`) so these are the only
+yields. `ASYNCIFY_STACK_SIZE` is 1 MiB (the saved native stack of the
+deepest wait); `ASYNCIFY_IGNORE_INDIRECT` is not used because every path
+from game code to the pump goes through function-pointer service callbacks,
+so the whole module is instrumented. `-DOPEU_WEB_JSPI=ON` uses JSPI instead
+(smaller and faster, `opeu.wasm` about 1.8 MB; Chrome/Edge and Node only,
+not Safari). No threads and no SharedArrayBuffer, so no COOP/COEP headers.
+
+**Files and saves.** `opeu.data` mounts the originals at `/gamedata`; the
+program uses `/data` (the `--data` default of the web build). In the
+browser `/data` is an IDBFS mount with `autoPersist`: before `main()`
+(`platform/web/pre.js`) it is loaded from IndexedDB (database `/data`),
+originals it does not have yet are copied in from `/gamedata`, and every
+file the game writes is stored back to IndexedDB when it is closed. Saved
+games therefore survive reloads; clearing the site data resets the game
+directory to the originals.
+
+**Headless under Node.** The same `opeu.js` runs in Node (`-sENVIRONMENT=web,node`),
+with `/data` in memory and the host file system mounted at `/host`; run it
+from the build directory (the packaged data is found relative to the
+current directory):
+
+    cd port/build/web
+    node opeu.js --headless --ms 120000 --input /host$PWD/../../tests/smoke-turn.txt --png /host/tmp/web.png
+
+Verified 2026-10-09: the Node runs of `smoke-input.txt` (15 s) and
+`smoke-turn.txt` (120 s and 600 s of virtual time) write PNGs byte-identical
+to the native build's; in headless Chromium (CDP, swiftshader) the page
+loads, the click starts the game, keyboard (Enter through set-up into turn
+processing) and mouse (mouse selection, New Game, scenario, briefing) work
+with the CSS-scaled canvas, and a file written to `/data` survives a page
+reload.
+
+Known limitations: silent (as native); a long computation that does not
+poll input keeps the tab busy until it polls again (as the original kept
+the PC busy); the first visit stores the original files (about 2.3 MB) in
+IndexedDB; Safari needs the ASYNCIFY build (the default).
+
+### Web platform edits (and why)
+
+- `platform/sdl3/platform_sdl3.c` (`#ifdef __EMSCRIPTEN__` only):
+  `emscripten_sleep(0)` after `SDL_RenderPresent` (the browser shows a
+  frame and delivers input only when the program yields);
+  `plat_sleep_ms()` calls `emscripten_sleep(ms)` (idle yield);
+  `SDL_HINT_EMSCRIPTEN_ASYNCIFY=0` (no other, unpaced yields);
+  `SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas` (keys go to the focused
+  canvas, not the whole page); no `SDL_SetRenderVSync` (the browser paces
+  frames; with no emscripten main loop the call only warns); letterbox
+  instead of integer-scale presentation (the CSS box is rarely an integer
+  multiple of 640x480).
+- `core/wasm_abi.c` + `CMakeLists.txt` (web only): aiops5.c declares six AI
+  routines of aiops3/aiops4 (`opeu_ai_08f8 093c 0a5a 0c3c 0d82 1064`) as
+  `void` while they return `uint16_t`. Native ABIs ignore the unread
+  return value; WebAssembly checks call types, wasm-ld replaces such calls
+  with a trap stub and Binaryen then rejects the module. aiops5.c is
+  compiled with each name mapped to a `void` forwarder that calls the
+  recovered routine and drops the value. `src/` is unchanged.
+- `CMakeLists.txt`: the `if(EMSCRIPTEN)` block (SDL3 port, link flags,
+  data packaging, `/data` as the default data directory; the host test
+  programs are not built for the web).
+- `platform/web/shell.html`, `platform/web/pre.js`: the page and the file
+  system set-up described above. `tools/web_env.sh`, `tools/serve_web.py`:
+  toolchain environment and a local server (`.wasm` as `application/wasm`,
+  `Cache-Control: no-store`).
 
 ## How it is put together
 
@@ -171,7 +280,9 @@ routine.
 - `core/memory.c`, `core/link.c`: the data arena, the DGROUP stack model,
   the routine link table lookup, diagnostics.
 - `main.c`: crt0's role (data image, devices, then `opeu_application_entry`).
-- `platform/`: SDL3 window/present, events, time, PNG writer.
+- `platform/`: SDL3 window/present, events, time, PNG writer; for the
+  web build also the page shell and file-system set-up (`platform/web/`)
+  and `core/wasm_abi.c` (see "Web platform edits").
 
 ### Edited recovered routines
 

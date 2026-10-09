@@ -34,7 +34,15 @@ message(STATUS "Recovered reference: ${OPEU_SRC} (${OPEU_SOURCE_FEATURES})")
 set(OPEU_PORT ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ---- SDL3: installed package first, otherwise a static build from source ----
-find_package(SDL3 CONFIG QUIET)
+# Emscripten (emcmake cmake): SDL3 comes from emscripten's own port
+# (--use-port=sdl3), which this emscripten release pins (6.0.10: SDL 3.4.2,
+# checked against a SHA-512 by emcc). See "Web build" below.
+if(EMSCRIPTEN)
+  set(OPEU_SDL3 "")
+  set(SDL3_FOUND TRUE)
+else()
+  find_package(SDL3 CONFIG QUIET)
+endif()
 if(NOT SDL3_FOUND)
   message(STATUS "SDL3 not found; fetching SDL release-3.2.10 (static)")
   include(FetchContent)
@@ -49,7 +57,9 @@ if(NOT SDL3_FOUND)
     GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(SDL3)
 endif()
-if(TARGET SDL3::SDL3)
+if(EMSCRIPTEN)
+  # the port is added as a compile and link option of the targets below
+elseif(TARGET SDL3::SDL3)
   set(OPEU_SDL3 SDL3::SDL3)
 elseif(TARGET SDL3::SDL3-static)
   set(OPEU_SDL3 SDL3::SDL3-static)
@@ -113,9 +123,81 @@ elseif(MSVC)
   target_compile_options(opeu PRIVATE /W3)
 endif()
 target_link_libraries(opeu PRIVATE opeu_recovered ${OPEU_SDL3})
-target_compile_definitions(opeu PRIVATE OPEU_DEFAULT_DATA_DIR="${OPEU_REPO}/binaries" ${OPEU_SOURCE_FEATURES})
+if(EMSCRIPTEN)
+  set(OPEU_DEFAULT_DATA_DIR /data)
+else()
+  set(OPEU_DEFAULT_DATA_DIR ${OPEU_REPO}/binaries)
+endif()
+target_compile_definitions(opeu PRIVATE OPEU_DEFAULT_DATA_DIR="${OPEU_DEFAULT_DATA_DIR}" ${OPEU_SOURCE_FEATURES})
+
+# ---- web build (Emscripten) -------------------------------------------------
+# emcmake cmake -S port -B port/build/web -DCMAKE_BUILD_TYPE=Release
+# Produces opeu.html/.js/.wasm/.data. The original data files of OPEU_WEB_DATA
+# (default binaries/) are packed into opeu.data at /gamedata; the DOS
+# programs (*.EXE, *.COM), the DOS batch files and the eXoDOS marker are left
+# out because the port does not use them. port/platform/web/pre.js copies
+# /gamedata into /data (an IDBFS mount, so saved games persist in the
+# browser's IndexedDB) before main() runs.
+#
+# Blocking waits: the game polls the keyboard/mouse/FM driver in loops; those
+# reach plat_sleep_ms() and plat_present(), which call emscripten_sleep()
+# under ASYNCIFY and so return to the browser. Every game routine reaches the
+# pump through function-pointer service callbacks, so the whole module is
+# instrumented (no ASYNCIFY_IGNORE_INDIRECT: it would drop exactly those
+# paths). ASYNCIFY_STACK_SIZE holds the unwound native stack of the deepest
+# wait (turn processing -> battle -> dialog -> key wait); 1 MiB leaves a wide
+# margin. STACK_SIZE (4 MiB) gives the native C stack room for the same chains.
+if(EMSCRIPTEN)
+  set(OPEU_WEB_DATA ${OPEU_REPO}/binaries CACHE PATH "Original game directory packed into opeu.data")
+  option(OPEU_WEB_JSPI "Use JSPI instead of ASYNCIFY (Chrome/Edge/Node only)" OFF)
+  set(OPEU_SDL3_PORT --use-port=sdl3)
+  target_compile_options(opeu PRIVATE ${OPEU_SDL3_PORT})
+  file(GLOB OPEU_WEB_FILES LIST_DIRECTORIES false RELATIVE ${OPEU_WEB_DATA} ${OPEU_WEB_DATA}/*)
+  set(OPEU_WEB_PRELOAD)
+  set(OPEU_WEB_PRELOAD_DEPS)
+  foreach(f IN LISTS OPEU_WEB_FILES)
+    if(f MATCHES "\\.([Ee][Xx][Ee]|[Cc][Oo][Mm]|[Bb][Aa][Tt]|exo)$" OR f MATCHES " ")
+      continue()
+    endif()
+    list(APPEND OPEU_WEB_PRELOAD "--preload-file=${OPEU_WEB_DATA}/${f}@/gamedata/${f}")
+    list(APPEND OPEU_WEB_PRELOAD_DEPS ${OPEU_WEB_DATA}/${f})
+  endforeach()
+  if(OPEU_WEB_JSPI)
+    set(OPEU_WEB_ASYNC -sJSPI=1)
+  else()
+    set(OPEU_WEB_ASYNC -sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=1048576)
+  endif()
+  # Call-signature glue: see port/core/wasm_abi.c.
+  set(OPEU_WASM_VOID_DEFS)
+  foreach(r ai_08f8 ai_093c ai_0a5a ai_0c3c ai_0d82 ai_1064)
+    list(APPEND OPEU_WASM_VOID_DEFS opeu_${r}=opeu_wasm_void_${r})
+  endforeach()
+  set_source_files_properties(${OPEU_SRC}/main/core/aiops5.c
+    PROPERTIES COMPILE_DEFINITIONS "${OPEU_WASM_VOID_DEFS}")
+  set(OPEU_WEB_DIR ${OPEU_PORT}/platform/web)
+  target_link_options(opeu PRIVATE
+    ${OPEU_SDL3_PORT}
+    ${OPEU_WEB_ASYNC}
+    -sENVIRONMENT=web,node
+    -sALLOW_MEMORY_GROWTH=1
+    -sINITIAL_MEMORY=33554432
+    -sSTACK_SIZE=4194304
+    -sEXIT_RUNTIME=1
+    -sFORCE_FILESYSTEM=1
+    -sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency
+    -lidbfs.js
+    -lnodefs.js
+    --pre-js=${OPEU_WEB_DIR}/pre.js
+    --shell-file=${OPEU_WEB_DIR}/shell.html
+    ${OPEU_WEB_PRELOAD})
+  set_target_properties(opeu PROPERTIES SUFFIX ".html"
+    LINK_DEPENDS "${OPEU_WEB_DIR}/pre.js;${OPEU_WEB_DIR}/shell.html;${OPEU_WEB_PRELOAD_DEPS}")
+endif()
 
 # ---- tests ------------------------------------------------------------------
+if(EMSCRIPTEN)
+  return()
+endif()
 enable_testing()
 add_executable(opeu_test_vgalib ${OPEU_PORT}/tests/test_vgalib.c ${OPEU_PORT}/services/vgalib.c)
 target_include_directories(opeu_test_vgalib PRIVATE ${OPEU_PORT}/services)

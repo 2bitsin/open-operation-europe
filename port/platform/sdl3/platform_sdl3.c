@@ -7,11 +7,25 @@
  * set-1 make codes plus the BIOS INT 16h ASCII of a US keyboard.  Files are
  * stdio FILE* handles on paths resolved case-insensitively inside the data
  * directory.  Audio is a pull callback on an SDL_AudioStream.
+ *
+ * Emscripten (web build, port/README.md "Web build"): the game's waits are
+ * polling loops that never return to a main loop, so the build uses
+ * ASYNCIFY (or JSPI) and this backend hands control back to the browser at
+ * exactly two places, both marked __EMSCRIPTEN__: after each presented
+ * frame (so the canvas is shown and input events are delivered) and in
+ * plat_sleep_ms() (the pump's idle sleep).  SDL's own automatic
+ * emscripten_sleep() calls are switched off so that these are the only
+ * yields.  The canvas is scaled by the page's CSS (letterboxed, not integer
+ * scaled), takes the keyboard events itself, and has no vsync setting (the
+ * browser paces frames).
  */
 #include "platform.h"
 #include "png_write.h"
 
 #include <SDL3/SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +39,13 @@
 
 /* SDL_LOGICAL_PRESENTATION_INTEGER_SCALE or SDL_LOGICAL_PRESENTATION_LETTERBOX */
 #ifndef PLAT_PRESENTATION
+#ifdef __EMSCRIPTEN__
+/* The page's CSS sizes the canvas to any 4:3 box, rarely an integer
+ * multiple of 640x480. */
+#define PLAT_PRESENTATION SDL_LOGICAL_PRESENTATION_LETTERBOX
+#else
 #define PLAT_PRESENTATION SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+#endif
 #endif
 
 #define PLAT_PATH_MAX 1024
@@ -85,6 +105,12 @@ int plat_init(const PlatConfig *cfg)
     } else {
         SDL_SetAppMetadata(cfg->title ? cfg->title : "Operation Europe",
                            NULL, NULL);
+#ifdef __EMSCRIPTEN__
+        /* Keys go to the canvas (focused by the page's click-to-start), and
+         * only this backend yields to the browser (see the file comment). */
+        SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
+        SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
             fprintf(stderr, "plat_init: SDL_Init(video): %s\n", SDL_GetError());
             return -1;
@@ -114,7 +140,9 @@ int plat_init(const PlatConfig *cfg)
             SDL_Quit();
             return -1;
         }
+#ifndef __EMSCRIPTEN__
         SDL_SetRenderVSync(P.renderer, 1);
+#endif
         SDL_SetRenderLogicalPresentation(P.renderer, w, h, PLAT_PRESENTATION);
 #if PLAT_HIDE_CURSOR
         SDL_HideCursor();
@@ -219,6 +247,10 @@ void plat_present(const uint8_t *pixels, int width, int height,
     SDL_RenderClear(P.renderer);
     SDL_RenderTexture(P.renderer, P.texture, NULL, NULL);
     SDL_RenderPresent(P.renderer);
+#ifdef __EMSCRIPTEN__
+    /* Return to the browser so it shows the frame and queues input. */
+    emscripten_sleep(0);
+#endif
 }
 
 int plat_write_png(const char *path)
@@ -506,8 +538,15 @@ uint64_t plat_ticks_us(void)
 
 void plat_sleep_ms(int ms)
 {
+#ifdef __EMSCRIPTEN__
+    /* Yield to the browser event loop (ASYNCIFY/JSPI unwinds the stack and
+     * resumes here from a timer). */
+    if (ms >= 0 && !P.headless)
+        emscripten_sleep((unsigned)ms);
+#else
     if (ms > 0)
         SDL_Delay((Uint32)ms);
+#endif
 }
 
 /* ---- files -------------------------------------------------------------- */
