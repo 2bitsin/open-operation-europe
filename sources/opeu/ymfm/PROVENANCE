@@ -2,5 +2,9 @@ ymfm, BSD-3-Clause (LICENSE beside this file), by Aaron Giles.
 Upstream: https://github.com/aaronsgiles/ymfm
 Pinned commit: 81aec25 (2026-07-27).
 Files: src/ymfm.h, ymfm_adpcm.{cpp,h}, ymfm_fm.{h,ipp}, ymfm_opl.{cpp,h},
-ymfm_pcm.{cpp,h}, copied flat and unmodified. The port uses the YM3812
-(OPL2) model only, fed by services/opl_ymfm.cpp.
+ymfm_pcm.{cpp,h}, copied flat. Here they drop the redundant ymfm_ prefix
+(adpcm.{cpp,h}, fm.{h,ipp}, opl.{cpp,h}, pcm.{cpp,h}; ymfm.h keeps its
+name), and their #include lines name the files accordingly. One further
+local change: in opl.cpp `case 0x0f:` is spelled `case 15:`, with a
+comment at the line (docs/port.md "Chip"). The port uses the YM3812 (OPL2)
+model only, fed by services/opl-ymfm.cpp.

@@ -34,9 +34,9 @@
 #pragma once
 
 #include "ymfm.h"
-#include "ymfm_adpcm.h"
-#include "ymfm_fm.h"
-#include "ymfm_pcm.h"
+#include "adpcm.h"
+#include "fm.h"
+#include "pcm.h"
 
 namespace ymfm
 {
