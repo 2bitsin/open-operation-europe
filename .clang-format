@@ -64,7 +64,8 @@ AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortEnumsOnASingleLine: true
+# Spreadsheet layout: an enum is a table, one enumerator per row, never packed onto one line.
+AllowShortEnumsOnASingleLine: false
 AllowShortLambdasOnASingleLine: All
 EmptyLineBeforeAccessModifier: Leave
 EmptyLineAfterAccessModifier: Leave
