@@ -1,0 +1,41 @@
+{
+ "type": "llvm.coverage.json.export",
+ "version": "3.0.1",
+ "data": [
+  {
+   "files": [
+    {"filename": "/scratch/tree/sources/opeu/game/core/menu.cpp",
+     "summary": {"lines": {"count": 20, "covered": 15}, "functions": {"count": 2, "covered": 1}}},
+    {"filename": "/scratch/tree/sources/opeu/game/units/move.cpp",
+     "summary": {"lines": {"count": 10, "covered": 10}, "functions": {"count": 1, "covered": 1}}},
+    {"filename": "/scratch/tree/sources/opeu/services/fm.cpp",
+     "summary": {"lines": {"count": 30, "covered": 0}, "functions": {"count": 3, "covered": 0}}},
+    {"filename": "/scratch/tree/sources/opeu/services/services.test/file-layer.cpp",
+     "summary": {"lines": {"count": 99, "covered": 99}, "functions": {"count": 9, "covered": 9}}},
+    {"filename": "/scratch/conan/include/SDL3/SDL_stdinc.h",
+     "summary": {"lines": {"count": 50, "covered": 1}, "functions": {"count": 5, "covered": 1}}}
+   ],
+   "functions": [
+    {"name": "_Z8OpenMenuv", "count": 4,
+     "filenames": ["/scratch/tree/sources/opeu/game/core/menu.cpp"],
+     "regions": [[1, 1, 10, 2, 4, 0, 0, 0], [5, 3, 7, 4, 0, 0, 0, 0]]},
+    {"name": "menu.cpp:_ZL9CloseMenuv", "count": 0,
+     "filenames": ["/scratch/tree/sources/opeu/game/core/menu.cpp"],
+     "regions": [[12, 1, 14, 2, 0, 0, 0, 0]]},
+    {"name": "_Z4Movev", "count": 9,
+     "filenames": ["/scratch/tree/sources/opeu/game/units/move.cpp"],
+     "regions": [[1, 1, 10, 2, 9, 0, 0, 0]]},
+    {"name": "_Z6Volumev", "count": 0,
+     "filenames": ["/scratch/tree/sources/opeu/services/fm.cpp"],
+     "regions": [[1, 1, 20, 2, 0, 0, 0, 0], [3, 1, 3, 9, 0, 1, 0, 1]]},
+    {"name": "_Z6Volumev", "count": 0,
+     "filenames": ["/scratch/tree/sources/opeu/services/fm.cpp"],
+     "regions": [[1, 1, 20, 2, 0, 0, 0, 0]]},
+    {"name": "_Z4Testv", "count": 1,
+     "filenames": ["/scratch/tree/sources/opeu/services/services.test/file-layer.cpp"],
+     "regions": [[1, 1, 3, 2, 1, 0, 0, 0]]}
+   ],
+   "totals": {}
+  }
+ ]
+}
