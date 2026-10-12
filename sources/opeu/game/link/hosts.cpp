@@ -30,9 +30,9 @@ uint16_t* port_textout_host_sp(void) {
 
 /* ---- UIPRIM: UiHost {memory, ds_segment, tiles_segment, code_segment, event} - */
 namespace {
-constexpr std::uint16_t UIPRIM_CODE_SEGMENT{ 0x0a04 }; // UIPRIM's code segment: its far code pointers name it
+constexpr std::uint16_t UIPRIM_CODE_SEGMENT{ 0x0a04 };  // UIPRIM's code segment: its far code pointers name it
 constexpr std::uint16_t UIPRIM_TILES_SEGMENT{ 0x3873 }; // the far segment of opeu_frame_tiles (data/fg3873)
-constexpr std::uint16_t UIPRIM_FILE_READER{ 0x0132 }; // opeu_stream_file_byte in UIPRIM_CODE_SEGMENT
+constexpr std::uint16_t UIPRIM_FILE_READER{ 0x0132 };   // opeu_stream_file_byte in UIPRIM_CODE_SEGMENT
 constexpr std::uint16_t UIPRIM_MEMORY_READER{ 0x01fc }; // opeu_stream_memory_byte in UIPRIM_CODE_SEGMENT
 } // namespace
 

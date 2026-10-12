@@ -26,8 +26,8 @@ constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
 
 // Frame locals whose addresses the services receive.
 constexpr std::uint16_t REGIMENT_SAVED_WINDOW{ 0xa }; // the regiment list's window state, kept around the battalions
-constexpr std::uint16_t REGIMENT_NAME{ 0x16 };  // the regiment's name
-constexpr std::uint16_t REGIMENT_TITLE{ 0x7a }; // the battalion list's title
+constexpr std::uint16_t REGIMENT_NAME{ 0x16 };        // the regiment's name
+constexpr std::uint16_t REGIMENT_TITLE{ 0x7a };       // the battalion list's title
 constexpr std::uint16_t DIVISION_SAVED_WINDOW{ 0xc }; // the division list's window state, kept around the regiments
 
 } // namespace

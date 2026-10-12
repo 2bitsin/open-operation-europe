@@ -31,8 +31,8 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t RESTORED_FORMAT{ offsetof(DataSegment, comms_restored_format) };
 constexpr std::uint16_t CAPTURED_FORMAT{ offsetof(DataSegment, spy_captured_format) };
-constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
-constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
+constexpr std::uint16_t COMPUTER_LEVEL{ 2 };       // the level of a computer side
+constexpr std::uint8_t  ADVISER{ 3 };              // the side record kind of the adviser
 constexpr std::uint16_t NEWS_BELOW_SP{ 2 + 0x6c }; // the report text's place in the caller's frame
 } // namespace
 

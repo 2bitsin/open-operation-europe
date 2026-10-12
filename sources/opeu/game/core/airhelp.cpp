@@ -24,7 +24,7 @@ namespace {
 
 using enum AirService;
 
-constexpr std::uint16_t LINE_LOCAL{ 2 + 0x18 }; // the prompt line of opeu_air_ask_count
+constexpr std::uint16_t LINE_LOCAL{ 2 + 0x18 };   // the prompt line of opeu_air_ask_count
 constexpr std::uint16_t BUFFER_LOCAL{ 2 + 0x68 }; // the message text of opeu_air_target_valid
 
 // Message ids (message_lookup).

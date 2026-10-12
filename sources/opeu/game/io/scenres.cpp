@@ -29,7 +29,7 @@ enum Service : std::uint16_t {
 constexpr std::uint16_t FROM_START{ 0 };
 constexpr std::uint32_t TEXT_RECORD{ 800 }; // a scenario text record in SCEDATA
 constexpr std::uint8_t  MAP_MASK{ 0x7f };   // the scenario byte's map number
-constexpr std::uint8_t  WINTER_MAP{ 4 }; // the map drawn with the winter font HEXFONTS
+constexpr std::uint8_t  WINTER_MAP{ 4 };    // the map drawn with the winter font HEXFONTS
 
 auto Open(std::uint8_t* ds, HostEvent event, auto const& name) -> std::int16_t {
   return static_cast<std::int16_t>(Call(ds, event, OPEN, Near(Data(ds), name)));

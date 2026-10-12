@@ -33,9 +33,9 @@ inline auto SetWord(std::uint8_t* ds, std::uint16_t at, std::uint16_t value) noe
 }
 
 // Paragraphs of the far data the game addresses as segment:offset pairs (unrelocated, as the services expect them).
-inline constexpr std::uint16_t DATA_SEGMENT{ 0x4712 }; // DS (= SS): a far pointer into the data segment
-inline constexpr std::uint16_t SPRITE_SEGMENT{ 0x361c }; // unit, order and effect sprites and their masks
-inline constexpr std::uint16_t FRAME_SEGMENT{ 0x349b }; // map tiles, cell frames and dialog frames
+inline constexpr std::uint16_t DATA_SEGMENT{ 0x4712 };       // DS (= SS): a far pointer into the data segment
+inline constexpr std::uint16_t SPRITE_SEGMENT{ 0x361c };     // unit, order and effect sprites and their masks
+inline constexpr std::uint16_t FRAME_SEGMENT{ 0x349b };      // map tiles, cell frames and dialog frames
 inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen backgrounds (plane sprites, the weather)
 
 // Calls a service with its argument words (a count of 0 passes no array); a service given as a scoped enum

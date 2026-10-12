@@ -21,15 +21,15 @@ namespace {
 
 using enum SpecialService;
 
-constexpr std::uint8_t  NO_MISSION{ 0xff }; // Order::kind of a side with no mission under way
-constexpr std::uint8_t  OFFICER_KIND{ 7 }; // the person template kind of the Special Forces officer
+constexpr std::uint8_t  NO_MISSION{ 0xff };  // Order::kind of a side with no mission under way
+constexpr std::uint8_t  OFFICER_KIND{ 7 };   // the person template kind of the Special Forces officer
 constexpr std::uint16_t MISSION_COUNT{ 5 };  // the entries of the mission menu
 constexpr std::uint16_t CANCELLED{ 0xffff }; // the mission menu was left
-constexpr std::uint16_t INFO_X{ 0x2d }; // the column of the pending mission's lines
-constexpr std::uint16_t ORDERS_Y{ 0xa3 }; // and their rows
+constexpr std::uint16_t INFO_X{ 0x2d };      // the column of the pending mission's lines
+constexpr std::uint16_t ORDERS_Y{ 0xa3 };    // and their rows
 constexpr std::uint16_t TARGET_Y{ 0xb5 };
 constexpr std::uint16_t TIME_Y{ 0xc7 };
-constexpr std::uint16_t NAME_SLOT{ 0x22 }; // the frame slot of the target unit's name
+constexpr std::uint16_t NAME_SLOT{ 0x22 };     // the frame slot of the target unit's name
 constexpr std::uint16_t OFFICER_STACK{ 0x2c }; // the stack depth the officer and target routines enter at
 
 // The average of the deputy's and the commander's ability.

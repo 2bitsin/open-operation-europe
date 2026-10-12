@@ -17,7 +17,7 @@ using namespace opeu::game;
 namespace {
 
 constexpr uint16_t SCRATCH_BYTES{ 0x40 }; // the DS scratch of the supplies choice: the picked cell and the text
-constexpr uint16_t BUFFER_OFFSET{ 4 }; // where in the scratch the text goes
+constexpr uint16_t BUFFER_OFFSET{ 4 };    // where in the scratch the text goes
 
 // The map cell the player picks, kept in the scratch because the pick service writes it through its address.
 struct PickedCell {

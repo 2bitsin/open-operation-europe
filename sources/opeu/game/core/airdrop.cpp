@@ -45,10 +45,10 @@ constexpr std::uint8_t  NO_TYPE{ 0xff };
 constexpr std::uint8_t  CHOSEN{ 0x10 }; // the mask release_side_units/elements clear and count
 
 // Message ids (message_lookup).
-constexpr std::uint16_t DROP_REFUSED{ 0x69 }; // the air force refuses a drop by daylight
-constexpr std::uint16_t REQUEST_STANDS{ 5 }; // "... %d hours": the requested delay stands
+constexpr std::uint16_t DROP_REFUSED{ 0x69 };    // the air force refuses a drop by daylight
+constexpr std::uint16_t REQUEST_STANDS{ 5 };     // "... %d hours": the requested delay stands
 constexpr std::uint16_t AIR_FORCE_DELAY{ 0x72 }; // the air force needs %d hours
-constexpr std::uint16_t PLANES_NEEDED{ 0x79 }; // hours, planes, "plane"/"planes"
+constexpr std::uint16_t PLANES_NEEDED{ 0x79 };   // hours, planes, "plane"/"planes"
 
 constexpr std::uint16_t TEXT_LOCAL{ 0x68 }; // the 100-byte message text of drop_delay and drop_order
 constexpr std::uint16_t SITE_X_LOCAL{ 10 };

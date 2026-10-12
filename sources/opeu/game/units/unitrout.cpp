@@ -33,9 +33,9 @@ enum OrderCode : std::uint8_t {
   FALL_BACK        = 13,
 };
 constexpr std::uint8_t  NO_SAVED_ORDER{ 0xff }; // Unit::orders[1].kind when no order is saved
-constexpr std::uint8_t  NO_SIDE{ 0xff }; // opeu_cell_side of a cell no side holds
-constexpr std::uint8_t  IMPASSABLE{ 0xff }; // opeu_move_cost of a cell the regiment cannot enter
-constexpr std::uint16_t PLAYER{ 1 }; // side_control of a player-controlled side
+constexpr std::uint8_t  NO_SIDE{ 0xff };        // opeu_cell_side of a cell no side holds
+constexpr std::uint8_t  IMPASSABLE{ 0xff };     // opeu_move_cost of a cell the regiment cannot enter
+constexpr std::uint16_t PLAYER{ 1 };            // side_control of a player-controlled side
 } // namespace
 
 void opeu_unit_fall_back(uint8_t ds[65536], uint16_t unit, uint8_t x, uint8_t y) {

@@ -20,12 +20,12 @@ namespace {
 
 using enum BattleRoutine;
 
-constexpr std::uint16_t CANCELLED{ 0xffff };  // a refused question
-constexpr std::uint16_t STOCK_LIMIT{ 60000 }; // the largest stockpile order
-constexpr std::uint16_t CITY_ENABLED_AT{ 0x4e }; // opeu_stock_city_enabled in this module's code segment
+constexpr std::uint16_t CANCELLED{ 0xffff };           // a refused question
+constexpr std::uint16_t STOCK_LIMIT{ 60000 };          // the largest stockpile order
+constexpr std::uint16_t CITY_ENABLED_AT{ 0x4e };       // opeu_stock_city_enabled in this module's code segment
 constexpr std::uint16_t STOCK_ORDER_SEGMENT{ 0x1d1e }; // this module's code segment
-constexpr std::uint8_t  FLASH_TICKS{ 4 }; // how long the picked city flashes
-constexpr std::uint8_t  FIRST_HEIGHT{ 7 }; // the list's rows the first time and after a city's orders
+constexpr std::uint8_t  FLASH_TICKS{ 4 };              // how long the picked city flashes
+constexpr std::uint8_t  FIRST_HEIGHT{ 7 };             // the list's rows the first time and after a city's orders
 constexpr std::uint8_t  LATER_HEIGHT{ 6 };
 
 enum Resource {
@@ -142,10 +142,10 @@ void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t se
 // The routines take their register arguments in AX, DX, BX order, so those with more than one register argument get
 // their arguments reordered; the rest forward as they are.
 uint16_t svc_stockord(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  static constexpr unsigned char capacities[]{ 1, 2, 0, 3 }; // (objective, a, b, c) -> (a, b, objective, c)
-  static constexpr unsigned char swap[]{ 1, 0 }; // (record, ticks), (text, person)
+  static constexpr unsigned char capacities[]{ 1, 2, 0, 3 };   // (objective, a, b, c) -> (a, b, objective, c)
+  static constexpr unsigned char swap[]{ 1, 0 };               // (record, ticks), (text, person)
   static constexpr unsigned char choose[]{ 1, 2, 0, 3, 4, 5 }; // (text, first, last, ...) -> (first, last, text, ...)
-  static constexpr unsigned char list_dialog[]{ 1, 2, 0 }; // (window, limit, flags) -> (limit, flags, window)
+  static constexpr unsigned char list_dialog[]{ 1, 2, 0 };     // (window, limit, flags) -> (limit, flags, window)
   switch (static_cast<BattleRoutine>(service)) {
   case OBJECTIVE_CAPACITIES: return btl_reorder(ds, service, args, count, capacities, 4);
   case UNIT_FLASH:

@@ -34,8 +34,8 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t  UNREACHED{ 0xff }; // a distance or step cost no cell has
-constexpr std::uint16_t UNVISITED{ 0xffff }; // the path cost of a cell the fill has not reached
+constexpr std::uint8_t  UNREACHED{ 0xff };      // a distance or step cost no cell has
+constexpr std::uint16_t UNVISITED{ 0xffff };    // the path cost of a cell the fill has not reached
 constexpr std::uint8_t  IMPASSABLE_STEP{ 255 }; // the step cost of a cell the unit cannot enter
 constexpr std::uint8_t  DIRECTIONS{ 8 };
 constexpr std::uint8_t  ENGINEER_SLOT{ 6 }; // the engineer unit of a division

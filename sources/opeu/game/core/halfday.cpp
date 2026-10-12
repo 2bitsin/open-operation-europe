@@ -19,8 +19,8 @@ enum Service : std::uint16_t {
   NOON_EVENTS = 1,
 };
 
-constexpr std::uint16_t NOON_RESERVE{ 0x200 }; // DS stack the noon events use
-constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 }; // the far text the noon events read
+constexpr std::uint16_t NOON_RESERVE{ 0x200 };       // DS stack the noon events use
+constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 };  // the far text the noon events read
 constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
 } // namespace
 

@@ -44,7 +44,7 @@ constexpr std::uint16_t NAME_FORMAT{ offsetof(DataSegment, context_name_format) 
 constexpr std::uint16_t STATS_FORMAT{ offsetof(DataSegment, context_stats_format) };
 constexpr std::uint16_t BLANK_FORMAT{ offsetof(DataSegment, context_blank_format) };
 constexpr std::uint8_t  MAX_NAME{ 13 };
-constexpr std::uint16_t HEALTH_RED{ 50 }; // the text color of a poor health rating
+constexpr std::uint16_t HEALTH_RED{ 50 };    // the text color of a poor health rating
 constexpr std::uint16_t HEALTH_NORMAL{ 54 }; // and of any other
 constexpr std::uint16_t ARMY_WORKSPACE{ 82 };
 } // namespace

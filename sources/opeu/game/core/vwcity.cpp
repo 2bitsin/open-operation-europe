@@ -27,7 +27,7 @@ constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
 
 // Frame locals of the city list whose addresses the services receive.
 constexpr std::uint16_t SAVED_WINDOW_LOCAL{ 0xa }; // the list window state saved around the stock list
-constexpr std::uint16_t TITLE_LOCAL{ 0x6e }; // the stock list's title
+constexpr std::uint16_t TITLE_LOCAL{ 0x6e };       // the stock list's title
 
 // Lists the side's cities and shows them; tells when the side holds none.
 void ViewSideCities(std::uint8_t* ds, HostEvent event, std::uint16_t sp, std::uint8_t side, std::uint16_t none) {

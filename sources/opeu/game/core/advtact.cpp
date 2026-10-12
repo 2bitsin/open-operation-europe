@@ -34,7 +34,7 @@ using namespace opeu::game;
 namespace {
 
 constexpr std::uint8_t  DIRECTIONS{ 8 };
-constexpr std::uint8_t  CITY_LEVEL{ 4 }; // the objective level the officer worries about
+constexpr std::uint8_t  CITY_LEVEL{ 4 };   // the objective level the officer worries about
 constexpr std::uint16_t CHEAP_UNIT{ 300 }; // a unit worth at most this is weak
 constexpr std::uint16_t LOW_SUPPLY{ 20 };  // percent
 constexpr std::uint8_t  GOOD_RATING{ 50 };

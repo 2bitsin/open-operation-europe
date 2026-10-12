@@ -17,8 +17,8 @@ constexpr uint8_t  IMPASSABLE_COST{ 255 };
 constexpr uint8_t  POINTS_LIMIT{ 99 };
 constexpr uint8_t  DIRECTIONS{ 8 };
 constexpr uint8_t  NEAR_DESTINATION{ 3 }; // cells: replan the route from closer than this
-constexpr uint8_t  ROUTE_STEPS{ 10 }; // the farthest a planned waypoint lies
-constexpr uint16_t STUCK{ 0xffff };   // the step toward found no cell
+constexpr uint8_t  ROUTE_STEPS{ 10 };     // the farthest a planned waypoint lies
+constexpr uint16_t STUCK{ 0xffff };       // the step toward found no cell
 // The cell pairs below the frame that the services move through: a probe, the unit's next cell and its destination.
 constexpr uint16_t PROBE_X_AT{ 4 };
 constexpr uint16_t PROBE_Y_AT{ 6 };

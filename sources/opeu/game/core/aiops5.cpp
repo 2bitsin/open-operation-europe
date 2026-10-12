@@ -25,8 +25,8 @@ using namespace opeu::game;
 namespace {
 
 constexpr std::uint8_t  NO_REQUEST{ 0xff };
-constexpr std::uint8_t  RAISE_REQUEST{ 2 }; // the request slot and configuration kind of a new regiment
-constexpr std::uint8_t  REQUEST_FILED{ 2 }; // RequestSlot::kind of the filed regiment request
+constexpr std::uint8_t  RAISE_REQUEST{ 2 };   // the request slot and configuration kind of a new regiment
+constexpr std::uint8_t  REQUEST_FILED{ 2 };   // RequestSlot::kind of the filed regiment request
 constexpr std::uint8_t  REINFORCE_DELAY{ 6 }; // reinforcements wait while the side's request is this far along
 constexpr std::uint16_t UNIT_LIST{ offsetof(DataSegment, ai_unit_list) };
 constexpr std::uint16_t ELEMENT_LIST{ offsetof(DataSegment, ai_element_list) };

@@ -7,9 +7,9 @@
 using namespace opeu::game;
 
 namespace {
-constexpr std::uint8_t ABSENT{ 255 }; // Person::status of an empty slot
+constexpr std::uint8_t ABSENT{ 255 };      // Person::status of an empty slot
 constexpr std::uint8_t BUSY_ROLES{ 0x87 }; // role bits of a person already holding a post
-constexpr std::uint8_t ASSIGNED{ 0x04 }; // Person::assignment bit of an assigned person
+constexpr std::uint8_t ASSIGNED{ 0x04 };   // Person::assignment bit of an assigned person
 constexpr unsigned     COUNTER_SHIFT{ 3 }; // Person::assignment keeps the counter in its high five bits
 } // namespace
 

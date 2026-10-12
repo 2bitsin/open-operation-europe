@@ -103,7 +103,7 @@ constexpr Scenario      HURRICANE_SCENARIO{ Scenario::D_DAY };
 constexpr std::uint16_t NEW_WEAPON_PICTURE{ 0xe7 }; // the daily picture that plays the fanfare
 constexpr std::uint8_t  NO_SIDE{ 0xff };
 constexpr std::uint16_t INTELLIGENCE_CHIEF_KIND{ 3 }; // find_side_record: the general who reports on objectives
-constexpr std::uint16_t ONE_HOUR_TEXT{ 0x77 }; // message id of the one-hour delay confirmation
+constexpr std::uint16_t ONE_HOUR_TEXT{ 0x77 };        // message id of the one-hour delay confirmation
 
 template <typename... Words>
 auto Send(std::uint8_t* ds, DialogHost const* host, Service service, Words... words) -> std::uint16_t {

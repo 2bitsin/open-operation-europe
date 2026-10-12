@@ -32,7 +32,7 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t COMMANDER_KIND{ 1 }; // the side's army commander (find_side_record)
 constexpr std::uint16_t ANNOUNCER_KIND{ 5 }; // the template that announces a new weapon
-constexpr std::uint16_t TEXT_LOCAL{ 0x66 }; // the 100-byte announcement text below the entry SP
+constexpr std::uint16_t TEXT_LOCAL{ 0x66 };  // the 100-byte announcement text below the entry SP
 
 constexpr std::uint16_t NEW_WEAPON_TANK{ offsetof(DataSegment, new_weapon_tank) };
 constexpr std::uint16_t NEW_WEAPON_PERIOD{ offsetof(DataSegment, new_weapon_period) };

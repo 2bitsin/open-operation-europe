@@ -26,12 +26,12 @@ using opeu::game::Near;
 
 // Stack reserves of the module families: the deepest buffers a routine keeps on the modeled stack plus the frames of
 // the routines it calls.
-constexpr std::uint16_t AIR_FRAME{ 0x200 }; // air modules: objective_damage's buffers and its callees
+constexpr std::uint16_t AIR_FRAME{ 0x200 };      // air modules: objective_damage's buffers and its callees
 constexpr std::uint16_t BATTLE_RESERVE{ 0x200 }; // battle: deepest buffers and nested frames stay below 0x180
-constexpr std::uint16_t MAP_FRAME{ 0x300 }; // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
-constexpr std::uint16_t UNITS_FRAME{ 0x200 }; // units: locals plus internal frames
-constexpr std::uint16_t KEY_SCRATCH{ 16 }; // keyboard prompts: the caller's 16-byte scratch area
-constexpr std::uint16_t CLOSING_BUFFER{ 100 }; // briefings: the closing-text buffer
+constexpr std::uint16_t MAP_FRAME{ 0x300 };      // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
+constexpr std::uint16_t UNITS_FRAME{ 0x200 };    // units: locals plus internal frames
+constexpr std::uint16_t KEY_SCRATCH{ 16 };       // keyboard prompts: the caller's 16-byte scratch area
+constexpr std::uint16_t CLOSING_BUFFER{ 100 };   // briefings: the closing-text buffer
 } // namespace
 
 uint16_t a_push_words(const uint16_t* args, unsigned count) {

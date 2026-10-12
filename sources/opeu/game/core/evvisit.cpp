@@ -54,9 +54,9 @@ constexpr std::uint16_t VISIT_SHOW{ 0x88 };
 constexpr std::uint16_t VISIT_CONTEXT{ 15 };
 constexpr std::uint16_t PRESENT_OFFSET{ 0x02ac }; // opeu_visit_present as the presentation's far routine
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x108c };
-constexpr std::uint16_t SHOWN{ 1 }; // DataSegment::side_status of a side the player watches
-constexpr std::uint8_t  COMMANDER{ 1 }; // the side record kind of the commander
-constexpr std::uint8_t  VISITOR{ 4 };   // the person template kind of the visitor
+constexpr std::uint16_t SHOWN{ 1 };       // DataSegment::side_status of a side the player watches
+constexpr std::uint8_t  COMMANDER{ 1 };   // the side record kind of the commander
+constexpr std::uint8_t  VISITOR{ 4 };     // the person template kind of the visitor
 constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit happens on
 constexpr std::uint8_t  NO_SIDE{ 0xff };
 constexpr std::uint8_t  DIRECTIONS{ 8 };

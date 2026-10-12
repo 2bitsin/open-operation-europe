@@ -47,10 +47,10 @@ enum class Outcome : std::uint8_t {
 };
 
 constexpr std::uint8_t  KILLED_FLAG{ 0x80 }; // Person::flags: the general is dead
-constexpr std::uint8_t  IN_BATTLE{ 0x04 }; // Person::assignment: the general is fighting
+constexpr std::uint8_t  IN_BATTLE{ 0x04 };   // Person::assignment: the general is fighting
 constexpr std::uint16_t PERSON_SIZE{ sizeof(Person) };
 constexpr std::uint16_t DEATH_SHOW{ 300 }; // the daily show that announces a death
-constexpr std::uint16_t HUMAN{ 1 }; // side_status / side_control of a player side
+constexpr std::uint16_t HUMAN{ 1 };        // side_status / side_control of a player side
 // The far address by which the dialogs service finds the presenter opeu_blast_pause.
 constexpr std::uint16_t BLAST_PAUSE_OFFSET{ 0x0866 };
 constexpr std::uint16_t BLAST_PAUSE_SEGMENT{ 0x17c4 };

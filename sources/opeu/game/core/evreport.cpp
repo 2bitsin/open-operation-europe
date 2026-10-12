@@ -68,7 +68,7 @@ constexpr FarRoutine REPORT_PRESENTER{ 0x108c, 0x1302 };
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t RESTED_MESSAGE{ 0x3b };
 constexpr std::uint16_t NO_FUEL_MESSAGE{ 0x3c };
-constexpr std::uint16_t RESTED_ITEM{ 0x13e }; // the daily item of the first rested report
+constexpr std::uint16_t RESTED_ITEM{ 0x13e };  // the daily item of the first rested report
 constexpr std::uint16_t NO_FUEL_ITEM{ 0x156 }; // and of the first out-of-fuel report
 constexpr std::uint16_t RESTED_AVERAGE{ 90 };
 

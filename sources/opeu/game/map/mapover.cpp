@@ -35,7 +35,7 @@ constexpr uint16_t MARK_GLYPH{ 0x110 };
 constexpr uint16_t BRIDGE_GLYPH{ 0x128 }; // drawn with its own mask
 constexpr uint16_t GLYPH_BYTES{ 24 };
 constexpr uint16_t MASK_BYTES{ 8 };
-constexpr uint16_t TILE_BYTES{ 32 }; // an overview tile in the overview tile segment
+constexpr uint16_t TILE_BYTES{ 32 };  // an overview tile in the overview tile segment
 constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 // The frame below a cell drawing that its unit drawing runs on.
 constexpr uint16_t UNIT_FRAME{ 0x20 };

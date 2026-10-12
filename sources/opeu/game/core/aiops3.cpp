@@ -22,8 +22,8 @@ namespace {
 constexpr std::uint8_t ENTRIES_PER_SIDE{ 21 };
 constexpr std::uint8_t NO_TARGET{ 0xff };
 constexpr std::uint8_t TARGET_ORDERED{ 6 }; // the progress of a freshly chosen target
-constexpr std::uint8_t FIT_HEALTH{ 30 }; // the least health a general keeps a post with
-constexpr std::uint8_t REST_TURNS{ 3 }; // the countdown an unfit general rests for
+constexpr std::uint8_t FIT_HEALTH{ 30 };    // the least health a general keeps a post with
+constexpr std::uint8_t REST_TURNS{ 3 };     // the countdown an unfit general rests for
 
 auto Counter(Person& person) -> std::uint8_t* {
   return reinterpret_cast<std::uint8_t*>(&person);

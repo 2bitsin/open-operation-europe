@@ -21,8 +21,8 @@ constexpr uint16_t TABLE_X{ 0x2d };
 constexpr uint16_t HEADER_Y{ 0xa3 };
 constexpr uint16_t FIRST_ROW_Y{ 0xbf };
 constexpr uint16_t ROW_HEIGHT{ 0x12 };
-constexpr uint16_t CHOICES{ 3 }; // supplies, battalion, regiment
-constexpr uint16_t CANCELLED{ 0xffff }; // the menu's answer when the player backs out
+constexpr uint16_t CHOICES{ 3 };           // supplies, battalion, regiment
+constexpr uint16_t CANCELLED{ 0xffff };    // the menu's answer when the player backs out
 constexpr uint16_t TYPE_RECORD_WORDS{ 7 }; // the words of an equipment type record a filed battalion row prints
 
 } // namespace

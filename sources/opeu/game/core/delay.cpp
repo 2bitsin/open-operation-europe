@@ -24,7 +24,7 @@ enum Service : std::uint16_t {
 };
 
 constexpr std::uint16_t KEYBOARD_PROMPT{ 117 }; // the delay prompt for keyboard input
-constexpr std::uint16_t MOUSE_PROMPT{ 118 }; // the delay prompt for mouse input
+constexpr std::uint16_t MOUSE_PROMPT{ 118 };    // the delay prompt for mouse input
 constexpr std::uint16_t DIALOG_X{ 24 };
 constexpr std::uint16_t CANCELLED{ 0xffff };
 

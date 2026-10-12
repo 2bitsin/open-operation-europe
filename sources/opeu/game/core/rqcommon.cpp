@@ -20,7 +20,7 @@ using namespace opeu::game;
 namespace {
 
 constexpr uint16_t SCRATCH_BYTES{ 0x80 }; // the DS scratch the prompts format their text in
-constexpr uint16_t BUFFER_OFFSET{ 4 }; // where in the scratch the text goes
+constexpr uint16_t BUFFER_OFFSET{ 4 };    // where in the scratch the text goes
 // The far address of opeu_request_finish, which SHOW calls back.
 constexpr uint16_t FINISH_PRESENT_OFFSET{ 0x009a };
 constexpr uint16_t FINISH_PRESENT_SEGMENT{ 0x22f9 };

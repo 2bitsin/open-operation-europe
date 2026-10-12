@@ -43,10 +43,10 @@ constexpr std::uint16_t DEATH_SHOW{ 300 };
 constexpr std::uint16_t DEATH_CONTEXT{ 0x10 };
 constexpr std::uint16_t PRESENT_OFFSET{ 0x0004 }; // opeu_death_present as the presentation's far routine
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x11e5 };
-constexpr std::uint16_t SHOWN{ 1 }; // DataSegment::side_status of a side the player watches
+constexpr std::uint16_t SHOWN{ 1 };          // DataSegment::side_status of a side the player watches
 constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
 constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
-constexpr std::uint8_t  GENERAL_ROLE{ 1 }; // the role that becomes a deputy instead of dying
+constexpr std::uint8_t  GENERAL_ROLE{ 1 };   // the role that becomes a deputy instead of dying
 
 // The death notice in the dying general's routine frame: "Commander " + name + suffix, and the side right after it.
 // A name of seven or more characters runs the text into the side byte, and the second status test then reads the

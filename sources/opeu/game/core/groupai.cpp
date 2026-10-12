@@ -21,10 +21,10 @@ using namespace opeu::game;
 
 namespace {
 constexpr std::uint8_t NO_DISTANCE{ 255 };
-constexpr std::uint8_t QUARTER{ 20 }; // the map's quarters are 20 x 20 cells
-constexpr std::uint8_t WEIGHT_MASK{ 0x0e }; // Objective::flags bits 1-3: how many units an objective takes, less one
+constexpr std::uint8_t QUARTER{ 20 };         // the map's quarters are 20 x 20 cells
+constexpr std::uint8_t WEIGHT_MASK{ 0x0e };   // Objective::flags bits 1-3: how many units an objective takes, less one
 constexpr std::uint8_t LAST_COMBAT_SLOT{ 5 }; // unit slots 0-5 of a division count as its combat units
-constexpr std::uint8_t ORDER_12{ 12 }; // a unit order a replanned division also clears
+constexpr std::uint8_t ORDER_12{ 12 };        // a unit order a replanned division also clears
 
 [[nodiscard]] auto None(Task const& task) -> bool {
   return task.kind == Bits(TaskKind::NONE);

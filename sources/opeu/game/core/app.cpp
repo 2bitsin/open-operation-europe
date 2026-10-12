@@ -43,9 +43,9 @@ enum Service : std::uint16_t {
 
 // DataSegment::startup_mode: what start-up asks of the loop.
 constexpr std::uint8_t  FIRST_START{ 100 }; // initialise before start-up
-constexpr std::uint8_t  RESUME_TURN{ 11 }; // resume at the current regiment's turn
-constexpr std::uint8_t  NEW_GAME{ 21 }; // run from the current date
-constexpr std::uint8_t  LAST_YEAR{ 10 }; // the calendar stops after the tenth year
+constexpr std::uint8_t  RESUME_TURN{ 11 };  // resume at the current regiment's turn
+constexpr std::uint8_t  NEW_GAME{ 21 };     // run from the current date
+constexpr std::uint8_t  LAST_YEAR{ 10 };    // the calendar stops after the tenth year
 constexpr std::uint8_t  TURN_SLOTS{ 64 };
 constexpr std::uint16_t PRESENT_ONE{ 1 };
 

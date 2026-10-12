@@ -88,14 +88,14 @@ constexpr std::uint8_t  RANK_COMMANDER{ 1 };
 constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
-constexpr std::uint16_t TEXT_LOCAL{ 0x64 }; // opeu_air_destroyed_message's text
+constexpr std::uint16_t TEXT_LOCAL{ 0x64 };   // opeu_air_destroyed_message's text
 constexpr std::uint16_t SHIELD_LOCAL{ 0x0a }; // opeu_air_strike_hit's cover divisor
-constexpr std::uint16_t PIXEL_X_LOCAL{ 2 }; // opeu_air_strike_event's target pixel
+constexpr std::uint16_t PIXEL_X_LOCAL{ 2 };   // opeu_air_strike_event's target pixel
 constexpr std::uint16_t PIXEL_Y_LOCAL{ 6 };
-constexpr std::uint16_t CALLEE_FRAME{ 0x1c }; // the frame pointer opeu_air_strike_event's callees run with
-constexpr std::uint16_t SCREEN_TOP{ 0x15c };   // the bomber flies from this row
-constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 }; // down to this one
-constexpr std::uint16_t BOMB_LEAD{ 0x20 }; // rows above the target where the bombs fall
+constexpr std::uint16_t CALLEE_FRAME{ 0x1c };       // the frame pointer opeu_air_strike_event's callees run with
+constexpr std::uint16_t SCREEN_TOP{ 0x15c };        // the bomber flies from this row
+constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };      // down to this one
+constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target where the bombs fall
 constexpr std::uint16_t STRIKE_PRESENTER{ 0x0406 }; // opeu_air_strike_present, in the code segment below
 constexpr std::uint16_t STRIKE_SEGMENT{ 0x0f43 };
 

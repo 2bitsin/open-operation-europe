@@ -18,8 +18,8 @@ constexpr std::uint8_t  ENTRIES_PER_SIDE{ 21 };
 constexpr std::uint8_t  FREE_SLOT{ 0xff };
 constexpr std::uint8_t  NO_CATEGORY{ 0xff };
 constexpr std::uint8_t  NO_ITEM{ 0xff };
-constexpr std::uint16_t SHORT_STOCK{ 50000 }; // an objective with less of a supply asks for more
-constexpr std::uint8_t  RESOURCE_REQUEST{ 0 }; // RequestSlot::kind of a supply request (slot 0)
+constexpr std::uint16_t SHORT_STOCK{ 50000 };   // an objective with less of a supply asks for more
+constexpr std::uint8_t  RESOURCE_REQUEST{ 0 };  // RequestSlot::kind of a supply request (slot 0)
 constexpr std::uint8_t  EQUIPMENT_REQUEST{ 1 }; // and of an equipment request (slot 1)
 // The three support categories whose stock the side tops up first, in the order of their totals below.
 constexpr std::array<std::uint8_t, 3> SUPPORT_CATEGORIES{ 5, 6, 7 };

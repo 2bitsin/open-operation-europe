@@ -17,7 +17,7 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t  LAST_COLUMN{ 39 };
-constexpr uint16_t NAME_AT{ 0x0c }; // below the panel's frame: the 10-byte name buffer the services write
+constexpr uint16_t NAME_AT{ 0x0c };    // below the panel's frame: the 10-byte name buffer the services write
 constexpr uint16_t CALLER_FRAME{ 10 }; // the panel's frame below its callers' frames
 constexpr uint8_t  NAME_COLOR[2]{ 6, 5 };
 constexpr uint8_t  TEXT_WHITE{ 7 };

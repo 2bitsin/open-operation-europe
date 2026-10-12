@@ -20,7 +20,7 @@ namespace {
 constexpr std::uint16_t CONTACT_PROMPT{ offsetof(DataSegment, contact_prompt) };
 constexpr std::uint16_t CONTACT_MENU{ offsetof(DataSegment, contact_menu) };
 constexpr std::uint16_t CONTACT_LOST{ offsetof(DataSegment, contact_lost) };
-constexpr std::uint8_t  CANCELLED{ 0xff }; // the menu's answer when cancelled, as a byte
+constexpr std::uint8_t  CANCELLED{ 0xff };     // the menu's answer when cancelled, as a byte
 constexpr std::uint16_t ARMY_RECORD_KIND{ 1 }; // the side record that names the army's commander
 
 } // namespace

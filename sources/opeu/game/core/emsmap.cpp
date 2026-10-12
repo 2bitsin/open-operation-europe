@@ -32,8 +32,8 @@ enum Service : std::uint16_t {
 };
 
 constexpr std::uint16_t EMS_PAGES{ offsetof(DataSegment, ems_pages) };
-constexpr std::uint16_t MAX_PAGES{ 64 }; // the page array the detection reads has room for 64 entries
-constexpr std::uint16_t FRAME_LOWEST{ 0xa000 }; // a page frame below this segment is not usable
+constexpr std::uint16_t MAX_PAGES{ 64 };          // the page array the detection reads has room for 64 entries
+constexpr std::uint16_t FRAME_LOWEST{ 0xa000 };   // a page frame below this segment is not usable
 constexpr std::uint16_t PAGE_PARAGRAPHS{ 0x400 }; // one 16 KiB page
 
 auto PageSegment(DataSegment const& data, int i) -> std::uint16_t {

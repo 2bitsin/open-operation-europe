@@ -42,7 +42,7 @@ constexpr std::uint16_t ICONS{ 0x660 }; // eleven 64-byte element icons in the f
 constexpr std::uint16_t ICON_BYTES{ 64 };
 constexpr std::uint8_t  SECOND_TANK_ICON{ 0x04 }; // ElementType::flags of a tank type drawn with the second tank icon
 constexpr std::uint16_t WHITE{ 7 };
-constexpr std::uint16_t NAME_BUFFER{ 0x2a }; // the element name buffer, below the entry SP
+constexpr std::uint16_t NAME_BUFFER{ 0x2a };    // the element name buffer, below the entry SP
 constexpr std::uint16_t ELEMENTS_CALL_SP{ 16 }; // the entry SP of the element rows, below the regiments' own
 
 // The text color of the current side's names: 5 for side 1, 6 for side 0.

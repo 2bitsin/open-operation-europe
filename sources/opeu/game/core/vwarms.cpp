@@ -55,7 +55,7 @@ constexpr std::uint16_t VICTORY_TITLE{ offsetof(DataSegment, victory_title) };
 constexpr std::uint16_t VICTORY_FORMAT{ offsetof(DataSegment, victory_format) };
 constexpr std::uint16_t VICTORY_ORDERS{ offsetof(DataSegment, victory_orders) };
 
-constexpr std::uint8_t  ELEMENT_KINDS{ 8 }; // the kinds the weapon list is collected by, in order
+constexpr std::uint8_t  ELEMENT_KINDS{ 8 };          // the kinds the weapon list is collected by, in order
 constexpr std::uint16_t VIEW_CODE_SEGMENT{ 0x1fe6 }; // the views' code segment, as the far call table numbers it
 constexpr std::uint16_t VIEW_MENU_ITEMS{ 6 };
 

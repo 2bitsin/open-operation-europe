@@ -20,7 +20,7 @@ using namespace opeu::game;
 namespace {
 
 constexpr std::uint8_t  ENTRIES_PER_SIDE{ 21 };
-constexpr std::uint16_t NO_NEED{ 999 }; // above any percentage
+constexpr std::uint16_t NO_NEED{ 999 };      // above any percentage
 constexpr std::uint16_t NEEDY_PERCENT{ 20 }; // supplies below this share of capacity call for an airlift
 constexpr std::uint16_t OBJECTIVE_FULL{ 60000 };
 constexpr std::uint8_t  FIRST_HOUR{ 8 };

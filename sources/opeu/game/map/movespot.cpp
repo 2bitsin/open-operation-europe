@@ -38,7 +38,7 @@ enum class SpotService : uint16_t {
 constexpr uint8_t  NONE{ 255 };
 constexpr uint8_t  DIRECTIONS{ 8 };
 constexpr uint8_t  MINES_REQUEST{ 3 }; // the pending request the minefield report finishes
-constexpr uint16_t STEP_X_AT{ 2 }; // the step coordinates live below the frame
+constexpr uint16_t STEP_X_AT{ 2 };     // the step coordinates live below the frame
 constexpr uint16_t STEP_Y_AT{ 4 };
 } // namespace
 

@@ -61,7 +61,7 @@ constexpr std::uint16_t PROMPT_X{ 0x15 };
 constexpr std::uint16_t PROMPT_Y{ 0x170 };
 constexpr std::uint16_t ROW_HEIGHT{ 17 };
 constexpr std::uint16_t HIGHLIGHT{ 4 }; // text attribute of the choice being made
-constexpr std::uint16_t GREY{ 7 }; // text colour of a general without a post
+constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a post
 
 // The nation's colour index for the side's name in the prompts.
 [[nodiscard]] auto NationColor(DataSegment const& data) -> std::uint16_t {

@@ -24,7 +24,7 @@ namespace {
 constexpr uint8_t  IMPASSABLE_COST{ 255 };
 constexpr uint16_t UNREACHED{ 0xffff };
 constexpr uint16_t PATH_COSTS{ 0x0c80 }; // the grid's byte offset in the far data
-constexpr unsigned GRID_WORDS{ 0x640 }; // the grid's word offset: the queue comes first
+constexpr unsigned GRID_WORDS{ 0x640 };  // the grid's word offset: the queue comes first
 constexpr unsigned CELL_COUNT{ MAP_WIDTH * MAP_HEIGHT };
 constexpr unsigned TERRAIN_COLUMNS{ 5 }; // move_costs: one row per terrain, one column per movement class
 constexpr uint8_t  DIRECTIONS{ 8 };

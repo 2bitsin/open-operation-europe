@@ -287,13 +287,13 @@ void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
 // The deployment group's services (dplauto, dplcell, dplrows, dplside, dplunit): btl_reorder puts the argument words
 // in source order into the order the routine's register convention takes them.
 uint16_t svc_battle_deploy(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
-  static constexpr unsigned char unit_name[]   = { 1, 0 }; // (unit, buffer)
-  static constexpr unsigned char list_dialog[] = { 1, 2, 0 }; // (window, limit, flags)
-  static constexpr unsigned char set_order[]   = { 1, 0 };    // (element, order)
-  static constexpr unsigned char grid_step[]   = { 1, 2, 0 }; // (x*, y*, direction)
-  static constexpr unsigned char put_range[]   = { 1, 2, 0 }; // (s, start, count)
+  static constexpr unsigned char unit_name[]   = { 1, 0 };          // (unit, buffer)
+  static constexpr unsigned char list_dialog[] = { 1, 2, 0 };       // (window, limit, flags)
+  static constexpr unsigned char set_order[]   = { 1, 0 };          // (element, order)
+  static constexpr unsigned char grid_step[]   = { 1, 2, 0 };       // (x*, y*, direction)
+  static constexpr unsigned char put_range[]   = { 1, 2, 0 };       // (s, start, count)
   static constexpr unsigned char columns[]     = { 0, 2, 1, 3, 4 }; // (column, first, rows, second, third)
-  static constexpr unsigned char message[]     = { 1, 2, 0 }; // (text, side, value)
+  static constexpr unsigned char message[]     = { 1, 2, 0 };       // (text, side, value)
   switch (address) {
   case std::to_underlying(BattleRoutine::UNIT_NAME):   return btl_reorder(ds, address, args, count, unit_name, 2);
   case std::to_underlying(BattleRoutine::LIST_DIALOG): return btl_reorder(ds, address, args, count, list_dialog, 3);

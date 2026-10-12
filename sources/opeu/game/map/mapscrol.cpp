@@ -16,7 +16,7 @@ using namespace opeu::game;
 namespace {
 constexpr uint8_t NO_SIDE{ 255 };
 constexpr int16_t VIEW_LAST{ 11 }; // the view shows 12 x 12 cells
-constexpr int16_t NO_EDGE{ 255 }; // no exposed column or row on an axis that did not move
+constexpr int16_t NO_EDGE{ 255 };  // no exposed column or row on an axis that did not move
 constexpr int16_t ORIGIN_MIN{ -4 };
 constexpr int16_t ORIGIN_MAX{ 32 };
 

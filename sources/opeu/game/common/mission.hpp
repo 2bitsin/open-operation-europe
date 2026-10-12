@@ -46,7 +46,7 @@ inline constexpr std::uint16_t MISSION_PICTURE{ 0x120 }; // a mission succeeded
 inline constexpr std::uint16_t FALLEN_PICTURE{ 0x12c };  // a general fell
 inline constexpr std::uint16_t MISSION_CODE_SEGMENT{ 0x0e8e };
 inline constexpr std::uint16_t FINISH_PRESENTER{ 0x0042 }; // opeu_mission_finish_present
-inline constexpr std::uint16_t DELAY_PRESENTER{ 0x004a }; // opeu_mission_delay_present
+inline constexpr std::uint16_t DELAY_PRESENTER{ 0x004a };  // opeu_mission_delay_present
 
 } // namespace opeu::game::detail::mission
 

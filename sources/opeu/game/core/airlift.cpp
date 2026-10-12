@@ -26,8 +26,8 @@ namespace {
 
 using enum AirService;
 
-constexpr std::uint16_t LOAD{ 3000 }; // the units one cargo plane carries
-constexpr std::uint16_t KIND_PLANES{ 20 }; // the most planes one kind of supply takes
+constexpr std::uint16_t LOAD{ 3000 };       // the units one cargo plane carries
+constexpr std::uint16_t KIND_PLANES{ 20 };  // the most planes one kind of supply takes
 constexpr std::uint16_t TOTAL_PLANES{ 60 }; // the most planes one airlift takes
 constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint8_t  MAX_LEAD{ 24 };
@@ -35,7 +35,7 @@ constexpr std::uint8_t  DUE_AFTER{ 6 }; // the order's countdown runs this many 
 
 // Message ids (message_lookup).
 constexpr std::uint16_t LEAD_ACCEPTED{ 0x73 }; // the officer accepts the shorter delay (%d)
-constexpr std::uint16_t LIFT_REFUSED{ 0x74 }; // the officer refuses a daytime airlift
+constexpr std::uint16_t LIFT_REFUSED{ 0x74 };  // the officer refuses a daytime airlift
 
 constexpr std::uint16_t TEXT_LOCAL{ 2 + 0x66 }; // the 100-byte message text of the lead and the order
 constexpr std::uint16_t CELL_X_LOCAL{ 2 + 0x0c };
