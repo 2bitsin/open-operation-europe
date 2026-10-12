@@ -29,6 +29,13 @@ The runs (RUNS below):
                     save into slot 2 (load-play-save.SAVEDATA.gz).
   load-save         Load Game and save at once into the same slot: the file
                     must come out byte-identical to the one loaded.
+  orders, officers-advice, organize-request, air-special-forces,
+  settings-quit     One Player games in France driven through the command
+                    bar's dialogs (Tact, City, Tsfr; Ofcr, Info; Orgz, Rqst;
+                    Air and SpFc as the Axis; the Game menu's settings and
+                    Quit), each ending with turns that carry the orders out.
+                    Chosen with the coverage build (tools/coverage/,
+                    docs/coverage.md) for the code they reach.
 
 Each run records the exit code, the SHA-1 of every `--shots` frame and of
 the final `--png` frame, of the WAV and OPL log where recorded, and of every
@@ -112,6 +119,12 @@ def one_player_france(s):
     return s.enters(ms, 45000)
 
 
+def one_player_france_axis(s):
+    """As one_player_france, commanding the Axis (the second side)."""
+    s.key(8400, 'down')
+    return one_player_france(s)
+
+
 def pass_turns(s, ms, count):
     """Pass (the command bar's first entry), the hours prompt, confirm: each
     cycle lets one hour of the war run. Returns the time after the last."""
@@ -182,23 +195,115 @@ BAR = ['pass', 'tact', 'city', 'tsfr', 'ofcr', 'info', 'orgz', 'rqst', 'air', 's
 
 def keys(s, ms, *tokens, step=1500):
     """The tokens one `step` apart: a key name, `name*N` (the key N times,
-    100 ms apart) or `=digits` (typed 200 ms apart). Returns the time after."""
+    100 ms apart) or `=digits` (typed 200 ms apart); a long token takes the
+    time it needs. Returns the time after the last."""
     for token in tokens:
         if token.startswith('='):
             for i, char in enumerate(token[1:]):
                 s.text(ms + 200 * i, char)
+            ms += max(step, 200 * len(token) + 500)
         else:
             name, _, count = token.partition('*')
             for i in range(int(count or 1)):
                 s.key(ms + 100 * i, name)
-        ms += step
+            ms += max(step, 100 * int(count or 1) + 500)
     return ms
+
+
+def at(x, y):
+    """The tokens that put the map cursor on cell x-y (even numbers): into
+    the north-west corner, where it stops, then east and south."""
+    return ['left*80', 'up*80', f'right*{x // 2}', f'down*{y // 2}']
 
 
 def command(s, ms, entry, *tokens):
     """The command bar's `entry` opened, then the tokens."""
     moves = [f'right*{BAR.index(entry)}'] if BAR.index(entry) else []
     return keys(s, ms, *moves, 'enter', *tokens)
+
+
+# The One Player command runs below each start a game of their own and send
+# a fixed key sequence through the command bar's dialogs. Map cursor moves
+# are two cells a press; Villers (44-6) holds the Allied army HQ, Battle 11.
+# Where a dialog takes another path than the comment says, the goldens
+# record what the game does; the sequences were chosen with the coverage
+# build (docs/coverage.md) for the code they reach.
+def orders():
+    """Tact, City and Tsfr as the Allies, then three turns to carry them out."""
+    s = Script()
+    one_player_france(s)
+    # Division 1 as a whole: Move, the target four presses east of its HQ.
+    ms = command(s, 47000, 'tact', 'enter', 'enter', 'enter', 'right*4', 'enter', 'enter', 'esc')
+    # Division 2 regiment by regiment: the first regiment's second order, a target to the north-east.
+    ms = command(s, ms, 'tact', 'down', 'enter', 'n', 'enter', 'down', 'enter', 'right*13', 'up*2', 'enter', 'enter',
+                 'enter', 'esc', 'esc', 'esc', 'esc')
+    # The first city's stockpile: fuel, ammo and food levels typed in.
+    ms = command(s, ms, 'city', 'enter', '=30000', 'enter', '=25000', 'enter', '=40000', 'enter', 'enter', 'esc')
+    # A regiment of Division 1 handed to Division 2 (the transfer time confirmed).
+    ms = command(s, ms, 'tsfr', 'down', 'enter', 'enter', 'down', 'enter', 'enter', 'enter', 'esc', 'esc', 'esc')
+    pass_turns(s, ms, 3)
+    return s
+
+
+def officers_and_advice():
+    """Ofcr (appoint, rest three days, reassign) and Info (the Operations
+    chief's five reports, the intelligence views), then a turn."""
+    s = Script()
+    one_player_france(s)
+    ms = command(s, 47000, 'ofcr', 'down', 'enter', 'enter', 'enter', 'enter', 'esc', 'esc', 'esc')
+    ms = command(s, ms, 'ofcr', 'down*2', 'enter', 'enter', '=3', 'enter', 'enter', 'esc', 'esc')
+    ms = command(s, ms, 'ofcr', 'enter', 'down', 'enter', 'enter', 'enter', 'esc', 'esc')
+    ms = command(s, ms, 'info', 'enter', 'enter', 'enter', 'down', 'enter', 'enter', 'down*2', 'enter', 'enter',
+                 'down*3', 'enter', 'enter', 'down*4', 'enter', 'enter', 'esc', 'esc')
+    ms = command(s, ms, 'info', 'down', 'enter', 'enter', 'enter', 'esc', 'down', 'enter', 'enter', 'esc',
+                 'down*2', 'enter', 'enter', 'esc', 'esc', 'esc')
+    pass_turns(s, ms, 1)
+    return s
+
+
+def organize_and_request():
+    """Orgz (ten Mechanized dispatched in Battle 11's reorganisation, then
+    cancelled) and Rqst (supplies for Villers, a battalion, a regiment),
+    then two turns."""
+    s = Script()
+    one_player_france(s)
+    ms = command(s, 47000, 'orgz', 'enter', 'enter', 'enter', 'down', 'enter', '=10', 'enter', 'esc', 'n', 'esc', 'y',
+                 'esc')
+    ms = command(s, ms, 'rqst', 'enter', 'right*6', 'down*2', 'enter', 'y', 'enter', 'enter', 'esc', 'esc')
+    ms = command(s, ms, 'rqst', 'down', 'enter', 'enter', 'enter', 'enter', 'enter', 'esc', 'esc')
+    ms = command(s, ms, 'rqst', 'down*2', 'enter', 'enter', 'enter', 'enter', 'enter', 'esc')
+    pass_turns(s, ms, 2)
+    return s
+
+
+def air_and_special_forces():
+    """The Axis in France: a carpet bombing of Villers (15 planes in two
+    hours), paratroopers and a cargo drop, then the special forces' recon,
+    cut lines, sabotage, raid and assassination against Villers and its
+    garrison, then four turns for the missions to run."""
+    s = Script()
+    one_player_france_axis(s)
+    ms = command(s, 47000, 'air', 'enter', *at(44, 6), 'enter', 'enter', '=15', 'enter', '=2', 'enter', 'enter',
+                 'enter', 'esc')
+    ms = command(s, ms, 'air', 'down', 'enter', 'enter', 'enter', 'enter', 'enter', 'enter', 'enter', 'esc')
+    ms = command(s, ms, 'air', 'down*2', 'enter', 'enter', 'enter', 'enter', 'enter', 'enter', 'enter', 'esc')
+    for entry in range(5):
+        ms = command(s, ms, 'spfc', f'down*{entry}', 'enter', *at(44, 6), 'enter', 'y', 'y', 'enter', 'esc')
+    pass_turns(s, ms, 4)
+    return s
+
+
+def settings_and_quit():
+    """The Game menu's settings (battles, message delay, the aerial map,
+    music, event pictures), two turns under them, then Save / Quit > Quit,
+    which goes back to the title and into a new game of France."""
+    s = Script()
+    one_player_france(s)
+    ms = command(s, 47000, 'game', 'enter', 'down', 'enter', 'down', 'enter', '=2', 'enter', 'down*2', 'enter', 'down',
+                 'enter', 'down*3', 'enter', 'enter', 'down*4', 'enter', 'enter', 'esc')
+    ms = pass_turns(s, ms, 2)
+    command(s, ms, 'game', 'down*5', 'enter', 'down', 'enter', 'y', 'enter', 'enter')
+    return s
 
 
 def fixture_text(name):
@@ -225,6 +330,11 @@ def runs():
     r['save-new'] = (lambda: save_new().render(), 110000, 10000, {})
     r['load-play-save'] = (lambda: load_play_save().render(), 60000, 10000, {'saves_in': 'save-new'})
     r['load-save'] = (lambda: load_save().render(), 30000, 10000, {'saves_in': 'save-new'})
+    r['orders'] = (lambda: orders().render(), 150000, 10000, {})
+    r['officers-advice'] = (lambda: officers_and_advice().render(), 160000, 10000, {})
+    r['organize-request'] = (lambda: organize_and_request().render(), 140000, 10000, {})
+    r['air-special-forces'] = (lambda: air_and_special_forces().render(), 330000, 30000, {})
+    r['settings-quit'] = (lambda: settings_and_quit().render(), 120000, 10000, {})
     return r
 
 

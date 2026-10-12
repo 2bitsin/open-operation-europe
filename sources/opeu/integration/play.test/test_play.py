@@ -17,7 +17,7 @@ seconds in Debug. Here:
   test_save_touches_one_slot  saving into slot 2 changes slot 2's record and
                            game copy and nothing else.
   test_deterministic       a second play of the same script gives the same
-                           everything.
+                           everything (a demo, a save, a command-dialog run).
 
 On a failure the run's outputs (input.txt, shots/, final.png, saves/, the
 WAV and OPL log) stay in pytest's tmp directory, named in the message, and
@@ -32,8 +32,8 @@ import pytest
 import play
 
 SLOT = 0x277d
-# Played a second time for test_deterministic: a long demo and a save.
-TWICE = ['demo-africa', 'save-new']
+# Played a second time for test_deterministic: a long demo, a save and a run through the command dialogs.
+TWICE = ['demo-africa', 'save-new', 'air-special-forces']
 
 
 def opeu():
