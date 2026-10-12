@@ -20,6 +20,6 @@
 namespace opeu::intro {
 
 void open_intro_options(int* argc, char** argv);
-void open_intro_run(void);
+void open_intro_run();
 
 }

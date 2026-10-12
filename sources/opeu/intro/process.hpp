@@ -43,12 +43,12 @@ extern uint8_t* open_ds;    /* port_arena + OPEN_DS_SEGMENT * 16 */
 extern uint16_t open_sp;
 
 /* Clear the arena and place OPEN's initial DGROUP and far data. */
-void open_memory_init(void);
+void open_memory_init();
 /* INT 21h AH=48h/49h in OPEN's process (first fit, one MCB paragraph per block). */
-uint16_t open_dos_alloc(uint16_t paragraphs);
-int open_dos_free(uint16_t segment);
+auto open_dos_alloc(uint16_t paragraphs) -> uint16_t;
+auto open_dos_free(uint16_t segment) -> int;
 /* Modeled stack (see port_stack_enter in port.hpp). */
-uint16_t open_stack_enter(uint16_t bytes);
+auto open_stack_enter(uint16_t bytes) -> uint16_t;
 void open_stack_leave(uint16_t bytes);
 
 /* The placement of the recovered OPEN data objects (image.cpp). */
@@ -71,13 +71,13 @@ inline auto Arg32(uint16_t const* args, uint16_t count, int i) -> uint32_t {
 }
 
 /* Service callbacks of the recovered OPEN modules (link/). */
-uint16_t link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count);
-uint32_t link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count);
-uint16_t link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count);
-uint16_t link_oemsmap(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t count);
-uint16_t link_osound(uint8_t* ds, SoundServiceId call, uint16_t* words);
+auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
+auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t;
+auto link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
+auto link_oemsmap(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
+auto link_osound(uint8_t* ds, SoundServiceId call, uint16_t* words) -> uint16_t;
 /* OTEXT's host structure (its event and the modeled stack pointer). */
-TextHost* link_otext_host(void);
+auto link_otext_host() -> TextHost*;
 /* cursor_print with the given argument words pushed on the modeled stack. */
 void link_otext_print(uint8_t* ds, uint16_t const* words, unsigned count);
 

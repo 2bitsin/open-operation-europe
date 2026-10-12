@@ -13,10 +13,10 @@
 #include "port.hpp"
 #include "services.hpp"
 
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #if defined(__APPLE__) || defined(__linux__)
 #include <execinfo.h>
 #include <unistd.h>
@@ -42,48 +42,48 @@ static void crash_backtrace(int sig) {
   void* frames[64];
   int n = backtrace(frames, 64);
   static const char msg[] = "opeu: fatal signal, native backtrace:\n";
-  (void)!write(2, msg, sizeof msg - 1);
+  (void)(write(2, msg, sizeof msg - 1) == 0);
   backtrace_symbols_fd(frames, n, 2);
   signal(sig, SIG_DFL);
   raise(sig);
 }
 #endif
 
-static void shutdown_platform(void) {
+static void shutdown_platform() {
   plat_shutdown();
 }
 
 /* main.cpp of the application module (sources/opeu/opeu) calls this. */
-int opeu_main(int argc, char** argv) {
+auto opeu_main(int argc, char** argv) -> int {
   PlatConfig cfg;
-  const char* dump_path = 0;
-  int i;
+  const char* dump_path = nullptr;
+  int i = 0;
 
   port_options.scale = 2;
   opeu::intro::open_intro_options(&argc, argv);     /* --no-intro / --intro */
   for (i = 1; i < argc; i++) {
-    if (!strcmp(argv[i], "--saves") && i + 1 < argc)
+    if ((strcmp(argv[i], "--saves") == 0) && i + 1 < argc) {
       port_options.save_dir = argv[++i];
-    else if (!strcmp(argv[i], "--scale") && i + 1 < argc)
+    } else if ((strcmp(argv[i], "--scale") == 0) && i + 1 < argc) {
       port_options.scale = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "--headless"))
+    } else if (strcmp(argv[i], "--headless") == 0) {
       port_options.headless = 1;
-    else if (!strcmp(argv[i], "--ms") && i + 1 < argc)
-      port_options.stop_ms = (uint32_t)strtoul(argv[++i], 0, 0);
-    else if (!strcmp(argv[i], "--input") && i + 1 < argc)
+    } else if ((strcmp(argv[i], "--ms") == 0) && i + 1 < argc) {
+      port_options.stop_ms = static_cast<uint32_t>(strtoul(argv[++i], nullptr, 0));
+    } else if ((strcmp(argv[i], "--input") == 0) && i + 1 < argc) {
       port_options.input_path = argv[++i];
-    else if (!strcmp(argv[i], "--png") && i + 1 < argc)
+    } else if ((strcmp(argv[i], "--png") == 0) && i + 1 < argc) {
       port_options.png_path = argv[++i];
-    else if (!strcmp(argv[i], "--shots") && i + 2 < argc) {
+    } else if ((strcmp(argv[i], "--shots") == 0) && i + 2 < argc) {
       port_options.shot_dir = argv[++i];
-      port_options.shot_every_ms = (uint32_t)strtoul(argv[++i], 0, 0);
-    } else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
+      port_options.shot_every_ms = static_cast<uint32_t>(strtoul(argv[++i], nullptr, 0));
+    } else if ((strcmp(argv[i], "--wav") == 0) && i + 1 < argc) {
       port_options.wav_path = argv[++i];
-    else if (!strcmp(argv[i], "--opl-log") && i + 1 < argc)
+    } else if ((strcmp(argv[i], "--opl-log") == 0) && i + 1 < argc) {
       port_options.opl_log_path = argv[++i];
-    else if (!strcmp(argv[i], "--mute"))
+    } else if (strcmp(argv[i], "--mute") == 0) {
       port_options.mute = 1;
-    else if (!strcmp(argv[i], "--dump-arena") && i + 1 < argc) {
+    } else if ((strcmp(argv[i], "--dump-arena") == 0) && i + 1 < argc) {
       dump_path = argv[++i];
       port_options.headless = 1;
     } else {
@@ -93,7 +93,7 @@ int opeu_main(int argc, char** argv) {
   }
 
 #if defined(__APPLE__) || defined(__linux__)
-  if (getenv("OPEU_BACKTRACE")) {
+  if (getenv("OPEU_BACKTRACE") != nullptr) {
     signal(SIGSEGV, crash_backtrace);
     signal(SIGBUS, crash_backtrace);
     signal(SIGABRT, crash_backtrace);
@@ -105,17 +105,18 @@ int opeu_main(int argc, char** argv) {
   cfg.height = 480;
   cfg.scale = port_options.scale > 0 ? port_options.scale : 2;
   cfg.headless = port_options.headless;
-  if (port_options.save_dir) plat_set_save_dir(port_options.save_dir);
+  if (port_options.save_dir != nullptr) plat_set_save_dir(port_options.save_dir);
   if (plat_init(&cfg) != 0) return 1;
   atexit(shutdown_platform);
 
   vgalib_init();
   port_memory_init();
-  if (dump_path) {
+  if (dump_path != nullptr) {
     /* Diagnostic: the initial far-data arena (FAR_DATA segments and
          * DGROUP as composed from the recovered data modules). */
     FILE* f = fopen(dump_path, "wb");
-    if (!f || fwrite(port_arena, 1, PORT_ARENA_SIZE, f) != PORT_ARENA_SIZE) port_fatal("cannot write %s", dump_path);
+    if ((f == nullptr) || fwrite(port_arena, 1, PORT_ARENA_SIZE, f) != PORT_ARENA_SIZE)
+      port_fatal("cannot write %s", dump_path);
     fclose(f);
     return 0;
   }

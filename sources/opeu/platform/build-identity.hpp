@@ -9,10 +9,10 @@
 namespace opeu::platform::detail::build_identity {
 
 struct BuildIdentity {
-  std::string_view version{};  // `git describe --tags --always --dirty`
-  std::string_view commit{};   // short hash, "unknown" outside git
-  std::string_view tag{};      // exact tag of the commit, empty when none
-  std::string_view time{};     // UTC, "YYYY-MM-DDTHH:MMZ"
+  std::string_view version;  // `git describe --tags --always --dirty`
+  std::string_view commit;   // short hash, "unknown" outside git
+  std::string_view tag;      // exact tag of the commit, empty when none
+  std::string_view time;     // UTC, "YYYY-MM-DDTHH:MMZ"
   bool dirty{};    // tracked files differed from the commit
   std::uint32_t number{};   // this checkout's build counter
 

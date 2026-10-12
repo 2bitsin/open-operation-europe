@@ -13,9 +13,9 @@
 #include "process.hpp"
 #include "services.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 namespace opeu::intro {
 namespace {
@@ -23,39 +23,42 @@ int intro_mode = -1;      /* -1 default, 0 --no-intro, 1 --intro */
 }
 
 void open_intro_options(int* argc, char** argv) {
-  int i, j;
+  int i;
+  int j;
   for (i = j = 1; i < *argc; i++) {
-    if (!strcmp(argv[i], "--no-intro"))
+    if (strcmp(argv[i], "--no-intro") == 0)
       intro_mode = 0;
-    else if (!strcmp(argv[i], "--intro"))
+    else if (strcmp(argv[i], "--intro") == 0)
       intro_mode = 1;
     else
       argv[j++] = argv[i];
   }
-  argv[j] = 0;
+  argv[j] = nullptr;
   *argc = j;
 }
 
-void open_intro_run(void) {
-  int run = intro_mode >= 0 ? intro_mode : !port_options.headless;
-  if (!run) return;
+void open_intro_run() {
+  int run = intro_mode >= 0 ? intro_mode : static_cast<int>(port_options.headless == 0);
+  if (run == 0) return;
   port_trace("svc", "OPEN.EXE: start");
   open_memory_init();
   /* crt0 -> main(): the opening's recovered main(). */
   opeu_open_main(open_ds, link_openmain);
   /* main() returned: crt0 exits, DOS frees OPEN's memory and the
      * launcher loads MAIN.EXE. */
-  port_trace("svc", "OPEN.EXE: exit at %llu us", (unsigned long long)port_time_us());
+  port_trace("svc", "OPEN.EXE: exit at %llu us", static_cast<unsigned long long>(port_time_us()));
   {
     /* Diagnostic (OPEU_OPEN_DUMP=file): OPEN's memory from the song
          * bank's segment on (64 KB), as the resident driver saw it at the
          * exit, to replay the shutdown's song 5 (garbage track offsets into
          * this memory) from it. */
     const char* path = getenv("OPEU_OPEN_DUMP");
-    FILE* f = path ? fopen(path, "wb") : NULL;
-    if (path && (!f || fwrite(port_arena + (uint32_t)OPEN_BANK_SEGMENT * 16u, 1, 0x10000, f) != 0x10000))
+    FILE* f = (path != nullptr) ? fopen(path, "wb") : nullptr;
+    if ((path != nullptr)
+        && ((f == nullptr)
+            || fwrite(port_arena + (static_cast<uint32_t>(OPEN_BANK_SEGMENT) * 16u), 1, 0x10000, f) != 0x10000))
       port_fatal("cannot write %s", path);
-    if (f) fclose(f);
+    if (f != nullptr) fclose(f);
   }
   port_memory_init();
 }

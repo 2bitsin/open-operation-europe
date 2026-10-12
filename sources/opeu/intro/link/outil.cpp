@@ -21,7 +21,7 @@ namespace {
 uint8_t* reader_ds;
 
 /* The picture decoder's reader (a far call to 062d:0132 in the original). */
-uint8_t stream_reader(void) {
+auto stream_reader() -> uint8_t {
   return opeu_stream_file_byte(reader_ds, link_outil);
 }
 
@@ -35,10 +35,11 @@ uint8_t stream_reader(void) {
  * 59.940476 Hz refresh (the 25.175 MHz dot clock / (800 x 525)). The
  * boundaries are absolute multiples of the period, so the pump's 1 ms
  * granularity never accumulates drift. */
-void vga_retrace_wait(void) {
-  const uint64_t num = (uint64_t)800 * 525 * 1000000, den = 25175000;  /* period in us = num / den */
-  uint64_t k = port_time_us() * den / num + 1;      /* the next frame */
-  uint64_t next = (k * num + den - 1) / den;
+void vga_retrace_wait() {
+  const uint64_t num = (uint64_t)800 * 525 * 1000000;
+  const uint64_t den = 25175000;  /* period in us = num / den */
+  uint64_t k = (port_time_us() * den / num) + 1;      /* the next frame */
+  uint64_t next = ((k * num) + den - 1) / den;
   while (port_time_us() < next) port_pump();
 }
 
@@ -57,9 +58,9 @@ void mouse_int33(uint16_t* w) {
 }
 }
 
-uint32_t link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) {
+auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t {
   using enum UtilServiceId;
-  auto const arg{ [&](int i) { return Arg(words, count, i); } };
+  auto const arg{ [&](int i) -> uint16_t { return Arg(words, count, i); } };
   switch (id) {
   case FM_BUSY: return opeu_fm_busy();
   case MOUSE_INT33: mouse_int33(words); return words[0];
@@ -68,32 +69,36 @@ uint32_t link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t cou
       port_fatal("OPEN: int86(%02x) AH=%02x is not issued by the opening", arg(0), arg(1));
     port_disk_reset();
     return 0;
-  case DOS_READ_FAR: return (uint16_t)opeu_dos_read_far((int16_t)arg(0), arg(1), arg(2), arg(3));
-  case DOS_SEEK: return (uint32_t)opeu_dos_seek((int16_t)arg(0), (int32_t)Arg32(words, count, 1), (int16_t)arg(3));
+  case DOS_READ_FAR:
+    return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
+  case DOS_SEEK:
+    return static_cast<uint32_t>(opeu_dos_seek(
+        static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(words, count, 1)), static_cast<int16_t>(arg(3))));
   case SET_PALETTE:
     vga_retrace_wait();
-    return (uint16_t)opeu_set_palette((uint8_t)arg(0), (uint8_t)arg(1), ds + arg(2));
+    return static_cast<uint16_t>(
+        opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), ds + arg(2)));
   case IDENTITY_PALETTE: koei_vga_identity_palette(); return 0;
   case UI_LINE: opeu_ui_fill(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
   case PICTURE_DECODE_MASKED: {
     uint8_t* saved = reader_ds;
-    int16_t r;
+    int16_t r = 0;
     if (arg(2) != STREAM_READER_OFFSET || arg(3) != STREAM_READER_SEGMENT)
       port_fatal("OPEN: picture reader %04x:%04x is not OUTIL's stream reader", arg(3), arg(2));
     reader_ds = ds;
     r = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
     reader_ds = saved;
-    return (uint16_t)r;
+    return static_cast<uint16_t>(r);
   }
-  case VGA_CLEAR: return (uint16_t)opeu_vga_clear();
+  case VGA_CLEAR: return static_cast<uint16_t>(opeu_vga_clear());
   case TURN_INPUT_B: return opeu_turn_input_b();
   case INPUT_FLUSH: opeu_input_flush(ds, link_otext_host()); return 0;
   case CURSOR_PRINT: link_otext_print(ds, words, 2); return 0;
   case OPEN_ERROR_SPIN: port_pump(); return 0;
-  case TEXT_PUT: return opeu_text_put(ds, link_otext_host(), (uint8_t)arg(0));
+  case TEXT_PUT: return opeu_text_put(ds, link_otext_host(), static_cast<uint8_t>(arg(0)));
   case OPEN_DELAY: opeu_open_delay(ds, link_openmain, arg(0)); return 0;
   case FAR_BYTE: return *port_far(arg(0), arg(1));
-  case DOS_OPEN: return (uint16_t)opeu_dos_open((const char*)ds + arg(0), arg(1));
+  case DOS_OPEN: return static_cast<uint16_t>(opeu_dos_open(reinterpret_cast<const char*>(ds) + arg(0), arg(1)));
   default: port_unhandled("outil", static_cast<unsigned>(id), count);
   }
   return 0;

@@ -1,0 +1,17 @@
+# clang-tidy for the finished modules (docs/building.md "clang-tidy"). The groups the roadmap names, less the house
+# exceptions below, each with its reason.
+Checks: >
+  -*,
+  modernize-*,
+  cppcoreguidelines-*,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-braces-around-statements,
+  -readability-uppercase-literal-suffix,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-avoid-do-while
+WarningsAsErrors: ''
+HeaderFilterRegex: 'sources/opeu/'
+FormatStyle: file

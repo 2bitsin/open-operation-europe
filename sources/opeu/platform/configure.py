@@ -1,6 +1,9 @@
-"""The SDL3 backend (C++23 since phase 2) with the old port's flags; the build identity keeps buildutil's defaults."""
+"""The SDL3 backend and the build identity, C++23."""
 import buildutil_configure as bc
 
-flags = ["-Wall", "-Wextra", "-Wno-unused-parameter"]
-# The backend is stb_image_write's only user and compiles its implementation.
-bc.declare(bc.source_dir() / "sdl3/platform-sdl3.cpp", options=flags + ["-DSTB_IMAGE_WRITE_IMPLEMENTATION"])
+# A finished module compiles under the warnings gate (docs/building.md "Warnings").
+WARNINGS = ["-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion", "-Wshadow", "-Werror"]
+for source in sorted(bc.source_dir().rglob("*.cpp")):
+  # The backend is stb_image_write's only user and compiles its implementation.
+  stb = ["-DSTB_IMAGE_WRITE_IMPLEMENTATION"] if source.name == "platform-sdl3.cpp" else []
+  bc.declare(source, options=WARNINGS + stb)

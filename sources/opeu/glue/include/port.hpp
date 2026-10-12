@@ -41,49 +41,49 @@ extern uint8_t* port_arena;           /* PORT_ARENA_SIZE bytes, linear = seg*16+
 extern uint8_t* port_ds;              /* port_arena + PORT_DS_SEGMENT*16 */
 
 /* Byte at segment:offset (fatal outside the arena). */
-uint8_t* port_far(uint16_t seg, uint16_t off);
+auto port_far(uint16_t seg, uint16_t off) -> uint8_t*;
 /* Host pointer of a DS offset (16-bit wrap of the offset). */
 inline auto PORT_DS(auto off) -> uint8_t* {
   return port_ds + (uint16_t)off;
 }
 /* Little-endian word access into ds[] (16-bit wrap of the offset). */
-uint16_t port_ds_word(uint16_t off);
+auto port_ds_word(uint16_t off) -> uint16_t;
 void port_ds_set_word(uint16_t off, uint16_t value);
 /* Segment:offset of a host pointer into the arena (fatal otherwise). */
-uint16_t port_segment_of(const void* p);
-uint16_t port_offset_of(const void* p, uint16_t seg);
+auto port_segment_of(const void* p) -> uint16_t;
+auto port_offset_of(const void* p, uint16_t seg) -> uint16_t;
 
 /* DOS memory blocks (INT 21h AH=48h/49h semantics): paragraphs -> segment, 0 on failure. */
-uint16_t port_dos_alloc(uint16_t paragraphs);
-int port_dos_free(uint16_t segment);
+auto port_dos_alloc(uint16_t paragraphs) -> uint16_t;
+auto port_dos_free(uint16_t segment) -> int;
 
 /* Image of the recovered data modules (game/link/gen/data-image.cpp). */
-typedef struct {
+struct PortImageObject {
   const void* object;
   uint16_t seg, off;
   uint32_t size;
   const char* name;
-} PortImageObject;
+};
 extern const PortImageObject port_image_objects[];
 extern const unsigned port_image_object_count;
 
 /* Initialized DGROUP data that code modules own in their DOS builds (string
  * literals and static tables of their _DATA segments), taken from the
  * recovered source text (game/link/gen/module-data.cpp). */
-typedef struct {
+struct PortImageBytes {
   uint16_t seg, off;
   uint16_t size;
   const uint8_t* bytes;
   const char* module;
-} PortImageBytes;
+};
 extern const PortImageBytes port_module_data[];
 extern const unsigned port_module_data_count;
 
 /* Allocate (or clear) the arena and reset DS, the DOS blocks and SP (glue). */
-void port_memory_reset(void);
+void port_memory_reset();
 /* port_memory_reset, then copy every recovered data object to its address
  * (game/link/image.cpp). */
-void port_memory_init(void);
+void port_memory_init();
 
 /* ---- DGROUP stack model ------------------------------------------------ */
 
@@ -99,7 +99,7 @@ void port_memory_init(void);
  * buffer rather than the entry SP, convert as that module documents. */
 inline constexpr auto PORT_FRAME{ 0x100u };
 extern uint16_t port_sp;
-uint16_t port_stack_enter(uint16_t bytes);
+auto port_stack_enter(uint16_t bytes) -> uint16_t;
 void port_stack_leave(uint16_t bytes);
 
 /* ---- routine link table ------------------------------------------------ */
@@ -109,13 +109,13 @@ void port_stack_leave(uint16_t bytes);
  * then stack arguments in prototype order; far pointers are (offset,
  * segment), 32-bit values (low, high). Near pointers are DS offsets. The
  * result is DX:AX (AX in the low half). */
-typedef uint32_t (*PortRoutine)(uint8_t* ds, const uint16_t* args, unsigned count);
+using PortRoutine = uint32_t (*)(uint8_t* ds, const uint16_t* args, unsigned count);
 
-typedef struct {
+struct PortLink {
   uint32_t address;       /* original linear routine address (identifier only) */
   const char* name;
   PortRoutine routine;    /* NULL: not linked yet */
-} PortLink;
+};
 
 /* The signature of a linked routine handler port_routine_<name>;
  * game/link/gen/link-table.cpp declares every one with it and lists it
@@ -132,13 +132,13 @@ inline auto Arg32(std::uint16_t const* args, unsigned count, unsigned i) -> std:
 }
 
 /* Call a routine by its identifier; fatal (with its name) when unlinked. */
-uint32_t port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);
+auto port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) -> uint32_t;
 /* The address-keyed service callback signature used by the battle modules. */
-uint16_t port_service(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);
+auto port_service(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) -> uint16_t;
 /* Name of a routine identifier (for diagnostics), or NULL. */
-const char* port_routine_name(uint32_t address);
+auto port_routine_name(uint32_t address) -> const char*;
 /* Identifier of a routine by name (the DOS symbol without _ / @ prefix), 0 if unknown. */
-uint32_t port_routine_address(const char* name);
+auto port_routine_address(const char* name) -> uint32_t;
 
 /* ---- diagnostics ------------------------------------------------------- */
 
@@ -148,13 +148,13 @@ void port_fatal(const char* fmt, ...);
 void port_unhandled(const char* module, unsigned id, unsigned count);
 /* Trace line when OPEU_TRACE is set (category filter: OPEU_TRACE=all|link|svc|...) */
 void port_trace(const char* category, const char* fmt, ...);
-int port_trace_enabled(const char* category);
+auto port_trace_enabled(const char* category) -> int;
 
 /* Leave the game (quit to DOS). */
 void port_exit(int code);
 
 /* ---- run-time options (glue/core/process.cpp, set by the entry) -------- */
-typedef struct {
+struct PortOptions {
   int headless;            /* no window; virtual time; scripted input */
   uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
   const char* png_path;    /* write the last frame here when stopping */
@@ -166,5 +166,5 @@ typedef struct {
   const char* wav_path;    /* write the audio output (49716 Hz stereo) here */
   const char* opl_log_path;/* log every OPL register write (frame, register, value) */
   int mute;                /* window mode: no audio device */
-} PortOptions;
+};
 extern PortOptions port_options;

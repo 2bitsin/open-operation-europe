@@ -18,16 +18,16 @@
 
 /* ---- lifecycle ---------------------------------------------------------- */
 
-typedef struct PlatConfig {
+struct PlatConfig {
   const char* title;      /* window title */
   int width, height;      /* logical framebuffer size (640x480 for mode 12h) */
   int scale;              /* initial window scale factor (>=1) */
   int headless;           /* 1: no window, no audio device, no real input */
   int fullscreen;
-} PlatConfig;
+};
 
-int plat_init(const PlatConfig* cfg);   /* 0 on success, -1 on failure */
-void plat_shutdown(void);
+auto plat_init(const PlatConfig* cfg) -> int;   /* 0 on success, -1 on failure */
+void plat_shutdown();
 
 /* ---- video -------------------------------------------------------------- */
 
@@ -38,7 +38,7 @@ void plat_shutdown(void);
 void plat_present(const uint8_t* pixels, int width, int height, const uint8_t palette[256 * 3]);
 
 /* Write the last presented frame as a PNG file.  Returns 0 on success. */
-int plat_write_png(const char* path);
+auto plat_write_png(const char* path) -> int;
 
 /* ---- input -------------------------------------------------------------- */
 
@@ -52,7 +52,7 @@ enum {
   PLAT_EV_MOUSE_UP
 };
 
-typedef struct PlatEvent {
+struct PlatEvent {
   int type;
   uint8_t scancode;       /* PC set-1 make code; bit 7 clear.  0xE0-prefixed
                                keys (arrows, Home, ...) use their base code and
@@ -62,18 +62,18 @@ typedef struct PlatEvent {
                                modifiers (0 for none) */
   uint8_t button;
   int x, y;
-} PlatEvent;
+};
 
 /* Pump the OS event queue and return the next event; 0 when empty. */
-int plat_poll_event(PlatEvent* ev);
+auto plat_poll_event(PlatEvent* ev) -> int;
 
 /* Current modifier state as BIOS shift flags (0040:0017 layout):
  * bit0 right shift, bit1 left shift, bit2 ctrl, bit3 alt. */
-uint8_t plat_shift_flags(void);
+auto plat_shift_flags() -> uint8_t;
 
 /* ---- time --------------------------------------------------------------- */
 
-uint64_t plat_ticks_us(void);   /* monotonic microseconds since plat_init */
+auto plat_ticks_us() -> uint64_t;   /* monotonic microseconds since plat_init */
 void plat_sleep_ms(int ms); /* yields; never called on Emscripten frames */
 
 /* ---- files -------------------------------------------------------------- */
@@ -86,24 +86,24 @@ void plat_sleep_ms(int ms); /* yields; never called on Emscripten frames */
  * case-insensitive.  mode is a C stdio mode string.  Returns NULL if
  * missing.  The handle is a stdio FILE* on every current backend. */
 void plat_set_save_dir(const char* dir);
-const char* plat_save_dir(void);
-void* plat_fopen(const char* dos_name, const char* mode);
-int plat_fclose(void* f);
-size_t plat_fread(void* buf, size_t n, void* f);
-size_t plat_fwrite(const void* buf, size_t n, void* f);
-long plat_fseek(void* f, long off, int whence);   /* returns new position or -1 */
-long plat_fsize(void* f);
-int plat_fexists(const char* dos_name);
-int plat_fdelete(const char* dos_name);
-int plat_frename(const char* from, const char* to);
+auto plat_save_dir() -> const char*;
+auto plat_fopen(const char* dos_name, const char* mode) -> void*;
+auto plat_fclose(void* f) -> int;
+auto plat_fread(void* buf, size_t n, void* f) -> size_t;
+auto plat_fwrite(const void* buf, size_t n, void* f) -> size_t;
+auto plat_fseek(void* f, long off, int whence) -> long;   /* returns new position or -1 */
+auto plat_fsize(void* f) -> long;
+auto plat_fexists(const char* dos_name) -> int;
+auto plat_fdelete(const char* dos_name) -> int;
+auto plat_frename(const char* from, const char* to) -> int;
 
 /* ---- audio -------------------------------------------------------------- */
 
 /* The audio callback fills `frames` stereo int16 frames at `rate` Hz.
  * It runs on the audio thread; it must never block.  A NULL callback (or
  * headless mode) means silence. */
-typedef void (*PlatAudioFn)(void* user, int16_t* out, int frames, int rate);
-int plat_audio_open(int rate, PlatAudioFn fn, void* user);
-int plat_audio_active(void);           /* 1 when a device stream is open */
-void plat_audio_lock(void);
-void plat_audio_unlock(void);
+using PlatAudioFn = void (*)(void* user, int16_t* out, int frames, int rate);
+auto plat_audio_open(int rate, PlatAudioFn fn, void* user) -> int;
+auto plat_audio_active() -> int;           /* 1 when a device stream is open */
+void plat_audio_lock();
+void plat_audio_unlock();

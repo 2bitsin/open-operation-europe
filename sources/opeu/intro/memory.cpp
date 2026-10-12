@@ -3,8 +3,8 @@
 #include "port.hpp"
 #include "process.hpp"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 namespace opeu::intro {
 namespace {
@@ -21,19 +21,19 @@ static struct {
 } blocks[MAX_BLOCKS];
 static int block_count;
 
-void open_memory_init(void) {
-  unsigned i;
-  if (!port_arena) {
-    port_arena = (uint8_t*)calloc(1, PORT_ARENA_SIZE + 0x10000u);
-    if (!port_arena) port_fatal("out of memory for the far-data arena");
+void open_memory_init() {
+  unsigned i = 0;
+  if (port_arena == nullptr) {
+    port_arena = static_cast<uint8_t*>(calloc(1, PORT_ARENA_SIZE + 0x10000u));
+    if (port_arena == nullptr) port_fatal("out of memory for the far-data arena");
   } else {
     memset(port_arena, 0, PORT_ARENA_SIZE);
   }
-  open_ds = port_arena + (uint32_t)OPEN_DS_SEGMENT * 16u;
+  open_ds = port_arena + (static_cast<uint32_t>(OPEN_DS_SEGMENT) * 16u);
   for (i = 0; i < open_image_object_count; i++) {
     const OpenImageObject* o = &open_image_objects[i];
-    uint32_t seg = o->seg ? OPEN_LOAD_SEGMENT + o->seg : OPEN_DS_SEGMENT;
-    uint32_t linear = seg * 16u + o->off;
+    uint32_t seg = (o->seg != 0u) ? OPEN_LOAD_SEGMENT + o->seg : OPEN_DS_SEGMENT;
+    uint32_t linear = (seg * 16u) + o->off;
     if (linear + o->size > PORT_ARENA_SIZE) port_fatal("OPEN data object %s outside the arena", o->name);
     memcpy(port_arena + linear, o->object, o->size);
   }
@@ -41,19 +41,21 @@ void open_memory_init(void) {
   open_sp = OPEN_STACK_TOP;
 }
 
-uint16_t open_dos_alloc(uint16_t paragraphs) {
+auto open_dos_alloc(uint16_t paragraphs) -> uint16_t {
   uint32_t seg = OPEN_HEAP_SEGMENT;
-  int i, j;
+  int i;
+  int j;
   for (;;) {
     int clash = 0;
     for (i = 0; i < block_count; i++) {
-      uint32_t s = blocks[i].seg - 1u, e = (uint32_t)blocks[i].seg + blocks[i].paras;
+      uint32_t s = blocks[i].seg - 1u;
+      uint32_t e = (uint32_t)blocks[i].seg + blocks[i].paras;
       if (seg - 1u < e && seg + paragraphs > s) {
         seg = e + 1u;
         clash = 1;
       }
     }
-    if (!clash) break;
+    if (clash == 0) break;
   }
   if (seg + paragraphs > PORT_ARENA_SIZE / 16u || block_count == MAX_BLOCKS) {
     port_trace("mem", "OPEN dos_alloc %04x paragraphs: no memory", paragraphs);
@@ -61,15 +63,15 @@ uint16_t open_dos_alloc(uint16_t paragraphs) {
   }
   for (i = 0; i < block_count && blocks[i].seg < seg; i++);
   for (j = block_count; j > i; j--) blocks[j] = blocks[j - 1];
-  blocks[i].seg = (uint16_t)seg;
+  blocks[i].seg = static_cast<uint16_t>(seg);
   blocks[i].paras = paragraphs;
   block_count++;
-  port_trace("mem", "OPEN dos_alloc %04x paragraphs -> %04x", paragraphs, (unsigned)seg);
-  return (uint16_t)seg;
+  port_trace("mem", "OPEN dos_alloc %04x paragraphs -> %04x", paragraphs, static_cast<unsigned>(seg));
+  return static_cast<uint16_t>(seg);
 }
 
-int open_dos_free(uint16_t segment) {
-  int i;
+auto open_dos_free(uint16_t segment) -> int {
+  int i = 0;
   for (i = 0; i < block_count; i++)
     if (blocks[i].seg == segment) {
       for (; i < block_count - 1; i++) blocks[i] = blocks[i + 1];
@@ -79,16 +81,16 @@ int open_dos_free(uint16_t segment) {
   return 9;   /* DOS: invalid memory block address */
 }
 
-uint16_t open_stack_enter(uint16_t bytes) {
-  uint16_t sp = (uint16_t)(open_sp - 4);
-  if ((uint32_t)open_sp < (uint32_t)OPEN_DS_END + 4u + bytes)
+auto open_stack_enter(uint16_t bytes) -> uint16_t {
+  uint16_t sp = static_cast<uint16_t>(open_sp - 4);
+  if (static_cast<uint32_t>(open_sp) < static_cast<uint32_t>(OPEN_DS_END) + 4u + bytes)
     port_fatal("OPEN: modeled stack overflow (sp=%04x, %u bytes)", open_sp, bytes);
-  open_sp = (uint16_t)(open_sp - 4 - bytes);
+  open_sp = static_cast<uint16_t>(open_sp - 4 - bytes);
   return sp;
 }
 
 void open_stack_leave(uint16_t bytes) {
-  open_sp = (uint16_t)(open_sp + 4 + bytes);
+  open_sp = static_cast<uint16_t>(open_sp + 4 + bytes);
 }
 
 }

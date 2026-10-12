@@ -154,18 +154,18 @@ void opeu_open_delay(uint8_t* ds, OpenEvent event, uint16_t ticks);
 }
 
 namespace detail::outil {
-uint16_t opeu_mouse_reset(uint8_t* ds, UtilService event);
-uint8_t opeu_stream_file_byte(uint8_t* ds, UtilService event);
+auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t;
+auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t;
 void opeu_picture_file_at(uint8_t* ds, UtilService event, uint16_t x, uint16_t y, int32_t position);
 void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette);
-int16_t opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target);
-int16_t opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode);
-int16_t opeu_open_fade_in(uint8_t* ds, UtilService event);
-int16_t opeu_open_fade_in_wait(uint8_t* ds, UtilService event);
-int16_t opeu_open_fade_alt(uint8_t* ds, UtilService event);
+auto opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) -> int16_t;
+auto opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode) -> int16_t;
+auto opeu_open_fade_in(uint8_t* ds, UtilService event) -> int16_t;
+auto opeu_open_fade_in_wait(uint8_t* ds, UtilService event) -> int16_t;
+auto opeu_open_fade_alt(uint8_t* ds, UtilService event) -> int16_t;
 void opeu_open_identity_palette(uint8_t* ds, UtilService event);
-int16_t opeu_open_input_poll(uint8_t* ds, UtilService event);
-int16_t opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name);
+auto opeu_open_input_poll(uint8_t* ds, UtilService event) -> int16_t;
+auto opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name) -> int16_t;
 void opeu_open_stub_a(uint8_t* ds, UtilService event);
 void opeu_open_stub_b(uint8_t* ds, UtilService event);
 void opeu_open_stub_c(uint8_t* ds, UtilService event);
@@ -173,22 +173,22 @@ void opeu_open_stub_c(uint8_t* ds, UtilService event);
 
 namespace detail::otext {
 void opeu_input_flush(uint8_t* ds, TextHost* host);
-uint8_t opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c);
+auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t;
 void opeu_ui_text(uint8_t* ds, TextHost* host, uint16_t s);
 void opeu_cursor_print(uint8_t* ds, TextHost* host, uint16_t frame);
 }
 
 namespace detail::oemsmap {
 void opeu_gfx_wait(uint8_t* ds, EmsEvent event);
-int16_t opeu_memory_release(uint8_t* ds, EmsEvent event);
-int16_t opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp);
-int16_t opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp);
+auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t;
+auto opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t;
+auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t;
 }
 
 namespace detail::osound {
 void opeu_sound_initialize(uint8_t* ds, SoundService service);
 void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t value);
-int opeu_music_playing(uint8_t* ds, SoundService service);
+auto opeu_music_playing(uint8_t* ds, SoundService service) -> int;
 void opeu_music_start(uint8_t* ds, SoundService service, uint8_t track);
 }
 

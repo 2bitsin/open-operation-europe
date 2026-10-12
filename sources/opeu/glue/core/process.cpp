@@ -2,7 +2,7 @@
  * services, the pump and the opening) and the program's exit. */
 #include "port.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 PortOptions port_options;
 

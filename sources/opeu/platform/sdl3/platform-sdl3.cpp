@@ -34,9 +34,9 @@
 #include <emscripten.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 namespace {
 
@@ -58,7 +58,7 @@ constexpr auto PLAT_PATH_MAX{ 1024 };
 static struct {
   int inited;
   int headless;
-  int sdl_flags;
+  SDL_InitFlags sdl_flags;
   uint64_t t0_ns;
 
   SDL_Window* window;
@@ -81,18 +81,20 @@ static struct {
 
 /* ---- lifecycle ---------------------------------------------------------- */
 
-int plat_init(const PlatConfig* cfg) {
-  int w, h, scale;
-  SDL_WindowFlags wflags;
+auto plat_init(const PlatConfig* cfg) -> int {
+  int w;
+  int h;
+  int scale;
+  SDL_WindowFlags wflags = 0;
 
-  if (P.inited) return 0;
-  if (!cfg) return -1;
-  P.headless = cfg->headless ? 1 : 0;
+  if (P.inited != 0) return 0;
+  if (cfg == nullptr) return -1;
+  P.headless = (cfg->headless != 0) ? 1 : 0;
   w = cfg->width > 0 ? cfg->width : 640;
   h = cfg->height > 0 ? cfg->height : 480;
   scale = cfg->scale >= 1 ? cfg->scale : 1;
 
-  if (P.headless) {
+  if (P.headless != 0) {
     /* No subsystems: timers and the filesystem helpers need none. */
     if (!SDL_Init(0)) {
       fprintf(stderr, "plat_init: SDL_Init: %s\n", SDL_GetError());
@@ -100,7 +102,7 @@ int plat_init(const PlatConfig* cfg) {
     }
     P.sdl_flags = 0;
   } else {
-    SDL_SetAppMetadata(cfg->title ? cfg->title : "Operation Europe", NULL, NULL);
+    SDL_SetAppMetadata((cfg->title != nullptr) ? cfg->title : "Operation Europe", nullptr, nullptr);
 #ifdef __EMSCRIPTEN__
     /* Keys go to the canvas (focused by the page's click-to-start), and
          * only this backend yields to the browser (see the file comment). */
@@ -119,7 +121,7 @@ int plat_init(const PlatConfig* cfg) {
       fprintf(stderr, "plat_init: no audio: %s\n", SDL_GetError());
 
     wflags = SDL_WINDOW_RESIZABLE;
-    if (cfg->fullscreen) wflags |= SDL_WINDOW_FULLSCREEN;
+    if (cfg->fullscreen != 0) wflags |= SDL_WINDOW_FULLSCREEN;
 #ifdef __EMSCRIPTEN__
     /* The canvas gets CSS size x devicePixelRatio pixels. Without this
          * the backing store is CSS pixels: on a 2x or 3x display the page's
@@ -131,12 +133,12 @@ int plat_init(const PlatConfig* cfg) {
          * size. */
     wflags |= SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
 #endif
-    if (!SDL_CreateWindowAndRenderer(cfg->title ? cfg->title : "Operation Europe", w * scale, h * scale, wflags,
-                                     &P.window, &P.renderer)) {
+    if (!SDL_CreateWindowAndRenderer((cfg->title != nullptr) ? cfg->title : "Operation Europe", w * scale, h * scale,
+                                     wflags, &P.window, &P.renderer)) {
       fprintf(stderr, "plat_init: SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
-      if (P.window) SDL_DestroyWindow(P.window);
-      P.window = NULL;
-      P.renderer = NULL;
+      if (P.window != nullptr) SDL_DestroyWindow(P.window);
+      P.window = nullptr;
+      P.renderer = nullptr;
       SDL_Quit();
       return -1;
     }
@@ -158,26 +160,26 @@ int plat_init(const PlatConfig* cfg) {
   return 0;
 }
 
-void plat_shutdown(void) {
-  if (!P.inited) return;
-  if (P.audio) {
+void plat_shutdown() {
+  if (P.inited == 0) return;
+  if (P.audio != nullptr) {
     SDL_DestroyAudioStream(P.audio);
-    P.audio = NULL;
+    P.audio = nullptr;
   }
-  if (P.texture) {
+  if (P.texture != nullptr) {
     SDL_DestroyTexture(P.texture);
-    P.texture = NULL;
+    P.texture = nullptr;
   }
-  if (P.renderer) {
+  if (P.renderer != nullptr) {
     SDL_DestroyRenderer(P.renderer);
-    P.renderer = NULL;
+    P.renderer = nullptr;
   }
-  if (P.window) {
+  if (P.window != nullptr) {
     SDL_DestroyWindow(P.window);
-    P.window = NULL;
+    P.window = nullptr;
   }
   free(P.frame);
-  P.frame = NULL;
+  P.frame = nullptr;
   P.have_frame = 0;
   SDL_Quit();
   P.inited = 0;
@@ -189,26 +191,27 @@ void plat_shutdown(void) {
  * window resize or exposure, when the window's contents are gone (a browser
  * blanks a canvas whose size changed) and the game, waiting for input, may
  * not draw again for a long time. */
-static void redraw(void) {
-  if (!P.renderer || !P.texture) return;
+static void redraw() {
+  if ((P.renderer == nullptr) || (P.texture == nullptr)) return;
   SDL_SetRenderDrawColor(P.renderer, 0, 0, 0, 255);
   SDL_RenderClear(P.renderer);
-  SDL_RenderTexture(P.renderer, P.texture, NULL, NULL);
+  SDL_RenderTexture(P.renderer, P.texture, nullptr, nullptr);
   SDL_RenderPresent(P.renderer);
 }
 
 void plat_present(const uint8_t* pixels, int width, int height, const uint8_t palette[256 * 3]) {
-  size_t n;
+  size_t n = 0;
   uint32_t lut[256];
-  int i, y;
-  void* tp;
-  int pitch;
+  int i;
+  int y;
+  void* tp = nullptr;
+  int pitch = 0;
 
-  if (!pixels || !palette || width <= 0 || height <= 0) return;
-  n = (size_t)width * (size_t)height;
-  if (!P.frame || P.frame_w != width || P.frame_h != height) {
-    uint8_t* nf = (uint8_t*)realloc(P.frame, n);
-    if (!nf) return;
+  if ((pixels == nullptr) || (palette == nullptr) || width <= 0 || height <= 0) return;
+  n = static_cast<size_t>(width) * static_cast<size_t>(height);
+  if ((P.frame == nullptr) || P.frame_w != width || P.frame_h != height) {
+    uint8_t* nf = static_cast<uint8_t*>(realloc(P.frame, n));
+    if (nf == nullptr) return;
     P.frame = nf;
     P.frame_w = width;
     P.frame_h = height;
@@ -217,12 +220,12 @@ void plat_present(const uint8_t* pixels, int width, int height, const uint8_t pa
   memcpy(P.palette, palette, sizeof P.palette);
   P.have_frame = 1;
 
-  if (!P.renderer) return;
+  if (P.renderer == nullptr) return;
 
-  if (!P.texture || P.tex_w != width || P.tex_h != height) {
-    if (P.texture) SDL_DestroyTexture(P.texture);
+  if ((P.texture == nullptr) || P.tex_w != width || P.tex_h != height) {
+    if (P.texture != nullptr) SDL_DestroyTexture(P.texture);
     P.texture = SDL_CreateTexture(P.renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
-    if (!P.texture) return;
+    if (P.texture == nullptr) return;
     SDL_SetTextureScaleMode(P.texture, SDL_SCALEMODE_NEAREST);
     P.tex_w = width;
     P.tex_h = height;
@@ -230,14 +233,15 @@ void plat_present(const uint8_t* pixels, int width, int height, const uint8_t pa
   }
 
   for (i = 0; i < 256; i++)
-    lut[i] = 0xFF000000u | ((uint32_t)palette[i * 3] << 16) | ((uint32_t)palette[i * 3 + 1] << 8)
-             | (uint32_t)palette[i * 3 + 2];
+    lut[i] = 0xFF000000u | (static_cast<uint32_t>(palette[i * 3]) << 16)
+             | (static_cast<uint32_t>(palette[(i * 3) + 1]) << 8) | static_cast<uint32_t>(palette[(i * 3) + 2]);
 
-  if (SDL_LockTexture(P.texture, NULL, &tp, &pitch)) {
+  if (SDL_LockTexture(P.texture, nullptr, &tp, &pitch)) {
     for (y = 0; y < height; y++) {
-      uint32_t* dst = (uint32_t*)((uint8_t*)tp + (size_t)y * (size_t)pitch);
-      const uint8_t* src = pixels + (size_t)y * (size_t)width;
-      int x;
+      uint32_t* dst = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(tp)
+                                                  + (static_cast<size_t>(y) * static_cast<size_t>(pitch)));
+      const uint8_t* src = pixels + (static_cast<size_t>(y) * static_cast<size_t>(width));
+      int x = 0;
       for (x = 0; x < width; x++) dst[x] = lut[src[x]];
     }
     SDL_UnlockTexture(P.texture);
@@ -249,26 +253,27 @@ void plat_present(const uint8_t* pixels, int width, int height, const uint8_t pa
 #endif
 }
 
-int plat_write_png(const char* path) {
-  uint8_t* rgb;
-  size_t n, i;
-  int rc;
+auto plat_write_png(const char* path) -> int {
+  uint8_t* rgb = nullptr;
+  size_t n;
+  size_t i;
+  int rc = 0;
 
-  if (!P.have_frame || !path) return -1;
-  n = (size_t)P.frame_w * (size_t)P.frame_h;
-  rgb = (uint8_t*)malloc(n * 3u);
-  if (!rgb) return -1;
+  if ((P.have_frame == 0) || (path == nullptr)) return -1;
+  n = static_cast<size_t>(P.frame_w) * static_cast<size_t>(P.frame_h);
+  rgb = static_cast<uint8_t*>(malloc(n * 3u));
+  if (rgb == nullptr) return -1;
   for (i = 0; i < n; i++) {
-    const uint8_t* c = P.palette + (size_t)P.frame[i] * 3u;
+    const uint8_t* c = P.palette + (static_cast<size_t>(P.frame[i]) * 3u);
     rgb[i * 3] = c[0];
-    rgb[i * 3 + 1] = c[1];
-    rgb[i * 3 + 2] = c[2];
+    rgb[(i * 3) + 1] = c[1];
+    rgb[(i * 3) + 2] = c[2];
   }
   /* 8-bit truecolour, filter type 0 on every row (as the port's own
      * writer had it, so the image readers of the integration suites need
      * no unfiltering); stb compresses the IDAT where that writer stored it. */
   stbi_write_force_png_filter = 0;
-  rc = stbi_write_png(path, P.frame_w, P.frame_h, 3, rgb, P.frame_w * 3) ? 0 : -1;
+  rc = (stbi_write_png(path, P.frame_w, P.frame_h, 3, rgb, P.frame_w * 3) != 0) ? 0 : -1;
   free(rgb);
   return rc;
 }
@@ -278,14 +283,14 @@ int plat_write_png(const char* path) {
 /* Key kinds for the ASCII computation. */
 enum { K_PLAIN = 0, K_LETTER, K_KEYPAD, K_NOASCII };
 
-typedef struct KeyMap {
+struct KeyMap {
   SDL_Scancode sc;
   uint8_t code;      /* set-1 make code */
   uint8_t ext;       /* 0xE0 prefix */
   uint8_t kind;
   uint8_t lo, hi;    /* US ASCII unshifted / shifted */
   uint8_t ctrl;      /* ASCII with Ctrl held (0 = none) */
-} KeyMap;
+};
 
 static const KeyMap keymap[] = {
   /* letters */
@@ -401,37 +406,37 @@ static const KeyMap keymap[] = {
   { SDL_SCANCODE_KP_PERIOD, 0x53, 0, K_KEYPAD, '.', 0, 0 },
 };
 
-static const KeyMap* keymap_find(SDL_Scancode sc) {
+static auto keymap_find(SDL_Scancode sc) -> const KeyMap* {
   static const KeyMap* lut[SDL_SCANCODE_COUNT];
   static int built;
-  if (!built) {
-    size_t i;
+  if (built == 0) {
+    size_t i = 0;
     for (i = 0; i < sizeof keymap / sizeof keymap[0]; i++)
-      if ((int)keymap[i].sc < (int)SDL_SCANCODE_COUNT) lut[keymap[i].sc] = &keymap[i];
+      if (static_cast<int>(keymap[i].sc) < static_cast<int>(SDL_SCANCODE_COUNT)) lut[keymap[i].sc] = &keymap[i];
     built = 1;
   }
-  if ((int)sc < 0 || (int)sc >= (int)SDL_SCANCODE_COUNT) return NULL;
+  if (static_cast<int>(sc) < 0 || static_cast<int>(sc) >= static_cast<int>(SDL_SCANCODE_COUNT)) return nullptr;
   return lut[sc];
 }
 
 /* BIOS INT 16h ASCII of a key for the given SDL modifier state. */
-static uint8_t key_ascii(const KeyMap* k, SDL_Keymod mod) {
-  int shift = (mod & SDL_KMOD_SHIFT) != 0;
+static auto key_ascii(const KeyMap* k, SDL_Keymod mod) -> uint8_t {
+  int shift = static_cast<int>((mod & SDL_KMOD_SHIFT) != 0);
   if (k->kind == K_NOASCII) return 0;
-  if (mod & SDL_KMOD_ALT) return 0;                       /* Alt combinations: ASCII 00 */
-  if (mod & SDL_KMOD_CTRL) return k->ctrl;
+  if ((mod & SDL_KMOD_ALT) != 0u) return 0;                       /* Alt combinations: ASCII 00 */
+  if ((mod & SDL_KMOD_CTRL) != 0u) return k->ctrl;
   switch (k->kind) {
   case K_LETTER:
-    if (mod & SDL_KMOD_CAPS) shift = !shift;
-    return shift ? k->hi : k->lo;
+    if ((mod & SDL_KMOD_CAPS) != 0u) shift = static_cast<int>(shift == 0);
+    return (shift != 0) ? k->hi : k->lo;
   case K_KEYPAD:
     /* Digits only when Num Lock xor Shift; otherwise cursor keys. */
-    return (((mod & SDL_KMOD_NUM) != 0) != shift) ? k->lo : 0;
-  default: return shift ? k->hi : k->lo;
+    return (static_cast<int>((mod & SDL_KMOD_NUM) != 0) != shift) ? k->lo : 0;
+  default: return (shift != 0) ? k->hi : k->lo;
   }
 }
 
-static int clamp_i(int v, int lo, int hi) {
+static auto clamp_i(int v, int lo, int hi) -> int {
   return v < lo ? lo : (v > hi ? hi : v);
 }
 
@@ -439,15 +444,15 @@ static void mouse_pos(SDL_Event* e, float fx, float fy, int* x, int* y) {
   int w = P.tex_w > 0 ? P.tex_w : (P.frame_w > 0 ? P.frame_w : 640);
   int h = P.tex_h > 0 ? P.tex_h : (P.frame_h > 0 ? P.frame_h : 480);
   (void)e;
-  *x = clamp_i((int)SDL_floorf(fx), 0, w - 1);
-  *y = clamp_i((int)SDL_floorf(fy), 0, h - 1);
+  *x = clamp_i(static_cast<int>(SDL_floorf(fx)), 0, w - 1);
+  *y = clamp_i(static_cast<int>(SDL_floorf(fy)), 0, h - 1);
 }
 
-int plat_poll_event(PlatEvent* ev) {
+auto plat_poll_event(PlatEvent* ev) -> int {
   SDL_Event e;
 
-  if (!ev) return 0;
-  if (!P.inited || P.headless) return 0;
+  if (ev == nullptr) return 0;
+  if ((P.inited == 0) || (P.headless != 0)) return 0;
   while (SDL_PollEvent(&e)) {
     memset(ev, 0, sizeof *ev);
     switch (e.type) {
@@ -460,7 +465,7 @@ int plat_poll_event(PlatEvent* ev) {
       /* SDL key repeat arrives as further KEY_DOWN events (repeat=1),
              * which is exactly the DOS typematic behaviour. */
       const KeyMap* k = keymap_find(e.key.scancode);
-      if (!k) break;
+      if (k == nullptr) break;
       ev->type = e.type == SDL_EVENT_KEY_DOWN ? PLAT_EV_KEY_DOWN : PLAT_EV_KEY_UP;
       ev->scancode = k->code;
       ev->extended = k->ext;
@@ -474,7 +479,7 @@ int plat_poll_event(PlatEvent* ev) {
       return 1;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-      int b;
+      int b = 0;
       if (e.button.button == SDL_BUTTON_LEFT)
         b = 0;
       else if (e.button.button == SDL_BUTTON_RIGHT)
@@ -485,7 +490,7 @@ int plat_poll_event(PlatEvent* ev) {
         break;
       SDL_ConvertEventToRenderCoordinates(P.renderer, &e);
       ev->type = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? PLAT_EV_MOUSE_DOWN : PLAT_EV_MOUSE_UP;
-      ev->button = (uint8_t)b;
+      ev->button = static_cast<uint8_t>(b);
       mouse_pos(&e, e.button.x, e.button.y, &ev->x, &ev->y);
       return 1;
     }
@@ -496,24 +501,24 @@ int plat_poll_event(PlatEvent* ev) {
   return 0;
 }
 
-uint8_t plat_shift_flags(void) {
-  SDL_Keymod m;
+auto plat_shift_flags() -> uint8_t {
+  SDL_Keymod m = 0;
   uint8_t f = 0;
-  if (!P.inited || P.headless) return 0;
+  if ((P.inited == 0) || (P.headless != 0)) return 0;
   m = SDL_GetModState();
-  if (m & SDL_KMOD_RSHIFT) f |= 0x01;
-  if (m & SDL_KMOD_LSHIFT) f |= 0x02;
-  if (m & SDL_KMOD_CTRL) f |= 0x04;
-  if (m & SDL_KMOD_ALT) f |= 0x08;
-  if (m & SDL_KMOD_SCROLL) f |= 0x10;
-  if (m & SDL_KMOD_NUM) f |= 0x20;
-  if (m & SDL_KMOD_CAPS) f |= 0x40;
+  if ((m & SDL_KMOD_RSHIFT) != 0u) f |= 0x01;
+  if ((m & SDL_KMOD_LSHIFT) != 0u) f |= 0x02;
+  if ((m & SDL_KMOD_CTRL) != 0u) f |= 0x04;
+  if ((m & SDL_KMOD_ALT) != 0u) f |= 0x08;
+  if ((m & SDL_KMOD_SCROLL) != 0u) f |= 0x10;
+  if ((m & SDL_KMOD_NUM) != 0u) f |= 0x20;
+  if ((m & SDL_KMOD_CAPS) != 0u) f |= 0x40;
   return f;
 }
 
 /* ---- time --------------------------------------------------------------- */
 
-uint64_t plat_ticks_us(void) {
+auto plat_ticks_us() -> uint64_t {
   return (SDL_GetTicksNS() - P.t0_ns) / 1000u;
 }
 
@@ -523,15 +528,15 @@ void plat_sleep_ms(int ms) {
      * resumes here from a timer). */
   if (ms >= 0 && !P.headless) emscripten_sleep((unsigned)ms);
 #else
-  if (ms > 0) SDL_Delay((Uint32)ms);
+  if (ms > 0) SDL_Delay(static_cast<Uint32>(ms));
 #endif
 }
 
 /* ---- files -------------------------------------------------------------- */
 
 void plat_set_save_dir(const char* dir) {
-  size_t n;
-  if (!dir || !*dir) dir = ".";
+  size_t n = 0;
+  if ((dir == nullptr) || ((*dir) == 0)) dir = ".";
   SDL_strlcpy(P.save_dir, dir, sizeof P.save_dir);
   n = strlen(P.save_dir);
   while (n > 1 && (P.save_dir[n - 1] == '/' || P.save_dir[n - 1] == '\\')) P.save_dir[--n] = '\0';
@@ -540,27 +545,27 @@ void plat_set_save_dir(const char* dir) {
 #endif
 }
 
-const char* plat_save_dir(void) {
+auto plat_save_dir() -> const char* {
   if (P.save_dir[0] == '\0') {
 #ifdef __EMSCRIPTEN__
     plat_set_save_dir("/saves");     /* web/pre.js mounts IDBFS there */
 #else
     char* pref = SDL_GetPrefPath("opeu", "Operation Europe");
-    plat_set_save_dir(pref ? pref : ".");
+    plat_set_save_dir((pref != nullptr) ? pref : ".");
     SDL_free(pref);
 #endif
   }
   return P.save_dir;
 }
 
-typedef struct FindCtx {
+struct FindCtx {
   const char* want;
   char found[256];
   int ok;
-} FindCtx;
+};
 
-static SDL_EnumerationResult SDLCALL find_cb(void* ud, const char* dirname, const char* fname) {
-  FindCtx* c = (FindCtx*)ud;
+static auto SDLCALL find_cb(void* ud, const char* dirname, const char* fname) -> SDL_EnumerationResult {
+  FindCtx* c = static_cast<FindCtx*>(ud);
   (void)dirname;
   if (SDL_strcasecmp(fname, c->want) == 0) {
     SDL_strlcpy(c->found, fname, sizeof c->found);
@@ -570,8 +575,8 @@ static SDL_EnumerationResult SDLCALL find_cb(void* ud, const char* dirname, cons
   return SDL_ENUM_CONTINUE;
 }
 
-static int path_exists(const char* path) {
-  return SDL_GetPathInfo(path, NULL);
+static auto path_exists(const char* path) -> int {
+  return static_cast<int>(SDL_GetPathInfo(path, nullptr));
 }
 
 /* Resolve a DOS name (may contain '\' or '/' separators) inside the data
@@ -579,33 +584,33 @@ static int path_exists(const char* path) {
  * component is missing and `create` is set, it is appended in upper case
  * (the DOS spelling).  Returns 1 if the file exists, 0 if a creatable path
  * was produced, -1 on failure. */
-static int resolve(const char* dos_name, char* out, size_t outsz, int create) {
+static auto resolve(const char* dos_name, char* out, size_t outsz, int create) -> int {
   char comp[256];
   const char* p = dos_name;
-  size_t len;
+  size_t len = 0;
 
-  if (!dos_name || !*dos_name) return -1;
+  if ((dos_name == nullptr) || ((*dos_name) == 0)) return -1;
   SDL_strlcpy(out, plat_save_dir(), outsz);
 
-  while (*p) {
+  while ((*p) != 0) {
     size_t n = 0;
-    int last;
+    int last = 0;
     while (*p == '\\' || *p == '/') p++;
-    if (!*p) break;
-    while (p[n] && p[n] != '\\' && p[n] != '/') n++;
+    if ((*p) == 0) break;
+    while ((p[n] != 0) && p[n] != '\\' && p[n] != '/') n++;
     if (n >= sizeof comp) return -1;
     memcpy(comp, p, n);
     comp[n] = '\0';
     p += n;
     while (*p == '\\' || *p == '/') p++;
-    last = (*p == '\0');
+    last = static_cast<int>(*p == '\0');
 
     len = strlen(out);
     if (len + 1 + n + 1 > outsz) return -1;
     /* Fast path: the exact spelling exists. */
     out[len] = '/';
     memcpy(out + len + 1, comp, n + 1);
-    if (path_exists(out)) continue;
+    if (path_exists(out) != 0) continue;
     out[len] = '\0';
     {
       FindCtx c;
@@ -613,7 +618,7 @@ static int resolve(const char* dos_name, char* out, size_t outsz, int create) {
       c.found[0] = '\0';
       c.ok = 0;
       SDL_EnumerateDirectory(out, find_cb, &c);
-      if (c.ok) {
+      if (c.ok != 0) {
         size_t fl = strlen(c.found);
         if (len + 1 + fl + 1 > outsz) return -1;
         out[len] = '/';
@@ -621,74 +626,76 @@ static int resolve(const char* dos_name, char* out, size_t outsz, int create) {
         continue;
       }
     }
-    if (!last || !create) return -1;
+    if ((last == 0) || (create == 0)) return -1;
     {
-      size_t i;
+      size_t i = 0;
       out[len] = '/';
-      for (i = 0; i <= n; i++) out[len + 1 + i] = (char)SDL_toupper((unsigned char)comp[i]);
+      for (i = 0; i <= n; i++) out[len + 1 + i] = static_cast<char>(SDL_toupper(static_cast<unsigned char>(comp[i])));
     }
     return 0;
   }
   return 1;
 }
 
-void* plat_fopen(const char* dos_name, const char* mode) {
+auto plat_fopen(const char* dos_name, const char* mode) -> void* {
   char path[PLAT_PATH_MAX];
-  int creating;
-  int r;
+  int creating = 0;
+  int r = 0;
 
-  if (!dos_name || !mode) return NULL;
-  creating = strchr(mode, 'w') != NULL || strchr(mode, 'a') != NULL;
+  if ((dos_name == nullptr) || (mode == nullptr)) return nullptr;
+  creating = static_cast<int>(strchr(mode, 'w') != nullptr || strchr(mode, 'a') != nullptr);
   r = resolve(dos_name, path, sizeof path, creating);
-  if (r < 0 || (r == 0 && !creating)) return NULL;
+  if (r < 0 || (r == 0 && (creating == 0))) return nullptr;
   return fopen(path, mode);
 }
 
-int plat_fclose(void* f) {
-  return f ? fclose((FILE*)f) : -1;
+auto plat_fclose(void* f) -> int {
+  return (f != nullptr) ? fclose(static_cast<FILE*>(f)) : -1;
 }
 
-size_t plat_fread(void* buf, size_t n, void* f) {
-  if (!f || !buf || n == 0) return 0;
-  return fread(buf, 1, n, (FILE*)f);
+auto plat_fread(void* buf, size_t n, void* f) -> size_t {
+  if ((f == nullptr) || (buf == nullptr) || n == 0) return 0;
+  return fread(buf, 1, n, static_cast<FILE*>(f));
 }
 
-size_t plat_fwrite(const void* buf, size_t n, void* f) {
-  if (!f || !buf || n == 0) return 0;
-  return fwrite(buf, 1, n, (FILE*)f);
+auto plat_fwrite(const void* buf, size_t n, void* f) -> size_t {
+  if ((f == nullptr) || (buf == nullptr) || n == 0) return 0;
+  return fwrite(buf, 1, n, static_cast<FILE*>(f));
 }
 
-long plat_fseek(void* f, long off, int whence) {
-  if (!f) return -1;
-  if (fseek((FILE*)f, off, whence) != 0) return -1;
-  return ftell((FILE*)f);
+auto plat_fseek(void* f, long off, int whence) -> long {
+  if (f == nullptr) return -1;
+  if (fseek(static_cast<FILE*>(f), off, whence) != 0) return -1;
+  return ftell(static_cast<FILE*>(f));
 }
 
-long plat_fsize(void* f) {
-  long cur, end;
-  if (!f) return -1;
-  cur = ftell((FILE*)f);
-  if (cur < 0 || fseek((FILE*)f, 0, SEEK_END) != 0) return -1;
-  end = ftell((FILE*)f);
-  fseek((FILE*)f, cur, SEEK_SET);
+auto plat_fsize(void* f) -> long {
+  long cur;
+  long end;
+  if (f == nullptr) return -1;
+  cur = ftell(static_cast<FILE*>(f));
+  if (cur < 0 || fseek(static_cast<FILE*>(f), 0, SEEK_END) != 0) return -1;
+  end = ftell(static_cast<FILE*>(f));
+  fseek(static_cast<FILE*>(f), cur, SEEK_SET);
   return end;
 }
 
-int plat_fexists(const char* dos_name) {
+auto plat_fexists(const char* dos_name) -> int {
   char path[PLAT_PATH_MAX];
-  return resolve(dos_name, path, sizeof path, 0) == 1;
+  return static_cast<int>(resolve(dos_name, path, sizeof path, 0) == 1);
 }
 
-int plat_fdelete(const char* dos_name) {
+auto plat_fdelete(const char* dos_name) -> int {
   char path[PLAT_PATH_MAX];
   if (resolve(dos_name, path, sizeof path, 0) != 1) return -1;
   return remove(path) == 0 ? 0 : -1;
 }
 
 /* DOS semantics: fails if the source is missing or the target exists. */
-int plat_frename(const char* from, const char* to) {
-  char src[PLAT_PATH_MAX], dst[PLAT_PATH_MAX];
-  int r;
+auto plat_frename(const char* from, const char* to) -> int {
+  char src[PLAT_PATH_MAX];
+  char dst[PLAT_PATH_MAX];
+  int r = 0;
   if (resolve(from, src, sizeof src, 0) != 1) return -1;
   r = resolve(to, dst, sizeof dst, 1);
   if (r != 0) return -1;
@@ -706,24 +713,24 @@ static void SDLCALL audio_cb(void* ud, SDL_AudioStream* stream, int additional, 
     int frames = additional / 4;
     if (frames <= 0) break;
     if (frames > 1024) frames = 1024;
-    if (P.audio_fn)
+    if (P.audio_fn != nullptr)
       P.audio_fn(P.audio_user, buf, frames, P.audio_rate);
     else
-      memset(buf, 0, (size_t)frames * 4u);
+      memset(buf, 0, static_cast<size_t>(frames) * 4u);
     SDL_PutAudioStreamData(stream, buf, frames * 4);
     additional -= frames * 4;
   }
 }
 
-int plat_audio_open(int rate, PlatAudioFn fn, void* user) {
+auto plat_audio_open(int rate, PlatAudioFn fn, void* user) -> int {
   SDL_AudioSpec spec;
 
-  if (!P.inited || P.headless) return 0;
-  if (!(P.sdl_flags & SDL_INIT_AUDIO)) return -1;
+  if ((P.inited == 0) || (P.headless != 0)) return 0;
+  if ((P.sdl_flags & SDL_INIT_AUDIO) == 0u) return -1;
   if (rate <= 0) rate = 44100;
-  if (P.audio) {
+  if (P.audio != nullptr) {
     SDL_DestroyAudioStream(P.audio);
-    P.audio = NULL;
+    P.audio = nullptr;
   }
   P.audio_fn = fn;
   P.audio_user = user;
@@ -731,8 +738,8 @@ int plat_audio_open(int rate, PlatAudioFn fn, void* user) {
   spec.format = SDL_AUDIO_S16;
   spec.channels = 2;
   spec.freq = rate;
-  P.audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, audio_cb, NULL);
-  if (!P.audio) {
+  P.audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, audio_cb, nullptr);
+  if (P.audio == nullptr) {
     fprintf(stderr, "plat_audio_open: %s\n", SDL_GetError());
     return -1;
   }
@@ -740,14 +747,14 @@ int plat_audio_open(int rate, PlatAudioFn fn, void* user) {
   return 0;
 }
 
-int plat_audio_active(void) {
-  return P.audio != NULL;
+auto plat_audio_active() -> int {
+  return static_cast<int>(P.audio != nullptr);
 }
 
-void plat_audio_lock(void) {
-  if (P.audio) SDL_LockAudioStream(P.audio);
+void plat_audio_lock() {
+  if (P.audio != nullptr) SDL_LockAudioStream(P.audio);
 }
 
-void plat_audio_unlock(void) {
-  if (P.audio) SDL_UnlockAudioStream(P.audio);
+void plat_audio_unlock() {
+  if (P.audio != nullptr) SDL_UnlockAudioStream(P.audio);
 }

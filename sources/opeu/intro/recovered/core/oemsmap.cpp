@@ -51,7 +51,7 @@ auto Ems(uint8_t* ds, EmsEvent event, EmsEventId id, Words... words) -> uint16_t
 
 /* 032a:000e. AX=handle, DX=count, BX=first physical page. */
 void opeu_ems_map_pages(uint8_t* ds, EmsEvent event, int16_t handle, int16_t count, int16_t first) {
-  int16_t i;
+  int16_t i = 0;
   for (i = 0; i < count; i++) {
     Ems(ds, event, MAP, handle, Data(ds).ems_pages[first].number, i);
     first++;
@@ -60,21 +60,22 @@ void opeu_ems_map_pages(uint8_t* ds, EmsEvent event, int16_t handle, int16_t cou
 
 /* 032a:0048 */
 void opeu_gfx_wait(uint8_t* ds, EmsEvent event) {
-  if (Data(ds).sprite_mapped) opeu_ems_map_pages(ds, event, Data(ds).sprite_handle, 4, 0);
+  if (Data(ds).sprite_mapped != 0) opeu_ems_map_pages(ds, event, static_cast<int16_t>(Data(ds).sprite_handle), 4, 0);
 }
 
 /* 032a:005c. 1 unless releasing the mapped handle failed. */
-int16_t opeu_memory_release(uint8_t* ds, EmsEvent event) {
-  int16_t ok;
+auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t {
+  int16_t ok = 0;
   ok = 1;
-  if (Data(ds).sprite_mapped && Ems(ds, event, RELEASE, Data(ds).sprite_handle)) ok = 0;
+  if ((Data(ds).sprite_mapped != 0) && (Ems(ds, event, RELEASE, Data(ds).sprite_handle) != 0u)) ok = 0;
   return ok;
 }
 
 /* 032a:008a. BX=handle variable, AX=pages. 1 if the pages were allocated.
  * Entered with SP=sp: BP=sp-2, total at BP-2, unallocated at BP-4. */
-int16_t opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t handle, int16_t pages) {
-  uint16_t total = static_cast<uint16_t>(sp - 4), unallocated = static_cast<uint16_t>(sp - 6);
+auto opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t handle, int16_t pages) -> int16_t {
+  uint16_t total = static_cast<uint16_t>(sp - 4);
+  uint16_t unallocated = static_cast<uint16_t>(sp - 6);
   if (Ems(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(WrappedWord(ds, unallocated)) >= pages
       && Ems(ds, event, ALLOCATE, pages, handle) == 0)
     return 1;
@@ -82,31 +83,32 @@ int16_t opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t hand
 }
 
 /* 032a:00d0. The near call to 008a pushes bp, the 2-byte frame and cs:ip. */
-int16_t opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) {
-  int16_t ok;
+auto opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
+  int16_t ok = 0;
   ok = opeu_ems_reserve(ds, event, static_cast<uint16_t>(sp - 8), offsetof(OpenDataSegment, sprite_handle), 4);
-  if (ok) Data(ds).buffer_f = Data(ds).ems_pages[0].segment;
+  if (ok != 0) Data(ds).buffer_f = Data(ds).ems_pages[0].segment;
   Data(ds).sprite_mapped = ok;
   return ok;
 }
 
 /* 032a:00f8. 1 if a usable EMM page frame was found and recorded. Entered
  * with SP=sp: BP=sp-2, pages at BP-100h, count BP-102h, frame BP-104h. */
-int16_t opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) {
-  uint16_t pages = static_cast<uint16_t>(sp - 0x102), count = static_cast<uint16_t>(sp - 0x104),
-           frame = static_cast<uint16_t>(sp - 0x106);
-  int16_t n;
-  if (!Ems(ds, event, PRESENT)) goto fail;
-  if (Ems(ds, event, STATUS)) goto fail;
-  if (Ems(ds, event, FRAME, frame)) goto fail;
-  if (Ems(ds, event, PAGE_COUNT, count)) goto fail;
+auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
+  uint16_t pages = static_cast<uint16_t>(sp - 0x102);
+  uint16_t count = static_cast<uint16_t>(sp - 0x104);
+  uint16_t frame = static_cast<uint16_t>(sp - 0x106);
+  int16_t n = 0;
+  if (Ems(ds, event, PRESENT) == 0u) goto fail;
+  if (Ems(ds, event, STATUS) != 0u) goto fail;
+  if (Ems(ds, event, FRAME, frame) != 0u) goto fail;
+  if (Ems(ds, event, PAGE_COUNT, count) != 0u) goto fail;
   if (static_cast<int16_t>(WrappedWord(ds, count)) > 64) goto fail;
-  if (Ems(ds, event, PAGE_ARRAY, pages)) goto fail;
+  if (Ems(ds, event, PAGE_ARRAY, pages) != 0u) goto fail;
   if (WrappedWord(ds, frame) < 0xa000) goto fail;
   for (n = 0; n < static_cast<int16_t>(WrappedWord(ds, count)) - 1; n++) {
-    if (WrappedWord(ds, static_cast<uint16_t>(pages + 4 * n)) == WrappedWord(ds, frame)) {
+    if (WrappedWord(ds, static_cast<uint16_t>(pages + (4 * n))) == WrappedWord(ds, frame)) {
       if (static_cast<int16_t>(WrappedWord(ds, count)) - n < 4) goto fail;
-      opeu_copy_bytes(ds, static_cast<uint16_t>(pages + 4 * n), offsetof(OpenDataSegment, ems_pages), 16);
+      opeu_copy_bytes(ds, static_cast<uint16_t>(pages + (4 * n)), offsetof(OpenDataSegment, ems_pages), 16);
       for (n = 0; n < 3; n++)
         if (static_cast<uint16_t>(Data(ds).ems_pages[n].segment - Data(ds).ems_pages[n + 1].segment) != 0xfc00)
           goto fail;

@@ -38,28 +38,28 @@
 /* ---- modeled DGROUP stack ------------------------------------------------ */
 
 /* Reserve n bytes; their DS offset is the base (b1) or SP+4 (scratch). */
-uint16_t b1_stack_alloc(uint16_t n);
-uint16_t port_scratch_enter(uint16_t bytes);
+auto b1_stack_alloc(uint16_t n) -> uint16_t;
+auto port_scratch_enter(uint16_t bytes) -> uint16_t;
 void port_scratch_leave(uint16_t bytes);
 /* `frame` (entry SP - 2) and `sp` (entry SP) with PORT_FRAME reserved. */
-uint16_t b1_frame_enter(void);
-uint16_t port_frame_enter(void);
-void port_frame_leave(void);
-uint16_t b1_sp_enter(void);
+auto b1_frame_enter() -> uint16_t;
+auto port_frame_enter() -> uint16_t;
+void port_frame_leave();
+auto b1_sp_enter() -> uint16_t;
 /* Air modules: C2_AIR_FRAME (0x200) reserved. */
-uint16_t c2_air_sp_enter(void);
-uint16_t c2_air_bp_enter(void);
-void c2_air_leave(void);
+auto c2_air_sp_enter() -> uint16_t;
+auto c2_air_bp_enter() -> uint16_t;
+void c2_air_leave();
 /* Battle modules: BTL_RESERVE (0x200) reserved. */
-uint16_t btl_sp_enter(void);
-void btl_sp_leave(void);
+auto btl_sp_enter() -> uint16_t;
+void btl_sp_leave();
 /* Map modules: MAP_FRAME_BYTES (0x300) reserved. */
-uint16_t map_frame_enter(void);
-void map_frame_leave(void);
+auto map_frame_enter() -> uint16_t;
+void map_frame_leave();
 /* Push/pop cdecl argument words on the modeled stack. */
-uint16_t a_push_words(const uint16_t* args, unsigned count);
+auto a_push_words(const uint16_t* args, unsigned count) -> uint16_t;
 void a_pop_words(unsigned count);
-uint16_t b1_push_words(const uint16_t* args, unsigned count);
+auto b1_push_words(const uint16_t* args, unsigned count) -> uint16_t;
 
 /* ---- variadic text routines: request_format / cursor_print ---------------- */
 
@@ -74,61 +74,61 @@ void c2_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
 void c2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
 void map_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
 void map_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-uint16_t lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count);
-uint16_t lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count);
+auto lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count) -> uint16_t;
+auto lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count) -> uint16_t;
 /* request_format with the battle modules' reserve (2n+2 bytes). */
-typedef void (*BtlFrameRoutine)(uint8_t* ds, void* host, uint16_t frame);
+using BtlFrameRoutine = void (*)(uint8_t* ds, void* host, uint16_t frame);
 void btl_frame_call(uint8_t* ds, BtlFrameRoutine routine, const uint16_t* words, unsigned n);
 void btl_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
 void btl_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
 
 /* ---- C runtime random state (DS:c6f4) ------------------------------------- */
 
-uint16_t port_rand_bounded(uint8_t* ds, uint16_t bound);
+auto port_rand_bounded(uint8_t* ds, uint16_t bound) -> uint16_t;
 
 /* ---- DS words --------------------------------------------------------------- */
 
 void port_set_word(uint8_t* ds, uint16_t at, uint16_t value);
-uint16_t* port_ds_word_ptr(uint16_t off);
+auto port_ds_word_ptr(uint16_t off) -> uint16_t*;
 
 /* ---- struct hosts (port/core/hosts.c) ------------------------------------- */
 
-void* port_textout_host(void);   /* TextHost {event, sp}: sp = port_sp */
-uint16_t* port_textout_host_sp(void);  /* its sp (svc_textout saves/restores it) */
-void* port_uiprim_host(void);    /* UiHost {memory, segments, event} */
-void* port_dialogs_host(void);   /* DialogHost {event, load, scratch} */
-void* port_numdlg_host(void);    /* numdlg's bridge {service} */
+auto port_textout_host() -> void*;   /* TextHost {event, sp}: sp = port_sp */
+auto port_textout_host_sp() -> uint16_t*;  /* its sp (svc_textout saves/restores it) */
+auto port_uiprim_host() -> void*;    /* UiHost {memory, segments, event} */
+auto port_dialogs_host() -> void*;   /* DialogHost {event, load, scratch} */
+auto port_numdlg_host() -> void*;    /* numdlg's bridge {service} */
 
 /* ---- far code pointers of the recovered data ------------------------------ */
 
-typedef uint16_t (*PortCellPredicate)(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side);
+using PortCellPredicate = uint16_t (*)(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side);
 /* 145c:1114 / 145c:1152, the two predicates of map/cellpred.c. */
 PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg);
-typedef uint8_t (*PortByteReader)(void);
+using PortByteReader = uint8_t (*)(void);
 /* 0a04:0132 / 0a04:01fc, UIPRIM's picture stream readers. */
 PortByteReader port_picture_reader(uint16_t off, uint16_t seg);
 /* 1707:03e4 daily_show(id, side, far presenter (offset, segment)). */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg);
 /* A briefing of core/scenbrf.c with its 100-byte closing buffer reserved. */
-typedef void (*PortBriefing)(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t),
-                             uint16_t closing);
-uint32_t port_run_briefing(uint8_t* ds, PortBriefing briefing);
+using PortBriefing = void (*)(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t),
+                              uint16_t closing);
+auto port_run_briefing(uint8_t* ds, PortBriefing briefing) -> uint32_t;
 /* Address-keyed forward with reordered words: out[i] = in[order[i]]. */
-uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order,
-                     unsigned n);
+auto btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order,
+                 unsigned n) -> uint16_t;
 /* Call a linked routine by its reference name. */
-uint32_t port_call_named(uint8_t* ds, const char* name, const uint16_t* args, unsigned count);
+auto port_call_named(uint8_t* ds, const char* name, const uint16_t* args, unsigned count) -> uint32_t;
 
 /* ---- driver register blocks (int86 REGS words: ax bx cx dx si di cflag) ---- */
 
-uint16_t port_mouse_int33(uint16_t* w);
-uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg);
+auto port_mouse_int33(uint16_t* w) -> uint16_t;
+auto port_sound_int66(uint16_t* w, uint16_t* ds_seg) -> uint16_t;
 
 /* ---- keyboard prompts with their 16-byte scratch area ---------------------- */
 
-uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items);
-uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items);
-uint16_t port_prompt_yes_no(uint8_t* ds, uint16_t text);
+auto port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) -> uint16_t;
+auto port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) -> uint16_t;
+auto port_prompt_yes_no(uint8_t* ds, uint16_t text) -> uint16_t;
 
 /* ---- LOADSCEN: read SCENARIO and MAP by name, hand over their bytes -------- */
 
@@ -136,4 +136,4 @@ void port_load_scenario(uint8_t* ds, uint16_t scenario);
 
 /* ---- boundary pointers of the recovered code ------------------------------ */
 
-void port_install_hooks(void);
+void port_install_hooks();

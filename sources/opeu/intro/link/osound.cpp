@@ -13,19 +13,19 @@
 
 namespace opeu::intro {
 namespace {
-uint16_t osound_int66(uint16_t* w, uint16_t* ds_seg) {
+auto osound_int66(uint16_t* w, uint16_t* ds_seg) -> uint16_t {
   port_fm_int66(&w[0], &w[1], &w[3], ds_seg);
   w[6] = 0;
   return w[0];
 }
 }
 
-uint16_t link_osound([[maybe_unused]] uint8_t* ds, SoundServiceId call, uint16_t* words) {
+auto link_osound([[maybe_unused]] uint8_t* ds, SoundServiceId call, uint16_t* words) -> uint16_t {
   using enum SoundServiceId;
   switch (call) {
   case DRIVER_OPEN:
     if (words[1] != BANK_FRAME) port_fatal("OPEN: sound driver opened with bank %04x:%04x", words[1], words[0]);
-    return (uint16_t)opeu_open_sound_open(words[0], OPEN_BANK_SEGMENT);
+    return static_cast<uint16_t>(opeu_open_sound_open(words[0], OPEN_BANK_SEGMENT));
   case INT86: {
     uint16_t ds_seg = OPEN_DS_SEGMENT;
     return osound_int66(words, &ds_seg);

@@ -1,8 +1,8 @@
 /* Far-data arena, DGROUP image, DOS memory blocks and the stack model. */
 #include "port.hpp"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 uint8_t* port_arena;
 uint8_t* port_ds;
@@ -20,74 +20,76 @@ static int block_count;
 /* The arena (allocated once, cleared on every later call), DS, the DOS block
  * list and the stack pointer as a program finds them at load. The image is
  * the game's (port_memory_init, game/link/image.cpp). */
-void port_memory_reset(void) {
-  if (!port_arena) {
-    port_arena = (uint8_t*)calloc(1, PORT_ARENA_SIZE + 0x10000u);
-    if (!port_arena) port_fatal("out of memory for the far-data arena");
+void port_memory_reset() {
+  if (port_arena == nullptr) {
+    port_arena = static_cast<uint8_t*>(calloc(1, PORT_ARENA_SIZE + 0x10000u));
+    if (port_arena == nullptr) port_fatal("out of memory for the far-data arena");
   } else {
     memset(port_arena, 0, PORT_ARENA_SIZE);
   }
-  port_ds = port_arena + (uint32_t)PORT_DS_SEGMENT * 16u;
+  port_ds = port_arena + (static_cast<uint32_t>(PORT_DS_SEGMENT) * 16u);
   block_count = 0;
   port_sp = PORT_STACK_TOP;
 }
 
-uint8_t* port_far(uint16_t seg, uint16_t off) {
-  uint32_t linear = (uint32_t)seg * 16u + off;
+auto port_far(uint16_t seg, uint16_t off) -> uint8_t* {
+  uint32_t linear = (static_cast<uint32_t>(seg) * 16u) + off;
   if (linear >= PORT_ARENA_SIZE + 0x10000u) port_fatal("far access %04x:%04x outside the arena", seg, off);
   return port_arena + linear;
 }
 
-uint16_t port_ds_word(uint16_t off) {
-  return (uint16_t)(port_ds[off] | port_ds[(uint16_t)(off + 1)] << 8);
+auto port_ds_word(uint16_t off) -> uint16_t {
+  return static_cast<uint16_t>(port_ds[off] | port_ds[static_cast<uint16_t>(off + 1)] << 8);
 }
 
 void port_ds_set_word(uint16_t off, uint16_t value) {
-  port_ds[off] = (uint8_t)value;
-  port_ds[(uint16_t)(off + 1)] = (uint8_t)(value >> 8);
+  port_ds[off] = static_cast<uint8_t>(value);
+  port_ds[static_cast<uint16_t>(off + 1)] = static_cast<uint8_t>(value >> 8);
 }
 
-uint16_t port_segment_of(const void* p) {
-  const uint8_t* b = (const uint8_t*)p;
+auto port_segment_of(const void* p) -> uint16_t {
+  const uint8_t* b = static_cast<const uint8_t*>(p);
   if (b < port_arena || b >= port_arena + PORT_ARENA_SIZE) port_fatal("pointer %p is not in the far-data arena", p);
-  return (uint16_t)((size_t)(b - port_arena) >> 4);
+  return static_cast<uint16_t>(static_cast<size_t>(b - port_arena) >> 4);
 }
 
-uint16_t port_offset_of(const void* p, uint16_t seg) {
-  const uint8_t* b = (const uint8_t*)p;
-  size_t linear = (size_t)(b - port_arena);
-  if (b < port_arena || linear < (size_t)seg * 16u || linear - (size_t)seg * 16u > 0xffffu)
+auto port_offset_of(const void* p, uint16_t seg) -> uint16_t {
+  const uint8_t* b = static_cast<const uint8_t*>(p);
+  size_t linear = static_cast<size_t>(b - port_arena);
+  if (b < port_arena || linear < static_cast<size_t>(seg) * 16u || linear - (static_cast<size_t>(seg) * 16u) > 0xffffu)
     port_fatal("pointer %p is not addressable from segment %04x", p, seg);
-  return (uint16_t)(linear - (size_t)seg * 16u);
+  return static_cast<uint16_t>(linear - (static_cast<size_t>(seg) * 16u));
 }
 
-uint16_t port_dos_alloc(uint16_t paragraphs) {
+auto port_dos_alloc(uint16_t paragraphs) -> uint16_t {
   uint32_t seg = PORT_HEAP_SEGMENT;
-  int i, j;
+  int i;
+  int j;
   for (;;) {
     int clash = 0;
     for (i = 0; i < block_count; i++) {
-      uint32_t s = blocks[i].seg, e = s + blocks[i].paras;
+      uint32_t s = blocks[i].seg;
+      uint32_t e = s + blocks[i].paras;
       if (seg < e && seg + paragraphs > s) {
         seg = e;
         clash = 1;
       }
     }
-    if (!clash) break;
+    if (clash == 0) break;
   }
   if (seg + paragraphs > PORT_ARENA_SIZE / 16u || block_count == MAX_BLOCKS) return 0;
   for (i = 0; i < block_count && blocks[i].seg < seg; i++);
   for (j = block_count; j > i; j--) blocks[j] = blocks[j - 1];
-  blocks[i].seg = (uint16_t)seg;
+  blocks[i].seg = static_cast<uint16_t>(seg);
   blocks[i].paras = paragraphs;
   block_count++;
-  memset(port_arena + seg * 16u, 0, (size_t)paragraphs * 16u);
-  port_trace("mem", "dos_alloc %04x paragraphs -> %04x", paragraphs, (unsigned)seg);
-  return (uint16_t)seg;
+  memset(port_arena + (seg * 16u), 0, static_cast<size_t>(paragraphs) * 16u);
+  port_trace("mem", "dos_alloc %04x paragraphs -> %04x", paragraphs, static_cast<unsigned>(seg));
+  return static_cast<uint16_t>(seg);
 }
 
-int port_dos_free(uint16_t segment) {
-  int i;
+auto port_dos_free(uint16_t segment) -> int {
+  int i = 0;
   for (i = 0; i < block_count; i++)
     if (blocks[i].seg == segment) {
       for (; i < block_count - 1; i++) blocks[i] = blocks[i + 1];
@@ -100,14 +102,14 @@ int port_dos_free(uint16_t segment) {
 /* The callee's entry SP points at a 4-byte far return address slot just
  * below the caller's frame; `bytes` more are reserved below it for the
  * callee's locals and the frames of the routines it calls internally. */
-uint16_t port_stack_enter(uint16_t bytes) {
-  uint16_t sp = (uint16_t)(port_sp - 4);
-  if ((uint32_t)port_sp < (uint32_t)PORT_DS_END + 4u + bytes)
+auto port_stack_enter(uint16_t bytes) -> uint16_t {
+  uint16_t sp = static_cast<uint16_t>(port_sp - 4);
+  if (static_cast<uint32_t>(port_sp) < static_cast<uint32_t>(PORT_DS_END) + 4u + bytes)
     port_fatal("modeled DGROUP stack overflow (sp=%04x, %u bytes)", port_sp, bytes);
-  port_sp = (uint16_t)(port_sp - 4 - bytes);
+  port_sp = static_cast<uint16_t>(port_sp - 4 - bytes);
   return sp;
 }
 
 void port_stack_leave(uint16_t bytes) {
-  port_sp = (uint16_t)(port_sp + 4 + bytes);
+  port_sp = static_cast<uint16_t>(port_sp + 4 + bytes);
 }

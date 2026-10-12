@@ -18,15 +18,15 @@ namespace {
 TextHost host;
 }
 
-uint16_t link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count) {
+auto link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t {
   using enum TextEventId;
-  auto const arg{ [&](int i) { return Arg(args, count, i); } };
+  auto const arg{ [&](int i) -> uint16_t { return Arg(args, count, i); } };
   switch (id) {
   case KEY_READ: return port_key_read();
   case KEY_WAITING: return opeu_turn_input_b();
   case STUB_A: opeu_open_stub_a(ds, link_outil); return 0;
-  case BOX: return (uint16_t)opeu_ui_box(arg(0), arg(1), arg(2), arg(3), arg(4));
-  case CLEAR: return (uint16_t)opeu_vga_clear();
+  case BOX: return static_cast<uint16_t>(opeu_ui_box(arg(0), arg(1), arg(2), arg(3), arg(4)));
+  case CLEAR: return static_cast<uint16_t>(opeu_vga_clear());
   case STUB_B: opeu_open_stub_b(ds, link_outil); return 0;
   case STUB_C: opeu_open_stub_c(ds, link_outil); return 0;
   default: port_unhandled("otext", static_cast<unsigned>(id), count);
@@ -35,22 +35,23 @@ uint16_t link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t 
 }
 
 /* The caller's SP minus the return address: the text engine's free stack. */
-TextHost* link_otext_host(void) {
+auto link_otext_host() -> TextHost* {
   host.event = link_otext;
-  host.sp = (uint16_t)(open_sp - 4);
+  host.sp = static_cast<uint16_t>(open_sp - 4);
   return &host;
 }
 
 /* cursor_print(format, ...): the caller pushes the argument words; the
  * variadic host entry receives the DS offset of the first (the format). */
 void link_otext_print(uint8_t* ds, const uint16_t* words, unsigned count) {
-  uint16_t saved = open_sp, frame;
-  unsigned i;
-  open_sp = (uint16_t)(open_sp - 2 * count);
+  uint16_t saved = open_sp;
+  uint16_t frame;
+  unsigned i = 0;
+  open_sp = static_cast<uint16_t>(open_sp - (2 * count));
   frame = open_sp;
   for (i = 0; i < count; i++) {
-    ds[(uint16_t)(frame + 2 * i)] = (uint8_t)words[i];
-    ds[(uint16_t)(frame + 2 * i + 1)] = (uint8_t)(words[i] >> 8);
+    ds[static_cast<uint16_t>(frame + (2 * i))] = static_cast<uint8_t>(words[i]);
+    ds[static_cast<uint16_t>(frame + (2 * i) + 1)] = static_cast<uint8_t>(words[i] >> 8);
   }
   opeu_cursor_print(ds, link_otext_host(), frame);
   open_sp = saved;

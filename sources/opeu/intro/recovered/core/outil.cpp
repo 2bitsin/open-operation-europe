@@ -60,20 +60,20 @@ auto util_int86(uint8_t* ds, UtilService event, Regs* r) -> void {
 /* *stream++ through the far pointer DS:1c0e (offset), 1c10 (segment). */
 auto util_stream_next(uint8_t* ds, UtilService event) -> uint8_t {
   uint16_t offset = Data(ds).stream_offset;
-  Data(ds).stream_offset = (uint16_t)(offset + 1);
-  return (uint8_t)Call(ds, event, FAR_BYTE, Data(ds).stream_segment, offset);
+  Data(ds).stream_offset = static_cast<uint16_t>(offset + 1);
+  return static_cast<uint8_t>(Call(ds, event, FAR_BYTE, Data(ds).stream_segment, offset));
 }
 }
 
 /* 062d:0008. AX=ticks. Waits until the FM driver's down-counter has run
  * `ticks` further; 1 if the input poll reported a key or button first. */
-int16_t opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) {
-  uint16_t target;
-  target = (uint16_t)Call(ds, event, FM_BUSY);
+auto opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) -> int16_t {
+  uint16_t target = 0;
+  target = static_cast<uint16_t>(Call(ds, event, FM_BUSY));
   target -= ticks;
   do {
-    if (opeu_open_input_poll(ds, event)) return 1;
-  } while ((uint16_t)Call(ds, event, FM_BUSY) > target);
+    if (opeu_open_input_poll(ds, event) != 0) return 1;
+  } while (static_cast<uint16_t>(Call(ds, event, FM_BUSY)) > target);
   return 0;
 }
 
@@ -81,17 +81,17 @@ int16_t opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) {
 void opeu_mouse_window(uint8_t* ds, UtilService event, int16_t x, int16_t y, int16_t width, int16_t height) {
   Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   r.x.ax = 7;
-  r.x.cx = x;
-  r.x.dx = width + x;
+  r.x.cx = static_cast<uint16_t>(x);
+  r.x.dx = static_cast<uint16_t>(width + x);
   util_int86(ds, event, &r);
   r.x.ax = 8;
-  r.x.cx = y + 40;
-  r.x.dx = y + height + 40;
+  r.x.cx = static_cast<uint16_t>(y + 40);
+  r.x.dx = static_cast<uint16_t>(y + height + 40);
   util_int86(ds, event, &r);
 }
 
 /* 062d:0094 (MAIN 05a8:000c). INT 33h reset, then limit to 640x400; returns the reset AX. */
-uint16_t opeu_mouse_reset(uint8_t* ds, UtilService event) {
+auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t {
   Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   r.x.ax = 0;
   util_int86(ds, event, &r);
@@ -100,32 +100,32 @@ uint16_t opeu_mouse_reset(uint8_t* ds, UtilService event) {
 }
 
 /* 062d:00c6 (MAIN 05a8:0104). Queries the driver even without a mouse. */
-int opeu_mouse_left(uint8_t* ds, UtilService event) {
+auto opeu_mouse_left(uint8_t* ds, UtilService event) -> int {
   Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   r.x.ax = 3;
   util_int86(ds, event, &r);
-  return (r.x.bx & 1) ? -1 : 0;
+  return ((r.x.bx & 1) != 0) ? -1 : 0;
 }
 
 /* 062d:00f0 (MAIN 05a8:012e). */
-int opeu_mouse_right(uint8_t* ds, UtilService event) {
+auto opeu_mouse_right(uint8_t* ds, UtilService event) -> int {
   Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
   r.x.ax = 3;
   util_int86(ds, event, &r);
-  return (r.x.bx & 2) ? -1 : 0;
+  return ((r.x.bx & 2) != 0) ? -1 : 0;
 }
 
 /* 062d:011a (MAIN 05a8:0158). */
-int opeu_turn_input_a(uint8_t* ds, UtilService event) {
-  return opeu_mouse_left(ds, event) || opeu_mouse_right(ds, event);
+auto opeu_turn_input_a(uint8_t* ds, UtilService event) -> int {
+  return (static_cast<int>(opeu_mouse_left(ds, event) != 0) || (opeu_mouse_right(ds, event) != 0));
 }
 
 /* 062d:0132 (MAIN 0a04:0132 with a 0x5000-byte buffer at offset 0). */
-uint8_t opeu_stream_file_byte(uint8_t* ds, UtilService event) {
+auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t {
   if (Data(ds).stream_count == 0) {
     Data(ds).stream_segment = Data(ds).buffer_g;
-    Data(ds).stream_count = (uint16_t)Call(ds, event, DOS_READ_FAR, Data(ds).picture_handle, Data(ds).buffer_g,
-                                           Data(ds).stream_offset = 0, 0x5000);
+    Data(ds).stream_count = static_cast<uint16_t>(
+        Call(ds, event, DOS_READ_FAR, Data(ds).picture_handle, Data(ds).buffer_g, Data(ds).stream_offset = 0, 0x5000));
   }
   Data(ds).stream_count--;
   return util_stream_next(ds, event);
@@ -133,7 +133,9 @@ uint8_t opeu_stream_file_byte(uint8_t* ds, UtilService event) {
 
 /* 062d:016a (MAIN 0a04:0250 on the picture file). DX:AX=position. */
 void opeu_stream_seek(uint8_t* ds, UtilService event, int32_t position) {
-  if ((int32_t)Call(ds, event, DOS_SEEK, Data(ds).picture_handle, position, (uint32_t)position >> 16, 0) != -1)
+  if (static_cast<int32_t>(
+          Call(ds, event, DOS_SEEK, Data(ds).picture_handle, position, static_cast<uint32_t>(position) >> 16, 0))
+      != -1)
     Data(ds).stream_count = 0;
 }
 
@@ -145,9 +147,9 @@ void opeu_picture_file_at(uint8_t* ds, UtilService event, uint16_t x, uint16_t y
 
 /* 062d:01bc. BX=palette: copy it to the current palette and load the DAC. */
 void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette) {
-  int16_t k;
-  uint8_t* src;
-  uint8_t* dst;
+  int16_t k = 0;
+  uint8_t* src = nullptr;
+  uint8_t* dst = nullptr;
   src = palette;
   dst = Data(ds).palette;
   for (k = 0; k < 48; k++, src++, dst++) *dst = *src;
@@ -156,11 +158,11 @@ void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette) {
 
 /* 062d:01fe. BX=target: moves every current component one step toward it,
  * loads the DAC if anything changed and reports that. */
-int16_t opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) {
-  int16_t dirty;
-  uint16_t k;
-  uint8_t* src;
-  uint8_t* dst;
+auto opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) -> int16_t {
+  int16_t dirty = 0;
+  uint16_t k = 0;
+  uint8_t* src = nullptr;
+  uint8_t* dst = nullptr;
   dirty = 0;
   src = target;
   dst = Data(ds).palette;
@@ -173,18 +175,19 @@ int16_t opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) 
         (*dst)++;
     }
   }
-  if (dirty) Call(ds, event, SET_PALETTE, 0, 16, (dst = Data(ds).palette) - ds);
+  if (dirty != 0) Call(ds, event, SET_PALETTE, 0, 16, (dst = Data(ds).palette) - ds);
   return dirty;
 }
 
 /* 062d:0262. BX=target, AX=mode: fades completely. mode -1 waits for the
  * driver timer between steps; any other mode waits a tick and returns 1 if
  * the input poll aborts the fade. */
-int16_t opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode) {
-  int16_t wait, dirty;
-  uint16_t k;
-  uint8_t* src;
-  uint8_t* dst;
+auto opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode) -> int16_t {
+  int16_t wait;
+  int16_t dirty;
+  uint16_t k = 0;
+  uint8_t* src = nullptr;
+  uint8_t* dst = nullptr;
   wait = mode == 0xffff ? 0 : 1;
   do {
     dirty = 0;
@@ -199,29 +202,30 @@ int16_t opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, 
           (*dst)++;
       }
     }
-    if (dirty) {
+    if (dirty != 0) {
       Call(ds, event, SET_PALETTE, 0, 16, (dst = Data(ds).palette) - ds);
-      if (wait) {
-        if (opeu_open_wait_ticks(ds, event, 1)) return 1;
-      } else
+      if (wait != 0) {
+        if (opeu_open_wait_ticks(ds, event, 1) != 0) return 1;
+      } else {
         Call(ds, event, OPEN_DELAY, 0);
+      }
     }
-  } while (dirty);
+  } while (dirty != 0);
   return 0;
 }
 
 /* 062d:0304. Abortable fade to black. */
-int16_t opeu_open_fade_in(uint8_t* ds, UtilService event) {
+auto opeu_open_fade_in(uint8_t* ds, UtilService event) -> int16_t {
   return opeu_open_palette_fade(ds, event, Data(ds).black, 2);
 }
 
 /* 062d:0310. Fade to black. */
-int16_t opeu_open_fade_in_wait(uint8_t* ds, UtilService event) {
+auto opeu_open_fade_in_wait(uint8_t* ds, UtilService event) -> int16_t {
   return opeu_open_palette_fade(ds, event, Data(ds).black, 0xffff);
 }
 
 /* 062d:031c. Fade to DS:1944. */
-int16_t opeu_open_fade_alt(uint8_t* ds, UtilService event) {
+auto opeu_open_fade_alt(uint8_t* ds, UtilService event) -> int16_t {
   return opeu_open_palette_fade(ds, event, Data(ds).fade_target, 0xffff);
 }
 
@@ -231,23 +235,23 @@ void opeu_open_identity_palette(uint8_t* ds, UtilService event) {
 }
 
 /* 062d:032e. 1 (input flushed) for a key, 2 for a mouse button, else 0. */
-int16_t opeu_open_input_poll(uint8_t* ds, UtilService event) {
-  if ((int16_t)Call(ds, event, TURN_INPUT_B)) {
+auto opeu_open_input_poll(uint8_t* ds, UtilService event) -> int16_t {
+  if ((static_cast<int16_t>(Call(ds, event, TURN_INPUT_B))) != 0) {
     Call(ds, event, INPUT_FLUSH);
     return 1;
   }
-  if (opeu_turn_input_a(ds, event)) return 2;
+  if (opeu_turn_input_a(ds, event) != 0) return 2;
   return 0;
 }
 
 /* 062d:0350. BX=name: opens it read/write or reports it and hangs. */
-int16_t opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name) {
-  int16_t handle;
-  handle = (int16_t)Call(ds, event, DOS_OPEN, name, 2);
+auto opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name) -> int16_t {
+  int16_t handle = 0;
+  handle = static_cast<int16_t>(Call(ds, event, DOS_OPEN, name, 2));
   if (handle == -1) {
     Call(ds, event, VGA_CLEAR);
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).error_format), name);
-    while (!Call(ds, event, OPEN_ERROR_SPIN));
+    while (Call(ds, event, OPEN_ERROR_SPIN) == 0u);
   }
   return handle;
 }

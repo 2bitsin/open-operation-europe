@@ -2,36 +2,36 @@
  * report of an unlinked service. */
 #include "port.hpp"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 static FILE* log_file;
 static const char* trace_filter;
 static int trace_checked;
 
-static void log_open(void) {
-  if (!log_file) {
+static void log_open() {
+  if (log_file == nullptr) {
     const char* path = getenv("OPEU_LOG");
-    log_file = fopen(path ? path : "port.log", "w");
+    log_file = fopen((path != nullptr) ? path : "port.log", "w");
   }
 }
 
-int port_trace_enabled(const char* category) {
-  if (!trace_checked) {
+auto port_trace_enabled(const char* category) -> int {
+  if (trace_checked == 0) {
     trace_filter = getenv("OPEU_TRACE");
     trace_checked = 1;
   }
-  if (!trace_filter || !*trace_filter) return 0;
-  return strcmp(trace_filter, "all") == 0 || strstr(trace_filter, category) != NULL;
+  if ((trace_filter == nullptr) || ((*trace_filter) == 0)) return 0;
+  return static_cast<int>(strcmp(trace_filter, "all") == 0 || strstr(trace_filter, category) != nullptr);
 }
 
 void port_trace(const char* category, const char* fmt, ...) {
-  va_list ap;
-  if (!port_trace_enabled(category)) return;
+  va_list ap = nullptr;
+  if (port_trace_enabled(category) == 0) return;
   log_open();
-  if (!log_file) return;
+  if (log_file == nullptr) return;
   fprintf(log_file, "[%s] ", category);
   va_start(ap, fmt);
   vfprintf(log_file, fmt, ap);
@@ -41,21 +41,21 @@ void port_trace(const char* category, const char* fmt, ...) {
 }
 
 void port_fatal(const char* fmt, ...) {
-  va_list ap;
+  va_list ap = nullptr;
   log_open();
   fputs("opeu: fatal: ", stderr);
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
   fputc('\n', stderr);
-  if (log_file) {
+  if (log_file != nullptr) {
     fputs("fatal: ", log_file);
     va_start(ap, fmt);
     vfprintf(log_file, fmt, ap);
     va_end(ap);
     fputc('\n', log_file);
     fclose(log_file);
-    log_file = NULL;
+    log_file = nullptr;
   }
   exit(70);
 }
