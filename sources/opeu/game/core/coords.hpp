@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_control_coordinates(uint8_t* ds, HostEvent event,
                                   uint16_t scratch, uint16_t x, uint16_t y);

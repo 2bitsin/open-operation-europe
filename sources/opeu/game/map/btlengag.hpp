@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element,
                                uint8_t supply, uint16_t frame);

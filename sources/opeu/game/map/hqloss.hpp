@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event, uint16_t sp);
 void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event, uint16_t sp);

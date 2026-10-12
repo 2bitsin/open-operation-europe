@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_alloc_distribute(uint8_t* ds, HostWordsEvent event, uint8_t first,
                            uint8_t second, uint8_t third, uint8_t count);

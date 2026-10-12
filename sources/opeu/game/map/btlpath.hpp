@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_battle_path_cost(uint8_t* ds, BattleEvent event, uint8_t x,
                                uint8_t y, uint16_t element);

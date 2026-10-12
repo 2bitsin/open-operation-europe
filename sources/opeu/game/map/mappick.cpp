@@ -22,7 +22,7 @@
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 using namespace opeu::game;
 

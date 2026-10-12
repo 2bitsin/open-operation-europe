@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_image_byte(const uint8_t* ds, const uint8_t* image, uint16_t p);
 uint16_t opeu_image_word(const uint8_t* ds, const uint8_t* image, uint16_t p);

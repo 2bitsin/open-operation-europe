@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event);
 

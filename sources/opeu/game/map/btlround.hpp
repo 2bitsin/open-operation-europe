@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_closing_music(uint8_t* ds, BattleEvent event, uint8_t side);
 void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event);

@@ -3,7 +3,7 @@
 // until Intelligence reports a result of 1.
 #include "types.hpp"
 #include "core/advmenu.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

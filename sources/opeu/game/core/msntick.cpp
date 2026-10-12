@@ -4,7 +4,7 @@
 #include "core/sideutil.hpp"
 #include "map/query.hpp"
 #include "units/stats.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/mission.hpp"
 #include "data-segment.hpp"

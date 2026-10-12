@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_para_clear(uint8_t* ds);
 uint16_t opeu_para_ready(uint8_t* ds, HostEvent event);

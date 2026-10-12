@@ -3,7 +3,7 @@
 // the final confirmation restores the orders the city had.
 #include "types.hpp"
 #include "core/stockord.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -27,7 +27,7 @@ constexpr std::uint16_t CITY_ENABLED_AT{
 }; // opeu_stock_city_enabled in this module's code segment
 constexpr std::uint16_t STOCK_ORDER_SEGMENT{
   0x1d1e
-};                                       // this module's code segment
+}; // this module's code segment
 constexpr std::uint8_t FLASH_TICKS{ 4 }; // how long the picked city flashes
 constexpr std::uint8_t FIRST_HEIGHT{
   7

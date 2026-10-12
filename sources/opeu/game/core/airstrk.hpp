@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_air_damage_roll(uint8_t* ds, HostEvent event, uint8_t x,
                               uint8_t y, uint8_t n);

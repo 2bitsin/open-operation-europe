@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_type_name(uint8_t* ds, uint16_t type, uint16_t buffer);
 uint16_t opeu_item_name(uint8_t* ds, uint16_t item, uint16_t buffer);

@@ -2,7 +2,7 @@
 // advice that applies, written into the tactics topic's buffer.
 #include "types.hpp"
 #include "core/advtact.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"

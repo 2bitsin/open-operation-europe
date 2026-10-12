@@ -8,7 +8,7 @@
 #include "types.hpp"
 #include "core/specops.hpp"
 #include "core/limits.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

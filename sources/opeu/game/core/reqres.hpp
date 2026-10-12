@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 // The services the delivery routines (opeu_request_action0, opeu_request_action1) call through their event.
 enum class DeliveryService : uint16_t {

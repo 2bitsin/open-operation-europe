@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_request_valid(uint8_t* ds, PendingEvent event, uint8_t side,
                             uint16_t request);

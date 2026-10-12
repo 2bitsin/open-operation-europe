@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_order_defend_loss(uint8_t* ds, HostEvent event);
 uint16_t opeu_order_defend_run(uint8_t* ds, HostEvent event, uint16_t frame);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_spy_commander_ready(uint8_t* ds, HostEvent event);
 void     opeu_spy_portrait_text(uint8_t* ds, HostEvent event, uint16_t text,

@@ -1,7 +1,7 @@
 // The generals views: lists of the own and the enemy side's generals and the menu that picks one of them.
 #include "types.hpp"
 #include "core/vwpeople.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/view-service.hpp"

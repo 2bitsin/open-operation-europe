@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_commander_lost(uint8_t* ds, BattleEvent event);
 void opeu_battle_report_loss(uint8_t* ds, BattleEvent event);

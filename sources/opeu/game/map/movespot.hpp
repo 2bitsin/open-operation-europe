@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_move_spot(uint8_t* ds, HostEvent event);
 uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t bp);

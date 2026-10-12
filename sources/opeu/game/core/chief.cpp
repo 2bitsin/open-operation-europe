@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include "core/chief.hpp"
 #include "core/personfl.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

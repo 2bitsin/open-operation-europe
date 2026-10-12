@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_run(uint8_t* ds, BattleEvent event);
 void opeu_battle_refresh_strengths(uint8_t* ds, BattleEvent event);

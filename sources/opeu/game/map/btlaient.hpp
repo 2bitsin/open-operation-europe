@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_battle_ai_hold(uint8_t* ds, BattleEvent event, uint16_t element);
 uint16_t opeu_battle_ai_entry_ok(uint8_t* ds, BattleEvent event, uint8_t x,

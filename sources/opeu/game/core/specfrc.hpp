@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_special_officer(uint8_t* ds, HostEvent event, uint16_t sp);
 uint16_t opeu_special_unit_target(uint8_t* ds, HostEvent event, uint16_t sp);

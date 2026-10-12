@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_end_can_occupy(uint8_t* ds, uint8_t x, uint8_t y, uint16_t unit);
 void     opeu_end_occupy_present(uint8_t* ds, HostEvent event);

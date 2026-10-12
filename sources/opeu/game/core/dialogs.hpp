@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/host.hpp"
+#include "common/host.hpp"
 
 void     opeu_panel_border(uint8_t* ds, const DialogHost* host, uint16_t which);
 uint16_t opeu_message_backdrop(uint8_t* ds, const DialogHost* host);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 // The services of the request menu (core/rqmenu, core/rqsupply, units/rqarms, units/rqreinf), called through their
 // event. svc_request serves the ones core/rqcommon, core/rqmenu and core/rqsupply raise.

@@ -3,7 +3,7 @@
 // the twenty general tips.
 #include "types.hpp"
 #include "core/advhints.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"

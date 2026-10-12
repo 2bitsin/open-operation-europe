@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_spend_fuel(uint8_t* ds, BattleEvent event, uint16_t element,
                             uint16_t before);

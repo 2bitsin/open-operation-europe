@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_battle_cell_facing(uint8_t* ds, BattleEvent event, uint8_t x,
                                 uint8_t y, uint8_t to_x, uint8_t to_y);

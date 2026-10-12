@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_memory_fail(uint8_t* ds, HostEvent event, uint16_t name);
 void opeu_alloc_segments(uint8_t* ds, HostEvent event, uint16_t sp);

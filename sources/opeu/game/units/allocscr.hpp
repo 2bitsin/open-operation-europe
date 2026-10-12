@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_alloc_amounts_show(uint8_t* ds, HostWordsEvent event, uint8_t count);
 void opeu_alloc_take(uint8_t* ds, HostWordsEvent event, uint16_t entry,

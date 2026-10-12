@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event,
                                    uint16_t attacker, uint16_t target);

@@ -9,7 +9,7 @@
 #include "core/people.hpp"
 #include "core/template.hpp"
 #include "data/fg361c.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

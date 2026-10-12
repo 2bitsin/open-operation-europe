@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_order_destroy_loss(uint8_t* ds, HostEvent event);
 void     opeu_order_destroy_present(uint8_t* ds, HostEvent event);

@@ -11,7 +11,7 @@
 #include "map/btlcmds.hpp"
 #include "map/btlcurs.hpp"
 #include "map/btlinfo.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

@@ -1,7 +1,7 @@
 // The conversion team's credits, shown after the division panel when the player answers its key prompt with '!'.
 #include "types.hpp"
 #include "core/credits.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

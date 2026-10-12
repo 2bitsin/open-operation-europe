@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_daily_context(uint8_t* ds, HostEvent event, uint8_t side);
 void opeu_turn_pre_context(uint8_t* ds, HostEvent event);

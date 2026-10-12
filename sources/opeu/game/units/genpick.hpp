@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_general_assign_choice(uint8_t* ds, HostEvent event,
                                    uint8_t choice);

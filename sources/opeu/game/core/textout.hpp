@@ -2,8 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/host.hpp"
-#include "types/misc.hpp"
+#include "common/host.hpp"
 
 uint8_t opeu_key_read(uint8_t* ds, TextHost* host);
 void    opeu_input_flush(uint8_t* ds, TextHost* host);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_mission_target_valid(uint8_t* ds, uint16_t mission, uint8_t side);
 void     opeu_mission_tick(uint8_t* ds, HostEvent event);

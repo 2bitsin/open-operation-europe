@@ -3,7 +3,7 @@
 // checks in order until one reports.
 #include "types.hpp"
 #include "core/advregt.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"

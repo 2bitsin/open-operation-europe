@@ -10,7 +10,7 @@
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
 #include "map/mappixel.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

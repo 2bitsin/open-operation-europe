@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_angel_unit_eligible(uint8_t* ds, HostEvent event, uint16_t unit);
 uint8_t  opeu_angel_portrait(uint8_t* ds, HostEvent event, uint8_t side);

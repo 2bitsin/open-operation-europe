@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_alloc_clear_panel(uint8_t* ds, HostWordsEvent event);
 void     opeu_alloc_type_panel(uint8_t* ds, HostWordsEvent event, uint8_t slot,

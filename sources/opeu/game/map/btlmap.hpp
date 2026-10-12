@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void    opeu_battle_draw_border(uint8_t* ds, HostEvent event);
 uint8_t opeu_hex_terrain_code(uint8_t* ds, HostEvent event, uint8_t code);

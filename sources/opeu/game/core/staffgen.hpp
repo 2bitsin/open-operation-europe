@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_staff_jitter_stat(uint8_t v);
 void    opeu_staff_roll_flag(uint8_t* ds, uint16_t person);

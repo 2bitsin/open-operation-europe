@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_advice_tactical_objective_threat(uint8_t*       ds,
                                                const uint8_t* far_text,

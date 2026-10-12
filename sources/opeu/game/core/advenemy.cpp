@@ -2,7 +2,7 @@
 // writes its advice into the enemy topic's buffer and shows it in the person of the staff officer.
 #include "types.hpp"
 #include "core/advenemy.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"

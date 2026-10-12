@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include "units/unitname.hpp"
 #include "common/data-segment.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_control_position(uint8_t* ds, uint16_t x, uint16_t y);
 void opeu_map_center(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x,

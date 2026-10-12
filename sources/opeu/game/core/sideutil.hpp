@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_opposite_side(uint8_t side);
 uint8_t opeu_side_for_status(const uint8_t* ds, uint8_t side);

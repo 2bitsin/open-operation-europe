@@ -9,7 +9,7 @@
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "map/query.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

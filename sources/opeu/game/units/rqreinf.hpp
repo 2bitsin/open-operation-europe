@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_reinf_element(uint8_t* ds, HostEvent event, uint16_t element,
                         uint8_t kind, uint8_t side);

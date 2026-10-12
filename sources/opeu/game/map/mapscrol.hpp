@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_view_cell_clear(uint8_t* ds, HostEvent event, int16_t x, int16_t y);
 void opeu_view_redraw(uint8_t* ds, HostEvent event, uint16_t frame);

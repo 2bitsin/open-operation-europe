@@ -1,7 +1,7 @@
 // The arrival message: the arriving unit's name, built in a buffer on the caller's stack, in the side's format.
 #include "types.hpp"
 #include "core/arrshow.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"

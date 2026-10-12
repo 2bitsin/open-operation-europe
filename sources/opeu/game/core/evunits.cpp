@@ -3,7 +3,7 @@
 // orders and supplies before the regiment's morale check.
 #include "types.hpp"
 #include "core/evunits.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"

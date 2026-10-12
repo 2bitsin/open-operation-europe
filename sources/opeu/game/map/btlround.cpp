@@ -12,7 +12,7 @@
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "map/btllist.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

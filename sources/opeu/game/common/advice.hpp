@@ -6,7 +6,7 @@
 #include "common/random.hpp"
 #include "core/memory.hpp"
 #include "port.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "units/unitname.hpp"
 
 #include <cstdint>

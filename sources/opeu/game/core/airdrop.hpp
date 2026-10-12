@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 extern uint16_t opeu_airdrop_code_segment;
 uint8_t  opeu_air_mark_regiment(uint8_t* ds, HostEvent event, uint16_t sp);

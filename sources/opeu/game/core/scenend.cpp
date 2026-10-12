@@ -2,7 +2,7 @@
 // shutdown helpers that free the memory segments and close the data files.
 #include "types.hpp"
 #include "core/scenend.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

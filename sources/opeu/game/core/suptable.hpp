@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_supply_unit_eligible(uint8_t* ds);
 void    opeu_supply_reset(uint8_t* ds);

@@ -3,7 +3,7 @@
 // for a new game and 0 when a saved game was loaded instead.
 #include "types.hpp"
 #include "core/scensel.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

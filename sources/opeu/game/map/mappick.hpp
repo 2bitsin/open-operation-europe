@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
                                 uint16_t x, uint16_t y);

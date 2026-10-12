@@ -2,7 +2,7 @@
 // daily view moves to the current regiment.
 #include "types.hpp"
 #include "core/vwdiv.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/view-service.hpp"

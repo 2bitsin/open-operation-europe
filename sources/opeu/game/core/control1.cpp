@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include "core/control1.hpp"
 #include "core/context.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

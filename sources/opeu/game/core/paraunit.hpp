@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_para_unit_create(uint8_t* ds, HostWordsEvent event, uint8_t side,
                                uint8_t x, uint8_t y);

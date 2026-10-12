@@ -8,7 +8,7 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "map/dplauto.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

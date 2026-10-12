@@ -4,7 +4,7 @@
 #include "core/airforce.hpp"
 #include "core/template.hpp"
 #include "units/labels.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/air-service.hpp"
 #include "common/data-segment.hpp"

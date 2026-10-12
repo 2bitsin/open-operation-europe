@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_view_cell_paint(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y,
                           uint16_t mode);

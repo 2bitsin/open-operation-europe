@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 int opeu_new_game_setup(uint8_t* ds, HostEvent event, uint16_t sp);
 

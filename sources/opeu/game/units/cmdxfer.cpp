@@ -15,7 +15,7 @@
 #include "map/distance.hpp"
 #include "map/support.hpp"
 #include "units/selelem.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

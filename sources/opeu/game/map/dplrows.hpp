@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_deploy_true(uint8_t* ds, BattleEvent event);
 void    opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column,

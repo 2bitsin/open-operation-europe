@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_notice_slot(uint8_t* ds, uint16_t objective, uint8_t slot);
 uint16_t opeu_notice_garrison(uint8_t* ds, HostEvent event, uint16_t bp);

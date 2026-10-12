@@ -9,7 +9,7 @@
 #include "core/limits.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

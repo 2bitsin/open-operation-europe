@@ -47,6 +47,9 @@ struct TextHost {
   std::uint16_t sp;
 };
 
+// Where the text formatter sends each character.
+using TextOut = void (*)(std::uint8_t* ds, TextHost* host, std::uint16_t c);
+
 // The UI primitives' memory, segment numbers and service.
 struct UiHost {
   std::uint8_t* memory;

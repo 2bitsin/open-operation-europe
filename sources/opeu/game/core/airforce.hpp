@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_air_officer(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_air_header(uint8_t* ds, HostEvent event, uint16_t sp);

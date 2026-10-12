@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_deploy_side(uint8_t* ds, BattleEvent event, uint8_t side);
 void opeu_deploy_battle(uint8_t* ds, BattleEvent event);

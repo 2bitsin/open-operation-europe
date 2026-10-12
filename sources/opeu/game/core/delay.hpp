@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_choose_turn_delay(uint8_t* ds, HostEvent event, uint16_t scratch);
 

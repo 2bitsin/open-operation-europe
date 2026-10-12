@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_panel_slots(uint8_t* ds, HostEvent event, int y, uint8_t count);
 uint32_t opeu_element_icon(const uint8_t* ds, uint16_t element);

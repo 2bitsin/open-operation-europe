@@ -3,7 +3,7 @@
 #pragma once
 
 #include "common/data-segment.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include <array>
 #include <cstdint>

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_tally_mark(uint8_t* ds);
 uint8_t opeu_tally_elements(uint8_t* ds, uint16_t unit, uint8_t count);

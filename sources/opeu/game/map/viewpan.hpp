@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_viewport_pan(uint8_t* ds, HostEvent event, int16_t dx, int16_t dy,
                        uint8_t x, uint8_t y, uint8_t side);

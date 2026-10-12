@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_visit_unit_safe(uint8_t* ds, uint16_t unit);
 void     opeu_visit_person_boost(uint8_t* ds, uint16_t person);

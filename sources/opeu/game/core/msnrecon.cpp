@@ -3,7 +3,7 @@
 #include "core/msnrecon.hpp"
 #include "core/msnrept.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "common/element-chain.hpp"
 #include "common/memory.hpp"
 #include "common/mission.hpp"

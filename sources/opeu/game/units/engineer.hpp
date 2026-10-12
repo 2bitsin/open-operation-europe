@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_mine_skill(uint8_t* ds, HostEvent event, uint16_t frame);
 void     opeu_mines_laid_finish(uint8_t* ds, HostEvent event);

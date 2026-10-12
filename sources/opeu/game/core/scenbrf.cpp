@@ -3,7 +3,7 @@
 // name. While a target city is named, the message hook blinks a marker on its cell of the overview map.
 #include "types.hpp"
 #include "core/scenbrf.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

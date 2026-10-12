@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_army_heading(uint8_t* ds, HostNotify event,
                        SideColorEvent color_event, uint16_t person);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_transfer_load_unit(uint8_t* ds, HostWordsEvent event, uint16_t unit,
                              uint8_t side);

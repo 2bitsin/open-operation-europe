@@ -5,7 +5,7 @@
 #include "units/xferpnl.hpp"
 #include "core/strings.hpp"
 #include "units/ratio.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "units/transfer-service.hpp"

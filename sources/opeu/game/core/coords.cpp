@@ -12,7 +12,7 @@
 #include "map/stepmap.hpp"
 #include "map/support.hpp"
 #include "map/viewstep.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"

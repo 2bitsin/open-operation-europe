@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_list_side_objectives(uint8_t* ds, HostEvent event, uint16_t sp,
                                    uint8_t side);

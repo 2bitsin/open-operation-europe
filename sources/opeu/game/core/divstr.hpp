@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_show_division_strength(uint8_t* ds, HostNotify event, uint8_t div);
 

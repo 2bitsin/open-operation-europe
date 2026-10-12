@@ -1,7 +1,7 @@
 // The division strength line of the current side's army panel: infantry, tanks and artillery of a division.
 #include "types.hpp"
 #include "core/divstr.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"

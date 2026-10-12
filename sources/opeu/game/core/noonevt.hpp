@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_noon_no_action(uint8_t* ds, const uint8_t* far_text, HostEvent event,
                          uint16_t sp);

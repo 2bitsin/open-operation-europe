@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include "core/delay.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

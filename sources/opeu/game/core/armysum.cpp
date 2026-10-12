@@ -9,7 +9,7 @@
 #include "units/aggpct.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

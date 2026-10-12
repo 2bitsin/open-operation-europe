@@ -5,7 +5,7 @@
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "map/query.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_turn_control_other(uint8_t* ds, HostEvent event,
                              HostEvent context_event);

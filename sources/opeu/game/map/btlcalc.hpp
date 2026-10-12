@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 // opeu_battle_skill's kind: which skill of the responsible commander.
 enum class BattleSkill : uint8_t {

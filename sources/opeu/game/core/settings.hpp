@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_settings_print(uint8_t* ds, HostEvent event);
 void     opeu_settings_battles(uint8_t* ds, HostEvent event, uint16_t sp);

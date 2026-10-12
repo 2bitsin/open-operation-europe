@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_air_ask_count(uint8_t* ds, HostEvent event, uint16_t sp,
                             uint16_t text, uint16_t low, uint16_t high,

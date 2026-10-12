@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include "core/vwregt.hpp"
 #include "units/vwlist.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/view-service.hpp"

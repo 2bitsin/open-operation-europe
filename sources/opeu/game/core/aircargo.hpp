@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_cargo_drop_due(uint8_t* ds, HostEvent event);
 void     opeu_cargo_distribute(uint8_t* ds, uint16_t cargo, uint16_t amount);

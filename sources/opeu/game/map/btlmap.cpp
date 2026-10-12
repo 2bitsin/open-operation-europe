@@ -7,7 +7,7 @@
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "common/scenario.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

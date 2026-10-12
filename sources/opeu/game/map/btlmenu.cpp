@@ -11,7 +11,7 @@
 #include "map/btllist.hpp"
 #include "map/btlreach.hpp"
 #include "map/btlunit.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

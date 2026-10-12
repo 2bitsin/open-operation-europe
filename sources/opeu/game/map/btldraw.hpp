@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_battle_dispatch(uint8_t* ds, BattleEvent event, uint8_t handler);
 uint16_t opeu_battle_cell_row(uint8_t* ds, BattleEvent event, uint8_t x,

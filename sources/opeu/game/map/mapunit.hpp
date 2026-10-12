@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_unit_flash(uint8_t* ds, HostEvent event, uint16_t frame,
                      uint16_t record, uint8_t ticks);

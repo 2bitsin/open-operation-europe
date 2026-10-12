@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_person_ability_total(const uint8_t* ds, uint16_t person);
 uint8_t  opeu_rank_side_people(uint8_t* ds, uint8_t side, uint8_t* order);

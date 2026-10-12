@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t  opeu_stock_cities_fill(uint8_t* ds, BattleEvent event, uint16_t sp);
 uint8_t  opeu_stock_city_enabled(uint8_t* ds, BattleEvent event, uint16_t sp);

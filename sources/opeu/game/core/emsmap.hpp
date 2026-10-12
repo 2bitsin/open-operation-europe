@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void    opeu_ems_map_pages(uint8_t* ds, HostEvent event, int16_t handle,
                            int16_t count, int16_t first);

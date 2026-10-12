@@ -10,7 +10,7 @@
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
 #include "map/grid.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"

@@ -2,7 +2,7 @@
 // button the mouse.
 #include "types.hpp"
 #include "core/appinit.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

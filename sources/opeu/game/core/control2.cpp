@@ -2,7 +2,7 @@
 // current unit and the commander's context is refreshed.
 #include "types.hpp"
 #include "core/control2.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

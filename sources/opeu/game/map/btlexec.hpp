@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event,
                                    uint16_t element, uint8_t command,

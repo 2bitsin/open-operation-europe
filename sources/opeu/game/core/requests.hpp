@@ -3,7 +3,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_hourly_c_stage_b(uint8_t* ds, PendingEvent event,
                            uint16_t stale_threshold);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_order_attack_allowed(uint8_t* ds, HostEvent event, uint16_t frame,
                                    uint8_t x, uint8_t y);

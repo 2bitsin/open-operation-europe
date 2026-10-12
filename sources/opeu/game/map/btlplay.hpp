@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_player_orders(uint8_t* ds, BattleEvent event, uint16_t frame);
 uint16_t opeu_battle_side_human(uint8_t* ds, BattleEvent event, uint8_t index);

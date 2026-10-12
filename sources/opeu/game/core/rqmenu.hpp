@@ -3,7 +3,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_request_header(uint8_t* ds, HostEvent event);
 void opeu_turn_action_7(uint8_t* ds, HostEvent event);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_air_bomb_check(uint8_t* ds, HostEvent event, uint16_t sp,
                              uint8_t city, uint16_t type);

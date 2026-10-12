@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker,
                             uint16_t target);

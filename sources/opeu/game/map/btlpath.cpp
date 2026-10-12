@@ -16,7 +16,7 @@
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
 #include "units/labels.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

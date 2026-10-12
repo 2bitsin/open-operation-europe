@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_battle_draw_element_at(uint8_t* ds, BattleEvent event, uint8_t x,
                                  uint8_t y, uint16_t element, uint8_t mode,

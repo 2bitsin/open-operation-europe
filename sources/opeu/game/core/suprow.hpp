@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_supply_draw_row(uint8_t* ds, HostEvent event, uint8_t row,
                           uint8_t column);

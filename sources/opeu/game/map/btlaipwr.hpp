@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_battle_ai_side_power(uint8_t* ds, BattleEvent event, uint8_t side,
                                    uint16_t all);

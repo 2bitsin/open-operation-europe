@@ -7,7 +7,7 @@
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "data-segment.hpp"

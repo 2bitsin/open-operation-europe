@@ -2,7 +2,7 @@
 // ("... Tank." for tanks).
 #include "types.hpp"
 #include "core/daypres.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

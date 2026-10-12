@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void    opeu_air_sprite_mirror(uint8_t* ds, uint16_t image, uint8_t keep);
 void    opeu_air_sprite_draw(uint8_t* ds, HostEvent event, uint16_t load,

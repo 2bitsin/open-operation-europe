@@ -9,7 +9,7 @@
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/perssel.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/scenario.hpp"

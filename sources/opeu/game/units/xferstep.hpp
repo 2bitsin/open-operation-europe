@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_transfer_step(uint8_t* ds, HostWordsEvent event);
 uint16_t opeu_transfer_run(uint8_t* ds, HostWordsEvent event,

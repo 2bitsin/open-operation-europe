@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void     opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t sp,
                                  uint16_t element);

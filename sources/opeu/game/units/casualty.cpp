@@ -9,7 +9,7 @@
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

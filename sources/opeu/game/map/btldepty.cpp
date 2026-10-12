@@ -10,7 +10,7 @@
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

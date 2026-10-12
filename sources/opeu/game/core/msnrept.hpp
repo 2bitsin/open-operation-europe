@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_officer_rating(const uint8_t* ds, uint8_t side, uint8_t kind);
 void     opeu_officer_gain(uint8_t* ds, uint8_t side, uint8_t kind);

@@ -5,8 +5,8 @@
 // host->scratch (at most 132 bytes; no two buffer owners are active at once).
 #include "types.hpp"
 #include "core/dialogs.hpp"
-#include "types/events.hpp"
-#include "types/host.hpp"
+#include "common/events.hpp"
+#include "common/host.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/scenario.hpp"

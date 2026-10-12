@@ -2,7 +2,7 @@
 // act, a slot grid with an icon, name and count for each of its elements.
 #include "types.hpp"
 #include "core/armypanl.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"

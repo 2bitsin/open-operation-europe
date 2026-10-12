@@ -8,7 +8,7 @@
 #include "core/numeric.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/air-service.hpp"
 #include "common/data-segment.hpp"

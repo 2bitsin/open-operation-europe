@@ -2,7 +2,7 @@
 // entry runs them in order until one does.
 #include "types.hpp"
 #include "core/advtide.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"

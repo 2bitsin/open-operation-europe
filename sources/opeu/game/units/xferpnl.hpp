@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint8_t opeu_transfer_keypad_hit(uint8_t* ds, uint16_t x, uint16_t y);
 uint8_t opeu_transfer_input(uint8_t* ds, HostWordsEvent event, uint16_t row);

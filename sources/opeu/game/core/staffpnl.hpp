@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_staff_restore_bottom(uint8_t* ds, HostNotify event);
 void opeu_staff_restore_left(uint8_t* ds, HostNotify event);

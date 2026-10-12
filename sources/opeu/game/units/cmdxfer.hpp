@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 uint16_t opeu_transfer_hours(uint8_t* ds, uint16_t from, uint16_t to,
                              uint16_t person);

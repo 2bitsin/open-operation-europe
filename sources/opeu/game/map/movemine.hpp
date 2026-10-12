@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void    opeu_move_mines(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y);
 void    opeu_move_clamp(uint8_t* ds);

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_control_prepare(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_staff_advice_menu(uint8_t* ds, HostEvent event, uint16_t sp);

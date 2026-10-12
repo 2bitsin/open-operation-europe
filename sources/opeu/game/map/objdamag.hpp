@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t bp,
                               uint16_t objective, uint8_t kind,

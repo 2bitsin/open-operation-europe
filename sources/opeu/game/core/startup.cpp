@@ -6,7 +6,7 @@
 #include "core/random.hpp"
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include <span>
 #include <utility>

@@ -9,7 +9,7 @@
 #include "common/element-chain.hpp"
 #include "core/numeric.hpp"
 #include "map/btllist.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 #include "port.hpp"
 #include "glue.hpp"

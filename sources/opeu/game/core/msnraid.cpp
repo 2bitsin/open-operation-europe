@@ -4,7 +4,7 @@
 #include "core/msnraid.hpp"
 #include "core/msnrept.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/mission.hpp"
 #include "data-segment.hpp"

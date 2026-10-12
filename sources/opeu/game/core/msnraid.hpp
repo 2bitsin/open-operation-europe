@@ -2,7 +2,7 @@
 #pragma once
 
 #include "types.hpp"
-#include "types/events.hpp"
+#include "common/events.hpp"
 
 void opeu_mission_raid_objective(uint8_t* ds, HostEvent event, uint16_t frame,
                                  uint8_t side);

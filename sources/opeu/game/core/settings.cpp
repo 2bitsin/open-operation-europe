@@ -3,8 +3,8 @@
 #include "types.hpp"
 #include "core/settings.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
-#include "types/misc.hpp"
+#include "common/events.hpp"
+#include "common/host.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"

@@ -20,9 +20,8 @@
 #include "core/textout.hpp"
 #include "core/memory.hpp"
 #include "core/strings.hpp"
-#include "types/events.hpp"
-#include "types/host.hpp"
-#include "types/misc.hpp"
+#include "common/events.hpp"
+#include "common/host.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
