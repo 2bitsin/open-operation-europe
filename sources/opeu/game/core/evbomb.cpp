@@ -15,6 +15,7 @@
 #include "types/events.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
@@ -62,11 +63,10 @@ constexpr std::uint16_t RAID_RESULT_0{ 0x22 };
 constexpr std::uint16_t RAID_NOTICE_1{ 0x23 };
 constexpr std::uint16_t RAID_RESULT_1{ 0x24 };
 
-constexpr std::uint8_t  RAID_SCENARIO{ 3 };
+constexpr Scenario      RAID_SCENARIO{ Scenario::D_DAY };
 constexpr std::uint8_t  RAID_MONTH{ 6 };
 constexpr std::uint8_t  RAID_DAY{ 13 };
 constexpr std::uint8_t  RAIDED_SIDE{ 1 };
-constexpr std::uint16_t SIDE_SHOWN{ 1 };
 constexpr std::uint8_t  NO_VOICE{ 0xff };
 constexpr std::uint8_t  AIR_KIND{ 3 };
 constexpr std::uint16_t RAID_PICTURE{ 0x1c7 };
@@ -164,7 +164,7 @@ void opeu_bomb_present(uint8_t ds[65536], HostEvent event, uint16_t) {
 void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load,
                      uint16_t bp) {
   auto& data{ Data(ds) };
-  if ((data.scenario & 0x7f) != RAID_SCENARIO)
+  if (CurrentScenario(data) != RAID_SCENARIO)
     return;
   if (data.month < RAID_MONTH ||
       (data.month == RAID_MONTH && data.day < RAID_DAY))
@@ -187,12 +187,12 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load,
         continue;
       Call(ds, event, UNIT_NAME, troop, name);
       std::uint8_t voice{ NO_VOICE };
-      if (data.side_status[0] == SIDE_SHOWN) {
+      if (data.side_status[0] == SIDE_PLAYED) {
         voice = 0;
         opeu_string_copy(ds, intro, Call(ds, event, LOOKUP, RAID_NOTICE_0));
         Call(ds, event, REQUEST_FORMAT, report,
              Call(ds, event, LOOKUP, RAID_RESULT_0), name);
-      } else if (data.side_status[1] == SIDE_SHOWN &&
+      } else if (data.side_status[1] == SIDE_PLAYED &&
                  opeu_unit_selection_eligible(ds, troop)) {
         voice = 1;
         opeu_string_copy(ds, intro, Call(ds, event, LOOKUP, RAID_NOTICE_1));

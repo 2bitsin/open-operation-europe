@@ -1,6 +1,8 @@
 // Delivering a regiment request: the regiment is built and, for a person's side, shown arriving.
 #include "types.hpp"
 #include "core/reqspawn.hpp"
+
+#include "common/arrival.hpp"
 #include "core/requnit.hpp"
 #include "data-segment.hpp"
 
@@ -28,11 +30,6 @@ enum class SpawnService : uint16_t {
   SHOW     = 5, // opeu_daily_show(id, side, present offset, present segment)
   FINISH   = 6, // opeu_finish_side_initialization(value)
 };
-
-// The far address of opeu_arrival_present (core/arrshow), which SHOW calls back.
-constexpr uint16_t ARRIVAL_PRESENT_OFFSET{ 0x816 };
-constexpr uint16_t ARRIVAL_PRESENT_SEGMENT{ 0x1270 };
-constexpr uint16_t ARRIVAL_CONTEXT{ 18 };
 
 auto Send(uint8_t* ds, PendingEvent event, SpawnService service, uint16_t a = 0,
           uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) -> uint16_t {

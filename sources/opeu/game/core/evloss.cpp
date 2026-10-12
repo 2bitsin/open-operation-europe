@@ -7,6 +7,7 @@
 #include "types/events.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/element-chain.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
@@ -63,9 +64,6 @@ enum Message : std::uint16_t {
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t ALL_CATEGORIES{ 255 };
 constexpr std::uint8_t  NORTH_ROWS{ 10 };
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_status of a side the player watches
 // The presentations and the far callbacks (segment and offset of opeu_loss_present_a/b) the daily display runs.
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x108c };
 constexpr std::uint16_t PRESENT_A_ID{ 0x38 };
@@ -123,11 +121,11 @@ void opeu_loss_present_a(uint8_t ds[65536], HostEvent event) {
 void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto&         data{ Data(ds) };
   auto const    name{ Local(bp, NAME_A) };
-  auto const    scenario{ static_cast<std::uint8_t>(data.scenario & 0x7f) };
+  auto const    scenario{ CurrentScenario(data) };
   std::uint16_t movement{};
-  if (scenario == 2)
+  if (scenario == Scenario::KURSK)
     movement = data.resistance_names[0];
-  else if (scenario == 3 || scenario == 4)
+  else if (scenario == Scenario::D_DAY || scenario == Scenario::BULGE)
     movement = data.resistance_names[1];
   else
     return;
@@ -142,7 +140,8 @@ void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
         continue;
       if (RandomBelow(ds, 100))
         continue;
-      if (data.side_status[1] == PLAYER && Call(ds, event, SPECIAL, near)) {
+      if (data.side_status[1] == SIDE_PLAYED &&
+          Call(ds, event, SPECIAL, near)) {
         auto const unit_name{ Call(ds, event, UNIT_NAME, near, name) };
         auto const format{ Call(ds, event, LOOKUP, PARTISANS_STRIKE_ENEMY) };
         Call(ds, event, FORMAT, TEXT, format, movement, unit_name);
@@ -151,7 +150,7 @@ void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
         Call(ds, event, FLASH, unit.x, unit.y, 1);
         Call(ds, event, DAILY_SHOW, PRESENT_A_ID, 1, PRESENT_A,
              PRESENT_SEGMENT);
-      } else if (data.side_status[0] == PLAYER &&
+      } else if (data.side_status[0] == SIDE_PLAYED &&
                  Call(ds, event, ELIGIBLE, near)) {
         Format(ds, event, PARTISANS_STRIKE_US, movement);
         Call(ds, event, UNIT_MESSAGE, near, TEXT);
@@ -175,21 +174,22 @@ void opeu_loss_present_b(uint8_t ds[65536], HostEvent event) {
 void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto&      data{ Data(ds) };
   auto const name{ Local(bp, NAME_B) };
-  if ((data.scenario & 0x7f) != 3 || (data.weather != 0 && data.weather != 1))
+  if (CurrentScenario(data) != Scenario::D_DAY ||
+      (data.weather != 0 && data.weather != 1))
     return;
   for (unsigned i{ 0 }; i < UNITS_PER_SIDE; ++i) {
     auto const near{ Near(data, data.units[i]) };
     if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) ||
         !opeu_loss_unit_low(ds, near) || RandomBelow(ds, 50))
       continue;
-    if (data.side_status[1] == PLAYER && Call(ds, event, SPECIAL, near)) {
+    if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
       Format(ds, event, ENEMY_LOSSES_NORTH,
              Call(ds, event, UNIT_NAME, near, name));
       Call(ds, event, UNIT_REPORT, near, TEXT);
       auto const& unit{ Record<Unit>(data, near) };
       Call(ds, event, FLASH, unit.x, unit.y, 1);
       Call(ds, event, DAILY_SHOW, PRESENT_B_ID, 1, PRESENT_B, PRESENT_SEGMENT);
-    } else if (data.side_status[0] == PLAYER &&
+    } else if (data.side_status[0] == SIDE_PLAYED &&
                Call(ds, event, ELIGIBLE, near)) {
       Call(ds, event, UNIT_MESSAGE, near,
            Call(ds, event, LOOKUP, OUR_LOSSES_NORTH));

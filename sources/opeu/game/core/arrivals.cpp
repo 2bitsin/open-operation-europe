@@ -5,7 +5,9 @@
 #include "core/people.hpp"
 #include "units/orders.hpp"
 
+#include "common/arrival.hpp"
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/element-chain.hpp"
 #include "core/dialogs.hpp"
 #include "glue.hpp"
@@ -36,14 +38,8 @@ using ArrivalEvent = auto (*)(std::uint8_t*, std::uint16_t, std::uint16_t,
                               std::uint16_t, std::uint16_t, std::uint16_t)
     -> std::uint16_t;
 
-// The far address of opeu_arrival_present (core/arrshow), which SHOW calls back.
-constexpr std::uint16_t ARRIVAL_PRESENT_OFFSET{ 0x816 };
-constexpr std::uint16_t ARRIVAL_PRESENT_SEGMENT{ 0x1270 };
-constexpr std::uint16_t HUMAN{ 1 }; // side_status of a side a player commands
-constexpr std::uint8_t  NO_TASK{ 255 };
-constexpr std::uint8_t  ARRIVAL_CONTEXT{ 18 };
-constexpr std::uint8_t  ORDER_SLOTS{ 3 };
-constexpr std::uint8_t  RANK_COMMANDER{ 3 };
+constexpr std::uint8_t ORDER_SLOTS{ 3 };
+constexpr std::uint8_t RANK_COMMANDER{ 3 };
 } // namespace
 
 void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event,
@@ -61,7 +57,7 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event,
       if (!event(ds, LOCATE, Near(data, unit.x), Near(data, unit.y), side, 0))
         return;
       for (auto& task : group.tasks)
-        task.kind = NO_TASK;
+        task.kind = Bits(TaskKind::NONE);
       group.flags &= ~Bits(GroupFlag::RESERVE);
       group.flags |= Bits(GroupFlag::READY);
       unit.flags &= ~Bits(UnitFlag::ARRIVING);
@@ -72,7 +68,7 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event,
         element.flags |= Bits(ElementFlag::READY);
       }
       event(ds, PREPARE, near, 0, 0, 0);
-      if (data.side_status[side] == HUMAN) {
+      if (data.side_status[side] == SIDE_PLAYED) {
         event(ds, CONTEXT, ARRIVAL_CONTEXT, 0, 0, 0);
         event(ds, LOCATION, unit.x, unit.y, side, 0);
         event(ds, UNIT_VIEW, near, 0, 0, 0);
@@ -95,8 +91,8 @@ void opeu_hourly_c_stage_c(uint8_t ds[65536], ArrivalEvent event) {
   auto& data{ Data(ds) };
   for (std::uint8_t side = 0; side < SIDE_COUNT; ++side)
     if (data.side_flags[side] & Bits(SideFlag::RESERVES_PENDING)) {
-      if ((data.scenario & 127) == 3 && side == 1 && data.weather != 0 &&
-          data.weather != 1)
+      if (CurrentScenario(data) == Scenario::D_DAY && side == 1 &&
+          data.weather != 0 && data.weather != 1)
         continue;
       opeu_process_arrivals(ds, event, side);
     }

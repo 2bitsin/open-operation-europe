@@ -6,6 +6,7 @@
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
@@ -68,11 +69,12 @@ uint16_t opeu_advice_enemy_mines_or_bombardment(uint8_t        ds[65536],
                                                 HostEvent event, uint16_t sp) {
   auto const& data{ Data(ds) };
   auto const  advisor{ Enemy(ds, event, far_text, sp) };
-  auto const  scenario{ data.scenario & 0x7f };
-  if (data.current_side == 0 && (scenario == 1 || scenario == 2) &&
+  auto const  scenario{ CurrentScenario(data) };
+  if (data.current_side == 0 &&
+      (scenario == Scenario::AFRICA || scenario == Scenario::KURSK) &&
       advisor.Random(4) == 1)
     return advisor.Say(AdviceText::ENEMY_MINE_FIELD);
-  if (data.current_side == 0 && scenario == 3 &&
+  if (data.current_side == 0 && scenario == Scenario::D_DAY &&
       (data.weather == 0 || data.weather == 1) && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::ENEMY_BOMBARDMENT);
   return 0;

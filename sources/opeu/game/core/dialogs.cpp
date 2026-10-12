@@ -9,6 +9,7 @@
 #include "types/host.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/memory.hpp"
 #include "core/context.hpp"
 #include "core/emsmap.hpp"
@@ -98,14 +99,10 @@ enum Service : std::uint16_t {
 // Far data: the panel border tiles and the turn frame pictures, as segments relative to the load segment.
 constexpr std::uint16_t PANEL_SEGMENT{ 0x3ab9 };
 
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // DataSegment::side_status of a side the player watches
 constexpr std::uint8_t HURRICANE_WEATHER{
   5
 }; // storms are named hurricanes in scenario 3 from July to September
-constexpr std::uint8_t  HURRICANE_SCENARIO{ 3 };
-constexpr std::uint8_t  SCENARIO_MASK{ 0x7f };
+constexpr Scenario      HURRICANE_SCENARIO{ Scenario::D_DAY };
 constexpr std::uint16_t NEW_WEAPON_PICTURE{
   0xe7
 }; // the daily picture that plays the fanfare
@@ -172,8 +169,8 @@ void opeu_turn_prepare(uint8_t ds[65536], const DialogHost* host) {
   auto const&   data{ Data(ds) };
   std::uint16_t weather;
   if (data.weather == HURRICANE_WEATHER &&
-      (data.scenario & SCENARIO_MASK) == HURRICANE_SCENARIO &&
-      data.month >= 7 && data.month <= 9)
+      CurrentScenario(data) == HURRICANE_SCENARIO && data.month >= 7 &&
+      data.month <= 9)
     weather = Near(data, data.hurricane_name);
   else
     weather = data.weather_names[data.weather];
@@ -198,7 +195,7 @@ void opeu_turn_frame(uint8_t ds[65536], const DialogHost* host, uint8_t mode) {
   Send(ds, host, PICTURE_MEMORY, 0, 0x38, data.frame_segment, 0x400);
   bool const          map{ mode == 0 };
   std::uint16_t const offset{
-    (data.scenario & SCENARIO_MASK) == 1
+    CurrentScenario(data) == Scenario::AFRICA
         ? (map ? std::uint16_t{ 0x120 } : std::uint16_t{ 0x360 })
         : (map ? std::uint16_t{ 0x240 } : std::uint16_t{ 0x4e0 })
   };
@@ -296,7 +293,7 @@ void opeu_army_title(uint8_t ds[65536], const DialogHost* host, uint16_t name) {
 void opeu_daily_show(uint8_t ds[65536], const DialogHost* host, uint16_t id,
                      uint8_t side, uint32_t present) {
   auto const& data{ Data(ds) };
-  if (data.side_status[side] != SIDE_SHOWN)
+  if (data.side_status[side] != SIDE_PLAYED)
     return;
   if (data.message_pictures == 1) {
     Send(ds, host, BITMAP_SAVE, 5, 0x78, 0x22, 0xb8, data.bitmap_buffer, 0);
@@ -463,7 +460,7 @@ void opeu_unit_report(uint8_t ds[65536], const DialogHost* host, uint16_t unit,
   auto const  text{ host->scratch };
   auto const  name{ static_cast<std::uint16_t>(host->scratch + 100) };
   auto const side{ static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)) };
-  if (data.side_status[side] == SIDE_SHOWN &&
+  if (data.side_status[side] == SIDE_PLAYED &&
       Send(ds, host, SELECTION_ELIGIBLE, unit)) {
     auto const& record{ Record<Unit>(data, unit) };
     Send(ds, host, REQUEST_FORMAT, text, Near(data, data.unit_report_format),
@@ -486,7 +483,7 @@ void opeu_objective_report(uint8_t ds[65536], const DialogHost* host,
   auto const  text{ host->scratch };
   auto const  side{ static_cast<std::uint8_t>(
       Send(ds, host, OBJECTIVE_SIDE, objective)) };
-  if (data.side_status[side] == SIDE_SHOWN &&
+  if (data.side_status[side] == SIDE_PLAYED &&
       Send(ds, host, OBJECTIVE_ELIGIBLE, objective)) {
     auto const& record{ Record<Objective>(data, objective) };
     Send(ds, host, REQUEST_FORMAT, text,
@@ -509,12 +506,12 @@ void opeu_unit_side_report(uint8_t ds[65536], const DialogHost* host,
   auto          side{ static_cast<std::uint8_t>(
       Send(ds, host, OPPOSITE_SIDE,
            static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)))) };
-  if (data.side_status[side] == SIDE_SHOWN &&
+  if (data.side_status[side] == SIDE_PLAYED &&
       Send(ds, host, UNIT_SPECIAL, unit))
     speaker = Send(ds, host, FIND_SIDE_RECORD, side, INTELLIGENCE_CHIEF_KIND);
   else {
     side = static_cast<std::uint8_t>(Send(ds, host, OPPOSITE_SIDE, side));
-    if (data.side_status[side] == SIDE_SHOWN &&
+    if (data.side_status[side] == SIDE_PLAYED &&
         Send(ds, host, SELECTION_ELIGIBLE, unit))
       speaker =
           Send(ds, host, FIND_GROUP_RECORD, side,
@@ -534,9 +531,9 @@ void opeu_objective_side_report(uint8_t ds[65536], const DialogHost* host,
   auto        side{ static_cast<std::uint8_t>(Send(
       ds, host, OPPOSITE_SIDE,
       static_cast<std::uint8_t>(Send(ds, host, OBJECTIVE_SIDE, objective)))) };
-  if (data.side_status[side] != SIDE_SHOWN) {
+  if (data.side_status[side] != SIDE_PLAYED) {
     side = static_cast<std::uint8_t>(Send(ds, host, OPPOSITE_SIDE, side));
-    if (data.side_status[side] != SIDE_SHOWN ||
+    if (data.side_status[side] != SIDE_PLAYED ||
         !Send(ds, host, OBJECTIVE_ELIGIBLE, objective))
       return;
   }

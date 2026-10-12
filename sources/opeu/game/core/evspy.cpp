@@ -12,6 +12,7 @@
 #include "types/events.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/evvisit.hpp"
@@ -68,10 +69,7 @@ constexpr std::uint16_t PRESENT_A_OFFSET{ 0x10b8 };
 constexpr std::uint16_t PRESENT_B_OFFSET{ 0x1132 };
 constexpr std::uint16_t GREETING_SHOW{ 0xba };
 constexpr std::uint16_t ENDING_SHOW{ 0xca };
-constexpr std::uint8_t  SPY_SCENARIO{ 4 };
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_control of a side the player commands
+constexpr Scenario      SPY_SCENARIO{ Scenario::BULGE };
 constexpr std::uint8_t  COMMANDER{ 1 };
 constexpr std::uint8_t  ADVISER{ 2 };
 constexpr std::uint8_t  OFFER_HOUR{ 15 };
@@ -172,7 +170,8 @@ void opeu_spy_approach(uint8_t ds[65536], HostEvent event) {
 // The hourly check (SideFlag::SPY_SENT: the offer was taken, SPY_DONE: the event is over for the day).
 void opeu_spy_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
-  if ((data.scenario & 0x7f) != SPY_SCENARIO || data.side_control[0] != PLAYER)
+  if (CurrentScenario(data) != SPY_SCENARIO ||
+      data.side_control[0] != SIDE_PLAYED)
     return;
   auto const adviser{ opeu_find_side_record(ds, 0, ADVISER) };
   auto&      flags{ data.side_flags[0] };

@@ -6,6 +6,7 @@
 #include "types/events.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/memory.hpp"
 #include "core/armysum.hpp"
 #include "core/dialogs.hpp"
@@ -18,6 +19,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <utility>
 
 extern uint16_t opeu_string_length(uint8_t ds[65536], uint16_t name);
 
@@ -85,7 +87,8 @@ void opeu_daily_context(uint8_t ds[65536], HostEvent event, uint8_t side) {
 
 void opeu_turn_pre_context(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
-  Call(ds, event, CONTEXT, data.scenario_contexts[data.scenario & 0x7f]);
+  Call(ds, event, CONTEXT,
+       data.scenario_contexts[std::to_underlying(CurrentScenario(data))]);
 }
 
 uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args,

@@ -7,6 +7,7 @@
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"
+#include "common/scenario.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/advenemy.hpp"
@@ -65,13 +66,14 @@ uint16_t opeu_advice_situational_hint(uint8_t        ds[65536],
         opeu_find_person_template(
             ds, Record<Person>(data, data.context_record1).status,
             STAFF_TEMPLATE));
-  auto const scenario{ data.scenario & 0x7f };
-  if (scenario == 4 && advisor.Random(4) == 1)
+  auto const scenario{ CurrentScenario(data) };
+  if (scenario == Scenario::BULGE && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::HINT_ARDENNES_WINTER);
-  if (scenario == 3 && data.month >= 7 && data.month <= 9 &&
+  if (scenario == Scenario::D_DAY && data.month >= 7 && data.month <= 9 &&
       advisor.Random(4) == 1)
     return advisor.Say(AdviceText::HINT_HURRICANE_SEASON);
-  if (scenario != 1 && scenario != 2 && advisor.Random(6) == 1)
+  if (scenario != Scenario::AFRICA && scenario != Scenario::KURSK &&
+      advisor.Random(6) == 1)
     return advisor.Say(data.side_stance[side] == Bits(Stance::OFFENSIVE)
                            ? AdviceText::HINT_BUILD_BRIDGE
                            : AdviceText::HINT_DESTROY_BRIDGES);
