@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include "map/arrplace.hpp"
 #include "common/data-segment.hpp"
+#include "common/memory.hpp"
 #include "common/random.hpp"
 #include "map/cellpred.hpp"
 #include "map/reqcells.hpp"
@@ -32,13 +33,13 @@ uint16_t opeu_arrival_locate(uint8_t* ds,
   if (!count)
     return 0;
   auto const& data{ Data(ds) };
-  ds[x] = NONE;
+  Byte(ds, x) = NONE;
   for (uint8_t cell_y{ 0 }; cell_y < MAP_HEIGHT; ++cell_y)
     for (uint8_t cell_x{ 0 }; cell_x < MAP_WIDTH; ++cell_x)
       if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 &&
-          (ds[x] == NONE || RandomBelow(ds, count) == 0)) {
-        ds[x] = cell_x;
-        ds[y] = cell_y;
+          (Byte(ds, x) == NONE || RandomBelow(ds, count) == 0)) {
+        Byte(ds, x) = cell_x;
+        Byte(ds, y) = cell_y;
       }
   return 1;
 }

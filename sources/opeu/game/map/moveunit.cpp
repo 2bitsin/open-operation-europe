@@ -35,11 +35,11 @@ template <typename... Words>
 auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x,
                  uint16_t x_at, uint8_t& y, uint16_t y_at, Words... words)
     -> uint16_t {
-  ds[x_at] = x;
-  ds[y_at] = y;
+  Byte(ds, x_at) = x;
+  Byte(ds, y_at) = y;
   auto const result{ Call(ds, event, service, words...) };
-  x = ds[x_at];
-  y = ds[y_at];
+  x = Byte(ds, x_at);
+  y = Byte(ds, y_at);
   return result;
 }
 } // namespace
@@ -99,8 +99,8 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame,
       // The destination lands in its DS bytes; where the unit has none they keep what they held.
       Call(ds, event, MoveService::DESTINATION, current,
            Local(frame, GOAL_X_AT), Local(frame, GOAL_Y_AT));
-      uint8_t const goal_x{ ds[Local(frame, GOAL_X_AT)] };
-      uint8_t const goal_y{ ds[Local(frame, GOAL_Y_AT)] };
+      uint8_t const goal_x{ Byte(ds, Local(frame, GOAL_X_AT)) };
+      uint8_t const goal_y{ Byte(ds, Local(frame, GOAL_Y_AT)) };
       if (!Call(ds, event, MoveService::REACHABLE, goal_x, goal_y, next_x,
                 next_y, current)) {
         auto& link{ data.unit_links[data.current_side * GROUPS_PER_SIDE +

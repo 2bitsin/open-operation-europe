@@ -86,16 +86,16 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
   auto const mouse_y_at{ Local(frame, MOUSE_Y_AT) };
   auto const view_up{ [&] { return data.view_side != NONE; } };
   auto const overview_up{ [&] { return data.overview_side != NONE; } };
-  if (ds[y] >= MAP_HEIGHT)
-    ds[y] += 5;
-  if (ds[x] >= MAP_WIDTH)
-    ds[x] += 5;
-  ds[x] %= MAP_WIDTH;
-  ds[y] %= MAP_HEIGHT;
+  if (Byte(ds, y) >= MAP_HEIGHT)
+    Byte(ds, y) += 5;
+  if (Byte(ds, x) >= MAP_WIDTH)
+    Byte(ds, x) += 5;
+  Byte(ds, x) %= MAP_WIDTH;
+  Byte(ds, y) %= MAP_HEIGHT;
   uint8_t shown_x{ NONE };
   uint8_t shown_y{ 0 };
   if (!data.input_mode)
-    Call(ds, event, PickService::ARRIVAL_LOCATION, ds[x], ds[y],
+    Call(ds, event, PickService::ARRIVAL_LOCATION, Byte(ds, x), Byte(ds, y),
          data.current_side);
   Call(ds, event, PickService::INPUT_RESET);
   Call(ds, event, PickService::BITMAP_SAVE, 0, 0, 80, 24, data.bitmap_buffer,
@@ -144,8 +144,8 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
             direction = STEP_DOWN;
           }
           if (direction != NONE) {
-            ds[x] = shown_x;
-            ds[y] = shown_y;
+            Byte(ds, x) = shown_x;
+            Byte(ds, y) = shown_y;
             opeu_grid_step_viewport(ds, x, y, direction);
             Call(ds, event, PickService::MOUSE_HIDE);
             return Outcome::MOVE;
@@ -169,15 +169,17 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
             cell_x >= static_cast<int16_t>(MAP_WIDTH) ||
             cell_y >= static_cast<int16_t>(MAP_HEIGHT))
           continue;
-        ds[x] = static_cast<uint8_t>(cell_x);
-        ds[y] = static_cast<uint8_t>(cell_y);
+        Byte(ds, x) = static_cast<uint8_t>(cell_x);
+        Byte(ds, y) = static_cast<uint8_t>(cell_y);
       } else {
         if (!overview_up() || !in(OVERVIEW_CELLS))
           continue;
-        ds[x] = static_cast<uint8_t>((pointer_x() - OVERVIEW_CELLS.left) >> 3);
-        ds[y] = static_cast<uint8_t>((pointer_y() - OVERVIEW_CELLS.top) >> 3);
+        Byte(ds, x) =
+            static_cast<uint8_t>((pointer_x() - OVERVIEW_CELLS.left) >> 3);
+        Byte(ds, y) =
+            static_cast<uint8_t>((pointer_y() - OVERVIEW_CELLS.top) >> 3);
       }
-      if (ds[x] == shown_x && ds[y] == shown_y)
+      if (Byte(ds, x) == shown_x && Byte(ds, y) == shown_y)
         continue;
       Call(ds, event, PickService::MOUSE_HIDE);
       return Outcome::MOVE;
@@ -195,7 +197,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
           pan(1, 0);
           direction = STEP_RIGHT;
         } else {
-          ++ds[x];
+          ++Byte(ds, x);
         }
         break;
       case '4':
@@ -203,7 +205,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
           pan(-1, 0);
           direction = STEP_LEFT;
         } else {
-          --ds[x];
+          --Byte(ds, x);
         }
         break;
       case '8':
@@ -211,7 +213,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
           pan(0, -1);
           direction = STEP_UP;
         } else {
-          --ds[y];
+          --Byte(ds, y);
         }
         break;
       case '2':
@@ -219,7 +221,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
           pan(0, 1);
           direction = STEP_DOWN;
         } else {
-          ++ds[y];
+          ++Byte(ds, y);
         }
         break;
       case KEY_ESCAPE:
@@ -236,14 +238,14 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
           }
     }
     // A step off the left or top edge wraps to 255 and lands on 0; off the right or bottom it stops at 39.
-    if (ds[x] > MAP_WIDTH)
-      ds[x] = 0;
-    if (ds[y] > MAP_HEIGHT)
-      ds[y] = 0;
-    if (ds[x] > MAP_WIDTH - 1)
-      ds[x] = MAP_WIDTH - 1;
-    if (ds[y] > MAP_HEIGHT - 1)
-      ds[y] = MAP_HEIGHT - 1;
+    if (Byte(ds, x) > MAP_WIDTH)
+      Byte(ds, x) = 0;
+    if (Byte(ds, y) > MAP_HEIGHT)
+      Byte(ds, y) = 0;
+    if (Byte(ds, x) > MAP_WIDTH - 1)
+      Byte(ds, x) = MAP_WIDTH - 1;
+    if (Byte(ds, y) > MAP_HEIGHT - 1)
+      Byte(ds, y) = MAP_HEIGHT - 1;
     if (view_up())
       opeu_grid_step_viewport(ds, x, y, direction);
     else
@@ -255,8 +257,8 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
   do {
     if (shown_x != NONE)
       Call(ds, event, PickService::MAP_ERASE, shown_x, shown_y);
-    shown_x = ds[x];
-    shown_y = ds[y];
+    shown_x = Byte(ds, x);
+    shown_y = Byte(ds, y);
     Call(ds, event, PickService::INSPECT, shown_x, shown_y);
     Call(ds, event, PickService::CURSOR, shown_x, shown_y);
     outcome = data.input_mode ? mouse() : keyboard();

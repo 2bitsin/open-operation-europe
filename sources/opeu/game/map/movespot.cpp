@@ -105,18 +105,19 @@ uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t bp) {
   auto const  x{ mover.x };
   auto const  y{ mover.y };
   for (uint8_t direction{ 0 }; direction < DIRECTIONS; direction++) {
-    ds[x_at] = x;
-    ds[y_at] = y;
+    Byte(ds, x_at) = x;
+    Byte(ds, y_at) = y;
     if (!Call(ds, event, SpotService::GRID_STEP, x_at, y_at, direction))
       continue;
-    auto const side{ Call(ds, event, SpotService::CELL_SIDE, ds[x_at],
-                          ds[y_at]) };
+    auto const side{ Call(ds, event, SpotService::CELL_SIDE, Byte(ds, x_at),
+                          Byte(ds, y_at)) };
     if (static_cast<uint8_t>(
             Call(ds, event, SpotService::OPPOSITE_SIDE, data.current_side)) !=
         static_cast<uint8_t>(side))
       continue;
     if (Call(ds, event, SpotService::UNIT_SPOTTED,
-             Call(ds, event, SpotService::FIND_UNIT, ds[x_at], ds[y_at])))
+             Call(ds, event, SpotService::FIND_UNIT, Byte(ds, x_at),
+                  Byte(ds, y_at))))
       return 1;
   }
   return 0;

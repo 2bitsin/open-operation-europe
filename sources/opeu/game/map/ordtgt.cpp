@@ -68,22 +68,22 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t sp,
   auto&      division{ DivisionOf(data, group) };
   auto&      task{ division.tasks[data.supply_row] };
   if (task.kind != Bits(TaskKind::NONE)) {
-    ds[x_at] = task.x;
-    ds[y_at] = task.y;
+    Byte(ds, x_at) = task.x;
+    Byte(ds, y_at) = task.y;
   } else {
     auto const& unit{ Record<Unit>(
         data, opeu_find_group_selected_unit(ds, Near(data, division))) };
-    ds[x_at] = unit.x;
-    ds[y_at] = unit.y;
+    Byte(ds, x_at) = unit.x;
+    Byte(ds, y_at) = unit.y;
   }
-  Call(ds, event, TargetService::ARRIVAL_LOCATION, ds[x_at], ds[y_at],
-       data.current_side);
+  Call(ds, event, TargetService::ARRIVAL_LOCATION, Byte(ds, x_at),
+       Byte(ds, y_at), data.current_side);
   Call(ds, event, TargetService::CONTROL_MESSAGE, Near(data, data.target_text),
        person);
   bool changed{ false };
   if (Call(ds, event, TargetService::PICK_LOCATION, x_at, y_at)) {
-    auto const x{ ds[x_at] };
-    auto const y{ ds[y_at] };
+    auto const x{ Byte(ds, x_at) };
+    auto const y{ Byte(ds, y_at) };
     auto const objective{ opeu_find_objective_at(ds, x, y) };
     TaskKind   kind;
     if (objective) {
@@ -102,8 +102,8 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t sp,
            y * data.map_scale);
     }
     if (Call(ds, event, TargetService::CONFIRM, text, person)) {
-      task.x    = ds[x_at];
-      task.y    = ds[y_at];
+      task.x    = Byte(ds, x_at);
+      task.y    = Byte(ds, y_at);
       task.kind = Bits(kind);
       changed   = true;
     }

@@ -40,7 +40,7 @@ void opeu_sprite_recolor(uint8_t* ds, uint16_t sprite, uint16_t size,
   for (uint16_t at{ 0 }; at < size; at += 3) {
     auto const first{ static_cast<uint16_t>(sprite + at) };
     auto const second{ static_cast<uint16_t>(first + 1) };
-    std::swap(ds[first], ds[second]);
+    std::swap(Byte(ds, first), Byte(ds, second));
   }
 }
 

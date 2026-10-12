@@ -57,10 +57,10 @@ uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t frame,
   auto const  x_at{ Local(frame, STEP_X_AT) };
   auto const  y_at{ Local(frame, STEP_Y_AT) };
   for (uint8_t direction{ 0 }; direction < DIRECTIONS_AND_CENTER; direction++) {
-    ds[x_at] = unit.x;
-    ds[y_at] = unit.y;
+    Byte(ds, x_at) = unit.x;
+    Byte(ds, y_at) = unit.y;
     if (Call(ds, event, MoveService::GRID_STEP, x_at, y_at, direction) &&
-        x == ds[x_at] && y == ds[y_at])
+        x == Byte(ds, x_at) && y == Byte(ds, y_at))
       return 1;
   }
   return 0;
@@ -72,8 +72,8 @@ uint16_t opeu_move_objective_target(uint8_t* ds, HostEvent event, uint16_t x,
                                     uint16_t y, uint8_t side) {
   auto const current{ Data(ds).current_unit_ptr };
   if (Call(ds, event, MoveService::DESTINATION, current, x, y)) {
-    auto const objective{ Call(ds, event, MoveService::FIND_OBJECTIVE, ds[x],
-                               ds[y]) };
+    auto const objective{ Call(ds, event, MoveService::FIND_OBJECTIVE,
+                               Byte(ds, x), Byte(ds, y)) };
     if (static_cast<uint8_t>(
             Call(ds, event, MoveService::OBJECTIVE_SIDE, objective)) == side)
       return objective;
@@ -90,7 +90,8 @@ uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame,
   auto const& data{ Data(ds) };
   auto const  current{ data.current_unit_ptr };
   if (Call(ds, event, MoveService::DESTINATION, current, x, y)) {
-    auto const target{ Call(ds, event, MoveService::FIND_UNIT, ds[x], ds[y]) };
+    auto const target{ Call(ds, event, MoveService::FIND_UNIT, Byte(ds, x),
+                            Byte(ds, y)) };
     if (data.side_control[data.current_side] != SIDE_PLAYED &&
         data.delivery_level >= 2)
       return target;
