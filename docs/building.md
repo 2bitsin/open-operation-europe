@@ -68,6 +68,8 @@ and `audio.test/` (the smoke script's music: song starts, key-ons, audible
 and unclipped WAV). After ctest, `./buildutil test` runs every
 `tools/*/pytest.ini` suite: `tools/census/` is the legacy census gate (no
 idiom count above `tools/census/baseline.json`, finished modules at zero;
+its `link` row counts the routine link table and its `callback` row the
+event-typed parameters and `Call(` sites, the two that M2 takes to zero;
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
 a clean clone with only conan and the embedded assets.
