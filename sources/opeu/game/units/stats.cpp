@@ -31,10 +31,10 @@ auto ElementAverage(std::uint8_t const* ds, std::uint16_t unit,
 uint16_t opeu_unit_special(uint8_t ds[65536], uint16_t unit) {
   auto&       data{ Data(ds) };
   auto const& record{ Record<Unit>(data, unit) };
-  if (record.flags & Bits(UnitFlag::BIT_5))
+  if (record.flags & Bits(UnitFlag::SPOTTED))
     return 1;
   for (auto const& element : Elements(data, record))
-    if (element.flags & Bits(ElementFlag::BIT_1))
+    if (element.flags & Bits(ElementFlag::SPOTTED))
       return 1;
   return 0;
 }
