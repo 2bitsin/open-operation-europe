@@ -35,13 +35,14 @@ void plat_shutdown();
  * pitch == width.  palette: 256 entries of 8-bit R,G,B.  Called at the
  * emulated display rate (about 60-70 Hz); in headless mode it only records
  * the frame so plat_capture() can return it. */
-void plat_present(const uint8_t* pixels, int width, int height, const uint8_t palette[256 * 3]);
+void plat_present(const uint8_t* pixels, int width, int height, const uint8_t* palette);
 
 /* Write the last presented frame as a PNG file.  Returns 0 on success. */
 auto plat_write_png(const char* path) -> int;
 
 /* ---- input -------------------------------------------------------------- */
 
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): PlatEvent::type holds these as ints across the contract
 enum {
   PLAT_EV_NONE = 0,
   PLAT_EV_QUIT,           /* window closed / Cmd-Q */

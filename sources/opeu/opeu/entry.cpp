@@ -1,141 +1,159 @@
-/* Operation Europe, native port: program entry.
- *
- * The original start-up is MS C's crt0 calling main(), which is the
- * recovered application entry (core/app.c, opeu_application_entry at
- * 0977:03dc). Here the host prepares what crt0 and DOS provided (the
- * initialized data segment, the memory arena, the display and input
- * devices) and then calls the same entry with app.c's service table.
- */
+// Operation Europe: the program entry. The host prepares what the DOS start-up and the launcher provided (the
+// initialised data segment, the memory arena, the display, input and the FM driver), runs the opening, then calls the
+// game's application entry with its service table.
 #include "core/app.hpp"
 #include "glue.hpp"
-#include "intro.hpp"                    /* OPEN.EXE, the opening (port/open) */
+#include "intro.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <fstream>
+#include <print>
+#include <span>
+#include <string_view>
 #if defined(__APPLE__) || defined(__linux__)
 #include <execinfo.h>
 #include <unistd.h>
 #endif
 
-static void usage(const char* argv0) {
-  fprintf(stderr,
-          "usage: %s [--saves DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
-          "  --saves DIR   saved games (default: the per-user data directory)\n"
-          "  --headless    no window; virtual time; use with --ms/--input/--png\n"
-          "  --ms N        headless: stop after N ms of virtual time\n"
-          "  --input FILE  scripted input log (see docs/port.md)\n"
-          "  --png FILE    write the final frame as PNG\n"
-          "  --wav FILE    write the music and sound (49716 Hz stereo WAV)\n"
-          "  --opl-log F   log every OPL2 register write (frame, register, value)\n"
-          "  --mute        no audio device\n",
-          argv0);
+namespace opeu::app::detail::entry {
+namespace {
+auto Usage(std::string_view argv0) -> void {
+  std::print(stderr,
+             "usage: {} [--saves DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
+             "  --saves DIR   saved games (default: the per-user data directory)\n"
+             "  --headless    no window; virtual time; use with --ms/--input/--png\n"
+             "  --ms N        headless: stop after N ms of virtual time\n"
+             "  --input FILE  scripted input log (see docs/port.md)\n"
+             "  --png FILE    write the final frame as PNG\n"
+             "  --wav FILE    write the music and sound (49716 Hz stereo WAV)\n"
+             "  --opl-log F   log every OPL2 register write (frame, register, value)\n"
+             "  --mute        no audio device\n",
+             argv0);
 }
 
 #if defined(__APPLE__) || defined(__linux__)
-/* Diagnostic (OPEU_BACKTRACE): print the native call stack on a crash. */
-static void crash_backtrace(int sig) {
-  void* frames[64];
-  int n = backtrace(frames, 64);
-  static const char msg[] = "opeu: fatal signal, native backtrace:\n";
-  (void)(write(2, msg, sizeof msg - 1) == 0);
-  backtrace_symbols_fd(frames, n, 2);
-  signal(sig, SIG_DFL);
-  raise(sig);
+// Diagnostic (OPEU_BACKTRACE): print the native call stack on a crash.
+auto CrashBacktrace(int sig) -> void {
+  std::array<void*, 64>       frames{};
+  int const                   count{ backtrace(frames.data(), static_cast<int>(frames.size())) };
+  constexpr std::string_view  message{ "opeu: fatal signal, native backtrace:\n" };
+  [[maybe_unused]] auto const written{ write(2, message.data(), message.size()) };
+  backtrace_symbols_fd(frames.data(), count, 2);
+  std::signal(sig, SIG_DFL);
+  std::raise(sig);
 }
 #endif
 
-static void shutdown_platform() {
+auto ShutdownPlatform() -> void {
   plat_shutdown();
 }
 
-/* main.cpp of the application module (sources/opeu/opeu) calls this. */
-auto opeu_main(int argc, char** argv) -> int {
-  PlatConfig cfg;
-  const char* dump_path = nullptr;
-  int i = 0;
+auto Milliseconds(char const* text) -> std::uint32_t {
+  return static_cast<std::uint32_t>(std::strtoul(text, nullptr, 0));
+}
 
-  port_options.scale = 2;
-  opeu::intro::open_intro_options(&argc, argv);     /* --no-intro / --intro */
-  for (i = 1; i < argc; i++) {
-    if ((strcmp(argv[i], "--saves") == 0) && i + 1 < argc) {
-      port_options.save_dir = argv[++i];
-    } else if ((strcmp(argv[i], "--scale") == 0) && i + 1 < argc) {
-      port_options.scale = atoi(argv[++i]);
-    } else if (strcmp(argv[i], "--headless") == 0) {
+// The command line into port_options; the arena dump path, if any, into `dump_path`. False on a bad option.
+auto ParseOptions(std::span<char*> args, char const*& dump_path) -> bool {
+  for (auto at{ args.begin() + 1 }; at != args.end(); ++at) {
+    std::string_view const option{ *at };
+    auto const             values{ args.end() - at - 1 };
+    auto                   next{ [&at] -> char* { return *++at; } };
+    if (option == "--saves" && values >= 1) {
+      port_options.save_dir = next();
+    } else if (option == "--scale" && values >= 1) {
+      port_options.scale = std::atoi(next());
+    } else if (option == "--headless") {
       port_options.headless = 1;
-    } else if ((strcmp(argv[i], "--ms") == 0) && i + 1 < argc) {
-      port_options.stop_ms = static_cast<uint32_t>(strtoul(argv[++i], nullptr, 0));
-    } else if ((strcmp(argv[i], "--input") == 0) && i + 1 < argc) {
-      port_options.input_path = argv[++i];
-    } else if ((strcmp(argv[i], "--png") == 0) && i + 1 < argc) {
-      port_options.png_path = argv[++i];
-    } else if ((strcmp(argv[i], "--shots") == 0) && i + 2 < argc) {
-      port_options.shot_dir = argv[++i];
-      port_options.shot_every_ms = static_cast<uint32_t>(strtoul(argv[++i], nullptr, 0));
-    } else if ((strcmp(argv[i], "--wav") == 0) && i + 1 < argc) {
-      port_options.wav_path = argv[++i];
-    } else if ((strcmp(argv[i], "--opl-log") == 0) && i + 1 < argc) {
-      port_options.opl_log_path = argv[++i];
-    } else if (strcmp(argv[i], "--mute") == 0) {
+    } else if (option == "--ms" && values >= 1) {
+      port_options.stop_ms = Milliseconds(next());
+    } else if (option == "--input" && values >= 1) {
+      port_options.input_path = next();
+    } else if (option == "--png" && values >= 1) {
+      port_options.png_path = next();
+    } else if (option == "--shots" && values >= 2) {
+      port_options.shot_dir      = next();
+      port_options.shot_every_ms = Milliseconds(next());
+    } else if (option == "--wav" && values >= 1) {
+      port_options.wav_path = next();
+    } else if (option == "--opl-log" && values >= 1) {
+      port_options.opl_log_path = next();
+    } else if (option == "--mute") {
       port_options.mute = 1;
-    } else if ((strcmp(argv[i], "--dump-arena") == 0) && i + 1 < argc) {
-      dump_path = argv[++i];
+    } else if (option == "--dump-arena" && values >= 1) {
+      dump_path             = next();
       port_options.headless = 1;
     } else {
-      usage(argv[0]);
-      return 2;
+      return false;
     }
+  }
+  return true;
+}
+
+// Diagnostic: the initial far-data arena (the data segments as composed from the game's data modules).
+auto DumpArena(char const* path) -> void {
+  std::ofstream file{ path, std::ios::binary };
+  file.write(reinterpret_cast<char const*>(port_arena), PORT_ARENA_SIZE); // NOLINT(*-reinterpret-cast): bytes out
+  if (!file) port_fatal("cannot write %s", path); // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
+}
+} // namespace
+
+auto Main(int argc, char** argv) -> int {
+  char const* dump_path{ nullptr };
+
+  port_options.scale = 2;
+  opeu::intro::open_intro_options(&argc, argv); // --no-intro / --intro
+  std::span<char*> const args{ argv, static_cast<std::size_t>(argc) };
+  if (!ParseOptions(args, dump_path)) {
+    Usage(args.front());
+    return 2;
   }
 
 #if defined(__APPLE__) || defined(__linux__)
-  if (getenv("OPEU_BACKTRACE") != nullptr) {
-    signal(SIGSEGV, crash_backtrace);
-    signal(SIGBUS, crash_backtrace);
-    signal(SIGABRT, crash_backtrace);
+  if (std::getenv("OPEU_BACKTRACE") != nullptr) {
+    std::signal(SIGSEGV, CrashBacktrace);
+    std::signal(SIGBUS, CrashBacktrace);
+    std::signal(SIGABRT, CrashBacktrace);
   }
 #endif
-  memset(&cfg, 0, sizeof cfg);
-  cfg.title = "Operation Europe";
-  cfg.width = 640;
-  cfg.height = 480;
-  cfg.scale = port_options.scale > 0 ? port_options.scale : 2;
-  cfg.headless = port_options.headless;
+  PlatConfig const config{
+    .title      = "Operation Europe",
+    .width      = 640,
+    .height     = 480,
+    .scale      = port_options.scale > 0 ? port_options.scale : 2,
+    .headless   = port_options.headless,
+    .fullscreen = 0,
+  };
   if (port_options.save_dir != nullptr) plat_set_save_dir(port_options.save_dir);
-  if (plat_init(&cfg) != 0) return 1;
-  atexit(shutdown_platform);
+  if (plat_init(&config) != 0) return 1;
+  std::atexit(ShutdownPlatform);
 
   vgalib_init();
   port_memory_init();
   if (dump_path != nullptr) {
-    /* Diagnostic: the initial far-data arena (FAR_DATA segments and
-         * DGROUP as composed from the recovered data modules). */
-    FILE* f = fopen(dump_path, "wb");
-    if ((f == nullptr) || fwrite(port_arena, 1, PORT_ARENA_SIZE, f) != PORT_ARENA_SIZE)
-      port_fatal("cannot write %s", dump_path);
-    fclose(f);
+    DumpArena(dump_path);
     return 0;
   }
 
-  /* The boundary pointer the AI host branches expect the embedding driver
-     * to install (opeu_ai_unrecovered, game/core/aiops1.c). */
+  // The boundary pointer the AI's host branches expect the driver to install.
   port_install_hooks();
-
-  /* FMDRV was installed by OPEU.BAT before MAIN started. */
+  // The FM driver was resident before the game started.
   port_fm_init();
-
-  /* KOEI.COM ran OPEN.EXE between FMDRV and MAIN (port/open). */
+  // The launcher ran the opening between the FM driver and the game.
   opeu::intro::open_intro_run();
-
-  /* crt0 -> main(): the recovered application entry. */
+  // The game's application entry; it returns after the scenario's end, and the program exits 0.
   opeu_application_entry(port_ds, svc_app);
-
-  /* The entry returns after the scenario end (FINISH); crt0 then exits 0,
-     * which made the launcher run the ending program. */
   port_exit(0);
   return 0;
+}
+} // namespace opeu::app::detail::entry
+
+// main.cpp of the application module calls this.
+auto opeu_main(int argc, char** argv) -> int {
+  return opeu::app::detail::entry::Main(argc, argv);
 }

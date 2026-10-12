@@ -1,5 +1,16 @@
-# clang-tidy for the finished modules (docs/building.md "clang-tidy"). The groups the roadmap names, less the house
-# exceptions below, each with its reason.
+# clang-tidy for the finished modules (docs/building.md "clang-tidy"). The three groups the roadmap names, with the
+# owning-memory, bounds, loop-convert and C-array checks among them; they are noisy on legacy code and apply to
+# finished modules. A legacy directory relaxes checks in its own .clang-tidy (InheritParentConfig), each with a reason.
+# House exceptions:
+#   readability-identifier-length          x, y, i, n are the game's coordinates and counters
+#   readability-magic-numbers,
+#   cppcoreguidelines-avoid-magic-numbers  the game's numbers are its data (screen positions, table sizes, codes)
+#   readability-braces-around-statements   .clang-format keeps short ifs and loops on one line without braces
+#   readability-uppercase-literal-suffix   the house writes literal suffixes in lower case (`uz`, `u`)
+#   readability-trailing-comma             .clang-format lays out braced lists; a forced comma breaks table rows
+#   modernize-use-designated-initializers  data tables are positional rows, one record per line
+#   cppcoreguidelines-pro-type-union-access unions stay where the data overlaps (docs/roadmap.md M4)
+#   cppcoreguidelines-avoid-do-while       a loop that runs once before its test reads best as do-while
 Checks: >
   -*,
   modernize-*,
@@ -10,6 +21,8 @@ Checks: >
   -cppcoreguidelines-avoid-magic-numbers,
   -readability-braces-around-statements,
   -readability-uppercase-literal-suffix,
+  -readability-trailing-comma,
+  -modernize-use-designated-initializers,
   -cppcoreguidelines-pro-type-union-access,
   -cppcoreguidelines-avoid-do-while
 WarningsAsErrors: ''
