@@ -42,13 +42,8 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
   auto const& config{ data.request_configs[data.current_side] };
   uint16_t    preparing[CHOICES];
   for (uint16_t kind = 0; kind < CHOICES; ++kind) preparing[kind] = Call(ds, event, RequestMenuService::MODE_IS, kind);
-  auto const filed{ [&](RequestKind kind) -> RequestSlot const& {
-    return Record<Side>(data, data.current_side_ptr).requests[std::to_underlying(kind)];
-  } };
-  auto const shown{ [&](RequestKind kind) {
-    return Call(ds, event, RequestMenuService::PENDING, std::to_underlying(kind))
-           || preparing[std::to_underlying(kind)];
-  } };
+  auto const filed{ [&](RequestKind kind) -> RequestSlot const& { return Record<Side>(data, data.current_side_ptr).requests[std::to_underlying(kind)]; } };
+  auto const shown{ [&](RequestKind kind) { return Call(ds, event, RequestMenuService::PENDING, std::to_underlying(kind)) || preparing[std::to_underlying(kind)]; } };
   do {
     uint16_t rows = 0;
     Call(ds, event, RequestMenuService::TITLE, offsetof(DataSegment, rq_title_text));
@@ -56,27 +51,22 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
       opeu_request_header(ds, event);
       Call(ds, event, RequestMenuService::POSITION, TABLE_X, FIRST_ROW_Y);
       if (preparing[0])
-        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_row_text), config.target,
-             config.delay);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_row_text), config.target, config.delay);
       else
-        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_filed_text),
-             filed(RequestKind::SUPPLIES).target);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_filed_text), filed(RequestKind::SUPPLIES).target);
       rows++;
     }
     if (shown(RequestKind::BATTALION)) {
       opeu_request_header(ds, event);
       Call(ds, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[1]) {
-        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_battalion_row_text), config.target,
-             data.element_types[config.argument].name, config.delay);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_battalion_row_text), config.target, data.element_types[config.argument].name, config.delay);
       } else {
         // The row prints the type's name; the whole type record is passed by value, as seven words.
         auto const& request{ filed(RequestKind::BATTALION) };
         auto const  type_at{ Near(data, data.element_types[request.argument]) };
-        uint16_t    words[2 + TYPE_RECORD_WORDS]{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)),
-                                                  request.target };
-        for (uint16_t i = 0; i < TYPE_RECORD_WORDS; ++i)
-          words[2 + i] = Word(ds, static_cast<uint16_t>(type_at + 2 * i));
+        uint16_t    words[2 + TYPE_RECORD_WORDS]{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)), request.target };
+        for (uint16_t i = 0; i < TYPE_RECORD_WORDS; ++i) words[2 + i] = Word(ds, static_cast<uint16_t>(type_at + 2 * i));
         event(ds, std::to_underlying(RequestMenuService::PRINT), words, static_cast<uint16_t>(std::size(words)));
       }
       rows++;
@@ -85,16 +75,13 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
       opeu_request_header(ds, event);
       Call(ds, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[2])
-        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_row_text),
-             data.rq_regiment_kind_names[config.argument], config.delay);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_row_text), data.rq_regiment_kind_names[config.argument], config.delay);
       else
-        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_filed_text),
-             data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_filed_text), data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]);
     }
     uint16_t choice;
     for (;;) {
-      choice = Call(ds, event, RequestMenuService::DELAY_DIALOG, offsetof(DataSegment, rq_menu_prompt_text), CHOICES,
-                    data.context_record2, offsetof(DataSegment, rq_menu_items));
+      choice = Call(ds, event, RequestMenuService::DELAY_DIALOG, offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
       if (choice == CANCELLED) return;
       choice--;
       if (!preparing[choice]) break;

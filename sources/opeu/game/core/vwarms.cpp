@@ -47,7 +47,7 @@ constexpr std::uint16_t INFO_MENU{ offsetof(DataSegment, info_menu) };
 constexpr std::uint16_t ARMS_PROMPT{ offsetof(DataSegment, arms_prompt) };
 constexpr std::uint16_t ARMS_MENU{ offsetof(DataSegment, arms_menu) };
 constexpr std::uint16_t VIEW_PROMPT{ offsetof(DataSegment, view_main_prompt) };
-constexpr std::uint16_t VIEW_MENU{ offsetof(DataSegment, view_main_items) };
+constexpr std::uint16_t VIEW_MENU{ offsetof(DataSegment, view_main_menu) };
 constexpr std::uint16_t WEAPONS_PROMPT{ offsetof(DataSegment, weapons_prompt) };
 constexpr std::uint16_t WEAPONS_HERE{ offsetof(DataSegment, weapons_here) };
 constexpr std::uint16_t WEAPON_LIST{ offsetof(DataSegment, weapon_list) };
@@ -62,8 +62,7 @@ constexpr std::uint16_t VIEW_MENU_ITEMS{ 6 };
 // Collects, kind by kind, the equipment types the nation bits allow into the weapon list and shows the list.
 void ViewWeapons(std::uint8_t* ds, HostEvent event, std::uint16_t sp, std::uint8_t mask) {
   std::uint16_t end{ WEAPON_LIST };
-  for (std::uint8_t kind = 0; kind < ELEMENT_KINDS; kind++)
-    end = static_cast<std::uint16_t>(end + 2 * opeu_list_element_types(ds, event, CalleeStack(sp, 4), end, mask, kind));
+  for (std::uint8_t kind = 0; kind < ELEMENT_KINDS; kind++) end = static_cast<std::uint16_t>(end + 2 * opeu_list_element_types(ds, event, CalleeStack(sp, 4), end, mask, kind));
   opeu_view_weapon_list(ds, event, CalleeStack(sp, 4), end);
 }
 
@@ -77,10 +76,7 @@ auto WordAt(std::uint8_t* ds, std::uint16_t at) -> std::uint16_t* {
 // The information menu until cancelled.
 void opeu_view_info_menu(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
-  for (std::uint16_t item;
-       (item = Call(ds, event, ViewService::DELAY_DIALOG, INFO_PROMPT, 2, data.context_record2, INFO_MENU))
-       != MENU_CANCELLED;)
-    RunAction(ds, event, data.info_actions, item);
+  for (std::uint16_t item; (item = Call(ds, event, ViewService::DELAY_DIALOG, INFO_PROMPT, 2, data.context_record2, INFO_MENU)) != MENU_CANCELLED;) RunAction(ds, event, data.info_actions, item);
 }
 
 // Picks a type from the weapon list, which ends at `end`, and shows its panel.
@@ -89,9 +85,8 @@ void opeu_view_weapon_list(uint8_t ds[65536], HostEvent event, uint16_t, uint16_
   auto const count{ static_cast<std::uint8_t>(static_cast<std::int16_t>(end - WEAPON_LIST) >> 1) };
   data.weapons_dialog.rows = static_cast<std::uint8_t>(count + 1);
   SetRowCheck(ds, event, data.weapons_dialog, RowCheck::ANY);
-  for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_MESSAGE, WEAPONS_PROMPT, data.context_record3),
-                                  Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.weapons_dialog), 1, height);
-       height = 6) {
+  for (std::uint16_t height{ 7 };
+       Call(ds, event, ViewService::CONTROL_MESSAGE, WEAPONS_PROMPT, data.context_record3), Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.weapons_dialog), 1, height); height = 6) {
     Call(ds, event, ViewService::TYPE_PANEL, data.weapon_list[data.list_row]);
     Call(ds, event, ViewService::CONTROL_MESSAGE, WEAPONS_HERE, data.context_record3);
   }
@@ -113,10 +108,7 @@ void opeu_view_enemy_weapons(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 // The weapons menu (own, enemy) until cancelled.
 void opeu_view_arms_menu(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
-  for (std::uint16_t item;
-       (item = Call(ds, event, ViewService::DELAY_DIALOG, ARMS_PROMPT, 2, data.context_record2, ARMS_MENU))
-       != MENU_CANCELLED;)
-    RunAction(ds, event, data.arms_actions, item);
+  for (std::uint16_t item; (item = Call(ds, event, ViewService::DELAY_DIALOG, ARMS_PROMPT, 2, data.context_record2, ARMS_MENU)) != MENU_CANCELLED;) RunAction(ds, event, data.arms_actions, item);
 }
 
 // The current side's victory conditions: side 0's are the scenario brief, side 1's begin the notes.
@@ -153,72 +145,41 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id, const uint16_t* 
   case ViewService::UNIT_ELIGIBLE:       r = opeu_unit_selection_eligible(ds, arg(0)); break;
   case ViewService::UNIT_SIDE:           r = opeu_unit_side(arg(0)); break;
   case ViewService::ARMY_TITLE:          opeu_army_title(ds, dialogs, arg(0)); break;
-  case ViewService::OBJECTIVE_PERCENTS:
-    opeu_objective_resource_percentages(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3)));
-    break;
-  case ViewService::ARMY_POSITION:
-    opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(arg(0)),
-                       static_cast<int16_t>(arg(1)));
-    break;
-  case ViewService::ARMY_PRINT: b2_cursor_print(ds, args, count); break;
-  case ViewService::UNIT_NAME:  r = opeu_unit_name(ds, svc_unitname, arg(0), arg(1)); break;
-  case ViewService::UNIT_CAPACITIES:
-    opeu_unit_capacities(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3)));
-    break;
-  case ViewService::RESOURCE_PERCENT: r = opeu_resource_percent(arg(0), arg(2)); break;
-  case ViewService::ORDER_DESTINATION:
-    r = opeu_unit_order_destination(ds, arg(0), &Record<std::uint8_t>(Data(ds), arg(1)),
-                                    &Record<std::uint8_t>(Data(ds), arg(2)));
-    break;
-  case ViewService::LOCATION_NAME: r = opeu_location_name(ds, svc_labels, byte(0), byte(1), arg(2)); break;
-  case ViewService::GROUP_SHOW:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_group_show(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0), byte(1));
-    });
-    break;
-  case ViewService::BACKDROP_COLOR:
-    opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()), byte(0));
-    break;
-  case ViewService::SIDE_RECORD:      r = opeu_find_side_record(ds, byte(0), byte(1)); break;
-  case ViewService::GROUP_RECORD:     r = opeu_find_group_record(ds, byte(0), byte(1)); break;
-  case ViewService::ARMY_HEADING:     opeu_army_heading(ds, svc_headings, svc_headings_color, arg(0)); break;
-  case ViewService::DIVISION_HEADING: opeu_division_heading(ds, svc_headings, arg(0)); break;
-  case ViewService::DIVISION_UNITS:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_division_regiments(ds, svc_armypanl, arg(0), arg(1), sp); });
-    break;
-  case ViewService::DIVISION_FINISH:  opeu_division_credits(ds, svc_credits); break;
-  case ViewService::CONTROL_RESET:    opeu_screen_reset(ds, dialogs); break;
-  case ViewService::DAILY_CONTEXT:    opeu_daily_context(ds, svc_context, byte(0)); break;
-  case ViewService::CONTROL_POSITION: opeu_control_position(ds, arg(0), arg(1)); break;
-  case ViewService::ARRIVAL_LOCATION:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_arrival_location(ds, svc_mappos, static_cast<uint16_t>(sp - 2), byte(0), byte(1), byte(2));
-    });
-    break;
-  case ViewService::CONTROL_MESSAGE:   opeu_control_message(ds, dialogs, arg(0), arg(1)); break;
-  case ViewService::TURN_ACTIVE_BEGIN: opeu_turn_active_begin(ds, dialogs); break;
-  case ViewService::DELAY_DIALOG:      r = opeu_delay_dialog(ds, dialogs, arg(0), arg(1), arg(2), arg(3)); break;
-  case ViewService::CONTROL_PANEL:     opeu_title_panel_begin(ds, dialogs); break;
-  case ViewService::LIST_DIALOG:       r = opeu_list_dialog(ds, svc_listdlg, arg(0), byte(1), byte(2)); break;
-  case ViewService::OPPOSITE_SIDE:     r = opeu_opposite_side(byte(0)); break;
-  case ViewService::UNIT_FLASH:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_unit_flash(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0), byte(1));
-    });
-    break;
-  case ViewService::REQUEST_FORMAT: b2_request_format(ds, args, count); break;
-  case ViewService::COPY_BYTES:     opeu_copy_bytes(ds, arg(0), arg(1), arg(2)); break;
-  case ViewService::UNIT_ANNOUNCE:
-    WithStack(PORT_FRAME,
-              [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0)); });
-    break;
-  case ViewService::UNIT_SPECIAL: r = opeu_unit_special(ds, arg(0)); break;
-  case ViewService::TYPE_PANEL:   opeu_element_type_panel(ds, dialogs, arg(0)); break;
-  case ViewService::FAR_CALL:
-    r = static_cast<uint16_t>(port_call(ds, static_cast<uint32_t>(arg(1)) * 16u + arg(0), nullptr, 0));
-    break;
-  case ViewService::CODE_SEGMENT: r = VIEW_CODE_SEGMENT; break;
-  default:                        port_unhandled(module, id, count);
+  case ViewService::OBJECTIVE_PERCENTS:  opeu_objective_resource_percentages(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3))); break;
+  case ViewService::ARMY_POSITION:       opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1))); break;
+  case ViewService::ARMY_PRINT:          b2_cursor_print(ds, args, count); break;
+  case ViewService::UNIT_NAME:           r = opeu_unit_name(ds, svc_unitname, arg(0), arg(1)); break;
+  case ViewService::UNIT_CAPACITIES:     opeu_unit_capacities(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3))); break;
+  case ViewService::RESOURCE_PERCENT:    r = opeu_resource_percent(arg(0), arg(2)); break;
+  case ViewService::ORDER_DESTINATION:   r = opeu_unit_order_destination(ds, arg(0), &Record<std::uint8_t>(Data(ds), arg(1)), &Record<std::uint8_t>(Data(ds), arg(2))); break;
+  case ViewService::LOCATION_NAME:       r = opeu_location_name(ds, svc_labels, byte(0), byte(1), arg(2)); break;
+  case ViewService::GROUP_SHOW:          WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_group_show(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0), byte(1)); }); break;
+  case ViewService::BACKDROP_COLOR:      opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); break;
+  case ViewService::SIDE_RECORD:         r = opeu_find_side_record(ds, byte(0), byte(1)); break;
+  case ViewService::GROUP_RECORD:        r = opeu_find_group_record(ds, byte(0), byte(1)); break;
+  case ViewService::ARMY_HEADING:        opeu_army_heading(ds, svc_headings, svc_headings_color, arg(0)); break;
+  case ViewService::DIVISION_HEADING:    opeu_division_heading(ds, svc_headings, arg(0)); break;
+  case ViewService::DIVISION_UNITS:      WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_division_regiments(ds, svc_armypanl, arg(0), arg(1), sp); }); break;
+  case ViewService::DIVISION_FINISH:     opeu_division_credits(ds, svc_credits); break;
+  case ViewService::CONTROL_RESET:       opeu_screen_reset(ds, dialogs); break;
+  case ViewService::DAILY_CONTEXT:       opeu_daily_context(ds, svc_context, byte(0)); break;
+  case ViewService::CONTROL_POSITION:    opeu_control_position(ds, arg(0), arg(1)); break;
+  case ViewService::ARRIVAL_LOCATION:    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_arrival_location(ds, svc_mappos, static_cast<uint16_t>(sp - 2), byte(0), byte(1), byte(2)); }); break;
+  case ViewService::CONTROL_MESSAGE:     opeu_control_message(ds, dialogs, arg(0), arg(1)); break;
+  case ViewService::TURN_ACTIVE_BEGIN:   opeu_turn_active_begin(ds, dialogs); break;
+  case ViewService::DELAY_DIALOG:        r = opeu_delay_dialog(ds, dialogs, arg(0), arg(1), arg(2), arg(3)); break;
+  case ViewService::CONTROL_PANEL:       opeu_title_panel_begin(ds, dialogs); break;
+  case ViewService::LIST_DIALOG:         r = opeu_list_dialog(ds, svc_listdlg, arg(0), byte(1), byte(2)); break;
+  case ViewService::OPPOSITE_SIDE:       r = opeu_opposite_side(byte(0)); break;
+  case ViewService::UNIT_FLASH:          WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_flash(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0), byte(1)); }); break;
+  case ViewService::REQUEST_FORMAT:      b2_request_format(ds, args, count); break;
+  case ViewService::COPY_BYTES:          opeu_copy_bytes(ds, arg(0), arg(1), arg(2)); break;
+  case ViewService::UNIT_ANNOUNCE:       WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0)); }); break;
+  case ViewService::UNIT_SPECIAL:        r = opeu_unit_special(ds, arg(0)); break;
+  case ViewService::TYPE_PANEL:          opeu_element_type_panel(ds, dialogs, arg(0)); break;
+  case ViewService::FAR_CALL:            r = static_cast<uint16_t>(port_call(ds, static_cast<uint32_t>(arg(1)) * 16u + arg(0), nullptr, 0)); break;
+  case ViewService::CODE_SEGMENT:        r = VIEW_CODE_SEGMENT; break;
+  default:                               port_unhandled(module, id, count);
   }
   return r;
 }

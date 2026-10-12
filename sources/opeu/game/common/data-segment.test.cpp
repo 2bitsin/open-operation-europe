@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace opeu::game::detail::data_segment {
@@ -133,5 +134,55 @@ TEST(DataSegment, GivesTheFuelUsersAFuelCapacity) {
   auto const& data{ Initial() };
   for (auto const& type : data.element_types)
     if (type.name != 0 && type.fuel_economy != 0) EXPECT_NE(type.fuel_capacity, 0) << Text(data, type.name);
+}
+
+TEST(DataSegment, LabelsEveryButtonAndEndsEveryMenuWithAnEmptyRecord) {
+  auto const& data{ Initial() };
+  auto const  menus{ std::to_array({
+      std::span<MenuItem const>{ data.scensel_start_menu },
+      std::span<MenuItem const>{ data.scensel_players_menu },
+      std::span<MenuItem const>{ data.scensel_side_menu },
+      std::span<MenuItem const>{ data.scensel_map_menu },
+      std::span<MenuItem const>{ data.scensel_battles_menu },
+      std::span<MenuItem const>{ data.scensel_battles_menu2 },
+      std::span<MenuItem const>{ data.scensel_difficulty_menu },
+      std::span<MenuItem const>{ data.scensel_scenario_menu },
+      std::span<MenuItem const>{ data.advice_menu },
+      std::span<MenuItem const>{ data.staff_menu },
+      std::span<MenuItem const>{ data.contact_menu },
+      std::span<MenuItem const>{ data.people_menu },
+      std::span<MenuItem const>{ data.city_side_menu },
+      std::span<MenuItem const>{ data.info_menu },
+      std::span<MenuItem const>{ data.arms_menu },
+      std::span<MenuItem const>{ data.view_main_menu },
+      std::span<MenuItem const>{ data.rq_regiment_kind_menu },
+      std::span<MenuItem const>{ data.rq_menu },
+      std::span<MenuItem const>{ data.bombing_menu },
+      std::span<MenuItem const>{ data.air_mission_menu },
+      std::span<MenuItem const>{ data.special_menu },
+  }) };
+  for (auto const menu : menus) {
+    EXPECT_EQ(menu.back().label, 0);
+    for (auto const& item : menu.first(menu.size() - 1)) EXPECT_FALSE(Text(data, item.label).empty()) << item.label;
+  }
+}
+
+TEST(DataSegment, PointsTheListWindowsAtTheirColumnWidths) {
+  auto const& data{ Initial() };
+  EXPECT_EQ(data.division_dialog.widths, Near(data, data.division_widths));
+  EXPECT_EQ(data.order_target_list.widths, Near(data, data.order_target_widths));
+  EXPECT_EQ(data.organize_list.widths, Near(data, data.organize_widths));
+  EXPECT_EQ(data.regiment_dialog.widths, Near(data, data.regiment_widths));
+  EXPECT_EQ(data.choice_dialog.widths, Near(data, data.choice_widths));
+  EXPECT_EQ(data.people_dialog.widths, Near(data, data.people_widths));
+  EXPECT_EQ(data.weapons_dialog.widths, Near(data, data.weapons_widths));
+  EXPECT_EQ(data.city_dialog.widths, Near(data, data.city_widths));
+  EXPECT_EQ(data.stock_dialog.widths, Near(data, data.stock_widths));
+  EXPECT_EQ(data.save_list.widths, Near(data, data.save_widths));
+  EXPECT_EQ(data.play_dialog.widths, Near(data, data.play_widths));
+  EXPECT_EQ(data.reinforce_dialog.widths, Near(data, data.reinforce_widths));
+  EXPECT_EQ(data.battle_handlers[9].offset, 0x0050);
+  EXPECT_EQ(Text(data, data.supply_arrows[1]), "<-");
+  EXPECT_EQ(Text(data, data.transfer_arrows[2]), "->");
 }
 } // namespace opeu::game::detail::data_segment

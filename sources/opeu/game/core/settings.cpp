@@ -128,8 +128,7 @@ constexpr uint16_t QUIT_EXIT_CODE{ 100 };
 
 // SEEK with a 32-bit file offset.
 auto Seek(uint8_t* ds, HostEvent event, uint16_t handle, int32_t offset, uint16_t whence) -> uint16_t {
-  return Call(ds, event, SEEK, handle, static_cast<uint16_t>(offset),
-              static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16), whence);
+  return Call(ds, event, SEEK, handle, static_cast<uint16_t>(offset), static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16), whence);
 }
 
 // A stored record index (0xffff for none) from a near pointer to the table of T at `base` (0 for none). The pointer
@@ -137,13 +136,11 @@ auto Seek(uint8_t* ds, HostEvent event, uint16_t handle, int32_t offset, uint16_
 template <typename T>
 auto StoredIndex(uint16_t near, uint16_t base) -> uint16_t {
   if (near == 0) return 0xffff;
-  return static_cast<uint16_t>(static_cast<int16_t>(static_cast<uint16_t>(near - base))
-                               / static_cast<int16_t>(sizeof(T)));
+  return static_cast<uint16_t>(static_cast<int16_t>(static_cast<uint16_t>(near - base)) / static_cast<int16_t>(sizeof(T)));
 }
 
 auto StoredTarget(uint16_t near, OrderTarget target) -> uint16_t {
-  return target == OrderTarget::OBJECTIVE ? StoredIndex<Objective>(near, OBJECTIVES_AT)
-                                          : StoredIndex<Unit>(near, UNITS_AT);
+  return target == OrderTarget::OBJECTIVE ? StoredIndex<Objective>(near, OBJECTIVES_AT) : StoredIndex<Unit>(near, UNITS_AT);
 }
 
 // Runs the save/quit menu's entry `index`.
@@ -190,9 +187,7 @@ void FillSlot(DataSegment& data, SaveSlot& slot) {
 void opeu_settings_print(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
   auto const  battles{ static_cast<BattleView>(data.battle_view) };
-  Call(ds, event, PRINT, Near(data, data.settings_summary), data.message_delay,
-       data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on)
-                                                    : Near(data, data.settings_music_off),
+  Call(ds, event, PRINT, Near(data, data.settings_summary), data.message_delay, data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on) : Near(data, data.settings_music_off),
        battles == BattleView::ALL    ? Near(data, data.settings_battles_view)
        : battles == BattleView::NONE ? Near(data, data.settings_battles_no)
                                      : Near(data, data.settings_battles_select),
@@ -204,8 +199,7 @@ void opeu_settings_print(uint8_t ds[65536], HostEvent event) {
 void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&          data{ Data(ds) };
   uint16_t const message{ MessageBuffer(sp, 102) };
-  auto const     choice{ Call(ds, event, DIALOG, Near(data, data.battles_question), 3, data.context_record2,
-                              Near(data, data.battles_menu)) };
+  auto const     choice{ Call(ds, event, DIALOG, Near(data, data.battles_question), 3, data.context_record2, Near(data, data.battles_menu)) };
   switch (choice) {
   case 1:  data.battle_view = std::to_underlying(BattleView::ALL); break;
   case 2:  data.battle_view = std::to_underlying(BattleView::NONE); break;
@@ -220,8 +214,7 @@ void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 void opeu_settings_delay(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&          data{ Data(ds) };
   uint16_t const message{ MessageBuffer(sp, 100) };
-  data.message_delay = static_cast<uint8_t>(
-      Call(ds, event, NUMBER, Near(data, data.delay_question), 10, data.context_record2, 0));
+  data.message_delay = static_cast<uint8_t>(Call(ds, event, NUMBER, Near(data, data.delay_question), 10, data.context_record2, 0));
   Call(ds, event, FORMAT, message, Near(data, data.delay_reply), data.message_delay);
   Call(ds, event, MESSAGE, message, data.context_record2);
 }
@@ -232,8 +225,7 @@ void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   uint16_t const message{ MessageBuffer(sp, 100) };
   data.map_mode[0]++;
   data.map_mode[0] &= 1;
-  Call(ds, event, FORMAT, message, Near(data, data.map_reply),
-       !data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field));
+  Call(ds, event, FORMAT, message, Near(data, data.map_reply), !data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field));
   Call(ds, event, MESSAGE, message, data.context_record2);
   auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
   Call(ds, event, LOCATION, unit.x, unit.y, data.current_side);
@@ -250,8 +242,7 @@ void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     data.sound_enabled = 1;
     Call(ds, event, PRE_CONTEXT);
   }
-  Call(ds, event, FORMAT, message, Near(data, data.sound_reply),
-       data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off));
+  Call(ds, event, FORMAT, message, Near(data, data.sound_reply), data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off));
   Call(ds, event, MESSAGE, message, data.context_record2);
 }
 
@@ -260,8 +251,7 @@ void opeu_settings_pictures(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&          data{ Data(ds) };
   uint16_t const message{ MessageBuffer(sp, 100) };
   data.event_pictures = data.event_pictures == 1 ? 0 : 1;
-  Call(ds, event, FORMAT, message, Near(data, data.pictures_reply),
-       data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not));
+  Call(ds, event, FORMAT, message, Near(data, data.pictures_reply), data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not));
   Call(ds, event, MESSAGE, message, data.context_record2);
 }
 
@@ -274,16 +264,13 @@ void opeu_save_rebase(uint8_t ds[65536]) {
 void opeu_save_unrebase(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (auto& side : data.sides) {
-    if (auto const target{ SideOrderTarget(side.order) }; target != OrderTarget::NONE)
-      side.order.target = StoredTarget(side.order.target, target);
+    if (auto const target{ SideOrderTarget(side.order) }; target != OrderTarget::NONE) side.order.target = StoredTarget(side.order.target, target);
     for (auto& objective : side.objectives) objective.target = StoredIndex<Objective>(objective.target, OBJECTIVES_AT);
   }
   for (auto& special : data.special) special.target = StoredIndex<Objective>(special.target, OBJECTIVES_AT);
   // word arrays of the packed segment: indexed, as a reference cannot bind to their elements
-  for (auto i{ 0u }; i < std::size(data.objective_links); i++)
-    data.objective_links[i] = StoredIndex<Objective>(data.objective_links[i], OBJECTIVES_AT);
-  for (auto i{ 0u }; i < std::size(data.unit_links); i++)
-    data.unit_links[i] = StoredIndex<Unit>(data.unit_links[i], UNITS_AT);
+  for (auto i{ 0u }; i < std::size(data.objective_links); i++) data.objective_links[i] = StoredIndex<Objective>(data.objective_links[i], OBJECTIVES_AT);
+  for (auto i{ 0u }; i < std::size(data.unit_links); i++) data.unit_links[i] = StoredIndex<Unit>(data.unit_links[i], UNITS_AT);
   for (auto& unit : data.units)
     for (auto& order : unit.orders)
       if (UnitOrderTarget(order) == OrderTarget::UNIT) order.target = StoredIndex<Unit>(order.target, UNITS_AT);
@@ -342,21 +329,19 @@ void opeu_save_game(uint8_t ds[65536], HostEvent event) {
   if (!Call(ds, event, EXISTS, Near(data, data.save_check_name))) {
     opeu_save_create(ds, event);
     if (!Call(ds, event, EXISTS, Near(data, data.save_recheck_name))) {
-      Call(ds, event, PRINT, Near(data, data.save_failed_format),
-           Call(ds, event, FRAMED, 30, 188, Near(data, data.save_failed)));
+      Call(ds, event, PRINT, Near(data, data.save_failed_format), Call(ds, event, FRAMED, 30, 188, Near(data, data.save_failed)));
       Call(ds, event, UI_WAIT, 20);
       Call(ds, event, ATTRIBUTE, 0);
     }
   } else {
     Call(ds, event, ATTRIBUTE, 0);
     auto const file{ Call(ds, event, OPEN, Near(data, data.save_open_name)) };
-    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++)
-      Call(ds, event, READ, file, Near(data, data.save_slots[slot]), SLOT_BYTES);
+    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) Call(ds, event, READ, file, Near(data, data.save_slots[slot]), SLOT_BYTES);
     for (;;) {
       Call(ds, event, ATTRIBUTE, 4);
       Call(ds, event, UI_TEXT, Call(ds, event, FRAMED, 36, 336, Near(data, data.save_where)));
       Call(ds, event, ATTRIBUTE, 0);
-      if (!Call(ds, event, MENU_CHOOSE, Near(data, data.save_menu), 1, 3)) {
+      if (!Call(ds, event, MENU_CHOOSE, Near(data, data.save_list), 1, 3)) {
         Call(ds, event, CLOSE, file);
         break;
       }
@@ -423,8 +408,7 @@ void opeu_settings_leave(uint8_t ds[65536], HostEvent event) {
 // Starts a new game; the question is skipped when both sides are computer controlled.
 void opeu_settings_new_game(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
-  if ((data.side_control[0] == 0 && data.side_control[1] == 0)
-      || Call(ds, event, ASK, Near(data, data.new_game_question), data.context_record2)) {
+  if ((data.side_control[0] == 0 && data.side_control[1] == 0) || Call(ds, event, ASK, Near(data, data.new_game_question), data.context_record2)) {
     Call(ds, event, TURN_CONTEXT, 0);
     Call(ds, event, MUSIC_STOP);
     Call(ds, event, SOUND_CLOSE, 0, 0);
@@ -446,8 +430,7 @@ void opeu_settings_new_game(uint8_t ds[65536], HostEvent event) {
 // The save/quit menu; returns the choice, 0xffff when cancelled.
 uint16_t opeu_settings_save_menu(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
-  auto const  choice{ Call(ds, event, DIALOG, Near(data, data.save_quit_question), 3, data.context_record2,
-                           Near(data, data.save_quit_menu)) };
+  auto const  choice{ Call(ds, event, DIALOG, Near(data, data.save_quit_question), 3, data.context_record2, Near(data, data.save_quit_menu)) };
   if (choice == 0xffff) return choice;
   SaveMenuAction(ds, event, choice - 1);
   return choice;
@@ -459,8 +442,7 @@ void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   for (;;) {
     Call(ds, event, TITLE, Near(data, data.settings_title));
     opeu_settings_print(ds, event);
-    auto const choice{ Call(ds, event, DIALOG, Near(data, data.settings_question), 6, data.context_record2,
-                            Near(data, data.settings_menu)) };
+    auto const choice{ Call(ds, event, DIALOG, Near(data, data.settings_question), 6, data.context_record2, Near(data, data.settings_menu)) };
     if (choice == 0xffff) return;
     auto const result{ SettingsAction(ds, event, static_cast<uint16_t>(sp - OPTION_SP_DEPTH), choice - 1) };
     if (choice == 6 && result == 1) return;
@@ -471,26 +453,15 @@ void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0, f;
   switch (static_cast<SettingsService>(id)) {
-  case PRINT:  b1_cursor_print(ds, args, count); break;
-  case FORMAT: b1_request_format(ds, args, count); break;
-  case DIALOG:
-    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case NUMBER:
-    r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0),
-                                    Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case ASK:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case PRINT:   b1_cursor_print(ds, args, count); break;
+  case FORMAT:  b1_request_format(ds, args, count); break;
+  case DIALOG:  r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case NUMBER:  r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ASK:     r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:
     f = b1_frame_enter();
-    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                          (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   case MUSIC_STOP:   opeu_music_stop(ds, svc_sound); break;
@@ -498,25 +469,14 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case SCREEN_RESET: opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
   case ATTRIBUTE:    opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case DISK_RESET:   opeu_disk_reset(ds, svc_resopen); break;
-  case FRAMED:
-    r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case UI_TEXT: opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case UI_WAIT: opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case OPEN:    r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
-  case MENU_CHOOSE:
-    r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
-    break;
-  case OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case TITLE: opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case FRAMED:       r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case UI_TEXT:      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case UI_WAIT:      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case OPEN:         r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
+  case MENU_CHOOSE:  r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case OUTLINE:      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case YES_NO:
     f = b1_stack_alloc(KEY_SCRATCH);
     r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0), f);
@@ -533,32 +493,15 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case APPLICATION:     opeu_application_entry(ds, svc_app); break;
   case CREATE:          r = (uint16_t)opeu_dos_create((const char*)PORT_DS(Arg(args, count, 0))); break;
   case EXISTS:          r = (uint16_t)opeu_dos_exists((const char*)PORT_DS(Arg(args, count, 0))); break;
-  case WRITE:
-    r = (uint16_t)opeu_dos_write((int16_t)Arg(args, count, 0), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2));
-    break;
-  case READ:
-    r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2));
-    break;
-  case READ_FAR:
-    r = (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                                    Arg(args, count, 3));
-    break;
-  case CLOSE: r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
-  case SEEK:
-    r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1),
-                                (int16_t)Arg(args, count, 3));
-    break;
-  case BOX:
-    r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                              Arg(args, count, 4));
-    break;
-  case VGA_COPY:
-    opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                     Arg(args, count, 4), Arg(args, count, 5));
-    break;
+  case WRITE:           r = (uint16_t)opeu_dos_write((int16_t)Arg(args, count, 0), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)); break;
+  case READ:            r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)); break;
+  case READ_FAR:        r = (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case CLOSE:           r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
+  case SEEK:            r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3)); break;
+  case BOX:             r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case VGA_COPY:        opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
   case DRAW:
-    r = (uint16_t)opeu_gfx_blit(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    r = (uint16_t)opeu_gfx_blit(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
   case FM_WAIT: opeu_fm_wait_start(Arg(args, count, 0)); break;
   case FM_BUSY: r = opeu_fm_busy(); break;

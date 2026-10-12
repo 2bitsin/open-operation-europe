@@ -69,12 +69,11 @@ auto opeu_load_saved_game(std::uint8_t* ds, HostEvent event) -> std::uint16_t {
     Call(ds, event, ATTRIBUTE, HIGHLIGHT);
     Call(ds, event, UI_TEXT, Framed(ds, event, 33, 336, data.load_which_text));
     Call(ds, event, ATTRIBUTE, NORMAL);
-    if ((choice = Call(ds, event, MENU, Near(data, data.save_menu), 1, 3)) != 0) {
+    if ((choice = Call(ds, event, MENU, Near(data, data.save_list), 1, 3)) != 0) {
       Call(ds, event, ATTRIBUTE, HIGHLIGHT);
       Call(ds, event, UI_TEXT, Framed(ds, event, 32, 188, data.loading_text));
       auto const position{ static_cast<std::uint32_t>(SAVED_BYTES * data.save_slot + SAVED_BLOCKS_AT) };
-      Call(ds, event, SEEK, file, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16),
-           FROM_START);
+      Call(ds, event, SEEK, file, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), FROM_START);
       Call(ds, event, READ, file, SAVED_FIRST, SAVED_BYTES);
       opeu_rebase_scenario(ds, 1);
       auto const& slot{ data.save_slots[data.save_slot] };
@@ -95,35 +94,20 @@ auto opeu_load_saved_game(std::uint8_t* ds, HostEvent event) -> std::uint16_t {
 
 auto svc_loadgame(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   switch (id) {
-  case EXISTS:
-    return static_cast<std::uint16_t>(opeu_dos_exists(reinterpret_cast<char const*>(PORT_DS(Arg(args, count, 0)))));
-  case OPEN: return static_cast<std::uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
+  case EXISTS: return static_cast<std::uint16_t>(opeu_dos_exists(reinterpret_cast<char const*>(PORT_DS(Arg(args, count, 0)))));
+  case OPEN:   return static_cast<std::uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
   case SEEK:
-    return static_cast<std::uint16_t>(opeu_dos_seek(static_cast<std::int16_t>(Arg(args, count, 0)),
-                                                    static_cast<std::int32_t>(Arg32(args, count, 1)),
-                                                    static_cast<std::int16_t>(Arg(args, count, 3))));
-  case READ:
-    return static_cast<std::uint16_t>(opeu_dos_read(static_cast<std::int16_t>(Arg(args, count, 0)),
-                                                    PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)));
-  case CLOSE: return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
-  case PRINT: b1_cursor_print(ds, args, count); break;
-  case ATTRIBUTE:
-    opeu_text_paper_set(ds, static_cast<TextHost*>(port_textout_host()),
-                        static_cast<std::uint8_t>(Arg(args, count, 0)));
-    break;
-  case FRAMED:
-    return opeu_title_box(ds, static_cast<UiHost const*>(port_uiprim_host()), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-  case UI_TEXT: opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
-  case WAIT:    opeu_delay_units(ds, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case MENU:
-    return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)),
-                            static_cast<std::uint8_t>(Arg(args, count, 2)));
-  case BACKDROP:
-    opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()),
-                             static_cast<std::uint8_t>(Arg(args, count, 0)));
-    break;
-  default: port_unhandled("loadgame", id, count);
+    return static_cast<std::uint16_t>(opeu_dos_seek(static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int32_t>(Arg32(args, count, 1)), static_cast<std::int16_t>(Arg(args, count, 3))));
+  case READ:      return static_cast<std::uint16_t>(opeu_dos_read(static_cast<std::int16_t>(Arg(args, count, 0)), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)));
+  case CLOSE:     return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
+  case PRINT:     b1_cursor_print(ds, args, count); break;
+  case ATTRIBUTE: opeu_text_paper_set(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case FRAMED:    return opeu_title_box(ds, static_cast<UiHost const*>(port_uiprim_host()), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
+  case UI_TEXT:   opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
+  case WAIT:      opeu_delay_units(ds, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case MENU:      return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+  case BACKDROP:  opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()), static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  default:        port_unhandled("loadgame", id, count);
   }
   return 0;
 }

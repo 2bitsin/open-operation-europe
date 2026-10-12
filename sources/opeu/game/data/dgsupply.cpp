@@ -47,17 +47,15 @@ auto InitialSupplyText(DataSegment& data) -> void {
   SetText(data.text_92db, " Division 4");
   SetText(data.contact_prompt, "Which division would you like information about");
   SetText(data.contact_lost, "I can't establish contact with them, sir.\033S");
-  data.contact_menu[0] = 0x0001;
-  data.contact_menu[2] = 0x000d;
-  data.contact_menu[3] = 0x0700;
-  data.near_934c       = 0x92b6;
-  data.bytes_934e      = { 0x01, 0x80, 0x0f, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x07 };
-  data.near_9358       = 0x92c3;
-  data.bytes_935a      = { 0x02, 0x80, 0x1d, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x07 };
-  data.near_9364       = 0x92cf;
-  data.bytes_9366      = { 0x03, 0x80, 0x2b, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x07 };
-  data.near_9370       = 0x92db;
-  data.bytes_9372      = { 0x04, 0x80 };
+  // clang-format off
+  data.contact_menu = { {
+    { 0x0001, 0x0000, 0x000d, 0x0700, 0x92b6, 0x8001 }, // " Division 1 "
+    { 0x000f, 0x0000, 0x000d, 0x0700, 0x92c3, 0x8002 }, // " Division 2"
+    { 0x001d, 0x0000, 0x000d, 0x0700, 0x92cf, 0x8003 }, // " Division 3"
+    { 0x002b, 0x0000, 0x000d, 0x0700, 0x92db, 0x8004 }, // " Division 4"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.people_here, "Here it is, sir.");
   SetText(data.people_none, "No enemy commanders\033E2");
   SetText(data.text_93a8, "Friendly");
@@ -70,11 +68,13 @@ auto InitialSupplyText(DataSegment& data) -> void {
     { 0x06ae, 0x1fe6 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0025, 0x0018, 0x0009, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.people_menu[index] = value; });
-  data.near_93e6  = 0x93a8;
-  data.bytes_93e8 = { 0x01, 0x80, 0x25, 0x00, 0x30, 0x00, 0x09, 0x00, 0x00, 0x07 };
-  data.near_93f2  = 0x93b1;
-  data.bytes_93f4 = { 0x02, 0x80 };
+  // clang-format off
+  data.people_menu = { {
+    { 0x0025, 0x0018, 0x0009, 0x0700, 0x93a8, 0x8001 }, // "Friendly"
+    { 0x0025, 0x0030, 0x0009, 0x0700, 0x93b1, 0x8002 }, // "Enemy"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.city_prompt, "Which city will you view?");
   SetText(data.city_format, "%s");
   SetText(data.city_none_own, "We have no friendly cities!\033E2");
@@ -89,11 +89,13 @@ auto InitialSupplyText(DataSegment& data) -> void {
     { 0x085e, 0x1fe6 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0025, 0x0018, 0x0009, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.city_side_menu[index] = value; });
-  data.near_949a  = 0x945c;
-  data.bytes_949c = { 0x01, 0x80, 0x25, 0x00, 0x30, 0x00, 0x09, 0x00, 0x00, 0x07 };
-  data.near_94a6  = 0x9465;
-  data.bytes_94a8 = { 0x02, 0x80 };
+  // clang-format off
+  data.city_side_menu = { {
+    { 0x0025, 0x0018, 0x0009, 0x0700, 0x945c, 0x8001 }, // "Friendly"
+    { 0x0025, 0x0030, 0x0009, 0x0700, 0x9465, 0x8002 }, // "Enemy"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.regiment_prompt, "Which regiment will you view, sir?");
   SetText(data.regiment_format, "%s");
   SetText(data.view_division_prompt, "Which division will you view?");
@@ -108,11 +110,13 @@ auto InitialSupplyText(DataSegment& data) -> void {
     { 0x0a7a, 0x1fe6 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0025, 0x0018, 0x0009, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.info_menu[index] = value; });
-  data.near_9552  = 0x9515;
-  data.bytes_9554 = { 0x01, 0x80, 0x25, 0x00, 0x30, 0x00, 0x09, 0x00, 0x00, 0x07 };
-  data.near_955e  = 0x951e;
-  data.bytes_9560 = { 0x02, 0x80 };
+  // clang-format off
+  data.info_menu = { {
+    { 0x0025, 0x0018, 0x0009, 0x0700, 0x9515, 0x8001 }, // "Friendly"
+    { 0x0025, 0x0030, 0x0009, 0x0700, 0x951e, 0x8002 }, // "Enemy"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.weapons_prompt, "Which weapons will you view?");
   SetText(data.weapons_here, "Here it is, sir.\033S");
   SetText(data.text_959e, "Friendly");
@@ -125,11 +129,13 @@ auto InitialSupplyText(DataSegment& data) -> void {
     { 0x0be4, 0x1fe6 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0025, 0x0018, 0x0009, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.arms_menu[index] = value; });
-  data.near_95d2  = 0x959e;
-  data.bytes_95d4 = { 0x01, 0x80, 0x25, 0x00, 0x30, 0x00, 0x09, 0x00, 0x00, 0x07 };
-  data.near_95de  = 0x95a7;
-  data.bytes_95e0 = { 0x02, 0x80 };
+  // clang-format off
+  data.arms_menu = { {
+    { 0x0025, 0x0018, 0x0009, 0x0700, 0x959e, 0x8001 }, // "Friendly"
+    { 0x0025, 0x0030, 0x0009, 0x0700, 0x95a7, 0x8002 }, // "Enemy"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.victory_title, "Victory Conditions");
   SetText(data.victory_format, "\033B1\033C7%s\033B0\033C7");
   SetText(data.victory_orders, "Here are our orders, sir.\033S");
@@ -151,19 +157,17 @@ auto InitialSupplyText(DataSegment& data) -> void {
     { 0x0c64, 0x1fe6 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0025, 0x0018, 0x0012, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.view_main_items[index] = value; });
-  data.near_96ae  = 0x962c;
-  data.bytes_96b0 = { 0x01, 0x80, 0x25, 0x00, 0x30, 0x00, 0x12, 0x00, 0x00, 0x07 };
-  data.near_96ba  = 0x9636;
-  data.bytes_96bc = { 0x02, 0x80, 0x25, 0x00, 0x48, 0x00, 0x12, 0x00, 0x00, 0x07 };
-  data.near_96c6  = 0x963f;
-  data.bytes_96c8 = { 0x03, 0x80, 0x25, 0x00, 0x60, 0x00, 0x12, 0x00, 0x00, 0x07 };
-  data.near_96d2  = 0x9646;
-  data.bytes_96d4 = { 0x04, 0x80, 0x25, 0x00, 0x78, 0x00, 0x12, 0x00, 0x00, 0x07 };
-  data.near_96de  = 0x964c;
-  data.bytes_96e0 = { 0x05, 0x80, 0x25, 0x00, 0x90, 0x00, 0x12, 0x00, 0x00, 0x07 };
-  data.near_96ea  = 0x9656;
-  data.bytes_96ec = { 0x06, 0x80 };
+  // clang-format off
+  data.view_main_menu = { {
+    { 0x0025, 0x0018, 0x0012, 0x0700, 0x962c, 0x8001 }, // "Divisions"
+    { 0x0025, 0x0030, 0x0012, 0x0700, 0x9636, 0x8002 }, // "Officers"
+    { 0x0025, 0x0048, 0x0012, 0x0700, 0x963f, 0x8003 }, // "Cities"
+    { 0x0025, 0x0060, 0x0012, 0x0700, 0x9646, 0x8004 }, // "Units"
+    { 0x0025, 0x0078, 0x0012, 0x0700, 0x964c, 0x8005 }, // "Armaments"
+    { 0x0025, 0x0090, 0x0012, 0x0700, 0x9656, 0x8006 }, // "Victory Conditions"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.ops_chief_format, "\033M4\033C6Ops Chief: %s\033M0\033C7\033RU");
   SetText(data.number_range_format, "(%u-%u)?");
   data.supply_unlimited = 0xea60;
@@ -171,15 +175,13 @@ auto InitialSupplyText(DataSegment& data) -> void {
   data.supply_panel_y   = 0x008c;
   SetText(data.supply_name_format, "\033C7\033B0\033Y0%.10s");
   SetText(data.supply_name_text, "%.10s\033C7\033B0");
-  SetText(data.text_9741, "--");
-  SetText(data.text_9744, "<-");
-  SetText(data.text_9747, "->");
+  SetText(data.supply_arrow_none, "--");
+  SetText(data.supply_arrow_left, "<-");
+  SetText(data.supply_arrow_right, "->");
   SetText(data.supply_row_left, "\033C3\033B0%5u");
   SetText(data.supply_row_right, "%5u");
   SetText(data.supply_row_end, "\033C7\033B0");
-  data.near_9760     = 0x9741;
-  data.near_9762     = 0x9744;
-  data.near_9764     = 0x9747;
+  SetEach(std::to_array<std::uint16_t>({ 0x9741, 0x9744, 0x9747 }), [&](std::size_t index, std::uint16_t value) { data.supply_arrows[index] = value; });
   data.supply_prompt = { 0x41, 0x6c, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65, 0x20, 0x73, 0x75, 0x70, 0x70, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x73, 0x69, 0x72, 0x2e };
   SetText(data.supply_continue, "Continue?");
   SetText(data.tank_suffix, " Tank");
@@ -271,14 +273,14 @@ auto InitialSupplyText(DataSegment& data) -> void {
   SetText(data.rq_which_regiment_text, "Which regiment should we call in, sir?");
   SetText(data.rq_regiments_text, "Regiments");
   SetText(data.rq_regiment_kind_text, "What kind of regiment,\012sir");
-  SetEach(std::to_array<std::uint16_t>({ 0x002f, 0x00a3, 0x000a, 0x0700 }), [&](std::size_t index, std::uint16_t value) { data.rq_slash_text[index] = value; });
-  data.near_9ddc  = 0x9d3f;
-  data.bytes_9dde = { 0x01, 0x80, 0x2f, 0x00, 0xbb, 0x00, 0x0a, 0x00, 0x00, 0x07 };
-  data.near_9de8  = 0x9d48;
-  data.bytes_9dea = { 0x02, 0x80, 0x2f, 0x00, 0xd3, 0x00, 0x0a, 0x00, 0x00, 0x07 };
-  data.near_9df4  = 0x9d53;
-  data.bytes_9df6 = { 0x03, 0x80, 0x2f, 0x00, 0xeb, 0x00, 0x0a, 0x00, 0x00, 0x07 };
-  data.near_9e00  = 0x9d5b;
-  data.bytes_9e02 = { 0x04, 0x80 };
+  // clang-format off
+  data.rq_regiment_kind_menu = { {
+    { 0x002f, 0x00a3, 0x000a, 0x0700, 0x9d3f, 0x8001 }, // "Infantry"
+    { 0x002f, 0x00bb, 0x000a, 0x0700, 0x9d48, 0x8002 }, // "Mechanized"
+    { 0x002f, 0x00d3, 0x000a, 0x0700, 0x9d53, 0x8003 }, // "Armored"
+    { 0x002f, 0x00eb, 0x000a, 0x0700, 0x9d5b, 0x8004 }, // "Artillery"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
 }
 } // namespace opeu::game::detail::dgsupply

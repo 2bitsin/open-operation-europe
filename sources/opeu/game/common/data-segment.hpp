@@ -1075,213 +1075,163 @@ struct DataSegment {
       std::array<char, 22>        loading_text;            // DS:45a0
       std::array<char, 28>        loaded_text;             // DS:45b6
       std::array<char, 29>        load_failed_text;        // DS:45d2
-      std::array<char, 8>         text_45ef;               // DS:45ef
-      std::array<char, 9>         text_45f7;               // DS:45f7
+      std::array<char, 8>         play_widths;             // DS:45ef
+      std::array<char, 9>         reinforce_widths;        // DS:45f7
       union {                                              // DS:4600
         std::uint16_t               shown_portrait;
         std::array<std::uint8_t, 2> shown_portrait_bytes;
       };
-      ListWindow                   play_dialog;                // DS:4602: the generals' list of the play screen
-      std::uint8_t                 bytes_4615;                 // DS:4615
-      ListWindow                   reinforce_dialog;           // DS:4616: the generals' list of the reinforcement screen
-      std::array<char, 10>         division_reserve_mark;      // DS:4629
-      std::uint8_t                 empty_suffix;               // DS:4633
-      std::array<char, 31>         division_strength_format;   // DS:4634
-      std::array<char, 16>         chief_ops_format;           // DS:4653
-      std::array<char, 38>         chief_ops_prompt;           // DS:4663
-      std::array<char, 16>         chief_intel_format;         // DS:4689
-      std::array<char, 39>         chief_intel_prompt;         // DS:4699
-      std::array<char, 16>         division_format;            // DS:46c0
-      std::array<char, 14>         division_short_format;      // DS:46d0
-      std::array<char, 16>         division_long_format;       // DS:46de
-      std::array<char, 16>         role_prompt;                // DS:46ee
-      std::array<char, 30>         division_prompt;            // DS:46fe
-      std::array<char, 41>         general_header;             // DS:471c
-      std::array<char, 9>          general_name_format;        // DS:4745
-      std::array<char, 46>         general_stats_format;       // DS:474e
-      std::array<char, 14>         text_477c;                  // DS:477c
-      std::array<char, 16>         text_478a;                  // DS:478a
-      std::array<char, 9>          side_title_format;          // DS:479a
-      std::uint8_t                 unknown_47a3;               // DS:47a3
-      std::uint16_t                side_titles[2];             // DS:47a4
-      std::array<std::uint8_t, 23> reinforce_title;            // DS:47a8
-      std::array<char, 90>         reinforce_mouse_help;       // DS:47bf
-      std::array<char, 87>         reinforce_key_help;         // DS:4819
-      std::array<char, 20>         play_prompt;                // DS:4870
-      std::array<char, 20>         use_generals_prompt;        // DS:4884
-      std::array<char, 16>         scenario_message_format;    // DS:4898
-      std::array<std::uint8_t, 2>  unknown_48a8;               // DS:48a8
-      std::array<char, 10>         text_48aa;                  // DS:48aa
-      std::array<char, 12>         text_48b4;                  // DS:48b4
-      std::array<char, 11>         text_48c0;                  // DS:48c0
-      std::array<char, 12>         text_48cb;                  // DS:48cb
-      std::array<char, 13>         text_48d7;                  // DS:48d7
-      std::array<char, 12>         text_48e4;                  // DS:48e4
-      std::array<char, 10>         text_48f0;                  // DS:48f0
-      std::array<char, 11>         text_48fa;                  // DS:48fa
-      std::array<char, 12>         text_4905;                  // DS:4905
-      std::array<char, 15>         text_4911;                  // DS:4911
-      std::array<char, 13>         text_4920;                  // DS:4920
-      std::array<char, 6>          text_492d;                  // DS:492d
-      std::array<char, 12>         text_4933;                  // DS:4933
-      std::array<char, 19>         text_493f;                  // DS:493f
-      std::array<char, 11>         text_4952;                  // DS:4952
-      std::array<char, 6>          text_495d;                  // DS:495d
-      std::array<char, 9>          text_4963;                  // DS:4963
-      std::array<char, 6>          text_496c;                  // DS:496c
-      std::array<char, 11>         text_4972;                  // DS:4972
-      std::array<char, 20>         text_497d;                  // DS:497d
-      std::array<char, 29>         text_4991;                  // DS:4991
-      std::array<char, 29>         text_49ae;                  // DS:49ae
-      std::array<char, 19>         text_49cb;                  // DS:49cb
-      std::array<char, 25>         text_49de;                  // DS:49de
-      std::array<char, 23>         text_49f7;                  // DS:49f7
-      std::array<char, 10>         scensel_colors;             // DS:4a0e
-      std::uint8_t                 scensel_empty;              // DS:4a18
-      std::array<char, 21>         scensel_france;             // DS:4a19
-      std::array<char, 26>         scensel_africa;             // DS:4a2e
-      std::array<char, 18>         scensel_kursk;              // DS:4a48
-      std::array<char, 17>         scensel_dday;               // DS:4a5a
-      std::array<char, 22>         scensel_bulge;              // DS:4a6b
-      std::array<char, 17>         scensel_berlin;             // DS:4a81
-      std::array<char, 17>         scensel_demo;               // DS:4a92
-      std::array<char, 20>         scensel_view_format;        // DS:4aa3
-      std::array<char, 16>         scensel_view_line;          // DS:4ab7
-      std::array<char, 29>         scensel_one_player;         // DS:4ac7
-      std::array<char, 20>         scensel_command_format;     // DS:4ae4
-      std::array<char, 19>         scensel_command_line;       // DS:4af8
-      std::array<char, 30>         scensel_two_players;        // DS:4b0b
-      std::array<char, 8>          scensel_aerial;             // DS:4b29
-      std::array<char, 8>          scensel_field;              // DS:4b31
-      std::array<char, 21>         scensel_map_format;         // DS:4b39
-      std::array<char, 19>         scensel_map_line;           // DS:4b4e
-      std::array<char, 23>         scensel_view_all;           // DS:4b61
-      std::array<char, 23>         scensel_view_none;          // DS:4b78
-      std::array<char, 23>         scensel_view_selected;      // DS:4b8f
-      std::array<char, 19>         scensel_battles_line;       // DS:4ba6
-      std::array<char, 19>         scensel_difficulty;         // DS:4bb9
-      std::array<char, 10>         scensel_very_easy;          // DS:4bcc
-      std::array<char, 10>         scensel_easy;               // DS:4bd6
-      std::array<char, 10>         scensel_average;            // DS:4be0
-      std::array<char, 10>         scensel_hard;               // DS:4bea
-      std::array<char, 10>         scensel_very_hard;          // DS:4bf4
-      std::array<char, 19>         scensel_difficulty_line;    // DS:4bfe
-      std::array<char, 21>         scensel_settings_ok;        // DS:4c11
-      std::array<char, 34>         scensel_reselect;           // DS:4c26
-      std::array<char, 35>         scensel_ready_demo;         // DS:4c48
-      std::array<char, 7>          scensel_ready_colors;       // DS:4c6b
-      std::array<char, 7>          scensel_load_colors;        // DS:4c72
-      std::array<char, 29>         scensel_ready_blank;        // DS:4c79
-      std::array<char, 27>         scensel_ready;              // DS:4c96
-      std::array<char, 10>         scensel_done_colors;        // DS:4cb1
-      std::uint8_t                 unknown_4cbb;               // DS:4cbb
-      std::uint16_t                scensel_start_menu[4];      // DS:4cbc
-      std::uint16_t                near_4cc4;                  // DS:4cc4
-      std::uint16_t                words_4cc6[5];              // DS:4cc6
-      std::uint16_t                near_4cd0;                  // DS:4cd0
-      std::array<std::uint8_t, 14> bytes_4cd2;                 // DS:4cd2
-      std::array<char, 32>         scensel_start_prompt;       // DS:4ce0
-      std::uint16_t                scensel_players_menu[4];    // DS:4d00
-      std::uint16_t                near_4d08;                  // DS:4d08
-      std::uint16_t                words_4d0a[5];              // DS:4d0a
-      std::uint16_t                near_4d14;                  // DS:4d14
-      std::uint16_t                words_4d16[5];              // DS:4d16
-      std::uint16_t                near_4d20;                  // DS:4d20
-      std::array<std::uint8_t, 14> bytes_4d22;                 // DS:4d22
-      std::array<char, 24>         scensel_players_prompt;     // DS:4d30
-      std::array<char, 32>         scensel_view_prompt;        // DS:4d48
-      std::uint16_t                scensel_side_menu[4];       // DS:4d68
-      std::uint16_t                near_4d70;                  // DS:4d70
-      std::uint16_t                words_4d72[5];              // DS:4d72
-      std::uint16_t                near_4d7c;                  // DS:4d7c
-      std::array<std::uint8_t, 14> bytes_4d7e;                 // DS:4d7e
-      std::array<char, 35>         scensel_command_prompt;     // DS:4d8c
-      std::uint8_t                 unknown_4daf;               // DS:4daf
-      std::uint16_t                scensel_map_menu[4];        // DS:4db0
-      std::uint16_t                near_4db8;                  // DS:4db8
-      std::uint16_t                words_4dba[5];              // DS:4dba
-      std::uint16_t                near_4dc4;                  // DS:4dc4
-      std::array<std::uint8_t, 14> bytes_4dc6;                 // DS:4dc6
-      std::array<char, 30>         scensel_map_prompt;         // DS:4dd4
-      std::uint16_t                scensel_battles_menu[4];    // DS:4df2
-      std::uint16_t                near_4dfa;                  // DS:4dfa
-      std::uint16_t                words_4dfc[5];              // DS:4dfc
-      std::uint16_t                near_4e06;                  // DS:4e06
-      std::array<std::uint8_t, 14> bytes_4e08;                 // DS:4e08
-      std::array<char, 21>         scensel_battles_prompt;     // DS:4e16
-      std::uint8_t                 unknown_4e2b;               // DS:4e2b
-      std::uint16_t                scensel_battles_menu2[4];   // DS:4e2c
-      std::uint16_t                near_4e34;                  // DS:4e34
-      std::uint16_t                words_4e36[5];              // DS:4e36
-      std::uint16_t                near_4e40;                  // DS:4e40
-      std::uint16_t                words_4e42[5];              // DS:4e42
-      std::uint16_t                near_4e4c;                  // DS:4e4c
-      std::array<std::uint8_t, 14> bytes_4e4e;                 // DS:4e4e
-      std::array<char, 21>         scensel_battles_prompt2;    // DS:4e5c
-      std::uint8_t                 unknown_4e71;               // DS:4e71
-      std::uint16_t                scensel_difficulty_menu[4]; // DS:4e72
-      std::uint16_t                near_4e7a;                  // DS:4e7a
-      std::uint16_t                words_4e7c[5];              // DS:4e7c
-      std::uint16_t                near_4e86;                  // DS:4e86
-      std::uint16_t                words_4e88[5];              // DS:4e88
-      std::uint16_t                near_4e92;                  // DS:4e92
-      std::uint16_t                words_4e94[5];              // DS:4e94
-      std::uint16_t                near_4e9e;                  // DS:4e9e
-      std::array<std::uint8_t, 10> bytes_4ea0;                 // DS:4ea0
-      std::uint16_t                near_4eaa;                  // DS:4eaa
-      std::array<std::uint8_t, 14> bytes_4eac;                 // DS:4eac
-      std::array<char, 30>         scensel_difficulty_prompt;  // DS:4eba
-      std::uint16_t                scensel_scenario_menu[4];   // DS:4ed8
-      std::uint16_t                near_4ee0;                  // DS:4ee0
-      std::uint16_t                words_4ee2[5];              // DS:4ee2
-      std::uint16_t                near_4eec;                  // DS:4eec
-      std::uint16_t                words_4eee[5];              // DS:4eee
-      std::uint16_t                near_4ef8;                  // DS:4ef8
-      std::uint16_t                words_4efa[5];              // DS:4efa
-      std::uint16_t                near_4f04;                  // DS:4f04
-      std::uint16_t                words_4f06[5];              // DS:4f06
-      std::uint16_t                near_4f10;                  // DS:4f10
-      std::array<std::uint8_t, 10> bytes_4f12;                 // DS:4f12
-      std::uint16_t                near_4f1c;                  // DS:4f1c
-      std::array<std::uint8_t, 14> bytes_4f1e;                 // DS:4f1e
-      std::array<char, 36>         scensel_scenario_prompt;    // DS:4f2c
-      std::uint16_t                scensel_pictures[7];        // DS:4f50
-      std::array<char, 67>         memory_message;             // DS:4f5e
-      std::array<char, 72>         memory_advice;              // DS:4fa1
-      std::array<char, 28>         memory_exit;                // DS:4fe9
-      std::array<char, 8>          setup_name_bmapseg;         // DS:5005
-      std::array<char, 9>          setup_name_hunitseg;        // DS:500d
-      std::array<char, 7>          setup_name_grpseg;          // DS:5016
-      std::array<char, 10>         setup_name_ms_winseg;       // DS:501d
-      std::array<char, 5>          setup_name_vseg;            // DS:5027
-      std::array<char, 9>          setup_name_hdispseg;        // DS:502c
-      std::array<char, 8>          setup_name_armsseg;         // DS:5035
-      std::array<char, 7>          setup_name_kaoseg;          // DS:503d
-      std::array<char, 9>          setup_name_mdispseg;        // DS:5044
-      std::array<char, 7>          setup_name_ms_seg;          // DS:504d
-      std::array<char, 9>          setup_name_hfontseg;        // DS:5054
-      std::array<char, 8>          setup_name_mmapseg;         // DS:505d
-      std::uint8_t                 unknown_5065;               // DS:5065
-      std::array<std::uint8_t, 48> end_palette;                // DS:5066
-      std::array<std::uint8_t, 43> end_palette_final;          // DS:5096
-      std::array<char, 5>          text_50c1;                  // DS:50c1
-      std::array<std::uint8_t, 12> end_text_format;            // DS:50c6
-      std::array<char, 11>         end_picture_name;           // DS:50d2
-      std::array<char, 27>         end_salute;                 // DS:50dd
-      std::array<FarPointer, 4>    end_victory_texts;          // DS:50f8: by elimination, then by rank 1..3
-      std::array<FarPointer, 4>    end_defeat_texts;           // DS:5108: by the outcome reason
-      std::array<char, 8>          name_bmapseg;               // DS:5118
-      std::array<char, 8>          name_mmapseg;               // DS:5120
-      std::array<char, 9>          name_hdispseg;              // DS:5128
-      std::array<char, 9>          name_hunitseg;              // DS:5131
-      std::array<char, 7>          name_grpseg;                // DS:513a
-      std::array<char, 10>         name_ms_winseg;             // DS:5141
-      std::array<char, 7>          name_ms_seg;                // DS:514b
-      std::array<char, 9>          name_hfontseg;              // DS:5152
-      std::array<char, 5>          name_vseg;                  // DS:515b
-      std::array<char, 7>          name_kaoseg;                // DS:5160
-      std::array<char, 8>          name_armsseg;               // DS:5167
-      std::array<std::uint8_t, 8>  name_mdispseg;              // DS:516f
+      ListWindow                   play_dialog;               // DS:4602: the generals' list of the play screen
+      std::uint8_t                 bytes_4615;                // DS:4615
+      ListWindow                   reinforce_dialog;          // DS:4616: the generals' list of the reinforcement screen
+      std::array<char, 10>         division_reserve_mark;     // DS:4629
+      std::uint8_t                 empty_suffix;              // DS:4633
+      std::array<char, 31>         division_strength_format;  // DS:4634
+      std::array<char, 16>         chief_ops_format;          // DS:4653
+      std::array<char, 38>         chief_ops_prompt;          // DS:4663
+      std::array<char, 16>         chief_intel_format;        // DS:4689
+      std::array<char, 39>         chief_intel_prompt;        // DS:4699
+      std::array<char, 16>         division_format;           // DS:46c0
+      std::array<char, 14>         division_short_format;     // DS:46d0
+      std::array<char, 16>         division_long_format;      // DS:46de
+      std::array<char, 16>         role_prompt;               // DS:46ee
+      std::array<char, 30>         division_prompt;           // DS:46fe
+      std::array<char, 41>         general_header;            // DS:471c
+      std::array<char, 9>          general_name_format;       // DS:4745
+      std::array<char, 46>         general_stats_format;      // DS:474e
+      std::array<char, 14>         text_477c;                 // DS:477c
+      std::array<char, 16>         text_478a;                 // DS:478a
+      std::array<char, 9>          side_title_format;         // DS:479a
+      std::uint8_t                 unknown_47a3;              // DS:47a3
+      std::uint16_t                side_titles[2];            // DS:47a4
+      std::array<std::uint8_t, 23> reinforce_title;           // DS:47a8
+      std::array<char, 90>         reinforce_mouse_help;      // DS:47bf
+      std::array<char, 87>         reinforce_key_help;        // DS:4819
+      std::array<char, 20>         play_prompt;               // DS:4870
+      std::array<char, 20>         use_generals_prompt;       // DS:4884
+      std::array<char, 16>         scenario_message_format;   // DS:4898
+      std::array<std::uint8_t, 2>  unknown_48a8;              // DS:48a8
+      std::array<char, 10>         text_48aa;                 // DS:48aa
+      std::array<char, 12>         text_48b4;                 // DS:48b4
+      std::array<char, 11>         text_48c0;                 // DS:48c0
+      std::array<char, 12>         text_48cb;                 // DS:48cb
+      std::array<char, 13>         text_48d7;                 // DS:48d7
+      std::array<char, 12>         text_48e4;                 // DS:48e4
+      std::array<char, 10>         text_48f0;                 // DS:48f0
+      std::array<char, 11>         text_48fa;                 // DS:48fa
+      std::array<char, 12>         text_4905;                 // DS:4905
+      std::array<char, 15>         text_4911;                 // DS:4911
+      std::array<char, 13>         text_4920;                 // DS:4920
+      std::array<char, 6>          text_492d;                 // DS:492d
+      std::array<char, 12>         text_4933;                 // DS:4933
+      std::array<char, 19>         text_493f;                 // DS:493f
+      std::array<char, 11>         text_4952;                 // DS:4952
+      std::array<char, 6>          text_495d;                 // DS:495d
+      std::array<char, 9>          text_4963;                 // DS:4963
+      std::array<char, 6>          text_496c;                 // DS:496c
+      std::array<char, 11>         text_4972;                 // DS:4972
+      std::array<char, 20>         text_497d;                 // DS:497d
+      std::array<char, 29>         text_4991;                 // DS:4991
+      std::array<char, 29>         text_49ae;                 // DS:49ae
+      std::array<char, 19>         text_49cb;                 // DS:49cb
+      std::array<char, 25>         text_49de;                 // DS:49de
+      std::array<char, 23>         text_49f7;                 // DS:49f7
+      std::array<char, 10>         scensel_colors;            // DS:4a0e
+      std::uint8_t                 scensel_empty;             // DS:4a18
+      std::array<char, 21>         scensel_france;            // DS:4a19
+      std::array<char, 26>         scensel_africa;            // DS:4a2e
+      std::array<char, 18>         scensel_kursk;             // DS:4a48
+      std::array<char, 17>         scensel_dday;              // DS:4a5a
+      std::array<char, 22>         scensel_bulge;             // DS:4a6b
+      std::array<char, 17>         scensel_berlin;            // DS:4a81
+      std::array<char, 17>         scensel_demo;              // DS:4a92
+      std::array<char, 20>         scensel_view_format;       // DS:4aa3
+      std::array<char, 16>         scensel_view_line;         // DS:4ab7
+      std::array<char, 29>         scensel_one_player;        // DS:4ac7
+      std::array<char, 20>         scensel_command_format;    // DS:4ae4
+      std::array<char, 19>         scensel_command_line;      // DS:4af8
+      std::array<char, 30>         scensel_two_players;       // DS:4b0b
+      std::array<char, 8>          scensel_aerial;            // DS:4b29
+      std::array<char, 8>          scensel_field;             // DS:4b31
+      std::array<char, 21>         scensel_map_format;        // DS:4b39
+      std::array<char, 19>         scensel_map_line;          // DS:4b4e
+      std::array<char, 23>         scensel_view_all;          // DS:4b61
+      std::array<char, 23>         scensel_view_none;         // DS:4b78
+      std::array<char, 23>         scensel_view_selected;     // DS:4b8f
+      std::array<char, 19>         scensel_battles_line;      // DS:4ba6
+      std::array<char, 19>         scensel_difficulty;        // DS:4bb9
+      std::array<char, 10>         scensel_very_easy;         // DS:4bcc
+      std::array<char, 10>         scensel_easy;              // DS:4bd6
+      std::array<char, 10>         scensel_average;           // DS:4be0
+      std::array<char, 10>         scensel_hard;              // DS:4bea
+      std::array<char, 10>         scensel_very_hard;         // DS:4bf4
+      std::array<char, 19>         scensel_difficulty_line;   // DS:4bfe
+      std::array<char, 21>         scensel_settings_ok;       // DS:4c11
+      std::array<char, 34>         scensel_reselect;          // DS:4c26
+      std::array<char, 35>         scensel_ready_demo;        // DS:4c48
+      std::array<char, 7>          scensel_ready_colors;      // DS:4c6b
+      std::array<char, 7>          scensel_load_colors;       // DS:4c72
+      std::array<char, 29>         scensel_ready_blank;       // DS:4c79
+      std::array<char, 27>         scensel_ready;             // DS:4c96
+      std::array<char, 10>         scensel_done_colors;       // DS:4cb1
+      std::uint8_t                 unknown_4cbb;              // DS:4cbb
+      std::array<MenuItem, 3>      scensel_start_menu;        // DS:4cbc
+      std::array<char, 32>         scensel_start_prompt;      // DS:4ce0
+      std::array<MenuItem, 4>      scensel_players_menu;      // DS:4d00
+      std::array<char, 24>         scensel_players_prompt;    // DS:4d30
+      std::array<char, 32>         scensel_view_prompt;       // DS:4d48
+      std::array<MenuItem, 3>      scensel_side_menu;         // DS:4d68
+      std::array<char, 35>         scensel_command_prompt;    // DS:4d8c
+      std::uint8_t                 unknown_4daf;              // DS:4daf
+      std::array<MenuItem, 3>      scensel_map_menu;          // DS:4db0
+      std::array<char, 30>         scensel_map_prompt;        // DS:4dd4
+      std::array<MenuItem, 3>      scensel_battles_menu;      // DS:4df2
+      std::array<char, 21>         scensel_battles_prompt;    // DS:4e16
+      std::uint8_t                 unknown_4e2b;              // DS:4e2b
+      std::array<MenuItem, 4>      scensel_battles_menu2;     // DS:4e2c
+      std::array<char, 21>         scensel_battles_prompt2;   // DS:4e5c
+      std::uint8_t                 unknown_4e71;              // DS:4e71
+      std::array<MenuItem, 6>      scensel_difficulty_menu;   // DS:4e72
+      std::array<char, 30>         scensel_difficulty_prompt; // DS:4eba
+      std::array<MenuItem, 7>      scensel_scenario_menu;     // DS:4ed8
+      std::array<char, 36>         scensel_scenario_prompt;   // DS:4f2c
+      std::uint16_t                scensel_pictures[7];       // DS:4f50
+      std::array<char, 67>         memory_message;            // DS:4f5e
+      std::array<char, 72>         memory_advice;             // DS:4fa1
+      std::array<char, 28>         memory_exit;               // DS:4fe9
+      std::array<char, 8>          setup_name_bmapseg;        // DS:5005
+      std::array<char, 9>          setup_name_hunitseg;       // DS:500d
+      std::array<char, 7>          setup_name_grpseg;         // DS:5016
+      std::array<char, 10>         setup_name_ms_winseg;      // DS:501d
+      std::array<char, 5>          setup_name_vseg;           // DS:5027
+      std::array<char, 9>          setup_name_hdispseg;       // DS:502c
+      std::array<char, 8>          setup_name_armsseg;        // DS:5035
+      std::array<char, 7>          setup_name_kaoseg;         // DS:503d
+      std::array<char, 9>          setup_name_mdispseg;       // DS:5044
+      std::array<char, 7>          setup_name_ms_seg;         // DS:504d
+      std::array<char, 9>          setup_name_hfontseg;       // DS:5054
+      std::array<char, 8>          setup_name_mmapseg;        // DS:505d
+      std::uint8_t                 unknown_5065;              // DS:5065
+      std::array<std::uint8_t, 48> end_palette;               // DS:5066
+      std::array<std::uint8_t, 43> end_palette_final;         // DS:5096
+      std::array<char, 5>          text_50c1;                 // DS:50c1
+      std::array<std::uint8_t, 12> end_text_format;           // DS:50c6
+      std::array<char, 11>         end_picture_name;          // DS:50d2
+      std::array<char, 27>         end_salute;                // DS:50dd
+      std::array<FarPointer, 4>    end_victory_texts;         // DS:50f8: by elimination, then by rank 1..3
+      std::array<FarPointer, 4>    end_defeat_texts;          // DS:5108: by the outcome reason
+      std::array<char, 8>          name_bmapseg;              // DS:5118
+      std::array<char, 8>          name_mmapseg;              // DS:5120
+      std::array<char, 9>          name_hdispseg;             // DS:5128
+      std::array<char, 9>          name_hunitseg;             // DS:5131
+      std::array<char, 7>          name_grpseg;               // DS:513a
+      std::array<char, 10>         name_ms_winseg;            // DS:5141
+      std::array<char, 7>          name_ms_seg;               // DS:514b
+      std::array<char, 9>          name_hfontseg;             // DS:5152
+      std::array<char, 5>          name_vseg;                 // DS:515b
+      std::array<char, 7>          name_kaoseg;               // DS:5160
+      std::array<char, 8>          name_armsseg;              // DS:5167
+      std::array<std::uint8_t, 8>  name_mdispseg;             // DS:516f
     };
   };
   std::array<std::uint8_t, 13> calendar_days; // DS:5177
@@ -1362,7 +1312,7 @@ struct DataSegment {
       std::array<char, 7>          tbl_group_army;         // DS:5643
       std::array<char, 38>         tbl_group_row;          // DS:564a
       std::array<char, 39>         tbl_group_blank;        // DS:5670
-      std::array<char, 7>          text_5697;              // DS:5697
+      std::array<char, 7>          division_widths;        // DS:5697
       std::array<char, 10>         tbl_mission_header;     // DS:569e
       std::array<char, 14>         tbl_mission_label;      // DS:56a8
       std::array<char, 17>         tbl_mission_place;      // DS:56b6
@@ -1371,7 +1321,7 @@ struct DataSegment {
       std::array<char, 38>         tbl_mission_blank;      // DS:56d9
       std::uint8_t                 unknown_56ff;           // DS:56ff
       ListWindow                   division_dialog;        // DS:5700: the list of the side's divisions
-      std::array<std::uint8_t, 3>  bytes_5713;             // DS:5713
+      std::array<std::uint8_t, 3>  order_target_widths;    // DS:5713
       std::array<char, 47>         tbl_unit_header;        // DS:5716
       std::array<char, 4>          tbl_unit_mark;          // DS:5745
       std::array<char, 11>         tbl_unit_label;         // DS:5749
@@ -1382,18 +1332,18 @@ struct DataSegment {
       std::array<char, 45>         tbl_unit_hidden;        // DS:57c0
       std::uint8_t                 unknown_57ed;           // DS:57ed
       ListWindow                   order_target_list;      // DS:57ee: the list of a division's objective tasks
-      std::array<std::uint8_t, 8>  bytes_5801;             // DS:5801
+      std::array<std::uint8_t, 8>  organize_widths;        // DS:5801
       std::array<char, 51>         tbl_order_header;       // DS:5809
       std::array<char, 11>         tbl_order_label;        // DS:583c
       std::uint8_t                 unknown_5847;           // DS:5847
       ListWindow                   organize_list;          // DS:5848: the list of a division's regiments
-      std::array<std::uint8_t, 8>  bytes_585b;             // DS:585b
+      std::array<std::uint8_t, 8>  regiment_widths;        // DS:585b
       std::array<char, 30>         tbl_element_header;     // DS:5863
       std::array<char, 4>          tbl_element_mark;       // DS:5881
       std::array<char, 10>         tbl_element_name;       // DS:5885
       std::array<char, 31>         tbl_element_row;        // DS:588f
       ListWindow                   regiment_dialog;        // DS:58ae: the regiment choice list
-      std::array<std::uint8_t, 7>  bytes_58c1;             // DS:58c1
+      std::array<std::uint8_t, 7>  choice_widths;          // DS:58c1
       std::array<char, 5>          text_58c8;              // DS:58c8
       std::array<char, 5>          text_58cd;              // DS:58cd
       std::array<char, 5>          text_58d2;              // DS:58d2
@@ -1408,30 +1358,29 @@ struct DataSegment {
       ListWindow                   choice_dialog;          // DS:5906: the element choice list
       std::array<std::uint8_t, 1>  bytes_5919;             // DS:5919
       std::uint16_t                tbl_post_names[7];      // DS:591a: Div1..Div4, then the staff posts Cmdr, Ops, Intl
-      std::array<std::uint8_t, 13> bytes_5928;             // DS:5928
+      std::array<std::uint8_t, 13> people_widths;          // DS:5928
       std::array<char, 39>         tbl_type_header;        // DS:5935
       std::array<char, 9>          tbl_type_name;          // DS:595c
       std::array<char, 37>         tbl_type_row;           // DS:5965
       ListWindow                   people_dialog;          // DS:598a: the list of generals
-      std::array<char, 8>          text_599d;              // DS:599d
+      std::array<char, 8>          weapons_widths;         // DS:599d
       std::array<std::uint8_t, 48> tbl_supply_header;      // DS:59a5
       std::array<char, 9>          tbl_supply_name;        // DS:59d5
       std::array<char, 47>         tbl_supply_row;         // DS:59de
       std::array<char, 48>         tbl_supply_blank;       // DS:5a0d
       std::uint8_t                 unknown_5a3d;           // DS:5a3d
       ListWindow                   weapons_dialog;         // DS:5a3e: the list of equipment types
-      std::array<std::uint8_t, 6>  bytes_5a51;             // DS:5a51
+      std::array<std::uint8_t, 6>  city_widths;            // DS:5a51
       std::array<char, 13>         tbl_str_header;         // DS:5a57
       std::array<char, 8>          tbl_str_name;           // DS:5a64
       std::array<char, 11>         tbl_str_row;            // DS:5a6c
       std::uint8_t                 unknown_5a77;           // DS:5a77
       ListWindow                   city_dialog;            // DS:5a78: the list of the side's cities (core/vwcity, core/stockord)
-      std::array<std::uint8_t, 11> bytes_5a8b;             // DS:5a8b
+      std::array<std::uint8_t, 4>  stock_widths;           // DS:5a8b
+      std::array<std::uint8_t, 7>  save_widths;            // DS:5a8f
       ListWindow                   stock_dialog;           // DS:5a96: the list of a city's stocks
       std::uint8_t                 unknown_5aa9;           // DS:5aa9
-      std::array<std::uint8_t, 11> save_menu;              // DS:5aaa
-      FarPointer                   far_code_5ab5;          // DS:5ab5
-      FarPointer                   far_code_5ab9;          // DS:5ab9
+      ListWindow                   save_list;              // DS:5aaa: the saved-game list
       std::array<char, 9>          text_5abd;              // DS:5abd
       std::array<char, 9>          text_5ac6;              // DS:5ac6
       std::array<char, 54>         tbl_save_header;        // DS:5acf
@@ -1868,26 +1817,12 @@ struct DataSegment {
       std::array<char, 16>                       text_9035;               // DS:9035
       std::array<char, 27>                       advice_prompt;           // DS:9045
       std::array<FarPointer, 5>                  advice_actions;          // DS:9060: the action of each advice topic
-      std::uint16_t                              advice_menu[4];          // DS:9074
-      std::uint16_t                              near_907c;               // DS:907c
-      std::array<std::uint8_t, 10>               bytes_907e;              // DS:907e
-      std::uint16_t                              near_9088;               // DS:9088
-      std::array<std::uint8_t, 10>               bytes_908a;              // DS:908a
-      std::uint16_t                              near_9094;               // DS:9094
-      std::array<std::uint8_t, 10>               bytes_9096;              // DS:9096
-      std::uint16_t                              near_90a0;               // DS:90a0
-      std::array<std::uint8_t, 10>               bytes_90a2;              // DS:90a2
-      std::uint16_t                              near_90ac;               // DS:90ac
-      std::array<std::uint8_t, 14>               bytes_90ae;              // DS:90ae
+      std::array<MenuItem, 6>                    advice_menu;             // DS:9074
       std::array<char, 11>                       text_90bc;               // DS:90bc
       std::array<char, 13>                       text_90c7;               // DS:90c7
       std::array<char, 14>                       staff_prompt;            // DS:90d4
       std::array<FarPointer, 3>                  staff_actions;           // DS:90e2: the action of each staff officer
-      std::uint16_t                              staff_menu[4];           // DS:90ee
-      std::uint16_t                              near_90f6;               // DS:90f6
-      std::array<std::uint8_t, 10>               bytes_90f8;              // DS:90f8
-      std::uint16_t                              near_9102;               // DS:9102
-      std::array<std::uint8_t, 14>               bytes_9104;              // DS:9104
+      std::array<MenuItem, 3>                    staff_menu;              // DS:90ee
     };
   };
   union {
@@ -1914,26 +1849,14 @@ struct DataSegment {
       std::array<char, 48>         contact_prompt;    // DS:92e7
       std::array<char, 44>         contact_lost;      // DS:9317
       std::uint8_t                 unknown_9343;      // DS:9343
-      std::uint16_t                contact_menu[4];   // DS:9344
-      std::uint16_t                near_934c;         // DS:934c
-      std::array<std::uint8_t, 10> bytes_934e;        // DS:934e
-      std::uint16_t                near_9358;         // DS:9358
-      std::array<std::uint8_t, 10> bytes_935a;        // DS:935a
-      std::uint16_t                near_9364;         // DS:9364
-      std::array<std::uint8_t, 10> bytes_9366;        // DS:9366
-      std::uint16_t                near_9370;         // DS:9370
-      std::array<std::uint8_t, 14> bytes_9372;        // DS:9372
+      std::array<MenuItem, 5>      contact_menu;      // DS:9344
       std::array<char, 17>         people_here;       // DS:9380
       std::array<char, 23>         people_none;       // DS:9391
       std::array<char, 9>          text_93a8;         // DS:93a8
       std::array<char, 6>          text_93b1;         // DS:93b1
       std::array<std::uint8_t, 31> people_prompt;     // DS:93b7
       std::array<FarPointer, 2>    people_actions;    // DS:93d6: the menu's actions
-      std::uint16_t                people_menu[4];    // DS:93de
-      std::uint16_t                near_93e6;         // DS:93e6
-      std::array<std::uint8_t, 10> bytes_93e8;        // DS:93e8
-      std::uint16_t                near_93f2;         // DS:93f2
-      std::array<std::uint8_t, 14> bytes_93f4;        // DS:93f4
+      std::array<MenuItem, 3>      people_menu;       // DS:93de
       std::array<char, 26>         city_prompt;       // DS:9402
       std::array<char, 3>          city_format;       // DS:941c
       std::array<char, 31>         city_none_own;     // DS:941f
@@ -1944,69 +1867,45 @@ struct DataSegment {
         std::uint16_t                city_side_prompt[15];
         std::array<std::uint8_t, 30> city_side_prompt_bytes;
       };
-      std::uint8_t                 unknown_9489;         // DS:9489
-      std::array<FarPointer, 2>    city_actions;         // DS:948a: the menu's actions
-      std::uint16_t                city_side_menu[4];    // DS:9492
-      std::uint16_t                near_949a;            // DS:949a
-      std::array<std::uint8_t, 10> bytes_949c;           // DS:949c
-      std::uint16_t                near_94a6;            // DS:94a6
-      std::array<std::uint8_t, 14> bytes_94a8;           // DS:94a8
-      std::array<char, 35>         regiment_prompt;      // DS:94b6
-      std::array<char, 3>          regiment_format;      // DS:94d9
-      std::array<char, 30>         view_division_prompt; // DS:94dc
-      std::array<char, 27>         units_none_enemy;     // DS:94fa
-      std::array<char, 9>          text_9515;            // DS:9515
-      std::array<char, 6>          text_951e;            // DS:951e
-      std::uint16_t                info_prompt[15];      // DS:9524
-      std::array<FarPointer, 2>    info_actions;         // DS:9542: the menu's actions
-      std::uint16_t                info_menu[4];         // DS:954a
-      std::uint16_t                near_9552;            // DS:9552
-      std::array<std::uint8_t, 10> bytes_9554;           // DS:9554
-      std::uint16_t                near_955e;            // DS:955e
-      std::array<std::uint8_t, 14> bytes_9560;           // DS:9560
-      std::array<char, 29>         weapons_prompt;       // DS:956e
-      std::array<char, 19>         weapons_here;         // DS:958b
-      std::array<char, 9>          text_959e;            // DS:959e
-      std::array<char, 6>          text_95a7;            // DS:95a7
-      union {                                            // DS:95ad
+      std::uint8_t              unknown_9489;         // DS:9489
+      std::array<FarPointer, 2> city_actions;         // DS:948a: the menu's actions
+      std::array<MenuItem, 3>   city_side_menu;       // DS:9492
+      std::array<char, 35>      regiment_prompt;      // DS:94b6
+      std::array<char, 3>       regiment_format;      // DS:94d9
+      std::array<char, 30>      view_division_prompt; // DS:94dc
+      std::array<char, 27>      units_none_enemy;     // DS:94fa
+      std::array<char, 9>       text_9515;            // DS:9515
+      std::array<char, 6>       text_951e;            // DS:951e
+      std::uint16_t             info_prompt[15];      // DS:9524
+      std::array<FarPointer, 2> info_actions;         // DS:9542: the menu's actions
+      std::array<MenuItem, 3>   info_menu;            // DS:954a
+      std::array<char, 29>      weapons_prompt;       // DS:956e
+      std::array<char, 19>      weapons_here;         // DS:958b
+      std::array<char, 9>       text_959e;            // DS:959e
+      std::array<char, 6>       text_95a7;            // DS:95a7
+      union {                                         // DS:95ad
         std::uint16_t                arms_prompt[10];
         std::array<std::uint8_t, 20> arms_prompt_bytes;
       };
-      std::uint8_t                 unknown_95c1;   // DS:95c1
-      std::array<FarPointer, 2>    arms_actions;   // DS:95c2: the menu's actions
-      std::uint16_t                arms_menu[4];   // DS:95ca
-      std::uint16_t                near_95d2;      // DS:95d2
-      std::array<std::uint8_t, 10> bytes_95d4;     // DS:95d4
-      std::uint16_t                near_95de;      // DS:95de
-      std::array<std::uint8_t, 14> bytes_95e0;     // DS:95e0
-      std::array<char, 19>         victory_title;  // DS:95ee
-      std::array<char, 15>         victory_format; // DS:9601
-      std::array<char, 28>         victory_orders; // DS:9610
-      std::array<char, 10>         text_962c;      // DS:962c
-      std::array<char, 9>          text_9636;      // DS:9636
-      std::array<char, 7>          text_963f;      // DS:963f
-      std::array<char, 6>          text_9646;      // DS:9646
-      std::array<char, 10>         text_964c;      // DS:964c
-      std::array<char, 19>         text_9656;      // DS:9656
-      union {                                      // DS:9669
+      std::uint8_t              unknown_95c1;   // DS:95c1
+      std::array<FarPointer, 2> arms_actions;   // DS:95c2: the menu's actions
+      std::array<MenuItem, 3>   arms_menu;      // DS:95ca
+      std::array<char, 19>      victory_title;  // DS:95ee
+      std::array<char, 15>      victory_format; // DS:9601
+      std::array<char, 28>      victory_orders; // DS:9610
+      std::array<char, 10>      text_962c;      // DS:962c
+      std::array<char, 9>       text_9636;      // DS:9636
+      std::array<char, 7>       text_963f;      // DS:963f
+      std::array<char, 6>       text_9646;      // DS:9646
+      std::array<char, 10>      text_964c;      // DS:964c
+      std::array<char, 19>      text_9656;      // DS:9656
+      union {                                   // DS:9669
         std::uint16_t                view_main_prompt[18];
         std::array<std::uint8_t, 36> view_main_prompt_bytes;
       };
       std::uint8_t                       unknown_968d;            // DS:968d
       std::array<FarPointer, 6>          view_main_actions;       // DS:968e: the menu's actions
-      std::uint16_t                      view_main_items[4];      // DS:96a6
-      std::uint16_t                      near_96ae;               // DS:96ae
-      std::array<std::uint8_t, 10>       bytes_96b0;              // DS:96b0
-      std::uint16_t                      near_96ba;               // DS:96ba
-      std::array<std::uint8_t, 10>       bytes_96bc;              // DS:96bc
-      std::uint16_t                      near_96c6;               // DS:96c6
-      std::array<std::uint8_t, 10>       bytes_96c8;              // DS:96c8
-      std::uint16_t                      near_96d2;               // DS:96d2
-      std::array<std::uint8_t, 10>       bytes_96d4;              // DS:96d4
-      std::uint16_t                      near_96de;               // DS:96de
-      std::array<std::uint8_t, 10>       bytes_96e0;              // DS:96e0
-      std::uint16_t                      near_96ea;               // DS:96ea
-      std::array<std::uint8_t, 14>       bytes_96ec;              // DS:96ec
+      std::array<MenuItem, 7>            view_main_menu;          // DS:96a6
       std::array<char, 29>               ops_chief_format;        // DS:96fa
       std::array<char, 9>                number_range_format;     // DS:9717
       std::uint16_t                      supply_unlimited;        // DS:9720: 60000, the capacity of a city stockpile
@@ -2014,16 +1913,14 @@ struct DataSegment {
       std::uint16_t                      supply_panel_y;          // DS:9724
       std::array<char, 15>               supply_name_format;      // DS:9726
       std::array<char, 12>               supply_name_text;        // DS:9735
-      std::array<char, 3>                text_9741;               // DS:9741
-      std::array<char, 3>                text_9744;               // DS:9744
-      std::array<char, 3>                text_9747;               // DS:9747
+      std::array<char, 3>                supply_arrow_none;       // DS:9741
+      std::array<char, 3>                supply_arrow_left;       // DS:9744
+      std::array<char, 3>                supply_arrow_right;      // DS:9747
       std::array<char, 10>               supply_row_left;         // DS:974a
       std::array<char, 4>                supply_row_right;        // DS:9754
       std::array<char, 7>                supply_row_end;          // DS:9758
       std::uint8_t                       unknown_975f;            // DS:975f
-      std::uint16_t                      near_9760;               // DS:9760
-      std::uint16_t                      near_9762;               // DS:9762
-      std::uint16_t                      near_9764;               // DS:9764
+      std::uint16_t                      supply_arrows[3];        // DS:9760: near pointers to the none, left and right arrows (not drawn)
       std::array<std::uint8_t, 24>       supply_prompt;           // DS:9766
       std::array<char, 10>               supply_continue;         // DS:977e
       std::array<char, 6>                tank_suffix;             // DS:9788
@@ -2094,15 +1991,7 @@ struct DataSegment {
       std::array<char, 10>               rq_regiments_text;       // DS:9dae
       std::array<char, 27>               rq_regiment_kind_text;   // DS:9db8
       std::uint8_t                       unknown_9dd3;            // DS:9dd3
-      std::uint16_t                      rq_slash_text[4];        // DS:9dd4
-      std::uint16_t                      near_9ddc;               // DS:9ddc
-      std::array<std::uint8_t, 10>       bytes_9dde;              // DS:9dde
-      std::uint16_t                      near_9de8;               // DS:9de8
-      std::array<std::uint8_t, 10>       bytes_9dea;              // DS:9dea
-      std::uint16_t                      near_9df4;               // DS:9df4
-      std::array<std::uint8_t, 10>       bytes_9df6;              // DS:9df6
-      std::uint16_t                      near_9e00;               // DS:9e00
-      std::array<std::uint8_t, 14>       bytes_9e02;              // DS:9e02
+      std::array<MenuItem, 5>            rq_regiment_kind_menu;   // DS:9dd4
     };
   };
   union {
@@ -2132,22 +2021,16 @@ struct DataSegment {
       std::uint16_t                rq_regiment_kind_names[6]; // DS:a010: near pointers to the regiment kinds' names
       std::array<std::uint8_t, 2>  bytes_a01c;                // DS:a01c
       std::array<FarPointer, 3>    request_handlers;          // DS:a01e: the request menu's supplies, battalion and regiment handlers
-      std::uint16_t                rq_menu_items[4];          // DS:a02a
-      std::uint16_t                near_a032;                 // DS:a032
-      std::array<std::uint8_t, 10> bytes_a034;                // DS:a034
-      std::uint16_t                near_a03e;                 // DS:a03e
-      std::array<std::uint8_t, 10> bytes_a040;                // DS:a040
-      std::uint16_t                near_a04a;                 // DS:a04a
-      std::array<std::uint8_t, 14> bytes_a04c;                // DS:a04c
+      std::array<MenuItem, 4>      rq_menu;                   // DS:a02a
       std::array<char, 3>          air_question_mark;         // DS:a05a: the number prompt's "? " in the mouse input mode
       std::array<char, 13>         air_range_format;          // DS:a05d: "(%d-%d)? "
       std::array<char, 4>          air_input_begin;           // DS:a06a
       std::array<char, 4>          air_input_end;             // DS:a06e
       std::array<char, 13>         air_hostile_city;          // DS:a072: "hostile city"
       std::array<char, 25>         air_understood;            // DS:a07f
-      std::array<char, 17>         text_a098;                 // DS:a098
-      std::array<char, 17>         text_a0a9;                 // DS:a0a9
-      std::array<char, 11>         text_a0ba;                 // DS:a0ba
+      std::array<char, 17>         bombing_carpet_name;       // DS:a098
+      std::array<char, 17>         bombing_sortie_name;       // DS:a0a9
+      std::array<char, 11>         bombing_strafing_name;     // DS:a0ba
       std::array<char, 6>          air_plane;                 // DS:a0c5
       std::array<char, 7>          air_planes;                // DS:a0cb
       std::array<char, 5>          air_hour;                  // DS:a0d2
@@ -2155,18 +2038,14 @@ struct DataSegment {
       std::uint8_t                 unknown_a0dd;              // DS:a0dd
       std::array<BombingFlight, 3> bombing_flights;           // DS:a0de: the planes each bombing mission type sends
       std::uint16_t                bombing_names[3];          // DS:a0e4: near pointers to the mission type names
-      std::array<std::uint8_t, 30> bytes_a0ea;                // DS:a0ea
-      std::array<char, 29>         text_a108;                 // DS:a108
-      std::array<char, 29>         text_a125;                 // DS:a125
+      std::array<char, 30>         bombing_carpet_label;      // DS:a0ea
+      std::array<char, 29>         bombing_sortie_label;      // DS:a108
+      std::array<char, 29>         bombing_strafing_label;    // DS:a125
       std::array<char, 10>         air_null_order;            // DS:a142
       std::array<char, 15>         bombing_title;             // DS:a14c
       std::array<char, 22>         bombing_site_prompt;       // DS:a15b
       std::uint8_t                 unknown_a171;              // DS:a171
-      std::array<std::uint8_t, 20> bombing_menu;              // DS:a172: the mission type menu
-      std::uint16_t                near_a186;                 // DS:a186
-      std::uint16_t                words_a188[5];             // DS:a188
-      std::uint16_t                near_a192;                 // DS:a192
-      std::array<std::uint8_t, 14> bytes_a194;                // DS:a194
+      std::array<MenuItem, 4>      bombing_menu;              // DS:a172
       std::array<char, 37>         drop_ask_troops;           // DS:a1a2
       std::array<char, 26>         drop_troops_assigned;      // DS:a1c7
       std::array<char, 39>         drop_which_regiment;       // DS:a1e1
@@ -2211,13 +2090,7 @@ struct DataSegment {
       std::array<char, 23>         air_mission_question;      // DS:a61a: which mission to plan
       std::uint8_t                 unknown_a631;              // DS:a631
       std::array<FarPointer, 3>    air_missions;              // DS:a632: the routines of the strike, drop and airlift missions
-      std::uint16_t                air_mission_menu[4];       // DS:a63e: the mission menu
-      std::uint16_t                near_a646;                 // DS:a646
-      std::array<std::uint8_t, 10> bytes_a648;                // DS:a648
-      std::uint16_t                near_a652;                 // DS:a652
-      std::array<std::uint8_t, 10> bytes_a654;                // DS:a654
-      std::uint16_t                near_a65e;                 // DS:a65e
-      std::array<std::uint8_t, 14> bytes_a660;                // DS:a660
+      std::array<MenuItem, 4>      air_mission_menu;          // DS:a63e
       std::array<char, 5>          raid_title;                // DS:a66e
       std::array<char, 19>         raid_prompt;               // DS:a673
       std::array<char, 17>         raid_city_question;        // DS:a686
@@ -2289,17 +2162,7 @@ struct DataSegment {
       std::array<char, 27>         special_select_question;   // DS:ad9a
       std::uint8_t                 unknown_adb5;              // DS:adb5
       std::array<FarPointer, 5>    special_missions;          // DS:adb6: raid, sabotage, cut comm, assassinate, recon
-      std::uint16_t                special_menu[4];           // DS:adca
-      std::uint16_t                near_add2;                 // DS:add2
-      std::array<std::uint8_t, 10> bytes_add4;                // DS:add4
-      std::uint16_t                near_adde;                 // DS:adde
-      std::array<std::uint8_t, 10> bytes_ade0;                // DS:ade0
-      std::uint16_t                near_adea;                 // DS:adea
-      std::array<std::uint8_t, 10> bytes_adec;                // DS:adec
-      std::uint16_t                near_adf6;                 // DS:adf6
-      std::array<std::uint8_t, 10> bytes_adf8;                // DS:adf8
-      std::uint16_t                near_ae02;                 // DS:ae02
-      std::array<std::uint8_t, 14> bytes_ae04;                // DS:ae04
+      std::array<MenuItem, 6>      special_menu;              // DS:adca
       std::uint16_t                special_mission_names[8];  // DS:ae12: near pointers to the names, by mission code
       std::array<std::uint8_t, 12> unknown_ae22;              // DS:ae22
     };
@@ -2427,16 +2290,7 @@ struct DataSegment {
       std::array<char, 10>         battle_fmt_range;        // DS:b3ff
       std::array<char, 4>          battle_fmt_end;          // DS:b409
       std::uint8_t                 unknown_b40d;            // DS:b40d
-      FarPointer                   battle_handlers;         // DS:b40e
-      FarPointer                   far_code_b412;           // DS:b412
-      FarPointer                   far_code_b416;           // DS:b416
-      FarPointer                   far_code_b41a;           // DS:b41a
-      FarPointer                   far_code_b41e;           // DS:b41e
-      FarPointer                   far_code_b422;           // DS:b422
-      FarPointer                   far_code_b426;           // DS:b426
-      FarPointer                   far_code_b42a;           // DS:b42a
-      FarPointer                   far_code_b42e;           // DS:b42e
-      FarPointer                   far_code_b432;           // DS:b432
+      std::array<FarPointer, 10>   battle_handlers;         // DS:b40e: the battle's far routines, by handler
       std::array<std::uint8_t, 2>  sprite_variant;          // DS:b436
       std::array<std::uint8_t, 4>  battle_info_widths;      // DS:b438
       std::array<std::uint8_t, 12> battle_top_widths;       // DS:b43c
@@ -2567,15 +2421,13 @@ struct DataSegment {
       std::array<char, 9>                        transfer_title;             // DS:c02a
       std::array<char, 15>                       transfer_name_format;       // DS:c033
       std::array<char, 12>                       transfer_name_text;         // DS:c042
-      std::array<char, 3>                        text_c04e;                  // DS:c04e
-      std::array<char, 3>                        text_c051;                  // DS:c051
-      std::array<char, 3>                        text_c054;                  // DS:c054
+      std::array<char, 3>                        transfer_arrow_none;        // DS:c04e
+      std::array<char, 3>                        transfer_arrow_left;        // DS:c051
+      std::array<char, 3>                        transfer_arrow_right;       // DS:c054
       std::array<char, 10>                       transfer_amount_format;     // DS:c057
       std::array<char, 4>                        transfer_amount_text;       // DS:c061
       std::array<char, 7>                        transfer_colour;            // DS:c065
-      std::uint16_t                              near_c06c;                  // DS:c06c
-      std::uint16_t                              near_c06e;                  // DS:c06e
-      std::uint16_t                              near_c070;                  // DS:c070
+      std::uint16_t                              transfer_arrows[3];         // DS:c06c: near pointers to the none, left and right arrows (not drawn)
       std::array<std::uint8_t, 2>                transfer_unlimited;         // DS:c072
       std::array<std::uint8_t, 28>               transfer_prompt;            // DS:c074
       std::array<char, 27>                       transfer_begin;             // DS:c090
@@ -3486,8 +3338,8 @@ static_assert(offsetof(DataSegment, load_which_text) == 0x458f);
 static_assert(offsetof(DataSegment, loading_text) == 0x45a0);
 static_assert(offsetof(DataSegment, loaded_text) == 0x45b6);
 static_assert(offsetof(DataSegment, load_failed_text) == 0x45d2);
-static_assert(offsetof(DataSegment, text_45ef) == 0x45ef);
-static_assert(offsetof(DataSegment, text_45f7) == 0x45f7);
+static_assert(offsetof(DataSegment, play_widths) == 0x45ef);
+static_assert(offsetof(DataSegment, reinforce_widths) == 0x45f7);
 static_assert(offsetof(DataSegment, shown_portrait) == 0x4600);
 static_assert(offsetof(DataSegment, shown_portrait_bytes) == 0x4600);
 static_assert(offsetof(DataSegment, play_dialog) == 0x4602);
@@ -3585,74 +3437,24 @@ static_assert(offsetof(DataSegment, scensel_ready) == 0x4c96);
 static_assert(offsetof(DataSegment, scensel_done_colors) == 0x4cb1);
 static_assert(offsetof(DataSegment, unknown_4cbb) == 0x4cbb);
 static_assert(offsetof(DataSegment, scensel_start_menu) == 0x4cbc);
-static_assert(offsetof(DataSegment, near_4cc4) == 0x4cc4);
-static_assert(offsetof(DataSegment, words_4cc6) == 0x4cc6);
-static_assert(offsetof(DataSegment, near_4cd0) == 0x4cd0);
-static_assert(offsetof(DataSegment, bytes_4cd2) == 0x4cd2);
 static_assert(offsetof(DataSegment, scensel_start_prompt) == 0x4ce0);
 static_assert(offsetof(DataSegment, scensel_players_menu) == 0x4d00);
-static_assert(offsetof(DataSegment, near_4d08) == 0x4d08);
-static_assert(offsetof(DataSegment, words_4d0a) == 0x4d0a);
-static_assert(offsetof(DataSegment, near_4d14) == 0x4d14);
-static_assert(offsetof(DataSegment, words_4d16) == 0x4d16);
-static_assert(offsetof(DataSegment, near_4d20) == 0x4d20);
-static_assert(offsetof(DataSegment, bytes_4d22) == 0x4d22);
 static_assert(offsetof(DataSegment, scensel_players_prompt) == 0x4d30);
 static_assert(offsetof(DataSegment, scensel_view_prompt) == 0x4d48);
 static_assert(offsetof(DataSegment, scensel_side_menu) == 0x4d68);
-static_assert(offsetof(DataSegment, near_4d70) == 0x4d70);
-static_assert(offsetof(DataSegment, words_4d72) == 0x4d72);
-static_assert(offsetof(DataSegment, near_4d7c) == 0x4d7c);
-static_assert(offsetof(DataSegment, bytes_4d7e) == 0x4d7e);
 static_assert(offsetof(DataSegment, scensel_command_prompt) == 0x4d8c);
 static_assert(offsetof(DataSegment, unknown_4daf) == 0x4daf);
 static_assert(offsetof(DataSegment, scensel_map_menu) == 0x4db0);
-static_assert(offsetof(DataSegment, near_4db8) == 0x4db8);
-static_assert(offsetof(DataSegment, words_4dba) == 0x4dba);
-static_assert(offsetof(DataSegment, near_4dc4) == 0x4dc4);
-static_assert(offsetof(DataSegment, bytes_4dc6) == 0x4dc6);
 static_assert(offsetof(DataSegment, scensel_map_prompt) == 0x4dd4);
 static_assert(offsetof(DataSegment, scensel_battles_menu) == 0x4df2);
-static_assert(offsetof(DataSegment, near_4dfa) == 0x4dfa);
-static_assert(offsetof(DataSegment, words_4dfc) == 0x4dfc);
-static_assert(offsetof(DataSegment, near_4e06) == 0x4e06);
-static_assert(offsetof(DataSegment, bytes_4e08) == 0x4e08);
 static_assert(offsetof(DataSegment, scensel_battles_prompt) == 0x4e16);
 static_assert(offsetof(DataSegment, unknown_4e2b) == 0x4e2b);
 static_assert(offsetof(DataSegment, scensel_battles_menu2) == 0x4e2c);
-static_assert(offsetof(DataSegment, near_4e34) == 0x4e34);
-static_assert(offsetof(DataSegment, words_4e36) == 0x4e36);
-static_assert(offsetof(DataSegment, near_4e40) == 0x4e40);
-static_assert(offsetof(DataSegment, words_4e42) == 0x4e42);
-static_assert(offsetof(DataSegment, near_4e4c) == 0x4e4c);
-static_assert(offsetof(DataSegment, bytes_4e4e) == 0x4e4e);
 static_assert(offsetof(DataSegment, scensel_battles_prompt2) == 0x4e5c);
 static_assert(offsetof(DataSegment, unknown_4e71) == 0x4e71);
 static_assert(offsetof(DataSegment, scensel_difficulty_menu) == 0x4e72);
-static_assert(offsetof(DataSegment, near_4e7a) == 0x4e7a);
-static_assert(offsetof(DataSegment, words_4e7c) == 0x4e7c);
-static_assert(offsetof(DataSegment, near_4e86) == 0x4e86);
-static_assert(offsetof(DataSegment, words_4e88) == 0x4e88);
-static_assert(offsetof(DataSegment, near_4e92) == 0x4e92);
-static_assert(offsetof(DataSegment, words_4e94) == 0x4e94);
-static_assert(offsetof(DataSegment, near_4e9e) == 0x4e9e);
-static_assert(offsetof(DataSegment, bytes_4ea0) == 0x4ea0);
-static_assert(offsetof(DataSegment, near_4eaa) == 0x4eaa);
-static_assert(offsetof(DataSegment, bytes_4eac) == 0x4eac);
 static_assert(offsetof(DataSegment, scensel_difficulty_prompt) == 0x4eba);
 static_assert(offsetof(DataSegment, scensel_scenario_menu) == 0x4ed8);
-static_assert(offsetof(DataSegment, near_4ee0) == 0x4ee0);
-static_assert(offsetof(DataSegment, words_4ee2) == 0x4ee2);
-static_assert(offsetof(DataSegment, near_4eec) == 0x4eec);
-static_assert(offsetof(DataSegment, words_4eee) == 0x4eee);
-static_assert(offsetof(DataSegment, near_4ef8) == 0x4ef8);
-static_assert(offsetof(DataSegment, words_4efa) == 0x4efa);
-static_assert(offsetof(DataSegment, near_4f04) == 0x4f04);
-static_assert(offsetof(DataSegment, words_4f06) == 0x4f06);
-static_assert(offsetof(DataSegment, near_4f10) == 0x4f10);
-static_assert(offsetof(DataSegment, bytes_4f12) == 0x4f12);
-static_assert(offsetof(DataSegment, near_4f1c) == 0x4f1c);
-static_assert(offsetof(DataSegment, bytes_4f1e) == 0x4f1e);
 static_assert(offsetof(DataSegment, scensel_scenario_prompt) == 0x4f2c);
 static_assert(offsetof(DataSegment, scensel_pictures) == 0x4f50);
 static_assert(offsetof(DataSegment, memory_message) == 0x4f5e);
@@ -3759,7 +3561,7 @@ static_assert(offsetof(DataSegment, tbl_group_div) == 0x563d);
 static_assert(offsetof(DataSegment, tbl_group_army) == 0x5643);
 static_assert(offsetof(DataSegment, tbl_group_row) == 0x564a);
 static_assert(offsetof(DataSegment, tbl_group_blank) == 0x5670);
-static_assert(offsetof(DataSegment, text_5697) == 0x5697);
+static_assert(offsetof(DataSegment, division_widths) == 0x5697);
 static_assert(offsetof(DataSegment, tbl_mission_header) == 0x569e);
 static_assert(offsetof(DataSegment, tbl_mission_label) == 0x56a8);
 static_assert(offsetof(DataSegment, tbl_mission_place) == 0x56b6);
@@ -3768,7 +3570,7 @@ static_assert(offsetof(DataSegment, tbl_mission_row) == 0x56d1);
 static_assert(offsetof(DataSegment, tbl_mission_blank) == 0x56d9);
 static_assert(offsetof(DataSegment, unknown_56ff) == 0x56ff);
 static_assert(offsetof(DataSegment, division_dialog) == 0x5700);
-static_assert(offsetof(DataSegment, bytes_5713) == 0x5713);
+static_assert(offsetof(DataSegment, order_target_widths) == 0x5713);
 static_assert(offsetof(DataSegment, tbl_unit_header) == 0x5716);
 static_assert(offsetof(DataSegment, tbl_unit_mark) == 0x5745);
 static_assert(offsetof(DataSegment, tbl_unit_label) == 0x5749);
@@ -3779,18 +3581,18 @@ static_assert(offsetof(DataSegment, tbl_unit_row) == 0x5796);
 static_assert(offsetof(DataSegment, tbl_unit_hidden) == 0x57c0);
 static_assert(offsetof(DataSegment, unknown_57ed) == 0x57ed);
 static_assert(offsetof(DataSegment, order_target_list) == 0x57ee);
-static_assert(offsetof(DataSegment, bytes_5801) == 0x5801);
+static_assert(offsetof(DataSegment, organize_widths) == 0x5801);
 static_assert(offsetof(DataSegment, tbl_order_header) == 0x5809);
 static_assert(offsetof(DataSegment, tbl_order_label) == 0x583c);
 static_assert(offsetof(DataSegment, unknown_5847) == 0x5847);
 static_assert(offsetof(DataSegment, organize_list) == 0x5848);
-static_assert(offsetof(DataSegment, bytes_585b) == 0x585b);
+static_assert(offsetof(DataSegment, regiment_widths) == 0x585b);
 static_assert(offsetof(DataSegment, tbl_element_header) == 0x5863);
 static_assert(offsetof(DataSegment, tbl_element_mark) == 0x5881);
 static_assert(offsetof(DataSegment, tbl_element_name) == 0x5885);
 static_assert(offsetof(DataSegment, tbl_element_row) == 0x588f);
 static_assert(offsetof(DataSegment, regiment_dialog) == 0x58ae);
-static_assert(offsetof(DataSegment, bytes_58c1) == 0x58c1);
+static_assert(offsetof(DataSegment, choice_widths) == 0x58c1);
 static_assert(offsetof(DataSegment, text_58c8) == 0x58c8);
 static_assert(offsetof(DataSegment, text_58cd) == 0x58cd);
 static_assert(offsetof(DataSegment, text_58d2) == 0x58d2);
@@ -3805,30 +3607,29 @@ static_assert(offsetof(DataSegment, tbl_person_hurt) == 0x5901);
 static_assert(offsetof(DataSegment, choice_dialog) == 0x5906);
 static_assert(offsetof(DataSegment, bytes_5919) == 0x5919);
 static_assert(offsetof(DataSegment, tbl_post_names) == 0x591a);
-static_assert(offsetof(DataSegment, bytes_5928) == 0x5928);
+static_assert(offsetof(DataSegment, people_widths) == 0x5928);
 static_assert(offsetof(DataSegment, tbl_type_header) == 0x5935);
 static_assert(offsetof(DataSegment, tbl_type_name) == 0x595c);
 static_assert(offsetof(DataSegment, tbl_type_row) == 0x5965);
 static_assert(offsetof(DataSegment, people_dialog) == 0x598a);
-static_assert(offsetof(DataSegment, text_599d) == 0x599d);
+static_assert(offsetof(DataSegment, weapons_widths) == 0x599d);
 static_assert(offsetof(DataSegment, tbl_supply_header) == 0x59a5);
 static_assert(offsetof(DataSegment, tbl_supply_name) == 0x59d5);
 static_assert(offsetof(DataSegment, tbl_supply_row) == 0x59de);
 static_assert(offsetof(DataSegment, tbl_supply_blank) == 0x5a0d);
 static_assert(offsetof(DataSegment, unknown_5a3d) == 0x5a3d);
 static_assert(offsetof(DataSegment, weapons_dialog) == 0x5a3e);
-static_assert(offsetof(DataSegment, bytes_5a51) == 0x5a51);
+static_assert(offsetof(DataSegment, city_widths) == 0x5a51);
 static_assert(offsetof(DataSegment, tbl_str_header) == 0x5a57);
 static_assert(offsetof(DataSegment, tbl_str_name) == 0x5a64);
 static_assert(offsetof(DataSegment, tbl_str_row) == 0x5a6c);
 static_assert(offsetof(DataSegment, unknown_5a77) == 0x5a77);
 static_assert(offsetof(DataSegment, city_dialog) == 0x5a78);
-static_assert(offsetof(DataSegment, bytes_5a8b) == 0x5a8b);
+static_assert(offsetof(DataSegment, stock_widths) == 0x5a8b);
+static_assert(offsetof(DataSegment, save_widths) == 0x5a8f);
 static_assert(offsetof(DataSegment, stock_dialog) == 0x5a96);
 static_assert(offsetof(DataSegment, unknown_5aa9) == 0x5aa9);
-static_assert(offsetof(DataSegment, save_menu) == 0x5aaa);
-static_assert(offsetof(DataSegment, far_code_5ab5) == 0x5ab5);
-static_assert(offsetof(DataSegment, far_code_5ab9) == 0x5ab9);
+static_assert(offsetof(DataSegment, save_list) == 0x5aaa);
 static_assert(offsetof(DataSegment, text_5abd) == 0x5abd);
 static_assert(offsetof(DataSegment, text_5ac6) == 0x5ac6);
 static_assert(offsetof(DataSegment, tbl_save_header) == 0x5acf);
@@ -4243,25 +4044,11 @@ static_assert(offsetof(DataSegment, text_9035) == 0x9035);
 static_assert(offsetof(DataSegment, advice_prompt) == 0x9045);
 static_assert(offsetof(DataSegment, advice_actions) == 0x9060);
 static_assert(offsetof(DataSegment, advice_menu) == 0x9074);
-static_assert(offsetof(DataSegment, near_907c) == 0x907c);
-static_assert(offsetof(DataSegment, bytes_907e) == 0x907e);
-static_assert(offsetof(DataSegment, near_9088) == 0x9088);
-static_assert(offsetof(DataSegment, bytes_908a) == 0x908a);
-static_assert(offsetof(DataSegment, near_9094) == 0x9094);
-static_assert(offsetof(DataSegment, bytes_9096) == 0x9096);
-static_assert(offsetof(DataSegment, near_90a0) == 0x90a0);
-static_assert(offsetof(DataSegment, bytes_90a2) == 0x90a2);
-static_assert(offsetof(DataSegment, near_90ac) == 0x90ac);
-static_assert(offsetof(DataSegment, bytes_90ae) == 0x90ae);
 static_assert(offsetof(DataSegment, text_90bc) == 0x90bc);
 static_assert(offsetof(DataSegment, text_90c7) == 0x90c7);
 static_assert(offsetof(DataSegment, staff_prompt) == 0x90d4);
 static_assert(offsetof(DataSegment, staff_actions) == 0x90e2);
 static_assert(offsetof(DataSegment, staff_menu) == 0x90ee);
-static_assert(offsetof(DataSegment, near_90f6) == 0x90f6);
-static_assert(offsetof(DataSegment, bytes_90f8) == 0x90f8);
-static_assert(offsetof(DataSegment, near_9102) == 0x9102);
-static_assert(offsetof(DataSegment, bytes_9104) == 0x9104);
 static_assert(offsetof(DataSegment, supply_text) == 0x9112);
 static_assert(offsetof(DataSegment, panel_fuel_ammo) == 0x9112);
 static_assert(offsetof(DataSegment, panel_food_end) == 0x9147);
@@ -4285,14 +4072,6 @@ static_assert(offsetof(DataSegment, contact_prompt) == 0x92e7);
 static_assert(offsetof(DataSegment, contact_lost) == 0x9317);
 static_assert(offsetof(DataSegment, unknown_9343) == 0x9343);
 static_assert(offsetof(DataSegment, contact_menu) == 0x9344);
-static_assert(offsetof(DataSegment, near_934c) == 0x934c);
-static_assert(offsetof(DataSegment, bytes_934e) == 0x934e);
-static_assert(offsetof(DataSegment, near_9358) == 0x9358);
-static_assert(offsetof(DataSegment, bytes_935a) == 0x935a);
-static_assert(offsetof(DataSegment, near_9364) == 0x9364);
-static_assert(offsetof(DataSegment, bytes_9366) == 0x9366);
-static_assert(offsetof(DataSegment, near_9370) == 0x9370);
-static_assert(offsetof(DataSegment, bytes_9372) == 0x9372);
 static_assert(offsetof(DataSegment, people_here) == 0x9380);
 static_assert(offsetof(DataSegment, people_none) == 0x9391);
 static_assert(offsetof(DataSegment, text_93a8) == 0x93a8);
@@ -4300,10 +4079,6 @@ static_assert(offsetof(DataSegment, text_93b1) == 0x93b1);
 static_assert(offsetof(DataSegment, people_prompt) == 0x93b7);
 static_assert(offsetof(DataSegment, people_actions) == 0x93d6);
 static_assert(offsetof(DataSegment, people_menu) == 0x93de);
-static_assert(offsetof(DataSegment, near_93e6) == 0x93e6);
-static_assert(offsetof(DataSegment, bytes_93e8) == 0x93e8);
-static_assert(offsetof(DataSegment, near_93f2) == 0x93f2);
-static_assert(offsetof(DataSegment, bytes_93f4) == 0x93f4);
 static_assert(offsetof(DataSegment, city_prompt) == 0x9402);
 static_assert(offsetof(DataSegment, city_format) == 0x941c);
 static_assert(offsetof(DataSegment, city_none_own) == 0x941f);
@@ -4315,10 +4090,6 @@ static_assert(offsetof(DataSegment, city_side_prompt_bytes) == 0x946b);
 static_assert(offsetof(DataSegment, unknown_9489) == 0x9489);
 static_assert(offsetof(DataSegment, city_actions) == 0x948a);
 static_assert(offsetof(DataSegment, city_side_menu) == 0x9492);
-static_assert(offsetof(DataSegment, near_949a) == 0x949a);
-static_assert(offsetof(DataSegment, bytes_949c) == 0x949c);
-static_assert(offsetof(DataSegment, near_94a6) == 0x94a6);
-static_assert(offsetof(DataSegment, bytes_94a8) == 0x94a8);
 static_assert(offsetof(DataSegment, regiment_prompt) == 0x94b6);
 static_assert(offsetof(DataSegment, regiment_format) == 0x94d9);
 static_assert(offsetof(DataSegment, view_division_prompt) == 0x94dc);
@@ -4328,10 +4099,6 @@ static_assert(offsetof(DataSegment, text_951e) == 0x951e);
 static_assert(offsetof(DataSegment, info_prompt) == 0x9524);
 static_assert(offsetof(DataSegment, info_actions) == 0x9542);
 static_assert(offsetof(DataSegment, info_menu) == 0x954a);
-static_assert(offsetof(DataSegment, near_9552) == 0x9552);
-static_assert(offsetof(DataSegment, bytes_9554) == 0x9554);
-static_assert(offsetof(DataSegment, near_955e) == 0x955e);
-static_assert(offsetof(DataSegment, bytes_9560) == 0x9560);
 static_assert(offsetof(DataSegment, weapons_prompt) == 0x956e);
 static_assert(offsetof(DataSegment, weapons_here) == 0x958b);
 static_assert(offsetof(DataSegment, text_959e) == 0x959e);
@@ -4341,10 +4108,6 @@ static_assert(offsetof(DataSegment, arms_prompt_bytes) == 0x95ad);
 static_assert(offsetof(DataSegment, unknown_95c1) == 0x95c1);
 static_assert(offsetof(DataSegment, arms_actions) == 0x95c2);
 static_assert(offsetof(DataSegment, arms_menu) == 0x95ca);
-static_assert(offsetof(DataSegment, near_95d2) == 0x95d2);
-static_assert(offsetof(DataSegment, bytes_95d4) == 0x95d4);
-static_assert(offsetof(DataSegment, near_95de) == 0x95de);
-static_assert(offsetof(DataSegment, bytes_95e0) == 0x95e0);
 static_assert(offsetof(DataSegment, victory_title) == 0x95ee);
 static_assert(offsetof(DataSegment, victory_format) == 0x9601);
 static_assert(offsetof(DataSegment, victory_orders) == 0x9610);
@@ -4358,19 +4121,7 @@ static_assert(offsetof(DataSegment, view_main_prompt) == 0x9669);
 static_assert(offsetof(DataSegment, view_main_prompt_bytes) == 0x9669);
 static_assert(offsetof(DataSegment, unknown_968d) == 0x968d);
 static_assert(offsetof(DataSegment, view_main_actions) == 0x968e);
-static_assert(offsetof(DataSegment, view_main_items) == 0x96a6);
-static_assert(offsetof(DataSegment, near_96ae) == 0x96ae);
-static_assert(offsetof(DataSegment, bytes_96b0) == 0x96b0);
-static_assert(offsetof(DataSegment, near_96ba) == 0x96ba);
-static_assert(offsetof(DataSegment, bytes_96bc) == 0x96bc);
-static_assert(offsetof(DataSegment, near_96c6) == 0x96c6);
-static_assert(offsetof(DataSegment, bytes_96c8) == 0x96c8);
-static_assert(offsetof(DataSegment, near_96d2) == 0x96d2);
-static_assert(offsetof(DataSegment, bytes_96d4) == 0x96d4);
-static_assert(offsetof(DataSegment, near_96de) == 0x96de);
-static_assert(offsetof(DataSegment, bytes_96e0) == 0x96e0);
-static_assert(offsetof(DataSegment, near_96ea) == 0x96ea);
-static_assert(offsetof(DataSegment, bytes_96ec) == 0x96ec);
+static_assert(offsetof(DataSegment, view_main_menu) == 0x96a6);
 static_assert(offsetof(DataSegment, ops_chief_format) == 0x96fa);
 static_assert(offsetof(DataSegment, number_range_format) == 0x9717);
 static_assert(offsetof(DataSegment, supply_unlimited) == 0x9720);
@@ -4378,16 +4129,14 @@ static_assert(offsetof(DataSegment, supply_panel_x) == 0x9722);
 static_assert(offsetof(DataSegment, supply_panel_y) == 0x9724);
 static_assert(offsetof(DataSegment, supply_name_format) == 0x9726);
 static_assert(offsetof(DataSegment, supply_name_text) == 0x9735);
-static_assert(offsetof(DataSegment, text_9741) == 0x9741);
-static_assert(offsetof(DataSegment, text_9744) == 0x9744);
-static_assert(offsetof(DataSegment, text_9747) == 0x9747);
+static_assert(offsetof(DataSegment, supply_arrow_none) == 0x9741);
+static_assert(offsetof(DataSegment, supply_arrow_left) == 0x9744);
+static_assert(offsetof(DataSegment, supply_arrow_right) == 0x9747);
 static_assert(offsetof(DataSegment, supply_row_left) == 0x974a);
 static_assert(offsetof(DataSegment, supply_row_right) == 0x9754);
 static_assert(offsetof(DataSegment, supply_row_end) == 0x9758);
 static_assert(offsetof(DataSegment, unknown_975f) == 0x975f);
-static_assert(offsetof(DataSegment, near_9760) == 0x9760);
-static_assert(offsetof(DataSegment, near_9762) == 0x9762);
-static_assert(offsetof(DataSegment, near_9764) == 0x9764);
+static_assert(offsetof(DataSegment, supply_arrows) == 0x9760);
 static_assert(offsetof(DataSegment, supply_prompt) == 0x9766);
 static_assert(offsetof(DataSegment, supply_continue) == 0x977e);
 static_assert(offsetof(DataSegment, tank_suffix) == 0x9788);
@@ -4458,15 +4207,7 @@ static_assert(offsetof(DataSegment, rq_which_regiment_text) == 0x9d87);
 static_assert(offsetof(DataSegment, rq_regiments_text) == 0x9dae);
 static_assert(offsetof(DataSegment, rq_regiment_kind_text) == 0x9db8);
 static_assert(offsetof(DataSegment, unknown_9dd3) == 0x9dd3);
-static_assert(offsetof(DataSegment, rq_slash_text) == 0x9dd4);
-static_assert(offsetof(DataSegment, near_9ddc) == 0x9ddc);
-static_assert(offsetof(DataSegment, bytes_9dde) == 0x9dde);
-static_assert(offsetof(DataSegment, near_9de8) == 0x9de8);
-static_assert(offsetof(DataSegment, bytes_9dea) == 0x9dea);
-static_assert(offsetof(DataSegment, near_9df4) == 0x9df4);
-static_assert(offsetof(DataSegment, bytes_9df6) == 0x9df6);
-static_assert(offsetof(DataSegment, near_9e00) == 0x9e00);
-static_assert(offsetof(DataSegment, bytes_9e02) == 0x9e02);
+static_assert(offsetof(DataSegment, rq_regiment_kind_menu) == 0x9dd4);
 static_assert(offsetof(DataSegment, air_text) == 0x9e10);
 static_assert(offsetof(DataSegment, rq_header_text) == 0x9e10);
 static_assert(offsetof(DataSegment, text_9e3b) == 0x9e3b);
@@ -4492,22 +4233,16 @@ static_assert(offsetof(DataSegment, unknown_a00f) == 0xa00f);
 static_assert(offsetof(DataSegment, rq_regiment_kind_names) == 0xa010);
 static_assert(offsetof(DataSegment, bytes_a01c) == 0xa01c);
 static_assert(offsetof(DataSegment, request_handlers) == 0xa01e);
-static_assert(offsetof(DataSegment, rq_menu_items) == 0xa02a);
-static_assert(offsetof(DataSegment, near_a032) == 0xa032);
-static_assert(offsetof(DataSegment, bytes_a034) == 0xa034);
-static_assert(offsetof(DataSegment, near_a03e) == 0xa03e);
-static_assert(offsetof(DataSegment, bytes_a040) == 0xa040);
-static_assert(offsetof(DataSegment, near_a04a) == 0xa04a);
-static_assert(offsetof(DataSegment, bytes_a04c) == 0xa04c);
+static_assert(offsetof(DataSegment, rq_menu) == 0xa02a);
 static_assert(offsetof(DataSegment, air_question_mark) == 0xa05a);
 static_assert(offsetof(DataSegment, air_range_format) == 0xa05d);
 static_assert(offsetof(DataSegment, air_input_begin) == 0xa06a);
 static_assert(offsetof(DataSegment, air_input_end) == 0xa06e);
 static_assert(offsetof(DataSegment, air_hostile_city) == 0xa072);
 static_assert(offsetof(DataSegment, air_understood) == 0xa07f);
-static_assert(offsetof(DataSegment, text_a098) == 0xa098);
-static_assert(offsetof(DataSegment, text_a0a9) == 0xa0a9);
-static_assert(offsetof(DataSegment, text_a0ba) == 0xa0ba);
+static_assert(offsetof(DataSegment, bombing_carpet_name) == 0xa098);
+static_assert(offsetof(DataSegment, bombing_sortie_name) == 0xa0a9);
+static_assert(offsetof(DataSegment, bombing_strafing_name) == 0xa0ba);
 static_assert(offsetof(DataSegment, air_plane) == 0xa0c5);
 static_assert(offsetof(DataSegment, air_planes) == 0xa0cb);
 static_assert(offsetof(DataSegment, air_hour) == 0xa0d2);
@@ -4515,18 +4250,14 @@ static_assert(offsetof(DataSegment, air_hours) == 0xa0d7);
 static_assert(offsetof(DataSegment, unknown_a0dd) == 0xa0dd);
 static_assert(offsetof(DataSegment, bombing_flights) == 0xa0de);
 static_assert(offsetof(DataSegment, bombing_names) == 0xa0e4);
-static_assert(offsetof(DataSegment, bytes_a0ea) == 0xa0ea);
-static_assert(offsetof(DataSegment, text_a108) == 0xa108);
-static_assert(offsetof(DataSegment, text_a125) == 0xa125);
+static_assert(offsetof(DataSegment, bombing_carpet_label) == 0xa0ea);
+static_assert(offsetof(DataSegment, bombing_sortie_label) == 0xa108);
+static_assert(offsetof(DataSegment, bombing_strafing_label) == 0xa125);
 static_assert(offsetof(DataSegment, air_null_order) == 0xa142);
 static_assert(offsetof(DataSegment, bombing_title) == 0xa14c);
 static_assert(offsetof(DataSegment, bombing_site_prompt) == 0xa15b);
 static_assert(offsetof(DataSegment, unknown_a171) == 0xa171);
 static_assert(offsetof(DataSegment, bombing_menu) == 0xa172);
-static_assert(offsetof(DataSegment, near_a186) == 0xa186);
-static_assert(offsetof(DataSegment, words_a188) == 0xa188);
-static_assert(offsetof(DataSegment, near_a192) == 0xa192);
-static_assert(offsetof(DataSegment, bytes_a194) == 0xa194);
 static_assert(offsetof(DataSegment, drop_ask_troops) == 0xa1a2);
 static_assert(offsetof(DataSegment, drop_troops_assigned) == 0xa1c7);
 static_assert(offsetof(DataSegment, drop_which_regiment) == 0xa1e1);
@@ -4572,12 +4303,6 @@ static_assert(offsetof(DataSegment, air_mission_question) == 0xa61a);
 static_assert(offsetof(DataSegment, unknown_a631) == 0xa631);
 static_assert(offsetof(DataSegment, air_missions) == 0xa632);
 static_assert(offsetof(DataSegment, air_mission_menu) == 0xa63e);
-static_assert(offsetof(DataSegment, near_a646) == 0xa646);
-static_assert(offsetof(DataSegment, bytes_a648) == 0xa648);
-static_assert(offsetof(DataSegment, near_a652) == 0xa652);
-static_assert(offsetof(DataSegment, bytes_a654) == 0xa654);
-static_assert(offsetof(DataSegment, near_a65e) == 0xa65e);
-static_assert(offsetof(DataSegment, bytes_a660) == 0xa660);
 static_assert(offsetof(DataSegment, raid_title) == 0xa66e);
 static_assert(offsetof(DataSegment, raid_prompt) == 0xa673);
 static_assert(offsetof(DataSegment, raid_city_question) == 0xa686);
@@ -4650,16 +4375,6 @@ static_assert(offsetof(DataSegment, special_select_question) == 0xad9a);
 static_assert(offsetof(DataSegment, unknown_adb5) == 0xadb5);
 static_assert(offsetof(DataSegment, special_missions) == 0xadb6);
 static_assert(offsetof(DataSegment, special_menu) == 0xadca);
-static_assert(offsetof(DataSegment, near_add2) == 0xadd2);
-static_assert(offsetof(DataSegment, bytes_add4) == 0xadd4);
-static_assert(offsetof(DataSegment, near_adde) == 0xadde);
-static_assert(offsetof(DataSegment, bytes_ade0) == 0xade0);
-static_assert(offsetof(DataSegment, near_adea) == 0xadea);
-static_assert(offsetof(DataSegment, bytes_adec) == 0xadec);
-static_assert(offsetof(DataSegment, near_adf6) == 0xadf6);
-static_assert(offsetof(DataSegment, bytes_adf8) == 0xadf8);
-static_assert(offsetof(DataSegment, near_ae02) == 0xae02);
-static_assert(offsetof(DataSegment, bytes_ae04) == 0xae04);
 static_assert(offsetof(DataSegment, special_mission_names) == 0xae12);
 static_assert(offsetof(DataSegment, unknown_ae22) == 0xae22);
 static_assert(offsetof(DataSegment, settings_data) == 0xae2e);
@@ -4768,15 +4483,6 @@ static_assert(offsetof(DataSegment, battle_fmt_range) == 0xb3ff);
 static_assert(offsetof(DataSegment, battle_fmt_end) == 0xb409);
 static_assert(offsetof(DataSegment, unknown_b40d) == 0xb40d);
 static_assert(offsetof(DataSegment, battle_handlers) == 0xb40e);
-static_assert(offsetof(DataSegment, far_code_b412) == 0xb412);
-static_assert(offsetof(DataSegment, far_code_b416) == 0xb416);
-static_assert(offsetof(DataSegment, far_code_b41a) == 0xb41a);
-static_assert(offsetof(DataSegment, far_code_b41e) == 0xb41e);
-static_assert(offsetof(DataSegment, far_code_b422) == 0xb422);
-static_assert(offsetof(DataSegment, far_code_b426) == 0xb426);
-static_assert(offsetof(DataSegment, far_code_b42a) == 0xb42a);
-static_assert(offsetof(DataSegment, far_code_b42e) == 0xb42e);
-static_assert(offsetof(DataSegment, far_code_b432) == 0xb432);
 static_assert(offsetof(DataSegment, sprite_variant) == 0xb436);
 static_assert(offsetof(DataSegment, battle_info_widths) == 0xb438);
 static_assert(offsetof(DataSegment, battle_top_widths) == 0xb43c);
@@ -4900,15 +4606,13 @@ static_assert(offsetof(DataSegment, transfer_panel_y) == 0xc028);
 static_assert(offsetof(DataSegment, transfer_title) == 0xc02a);
 static_assert(offsetof(DataSegment, transfer_name_format) == 0xc033);
 static_assert(offsetof(DataSegment, transfer_name_text) == 0xc042);
-static_assert(offsetof(DataSegment, text_c04e) == 0xc04e);
-static_assert(offsetof(DataSegment, text_c051) == 0xc051);
-static_assert(offsetof(DataSegment, text_c054) == 0xc054);
+static_assert(offsetof(DataSegment, transfer_arrow_none) == 0xc04e);
+static_assert(offsetof(DataSegment, transfer_arrow_left) == 0xc051);
+static_assert(offsetof(DataSegment, transfer_arrow_right) == 0xc054);
 static_assert(offsetof(DataSegment, transfer_amount_format) == 0xc057);
 static_assert(offsetof(DataSegment, transfer_amount_text) == 0xc061);
 static_assert(offsetof(DataSegment, transfer_colour) == 0xc065);
-static_assert(offsetof(DataSegment, near_c06c) == 0xc06c);
-static_assert(offsetof(DataSegment, near_c06e) == 0xc06e);
-static_assert(offsetof(DataSegment, near_c070) == 0xc070);
+static_assert(offsetof(DataSegment, transfer_arrows) == 0xc06c);
 static_assert(offsetof(DataSegment, transfer_unlimited) == 0xc072);
 static_assert(offsetof(DataSegment, transfer_prompt) == 0xc074);
 static_assert(offsetof(DataSegment, transfer_begin) == 0xc090);

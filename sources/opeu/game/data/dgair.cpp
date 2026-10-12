@@ -29,8 +29,7 @@ auto InitialAirText(DataSegment& data) -> void {
   SetText(data.rq_busy_text, "That is already under\012preparation. You "
                              "cannot\012change it now.\033S");
   SetText(data.rq_no_city_text, "We have no friendly cities!\033E2");
-  SetEach(std::to_array<std::uint16_t>({ 0x9e3b, 0x9e44, 0x9e4f, 0x9e55, 0x9e5f, 0x9e68 }),
-          [&](std::size_t index, std::uint16_t value) { data.rq_regiment_kind_names[index] = value; });
+  SetEach(std::to_array<std::uint16_t>({ 0x9e3b, 0x9e44, 0x9e4f, 0x9e55, 0x9e5f, 0x9e68 }), [&](std::size_t index, std::uint16_t value) { data.rq_regiment_kind_names[index] = value; });
   // clang-format off
   data.request_handlers = { {
     { 0x0136, 0x22f9 },
@@ -38,23 +37,23 @@ auto InitialAirText(DataSegment& data) -> void {
     { 0x0780, 0x22f9 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0034, 0x0018, 0x000b, 0x0700 }),
-          [&](std::size_t index, std::uint16_t value) { data.rq_menu_items[index] = value; });
-  data.near_a032  = 0x9e6f;
-  data.bytes_a034 = { 0x01, 0x80, 0x34, 0x00, 0x30, 0x00, 0x0b, 0x00, 0x00, 0x07 };
-  data.near_a03e  = 0x9e78;
-  data.bytes_a040 = { 0x02, 0x80, 0x34, 0x00, 0x48, 0x00, 0x0b, 0x00, 0x00, 0x07 };
-  data.near_a04a  = 0x9e83;
-  data.bytes_a04c = { 0x03, 0x80 };
+  // clang-format off
+  data.rq_menu = { {
+    { 0x0034, 0x0018, 0x000b, 0x0700, 0x9e6f, 0x8001 }, // "Supplies"
+    { 0x0034, 0x0030, 0x000b, 0x0700, 0x9e78, 0x8002 }, // "Battalions"
+    { 0x0034, 0x0048, 0x000b, 0x0700, 0x9e83, 0x8003 }, // "Regiments"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.air_question_mark, "? ");
   SetText(data.air_range_format, "(%u-%u)? \033B1");
   SetText(data.air_input_begin, "\033B1");
   SetText(data.air_input_end, "\033B0");
   SetText(data.air_hostile_city, "hostile city");
   SetText(data.air_understood, "Understood, Commander.\033S");
-  SetText(data.text_a098, "a carpet bombing");
-  SetText(data.text_a0a9, "an attack sortie");
-  SetText(data.text_a0ba, "a strafing");
+  SetText(data.bombing_carpet_name, "a carpet bombing");
+  SetText(data.bombing_sortie_name, "an attack sortie");
+  SetText(data.bombing_strafing_name, "a strafing");
   SetText(data.air_plane, "plane");
   SetText(data.air_planes, "planes");
   SetText(data.air_hour, "hour");
@@ -69,20 +68,20 @@ auto InitialAirText(DataSegment& data) -> void {
   data.bombing_names[0] = 0xa098;
   data.bombing_names[1] = 0xa0a9;
   data.bombing_names[2] = 0xa0ba;
-  data.bytes_a0ea       = { 0x43, 0x61, 0x72, 0x70, 0x65, 0x74, 0x20, 0x42, 0x6f, 0x6d, 0x62, 0x69, 0x6e, 0x67, 0x20,
-                            0x28, 0x31, 0x30, 0x2d, 0x32, 0x30, 0x20, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x73, 0x29 };
-  SetText(data.text_a108, "Attack Sortie  (5-10 planes)");
-  SetText(data.text_a125, "Strafing Run   (1- 5 planes)");
+  SetText(data.bombing_carpet_label, "Carpet Bombing (10-20 planes)");
+  SetText(data.bombing_sortie_label, "Attack Sortie  (5-10 planes)");
+  SetText(data.bombing_strafing_label, "Strafing Run   (1- 5 planes)");
   SetText(data.air_null_order, "NULL!!!\033S");
   SetText(data.bombing_title, "Bombing Attack");
   SetText(data.bombing_site_prompt, "Specify bombing site.");
-  data.bombing_menu = { 0x2e, 0x00, 0xa3, 0x00, 0x1d, 0x00, 0x00, 0x07, 0xea, 0xa0,
-                        0x01, 0x00, 0x2e, 0x00, 0xbb, 0x00, 0x1d, 0x00, 0x00, 0x07 };
-  data.near_a186    = 0xa108;
-  SetEach(std::to_array<std::uint16_t>({ 0x0002, 0x002e, 0x00d3, 0x001d, 0x0700 }),
-          [&](std::size_t index, std::uint16_t value) { data.words_a188[index] = value; });
-  data.near_a192  = 0xa125;
-  data.bytes_a194 = { { 0x03 } };
+  // clang-format off
+  data.bombing_menu = { {
+    { 0x002e, 0x00a3, 0x001d, 0x0700, 0xa0ea, 0x0001 },
+    { 0x002e, 0x00bb, 0x001d, 0x0700, 0xa108, 0x0002 }, // "Attack Sortie  (5-10 planes)"
+    { 0x002e, 0x00d3, 0x001d, 0x0700, 0xa125, 0x0003 }, // "Strafing Run   (1- 5 planes)"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.drop_ask_troops, "How many troops will you\012assign, sir");
   SetText(data.drop_troops_assigned, "Assign the soldiers, sir.");
   SetText(data.drop_which_regiment, "Assign paratroopers to which regiment?");
@@ -133,14 +132,14 @@ auto InitialAirText(DataSegment& data) -> void {
     { 0x0e20, 0x23b2 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x003a, 0x0018, 0x000c, 0x0700 }),
-          [&](std::size_t index, std::uint16_t value) { data.air_mission_menu[index] = value; });
-  data.near_a646  = 0xa56f;
-  data.bytes_a648 = { 0x01, 0x80, 0x3a, 0x00, 0x30, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_a652  = 0xa57a;
-  data.bytes_a654 = { 0x02, 0x80, 0x3a, 0x00, 0x48, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_a65e  = 0xa587;
-  data.bytes_a660 = { 0x03, 0x80 };
+  // clang-format off
+  data.air_mission_menu = { {
+    { 0x003a, 0x0018, 0x000c, 0x0700, 0xa56f, 0x8001 }, // "Air Strike"
+    { 0x003a, 0x0030, 0x000c, 0x0700, 0xa57a, 0x8002 }, // "Paratroopers"
+    { 0x003a, 0x0048, 0x000c, 0x0700, 0xa587, 0x8003 }, // "Cargo Drop"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
   SetText(data.raid_title, "Raid");
   SetText(data.raid_prompt, "Attack which unit?");
   SetText(data.raid_city_question, "The %s\012garrison?");
@@ -220,19 +219,16 @@ auto InitialAirText(DataSegment& data) -> void {
     { 0x0668, 0x24d5 },
   } };
   // clang-format on
-  SetEach(std::to_array<std::uint16_t>({ 0x0041, 0x0018, 0x000c, 0x0700 }),
-          [&](std::size_t index, std::uint16_t value) { data.special_menu[index] = value; });
-  data.near_add2  = 0xac68;
-  data.bytes_add4 = { 0x01, 0x80, 0x41, 0x00, 0x30, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_adde  = 0xac6e;
-  data.bytes_ade0 = { 0x02, 0x80, 0x41, 0x00, 0x48, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_adea  = 0xac78;
-  data.bytes_adec = { 0x03, 0x80, 0x41, 0x00, 0x60, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_adf6  = 0xac81;
-  data.bytes_adf8 = { 0x04, 0x80, 0x41, 0x00, 0x78, 0x00, 0x0c, 0x00, 0x00, 0x07 };
-  data.near_ae02  = 0xac86;
-  data.bytes_ae04 = { 0x05, 0x80 };
-  SetEach(std::to_array<std::uint16_t>({ 0xac92, 0xac9c, 0xaca6, 0xacb2, 0xacc0, 0xacce, 0xacdd, 0xace8 }),
-          [&](std::size_t index, std::uint16_t value) { data.special_mission_names[index] = value; });
+  // clang-format off
+  data.special_menu = { {
+    { 0x0041, 0x0018, 0x000c, 0x0700, 0xac68, 0x8001 }, // "Recon"
+    { 0x0041, 0x0030, 0x000c, 0x0700, 0xac6e, 0x8002 }, // "Cut Lines"
+    { 0x0041, 0x0048, 0x000c, 0x0700, 0xac78, 0x8003 }, // "Sabotage"
+    { 0x0041, 0x0060, 0x000c, 0x0700, 0xac81, 0x8004 }, // "Raid"
+    { 0x0041, 0x0078, 0x000c, 0x0700, 0xac86, 0x8005 }, // "Assassinate"
+    { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
+  } };
+  // clang-format on
+  SetEach(std::to_array<std::uint16_t>({ 0xac92, 0xac9c, 0xaca6, 0xacb2, 0xacc0, 0xacce, 0xacdd, 0xace8 }), [&](std::size_t index, std::uint16_t value) { data.special_mission_names[index] = value; });
 }
 } // namespace opeu::game::detail::dgair

@@ -98,7 +98,7 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
   std::uint16_t kind;
   if (Call(ds, event, RequestService::CATEGORY_0_TO_3, slot) || Call(ds, event, RequestService::CATEGORY_4_OR_5, slot)) {
     Call(ds, event, RequestService::ARMY_TITLE, Near(data, data.rq_regiments_text));
-    kind = Call(ds, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_slash_text));
+    kind = Call(ds, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_regiment_kind_menu));
     if (kind == 0xffff) return;
     kind--;
   } else if (Call(ds, event, RequestService::CATEGORY_6, slot))
