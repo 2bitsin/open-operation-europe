@@ -37,27 +37,27 @@ auto host_copy(uint8_t* ds, uint16_t source, uint16_t destination, uint16_t size
 
 auto host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* s) -> uint16_t {
   uint16_t words[11];
-  uint16_t result;
-  words[0] = r->x.ax;
-  words[1] = r->x.bx;
-  words[2] = r->x.cx;
-  words[3] = r->x.dx;
-  words[4] = r->x.si;
-  words[5] = r->x.di;
-  words[6] = r->x.cflag;
+  uint16_t result = 0;
+  words[0]        = r->x.ax;
+  words[1]        = r->x.bx;
+  words[2]        = r->x.cx;
+  words[3]        = r->x.dx;
+  words[4]        = r->x.si;
+  words[5]        = r->x.di;
+  words[6]        = r->x.cflag;
   if (s != nullptr) {
-    words[7] = s->es;
-    words[8] = s->cs;
-    words[9] = s->ss;
+    words[7]  = s->es;
+    words[8]  = s->cs;
+    words[9]  = s->ss;
     words[10] = s->ds;
   }
-  result = service(ds, (s != nullptr) ? SoundServiceId::INT86X : SoundServiceId::INT86, words);
-  r->x.ax = words[0];
-  r->x.bx = words[1];
-  r->x.cx = words[2];
-  r->x.dx = words[3];
-  r->x.si = words[4];
-  r->x.di = words[5];
+  result     = service(ds, (s != nullptr) ? SoundServiceId::INT86X : SoundServiceId::INT86, words);
+  r->x.ax    = words[0];
+  r->x.bx    = words[1];
+  r->x.cx    = words[2];
+  r->x.dx    = words[3];
+  r->x.si    = words[4];
+  r->x.di    = words[5];
   r->x.cflag = words[6];
   if (s != nullptr) {
     s->es = words[7];
@@ -78,7 +78,6 @@ auto host_segread(uint8_t* ds, SoundService service, SegRegs* s) -> void {
 }
 }
 
-auto opeu_music_playing(uint8_t* ds, SoundService service) -> int;
 auto opeu_effect_playing(uint8_t* ds, SoundService service) -> int;
 void opeu_music_stop(uint8_t* ds, SoundService service);
 void opeu_effect_stop(uint8_t* ds, SoundService service);
@@ -87,12 +86,14 @@ void opeu_music_load(uint8_t* ds, SoundService service, uint16_t bank, uint16_t 
 void opeu_music_select(uint8_t* ds, SoundService service, uint8_t value);
 
 void opeu_sound_initialize(uint8_t* ds, SoundService service) {
-  Data(ds).driver = host_open(ds, service);
+  Data(ds).driver        = host_open(ds, service);
   Data(ds).sound_enabled = static_cast<uint16_t>(Data(ds).driver != 0);
 }
 
 void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t value) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if ((Data(ds).driver != 0u) && (Data(ds).sound_enabled != 0u)) {
     r.h.ah = 4;
     r.h.al = value;
@@ -102,7 +103,9 @@ void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t 
 
 /* OPEN: no driver test. */
 void opeu_music_stop(uint8_t* ds, SoundService service) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   r.h.ah = 2;
   r.h.al = 20;
   host_int86(ds, service, &r, nullptr);
@@ -110,16 +113,20 @@ void opeu_music_stop(uint8_t* ds, SoundService service) {
 
 /* OPEN: tests the driver like opeu_effect_playing. */
 auto opeu_music_playing(uint8_t* ds, SoundService service) -> int {
-  int state = 0;
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  int  state = 0;
+  Regs r     = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver == 0u) return 0;
   r.h.ah = 3;
-  state = host_int86(ds, service, &r, nullptr);
+  state  = host_int86(ds, service, &r, nullptr);
   return static_cast<int>((state & 0xff) != 0);
 }
 
 void opeu_music_start(uint8_t* ds, SoundService service, uint8_t track) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver == 0u) return;
   if (opeu_music_playing(ds, service) != 0) {
     if (Data(ds).music_current == track) return;
@@ -140,8 +147,10 @@ void opeu_set_turn_context(uint8_t* ds, SoundService service, uint8_t track) {
 }
 
 void opeu_music_load(uint8_t* ds, SoundService service, uint16_t bank, uint16_t path) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
-  SegRegs segs;
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
+  SegRegs segs{};
   if (Data(ds).driver == 0u) return;
   host_copy(ds, bank, Near(ds, Data(ds).music_bank), 7);
   host_copy(ds, path, Near(ds, Data(ds).music_path), 13);
@@ -153,7 +162,9 @@ void opeu_music_load(uint8_t* ds, SoundService service, uint16_t bank, uint16_t 
 }
 
 void opeu_music_select(uint8_t* ds, SoundService service, uint8_t value) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver != 0u) {
     r.h.al = 0;
     r.h.dl = value;
@@ -170,7 +181,9 @@ void opeu_music_load_select(uint8_t* ds, SoundService service, uint16_t bank, ui
 
 /* OPEN: tests the driver. */
 void opeu_music_command7(uint8_t* ds, SoundService service) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver != 0u) {
     r.h.al = 0;
     r.h.ah = 7;
@@ -179,7 +192,9 @@ void opeu_music_command7(uint8_t* ds, SoundService service) {
 }
 
 void opeu_effect_stop(uint8_t* ds, SoundService service) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver != 0u) {
     r.h.ah = 18;
     host_int86(ds, service, &r, nullptr);
@@ -187,27 +202,33 @@ void opeu_effect_stop(uint8_t* ds, SoundService service) {
 }
 
 auto opeu_effect_playing(uint8_t* ds, SoundService service) -> int {
-  int state = 0;
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  int  state = 0;
+  Regs r     = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver == 0u) return 0;
   r.h.ah = 19;
-  state = host_int86(ds, service, &r, nullptr);
+  state  = host_int86(ds, service, &r, nullptr);
   return static_cast<int>((state & 0xff) != 0);
 }
 
 void opeu_effect_load(uint8_t* ds, SoundService service, uint32_t data) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
-  SegRegs segs;
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
+  SegRegs segs{};
   if (Data(ds).driver != 0u) {
-    r.h.ah = 16;
-    segs.ds = static_cast<uint16_t>((uint32_t)data >> 16);
-    r.x.dx = static_cast<uint16_t>((uint32_t)data);
+    r.h.ah  = 16;
+    segs.ds = static_cast<uint16_t>(data >> 16);
+    r.x.dx  = static_cast<uint16_t>(data);
     host_int86(ds, service, &r, &segs);
   }
 }
 
 void opeu_effect_start(uint8_t* ds, SoundService service, uint8_t effect) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   if (Data(ds).driver == 0u) return;
   if (opeu_effect_playing(ds, service) != 0) {
     if (Data(ds).effect_current == effect) return;

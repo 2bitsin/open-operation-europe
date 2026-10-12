@@ -23,35 +23,30 @@ static int block_count;
 
 void open_memory_init() {
   unsigned i = 0;
-  if (port_arena == nullptr) {
-    port_arena = static_cast<uint8_t*>(calloc(1, PORT_ARENA_SIZE + 0x10000u));
-    if (port_arena == nullptr) port_fatal("out of memory for the far-data arena");
-  } else {
-    memset(port_arena, 0, PORT_ARENA_SIZE);
-  }
+  port_arena_prepare();
   open_ds = port_arena + (static_cast<uint32_t>(OPEN_DS_SEGMENT) * 16u);
   for (i = 0; i < open_image_object_count; i++) {
-    const OpenImageObject* o = &open_image_objects[i];
-    uint32_t seg = (o->seg != 0u) ? OPEN_LOAD_SEGMENT + o->seg : OPEN_DS_SEGMENT;
-    uint32_t linear = (seg * 16u) + o->off;
+    const OpenImageObject* o      = &open_image_objects[i];
+    uint32_t               seg    = (o->seg != 0u) ? OPEN_LOAD_SEGMENT + o->seg : OPEN_DS_SEGMENT;
+    uint32_t               linear = (seg * 16u) + o->off;
     if (linear + o->size > PORT_ARENA_SIZE) port_fatal("OPEN data object %s outside the arena", o->name);
     memcpy(port_arena + linear, o->object, o->size);
   }
   block_count = 0;
-  open_sp = OPEN_STACK_TOP;
+  open_sp     = OPEN_STACK_TOP;
 }
 
 auto open_dos_alloc(uint16_t paragraphs) -> uint16_t {
   uint32_t seg = OPEN_HEAP_SEGMENT;
-  int i;
-  int j;
+  int      i   = 0;
+  int      j   = 0;
   for (;;) {
     int clash = 0;
     for (i = 0; i < block_count; i++) {
       uint32_t s = blocks[i].seg - 1u;
-      uint32_t e = (uint32_t)blocks[i].seg + blocks[i].paras;
+      uint32_t e = static_cast<uint32_t>(blocks[i].seg) + blocks[i].paras;
       if (seg - 1u < e && seg + paragraphs > s) {
-        seg = e + 1u;
+        seg   = e + 1u;
         clash = 1;
       }
     }
@@ -63,7 +58,7 @@ auto open_dos_alloc(uint16_t paragraphs) -> uint16_t {
   }
   for (i = 0; i < block_count && blocks[i].seg < seg; i++);
   for (j = block_count; j > i; j--) blocks[j] = blocks[j - 1];
-  blocks[i].seg = static_cast<uint16_t>(seg);
+  blocks[i].seg   = static_cast<uint16_t>(seg);
   blocks[i].paras = paragraphs;
   block_count++;
   port_trace("mem", "OPEN dos_alloc %04x paragraphs -> %04x", paragraphs, static_cast<unsigned>(seg));
@@ -78,11 +73,11 @@ auto open_dos_free(uint16_t segment) -> int {
       block_count--;
       return 0;
     }
-  return 9;   /* DOS: invalid memory block address */
+  return 9; /* DOS: invalid memory block address */
 }
 
 auto open_stack_enter(uint16_t bytes) -> uint16_t {
-  uint16_t sp = static_cast<uint16_t>(open_sp - 4);
+  auto sp = static_cast<uint16_t>(open_sp - 4);
   if (static_cast<uint32_t>(open_sp) < static_cast<uint32_t>(OPEN_DS_END) + 4u + bytes)
     port_fatal("OPEN: modeled stack overflow (sp=%04x, %u bytes)", open_sp, bytes);
   open_sp = static_cast<uint16_t>(open_sp - 4 - bytes);

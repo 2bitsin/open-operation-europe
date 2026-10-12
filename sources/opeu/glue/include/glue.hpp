@@ -103,10 +103,10 @@ auto port_numdlg_host() -> void*;    /* numdlg's bridge {service} */
 
 using PortCellPredicate = uint16_t (*)(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side);
 /* 145c:1114 / 145c:1152, the two predicates of map/cellpred.c. */
-PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg);
-using PortByteReader = uint8_t (*)(void);
+auto c2_cell_predicate(uint16_t off, uint16_t seg) -> PortCellPredicate;
+using PortByteReader = uint8_t (*)();
 /* 0a04:0132 / 0a04:01fc, UIPRIM's picture stream readers. */
-PortByteReader port_picture_reader(uint16_t off, uint16_t seg);
+auto port_picture_reader(uint16_t off, uint16_t seg) -> PortByteReader;
 /* 1707:03e4 daily_show(id, side, far presenter (offset, segment)). */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg);
 /* A briefing of core/scenbrf.c with its 100-byte closing buffer reserved. */

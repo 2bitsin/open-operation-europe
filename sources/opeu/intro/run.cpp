@@ -7,7 +7,7 @@
  * (its song state and countdowns), the BIOS keyboard buffer and the mouse
  * driver. OPEN's memory does not: MAIN is loaded fresh (port_memory_init).
  */
-#include "hostinput.hpp"                  /* port_time_us */
+#include "hostinput.hpp" /* port_time_us */
 #include "intro.hpp"
 #include "port.hpp"
 #include "process.hpp"
@@ -16,15 +16,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 
 namespace opeu::intro {
 namespace {
-int intro_mode = -1;      /* -1 default, 0 --no-intro, 1 --intro */
+int intro_mode = -1; /* -1 default, 0 --no-intro, 1 --intro */
 }
 
 void open_intro_options(int* argc, char** argv) {
-  int i;
-  int j;
+  int i = 0;
+  int j = 0;
   for (i = j = 1; i < *argc; i++) {
     if (strcmp(argv[i], "--no-intro") == 0)
       intro_mode = 0;
@@ -34,7 +35,7 @@ void open_intro_options(int* argc, char** argv) {
       argv[j++] = argv[i];
   }
   argv[j] = nullptr;
-  *argc = j;
+  *argc   = j;
 }
 
 void open_intro_run() {
@@ -52,13 +53,11 @@ void open_intro_run() {
          * bank's segment on (64 KB), as the resident driver saw it at the
          * exit, to replay the shutdown's song 5 (garbage track offsets into
          * this memory) from it. */
-    const char* path = getenv("OPEU_OPEN_DUMP");
-    FILE* f = (path != nullptr) ? fopen(path, "wb") : nullptr;
-    if ((path != nullptr)
-        && ((f == nullptr)
-            || fwrite(port_arena + (static_cast<uint32_t>(OPEN_BANK_SEGMENT) * 16u), 1, 0x10000, f) != 0x10000))
-      port_fatal("cannot write %s", path);
-    if (f != nullptr) fclose(f);
+    if (char const* const path{ getenv("OPEU_OPEN_DUMP") }; path != nullptr) {
+      std::ofstream file{ path, std::ios::binary };
+      file.write(reinterpret_cast<char const*>(port_arena) + (static_cast<uint32_t>(OPEN_BANK_SEGMENT) * 16u), 0x10000);
+      if (!file) port_fatal("cannot write %s", path);
+    }
   }
   port_memory_init();
 }

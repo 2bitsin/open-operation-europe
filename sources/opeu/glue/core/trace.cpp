@@ -6,21 +6,23 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <print>
 
-static FILE* log_file;
+static FILE*       log_file;
 static const char* trace_filter;
-static int trace_checked;
+static int         trace_checked;
 
 static void log_open() {
   if (log_file == nullptr) {
     const char* path = getenv("OPEU_LOG");
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the log stays open until the fatal exit closes it
     log_file = fopen((path != nullptr) ? path : "port.log", "w");
   }
 }
 
 auto port_trace_enabled(const char* category) -> int {
   if (trace_checked == 0) {
-    trace_filter = getenv("OPEU_TRACE");
+    trace_filter  = getenv("OPEU_TRACE");
     trace_checked = 1;
   }
   if ((trace_filter == nullptr) || ((*trace_filter) == 0)) return 0;
@@ -32,7 +34,7 @@ void port_trace(const char* category, const char* fmt, ...) {
   if (port_trace_enabled(category) == 0) return;
   log_open();
   if (log_file == nullptr) return;
-  fprintf(log_file, "[%s] ", category);
+  std::print(log_file, "[{}] ", category);
   va_start(ap, fmt);
   vfprintf(log_file, fmt, ap);
   va_end(ap);
@@ -54,7 +56,7 @@ void port_fatal(const char* fmt, ...) {
     vfprintf(log_file, fmt, ap);
     va_end(ap);
     fputc('\n', log_file);
-    fclose(log_file);
+    fclose(log_file); // NOLINT(cppcoreguidelines-owning-memory): the handle log_open opened
     log_file = nullptr;
   }
   exit(70);

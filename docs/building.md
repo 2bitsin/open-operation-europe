@@ -73,6 +73,55 @@ option and `[run] default = "opeu"`. The `contracts` option is one of
 `stop`, `halt`, `complain` or `ignore`, and `sources/opeu/contract.hpp`
 binds it.
 
+## Warnings
+
+A finished module compiles under the warnings gate: its `configure.py`
+declares every source with
+
+```
+WARNINGS = ["-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion", "-Wshadow", "-Werror"]
+```
+
+(`bc.declare(source, options=WARNINGS + ...)`), so the ordinary `./buildutil
+build` is the warnings build and any new warning stops it. glue, platform,
+intro and opeu have it; turning it on for another module is the same list
+in that module's `configure.py` and the fixes it asks for. The conversions
+the gate asks for are explicit casts that keep the value the implicit
+conversion gave. Proven with Apple clang; gcc reports some conversions
+clang does not, so the first Linux build of a newly gated module may need
+a few more casts.
+
+## clang-tidy
+
+`.clang-tidy` at the root enables `modernize-*`, `cppcoreguidelines-*` and
+`readability-*` (with the owning-memory, bounds, C-array and loop-convert
+checks among them) less the house exceptions it lists with their reasons
+(short coordinate names, the game's numbers, clang-format's brace and
+table layout, lower-case literal suffixes, unions, do-while). The checks
+are noisy on legacy code; they apply to finished modules. A legacy
+directory may relax checks in its own `.clang-tidy`
+(`InheritParentConfig: true`) with the reason: `glue/` and `intro/` turn
+off the checks that name the 16-bit memory model (globals, C arrays,
+pointer arithmetic, unchecked indexing, reinterpret casts, the
+printf-shaped trace, `goto`) until M2 deletes it, and `port.hpp` carries
+the same exceptions in a `NOLINTBEGIN` block for the modules that include
+it. Every other remaining finding has a `NOLINT` with its reason.
+
+Run it over a module from the compile database of a build (LLVM's
+clang-tidy; on macOS `brew install llvm`):
+
+```
+./buildutil build
+/opt/homebrew/opt/llvm/bin/run-clang-tidy -quiet \
+    -p _build/armv8-macos-apple-clang-release \
+    -header-filter='sources/opeu/platform/' 'sources/opeu/platform/'
+```
+
+The positional argument is a regular expression over the source paths,
+so `'sources/opeu/(glue|platform|intro|opeu)/'` runs the finished modules
+together; `-fix` applies the automatic fixes. glue, platform, intro and
+opeu report nothing.
+
 ## Dependencies and the conan remote
 
 `sources/CMakeLists.txt` names each dependency once with `Require()`. The

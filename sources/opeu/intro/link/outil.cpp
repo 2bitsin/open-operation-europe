@@ -10,7 +10,7 @@
  * end it); MOUSE_INT33 serves the functions OUTIL issues (AX 0 reset, 3
  * state, 7/8 ranges).
  */
-#include "hostinput.hpp"                  /* port_time_us */
+#include "hostinput.hpp" /* port_time_us */
 #include "open-services.hpp"
 #include "port.hpp"
 #include "process.hpp"
@@ -36,10 +36,10 @@ auto stream_reader() -> uint8_t {
  * boundaries are absolute multiples of the period, so the pump's 1 ms
  * granularity never accumulates drift. */
 void vga_retrace_wait() {
-  const uint64_t num = (uint64_t)800 * 525 * 1000000;
-  const uint64_t den = 25175000;  /* period in us = num / den */
-  uint64_t k = (port_time_us() * den / num) + 1;      /* the next frame */
-  uint64_t next = ((k * num) + den - 1) / den;
+  const uint64_t num  = static_cast<uint64_t>(800) * 525 * 1000000;
+  const uint64_t den  = 25175000;                         /* period in us = num / den */
+  uint64_t       k    = (port_time_us() * den / num) + 1; /* the next frame */
+  uint64_t       next = ((k * num) + den - 1) / den;
   while (port_time_us() < next) port_pump();
 }
 
@@ -47,14 +47,14 @@ void mouse_int33(uint16_t* w) {
   switch (w[0]) {
   case 0:
     w[0] = port_mouse_reset();
-    w[1] = 2;                       /* BX: number of buttons */
+    w[1] = 2; /* BX: number of buttons */
     break;
-  case 3: port_mouse_state(&w[1], &w[2], &w[3]); break;
-  case 7: port_mouse_x_range(w[2], w[3]); break;
-  case 8: port_mouse_y_range(w[2], w[3]); break;
+  case 3:  port_mouse_state(&w[1], &w[2], &w[3]); break;
+  case 7:  port_mouse_x_range(w[2], w[3]); break;
+  case 8:  port_mouse_y_range(w[2], w[3]); break;
   default: port_fatal("OPEN: INT 33h function %04x is not issued by the opening", w[0]);
   }
-  w[6] = 0;                           /* cflag */
+  w[6] = 0; /* cflag */
 }
 }
 
@@ -62,7 +62,7 @@ auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) 
   using enum UtilServiceId;
   auto const arg{ [&](int i) -> uint16_t { return Arg(words, count, i); } };
   switch (id) {
-  case FM_BUSY: return opeu_fm_busy();
+  case FM_BUSY:     return opeu_fm_busy();
   case MOUSE_INT33: mouse_int33(words); return words[0];
   case DOS_INT21:
     if (arg(0) != 0x21 || arg(1) != 0x0d)
@@ -78,28 +78,28 @@ auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) 
     vga_retrace_wait();
     return static_cast<uint16_t>(
         opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), ds + arg(2)));
-  case IDENTITY_PALETTE: koei_vga_identity_palette(); return 0;
-  case UI_LINE: opeu_ui_fill(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
+  case IDENTITY_PALETTE:      koei_vga_identity_palette(); return 0;
+  case UI_LINE:               opeu_ui_fill(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
   case PICTURE_DECODE_MASKED: {
     uint8_t* saved = reader_ds;
-    int16_t r = 0;
+    int16_t  r     = 0;
     if (arg(2) != STREAM_READER_OFFSET || arg(3) != STREAM_READER_SEGMENT)
       port_fatal("OPEN: picture reader %04x:%04x is not OUTIL's stream reader", arg(3), arg(2));
     reader_ds = ds;
-    r = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
+    r         = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
     reader_ds = saved;
     return static_cast<uint16_t>(r);
   }
-  case VGA_CLEAR: return static_cast<uint16_t>(opeu_vga_clear());
-  case TURN_INPUT_B: return opeu_turn_input_b();
-  case INPUT_FLUSH: opeu_input_flush(ds, link_otext_host()); return 0;
-  case CURSOR_PRINT: link_otext_print(ds, words, 2); return 0;
+  case VGA_CLEAR:       return static_cast<uint16_t>(opeu_vga_clear());
+  case TURN_INPUT_B:    return opeu_turn_input_b();
+  case INPUT_FLUSH:     opeu_input_flush(ds, link_otext_host()); return 0;
+  case CURSOR_PRINT:    link_otext_print(ds, words, 2); return 0;
   case OPEN_ERROR_SPIN: port_pump(); return 0;
-  case TEXT_PUT: return opeu_text_put(ds, link_otext_host(), static_cast<uint8_t>(arg(0)));
-  case OPEN_DELAY: opeu_open_delay(ds, link_openmain, arg(0)); return 0;
-  case FAR_BYTE: return *port_far(arg(0), arg(1));
-  case DOS_OPEN: return static_cast<uint16_t>(opeu_dos_open(reinterpret_cast<const char*>(ds) + arg(0), arg(1)));
-  default: port_unhandled("outil", static_cast<unsigned>(id), count);
+  case TEXT_PUT:        return opeu_text_put(ds, link_otext_host(), static_cast<uint8_t>(arg(0)));
+  case OPEN_DELAY:      opeu_open_delay(ds, link_openmain, arg(0)); return 0;
+  case FAR_BYTE:        return *port_far(arg(0), arg(1));
+  case DOS_OPEN:        return static_cast<uint16_t>(opeu_dos_open(reinterpret_cast<const char*>(ds) + arg(0), arg(1)));
+  default:              port_unhandled("outil", static_cast<unsigned>(id), count);
   }
   return 0;
 }

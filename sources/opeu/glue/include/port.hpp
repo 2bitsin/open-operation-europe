@@ -29,6 +29,10 @@
 #include <cstddef>
 #include <cstdint>
 
+// The 16-bit memory model's globals, byte arrays and offset arithmetic, as glue/.clang-tidy says, for every module
+// that includes this header until M2 deletes it.
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 /* ---- data layout ------------------------------------------------------- */
 
 inline constexpr auto PORT_DS_SEGMENT{ 0x4712u };   /* DGROUP paragraph in the original layout */
@@ -37,14 +41,14 @@ inline constexpr auto PORT_STACK_TOP{ 0xffe0u };    /* _end + /STACK:5120 */
 inline constexpr auto PORT_HEAP_SEGMENT{ 0x5712u }; /* first paragraph handed out by the DOS allocator */
 inline constexpr auto PORT_ARENA_SIZE{ 0xa0000u };  /* conventional memory: segments below A000 */
 
-extern uint8_t* port_arena;           /* PORT_ARENA_SIZE bytes, linear = seg*16+off */
-extern uint8_t* port_ds;              /* port_arena + PORT_DS_SEGMENT*16 */
+extern uint8_t* port_arena; /* PORT_ARENA_SIZE bytes, linear = seg*16+off */
+extern uint8_t* port_ds;    /* port_arena + PORT_DS_SEGMENT*16 */
 
 /* Byte at segment:offset (fatal outside the arena). */
 auto port_far(uint16_t seg, uint16_t off) -> uint8_t*;
 /* Host pointer of a DS offset (16-bit wrap of the offset). */
 inline auto PORT_DS(auto off) -> uint8_t* {
-  return port_ds + (uint16_t)off;
+  return port_ds + static_cast<uint16_t>(off);
 }
 /* Little-endian word access into ds[] (16-bit wrap of the offset). */
 auto port_ds_word(uint16_t off) -> uint16_t;
@@ -60,27 +64,29 @@ auto port_dos_free(uint16_t segment) -> int;
 /* Image of the recovered data modules (game/link/gen/data-image.cpp). */
 struct PortImageObject {
   const void* object;
-  uint16_t seg, off;
-  uint32_t size;
+  uint16_t    seg, off;
+  uint32_t    size;
   const char* name;
 };
 extern const PortImageObject port_image_objects[];
-extern const unsigned port_image_object_count;
+extern const unsigned        port_image_object_count;
 
 /* Initialized DGROUP data that code modules own in their DOS builds (string
  * literals and static tables of their _DATA segments), taken from the
  * recovered source text (game/link/gen/module-data.cpp). */
 struct PortImageBytes {
-  uint16_t seg, off;
-  uint16_t size;
+  uint16_t       seg, off;
+  uint16_t       size;
   const uint8_t* bytes;
-  const char* module;
+  const char*    module;
 };
 extern const PortImageBytes port_module_data[];
-extern const unsigned port_module_data_count;
+extern const unsigned       port_module_data_count;
 
 /* Allocate (or clear) the arena and reset DS, the DOS blocks and SP (glue). */
 void port_memory_reset();
+/* The arena, allocated (zeroed) on first use for the program's life, cleared on every later call. */
+void port_arena_prepare();
 /* port_memory_reset, then copy every recovered data object to its address
  * (game/link/image.cpp). */
 void port_memory_init();
@@ -98,9 +104,9 @@ void port_memory_init();
  * when larger). For a `frame`/`scratch` parameter that names the BP or a
  * buffer rather than the entry SP, convert as that module documents. */
 inline constexpr auto PORT_FRAME{ 0x100u };
-extern uint16_t port_sp;
-auto port_stack_enter(uint16_t bytes) -> uint16_t;
-void port_stack_leave(uint16_t bytes);
+extern uint16_t       port_sp;
+auto                  port_stack_enter(uint16_t bytes) -> uint16_t;
+void                  port_stack_leave(uint16_t bytes);
 
 /* ---- routine link table ------------------------------------------------ */
 
@@ -112,9 +118,9 @@ void port_stack_leave(uint16_t bytes);
 using PortRoutine = uint32_t (*)(uint8_t* ds, const uint16_t* args, unsigned count);
 
 struct PortLink {
-  uint32_t address;       /* original linear routine address (identifier only) */
+  uint32_t    address; /* original linear routine address (identifier only) */
   const char* name;
-  PortRoutine routine;    /* NULL: not linked yet */
+  PortRoutine routine; /* NULL: not linked yet */
 };
 
 /* The signature of a linked routine handler port_routine_<name>;
@@ -155,16 +161,17 @@ void port_exit(int code);
 
 /* ---- run-time options (glue/core/process.cpp, set by the entry) -------- */
 struct PortOptions {
-  int headless;            /* no window; virtual time; scripted input */
-  uint32_t stop_ms;        /* headless: stop after this much virtual time (0 = never) */
-  const char* png_path;    /* write the last frame here when stopping */
-  const char* input_path;  /* scripted input log (see docs/port.md) */
-  const char* save_dir;    /* saved games (NULL: the platform's default) */
-  int scale;               /* initial window scale */
-  const char* shot_dir;    /* headless: write a frame every shot_every_ms here */
-  uint32_t shot_every_ms;
-  const char* wav_path;    /* write the audio output (49716 Hz stereo) here */
-  const char* opl_log_path;/* log every OPL register write (frame, register, value) */
-  int mute;                /* window mode: no audio device */
+  int         headless;   /* no window; virtual time; scripted input */
+  uint32_t    stop_ms;    /* headless: stop after this much virtual time (0 = never) */
+  const char* png_path;   /* write the last frame here when stopping */
+  const char* input_path; /* scripted input log (see docs/port.md) */
+  const char* save_dir;   /* saved games (NULL: the platform's default) */
+  int         scale;      /* initial window scale */
+  const char* shot_dir;   /* headless: write a frame every shot_every_ms here */
+  uint32_t    shot_every_ms;
+  const char* wav_path;     /* write the audio output (49716 Hz stereo) here */
+  const char* opl_log_path; /* log every OPL register write (frame, register, value) */
+  int         mute;         /* window mode: no audio device */
 };
 extern PortOptions port_options;
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic)

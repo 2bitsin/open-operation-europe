@@ -141,9 +141,9 @@ void opeu_open_delay(uint8_t* ds, OpenEvent event, uint16_t ticks) {
 }
 
 auto opeu_open_wait(uint8_t* ds, OpenEvent event, uint16_t ticks) -> int {
-  uint16_t target = 0;
-  target = Call(ds, event, FM_BUSY);
-  target -= ticks;
+  uint16_t target  = 0;
+  target           = Call(ds, event, FM_BUSY);
+  target          -= ticks;
   do {
     if (Call(ds, event, INPUT_POLL) != 0u) return 1;
   } while (Call(ds, event, FM_BUSY) > target);
@@ -242,13 +242,13 @@ auto opeu_open_scene_prologue(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_descend_animation(uint8_t* ds, OpenEvent event) -> int {
-  uint16_t h = 0;
-  int i = 0;
+  uint16_t h     = 0;
+  int      i     = 0;
   uint16_t off_a = 0;
   uint16_t off_b = 0;
   opeu_open_clear_screen(ds, event);
   if (opeu_open_fade_to_palette(ds, event, 30, 2) != 0) return 1;
-  h = 0;
+  h     = 0;
   off_a = 0x2580;
   off_b = 0x4a40;
   for (i = 0; i < 25; i++) {
@@ -273,7 +273,7 @@ auto opeu_open_descend_animation(uint8_t* ds, OpenEvent event) -> int {
 
 auto opeu_open_scene_color_cycle(uint8_t* ds, OpenEvent event) -> int {
   uint8_t pal = 0;
-  int j = 0;
+  int     j   = 0;
   opeu_open_clear_screen(ds, event);
   PictureAt(ds, event, 0x58, 0, 0x121a0L);
   if (opeu_open_fade_to_palette(ds, event, 5, 2) != 0) return 1;
@@ -307,8 +307,8 @@ auto opeu_open_scene_color_cycle(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_scene_flicker(uint8_t* ds, OpenEvent event) -> int {
-  int i;
-  int off;
+  int i   = 0;
+  int off = 0;
   opeu_open_clear_screen(ds, event);
   Call(ds, event, GFX_WAIT);
   Call(ds, event, BLIT_FAR, 0, 0x3c, 0x50, 0x8c, 0, Data(ds).buffer_e, 0);
@@ -365,9 +365,9 @@ auto opeu_open_scene_flicker(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_sprite_march(uint8_t* ds, OpenEvent event) -> int {
-  uint16_t d = 0;
-  int pass;
-  int j;
+  uint16_t d     = 0;
+  int      pass  = 0;
+  int      j     = 0;
   uint16_t off_a = 0;
   uint16_t off_b = 0;
   opeu_open_clear_screen(ds, event);
@@ -377,8 +377,8 @@ auto opeu_open_sprite_march(uint8_t* ds, OpenEvent event) -> int {
   if (opeu_open_wait_until(ds, event, 0xd2ed) != 0) return 1;
   for (d = 0x40, pass = 0;; d >>= 1, d++, pass++) {
     for (off_a = 0, off_b = 0x6540, j = 0; j < 3; j++) {
-      Call(ds, event, BLIT_FAR, 10, 0x118, 0x12, 0x78, 0, Data(ds).buffer_a, (uint16_t)off_a);
-      Call(ds, event, BLIT_FAR, 0x34, 0x118, 0x12, 0x78, 0, Data(ds).buffer_a, (uint16_t)off_b);
+      Call(ds, event, BLIT_FAR, 10, 0x118, 0x12, 0x78, 0, Data(ds).buffer_a, off_a);
+      Call(ds, event, BLIT_FAR, 0x34, 0x118, 0x12, 0x78, 0, Data(ds).buffer_a, off_b);
       off_a += 0x21c0;
       off_b += 0x21c0;
       if (opeu_open_wait(ds, event, d) != 0) return 1;
@@ -392,7 +392,7 @@ auto opeu_open_sprite_march(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_panorama_scroll(uint8_t* ds, OpenEvent event) -> int {
-  int i = 0;
+  int      i   = 0;
   uint16_t off = 0;
   opeu_open_clear_screen(ds, event);
   PictureAt(ds, event, 0, 0, 0x40bd5L);
@@ -407,7 +407,7 @@ auto opeu_open_panorama_scroll(uint8_t* ds, OpenEvent event) -> int {
   if (opeu_open_fade_to_palette(ds, event, 33, 0) != 0) return 1;
   for (off = 0, i = 0; i < 0x4f; i++) {
     Call(ds, event, SCREEN_COPY, 0x19, 0x70, 0x1d, 0xb0, 0x1a, 0x70);
-    Call(ds, event, BLIT_FAR, 0x19, 0x70, 1, 0xb0, 0, Data(ds).buffer_d, (uint16_t)off);
+    Call(ds, event, BLIT_FAR, 0x19, 0x70, 1, 0xb0, 0, Data(ds).buffer_d, off);
     if (opeu_open_wait(ds, event, 5) != 0) return 1;
     off += 0x2c0;
   }
@@ -467,9 +467,9 @@ auto opeu_open_scene_panorama(uint8_t* ds, OpenEvent event) -> int {
 }
 /* x: strip column, off_a/off_b: strip offsets in buffer C. */
 auto opeu_open_units_drive_in(uint8_t* ds, OpenEvent event) -> int {
-  int x = 0;
-  uint16_t off_a;
-  uint16_t off_b;
+  int      x     = 0;
+  uint16_t off_a = 0;
+  uint16_t off_b = 0;
   opeu_open_clear_screen(ds, event);
   Call(ds, event, BLIT_FAR, 2, 0, 0x14, 0x60, 0, Data(ds).buffer_a, 0);
   off_a = 0;
@@ -502,9 +502,9 @@ auto opeu_open_units_drive_in(uint8_t* ds, OpenEvent event) -> int {
 
 /* i: frame count, j/k: frame of the right/left vehicle. */
 auto opeu_open_units_animate(uint8_t* ds, OpenEvent event) -> int {
-  int i;
-  int j;
-  int k;
+  int i = 0;
+  int j = 0;
+  int k = 0;
   i = k = j = 0;
   for (; i < 40; i++) {
     if (i == 0) {
@@ -544,12 +544,12 @@ auto opeu_open_scene_units(uint8_t* ds, OpenEvent event) -> int {
 auto opeu_open_bomber_approach(uint8_t* ds, OpenEvent event) -> int {
   uint16_t a = 0;
   uint16_t b = 0;
-  int c;
-  int d;
+  int      c = 0;
+  int      d = 0;
   uint16_t e = 0;
-  int f = 0;
-  uint16_t g;
-  uint16_t h;
+  int      f = 0;
+  uint16_t g = 0;
+  uint16_t h = 0;
   opeu_open_clear_screen(ds, event);
   PictureAt(ds, event, 0, 0, 0x46848L);
   Call(ds, event, BITMAP_SAVE, 0, 0, 0x50, 0xa0, Data(ds).buffer_c, 0);
@@ -590,9 +590,9 @@ auto opeu_open_bomber_approach(uint8_t* ds, OpenEvent event) -> int {
   h = e = Data(ds).bob_a[0];
   d = f = c = a = g = 0;
   for (; d < 0x3a; d++) {
-    b = Call(ds, event, FM_BUSY);
+    b  = Call(ds, event, FM_BUSY);
     b -= 12;
-    e = Data(ds).bob_a[c];
+    e  = Data(ds).bob_a[c];
     Call(ds, event, BLIT_FAR, 0, e, 0x50, 0xa0, 0, (a != 0u) ? Data(ds).buffer_d : Data(ds).buffer_c, 0);
     Call(ds, event, BLIT_FAR, 0x23, e + 0x60, 8, 0x40, 0, Data(ds).buffer_a, g);
     a ^= 1;
@@ -602,9 +602,8 @@ auto opeu_open_bomber_approach(uint8_t* ds, OpenEvent event) -> int {
     if (h < e) Call(ds, event, UI_BOX, 0, h + 0xa0, 0x50, e - h, 0);
     g += 0x800;
     if (g >= 0x2800) g = 0;
-    if (f == 0) {
-      if (Call(ds, event, PALETTE_STEP, Palette(ds, 0x25)) == 0u) f = 1;
-    }
+    if ((f == 0) && (Call(ds, event, PALETTE_STEP, Palette(ds, 0x25)) == 0u)) f = 1;
+
     while (Call(ds, event, FM_BUSY) > b) {
       if (Call(ds, event, INPUT_POLL) != 0u) return 1;
     }
@@ -614,10 +613,13 @@ auto opeu_open_bomber_approach(uint8_t* ds, OpenEvent event) -> int {
 }
 
 /* k: explosion, j: frame, n: palette step, pos: frame offset. */
+// The opening's recovered animation script; it goes
+// when the opening becomes a scene (M6).
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto opeu_open_bomb_explosions(uint8_t* ds, OpenEvent event) -> int {
-  int k;
-  int j;
-  int n;
+  int      k   = 0;
+  int      j   = 0;
+  int      n   = 0;
   uint16_t pos = 0;
   opeu_open_clear_screen(ds, event);
   Call(ds, event, PALETTE_SET, Palette(ds, 0x26));
@@ -700,14 +702,14 @@ auto opeu_open_flash_preload(uint8_t* ds, OpenEvent event) -> int {
  * f: frame, g: y, h: rotating part offset, i: next y, j: burst offset. */
 auto opeu_open_bomber_flak(uint8_t* ds, OpenEvent event) -> int {
   uint16_t a = 0;
-  int b = 0;
+  int      b = 0;
   uint16_t d = 0;
-  int e;
-  int f;
-  uint16_t g;
-  uint16_t h;
-  uint16_t i;
-  uint16_t j;
+  int      e = 0;
+  int      f = 0;
+  uint16_t g = 0;
+  uint16_t h = 0;
+  uint16_t i = 0;
+  uint16_t j = 0;
   opeu_open_clear_screen(ds, event);
   Call(ds, event, BLIT_FAR, 0, 0x50, 0x50, 0xa0, 0, Data(ds).buffer_d, 0);
   Call(ds, event, BLIT_FAR, 0x13, 0x50, 0x10, 0x90, 0, Data(ds).buffer_a, 0x2800);
@@ -719,9 +721,9 @@ auto opeu_open_bomber_flak(uint8_t* ds, OpenEvent event) -> int {
   i = g = Data(ds).bob_b[0];
   f = e = j = h = a = 0;
   for (;; f++) {
-    d = Call(ds, event, FM_BUSY);
+    d  = Call(ds, event, FM_BUSY);
     d -= 12;
-    g = Data(ds).bob_b[e];
+    g  = Data(ds).bob_b[e];
     Call(ds, event, BLIT_FAR, 0, g, 0x50, 0xa0, 0, (a != 0u) ? Data(ds).buffer_d : Data(ds).buffer_c, 0);
     Call(ds, event, BLIT_FAR, 0x23, g + 0x60, 8, 0x40, 0, Data(ds).buffer_a, h);
     a ^= 1;
@@ -738,9 +740,8 @@ auto opeu_open_bomber_flak(uint8_t* ds, OpenEvent event) -> int {
     }
     h += 0x800;
     if (h >= 0x2800) h = 0;
-    if (f >= 30) {
-      if (Call(ds, event, PALETTE_STEP, Palette(ds, 0)) == 0u) break;
-    }
+    if ((f >= 30) && (Call(ds, event, PALETTE_STEP, Palette(ds, 0)) == 0u)) break;
+
     while (Call(ds, event, FM_BUSY) > d) {
       if (Call(ds, event, INPUT_POLL) != 0u) return 1;
     }
@@ -757,10 +758,10 @@ auto opeu_open_scene_flak(uint8_t* ds, OpenEvent event) -> int {
 
 /* p: column / flip count, toggle: figure frame, k: salvo, o: column offset. */
 auto opeu_open_gun_setup(uint8_t* ds, OpenEvent event) -> int {
-  int p;
-  int toggle;
-  int k;
-  uint16_t o = 0;
+  int      p      = 0;
+  int      toggle = 0;
+  int      k      = 0;
+  uint16_t o      = 0;
   opeu_open_clear_screen(ds, event);
   PictureAt(ds, event, 0, 0, 0x5eddeL);
   Call(ds, event, BITMAP_SAVE, 0, 0, 6, 0x30, Data(ds).buffer_a, 0);
@@ -814,7 +815,7 @@ auto opeu_open_gun_setup(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_gun_pan(uint8_t* ds, OpenEvent event) -> int {
-  int i = 0;
+  int      i   = 0;
   uint16_t off = 0;
   for (off = 0, i = 0; i < 0x36; i++) {
     Call(ds, event, SCREEN_COPY, 0, 0x58, 0x36, 0xe0, 1, 0x58);
@@ -857,9 +858,9 @@ auto opeu_open_shell_run(uint8_t* ds, OpenEvent event, int first) -> int {
 }
 
 auto opeu_open_shell_run_pair(uint8_t* ds, OpenEvent event) -> int {
-  int i;
-  int j;
-  j = 3;
+  int i = 0;
+  int j = 0;
+  j     = 3;
   for (i = 0; i < 3; i++, j++) {
     Call(ds, event, DRAW_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_w[i], Data(ds).shell_h[i], 0x407,
          Data(ds).buffer_h, Data(ds).shell_sprite[i]);
@@ -876,10 +877,13 @@ auto opeu_open_shell_run_pair(uint8_t* ds, OpenEvent event) -> int {
 }
 
 /* runs: pair salvos left, frame: frame, shot: 1 first, 2 pairs, 3 last. */
+// The opening's recovered animation script; it goes
+// when the opening becomes a scene (M6).
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto opeu_open_gun_fire(uint8_t* ds, OpenEvent event) -> int {
-  int runs;
-  int frame;
-  int shot;
+  int runs  = 0;
+  int frame = 0;
+  int shot  = 0;
   for (frame = 0; frame < 6; frame++)
     Call(ds, event, BITMAP_SAVE, Data(ds).shell_x[frame], Data(ds).shell_y[frame], Data(ds).shell_ws[frame],
          Data(ds).shell_h[frame], Data(ds).buffer_a, Data(ds).shell_save[frame]);
@@ -928,8 +932,8 @@ auto opeu_open_scene_artillery(uint8_t* ds, OpenEvent event) -> int {
 }
 
 auto opeu_open_title(uint8_t* ds, OpenEvent event) -> int {
-  int i;
-  int start;
+  int i     = 0;
+  int start = 0;
   opeu_open_clear_screen(ds, event);
   start = (Data(ds).aborted != 0) ? 0x65 : 0x31;
   Call(ds, event, FADE_OUT_WAIT);
@@ -961,8 +965,8 @@ auto opeu_open_title(uint8_t* ds, OpenEvent event) -> int {
 }
 
 void opeu_open_init(uint8_t* ds, OpenEvent event) {
-  int ems;
-  int handle;
+  int ems    = 0;
+  int handle = 0;
   if ((Data(ds).buffer_g = Call(ds, event, DOS_ALLOC, 0x501)) == 0) {
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).alloc_err1));
     Hang(ds, event);
@@ -1023,7 +1027,7 @@ void opeu_open_free_buffers(uint8_t* ds, OpenEvent event) {
 
 /* Music driver (int 66h): AH=1 AL=5, then AH=2 AL=20. */
 void opeu_open_shutdown(uint8_t* ds, OpenEvent event) {
-  Regs regs;
+  Regs regs{};
   Call(ds, event, FADE_OUT_WAIT);
   regs.h.ah = 1;
   regs.h.al = 5;
@@ -1039,7 +1043,7 @@ void opeu_open_shutdown(uint8_t* ds, OpenEvent event) {
 
 void opeu_open_files_open(uint8_t* ds, OpenEvent event) {
   Data(ds).picture_handle = static_cast<int16_t>(Call(ds, event, FILE_OR_DIE, Near(ds, Data(ds).name_npk)));
-  Data(ds).logo_file = static_cast<int16_t>(Call(ds, event, FILE_OR_DIE, Near(ds, Data(ds).name_fnt)));
+  Data(ds).logo_file      = static_cast<int16_t>(Call(ds, event, FILE_OR_DIE, Near(ds, Data(ds).name_fnt)));
 }
 
 void opeu_open_files_close(uint8_t* ds, OpenEvent event) {

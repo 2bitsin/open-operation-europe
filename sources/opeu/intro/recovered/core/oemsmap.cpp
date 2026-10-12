@@ -66,7 +66,7 @@ void opeu_gfx_wait(uint8_t* ds, EmsEvent event) {
 /* 032a:005c. 1 unless releasing the mapped handle failed. */
 auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t {
   int16_t ok = 0;
-  ok = 1;
+  ok         = 1;
   if ((Data(ds).sprite_mapped != 0) && (Ems(ds, event, RELEASE, Data(ds).sprite_handle) != 0u)) ok = 0;
   return ok;
 }
@@ -74,8 +74,8 @@ auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t {
 /* 032a:008a. BX=handle variable, AX=pages. 1 if the pages were allocated.
  * Entered with SP=sp: BP=sp-2, total at BP-2, unallocated at BP-4. */
 auto opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t handle, int16_t pages) -> int16_t {
-  uint16_t total = static_cast<uint16_t>(sp - 4);
-  uint16_t unallocated = static_cast<uint16_t>(sp - 6);
+  auto total       = static_cast<uint16_t>(sp - 4);
+  auto unallocated = static_cast<uint16_t>(sp - 6);
   if (Ems(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(WrappedWord(ds, unallocated)) >= pages
       && Ems(ds, event, ALLOCATE, pages, handle) == 0)
     return 1;
@@ -85,7 +85,7 @@ auto opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t handle,
 /* 032a:00d0. The near call to 008a pushes bp, the 2-byte frame and cs:ip. */
 auto opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
   int16_t ok = 0;
-  ok = opeu_ems_reserve(ds, event, static_cast<uint16_t>(sp - 8), offsetof(OpenDataSegment, sprite_handle), 4);
+  ok         = opeu_ems_reserve(ds, event, static_cast<uint16_t>(sp - 8), offsetof(OpenDataSegment, sprite_handle), 4);
   if (ok != 0) Data(ds).buffer_f = Data(ds).ems_pages[0].segment;
   Data(ds).sprite_mapped = ok;
   return ok;
@@ -94,10 +94,10 @@ auto opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t 
 /* 032a:00f8. 1 if a usable EMM page frame was found and recorded. Entered
  * with SP=sp: BP=sp-2, pages at BP-100h, count BP-102h, frame BP-104h. */
 auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
-  uint16_t pages = static_cast<uint16_t>(sp - 0x102);
-  uint16_t count = static_cast<uint16_t>(sp - 0x104);
-  uint16_t frame = static_cast<uint16_t>(sp - 0x106);
-  int16_t n = 0;
+  auto    pages = static_cast<uint16_t>(sp - 0x102);
+  auto    count = static_cast<uint16_t>(sp - 0x104);
+  auto    frame = static_cast<uint16_t>(sp - 0x106);
+  int16_t n     = 0;
   if (Ems(ds, event, PRESENT) == 0u) goto fail;
   if (Ems(ds, event, STATUS) != 0u) goto fail;
   if (Ems(ds, event, FRAME, frame) != 0u) goto fail;

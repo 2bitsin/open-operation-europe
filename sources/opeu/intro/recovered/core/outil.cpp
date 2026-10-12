@@ -48,18 +48,18 @@ auto util_int86(uint8_t* ds, UtilService event, Regs* r) -> void {
   words[5] = r->x.di;
   words[6] = r->x.cflag;
   event(ds, MOUSE_INT33, words, 7);
-  r->x.ax = words[0];
-  r->x.bx = words[1];
-  r->x.cx = words[2];
-  r->x.dx = words[3];
-  r->x.si = words[4];
-  r->x.di = words[5];
+  r->x.ax    = words[0];
+  r->x.bx    = words[1];
+  r->x.cx    = words[2];
+  r->x.dx    = words[3];
+  r->x.si    = words[4];
+  r->x.di    = words[5];
   r->x.cflag = words[6];
 }
 
 /* *stream++ through the far pointer DS:1c0e (offset), 1c10 (segment). */
 auto util_stream_next(uint8_t* ds, UtilService event) -> uint8_t {
-  uint16_t offset = Data(ds).stream_offset;
+  uint16_t offset        = Data(ds).stream_offset;
   Data(ds).stream_offset = static_cast<uint16_t>(offset + 1);
   return static_cast<uint8_t>(Call(ds, event, FAR_BYTE, Data(ds).stream_segment, offset));
 }
@@ -68,9 +68,9 @@ auto util_stream_next(uint8_t* ds, UtilService event) -> uint8_t {
 /* 062d:0008. AX=ticks. Waits until the FM driver's down-counter has run
  * `ticks` further; 1 if the input poll reported a key or button first. */
 auto opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) -> int16_t {
-  uint16_t target = 0;
-  target = static_cast<uint16_t>(Call(ds, event, FM_BUSY));
-  target -= ticks;
+  uint16_t target  = 0;
+  target           = static_cast<uint16_t>(Call(ds, event, FM_BUSY));
+  target          -= ticks;
   do {
     if (opeu_open_input_poll(ds, event) != 0) return 1;
   } while (static_cast<uint16_t>(Call(ds, event, FM_BUSY)) > target);
@@ -79,7 +79,9 @@ auto opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) -> int
 
 /* 062d:003e (MAIN 05a8:0210). AX=x, DX=y, BX=width, stack height; RETF 2. */
 void opeu_mouse_window(uint8_t* ds, UtilService event, int16_t x, int16_t y, int16_t width, int16_t height) {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   r.x.ax = 7;
   r.x.cx = static_cast<uint16_t>(x);
   r.x.dx = static_cast<uint16_t>(width + x);
@@ -92,7 +94,9 @@ void opeu_mouse_window(uint8_t* ds, UtilService event, int16_t x, int16_t y, int
 
 /* 062d:0094 (MAIN 05a8:000c). INT 33h reset, then limit to 640x400; returns the reset AX. */
 auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   r.x.ax = 0;
   util_int86(ds, event, &r);
   opeu_mouse_window(ds, event, 0, 0, 640, 400);
@@ -101,7 +105,9 @@ auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t {
 
 /* 062d:00c6 (MAIN 05a8:0104). Queries the driver even without a mouse. */
 auto opeu_mouse_left(uint8_t* ds, UtilService event) -> int {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   r.x.ax = 3;
   util_int86(ds, event, &r);
   return ((r.x.bx & 1) != 0) ? -1 : 0;
@@ -109,7 +115,9 @@ auto opeu_mouse_left(uint8_t* ds, UtilService event) -> int {
 
 /* 062d:00f0 (MAIN 05a8:012e). */
 auto opeu_mouse_right(uint8_t* ds, UtilService event) -> int {
-  Regs r = { { 0, 0, 0, 0, 0, 0, 0 } };
+  Regs r = {
+    { 0, 0, 0, 0, 0, 0, 0 }
+  };
   r.x.ax = 3;
   util_int86(ds, event, &r);
   return ((r.x.bx & 2) != 0) ? -1 : 0;
@@ -117,14 +125,15 @@ auto opeu_mouse_right(uint8_t* ds, UtilService event) -> int {
 
 /* 062d:011a (MAIN 05a8:0158). */
 auto opeu_turn_input_a(uint8_t* ds, UtilService event) -> int {
-  return (static_cast<int>(opeu_mouse_left(ds, event) != 0) || (opeu_mouse_right(ds, event) != 0));
+  return static_cast<int>((static_cast<int>(opeu_mouse_left(ds, event) != 0) != 0)
+                          || (opeu_mouse_right(ds, event) != 0));
 }
 
 /* 062d:0132 (MAIN 0a04:0132 with a 0x5000-byte buffer at offset 0). */
 auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t {
   if (Data(ds).stream_count == 0) {
     Data(ds).stream_segment = Data(ds).buffer_g;
-    Data(ds).stream_count = static_cast<uint16_t>(
+    Data(ds).stream_count   = static_cast<uint16_t>(
         Call(ds, event, DOS_READ_FAR, Data(ds).picture_handle, Data(ds).buffer_g, Data(ds).stream_offset = 0, 0x5000));
   }
   Data(ds).stream_count--;
@@ -147,11 +156,11 @@ void opeu_picture_file_at(uint8_t* ds, UtilService event, uint16_t x, uint16_t y
 
 /* 062d:01bc. BX=palette: copy it to the current palette and load the DAC. */
 void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette) {
-  int16_t k = 0;
+  int16_t  k   = 0;
   uint8_t* src = nullptr;
   uint8_t* dst = nullptr;
-  src = palette;
-  dst = Data(ds).palette;
+  src          = palette;
+  dst          = Data(ds).palette;
   for (k = 0; k < 48; k++, src++, dst++) *dst = *src;
   Call(ds, event, SET_PALETTE, 0, 16, (dst = Data(ds).palette) - ds);
 }
@@ -159,13 +168,13 @@ void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette) {
 /* 062d:01fe. BX=target: moves every current component one step toward it,
  * loads the DAC if anything changed and reports that. */
 auto opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) -> int16_t {
-  int16_t dirty = 0;
-  uint16_t k = 0;
-  uint8_t* src = nullptr;
-  uint8_t* dst = nullptr;
-  dirty = 0;
-  src = target;
-  dst = Data(ds).palette;
+  int16_t  dirty = 0;
+  uint16_t k     = 0;
+  uint8_t* src   = nullptr;
+  uint8_t* dst   = nullptr;
+  dirty          = 0;
+  src            = target;
+  dst            = Data(ds).palette;
   for (k = 0; k < 48; k++, src++, dst++) {
     if (*dst != *src) {
       dirty = 1;
@@ -183,16 +192,16 @@ auto opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) -> 
  * driver timer between steps; any other mode waits a tick and returns 1 if
  * the input poll aborts the fade. */
 auto opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode) -> int16_t {
-  int16_t wait;
-  int16_t dirty;
-  uint16_t k = 0;
-  uint8_t* src = nullptr;
-  uint8_t* dst = nullptr;
-  wait = mode == 0xffff ? 0 : 1;
+  int16_t  wait  = 0;
+  int16_t  dirty = 0;
+  uint16_t k     = 0;
+  uint8_t* src   = nullptr;
+  uint8_t* dst   = nullptr;
+  wait           = mode == 0xffff ? 0 : 1;
   do {
     dirty = 0;
-    src = target;
-    dst = Data(ds).palette;
+    src   = target;
+    dst   = Data(ds).palette;
     for (k = 0; k < 48; k++, src++, dst++) {
       if (*dst != *src) {
         dirty = 1;
@@ -247,7 +256,7 @@ auto opeu_open_input_poll(uint8_t* ds, UtilService event) -> int16_t {
 /* 062d:0350. BX=name: opens it read/write or reports it and hangs. */
 auto opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name) -> int16_t {
   int16_t handle = 0;
-  handle = static_cast<int16_t>(Call(ds, event, DOS_OPEN, name, 2));
+  handle         = static_cast<int16_t>(Call(ds, event, DOS_OPEN, name, 2));
   if (handle == -1) {
     Call(ds, event, VGA_CLEAR);
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).error_format), name);

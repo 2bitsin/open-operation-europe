@@ -28,18 +28,19 @@
 #include "recovered.hpp"
 
 #include <cstdint>
+#include <utility>
 
 namespace opeu::intro {
 
 inline constexpr uint16_t OPEN_LOAD_SEGMENT{ 0x0000 };
 inline constexpr uint16_t OPEN_BANK_SEGMENT{ OPEN_LOAD_SEGMENT + BANK_FRAME };
 inline constexpr uint16_t OPEN_DS_SEGMENT{ OPEN_LOAD_SEGMENT + 0x093a };
-inline constexpr uint16_t OPEN_CODE_0349{ OPEN_LOAD_SEGMENT + 0x0349 };    /* OSOUND's CS (segread) */
-inline constexpr uint16_t OPEN_DS_END{ sizeof(OpenDataSegment) };          /* _end: past DGROUP data + BSS */
-inline constexpr uint16_t OPEN_STACK_TOP{ 0x3040 };                        /* SS = DS, SP after crt0 */
+inline constexpr uint16_t OPEN_CODE_0349{ OPEN_LOAD_SEGMENT + 0x0349 }; /* OSOUND's CS (segread) */
+inline constexpr uint16_t OPEN_DS_END{ sizeof(OpenDataSegment) };       /* _end: past DGROUP data + BSS */
+inline constexpr uint16_t OPEN_STACK_TOP{ 0x3040 };                     /* SS = DS, SP after crt0 */
 inline constexpr uint16_t OPEN_HEAP_SEGMENT{ OPEN_DS_SEGMENT + (OPEN_STACK_TOP >> 4) + 1 };
 
-extern uint8_t* open_ds;    /* port_arena + OPEN_DS_SEGMENT * 16 */
+extern uint8_t* open_ds; /* port_arena + OPEN_DS_SEGMENT * 16 */
 extern uint16_t open_sp;
 
 /* Clear the arena and place OPEN's initial DGROUP and far data. */
@@ -54,16 +55,16 @@ void open_stack_leave(uint16_t bytes);
 /* The placement of the recovered OPEN data objects (image.cpp). */
 struct OpenImageObject {
   void const* object;
-  uint16_t seg, off;    /* seg: 0 = DGROUP, else relative to the load segment */
-  uint16_t size;
+  uint16_t    seg, off; /* seg: 0 = DGROUP, else relative to the load segment */
+  uint16_t    size;
   char const* name;
 };
 extern OpenImageObject const open_image_objects[];
-extern unsigned const open_image_object_count;
+extern unsigned const        open_image_object_count;
 
 /* Argument word i of a service call with count words (0 past the end). */
 inline auto Arg(uint16_t const* args, uint16_t count, int i) -> uint16_t {
-  return static_cast<uint16_t>(i < count ? args[i] : 0);
+  return static_cast<uint16_t>(std::cmp_less(i, count) ? args[i] : 0);
 }
 /* The 32-bit argument in words i (low) and i + 1 (high). */
 inline auto Arg32(uint16_t const* args, uint16_t count, int i) -> uint32_t {

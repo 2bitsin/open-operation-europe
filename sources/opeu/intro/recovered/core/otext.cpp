@@ -32,6 +32,8 @@
  */
 #include "recovered.hpp"
 
+#include <algorithm>
+
 /* MAIN's STRINGS routines, linked into OPEN unchanged. */
 extern auto opeu_string_length(uint8_t ds[65536], uint16_t string) -> uint16_t;
 extern auto opeu_ascii_upper(uint8_t code) -> uint8_t;
@@ -50,13 +52,16 @@ using TextOut = void (*)(uint8_t* ds, TextHost* host, uint16_t c);
 auto At(uint8_t* ds, uint16_t at) -> uint8_t& {
   return ds[at];
 }
-auto Word(uint8_t* ds, uint16_t at) -> uint16_t& {
+auto Word(uint8_t* ds, uint16_t at) // NOLINT(readability-non-const-parameter): written through
+    -> uint16_t& {
   return *reinterpret_cast<uint16_t*>(ds + at);
 }
-auto Int(uint8_t* ds, uint16_t at) -> int16_t& {
+auto Int(uint8_t* ds, uint16_t at) // NOLINT(readability-non-const-parameter): written through
+    -> int16_t& {
   return *reinterpret_cast<int16_t*>(ds + at);
 }
-auto Long(uint8_t* ds, uint16_t at) -> int32_t& {
+auto Long(uint8_t* ds, uint16_t at) // NOLINT(readability-non-const-parameter): written through
+    -> int32_t& {
   return *reinterpret_cast<int32_t*>(ds + at);
 }
 
@@ -80,7 +85,7 @@ auto Event(uint8_t* ds, TextHost* host, TextEventId id) -> uint16_t {
 
 template <class... Words>
 auto Event(uint8_t* ds, TextHost* host, TextEventId id, Words... words) -> uint16_t {
-  auto const event{ host->event };
+  auto const     event{ host->event };
   uint16_t const args[]{ static_cast<uint16_t>(words)... };
   return event(ds, id, args, sizeof...(Words));
 }
@@ -119,7 +124,7 @@ static void host_store_out(uint8_t* ds, TextHost* host, uint16_t c) {
 /* 0002: wait for a key (INT 16h) and return its character. */
 auto opeu_key_read(uint8_t* ds, TextHost* host) -> uint8_t {
   uint16_t r = 0;
-  r = Event(ds, host, KEY_READ);
+  r          = Event(ds, host, KEY_READ);
   return static_cast<uint8_t>(r);
 }
 
@@ -130,10 +135,10 @@ void opeu_input_flush(uint8_t* ds, TextHost* host) {
 
 /* 0032: unsigned decimal at *p; *p is left at the first non-digit. */
 auto opeu_format_decimal(uint8_t* ds, [[maybe_unused]] TextHost* host, uint16_t* p) -> int16_t {
-  uint16_t a;
-  uint16_t b;
-  a = 0;
-  while ((b = (uint8_t)At(ds, *p) - '0') < 10) {
+  uint16_t a = 0;
+  uint16_t b = 0;
+  a          = 0;
+  while ((b = At(ds, *p) - '0') < 10) {
     a = b + (a * 10);
     ++*p;
   }
@@ -150,7 +155,7 @@ auto opeu_put_unsigned(uint8_t* ds, TextHost* host, uint16_t* p, uint16_t v, uin
   }
   a = opeu_put_unsigned(ds, host, p, v / base, base);
   opeu_put_unsigned(ds, host, p, v % base, base);
-  return a + 1;
+  return static_cast<int16_t>(a + 1);
 }
 
 auto opeu_put_long(uint8_t* ds, TextHost* host, uint16_t* p, int32_t v, int16_t base) -> int16_t {
@@ -162,28 +167,31 @@ auto opeu_put_long(uint8_t* ds, TextHost* host, uint16_t* p, int32_t v, int16_t 
   }
   a = opeu_put_long(ds, host, p, v / base, base);
   opeu_put_long(ds, host, p, v % base, base);
-  return a + 1;
+  return static_cast<int16_t>(a + 1);
 }
 
 /* 0168: args addresses the format pointer followed by its arguments; every
  * formatted character is passed to out. */
+// The opening's recovered control flow, one branch
+// per format code; it goes when the opening becomes a scene (M6).
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
-  uint8_t a = 0;              /* pad character */
-  int16_t b = 0;                  /* left-justify */
-  uint8_t c = 0;              /* current character */
-  int16_t d = 0;                  /* precision */
-  int16_t e = 0;                  /* remaining width */
-  int16_t f = 0;                  /* long argument */
-  uint16_t h = 0;                /* conversion text */
-  int16_t i = 0;                  /* base */
-  uint16_t j = 0;                /* format */
-  int16_t k = 0;                  /* explicit plus */
-  uint16_t l = 0;    /* conversion buffer */
-  int16_t m = 0;                  /* precision given */
-  uint16_t p = 0;       /* next argument */
-  l = (host->sp -= 20);
-  j = Word(ds, args);
-  p = static_cast<uint16_t>(args + 2);
+  uint8_t  a = 0; /* pad character */
+  int16_t  b = 0; /* left-justify */
+  uint8_t  c = 0; /* current character */
+  int16_t  d = 0; /* precision */
+  int16_t  e = 0; /* remaining width */
+  int16_t  f = 0; /* long argument */
+  uint16_t h = 0; /* conversion text */
+  int16_t  i = 0; /* base */
+  uint16_t j = 0; /* format */
+  int16_t  k = 0; /* explicit plus */
+  uint16_t l = 0; /* conversion buffer */
+  int16_t  m = 0; /* precision given */
+  uint16_t p = 0; /* next argument */
+  l          = (host->sp -= 20);
+  j          = Word(ds, args);
+  p          = static_cast<uint16_t>(args + 2);
   while ((c = At(ds, j++)) != 0) {
     if (c == '%') {
       h = l;
@@ -222,7 +230,7 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         if (f != 0) {
           if (Long(ds, p) < 0) {
             Long(ds, p) = NegateLong(Long(ds, p));
-            At(ds, h) = '-';
+            At(ds, h)   = '-';
             h++;
             e--;
           } else if (k != 0) {
@@ -233,7 +241,7 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         } else {
           if (Int(ds, p) < 0) {
             Int(ds, p) = static_cast<int16_t>(-Int(ds, p));
-            At(ds, h) = '-';
+            At(ds, h)  = '-';
             h++;
             e--;
           } else if (k != 0) {
@@ -247,11 +255,12 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         i = 8;
       number:
         if (f == 0)
-          e -= opeu_put_unsigned(ds, host, &h, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(i));
+          e = static_cast<int16_t>(
+              e - opeu_put_unsigned(ds, host, &h, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(i)));
         goto term;
       case 'S':
         h = NextWord(ds, p);
-        e -= opeu_string_length(ds, h);
+        e = static_cast<int16_t>(e - opeu_string_length(ds, h));
         goto pad;
       case 'C':
         At(ds, h) = static_cast<uint8_t>(NextInt(ds, p));
@@ -259,14 +268,14 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         e--;
       term:
         At(ds, h) = 0;
-        h = l;
-        m = 0;
+        h         = l;
+        m         = 0;
       pad:
         if (b == 0)
           while (e-- > 0) out(ds, host, static_cast<uint16_t>(a));
         while (At(ds, h) != 0u) {
           if ((m == 0) || d > 0) {
-            out(ds, host, static_cast<uint16_t>((uint8_t)At(ds, h)));
+            out(ds, host, static_cast<uint16_t>(At(ds, h)));
             d--;
           }
           h++;
@@ -285,9 +294,9 @@ done:;
 
 /* 038e: Shift-JIS to JIS X 0208; 2228h for a code without a lead byte. */
 auto opeu_open_sjis_to_jis([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHost* host, uint16_t code) -> uint16_t {
-  uint8_t a;
-  uint8_t b;
-  a = code >> 8;
+  uint8_t a = 0;
+  uint8_t b = 0;
+  a         = code >> 8;
   if (a > 0x80 && a < 0xf0) {
     a = static_cast<uint8_t>((a - (a >= 0xa0 ? 0xb0 : 0x70)) << 1);
     b = static_cast<uint8_t>(code);
@@ -303,8 +312,8 @@ auto opeu_open_sjis_to_jis([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHo
 }
 
 void opeu_text_clamp(uint8_t* ds, [[maybe_unused]] TextHost* host) {
-  Data(ds).text_x = Data(ds).text_x < 0 ? 0 : Data(ds).text_x > 79 ? 79 : Data(ds).text_x;
-  Data(ds).text_y = Data(ds).text_y < 0 ? 0 : Data(ds).text_y > 399 ? 399 : Data(ds).text_y;
+  Data(ds).text_x = std::clamp<int16_t>(Data(ds).text_x, 0, 79);
+  Data(ds).text_y = std::clamp<int16_t>(Data(ds).text_y, 0, 399);
 }
 
 /* 0426: a negative coordinate keeps the current one. */
@@ -338,9 +347,9 @@ void opeu_text_glyph([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHost* ho
 
 /* 045e: lines are 16 pixels, 32 in large mode. */
 void opeu_text_newline(uint8_t* ds, [[maybe_unused]] TextHost* host) {
-  int16_t a = 0;
+  int16_t a       = 0;
   Data(ds).text_x = Data(ds).text_left;
-  a = (Data(ds).text_large != 0) ? Data(ds).text_y + 32 : Data(ds).text_y + 16;
+  a               = static_cast<int16_t>(Data(ds).text_y + (Data(ds).text_large != 0 ? 32 : 16));
   if (a <= 399) Data(ds).text_y = a;
 }
 
@@ -351,15 +360,18 @@ void opeu_text_control(uint8_t* ds, TextHost* host, uint8_t c) {
   case 8:
     if (Data(ds).text_x >= 1) Data(ds).text_x--;
     break;
-  case 7: Event(ds, host, STUB_B, 6); break;
+  case 7:  Event(ds, host, STUB_B, 6); break;
   default: break;
   }
 }
 
 /* 04bc: console output of one byte; returns it. */
+// The opening's recovered control flow, one branch
+// per control code; it goes when the opening becomes a scene (M6).
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
-  uint16_t b = 0;     /* character code */
-  int16_t d = 0;          /* attribute */
+  uint16_t b = 0; /* character code */
+  int16_t  d = 0; /* attribute */
   switch (Data(ds).text_state) {
   case 1:
     switch (c) {
@@ -377,7 +389,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
       goto reset;
     case '*': Event(ds, host, CLEAR); goto reset;
     case 'S': Event(ds, host, STUB_A, 1); goto reset;
-    default: break;
+    default:  break;
     }
     break;
   case 2:
@@ -385,16 +397,16 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     Data(ds).text_state = 3;
     break;
   case 3:
-    opeu_text_set_x(ds, host, c - 0x20);
+    opeu_text_set_x(ds, host, static_cast<int16_t>(c - 0x20));
   reset:
     Data(ds).text_state = 0;
     break;
   case 4:
-    Data(ds).text_ink = c - '0';
+    Data(ds).text_ink   = c - '0';
     Data(ds).text_state = 0;
     break;
   case 5:
-    Data(ds).text_left = c - 0x20;
+    Data(ds).text_left  = static_cast<int16_t>(c - 0x20);
     Data(ds).text_state = 0;
     break;
   case 6:
@@ -403,7 +415,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     break;
   case 7:
     Data(ds).text_background = c - '0';
-    Data(ds).text_state = 0;
+    Data(ds).text_state      = 0;
     break;
   case 8:
     Data(ds).text_large = c == '1' ? 1 : 0;
@@ -415,7 +427,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     break;
   default:
     if (Data(ds).text_lead != 0u) {
-      b = opeu_open_sjis_to_jis(ds, host, static_cast<uint16_t>(c | Data(ds).text_lead << 8));
+      b                  = opeu_open_sjis_to_jis(ds, host, static_cast<uint16_t>(c | Data(ds).text_lead << 8));
       Data(ds).text_lead = 0;
     } else if ((c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfc)) {
       Data(ds).text_lead = c;
@@ -433,7 +445,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     d = Data(ds).text_background;
     if (d == 0) d = Data(ds).text_paper;
     d = static_cast<int16_t>(d << 8 | Data(ds).text_ink);
-    if (Data(ds).text_large != 0) d |= 0x8000;
+    if (Data(ds).text_large != 0) d = static_cast<int16_t>(d | 0x8000);
     opeu_text_glyph(ds, host, Data(ds).text_x, Data(ds).text_y, d, b);
     Data(ds).text_x += b >= 0x200 ? 2 : 1;
     break;
@@ -465,14 +477,14 @@ void opeu_request_format(uint8_t* ds, TextHost* host, uint16_t frame) {
 
 void opeu_text_put_range(uint8_t* ds, TextHost* host, uint16_t s, uint8_t start, uint8_t count) {
   uint16_t a = 0;
-  a = s + start;
+  a          = s + start;
   while ((count--) != 0u) opeu_text_put(ds, host, At(ds, a++));
 }
 
 /* 07a4: erase the previous character cell, keeping the paper. */
 void opeu_text_erase_char(uint8_t* ds, TextHost* host) {
   uint8_t a = 0;
-  a = Data(ds).text_paper;
+  a         = Data(ds).text_paper;
   opeu_ui_text(ds, host, Near(ds, Data(ds).text_erase));
   Data(ds).text_paper = a;
 }

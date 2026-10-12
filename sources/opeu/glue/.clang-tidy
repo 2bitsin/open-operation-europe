@@ -1,0 +1,18 @@
+# The 16-bit memory model (docs/building.md "clang-tidy"): this module's state is the arena and the data segment,
+# global byte arrays reached by offset and by far pointer, which M2 replaces with GameState and deletes. Until then
+# the checks that name exactly that model are off here; the census keeps the same idioms counted (globals, c_array,
+# ptr_arith, goto) so they stay visible and can only fall. The glue's trace and fatal exit are printf-shaped for the
+# whole game until then.
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-avoid-c-arrays,
+  -modernize-avoid-c-arrays,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-vararg,
+  -modernize-avoid-variadic-functions,
+  -cppcoreguidelines-avoid-goto
