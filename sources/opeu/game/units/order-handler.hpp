@@ -39,7 +39,22 @@ inline auto Serve(std::uint8_t* ds, HostEvent event, OrderService service, auto.
   return data.side_control[data.current_side] == PLAYER ? static_cast<std::uint16_t>(data.delivery_level + 1) : 3;
 }
 
-// Whether the current regiment stands on the cell whose coordinates are the frame bytes at x and y.
+// A cell a service writes into the data segment as two bytes (an order's destination or target): the handler hands
+// their near addresses to the service and reads the bytes back.
+class ServiceCell {
+public:
+  [[nodiscard]] auto XAt() const noexcept -> std::uint16_t {
+    return _locals.At(0);
+  }
+  [[nodiscard]] auto YAt() const noexcept -> std::uint16_t {
+    return _locals.At(2);
+  }
+
+private:
+  ServiceLocals _locals{ 4 };
+};
+
+// Whether the current regiment stands on the cell whose coordinates are the DS bytes at x and y.
 [[nodiscard]] inline auto StandsOn(std::uint8_t const* ds, std::uint16_t x, std::uint16_t y) noexcept -> bool {
   auto const& unit{ Record<Unit>(Data(ds), Data(ds).current_unit_ptr) };
   return unit.x == Record<std::uint8_t>(Data(ds), x) && unit.y == Record<std::uint8_t>(Data(ds), y);
@@ -53,6 +68,7 @@ using detail::order_handler::NO_SIDE;
 using detail::order_handler::PLAYER;
 using detail::order_handler::RollBound;
 using detail::order_handler::Serve;
+using detail::order_handler::ServiceCell;
 using detail::order_handler::SHOW_DONE;
 using detail::order_handler::StandsOn;
 } // namespace opeu::game

@@ -76,7 +76,8 @@ constexpr std::uint16_t EXPERIENCE_LIMIT{ 99 };
 // No side shown in the overview or tactical view: the next view redraws.
 constexpr std::uint8_t NO_VIEW{ 0xff };
 
-// The routine's locals whose near addresses reach services, at their places below its frame pointer.
+// The routine's locals whose near addresses reach services, at their places below the top of its reserve.
+constexpr std::uint16_t LOCALS_BYTES{ 0xee };
 enum Locals : std::uint16_t {
   PERCENT_AMMUNITION  = 0x2c,
   UNIT_NAME_TEXT      = 0x2a, // 32 bytes
@@ -104,20 +105,21 @@ auto MoraleLoss(std::uint8_t* ds, HostEvent event, std::uint16_t losses, Element
 } // namespace
 
 // unit suffers casualties: each element loses up to c men plus kind (percent% of the time, otherwise up to c/2);
-// infantry (category 0) loses six to fifteen times that when d is set. e shows the blast animation. frame is the
-// routine's frame pointer on the DS stack.
-void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
-  auto&      data{ Data(ds) };
-  auto&      regiment{ Record<Unit>(data, unit) };
-  auto const name{ Local(frame, UNIT_NAME_TEXT) };
-  auto const element_name{ Local(frame, ELEMENT_NAME_TEXT) };
-  auto const text{ Local(frame, REPORT_TEXT) };
-  auto const loss_text{ Local(frame, LOSS_TEXT) };
-  auto const percents{
-    std::array{ Local(frame, PERCENT_AMMUNITION), Local(frame, PERCENT_FUEL), Local(frame, PERCENT_FOOD) }
+// infantry (category 0) loses six to fifteen times that when d is set. e shows the blast animation.
+void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
+  auto&               data{ Data(ds) };
+  auto&               regiment{ Record<Unit>(data, unit) };
+  ServiceLocals const locals{ LOCALS_BYTES };
+  auto const          local{ [&](Locals offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
+  auto const          name{ local(UNIT_NAME_TEXT) };
+  auto const          element_name{ local(ELEMENT_NAME_TEXT) };
+  auto const          text{ local(REPORT_TEXT) };
+  auto const          loss_text{ local(LOSS_TEXT) };
+  auto const          percents{
+    std::array{ local(PERCENT_AMMUNITION), local(PERCENT_FUEL), local(PERCENT_FOOD) }
   };
   auto const capacities{
-    std::array{ Local(frame, CAPACITY_AMMUNITION), Local(frame, CAPACITY_FUEL), Local(frame, CAPACITY_FOOD) }
+    std::array{ local(CAPACITY_AMMUNITION), local(CAPACITY_FUEL), local(CAPACITY_FOOD) }
   };
   std::uint8_t const x{ regiment.x };
   std::uint8_t const y{ regiment.y };

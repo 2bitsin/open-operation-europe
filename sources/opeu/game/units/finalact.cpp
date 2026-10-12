@@ -13,6 +13,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include "units/engineer.hpp"
+#include "units/order-handler.hpp"
 #include "units/orders.hpp"
 
 using namespace opeu::game;
@@ -33,12 +34,12 @@ enum Service : std::uint16_t {
 constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
 } // namespace
 
-// sp is the stack pointer at entry: x and y, the destination cell, are the frame words at sp-4 and sp-6. The order
-// slot and its code are taken before the destination.
-void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+// The order slot and its code are taken before the destination.
+void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
   auto&               data{ Data(ds) };
-  auto const          x{ static_cast<std::uint16_t>(sp - 4) };
-  auto const          y{ static_cast<std::uint16_t>(sp - 6) };
+  ServiceCell const   destination_cell;
+  auto const          x{ destination_cell.XAt() };
+  auto const          y{ destination_cell.YAt() };
   auto const          slot{ Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]) };
   auto const          code{ Record<Order>(data, slot).kind };
   std::uint16_t const destination[3]{ data.current_unit_ptr, x, y };

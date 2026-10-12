@@ -14,11 +14,7 @@
 
 using namespace opeu::game;
 
-namespace {
-// The frame locals the destination is written to, as offsets below the frame pointer.
-constexpr std::uint16_t DESTINATION_X{ 2 };
-constexpr std::uint16_t DESTINATION_Y{ 4 };
-} // namespace
+namespace { } // namespace
 
 uint8_t opeu_order_defend_loss(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
@@ -29,10 +25,11 @@ uint8_t opeu_order_defend_loss(uint8_t ds[65536], HostEvent event) {
 }
 
 // Nonzero (the order step is done) while the regiment holds its destination.
-uint16_t opeu_order_defend_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const x{ Local(frame, DESTINATION_X) };
-  auto const y{ Local(frame, DESTINATION_Y) };
+uint16_t opeu_order_defend_run(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        x{ destination.XAt() };
+  auto const        y{ destination.YAt() };
   Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
   if (!StandsOn(ds, x, y)) return 0;
   auto const loss{ opeu_order_defend_loss(ds, event) };

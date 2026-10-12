@@ -2,7 +2,7 @@
 // order is chosen (a repair needs repair crews), then a target cell is picked and checked like in the Orders command.
 // The accepted order is announced and stored, the side's daily context refreshed and the screen waits; leaving the
 // menu cancels pending orders after confirmation. Both exits but a cancelled pick reset the cached control cell. The
-// frame locals the services read and write through their addresses stay in the DS stack frame.
+// picked cell and the message text stay in the data segment, where the services read and write them.
 #include "units/ordact.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -35,11 +35,11 @@
 using namespace opeu::game;
 
 namespace {
-// Frame locals, as offsets below the frame pointer.
-enum FrameLocal : std::uint16_t {
+// The locals the services read and write, as offsets below the top of the routine's reserve.
+constexpr std::uint16_t LOCALS_BYTES{ 0x74 };
+enum ServiceLocal : std::uint16_t {
   PICKED_X = 0x08,
   PICKED_Y = 0x0c,
-  COUNT    = 0x0e, // the menu choice; unit_quantity's count
   BUFFER   = 0x74, // the message text
 };
 // Where the order menu's speaker is shown.
@@ -57,16 +57,16 @@ auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... word
 }
 } // namespace
 
-// sp is the entry stack pointer; unit the regiment under the cursor.
-void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t unit, uint16_t unused) {
-  (void)unused;
-  auto&      data{ Data(ds) };
-  auto const frame{ static_cast<std::uint16_t>(sp - 2) };
-  auto const x_at{ Local(frame, PICKED_X) };
-  auto const y_at{ Local(frame, PICKED_Y) };
-  auto const count_at{ Local(frame, COUNT) };
-  auto const buffer{ Local(frame, BUFFER) };
-  auto&      regiment{ Record<Unit>(data, unit) };
+// unit: the regiment under the cursor.
+void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t unit, uint16_t /*unused*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ LOCALS_BYTES };
+  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
+  auto const          x_at{ local(PICKED_X) };
+  auto const          y_at{ local(PICKED_Y) };
+  auto const          buffer{ local(BUFFER) };
+  std::uint8_t        crews{};
+  auto&               regiment{ Record<Unit>(data, unit) };
   if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(ds, unit)) return;
   auto const person{ opeu_find_group_record(ds, data.current_side, opeu_unit_group_index(unit)) };
   data.list_row = opeu_unit_index(unit);
@@ -84,7 +84,7 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t 
     auto const count{ OrderCount(data.action_order_codes[menu]) };
     opeu_order_layout(ds, menu);
     Send(ds, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
-    auto const choice{ SetWord(ds, count_at, Send(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu]))) };
+    auto const choice{ Send(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
     Send(ds, event, ORDERS_SPEAKER_PANEL, person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(ds, event, unit, person);
@@ -92,7 +92,7 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t 
       return;
     }
     kind = data.action_order_codes[menu][choice - 1];
-    if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(ds, unit, REPAIR_CREWS, ds + count_at)) {
+    if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(ds, unit, REPAIR_CREWS, &crews)) {
       Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
       continue;
     }

@@ -1,7 +1,7 @@
 // The occupy and attack orders. Next to its target the regiment lowers the order's progress by a loss roll; when it
 // runs out, an empty enemy objective is taken, otherwise the regiment opens a battle (after the player confirms it for
-// a player's division that the computer does not run). The frame locals the services write through their addresses
-// stay in the DS stack frame.
+// a player's division that the computer does not run). The locals the services write through their addresses stay in
+// the data segment, each routine's in its own reserve.
 #include "units/ordattk.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -18,23 +18,29 @@
 using namespace opeu::game;
 
 namespace {
-// Frame locals, as offsets below the frame pointer.
-enum FrameLocal : std::uint16_t {
-  STEP_X             = 2, // attack_allowed: the neighbour cell
-  STEP_Y             = 4,
-  OCCUPY_X           = 6, // occupy: the objective's cell
-  OCCUPY_Y           = 0x6c,
-  OCCUPY_COUNT       = 4,    // occupy: objective_quantity's count
-  OCCUPY_TEXT        = 0x6a, // occupy: the report
-  ATTACK_X           = 4,    // attack: the target regiment's cell
-  ATTACK_Y           = 0x30,
-  ATTACK_NAME        = 0x10, // attack: the target's name
-  ATTACK_TEXT        = 0x2e, // attack: the target's label
-  START_TEXT         = 0x66, // attack_start: the confirmation and report text
-  START_FRAME        = 0x72, // occupy: attack_start's frame below the handler's
-  ALLOWED_FRAME      = 0x72, // attack_start: attack_allowed's frame below its own
-  ATTACK_START_FRAME = 0x36, // attack: attack_start's frame below the handler's
+// The locals the services read and write, as offsets below the top of the routine's reserve.
+enum ServiceLocal : std::uint16_t {
+  STEP_X       = 2, // attack_allowed: the neighbour cell
+  STEP_Y       = 4,
+  OCCUPY_X     = 6, // occupy: the objective's cell
+  OCCUPY_Y     = 0x6c,
+  OCCUPY_COUNT = 4,    // occupy: objective_quantity's count
+  OCCUPY_TEXT  = 0x6a, // occupy: the report
+  ATTACK_X     = 4,    // attack: the target regiment's cell
+  ATTACK_Y     = 0x30,
+  ATTACK_NAME  = 0x10, // attack: the target's name
+  ATTACK_TEXT  = 0x2e, // attack: the target's label
+  START_TEXT   = 0x66, // attack_start: the confirmation and report text
 };
+// The reserves: each routine's deepest local.
+constexpr std::uint16_t ALLOWED_BYTES{ STEP_Y };
+constexpr std::uint16_t START_BYTES{ START_TEXT };
+constexpr std::uint16_t OCCUPY_BYTES{ OCCUPY_Y };
+constexpr std::uint16_t ATTACK_BYTES{ ATTACK_Y };
+// The frames the handlers pass on, below their own.
+constexpr std::uint16_t START_FRAME{ 0x72 };        // occupy: attack_start's
+constexpr std::uint16_t ALLOWED_FRAME{ 0x72 };      // attack_start: attack_allowed's
+constexpr std::uint16_t ATTACK_START_FRAME{ 0x36 }; // attack: attack_start's
 
 // The pictures of the day's show and the link-table addresses of the routines that end it.
 constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
@@ -85,15 +91,17 @@ auto Loss(std::uint8_t* ds, HostEvent event, std::uint16_t divisor) -> std::uint
 // Whether the current regiment may attack the cell x, y. A regiment whose average value11 reaches 70 + rand(30)
 // gives up its order; no attack starts while a friendly neighbour's occupy or attack is under way, nor against a
 // defending regiment worth more than three times as much.
-uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
+uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const average{ Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) };
   if (average >= static_cast<std::uint16_t>(Serve(ds, event, OrderService::RAND_BOUNDED, 30) + 70)) {
     Restore(ds, event);
     return 0;
   }
-  auto const step_x{ Local(frame, STEP_X) };
-  auto const step_y{ Local(frame, STEP_Y) };
+  ServiceLocals const locals{ ALLOWED_BYTES };
+  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ALLOWED_BYTES - offset)); } };
+  auto const          step_x{ local(STEP_X) };
+  auto const          step_y{ local(STEP_Y) };
   for (std::uint8_t direction{ 0 }; direction < 8; ++direction) {
     Byte(ds, step_x) = x;
     Byte(ds, step_y) = y;
@@ -134,7 +142,9 @@ uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t fr
     Restore(ds, event);
     return 0;
   }
-  auto const text{ Local(frame, START_TEXT) };
+  ServiceLocals const locals{ START_BYTES };
+  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(START_BYTES - offset)); } };
+  auto const          text{ local(START_TEXT) };
   if (data.side_control[data.current_side] == PLAYER && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
       && Serve(ds, event, OrderService::UNIT_SELECTION_ELIGIBLE, data.current_unit_ptr)) {
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_prepared));
@@ -160,17 +170,19 @@ void opeu_order_occupied_present(uint8_t ds[65536], HostEvent event) {
 // The occupy order against the enemy objective of the order. An objective without arms changes hands when the regiment
 // moves in (its owner bit is flipped for the move and flipped back when the cell did not become the side's).
 uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const enemy{ static_cast<std::uint8_t>(Serve(ds, event, OrderService::OPPOSITE_SIDE, data.current_side)) };
-  auto const at_x{ Local(frame, OCCUPY_X) };
-  auto const at_y{ Local(frame, OCCUPY_Y) };
-  auto const objective{ Serve(ds, event, OrderService::MOVE_OBJECTIVE_TARGET, at_x, at_y, enemy) };
+  auto&               data{ Data(ds) };
+  auto const          enemy{ static_cast<std::uint8_t>(Serve(ds, event, OrderService::OPPOSITE_SIDE, data.current_side)) };
+  ServiceLocals const locals{ OCCUPY_BYTES };
+  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(OCCUPY_BYTES - offset)); } };
+  auto const          at_x{ local(OCCUPY_X) };
+  auto const          at_y{ local(OCCUPY_Y) };
+  auto const          objective{ Serve(ds, event, OrderService::MOVE_OBJECTIVE_TARGET, at_x, at_y, enemy) };
   if (!objective) return 1;
   if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   auto const loss{ opeu_order_occupy_loss(ds, event) };
   if (!Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), loss)) return 1;
   if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE, Byte(ds, at_x), Byte(ds, at_y))) == NO_SIDE
-      && !Serve(ds, event, OrderService::OBJECTIVE_QUANTITY, objective, ALL_ARMS, Local(frame, OCCUPY_COUNT))) {
+      && !Serve(ds, event, OrderService::OBJECTIVE_QUANTITY, objective, ALL_ARMS, local(OCCUPY_COUNT))) {
     auto& target{ Record<Objective>(data, objective) };
     target.flags ^= Bits(ObjectiveFlag::SIDE_1);
     Serve(ds, event, OrderService::MOVE_UNIT, 1);
@@ -178,7 +190,7 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t fram
       target.flags ^= Bits(ObjectiveFlag::SIDE_1);
       return 1;
     }
-    auto const text{ Local(frame, OCCUPY_TEXT) };
+    auto const text{ local(OCCUPY_TEXT) };
     Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_occupied), objective);
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, text);
     Serve(ds, event, OrderService::DAILY_SHOW, OCCUPIED_PICTURE, data.current_side, OCCUPIED_PRESENT, ORDER_SEGMENT);
@@ -197,17 +209,19 @@ uint8_t opeu_order_attack_loss(uint8_t ds[65536], HostEvent event) {
 
 // The attack order against the enemy regiment of the order, labelled with its side and name.
 uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ Local(frame, ATTACK_X) };
-  auto const at_y{ Local(frame, ATTACK_Y) };
-  auto const unit{ Serve(ds, event, OrderService::MOVE_UNIT_TARGET, at_x, at_y) };
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ ATTACK_BYTES };
+  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ATTACK_BYTES - offset)); } };
+  auto const          at_x{ local(ATTACK_X) };
+  auto const          at_y{ local(ATTACK_Y) };
+  auto const          unit{ Serve(ds, event, OrderService::MOVE_UNIT_TARGET, at_x, at_y) };
   if (!unit) return 1;
   if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   auto const loss{ opeu_order_attack_loss(ds, event) };
   if (!Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), loss)) return 1;
-  auto const name{ Serve(ds, event, OrderService::UNIT_NAME, unit, Local(frame, ATTACK_NAME)) };
+  auto const name{ Serve(ds, event, OrderService::UNIT_NAME, unit, local(ATTACK_NAME)) };
   auto const side_name{ data.side_names[Serve(ds, event, OrderService::ABS16_BITS, static_cast<std::uint16_t>(data.current_side - 1))] };
-  auto const text{ Local(frame, ATTACK_TEXT) };
+  auto const text{ local(ATTACK_TEXT) };
   Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name);
   if (opeu_order_attack_start(ds, event, Local(frame, ATTACK_START_FRAME), text, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;

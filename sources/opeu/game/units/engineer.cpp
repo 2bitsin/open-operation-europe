@@ -85,18 +85,8 @@ enum Finish : std::uint16_t {
   ARMS_REPAIRED_FINISH = 0x03ba,
 };
 
-// The frame locals the handlers hand to their services, as offsets below the frame pointer.
-enum FrameLocal : std::uint16_t {
-  ENGINEER_COUNT = 2, // the skill roll's unit_quantity count byte
-  DESTINATION_X  = 2,
-  DESTINATION_Y  = 4,
-  REPAIR_BUDGET  = 8,
-  TARGET_X       = 10,
-  TARGET_Y       = 12,
-  CREW_COUNT     = 14, // the regiment repair's count byte
-  CITY_CREWS     = 16, // the objective repair's count byte
-  SKILL_FRAME    = 10, // the skill roll's frame lies this far below the handler's
-};
+// The skill roll's frame lies this far below the handler's.
+constexpr std::uint16_t SKILL_FRAME{ 10 };
 
 auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
   return Call(ds, event, std::to_underlying(service), words...);
@@ -104,11 +94,11 @@ auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> 
 
 // The engineering skill roll, computed in 16-bit words of which the low byte is kept. The services are called in the
 // order general, random bound, engineer count, average10, average11.
-auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t frame, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus)
-    -> std::uint8_t {
+auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(ds) };
   std::uint16_t const random{ Send(ds, event, RAND_BOUNDED, bound) };
-  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), Local(frame, ENGINEER_COUNT)) };
+  ServiceLocals const count{ 2 };
+  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), count.At(0)) };
   std::uint16_t const average10{ Send(ds, event, UNIT_AVERAGE10, data.current_unit_ptr) };
   std::uint16_t const average11{ Send(ds, event, UNIT_AVERAGE11, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random
@@ -135,9 +125,9 @@ auto RestoreOrder(std::uint8_t* ds, HostEvent event) -> void {
 }
 } // namespace
 
-uint8_t opeu_mine_skill(uint8_t ds[65536], HostEvent event, uint16_t frame) {
+uint8_t opeu_mine_skill(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
   auto const person{ Send(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
-  return SkillRoll(ds, event, frame, person, RollBound(Data(ds)), 45, 96, 8);
+  return SkillRoll(ds, event, person, RollBound(Data(ds)), 45, 96, 8);
 }
 
 void opeu_mines_laid_finish(uint8_t ds[65536], HostEvent event) {
@@ -146,9 +136,10 @@ void opeu_mines_laid_finish(uint8_t ds[65536], HostEvent event) {
 
 // Lays mines at the destination cell unless the side has mined it already or the regiment stands on it.
 uint16_t opeu_engineer_lay_mines(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ Local(frame, DESTINATION_X) };
-  auto const at_y{ Local(frame, DESTINATION_Y) };
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        at_x{ destination.XAt() };
+  auto const        at_y{ destination.YAt() };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const  x{ Byte(ds, at_x) };
   auto const  y{ Byte(ds, at_y) };
@@ -174,9 +165,10 @@ void opeu_mines_removed_finish(uint8_t ds[65536], HostEvent event) {
 
 // Clears the mines of both sides at the destination cell.
 uint16_t opeu_engineer_remove_mines(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ Local(frame, DESTINATION_X) };
-  auto const at_y{ Local(frame, DESTINATION_Y) };
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        at_x{ destination.XAt() };
+  auto const        at_y{ destination.YAt() };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const x{ Byte(ds, at_x) };
   auto const y{ Byte(ds, at_y) };
@@ -196,9 +188,9 @@ uint16_t opeu_engineer_remove_mines(uint8_t ds[65536], HostEvent event, uint16_t
   return 1;
 }
 
-uint8_t opeu_bridge_skill(uint8_t ds[65536], HostEvent event, uint16_t frame) {
+uint8_t opeu_bridge_skill(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
   auto const person{ Send(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
-  return SkillRoll(ds, event, frame, person, RollBound(Data(ds)), 35, 80, 10);
+  return SkillRoll(ds, event, person, RollBound(Data(ds)), 35, 80, 10);
 }
 
 void opeu_bridge_built_finish(uint8_t ds[65536], HostEvent event) {
@@ -207,9 +199,10 @@ void opeu_bridge_built_finish(uint8_t ds[65536], HostEvent event) {
 
 // Builds a bridge over the river at the destination cell.
 uint16_t opeu_engineer_build_bridge(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ Local(frame, DESTINATION_X) };
-  auto const at_y{ Local(frame, DESTINATION_Y) };
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        at_x{ destination.XAt() };
+  auto const        at_y{ destination.YAt() };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const x{ Byte(ds, at_x) };
   auto const y{ Byte(ds, at_y) };
@@ -229,18 +222,17 @@ uint16_t opeu_engineer_build_bridge(uint8_t ds[65536], HostEvent event, uint16_t
 }
 
 // Moves damaged arms of the item (an objective's item or an element's type, quantity and damage) back into service:
-// at most the budget at `amount`, the damaged count, and what the type's capacity leaves room for. Nonzero when the
+// at most the budget (lowered by what is repaired), the damaged count, and what the type's capacity leaves room for. Nonzero when the
 // item had damage and budget left.
-uint16_t opeu_arms_repair(uint8_t ds[65536], uint16_t amount, uint16_t body) {
-  auto&      data{ Data(ds) };
-  auto&      item{ Record<Item>(data, body) };
-  auto const budget{ Word(ds, amount) };
+uint16_t opeu_arms_repair(uint8_t ds[65536], uint16_t& budget, uint16_t body) {
+  auto& data{ Data(ds) };
+  auto& item{ Record<Item>(data, body) };
   if (!budget || !item.extra) return 0;
   auto const capacity{ data.request_capacities[data.element_types[item.type].category] };
   auto const repaired{ static_cast<std::uint16_t>(opeu_min16(opeu_min16(budget, item.extra) + item.quantity, capacity) - item.quantity) };
   item.extra    -= repaired;
   item.quantity += repaired;
-  SetWord(ds, amount, static_cast<std::uint16_t>(budget - repaired));
+  budget         = static_cast<std::uint16_t>(budget - repaired);
   return 1;
 }
 
@@ -249,21 +241,22 @@ void opeu_arms_repaired_finish(uint8_t ds[65536], HostEvent event) {
 }
 
 // Repairs the arms of the own objective at the destination; the order ends when nothing is left to repair.
-uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const crews{ Local(frame, CITY_CREWS) };
+uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const counts{ 2 };
+  auto const          crews{ counts.At(0) };
   if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
-  auto const at_x{ Local(frame, TARGET_X) };
-  auto const at_y{ Local(frame, TARGET_Y) };
-  auto const objective{ Send(ds, event, MOVE_OBJECTIVE_TARGET, at_x, at_y, data.current_side) };
+  ServiceCell const target;
+  auto const        at_x{ target.XAt() };
+  auto const        at_y{ target.YAt() };
+  auto const        objective{ Send(ds, event, MOVE_OBJECTIVE_TARGET, at_x, at_y, data.current_side) };
   if (!objective) return 1;
   if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto const budget{ Local(frame, REPAIR_BUDGET) };
-  SetWord(ds, budget, static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
+  auto budget{ static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
   bool repaired{ false };
   for (auto& item : Record<Objective>(data, objective).items)
     if (item.quantity && opeu_arms_repair(ds, budget, Near(data, item))) repaired = true;
@@ -276,21 +269,22 @@ uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event, uint
 }
 
 // Repairs the arms of the friendly regiment the order targets; the order ends when nothing is left to repair.
-uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const crews{ Local(frame, CREW_COUNT) };
+uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const counts{ 2 };
+  auto const          crews{ counts.At(0) };
   if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
-  auto const at_x{ Local(frame, TARGET_X) };
-  auto const at_y{ Local(frame, TARGET_Y) };
-  auto const unit{ Send(ds, event, MOVE_UNIT_TARGET, at_x, at_y) };
+  ServiceCell const target;
+  auto const        at_x{ target.XAt() };
+  auto const        at_y{ target.YAt() };
+  auto const        unit{ Send(ds, event, MOVE_UNIT_TARGET, at_x, at_y) };
   if (!unit) return 1;
   if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto const budget{ Local(frame, REPAIR_BUDGET) };
-  SetWord(ds, budget, static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
+  auto budget{ static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
   bool repaired{ false };
   for (auto element{ Record<Unit>(data, unit).first }; element; element = Record<Element>(data, element).next)
     if (opeu_arms_repair(ds, budget, Near(data, Record<Element>(data, element).type))) repaired = true;

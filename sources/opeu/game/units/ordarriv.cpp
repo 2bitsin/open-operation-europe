@@ -21,12 +21,12 @@ namespace {
 constexpr std::uint16_t RESUME_DRAW{ 15 };
 } // namespace
 
-// The move order: at the destination, the regiment reports its arrival and its saved order resumes. sp is the entry
-// stack pointer; x and y lie at sp-4 and sp-6.
-uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const x{ static_cast<std::uint16_t>(sp - 4) };
-  auto const y{ static_cast<std::uint16_t>(sp - 6) };
+// The move order: at the destination, the regiment reports its arrival and its saved order resumes.
+uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        x{ destination.XAt() };
+  auto const        y{ destination.YAt() };
   Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
   if (!StandsOn(ds, x, y)) return 0;
   Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.arrived_text));
@@ -34,11 +34,11 @@ uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   return 1;
 }
 
-// The pursue order: finished beside a valid target regiment; a lost target restores the saved order. x and y lie at
-// sp-6 and sp-8.
-uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto const x{ static_cast<std::uint16_t>(sp - 6) };
-  auto const y{ static_cast<std::uint16_t>(sp - 8) };
+// The pursue order: finished beside a valid target regiment; a lost target restores the saved order.
+uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceCell const destination;
+  auto const        x{ destination.XAt() };
+  auto const        y{ destination.YAt() };
   if (Serve(ds, event, OrderService::MOVE_UNIT_TARGET, x, y)) return Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x), Byte(ds, y)) ? 1 : 0;
   Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, Data(ds).current_unit_ptr);
   return 1;
@@ -52,11 +52,12 @@ uint8_t opeu_order_hold_delay(uint8_t ds[65536], HostEvent event) {
 }
 
 // The rest order: hold at the destination. Once the hold runs out and an order is saved, the first element whose
-// experience is below a draw of 0..14 resumes that order. x and y lie at sp-6 and sp-8.
-uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const x{ static_cast<std::uint16_t>(sp - 6) };
-  auto const y{ static_cast<std::uint16_t>(sp - 8) };
+// experience is below a draw of 0..14 resumes that order.
+uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        x{ destination.XAt() };
+  auto const        y{ destination.YAt() };
   Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
   if (!StandsOn(ds, x, y)) return 0;
   // The delay is taken before the current regiment is read again.

@@ -9,7 +9,6 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
-#include "core/memory.hpp"
 #include "core/numeric.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
@@ -49,9 +48,8 @@ enum class Outcome : std::uint8_t {
 
 constexpr std::uint8_t  KILLED_FLAG{ 0x80 }; // Person::flags: the general is dead
 constexpr std::uint8_t  IN_BATTLE{ 0x04 };   // Person::assignment: the general is fighting
-constexpr std::uint16_t PERSON_SIZE{ sizeof(Person) };
-constexpr std::uint16_t DEATH_SHOW{ 300 }; // the daily show that announces a death
-constexpr std::uint16_t HUMAN{ 1 };        // side_status / side_control of a player side
+constexpr std::uint16_t DEATH_SHOW{ 300 };   // the daily show that announces a death
+constexpr std::uint16_t HUMAN{ 1 };          // side_status / side_control of a player side
 // The far address by which the dialogs service finds the presenter opeu_blast_pause.
 constexpr std::uint16_t BLAST_PAUSE_OFFSET{ 0x0866 };
 constexpr std::uint16_t BLAST_PAUSE_SEGMENT{ 0x17c4 };
@@ -60,19 +58,18 @@ constexpr std::uint16_t WOUNDED_TEXT{ offsetof(DataSegment, general_wounded) };
 constexpr std::uint16_t KILLED_TEXT{ offsetof(DataSegment, general_killed) };
 constexpr std::uint16_t CASUALTY_FORMAT{ offsetof(DataSegment, general_casualty_format) };
 
-// Frame locals whose addresses go to services: the copy of the record and the message buffer.
-constexpr std::uint16_t SAVED_RECORD{ 0x20 };
-constexpr std::uint16_t MESSAGE_BUFFER{ 0x88 };
+// The message buffer the services format and show.
+constexpr std::uint16_t MESSAGE_BYTES{ 0x88 };
 } // namespace
 
-void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_t person) {
-  auto&      data{ Data(ds) };
-  auto&      general{ Record<Person>(data, person) };
-  auto const saved{ Local(bp, SAVED_RECORD) };
-  auto const buffer{ Local(bp, MESSAGE_BUFFER) };
-  auto const wounded{ [&] { return (general.flags & Bits(PersonRole::POOR_HEALTH)) != 0; } };
-  auto const posting{ [&] { return general.flags & Bits(PersonRole::ROLE_MASK); } };
-  auto const wound{ [&] {
+void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t person) {
+  auto&               data{ Data(ds) };
+  auto&               general{ Record<Person>(data, person) };
+  ServiceLocals const message{ MESSAGE_BYTES };
+  auto const          buffer{ message.At(0) };
+  auto const          wounded{ [&] { return (general.flags & Bits(PersonRole::POOR_HEALTH)) != 0; } };
+  auto const          posting{ [&] { return general.flags & Bits(PersonRole::ROLE_MASK); } };
+  auto const          wound{ [&] {
     opeu_sub_byte(RandomBelow(ds, 20) + 10, &general.health);
     general.flags |= Bits(PersonRole::POOR_HEALTH);
   } };
@@ -104,12 +101,12 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t bp, uint
   }
   if (outcome == Outcome::WOUNDED) {
     if (data.side_status[side] == HUMAN) {
-      opeu_copy_bytes(ds, person, saved, PERSON_SIZE);
+      auto const saved{ general };
       Call(ds, event, REQUEST_FORMAT, buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT);
       Call(ds, event, INITIALIZE_DEPUTY, person);
       Call(ds, event, CONTROL_MESSAGE, buffer, person);
       Call(ds, event, WAIT_CONFIRM, 1);
-      opeu_copy_bytes(ds, saved, person, PERSON_SIZE);
+      general = saved;
     }
     wound();
   } else if (outcome == Outcome::KILLED) {

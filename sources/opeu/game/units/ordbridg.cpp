@@ -15,9 +15,6 @@
 using namespace opeu::game;
 
 namespace {
-// The frame locals the destination is written to, as offsets below the frame pointer.
-constexpr std::uint16_t DESTINATION_X{ 2 };
-constexpr std::uint16_t DESTINATION_Y{ 4 };
 // The day's picture of a blown bridge and the link-table address of the routine that ends its show.
 constexpr std::uint16_t BRIDGE_DESTROYED_PICTURE{ 0x5b };
 constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
@@ -38,10 +35,11 @@ void opeu_order_destroy_present(uint8_t ds[65536], HostEvent event) {
   Serve(ds, event, OrderService::PENDING_FINISH, SHOW_DONE);
 }
 
-uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ Local(frame, DESTINATION_X) };
-  auto const at_y{ Local(frame, DESTINATION_Y) };
+uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+  auto&             data{ Data(ds) };
+  ServiceCell const destination;
+  auto const        at_x{ destination.XAt() };
+  auto const        at_y{ destination.YAt() };
   Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   if (static_cast<Terrain>(static_cast<std::uint8_t>(Serve(ds, event, OrderService::MAP_CODE, Byte(ds, at_x), Byte(ds, at_y)))) != Terrain::BRIDGE || StandsOn(ds, at_x, at_y)) {
     Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
