@@ -291,6 +291,22 @@ struct CacheNode {
   std::uint8_t key;
 };
 
+// The messages of an order dialog (the Orders command and the map cursor's unit action keep one copy each).
+struct OrderPrompts {
+  std::array<char, 18> your_orders;      // "Your orders, sir?"
+  std::array<char, 31> no_repair_unit;   // "Repair unit does not exist."
+  std::array<char, 43> select_target;    // "Please select the target coordinates, sir."
+  std::array<char, 22> not_enemy_city;   // "Not an enemy city!"
+  std::array<char, 10> fix_which;        // "Fix which"
+  std::array<char, 13> supply_which;     // "Supply which"
+  std::array<char, 35> cannot_bridge;    // "We cannot build a bridge there."
+  std::array<char, 29> no_bridge;        // "There is no bridge there."
+  std::array<char, 19> no_enemy;         // "No enemy there."
+  std::array<char, 37> nothing_to_chase; // "No regiment to pursue there, sir."
+  std::array<char, 24> cannot_order;     // "You cannot %s there."
+  std::array<char, 31> understood;       // "Understood. I'll have them %s."
+};
+
 // A point on the screen in text columns and pixels.
 struct ScreenPoint {
   std::uint16_t x;
@@ -1369,9 +1385,8 @@ struct DataSegment {
       std::array<char, 42>         tbl_unit_row;       // DS:5796
       std::array<char, 45>         tbl_unit_hidden;    // DS:57c0
       std::uint8_t                 unknown_57ed;       // DS:57ed
-      std::array<std::uint8_t, 11> order_target_list;  // DS:57ee
-      FarPointer                   far_code_57f9;      // DS:57f9
-      std::array<std::uint8_t, 12> bytes_57fd;         // DS:57fd
+      ListWindow                   order_target_list;  // DS:57ee: the list of a division's objective tasks
+      std::array<std::uint8_t, 8>  bytes_5801;         // DS:5801
       std::array<char, 51>         tbl_order_header;   // DS:5809
       std::array<char, 11>         tbl_order_label;    // DS:583c
       std::uint8_t                 unknown_5847;       // DS:5847
@@ -2057,7 +2072,7 @@ struct DataSegment {
       std::array<char, 7>          text_8532;               // DS:8532
       std::array<char, 17>         text_8539;               // DS:8539
       std::array<char, 31>         text_854a;               // DS:854a
-      std::array<char, 15>         text_8569;               // DS:8569
+      std::array<char, 15>         cancel_orders_prompt;    // DS:8569: "Cancel orders?"
       std::array<char, 8>          text_8578;               // DS:8578
       std::array<char, 8>          text_8580;               // DS:8580
       std::array<char, 8>          text_8588;               // DS:8588
@@ -2086,93 +2101,21 @@ struct DataSegment {
       std::array<char, 9>          text_8641;               // DS:8641
       std::array<char, 13>         text_864a;               // DS:864a
       std::array<char, 13>         text_8657;               // DS:8657
-      std::array<char, 2>          text_8664;               // DS:8664
-      std::array<std::uint8_t, 6>  bytes_8666;              // DS:8666
-      std::uint16_t                near_866c;               // DS:866c
-      std::array<std::uint8_t, 10> bytes_866e;              // DS:866e
-      std::uint16_t                near_8678;               // DS:8678
-      std::array<std::uint8_t, 10> bytes_867a;              // DS:867a
-      std::uint16_t                near_8684;               // DS:8684
-      std::array<std::uint8_t, 10> bytes_8686;              // DS:8686
-      std::uint16_t                near_8690;               // DS:8690
-      std::array<std::uint8_t, 10> bytes_8692;              // DS:8692
-      std::uint16_t                near_869c;               // DS:869c
-      std::array<std::uint8_t, 10> bytes_869e;              // DS:869e
-      std::uint16_t                near_86a8;               // DS:86a8
-      std::array<std::uint8_t, 10> bytes_86aa;              // DS:86aa
-      std::uint16_t                near_86b4;               // DS:86b4
-      std::array<std::uint8_t, 10> bytes_86b6;              // DS:86b6
-      std::uint16_t                near_86c0;               // DS:86c0
-      std::array<std::uint8_t, 22> bytes_86c2;              // DS:86c2
-      std::uint16_t                near_86d8;               // DS:86d8
-      std::array<std::uint8_t, 10> bytes_86da;              // DS:86da
-      std::uint16_t                near_86e4;               // DS:86e4
-      std::array<std::uint8_t, 10> bytes_86e6;              // DS:86e6
-      std::uint16_t                near_86f0;               // DS:86f0
-      std::array<std::uint8_t, 10> bytes_86f2;              // DS:86f2
-      std::uint16_t                near_86fc;               // DS:86fc
-      std::array<std::uint8_t, 10> bytes_86fe;              // DS:86fe
-      std::uint16_t                near_8708;               // DS:8708
-      std::array<std::uint8_t, 10> bytes_870a;              // DS:870a
-      std::uint16_t                near_8714;               // DS:8714
-      std::array<std::uint8_t, 10> bytes_8716;              // DS:8716
-      std::uint16_t                near_8720;               // DS:8720
-      std::array<std::uint8_t, 34> bytes_8722;              // DS:8722
-      std::uint16_t                near_8744;               // DS:8744
-      std::array<std::uint8_t, 10> bytes_8746;              // DS:8746
-      std::uint16_t                near_8750;               // DS:8750
-      std::array<std::uint8_t, 10> bytes_8752;              // DS:8752
-      std::uint16_t                near_875c;               // DS:875c
-      std::array<std::uint8_t, 10> bytes_875e;              // DS:875e
-      std::uint16_t                near_8768;               // DS:8768
-      std::array<std::uint8_t, 10> bytes_876a;              // DS:876a
-      std::uint16_t                near_8774;               // DS:8774
-      std::array<std::uint8_t, 58> bytes_8776;              // DS:8776
-      std::uint16_t                near_87b0;               // DS:87b0
-      std::array<std::uint8_t, 10> bytes_87b2;              // DS:87b2
-      std::uint16_t                near_87bc;               // DS:87bc
-      std::array<std::uint8_t, 10> bytes_87be;              // DS:87be
-      std::uint16_t                near_87c8;               // DS:87c8
-      std::array<std::uint8_t, 10> bytes_87ca;              // DS:87ca
-      std::uint16_t                near_87d4;               // DS:87d4
-      std::array<std::uint8_t, 70> bytes_87d6;              // DS:87d6
-      std::uint16_t                near_881c;               // DS:881c
-      std::array<std::uint8_t, 10> bytes_881e;              // DS:881e
-      std::uint16_t                near_8828;               // DS:8828
-      std::array<std::uint8_t, 22> bytes_882a;              // DS:882a
-      std::uint16_t                near_8840;               // DS:8840
-      std::array<std::uint8_t, 10> bytes_8842;              // DS:8842
-      std::uint16_t                near_884c;               // DS:884c
-      std::array<std::uint8_t, 54> bytes_884e;              // DS:884e
-      std::array<char, 18>         text_8884;               // DS:8884
-      std::array<char, 31>         text_8896;               // DS:8896
-      std::array<char, 43>         text_88b5;               // DS:88b5
-      std::array<char, 22>         text_88e0;               // DS:88e0
-      std::array<char, 10>         text_88f6;               // DS:88f6
-      std::array<char, 13>         text_8900;               // DS:8900
-      std::array<char, 35>         text_890d;               // DS:890d
-      std::array<char, 29>         text_8930;               // DS:8930
-      std::array<char, 19>         text_894d;               // DS:894d
-      std::array<char, 37>         text_8960;               // DS:8960
-      std::array<char, 24>         text_8985;               // DS:8985
-      std::array<char, 31>         text_899d;               // DS:899d
-      std::array<std::uint8_t, 59> unknown_89bc;            // DS:89bc
-      std::array<char, 18>         text_89f7;               // DS:89f7
-      std::array<char, 31>         text_8a09;               // DS:8a09
-      std::array<char, 43>         text_8a28;               // DS:8a28
-      std::array<char, 22>         text_8a53;               // DS:8a53
-      std::array<char, 10>         text_8a69;               // DS:8a69
-      std::array<char, 13>         text_8a73;               // DS:8a73
-      std::array<char, 35>         text_8a80;               // DS:8a80
-      std::array<char, 29>         text_8aa3;               // DS:8aa3
-      std::array<char, 19>         text_8ac0;               // DS:8ac0
-      std::array<char, 37>         text_8ad3;               // DS:8ad3
-      std::array<char, 24>         text_8af8;               // DS:8af8
-      std::array<char, 31>         text_8b10;               // DS:8b10
-      std::array<std::uint8_t, 49> unknown_8b2f;            // DS:8b2f
-      std::array<char, 21>         text_8b60;               // DS:8b60
-      std::array<char, 43>         text_8b75;               // DS:8b75
-      std::array<char, 24>         text_8ba0;               // DS:8ba0
+      std::array<std::array<MenuItem, 9>, 4> order_menus; // DS:8664: the Orders command's menus, eight orders each
+      std::array<MenuItem, 3>      supply_choices; // DS:8814: supply a city or a regiment
+      std::array<MenuItem, 3>      repair_choices; // DS:8838: repair a city or a regiment
+      std::array<ScreenPoint, 8>   order_spots;    // DS:885c: where the eight orders of a menu go
+      std::array<ScreenPoint, 2>   choice_spots;   // DS:887c: where the two choices go
+      OrderPrompts                 issue_prompts; // DS:8884: the Orders command's messages
+      std::array<std::array<std::uint8_t, 8>, 4> issue_order_codes; // DS:89bc: the orders of each menu, 0xff-padded
+      std::array<char, 27>         awaiting_orders; // DS:89dc: "Awaiting your orders, sir."
+      OrderPrompts                 action_prompts;  // DS:89f7: the map cursor's unit action messages
+      std::uint8_t                 unknown_8b2f;
+      std::array<std::array<std::uint8_t, 8>, 3> action_order_codes; // DS:8b30: as issue_order_codes
+      std::array<char, 24>         select_division; // DS:8b48
+      std::array<char, 21>         select_order;            // DS:8b60
+      std::array<char, 43>         order_whole_division;    // DS:8b75
+      std::array<char, 24>         select_regiment;         // DS:8ba0
       std::array<char, 39>         stock_header;              // DS:8bb8
       std::array<char, 31>         stock_fuel_line;               // DS:8bdf
       std::array<char, 31>         stock_ammo_line;               // DS:8bfe
@@ -4231,8 +4174,7 @@ static_assert(offsetof(DataSegment, tbl_unit_row) == 0x5796);
 static_assert(offsetof(DataSegment, tbl_unit_hidden) == 0x57c0);
 static_assert(offsetof(DataSegment, unknown_57ed) == 0x57ed);
 static_assert(offsetof(DataSegment, order_target_list) == 0x57ee);
-static_assert(offsetof(DataSegment, far_code_57f9) == 0x57f9);
-static_assert(offsetof(DataSegment, bytes_57fd) == 0x57fd);
+static_assert(offsetof(DataSegment, bytes_5801) == 0x5801);
 static_assert(offsetof(DataSegment, tbl_order_header) == 0x5809);
 static_assert(offsetof(DataSegment, tbl_order_label) == 0x583c);
 static_assert(offsetof(DataSegment, unknown_5847) == 0x5847);
@@ -4896,7 +4838,7 @@ static_assert(offsetof(DataSegment, text_852b) == 0x852b);
 static_assert(offsetof(DataSegment, text_8532) == 0x8532);
 static_assert(offsetof(DataSegment, text_8539) == 0x8539);
 static_assert(offsetof(DataSegment, text_854a) == 0x854a);
-static_assert(offsetof(DataSegment, text_8569) == 0x8569);
+static_assert(offsetof(DataSegment, cancel_orders_prompt) == 0x8569);
 static_assert(offsetof(DataSegment, text_8578) == 0x8578);
 static_assert(offsetof(DataSegment, text_8580) == 0x8580);
 static_assert(offsetof(DataSegment, text_8588) == 0x8588);
@@ -4925,93 +4867,21 @@ static_assert(offsetof(DataSegment, text_8638) == 0x8638);
 static_assert(offsetof(DataSegment, text_8641) == 0x8641);
 static_assert(offsetof(DataSegment, text_864a) == 0x864a);
 static_assert(offsetof(DataSegment, text_8657) == 0x8657);
-static_assert(offsetof(DataSegment, text_8664) == 0x8664);
-static_assert(offsetof(DataSegment, bytes_8666) == 0x8666);
-static_assert(offsetof(DataSegment, near_866c) == 0x866c);
-static_assert(offsetof(DataSegment, bytes_866e) == 0x866e);
-static_assert(offsetof(DataSegment, near_8678) == 0x8678);
-static_assert(offsetof(DataSegment, bytes_867a) == 0x867a);
-static_assert(offsetof(DataSegment, near_8684) == 0x8684);
-static_assert(offsetof(DataSegment, bytes_8686) == 0x8686);
-static_assert(offsetof(DataSegment, near_8690) == 0x8690);
-static_assert(offsetof(DataSegment, bytes_8692) == 0x8692);
-static_assert(offsetof(DataSegment, near_869c) == 0x869c);
-static_assert(offsetof(DataSegment, bytes_869e) == 0x869e);
-static_assert(offsetof(DataSegment, near_86a8) == 0x86a8);
-static_assert(offsetof(DataSegment, bytes_86aa) == 0x86aa);
-static_assert(offsetof(DataSegment, near_86b4) == 0x86b4);
-static_assert(offsetof(DataSegment, bytes_86b6) == 0x86b6);
-static_assert(offsetof(DataSegment, near_86c0) == 0x86c0);
-static_assert(offsetof(DataSegment, bytes_86c2) == 0x86c2);
-static_assert(offsetof(DataSegment, near_86d8) == 0x86d8);
-static_assert(offsetof(DataSegment, bytes_86da) == 0x86da);
-static_assert(offsetof(DataSegment, near_86e4) == 0x86e4);
-static_assert(offsetof(DataSegment, bytes_86e6) == 0x86e6);
-static_assert(offsetof(DataSegment, near_86f0) == 0x86f0);
-static_assert(offsetof(DataSegment, bytes_86f2) == 0x86f2);
-static_assert(offsetof(DataSegment, near_86fc) == 0x86fc);
-static_assert(offsetof(DataSegment, bytes_86fe) == 0x86fe);
-static_assert(offsetof(DataSegment, near_8708) == 0x8708);
-static_assert(offsetof(DataSegment, bytes_870a) == 0x870a);
-static_assert(offsetof(DataSegment, near_8714) == 0x8714);
-static_assert(offsetof(DataSegment, bytes_8716) == 0x8716);
-static_assert(offsetof(DataSegment, near_8720) == 0x8720);
-static_assert(offsetof(DataSegment, bytes_8722) == 0x8722);
-static_assert(offsetof(DataSegment, near_8744) == 0x8744);
-static_assert(offsetof(DataSegment, bytes_8746) == 0x8746);
-static_assert(offsetof(DataSegment, near_8750) == 0x8750);
-static_assert(offsetof(DataSegment, bytes_8752) == 0x8752);
-static_assert(offsetof(DataSegment, near_875c) == 0x875c);
-static_assert(offsetof(DataSegment, bytes_875e) == 0x875e);
-static_assert(offsetof(DataSegment, near_8768) == 0x8768);
-static_assert(offsetof(DataSegment, bytes_876a) == 0x876a);
-static_assert(offsetof(DataSegment, near_8774) == 0x8774);
-static_assert(offsetof(DataSegment, bytes_8776) == 0x8776);
-static_assert(offsetof(DataSegment, near_87b0) == 0x87b0);
-static_assert(offsetof(DataSegment, bytes_87b2) == 0x87b2);
-static_assert(offsetof(DataSegment, near_87bc) == 0x87bc);
-static_assert(offsetof(DataSegment, bytes_87be) == 0x87be);
-static_assert(offsetof(DataSegment, near_87c8) == 0x87c8);
-static_assert(offsetof(DataSegment, bytes_87ca) == 0x87ca);
-static_assert(offsetof(DataSegment, near_87d4) == 0x87d4);
-static_assert(offsetof(DataSegment, bytes_87d6) == 0x87d6);
-static_assert(offsetof(DataSegment, near_881c) == 0x881c);
-static_assert(offsetof(DataSegment, bytes_881e) == 0x881e);
-static_assert(offsetof(DataSegment, near_8828) == 0x8828);
-static_assert(offsetof(DataSegment, bytes_882a) == 0x882a);
-static_assert(offsetof(DataSegment, near_8840) == 0x8840);
-static_assert(offsetof(DataSegment, bytes_8842) == 0x8842);
-static_assert(offsetof(DataSegment, near_884c) == 0x884c);
-static_assert(offsetof(DataSegment, bytes_884e) == 0x884e);
-static_assert(offsetof(DataSegment, text_8884) == 0x8884);
-static_assert(offsetof(DataSegment, text_8896) == 0x8896);
-static_assert(offsetof(DataSegment, text_88b5) == 0x88b5);
-static_assert(offsetof(DataSegment, text_88e0) == 0x88e0);
-static_assert(offsetof(DataSegment, text_88f6) == 0x88f6);
-static_assert(offsetof(DataSegment, text_8900) == 0x8900);
-static_assert(offsetof(DataSegment, text_890d) == 0x890d);
-static_assert(offsetof(DataSegment, text_8930) == 0x8930);
-static_assert(offsetof(DataSegment, text_894d) == 0x894d);
-static_assert(offsetof(DataSegment, text_8960) == 0x8960);
-static_assert(offsetof(DataSegment, text_8985) == 0x8985);
-static_assert(offsetof(DataSegment, text_899d) == 0x899d);
-static_assert(offsetof(DataSegment, unknown_89bc) == 0x89bc);
-static_assert(offsetof(DataSegment, text_89f7) == 0x89f7);
-static_assert(offsetof(DataSegment, text_8a09) == 0x8a09);
-static_assert(offsetof(DataSegment, text_8a28) == 0x8a28);
-static_assert(offsetof(DataSegment, text_8a53) == 0x8a53);
-static_assert(offsetof(DataSegment, text_8a69) == 0x8a69);
-static_assert(offsetof(DataSegment, text_8a73) == 0x8a73);
-static_assert(offsetof(DataSegment, text_8a80) == 0x8a80);
-static_assert(offsetof(DataSegment, text_8aa3) == 0x8aa3);
-static_assert(offsetof(DataSegment, text_8ac0) == 0x8ac0);
-static_assert(offsetof(DataSegment, text_8ad3) == 0x8ad3);
-static_assert(offsetof(DataSegment, text_8af8) == 0x8af8);
-static_assert(offsetof(DataSegment, text_8b10) == 0x8b10);
+static_assert(offsetof(DataSegment, order_menus) == 0x8664);
+static_assert(offsetof(DataSegment, supply_choices) == 0x8814);
+static_assert(offsetof(DataSegment, repair_choices) == 0x8838);
+static_assert(offsetof(DataSegment, order_spots) == 0x885c);
+static_assert(offsetof(DataSegment, choice_spots) == 0x887c);
+static_assert(offsetof(DataSegment, issue_prompts) == 0x8884);
+static_assert(offsetof(DataSegment, issue_order_codes) == 0x89bc);
+static_assert(offsetof(DataSegment, awaiting_orders) == 0x89dc);
+static_assert(offsetof(DataSegment, action_prompts) == 0x89f7);
 static_assert(offsetof(DataSegment, unknown_8b2f) == 0x8b2f);
-static_assert(offsetof(DataSegment, text_8b60) == 0x8b60);
-static_assert(offsetof(DataSegment, text_8b75) == 0x8b75);
-static_assert(offsetof(DataSegment, text_8ba0) == 0x8ba0);
+static_assert(offsetof(DataSegment, action_order_codes) == 0x8b30);
+static_assert(offsetof(DataSegment, select_division) == 0x8b48);
+static_assert(offsetof(DataSegment, select_order) == 0x8b60);
+static_assert(offsetof(DataSegment, order_whole_division) == 0x8b75);
+static_assert(offsetof(DataSegment, select_regiment) == 0x8ba0);
 static_assert(offsetof(DataSegment, stock_header) == 0x8bb8);
 static_assert(offsetof(DataSegment, stock_fuel_line) == 0x8bdf);
 static_assert(offsetof(DataSegment, stock_ammo_line) == 0x8bfe);
@@ -6151,6 +6021,7 @@ using detail::data_segment::SAVE_SLOTS_AT;
 using detail::data_segment::GARRISON_AT;
 using detail::data_segment::BattleLoss;
 using detail::data_segment::SaveSlot;
+using detail::data_segment::OrderPrompts;
 using detail::data_segment::ScreenPoint;
 using detail::data_segment::Side;
 using detail::data_segment::SideFlag;
