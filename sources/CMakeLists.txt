@@ -15,6 +15,9 @@ Require(SDL3 VERSION ">=3.4" SYSTEM PLATFORM Emscripten)
 # stb_image_write: the headless --png frame writer (one header, one call).
 Require(stb VERSION "cci.20240531" CONAN stb)
 
+# The asset pack's manifest and archive directory (sources/opeu/assets/manifest.cpp): JSON, header-only.
+Require(nlohmann_json VERSION "3.12.0" CONAN nlohmann_json)
+
 # Every subdirectory holding a CMakeLists.txt becomes a module; a
 # directory without one is a group and is scanned recursively.
 Scan_subdirectories()

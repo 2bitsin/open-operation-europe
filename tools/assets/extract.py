@@ -23,39 +23,15 @@ docs/asset-formats.md describes the formats and the manifest.
 """
 import argparse
 import hashlib
-import json
 import shutil
-import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from extraction import ROOT, SHIPPED, find_probe, run_probe, write_json  # noqa: E402
+
 FORMAT = 'opeu-assets/1'
-
-
-def find_probe(given):
-    if given:
-        return Path(given)
-    found = shutil.which('extract-assets')
-    if found:
-        return Path(found)
-    built = sorted(ROOT.glob('_build/*/bin/extract-assets'), key=lambda p: p.stat().st_mtime)
-    if not built:
-        sys.exit('extract.py: no extract-assets binary; build with ./buildutil build or pass --probe')
-    return built[-1]
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
-
-
-def run_probe(probe, assets, out):
-    result = subprocess.run([str(probe), str(assets), str(out)], capture_output=True, text=True, check=False)
-    if result.returncode != 0:
-        sys.exit(f'extract.py: {probe} failed: {result.stderr.strip()}')
-    return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
 
 
 def group_assets(records):
@@ -121,7 +97,7 @@ def extract(out, assets, probe):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--out', default=ROOT / '_local' / 'assets-extracted')
-    parser.add_argument('--assets', default=ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed')
+    parser.add_argument('--assets', default=SHIPPED)
     parser.add_argument('--probe')
     args = parser.parse_args()
     counts = extract(args.out, args.assets, find_probe(args.probe))

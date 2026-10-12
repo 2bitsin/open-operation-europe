@@ -7,6 +7,7 @@
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string>
 
 namespace opeu::assets::detail::bytes {
 
@@ -46,6 +47,11 @@ using Bytes = std::span<std::byte const>;
   return bytes.subspan(at, count);
 }
 
+// The bytes as text (a JSON document, say), one char per byte.
+[[nodiscard]] inline auto AsText(Bytes const bytes) -> std::string {
+  return bytes | std::views::transform([](std::byte const b) { return std::to_integer<char>(b); }) | std::ranges::to<std::string>();
+}
+
 // The bytes of a coded record read front to back; reading past the end yields zeros and marks it overrun.
 class ByteReader {
 public:
@@ -78,6 +84,7 @@ private:
 }
 
 namespace opeu::assets {
+using detail::bytes::AsText;
 using detail::bytes::Byte;
 using detail::bytes::ByteReader;
 using detail::bytes::Bytes;

@@ -136,7 +136,7 @@ same line feeds `find_package` and the conan graph:
 | Package | Used for |
 |---|---|
 | SDL3 (3.4 series) | window, input, timer and audio (`sources/opeu/platform/`); conan's `sdl` natively, the Emscripten SDK's own port in the browser |
-| stb | `stb_image_write`, the headless `--png` and `--shots` output (one header and one call; libpng would add zlib, setjmp error handling and a write-struct lifecycle). Rows are written with filter type 0, as the port's own writer did, so the pixels are the same as v1.0's and the PNG readers need no unfiltering |
+| stb | `stb_image`, the asset pack's PNG reader; `stb_image_write`, the headless `--png` and `--shots` output (one header and one call; libpng would add zlib, setjmp error handling and a write-struct lifecycle). Rows are written with filter type 0, as the port's own writer did, so the pixels are the same as v1.0's and the PNG readers need no unfiltering |
 | GTest | the C++ test suites |
 | benchmark | benchmarks (built only when benchmarks are) |
 
