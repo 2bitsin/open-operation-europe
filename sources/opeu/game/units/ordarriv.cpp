@@ -44,7 +44,10 @@ uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event,
   auto const x{ static_cast<std::uint16_t>(sp - 6) };
   auto const y{ static_cast<std::uint16_t>(sp - 8) };
   if (Serve(ds, event, OrderService::MOVE_UNIT_TARGET, x, y))
-    return Serve(ds, event, OrderService::MOVE_ADJACENT, ds[x], ds[y]) ? 1 : 0;
+    return Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x),
+                 Byte(ds, y))
+               ? 1
+               : 0;
   Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, Data(ds).current_unit_ptr);
   return 1;
 }

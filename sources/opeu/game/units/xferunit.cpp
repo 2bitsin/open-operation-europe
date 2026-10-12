@@ -77,7 +77,7 @@ auto SupplyOrder(std::uint8_t* ds, HostWordsEvent event, bool objective)
                                 CELL_AT + 1, data.current_side)
                          : Call(ds, event, UNIT_TARGET, CELL_AT, CELL_AT + 1) };
   if (target) {
-    if (!Call(ds, event, ADJACENT, ds[CELL_AT], ds[CELL_AT + 1]))
+    if (!Call(ds, event, ADJACENT, Byte(ds, CELL_AT), Byte(ds, CELL_AT + 1)))
       return 0;
     auto const hours{ opeu_transfer_level(ds, event) };
     // The order takes its hours before the supplies move.

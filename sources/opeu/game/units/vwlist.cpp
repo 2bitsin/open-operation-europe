@@ -74,12 +74,12 @@ uint16_t opeu_element_kind_total(uint8_t ds[65536], HostEvent event,
   (void)sp;
   auto&         data{ Data(ds) };
   std::uint16_t total{ 0 };
-  ds[count] = 0;
+  Byte(ds, count) = 0;
   for (auto const& element : Elements(data, Record<Unit>(data, unit)))
     if (data.element_types[element.type].category == category &&
         (element.flags & Bits(ElementFlag::SPOTTED))) {
       total += element.quantity;
-      ++ds[count];
+      ++Byte(ds, count);
     }
   return total;
 }

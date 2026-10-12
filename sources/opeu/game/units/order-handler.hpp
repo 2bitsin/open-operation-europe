@@ -48,7 +48,8 @@ inline auto Serve(std::uint8_t* ds, HostEvent event, OrderService service,
 [[nodiscard]] inline auto StandsOn(std::uint8_t const* ds, std::uint16_t x,
                                    std::uint16_t y) noexcept -> bool {
   auto const& unit{ Record<Unit>(Data(ds), Data(ds).current_unit_ptr) };
-  return unit.x == ds[x] && unit.y == ds[y];
+  return unit.x == Record<std::uint8_t>(Data(ds), x) &&
+         unit.y == Record<std::uint8_t>(Data(ds), y);
 }
 } // namespace opeu::game::detail::order_handler
 
