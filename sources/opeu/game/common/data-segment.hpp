@@ -36,21 +36,18 @@ struct Order {
 
 // Order::kind of a unit's order; order_names[kind + 3] names it.
 enum class UnitOrder : std::uint8_t {
-  MOVE           = 0,    // move to the cell
-  OCCUPY         = 1,    // take the objective at the cell
-  ATTACK         = 2,    // attack the target unit
-  DEFEND         = 3,    // hold the objective at the cell
-  LAY_MINES      = 4,    // mine the cell
-  CLEAR_MINES    = 5,    // clear the mines on the cell
-  BUILD_BRIDGE   = 6,    // bridge the river cell
-  DESTROY_BRIDGE = 7,    // blow the bridge on the cell
-  RESUPPLY       = 8,    // load supplies at the objective at the cell
-  SUPPLY_UNIT    = 9,    // supply the target unit
-  REPAIR_CITY    = 10,   // repair the arms of the objective at the cell
-  REPAIR_UNIT    = 11,   // repair the arms of the target unit
-  PURSUE         = 12,   // follow the target unit
-  REST           = 13,   // fall back to the cell and rest
-  NONE           = 0xff, // no order
+  MOVE         = 0,    // move to the cell
+  OCCUPY       = 1,    // take the objective at the cell
+  ATTACK       = 2,    // attack the target unit
+  DEFEND       = 3,    // hold the objective at the cell
+  LAY_MINES    = 4,    // mine the cell
+  CLEAR_MINES  = 5,    // clear the mines on the cell
+  BUILD_BRIDGE = 6,    // bridge the river cell
+  RESUPPLY     = 8,    // load supplies at the objective at the cell
+  SUPPLY_UNIT  = 9,    // supply the target unit
+  PURSUE       = 12,   // follow the target unit
+  REST         = 13,   // fall back to the cell and rest
+  NONE         = 0xff, // no order
 };
 
 // A filed request (core/requests): the same four bytes a side keeps for its objectives.
@@ -491,9 +488,6 @@ enum class Category : std::uint8_t {
   INFANTRY_X5  = 2,
   TANKS        = 3,
   ARTILLERY    = 4,
-  ENGINEERS    = 5, // the engineer regiment's elements: they lay and clear mines and build and blow bridges
-  REPAIR       = 6, // the repair regiment's elements: they repair arms
-  SUPPLY       = 7, // the supply regiment's elements: they carry supplies
 };
 
 // The value of a flag or code as the byte the record stores.
@@ -922,7 +916,7 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 94> template_tables; // DS:32d4..3332
     struct {
-      std::array<std::uint8_t, 6>  bytes_32d4;    // DS:32d4
+      std::array<std::uint8_t, 6>  weather_obscurity; // DS:32d4: by weather, how much it hinders battle fire
       std::array<std::uint8_t, 24> air_cover;     // DS:32da
       std::array<std::uint8_t, 14> battle_levels; // DS:32f2
       std::array<char, 14>         text_3300;     // DS:3300
@@ -1701,7 +1695,7 @@ struct DataSegment {
   std::array<char, 39>          control_ready;             // DS:7f8c
   std::uint8_t                  control_text_padding;      // DS:7fb3
   std::array<FarPointer, 11>    control_actions;           // DS:7fb4: the routine of each command menu entry
-  std::array<MenuItem, 12>      control_menu;              // DS:7fe0: the command menu
+  std::array<std::uint8_t, 144> control_menu;              // DS:7fe0
   union {
     std::array<std::uint8_t, 798> turn_text; // DS:8070..838e
     struct {
@@ -2397,10 +2391,10 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 146> combat_text; // DS:b242..b2d4
     struct {
-      std::array<char, 13> text_b242; // DS:b242
-      std::array<char, 14> text_b24f; // DS:b24f
-      std::array<char, 10> text_b25d; // DS:b25d
-      std::array<char, 32> text_b267; // DS:b267
+      std::array<char, 13> text_cannot_move; // DS:b242
+      std::array<char, 14> text_cannot_fight; // DS:b24f
+      std::array<char, 10> text_defenders; // DS:b25d
+      std::array<char, 32> supply_notice_format; // DS:b267
       std::array<char, 25> battle_siege_stalemate_text; // DS:b287
       std::array<char, 27> battle_victory_format; // DS:b2a0
       std::array<char, 25> battle_stalemate_text; // DS:b2bb
@@ -2538,7 +2532,7 @@ struct DataSegment {
       std::array<char, 20>          battle_fmt_firing1;         // DS:ba74
       std::array<std::uint8_t, 8>   battle_skill_kinds;         // DS:ba88
       std::array<std::uint8_t, 18>  mine_text;                  // DS:ba90
-      std::array<char, 41>          text_baa2;                  // DS:baa2
+      std::array<char, 41>          retreat_mines_text;         // DS:baa2: the report of mines found in a retreat
       std::uint8_t                  unknown_bacb;               // DS:bacb
       std::uint8_t                  battle_cursor_x;            // DS:bacc
       std::uint8_t                  battle_cursor_y;            // DS:bacd
@@ -2557,18 +2551,8 @@ struct DataSegment {
       std::array<char, 7>           text_bb93;                  // DS:bb93
       std::array<char, 9>           text_bb9a;                  // DS:bb9a
       std::uint8_t                  unknown_bba3;               // DS:bba3
-      std::uint16_t                 battle_menu_items[4];       // DS:bba4
-      std::uint16_t                 near_bbac;                  // DS:bbac
-      std::array<std::uint8_t, 10>  bytes_bbae;                 // DS:bbae
-      std::uint16_t                 near_bbb8;                  // DS:bbb8
-      std::array<std::uint8_t, 10>  bytes_bbba;                 // DS:bbba
-      std::uint16_t                 near_bbc4;                  // DS:bbc4
-      std::array<std::uint8_t, 10>  bytes_bbc6;                 // DS:bbc6
-      std::uint16_t                 near_bbd0;                  // DS:bbd0
-      std::array<std::uint8_t, 10>  bytes_bbd2;                 // DS:bbd2
-      std::uint16_t                 near_bbdc;                  // DS:bbdc
-      std::array<std::uint8_t, 14>  bytes_bbde;                 // DS:bbde
-      std::array<std::uint8_t, 20>  battle_menu_places;         // DS:bbec
+      std::array<MenuItem, 6>       battle_menu_items;  // DS:bba4: the battle orders menu, ended by a 0 label
+      std::array<ScreenPoint, 5>    battle_menu_places; // DS:bbec: the keyboard menu's button places
       std::array<std::uint8_t, 21>  battle_msg_orders;          // DS:bc00
       std::array<char, 23>          battle_msg_cannot_withdraw; // DS:bc15
       std::array<char, 31>          battle_fmt_side_orders;     // DS:bc2c
@@ -3387,7 +3371,7 @@ static_assert(offsetof(DataSegment, capacity_a_weights) == 0x3140);
 static_assert(offsetof(DataSegment, capacity_c_weights) == 0x3150);
 static_assert(offsetof(DataSegment, person_templates) == 0x3160);
 static_assert(offsetof(DataSegment, template_tables) == 0x32d4);
-static_assert(offsetof(DataSegment, bytes_32d4) == 0x32d4);
+static_assert(offsetof(DataSegment, weather_obscurity) == 0x32d4);
 static_assert(offsetof(DataSegment, air_cover) == 0x32da);
 static_assert(offsetof(DataSegment, battle_levels) == 0x32f2);
 static_assert(offsetof(DataSegment, text_3300) == 0x3300);
@@ -4768,10 +4752,10 @@ static_assert(offsetof(DataSegment, settings_padding_b1d5) == 0xb1d5);
 static_assert(offsetof(DataSegment, settings_actions) == 0xb1d6);
 static_assert(offsetof(DataSegment, settings_menu) == 0xb1ee);
 static_assert(offsetof(DataSegment, combat_text) == 0xb242);
-static_assert(offsetof(DataSegment, text_b242) == 0xb242);
-static_assert(offsetof(DataSegment, text_b24f) == 0xb24f);
-static_assert(offsetof(DataSegment, text_b25d) == 0xb25d);
-static_assert(offsetof(DataSegment, text_b267) == 0xb267);
+static_assert(offsetof(DataSegment, text_cannot_move) == 0xb242);
+static_assert(offsetof(DataSegment, text_cannot_fight) == 0xb24f);
+static_assert(offsetof(DataSegment, text_defenders) == 0xb25d);
+static_assert(offsetof(DataSegment, supply_notice_format) == 0xb267);
 static_assert(offsetof(DataSegment, battle_siege_stalemate_text) == 0xb287);
 static_assert(offsetof(DataSegment, battle_victory_format) == 0xb2a0);
 static_assert(offsetof(DataSegment, battle_stalemate_text) == 0xb2bb);
@@ -4890,7 +4874,7 @@ static_assert(offsetof(DataSegment, battle_fmt_firing0) == 0xba60);
 static_assert(offsetof(DataSegment, battle_fmt_firing1) == 0xba74);
 static_assert(offsetof(DataSegment, battle_skill_kinds) == 0xba88);
 static_assert(offsetof(DataSegment, mine_text) == 0xba90);
-static_assert(offsetof(DataSegment, text_baa2) == 0xbaa2);
+static_assert(offsetof(DataSegment, retreat_mines_text) == 0xbaa2);
 static_assert(offsetof(DataSegment, unknown_bacb) == 0xbacb);
 static_assert(offsetof(DataSegment, battle_cursor_x) == 0xbacc);
 static_assert(offsetof(DataSegment, battle_cursor_y) == 0xbacd);
@@ -4910,16 +4894,6 @@ static_assert(offsetof(DataSegment, text_bb93) == 0xbb93);
 static_assert(offsetof(DataSegment, text_bb9a) == 0xbb9a);
 static_assert(offsetof(DataSegment, unknown_bba3) == 0xbba3);
 static_assert(offsetof(DataSegment, battle_menu_items) == 0xbba4);
-static_assert(offsetof(DataSegment, near_bbac) == 0xbbac);
-static_assert(offsetof(DataSegment, bytes_bbae) == 0xbbae);
-static_assert(offsetof(DataSegment, near_bbb8) == 0xbbb8);
-static_assert(offsetof(DataSegment, bytes_bbba) == 0xbbba);
-static_assert(offsetof(DataSegment, near_bbc4) == 0xbbc4);
-static_assert(offsetof(DataSegment, bytes_bbc6) == 0xbbc6);
-static_assert(offsetof(DataSegment, near_bbd0) == 0xbbd0);
-static_assert(offsetof(DataSegment, bytes_bbd2) == 0xbbd2);
-static_assert(offsetof(DataSegment, near_bbdc) == 0xbbdc);
-static_assert(offsetof(DataSegment, bytes_bbde) == 0xbbde);
 static_assert(offsetof(DataSegment, battle_menu_places) == 0xbbec);
 static_assert(offsetof(DataSegment, battle_msg_orders) == 0xbc00);
 static_assert(offsetof(DataSegment, battle_msg_cannot_withdraw) == 0xbc15);
