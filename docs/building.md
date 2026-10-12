@@ -62,8 +62,11 @@ and SYSLIB drawing checks and the file service (services), the embedded
 asset table (opeu), the fixtures (integration), and two pytest cases in
 integration: `open.test/` (the opening's skip, title key and plain runs)
 and `audio.test/` (the smoke script's music: song starts, key-ons, audible
-and unclipped WAV). Every test runs from a clean clone with only conan and
-the embedded assets.
+and unclipped WAV). After ctest, `./buildutil test` runs every
+`tools/*/pytest.ini` suite: `tools/census/` is the legacy census gate (no
+idiom count above `tools/census/baseline.json`, finished modules at zero;
+`python3 tools/census/census.py` prints the table, and
+a clean clone with only conan and the embedded assets.
 
 `buildutil.toml` sets the project name, `cxx_standard = 23`, the `contracts`
 option and `[run] default = "opeu"`. The `contracts` option is one of
