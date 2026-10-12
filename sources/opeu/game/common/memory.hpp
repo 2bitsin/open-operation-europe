@@ -1,7 +1,11 @@
 // Word access, frame locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
 #pragma once
 
+#include "port.hpp"
+
 #include <cstdint>
+#include <type_traits>
+#include <utility>
 
 namespace opeu::game::detail::memory {
 
@@ -39,13 +43,17 @@ inline constexpr std::uint16_t SPRITE_SEGMENT{
 inline constexpr std::uint16_t FRAME_SEGMENT{
   0x349b
 }; // map tiles, cell frames and dialog frames
+inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen backgrounds (plane sprites, the weather)
 
-// Calls a service with its argument words (a count of 0 passes no array). For services that write results back into
-// the argument array, build the array at the call site instead.
+// Calls a service with its argument words (a count of 0 passes no array); a service given as a scoped enum
+// (BattleRoutine, MapService) passes its value. For services that write results back into the argument array, build
+// the array at the call site instead.
 template <typename Event, typename Service, typename... Words>
 inline auto Call(std::uint8_t* ds, Event event, Service service,
                  Words... words) {
-  if constexpr (sizeof...(Words) == 0) {
+  if constexpr (std::is_enum_v<Service>) {
+    return Call(ds, event, std::to_underlying(service), words...);
+  } else if constexpr (sizeof...(Words) == 0) {
     return event(ds, service, nullptr, 0);
   } else {
     std::uint16_t args[]{ static_cast<std::uint16_t>(words)... };
@@ -53,14 +61,31 @@ inline auto Call(std::uint8_t* ds, Event event, Service service,
                  static_cast<std::uint16_t>(sizeof...(Words)));
   }
 }
+
+// The DS stack a service reserves for the routine it calls when it needs frame locals of its own.
+inline constexpr std::uint16_t SERVICE_STACK{ 0x200 };
+
+// Runs call(sp) with `bytes` reserved on the DS stack (sp is the entry SP) and returns what call returns.
+template <typename Body>
+inline auto WithStack(std::uint16_t bytes, Body&& call) -> decltype(call(std::uint16_t{})) {
+  struct Frame {
+    std::uint16_t bytes;
+    std::uint16_t sp;
+    ~Frame() { port_stack_leave(bytes); }
+  } const frame{ bytes, port_stack_enter(bytes) };
+  return call(frame.sp);
+}
 } // namespace opeu::game::detail::memory
 
 namespace opeu::game {
+using detail::memory::BACKGROUND_SEGMENT;
 using detail::memory::Call;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
 using detail::memory::Local;
+using detail::memory::SERVICE_STACK;
 using detail::memory::SetWord;
 using detail::memory::SPRITE_SEGMENT;
+using detail::memory::WithStack;
 using detail::memory::Word;
 } // namespace opeu::game
