@@ -4,3 +4,7 @@
 /analysis/** -whitespace
 /verification/** -whitespace
 /docs/** -whitespace
+# Asset packs: the archive and the assets module's sample pack are compared byte for byte.
+*.opeupack binary
+/sources/opeu/assets/assets.test/packs/**/*.png binary
+/sources/opeu/assets/assets.test/packs/**/pack.json -text eol=lf
