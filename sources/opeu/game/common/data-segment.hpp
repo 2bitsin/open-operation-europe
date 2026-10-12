@@ -486,7 +486,8 @@ template <typename E>
   return static_cast<std::uint8_t>(value);
 }
 
-// The whole segment, DS:0000..ffff. Gaps are unknown_XXXX; stack is the DS stack from DS:ebe0.
+// The whole segment, DS:0000..ffff. Padding bytes are unnamed; the few gaps nothing touches are unknown_XXXX with the
+// reason; stack is the DS stack from DS:ebe0.
 struct DataSegment {
   std::array<std::uint8_t, 66> null_area; // DS:0000: the C runtime's null-pointer area; a battalion delivery to an objective with no free item slot writes its Item here (core/reqequip)
   union {
