@@ -36,18 +36,21 @@ struct Order {
 
 // Order::kind of a unit's order; order_names[kind + 3] names it.
 enum class UnitOrder : std::uint8_t {
-  MOVE         = 0,    // move to the cell
-  OCCUPY       = 1,    // take the objective at the cell
-  ATTACK       = 2,    // attack the target unit
-  DEFEND       = 3,    // hold the objective at the cell
-  LAY_MINES    = 4,    // mine the cell
-  CLEAR_MINES  = 5,    // clear the mines on the cell
-  BUILD_BRIDGE = 6,    // bridge the river cell
-  RESUPPLY     = 8,    // load supplies at the objective at the cell
-  SUPPLY_UNIT  = 9,    // supply the target unit
-  PURSUE       = 12,   // follow the target unit
-  REST         = 13,   // fall back to the cell and rest
-  NONE         = 0xff, // no order
+  MOVE           = 0,    // move to the cell
+  OCCUPY         = 1,    // take the objective at the cell
+  ATTACK         = 2,    // attack the target unit
+  DEFEND         = 3,    // hold the objective at the cell
+  LAY_MINES      = 4,    // mine the cell
+  CLEAR_MINES    = 5,    // clear the mines on the cell
+  BUILD_BRIDGE   = 6,    // bridge the river cell
+  DESTROY_BRIDGE = 7,    // blow the bridge on the cell
+  RESUPPLY       = 8,    // load supplies at the objective at the cell
+  SUPPLY_UNIT    = 9,    // supply the target unit
+  REPAIR_CITY    = 10,   // repair the arms of the objective at the cell
+  REPAIR_UNIT    = 11,   // repair the arms of the target unit
+  PURSUE         = 12,   // follow the target unit
+  REST           = 13,   // fall back to the cell and rest
+  NONE           = 0xff, // no order
 };
 
 // A filed request (core/requests): the same four bytes a side keeps for its objectives.
