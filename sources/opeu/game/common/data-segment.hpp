@@ -108,6 +108,23 @@ struct AirDrop {
 };
 
 // One of the two sides (DS:021a, 2 x 65 bytes).
+// A side's supply airlift (core/aiops2, core/airlift): the cell supplied, the ammunition, fuel and food carried, the
+// transport planes that carry them (0: no airlift pending), the hours until they fly and the hours the order lasts.
+struct AirLift {
+  std::uint8_t  x;
+  std::uint8_t  y;
+  std::uint16_t supplies[3];
+  std::uint16_t planes;
+  std::uint8_t  hours;
+  std::uint8_t  turns;
+};
+
+// The planes a bombing mission type sends: base + a random number below range.
+struct BombingFlight {
+  std::uint8_t base;
+  std::uint8_t range;
+};
+
 struct Side {
   std::uint16_t stock
       [3]; // ammunition, fuel, food in the side's pool (SIDE_AMMO/FUEL/FOOD)
@@ -126,9 +143,7 @@ struct Side {
   };
   AirStrike strike; // AiSide plan; SIDE_W25 is strike.planes
   AirDrop   drop;   // the pending airborne drop
-  std::array<std::uint8_t, 8> unknown_31;
-  std::uint16_t               lift_planes; // SIDE_LIFT, SIDE_W39
-  std::array<std::uint8_t, 2> unknown_3b;
+  AirLift                     lift;   // the pending supply airlift
   Order                       order;
 };
 
@@ -2470,12 +2485,13 @@ struct DataSegment {
       std::uint16_t                near_a03e;               // DS:a03e
       std::array<std::uint8_t, 10> bytes_a040;              // DS:a040
       std::uint16_t                near_a04a;               // DS:a04a
-      std::array<std::uint8_t, 17> bytes_a04c;              // DS:a04c
-      std::array<char, 13>         text_a05d;               // DS:a05d
-      std::array<char, 4>          text_a06a;               // DS:a06a
-      std::array<char, 4>          text_a06e;               // DS:a06e
-      std::array<char, 13>         text_a072;               // DS:a072
-      std::array<char, 25>         text_a07f;               // DS:a07f
+      std::array<std::uint8_t, 14> bytes_a04c;              // DS:a04c
+      std::array<char, 3> air_question_mark; // DS:a05a: the number prompt's "? " in the mouse input mode
+      std::array<char, 13> air_range_format; // DS:a05d: "(%d-%d)? "
+      std::array<char, 4> air_input_begin; // DS:a06a
+      std::array<char, 4> air_input_end; // DS:a06e
+      std::array<char, 13> air_hostile_city; // DS:a072: "hostile city"
+      std::array<char, 25>         air_understood;               // DS:a07f
       std::array<char, 17>         text_a098;               // DS:a098
       std::array<char, 17>         text_a0a9;               // DS:a0a9
       std::array<char, 11>         text_a0ba;               // DS:a0ba
@@ -2515,36 +2531,34 @@ struct DataSegment {
       std::array<char, 13>         drop_paratroopers;               // DS:a355
       std::array<char, 33>         drop_hours_prompt;               // DS:a362
       std::array<char, 71>         drop_ask_hq;               // DS:a383
-      std::array<char, 44>         text_a3ca;               // DS:a3ca
-      std::array<char, 25>         text_a3f6;               // DS:a3f6
+      std::array<char, 44> lift_lead_format; // DS:a3ca: the officer needs at least %d hours
+      std::array<char, 25> lift_understood; // DS:a3f6
       std::array<char, 6>          air_lift_plane;          // DS:a40f
       std::array<char, 7>          air_lift_planes;         // DS:a415
       std::array<char, 5>          air_lift_hour;           // DS:a41c
       std::array<char, 6>          air_lift_hours;          // DS:a421
-      std::array<char, 47>         text_a427;               // DS:a427
-      std::array<char, 20>         text_a456;               // DS:a456
-      std::array<char, 47>         text_a46a;               // DS:a46a
-      std::array<char, 22>         text_a499;               // DS:a499
-      std::array<char, 22>         text_a4af;               // DS:a4af
-      std::array<char, 22>         text_a4c5;               // DS:a4c5
-      std::array<char, 25>         text_a4db;               // DS:a4db
-      std::array<char, 6>          text_a4f4;               // DS:a4f4
-      std::array<char, 23>         text_a4fa;               // DS:a4fa
-      std::array<char, 65>         text_a511;               // DS:a511
-      std::array<char, 29>         text_a552;               // DS:a552
+      std::array<char, 47> lift_start_format; // DS:a427: In %d %s, %d %s will start their cargo lift
+      std::array<char, 20> lift_cancel; // DS:a456: cancel the pending airlift?
+      std::array<char, 47> lift_no_planes; // DS:a46a
+      std::array<char, 22> lift_ask_ammo; // DS:a499
+      std::array<char, 22> lift_ask_fuel; // DS:a4af
+      std::array<char, 22> lift_ask_food; // DS:a4c5
+      std::array<char, 25> lift_select_point; // DS:a4db
+      std::array<char, 6> lift_cargo_name; // DS:a4f4: "cargo"
+      std::array<char, 23> lift_ask_hours; // DS:a4fa
+      std::array<char, 65> lift_confirm; // DS:a511
+      std::array<char, 29> air_header_format; // DS:a552: the mission table header
       std::array<char, 11>         text_a56f;               // DS:a56f
       std::array<char, 13>         text_a57a;               // DS:a57a
       std::array<char, 11>         text_a587;               // DS:a587
-      std::array<char, 10>         text_a592;               // DS:a592
-      std::array<char, 42>         text_a59c;               // DS:a59c
-      std::array<char, 42>         text_a5c6;               // DS:a5c6
-      std::array<char, 42>         text_a5f0;               // DS:a5f0
-      std::array<std::uint8_t, 23> text_a61a;               // DS:a61a
+      std::array<char, 10> air_title; // DS:a592
+      std::array<char, 42> air_strike_format; // DS:a59c
+      std::array<char, 42> air_drop_format; // DS:a5c6
+      std::array<char, 42> air_lift_format; // DS:a5f0
+      std::array<char, 23> air_mission_question; // DS:a61a: which mission to plan
       std::uint8_t                 unknown_a631;            // DS:a631
-      FarPointer                   far_code_a632;           // DS:a632
-      FarPointer                   far_code_a636;           // DS:a636
-      FarPointer                   far_code_a63a;           // DS:a63a
-      std::uint16_t                words_a63e[4];           // DS:a63e
+      std::array<FarPointer, 3>    air_missions; // DS:a632: the routines of the strike, drop and airlift missions
+      std::uint16_t                air_mission_menu[4]; // DS:a63e: the mission menu
       std::uint16_t                near_a646;               // DS:a646
       std::array<std::uint8_t, 10> bytes_a648;              // DS:a648
       std::uint16_t                near_a652;               // DS:a652
@@ -3266,9 +3280,9 @@ static_assert(offsetof(Side, objectives) == 23);
 static_assert(offsetof(Side, requests) == 23);
 static_assert(offsetof(Side, strike) == 35);
 static_assert(offsetof(Side, drop) == 41);
-static_assert(offsetof(Side, unknown_31) == 49);
-static_assert(offsetof(Side, lift_planes) == 57);
-static_assert(offsetof(Side, unknown_3b) == 59);
+static_assert(offsetof(Side, lift) == 49);
+static_assert(offsetof(AirLift, planes) == 8);
+static_assert(sizeof(AirLift) == 12);
 static_assert(offsetof(Side, order) == 61);
 static_assert(sizeof(Side) == 65);
 static_assert(offsetof(Person, name) == 0);
@@ -5223,11 +5237,12 @@ static_assert(offsetof(DataSegment, near_a03e) == 0xa03e);
 static_assert(offsetof(DataSegment, bytes_a040) == 0xa040);
 static_assert(offsetof(DataSegment, near_a04a) == 0xa04a);
 static_assert(offsetof(DataSegment, bytes_a04c) == 0xa04c);
-static_assert(offsetof(DataSegment, text_a05d) == 0xa05d);
-static_assert(offsetof(DataSegment, text_a06a) == 0xa06a);
-static_assert(offsetof(DataSegment, text_a06e) == 0xa06e);
-static_assert(offsetof(DataSegment, text_a072) == 0xa072);
-static_assert(offsetof(DataSegment, text_a07f) == 0xa07f);
+static_assert(offsetof(DataSegment, air_question_mark) == 0xa05a);
+static_assert(offsetof(DataSegment, air_range_format) == 0xa05d);
+static_assert(offsetof(DataSegment, air_input_begin) == 0xa06a);
+static_assert(offsetof(DataSegment, air_input_end) == 0xa06e);
+static_assert(offsetof(DataSegment, air_hostile_city) == 0xa072);
+static_assert(offsetof(DataSegment, air_understood) == 0xa07f);
 static_assert(offsetof(DataSegment, text_a098) == 0xa098);
 static_assert(offsetof(DataSegment, text_a0a9) == 0xa0a9);
 static_assert(offsetof(DataSegment, text_a0ba) == 0xa0ba);
@@ -5267,36 +5282,34 @@ static_assert(offsetof(DataSegment, drop_where) == 0xa328);
 static_assert(offsetof(DataSegment, drop_paratroopers) == 0xa355);
 static_assert(offsetof(DataSegment, drop_hours_prompt) == 0xa362);
 static_assert(offsetof(DataSegment, drop_ask_hq) == 0xa383);
-static_assert(offsetof(DataSegment, text_a3ca) == 0xa3ca);
-static_assert(offsetof(DataSegment, text_a3f6) == 0xa3f6);
+static_assert(offsetof(DataSegment, lift_lead_format) == 0xa3ca);
+static_assert(offsetof(DataSegment, lift_understood) == 0xa3f6);
 static_assert(offsetof(DataSegment, air_lift_plane) == 0xa40f);
 static_assert(offsetof(DataSegment, air_lift_planes) == 0xa415);
 static_assert(offsetof(DataSegment, air_lift_hour) == 0xa41c);
 static_assert(offsetof(DataSegment, air_lift_hours) == 0xa421);
-static_assert(offsetof(DataSegment, text_a427) == 0xa427);
-static_assert(offsetof(DataSegment, text_a456) == 0xa456);
-static_assert(offsetof(DataSegment, text_a46a) == 0xa46a);
-static_assert(offsetof(DataSegment, text_a499) == 0xa499);
-static_assert(offsetof(DataSegment, text_a4af) == 0xa4af);
-static_assert(offsetof(DataSegment, text_a4c5) == 0xa4c5);
-static_assert(offsetof(DataSegment, text_a4db) == 0xa4db);
-static_assert(offsetof(DataSegment, text_a4f4) == 0xa4f4);
-static_assert(offsetof(DataSegment, text_a4fa) == 0xa4fa);
-static_assert(offsetof(DataSegment, text_a511) == 0xa511);
-static_assert(offsetof(DataSegment, text_a552) == 0xa552);
+static_assert(offsetof(DataSegment, lift_start_format) == 0xa427);
+static_assert(offsetof(DataSegment, lift_cancel) == 0xa456);
+static_assert(offsetof(DataSegment, lift_no_planes) == 0xa46a);
+static_assert(offsetof(DataSegment, lift_ask_ammo) == 0xa499);
+static_assert(offsetof(DataSegment, lift_ask_fuel) == 0xa4af);
+static_assert(offsetof(DataSegment, lift_ask_food) == 0xa4c5);
+static_assert(offsetof(DataSegment, lift_select_point) == 0xa4db);
+static_assert(offsetof(DataSegment, lift_cargo_name) == 0xa4f4);
+static_assert(offsetof(DataSegment, lift_ask_hours) == 0xa4fa);
+static_assert(offsetof(DataSegment, lift_confirm) == 0xa511);
+static_assert(offsetof(DataSegment, air_header_format) == 0xa552);
 static_assert(offsetof(DataSegment, text_a56f) == 0xa56f);
 static_assert(offsetof(DataSegment, text_a57a) == 0xa57a);
 static_assert(offsetof(DataSegment, text_a587) == 0xa587);
-static_assert(offsetof(DataSegment, text_a592) == 0xa592);
-static_assert(offsetof(DataSegment, text_a59c) == 0xa59c);
-static_assert(offsetof(DataSegment, text_a5c6) == 0xa5c6);
-static_assert(offsetof(DataSegment, text_a5f0) == 0xa5f0);
-static_assert(offsetof(DataSegment, text_a61a) == 0xa61a);
+static_assert(offsetof(DataSegment, air_title) == 0xa592);
+static_assert(offsetof(DataSegment, air_strike_format) == 0xa59c);
+static_assert(offsetof(DataSegment, air_drop_format) == 0xa5c6);
+static_assert(offsetof(DataSegment, air_lift_format) == 0xa5f0);
+static_assert(offsetof(DataSegment, air_mission_question) == 0xa61a);
 static_assert(offsetof(DataSegment, unknown_a631) == 0xa631);
-static_assert(offsetof(DataSegment, far_code_a632) == 0xa632);
-static_assert(offsetof(DataSegment, far_code_a636) == 0xa636);
-static_assert(offsetof(DataSegment, far_code_a63a) == 0xa63a);
-static_assert(offsetof(DataSegment, words_a63e) == 0xa63e);
+static_assert(offsetof(DataSegment, air_missions) == 0xa632);
+static_assert(offsetof(DataSegment, air_mission_menu) == 0xa63e);
 static_assert(offsetof(DataSegment, near_a646) == 0xa646);
 static_assert(offsetof(DataSegment, bytes_a648) == 0xa648);
 static_assert(offsetof(DataSegment, near_a652) == 0xa652);
@@ -5332,6 +5345,8 @@ static_assert(offsetof(DataSegment, cut_comm_refusal_4) == 0xa998);
 static_assert(offsetof(DataSegment, cut_comm_hour) == 0xa9cd);
 static_assert(offsetof(DataSegment, cut_comm_hours) == 0xa9d2);
 static_assert(offsetof(DataSegment, cut_comm_duration) == 0xa9d8);
+using detail::data_segment::AirLift;
+using detail::data_segment::BombingFlight;
 static_assert(offsetof(DataSegment, cut_comm_lieutenant) == 0xaa08);
 static_assert(offsetof(DataSegment, assassinate_title) == 0xaa35);
 static_assert(offsetof(DataSegment, assassinate_prompt) == 0xaa40);

@@ -25,6 +25,11 @@ inline auto SetWord(std::uint8_t* ds, std::uint16_t at,
   return value;
 }
 
+// The byte at a DS offset, as a reference: a byte variable a routine receives by its near address.
+[[nodiscard]] inline auto Byte(std::uint8_t* ds, std::uint16_t at) noexcept -> std::uint8_t& {
+  return ds[at];
+}
+
 // The DS offset of a routine's local that lives `offset` bytes below its frame pointer on the DS stack. Locals stay
 // there only where their near address is handed to another routine or service.
 [[nodiscard]] constexpr auto Local(std::uint16_t frame,
@@ -79,6 +84,7 @@ inline auto WithStack(std::uint16_t bytes, Body&& call) -> decltype(call(std::ui
 
 namespace opeu::game {
 using detail::memory::BACKGROUND_SEGMENT;
+using detail::memory::Byte;
 using detail::memory::Call;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
