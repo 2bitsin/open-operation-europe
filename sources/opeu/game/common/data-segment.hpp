@@ -46,6 +46,7 @@ enum class UnitOrder : std::uint8_t {
   RESUPPLY     = 8,    // load supplies at the objective at the cell
   SUPPLY_UNIT  = 9,    // supply the target unit
   PURSUE       = 12,   // follow the target unit
+  REST         = 13,   // fall back to the cell and rest
   NONE         = 0xff, // no order
 };
 
@@ -107,7 +108,6 @@ struct AirDrop {
   std::uint8_t  due;   // ordered as hours + 6; counts down with it and is what the air command weighs
 };
 
-// One of the two sides (DS:021a, 2 x 65 bytes).
 // A side's supply airlift (core/aiops2, core/airlift): the cell supplied, the ammunition, fuel and food carried, the
 // transport planes that carry them (0: no airlift pending), the hours until they fly and the hours the order lasts.
 struct AirLift {
@@ -125,13 +125,14 @@ struct BombingFlight {
   std::uint8_t range;
 };
 
+// One of the two sides (DS:021a, 2 x 65 bytes).
 struct Side {
   std::uint16_t stock
       [3]; // ammunition, fuel, food in the side's pool (SIDE_AMMO/FUEL/FOOD)
   std::uint16_t income[3];
-  std::uint16_t pool_a;
+  std::uint16_t pool_a; // the side's bombers ready to fly (strikes and bombing missions)
   std::uint16_t planes; // SIDE_PLANES
-  std::uint16_t pending_a;
+  std::uint16_t pending_a; // bombers back from a strike; added to pool_a at midnight
   std::uint16_t pending_planes; // added to planes at midnight (capped at 999)
   std::uint16_t paratroops; // the side's paratroopers not committed to a drop
   std::uint8_t
@@ -286,6 +287,17 @@ struct BattleLoss {
   Item          item;
 };
 
+// A dated noon event (core/noonevt): on the day it happens at noon the news is shown, the action runs and a
+// leader may speak.
+struct NoonEvent {
+  std::uint8_t date;   // the year in the high nibble (from 1940), the month in the low nibble; 0xff ends the table
+  std::uint8_t day;
+  FarPointer   news;   // the news text
+  FarPointer   action; // a far routine, or null
+  std::uint8_t leader; // the audience in the low two bits, the person template above them; 0xff for no speech
+  std::uint8_t line;   // index into noon_speeches
+};
+
 // A list window (io/listui; list_window points to the active one): its frame in 8-pixel columns and pixels, the
 // column widths, the row count and the far row-draw and select callbacks.
 struct ListWindow {
@@ -404,6 +416,14 @@ inline constexpr std::uint16_t SIDE_PLAYED{ 1 };
 enum class Stance : std::uint8_t {
   DEFENSIVE = 0,
   OFFENSIVE = 1,
+};
+
+// Bits of DataSegment::schedule_flags[0]: the rounds due before the next regiment's turn (core/app sets them, core/dispatch
+// runs and clears them).
+enum class ScheduleFlag : std::uint8_t {
+  MONTHLY  = 0x01, // set on the first day of a month
+  HALF_DAY = 0x02, // at hours 0 and 12
+  HOURLY   = 0x04, // every hour
 };
 
 // Bits of DataSegment::side_flags, a side's state for the day.
@@ -1363,10 +1383,7 @@ struct DataSegment {
       std::array<char, 7>          panel_battle;           // DS:5545
       std::array<char, 3>          panel_string_format;    // DS:554c
       std::uint8_t                 unknown_554f;           // DS:554f
-      std::uint16_t                panel_regiment_names;   // DS:5550
-      std::uint16_t                near_5552;              // DS:5552
-      std::uint16_t                near_5554;              // DS:5554
-      std::uint16_t                near_5556;              // DS:5556
+      std::array<std::uint16_t, 4> panel_regiment_names;   // DS:5550: the names of regiments 5-8 of a division
       std::array<std::uint8_t, 36> credits_title;          // DS:5558
       std::array<char, 28>         credits_main;           // DS:557c
       std::array<char, 33>         credits_support;        // DS:5598
@@ -1597,319 +1614,15 @@ struct DataSegment {
       std::array<char, 2>          new_weapon_period;     // DS:7379
       std::array<char, 50>         new_weapon_format;     // DS:737b
       std::uint8_t                 unknown_73ad;          // DS:73ad
-      std::array<char, 7>          text_73ae;             // DS:73ae
-      std::array<char, 5>          text_73b5;             // DS:73b5
-      std::array<char, 10>         text_73ba;             // DS:73ba
-      std::array<char, 7>          text_73c4;             // DS:73c4
+      std::array<char, 7>          noon_role_style;       // DS:73ae: "\033M4\033C6", the speaker's post
+      std::array<char, 5>          noon_name_format;      // DS:73b5: ": %s" before the name
+      std::array<char, 10>         noon_speech_style;     // DS:73ba: "\033M0\033C7\033B1", the speech
+      std::array<char, 7>          noon_speech_end;       // DS:73c4: "\033C7\033B0"
       std::uint8_t                 unknown_73cb;          // DS:73cb
-      FarPointer                   far_text_73cc;         // DS:73cc
-      FarPointer                   far_text_73d0;         // DS:73d0
-      FarPointer                   far_text_73d4;         // DS:73d4
-      FarPointer                   far_text_73d8;         // DS:73d8
-      FarPointer                   far_text_73dc;         // DS:73dc
-      FarPointer                   far_text_73e0;         // DS:73e0
-      FarPointer                   far_text_73e4;         // DS:73e4
-      FarPointer                   far_text_73e8;         // DS:73e8
-      FarPointer                   far_text_73ec;         // DS:73ec
-      FarPointer                   far_text_73f0;         // DS:73f0
-      FarPointer                   far_text_73f4;         // DS:73f4
-      FarPointer                   far_text_73f8;         // DS:73f8
-      FarPointer                   far_text_73fc;         // DS:73fc
-      FarPointer                   far_text_7400;         // DS:7400
-      FarPointer                   far_text_7404;         // DS:7404
-      FarPointer                   far_text_7408;         // DS:7408
-      FarPointer                   far_text_740c;         // DS:740c
-      FarPointer                   far_text_7410;         // DS:7410
-      FarPointer                   far_text_7414;         // DS:7414
-      FarPointer                   far_text_7418;         // DS:7418
-      FarPointer                   far_text_741c;         // DS:741c
-      FarPointer                   far_text_7420;         // DS:7420
-      FarPointer                   far_text_7424;         // DS:7424
-      FarPointer                   far_text_7428;         // DS:7428
-      FarPointer                   far_text_742c;         // DS:742c
-      FarPointer                   far_text_7430;         // DS:7430
-      FarPointer                   far_text_7434;         // DS:7434
-      FarPointer                   far_text_7438;         // DS:7438
-      FarPointer                   far_text_743c;         // DS:743c
-      FarPointer                   far_text_7440;         // DS:7440
-      FarPointer                   far_text_7444;         // DS:7444
-      FarPointer                   far_text_7448;         // DS:7448
-      FarPointer                   far_text_744c;         // DS:744c
-      FarPointer                   far_text_7450;         // DS:7450
-      FarPointer                   far_text_7454;         // DS:7454
-      FarPointer                   far_text_7458;         // DS:7458
-      FarPointer                   far_text_745c;         // DS:745c
-      FarPointer                   far_text_7460;         // DS:7460
-      FarPointer                   far_text_7464;         // DS:7464
-      FarPointer                   far_text_7468;         // DS:7468
-      FarPointer                   far_text_746c;         // DS:746c
-      FarPointer                   far_text_7470;         // DS:7470
-      FarPointer                   far_text_7474;         // DS:7474
-      FarPointer                   far_text_7478;         // DS:7478
-      FarPointer                   far_text_747c;         // DS:747c
-      FarPointer                   far_text_7480;         // DS:7480
-      FarPointer                   far_text_7484;         // DS:7484
-      FarPointer                   far_text_7488;         // DS:7488
-      FarPointer                   far_text_748c;         // DS:748c
-      std::array<char, 3>          text_7490;             // DS:7490
-      std::array<std::uint8_t, 3>  unknown_7493;          // DS:7493
-      FarPointer                   far_text_7496;         // DS:7496
-      std::uint16_t                words_749a[4];         // DS:749a
-      FarPointer                   far_text_74a2;         // DS:74a2
-      FarPointer                   far_code_74a6;         // DS:74a6
-      std::array<std::uint8_t, 4>  bytes_74aa;            // DS:74aa
-      FarPointer                   far_text_74ae;         // DS:74ae
-      std::uint16_t                words_74b2[4];         // DS:74b2
-      FarPointer                   far_text_74ba;         // DS:74ba
-      std::array<std::uint8_t, 8>  bytes_74be;            // DS:74be
-      FarPointer                   far_text_74c6;         // DS:74c6
-      FarPointer                   far_code_74ca;         // DS:74ca
-      std::array<std::uint8_t, 4>  bytes_74ce;            // DS:74ce
-      FarPointer                   far_text_74d2;         // DS:74d2
-      std::array<std::uint8_t, 8>  bytes_74d6;            // DS:74d6
-      FarPointer                   far_text_74de;         // DS:74de
-      FarPointer                   far_code_74e2;         // DS:74e2
-      std::array<std::uint8_t, 4>  bytes_74e6;            // DS:74e6
-      FarPointer                   far_text_74ea;         // DS:74ea
-      FarPointer                   far_code_74ee;         // DS:74ee
-      std::array<std::uint8_t, 4>  bytes_74f2;            // DS:74f2
-      FarPointer                   far_text_74f6;         // DS:74f6
-      std::array<std::uint8_t, 8>  bytes_74fa;            // DS:74fa
-      FarPointer                   far_text_7502;         // DS:7502
-      std::array<std::uint8_t, 8>  bytes_7506;            // DS:7506
-      FarPointer                   far_text_750e;         // DS:750e
-      std::array<std::uint8_t, 8>  bytes_7512;            // DS:7512
-      FarPointer                   far_text_751a;         // DS:751a
-      FarPointer                   far_code_751e;         // DS:751e
-      std::array<std::uint8_t, 4>  bytes_7522;            // DS:7522
-      FarPointer                   far_text_7526;         // DS:7526
-      FarPointer                   far_code_752a;         // DS:752a
-      std::array<std::uint8_t, 4>  bytes_752e;            // DS:752e
-      FarPointer                   far_text_7532;         // DS:7532
-      std::uint16_t                words_7536[4];         // DS:7536
-      FarPointer                   far_text_753e;         // DS:753e
-      std::uint16_t                words_7542[4];         // DS:7542
-      FarPointer                   far_text_754a;         // DS:754a
-      std::uint16_t                words_754e[4];         // DS:754e
-      FarPointer                   far_text_7556;         // DS:7556
-      FarPointer                   far_code_755a;         // DS:755a
-      std::array<std::uint8_t, 4>  bytes_755e;            // DS:755e
-      FarPointer                   far_text_7562;         // DS:7562
-      std::array<std::uint8_t, 8>  bytes_7566;            // DS:7566
-      FarPointer                   far_text_756e;         // DS:756e
-      std::array<std::uint8_t, 8>  bytes_7572;            // DS:7572
-      FarPointer                   far_text_757a;         // DS:757a
-      std::array<std::uint8_t, 8>  bytes_757e;            // DS:757e
-      FarPointer                   far_text_7586;         // DS:7586
-      std::uint16_t                words_758a[4];         // DS:758a
-      FarPointer                   far_text_7592;         // DS:7592
-      std::uint16_t                words_7596[4];         // DS:7596
-      FarPointer                   far_text_759e;         // DS:759e
-      std::array<std::uint8_t, 8>  bytes_75a2;            // DS:75a2
-      FarPointer                   far_text_75aa;         // DS:75aa
-      std::uint16_t                words_75ae[4];         // DS:75ae
-      FarPointer                   far_text_75b6;         // DS:75b6
-      std::uint16_t                words_75ba[4];         // DS:75ba
-      FarPointer                   far_text_75c2;         // DS:75c2
-      std::array<std::uint8_t, 8>  bytes_75c6;            // DS:75c6
-      FarPointer                   far_text_75ce;         // DS:75ce
-      std::array<std::uint8_t, 8>  bytes_75d2;            // DS:75d2
-      FarPointer                   far_text_75da;         // DS:75da
-      std::uint16_t                words_75de[4];         // DS:75de
-      FarPointer                   far_text_75e6;         // DS:75e6
-      std::uint16_t                words_75ea[4];         // DS:75ea
-      FarPointer                   far_text_75f2;         // DS:75f2
-      FarPointer                   far_code_75f6;         // DS:75f6
-      std::array<std::uint8_t, 4>  bytes_75fa;            // DS:75fa
-      FarPointer                   far_text_75fe;         // DS:75fe
-      FarPointer                   far_code_7602;         // DS:7602
-      std::array<std::uint8_t, 4>  bytes_7606;            // DS:7606
-      FarPointer                   far_text_760a;         // DS:760a
-      FarPointer                   far_code_760e;         // DS:760e
-      std::array<std::uint8_t, 4>  bytes_7612;            // DS:7612
-      FarPointer                   far_text_7616;         // DS:7616
-      FarPointer                   far_code_761a;         // DS:761a
-      std::array<std::uint8_t, 4>  bytes_761e;            // DS:761e
-      FarPointer                   far_text_7622;         // DS:7622
-      std::uint16_t                words_7626[4];         // DS:7626
-      FarPointer                   far_text_762e;         // DS:762e
-      std::uint16_t                words_7632[4];         // DS:7632
-      FarPointer                   far_text_763a;         // DS:763a
-      FarPointer                   far_code_763e;         // DS:763e
-      std::array<std::uint8_t, 4>  bytes_7642;            // DS:7642
-      FarPointer                   far_text_7646;         // DS:7646
-      std::uint16_t                words_764a[4];         // DS:764a
-      FarPointer                   far_text_7652;         // DS:7652
-      std::uint16_t                words_7656[4];         // DS:7656
-      FarPointer                   far_text_765e;         // DS:765e
-      std::uint16_t                words_7662[4];         // DS:7662
-      FarPointer                   far_text_766a;         // DS:766a
-      std::array<std::uint8_t, 8>  bytes_766e;            // DS:766e
-      FarPointer                   far_text_7676;         // DS:7676
-      std::array<std::uint8_t, 8>  bytes_767a;            // DS:767a
-      FarPointer                   far_text_7682;         // DS:7682
-      FarPointer                   far_code_7686;         // DS:7686
-      std::array<std::uint8_t, 4>  bytes_768a;            // DS:768a
-      FarPointer                   far_text_768e;         // DS:768e
-      FarPointer                   far_code_7692;         // DS:7692
-      std::array<std::uint8_t, 4>  bytes_7696;            // DS:7696
-      FarPointer                   far_text_769a;         // DS:769a
-      std::uint16_t                words_769e[4];         // DS:769e
-      FarPointer                   far_text_76a6;         // DS:76a6
-      std::uint16_t                words_76aa[4];         // DS:76aa
-      FarPointer                   far_text_76b2;         // DS:76b2
-      FarPointer                   far_code_76b6;         // DS:76b6
-      std::array<std::uint8_t, 4>  bytes_76ba;            // DS:76ba
-      FarPointer                   far_text_76be;         // DS:76be
-      std::uint16_t                words_76c2[4];         // DS:76c2
-      FarPointer                   far_text_76ca;         // DS:76ca
-      std::uint16_t                words_76ce[4];         // DS:76ce
-      FarPointer                   far_text_76d6;         // DS:76d6
-      FarPointer                   far_code_76da;         // DS:76da
-      std::array<std::uint8_t, 4>  bytes_76de;            // DS:76de
-      FarPointer                   far_text_76e2;         // DS:76e2
-      FarPointer                   far_code_76e6;         // DS:76e6
-      std::array<std::uint8_t, 4>  bytes_76ea;            // DS:76ea
-      FarPointer                   far_text_76ee;         // DS:76ee
-      FarPointer                   far_code_76f2;         // DS:76f2
-      std::array<std::uint8_t, 4>  bytes_76f6;            // DS:76f6
-      FarPointer                   far_text_76fa;         // DS:76fa
-      FarPointer                   far_code_76fe;         // DS:76fe
-      std::array<std::uint8_t, 4>  bytes_7702;            // DS:7702
-      FarPointer                   far_text_7706;         // DS:7706
-      FarPointer                   far_code_770a;         // DS:770a
-      std::array<std::uint8_t, 4>  bytes_770e;            // DS:770e
-      FarPointer                   far_text_7712;         // DS:7712
-      FarPointer                   far_code_7716;         // DS:7716
-      std::array<std::uint8_t, 4>  bytes_771a;            // DS:771a
-      FarPointer                   far_text_771e;         // DS:771e
-      FarPointer                   far_code_7722;         // DS:7722
-      std::array<std::uint8_t, 4>  bytes_7726;            // DS:7726
-      FarPointer                   far_text_772a;         // DS:772a
-      FarPointer                   far_code_772e;         // DS:772e
-      std::array<std::uint8_t, 4>  bytes_7732;            // DS:7732
-      FarPointer                   far_text_7736;         // DS:7736
-      std::uint16_t                words_773a[4];         // DS:773a
-      FarPointer                   far_text_7742;         // DS:7742
-      std::uint16_t                words_7746[4];         // DS:7746
-      FarPointer                   far_text_774e;         // DS:774e
-      std::uint16_t                words_7752[4];         // DS:7752
-      FarPointer                   far_text_775a;         // DS:775a
-      std::array<std::uint8_t, 8>  bytes_775e;            // DS:775e
-      FarPointer                   far_text_7766;         // DS:7766
-      FarPointer                   far_code_776a;         // DS:776a
-      std::array<std::uint8_t, 4>  bytes_776e;            // DS:776e
-      FarPointer                   far_text_7772;         // DS:7772
-      std::array<std::uint8_t, 8>  bytes_7776;            // DS:7776
-      FarPointer                   far_text_777e;         // DS:777e
-      std::array<std::uint8_t, 8>  bytes_7782;            // DS:7782
-      FarPointer                   far_text_778a;         // DS:778a
-      std::uint16_t                words_778e[4];         // DS:778e
-      FarPointer                   far_text_7796;         // DS:7796
-      std::array<std::uint8_t, 8>  bytes_779a;            // DS:779a
-      FarPointer                   far_text_77a2;         // DS:77a2
-      std::uint16_t                words_77a6[4];         // DS:77a6
-      FarPointer                   far_text_77ae;         // DS:77ae
-      std::uint16_t                words_77b2[4];         // DS:77b2
-      FarPointer                   far_text_77ba;         // DS:77ba
-      FarPointer                   far_code_77be;         // DS:77be
-      std::array<std::uint8_t, 4>  bytes_77c2;            // DS:77c2
-      FarPointer                   far_text_77c6;         // DS:77c6
-      FarPointer                   far_code_77ca;         // DS:77ca
-      std::array<std::uint8_t, 4>  bytes_77ce;            // DS:77ce
-      FarPointer                   far_text_77d2;         // DS:77d2
-      std::uint16_t                words_77d6[4];         // DS:77d6
-      FarPointer                   far_text_77de;         // DS:77de
-      FarPointer                   far_code_77e2;         // DS:77e2
-      std::array<std::uint8_t, 4>  bytes_77e6;            // DS:77e6
-      FarPointer                   far_text_77ea;         // DS:77ea
-      std::array<std::uint8_t, 8>  bytes_77ee;            // DS:77ee
-      FarPointer                   far_text_77f6;         // DS:77f6
-      std::uint16_t                words_77fa[4];         // DS:77fa
-      FarPointer                   far_text_7802;         // DS:7802
-      FarPointer                   far_code_7806;         // DS:7806
-      std::array<std::uint8_t, 4>  bytes_780a;            // DS:780a
-      FarPointer                   far_text_780e;         // DS:780e
-      FarPointer                   far_code_7812;         // DS:7812
-      std::array<std::uint8_t, 4>  bytes_7816;            // DS:7816
-      FarPointer                   far_text_781a;         // DS:781a
-      std::uint16_t                words_781e[4];         // DS:781e
-      FarPointer                   far_text_7826;         // DS:7826
-      std::array<std::uint8_t, 8>  bytes_782a;            // DS:782a
-      FarPointer                   far_text_7832;         // DS:7832
-      FarPointer                   far_code_7836;         // DS:7836
-      std::array<std::uint8_t, 4>  bytes_783a;            // DS:783a
-      FarPointer                   far_text_783e;         // DS:783e
-      std::uint16_t                words_7842[4];         // DS:7842
-      FarPointer                   far_text_784a;         // DS:784a
-      std::uint16_t                words_784e[4];         // DS:784e
-      FarPointer                   far_text_7856;         // DS:7856
-      FarPointer                   far_code_785a;         // DS:785a
-      std::array<std::uint8_t, 4>  bytes_785e;            // DS:785e
-      FarPointer                   far_text_7862;         // DS:7862
-      FarPointer                   far_code_7866;         // DS:7866
-      std::array<std::uint8_t, 4>  bytes_786a;            // DS:786a
-      FarPointer                   far_text_786e;         // DS:786e
-      FarPointer                   far_code_7872;         // DS:7872
-      std::array<std::uint8_t, 4>  bytes_7876;            // DS:7876
-      FarPointer                   far_text_787a;         // DS:787a
-      FarPointer                   far_code_787e;         // DS:787e
-      std::array<std::uint8_t, 4>  bytes_7882;            // DS:7882
-      FarPointer                   far_text_7886;         // DS:7886
-      FarPointer                   far_code_788a;         // DS:788a
-      std::array<std::uint8_t, 4>  bytes_788e;            // DS:788e
-      FarPointer                   far_text_7892;         // DS:7892
-      std::uint16_t                words_7896[4];         // DS:7896
-      FarPointer                   far_text_789e;         // DS:789e
-      std::uint16_t                words_78a2[4];         // DS:78a2
-      FarPointer                   far_text_78aa;         // DS:78aa
-      std::array<std::uint8_t, 8>  bytes_78ae;            // DS:78ae
-      FarPointer                   far_text_78b6;         // DS:78b6
-      std::uint16_t                words_78ba[4];         // DS:78ba
-      FarPointer                   far_text_78c2;         // DS:78c2
-      std::array<std::uint8_t, 8>  bytes_78c6;            // DS:78c6
-      FarPointer                   far_text_78ce;         // DS:78ce
-      std::uint16_t                words_78d2[4];         // DS:78d2
-      FarPointer                   far_text_78da;         // DS:78da
-      std::uint16_t                words_78de[4];         // DS:78de
-      FarPointer                   far_text_78e6;         // DS:78e6
-      std::uint16_t                words_78ea[4];         // DS:78ea
-      FarPointer                   far_text_78f2;         // DS:78f2
-      FarPointer                   far_code_78f6;         // DS:78f6
-      std::array<std::uint8_t, 4>  bytes_78fa;            // DS:78fa
-      FarPointer                   far_text_78fe;         // DS:78fe
-      std::array<std::uint8_t, 8>  bytes_7902;            // DS:7902
-      FarPointer                   far_text_790a;         // DS:790a
-      std::uint16_t                words_790e[4];         // DS:790e
-      FarPointer                   far_text_7916;         // DS:7916
-      FarPointer                   far_code_791a;         // DS:791a
-      std::array<std::uint8_t, 4>  bytes_791e;            // DS:791e
-      FarPointer                   far_text_7922;         // DS:7922
-      FarPointer                   far_code_7926;         // DS:7926
-      std::array<std::uint8_t, 4>  bytes_792a;            // DS:792a
-      FarPointer                   far_text_792e;         // DS:792e
-      std::uint16_t                words_7932[4];         // DS:7932
-      FarPointer                   far_text_793a;         // DS:793a
-      FarPointer                   far_code_793e;         // DS:793e
-      std::array<std::uint8_t, 4>  bytes_7942;            // DS:7942
-      FarPointer                   far_text_7946;         // DS:7946
-      std::array<std::uint8_t, 8>  bytes_794a;            // DS:794a
-      FarPointer                   far_text_7952;         // DS:7952
-      std::uint16_t                words_7956[4];         // DS:7956
-      FarPointer                   far_text_795e;         // DS:795e
-      std::uint16_t                words_7962[4];         // DS:7962
-      FarPointer                   far_text_796a;         // DS:796a
-      std::uint16_t                words_796e[4];         // DS:796e
-      FarPointer                   far_text_7976;         // DS:7976
-      FarPointer                   far_code_797a;         // DS:797a
-      std::array<std::uint8_t, 4>  bytes_797e;            // DS:797e
-      FarPointer                   far_text_7982;         // DS:7982
-      FarPointer                   far_code_7986;         // DS:7986
-      std::array<std::uint8_t, 4>  bytes_798a;            // DS:798a
-      FarPointer                   far_text_798e;         // DS:798e
-      std::uint16_t                words_7992[4];         // DS:7992
-      FarPointer                   far_text_799a;         // DS:799a
-      std::uint16_t                words_799e[9];         // DS:799e
+      std::array<FarPointer, 49>   noon_speeches;         // DS:73cc: what a leader says at a noon event, by line
+      std::array<char, 3>          noon_news_end;         // DS:7490: "\033S", ends a noon news text
+      std::uint8_t                 unknown_7493;          // DS:7493
+      std::array<NoonEvent, 109>   noon_events;           // DS:7494: the dated noon events, ended by date 0xff
       std::array<std::uint8_t, 7>  mission_enemy_text;    // DS:79b0
       std::uint8_t                 mission_empty_text;    // DS:79b7
       std::array<char, 23>         raid_attempt_text;     // DS:79b8
@@ -1934,21 +1647,21 @@ struct DataSegment {
       };
       std::array<char, 58>         air_postponed_text;    // DS:7a80: "Bad weather has postponed the %s"
       std::array<char, 80>         air_canceled_text;     // DS:7aba: "... has been canceled"
-      std::array<char, 30>         air_text_7b0a;         // DS:7b0a
-      std::array<char, 11>         air_text_7b28;         // DS:7b28
-      std::array<char, 22>         air_text_7b33;         // DS:7b33
-      std::array<char, 30>         air_text_7b49;         // DS:7b49
-      std::array<char, 8>          air_text_7b67;         // DS:7b67
+      std::array<char, 30>         air_destroyed_format;         // DS:7b0a
+      std::array<char, 11>         air_strike_name;         // DS:7b28
+      std::array<char, 22>         air_strike_begin;         // DS:7b33
+      std::array<char, 30>         air_strike_spotted;         // DS:7b49
+      std::array<char, 8>          air_bombers_name;         // DS:7b67
       std::array<char, 15>         paratroop_drop_name;   // DS:7b6f: "paratroop drop"
       std::array<char, 18>         paratroop_drop_begin;  // DS:7b7e: "Begin Airdrop!", our side
       std::array<char, 25>         paratroop_drop_spotted; // DS:7b90: "Enemy planes spotted!", the other side
       std::array<char, 11>         paratroop_planes_name; // DS:7ba9: "transports"
-      std::array<char, 11>         air_text_7bb4;         // DS:7bb4
-      std::array<char, 19>         air_text_7bbf;         // DS:7bbf
-      std::array<char, 26>         air_text_7bd2;         // DS:7bd2
-      std::array<char, 13>         air_text_7bec;         // DS:7bec
-      std::array<char, 54>         air_text_7bf9;         // DS:7bf9
-      std::array<char, 54>         air_text_7c2f;         // DS:7c2f
+      std::array<char, 11>         cargo_drop_name;         // DS:7bb4
+      std::array<char, 19>         cargo_drop_begin;         // DS:7bbf
+      std::array<char, 26>         cargo_drop_spotted;         // DS:7bd2
+      std::array<char, 13>         cargo_planes_name;         // DS:7bec
+      std::array<char, 54>         cargo_unit_report;         // DS:7bf9
+      std::array<char, 54>         cargo_city_report;         // DS:7c2f
       std::uint8_t                 unknown_7c65;          // DS:7c65
       std::array<char, 25>         visit_format;          // DS:7c66
       std::array<char, 10>         text_7c7f;             // DS:7c7f
@@ -1956,14 +1669,13 @@ struct DataSegment {
       std::uint8_t                 unknown_7c8f;          // DS:7c8f
       std::uint16_t                hurricane_words[7];    // DS:7c90
       std::array<char, 6>          text_7c9e;             // DS:7c9e
-      std::array<std::uint8_t, 13> partisan_words;        // DS:7ca4
+      std::uint16_t                partisan_words[2];     // DS:7ca4: the partisan texts, in and out of the hurricane season
+      std::array<std::uint8_t, 9>  unknown_7ca8;          // DS:7ca8
       std::array<char, 11>         text_7cb1;             // DS:7cb1
       std::uint16_t                resistance_names[2];   // DS:7cbc
       std::array<std::uint8_t, 29> angel_name;            // DS:7cc0
       std::array<char, 15>         angel_format;          // DS:7cdd
-      FarPointer                   angel_actions;         // DS:7cec
-      FarPointer                   far_code_7cf0;         // DS:7cf0
-      FarPointer                   far_code_7cf4;         // DS:7cf4
+      std::array<FarPointer, 3>    angel_actions;         // DS:7cec: demoralize, inspire, judge by side (core/evangel)
       std::array<char, 15>         spy_name_format;       // DS:7cf8
       std::array<char, 19>         spy_laugh_text;        // DS:7d07
       std::array<char, 34>         spy_move_text;         // DS:7d1a
@@ -2083,10 +1795,10 @@ struct DataSegment {
       std::array<std::uint8_t, 8>  category_columns;        // DS:850a
       std::array<std::uint8_t, 6>  ai_categories;           // DS:8512
       std::array<char, 19>         target_text;             // DS:8518
-      std::array<char, 7>          text_852b;               // DS:852b
-      std::array<char, 7>          text_8532;               // DS:8532
-      std::array<char, 17>         text_8539;               // DS:8539
-      std::array<char, 31>         text_854a;               // DS:854a
+      std::array<char, 7>          target_two_line_format;  // DS:852b: "%s\n%s?"
+      std::array<char, 7>          target_one_line_format;  // DS:8532: "%s %s?"
+      std::array<char, 17>         target_cell_format;      // DS:8539: "Move to (%d-%d)?"
+      std::array<char, 31>         target_cancel_text;      // DS:854a
       std::array<char, 15>         cancel_orders_prompt;    // DS:8569: "Cancel orders?"
       std::array<char, 8>          text_8578;               // DS:8578
       std::array<char, 8>          text_8580;               // DS:8580
@@ -2184,26 +1896,7 @@ struct DataSegment {
       std::uint8_t                 unknown_8f6b;            // DS:8f6b
       std::array<FarPointer, 3>    personnel_actions; // DS:8f6c: reassign, appoint, rest
       std::array<MenuItem, 4>      personnel_menu; // DS:8f78: "Reassign", "Appoint", "Rest"
-      FarPointer                   advice_tips;             // DS:8fa8
-      FarPointer                   far_text_8fac;           // DS:8fac
-      FarPointer                   far_text_8fb0;           // DS:8fb0
-      FarPointer                   far_text_8fb4;           // DS:8fb4
-      FarPointer                   far_text_8fb8;           // DS:8fb8
-      FarPointer                   far_text_8fbc;           // DS:8fbc
-      FarPointer                   far_text_8fc0;           // DS:8fc0
-      FarPointer                   far_text_8fc4;           // DS:8fc4
-      FarPointer                   far_text_8fc8;           // DS:8fc8
-      FarPointer                   far_text_8fcc;           // DS:8fcc
-      FarPointer                   far_text_8fd0;           // DS:8fd0
-      FarPointer                   far_text_8fd4;           // DS:8fd4
-      FarPointer                   far_text_8fd8;           // DS:8fd8
-      FarPointer                   far_text_8fdc;           // DS:8fdc
-      FarPointer                   far_text_8fe0;           // DS:8fe0
-      FarPointer                   far_text_8fe4;           // DS:8fe4
-      FarPointer                   far_text_8fe8;           // DS:8fe8
-      FarPointer                   far_text_8fec;           // DS:8fec
-      FarPointer                   far_text_8ff0;           // DS:8ff0
-      FarPointer                   far_text_8ff4;           // DS:8ff4
+      std::array<FarPointer, 20>   advice_tips; // DS:8fa8: the twenty general tips, far pointers to advice texts
       std::array<char, 16>         text_8ff8;               // DS:8ff8
       std::array<char, 16>         text_9008;               // DS:9008
       std::array<char, 17>         text_9018;               // DS:9018
@@ -2495,21 +2188,21 @@ struct DataSegment {
       std::array<char, 17>         text_a098;               // DS:a098
       std::array<char, 17>         text_a0a9;               // DS:a0a9
       std::array<char, 11>         text_a0ba;               // DS:a0ba
-      std::array<char, 6>          air_plane_a0c5;          // DS:a0c5
-      std::array<char, 7>          air_planes_a0cb;         // DS:a0cb
-      std::array<char, 5>          air_hour_a0d2;           // DS:a0d2
-      std::array<char, 6>          air_hours_a0d7;          // DS:a0d7
-      std::array<std::uint8_t, 7>  unknown_a0dd;            // DS:a0dd
-      std::uint16_t                near_a0e4;               // DS:a0e4
-      std::uint16_t                near_a0e6;               // DS:a0e6
-      std::uint16_t                near_a0e8;               // DS:a0e8
+      std::array<char, 6>          air_plane;          // DS:a0c5
+      std::array<char, 7>          air_planes;         // DS:a0cb
+      std::array<char, 5>          air_hour;           // DS:a0d2
+      std::array<char, 6>          air_hours;          // DS:a0d7
+      std::uint8_t                 unknown_a0dd;            // DS:a0dd
+      std::array<BombingFlight, 3> bombing_flights; // DS:a0de: the planes each bombing mission type sends
+      std::uint16_t                bombing_names[3]; // DS:a0e4: near pointers to the mission type names
       std::array<std::uint8_t, 30> bytes_a0ea;              // DS:a0ea
       std::array<char, 29>         text_a108;               // DS:a108
       std::array<char, 29>         text_a125;               // DS:a125
-      std::array<char, 10>         text_a142;               // DS:a142
-      std::array<char, 15>         text_a14c;               // DS:a14c
-      std::array<char, 22>         text_a15b;               // DS:a15b
-      std::array<std::uint8_t, 21> unknown_a171;            // DS:a171
+      std::array<char, 10>         air_null_order;               // DS:a142
+      std::array<char, 15>         bombing_title;               // DS:a14c
+      std::array<char, 22>         bombing_site_prompt;               // DS:a15b
+      std::uint8_t                 unknown_a171;            // DS:a171
+      std::array<std::uint8_t, 20> bombing_menu; // DS:a172: the mission type menu
       std::uint16_t                near_a186;               // DS:a186
       std::uint16_t                words_a188[5];           // DS:a188
       std::uint16_t                near_a192;               // DS:a192
@@ -3245,6 +2938,7 @@ static_assert(offsetof(RequestSlot, target) == 0);
 static_assert(offsetof(RequestSlot, argument) == 2);
 static_assert(offsetof(RequestSlot, kind) == 3);
 static_assert(sizeof(RequestSlot) == 4);
+static_assert(sizeof(NoonEvent) == 12);
 static_assert(offsetof(Task, x) == 0);
 static_assert(offsetof(Task, y) == 1);
 static_assert(offsetof(Task, kind) == 2);
@@ -4151,9 +3845,6 @@ static_assert(offsetof(DataSegment, panel_battle) == 0x5545);
 static_assert(offsetof(DataSegment, panel_string_format) == 0x554c);
 static_assert(offsetof(DataSegment, unknown_554f) == 0x554f);
 static_assert(offsetof(DataSegment, panel_regiment_names) == 0x5550);
-static_assert(offsetof(DataSegment, near_5552) == 0x5552);
-static_assert(offsetof(DataSegment, near_5554) == 0x5554);
-static_assert(offsetof(DataSegment, near_5556) == 0x5556);
 static_assert(offsetof(DataSegment, credits_title) == 0x5558);
 static_assert(offsetof(DataSegment, credits_main) == 0x557c);
 static_assert(offsetof(DataSegment, credits_support) == 0x5598);
@@ -4376,319 +4067,14 @@ static_assert(offsetof(DataSegment, new_weapon_tank) == 0x7372);
 static_assert(offsetof(DataSegment, new_weapon_period) == 0x7379);
 static_assert(offsetof(DataSegment, new_weapon_format) == 0x737b);
 static_assert(offsetof(DataSegment, unknown_73ad) == 0x73ad);
-static_assert(offsetof(DataSegment, text_73ae) == 0x73ae);
-static_assert(offsetof(DataSegment, text_73b5) == 0x73b5);
-static_assert(offsetof(DataSegment, text_73ba) == 0x73ba);
-static_assert(offsetof(DataSegment, text_73c4) == 0x73c4);
+static_assert(offsetof(DataSegment, noon_role_style) == 0x73ae);
+static_assert(offsetof(DataSegment, noon_name_format) == 0x73b5);
+static_assert(offsetof(DataSegment, noon_speech_style) == 0x73ba);
+static_assert(offsetof(DataSegment, noon_speech_end) == 0x73c4);
 static_assert(offsetof(DataSegment, unknown_73cb) == 0x73cb);
-static_assert(offsetof(DataSegment, far_text_73cc) == 0x73cc);
-static_assert(offsetof(DataSegment, far_text_73d0) == 0x73d0);
-static_assert(offsetof(DataSegment, far_text_73d4) == 0x73d4);
-static_assert(offsetof(DataSegment, far_text_73d8) == 0x73d8);
-static_assert(offsetof(DataSegment, far_text_73dc) == 0x73dc);
-static_assert(offsetof(DataSegment, far_text_73e0) == 0x73e0);
-static_assert(offsetof(DataSegment, far_text_73e4) == 0x73e4);
-static_assert(offsetof(DataSegment, far_text_73e8) == 0x73e8);
-static_assert(offsetof(DataSegment, far_text_73ec) == 0x73ec);
-static_assert(offsetof(DataSegment, far_text_73f0) == 0x73f0);
-static_assert(offsetof(DataSegment, far_text_73f4) == 0x73f4);
-static_assert(offsetof(DataSegment, far_text_73f8) == 0x73f8);
-static_assert(offsetof(DataSegment, far_text_73fc) == 0x73fc);
-static_assert(offsetof(DataSegment, far_text_7400) == 0x7400);
-static_assert(offsetof(DataSegment, far_text_7404) == 0x7404);
-static_assert(offsetof(DataSegment, far_text_7408) == 0x7408);
-static_assert(offsetof(DataSegment, far_text_740c) == 0x740c);
-static_assert(offsetof(DataSegment, far_text_7410) == 0x7410);
-static_assert(offsetof(DataSegment, far_text_7414) == 0x7414);
-static_assert(offsetof(DataSegment, far_text_7418) == 0x7418);
-static_assert(offsetof(DataSegment, far_text_741c) == 0x741c);
-static_assert(offsetof(DataSegment, far_text_7420) == 0x7420);
-static_assert(offsetof(DataSegment, far_text_7424) == 0x7424);
-static_assert(offsetof(DataSegment, far_text_7428) == 0x7428);
-static_assert(offsetof(DataSegment, far_text_742c) == 0x742c);
-static_assert(offsetof(DataSegment, far_text_7430) == 0x7430);
-static_assert(offsetof(DataSegment, far_text_7434) == 0x7434);
-static_assert(offsetof(DataSegment, far_text_7438) == 0x7438);
-static_assert(offsetof(DataSegment, far_text_743c) == 0x743c);
-static_assert(offsetof(DataSegment, far_text_7440) == 0x7440);
-static_assert(offsetof(DataSegment, far_text_7444) == 0x7444);
-static_assert(offsetof(DataSegment, far_text_7448) == 0x7448);
-static_assert(offsetof(DataSegment, far_text_744c) == 0x744c);
-static_assert(offsetof(DataSegment, far_text_7450) == 0x7450);
-static_assert(offsetof(DataSegment, far_text_7454) == 0x7454);
-static_assert(offsetof(DataSegment, far_text_7458) == 0x7458);
-static_assert(offsetof(DataSegment, far_text_745c) == 0x745c);
-static_assert(offsetof(DataSegment, far_text_7460) == 0x7460);
-static_assert(offsetof(DataSegment, far_text_7464) == 0x7464);
-static_assert(offsetof(DataSegment, far_text_7468) == 0x7468);
-static_assert(offsetof(DataSegment, far_text_746c) == 0x746c);
-static_assert(offsetof(DataSegment, far_text_7470) == 0x7470);
-static_assert(offsetof(DataSegment, far_text_7474) == 0x7474);
-static_assert(offsetof(DataSegment, far_text_7478) == 0x7478);
-static_assert(offsetof(DataSegment, far_text_747c) == 0x747c);
-static_assert(offsetof(DataSegment, far_text_7480) == 0x7480);
-static_assert(offsetof(DataSegment, far_text_7484) == 0x7484);
-static_assert(offsetof(DataSegment, far_text_7488) == 0x7488);
-static_assert(offsetof(DataSegment, far_text_748c) == 0x748c);
-static_assert(offsetof(DataSegment, text_7490) == 0x7490);
-static_assert(offsetof(DataSegment, unknown_7493) == 0x7493);
-static_assert(offsetof(DataSegment, far_text_7496) == 0x7496);
-static_assert(offsetof(DataSegment, words_749a) == 0x749a);
-static_assert(offsetof(DataSegment, far_text_74a2) == 0x74a2);
-static_assert(offsetof(DataSegment, far_code_74a6) == 0x74a6);
-static_assert(offsetof(DataSegment, bytes_74aa) == 0x74aa);
-static_assert(offsetof(DataSegment, far_text_74ae) == 0x74ae);
-static_assert(offsetof(DataSegment, words_74b2) == 0x74b2);
-static_assert(offsetof(DataSegment, far_text_74ba) == 0x74ba);
-static_assert(offsetof(DataSegment, bytes_74be) == 0x74be);
-static_assert(offsetof(DataSegment, far_text_74c6) == 0x74c6);
-static_assert(offsetof(DataSegment, far_code_74ca) == 0x74ca);
-static_assert(offsetof(DataSegment, bytes_74ce) == 0x74ce);
-static_assert(offsetof(DataSegment, far_text_74d2) == 0x74d2);
-static_assert(offsetof(DataSegment, bytes_74d6) == 0x74d6);
-static_assert(offsetof(DataSegment, far_text_74de) == 0x74de);
-static_assert(offsetof(DataSegment, far_code_74e2) == 0x74e2);
-static_assert(offsetof(DataSegment, bytes_74e6) == 0x74e6);
-static_assert(offsetof(DataSegment, far_text_74ea) == 0x74ea);
-static_assert(offsetof(DataSegment, far_code_74ee) == 0x74ee);
-static_assert(offsetof(DataSegment, bytes_74f2) == 0x74f2);
-static_assert(offsetof(DataSegment, far_text_74f6) == 0x74f6);
-static_assert(offsetof(DataSegment, bytes_74fa) == 0x74fa);
-static_assert(offsetof(DataSegment, far_text_7502) == 0x7502);
-static_assert(offsetof(DataSegment, bytes_7506) == 0x7506);
-static_assert(offsetof(DataSegment, far_text_750e) == 0x750e);
-static_assert(offsetof(DataSegment, bytes_7512) == 0x7512);
-static_assert(offsetof(DataSegment, far_text_751a) == 0x751a);
-static_assert(offsetof(DataSegment, far_code_751e) == 0x751e);
-static_assert(offsetof(DataSegment, bytes_7522) == 0x7522);
-static_assert(offsetof(DataSegment, far_text_7526) == 0x7526);
-static_assert(offsetof(DataSegment, far_code_752a) == 0x752a);
-static_assert(offsetof(DataSegment, bytes_752e) == 0x752e);
-static_assert(offsetof(DataSegment, far_text_7532) == 0x7532);
-static_assert(offsetof(DataSegment, words_7536) == 0x7536);
-static_assert(offsetof(DataSegment, far_text_753e) == 0x753e);
-static_assert(offsetof(DataSegment, words_7542) == 0x7542);
-static_assert(offsetof(DataSegment, far_text_754a) == 0x754a);
-static_assert(offsetof(DataSegment, words_754e) == 0x754e);
-static_assert(offsetof(DataSegment, far_text_7556) == 0x7556);
-static_assert(offsetof(DataSegment, far_code_755a) == 0x755a);
-static_assert(offsetof(DataSegment, bytes_755e) == 0x755e);
-static_assert(offsetof(DataSegment, far_text_7562) == 0x7562);
-static_assert(offsetof(DataSegment, bytes_7566) == 0x7566);
-static_assert(offsetof(DataSegment, far_text_756e) == 0x756e);
-static_assert(offsetof(DataSegment, bytes_7572) == 0x7572);
-static_assert(offsetof(DataSegment, far_text_757a) == 0x757a);
-static_assert(offsetof(DataSegment, bytes_757e) == 0x757e);
-static_assert(offsetof(DataSegment, far_text_7586) == 0x7586);
-static_assert(offsetof(DataSegment, words_758a) == 0x758a);
-static_assert(offsetof(DataSegment, far_text_7592) == 0x7592);
-static_assert(offsetof(DataSegment, words_7596) == 0x7596);
-static_assert(offsetof(DataSegment, far_text_759e) == 0x759e);
-static_assert(offsetof(DataSegment, bytes_75a2) == 0x75a2);
-static_assert(offsetof(DataSegment, far_text_75aa) == 0x75aa);
-static_assert(offsetof(DataSegment, words_75ae) == 0x75ae);
-static_assert(offsetof(DataSegment, far_text_75b6) == 0x75b6);
-static_assert(offsetof(DataSegment, words_75ba) == 0x75ba);
-static_assert(offsetof(DataSegment, far_text_75c2) == 0x75c2);
-static_assert(offsetof(DataSegment, bytes_75c6) == 0x75c6);
-static_assert(offsetof(DataSegment, far_text_75ce) == 0x75ce);
-static_assert(offsetof(DataSegment, bytes_75d2) == 0x75d2);
-static_assert(offsetof(DataSegment, far_text_75da) == 0x75da);
-static_assert(offsetof(DataSegment, words_75de) == 0x75de);
-static_assert(offsetof(DataSegment, far_text_75e6) == 0x75e6);
-static_assert(offsetof(DataSegment, words_75ea) == 0x75ea);
-static_assert(offsetof(DataSegment, far_text_75f2) == 0x75f2);
-static_assert(offsetof(DataSegment, far_code_75f6) == 0x75f6);
-static_assert(offsetof(DataSegment, bytes_75fa) == 0x75fa);
-static_assert(offsetof(DataSegment, far_text_75fe) == 0x75fe);
-static_assert(offsetof(DataSegment, far_code_7602) == 0x7602);
-static_assert(offsetof(DataSegment, bytes_7606) == 0x7606);
-static_assert(offsetof(DataSegment, far_text_760a) == 0x760a);
-static_assert(offsetof(DataSegment, far_code_760e) == 0x760e);
-static_assert(offsetof(DataSegment, bytes_7612) == 0x7612);
-static_assert(offsetof(DataSegment, far_text_7616) == 0x7616);
-static_assert(offsetof(DataSegment, far_code_761a) == 0x761a);
-static_assert(offsetof(DataSegment, bytes_761e) == 0x761e);
-static_assert(offsetof(DataSegment, far_text_7622) == 0x7622);
-static_assert(offsetof(DataSegment, words_7626) == 0x7626);
-static_assert(offsetof(DataSegment, far_text_762e) == 0x762e);
-static_assert(offsetof(DataSegment, words_7632) == 0x7632);
-static_assert(offsetof(DataSegment, far_text_763a) == 0x763a);
-static_assert(offsetof(DataSegment, far_code_763e) == 0x763e);
-static_assert(offsetof(DataSegment, bytes_7642) == 0x7642);
-static_assert(offsetof(DataSegment, far_text_7646) == 0x7646);
-static_assert(offsetof(DataSegment, words_764a) == 0x764a);
-static_assert(offsetof(DataSegment, far_text_7652) == 0x7652);
-static_assert(offsetof(DataSegment, words_7656) == 0x7656);
-static_assert(offsetof(DataSegment, far_text_765e) == 0x765e);
-static_assert(offsetof(DataSegment, words_7662) == 0x7662);
-static_assert(offsetof(DataSegment, far_text_766a) == 0x766a);
-static_assert(offsetof(DataSegment, bytes_766e) == 0x766e);
-static_assert(offsetof(DataSegment, far_text_7676) == 0x7676);
-static_assert(offsetof(DataSegment, bytes_767a) == 0x767a);
-static_assert(offsetof(DataSegment, far_text_7682) == 0x7682);
-static_assert(offsetof(DataSegment, far_code_7686) == 0x7686);
-static_assert(offsetof(DataSegment, bytes_768a) == 0x768a);
-static_assert(offsetof(DataSegment, far_text_768e) == 0x768e);
-static_assert(offsetof(DataSegment, far_code_7692) == 0x7692);
-static_assert(offsetof(DataSegment, bytes_7696) == 0x7696);
-static_assert(offsetof(DataSegment, far_text_769a) == 0x769a);
-static_assert(offsetof(DataSegment, words_769e) == 0x769e);
-static_assert(offsetof(DataSegment, far_text_76a6) == 0x76a6);
-static_assert(offsetof(DataSegment, words_76aa) == 0x76aa);
-static_assert(offsetof(DataSegment, far_text_76b2) == 0x76b2);
-static_assert(offsetof(DataSegment, far_code_76b6) == 0x76b6);
-static_assert(offsetof(DataSegment, bytes_76ba) == 0x76ba);
-static_assert(offsetof(DataSegment, far_text_76be) == 0x76be);
-static_assert(offsetof(DataSegment, words_76c2) == 0x76c2);
-static_assert(offsetof(DataSegment, far_text_76ca) == 0x76ca);
-static_assert(offsetof(DataSegment, words_76ce) == 0x76ce);
-static_assert(offsetof(DataSegment, far_text_76d6) == 0x76d6);
-static_assert(offsetof(DataSegment, far_code_76da) == 0x76da);
-static_assert(offsetof(DataSegment, bytes_76de) == 0x76de);
-static_assert(offsetof(DataSegment, far_text_76e2) == 0x76e2);
-static_assert(offsetof(DataSegment, far_code_76e6) == 0x76e6);
-static_assert(offsetof(DataSegment, bytes_76ea) == 0x76ea);
-static_assert(offsetof(DataSegment, far_text_76ee) == 0x76ee);
-static_assert(offsetof(DataSegment, far_code_76f2) == 0x76f2);
-static_assert(offsetof(DataSegment, bytes_76f6) == 0x76f6);
-static_assert(offsetof(DataSegment, far_text_76fa) == 0x76fa);
-static_assert(offsetof(DataSegment, far_code_76fe) == 0x76fe);
-static_assert(offsetof(DataSegment, bytes_7702) == 0x7702);
-static_assert(offsetof(DataSegment, far_text_7706) == 0x7706);
-static_assert(offsetof(DataSegment, far_code_770a) == 0x770a);
-static_assert(offsetof(DataSegment, bytes_770e) == 0x770e);
-static_assert(offsetof(DataSegment, far_text_7712) == 0x7712);
-static_assert(offsetof(DataSegment, far_code_7716) == 0x7716);
-static_assert(offsetof(DataSegment, bytes_771a) == 0x771a);
-static_assert(offsetof(DataSegment, far_text_771e) == 0x771e);
-static_assert(offsetof(DataSegment, far_code_7722) == 0x7722);
-static_assert(offsetof(DataSegment, bytes_7726) == 0x7726);
-static_assert(offsetof(DataSegment, far_text_772a) == 0x772a);
-static_assert(offsetof(DataSegment, far_code_772e) == 0x772e);
-static_assert(offsetof(DataSegment, bytes_7732) == 0x7732);
-static_assert(offsetof(DataSegment, far_text_7736) == 0x7736);
-static_assert(offsetof(DataSegment, words_773a) == 0x773a);
-static_assert(offsetof(DataSegment, far_text_7742) == 0x7742);
-static_assert(offsetof(DataSegment, words_7746) == 0x7746);
-static_assert(offsetof(DataSegment, far_text_774e) == 0x774e);
-static_assert(offsetof(DataSegment, words_7752) == 0x7752);
-static_assert(offsetof(DataSegment, far_text_775a) == 0x775a);
-static_assert(offsetof(DataSegment, bytes_775e) == 0x775e);
-static_assert(offsetof(DataSegment, far_text_7766) == 0x7766);
-static_assert(offsetof(DataSegment, far_code_776a) == 0x776a);
-static_assert(offsetof(DataSegment, bytes_776e) == 0x776e);
-static_assert(offsetof(DataSegment, far_text_7772) == 0x7772);
-static_assert(offsetof(DataSegment, bytes_7776) == 0x7776);
-static_assert(offsetof(DataSegment, far_text_777e) == 0x777e);
-static_assert(offsetof(DataSegment, bytes_7782) == 0x7782);
-static_assert(offsetof(DataSegment, far_text_778a) == 0x778a);
-static_assert(offsetof(DataSegment, words_778e) == 0x778e);
-static_assert(offsetof(DataSegment, far_text_7796) == 0x7796);
-static_assert(offsetof(DataSegment, bytes_779a) == 0x779a);
-static_assert(offsetof(DataSegment, far_text_77a2) == 0x77a2);
-static_assert(offsetof(DataSegment, words_77a6) == 0x77a6);
-static_assert(offsetof(DataSegment, far_text_77ae) == 0x77ae);
-static_assert(offsetof(DataSegment, words_77b2) == 0x77b2);
-static_assert(offsetof(DataSegment, far_text_77ba) == 0x77ba);
-static_assert(offsetof(DataSegment, far_code_77be) == 0x77be);
-static_assert(offsetof(DataSegment, bytes_77c2) == 0x77c2);
-static_assert(offsetof(DataSegment, far_text_77c6) == 0x77c6);
-static_assert(offsetof(DataSegment, far_code_77ca) == 0x77ca);
-static_assert(offsetof(DataSegment, bytes_77ce) == 0x77ce);
-static_assert(offsetof(DataSegment, far_text_77d2) == 0x77d2);
-static_assert(offsetof(DataSegment, words_77d6) == 0x77d6);
-static_assert(offsetof(DataSegment, far_text_77de) == 0x77de);
-static_assert(offsetof(DataSegment, far_code_77e2) == 0x77e2);
-static_assert(offsetof(DataSegment, bytes_77e6) == 0x77e6);
-static_assert(offsetof(DataSegment, far_text_77ea) == 0x77ea);
-static_assert(offsetof(DataSegment, bytes_77ee) == 0x77ee);
-static_assert(offsetof(DataSegment, far_text_77f6) == 0x77f6);
-static_assert(offsetof(DataSegment, words_77fa) == 0x77fa);
-static_assert(offsetof(DataSegment, far_text_7802) == 0x7802);
-static_assert(offsetof(DataSegment, far_code_7806) == 0x7806);
-static_assert(offsetof(DataSegment, bytes_780a) == 0x780a);
-static_assert(offsetof(DataSegment, far_text_780e) == 0x780e);
-static_assert(offsetof(DataSegment, far_code_7812) == 0x7812);
-static_assert(offsetof(DataSegment, bytes_7816) == 0x7816);
-static_assert(offsetof(DataSegment, far_text_781a) == 0x781a);
-static_assert(offsetof(DataSegment, words_781e) == 0x781e);
-static_assert(offsetof(DataSegment, far_text_7826) == 0x7826);
-static_assert(offsetof(DataSegment, bytes_782a) == 0x782a);
-static_assert(offsetof(DataSegment, far_text_7832) == 0x7832);
-static_assert(offsetof(DataSegment, far_code_7836) == 0x7836);
-static_assert(offsetof(DataSegment, bytes_783a) == 0x783a);
-static_assert(offsetof(DataSegment, far_text_783e) == 0x783e);
-static_assert(offsetof(DataSegment, words_7842) == 0x7842);
-static_assert(offsetof(DataSegment, far_text_784a) == 0x784a);
-static_assert(offsetof(DataSegment, words_784e) == 0x784e);
-static_assert(offsetof(DataSegment, far_text_7856) == 0x7856);
-static_assert(offsetof(DataSegment, far_code_785a) == 0x785a);
-static_assert(offsetof(DataSegment, bytes_785e) == 0x785e);
-static_assert(offsetof(DataSegment, far_text_7862) == 0x7862);
-static_assert(offsetof(DataSegment, far_code_7866) == 0x7866);
-static_assert(offsetof(DataSegment, bytes_786a) == 0x786a);
-static_assert(offsetof(DataSegment, far_text_786e) == 0x786e);
-static_assert(offsetof(DataSegment, far_code_7872) == 0x7872);
-static_assert(offsetof(DataSegment, bytes_7876) == 0x7876);
-static_assert(offsetof(DataSegment, far_text_787a) == 0x787a);
-static_assert(offsetof(DataSegment, far_code_787e) == 0x787e);
-static_assert(offsetof(DataSegment, bytes_7882) == 0x7882);
-static_assert(offsetof(DataSegment, far_text_7886) == 0x7886);
-static_assert(offsetof(DataSegment, far_code_788a) == 0x788a);
-static_assert(offsetof(DataSegment, bytes_788e) == 0x788e);
-static_assert(offsetof(DataSegment, far_text_7892) == 0x7892);
-static_assert(offsetof(DataSegment, words_7896) == 0x7896);
-static_assert(offsetof(DataSegment, far_text_789e) == 0x789e);
-static_assert(offsetof(DataSegment, words_78a2) == 0x78a2);
-static_assert(offsetof(DataSegment, far_text_78aa) == 0x78aa);
-static_assert(offsetof(DataSegment, bytes_78ae) == 0x78ae);
-static_assert(offsetof(DataSegment, far_text_78b6) == 0x78b6);
-static_assert(offsetof(DataSegment, words_78ba) == 0x78ba);
-static_assert(offsetof(DataSegment, far_text_78c2) == 0x78c2);
-static_assert(offsetof(DataSegment, bytes_78c6) == 0x78c6);
-static_assert(offsetof(DataSegment, far_text_78ce) == 0x78ce);
-static_assert(offsetof(DataSegment, words_78d2) == 0x78d2);
-static_assert(offsetof(DataSegment, far_text_78da) == 0x78da);
-static_assert(offsetof(DataSegment, words_78de) == 0x78de);
-static_assert(offsetof(DataSegment, far_text_78e6) == 0x78e6);
-static_assert(offsetof(DataSegment, words_78ea) == 0x78ea);
-static_assert(offsetof(DataSegment, far_text_78f2) == 0x78f2);
-static_assert(offsetof(DataSegment, far_code_78f6) == 0x78f6);
-static_assert(offsetof(DataSegment, bytes_78fa) == 0x78fa);
-static_assert(offsetof(DataSegment, far_text_78fe) == 0x78fe);
-static_assert(offsetof(DataSegment, bytes_7902) == 0x7902);
-static_assert(offsetof(DataSegment, far_text_790a) == 0x790a);
-static_assert(offsetof(DataSegment, words_790e) == 0x790e);
-static_assert(offsetof(DataSegment, far_text_7916) == 0x7916);
-static_assert(offsetof(DataSegment, far_code_791a) == 0x791a);
-static_assert(offsetof(DataSegment, bytes_791e) == 0x791e);
-static_assert(offsetof(DataSegment, far_text_7922) == 0x7922);
-static_assert(offsetof(DataSegment, far_code_7926) == 0x7926);
-static_assert(offsetof(DataSegment, bytes_792a) == 0x792a);
-static_assert(offsetof(DataSegment, far_text_792e) == 0x792e);
-static_assert(offsetof(DataSegment, words_7932) == 0x7932);
-static_assert(offsetof(DataSegment, far_text_793a) == 0x793a);
-static_assert(offsetof(DataSegment, far_code_793e) == 0x793e);
-static_assert(offsetof(DataSegment, bytes_7942) == 0x7942);
-static_assert(offsetof(DataSegment, far_text_7946) == 0x7946);
-static_assert(offsetof(DataSegment, bytes_794a) == 0x794a);
-static_assert(offsetof(DataSegment, far_text_7952) == 0x7952);
-static_assert(offsetof(DataSegment, words_7956) == 0x7956);
-static_assert(offsetof(DataSegment, far_text_795e) == 0x795e);
-static_assert(offsetof(DataSegment, words_7962) == 0x7962);
-static_assert(offsetof(DataSegment, far_text_796a) == 0x796a);
-static_assert(offsetof(DataSegment, words_796e) == 0x796e);
-static_assert(offsetof(DataSegment, far_text_7976) == 0x7976);
-static_assert(offsetof(DataSegment, far_code_797a) == 0x797a);
-static_assert(offsetof(DataSegment, bytes_797e) == 0x797e);
-static_assert(offsetof(DataSegment, far_text_7982) == 0x7982);
-static_assert(offsetof(DataSegment, far_code_7986) == 0x7986);
-static_assert(offsetof(DataSegment, bytes_798a) == 0x798a);
-static_assert(offsetof(DataSegment, far_text_798e) == 0x798e);
-static_assert(offsetof(DataSegment, words_7992) == 0x7992);
-static_assert(offsetof(DataSegment, far_text_799a) == 0x799a);
-static_assert(offsetof(DataSegment, words_799e) == 0x799e);
+static_assert(offsetof(DataSegment, noon_speeches) == 0x73cc);
+static_assert(offsetof(DataSegment, noon_news_end) == 0x7490);
+static_assert(offsetof(DataSegment, noon_events) == 0x7494);
 static_assert(offsetof(DataSegment, mission_enemy_text) == 0x79b0);
 static_assert(offsetof(DataSegment, mission_empty_text) == 0x79b7);
 static_assert(offsetof(DataSegment, raid_attempt_text) == 0x79b8);
@@ -4707,21 +4093,21 @@ static_assert(offsetof(DataSegment, mission_handlers) == 0x7a54);
 static_assert(offsetof(DataSegment, month_climate) == 0x7a73);
 static_assert(offsetof(DataSegment, air_postponed_text) == 0x7a80);
 static_assert(offsetof(DataSegment, air_canceled_text) == 0x7aba);
-static_assert(offsetof(DataSegment, air_text_7b0a) == 0x7b0a);
-static_assert(offsetof(DataSegment, air_text_7b28) == 0x7b28);
-static_assert(offsetof(DataSegment, air_text_7b33) == 0x7b33);
-static_assert(offsetof(DataSegment, air_text_7b49) == 0x7b49);
-static_assert(offsetof(DataSegment, air_text_7b67) == 0x7b67);
+static_assert(offsetof(DataSegment, air_destroyed_format) == 0x7b0a);
+static_assert(offsetof(DataSegment, air_strike_name) == 0x7b28);
+static_assert(offsetof(DataSegment, air_strike_begin) == 0x7b33);
+static_assert(offsetof(DataSegment, air_strike_spotted) == 0x7b49);
+static_assert(offsetof(DataSegment, air_bombers_name) == 0x7b67);
 static_assert(offsetof(DataSegment, paratroop_drop_name) == 0x7b6f);
 static_assert(offsetof(DataSegment, paratroop_drop_begin) == 0x7b7e);
 static_assert(offsetof(DataSegment, paratroop_drop_spotted) == 0x7b90);
 static_assert(offsetof(DataSegment, paratroop_planes_name) == 0x7ba9);
-static_assert(offsetof(DataSegment, air_text_7bb4) == 0x7bb4);
-static_assert(offsetof(DataSegment, air_text_7bbf) == 0x7bbf);
-static_assert(offsetof(DataSegment, air_text_7bd2) == 0x7bd2);
-static_assert(offsetof(DataSegment, air_text_7bec) == 0x7bec);
-static_assert(offsetof(DataSegment, air_text_7bf9) == 0x7bf9);
-static_assert(offsetof(DataSegment, air_text_7c2f) == 0x7c2f);
+static_assert(offsetof(DataSegment, cargo_drop_name) == 0x7bb4);
+static_assert(offsetof(DataSegment, cargo_drop_begin) == 0x7bbf);
+static_assert(offsetof(DataSegment, cargo_drop_spotted) == 0x7bd2);
+static_assert(offsetof(DataSegment, cargo_planes_name) == 0x7bec);
+static_assert(offsetof(DataSegment, cargo_unit_report) == 0x7bf9);
+static_assert(offsetof(DataSegment, cargo_city_report) == 0x7c2f);
 static_assert(offsetof(DataSegment, unknown_7c65) == 0x7c65);
 static_assert(offsetof(DataSegment, visit_format) == 0x7c66);
 static_assert(offsetof(DataSegment, text_7c7f) == 0x7c7f);
@@ -4730,13 +4116,12 @@ static_assert(offsetof(DataSegment, unknown_7c8f) == 0x7c8f);
 static_assert(offsetof(DataSegment, hurricane_words) == 0x7c90);
 static_assert(offsetof(DataSegment, text_7c9e) == 0x7c9e);
 static_assert(offsetof(DataSegment, partisan_words) == 0x7ca4);
+static_assert(offsetof(DataSegment, unknown_7ca8) == 0x7ca8);
 static_assert(offsetof(DataSegment, text_7cb1) == 0x7cb1);
 static_assert(offsetof(DataSegment, resistance_names) == 0x7cbc);
 static_assert(offsetof(DataSegment, angel_name) == 0x7cc0);
 static_assert(offsetof(DataSegment, angel_format) == 0x7cdd);
 static_assert(offsetof(DataSegment, angel_actions) == 0x7cec);
-static_assert(offsetof(DataSegment, far_code_7cf0) == 0x7cf0);
-static_assert(offsetof(DataSegment, far_code_7cf4) == 0x7cf4);
 static_assert(offsetof(DataSegment, spy_name_format) == 0x7cf8);
 static_assert(offsetof(DataSegment, spy_laugh_text) == 0x7d07);
 static_assert(offsetof(DataSegment, spy_move_text) == 0x7d1a);
@@ -4848,10 +4233,10 @@ static_assert(offsetof(DataSegment, unknown_8509) == 0x8509);
 static_assert(offsetof(DataSegment, category_columns) == 0x850a);
 static_assert(offsetof(DataSegment, ai_categories) == 0x8512);
 static_assert(offsetof(DataSegment, target_text) == 0x8518);
-static_assert(offsetof(DataSegment, text_852b) == 0x852b);
-static_assert(offsetof(DataSegment, text_8532) == 0x8532);
-static_assert(offsetof(DataSegment, text_8539) == 0x8539);
-static_assert(offsetof(DataSegment, text_854a) == 0x854a);
+static_assert(offsetof(DataSegment, target_two_line_format) == 0x852b);
+static_assert(offsetof(DataSegment, target_one_line_format) == 0x8532);
+static_assert(offsetof(DataSegment, target_cell_format) == 0x8539);
+static_assert(offsetof(DataSegment, target_cancel_text) == 0x854a);
 static_assert(offsetof(DataSegment, cancel_orders_prompt) == 0x8569);
 static_assert(offsetof(DataSegment, text_8578) == 0x8578);
 static_assert(offsetof(DataSegment, text_8580) == 0x8580);
@@ -4950,25 +4335,6 @@ static_assert(offsetof(DataSegment, unknown_8f6b) == 0x8f6b);
 static_assert(offsetof(DataSegment, personnel_actions) == 0x8f6c);
 static_assert(offsetof(DataSegment, personnel_menu) == 0x8f78);
 static_assert(offsetof(DataSegment, advice_tips) == 0x8fa8);
-static_assert(offsetof(DataSegment, far_text_8fac) == 0x8fac);
-static_assert(offsetof(DataSegment, far_text_8fb0) == 0x8fb0);
-static_assert(offsetof(DataSegment, far_text_8fb4) == 0x8fb4);
-static_assert(offsetof(DataSegment, far_text_8fb8) == 0x8fb8);
-static_assert(offsetof(DataSegment, far_text_8fbc) == 0x8fbc);
-static_assert(offsetof(DataSegment, far_text_8fc0) == 0x8fc0);
-static_assert(offsetof(DataSegment, far_text_8fc4) == 0x8fc4);
-static_assert(offsetof(DataSegment, far_text_8fc8) == 0x8fc8);
-static_assert(offsetof(DataSegment, far_text_8fcc) == 0x8fcc);
-static_assert(offsetof(DataSegment, far_text_8fd0) == 0x8fd0);
-static_assert(offsetof(DataSegment, far_text_8fd4) == 0x8fd4);
-static_assert(offsetof(DataSegment, far_text_8fd8) == 0x8fd8);
-static_assert(offsetof(DataSegment, far_text_8fdc) == 0x8fdc);
-static_assert(offsetof(DataSegment, far_text_8fe0) == 0x8fe0);
-static_assert(offsetof(DataSegment, far_text_8fe4) == 0x8fe4);
-static_assert(offsetof(DataSegment, far_text_8fe8) == 0x8fe8);
-static_assert(offsetof(DataSegment, far_text_8fec) == 0x8fec);
-static_assert(offsetof(DataSegment, far_text_8ff0) == 0x8ff0);
-static_assert(offsetof(DataSegment, far_text_8ff4) == 0x8ff4);
 static_assert(offsetof(DataSegment, text_8ff8) == 0x8ff8);
 static_assert(offsetof(DataSegment, text_9008) == 0x9008);
 static_assert(offsetof(DataSegment, text_9018) == 0x9018);
@@ -5246,21 +4612,21 @@ static_assert(offsetof(DataSegment, air_understood) == 0xa07f);
 static_assert(offsetof(DataSegment, text_a098) == 0xa098);
 static_assert(offsetof(DataSegment, text_a0a9) == 0xa0a9);
 static_assert(offsetof(DataSegment, text_a0ba) == 0xa0ba);
-static_assert(offsetof(DataSegment, air_plane_a0c5) == 0xa0c5);
-static_assert(offsetof(DataSegment, air_planes_a0cb) == 0xa0cb);
-static_assert(offsetof(DataSegment, air_hour_a0d2) == 0xa0d2);
-static_assert(offsetof(DataSegment, air_hours_a0d7) == 0xa0d7);
+static_assert(offsetof(DataSegment, air_plane) == 0xa0c5);
+static_assert(offsetof(DataSegment, air_planes) == 0xa0cb);
+static_assert(offsetof(DataSegment, air_hour) == 0xa0d2);
+static_assert(offsetof(DataSegment, air_hours) == 0xa0d7);
 static_assert(offsetof(DataSegment, unknown_a0dd) == 0xa0dd);
-static_assert(offsetof(DataSegment, near_a0e4) == 0xa0e4);
-static_assert(offsetof(DataSegment, near_a0e6) == 0xa0e6);
-static_assert(offsetof(DataSegment, near_a0e8) == 0xa0e8);
+static_assert(offsetof(DataSegment, bombing_flights) == 0xa0de);
+static_assert(offsetof(DataSegment, bombing_names) == 0xa0e4);
 static_assert(offsetof(DataSegment, bytes_a0ea) == 0xa0ea);
 static_assert(offsetof(DataSegment, text_a108) == 0xa108);
 static_assert(offsetof(DataSegment, text_a125) == 0xa125);
-static_assert(offsetof(DataSegment, text_a142) == 0xa142);
-static_assert(offsetof(DataSegment, text_a14c) == 0xa14c);
-static_assert(offsetof(DataSegment, text_a15b) == 0xa15b);
+static_assert(offsetof(DataSegment, air_null_order) == 0xa142);
+static_assert(offsetof(DataSegment, bombing_title) == 0xa14c);
+static_assert(offsetof(DataSegment, bombing_site_prompt) == 0xa15b);
 static_assert(offsetof(DataSegment, unknown_a171) == 0xa171);
+static_assert(offsetof(DataSegment, bombing_menu) == 0xa172);
 static_assert(offsetof(DataSegment, near_a186) == 0xa186);
 static_assert(offsetof(DataSegment, words_a188) == 0xa188);
 static_assert(offsetof(DataSegment, near_a192) == 0xa192);
@@ -5345,8 +4711,6 @@ static_assert(offsetof(DataSegment, cut_comm_refusal_4) == 0xa998);
 static_assert(offsetof(DataSegment, cut_comm_hour) == 0xa9cd);
 static_assert(offsetof(DataSegment, cut_comm_hours) == 0xa9d2);
 static_assert(offsetof(DataSegment, cut_comm_duration) == 0xa9d8);
-using detail::data_segment::AirLift;
-using detail::data_segment::BombingFlight;
 static_assert(offsetof(DataSegment, cut_comm_lieutenant) == 0xaa08);
 static_assert(offsetof(DataSegment, assassinate_title) == 0xaa35);
 static_assert(offsetof(DataSegment, assassinate_prompt) == 0xaa40);
@@ -5981,6 +5345,8 @@ template <typename T>
 
 namespace opeu::game {
 using detail::data_segment::AirDrop;
+using detail::data_segment::AirLift;
+using detail::data_segment::BombingFlight;
 using detail::data_segment::Assignment;
 using detail::data_segment::PERSON_VACANT;
 using detail::data_segment::RequestKind;
@@ -6019,6 +5385,7 @@ using detail::data_segment::Objective;
 using detail::data_segment::OBJECTIVE_COUNT;
 using detail::data_segment::ObjectiveFlag;
 using detail::data_segment::OBJECTIVES_AT;
+using detail::data_segment::NoonEvent;
 using detail::data_segment::Order;
 using detail::data_segment::PEOPLE_AT;
 using detail::data_segment::PEOPLE_PER_SIDE;
@@ -6039,6 +5406,7 @@ using detail::data_segment::SaveSlot;
 using detail::data_segment::OrderPrompts;
 using detail::data_segment::ScreenPoint;
 using detail::data_segment::Side;
+using detail::data_segment::ScheduleFlag;
 using detail::data_segment::SideFlag;
 using detail::data_segment::Stance;
 using detail::data_segment::SIDE_PLAYED;
