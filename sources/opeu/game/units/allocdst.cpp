@@ -5,6 +5,7 @@
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/allocpnl.hpp"
 
@@ -175,7 +176,7 @@ uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) 
     port_stack_leave(SUPPLY_FRAME);
     break;
   case 7:  r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 8:  r = lf_request_format(ds, args, count); break;
+  case 8:  opeu_request_format(ds, { args, count }); break;
   case 9:  opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
   case 10: r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case 11: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;

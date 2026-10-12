@@ -9,6 +9,7 @@
 #include "core/numeric.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/unitname.hpp"
 #include "units/value.hpp"
@@ -142,7 +143,7 @@ uint8_t opeu_tally_units(uint8_t ds[65536], HostEvent event, uint16_t unit, uint
 uint16_t svc_tally(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case 2:  r = lf_request_format(ds, args, count); break;
+  case 2:  opeu_request_format(ds, { args, count }); break;
   default: port_unhandled("tally", id, count);
   }
   return r;

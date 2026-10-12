@@ -29,21 +29,8 @@ using opeu::game::Near;
 constexpr std::uint16_t AIR_FRAME{ 0x200 };      // air modules: objective_damage's buffers and its callees
 constexpr std::uint16_t BATTLE_RESERVE{ 0x200 }; // battle: deepest buffers and nested frames stay below 0x180
 constexpr std::uint16_t MAP_FRAME{ 0x300 };      // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
-constexpr std::uint16_t UNITS_FRAME{ 0x200 };    // units: locals plus internal frames
-constexpr std::uint16_t KEY_SCRATCH{ 16 };       // keyboard prompts: the caller's 16-byte scratch area
 constexpr std::uint16_t CLOSING_BUFFER{ 100 };   // briefings: the closing-text buffer
 } // namespace
-
-uint16_t a_push_words(const uint16_t* args, unsigned count) {
-  uint16_t at = (uint16_t)(port_stack_enter((uint16_t)(2 * count)) - 2 * count);
-  unsigned i;
-  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
-  return at;
-}
-
-void a_pop_words(unsigned count) {
-  port_stack_leave((uint16_t)(2 * count));
-}
 
 uint16_t b1_stack_alloc(uint16_t n) {
   return (uint16_t)(port_stack_enter(n) - n);
@@ -100,149 +87,6 @@ uint16_t map_frame_enter(void) {
 
 void map_frame_leave(void) {
   port_stack_leave(MAP_FRAME);
-}
-
-uint16_t b1_push_words(const uint16_t* args, unsigned count) {
-  uint16_t at = b1_stack_alloc((uint16_t)(2 * count));
-  unsigned i;
-  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
-  return at;
-}
-
-/* ---- variadic text routines ------------------------------------------------ *
- * request_format (sprintf) and cursor_print (army_print, context_print,
- * turn_label) read the pushed argument words at the DS offset `frame`, first
- * word at the lowest address. The conventions differ in the reserve and in
- * whether the words sit at the reserved base or at SP+4. */
-
-typedef void (*TextFrameRoutine)(uint8_t* ds, TextHost* host, uint16_t frame);
-
-void a_cursor_print(uint8_t* ds, const uint16_t* words, unsigned count) {
-  uint16_t frame = a_push_words(words, count);
-  opeu_cursor_print(ds, (TextHost*)port_textout_host(), frame);
-  a_pop_words(count);
-}
-
-void b1_cursor_print(uint8_t* ds, const uint16_t* args, unsigned count) {
-  uint16_t frame = b1_push_words(args, count);
-  opeu_cursor_print(ds, (TextHost*)port_textout_host(), frame);
-  port_scratch_leave((uint16_t)(2 * count));
-}
-
-void b1_request_format(uint8_t* ds, const uint16_t* args, unsigned count) {
-  uint16_t frame = b1_push_words(args, count);
-  opeu_request_format(ds, (TextHost*)port_textout_host(), frame);
-  port_scratch_leave((uint16_t)(2 * count));
-}
-
-/* words at the reserved base */
-static void b2_frame_call(uint8_t* ds, TextFrameRoutine routine, const uint16_t* words, unsigned n) {
-  uint16_t bytes = (uint16_t)(2u * n), frame;
-  unsigned i;
-  frame = (uint16_t)(port_stack_enter(bytes) - bytes);
-  for (i = 0; i < n; ++i) {
-    ds[(uint16_t)(frame + 2u * i)]      = (uint8_t)words[i];
-    ds[(uint16_t)(frame + 2u * i + 1u)] = (uint8_t)(words[i] >> 8);
-  }
-  routine(ds, (TextHost*)port_textout_host(), frame);
-  port_stack_leave(bytes);
-}
-
-void b2_request_format(uint8_t* ds, const uint16_t* words, unsigned n) {
-  b2_frame_call(ds, opeu_request_format, words, n);
-}
-
-void b2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
-  b2_frame_call(ds, opeu_cursor_print, words, n);
-}
-
-/* words at SP+4 of `bytes` reserved (c1_, c2_ and map_ conventions) */
-static void sp4_frame_call(uint8_t* ds, TextFrameRoutine routine, const uint16_t* words, unsigned n, uint16_t bytes) {
-  uint16_t frame;
-  unsigned i;
-  port_stack_enter(bytes);
-  frame = (uint16_t)(port_sp + 4u);
-  for (i = 0; i < n; ++i) {
-    ds[(uint16_t)(frame + 2u * i)]      = (uint8_t)words[i];
-    ds[(uint16_t)(frame + 2u * i + 1u)] = (uint8_t)(words[i] >> 8);
-  }
-  routine(ds, (TextHost*)port_textout_host(), frame);
-  port_stack_leave(bytes);
-}
-
-void c1_request_format(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_request_format, words, n, (uint16_t)(2u * n));
-}
-
-void c1_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_cursor_print, words, n, (uint16_t)(2u * n));
-}
-
-void c2_request_format(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_request_format, words, n, (uint16_t)(2u * n));
-}
-
-void c2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_cursor_print, words, n, (uint16_t)(2u * n));
-}
-
-void map_request_format(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_request_format, words, n, (uint16_t)(2u * n));
-}
-
-void map_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
-  sp4_frame_call(ds, opeu_cursor_print, words, n, (uint16_t)(2u * n));
-}
-
-/* battle: one extra word reserved */
-void btl_frame_call(uint8_t* ds, BtlFrameRoutine routine, const uint16_t* words, unsigned n) {
-  uint16_t bytes = (uint16_t)(2u * n + 2u), frame;
-  unsigned i;
-  port_stack_enter(bytes);
-  frame = (uint16_t)(port_sp + 4u);
-  for (i = 0; i < n; ++i) {
-    ds[(uint16_t)(frame + 2u * i)]      = (uint8_t)words[i];
-    ds[(uint16_t)(frame + 2u * i + 1u)] = (uint8_t)(words[i] >> 8);
-  }
-  routine(ds, port_textout_host(), frame);
-  port_stack_leave(bytes);
-}
-
-static void btl_text_request_format(uint8_t* ds, void* host, uint16_t frame) {
-  opeu_request_format(ds, (TextHost*)host, frame);
-}
-
-static void btl_text_cursor_print(uint8_t* ds, void* host, uint16_t frame) {
-  opeu_cursor_print(ds, (TextHost*)host, frame);
-}
-
-void btl_request_format(uint8_t* ds, const uint16_t* words, unsigned n) {
-  btl_frame_call(ds, btl_text_request_format, words, n);
-}
-
-void btl_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
-  btl_frame_call(ds, btl_text_cursor_print, words, n);
-}
-
-/* units: the words just below the entry SP of LF_FRAME + 2n reserved */
-uint16_t lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count) {
-  uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
-  uint16_t at = (uint16_t)(sp - 2u * count);
-  uint16_t i;
-  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
-  opeu_request_format(ds, (TextHost*)port_textout_host(), at);
-  port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
-  return 0;
-}
-
-uint16_t lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count) {
-  uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
-  uint16_t at = (uint16_t)(sp - 2u * count);
-  uint16_t i;
-  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
-  opeu_cursor_print(ds, (TextHost*)port_textout_host(), at);
-  port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
-  return 0;
 }
 
 /* ---- C runtime random state ------------------------------------------------ *
@@ -344,24 +188,15 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
 /* ---- keyboard prompts ----------------------------------------------------------- */
 
 uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
-  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
-  r          = opeu_prompt_value_cancel(ds, svc_keyboard, text, max, items, s);
-  port_scratch_leave(KEY_SCRATCH);
-  return r;
+  return opeu_prompt_value_cancel(ds, svc_keyboard, text, max, items);
 }
 
 uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
-  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
-  r          = opeu_prompt_value_required(ds, svc_keyboard, text, max, items, s);
-  port_scratch_leave(KEY_SCRATCH);
-  return r;
+  return opeu_prompt_value_required(ds, svc_keyboard, text, max, items);
 }
 
 uint16_t port_prompt_yes_no(uint8_t* ds, uint16_t text) {
-  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
-  r          = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, text, s);
-  port_scratch_leave(KEY_SCRATCH);
-  return r;
+  return (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, text);
 }
 
 /* ---- LOADSCEN ------------------------------------------------------------------- *

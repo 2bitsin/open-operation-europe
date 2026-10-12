@@ -192,13 +192,13 @@ uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   switch (id) {
   case PANEL: opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case FRAME: opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case PRINT: c1_cursor_print(ds, args, count); break;
+  case PRINT: opeu_cursor_print(ds, { args, count }); break;
   case SEEK:  result = static_cast<uint16_t>(opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3))); break;
   case DRAW:
     opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
     break;
   case LOOKUP:   result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:   c1_request_format(ds, args, count); break;
+  case FORMAT:   opeu_request_format(ds, { args, count }); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case TEXT:     opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case LOCATION: {

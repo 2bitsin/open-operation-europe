@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "core/chief.hpp"
@@ -293,7 +294,7 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   switch (static_cast<Service>(id)) {
   case Service::CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case Service::CONTROL_RESET:   opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
-  case Service::FORMAT:          r = lf_request_format(ds, args, count); break;
+  case Service::FORMAT:          opeu_request_format(ds, { args, count }); break;
   case Service::CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::CONTROL_CONFIRM: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;

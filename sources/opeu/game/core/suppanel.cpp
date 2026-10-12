@@ -134,13 +134,11 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
   case INPUT_DELAY:    opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
   case MOUSE_POSITION: {
-    // The mouse routine writes x and y to two words on the DS stack; they go back to the caller's words.
-    auto const at{ static_cast<std::uint16_t>(port_stack_enter(4) - 4) };
+    // x and y go back to the caller's words.
     auto*      out{ const_cast<std::uint16_t*>(args) };
-    opeu_mouse_position(ds, svc_mouse, at, static_cast<std::uint16_t>(at + 2));
-    out[0] = port_ds_word(at);
-    out[1] = port_ds_word(static_cast<std::uint16_t>(at + 2));
-    port_stack_leave(4);
+    auto const position{ MousePosition(ds, svc_mouse) };
+    out[0] = position.x;
+    out[1] = position.y;
     break;
   }
   case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(ds, svc_mouse)); break;
@@ -149,7 +147,7 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case KEY:        r = opeu_keyboard_key(ds, svc_keyboard); break;
   case RESTORE: opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
   default:       port_unhandled("suppanel", id, count);
   }

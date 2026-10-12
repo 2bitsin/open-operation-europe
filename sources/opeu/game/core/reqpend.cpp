@@ -3,6 +3,7 @@
 #include "common/events.hpp"
 #include "common/random.hpp"
 #include "core/reqcheck.hpp"
+#include "core/textout.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
 
@@ -109,7 +110,7 @@ uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t 
   case PendingService::MESSAGE_TEXT: r = opeu_message_lookup(ds, svc_msglook, (short)a); break;
   case PendingService::FORMAT:       {
     uint16_t const words[]{ a, b, c };
-    c2_request_format(ds, words, 3);
+    opeu_request_format(ds, { words, 3 });
     break;
   }
   case PendingService::MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), a, b); break;

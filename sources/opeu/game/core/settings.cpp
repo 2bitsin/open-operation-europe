@@ -110,7 +110,6 @@ constexpr auto MessageBuffer(uint16_t sp, uint16_t size) -> uint16_t {
 constexpr uint16_t OPTION_SP_DEPTH{ 14 };
 
 // The caller scratch area the yes/no prompt reads keys into.
-constexpr uint16_t KEY_SCRATCH{ 16 };
 
 // The slot records and saved blocks of the save file.
 constexpr uint16_t SLOT_BYTES{ sizeof(SaveSlot) };
@@ -453,8 +452,8 @@ void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0, f;
   switch (static_cast<SettingsService>(id)) {
-  case PRINT:   b1_cursor_print(ds, args, count); break;
-  case FORMAT:  b1_request_format(ds, args, count); break;
+  case PRINT:   opeu_cursor_print(ds, { args, count }); break;
+  case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case DIALOG:  r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case NUMBER:  r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
@@ -464,24 +463,20 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
-  case MUSIC_STOP:   opeu_music_stop(ds, svc_sound); break;
-  case PRE_CONTEXT:  opeu_turn_pre_context(ds, svc_context); break;
-  case SCREEN_RESET: opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
-  case ATTRIBUTE:    opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case DISK_RESET:   opeu_disk_reset(ds, svc_resopen); break;
-  case FRAMED:       r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case UI_TEXT:      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case UI_WAIT:      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case OPEN:         r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
-  case MENU_CHOOSE:  r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case OUTLINE:      opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case YES_NO:
-    f = b1_stack_alloc(KEY_SCRATCH);
-    r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0), f);
-    port_scratch_leave(KEY_SCRATCH);
-    break;
+  case MUSIC_STOP:      opeu_music_stop(ds, svc_sound); break;
+  case PRE_CONTEXT:     opeu_turn_pre_context(ds, svc_context); break;
+  case SCREEN_RESET:    opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
+  case ATTRIBUTE:       opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case DISK_RESET:      opeu_disk_reset(ds, svc_resopen); break;
+  case FRAMED:          r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case UI_TEXT:         opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case UI_WAIT:         opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case OPEN:            r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
+  case MENU_CHOOSE:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case OUTLINE:         opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case YES_NO:          r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0)); break;
   case ACTIVE_BEGIN:    opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case PALETTE_TITLE:   opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host()); break;
   case PALETTE_DEFAULT: opeu_palette_daylight(ds, (const UiHost*)port_uiprim_host()); break;

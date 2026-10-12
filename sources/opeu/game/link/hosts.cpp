@@ -10,22 +10,11 @@
 #include "core/uiprim.hpp"
 #include "io/numdlg.hpp"
 
-/* ---- TEXTOUT: TextHost {event, sp} ------------------------------------------ *
- * textout keeps its automatic buffers below host->sp (ENTER/LEAVE). The
- * getter hands out the instance with sp = port_sp, the modeled SP of the
- * caller; while textout calls out through an event, svc_textout lowers
- * port_sp to textout's current sp (see its prologue) so that nested callers
- * allocate below textout's live buffers. */
-static TextHost textout_host = { svc_textout, PORT_STACK_TOP };
+/* ---- TEXTOUT: TextHost {event} ------------------------------------------------ */
+static TextHost textout_host = { svc_textout };
 
 void* port_textout_host(void) {
-  textout_host.sp = port_sp;
   return &textout_host;
-}
-
-/* svc_textout saves and restores the host's sp around an event. */
-uint16_t* port_textout_host_sp(void) {
-  return &textout_host.sp;
 }
 
 /* ---- UIPRIM: UiHost {memory, ds_segment, tiles_segment, code_segment, event} - */

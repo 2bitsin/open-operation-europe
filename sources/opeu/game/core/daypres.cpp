@@ -2,6 +2,7 @@
 // ("... Tank." for tanks).
 #include "core/daypres.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -62,7 +63,7 @@ uint16_t svc_daypres(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   switch (id) {
   case WAIT:        opeu_request_wait(ds, svc_soundcue); break;
   case TYPE_PANEL:  opeu_element_type_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case FORMAT:      c1_request_format(ds, args, count); break;
+  case FORMAT:      opeu_request_format(ds, { args, count }); break;
   case SIDE_RECORD: r = opeu_find_side_record(ds, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
   case TEMPLATE:    r = opeu_find_person_template(ds, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
   case MESSAGE:     opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;

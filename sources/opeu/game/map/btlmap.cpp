@@ -232,7 +232,7 @@ uint16_t svc_btlmap(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case MapSetupService::TEXT_POSITION:     opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<short>(w(0)), static_cast<short>(w(1))); return 0;
   case MapSetupService::CONTEXT_FRAME:     opeu_context_frame(ds, static_cast<UiHost const*>(port_uiprim_host()), w(0), w(1), w(2)); return 0;
   case MapSetupService::TEXT:              opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), w(0)); return 0;
-  case MapSetupService::PRINT:             btl_cursor_print(ds, args, count); return 0;
+  case MapSetupService::PRINT:             opeu_cursor_print(ds, { args, count }); return 0;
   case MapSetupService::FIND_OBJECTIVE_AT: return opeu_find_objective_at(ds, byte(0), byte(1));
   case MapSetupService::VGA_CLEAR:         return static_cast<uint16_t>(opeu_vga_clear());
   case MapSetupService::PALETTE_TITLE:     opeu_palette_title_screen(ds, static_cast<UiHost const*>(port_uiprim_host())); return 0;

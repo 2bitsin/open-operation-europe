@@ -198,7 +198,7 @@ uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case TEXT_ATTRIBUTE: opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case TEXT_COLOR:     opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case POSITION:       opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:          r = lf_cursor_print(ds, args, count); break;
+  case PRINT:          opeu_cursor_print(ds, { args, count }); break;
   case SIDE_COLOR:     opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
   case TABLE_COLUMNS:
     r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t {

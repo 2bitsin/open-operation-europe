@@ -3,6 +3,7 @@
 #include "core/control1.hpp"
 #include "common/events.hpp"
 #include "core/context.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -108,7 +109,7 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     break;
   case SUMMARY: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); }); break;
   case ACTIVE:  opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case FORMAT:  b2_request_format(ds, args, count); break;
+  case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case MENU:
     result = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
                                  Arg(args, count, 5));

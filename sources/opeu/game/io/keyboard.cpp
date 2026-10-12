@@ -1,7 +1,6 @@
 // Keyboard waits, the blinking text cursor, decimal entry, value choice and yes/no prompts. The service is the shared
 // input service (io/input-call.hpp), which this module also passes to the mouse, menu and numeric dialog routines it
-// calls. `scratch` is a 16-byte DS area: the typed digits (scratch..+9) and the mouse x and y words (scratch+2 and
-// scratch).
+// calls.
 #include "io/keyboard.hpp"
 
 #include "common/data-segment.hpp"
@@ -20,6 +19,11 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
@@ -32,7 +36,7 @@ constexpr std::uint8_t LEFT_ARROW{ 0x1d };
 
 constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint16_t INVERT_MODE{ 0x107 };
-constexpr std::uint16_t SCRATCH_SIZE{ 0x10 };
+constexpr std::size_t   MAX_DIGITS{ 16 }; // the typed digits a decimal entry keeps
 
 // The pictures of the cursor and the yes/no pointer (data/fg3546): far segment and offsets.
 constexpr std::uint16_t POINTER_SEGMENT{ 0x3546 };
@@ -56,6 +60,11 @@ auto HookCursor(DataSegment& data) -> void {
 
 auto HookClear(DataSegment& data) -> void {
   data.idle_hook = {};
+}
+
+// The value of typed digits, in 32-bit unsigned arithmetic that wraps.
+auto DecimalValue(std::span<std::uint8_t const> digits) -> std::uint32_t {
+  return std::ranges::fold_left(digits, std::uint32_t{ 0 }, [](std::uint32_t value, std::uint8_t digit) { return value * 10 + (digit - '0'); });
 }
 
 // The idle hook: the cursor routine, another far routine, or nothing.
@@ -153,10 +162,11 @@ void opeu_wait_confirm(std::uint8_t* ds, HostService service, int pause) {
 
 // Reads up to `digits` digits with echo; DEL, BS and left erase, ENTER or ESC ends. Returns the value, or -1 when
 // nothing was typed.
-auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digits, std::uint16_t scratch) -> std::int32_t {
-  auto&        data{ Data(ds) };
-  auto         digit{ [&](std::uint8_t n) -> std::uint8_t& { return ds[static_cast<std::uint16_t>(scratch + n)]; } };
-  std::uint8_t typed{ 0 };
+auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digits) -> std::int32_t {
+  auto&                                data{ Data(ds) };
+  std::array<std::uint8_t, MAX_DIGITS> typed_digits{};
+  auto                                 digit{ [&](std::uint8_t n) -> std::uint8_t& { return typed_digits.at(n); } };
+  std::uint8_t                         typed{ 0 };
   for (;;) {
     HookCursor(data);
     std::uint8_t const key{ opeu_keyboard_key(ds, service) };
@@ -178,8 +188,7 @@ auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digi
         break;
       case ENTER:
       case ESCAPE:
-        digit(typed) = 0;
-        if (typed) return static_cast<std::int32_t>(opeu_parse_decimal(ds, scratch));
+        if (typed) return static_cast<std::int32_t>(DecimalValue(std::span{ typed_digits }.first(typed)));
         return -1;
       }
   }
@@ -189,13 +198,13 @@ auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digi
 // (unless max is 24): keypad 2/6 next (wrapping to min), 8/4 previous (wrapping to max), ENTER accepts, ESC or 0
 // cancel (0xffff). Otherwise decimal entry in a field max's digits wide, repeated until in range; an empty entry
 // cancels only when allowed.
-auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
   auto&        data{ Data(ds) };
   std::int32_t value;
   if (max < min) return 0;
   if (HasMouse(ds)) {
-    if (items) return opeu_menu_select(ds, service, items, cancel, scratch);
-    return opeu_numdlg_run(ds, service, min, max, cancel, scratch);
+    if (items) return opeu_menu_select(ds, service, items, cancel);
+    return opeu_numdlg_run(ds, service, min, max, cancel);
   }
   if (items && max != 24) {
     opeu_menu_draw(ds, service, items);
@@ -248,7 +257,7 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
       if (!(rest /= 10)) break;
     }
     while (start < TextX(ds)) Input(ds, service, InputCall::TEXT_BACKSPACE);
-    while ((value = opeu_read_decimal(ds, service, width, scratch)) < min || value > max) {
+    while ((value = opeu_read_decimal(ds, service, width)) < min || value > max) {
       if (value == -1 && cancel) {
         if (items) opeu_menu_restore(ds, service, items);
         return CANCELLED;
@@ -261,26 +270,24 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
 }
 
 // Prints the prompt `text`, then chooses.
-auto opeu_prompt_value(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_prompt_value(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
   auto const& data{ Data(ds) };
   Input(ds, service, InputCall::PRINT, Near(data, data.prompt_format), text);
-  return opeu_choose_value(ds, service, min, max, cancel, items, scratch);
+  return opeu_choose_value(ds, service, min, max, cancel, items);
 }
 
-auto opeu_prompt_value_cancel(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
-  return opeu_prompt_value(ds, service, text, 1, max, 1, items, scratch);
+auto opeu_prompt_value_cancel(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items) -> std::uint16_t {
+  return opeu_prompt_value(ds, service, text, 1, max, 1, items);
 }
 
-auto opeu_prompt_value_required(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
-  return opeu_prompt_value(ds, service, text, 1, max, 0, items, scratch);
+auto opeu_prompt_value_required(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items) -> std::uint16_t {
+  return opeu_prompt_value(ds, service, text, 1, max, 0, items);
 }
 
 // The yes/no pointer: limits the mouse, keeps the 5x48 graphics under it saved, draws the pointer when it moves; a
 // left press answers 'Y', a right press 'N'.
-auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scratch) -> std::uint8_t {
+auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service) -> std::uint8_t {
   auto&         data{ Data(ds) };
-  auto const    y_at{ scratch };
-  auto const    x_at{ static_cast<std::uint16_t>(scratch + 2) };
   std::uint16_t saved_column{ 0xffff }; // where the saved graphics are, in 8-pixel columns and pixels
   std::uint16_t saved_y{ 0xffff };
   std::uint16_t drawn_x{ 0xffff }; // where the pointer was drawn
@@ -289,9 +296,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scra
   opeu_input_reset(ds, service);
   opeu_mouse_window(ds, service, 0, 0, 599, 351);
   for (;;) {
-    opeu_mouse_position(ds, service, x_at, y_at);
-    auto const x{ Word(ds, x_at) };
-    auto const y{ Word(ds, y_at) };
+    auto const [x, y]{ MousePosition(ds, service) };
     if (saved_column != 0xffff && (x != drawn_x || y != drawn_y)) {
       SetStream(data, POINTER_SAVE);
       Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1], data.stream_ptr[0]);
@@ -326,10 +331,10 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scra
 }
 
 // y, Y and ENTER answer 1; n, N, ESC and 0 answer 0; other keys are ignored.
-auto opeu_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scratch) -> int {
+auto opeu_yes_no(std::uint8_t* ds, HostService service) -> int {
   auto& data{ Data(ds) };
   HookCursor(data);
-  for (;;) switch (HasMouse(ds) ? opeu_mouse_yes_no(ds, service, scratch) : opeu_keyboard_key(ds, service)) {
+  for (;;) switch (HasMouse(ds) ? opeu_mouse_yes_no(ds, service) : opeu_keyboard_key(ds, service)) {
     case 'y':
     case ENTER:
     case 'Y':    HookClear(data); return 1;
@@ -340,10 +345,10 @@ auto opeu_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scratch) -
     }
 }
 
-auto opeu_prompt_yes_no(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t scratch) -> int {
+auto opeu_prompt_yes_no(std::uint8_t* ds, HostService service, std::uint16_t text) -> int {
   auto const& data{ Data(ds) };
   Input(ds, service, InputCall::PRINT, Near(data, data.question_format), text);
-  return opeu_yes_no(ds, service, scratch);
+  return opeu_yes_no(ds, service);
 }
 
 // The shared input service: the mouse, menu and numeric dialog calls go to their modules, the rest are served here.
@@ -376,7 +381,7 @@ auto svc_keyboard(std::uint8_t* ds, std::uint16_t call, std::uint16_t* w) -> std
   case InputCall::CURSOR_INVERT:  opeu_ui_highlight(w[0], w[1], w[2], w[3], w[4]); break;
   case InputCall::DELAY_TICKS:    opeu_delay_ticks(ds, svc_waitkey, w[0]); break;
   case InputCall::PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, static_cast<std::uint8_t>(w[0])); break;
-  case InputCall::PRINT:          a_cursor_print(ds, w, 2); break;
+  case InputCall::PRINT:          opeu_cursor_print(ds, { w, 2 }); break;
   case InputCall::IDLE_HOOK:      port_call(ds, static_cast<std::uint32_t>(w[1]) * 16u + w[0], nullptr, 0); break;
   default:                        port_unhandled("keyboard", call, 0);
   }
@@ -388,15 +393,10 @@ auto port_routine_opeu_keyboard_key(std::uint8_t* ds, std::uint16_t const*, unsi
 }
 
 auto port_routine_opeu_prompt_value(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const scratch{ port_scratch_enter(SCRATCH_SIZE) };
-  auto const value{ opeu_prompt_value(ds, svc_keyboard, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), static_cast<std::int16_t>(Arg(args, count, 3)), Arg(args, count, 4), scratch) };
-  port_scratch_leave(SCRATCH_SIZE);
-  return value;
+  return opeu_prompt_value(ds, svc_keyboard, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), static_cast<std::int16_t>(Arg(args, count, 3)), Arg(args, count, 4));
 }
 
 auto port_routine_opeu_prompt_yes_no(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const scratch{ port_scratch_enter(SCRATCH_SIZE) };
-  auto const answer{ static_cast<std::uint16_t>(opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0), scratch)) };
-  port_scratch_leave(SCRATCH_SIZE);
+  auto const answer{ static_cast<std::uint16_t>(opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0))) };
   return answer;
 }

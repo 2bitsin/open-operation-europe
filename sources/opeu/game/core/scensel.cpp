@@ -299,8 +299,8 @@ start:
 uint16_t svc_scensel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case PRINT:                  b1_cursor_print(ds, args, count); break;
-  case FORMAT:                 b1_request_format(ds, args, count); break;
+  case PRINT:                  opeu_cursor_print(ds, { args, count }); break;
+  case FORMAT:                 opeu_request_format(ds, { args, count }); break;
   case POSITION:               opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case UI_TEXT:                opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case PROMPT_CANCEL:          r = port_prompt_cancel(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;

@@ -5,6 +5,7 @@
 #include "common/events.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -114,7 +115,7 @@ uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case CUE:        opeu_sound_cue15(ds, svc_soundcue); break;
   case CONTEXT:    opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
   case LOOKUP:     result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
-  case FORMAT:     c1_request_format(ds, args, count); break;
+  case FORMAT:     opeu_request_format(ds, { args, count }); break;
   case MESSAGE:    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case RISING:     {

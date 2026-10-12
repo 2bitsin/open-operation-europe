@@ -4,6 +4,7 @@
 // casualties.
 #include "core/evloss.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -180,7 +181,7 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case SPECIAL:      result = opeu_unit_special(ds, Arg(args, count, 0)); break;
   case UNIT_NAME:    result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOOKUP:       result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:       c1_request_format(ds, args, count); break;
+  case FORMAT:       opeu_request_format(ds, { args, count }); break;
   case UNIT_MESSAGE: opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case UNIT_REPORT:  opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case FLASH:        {

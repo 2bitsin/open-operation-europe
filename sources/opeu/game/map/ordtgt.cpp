@@ -10,6 +10,7 @@
 #include "core/people.hpp"
 #include "core/selunit.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "map/mappick.hpp"
 #include "map/mappos.hpp"
 #include "map/query.hpp"
@@ -107,7 +108,7 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
   switch (static_cast<TargetService>(id)) {
-  case TargetService::FORMAT:          map_request_format(ds, args, count); return 0;
+  case TargetService::FORMAT:          opeu_request_format(ds, { args, count }); return 0;
   case TargetService::CONTROL_MESSAGE: opeu_control_message(ds, host(), arg(0), arg(1)); return 0;
   case TargetService::CONFIRM:         return opeu_confirm_message(ds, host(), arg(0), arg(1));
   case TargetService::ARRIVAL_LOCATION:

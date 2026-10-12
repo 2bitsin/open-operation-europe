@@ -102,7 +102,7 @@ uint16_t svc_allocscr(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) 
   uint16_t r = 0;
   switch (id) {
   case 0:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case 1:  r = lf_cursor_print(ds, args, count); break;
+  case 1:  opeu_cursor_print(ds, { args, count }); break;
   case 2:  r = (uint16_t)opeu_vga_fill_rect(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case 3:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case 4:  opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), (uint8_t)Arg(args, count, 0)); break;

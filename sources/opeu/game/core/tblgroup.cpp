@@ -122,11 +122,11 @@ uint16_t svc_table(uint8_t* ds, const char* module, uint16_t id, const uint16_t*
   switch (id) {
   case COLUMNS:      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case FORMAT:       b2_request_format(ds, args, count); break;
+  case FORMAT:       opeu_request_format(ds, { args, count }); break;
   case TEXT_COLOR:   opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case SIDE_COLOR:   opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
   case UI_TEXT:      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT:        b2_cursor_print(ds, args, count); break;
+  case PRINT:        opeu_cursor_print(ds, { args, count }); break;
   case PUT_RANGE:    opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case REQUEST_TEXT: r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   default:           port_unhandled(module, id, count);

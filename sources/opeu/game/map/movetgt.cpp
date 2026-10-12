@@ -6,6 +6,7 @@
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/recindex.hpp"
+#include "core/textout.hpp"
 #include "map/cellflag.hpp"
 #include "map/distance.hpp"
 #include "map/maperase.hpp"
@@ -146,7 +147,7 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id, const uint16
   case MoveService::UNIT_ELIGIBLE:    return opeu_unit_selection_eligible(ds, arg(0));
   case MoveService::UNIT_SPOTTED:     return opeu_unit_special(ds, arg(0));
   case MoveService::UNIT_NAME:        return opeu_unit_name(ds, svc_unitname, arg(0), arg(1));
-  case MoveService::FORMAT:           map_request_format(ds, args, count); return 0;
+  case MoveService::FORMAT:           opeu_request_format(ds, { args, count }); return 0;
   case MoveService::UNIT_MESSAGE:     opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1)); return 0;
   default:                            port_unhandled(module, id, count);
   }

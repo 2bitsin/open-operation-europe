@@ -2,6 +2,7 @@
 #include "units/unitname.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "glue.hpp"
@@ -25,7 +26,7 @@ uint16_t opeu_unit_name(uint8_t ds[65536], HostEvent event, uint16_t unit, uint1
 uint16_t svc_unitname(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case 2:  r = lf_request_format(ds, args, count); break;
+  case 2:  opeu_request_format(ds, { args, count }); break;
   default: port_unhandled("unitname", id, count);
   }
   return r;

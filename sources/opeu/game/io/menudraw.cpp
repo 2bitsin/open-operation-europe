@@ -109,12 +109,9 @@ void opeu_menu_restore(std::uint8_t* ds, HostService service, std::uint16_t near
 }
 
 // Lights the item under the mouse (x*8..(x+width)*8-1, y..y+23); a left press chooses it, a right press cancels when
-// allowed. One more pass after the choice puts out every light. `scratch` is a 4-byte DS area for the mouse's y and x
-// words.
-auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items, int cancel, std::uint16_t scratch) -> std::uint16_t {
+// allowed. One more pass after the choice puts out every light.
+auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items, int cancel) -> std::uint16_t {
   std::array<int, MAX_ITEMS> lit{};
-  auto const                 mouse_y{ scratch };
-  auto const                 mouse_x{ static_cast<std::uint16_t>(scratch + 2) };
   opeu_input_reset(ds, service);
   std::uint16_t chosen{ NOT_CHOSEN };
   Input(ds, service, InputCall::DELAY_UNITS, 1);
@@ -128,9 +125,7 @@ auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items,
       std::uint16_t top    = item.y;
       std::uint16_t right  = left + (item.width << 3) - 1;
       std::uint16_t bottom = top + 23;
-      opeu_mouse_position(ds, service, mouse_x, mouse_y);
-      auto const x{ Word(ds, mouse_x) };
-      auto const y{ Word(ds, mouse_y) };
+      auto const [x, y]{ MousePosition(ds, service) };
       if (!passes && left <= x && right >= x && top <= y && bottom >= y) {
         if (!lit[index]) {
           opeu_mouse_hide(ds, service);
@@ -151,9 +146,9 @@ auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items,
   return chosen;
 }
 
-auto opeu_menu_select(std::uint8_t* ds, HostService service, std::uint16_t items, int cancel, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_menu_select(std::uint8_t* ds, HostService service, std::uint16_t items, int cancel) -> std::uint16_t {
   opeu_menu_draw(ds, service, items);
-  auto const chosen{ opeu_menu_track(ds, service, items, cancel, scratch) };
+  auto const chosen{ opeu_menu_track(ds, service, items, cancel) };
   opeu_menu_restore(ds, service, items);
   return chosen;
 }
@@ -163,7 +158,7 @@ auto svc_menudraw(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words) ->
   case InputCall::MOUSE_INT86:    return svc_mouse(ds, call, words);
   case InputCall::TEXT_SAVE:      opeu_context_save(ds, static_cast<TextHost*>(port_textout_host())); break;
   case InputCall::TEXT_POSITION:  opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(words[0]), static_cast<std::int16_t>(words[1])); break;
-  case InputCall::TEXT_PRINT:     b1_cursor_print(ds, words, 3); break;
+  case InputCall::TEXT_PRINT:     opeu_cursor_print(ds, { words, 3 }); break;
   case InputCall::TEXT_RESTORE:   opeu_context_restore(ds, static_cast<TextHost*>(port_textout_host())); break;
   case InputCall::TILE_BLIT:      koei_2e57(words[0], words[1], words[2], words[3], port_far(words[4], words[5])); break;
   case InputCall::BITMAP_SAVE:    opeu_bitmap_save(words[0], words[1], words[2], words[3], port_far(words[4], words[5])); break;

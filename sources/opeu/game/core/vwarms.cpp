@@ -147,7 +147,7 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id, const uint16_t* 
   case ViewService::ARMY_TITLE:          opeu_army_title(ds, dialogs, arg(0)); break;
   case ViewService::OBJECTIVE_PERCENTS:  opeu_objective_resource_percentages(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3))); break;
   case ViewService::ARMY_POSITION:       opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1))); break;
-  case ViewService::ARMY_PRINT:          b2_cursor_print(ds, args, count); break;
+  case ViewService::ARMY_PRINT:          opeu_cursor_print(ds, { args, count }); break;
   case ViewService::UNIT_NAME:           r = opeu_unit_name(ds, svc_unitname, arg(0), arg(1)); break;
   case ViewService::UNIT_CAPACITIES:     opeu_unit_capacities(ds, arg(0), WordAt(ds, arg(1)), WordAt(ds, arg(2)), WordAt(ds, arg(3))); break;
   case ViewService::RESOURCE_PERCENT:    r = opeu_resource_percent(arg(0), arg(2)); break;
@@ -172,7 +172,7 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id, const uint16_t* 
   case ViewService::LIST_DIALOG:         r = opeu_list_dialog(ds, svc_listdlg, arg(0), byte(1), byte(2)); break;
   case ViewService::OPPOSITE_SIDE:       r = opeu_opposite_side(byte(0)); break;
   case ViewService::UNIT_FLASH:          WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_flash(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0), byte(1)); }); break;
-  case ViewService::REQUEST_FORMAT:      b2_request_format(ds, args, count); break;
+  case ViewService::REQUEST_FORMAT:      opeu_request_format(ds, { args, count }); break;
   case ViewService::COPY_BYTES:          opeu_copy_bytes(ds, arg(0), arg(1), arg(2)); break;
   case ViewService::UNIT_ANNOUNCE:       WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<uint16_t>(sp - 2), arg(0)); }); break;
   case ViewService::UNIT_SPECIAL:        r = opeu_unit_special(ds, arg(0)); break;

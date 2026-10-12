@@ -215,33 +215,26 @@ void opeu_numdlg_highlight(std::uint8_t* ds, HostService service, std::uint8_t n
   opeu_mouse_show(ds, service);
 }
 
-// Moves the dialog with an outline while the left button is held. The mouse position words are at scratch+4 (x)
-// and scratch+6 (y).
-void opeu_numdlg_drag(std::uint8_t* ds, HostService service, std::uint16_t scratch) {
-  auto&      data{ Data(ds) };
-  auto const x_at{ static_cast<std::uint16_t>(scratch + 4) };
-  auto const y_at{ static_cast<std::uint16_t>(scratch + 6) };
+// Moves the dialog with an outline while the left button is held.
+void opeu_numdlg_drag(std::uint8_t* ds, HostService service) {
+  auto& data{ Data(ds) };
   opeu_mouse_hide(ds, service);
   opeu_numdlg_close(ds, service);
   opeu_mouse_show(ds, service);
-  opeu_mouse_position(ds, service, x_at, y_at);
+  auto const grab{ MousePosition(ds, service) };
   // the grab point within the dialog; the mouse stays where the dialog stays on the screen
-  std::uint16_t const grab_x = Word(ds, x_at) - Column(data);
-  std::uint16_t const grab_y = Word(ds, y_at) - data.numdlg_y;
+  std::uint16_t const grab_x = grab.x - Column(data);
+  std::uint16_t const grab_y = grab.y - data.numdlg_y;
   opeu_mouse_window(ds, service, grab_x, grab_y, grab_x + 0x1f0, grab_y + 0x130);
   std::uint16_t column{ 0xffff };
   std::uint16_t row{ 0xffff };
   do {
-    opeu_mouse_position(ds, service, x_at, y_at);
-    std::uint16_t x{ Word(ds, x_at) };
-    std::uint16_t y{ Word(ds, y_at) };
+    auto [x, y]{ MousePosition(ds, service) };
     if (x > 0x212) x = 0x1f4;
     if (y > 0x154) y = 0x154;
     x  -= grab_x;
     y  -= grab_y;
     x >>= 3;
-    SetWord(ds, x_at, x);
-    SetWord(ds, y_at, y);
     if (x != column || y != row) {
       if (column != 0xffff) {
         opeu_mouse_hide(ds, service);
@@ -302,11 +295,9 @@ auto opeu_numdlg_outside(std::uint8_t* ds, HostService, std::uint16_t mx, std::u
 }
 
 // Runs the dialog until a value in lo..hi is accepted or (when allowed) the dialog is cancelled; returns the value or
-// 0xffff. The mouse position words are at scratch (x) and scratch+2 (y); dragging uses scratch+4..+7.
-auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel, std::uint16_t scratch) -> std::uint16_t {
+// 0xffff.
+auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
   auto const&  data{ Data(ds) };
-  auto const   x_at{ scratch };
-  auto const   y_at{ static_cast<std::uint16_t>(scratch + 2) };
   std::uint8_t shown{ NOTHING };
   std::int32_t value{ lo };
   bool         running{ true };
@@ -316,11 +307,11 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
   opeu_numdlg_show(ds, service, lo);
   std::uint16_t left{ Column(data) };
   do {
-    opeu_mouse_position(ds, service, x_at, y_at);
-    if (static_cast<std::uint16_t>(data.numdlg_y + 0x20) > Word(ds, y_at)) {
+    auto const mouse{ MousePosition(ds, service) };
+    if (static_cast<std::uint16_t>(data.numdlg_y + 0x20) > mouse.y) {
       // on the slider
       auto const previous{ value };
-      auto const x{ Word(ds, x_at) };
+      auto const x{ mouse.x };
       if (static_cast<std::uint16_t>(left + 0x10) > x)
         value = lo;
       else if (static_cast<std::uint16_t>(left + 0x7f) <= x)
@@ -332,7 +323,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
         opeu_numdlg_show(ds, service, value);
       }
     } else {
-      auto const hit{ opeu_numdlg_hit(ds, service, Word(ds, x_at), Word(ds, y_at)) };
+      auto const hit{ opeu_numdlg_hit(ds, service, mouse.x, mouse.y) };
       if (hit != shown) {
         if (shown == CANCEL_BUTTON || shown == OK_BUTTON) opeu_numdlg_release(ds, service, shown);
         if (hit == CANCEL_BUTTON || hit == OK_BUTTON) opeu_numdlg_press(ds, service, hit);
@@ -342,7 +333,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
       }
       if (opeu_mouse_left(ds, service)) {
         if (hit == TITLE_BAR) {
-          opeu_numdlg_drag(ds, service, scratch);
+          opeu_numdlg_drag(ds, service);
           opeu_numdlg_bar(ds, service, lo, hi, value);
           opeu_numdlg_show(ds, service, value);
           left = Column(data);
@@ -365,7 +356,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
         opeu_input_reset(ds, service);
       }
     }
-    if (opeu_numdlg_outside(ds, service, Word(ds, x_at), Word(ds, y_at))) {
+    if (opeu_numdlg_outside(ds, service, mouse.x, mouse.y)) {
       if (opeu_mouse_left(ds, service)) {
         if (lo <= value && hi >= value) running = false;
       } else if (opeu_mouse_right(ds, service) && cancel) {
@@ -378,9 +369,9 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
   return static_cast<std::uint16_t>(value);
 }
 
-auto opeu_numdlg_run(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_numdlg_run(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
   opeu_numdlg_open(ds, service);
-  auto const value{ opeu_numdlg_track(ds, service, lo, hi, cancel, scratch) };
+  auto const value{ opeu_numdlg_track(ds, service, lo, hi, cancel) };
   opeu_numdlg_close(ds, service);
   opeu_input_reset(ds, service);
   return value;

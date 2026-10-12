@@ -92,8 +92,8 @@ auto svc_tblsave(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args
     opeu_table_columns(ds, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
     break;
   case POSITION: opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1))); break;
-  case FORMAT:   b1_request_format(ds, args, count); break;
-  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case FORMAT:   opeu_request_format(ds, { args, count }); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case PUT_RANGE:
     opeu_text_put_range(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;

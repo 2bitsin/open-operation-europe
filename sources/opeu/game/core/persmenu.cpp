@@ -7,6 +7,7 @@
 #include "core/counter.hpp"
 #include "core/people.hpp"
 #include "core/personfl.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include <span>
@@ -238,7 +239,7 @@ void opeu_turn_action_4(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t) 
 uint16_t svc_persmenu(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<PersonnelService>(id)) {
-  case PersonnelService::FORMAT:  b2_request_format(ds, args, count); break;
+  case PersonnelService::FORMAT:  opeu_request_format(ds, { args, count }); break;
   case PersonnelService::MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case PersonnelService::PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case PersonnelService::DAILY_SHOW:

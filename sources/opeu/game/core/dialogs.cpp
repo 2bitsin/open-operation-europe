@@ -493,10 +493,6 @@ void opeu_element_panel(uint8_t ds[65536], const DialogHost* host, uint16_t item
   Send(ds, host, ARMY_PRINT, Near(data, data.element_format), record.quantity, record.extra);
 }
 
-namespace {
-constexpr std::uint16_t KEY_SCRATCH{ 16 }; // the keyboard routines' DS scratch
-} // namespace
-
 uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0, f;
   switch (id) {
@@ -518,22 +514,14 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case CONTEXT_RESTORE:  opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
   case ARMY_POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case UI_TEXT:          opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case ARMY_PRINT:       b1_cursor_print(ds, args, count); break;
-  case REQUEST_FORMAT:   b1_request_format(ds, args, count); break;
+  case ARMY_PRINT:       opeu_cursor_print(ds, { args, count }); break;
+  case REQUEST_FORMAT:   opeu_request_format(ds, { args, count }); break;
   case TEXT_SCROLL_MODE: r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
   case TEXT_WINDOW: opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3)); break;
-  case TEXT_WINDOW_RESET: opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
-  case TEXT_PUTC:         r = opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case MENU_SELECT:
-    f = b1_stack_alloc(KEY_SCRATCH);
-    r = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3), f);
-    port_scratch_leave(KEY_SCRATCH);
-    break;
-  case CONFIRM_INPUT:
-    f = b1_stack_alloc(KEY_SCRATCH);
-    r = (uint16_t)opeu_yes_no(ds, svc_keyboard, f);
-    port_scratch_leave(KEY_SCRATCH);
-    break;
+  case TEXT_WINDOW_RESET:  opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
+  case TEXT_PUTC:          r = opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case MENU_SELECT:        r = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
+  case CONFIRM_INPUT:      r = (uint16_t)opeu_yes_no(ds, svc_keyboard); break;
   case WAIT_TICKS:         opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case MUSIC_COMMAND7:     opeu_music_command7(ds, svc_sound); break;
   case SOUND_CUE16:        opeu_sound_cue16(ds, svc_soundcue); break;

@@ -156,7 +156,7 @@ void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count
     break;
   }
   case POSITION:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:     b2_cursor_print(ds, args, count); break;
+  case PRINT:     opeu_cursor_print(ds, { args, count }); break;
   case HIGHLIGHT: opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   default:        port_unhandled("suptable", id, count);
   }

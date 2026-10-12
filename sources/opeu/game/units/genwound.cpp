@@ -11,6 +11,7 @@
 #include "common/random.hpp"
 #include "core/memory.hpp"
 #include "core/numeric.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "core/deputy.hpp"
@@ -130,7 +131,7 @@ uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   uint16_t r = 0;
   switch (id) {
   case PERSON_LACKS_SIDE0_FLAG:    r = opeu_person_lacks_side0_flag(ds, Arg(args, count, 0)); break;
-  case REQUEST_FORMAT:             r = lf_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:             opeu_request_format(ds, { args, count }); break;
   case INITIALIZE_DEPUTY:          opeu_initialize_deputy(ds, Arg(args, count, 0)); break;
   case CONTROL_MESSAGE:            opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case WAIT_CONFIRM:               opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;

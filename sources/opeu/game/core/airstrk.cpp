@@ -10,6 +10,7 @@
 #include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -255,7 +256,7 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case UNIT_SIDE:      result = opeu_unit_side(Arg(args, count, 0)); break;
   case OBJECTIVE_AT:   result = opeu_find_objective_at(ds, byte(0), byte(1)); break;
   case OBJECTIVE_SIDE: result = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
+  case REQUEST_FORMAT: opeu_request_format(ds, { args, count }); break;
   case SIDE_RECORD:    result = opeu_find_side_record(ds, byte(0), byte(1)); break;
   case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case AIR_REPORT:     {

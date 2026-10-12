@@ -2,6 +2,7 @@
 // then (for a ready regiment) the player's or the computer's control of the side, the division's tasks and the
 // regiment's final action.
 #include "core/dispatch.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -127,7 +128,7 @@ uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16
   case ACTIVE_BEGIN:    opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case LABEL:           {
     uint16_t const words[4]{ a0, a1, a2, a3 };
-    c1_cursor_print(ds, words, 4);
+    opeu_cursor_print(ds, { words, 4 });
     break;
   }
   case SIDE_SELECTED:   result = opeu_find_side_selected_unit(ds, static_cast<uint8_t>(a0)); break;

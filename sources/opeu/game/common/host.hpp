@@ -37,14 +37,10 @@ struct DialogHost {
   std::uint16_t scratch;
 };
 
-// The text output's service and the DS stack pointer its variadic routines read their argument words from.
+// The text output's service.
 struct TextHost {
-  HostEvent     event;
-  std::uint16_t sp;
+  HostEvent event;
 };
-
-// Where the text formatter sends each character.
-using TextOut = void (*)(std::uint8_t* ds, TextHost* host, std::uint16_t c);
 
 // The UI primitives' memory, segment numbers and service.
 struct UiHost {

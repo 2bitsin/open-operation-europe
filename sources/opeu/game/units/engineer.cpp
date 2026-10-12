@@ -10,6 +10,7 @@
 #include "common/memory.hpp"
 #include "common/order-service.hpp"
 #include "core/limits.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/order-handler.hpp"
 
@@ -357,7 +358,7 @@ int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case OrderService::MOVE_SUPPLIED:           r = opeu_move_supplied(ds); break;
   case OrderService::UNIT_REPORT:             opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::UNIT_SELECTION_ELIGIBLE: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case OrderService::REQUEST_FORMAT:          r = lf_request_format(ds, args, count); break;
+  case OrderService::REQUEST_FORMAT:          opeu_request_format(ds, { args, count }); break;
   case OrderService::CONFIRM_MESSAGE:         r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::DAILY_SHOW:              opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
   case OrderService::OPPOSITE_SIDE:           r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;

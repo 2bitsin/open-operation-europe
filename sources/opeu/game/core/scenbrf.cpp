@@ -3,6 +3,7 @@
 // name. While a target city is named, the message hook blinks a marker on its cell of the overview map.
 #include "core/scenbrf.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -372,7 +373,7 @@ uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OVERVIEW_PIXEL:  opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case INVERT:          r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case FORMAT:          b1_request_format(ds, args, count); break;
+  case FORMAT:          opeu_request_format(ds, { args, count }); break;
   default:              port_unhandled("scenbrf", id, count);
   }
   return r;

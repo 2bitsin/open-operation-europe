@@ -9,6 +9,7 @@
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "core/counter.hpp"
@@ -242,7 +243,7 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     break;
   case Service::ELEMENT_NAME: r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::RANDOM:       r = port_rand_bounded(ds, Arg(args, count, 0)); break;
-  case Service::FORMAT:       r = lf_request_format(ds, args, count); break;
+  case Service::FORMAT:       opeu_request_format(ds, { args, count }); break;
   case Service::SIDE_RECORD:  r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::GENERAL_CASUALTY:
     sp = port_stack_enter(SERVICE_STACK);

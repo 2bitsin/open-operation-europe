@@ -63,7 +63,7 @@ void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) 
   switch (id) {
   case SET_LEFT: opeu_text_set_left(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   default:       port_unhandled("divstr", id, count);
   }
 }

@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/textout.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
 
@@ -123,7 +124,7 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id, const u
   case RequestService::ARMY_TITLE:      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case RequestService::DELAY_DIALOG:    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case RequestService::CONFIRM_OK:      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestService::REQUEST_FORMAT:  r = lf_request_format(ds, args, count); break;
+  case RequestService::REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case RequestService::CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestService::MAP_PICK_LOCATION:
     r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t { return opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - PICK_FRAME), Arg(args, count, 0), Arg(args, count, 1)); });

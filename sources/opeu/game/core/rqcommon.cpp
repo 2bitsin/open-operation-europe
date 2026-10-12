@@ -110,7 +110,7 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_
   case RequestMenuService::MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case RequestMenuService::DELAY_DIALOG: r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case RequestMenuService::FORMAT:       c2_request_format(ds, args, count); break;
+  case RequestMenuService::FORMAT:       opeu_request_format(ds, { args, count }); break;
   case RequestMenuService::CONFIRM:      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::FINISH:       opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case RequestMenuService::SHOW:         opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
@@ -121,7 +121,7 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_
     break;
   }
   case RequestMenuService::POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
-  case RequestMenuService::PRINT:    c2_cursor_print(ds, args, count); break;
+  case RequestMenuService::PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case RequestMenuService::MODE_IS:  r = opeu_request_mode_is(ds, (uint8_t)Arg(args, count, 0)); break;
   case RequestMenuService::HAS_CITY: r = opeu_side_has_city(ds); break;
   case RequestMenuService::FAR_CALL: r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;

@@ -188,22 +188,17 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (static_cast<AirService>(id)) {
-  case FORMAT:    c2_request_format(ds, args, count); break;
+  case FORMAT:    opeu_request_format(ds, { args, count }); break;
   case MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONFIRM:   result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOOKUP:    result = opeu_message_lookup(ds, svc_msglook, static_cast<short>(Arg(args, count, 0))); break;
-  case PRINT:     c2_cursor_print(ds, args, count); break;
+  case PRINT:     opeu_cursor_print(ds, { args, count }); break;
   case SPEAKER:   result = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case TEXT_FEED: opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case VALUE:     {
-    auto const scratch{ port_scratch_enter(0x40) };
-    result = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), static_cast<int16_t>(Arg(args, count, 2)), Arg(args, count, 3), scratch);
-    port_scratch_leave(0x40);
-    break;
-  }
-  case DIALOG: result = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case TITLE:  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case PICK:   {
+  case VALUE:     result = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), static_cast<int16_t>(Arg(args, count, 2)), Arg(args, count, 3)); break;
+  case DIALOG:    result = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case TITLE:     opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case PICK:      {
     auto const frame{ port_frame_enter() };
     result = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
     port_frame_leave();

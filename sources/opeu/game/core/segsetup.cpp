@@ -5,6 +5,7 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/emsmap.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "glue.hpp"
@@ -112,7 +113,7 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   if (id <= std::to_underlying(SetupService::EMS_LAST)) return svc_emsmap(ds, id, args, count);
   switch (static_cast<SetupService>(id)) {
-  case SetupService::PRINT:            a_cursor_print(ds, args, 1); break;
+  case SetupService::PRINT:            opeu_cursor_print(ds, { args, 1 }); break;
   case SetupService::WAIT_KEY:         return opeu_turn_input_b();
   case SetupService::QUIT:             opeu_quit_to_dos(ds, svc_settings); break;
   case SetupService::ALLOCATE:         return opeu_dos_alloc(Arg(args, count, 0));

@@ -293,7 +293,7 @@ uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case OBJECTIVE_SIDE:   r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case OPPOSITE_SIDE:    r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
   case SIDE_RECORD:      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case FORMAT:           b1_request_format(ds, args, count); break;
+  case FORMAT:           opeu_request_format(ds, { args, count }); break;
   case VGA_CLEAR:        r = (uint16_t)opeu_vga_clear(); break;
   case MAP_PALETTE:      opeu_palette_map_screen(ds, (const UiHost*)port_uiprim_host()); break;
   case OPEN:             r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
@@ -302,7 +302,7 @@ uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case PICTURE_AT:       opeu_picture_file_at(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int32_t)Arg32(args, count, 3)); break;
   case CLOSE:            r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
   case POSITION:         opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:            b1_cursor_print(ds, args, count); break;
+  case PRINT:            opeu_cursor_print(ds, { args, count }); break;
   case FINISH_INIT:      opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case DELAY:            opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case SET_PALETTE:      r = (uint16_t)opeu_set_palette((uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2))); break;

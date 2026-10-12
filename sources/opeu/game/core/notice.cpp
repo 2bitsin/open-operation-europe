@@ -7,6 +7,7 @@
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -343,7 +344,7 @@ uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
   case UNIT_GROUP:         r = opeu_unit_group(Arg(args, count, 0)); break;
   case OBJECTIVE_SIDE:     r = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case FORMAT:             c1_request_format(ds, args, count); break;
+  case FORMAT:             opeu_request_format(ds, { args, count }); break;
   case SIDE_RECORD:        r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case CONFIRM:            r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case PENDING_FINISH:     opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;

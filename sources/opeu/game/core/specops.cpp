@@ -263,11 +263,11 @@ void opeu_special_recon(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SpecialService>(id)) {
-  case REQUEST_FORMAT:    c1_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:    opeu_request_format(ds, { args, count }); break;
   case CONTROL_MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONFIRM_MESSAGE:   r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case MESSAGE_LOOKUP:    r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case ARMY_PRINT:        c1_cursor_print(ds, args, count); break;
+  case ARMY_PRINT:        opeu_cursor_print(ds, { args, count }); break;
   case PENDING_FINISH:    opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case DAILY_SHOW:        port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case FIND_OBJECTIVE_AT: r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

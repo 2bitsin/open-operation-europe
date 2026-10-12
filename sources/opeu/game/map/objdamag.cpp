@@ -11,6 +11,7 @@
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "map/blast.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -126,7 +127,7 @@ uint16_t svc_objdamag(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
   switch (static_cast<DamageService>(id)) {
   case DamageService::LOCATION_BLAST: WithMapFrame([&](uint16_t frame) { opeu_location_blast(ds, svc_blast, frame, byte(0), byte(1), byte(2)); }); return 0;
-  case DamageService::FORMAT:         map_request_format(ds, args, count); return 0;
+  case DamageService::FORMAT:         opeu_request_format(ds, { args, count }); return 0;
   case DamageService::SIDE_REPORT:    opeu_objective_side_report(ds, host(), arg(0), arg(1)); return 0;
   case DamageService::ELEMENT_PANEL:  opeu_element_panel(ds, host(), arg(0)); return 0;
   case DamageService::APPEND:         return opeu_string_append(ds, arg(0), arg(1));

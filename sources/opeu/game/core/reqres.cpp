@@ -3,6 +3,7 @@
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/numeric.hpp"
+#include "core/textout.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
 
@@ -64,7 +65,7 @@ uint16_t svc_delivery(const char* module, uint8_t* ds, uint16_t id, const uint16
     break;
   }
   case DeliveryService::MESSAGE_TEXT: r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0)); break;
-  case DeliveryService::FORMAT:       c2_request_format(ds, args, count); break;
+  case DeliveryService::FORMAT:       opeu_request_format(ds, { args, count }); break;
   case DeliveryService::MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DeliveryService::WAIT:         opeu_request_wait(ds, svc_soundcue); break;
   default:                            port_unhandled(module, id, count);

@@ -147,7 +147,7 @@ uint16_t svc_ordact(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result) {
   uint16_t r = 0;
   switch (id) {
-  case ORDERS_REQUEST_FORMAT:  r = lf_request_format(ds, args, count); break;
+  case ORDERS_REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case ORDERS_CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_ARRIVAL_LOCATION:
@@ -162,15 +162,12 @@ int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count, u
   case ORDERS_GROUP_SHOW:
     WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_group_show(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); });
     break;
-  case ORDERS_LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ORDERS_UNIT_ORDER_MENU: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)Arg(args, count, 0)); }); break;
-  case ORDERS_SPEAKER_PANEL:   r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_UNIT_ANNOUNCE:   WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0)); }); break;
-  case ORDERS_ARMY_POSITION:   opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case ORDERS_PROMPT:
-    r = WithStack(SERVICE_STACK,
-                  [&](std::uint16_t sp) { return opeu_prompt_value_cancel(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), static_cast<std::uint16_t>(sp - 0x10u)); });
-    break;
+  case ORDERS_LIST_DIALOG:      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ORDERS_UNIT_ORDER_MENU:  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)Arg(args, count, 0)); }); break;
+  case ORDERS_SPEAKER_PANEL:    r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ORDERS_UNIT_ANNOUNCE:    WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0)); }); break;
+  case ORDERS_ARMY_POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case ORDERS_PROMPT:           r = opeu_prompt_value_cancel(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case ORDERS_CONTROL_POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_MESSAGE_LOOKUP:   r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case ORDERS_DELAY_DIALOG:     r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;

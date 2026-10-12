@@ -53,8 +53,6 @@ enum Area : std::uint8_t {
   SCROLL_DOWN  = 0x40,
 };
 
-constexpr std::uint16_t SCRATCH_SIZE{ 16 }; // the keyboard prompts' scratch area
-
 auto Window(DataSegment& data, std::uint16_t near) -> ListWindow& {
   return Record<ListWindow>(data, near);
 }
@@ -314,13 +312,11 @@ auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::
   case ListCall::MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
   case ListCall::MOUSE_HIDE:     opeu_mouse_hide(ds, svc_mouse); break;
   case ListCall::MOUSE_POSITION: {
-    auto const at{ b1_stack_alloc(4) };
-    opeu_mouse_position(ds, svc_mouse, at, static_cast<std::uint16_t>(at + 2));
+    auto const [x, y]{ MousePosition(ds, svc_mouse) };
     if (count >= 2) {
-      args[0] = port_ds_word(at);
-      args[1] = port_ds_word(static_cast<std::uint16_t>(at + 2));
+      args[0] = x;
+      args[1] = y;
     }
-    port_scratch_leave(4);
     break;
   }
   case ListCall::MOUSE_BUTTONS:  return opeu_mouse_buttons(ds, svc_mouse);
@@ -334,17 +330,12 @@ auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::
   case ListCall::PAPER:          opeu_text_paper_set(ds, text, static_cast<std::uint8_t>(word(0))); break;
   case ListCall::TEXT_COLOUR:    opeu_text_color(ds, text, word(0)); break;
   case ListCall::TEXT_POSITION:  opeu_army_position(ds, text, static_cast<std::int16_t>(word(0)), static_cast<std::int16_t>(word(1))); break;
-  case ListCall::PRINT:          b1_cursor_print(ds, args, count); break;
+  case ListCall::PRINT:          opeu_cursor_print(ds, { args, count }); break;
   case ListCall::KEYBOARD_KEY:   return opeu_keyboard_key(ds, svc_keyboard);
-  case ListCall::YES_NO:         {
-    auto const scratch{ b1_stack_alloc(SCRATCH_SIZE) };
-    auto const answer{ static_cast<std::uint16_t>(opeu_prompt_yes_no(ds, svc_keyboard, word(0), scratch)) };
-    port_scratch_leave(SCRATCH_SIZE);
-    return answer;
-  }
-  case ListCall::DRAW_ROWS: port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u); break;
-  case ListCall::SELECT:    return static_cast<std::uint8_t>(port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
-  default:                  port_unhandled("listui", kind, count);
+  case ListCall::YES_NO:         return static_cast<std::uint16_t>(opeu_prompt_yes_no(ds, svc_keyboard, word(0)));
+  case ListCall::DRAW_ROWS:      port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u); break;
+  case ListCall::SELECT:         return static_cast<std::uint8_t>(port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
+  default:                       port_unhandled("listui", kind, count);
   }
   return 0;
 }

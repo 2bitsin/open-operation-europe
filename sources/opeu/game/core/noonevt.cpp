@@ -249,7 +249,7 @@ uint16_t svc_noonevt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case NOON_PANEL:         opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case NOON_UI_TEXT:       opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case NOON_FRAME:         opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case NOON_PRINT:         c1_cursor_print(ds, args, count); break;
+  case NOON_PRINT:         opeu_cursor_print(ds, { args, count }); break;
   case NOON_PORTRAIT:      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case NOON_POSITION:      opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case NOON_WAIT:          opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;

@@ -11,6 +11,7 @@
 #include "common/memory.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
+#include "core/textout.hpp"
 #include "map/cellflag.hpp"
 #include "map/distance.hpp"
 #include "map/support.hpp"
@@ -202,7 +203,7 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_
 uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case REQUEST_FORMAT:  r = lf_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;

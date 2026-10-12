@@ -3,6 +3,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
 
@@ -50,7 +51,7 @@ uint16_t opeu_location_name(uint8_t ds[65536], HostEvent event, uint8_t x, uint8
 uint16_t svc_labels(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case 2:  r = lf_request_format(ds, args, count); break;
+  case 2:  opeu_request_format(ds, { args, count }); break;
   default: port_unhandled("labels", id, count);
   }
   return r;

@@ -8,6 +8,7 @@
 #include "common/events.hpp"
 #include "core/people.hpp"
 #include "core/template.hpp"
+#include "core/textout.hpp"
 #include "data/fg361c.hpp"
 #include "types.hpp"
 
@@ -115,7 +116,7 @@ uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case BITMAP_RESTORE:
     r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
-  case REQUEST_FORMAT:  c2_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   default:              port_unhandled("airshow", id, count);
   }

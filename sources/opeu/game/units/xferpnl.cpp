@@ -223,17 +223,15 @@ uint8_t opeu_transfer_auto_key(uint8_t ds[65536], uint8_t row) {
 uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* args, uint16_t count) {
   std::uint16_t r{ 0 };
   switch (static_cast<TransferService>(id)) {
-  case MOUSE_SHOW:  opeu_mouse_show(ds, svc_mouse); break;
-  case INPUT_DELAY: opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
-  case MOUSE_POSITION:
-    // The mouse routine writes x and y to two words on the DS stack; they go back to the caller's words.
-    WithStack(4, [&](std::uint16_t sp) {
-      auto const at{ static_cast<std::uint16_t>(sp - 4) };
-      opeu_mouse_position(ds, svc_mouse, at, static_cast<std::uint16_t>(at + 2));
-      args[0] = Word(ds, at);
-      args[1] = Word(ds, static_cast<std::uint16_t>(at + 2));
-    });
+  case MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
+  case INPUT_DELAY:    opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
+  case MOUSE_POSITION: {
+    // x and y go back to the caller's words.
+    auto const position{ MousePosition(ds, svc_mouse) };
+    args[0] = position.x;
+    args[1] = position.y;
     break;
+  }
   case RIGHT_DOWN: r = (uint16_t)opeu_mouse_right(ds, svc_mouse); break;
   case LEFT_DOWN:  r = (uint16_t)opeu_mouse_left(ds, svc_mouse); break;
   case MOUSE_HIDE: opeu_mouse_hide(ds, svc_mouse); break;
@@ -242,7 +240,7 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* ar
     r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
   case POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:           r = lf_cursor_print(ds, args, count); break;
+  case PRINT:           opeu_cursor_print(ds, { args, count }); break;
   case GLYPH:           r = (uint16_t)opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
   case TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case MAP_DIALOG:      opeu_ems_map_dialog(ds, svc_emsmap); break;

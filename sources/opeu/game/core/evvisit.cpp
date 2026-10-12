@@ -9,6 +9,7 @@
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
+#include "core/textout.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
 #include "map/occupy.hpp"
@@ -154,7 +155,7 @@ uint16_t svc_evvisit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t result{ 0 };
   switch (id) {
   case LOOKUP:  result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:  c1_request_format(ds, args, count); break;
+  case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY:   opeu_daily_context(ds, svc_context, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;

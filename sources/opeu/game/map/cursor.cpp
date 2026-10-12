@@ -53,8 +53,8 @@ uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   switch (static_cast<CursorService>(id)) {
   case CursorService::BEGIN:  opeu_turn_active_begin(ds, static_cast<DialogHost const*>(port_dialogs_host())); break;
   case CursorService::TEXT:   opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
-  case CursorService::FORMAT: map_request_format(ds, args, count); break;
-  case CursorService::PRINT:  map_cursor_print(ds, args, count); break;
+  case CursorService::FORMAT: opeu_request_format(ds, { args, count }); break;
+  case CursorService::PRINT:  opeu_cursor_print(ds, { args, count }); break;
   default:                    port_unhandled("cursor", id, count);
   }
   return 0;

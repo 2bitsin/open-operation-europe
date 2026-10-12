@@ -100,7 +100,7 @@ auto svc_loadgame(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args,
     return static_cast<std::uint16_t>(opeu_dos_seek(static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int32_t>(Arg32(args, count, 1)), static_cast<std::int16_t>(Arg(args, count, 3))));
   case READ:      return static_cast<std::uint16_t>(opeu_dos_read(static_cast<std::int16_t>(Arg(args, count, 0)), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)));
   case CLOSE:     return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
-  case PRINT:     b1_cursor_print(ds, args, count); break;
+  case PRINT:     opeu_cursor_print(ds, { args, count }); break;
   case ATTRIBUTE: opeu_text_paper_set(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case FRAMED:    return opeu_title_box(ds, static_cast<UiHost const*>(port_uiprim_host()), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
   case UI_TEXT:   opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;

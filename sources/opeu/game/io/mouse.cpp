@@ -60,16 +60,17 @@ void opeu_mouse_hide(std::uint8_t* ds, HostService service) {
   if (HasMouse(ds)) Mouse(ds, service, HIDE);
 }
 
-// Stores the position at the DS words x and y; both 0 without a mouse.
+auto opeu::game::detail::mouse::MousePosition(std::uint8_t* ds, HostService service) -> MousePoint {
+  if (!HasMouse(ds)) return { 0, 0 };
+  auto const r{ Mouse(ds, service, STATUS) };
+  return { r.x.cx, static_cast<std::uint16_t>(r.x.dx - ROW_OFFSET) };
+}
+
+// Stores the position at the DS words x and y, for the callers that pass their near addresses through a service.
 void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
-  if (!HasMouse(ds)) {
-    SetWord(ds, x, 0);
-    SetWord(ds, y, 0);
-  } else {
-    auto const r{ Mouse(ds, service, STATUS) };
-    SetWord(ds, x, r.x.cx);
-    SetWord(ds, y, static_cast<std::uint16_t>(r.x.dx - ROW_OFFSET));
-  }
+  auto const position{ MousePosition(ds, service) };
+  SetWord(ds, x, position.x);
+  SetWord(ds, y, position.y);
 }
 
 void opeu_mouse_move(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {

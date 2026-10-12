@@ -9,6 +9,7 @@
 #include "core/people.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
 #include "map/support.hpp"
 #include "types.hpp"
 #include "units/stats.hpp"
@@ -204,7 +205,7 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, static_cast<uint8_t>(word(0))); break;
   case UNIT_NAME:      result = opeu_unit_name(ds, svc_unitname, word(0), word(1)); break;
   case LOOKUP:         result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(word(0))); break;
-  case REQUEST_FORMAT: c1_request_format(ds, args, count); break;
+  case REQUEST_FORMAT: opeu_request_format(ds, { args, count }); break;
   case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), word(0), word(1)); break;
   case DAILY_SHOW:     port_daily_show(ds, word(0), word(1), word(2), word(3)); break;
   case CASUALTIES:     {

@@ -103,7 +103,7 @@ uint16_t svc_allocpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) 
   switch (static_cast<Service>(id)) {
   case Service::BLIT:     opeu_vga_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
   case Service::FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case Service::PRINT:    r = lf_cursor_print(ds, args, count); break;
+  case Service::PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case Service::SYMBOL:   opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
   case Service::POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   default:                port_unhandled("allocpnl", id, count);

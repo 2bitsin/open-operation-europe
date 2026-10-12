@@ -149,7 +149,7 @@ uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case OUTLINE:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case LINE:     opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case DRAW:     opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
   case NAME:     result = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ELIGIBLE: result = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;

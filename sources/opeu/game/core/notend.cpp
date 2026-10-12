@@ -8,6 +8,7 @@
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
+#include "core/textout.hpp"
 #include "map/grid.hpp"
 #include "map/occupy.hpp"
 #include "map/query.hpp"
@@ -320,7 +321,7 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
     opeu_arrival_prepare(ds, svc_maperase, (uint16_t)(sp - 2), Arg(args, count, 0));
     port_stack_leave(PORT_FRAME);
     break;
-  case FORMAT:         c1_request_format(ds, args, count); break;
+  case FORMAT:         opeu_request_format(ds, { args, count }); break;
   case UNIT_MESSAGE:   opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
   case ELEMENT_SIDE:   r = opeu_battle_element_side(ds, svc_btllist, Arg(args, count, 0)); break;

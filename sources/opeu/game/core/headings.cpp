@@ -72,7 +72,7 @@ void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count
   case OUTLINE:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case CURSOR:   opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case LINE:     opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   default:       port_unhandled("headings", id, count);

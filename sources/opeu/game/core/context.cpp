@@ -84,7 +84,7 @@ uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case BEGIN:    opeu_context_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case SAVE:     opeu_context_save(ds, (TextHost*)port_textout_host()); break;
   case FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case RESTORE:  opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
   case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;

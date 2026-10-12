@@ -2,6 +2,7 @@
 // writes its advice into the enemy topic's buffer and shows it in the person of the staff officer.
 #include "core/advenemy.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/advice.hpp"
@@ -239,7 +240,7 @@ uint16_t svc_advenemy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 // The services every advice check calls through its event.
 uint16_t svc_advice(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case ADVICE_FORMAT:  c2_request_format(ds, args, count); break;
+  case ADVICE_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case ADVICE_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   default:             port_unhandled(module, id, count);
   }

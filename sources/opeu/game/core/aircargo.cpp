@@ -11,6 +11,7 @@
 #include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -310,7 +311,7 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case SIDE_FOR_STATUS: result = opeu_side_for_status(ds, byte(0)); break;
   case MESSAGE:         opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case SOUND_CUE:       opeu_sound_cue4(ds, svc_soundcue); break;
-  case REQUEST_FORMAT:  c2_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case MAP_CENTER:      {
     auto const frame{ port_frame_enter() };
     opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));

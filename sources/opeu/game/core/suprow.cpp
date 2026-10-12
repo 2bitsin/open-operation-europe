@@ -55,7 +55,7 @@ void opeu_supply_draw_row(uint8_t ds[65536], HostEvent event, uint8_t row, uint8
 uint16_t svc_suprow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SupplyService>(id)) {
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
   case FILL:     opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   default:       port_unhandled("suprow", id, count);

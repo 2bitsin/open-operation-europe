@@ -4,6 +4,7 @@
 #include "common/events.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
+#include "core/textout.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
 
@@ -66,7 +67,7 @@ void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event, uint16_t sp)
 uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
   case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case FORMAT:  c1_request_format(ds, args, count); break;
+  case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case FLASH:   {
     auto const frame{ port_frame_enter() };
     opeu_location_flash(ds, svc_mapunit, frame, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));

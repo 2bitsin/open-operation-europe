@@ -100,8 +100,8 @@ uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   switch (id) {
   case TITLE:    opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case FORMAT:   b2_request_format(ds, args, count); break;
-  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case FORMAT:   opeu_request_format(ds, { args, count }); break;
+  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   default:       port_unhandled("armysum", id, count);
   }

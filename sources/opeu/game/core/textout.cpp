@@ -14,8 +14,8 @@
 // Formatter directives: %[-][+][0][width][.precision][l](d|u|x|o|s|c), case insensitive; any other character after %
 // is copied literally.
 //
-// Near pointers are DS offsets. The routines' buffers live on the DS stack below host->sp, so that the routines they
-// call receive DS offsets too; the variadic routines receive the DS offset of their argument words.
+// Near pointers are DS offsets. The routines build their words and formatted texts as C++ strings; sprintf and printf
+// receive their argument words as a span.
 #include "core/textout.hpp"
 #include "common/events.hpp"
 #include "common/host.hpp"
@@ -25,6 +25,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
+#include "common/text.hpp"
 #include "glue.hpp"
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
@@ -32,7 +33,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <initializer_list>
+#include <span>
+#include <string>
+#include <string_view>
 #include <utility>
 
 using namespace opeu::game;
@@ -48,7 +54,6 @@ enum class TextService : uint16_t {
   CLEAR          = 4, // clear the screen
   SOUND_RESET    = 5, // (6)
   PENDING_FINISH = 6, // (value)
-  GLYPH_DRAW     = 7, // (routine offset, segment, x, y, 1, 16, attribute, bits)
 };
 using enum TextService;
 
@@ -77,35 +82,137 @@ enum class EscapeState : int16_t {
   FINISH     = 9, // ESC W, ESC E
 };
 
-// The byte, int and long at a near pointer.
+// The byte at a near pointer.
 auto At(uint8_t* ds, uint16_t at) -> uint8_t& {
   return ds[at];
 }
-auto Int(uint8_t* ds, uint16_t at) -> int16_t& {
-  return *reinterpret_cast<int16_t*>(ds + at);
-}
-auto Long(uint8_t* ds, uint16_t at) -> int32_t& {
-  return *reinterpret_cast<int32_t*>(ds + at);
+
+// The console's word-wrapping printer: buffers a word, wraps it at the window's right column and forwards the escape
+// sequences; it drops DBCS lead bytes 81h..d8h together with the byte that follows the trail byte.
+class WordWrap {
+public:
+  WordWrap(uint8_t* ds, TextHost* host, std::string_view text) noexcept : _ds{ ds }, _host{ host }, _text{ text } { }
+
+  void Print() {
+    for (auto b{ Byte(_at) }; b; b = Byte(++_at)) {
+      if (_skip_spaces) {
+        _skip_spaces = false;
+        while (b == ' ') b = Byte(++_at);
+      }
+      if (b >= 0x81 && b <= 0xd8) {
+        if (Byte(++_at)) ++_at;
+      } else if (b == ESCAPE) {
+        if (!Escape()) break;
+      } else if (b == '\n') {
+        LineFeed();
+      } else if (b != ' ') {
+        _word += static_cast<char>(b);
+        if (b >= ' ') _printable++;
+      } else {
+        Space();
+      }
+    }
+    if (!_word.empty()) {
+      WrapWhenOverflowing();
+      Flush();
+    }
+  }
+
+private:
+  [[nodiscard]] auto Byte(std::size_t at) const noexcept -> uint8_t {
+    return at < _text.size() ? static_cast<uint8_t>(_text[at]) : uint8_t{ 0 };
+  }
+  // Whether the pending word does not fit before the window's right column.
+  [[nodiscard]] auto Overflows() const noexcept -> bool {
+    auto const& data{ Data(_ds) };
+    return static_cast<uint16_t>(data.text_x + _printable) > static_cast<uint16_t>(data.text_right);
+  }
+  void NewLine() {
+    if (!opeu_text_scroll_check(_ds, _host)) opeu_text_put(_ds, _host, '\n');
+  }
+  void WrapWhenOverflowing() {
+    if (Overflows()) NewLine();
+  }
+  void Flush() {
+    for (auto const c : _word) opeu_text_put(_ds, _host, static_cast<uint8_t>(c));
+    _word.clear();
+    _printable = 0;
+  }
+  void LineFeed() {
+    WrapWhenOverflowing();
+    Flush();
+    NewLine();
+  }
+  void Space() {
+    _word += ' ';
+    if (Overflows()) {
+      NewLine();
+      _skip_spaces = true;
+    }
+    Flush();
+  }
+  // Copies the escape sequence at the text position into the word; false when the text ends after the escape byte.
+  auto Escape() -> bool {
+    auto const b{ Byte(++_at) };
+    if (!b) return false;
+    switch (b) {
+    case 'E':
+    case '*':
+    case 'S':
+    case 'T': Append({ ESCAPE, b }); break;
+    case 'Y':
+    case 'B':
+    case 'C':
+    case 'M':
+    case 'R':
+    case 'W':
+      if (Byte(_at + 1)) Append({ ESCAPE, b, Byte(++_at) });
+      break;
+    case '=':
+      if (Byte(_at + 1) && Byte(_at + 2)) Append({ ESCAPE, b, Byte(_at + 1), Byte(_at + 2) });
+      if (Byte(_at + 1) && Byte(_at + 2)) _at += 2;
+      break;
+    default: break;
+    }
+    return true;
+  }
+  void Append(std::initializer_list<uint8_t> bytes) {
+    std::ranges::for_each(bytes, [this](uint8_t c) { _word += static_cast<char>(c); });
+  }
+
+  uint8_t*         _ds;
+  TextHost*        _host;
+  std::string_view _text;
+  std::size_t      _at{ 0 };
+  std::string      _word;
+  uint16_t         _printable{ 0 };
+  bool             _skip_spaces{ false };
+};
+
+// The text of a format word followed by its argument words.
+auto FormatWords(DataSegment const& data, std::span<uint16_t const> words) -> std::string {
+  if (words.empty()) return {};
+  return FormatText(data, CString(data, words.front()), words.subspan(1));
 }
 
-// The next int or pointer of a variadic argument list at p.
-auto NextInt(uint8_t* ds, uint16_t& p) -> int16_t {
-  p += 2;
-  return Int(ds, static_cast<uint16_t>(p - 2));
-}
-auto NextWord(uint8_t* ds, uint16_t& p) -> uint16_t {
-  p += 2;
-  return Word(ds, static_cast<uint16_t>(p - 2));
-}
+// Where a glyph goes: its cell and its colour attribute (paper << 8 | ink).
+struct GlyphCell {
+  int16_t x;
+  int16_t y;
+  int16_t attribute;
+};
 
-auto NegateLong(int32_t value) -> int32_t {
-  return static_cast<int32_t>(0u - static_cast<uint32_t>(value));
-}
-
-// Reserves `size` bytes on the DS stack below host->sp; returns their near pointer.
-auto Reserve(TextHost* host, uint16_t size) -> uint16_t {
-  host->sp -= size;
-  return host->sp;
+// Draws a glyph's 16 rows of bits through the routine data.glyph_draw names: transparent or opaque.
+void DrawGlyph(FarPointer const& routine, GlyphCell const& cell, std::span<uint8_t const> bits) {
+  auto const x{ static_cast<uint16_t>(cell.x) };
+  auto const y{ static_cast<uint16_t>(cell.y) };
+  auto const attribute{ static_cast<uint16_t>(cell.attribute) };
+  if (routine.segment == 0 && routine.offset == GLYPH_TRANSPARENT)
+    opeu_draw_near(x, y, 1, GLYPH_BYTES, attribute, bits.data());
+  else if (routine.segment == 0 && routine.offset == GLYPH_OPAQUE)
+    opeu_code_0000_28c5(x, y, 1, GLYPH_BYTES, attribute, bits.data());
+  else
+    port_fatal("textout: glyph routine %04x:%04x is not a known VGALIB entry", routine.segment, routine.offset);
 }
 
 auto State(DataSegment const& data) -> EscapeState {
@@ -143,246 +250,9 @@ void opeu_input_flush(uint8_t ds[65536], TextHost* host) {
   while (Call(ds, host->event, KEY_WAITING)) opeu_key_read(ds, host);
 }
 
-// The unsigned decimal at *p; *p is left at the first non-digit.
-int16_t opeu_format_decimal(uint8_t ds[65536], [[maybe_unused]] TextHost* host, uint16_t* p) {
-  uint16_t value{ 0 };
-  uint16_t digit;
-  while ((digit = static_cast<uint16_t>(static_cast<uint8_t>(At(ds, *p)) - '0')) < 10) {
-    value = static_cast<uint16_t>(digit + value * 10);
-    ++*p;
-  }
-  return static_cast<int16_t>(value);
-}
-
-// The digits of v in base, uppercase, at *p; returns the digit count.
-int16_t opeu_put_unsigned(uint8_t ds[65536], TextHost* host, uint16_t* p, uint16_t v, uint16_t base) {
-  if (v < base) {
-    At(ds, *p) = static_cast<uint8_t>(v < 10 ? v + '0' : v + '7');
-    ++*p;
-    return 1;
-  }
-  auto const count{ opeu_put_unsigned(ds, host, p, v / base, base) };
-  opeu_put_unsigned(ds, host, p, v % base, base);
-  return static_cast<int16_t>(count + 1);
-}
-
-int16_t opeu_put_long(uint8_t ds[65536], TextHost* host, uint16_t* p, int32_t v, int16_t base) {
-  if (v < base) {
-    At(ds, *p) = static_cast<uint8_t>(v < 10 ? static_cast<char>(v) + '0' : static_cast<char>(v) + '7');
-    ++*p;
-    return 1;
-  }
-  auto const count{ opeu_put_long(ds, host, p, v / base, base) };
-  opeu_put_long(ds, host, p, v % base, base);
-  return static_cast<int16_t>(count + 1);
-}
-
-// args addresses the format pointer followed by its arguments; the formatted text (up to 200 bytes) is passed to
-// out.
-void opeu_format(uint8_t ds[65536], TextHost* host, uint16_t args, TextOut out) {
-  uint8_t    pad;       // pad character
-  int16_t    left;      // left-justify
-  uint8_t    c;         // current character
-  int16_t    precision; // precision
-  int16_t    width;     // remaining width
-  int16_t    is_long;   // long argument
-  uint16_t   text;      // conversion text
-  int16_t    base;      // base
-  int16_t    plus;      // explicit plus
-  int16_t    has_precision;
-  auto const output{ Reserve(host, 200) };
-  auto const conversion{ Reserve(host, 50) };
-  auto       format{ Word(ds, args) };
-  auto       p{ static_cast<uint16_t>(args + 2) }; // next argument
-  auto       n{ output };                          // output position
-  while ((c = At(ds, format++)) != 0) {
-    if (c == '%') {
-      text          = conversion;
-      precision     = 6;
-      plus          = 0;
-      is_long       = 0;
-      has_precision = 0;
-      left          = 0;
-      if (At(ds, format) == '-') {
-        format++;
-        left = 1;
-      }
-      if (At(ds, format) == '+') {
-        format++;
-        plus = 1;
-      }
-      c   = At(ds, format);
-      pad = c == '0' ? '0' : ' ';
-      if (c >= '0' && c <= '9')
-        width = opeu_format_decimal(ds, host, &format);
-      else
-        width = 0;
-      c = At(ds, format++);
-      if (c == '.') {
-        precision     = opeu_format_decimal(ds, host, &format);
-        has_precision = 1;
-        c             = At(ds, format++);
-      }
-      if (opeu_ascii_upper(c) == 'L') {
-        is_long = 1;
-        c       = At(ds, format++);
-      }
-      switch (opeu_ascii_upper(c)) {
-      case 'X': base = 16; goto number;
-      case 'D':
-        if (is_long) {
-          if (Long(ds, p) < 0) {
-            Long(ds, p)    = NegateLong(Long(ds, p));
-            At(ds, text++) = '-';
-            width--;
-          } else if (plus) {
-            At(ds, text++) = '+';
-            width--;
-          }
-        } else {
-          if (Int(ds, p) < 0) {
-            Int(ds, p)     = static_cast<int16_t>(-Int(ds, p));
-            At(ds, text++) = '-';
-            width--;
-          } else if (plus) {
-            At(ds, text++) = '+';
-            width--;
-          }
-        }
-        [[fallthrough]];
-      case 'U': base = 10; goto number;
-      case 'O':
-        base = 8;
-      number:
-        if (is_long) {
-          width -= opeu_put_long(ds, host, &text, Long(ds, p), base);
-          p     += 4;
-        } else
-          width -= opeu_put_unsigned(ds, host, &text, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(base));
-        goto term;
-      case 'S':
-        text   = NextWord(ds, p);
-        width -= opeu_string_length(ds, text);
-        goto pad;
-      case 'C':
-        At(ds, text++) = static_cast<uint8_t>(static_cast<char>(NextInt(ds, p)));
-        width--;
-      term:
-        At(ds, text)  = 0;
-        text          = conversion;
-        has_precision = 0;
-      pad:
-        if (!left)
-          while (width-- > 0) At(ds, n++) = pad;
-        while (At(ds, text)) {
-          if (!has_precision || precision > 0) {
-            At(ds, n++) = At(ds, text);
-            precision--;
-          }
-          text++;
-        }
-        if (left)
-          while (width-- > 0) At(ds, n++) = ' ';
-        continue;
-      case 0: goto done;
-      }
-    }
-    At(ds, n++) = c;
-  }
-done:
-  At(ds, n) = 0;
-  out(ds, host, output);
-  host->sp += 250;
-}
-
 // Word-wrapping text output with embedded escape sequences.
 void opeu_ui_text(uint8_t ds[65536], TextHost* host, uint16_t s) {
-  auto&      data{ Data(ds) };
-  auto const word{ Reserve(host, 32) }; // the pending word
-  uint8_t    b;                         // current byte
-  uint16_t   skip_spaces{ 0 };          // skip leading spaces after a wrap
-  uint16_t   end{ word };               // word end
-  uint16_t   next{ word };              // next byte to output
-  uint16_t   printable{ 0 };            // printable width of the word
-  // Whether the pending word does not fit before the window's right column.
-  auto const overflows{ [&] { return static_cast<uint16_t>(data.text_x + printable) > static_cast<uint16_t>(data.text_right); } };
-  auto const flush{ [&] {
-    while (next != end) {
-      opeu_text_put(ds, host, At(ds, next));
-      next++;
-    }
-  } };
-  b = At(ds, s);
-  while (b) {
-    if (skip_spaces) {
-      skip_spaces = 0;
-      while (b == ' ') b = At(ds, ++s);
-    }
-    if (b >= 0x81 && b <= 0xd8) {
-      if ((b = At(ds, ++s)) != 0) s++;
-    } else if (b == ESCAPE) {
-      if ((b = At(ds, ++s)) == 0) break;
-      switch (b) {
-      case 'E':
-      case '*':
-      case 'S':
-      case 'T':
-        At(ds, end++) = ESCAPE;
-        At(ds, end++) = b;
-        break;
-      case 'Y':
-      case 'B':
-      case 'C':
-      case 'M':
-      case 'R':
-      case 'W':
-        if (At(ds, s + 1) == 0) break;
-        At(ds, end++) = ESCAPE;
-        At(ds, end)   = b;
-        b             = At(ds, ++s);
-        end++;
-        At(ds, end++) = b;
-        break;
-      case '=':
-        if (At(ds, s + 1) == 0) break;
-        if (At(ds, s + 2) == 0) break;
-        At(ds, end++) = ESCAPE;
-        At(ds, end++) = b;
-        At(ds, end)   = At(ds, ++s);
-        b             = At(ds, ++s);
-        end++;
-        At(ds, end++) = b;
-        break;
-      }
-    } else if (b < ' ') {
-      if (b == '\n') {
-        if (overflows() && !opeu_text_scroll_check(ds, host)) opeu_text_put(ds, host, '\n');
-        flush();
-        if (!opeu_text_scroll_check(ds, host)) opeu_text_put(ds, host, '\n');
-        next = end = word;
-        printable  = 0;
-      } else
-        At(ds, end++) = b;
-    } else if (b != ' ') {
-      At(ds, end++) = b;
-      printable++;
-    } else {
-      At(ds, end++) = b;
-      if (overflows()) {
-        if (!opeu_text_scroll_check(ds, host)) opeu_text_put(ds, host, '\n');
-        skip_spaces = 1;
-      }
-      flush();
-      next = end = word;
-      printable  = 0;
-    }
-    b = At(ds, ++s);
-  }
-  if (next != end) {
-    if (overflows() && !opeu_text_scroll_check(ds, host)) opeu_text_put(ds, host, '\n');
-    flush();
-  }
-  host->sp += 32;
+  WordWrap{ ds, host, CString(Data(ds), s) }.Print();
 }
 
 // Sets the scroll mode when it is 0 or 1; returns the current mode.
@@ -524,15 +394,11 @@ void opeu_context_restore(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
 }
 
 // Draws one 8x16 glyph of the codes 20h..7fh, opaque when a background colour is set.
-void opeu_text_glyph(uint8_t ds[65536], TextHost* host, int16_t x, int16_t y, int16_t attribute, uint16_t code) {
+void opeu_text_glyph(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t x, int16_t y, int16_t attribute, uint16_t code) {
   auto const& data{ Data(ds) };
-  auto const  bits{ Reserve(host, GLYPH_BYTES) };
-  if (code >= FIRST_GLYPH && code <= 0x7f) {
-    opeu_copy_far_to_near(ds, ds, static_cast<uint16_t>(offsetof(DataSegment, text_font) + (code - FIRST_GLYPH) * GLYPH_BYTES), bits, GLYPH_BYTES);
-    auto const& routine{ data.glyph_draw[data.text_background != 0] };
-    Call(ds, host->event, GLYPH_DRAW, routine.offset, routine.segment, x, y, 1, 16, attribute, bits);
-  }
-  host->sp += GLYPH_BYTES;
+  if (code < FIRST_GLYPH || code > 0x7f) return;
+  auto const bits{ std::span{ data.text_font }.subspan((code - FIRST_GLYPH) * GLYPH_BYTES, GLYPH_BYTES) };
+  DrawGlyph(data.glyph_draw[data.text_background != 0], { x, y, attribute }, bits);
 }
 
 // Moves the cursor to the start of the next line, unless that passes the screen's bottom.
@@ -640,26 +506,19 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
   return c;
 }
 
-// opeu_format's output for opeu_request_format: copies the text to format_output and advances it.
-void opeu_format_store(uint8_t ds[65536], [[maybe_unused]] TextHost* host, uint16_t s) {
-  auto& data{ Data(ds) };
-  while (At(ds, s)) {
-    At(ds, data.format_output) = At(ds, s);
-    s++;
-    data.format_output++;
-  }
-  At(ds, data.format_output) = 0;
+// sprintf: the words are the destination, the format and its arguments. The text goes to the destination and
+// format_output is left at its terminator.
+void opeu_request_format(uint8_t ds[65536], std::span<uint16_t const> words) {
+  auto&      data{ Data(ds) };
+  auto const destination{ words.empty() ? uint16_t{ 0 } : words.front() };
+  auto const text{ FormatWords(data, words.subspan(std::min<std::size_t>(words.size(), 1))) };
+  StoreText(data, destination, text);
+  data.format_output = static_cast<uint16_t>(destination + text.size());
 }
 
-// sprintf: frame addresses the destination, the format and its arguments.
-void opeu_request_format(uint8_t ds[65536], TextHost* host, uint16_t frame) {
-  Data(ds).format_output = Word(ds, frame);
-  opeu_format(ds, host, static_cast<uint16_t>(frame + 2), opeu_format_store);
-}
-
-// printf to the console.
-void opeu_cursor_print(uint8_t ds[65536], TextHost* host, uint16_t frame) {
-  opeu_format(ds, host, frame, opeu_ui_text);
+// printf to the console: the words are the format and its arguments.
+void opeu_cursor_print(uint8_t ds[65536], std::span<uint16_t const> words) {
+  WordWrap{ ds, static_cast<TextHost*>(port_textout_host()), FormatWords(Data(ds), words) }.Print();
 }
 
 void opeu_text_put_range(uint8_t ds[65536], TextHost* host, uint16_t s, uint8_t start, uint8_t count) {
@@ -675,13 +534,9 @@ void opeu_text_erase_char(uint8_t ds[65536], TextHost* host) {
   data.text_paper = paper;
 }
 
-// The console's services. While the console calls out, port_sp is lowered to its own sp, so that nested routines
-// (which take the host again or reserve with port_stack_enter) allocate below its live buffers; both are restored
-// when the service returns.
+// The console's services.
 uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r             = 0;
-  uint16_t saved_port_sp = port_sp, saved_host_sp = *port_textout_host_sp();
-  if (*port_textout_host_sp() < port_sp) port_sp = *port_textout_host_sp();
+  uint16_t r = 0;
   switch (static_cast<TextService>(id)) {
   case KEY_READ:       r = port_key_read(); break;
   case KEY_WAITING:    r = opeu_turn_input_b(); break;
@@ -690,21 +545,8 @@ uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case CLEAR:          opeu_vga_clear(); break;
   case SOUND_RESET:    opeu_sound_reset(ds, svc_sound); break;
   case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case GLYPH_DRAW:     {
-    uint16_t       off = Arg(args, count, 0), seg = Arg(args, count, 1);
-    const uint8_t* bits = PORT_DS(Arg(args, count, 7));
-    if (seg == 0 && off == GLYPH_TRANSPARENT)
-      opeu_draw_near(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6), bits);
-    else if (seg == 0 && off == GLYPH_OPAQUE)
-      opeu_code_0000_28c5(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6), bits);
-    else
-      port_fatal("textout: glyph routine %04x:%04x is not a known VGALIB entry", seg, off);
-    break;
+  default:             port_unhandled("textout", id, count);
   }
-  default: port_unhandled("textout", id, count);
-  }
-  port_sp                 = saved_port_sp;
-  *port_textout_host_sp() = saved_host_sp;
   return r;
 }
 
@@ -736,7 +578,7 @@ auto port_routine_opeu_context_save(std::uint8_t* ds, std::uint16_t const* args,
 
 // printf to the text cursor.
 auto port_routine_opeu_cursor_print(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  btl_cursor_print(ds, args, count);
+  opeu_cursor_print(ds, { args, count });
   return 0;
 }
 
@@ -749,7 +591,7 @@ auto port_routine_opeu_input_flush(std::uint8_t* ds, std::uint16_t const* args, 
 
 // sprintf(destination, format, ...): every word as pushed.
 auto port_routine_opeu_request_format(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  btl_request_format(ds, args, count);
+  opeu_request_format(ds, { args, count });
   return 0;
 }
 

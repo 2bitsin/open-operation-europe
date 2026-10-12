@@ -9,9 +9,6 @@
  *  - the modeled DGROUP stack: the host branches keep the original's stack
  *    buffers at DS addresses, so a caller reserves room below the modeled SP
  *    for a callee's `sp`/`frame`/`scratch` parameter (port.h port_sp);
- *  - the cdecl variadic text routines (0480:0b9a request_format, 0480:0bb8
- *    cursor_print): their argument words are laid out on the modeled stack
- *    as the original pushed them;
  *  - the C runtime random state, kept at DS:c6f4 by the original and in
  *    opeu_random_state by the recovered generator;
  *  - the struct hosts of TEXTOUT, UIPRIM and DIALOGS (stack pointer, memory
@@ -57,31 +54,6 @@ void btl_sp_leave();
 auto map_frame_enter() -> uint16_t;
 void map_frame_leave();
 /* Push/pop cdecl argument words on the modeled stack. */
-auto a_push_words(const uint16_t* args, unsigned count) -> uint16_t;
-void a_pop_words(unsigned count);
-auto b1_push_words(const uint16_t* args, unsigned count) -> uint16_t;
-
-/* ---- variadic text routines: request_format / cursor_print ---------------- */
-
-void a_cursor_print(uint8_t* ds, const uint16_t* words, unsigned count);
-void b1_cursor_print(uint8_t* ds, const uint16_t* args, unsigned count);
-void b1_request_format(uint8_t* ds, const uint16_t* args, unsigned count);
-void b2_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
-void b2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-void c1_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
-void c1_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-void c2_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
-void c2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-void map_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
-void map_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-auto lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count) -> uint16_t;
-auto lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count) -> uint16_t;
-/* request_format with the battle modules' reserve (2n+2 bytes). */
-using BtlFrameRoutine = void (*)(uint8_t* ds, void* host, uint16_t frame);
-void btl_frame_call(uint8_t* ds, BtlFrameRoutine routine, const uint16_t* words, unsigned n);
-void btl_request_format(uint8_t* ds, const uint16_t* words, unsigned n);
-void btl_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n);
-
 /* ---- C runtime random state (DS:c6f4) ------------------------------------- */
 
 auto port_rand_bounded(uint8_t* ds, uint16_t bound) -> uint16_t;
@@ -93,11 +65,10 @@ auto port_ds_word_ptr(uint16_t off) -> uint16_t*;
 
 /* ---- struct hosts (port/core/hosts.c) ------------------------------------- */
 
-auto port_textout_host() -> void*;        /* TextHost {event, sp}: sp = port_sp */
-auto port_textout_host_sp() -> uint16_t*; /* its sp (svc_textout saves/restores it) */
-auto port_uiprim_host() -> void*;         /* UiHost {memory, segments, event} */
-auto port_dialogs_host() -> void*;        /* DialogHost {event, load, scratch} */
-auto port_numdlg_host() -> void*;         /* numdlg's bridge {service} */
+auto port_textout_host() -> void*; /* TextHost {event} */
+auto port_uiprim_host() -> void*;  /* UiHost {memory, segments, event} */
+auto port_dialogs_host() -> void*; /* DialogHost {event, load, scratch} */
+auto port_numdlg_host() -> void*;  /* numdlg's bridge {service} */
 
 /* ---- far code pointers of the recovered data ------------------------------ */
 

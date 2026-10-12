@@ -2,6 +2,7 @@
 // current side's daily context is selected.
 #include "core/msglook.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
 
@@ -41,7 +42,7 @@ uint16_t svc_msglook(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   switch (id) {
   case SELECT_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
   case COPY_TEXT:      r = opeu_string_copy_far(ds, Arg(args, count, 0), port_far(Arg(args, count, 2), 0), Arg(args, count, 1)); break;
-  case REPORT_ERROR:   b1_request_format(ds, args, count); break;
+  case REPORT_ERROR:   opeu_request_format(ds, { args, count }); break;
   default:             port_unhandled("msglook", id, count);
   }
   return r;

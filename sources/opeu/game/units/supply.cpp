@@ -3,6 +3,7 @@
 #include "units/supply.hpp"
 #include "common/data-segment.hpp"
 #include "core/suppanel.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/capacity.hpp"
 #include "units/resagg.hpp"
@@ -106,7 +107,7 @@ constexpr std::uint16_t STEP_FRAME{ 0x200u };
 uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-  case 2:           r = lf_request_format(ds, args, count); break;
+  case 2:           opeu_request_format(ds, { args, count }); break;
   case SUPPLY_DRAW: opeu_supply_draw(ds, svc_suppanel, Arg(args, count, 0), Arg(args, count, 1)); break;
   case SUPPLY_STEP: // selection: the selected-row byte of the step's frame (BP-8)
     sp = port_stack_enter(STEP_FRAME);

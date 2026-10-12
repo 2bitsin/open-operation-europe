@@ -4,12 +4,11 @@
 #include "common/host.hpp"
 #include "types.hpp"
 
+#include <cstdint>
+#include <span>
+
 uint8_t opeu_key_read(uint8_t* ds, TextHost* host);
 void    opeu_input_flush(uint8_t* ds, TextHost* host);
-int16_t opeu_format_decimal(uint8_t* ds, TextHost* host, uint16_t* p);
-int16_t opeu_put_unsigned(uint8_t* ds, TextHost* host, uint16_t* p, uint16_t v, uint16_t base);
-int16_t opeu_put_long(uint8_t* ds, TextHost* host, uint16_t* p, int32_t v, int16_t base);
-void    opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out);
 void    opeu_ui_text(uint8_t* ds, TextHost* host, uint16_t s);
 int16_t opeu_text_scroll_mode(uint8_t* ds, TextHost* host, int16_t mode);
 void    opeu_text_window(uint8_t* ds, TextHost* host, int16_t left, int16_t right, int16_t top, int16_t bottom);
@@ -37,9 +36,8 @@ void    opeu_text_glyph(uint8_t* ds, TextHost* host, int16_t x, int16_t y, int16
 void    opeu_text_newline(uint8_t* ds, TextHost* host);
 void    opeu_text_control(uint8_t* ds, TextHost* host, uint8_t c);
 uint8_t opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c);
-void    opeu_format_store(uint8_t* ds, TextHost* host, uint16_t s);
-void    opeu_request_format(uint8_t* ds, TextHost* host, uint16_t frame);
-void    opeu_cursor_print(uint8_t* ds, TextHost* host, uint16_t frame);
+void    opeu_request_format(uint8_t* ds, std::span<std::uint16_t const> words);
+void    opeu_cursor_print(uint8_t* ds, std::span<std::uint16_t const> words);
 void    opeu_text_put_range(uint8_t* ds, TextHost* host, uint16_t s, uint8_t start, uint8_t count);
 void    opeu_text_erase_char(uint8_t* ds, TextHost* host);
 

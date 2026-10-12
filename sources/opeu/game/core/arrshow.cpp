@@ -1,6 +1,7 @@
 // The arrival message: the arriving unit's name, built in a buffer on the caller's stack, in the side's format.
 #include "core/arrshow.hpp"
 #include "common/events.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/unitname.hpp"
 
@@ -53,7 +54,7 @@ uint16_t svc_arrshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t r = 0;
   switch (id) {
   case MESSAGE_LOOKUP:  r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case REQUEST_FORMAT:  c1_request_format(ds, args, count); break;
+  case REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case REQUEST_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case REQUEST_WAIT:    opeu_request_wait(ds, svc_soundcue); break;
   case DAILY_CONTEXT:   opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
