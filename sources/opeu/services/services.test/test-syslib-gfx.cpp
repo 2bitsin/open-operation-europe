@@ -1,7 +1,7 @@
-/* Standalone checks of syslib_gfx.c against values worked out by hand from
- * the original instructions (syslib.asm addresses in the comments). */
+// Checks of the battle-cell and sprite routines against values worked out by hand, in the bit-per-colour form of the
+// game's buffers.
+#include "canvas.hpp"
 #include "syslib-gfx.hpp"
-#include "vgalib.hpp"
 #include <print>
 #include <source_location>
 #include <stdio.h>
@@ -20,47 +20,57 @@ auto Check(bool held, std::source_location where = std::source_location::current
 
 }
 
-static void clear(void) {
-  memset(vga_plane, 0, sizeof vga_plane);
+// Bit p of the 8 pixels of screen column a (80 columns per screen line).
+static uint8_t Plane(int p, unsigned a) {
+  return opeu::services::Screen().PlaneBits(opeu::services::Offset{ a } * 8, p);
 }
 
-static void test_restore_odd(void)            /* 354F */
+static void SetPlane(int p, unsigned a, unsigned bits) {
+  opeu::services::Screen().SetPlaneBits(opeu::services::Offset{ a } * 8, p, (uint8_t)bits);
+}
+
+static void clear(void) {
+  opeu::services::Screen().Clear();
+}
+
+static void test_restore_odd(void) /* 354F */
 {
-  uint8_t buf[520];
+  uint8_t  buf[520];
   uint16_t di = 40 * 80 + 2;
-  int p;
+  int      p;
   clear();
   memset(buf, 0, sizeof buf);
-  for (p = 0; p < 4; p++) memset(&vga_plane[p][di], 0xAA, 6);
+  for (p = 0; p < 4; p++)
+    for (int i = 0; i < 6; i++) SetPlane(p, di + i, 0xAA);
   buf[0] = 0x12;
   buf[1] = 0x34;
   buf[2] = 0x56;
   buf[3] = 0x78;
   buf[4] = 0x9A;
   opeu_vram_restore_odd(2, 0, buf);
-  Check(vga_plane[0][di] == 0xA1);
-  Check(vga_plane[0][di + 1] == 0x23);
-  Check(vga_plane[0][di + 2] == 0x45);
-  Check(vga_plane[0][di + 3] == 0x67);
-  Check(vga_plane[0][di + 4] == 0x89);
-  Check(vga_plane[0][di + 5] == 0xAA);
-  Check(vga_plane[1][di] == 0xA0 && vga_plane[1][di + 5] == 0x0A);
-  Check(vga_plane[1][di + 6] == 0x00);
+  Check(Plane(0, di) == 0xA1);
+  Check(Plane(0, di + 1) == 0x23);
+  Check(Plane(0, di + 2) == 0x45);
+  Check(Plane(0, di + 3) == 0x67);
+  Check(Plane(0, di + 4) == 0x89);
+  Check(Plane(0, di + 5) == 0xAA);
+  Check(Plane(1, di) == 0xA0 && Plane(1, di + 5) == 0x0A);
+  Check(Plane(1, di + 6) == 0x00);
 }
 
 static void test_save_odd_and_roundtrip(void) /* 3882, 37E4, 34B8 */
 {
   static const uint8_t row[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
-  uint8_t buf[520], buf2[520];
-  unsigned i;
+  uint8_t              buf[520], buf2[520];
+  unsigned             i;
   clear();
-  memcpy(&vga_plane[0][3200], row, 6);
+  for (i = 0; i < 6; i++) SetPlane(0, 3200 + i, row[i]);
   opeu_vram_save_odd(0, 0, buf);
   Check(buf[0] == 0x23 && buf[1] == 0x45 && buf[2] == 0x67 && buf[3] == 0x89 && buf[4] == 0xAB);
   Check(buf[5] == 0);
   for (i = 0; i < 520; i++) buf[i] = (uint8_t)(i * 7 + 3);
   opeu_vram_restore(10, 100, buf);
-  Check(vga_plane[2][(100 + 40) * 80 + 10 + 80 + 3] == buf[20 + 10 + 3]);
+  Check(Plane(2, (100 + 40) * 80 + 10 + 80 + 3) == buf[20 + 10 + 3]);
   opeu_vram_save(10, 100, buf2);
   Check(memcmp(buf, buf2, 520) == 0);
   opeu_vram_restore_odd(20, 50, buf);
@@ -68,14 +78,14 @@ static void test_save_odd_and_roundtrip(void) /* 3882, 37E4, 34B8 */
   Check(memcmp(buf, buf2, 520) == 0);
 }
 
-static void test_glyph_color_spill(void)      /* 3A4D: word ops cross plane blocks */
+static void test_glyph_color_spill(void) /* 3A4D: word ops cross plane blocks */
 {
   uint8_t v[540], exp[540];
   uint8_t g[6] = { 0x81, 0, 0, 0, 0, 0 };
   memset(v, 0xFF, sizeof v);
   memset(exp, 0xFF, sizeof exp);
-  exp[4] = 0xBF;
-  exp[5] = 0x7F;
+  exp[4]  = 0xBF;
+  exp[5]  = 0x7F;
   exp[14] = 0xBF;
   exp[15] = 0x7F;
   exp[19] = 0xBF;
@@ -83,70 +93,70 @@ static void test_glyph_color_spill(void)      /* 3A4D: word ops cross plane bloc
   opeu_vram_glyph_color(v, g, 33, 0, 0);
   Check(memcmp(v, exp, sizeof v) == 0);
   memset(v, 0, sizeof v);
-  opeu_vram_glyph(v, g, 0, 1);              /* planes 0-2 get 0x81, plane 3 cleared */
+  opeu_vram_glyph(v, g, 0, 1); /* planes 0-2 get 0x81, plane 3 cleared */
   Check(v[20] == 0x81 && v[25] == 0x81 && v[30] == 0x81 && v[35] == 0 && v[21] == 0);
 }
 
-static void test_sprite_compose(void)         /* 3E0A */
+static void test_sprite_compose(void) /* 3E0A */
 {
   static const uint8_t mask[2] = { 0xF0, 0x0F };
-  static const uint8_t img[6] = { 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
-  uint8_t buf[16];
+  static const uint8_t img[6]  = { 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
+  uint8_t              buf[16];
   clear();
-  vga_plane[0][3200] = 0xFF;
-  vga_plane[0][3201] = 0xFF;
-  vga_plane[1][3200] = 0xFF;
-  vga_plane[1][3201] = 0x00;
-  vga_plane[2][3200] = 0x00;
-  vga_plane[2][3201] = 0xFF;
-  vga_plane[3][3200] = 0x0F;
-  vga_plane[3][3201] = 0xF0;
+  SetPlane(0, 3200, 0xFF);
+  SetPlane(0, 3201, 0xFF);
+  SetPlane(1, 3200, 0xFF);
+  SetPlane(1, 3201, 0x00);
+  SetPlane(2, 3200, 0x00);
+  SetPlane(2, 3201, 0xFF);
+  SetPlane(3, 3200, 0x0F);
+  SetPlane(3, 3201, 0xF0);
   opeu_sprite_compose(0, 0, 2, 1, mask, img, buf, 0);
-  Check(vga_plane[0][3200] == 0xF1 && vga_plane[0][3201] == 0x1F);
-  Check(vga_plane[1][3200] == 0xF2 && vga_plane[1][3201] == 0x20);
-  Check(vga_plane[2][3200] == 0x04 && vga_plane[2][3201] == 0x4F);
-  Check(vga_plane[3][3200] == 0x00 && vga_plane[3][3201] == 0x00);
+  Check(Plane(0, 3200) == 0xF1 && Plane(0, 3201) == 0x1F);
+  Check(Plane(1, 3200) == 0xF2 && Plane(1, 3201) == 0x20);
+  Check(Plane(2, 3200) == 0x04 && Plane(2, 3201) == 0x4F);
+  Check(Plane(3, 3200) == 0x00 && Plane(3, 3201) == 0x00);
   Check(buf[0] == 0xF1 && buf[3] == 0x20 && buf[6] == 0x00);
 }
 
-static void test_3f26(void)                   /* 3F26 with a 4-pixel shift */
+static void test_3f26(void) /* 3F26 with a 4-pixel shift */
 {
   static const uint8_t mask[1] = { 0x00 };
-  static const uint8_t img[4] = { 0x0F, 0xF0, 0x3C, 0xC3 };
-  uint8_t buf[8];
-  int p;
+  static const uint8_t img[4]  = { 0x0F, 0xF0, 0x3C, 0xC3 };
+  uint8_t              buf[8];
+  int                  p;
   clear();
-  for (p = 0; p < 4; p++) vga_plane[p][3200] = vga_plane[p][3201] = 0xFF;
+  for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
   koei_3f26(4, 0, 8, 1, mask, img, buf, 1);
-  Check(vga_plane[0][3200] == 0xF0 && vga_plane[0][3201] == 0xFF);
-  Check(vga_plane[1][3200] == 0xFF && vga_plane[1][3201] == 0x0F);
-  Check(vga_plane[2][3200] == 0xF3 && vga_plane[2][3201] == 0xCF);
-  Check(vga_plane[3][3200] == 0xFC && vga_plane[3][3201] == 0x3F);
+  Check(Plane(0, 3200) == 0xF0 && Plane(0, 3201) == 0xFF);
+  Check(Plane(1, 3200) == 0xFF && Plane(1, 3201) == 0x0F);
+  Check(Plane(2, 3200) == 0xF3 && Plane(2, 3201) == 0xCF);
+  Check(Plane(3, 3200) == 0xFC && Plane(3, 3201) == 0x3F);
   /* flags bit 0 clear: the original never returns; the port leaves VRAM alone */
-  for (p = 0; p < 4; p++) vga_plane[p][3200] = vga_plane[p][3201] = 0xFF;
+  for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
   koei_3f26(4, 0, 8, 1, mask, img, buf, 0);
-  Check(vga_plane[0][3200] == 0xFF && vga_plane[3][3201] == 0xFF);
+  Check(Plane(0, 3200) == 0xFF && Plane(3, 3201) == 0xFF);
 }
 
-static void test_copy_and_fill(void)          /* 3BC5 overlap, 3B77 */
+static void test_copy_and_fill(void) /* 3BC5 overlap, 3B77 */
 {
   clear();
-  vga_plane[0][3200] = 1;
-  vga_plane[0][3201] = 2;
-  vga_plane[0][3202] = 3;
-  vga_plane[0][3203] = 4;
+  SetPlane(0, 3200, 1);
+  SetPlane(0, 3201, 2);
+  SetPlane(0, 3202, 3);
+  SetPlane(0, 3203, 4);
   koei_3bc5(0, 0, 1, 0);
-  Check(vga_plane[0][3201] == 1 && vga_plane[0][3202] == 2 && vga_plane[0][3203] == 2);
+  Check(Plane(0, 3201) == 1 && Plane(0, 3202) == 2 && Plane(0, 3203) == 2);
   clear();
   koei_3b77(5, 2, 3, 2, 0x1A5);
-  Check(vga_plane[3][42 * 80 + 5] == 0xA5 && vga_plane[3][43 * 80 + 7] == 0xA5);
-  Check(vga_plane[3][43 * 80 + 8] == 0 && vga_plane[3][44 * 80 + 5] == 0);
-  Check(vga_plane[0][42 * 80 + 5] == 0);
+  Check(Plane(3, 42 * 80 + 5) == 0xA5 && Plane(3, 43 * 80 + 7) == 0xA5);
+  Check(Plane(3, 43 * 80 + 8) == 0 && Plane(3, 44 * 80 + 5) == 0);
+  Check(Plane(0, 42 * 80 + 5) == 0);
 }
 
-static void test_load_draw(void)              /* 3B1E, 3A04 */
+static void test_load_draw(void) /* 3B1E, 3A04 */
 {
-  uint8_t v[520], m[130], s[520];
+  uint8_t  v[520], m[130], s[520];
   unsigned i;
   memset(v, 0xFF, sizeof v);
   for (i = 0; i < 130; i++) m[i] = (uint8_t)(i | 0x80);
