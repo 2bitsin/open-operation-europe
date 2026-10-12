@@ -63,10 +63,11 @@ auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit,
 }
 } // namespace
 
-// Flags the element of the list row the cursor is on.
+// Selects the element of the list row the cursor is on.
 uint8_t opeu_tally_mark(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
-  Record<Element>(data, data.tally_records[data.list_row]).flags |= 1;
+  Record<Element>(data, data.tally_records[data.list_row]).flags |=
+      Bits(ElementFlag::SELECTED);
   return 1;
 }
 
