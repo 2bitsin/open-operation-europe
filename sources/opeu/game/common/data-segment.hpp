@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "common/menu.hpp"
+
 namespace opeu::game::detail::data_segment {
 
 // Packed: the original records have odd strides. Arrays of bytes and of records are std::array; arrays of words are
@@ -20,10 +22,31 @@ struct FarPointer {
 
 // An order slot of a unit or a side: what it targets, which order, how far it has got.
 struct Order {
-  std::uint16_t
-      target; // near pointer to the target record (objective, unit or map cell)
+  // a near pointer to the target record (objective or unit), or the map cell for orders that target a place
+  union {
+    std::uint16_t target;
+    struct {
+      std::uint8_t x;
+      std::uint8_t y;
+    } cell;
+  };
   std::uint8_t kind;
   std::uint8_t progress;
+};
+
+// Order::kind of a unit's order; order_names[kind + 3] names it.
+enum class UnitOrder : std::uint8_t {
+  MOVE         = 0,    // move to the cell
+  OCCUPY       = 1,    // take the objective at the cell
+  ATTACK       = 2,    // attack the target unit
+  DEFEND       = 3,    // hold the objective at the cell
+  LAY_MINES    = 4,    // mine the cell
+  CLEAR_MINES  = 5,    // clear the mines on the cell
+  BUILD_BRIDGE = 6,    // bridge the river cell
+  RESUPPLY     = 8,    // load supplies at the objective at the cell
+  SUPPLY_UNIT  = 9,    // supply the target unit
+  PURSUE       = 12,   // follow the target unit
+  NONE         = 0xff, // no order
 };
 
 // A filed request (core/requests): the same four bytes a side keeps for its objectives.
@@ -31,6 +54,14 @@ struct RequestSlot {
   std::uint16_t target; // near pointer to the requested record
   std::uint8_t  argument;
   std::uint8_t  kind;
+};
+
+// RequestSlot::kind and RequestConfig::kind: what a side asks headquarters for.
+enum class RequestKind : std::uint8_t {
+  SUPPLIES  = 0,    // supplies delivered to an objective (target)
+  BATTALION = 1,    // a battalion of an equipment type (argument) at an objective (target)
+  REGIMENT  = 2,    // a regiment of a kind (argument)
+  NONE      = 0xff, // an empty slot
 };
 
 // A group's task: a map cell, the order kind and its progress.
@@ -65,14 +96,15 @@ struct AirStrike {
   std::uint8_t  turns;
 };
 
-// A side's airborne drop (core/airhelp, core/paradrop): target cell, planes, troops, two counters.
+// A side's airborne drop (core/airdrop, core/paradrop): target cell, the paratroops and the transport planes that
+// carry them (30 troops a plane; 0 planes: no drop pending) and two hourly countdowns.
 struct AirDrop {
   std::uint8_t  x;
   std::uint8_t  y;
-  std::uint16_t planes;
-  std::uint16_t troops; // SIDE_DROP; paradrop's CLEAR_COUNT
-  std::uint8_t  hours;
-  std::uint8_t  turns;
+  std::uint16_t paratroops;
+  std::uint16_t transports;
+  std::uint8_t  hours; // hours until the planes fly; set again to 1 when the air command holds the drop an hour
+  std::uint8_t  due;   // ordered as hours + 6; counts down with it and is what the air command weighs
 };
 
 // One of the two sides (DS:021a, 2 x 65 bytes).
@@ -83,8 +115,8 @@ struct Side {
   std::uint16_t pool_a;
   std::uint16_t planes; // SIDE_PLANES
   std::uint16_t pending_a;
-  std::uint16_t pending_b;
-  std::uint16_t word_14; // AiSide w14
+  std::uint16_t pending_planes; // added to planes at midnight (capped at 999)
+  std::uint16_t paratroops; // the side's paratroopers not committed to a drop
   std::uint8_t
       strength; // STRENGTH (core/cmdxfer, core/paraunit), MORALE (core/airstrk)
   // the objective orders (settings, rebase) and the filed requests (core/requests) share these bytes
@@ -93,7 +125,7 @@ struct Side {
     std::array<RequestSlot, 3> requests;
   };
   AirStrike strike; // AiSide plan; SIDE_W25 is strike.planes
-  AirDrop   drop;   // AiSide plan2; SIDE_W2D/SIDE_DROP is drop.troops
+  AirDrop   drop;   // the pending airborne drop
   std::array<std::uint8_t, 8> unknown_31;
   std::uint16_t               lift_planes; // SIDE_LIFT, SIDE_W39
   std::array<std::uint8_t, 2> unknown_3b;
@@ -231,6 +263,14 @@ struct SaveSlot {
   std::uint16_t checksum;
 };
 
+// An engaged element as the battle began (core/notice fills, core/notend reports the losses): its unit (0 for the
+// garrison), the element, and its equipment and quantity then.
+struct BattleLoss {
+  std::uint16_t unit;
+  std::uint16_t element; // 0 for an unused entry
+  Item          item;
+};
+
 // A list window (io/listui; list_window points to the active one): its frame in 8-pixel columns and pixels, the
 // column widths, the row count and the far row-draw and select callbacks.
 struct ListWindow {
@@ -244,13 +284,27 @@ struct ListWindow {
   FarPointer    select;
 };
 
+// A node of the portrait or face cache (core/uiprim): the index of the next node, 0xff at the end of the list, and
+// the key of the image held in the node's slot, 0xff for none.
+struct CacheNode {
+  std::uint8_t next;
+  std::uint8_t key;
+};
+
+// A point on the screen in text columns and pixels.
+struct ScreenPoint {
+  std::uint16_t x;
+  std::uint16_t y;
+};
+
 // Bits of Unit::flags.
 enum class UnitFlag : std::uint8_t {
   SELECTED = 0x01, // the unit selected in its division (units/select)
-  BIT_1 = 0x02,
+  COMMUNICATIONS = 0x02, // in communication with its command; lost and restored by events (core/evunits)
   READY = 0x04, // "ready" (core/advregt, core/advtide): fielded and selectable
-  BIT_4 = 0x10,
-  BIT_5 = 0x20,
+  REQUESTED = 0x08, // the free slot the requested regiment is built in (core/requnit)
+  AIRBORNE = 0x10, // set aside for the side's pending airborne drop (core/airdrop, core/paradrop)
+  SPOTTED = 0x20, // reconnoitred by the enemy: its orders show and missions may target it (core/msnrecon)
   ARRIVING = 0x40, // activated by core/arrivals
 };
 
@@ -261,29 +315,45 @@ enum class GroupFlag : std::uint8_t {
   READY   = 0x04, // an active division (core/advenemy, core/aiops5)
   AI_MARK =
       0x08, // set on every ready group by the computer side (core/aiops5 1ac2:15c0)
-  BIT_4 = 0x10,
+  RETARGET = 0x10, // the computer side's objective ranking changed: the division plans its tasks again (core/objrank, core/groupai)
 };
 
 // Bits of Element::flags.
 enum class ElementFlag : std::uint8_t {
   SELECTED = 0x01, // the element selected in its unit (units/select)
-  BIT_1 = 0x02, // counted by units/vwlist (flag-2 elements of a kind)
+  SPOTTED = 0x02, // reconnoitred by the enemy (core/msnrecon); counted by units/vwlist
   READY = 0x04, // linked into a unit (units/elemlink)
-  BIT_4 = 0x10,
+  REQUESTED = 0x08, // a battalion of the requested regiment (core/requnit)
+  AIRBORNE = 0x10, // set aside for the side's pending airborne drop (core/airdrop, core/paradrop)
   BIT_5 = 0x20, // cleared when the element's unit arrives (core/arrivals)
 };
 
-// Objective::flags: the low nibble is the objective's level (core/objrank), 0x40 a marker bit.
+// Objective::flags: the low nibble is the objective's level (core/objrank), 0x10 the holding side, 0x40 a marker bit.
 enum class ObjectiveFlag : std::uint8_t {
   LEVEL_MASK = 0x0f,
-  MARKED     = 0x40,
+  SIDE_1     = 0x10, // held by side 1 (map/query); clear: held by side 0
+  COMMUNICATIONS = 0x20, // in communication with its command (core/evcomms restores it)
+  MARKED     = 0x40, // reconnoitred by the enemy (core/msnrecon)
 };
 
 // Person::role: the low three bits index role_names; 0x40 shows the health in red, 0x80 marks a deputy (core/deputy).
 enum class PersonRole : std::uint8_t {
   ROLE_MASK   = 0x07,
+  STAFF_TRAIT = 0x08, // rolled for each staff candidate, less often at a higher delivery level (core/staffgen)
   POOR_HEALTH = 0x40,
   DEPUTY      = 0x80,
+};
+
+// Person::role & ROLE_MASK: the general's staff post (role_names[role - 1] names it); 0 for none.
+enum class StaffRole : std::uint8_t {
+  NONE                     = 0,
+  ARMY_COMMANDER           = 1, // the army's commander, who must not fall
+  OPERATIONS_CHIEF         = 2,
+  INTELLIGENCE_CHIEF       = 3,
+  SUPREME_COMMANDER        = 4,
+  CHIEF_OF_STAFF           = 5,
+  AIR_FORCE_COMMANDER      = 6,
+  SPECIAL_FORCES_COMMANDER = 7,
 };
 
 // Person::assignment: the low two bits are the division, 0x04 marks a general assigned to it; the top five bits
@@ -295,6 +365,15 @@ enum class Assignment : std::uint8_t {
 
 // Person::status of an unused record (otherwise the general's nation bits, matched against side_masks).
 inline constexpr std::uint8_t PERSON_VACANT{ 0xff };
+
+// DataSegment::side_control (and side_status) of a side a player commands; 0 when the computer commands it.
+inline constexpr std::uint16_t SIDE_PLAYED{ 1 };
+
+// DataSegment::side_stance: whether the side's scenario has it attack or defend.
+enum class Stance : std::uint8_t {
+  DEFENSIVE = 0,
+  OFFENSIVE = 1,
+};
 
 // Bits of DataSegment::side_flags, a side's state for the day.
 enum class SideFlag : std::uint8_t {
@@ -310,8 +389,43 @@ enum class SideFlag : std::uint8_t {
 // Bits of ElementType::flags as units/value weighs them: a heavy type is worth 100 points, a light tank type counts
 // like ten infantry.
 enum class TypeFlag : std::uint8_t {
+  AIRBORNE = 0x01, // a paratroop type (core/airdrop)
   HEAVY = 0x08,
   LIGHT = 0x10,
+};
+
+// Bits of a map_cells byte: the terrain (low nibble), which side's unit stands on the cell (map/occupy) and which
+// sides marked it (map/cellflag).
+enum class MapCell : std::uint8_t {
+  TERRAIN_MASK  = 0x0f,
+  SIDE_0        = 0x10, // a unit of side 0
+  SIDE_1        = 0x20, // a unit of side 1
+  OCCUPANT_MASK = 0x30,
+  MARK_0        = 0x40, // marked by side 0
+  MARK_1        = 0x80, // marked by side 1
+  MARK_MASK     = 0xc0,
+};
+
+// The terrain of a map cell (the low nibble of its map_cells byte), indexing terrain_names.
+enum class Terrain : std::uint8_t {
+  IMPASSABLE = 0,
+  CITY       = 1, // an objective stands there
+  ROAD       = 2,
+  PLAINS     = 3,
+  DESERT     = 4,
+  RIVER      = 5, // a destroyed bridge becomes river
+  SWAMP      = 6,
+  WASTELAND  = 7,
+  FOREST     = 8,
+  HILL       = 9,
+  BRIDGE     = 10,
+};
+
+// DataSegment::battle_view: which battles the player watches (the Settings command and the scenario setup set it).
+enum class BattleView : std::uint16_t {
+  NONE   = 0,    // no battles
+  ALL    = 1,    // every battle
+  SELECT = 0xff, // asked before each battle
 };
 
 // ElementType::category (core/divstr).
@@ -700,8 +814,8 @@ struct DataSegment {
         std::uint16_t               turn_notification;
         std::array<std::uint8_t, 2> turn_notification_bytes;
       };
-      std::uint8_t control_cached_x; // DS:2f90
-      std::uint8_t control_cached_y; // DS:2f91
+      std::uint8_t overview_side; // DS:2f90: the side the strategic overview shows, 255 for none
+      std::uint8_t view_side;     // DS:2f91: the side the tactical view shows, 255 while the overview is up
       union {                        // DS:2f92
         std::uint16_t               viewport_x;
         std::array<std::uint8_t, 2> viewport_x_bytes;
@@ -782,16 +896,9 @@ struct DataSegment {
     struct {
       union { // DS:3bb0
         std::array<std::uint8_t, 66> battle_digits;
-        std::array<std::uint8_t, 66> digit_glyphs;
+        std::array<std::uint8_t, 66> digit_glyphs; // ten 6 x 6 digits, then a blank
       };
-      std::array<std::uint8_t, 10> rotated_glyphs;      // DS:3bf2
-      std::array<char, 5>          text_3bfc;           // DS:3bfc
-      std::array<char, 5>          text_3c01;           // DS:3c01
-      std::array<std::uint8_t, 15> bytes_3c06;          // DS:3c06
-      std::array<char, 5>          text_3c15;           // DS:3c15
-      std::array<char, 5>          text_3c1a;           // DS:3c1a
-      std::array<char, 5>          text_3c1f;           // DS:3c1f
-      std::uint16_t                words_3c24[3];       // DS:3c24
+      std::array<std::uint8_t, 56> rotated_glyphs; // DS:3bf2: ten 8 x 5 digits on their side, then a blank
       std::array<char, 5>          text_3c2a;           // DS:3c2a
       std::array<char, 7>          text_3c2f;           // DS:3c2f
       std::array<char, 6>          text_3c36;           // DS:3c36
@@ -893,7 +1000,8 @@ struct DataSegment {
     struct {
       FarPointer                  idle_hook;       // DS:3eba
       std::array<std::uint8_t, 4> unknown_3ebe;    // DS:3ebe
-      std::uint16_t               message_hook[4]; // DS:3ec2
+      FarPointer                  message_hook;    // DS:3ec2: called while a dialog message shows (0:0 for none)
+      std::array<std::uint8_t, 4> unknown_3ec6;    // DS:3ec6
       std::int16_t                text_x;          // DS:3eca
       std::int16_t                text_y;          // DS:3ecc
       std::int16_t                text_left;       // DS:3ece
@@ -914,15 +1022,14 @@ struct DataSegment {
       std::uint8_t                saved_background; // DS:3ee6
       std::uint8_t                text_lead;        // DS:3ee7
       std::int16_t                text_state;       // DS:3ee8
-      std::int16_t                format_output;    // DS:3eea
+      std::uint16_t               format_output;    // DS:3eea: where opeu_request_format writes next
     };
   };
   std::array<std::uint8_t, 1536> text_font; // DS:3eec
   union {
     std::array<std::uint8_t, 3211> setup_text; // DS:44ec..5177
     struct {
-      FarPointer                  glyph_draw;      // DS:44ec
-      FarPointer                  far_code_44f0;   // DS:44f0
+      std::array<FarPointer, 2>   glyph_draw; // DS:44ec: the glyph routines, transparent and opaque
       std::array<std::uint8_t, 8> text_erase;      // DS:44f4
       std::array<char, 3>         prompt_format;   // DS:44fc
       std::array<char, 3>         question_format; // DS:44ff
@@ -959,13 +1066,9 @@ struct DataSegment {
         std::uint16_t               shown_portrait;
         std::array<std::uint8_t, 2> shown_portrait_bytes;
       };
-      std::array<std::uint8_t, 11> play_dialog;                // DS:4602
-      FarPointer                   far_code_460d;              // DS:460d
-      FarPointer                   far_code_4611;              // DS:4611
+      ListWindow                   play_dialog;                // DS:4602: the generals' list of the play screen
       std::uint8_t                 bytes_4615;                 // DS:4615
-      std::array<std::uint8_t, 11> reinforce_dialog;           // DS:4616
-      FarPointer                   far_code_4621;              // DS:4621
-      FarPointer                   far_code_4625;              // DS:4625
+      ListWindow                   reinforce_dialog;           // DS:4616: the generals' list of the reinforcement screen
       std::array<char, 10>         division_reserve_mark;      // DS:4629
       std::uint8_t                 empty_suffix;               // DS:4633
       std::array<char, 31>         division_strength_format;   // DS:4634
@@ -1150,14 +1253,8 @@ struct DataSegment {
       std::array<std::uint8_t, 12> end_text_format;            // DS:50c6
       std::array<char, 11>         end_picture_name;           // DS:50d2
       std::array<char, 27>         end_salute;                 // DS:50dd
-      FarPointer                   end_victory_texts;          // DS:50f8
-      FarPointer                   far_text_50fc;              // DS:50fc
-      FarPointer                   far_text_5100;              // DS:5100
-      FarPointer                   far_text_5104;              // DS:5104
-      FarPointer                   end_defeat_texts;           // DS:5108
-      FarPointer                   far_text_510c;              // DS:510c
-      FarPointer                   far_text_5110;              // DS:5110
-      FarPointer                   far_text_5114;              // DS:5114
+      std::array<FarPointer, 4>    end_victory_texts; // DS:50f8: by elimination, then by rank 1..3
+      std::array<FarPointer, 4>    end_defeat_texts;  // DS:5108: by the outcome reason
       std::array<char, 8>          name_bmapseg;               // DS:5118
       std::array<char, 8>          name_mmapseg;               // DS:5120
       std::array<char, 9>          name_hdispseg;              // DS:5128
@@ -1179,10 +1276,10 @@ struct DataSegment {
       char                         startup_mode;           // DS:5184
       std::array<std::uint8_t, 59> input_prompt;           // DS:5185
       std::uint16_t                stream_count;           // DS:51c0
-      std::array<std::uint8_t, 20> portrait_nodes;         // DS:51c2
-      std::uint16_t                portrait_head;          // DS:51d6
-      std::array<std::uint8_t, 20> face_nodes;             // DS:51d8
-      std::uint16_t                face_head;              // DS:51ec
+      std::array<CacheNode, 10>    portrait_nodes;         // DS:51c2
+      std::uint16_t                portrait_head;          // DS:51d6: near pointer to the most recent node
+      std::array<CacheNode, 10>    face_nodes;             // DS:51d8
+      std::uint16_t                face_head;              // DS:51ec: near pointer to the most recent node
       std::array<std::uint8_t, 32> backdrop_pattern;       // DS:51ee
       std::array<std::uint8_t, 32> backdrop_color_pattern; // DS:520e
       std::array<std::uint8_t, 24> palette_base;           // DS:522e
@@ -1261,12 +1358,8 @@ struct DataSegment {
       std::array<char, 8>          tbl_mission_row;        // DS:56d1
       std::array<char, 38>         tbl_mission_blank;      // DS:56d9
       std::uint8_t                 unknown_56ff;           // DS:56ff
-      union {                                              // DS:5700
-        std::array<std::uint8_t, 11> order_group_list;
-        std::array<std::uint8_t, 11> division_dialog;
-      };
-      FarPointer                   far_code_570b;      // DS:570b
-      std::array<std::uint8_t, 7>  bytes_570f;         // DS:570f
+      ListWindow division_dialog; // DS:5700: the list of the side's divisions
+      std::array<std::uint8_t, 3> bytes_5713; // DS:5713
       std::array<char, 47>         tbl_unit_header;    // DS:5716
       std::array<char, 4>          tbl_unit_mark;      // DS:5745
       std::array<char, 11>         tbl_unit_label;     // DS:5749
@@ -1282,16 +1375,14 @@ struct DataSegment {
       std::array<char, 51>         tbl_order_header;   // DS:5809
       std::array<char, 11>         tbl_order_label;    // DS:583c
       std::uint8_t                 unknown_5847;       // DS:5847
-      std::array<std::uint8_t, 11> organize_list;      // DS:5848
-      FarPointer                   far_code_5853;      // DS:5853
-      std::uint16_t                bytes_5857[6];      // DS:5857
+      ListWindow organize_list; // DS:5848: the list of a division's regiments
+      std::array<std::uint8_t, 8> bytes_585b; // DS:585b
       std::array<char, 30>         tbl_element_header; // DS:5863
       std::array<char, 4>          tbl_element_mark;   // DS:5881
       std::array<char, 10>         tbl_element_name;   // DS:5885
       std::array<char, 31>         tbl_element_row;    // DS:588f
-      std::array<std::uint8_t, 11> regiment_dialog;    // DS:58ae
-      FarPointer                   far_code_58b9;      // DS:58b9
-      std::array<std::uint8_t, 11> bytes_58bd;         // DS:58bd
+      ListWindow                   regiment_dialog;    // DS:58ae: the regiment choice list
+      std::array<std::uint8_t, 7>  bytes_58c1;         // DS:58c1
       std::array<char, 5>          text_58c8;          // DS:58c8
       std::array<char, 5>          text_58cd;          // DS:58cd
       std::array<char, 5>          text_58d2;          // DS:58d2
@@ -1305,45 +1396,28 @@ struct DataSegment {
       std::array<char, 5>          tbl_person_hurt;    // DS:5901
       ListWindow                   choice_dialog;      // DS:5906: the element choice list
       std::array<std::uint8_t, 1>  bytes_5919;         // DS:5919
-      std::uint16_t                tbl_post_names;     // DS:591a
-      std::uint16_t                near_591c;          // DS:591c
-      std::uint16_t                near_591e;          // DS:591e
-      std::uint16_t                near_5920;          // DS:5920
-      std::uint16_t                near_5922;          // DS:5922
-      std::uint16_t                near_5924;          // DS:5924
-      std::uint16_t                near_5926;          // DS:5926
+      std::uint16_t                tbl_post_names[7];  // DS:591a: Div1..Div4, then the staff posts Cmdr, Ops, Intl
       std::array<std::uint8_t, 13> bytes_5928;         // DS:5928
       std::array<char, 39>         tbl_type_header;    // DS:5935
       std::array<char, 9>          tbl_type_name;      // DS:595c
       std::array<char, 37>         tbl_type_row;       // DS:5965
-      union {                                          // DS:598a
-        std::array<std::uint8_t, 11> people_dialog;
-        std::array<std::uint8_t, 11> commander_list;
-      };
-      FarPointer                   far_code_5995;     // DS:5995
-      std::uint16_t                unknown_5999[2];   // DS:5999
+      ListWindow people_dialog; // DS:598a: the list of generals
       std::array<char, 8>          text_599d;         // DS:599d
       std::array<std::uint8_t, 48> tbl_supply_header; // DS:59a5
       std::array<char, 9>          tbl_supply_name;   // DS:59d5
       std::array<char, 47>         tbl_supply_row;    // DS:59de
       std::array<char, 48>         tbl_supply_blank;  // DS:5a0d
       std::uint8_t                 unknown_5a3d;      // DS:5a3d
-      std::array<std::uint8_t, 11> weapons_dialog;    // DS:5a3e
-      FarPointer                   far_code_5a49;     // DS:5a49
-      std::uint16_t                bytes_5a4d[5];     // DS:5a4d
+      ListWindow weapons_dialog; // DS:5a3e: the list of equipment types
+      std::array<std::uint8_t, 6> bytes_5a51; // DS:5a51
       std::array<char, 13>         tbl_str_header;    // DS:5a57
       std::array<char, 8>          tbl_str_name;      // DS:5a64
       std::array<char, 11>         tbl_str_row;       // DS:5a6c
       std::uint8_t                 unknown_5a77;      // DS:5a77
-      union {                                         // DS:5a78
-        std::array<std::uint8_t, 11> city_dialog;
-        std::array<std::uint8_t, 11> stock_list;
-      };
-      FarPointer                   far_code_5a83;       // DS:5a83
-      std::array<std::uint8_t, 15> bytes_5a87;          // DS:5a87
-      std::array<std::uint8_t, 11> stock_dialog;        // DS:5a96
-      FarPointer                   far_code_5aa1;       // DS:5aa1
-      std::array<std::uint8_t, 5>  bytes_5aa5;          // DS:5aa5
+      ListWindow                   city_dialog; // DS:5a78: the list of the side's cities (core/vwcity, core/stockord)
+      std::array<std::uint8_t, 11> bytes_5a8b;  // DS:5a8b
+      ListWindow stock_dialog; // DS:5a96: the list of a city's stocks
+      std::uint8_t unknown_5aa9; // DS:5aa9
       std::array<std::uint8_t, 11> save_menu;           // DS:5aaa
       FarPointer                   far_code_5ab5;       // DS:5ab5
       FarPointer                   far_code_5ab9;       // DS:5ab9
@@ -1820,15 +1894,14 @@ struct DataSegment {
       std::array<char, 24>         recon_objective_text;  // DS:7a2a
       std::array<char, 2>          recon_newline;         // DS:7a42
       std::array<char, 16>         recon_unit_text;       // DS:7a44
-      FarPointer                   mission_handlers;      // DS:7a54
-      FarPointer                   far_code_7a58;         // DS:7a58
-      FarPointer                   far_code_7a5c;         // DS:7a5c
-      FarPointer                   far_code_7a60;         // DS:7a60
-      FarPointer                   far_code_7a64;         // DS:7a64
-      FarPointer                   far_code_7a68;         // DS:7a68
-      FarPointer                   far_code_7a6c;         // DS:7a6c
-      std::array<std::uint8_t, 3>  far_code_7a70;         // DS:7a70
-      std::array<std::uint8_t, 13> month_climate;         // DS:7a73
+      union {
+        std::array<FarPointer, 8> mission_handlers; // DS:7a54: the special-mission handlers, by mission kind
+        struct {
+          std::array<std::uint8_t, 31> mission_handler_bytes;
+          // DS:7a73: the climate of each month (1..12); [0] is the last handler's segment high byte
+          std::array<std::uint8_t, 13> month_climate;
+        };
+      };
       std::array<char, 58>         air_postponed_text;    // DS:7a80: "Bad weather has postponed the %s"
       std::array<char, 80>         air_canceled_text;     // DS:7aba: "... has been canceled"
       std::array<char, 30>         air_text_7b0a;         // DS:7b0a
@@ -1836,10 +1909,10 @@ struct DataSegment {
       std::array<char, 22>         air_text_7b33;         // DS:7b33
       std::array<char, 30>         air_text_7b49;         // DS:7b49
       std::array<char, 8>          air_text_7b67;         // DS:7b67
-      std::array<char, 15>         air_text_7b6f;         // DS:7b6f
-      std::array<char, 18>         air_text_7b7e;         // DS:7b7e
-      std::array<char, 25>         air_text_7b90;         // DS:7b90
-      std::array<char, 11>         air_text_7ba9;         // DS:7ba9
+      std::array<char, 15>         paratroop_drop_name;   // DS:7b6f: "paratroop drop"
+      std::array<char, 18>         paratroop_drop_begin;  // DS:7b7e: "Begin Airdrop!", our side
+      std::array<char, 25>         paratroop_drop_spotted; // DS:7b90: "Enemy planes spotted!", the other side
+      std::array<char, 11>         paratroop_planes_name; // DS:7ba9: "transports"
       std::array<char, 11>         air_text_7bb4;         // DS:7bb4
       std::array<char, 19>         air_text_7bbf;         // DS:7bbf
       std::array<char, 26>         air_text_7bd2;         // DS:7bd2
@@ -2100,73 +2173,59 @@ struct DataSegment {
       std::array<char, 21>         text_8b60;               // DS:8b60
       std::array<char, 43>         text_8b75;               // DS:8b75
       std::array<char, 24>         text_8ba0;               // DS:8ba0
-      std::array<char, 39>         stock_text;              // DS:8bb8
-      std::array<char, 31>         text_8bdf;               // DS:8bdf
-      std::array<char, 31>         text_8bfe;               // DS:8bfe
-      std::array<char, 37>         text_8c1d;               // DS:8c1d
-      std::array<char, 33>         text_8c42;               // DS:8c42
-      std::array<char, 55>         text_8c63;               // DS:8c63
-      std::array<char, 5>          text_8c9a;               // DS:8c9a
-      std::array<char, 5>          text_8c9f;               // DS:8c9f
-      std::array<char, 5>          text_8ca4;               // DS:8ca4
-      std::array<char, 22>         text_8ca9;               // DS:8ca9
-      std::array<char, 15>         text_8cbf;               // DS:8cbf
+      std::array<char, 39>         stock_header;              // DS:8bb8
+      std::array<char, 31>         stock_fuel_line;               // DS:8bdf
+      std::array<char, 31>         stock_ammo_line;               // DS:8bfe
+      std::array<char, 37>         stock_food_line;               // DS:8c1d
+      std::array<char, 33>         stock_question_short;               // DS:8c42
+      std::array<char, 55>         stock_question;               // DS:8c63
+      std::array<char, 5>          stock_fuel;               // DS:8c9a
+      std::array<char, 5>          stock_ammo;               // DS:8c9f
+      std::array<char, 5>          stock_food;               // DS:8ca4
+      std::array<char, 22>         stock_no_cities;               // DS:8ca9
+      std::array<char, 15>         stock_select_city;               // DS:8cbf
       std::array<char, 36>         text_8cce;               // DS:8cce
       std::array<char, 16>         text_8cf2;               // DS:8cf2
       std::array<char, 13>         text_8d02;               // DS:8d02
       std::array<char, 5>          transfer_hour;           // DS:8d0f
       std::array<char, 6>          transfer_hours_text;     // DS:8d14
       std::array<char, 50>         text_8d1a;               // DS:8d1a
-      std::array<char, 29>         text_8d4c;               // DS:8d4c
-      std::array<char, 26>         text_8d69;               // DS:8d69
-      std::array<char, 55>         text_8d83;               // DS:8d83
-      std::array<std::uint8_t, 6>  unknown_8dba;            // DS:8dba
+      std::array<char, 29>         rest_thanks_text; // DS:8d4c: "Thank you very much, sir!"
+      std::array<char, 26>         assign_thanks_text; // DS:8d69: "You can count on me, sir!"
+      std::array<char, 55>         division_charge_prompt; // DS:8d83: "Which division commander do you want to put in charge?"
+      std::array<std::uint8_t, 6>  post_label_none; // DS:8dba: the empty label of the posts menu
       std::array<char, 8>          text_8dc0;               // DS:8dc0
       std::array<char, 8>          text_8dc8;               // DS:8dc8
       std::array<char, 8>          text_8dd0;               // DS:8dd0
       std::array<char, 8>          text_8dd8;               // DS:8dd8
       std::array<char, 10>         text_8de0;               // DS:8de0
       std::array<char, 8>          text_8dea;               // DS:8dea
-      std::array<char, 28>         text_8df2;               // DS:8df2
-      std::array<char, 21>         text_8e0e;               // DS:8e0e
-      std::uint8_t                 unknown_8e23;            // DS:8e23
-      std::array<char, 7>          text_8e24;               // DS:8e24
-      std::uint8_t                 unknown_8e2b;            // DS:8e2b
-      std::array<char, 7>          text_8e2c;               // DS:8e2c
-      std::uint8_t                 unknown_8e33;            // DS:8e33
-      std::array<char, 7>          text_8e34;               // DS:8e34
-      std::uint8_t                 unknown_8e3b;            // DS:8e3b
-      std::array<char, 7>          text_8e3c;               // DS:8e3c
-      std::array<char, 7>          text_8e43;               // DS:8e43
-      std::array<char, 7>          text_8e4a;               // DS:8e4a
-      std::array<char, 33>         text_8e51;               // DS:8e51
-      std::array<char, 2>          text_8e72;               // DS:8e72
-      std::uint16_t                bytes_8e74[41];          // DS:8e74
-      std::uint16_t                near_8ec6;               // DS:8ec6
-      std::uint16_t                near_8ec8;               // DS:8ec8
-      std::uint16_t                near_8eca;               // DS:8eca
-      std::uint16_t                near_8ecc;               // DS:8ecc
-      std::uint16_t                near_8ece;               // DS:8ece
-      std::uint16_t                near_8ed0;               // DS:8ed0
-      std::array<std::uint8_t, 10> bytes_8ed2;              // DS:8ed2
-      std::array<char, 41>         text_8edc;               // DS:8edc
-      std::array<char, 19>         text_8f05;               // DS:8f05
-      std::array<char, 45>         text_8f18;               // DS:8f18
+      std::array<char, 28>         none_available_text; // DS:8df2: "No one is available, sir."
+      std::array<char, 21>         assign_who_prompt; // DS:8e0e: "Who will you assign?"
+      std::uint8_t                 no_holder_1; // DS:8e23: "": a division without a commander
+      std::array<char, 7>          post_format_1; // DS:8e24: "%s%-8s": post label, holder
+      std::uint8_t                 no_holder_2; // DS:8e2b: ""
+      std::array<char, 7>          post_format_2; // DS:8e2c: "%s%-8s"
+      std::uint8_t                 no_holder_3; // DS:8e33: ""
+      std::array<char, 7>          post_format_3; // DS:8e34: "%s%-8s"
+      std::uint8_t                 no_holder_4; // DS:8e3b: ""
+      std::array<char, 7>          post_format_4; // DS:8e3c: "%s%-8s"
+      std::array<char, 7>          post_format_5; // DS:8e43: "%s%-8s"
+      std::array<char, 7>          post_format_6; // DS:8e4a: "%s%-8s"
+      std::array<char, 33>         assign_where_prompt; // DS:8e51: "Where should %s be assigned, sir"
+      std::array<MenuItem, 7>      assign_menu; // DS:8e72: the posts menu, a button per post (labels filled in)
+      std::uint16_t                post_labels[6]; // DS:8ec6: "Div 1: " .. "Div 4: ", "Ops Ofc: ", "Intel: "
+      std::array<std::uint8_t, 10> inactive_division_label; // DS:8ed2: " ------- ": a division not in the field
+      std::array<char, 41>         none_to_rest_text; // DS:8edc: "There are no commanders who can rest."
+      std::array<char, 19>         rest_who_prompt; // DS:8f05: "Who shall we rest?"
+      std::array<char, 45>         rest_days_prompt; // DS:8f18: "How many days should Commander %s take leave"
       std::array<char, 9>          text_8f45;               // DS:8f45
       std::array<char, 8>          text_8f4e;               // DS:8f4e
       std::array<char, 5>          text_8f56;               // DS:8f56
-      std::array<char, 16>         text_8f5b;               // DS:8f5b
+      std::array<char, 16>         personnel_prompt; // DS:8f5b: "Select an order"
       std::uint8_t                 unknown_8f6b;            // DS:8f6b
-      FarPointer                   far_code_8f6c;           // DS:8f6c
-      FarPointer                   far_code_8f70;           // DS:8f70
-      FarPointer                   far_code_8f74;           // DS:8f74
-      std::uint16_t                words_8f78[4];           // DS:8f78
-      std::uint16_t                near_8f80;               // DS:8f80
-      std::array<std::uint8_t, 10> bytes_8f82;              // DS:8f82
-      std::uint16_t                near_8f8c;               // DS:8f8c
-      std::array<std::uint8_t, 10> bytes_8f8e;              // DS:8f8e
-      std::uint16_t                near_8f98;               // DS:8f98
-      std::array<std::uint8_t, 14> bytes_8f9a;              // DS:8f9a
+      std::array<FarPointer, 3>    personnel_actions; // DS:8f6c: reassign, appoint, rest
+      std::array<MenuItem, 4>      personnel_menu; // DS:8f78: "Reassign", "Appoint", "Rest"
       FarPointer                   advice_tips;             // DS:8fa8
       FarPointer                   far_text_8fac;           // DS:8fac
       FarPointer                   far_text_8fb0;           // DS:8fb0
@@ -2225,14 +2284,14 @@ struct DataSegment {
       std::array<char, 28>         panel_stock_row;   // DS:919a
       std::array<char, 13>         panel_no_stock;    // DS:91b6
       std::uint8_t                 unknown_91c3;      // DS:91c3
-      std::uint16_t                stock_rows[12];    // DS:91c4
+      std::array<ScreenPoint, 6> stock_rows; // DS:91c4: where the city panel prints its stocks
       std::array<char, 8>          panel_waiting;     // DS:91dc
       std::array<char, 53>         panel_orders;      // DS:91e4
       std::array<char, 51>         panel_target;      // DS:9219
       std::array<char, 53>         panel_fatigue;     // DS:924c
       std::array<char, 28>         panel_element_row; // DS:9281
       std::uint8_t                 unknown_929d;      // DS:929d
-      std::uint16_t                element_rows[12];  // DS:929e
+      std::array<ScreenPoint, 6> element_rows; // DS:929e: where the regiment panel prints its battalions
       std::array<char, 13>         text_92b6;         // DS:92b6
       std::array<char, 12>         text_92c3;         // DS:92c3
       std::array<char, 12>         text_92cf;         // DS:92cf
@@ -2254,8 +2313,7 @@ struct DataSegment {
       std::array<char, 9>          text_93a8;         // DS:93a8
       std::array<char, 6>          text_93b1;         // DS:93b1
       std::array<std::uint8_t, 31> people_prompt;     // DS:93b7
-      FarPointer                   people_actions;    // DS:93d6
-      FarPointer                   far_code_93da;     // DS:93da
+      std::array<FarPointer, 2> people_actions; // DS:93d6: the menu's actions
       std::uint16_t                people_menu[4];    // DS:93de
       std::uint16_t                near_93e6;         // DS:93e6
       std::array<std::uint8_t, 10> bytes_93e8;        // DS:93e8
@@ -2272,8 +2330,7 @@ struct DataSegment {
         std::array<std::uint8_t, 30> city_side_prompt_bytes;
       };
       std::uint8_t                 unknown_9489;         // DS:9489
-      FarPointer                   city_actions;         // DS:948a
-      FarPointer                   far_code_948e;        // DS:948e
+      std::array<FarPointer, 2> city_actions; // DS:948a: the menu's actions
       std::uint16_t                city_side_menu[4];    // DS:9492
       std::uint16_t                near_949a;            // DS:949a
       std::array<std::uint8_t, 10> bytes_949c;           // DS:949c
@@ -2286,8 +2343,7 @@ struct DataSegment {
       std::array<char, 9>          text_9515;            // DS:9515
       std::array<char, 6>          text_951e;            // DS:951e
       std::uint16_t                info_prompt[15];      // DS:9524
-      FarPointer                   info_actions;         // DS:9542
-      FarPointer                   far_code_9546;        // DS:9546
+      std::array<FarPointer, 2> info_actions; // DS:9542: the menu's actions
       std::uint16_t                info_menu[4];         // DS:954a
       std::uint16_t                near_9552;            // DS:9552
       std::array<std::uint8_t, 10> bytes_9554;           // DS:9554
@@ -2302,8 +2358,7 @@ struct DataSegment {
         std::array<std::uint8_t, 20> arms_prompt_bytes;
       };
       std::uint8_t                 unknown_95c1;   // DS:95c1
-      FarPointer                   arms_actions;   // DS:95c2
-      FarPointer                   far_code_95c6;  // DS:95c6
+      std::array<FarPointer, 2> arms_actions; // DS:95c2: the menu's actions
       std::uint16_t                arms_menu[4];   // DS:95ca
       std::uint16_t                near_95d2;      // DS:95d2
       std::array<std::uint8_t, 10> bytes_95d4;     // DS:95d4
@@ -2323,12 +2378,7 @@ struct DataSegment {
         std::array<std::uint8_t, 36> view_main_prompt_bytes;
       };
       std::uint8_t                 unknown_968d;            // DS:968d
-      FarPointer                   view_main_actions;       // DS:968e
-      FarPointer                   far_code_9692;           // DS:9692
-      FarPointer                   far_code_9696;           // DS:9696
-      FarPointer                   far_code_969a;           // DS:969a
-      FarPointer                   far_code_969e;           // DS:969e
-      FarPointer                   far_code_96a2;           // DS:96a2
+      std::array<FarPointer, 6> view_main_actions; // DS:968e: the menu's actions
       std::uint16_t                view_main_items[4];      // DS:96a6
       std::uint16_t                near_96ae;               // DS:96ae
       std::array<std::uint8_t, 10> bytes_96b0;              // DS:96b0
@@ -2344,7 +2394,7 @@ struct DataSegment {
       std::array<std::uint8_t, 14> bytes_96ec;              // DS:96ec
       std::array<char, 29>         ops_chief_format;        // DS:96fa
       std::array<char, 9>          number_range_format;     // DS:9717
-      std::array<std::uint8_t, 2>  supply_unlimited;        // DS:9720
+      std::uint16_t                supply_unlimited;        // DS:9720: 60000, the capacity of a city stockpile
       std::uint16_t                supply_panel_x;          // DS:9722
       std::uint16_t                supply_panel_y;          // DS:9724
       std::array<char, 15>         supply_name_format;      // DS:9726
@@ -2409,9 +2459,7 @@ struct DataSegment {
       std::array<char, 26>         rq_supplies_confirm;     // DS:9be7
       std::array<char, 8>          text_9c01;               // DS:9c01
       std::uint8_t                 unknown_9c09;            // DS:9c09
-      std::array<std::uint8_t, 11> rq_type_dialog;          // DS:9c0a
-      FarPointer                   far_code_9c15;           // DS:9c15
-      FarPointer                   far_code_9c19;           // DS:9c19
+      ListWindow                   rq_type_dialog;          // DS:9c0a: the battalion types of the arms request
       std::array<char, 38>         rq_type_header;          // DS:9c1d
       std::array<char, 9>          rq_type_name;            // DS:9c43
       std::array<char, 35>         rq_type_row;             // DS:9c4c
@@ -2420,9 +2468,7 @@ struct DataSegment {
       std::array<char, 50>         rq_arms_where;           // DS:9ca0
       std::array<char, 26>         rq_arms_confirm;         // DS:9cd2
       std::array<char, 6>          text_9cec;               // DS:9cec
-      std::array<std::uint8_t, 11> rq_regiment_list;        // DS:9cf2
-      FarPointer                   far_code_9cfd;           // DS:9cfd
-      FarPointer                   far_code_9d01;           // DS:9d01
+      ListWindow                   rq_regiment_list;        // DS:9cf2: the free regiments of the regiment request
       std::array<char, 24>         rq_unit_header;          // DS:9d05
       std::array<char, 9>          rq_unit_name;            // DS:9d1d
       std::array<char, 25>         rq_unit_row;             // DS:9d26
@@ -2472,16 +2518,9 @@ struct DataSegment {
       std::array<char, 63>         rq_busy_text;            // DS:9fb1
       std::array<char, 31>         rq_no_city_text;         // DS:9ff0
       std::uint8_t                 unknown_a00f;            // DS:a00f
-      std::uint16_t                rq_type_names;           // DS:a010
-      std::uint16_t                near_a012;               // DS:a012
-      std::uint16_t                near_a014;               // DS:a014
-      std::uint16_t                near_a016;               // DS:a016
-      std::uint16_t                near_a018;               // DS:a018
-      std::uint16_t                near_a01a;               // DS:a01a
+      std::uint16_t                rq_regiment_kind_names[6]; // DS:a010: near pointers to the regiment kinds' names
       std::array<std::uint8_t, 2>  bytes_a01c;              // DS:a01c
-      FarPointer                   request_handlers;        // DS:a01e
-      FarPointer                   far_code_a022;           // DS:a022
-      FarPointer                   far_code_a026;           // DS:a026
+      std::array<FarPointer, 3>    request_handlers; // DS:a01e: the request menu's supplies, battalion and regiment handlers
       std::uint16_t                rq_menu_items[4];        // DS:a02a
       std::uint16_t                near_a032;               // DS:a032
       std::array<std::uint8_t, 10> bytes_a034;              // DS:a034
@@ -2516,23 +2555,23 @@ struct DataSegment {
       std::uint16_t                words_a188[5];           // DS:a188
       std::uint16_t                near_a192;               // DS:a192
       std::array<std::uint8_t, 14> bytes_a194;              // DS:a194
-      std::array<char, 37>         text_a1a2;               // DS:a1a2
-      std::array<char, 26>         text_a1c7;               // DS:a1c7
-      std::array<char, 39>         text_a1e1;               // DS:a1e1
-      std::array<char, 26>         text_a208;               // DS:a208
-      std::array<char, 45>         text_a222;               // DS:a222
-      std::array<char, 25>         text_a24f;               // DS:a24f
-      std::array<char, 6>          air_plane_a268;          // DS:a268
-      std::array<char, 7>          air_planes_a26e;         // DS:a26e
-      std::array<char, 34>         text_a275;               // DS:a275
-      std::array<char, 16>         text_a297;               // DS:a297
-      std::array<char, 46>         text_a2a7;               // DS:a2a7
-      std::array<char, 41>         text_a2d5;               // DS:a2d5
-      std::array<char, 42>         text_a2fe;               // DS:a2fe
-      std::array<char, 45>         text_a328;               // DS:a328
-      std::array<char, 13>         text_a355;               // DS:a355
-      std::array<char, 33>         text_a362;               // DS:a362
-      std::array<char, 71>         text_a383;               // DS:a383
+      std::array<char, 37>         drop_ask_troops;               // DS:a1a2
+      std::array<char, 26>         drop_troops_assigned;               // DS:a1c7
+      std::array<char, 39>         drop_which_regiment;               // DS:a1e1
+      std::array<char, 26>         drop_assign_soldiers;               // DS:a208
+      std::array<char, 45>         drop_command_post;               // DS:a222
+      std::array<char, 25>         drop_understood;               // DS:a24f
+      std::array<char, 6>          drop_plane;          // DS:a268
+      std::array<char, 7>          drop_planes;         // DS:a26e
+      std::array<char, 34>         drop_no_paratroopers;               // DS:a275
+      std::array<char, 16>         drop_cancel;               // DS:a297
+      std::array<char, 46>         drop_no_transports;               // DS:a2a7
+      std::array<char, 41>         drop_no_regiments;               // DS:a2d5
+      std::array<char, 42>         drop_no_battalions;               // DS:a2fe
+      std::array<char, 45>         drop_where;               // DS:a328
+      std::array<char, 13>         drop_paratroopers;               // DS:a355
+      std::array<char, 33>         drop_hours_prompt;               // DS:a362
+      std::array<char, 71>         drop_ask_hq;               // DS:a383
       std::array<char, 44>         text_a3ca;               // DS:a3ca
       std::array<char, 25>         text_a3f6;               // DS:a3f6
       std::array<char, 6>          air_lift_plane;          // DS:a40f
@@ -2569,56 +2608,56 @@ struct DataSegment {
       std::array<std::uint8_t, 10> bytes_a654;              // DS:a654
       std::uint16_t                near_a65e;               // DS:a65e
       std::array<std::uint8_t, 14> bytes_a660;              // DS:a660
-      std::array<char, 5>          text_a66e;               // DS:a66e
-      std::array<char, 19>         text_a673;               // DS:a673
-      std::array<char, 17>         text_a686;               // DS:a686
-      std::array<char, 9>          text_a697;               // DS:a697
-      std::array<char, 39>         text_a6a0;               // DS:a6a0
-      std::array<char, 53>         text_a6c7;               // DS:a6c7
-      std::array<char, 51>         text_a6fc;               // DS:a6fc
-      std::array<char, 36>         text_a72f;               // DS:a72f
-      std::array<char, 35>         text_a753;               // DS:a753
-      std::array<char, 9>          text_a776;               // DS:a776
-      std::array<char, 38>         text_a77f;               // DS:a77f
-      std::array<char, 15>         text_a7a5;               // DS:a7a5
-      std::array<char, 42>         text_a7b4;               // DS:a7b4
-      std::array<char, 47>         text_a7de;               // DS:a7de
-      std::array<char, 49>         text_a80d;               // DS:a80d
-      std::array<char, 34>         text_a83e;               // DS:a83e
-      std::array<char, 60>         text_a860;               // DS:a860
-      std::array<char, 40>         text_a89c;               // DS:a89c
-      std::array<char, 9>          text_a8c4;               // DS:a8c4
-      std::array<char, 34>         text_a8cd;               // DS:a8cd
-      std::array<char, 28>         text_a8ef;               // DS:a8ef
-      std::array<char, 9>          text_a90b;               // DS:a90b
-      std::array<char, 35>         text_a914;               // DS:a914
-      std::array<char, 44>         text_a937;               // DS:a937
-      std::array<char, 53>         text_a963;               // DS:a963
-      std::array<char, 53>         text_a998;               // DS:a998
-      std::array<char, 5>          special_hour_a9cd;       // DS:a9cd
-      std::array<char, 6>          special_hours_a9d2;      // DS:a9d2
-      std::array<char, 48>         text_a9d8;               // DS:a9d8
-      std::array<char, 45>         text_aa08;               // DS:aa08
-      std::array<char, 11>         text_aa35;               // DS:aa35
-      std::array<char, 28>         text_aa40;               // DS:aa40
-      std::array<char, 27>         text_aa5c;               // DS:aa5c
-      std::array<char, 22>         text_aa77;               // DS:aa77
-      std::array<char, 47>         text_aa8d;               // DS:aa8d
-      std::array<char, 19>         text_aabc;               // DS:aabc
-      std::array<char, 47>         text_aacf;               // DS:aacf
-      std::array<char, 58>         text_aafe;               // DS:aafe
-      std::array<char, 35>         text_ab38;               // DS:ab38
-      std::array<char, 6>          text_ab5b;               // DS:ab5b
-      std::array<char, 23>         text_ab61;               // DS:ab61
-      std::array<char, 9>          text_ab78;               // DS:ab78
-      std::array<char, 15>         text_ab81;               // DS:ab81
-      std::array<char, 38>         text_ab90;               // DS:ab90
-      std::array<char, 48>         text_abb6;               // DS:abb6
-      std::array<char, 39>         text_abe6;               // DS:abe6
-      std::array<char, 5>          special_hour_ac0d;       // DS:ac0d
-      std::array<char, 6>          special_hours_ac12;      // DS:ac12
-      std::array<char, 43>         text_ac18;               // DS:ac18
-      std::array<char, 37>         text_ac43;               // DS:ac43
+      std::array<char, 5>          raid_title;               // DS:a66e
+      std::array<char, 19>         raid_prompt;               // DS:a673
+      std::array<char, 17>         raid_city_question;               // DS:a686
+      std::array<char, 9>          raid_unit_question;               // DS:a697
+      std::array<char, 39>         raid_refusal_1;               // DS:a6a0
+      std::array<char, 53>         raid_refusal_2;               // DS:a6c7
+      std::array<char, 51>         raid_refusal_3;               // DS:a6fc
+      std::array<char, 36>         raid_refusal_4;               // DS:a72f
+      std::array<char, 35>         raid_lieutenant;               // DS:a753
+      std::array<char, 9>          sabotage_title;               // DS:a776
+      std::array<char, 38>         sabotage_prompt;               // DS:a77f
+      std::array<char, 15>         sabotage_city_question;               // DS:a7a5
+      std::array<char, 42>         sabotage_refusal_1;               // DS:a7b4
+      std::array<char, 47>         sabotage_refusal_2;               // DS:a7de
+      std::array<char, 49>         sabotage_refusal_3;               // DS:a80d
+      std::array<char, 34>         sabotage_refusal_4;               // DS:a83e
+      std::array<char, 60>         sabotage_duration;               // DS:a860
+      std::array<char, 40>         sabotage_lieutenant;               // DS:a89c
+      std::array<char, 9>          cut_comm_title;               // DS:a8c4
+      std::array<char, 34>         cut_comm_prompt;               // DS:a8cd
+      std::array<char, 28>         cut_comm_city_question;               // DS:a8ef
+      std::array<char, 9>          cut_comm_unit_question;               // DS:a90b
+      std::array<char, 35>         cut_comm_refusal_1;               // DS:a914
+      std::array<char, 44>         cut_comm_refusal_2;               // DS:a937
+      std::array<char, 53>         cut_comm_refusal_3;               // DS:a963
+      std::array<char, 53>         cut_comm_refusal_4;               // DS:a998
+      std::array<char, 5>          cut_comm_hour;       // DS:a9cd
+      std::array<char, 6>          cut_comm_hours;      // DS:a9d2
+      std::array<char, 48>         cut_comm_duration;               // DS:a9d8
+      std::array<char, 45>         cut_comm_lieutenant;               // DS:aa08
+      std::array<char, 11>         assassinate_title;               // DS:aa35
+      std::array<char, 28>         assassinate_prompt;               // DS:aa40
+      std::array<char, 27>         assassinate_unit_question;               // DS:aa5c
+      std::array<char, 22>         assassinate_refusal_1;               // DS:aa77
+      std::array<char, 47>         assassinate_refusal_2;               // DS:aa8d
+      std::array<char, 19>         assassinate_refusal_3;               // DS:aabc
+      std::array<char, 47>         assassinate_refusal_4;               // DS:aacf
+      std::array<char, 58>         assassinate_duration;               // DS:aafe
+      std::array<char, 35>         assassinate_lieutenant;               // DS:ab38
+      std::array<char, 6>          recon_title;               // DS:ab5b
+      std::array<char, 23>         recon_prompt;               // DS:ab61
+      std::array<char, 9>          recon_city_question;               // DS:ab78
+      std::array<char, 15>         recon_unit_question;               // DS:ab81
+      std::array<char, 38>         recon_refusal_1;               // DS:ab90
+      std::array<char, 48>         recon_refusal_2;               // DS:abb6
+      std::array<char, 39>         recon_refusal_3;               // DS:abe6
+      std::array<char, 5>          recon_hour;       // DS:ac0d
+      std::array<char, 6>          recon_hours;      // DS:ac12
+      std::array<char, 43>         recon_duration;               // DS:ac18
+      std::array<char, 37>         recon_lieutenant;               // DS:ac43
       std::array<char, 6>          text_ac68;               // DS:ac68
       std::array<char, 10>         text_ac6e;               // DS:ac6e
       std::array<char, 9>          text_ac78;               // DS:ac78
@@ -2632,19 +2671,15 @@ struct DataSegment {
       std::array<char, 15>         text_acce;               // DS:acce
       std::array<char, 11>         text_acdd;               // DS:acdd
       std::array<char, 11>         text_ace8;               // DS:ace8
-      std::array<char, 15>         text_acf3;               // DS:acf3
-      std::array<char, 26>         text_ad02;               // DS:ad02
-      std::array<char, 26>         text_ad1c;               // DS:ad1c
-      std::array<char, 26>         text_ad36;               // DS:ad36
-      std::array<char, 74>         text_ad50;               // DS:ad50
-      std::array<char, 27>         text_ad9a;               // DS:ad9a
+      std::array<char, 15>         special_forces_title;               // DS:acf3
+      std::array<char, 26>         special_orders_line;               // DS:ad02
+      std::array<char, 26>         special_target_line;               // DS:ad1c
+      std::array<char, 26>         special_time_line;               // DS:ad36
+      std::array<char, 74>         special_cancel_question;               // DS:ad50
+      std::array<char, 27>         special_select_question;               // DS:ad9a
       std::uint8_t                 unknown_adb5;            // DS:adb5
-      FarPointer                   far_code_adb6;           // DS:adb6
-      FarPointer                   far_code_adba;           // DS:adba
-      FarPointer                   far_code_adbe;           // DS:adbe
-      FarPointer                   far_code_adc2;           // DS:adc2
-      FarPointer                   far_code_adc6;           // DS:adc6
-      std::uint16_t                words_adca[4];           // DS:adca
+      std::array<FarPointer, 5>    special_missions;        // DS:adb6: raid, sabotage, cut comm, assassinate, recon
+      std::uint16_t                special_menu[4];           // DS:adca
       std::uint16_t                near_add2;               // DS:add2
       std::array<std::uint8_t, 10> bytes_add4;              // DS:add4
       std::uint16_t                near_adde;               // DS:adde
@@ -2655,86 +2690,79 @@ struct DataSegment {
       std::array<std::uint8_t, 10> bytes_adf8;              // DS:adf8
       std::uint16_t                near_ae02;               // DS:ae02
       std::array<std::uint8_t, 14> bytes_ae04;              // DS:ae04
-      std::uint16_t                near_ae12;               // DS:ae12
-      std::uint16_t                near_ae14;               // DS:ae14
-      std::uint16_t                near_ae16;               // DS:ae16
-      std::uint16_t                near_ae18;               // DS:ae18
-      std::uint16_t                near_ae1a;               // DS:ae1a
-      std::uint16_t                near_ae1c;               // DS:ae1c
-      std::uint16_t                near_ae1e;               // DS:ae1e
-      std::uint16_t                near_ae20;               // DS:ae20
+      std::uint16_t                special_mission_names[8]; // DS:ae12: near pointers to the names, by mission code
       std::array<std::uint8_t, 12> unknown_ae22;            // DS:ae22
     };
   };
   union {
     std::array<std::uint8_t, 1044> settings_data; // DS:ae2e..b242
     struct {
-      std::array<std::uint8_t, 7>   settings_text_ae2e;       // DS:ae2e
-      std::array<std::uint8_t, 6>   settings_text_ae35;       // DS:ae35
-      std::array<std::uint8_t, 3>   settings_text_ae3b;       // DS:ae3b
-      std::array<std::uint8_t, 4>   settings_text_ae3e;       // DS:ae3e
-      std::array<std::uint8_t, 5>   settings_text_ae42;       // DS:ae42
-      std::array<std::uint8_t, 3>   settings_text_ae47;       // DS:ae47
-      std::array<std::uint8_t, 7>   settings_text_ae4a;       // DS:ae4a
-      std::array<std::uint8_t, 3>   settings_text_ae51;       // DS:ae51
-      std::array<std::uint8_t, 4>   settings_text_ae54;       // DS:ae54
-      std::array<std::uint8_t, 115> settings_text_ae58;       // DS:ae58
-      std::array<std::uint8_t, 5>   settings_text_aecb;       // DS:aecb
-      std::array<std::uint8_t, 8>   settings_text_aed0;       // DS:aed0
-      std::array<std::uint8_t, 7>   settings_text_aed8;       // DS:aed8
-      std::array<std::uint8_t, 17>  settings_text_aedf;       // DS:aedf
-      std::array<std::uint8_t, 16>  settings_text_aef0;       // DS:aef0
-      std::array<std::uint8_t, 23>  settings_text_af00;       // DS:af00
-      std::array<std::uint8_t, 27>  settings_text_af17;       // DS:af17
-      std::array<std::uint8_t, 13>  settings_text_af32;       // DS:af32
+      std::array<char, 7> settings_aerial; // DS:ae2e
+      std::array<char, 6> settings_field; // DS:ae35
+      std::array<char, 3> settings_pictures_on; // DS:ae3b
+      std::array<char, 4> settings_pictures_off; // DS:ae3e
+      std::array<char, 5> settings_battles_view; // DS:ae42
+      std::array<char, 3> settings_battles_no; // DS:ae47
+      std::array<char, 7> settings_battles_select; // DS:ae4a
+      std::array<char, 3> settings_music_on; // DS:ae51
+      std::array<char, 4> settings_music_off; // DS:ae54
+      std::array<char, 115> settings_summary; // DS:ae58
+      std::array<char, 5> battles_label_view; // DS:aecb
+      std::array<char, 8> battles_label_no_view; // DS:aed0
+      std::array<char, 7> battles_label_select; // DS:aed8
+      std::array<char, 17> battles_view_all; // DS:aedf
+      std::array<char, 16> battles_view_none; // DS:aef0
+      std::array<char, 23> battles_view_selected; // DS:af00
+      std::array<char, 27> battles_question; // DS:af17
+      std::array<char, 13> battles_reply; // DS:af32
       std::uint8_t                  settings_padding;         // DS:af3f
-      std::array<std::uint8_t, 48>  settings_menu;            // DS:af40
-      std::uint16_t                 settings_descriptions[3]; // DS:af70
-      std::array<std::uint8_t, 43>  settings_text_af76;       // DS:af76
-      std::array<std::uint8_t, 37>  settings_text_afa1;       // DS:afa1
-      std::array<std::uint8_t, 7>   settings_text_afc6;       // DS:afc6
-      std::array<std::uint8_t, 6>   settings_text_afcd;       // DS:afcd
-      std::array<std::uint8_t, 28>  settings_text_afd3;       // DS:afd3
-      std::array<std::uint8_t, 3>   settings_text_afef;       // DS:afef
-      std::array<std::uint8_t, 4>   settings_text_aff2;       // DS:aff2
-      std::array<std::uint8_t, 30>  settings_text_aff6;       // DS:aff6
-      std::array<std::uint8_t, 5>   settings_text_b014;       // DS:b014
-      std::array<std::uint8_t, 9>   settings_text_b019;       // DS:b019
-      std::array<std::uint8_t, 41>  settings_text_b022;       // DS:b022
-      std::array<std::uint8_t, 10>  settings_text_b04b;       // DS:b04b
-      std::array<std::uint8_t, 9>   settings_text_b055;       // DS:b055
-      std::array<std::uint8_t, 9>   settings_text_b05e;       // DS:b05e
-      std::array<std::uint8_t, 12>  settings_text_b067;       // DS:b067
-      std::array<std::uint8_t, 9>   settings_text_b073;       // DS:b073
-      std::array<std::uint8_t, 9>   settings_text_b07c;       // DS:b07c
-      std::array<std::uint8_t, 21>  settings_text_b085;       // DS:b085
-      std::array<std::uint8_t, 3>   settings_text_b09a;       // DS:b09a
-      std::array<std::uint8_t, 9>   settings_text_b09d;       // DS:b09d
-      std::array<std::uint8_t, 12>  settings_text_b0a6;       // DS:b0a6
-      std::array<std::uint8_t, 7>   settings_text_b0b2;       // DS:b0b2
-      std::uint8_t                  settings_text_b0b9;       // DS:b0b9
-      std::array<std::uint8_t, 10>  settings_text_b0ba;       // DS:b0ba
-      std::array<std::uint8_t, 17>  settings_text_b0c4;       // DS:b0c4
-      std::array<std::uint8_t, 13>  settings_text_b0d5;       // DS:b0d5
-      std::array<std::uint8_t, 12>  settings_text_b0e2;       // DS:b0e2
-      std::array<std::uint8_t, 18>  settings_text_b0ee;       // DS:b0ee
-      std::array<std::uint8_t, 10>  settings_text_b100;       // DS:b100
-      std::array<std::uint8_t, 14>  settings_text_b10a;       // DS:b10a
-      std::array<std::uint8_t, 9>   settings_text_b118;       // DS:b118
-      std::array<std::uint8_t, 17>  settings_text_b121;       // DS:b121
-      std::array<std::uint8_t, 12>  settings_actions;         // DS:b132
-      std::array<std::uint8_t, 48>  settings_menu_b13e;       // DS:b13e
-      std::array<std::uint8_t, 14>  settings_text_b16e;       // DS:b16e
-      std::array<std::uint8_t, 14>  settings_text_b17c;       // DS:b17c
-      std::array<std::uint8_t, 12>  settings_text_b18a;       // DS:b18a
-      std::array<std::uint8_t, 10>  settings_text_b196;       // DS:b196
-      std::array<std::uint8_t, 15>  settings_text_b1a0;       // DS:b1a0
-      std::array<std::uint8_t, 12>  settings_text_b1af;       // DS:b1af
-      std::array<std::uint8_t, 9>   settings_text_b1bb;       // DS:b1bb
-      std::array<std::uint8_t, 17>  settings_text_b1c4;       // DS:b1c4
-      std::uint8_t                  settings_padding_b1d5;    // DS:b1d5
-      std::array<std::uint8_t, 24>  settings_actions_b1d6;    // DS:b1d6
-      std::array<std::uint8_t, 84>  settings_menu_b1ee;       // DS:b1ee
+      std::array<std::uint8_t, 48> battles_menu; // DS:af40
+      std::uint16_t battles_descriptions[3]; // DS:af70
+      std::array<char, 43> delay_question; // DS:af76
+      std::array<char, 37> delay_reply; // DS:afa1
+      std::array<char, 7> map_aerial; // DS:afc6
+      std::array<char, 6> map_field; // DS:afcd
+      std::array<char, 28> map_reply; // DS:afd3
+      std::array<char, 3> sound_on; // DS:afef
+      std::array<char, 4> sound_off; // DS:aff2
+      std::array<char, 30> sound_reply; // DS:aff6
+      std::array<char, 5> pictures_will; // DS:b014
+      std::array<char, 9> pictures_will_not; // DS:b019
+      std::array<char, 41> pictures_reply; // DS:b022
+      std::array<char, 10> create_saving; // DS:b04b
+      std::array<char, 9> create_file_name; // DS:b055
+      std::array<char, 9> create_check_name; // DS:b05e
+      std::array<char, 12> create_saved; // DS:b067
+      std::array<char, 9> save_check_name; // DS:b073
+      std::array<char, 9> save_recheck_name; // DS:b07c
+      std::array<char, 21> save_failed; // DS:b085
+      std::array<char, 3> save_failed_format; // DS:b09a
+      std::array<char, 9> save_open_name; // DS:b09d
+      std::array<char, 12> save_where; // DS:b0a6
+      std::array<char, 7> save_confirm; // DS:b0b2
+      char save_answer; // DS:b0b9
+      std::array<char, 10> save_saving; // DS:b0ba
+      std::array<char, 17> save_finished; // DS:b0c4
+      std::array<char, 13> logo_file_name; // DS:b0d5
+      std::array<char, 12> leave_question; // DS:b0e2
+      std::array<char, 18> new_game_question; // DS:b0ee
+      std::array<char, 10> save_quit_label_save; // DS:b100
+      std::array<char, 14> save_quit_label_load; // DS:b10a
+      std::array<char, 9> save_quit_label_end; // DS:b118
+      std::array<char, 17> save_quit_question; // DS:b121
+      std::array<FarPointer, 3> save_quit_actions; // DS:b132
+      std::array<std::uint8_t, 48> save_quit_menu; // DS:b13e
+      std::array<char, 14> settings_label_battles; // DS:b16e
+      std::array<char, 14> settings_label_delay; // DS:b17c
+      std::array<char, 12> settings_label_maps; // DS:b18a
+      std::array<char, 10> settings_label_music; // DS:b196
+      std::array<char, 15> settings_label_pictures; // DS:b1a0
+      std::array<char, 12> settings_label_save_quit; // DS:b1af
+      std::array<char, 9> settings_title; // DS:b1bb
+      std::array<char, 17> settings_question; // DS:b1c4
+      std::uint8_t settings_padding_b1d5; // DS:b1d5
+      std::array<FarPointer, 6> settings_actions; // DS:b1d6
+      std::array<std::uint8_t, 84> settings_menu; // DS:b1ee
     };
   };
   union {
@@ -2934,132 +2962,7 @@ struct DataSegment {
       std::uint8_t                  unknown_bc7d;               // DS:bc7d
       std::array<std::uint8_t, 8>   battle_retreat_class;       // DS:bc7e
       std::array<std::uint8_t, 18>  dispatch_error;             // DS:bc86
-      FarPointer                    message_table;              // DS:bc98
-      FarPointer                    far_text_bc9c;              // DS:bc9c
-      FarPointer                    far_text_bca0;              // DS:bca0
-      FarPointer                    far_text_bca4;              // DS:bca4
-      FarPointer                    far_text_bca8;              // DS:bca8
-      FarPointer                    far_text_bcac;              // DS:bcac
-      FarPointer                    far_text_bcb0;              // DS:bcb0
-      FarPointer                    far_text_bcb4;              // DS:bcb4
-      FarPointer                    far_text_bcb8;              // DS:bcb8
-      FarPointer                    far_text_bcbc;              // DS:bcbc
-      FarPointer                    far_text_bcc0;              // DS:bcc0
-      FarPointer                    far_text_bcc4;              // DS:bcc4
-      FarPointer                    far_text_bcc8;              // DS:bcc8
-      FarPointer                    far_text_bccc;              // DS:bccc
-      FarPointer                    far_text_bcd0;              // DS:bcd0
-      FarPointer                    far_text_bcd4;              // DS:bcd4
-      FarPointer                    far_text_bcd8;              // DS:bcd8
-      FarPointer                    far_text_bcdc;              // DS:bcdc
-      FarPointer                    far_text_bce0;              // DS:bce0
-      FarPointer                    far_text_bce4;              // DS:bce4
-      FarPointer                    far_text_bce8;              // DS:bce8
-      FarPointer                    far_text_bcec;              // DS:bcec
-      FarPointer                    far_text_bcf0;              // DS:bcf0
-      FarPointer                    far_text_bcf4;              // DS:bcf4
-      FarPointer                    far_text_bcf8;              // DS:bcf8
-      FarPointer                    far_text_bcfc;              // DS:bcfc
-      FarPointer                    far_text_bd00;              // DS:bd00
-      FarPointer                    far_text_bd04;              // DS:bd04
-      FarPointer                    far_text_bd08;              // DS:bd08
-      FarPointer                    far_text_bd0c;              // DS:bd0c
-      FarPointer                    far_text_bd10;              // DS:bd10
-      FarPointer                    far_text_bd14;              // DS:bd14
-      FarPointer                    far_text_bd18;              // DS:bd18
-      FarPointer                    far_text_bd1c;              // DS:bd1c
-      FarPointer                    far_text_bd20;              // DS:bd20
-      FarPointer                    far_text_bd24;              // DS:bd24
-      FarPointer                    far_text_bd28;              // DS:bd28
-      FarPointer                    far_text_bd2c;              // DS:bd2c
-      FarPointer                    far_text_bd30;              // DS:bd30
-      FarPointer                    far_text_bd34;              // DS:bd34
-      FarPointer                    far_text_bd38;              // DS:bd38
-      FarPointer                    far_text_bd3c;              // DS:bd3c
-      FarPointer                    far_text_bd40;              // DS:bd40
-      FarPointer                    far_text_bd44;              // DS:bd44
-      FarPointer                    far_text_bd48;              // DS:bd48
-      FarPointer                    far_text_bd4c;              // DS:bd4c
-      FarPointer                    far_text_bd50;              // DS:bd50
-      FarPointer                    far_text_bd54;              // DS:bd54
-      FarPointer                    far_text_bd58;              // DS:bd58
-      FarPointer                    far_text_bd5c;              // DS:bd5c
-      FarPointer                    far_text_bd60;              // DS:bd60
-      FarPointer                    far_text_bd64;              // DS:bd64
-      FarPointer                    far_text_bd68;              // DS:bd68
-      FarPointer                    far_text_bd6c;              // DS:bd6c
-      FarPointer                    far_text_bd70;              // DS:bd70
-      FarPointer                    far_text_bd74;              // DS:bd74
-      FarPointer                    far_text_bd78;              // DS:bd78
-      FarPointer                    far_text_bd7c;              // DS:bd7c
-      FarPointer                    far_text_bd80;              // DS:bd80
-      FarPointer                    far_text_bd84;              // DS:bd84
-      FarPointer                    far_text_bd88;              // DS:bd88
-      FarPointer                    far_text_bd8c;              // DS:bd8c
-      FarPointer                    far_text_bd90;              // DS:bd90
-      FarPointer                    far_text_bd94;              // DS:bd94
-      FarPointer                    far_text_bd98;              // DS:bd98
-      FarPointer                    far_text_bd9c;              // DS:bd9c
-      FarPointer                    far_text_bda0;              // DS:bda0
-      FarPointer                    far_text_bda4;              // DS:bda4
-      FarPointer                    far_text_bda8;              // DS:bda8
-      FarPointer                    far_text_bdac;              // DS:bdac
-      FarPointer                    far_text_bdb0;              // DS:bdb0
-      FarPointer                    far_text_bdb4;              // DS:bdb4
-      FarPointer                    far_text_bdb8;              // DS:bdb8
-      FarPointer                    far_text_bdbc;              // DS:bdbc
-      FarPointer                    far_text_bdc0;              // DS:bdc0
-      FarPointer                    far_text_bdc4;              // DS:bdc4
-      FarPointer                    far_text_bdc8;              // DS:bdc8
-      FarPointer                    far_text_bdcc;              // DS:bdcc
-      FarPointer                    far_text_bdd0;              // DS:bdd0
-      FarPointer                    far_text_bdd4;              // DS:bdd4
-      FarPointer                    far_text_bdd8;              // DS:bdd8
-      FarPointer                    far_text_bddc;              // DS:bddc
-      FarPointer                    far_text_bde0;              // DS:bde0
-      FarPointer                    far_text_bde4;              // DS:bde4
-      FarPointer                    far_text_bde8;              // DS:bde8
-      FarPointer                    far_text_bdec;              // DS:bdec
-      FarPointer                    far_text_bdf0;              // DS:bdf0
-      FarPointer                    far_text_bdf4;              // DS:bdf4
-      FarPointer                    far_text_bdf8;              // DS:bdf8
-      FarPointer                    far_text_bdfc;              // DS:bdfc
-      FarPointer                    far_text_be00;              // DS:be00
-      FarPointer                    far_text_be04;              // DS:be04
-      FarPointer                    far_text_be08;              // DS:be08
-      FarPointer                    far_text_be0c;              // DS:be0c
-      FarPointer                    far_text_be10;              // DS:be10
-      FarPointer                    far_text_be14;              // DS:be14
-      FarPointer                    far_text_be18;              // DS:be18
-      FarPointer                    far_text_be1c;              // DS:be1c
-      FarPointer                    far_text_be20;              // DS:be20
-      FarPointer                    far_text_be24;              // DS:be24
-      FarPointer                    far_text_be28;              // DS:be28
-      FarPointer                    far_text_be2c;              // DS:be2c
-      FarPointer                    far_text_be30;              // DS:be30
-      FarPointer                    far_text_be34;              // DS:be34
-      FarPointer                    far_text_be38;              // DS:be38
-      FarPointer                    far_text_be3c;              // DS:be3c
-      FarPointer                    far_text_be40;              // DS:be40
-      FarPointer                    far_text_be44;              // DS:be44
-      FarPointer                    far_text_be48;              // DS:be48
-      FarPointer                    far_text_be4c;              // DS:be4c
-      FarPointer                    far_text_be50;              // DS:be50
-      FarPointer                    far_text_be54;              // DS:be54
-      FarPointer                    far_text_be58;              // DS:be58
-      FarPointer                    far_text_be5c;              // DS:be5c
-      FarPointer                    far_text_be60;              // DS:be60
-      FarPointer                    far_text_be64;              // DS:be64
-      FarPointer                    far_text_be68;              // DS:be68
-      FarPointer                    far_text_be6c;              // DS:be6c
-      FarPointer                    far_text_be70;              // DS:be70
-      FarPointer                    far_text_be74;              // DS:be74
-      FarPointer                    far_text_be78;              // DS:be78
-      FarPointer                    far_text_be7c;              // DS:be7c
-      FarPointer                    far_text_be80;              // DS:be80
-      FarPointer                    far_text_be84;              // DS:be84
-      FarPointer                    far_text_be88;              // DS:be88
-      std::array<std::uint8_t, 40>  unknown_be8c;               // DS:be8c
+      std::array<FarPointer, 135>   message_table;              // DS:bc98: the battle messages, by message id
       std::array<char, 23>          order_no_fuel;              // DS:beb4
       std::array<char, 29>          order_no_ammo;              // DS:becb
       std::array<char, 33>          order_prepared;             // DS:bee8
@@ -3113,13 +3016,13 @@ struct DataSegment {
     std::array<std::uint8_t, 131> notend_data; // DS:c250..c2d3
     struct {
       std::array<std::uint8_t, 8>  notend_occupy_class; // DS:c250
-      std::array<std::uint8_t, 19> notend_text_c258;    // DS:c258
-      std::array<std::uint8_t, 9>  notend_text_c26b;    // DS:c26b
-      std::array<std::uint8_t, 17> notend_text_c274;    // DS:c274
-      std::array<std::uint8_t, 17> notend_text_c285;    // DS:c285
-      std::array<std::uint8_t, 19> notend_text_c296;    // DS:c296
-      std::array<std::uint8_t, 20> notend_text_c2a9;    // DS:c2a9
-      std::array<std::uint8_t, 22> notend_text_c2bd;    // DS:c2bd
+      std::array<char, 19>         end_occupied_format;    // DS:c258
+      std::array<char, 9>         end_garrison_name;    // DS:c26b
+      std::array<char, 17>         end_loss_format;    // DS:c274
+      std::array<char, 17>         end_wiped_out_text;    // DS:c285
+      std::array<char, 19>         end_undamaged_text;    // DS:c296
+      std::array<char, 20>         end_one_loss_format;    // DS:c2a9
+      std::array<char, 22>         end_losses_format;    // DS:c2bd
     };
   };
   std::uint8_t                 unknown_c2d3; // DS:c2d3
@@ -3183,7 +3086,7 @@ struct DataSegment {
   std::uint16_t                 frame_ems_handle;  // DS:c47c
   std::uint16_t                 sprite_ems_handle; // DS:c47e
   std::uint16_t                 numdlg_ems_handle; // DS:c480
-  std::array<std::uint8_t, 620> people_backup;     // DS:c482
+  std::array<Person, 20>        people_backup;     // DS:c482: the staff candidates as drawn, before their rerolls
   std::uint16_t                 scenario_text_x;   // DS:c6ee
   std::uint16_t                 scenario_text_y;   // DS:c6f0
   std::uint16_t                 end_score;         // DS:c6f2
@@ -3259,12 +3162,12 @@ struct DataSegment {
   std::array<std::uint8_t, 1>   unknown_ccbb;
   std::uint16_t                 air_person;      // DS:ccbc
   std::uint16_t                 air_troops;      // DS:ccbe
-  std::uint8_t                  special_stat_14; // DS:ccc0
-  std::uint8_t                  special_stat_15; // DS:ccc1
+  std::uint8_t                  special_charm; // DS:ccc0
+  std::uint8_t                  special_bravery; // DS:ccc1
   std::uint16_t                 special_person;  // DS:ccc2
   std::uint16_t                 special_order;   // DS:ccc4
-  std::uint8_t                  special_stat_1b; // DS:ccc6
-  std::uint8_t                  special_stat_13; // DS:ccc7
+  std::uint8_t                  special_experience; // DS:ccc6
+  std::uint8_t                  special_leadership; // DS:ccc7
   std::array<std::uint8_t, 520> vram;            // DS:ccc8
   std::uint8_t                  transfer_auto;   // DS:ced0
   std::array<std::uint8_t, 1>   unknown_ced1;
@@ -3297,7 +3200,7 @@ struct DataSegment {
     std::uint16_t bitmap_buffer;
     std::uint16_t image_segment;
   };
-  std::array<std::uint8_t, 540> battle_losses;  // DS:e008
+  std::array<BattleLoss, 60>    battle_losses;  // DS:e008
   std::uint16_t                 sound_driver;   // DS:e224
   std::array<std::uint8_t, 100> event_buffer;   // DS:e226
   std::array<std::uint8_t, 100> request_buffer; // DS:e28a
@@ -3321,16 +3224,17 @@ struct DataSegment {
   std::array<std::uint8_t, 200> scenario_brief; // DS:e2f6
   std::array<std::uint8_t, 600> scenario_notes; // DS:e3be
   union {                                       // DS:e616
-    std::uint16_t supply_bitmap;
+    std::uint16_t message_picture_segment; // MSGRP.DAT, the message pictures
     std::uint16_t numdlg_image_segment;
   };
   std::uint8_t                  hexmap_index; // DS:e618
   std::array<std::uint8_t, 1>   unknown_e619;
-  std::array<std::uint8_t, 78>  battle_elements;       // DS:e61a
+  std::array<Element, 6>        battle_elements;       // DS:e61a: the garrison's elements, one per objective item
   std::array<std::uint8_t, 150> message_buffer;        // DS:e668
   std::uint16_t                 overview_tile_segment; // DS:e6fe
   union {                                              // DS:e700
     std::uint16_t               stream_ptr[2];
+    FarPointer                  stream; // the picture decoder's read position
     std::array<std::uint8_t, 4> stream_ptr_bytes;
     std::uint16_t               gfx_source[2];
   };
@@ -3349,6 +3253,7 @@ struct DataSegment {
   union { // DS:e946
     std::array<std::uint8_t, 22> battle_garrison;
     std::array<std::uint8_t, 22> garrison_unit;
+    Unit                         garrison; // the pseudo-unit a besieged objective fights with (core/notice)
   };
   std::uint16_t                 frame_segment;     // DS:e95c
   std::uint8_t                  battle_path_queue; // DS:e95e
@@ -3390,6 +3295,7 @@ static_assert(offsetof(Item, type) == 0);
 static_assert(offsetof(Item, quantity) == 1);
 static_assert(offsetof(Item, extra) == 3);
 static_assert(sizeof(Item) == 5);
+static_assert(sizeof(BattleLoss) == 9);
 static_assert(offsetof(AirStrike, x) == 0);
 static_assert(offsetof(AirStrike, y) == 1);
 static_assert(offsetof(AirStrike, planes) == 2);
@@ -3398,18 +3304,18 @@ static_assert(offsetof(AirStrike, turns) == 5);
 static_assert(sizeof(AirStrike) == 6);
 static_assert(offsetof(AirDrop, x) == 0);
 static_assert(offsetof(AirDrop, y) == 1);
-static_assert(offsetof(AirDrop, planes) == 2);
-static_assert(offsetof(AirDrop, troops) == 4);
+static_assert(offsetof(AirDrop, paratroops) == 2);
+static_assert(offsetof(AirDrop, transports) == 4);
 static_assert(offsetof(AirDrop, hours) == 6);
-static_assert(offsetof(AirDrop, turns) == 7);
+static_assert(offsetof(AirDrop, due) == 7);
 static_assert(sizeof(AirDrop) == 8);
 static_assert(offsetof(Side, stock) == 0);
 static_assert(offsetof(Side, income) == 6);
 static_assert(offsetof(Side, pool_a) == 12);
 static_assert(offsetof(Side, planes) == 14);
 static_assert(offsetof(Side, pending_a) == 16);
-static_assert(offsetof(Side, pending_b) == 18);
-static_assert(offsetof(Side, word_14) == 20);
+static_assert(offsetof(Side, pending_planes) == 18);
+static_assert(offsetof(Side, paratroops) == 20);
 static_assert(offsetof(Side, strength) == 22);
 static_assert(offsetof(Side, objectives) == 23);
 static_assert(offsetof(Side, requests) == 23);
@@ -3828,8 +3734,8 @@ static_assert(offsetof(DataSegment, unit_order_active) == 0x2f8a);
 static_assert(offsetof(DataSegment, schedule_flags) == 0x2f8c);
 static_assert(offsetof(DataSegment, turn_notification) == 0x2f8e);
 static_assert(offsetof(DataSegment, turn_notification_bytes) == 0x2f8e);
-static_assert(offsetof(DataSegment, control_cached_x) == 0x2f90);
-static_assert(offsetof(DataSegment, control_cached_y) == 0x2f91);
+static_assert(offsetof(DataSegment, overview_side) == 0x2f90);
+static_assert(offsetof(DataSegment, view_side) == 0x2f91);
 static_assert(offsetof(DataSegment, viewport_x) == 0x2f92);
 static_assert(offsetof(DataSegment, viewport_x_bytes) == 0x2f92);
 static_assert(offsetof(DataSegment, viewport_y) == 0x2f94);
@@ -3887,13 +3793,6 @@ static_assert(offsetof(DataSegment, small_glyphs) == 0x3bb0);
 static_assert(offsetof(DataSegment, battle_digits) == 0x3bb0);
 static_assert(offsetof(DataSegment, digit_glyphs) == 0x3bb0);
 static_assert(offsetof(DataSegment, rotated_glyphs) == 0x3bf2);
-static_assert(offsetof(DataSegment, text_3bfc) == 0x3bfc);
-static_assert(offsetof(DataSegment, text_3c01) == 0x3c01);
-static_assert(offsetof(DataSegment, bytes_3c06) == 0x3c06);
-static_assert(offsetof(DataSegment, text_3c15) == 0x3c15);
-static_assert(offsetof(DataSegment, text_3c1a) == 0x3c1a);
-static_assert(offsetof(DataSegment, text_3c1f) == 0x3c1f);
-static_assert(offsetof(DataSegment, words_3c24) == 0x3c24);
 static_assert(offsetof(DataSegment, text_3c2a) == 0x3c2a);
 static_assert(offsetof(DataSegment, text_3c2f) == 0x3c2f);
 static_assert(offsetof(DataSegment, text_3c36) == 0x3c36);
@@ -4006,7 +3905,6 @@ static_assert(offsetof(DataSegment, format_output) == 0x3eea);
 static_assert(offsetof(DataSegment, text_font) == 0x3eec);
 static_assert(offsetof(DataSegment, setup_text) == 0x44ec);
 static_assert(offsetof(DataSegment, glyph_draw) == 0x44ec);
-static_assert(offsetof(DataSegment, far_code_44f0) == 0x44f0);
 static_assert(offsetof(DataSegment, text_erase) == 0x44f4);
 static_assert(offsetof(DataSegment, prompt_format) == 0x44fc);
 static_assert(offsetof(DataSegment, question_format) == 0x44ff);
@@ -4040,12 +3938,8 @@ static_assert(offsetof(DataSegment, text_45f7) == 0x45f7);
 static_assert(offsetof(DataSegment, shown_portrait) == 0x4600);
 static_assert(offsetof(DataSegment, shown_portrait_bytes) == 0x4600);
 static_assert(offsetof(DataSegment, play_dialog) == 0x4602);
-static_assert(offsetof(DataSegment, far_code_460d) == 0x460d);
-static_assert(offsetof(DataSegment, far_code_4611) == 0x4611);
 static_assert(offsetof(DataSegment, bytes_4615) == 0x4615);
 static_assert(offsetof(DataSegment, reinforce_dialog) == 0x4616);
-static_assert(offsetof(DataSegment, far_code_4621) == 0x4621);
-static_assert(offsetof(DataSegment, far_code_4625) == 0x4625);
 static_assert(offsetof(DataSegment, division_reserve_mark) == 0x4629);
 static_assert(offsetof(DataSegment, empty_suffix) == 0x4633);
 static_assert(offsetof(DataSegment, division_strength_format) == 0x4634);
@@ -4231,13 +4125,7 @@ static_assert(offsetof(DataSegment, end_text_format) == 0x50c6);
 static_assert(offsetof(DataSegment, end_picture_name) == 0x50d2);
 static_assert(offsetof(DataSegment, end_salute) == 0x50dd);
 static_assert(offsetof(DataSegment, end_victory_texts) == 0x50f8);
-static_assert(offsetof(DataSegment, far_text_50fc) == 0x50fc);
-static_assert(offsetof(DataSegment, far_text_5100) == 0x5100);
-static_assert(offsetof(DataSegment, far_text_5104) == 0x5104);
 static_assert(offsetof(DataSegment, end_defeat_texts) == 0x5108);
-static_assert(offsetof(DataSegment, far_text_510c) == 0x510c);
-static_assert(offsetof(DataSegment, far_text_5110) == 0x5110);
-static_assert(offsetof(DataSegment, far_text_5114) == 0x5114);
 static_assert(offsetof(DataSegment, name_bmapseg) == 0x5118);
 static_assert(offsetof(DataSegment, name_mmapseg) == 0x5120);
 static_assert(offsetof(DataSegment, name_hdispseg) == 0x5128);
@@ -4329,10 +4217,8 @@ static_assert(offsetof(DataSegment, tbl_mission_target) == 0x56c7);
 static_assert(offsetof(DataSegment, tbl_mission_row) == 0x56d1);
 static_assert(offsetof(DataSegment, tbl_mission_blank) == 0x56d9);
 static_assert(offsetof(DataSegment, unknown_56ff) == 0x56ff);
-static_assert(offsetof(DataSegment, order_group_list) == 0x5700);
 static_assert(offsetof(DataSegment, division_dialog) == 0x5700);
-static_assert(offsetof(DataSegment, far_code_570b) == 0x570b);
-static_assert(offsetof(DataSegment, bytes_570f) == 0x570f);
+static_assert(offsetof(DataSegment, bytes_5713) == 0x5713);
 static_assert(offsetof(DataSegment, tbl_unit_header) == 0x5716);
 static_assert(offsetof(DataSegment, tbl_unit_mark) == 0x5745);
 static_assert(offsetof(DataSegment, tbl_unit_label) == 0x5749);
@@ -4349,15 +4235,13 @@ static_assert(offsetof(DataSegment, tbl_order_header) == 0x5809);
 static_assert(offsetof(DataSegment, tbl_order_label) == 0x583c);
 static_assert(offsetof(DataSegment, unknown_5847) == 0x5847);
 static_assert(offsetof(DataSegment, organize_list) == 0x5848);
-static_assert(offsetof(DataSegment, far_code_5853) == 0x5853);
-static_assert(offsetof(DataSegment, bytes_5857) == 0x5857);
+static_assert(offsetof(DataSegment, bytes_585b) == 0x585b);
 static_assert(offsetof(DataSegment, tbl_element_header) == 0x5863);
 static_assert(offsetof(DataSegment, tbl_element_mark) == 0x5881);
 static_assert(offsetof(DataSegment, tbl_element_name) == 0x5885);
 static_assert(offsetof(DataSegment, tbl_element_row) == 0x588f);
 static_assert(offsetof(DataSegment, regiment_dialog) == 0x58ae);
-static_assert(offsetof(DataSegment, far_code_58b9) == 0x58b9);
-static_assert(offsetof(DataSegment, bytes_58bd) == 0x58bd);
+static_assert(offsetof(DataSegment, bytes_58c1) == 0x58c1);
 static_assert(offsetof(DataSegment, text_58c8) == 0x58c8);
 static_assert(offsetof(DataSegment, text_58cd) == 0x58cd);
 static_assert(offsetof(DataSegment, text_58d2) == 0x58d2);
@@ -4372,20 +4256,11 @@ static_assert(offsetof(DataSegment, tbl_person_hurt) == 0x5901);
 static_assert(offsetof(DataSegment, choice_dialog) == 0x5906);
 static_assert(offsetof(DataSegment, bytes_5919) == 0x5919);
 static_assert(offsetof(DataSegment, tbl_post_names) == 0x591a);
-static_assert(offsetof(DataSegment, near_591c) == 0x591c);
-static_assert(offsetof(DataSegment, near_591e) == 0x591e);
-static_assert(offsetof(DataSegment, near_5920) == 0x5920);
-static_assert(offsetof(DataSegment, near_5922) == 0x5922);
-static_assert(offsetof(DataSegment, near_5924) == 0x5924);
-static_assert(offsetof(DataSegment, near_5926) == 0x5926);
 static_assert(offsetof(DataSegment, bytes_5928) == 0x5928);
 static_assert(offsetof(DataSegment, tbl_type_header) == 0x5935);
 static_assert(offsetof(DataSegment, tbl_type_name) == 0x595c);
 static_assert(offsetof(DataSegment, tbl_type_row) == 0x5965);
 static_assert(offsetof(DataSegment, people_dialog) == 0x598a);
-static_assert(offsetof(DataSegment, commander_list) == 0x598a);
-static_assert(offsetof(DataSegment, far_code_5995) == 0x5995);
-static_assert(offsetof(DataSegment, unknown_5999) == 0x5999);
 static_assert(offsetof(DataSegment, text_599d) == 0x599d);
 static_assert(offsetof(DataSegment, tbl_supply_header) == 0x59a5);
 static_assert(offsetof(DataSegment, tbl_supply_name) == 0x59d5);
@@ -4393,19 +4268,15 @@ static_assert(offsetof(DataSegment, tbl_supply_row) == 0x59de);
 static_assert(offsetof(DataSegment, tbl_supply_blank) == 0x5a0d);
 static_assert(offsetof(DataSegment, unknown_5a3d) == 0x5a3d);
 static_assert(offsetof(DataSegment, weapons_dialog) == 0x5a3e);
-static_assert(offsetof(DataSegment, far_code_5a49) == 0x5a49);
-static_assert(offsetof(DataSegment, bytes_5a4d) == 0x5a4d);
+static_assert(offsetof(DataSegment, bytes_5a51) == 0x5a51);
 static_assert(offsetof(DataSegment, tbl_str_header) == 0x5a57);
 static_assert(offsetof(DataSegment, tbl_str_name) == 0x5a64);
 static_assert(offsetof(DataSegment, tbl_str_row) == 0x5a6c);
 static_assert(offsetof(DataSegment, unknown_5a77) == 0x5a77);
 static_assert(offsetof(DataSegment, city_dialog) == 0x5a78);
-static_assert(offsetof(DataSegment, stock_list) == 0x5a78);
-static_assert(offsetof(DataSegment, far_code_5a83) == 0x5a83);
-static_assert(offsetof(DataSegment, bytes_5a87) == 0x5a87);
+static_assert(offsetof(DataSegment, bytes_5a8b) == 0x5a8b);
 static_assert(offsetof(DataSegment, stock_dialog) == 0x5a96);
-static_assert(offsetof(DataSegment, far_code_5aa1) == 0x5aa1);
-static_assert(offsetof(DataSegment, bytes_5aa5) == 0x5aa5);
+static_assert(offsetof(DataSegment, unknown_5aa9) == 0x5aa9);
 static_assert(offsetof(DataSegment, save_menu) == 0x5aaa);
 static_assert(offsetof(DataSegment, far_code_5ab5) == 0x5ab5);
 static_assert(offsetof(DataSegment, far_code_5ab9) == 0x5ab9);
@@ -4875,13 +4746,6 @@ static_assert(offsetof(DataSegment, recon_objective_text) == 0x7a2a);
 static_assert(offsetof(DataSegment, recon_newline) == 0x7a42);
 static_assert(offsetof(DataSegment, recon_unit_text) == 0x7a44);
 static_assert(offsetof(DataSegment, mission_handlers) == 0x7a54);
-static_assert(offsetof(DataSegment, far_code_7a58) == 0x7a58);
-static_assert(offsetof(DataSegment, far_code_7a5c) == 0x7a5c);
-static_assert(offsetof(DataSegment, far_code_7a60) == 0x7a60);
-static_assert(offsetof(DataSegment, far_code_7a64) == 0x7a64);
-static_assert(offsetof(DataSegment, far_code_7a68) == 0x7a68);
-static_assert(offsetof(DataSegment, far_code_7a6c) == 0x7a6c);
-static_assert(offsetof(DataSegment, far_code_7a70) == 0x7a70);
 static_assert(offsetof(DataSegment, month_climate) == 0x7a73);
 static_assert(offsetof(DataSegment, air_postponed_text) == 0x7a80);
 static_assert(offsetof(DataSegment, air_canceled_text) == 0x7aba);
@@ -4890,10 +4754,10 @@ static_assert(offsetof(DataSegment, air_text_7b28) == 0x7b28);
 static_assert(offsetof(DataSegment, air_text_7b33) == 0x7b33);
 static_assert(offsetof(DataSegment, air_text_7b49) == 0x7b49);
 static_assert(offsetof(DataSegment, air_text_7b67) == 0x7b67);
-static_assert(offsetof(DataSegment, air_text_7b6f) == 0x7b6f);
-static_assert(offsetof(DataSegment, air_text_7b7e) == 0x7b7e);
-static_assert(offsetof(DataSegment, air_text_7b90) == 0x7b90);
-static_assert(offsetof(DataSegment, air_text_7ba9) == 0x7ba9);
+static_assert(offsetof(DataSegment, paratroop_drop_name) == 0x7b6f);
+static_assert(offsetof(DataSegment, paratroop_drop_begin) == 0x7b7e);
+static_assert(offsetof(DataSegment, paratroop_drop_spotted) == 0x7b90);
+static_assert(offsetof(DataSegment, paratroop_planes_name) == 0x7ba9);
 static_assert(offsetof(DataSegment, air_text_7bb4) == 0x7bb4);
 static_assert(offsetof(DataSegment, air_text_7bbf) == 0x7bbf);
 static_assert(offsetof(DataSegment, air_text_7bd2) == 0x7bd2);
@@ -5146,73 +5010,59 @@ static_assert(offsetof(DataSegment, unknown_8b2f) == 0x8b2f);
 static_assert(offsetof(DataSegment, text_8b60) == 0x8b60);
 static_assert(offsetof(DataSegment, text_8b75) == 0x8b75);
 static_assert(offsetof(DataSegment, text_8ba0) == 0x8ba0);
-static_assert(offsetof(DataSegment, stock_text) == 0x8bb8);
-static_assert(offsetof(DataSegment, text_8bdf) == 0x8bdf);
-static_assert(offsetof(DataSegment, text_8bfe) == 0x8bfe);
-static_assert(offsetof(DataSegment, text_8c1d) == 0x8c1d);
-static_assert(offsetof(DataSegment, text_8c42) == 0x8c42);
-static_assert(offsetof(DataSegment, text_8c63) == 0x8c63);
-static_assert(offsetof(DataSegment, text_8c9a) == 0x8c9a);
-static_assert(offsetof(DataSegment, text_8c9f) == 0x8c9f);
-static_assert(offsetof(DataSegment, text_8ca4) == 0x8ca4);
-static_assert(offsetof(DataSegment, text_8ca9) == 0x8ca9);
-static_assert(offsetof(DataSegment, text_8cbf) == 0x8cbf);
+static_assert(offsetof(DataSegment, stock_header) == 0x8bb8);
+static_assert(offsetof(DataSegment, stock_fuel_line) == 0x8bdf);
+static_assert(offsetof(DataSegment, stock_ammo_line) == 0x8bfe);
+static_assert(offsetof(DataSegment, stock_food_line) == 0x8c1d);
+static_assert(offsetof(DataSegment, stock_question_short) == 0x8c42);
+static_assert(offsetof(DataSegment, stock_question) == 0x8c63);
+static_assert(offsetof(DataSegment, stock_fuel) == 0x8c9a);
+static_assert(offsetof(DataSegment, stock_ammo) == 0x8c9f);
+static_assert(offsetof(DataSegment, stock_food) == 0x8ca4);
+static_assert(offsetof(DataSegment, stock_no_cities) == 0x8ca9);
+static_assert(offsetof(DataSegment, stock_select_city) == 0x8cbf);
 static_assert(offsetof(DataSegment, text_8cce) == 0x8cce);
 static_assert(offsetof(DataSegment, text_8cf2) == 0x8cf2);
 static_assert(offsetof(DataSegment, text_8d02) == 0x8d02);
 static_assert(offsetof(DataSegment, transfer_hour) == 0x8d0f);
 static_assert(offsetof(DataSegment, transfer_hours_text) == 0x8d14);
 static_assert(offsetof(DataSegment, text_8d1a) == 0x8d1a);
-static_assert(offsetof(DataSegment, text_8d4c) == 0x8d4c);
-static_assert(offsetof(DataSegment, text_8d69) == 0x8d69);
-static_assert(offsetof(DataSegment, text_8d83) == 0x8d83);
-static_assert(offsetof(DataSegment, unknown_8dba) == 0x8dba);
+static_assert(offsetof(DataSegment, rest_thanks_text) == 0x8d4c);
+static_assert(offsetof(DataSegment, assign_thanks_text) == 0x8d69);
+static_assert(offsetof(DataSegment, division_charge_prompt) == 0x8d83);
+static_assert(offsetof(DataSegment, post_label_none) == 0x8dba);
 static_assert(offsetof(DataSegment, text_8dc0) == 0x8dc0);
 static_assert(offsetof(DataSegment, text_8dc8) == 0x8dc8);
 static_assert(offsetof(DataSegment, text_8dd0) == 0x8dd0);
 static_assert(offsetof(DataSegment, text_8dd8) == 0x8dd8);
 static_assert(offsetof(DataSegment, text_8de0) == 0x8de0);
 static_assert(offsetof(DataSegment, text_8dea) == 0x8dea);
-static_assert(offsetof(DataSegment, text_8df2) == 0x8df2);
-static_assert(offsetof(DataSegment, text_8e0e) == 0x8e0e);
-static_assert(offsetof(DataSegment, unknown_8e23) == 0x8e23);
-static_assert(offsetof(DataSegment, text_8e24) == 0x8e24);
-static_assert(offsetof(DataSegment, unknown_8e2b) == 0x8e2b);
-static_assert(offsetof(DataSegment, text_8e2c) == 0x8e2c);
-static_assert(offsetof(DataSegment, unknown_8e33) == 0x8e33);
-static_assert(offsetof(DataSegment, text_8e34) == 0x8e34);
-static_assert(offsetof(DataSegment, unknown_8e3b) == 0x8e3b);
-static_assert(offsetof(DataSegment, text_8e3c) == 0x8e3c);
-static_assert(offsetof(DataSegment, text_8e43) == 0x8e43);
-static_assert(offsetof(DataSegment, text_8e4a) == 0x8e4a);
-static_assert(offsetof(DataSegment, text_8e51) == 0x8e51);
-static_assert(offsetof(DataSegment, text_8e72) == 0x8e72);
-static_assert(offsetof(DataSegment, bytes_8e74) == 0x8e74);
-static_assert(offsetof(DataSegment, near_8ec6) == 0x8ec6);
-static_assert(offsetof(DataSegment, near_8ec8) == 0x8ec8);
-static_assert(offsetof(DataSegment, near_8eca) == 0x8eca);
-static_assert(offsetof(DataSegment, near_8ecc) == 0x8ecc);
-static_assert(offsetof(DataSegment, near_8ece) == 0x8ece);
-static_assert(offsetof(DataSegment, near_8ed0) == 0x8ed0);
-static_assert(offsetof(DataSegment, bytes_8ed2) == 0x8ed2);
-static_assert(offsetof(DataSegment, text_8edc) == 0x8edc);
-static_assert(offsetof(DataSegment, text_8f05) == 0x8f05);
-static_assert(offsetof(DataSegment, text_8f18) == 0x8f18);
+static_assert(offsetof(DataSegment, none_available_text) == 0x8df2);
+static_assert(offsetof(DataSegment, assign_who_prompt) == 0x8e0e);
+static_assert(offsetof(DataSegment, no_holder_1) == 0x8e23);
+static_assert(offsetof(DataSegment, post_format_1) == 0x8e24);
+static_assert(offsetof(DataSegment, no_holder_2) == 0x8e2b);
+static_assert(offsetof(DataSegment, post_format_2) == 0x8e2c);
+static_assert(offsetof(DataSegment, no_holder_3) == 0x8e33);
+static_assert(offsetof(DataSegment, post_format_3) == 0x8e34);
+static_assert(offsetof(DataSegment, no_holder_4) == 0x8e3b);
+static_assert(offsetof(DataSegment, post_format_4) == 0x8e3c);
+static_assert(offsetof(DataSegment, post_format_5) == 0x8e43);
+static_assert(offsetof(DataSegment, post_format_6) == 0x8e4a);
+static_assert(offsetof(DataSegment, assign_where_prompt) == 0x8e51);
+static_assert(offsetof(DataSegment, assign_menu) == 0x8e72);
+static_assert(offsetof(DataSegment, post_labels) == 0x8ec6);
+static_assert(offsetof(DataSegment, inactive_division_label) == 0x8ed2);
+static_assert(offsetof(DataSegment, none_to_rest_text) == 0x8edc);
+static_assert(offsetof(DataSegment, rest_who_prompt) == 0x8f05);
+static_assert(offsetof(DataSegment, rest_days_prompt) == 0x8f18);
 static_assert(offsetof(DataSegment, text_8f45) == 0x8f45);
 static_assert(offsetof(DataSegment, text_8f4e) == 0x8f4e);
 static_assert(offsetof(DataSegment, text_8f56) == 0x8f56);
-static_assert(offsetof(DataSegment, text_8f5b) == 0x8f5b);
+static_assert(offsetof(DataSegment, personnel_prompt) == 0x8f5b);
 static_assert(offsetof(DataSegment, unknown_8f6b) == 0x8f6b);
-static_assert(offsetof(DataSegment, far_code_8f6c) == 0x8f6c);
-static_assert(offsetof(DataSegment, far_code_8f70) == 0x8f70);
-static_assert(offsetof(DataSegment, far_code_8f74) == 0x8f74);
-static_assert(offsetof(DataSegment, words_8f78) == 0x8f78);
-static_assert(offsetof(DataSegment, near_8f80) == 0x8f80);
-static_assert(offsetof(DataSegment, bytes_8f82) == 0x8f82);
-static_assert(offsetof(DataSegment, near_8f8c) == 0x8f8c);
-static_assert(offsetof(DataSegment, bytes_8f8e) == 0x8f8e);
-static_assert(offsetof(DataSegment, near_8f98) == 0x8f98);
-static_assert(offsetof(DataSegment, bytes_8f9a) == 0x8f9a);
+static_assert(offsetof(DataSegment, personnel_actions) == 0x8f6c);
+static_assert(offsetof(DataSegment, personnel_menu) == 0x8f78);
 static_assert(offsetof(DataSegment, advice_tips) == 0x8fa8);
 static_assert(offsetof(DataSegment, far_text_8fac) == 0x8fac);
 static_assert(offsetof(DataSegment, far_text_8fb0) == 0x8fb0);
@@ -5297,7 +5147,6 @@ static_assert(offsetof(DataSegment, text_93a8) == 0x93a8);
 static_assert(offsetof(DataSegment, text_93b1) == 0x93b1);
 static_assert(offsetof(DataSegment, people_prompt) == 0x93b7);
 static_assert(offsetof(DataSegment, people_actions) == 0x93d6);
-static_assert(offsetof(DataSegment, far_code_93da) == 0x93da);
 static_assert(offsetof(DataSegment, people_menu) == 0x93de);
 static_assert(offsetof(DataSegment, near_93e6) == 0x93e6);
 static_assert(offsetof(DataSegment, bytes_93e8) == 0x93e8);
@@ -5313,7 +5162,6 @@ static_assert(offsetof(DataSegment, city_side_prompt) == 0x946b);
 static_assert(offsetof(DataSegment, city_side_prompt_bytes) == 0x946b);
 static_assert(offsetof(DataSegment, unknown_9489) == 0x9489);
 static_assert(offsetof(DataSegment, city_actions) == 0x948a);
-static_assert(offsetof(DataSegment, far_code_948e) == 0x948e);
 static_assert(offsetof(DataSegment, city_side_menu) == 0x9492);
 static_assert(offsetof(DataSegment, near_949a) == 0x949a);
 static_assert(offsetof(DataSegment, bytes_949c) == 0x949c);
@@ -5327,7 +5175,6 @@ static_assert(offsetof(DataSegment, text_9515) == 0x9515);
 static_assert(offsetof(DataSegment, text_951e) == 0x951e);
 static_assert(offsetof(DataSegment, info_prompt) == 0x9524);
 static_assert(offsetof(DataSegment, info_actions) == 0x9542);
-static_assert(offsetof(DataSegment, far_code_9546) == 0x9546);
 static_assert(offsetof(DataSegment, info_menu) == 0x954a);
 static_assert(offsetof(DataSegment, near_9552) == 0x9552);
 static_assert(offsetof(DataSegment, bytes_9554) == 0x9554);
@@ -5341,7 +5188,6 @@ static_assert(offsetof(DataSegment, arms_prompt) == 0x95ad);
 static_assert(offsetof(DataSegment, arms_prompt_bytes) == 0x95ad);
 static_assert(offsetof(DataSegment, unknown_95c1) == 0x95c1);
 static_assert(offsetof(DataSegment, arms_actions) == 0x95c2);
-static_assert(offsetof(DataSegment, far_code_95c6) == 0x95c6);
 static_assert(offsetof(DataSegment, arms_menu) == 0x95ca);
 static_assert(offsetof(DataSegment, near_95d2) == 0x95d2);
 static_assert(offsetof(DataSegment, bytes_95d4) == 0x95d4);
@@ -5360,11 +5206,6 @@ static_assert(offsetof(DataSegment, view_main_prompt) == 0x9669);
 static_assert(offsetof(DataSegment, view_main_prompt_bytes) == 0x9669);
 static_assert(offsetof(DataSegment, unknown_968d) == 0x968d);
 static_assert(offsetof(DataSegment, view_main_actions) == 0x968e);
-static_assert(offsetof(DataSegment, far_code_9692) == 0x9692);
-static_assert(offsetof(DataSegment, far_code_9696) == 0x9696);
-static_assert(offsetof(DataSegment, far_code_969a) == 0x969a);
-static_assert(offsetof(DataSegment, far_code_969e) == 0x969e);
-static_assert(offsetof(DataSegment, far_code_96a2) == 0x96a2);
 static_assert(offsetof(DataSegment, view_main_items) == 0x96a6);
 static_assert(offsetof(DataSegment, near_96ae) == 0x96ae);
 static_assert(offsetof(DataSegment, bytes_96b0) == 0x96b0);
@@ -5446,8 +5287,6 @@ static_assert(offsetof(DataSegment, rq_supplies_confirm) == 0x9be7);
 static_assert(offsetof(DataSegment, text_9c01) == 0x9c01);
 static_assert(offsetof(DataSegment, unknown_9c09) == 0x9c09);
 static_assert(offsetof(DataSegment, rq_type_dialog) == 0x9c0a);
-static_assert(offsetof(DataSegment, far_code_9c15) == 0x9c15);
-static_assert(offsetof(DataSegment, far_code_9c19) == 0x9c19);
 static_assert(offsetof(DataSegment, rq_type_header) == 0x9c1d);
 static_assert(offsetof(DataSegment, rq_type_name) == 0x9c43);
 static_assert(offsetof(DataSegment, rq_type_row) == 0x9c4c);
@@ -5457,8 +5296,6 @@ static_assert(offsetof(DataSegment, rq_arms_where) == 0x9ca0);
 static_assert(offsetof(DataSegment, rq_arms_confirm) == 0x9cd2);
 static_assert(offsetof(DataSegment, text_9cec) == 0x9cec);
 static_assert(offsetof(DataSegment, rq_regiment_list) == 0x9cf2);
-static_assert(offsetof(DataSegment, far_code_9cfd) == 0x9cfd);
-static_assert(offsetof(DataSegment, far_code_9d01) == 0x9d01);
 static_assert(offsetof(DataSegment, rq_unit_header) == 0x9d05);
 static_assert(offsetof(DataSegment, rq_unit_name) == 0x9d1d);
 static_assert(offsetof(DataSegment, rq_unit_row) == 0x9d26);
@@ -5504,16 +5341,9 @@ static_assert(offsetof(DataSegment, rq_menu_prompt_text) == 0x9f9f);
 static_assert(offsetof(DataSegment, rq_busy_text) == 0x9fb1);
 static_assert(offsetof(DataSegment, rq_no_city_text) == 0x9ff0);
 static_assert(offsetof(DataSegment, unknown_a00f) == 0xa00f);
-static_assert(offsetof(DataSegment, rq_type_names) == 0xa010);
-static_assert(offsetof(DataSegment, near_a012) == 0xa012);
-static_assert(offsetof(DataSegment, near_a014) == 0xa014);
-static_assert(offsetof(DataSegment, near_a016) == 0xa016);
-static_assert(offsetof(DataSegment, near_a018) == 0xa018);
-static_assert(offsetof(DataSegment, near_a01a) == 0xa01a);
+static_assert(offsetof(DataSegment, rq_regiment_kind_names) == 0xa010);
 static_assert(offsetof(DataSegment, bytes_a01c) == 0xa01c);
 static_assert(offsetof(DataSegment, request_handlers) == 0xa01e);
-static_assert(offsetof(DataSegment, far_code_a022) == 0xa022);
-static_assert(offsetof(DataSegment, far_code_a026) == 0xa026);
 static_assert(offsetof(DataSegment, rq_menu_items) == 0xa02a);
 static_assert(offsetof(DataSegment, near_a032) == 0xa032);
 static_assert(offsetof(DataSegment, bytes_a034) == 0xa034);
@@ -5548,23 +5378,23 @@ static_assert(offsetof(DataSegment, near_a186) == 0xa186);
 static_assert(offsetof(DataSegment, words_a188) == 0xa188);
 static_assert(offsetof(DataSegment, near_a192) == 0xa192);
 static_assert(offsetof(DataSegment, bytes_a194) == 0xa194);
-static_assert(offsetof(DataSegment, text_a1a2) == 0xa1a2);
-static_assert(offsetof(DataSegment, text_a1c7) == 0xa1c7);
-static_assert(offsetof(DataSegment, text_a1e1) == 0xa1e1);
-static_assert(offsetof(DataSegment, text_a208) == 0xa208);
-static_assert(offsetof(DataSegment, text_a222) == 0xa222);
-static_assert(offsetof(DataSegment, text_a24f) == 0xa24f);
-static_assert(offsetof(DataSegment, air_plane_a268) == 0xa268);
-static_assert(offsetof(DataSegment, air_planes_a26e) == 0xa26e);
-static_assert(offsetof(DataSegment, text_a275) == 0xa275);
-static_assert(offsetof(DataSegment, text_a297) == 0xa297);
-static_assert(offsetof(DataSegment, text_a2a7) == 0xa2a7);
-static_assert(offsetof(DataSegment, text_a2d5) == 0xa2d5);
-static_assert(offsetof(DataSegment, text_a2fe) == 0xa2fe);
-static_assert(offsetof(DataSegment, text_a328) == 0xa328);
-static_assert(offsetof(DataSegment, text_a355) == 0xa355);
-static_assert(offsetof(DataSegment, text_a362) == 0xa362);
-static_assert(offsetof(DataSegment, text_a383) == 0xa383);
+static_assert(offsetof(DataSegment, drop_ask_troops) == 0xa1a2);
+static_assert(offsetof(DataSegment, drop_troops_assigned) == 0xa1c7);
+static_assert(offsetof(DataSegment, drop_which_regiment) == 0xa1e1);
+static_assert(offsetof(DataSegment, drop_assign_soldiers) == 0xa208);
+static_assert(offsetof(DataSegment, drop_command_post) == 0xa222);
+static_assert(offsetof(DataSegment, drop_understood) == 0xa24f);
+static_assert(offsetof(DataSegment, drop_plane) == 0xa268);
+static_assert(offsetof(DataSegment, drop_planes) == 0xa26e);
+static_assert(offsetof(DataSegment, drop_no_paratroopers) == 0xa275);
+static_assert(offsetof(DataSegment, drop_cancel) == 0xa297);
+static_assert(offsetof(DataSegment, drop_no_transports) == 0xa2a7);
+static_assert(offsetof(DataSegment, drop_no_regiments) == 0xa2d5);
+static_assert(offsetof(DataSegment, drop_no_battalions) == 0xa2fe);
+static_assert(offsetof(DataSegment, drop_where) == 0xa328);
+static_assert(offsetof(DataSegment, drop_paratroopers) == 0xa355);
+static_assert(offsetof(DataSegment, drop_hours_prompt) == 0xa362);
+static_assert(offsetof(DataSegment, drop_ask_hq) == 0xa383);
 static_assert(offsetof(DataSegment, text_a3ca) == 0xa3ca);
 static_assert(offsetof(DataSegment, text_a3f6) == 0xa3f6);
 static_assert(offsetof(DataSegment, air_lift_plane) == 0xa40f);
@@ -5601,56 +5431,56 @@ static_assert(offsetof(DataSegment, near_a652) == 0xa652);
 static_assert(offsetof(DataSegment, bytes_a654) == 0xa654);
 static_assert(offsetof(DataSegment, near_a65e) == 0xa65e);
 static_assert(offsetof(DataSegment, bytes_a660) == 0xa660);
-static_assert(offsetof(DataSegment, text_a66e) == 0xa66e);
-static_assert(offsetof(DataSegment, text_a673) == 0xa673);
-static_assert(offsetof(DataSegment, text_a686) == 0xa686);
-static_assert(offsetof(DataSegment, text_a697) == 0xa697);
-static_assert(offsetof(DataSegment, text_a6a0) == 0xa6a0);
-static_assert(offsetof(DataSegment, text_a6c7) == 0xa6c7);
-static_assert(offsetof(DataSegment, text_a6fc) == 0xa6fc);
-static_assert(offsetof(DataSegment, text_a72f) == 0xa72f);
-static_assert(offsetof(DataSegment, text_a753) == 0xa753);
-static_assert(offsetof(DataSegment, text_a776) == 0xa776);
-static_assert(offsetof(DataSegment, text_a77f) == 0xa77f);
-static_assert(offsetof(DataSegment, text_a7a5) == 0xa7a5);
-static_assert(offsetof(DataSegment, text_a7b4) == 0xa7b4);
-static_assert(offsetof(DataSegment, text_a7de) == 0xa7de);
-static_assert(offsetof(DataSegment, text_a80d) == 0xa80d);
-static_assert(offsetof(DataSegment, text_a83e) == 0xa83e);
-static_assert(offsetof(DataSegment, text_a860) == 0xa860);
-static_assert(offsetof(DataSegment, text_a89c) == 0xa89c);
-static_assert(offsetof(DataSegment, text_a8c4) == 0xa8c4);
-static_assert(offsetof(DataSegment, text_a8cd) == 0xa8cd);
-static_assert(offsetof(DataSegment, text_a8ef) == 0xa8ef);
-static_assert(offsetof(DataSegment, text_a90b) == 0xa90b);
-static_assert(offsetof(DataSegment, text_a914) == 0xa914);
-static_assert(offsetof(DataSegment, text_a937) == 0xa937);
-static_assert(offsetof(DataSegment, text_a963) == 0xa963);
-static_assert(offsetof(DataSegment, text_a998) == 0xa998);
-static_assert(offsetof(DataSegment, special_hour_a9cd) == 0xa9cd);
-static_assert(offsetof(DataSegment, special_hours_a9d2) == 0xa9d2);
-static_assert(offsetof(DataSegment, text_a9d8) == 0xa9d8);
-static_assert(offsetof(DataSegment, text_aa08) == 0xaa08);
-static_assert(offsetof(DataSegment, text_aa35) == 0xaa35);
-static_assert(offsetof(DataSegment, text_aa40) == 0xaa40);
-static_assert(offsetof(DataSegment, text_aa5c) == 0xaa5c);
-static_assert(offsetof(DataSegment, text_aa77) == 0xaa77);
-static_assert(offsetof(DataSegment, text_aa8d) == 0xaa8d);
-static_assert(offsetof(DataSegment, text_aabc) == 0xaabc);
-static_assert(offsetof(DataSegment, text_aacf) == 0xaacf);
-static_assert(offsetof(DataSegment, text_aafe) == 0xaafe);
-static_assert(offsetof(DataSegment, text_ab38) == 0xab38);
-static_assert(offsetof(DataSegment, text_ab5b) == 0xab5b);
-static_assert(offsetof(DataSegment, text_ab61) == 0xab61);
-static_assert(offsetof(DataSegment, text_ab78) == 0xab78);
-static_assert(offsetof(DataSegment, text_ab81) == 0xab81);
-static_assert(offsetof(DataSegment, text_ab90) == 0xab90);
-static_assert(offsetof(DataSegment, text_abb6) == 0xabb6);
-static_assert(offsetof(DataSegment, text_abe6) == 0xabe6);
-static_assert(offsetof(DataSegment, special_hour_ac0d) == 0xac0d);
-static_assert(offsetof(DataSegment, special_hours_ac12) == 0xac12);
-static_assert(offsetof(DataSegment, text_ac18) == 0xac18);
-static_assert(offsetof(DataSegment, text_ac43) == 0xac43);
+static_assert(offsetof(DataSegment, raid_title) == 0xa66e);
+static_assert(offsetof(DataSegment, raid_prompt) == 0xa673);
+static_assert(offsetof(DataSegment, raid_city_question) == 0xa686);
+static_assert(offsetof(DataSegment, raid_unit_question) == 0xa697);
+static_assert(offsetof(DataSegment, raid_refusal_1) == 0xa6a0);
+static_assert(offsetof(DataSegment, raid_refusal_2) == 0xa6c7);
+static_assert(offsetof(DataSegment, raid_refusal_3) == 0xa6fc);
+static_assert(offsetof(DataSegment, raid_refusal_4) == 0xa72f);
+static_assert(offsetof(DataSegment, raid_lieutenant) == 0xa753);
+static_assert(offsetof(DataSegment, sabotage_title) == 0xa776);
+static_assert(offsetof(DataSegment, sabotage_prompt) == 0xa77f);
+static_assert(offsetof(DataSegment, sabotage_city_question) == 0xa7a5);
+static_assert(offsetof(DataSegment, sabotage_refusal_1) == 0xa7b4);
+static_assert(offsetof(DataSegment, sabotage_refusal_2) == 0xa7de);
+static_assert(offsetof(DataSegment, sabotage_refusal_3) == 0xa80d);
+static_assert(offsetof(DataSegment, sabotage_refusal_4) == 0xa83e);
+static_assert(offsetof(DataSegment, sabotage_duration) == 0xa860);
+static_assert(offsetof(DataSegment, sabotage_lieutenant) == 0xa89c);
+static_assert(offsetof(DataSegment, cut_comm_title) == 0xa8c4);
+static_assert(offsetof(DataSegment, cut_comm_prompt) == 0xa8cd);
+static_assert(offsetof(DataSegment, cut_comm_city_question) == 0xa8ef);
+static_assert(offsetof(DataSegment, cut_comm_unit_question) == 0xa90b);
+static_assert(offsetof(DataSegment, cut_comm_refusal_1) == 0xa914);
+static_assert(offsetof(DataSegment, cut_comm_refusal_2) == 0xa937);
+static_assert(offsetof(DataSegment, cut_comm_refusal_3) == 0xa963);
+static_assert(offsetof(DataSegment, cut_comm_refusal_4) == 0xa998);
+static_assert(offsetof(DataSegment, cut_comm_hour) == 0xa9cd);
+static_assert(offsetof(DataSegment, cut_comm_hours) == 0xa9d2);
+static_assert(offsetof(DataSegment, cut_comm_duration) == 0xa9d8);
+static_assert(offsetof(DataSegment, cut_comm_lieutenant) == 0xaa08);
+static_assert(offsetof(DataSegment, assassinate_title) == 0xaa35);
+static_assert(offsetof(DataSegment, assassinate_prompt) == 0xaa40);
+static_assert(offsetof(DataSegment, assassinate_unit_question) == 0xaa5c);
+static_assert(offsetof(DataSegment, assassinate_refusal_1) == 0xaa77);
+static_assert(offsetof(DataSegment, assassinate_refusal_2) == 0xaa8d);
+static_assert(offsetof(DataSegment, assassinate_refusal_3) == 0xaabc);
+static_assert(offsetof(DataSegment, assassinate_refusal_4) == 0xaacf);
+static_assert(offsetof(DataSegment, assassinate_duration) == 0xaafe);
+static_assert(offsetof(DataSegment, assassinate_lieutenant) == 0xab38);
+static_assert(offsetof(DataSegment, recon_title) == 0xab5b);
+static_assert(offsetof(DataSegment, recon_prompt) == 0xab61);
+static_assert(offsetof(DataSegment, recon_city_question) == 0xab78);
+static_assert(offsetof(DataSegment, recon_unit_question) == 0xab81);
+static_assert(offsetof(DataSegment, recon_refusal_1) == 0xab90);
+static_assert(offsetof(DataSegment, recon_refusal_2) == 0xabb6);
+static_assert(offsetof(DataSegment, recon_refusal_3) == 0xabe6);
+static_assert(offsetof(DataSegment, recon_hour) == 0xac0d);
+static_assert(offsetof(DataSegment, recon_hours) == 0xac12);
+static_assert(offsetof(DataSegment, recon_duration) == 0xac18);
+static_assert(offsetof(DataSegment, recon_lieutenant) == 0xac43);
 static_assert(offsetof(DataSegment, text_ac68) == 0xac68);
 static_assert(offsetof(DataSegment, text_ac6e) == 0xac6e);
 static_assert(offsetof(DataSegment, text_ac78) == 0xac78);
@@ -5664,19 +5494,15 @@ static_assert(offsetof(DataSegment, text_acc0) == 0xacc0);
 static_assert(offsetof(DataSegment, text_acce) == 0xacce);
 static_assert(offsetof(DataSegment, text_acdd) == 0xacdd);
 static_assert(offsetof(DataSegment, text_ace8) == 0xace8);
-static_assert(offsetof(DataSegment, text_acf3) == 0xacf3);
-static_assert(offsetof(DataSegment, text_ad02) == 0xad02);
-static_assert(offsetof(DataSegment, text_ad1c) == 0xad1c);
-static_assert(offsetof(DataSegment, text_ad36) == 0xad36);
-static_assert(offsetof(DataSegment, text_ad50) == 0xad50);
-static_assert(offsetof(DataSegment, text_ad9a) == 0xad9a);
+static_assert(offsetof(DataSegment, special_forces_title) == 0xacf3);
+static_assert(offsetof(DataSegment, special_orders_line) == 0xad02);
+static_assert(offsetof(DataSegment, special_target_line) == 0xad1c);
+static_assert(offsetof(DataSegment, special_time_line) == 0xad36);
+static_assert(offsetof(DataSegment, special_cancel_question) == 0xad50);
+static_assert(offsetof(DataSegment, special_select_question) == 0xad9a);
 static_assert(offsetof(DataSegment, unknown_adb5) == 0xadb5);
-static_assert(offsetof(DataSegment, far_code_adb6) == 0xadb6);
-static_assert(offsetof(DataSegment, far_code_adba) == 0xadba);
-static_assert(offsetof(DataSegment, far_code_adbe) == 0xadbe);
-static_assert(offsetof(DataSegment, far_code_adc2) == 0xadc2);
-static_assert(offsetof(DataSegment, far_code_adc6) == 0xadc6);
-static_assert(offsetof(DataSegment, words_adca) == 0xadca);
+static_assert(offsetof(DataSegment, special_missions) == 0xadb6);
+static_assert(offsetof(DataSegment, special_menu) == 0xadca);
 static_assert(offsetof(DataSegment, near_add2) == 0xadd2);
 static_assert(offsetof(DataSegment, bytes_add4) == 0xadd4);
 static_assert(offsetof(DataSegment, near_adde) == 0xadde);
@@ -5687,82 +5513,75 @@ static_assert(offsetof(DataSegment, near_adf6) == 0xadf6);
 static_assert(offsetof(DataSegment, bytes_adf8) == 0xadf8);
 static_assert(offsetof(DataSegment, near_ae02) == 0xae02);
 static_assert(offsetof(DataSegment, bytes_ae04) == 0xae04);
-static_assert(offsetof(DataSegment, near_ae12) == 0xae12);
-static_assert(offsetof(DataSegment, near_ae14) == 0xae14);
-static_assert(offsetof(DataSegment, near_ae16) == 0xae16);
-static_assert(offsetof(DataSegment, near_ae18) == 0xae18);
-static_assert(offsetof(DataSegment, near_ae1a) == 0xae1a);
-static_assert(offsetof(DataSegment, near_ae1c) == 0xae1c);
-static_assert(offsetof(DataSegment, near_ae1e) == 0xae1e);
-static_assert(offsetof(DataSegment, near_ae20) == 0xae20);
+static_assert(offsetof(DataSegment, special_mission_names) == 0xae12);
 static_assert(offsetof(DataSegment, unknown_ae22) == 0xae22);
 static_assert(offsetof(DataSegment, settings_data) == 0xae2e);
-static_assert(offsetof(DataSegment, settings_text_ae2e) == 0xae2e);
-static_assert(offsetof(DataSegment, settings_text_ae35) == 0xae35);
-static_assert(offsetof(DataSegment, settings_text_ae3b) == 0xae3b);
-static_assert(offsetof(DataSegment, settings_text_ae3e) == 0xae3e);
-static_assert(offsetof(DataSegment, settings_text_ae42) == 0xae42);
-static_assert(offsetof(DataSegment, settings_text_ae47) == 0xae47);
-static_assert(offsetof(DataSegment, settings_text_ae4a) == 0xae4a);
-static_assert(offsetof(DataSegment, settings_text_ae51) == 0xae51);
-static_assert(offsetof(DataSegment, settings_text_ae54) == 0xae54);
-static_assert(offsetof(DataSegment, settings_text_ae58) == 0xae58);
-static_assert(offsetof(DataSegment, settings_text_aecb) == 0xaecb);
-static_assert(offsetof(DataSegment, settings_text_aed0) == 0xaed0);
-static_assert(offsetof(DataSegment, settings_text_aed8) == 0xaed8);
-static_assert(offsetof(DataSegment, settings_text_aedf) == 0xaedf);
-static_assert(offsetof(DataSegment, settings_text_aef0) == 0xaef0);
-static_assert(offsetof(DataSegment, settings_text_af00) == 0xaf00);
-static_assert(offsetof(DataSegment, settings_text_af17) == 0xaf17);
-static_assert(offsetof(DataSegment, settings_text_af32) == 0xaf32);
+static_assert(offsetof(DataSegment, settings_aerial) == 0xae2e);
+static_assert(offsetof(DataSegment, settings_field) == 0xae35);
+static_assert(offsetof(DataSegment, settings_pictures_on) == 0xae3b);
+static_assert(offsetof(DataSegment, settings_pictures_off) == 0xae3e);
+static_assert(offsetof(DataSegment, settings_battles_view) == 0xae42);
+static_assert(offsetof(DataSegment, settings_battles_no) == 0xae47);
+static_assert(offsetof(DataSegment, settings_battles_select) == 0xae4a);
+static_assert(offsetof(DataSegment, settings_music_on) == 0xae51);
+static_assert(offsetof(DataSegment, settings_music_off) == 0xae54);
+static_assert(offsetof(DataSegment, settings_summary) == 0xae58);
+static_assert(offsetof(DataSegment, battles_label_view) == 0xaecb);
+static_assert(offsetof(DataSegment, battles_label_no_view) == 0xaed0);
+static_assert(offsetof(DataSegment, battles_label_select) == 0xaed8);
+static_assert(offsetof(DataSegment, battles_view_all) == 0xaedf);
+static_assert(offsetof(DataSegment, battles_view_none) == 0xaef0);
+static_assert(offsetof(DataSegment, battles_view_selected) == 0xaf00);
+static_assert(offsetof(DataSegment, battles_question) == 0xaf17);
+static_assert(offsetof(DataSegment, battles_reply) == 0xaf32);
 static_assert(offsetof(DataSegment, settings_padding) == 0xaf3f);
-static_assert(offsetof(DataSegment, settings_menu) == 0xaf40);
-static_assert(offsetof(DataSegment, settings_descriptions) == 0xaf70);
-static_assert(offsetof(DataSegment, settings_text_af76) == 0xaf76);
-static_assert(offsetof(DataSegment, settings_text_afa1) == 0xafa1);
-static_assert(offsetof(DataSegment, settings_text_afc6) == 0xafc6);
-static_assert(offsetof(DataSegment, settings_text_afcd) == 0xafcd);
-static_assert(offsetof(DataSegment, settings_text_afd3) == 0xafd3);
-static_assert(offsetof(DataSegment, settings_text_afef) == 0xafef);
-static_assert(offsetof(DataSegment, settings_text_aff2) == 0xaff2);
-static_assert(offsetof(DataSegment, settings_text_aff6) == 0xaff6);
-static_assert(offsetof(DataSegment, settings_text_b014) == 0xb014);
-static_assert(offsetof(DataSegment, settings_text_b019) == 0xb019);
-static_assert(offsetof(DataSegment, settings_text_b022) == 0xb022);
-static_assert(offsetof(DataSegment, settings_text_b04b) == 0xb04b);
-static_assert(offsetof(DataSegment, settings_text_b055) == 0xb055);
-static_assert(offsetof(DataSegment, settings_text_b05e) == 0xb05e);
-static_assert(offsetof(DataSegment, settings_text_b067) == 0xb067);
-static_assert(offsetof(DataSegment, settings_text_b073) == 0xb073);
-static_assert(offsetof(DataSegment, settings_text_b07c) == 0xb07c);
-static_assert(offsetof(DataSegment, settings_text_b085) == 0xb085);
-static_assert(offsetof(DataSegment, settings_text_b09a) == 0xb09a);
-static_assert(offsetof(DataSegment, settings_text_b09d) == 0xb09d);
-static_assert(offsetof(DataSegment, settings_text_b0a6) == 0xb0a6);
-static_assert(offsetof(DataSegment, settings_text_b0b2) == 0xb0b2);
-static_assert(offsetof(DataSegment, settings_text_b0b9) == 0xb0b9);
-static_assert(offsetof(DataSegment, settings_text_b0ba) == 0xb0ba);
-static_assert(offsetof(DataSegment, settings_text_b0c4) == 0xb0c4);
-static_assert(offsetof(DataSegment, settings_text_b0d5) == 0xb0d5);
-static_assert(offsetof(DataSegment, settings_text_b0e2) == 0xb0e2);
-static_assert(offsetof(DataSegment, settings_text_b0ee) == 0xb0ee);
-static_assert(offsetof(DataSegment, settings_text_b100) == 0xb100);
-static_assert(offsetof(DataSegment, settings_text_b10a) == 0xb10a);
-static_assert(offsetof(DataSegment, settings_text_b118) == 0xb118);
-static_assert(offsetof(DataSegment, settings_text_b121) == 0xb121);
-static_assert(offsetof(DataSegment, settings_actions) == 0xb132);
-static_assert(offsetof(DataSegment, settings_menu_b13e) == 0xb13e);
-static_assert(offsetof(DataSegment, settings_text_b16e) == 0xb16e);
-static_assert(offsetof(DataSegment, settings_text_b17c) == 0xb17c);
-static_assert(offsetof(DataSegment, settings_text_b18a) == 0xb18a);
-static_assert(offsetof(DataSegment, settings_text_b196) == 0xb196);
-static_assert(offsetof(DataSegment, settings_text_b1a0) == 0xb1a0);
-static_assert(offsetof(DataSegment, settings_text_b1af) == 0xb1af);
-static_assert(offsetof(DataSegment, settings_text_b1bb) == 0xb1bb);
-static_assert(offsetof(DataSegment, settings_text_b1c4) == 0xb1c4);
+static_assert(offsetof(DataSegment, battles_menu) == 0xaf40);
+static_assert(offsetof(DataSegment, battles_descriptions) == 0xaf70);
+static_assert(offsetof(DataSegment, delay_question) == 0xaf76);
+static_assert(offsetof(DataSegment, delay_reply) == 0xafa1);
+static_assert(offsetof(DataSegment, map_aerial) == 0xafc6);
+static_assert(offsetof(DataSegment, map_field) == 0xafcd);
+static_assert(offsetof(DataSegment, map_reply) == 0xafd3);
+static_assert(offsetof(DataSegment, sound_on) == 0xafef);
+static_assert(offsetof(DataSegment, sound_off) == 0xaff2);
+static_assert(offsetof(DataSegment, sound_reply) == 0xaff6);
+static_assert(offsetof(DataSegment, pictures_will) == 0xb014);
+static_assert(offsetof(DataSegment, pictures_will_not) == 0xb019);
+static_assert(offsetof(DataSegment, pictures_reply) == 0xb022);
+static_assert(offsetof(DataSegment, create_saving) == 0xb04b);
+static_assert(offsetof(DataSegment, create_file_name) == 0xb055);
+static_assert(offsetof(DataSegment, create_check_name) == 0xb05e);
+static_assert(offsetof(DataSegment, create_saved) == 0xb067);
+static_assert(offsetof(DataSegment, save_check_name) == 0xb073);
+static_assert(offsetof(DataSegment, save_recheck_name) == 0xb07c);
+static_assert(offsetof(DataSegment, save_failed) == 0xb085);
+static_assert(offsetof(DataSegment, save_failed_format) == 0xb09a);
+static_assert(offsetof(DataSegment, save_open_name) == 0xb09d);
+static_assert(offsetof(DataSegment, save_where) == 0xb0a6);
+static_assert(offsetof(DataSegment, save_confirm) == 0xb0b2);
+static_assert(offsetof(DataSegment, save_answer) == 0xb0b9);
+static_assert(offsetof(DataSegment, save_saving) == 0xb0ba);
+static_assert(offsetof(DataSegment, save_finished) == 0xb0c4);
+static_assert(offsetof(DataSegment, logo_file_name) == 0xb0d5);
+static_assert(offsetof(DataSegment, leave_question) == 0xb0e2);
+static_assert(offsetof(DataSegment, new_game_question) == 0xb0ee);
+static_assert(offsetof(DataSegment, save_quit_label_save) == 0xb100);
+static_assert(offsetof(DataSegment, save_quit_label_load) == 0xb10a);
+static_assert(offsetof(DataSegment, save_quit_label_end) == 0xb118);
+static_assert(offsetof(DataSegment, save_quit_question) == 0xb121);
+static_assert(offsetof(DataSegment, save_quit_actions) == 0xb132);
+static_assert(offsetof(DataSegment, save_quit_menu) == 0xb13e);
+static_assert(offsetof(DataSegment, settings_label_battles) == 0xb16e);
+static_assert(offsetof(DataSegment, settings_label_delay) == 0xb17c);
+static_assert(offsetof(DataSegment, settings_label_maps) == 0xb18a);
+static_assert(offsetof(DataSegment, settings_label_music) == 0xb196);
+static_assert(offsetof(DataSegment, settings_label_pictures) == 0xb1a0);
+static_assert(offsetof(DataSegment, settings_label_save_quit) == 0xb1af);
+static_assert(offsetof(DataSegment, settings_title) == 0xb1bb);
+static_assert(offsetof(DataSegment, settings_question) == 0xb1c4);
 static_assert(offsetof(DataSegment, settings_padding_b1d5) == 0xb1d5);
-static_assert(offsetof(DataSegment, settings_actions_b1d6) == 0xb1d6);
-static_assert(offsetof(DataSegment, settings_menu_b1ee) == 0xb1ee);
+static_assert(offsetof(DataSegment, settings_actions) == 0xb1d6);
+static_assert(offsetof(DataSegment, settings_menu) == 0xb1ee);
 static_assert(offsetof(DataSegment, combat_text) == 0xb242);
 static_assert(offsetof(DataSegment, text_b242) == 0xb242);
 static_assert(offsetof(DataSegment, text_b24f) == 0xb24f);
@@ -5947,131 +5766,6 @@ static_assert(offsetof(DataSegment, unknown_bc7d) == 0xbc7d);
 static_assert(offsetof(DataSegment, battle_retreat_class) == 0xbc7e);
 static_assert(offsetof(DataSegment, dispatch_error) == 0xbc86);
 static_assert(offsetof(DataSegment, message_table) == 0xbc98);
-static_assert(offsetof(DataSegment, far_text_bc9c) == 0xbc9c);
-static_assert(offsetof(DataSegment, far_text_bca0) == 0xbca0);
-static_assert(offsetof(DataSegment, far_text_bca4) == 0xbca4);
-static_assert(offsetof(DataSegment, far_text_bca8) == 0xbca8);
-static_assert(offsetof(DataSegment, far_text_bcac) == 0xbcac);
-static_assert(offsetof(DataSegment, far_text_bcb0) == 0xbcb0);
-static_assert(offsetof(DataSegment, far_text_bcb4) == 0xbcb4);
-static_assert(offsetof(DataSegment, far_text_bcb8) == 0xbcb8);
-static_assert(offsetof(DataSegment, far_text_bcbc) == 0xbcbc);
-static_assert(offsetof(DataSegment, far_text_bcc0) == 0xbcc0);
-static_assert(offsetof(DataSegment, far_text_bcc4) == 0xbcc4);
-static_assert(offsetof(DataSegment, far_text_bcc8) == 0xbcc8);
-static_assert(offsetof(DataSegment, far_text_bccc) == 0xbccc);
-static_assert(offsetof(DataSegment, far_text_bcd0) == 0xbcd0);
-static_assert(offsetof(DataSegment, far_text_bcd4) == 0xbcd4);
-static_assert(offsetof(DataSegment, far_text_bcd8) == 0xbcd8);
-static_assert(offsetof(DataSegment, far_text_bcdc) == 0xbcdc);
-static_assert(offsetof(DataSegment, far_text_bce0) == 0xbce0);
-static_assert(offsetof(DataSegment, far_text_bce4) == 0xbce4);
-static_assert(offsetof(DataSegment, far_text_bce8) == 0xbce8);
-static_assert(offsetof(DataSegment, far_text_bcec) == 0xbcec);
-static_assert(offsetof(DataSegment, far_text_bcf0) == 0xbcf0);
-static_assert(offsetof(DataSegment, far_text_bcf4) == 0xbcf4);
-static_assert(offsetof(DataSegment, far_text_bcf8) == 0xbcf8);
-static_assert(offsetof(DataSegment, far_text_bcfc) == 0xbcfc);
-static_assert(offsetof(DataSegment, far_text_bd00) == 0xbd00);
-static_assert(offsetof(DataSegment, far_text_bd04) == 0xbd04);
-static_assert(offsetof(DataSegment, far_text_bd08) == 0xbd08);
-static_assert(offsetof(DataSegment, far_text_bd0c) == 0xbd0c);
-static_assert(offsetof(DataSegment, far_text_bd10) == 0xbd10);
-static_assert(offsetof(DataSegment, far_text_bd14) == 0xbd14);
-static_assert(offsetof(DataSegment, far_text_bd18) == 0xbd18);
-static_assert(offsetof(DataSegment, far_text_bd1c) == 0xbd1c);
-static_assert(offsetof(DataSegment, far_text_bd20) == 0xbd20);
-static_assert(offsetof(DataSegment, far_text_bd24) == 0xbd24);
-static_assert(offsetof(DataSegment, far_text_bd28) == 0xbd28);
-static_assert(offsetof(DataSegment, far_text_bd2c) == 0xbd2c);
-static_assert(offsetof(DataSegment, far_text_bd30) == 0xbd30);
-static_assert(offsetof(DataSegment, far_text_bd34) == 0xbd34);
-static_assert(offsetof(DataSegment, far_text_bd38) == 0xbd38);
-static_assert(offsetof(DataSegment, far_text_bd3c) == 0xbd3c);
-static_assert(offsetof(DataSegment, far_text_bd40) == 0xbd40);
-static_assert(offsetof(DataSegment, far_text_bd44) == 0xbd44);
-static_assert(offsetof(DataSegment, far_text_bd48) == 0xbd48);
-static_assert(offsetof(DataSegment, far_text_bd4c) == 0xbd4c);
-static_assert(offsetof(DataSegment, far_text_bd50) == 0xbd50);
-static_assert(offsetof(DataSegment, far_text_bd54) == 0xbd54);
-static_assert(offsetof(DataSegment, far_text_bd58) == 0xbd58);
-static_assert(offsetof(DataSegment, far_text_bd5c) == 0xbd5c);
-static_assert(offsetof(DataSegment, far_text_bd60) == 0xbd60);
-static_assert(offsetof(DataSegment, far_text_bd64) == 0xbd64);
-static_assert(offsetof(DataSegment, far_text_bd68) == 0xbd68);
-static_assert(offsetof(DataSegment, far_text_bd6c) == 0xbd6c);
-static_assert(offsetof(DataSegment, far_text_bd70) == 0xbd70);
-static_assert(offsetof(DataSegment, far_text_bd74) == 0xbd74);
-static_assert(offsetof(DataSegment, far_text_bd78) == 0xbd78);
-static_assert(offsetof(DataSegment, far_text_bd7c) == 0xbd7c);
-static_assert(offsetof(DataSegment, far_text_bd80) == 0xbd80);
-static_assert(offsetof(DataSegment, far_text_bd84) == 0xbd84);
-static_assert(offsetof(DataSegment, far_text_bd88) == 0xbd88);
-static_assert(offsetof(DataSegment, far_text_bd8c) == 0xbd8c);
-static_assert(offsetof(DataSegment, far_text_bd90) == 0xbd90);
-static_assert(offsetof(DataSegment, far_text_bd94) == 0xbd94);
-static_assert(offsetof(DataSegment, far_text_bd98) == 0xbd98);
-static_assert(offsetof(DataSegment, far_text_bd9c) == 0xbd9c);
-static_assert(offsetof(DataSegment, far_text_bda0) == 0xbda0);
-static_assert(offsetof(DataSegment, far_text_bda4) == 0xbda4);
-static_assert(offsetof(DataSegment, far_text_bda8) == 0xbda8);
-static_assert(offsetof(DataSegment, far_text_bdac) == 0xbdac);
-static_assert(offsetof(DataSegment, far_text_bdb0) == 0xbdb0);
-static_assert(offsetof(DataSegment, far_text_bdb4) == 0xbdb4);
-static_assert(offsetof(DataSegment, far_text_bdb8) == 0xbdb8);
-static_assert(offsetof(DataSegment, far_text_bdbc) == 0xbdbc);
-static_assert(offsetof(DataSegment, far_text_bdc0) == 0xbdc0);
-static_assert(offsetof(DataSegment, far_text_bdc4) == 0xbdc4);
-static_assert(offsetof(DataSegment, far_text_bdc8) == 0xbdc8);
-static_assert(offsetof(DataSegment, far_text_bdcc) == 0xbdcc);
-static_assert(offsetof(DataSegment, far_text_bdd0) == 0xbdd0);
-static_assert(offsetof(DataSegment, far_text_bdd4) == 0xbdd4);
-static_assert(offsetof(DataSegment, far_text_bdd8) == 0xbdd8);
-static_assert(offsetof(DataSegment, far_text_bddc) == 0xbddc);
-static_assert(offsetof(DataSegment, far_text_bde0) == 0xbde0);
-static_assert(offsetof(DataSegment, far_text_bde4) == 0xbde4);
-static_assert(offsetof(DataSegment, far_text_bde8) == 0xbde8);
-static_assert(offsetof(DataSegment, far_text_bdec) == 0xbdec);
-static_assert(offsetof(DataSegment, far_text_bdf0) == 0xbdf0);
-static_assert(offsetof(DataSegment, far_text_bdf4) == 0xbdf4);
-static_assert(offsetof(DataSegment, far_text_bdf8) == 0xbdf8);
-static_assert(offsetof(DataSegment, far_text_bdfc) == 0xbdfc);
-static_assert(offsetof(DataSegment, far_text_be00) == 0xbe00);
-static_assert(offsetof(DataSegment, far_text_be04) == 0xbe04);
-static_assert(offsetof(DataSegment, far_text_be08) == 0xbe08);
-static_assert(offsetof(DataSegment, far_text_be0c) == 0xbe0c);
-static_assert(offsetof(DataSegment, far_text_be10) == 0xbe10);
-static_assert(offsetof(DataSegment, far_text_be14) == 0xbe14);
-static_assert(offsetof(DataSegment, far_text_be18) == 0xbe18);
-static_assert(offsetof(DataSegment, far_text_be1c) == 0xbe1c);
-static_assert(offsetof(DataSegment, far_text_be20) == 0xbe20);
-static_assert(offsetof(DataSegment, far_text_be24) == 0xbe24);
-static_assert(offsetof(DataSegment, far_text_be28) == 0xbe28);
-static_assert(offsetof(DataSegment, far_text_be2c) == 0xbe2c);
-static_assert(offsetof(DataSegment, far_text_be30) == 0xbe30);
-static_assert(offsetof(DataSegment, far_text_be34) == 0xbe34);
-static_assert(offsetof(DataSegment, far_text_be38) == 0xbe38);
-static_assert(offsetof(DataSegment, far_text_be3c) == 0xbe3c);
-static_assert(offsetof(DataSegment, far_text_be40) == 0xbe40);
-static_assert(offsetof(DataSegment, far_text_be44) == 0xbe44);
-static_assert(offsetof(DataSegment, far_text_be48) == 0xbe48);
-static_assert(offsetof(DataSegment, far_text_be4c) == 0xbe4c);
-static_assert(offsetof(DataSegment, far_text_be50) == 0xbe50);
-static_assert(offsetof(DataSegment, far_text_be54) == 0xbe54);
-static_assert(offsetof(DataSegment, far_text_be58) == 0xbe58);
-static_assert(offsetof(DataSegment, far_text_be5c) == 0xbe5c);
-static_assert(offsetof(DataSegment, far_text_be60) == 0xbe60);
-static_assert(offsetof(DataSegment, far_text_be64) == 0xbe64);
-static_assert(offsetof(DataSegment, far_text_be68) == 0xbe68);
-static_assert(offsetof(DataSegment, far_text_be6c) == 0xbe6c);
-static_assert(offsetof(DataSegment, far_text_be70) == 0xbe70);
-static_assert(offsetof(DataSegment, far_text_be74) == 0xbe74);
-static_assert(offsetof(DataSegment, far_text_be78) == 0xbe78);
-static_assert(offsetof(DataSegment, far_text_be7c) == 0xbe7c);
-static_assert(offsetof(DataSegment, far_text_be80) == 0xbe80);
-static_assert(offsetof(DataSegment, far_text_be84) == 0xbe84);
-static_assert(offsetof(DataSegment, far_text_be88) == 0xbe88);
-static_assert(offsetof(DataSegment, unknown_be8c) == 0xbe8c);
 static_assert(offsetof(DataSegment, order_no_fuel) == 0xbeb4);
 static_assert(offsetof(DataSegment, order_no_ammo) == 0xbecb);
 static_assert(offsetof(DataSegment, order_prepared) == 0xbee8);
@@ -6121,13 +5815,13 @@ static_assert(offsetof(DataSegment, notice_under_attack_text) == 0xc22a);
 static_assert(offsetof(DataSegment, unknown_c24f) == 0xc24f);
 static_assert(offsetof(DataSegment, notend_data) == 0xc250);
 static_assert(offsetof(DataSegment, notend_occupy_class) == 0xc250);
-static_assert(offsetof(DataSegment, notend_text_c258) == 0xc258);
-static_assert(offsetof(DataSegment, notend_text_c26b) == 0xc26b);
-static_assert(offsetof(DataSegment, notend_text_c274) == 0xc274);
-static_assert(offsetof(DataSegment, notend_text_c285) == 0xc285);
-static_assert(offsetof(DataSegment, notend_text_c296) == 0xc296);
-static_assert(offsetof(DataSegment, notend_text_c2a9) == 0xc2a9);
-static_assert(offsetof(DataSegment, notend_text_c2bd) == 0xc2bd);
+static_assert(offsetof(DataSegment, end_occupied_format) == 0xc258);
+static_assert(offsetof(DataSegment, end_garrison_name) == 0xc26b);
+static_assert(offsetof(DataSegment, end_loss_format) == 0xc274);
+static_assert(offsetof(DataSegment, end_wiped_out_text) == 0xc285);
+static_assert(offsetof(DataSegment, end_undamaged_text) == 0xc296);
+static_assert(offsetof(DataSegment, end_one_loss_format) == 0xc2a9);
+static_assert(offsetof(DataSegment, end_losses_format) == 0xc2bd);
 static_assert(offsetof(DataSegment, unknown_c2d3) == 0xc2d3);
 static_assert(offsetof(DataSegment, atopsp) == 0xc2d4);
 static_assert(offsetof(DataSegment, aexit_rtn) == 0xc2d6);
@@ -6249,12 +5943,12 @@ static_assert(offsetof(DataSegment, air_stat_13) == 0xccba);
 static_assert(offsetof(DataSegment, unknown_ccbb) == 0xccbb);
 static_assert(offsetof(DataSegment, air_person) == 0xccbc);
 static_assert(offsetof(DataSegment, air_troops) == 0xccbe);
-static_assert(offsetof(DataSegment, special_stat_14) == 0xccc0);
-static_assert(offsetof(DataSegment, special_stat_15) == 0xccc1);
+static_assert(offsetof(DataSegment, special_charm) == 0xccc0);
+static_assert(offsetof(DataSegment, special_bravery) == 0xccc1);
 static_assert(offsetof(DataSegment, special_person) == 0xccc2);
 static_assert(offsetof(DataSegment, special_order) == 0xccc4);
-static_assert(offsetof(DataSegment, special_stat_1b) == 0xccc6);
-static_assert(offsetof(DataSegment, special_stat_13) == 0xccc7);
+static_assert(offsetof(DataSegment, special_experience) == 0xccc6);
+static_assert(offsetof(DataSegment, special_leadership) == 0xccc7);
 static_assert(offsetof(DataSegment, vram) == 0xccc8);
 static_assert(offsetof(DataSegment, transfer_auto) == 0xced0);
 static_assert(offsetof(DataSegment, unknown_ced1) == 0xced1);
@@ -6294,7 +5988,7 @@ static_assert(offsetof(DataSegment, list_row) == 0xe2f4);
 static_assert(offsetof(DataSegment, unknown_e2f5) == 0xe2f5);
 static_assert(offsetof(DataSegment, scenario_brief) == 0xe2f6);
 static_assert(offsetof(DataSegment, scenario_notes) == 0xe3be);
-static_assert(offsetof(DataSegment, supply_bitmap) == 0xe616);
+static_assert(offsetof(DataSegment, message_picture_segment) == 0xe616);
 static_assert(offsetof(DataSegment, numdlg_image_segment) == 0xe616);
 static_assert(offsetof(DataSegment, hexmap_index) == 0xe618);
 static_assert(offsetof(DataSegment, unknown_e619) == 0xe619);
@@ -6364,6 +6058,7 @@ inline constexpr std::uint16_t REQUEST_CONFIGS_AT{ offsetof(DataSegment,
 inline constexpr std::uint16_t SPECIAL_AT{ offsetof(DataSegment, special) };
 inline constexpr std::uint16_t PERSON_TEMPLATES_AT{ offsetof(
     DataSegment, person_templates) };
+inline constexpr std::uint16_t GARRISON_AT{ offsetof(DataSegment, garrison) };
 inline constexpr std::uint16_t SAVE_SLOTS_AT{ offsetof(DataSegment,
                                                        save_slots) };
 
@@ -6401,10 +6096,15 @@ namespace opeu::game {
 using detail::data_segment::AirDrop;
 using detail::data_segment::Assignment;
 using detail::data_segment::PERSON_VACANT;
+using detail::data_segment::RequestKind;
 using detail::data_segment::AirStrike;
 using detail::data_segment::BATTLE_WIDTH;
+using detail::data_segment::BattleView;
 using detail::data_segment::Bits;
+using detail::data_segment::CacheNode;
 using detail::data_segment::Category;
+using detail::data_segment::MapCell;
+using detail::data_segment::Terrain;
 using detail::data_segment::DAILY_RECORDS_AT;
 using detail::data_segment::DailyRecord;
 using detail::data_segment::Data;
@@ -6439,15 +6139,21 @@ using detail::data_segment::Person;
 using detail::data_segment::PERSON_TEMPLATE_COUNT;
 using detail::data_segment::PERSON_TEMPLATES_AT;
 using detail::data_segment::PersonRole;
+using detail::data_segment::StaffRole;
 using detail::data_segment::Record;
 using detail::data_segment::REQUEST_CONFIGS_AT;
 using detail::data_segment::RequestConfig;
 using detail::data_segment::RequestSlot;
 using detail::data_segment::SAVE_SLOT_COUNT;
 using detail::data_segment::SAVE_SLOTS_AT;
+using detail::data_segment::GARRISON_AT;
+using detail::data_segment::BattleLoss;
 using detail::data_segment::SaveSlot;
+using detail::data_segment::ScreenPoint;
 using detail::data_segment::Side;
 using detail::data_segment::SideFlag;
+using detail::data_segment::Stance;
+using detail::data_segment::SIDE_PLAYED;
 using detail::data_segment::SIDE_COUNT;
 using detail::data_segment::SIDES_AT;
 using detail::data_segment::SPECIAL_AT;
@@ -6455,6 +6161,7 @@ using detail::data_segment::Task;
 using detail::data_segment::TaskKind;
 using detail::data_segment::Unit;
 using detail::data_segment::UnitFlag;
+using detail::data_segment::UnitOrder;
 using detail::data_segment::UNITS_AT;
 using detail::data_segment::UNITS_PER_GROUP;
 using detail::data_segment::UNITS_PER_SIDE;

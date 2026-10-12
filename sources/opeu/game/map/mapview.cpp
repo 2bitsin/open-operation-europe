@@ -77,8 +77,8 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame,
   uint8_t destination_x;
   uint8_t destination_y;
   if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y) &&
-      (data.side_status[side] == 1 ||
-       Record<Unit>(data, unit).flags & Bits(UnitFlag::BIT_5))) {
+      (data.side_status[side] == SIDE_PLAYED ||
+       Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown =
@@ -139,8 +139,8 @@ void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame,
             static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES),
             SPRITE_SEGMENT);
   } };
-  if (data.side_status[data.control_cached_y] == 1 &&
-      opeu_cell_marked(ds, cell_x, cell_y, data.control_cached_y))
+  if (data.side_status[data.view_side] == SIDE_PLAYED &&
+      opeu_cell_marked(ds, cell_x, cell_y, data.view_side))
     overlay(OVERLAY_SPRITE);
   switch (opeu_map_code(ds, cell_x, cell_y)) {
     case BRIDGE_CODE: overlay(BRIDGE_SPRITE); break;
