@@ -199,4 +199,17 @@ TEST(DataSegment, PointsTheNameTablesAtTheNamedStrings) {
   EXPECT_EQ(Text(data, Near(data, data.brief_france_axis_2)).substr(0, 16), "Your mission is ");
   EXPECT_EQ(Text(data, Near(data, data.type_rus_t34_85)), "T34/85");
 }
+
+TEST(DataSegment, ReadsTheVisibilityFromTheCoverTableAndNamesTheExplainedGaps) {
+  auto const& data{ Initial() };
+  EXPECT_EQ(&data.battle_terrain_cover[1], &data.battle_visibility);
+  EXPECT_EQ(data.battle_visibility, 1);
+  EXPECT_EQ(data.deploy_window.widths, Near(data, data.deploy_widths));
+  EXPECT_EQ(data.resistance_names[0], Near(data, data.resistance_partisan));
+  EXPECT_TRUE(std::ranges::all_of(data.unused_file_handles, [](auto byte) { return byte == 0xff; }));
+  EXPECT_EQ(offsetof(DataSegment, null_area), 0u);
+  EXPECT_EQ(offsetof(DataSegment, type_availability), 0x15cu);
+  EXPECT_EQ(offsetof(RequestConfig, supply_rate), 11u);
+  EXPECT_EQ(offsetof(RequestConfig, reinforcement_rate), 12u);
+}
 } // namespace opeu::game::detail::data_segment

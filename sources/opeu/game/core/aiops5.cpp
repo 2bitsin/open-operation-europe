@@ -52,7 +52,7 @@ void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind, ui
   auto& data{ Data(ds) };
   for (;;) {
     auto const index{ static_cast<std::uint8_t>(opeu_rand_bounded(ELEMENT_TYPE_COUNT)) };
-    auto const weight{ data.request_weights1[index] };
+    auto const weight{ data.type_availability[index] };
     if (!weight) continue;
     auto const& type{ data.element_types[index] };
     if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides) || weight <= opeu_rand_bounded(100)) continue;

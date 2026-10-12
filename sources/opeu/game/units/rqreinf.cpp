@@ -52,12 +52,12 @@ void opeu_reinf_element(uint8_t ds[65536], HostEvent event, uint16_t element, ui
   auto& loaded{ Record<Element>(data, element) };
   for (;;) {
     auto const index{ static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, TYPE_DRAW)) };
-    if (!data.request_weights1[index]) continue;
+    if (!data.type_availability[index]) continue;
     auto const& type{ data.element_types[index] };
     auto const  category{ type.category };
     if (!Suits(kind, side, category)) continue;
     if (!(data.side_masks[data.current_side] & type.sides)) continue;
-    if (data.request_weights1[index] <= Call(ds, event, RequestService::RANDOM, 100)) continue;
+    if (data.type_availability[index] <= Call(ds, event, RequestService::RANDOM, 100)) continue;
     loaded.type           = index;
     std::uint16_t amount  = data.request_capacities[category] / (Call(ds, event, RequestService::MAX16, type.anti_tank, type.anti_personnel) / 20 + 1);
     amount               += (5 - data.delivery_level) * 6;

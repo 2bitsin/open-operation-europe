@@ -63,7 +63,7 @@ auto InitialBattleText(DataSegment& data) -> void {
   SetText(data.battle_place_format, "%-15.15s (%3u-%3u)");
   SetText(data.battle_terrain_format, "%-15.15s (%3u-%3u)");
   SetText(data.battle_title_end, "\033M0\033C7");
-  data.unknown_b537  = { 0x00, 0x2e, 0x26, 0x26, 0x26, 0x26, 0x26 };
+  data.deploy_widths = { 0x2e, 0x26, 0x26, 0x26, 0x26, 0x26 };
   data.deploy_window = {
     0x0011, 0x008c, 0x003f, 0x0103, 0xb538, 0x07, { 0x0006, 0x2af1 },
           { 0x0002, 0x2af1 }

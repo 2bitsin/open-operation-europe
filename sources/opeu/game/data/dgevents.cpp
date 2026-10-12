@@ -234,7 +234,7 @@ auto InitialEventText(DataSegment& data) -> void {
   SetText(data.partisan_word_storm, "storm");
   data.partisan_words[0] = 0x7c94;
   data.partisan_words[1] = 0x7c9e;
-  data.unknown_7ca8      = { 0x50, 0x61, 0x72, 0x74, 0x69, 0x73, 0x61, 0x6e };
+  SetText(data.resistance_partisan, "Partisan");
   SetText(data.resistance_resistance, "Resistance");
   data.resistance_names[0] = 0x7ca8;
   data.resistance_names[1] = 0x7cb1;

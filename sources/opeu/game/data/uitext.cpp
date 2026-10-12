@@ -13,7 +13,7 @@ auto InitialUiText(DataSegment& data) -> void {
   data.request_kind_names[2] = 0x7e3c;
   data.request_delay_bases   = { 0x03, 0x08, 0x10 };
   SetText(data.equipment_delivery_format, "%s %u(+%u)\033S");
-  data.request_weights2 = { 0x64, 0x50, 0x3c, 0x32, 0x64, 0x64 };
+  data.regiment_kind_availability = { 0x64, 0x50, 0x3c, 0x32, 0x64, 0x64 };
   SetText(data.context_name_format, "\033C6\033M4Army Cmdr: %.26s");
   SetText(data.context_stats_format, "\033B1\033C7Leader  \033C6%2d \033C7Inf   \033C6%2d\012\033C7Charm  "
                                      " \033C6%2d \033C7Arty  \033C6%2d\012\033C7Brvy    \033C6%2d "

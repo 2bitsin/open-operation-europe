@@ -54,10 +54,8 @@ void opeu_hourly_c_stage_b(uint8_t ds[65536], PendingEvent event, uint16_t stale
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     auto&      config{ data.request_configs[side] };
     auto const config_at{ Near(data, config) };
-    data.request_template = opeu_find_person_template(
-        ds, Record<Person>(data, opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))).status,
-        TEMPLATE_KIND);
-    data.request_person = opeu_find_side_record(ds, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
+    data.request_template = opeu_find_person_template(ds, Record<Person>(data, opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))).status, TEMPLATE_KIND);
+    data.request_person   = opeu_find_side_record(ds, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
     if (config.kind != std::to_underlying(RequestKind::NONE) && opeu_sub_byte(1, &config.delay) == 0) {
       if (Send(ds, event, RequestService::VALID, side, config_at)) {
         switch (static_cast<RequestKind>(config.kind)) {
@@ -73,17 +71,12 @@ void opeu_hourly_c_stage_b(uint8_t ds[65536], PendingEvent event, uint16_t stale
     for (auto& request : data.sides[side].requests) {
       if (request.kind == std::to_underlying(RequestKind::NONE) || RandomBelow(ds, 6) != 0) continue;
       switch (static_cast<RequestKind>(request.kind)) {
-      case RequestKind::SUPPLIES: threshold = static_cast<uint16_t>(config.rate0 * 10); break;
-      case RequestKind::BATTALION:
-        threshold = opeu_percent(config.rate1 * 10, data.request_weights1[request.argument] * 10) / 10;
-        break;
-      case RequestKind::REGIMENT:
-        threshold = opeu_percent(config.rate1 * 3, data.request_weights2[request.argument] * 10) / 10;
-        break;
-      default: break;
+      case RequestKind::SUPPLIES:  threshold = static_cast<uint16_t>(config.supply_rate * 10); break;
+      case RequestKind::BATTALION: threshold = opeu_percent(config.reinforcement_rate * 10, data.type_availability[request.argument] * 10) / 10; break;
+      case RequestKind::REGIMENT:  threshold = opeu_percent(config.reinforcement_rate * 3, data.regiment_kind_availability[request.argument] * 10) / 10; break;
+      default:                     break;
       }
-      if (config.enabled[request.kind] == 1 && config.kind == std::to_underlying(RequestKind::NONE)
-          && static_cast<uint8_t>(RandomBelow(ds, 1000)) < threshold)
+      if (config.enabled[request.kind] == 1 && config.kind == std::to_underlying(RequestKind::NONE) && static_cast<uint8_t>(RandomBelow(ds, 1000)) < threshold)
         Send(ds, event, RequestService::START, side, Near(data, request));
       else
         Send(ds, event, RequestService::FALLBACK, side, Near(data, request));
