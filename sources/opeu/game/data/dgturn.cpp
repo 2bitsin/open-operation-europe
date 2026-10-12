@@ -10,7 +10,7 @@ auto InitialTurnText(DataSegment& data) -> void {
   SetText(data.turn_label_format, "\033C0\033M4%s Regiment %d %s executing orders.\033C7\033M0");
   SetText(data.percent_text, "    %");
   SetText(data.not_available_text, " N/A");
-  SetText(data.text_80b3, "%");
+  SetText(data.percent_sign, "%");
   SetText(data.regiment_position_text, "Here is the regiment's present position, sir.\033S");
   SetText(data.division_position_text, "Here's my division's present position, sir.\033S");
   data.order_glyphs       = { 0xff, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x06, 0x07, 0x07, 0xff, 0x08 };

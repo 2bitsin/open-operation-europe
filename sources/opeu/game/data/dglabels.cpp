@@ -29,10 +29,10 @@ auto InitialLabels(DataSegment& data) -> void {
   SetText(data.division_person_format, "\033C%c%.8s\033C7");
   SetText(data.panel_name_format, "%-18s");
   SetText(data.panel_count_format, "\033C%c%3d\033C7");
-  SetText(data.text_5514, "Assault");
-  SetText(data.text_551c, "Assault");
-  SetText(data.text_5524, "Engineer");
-  SetText(data.text_552d, "Supply");
+  SetText(data.panel_regiment_assault_1, "Assault");
+  SetText(data.panel_regiment_assault_2, "Assault");
+  SetText(data.panel_regiment_engineer, "Engineer");
+  SetText(data.panel_regiment_supply, "Supply");
   SetText(data.panel_regiment_format, "Rgmt \033C%c%d%d\033C7");
   SetText(data.panel_battle, "Battle");
   SetText(data.panel_string_format, "%s");
@@ -92,13 +92,13 @@ auto InitialLabels(DataSegment& data) -> void {
           { 0x0000, 0x0000 }
   };
   data.choice_widths = { 0x34, 0x26, 0x26, 0x26, 0x26, 0x26 };
-  SetText(data.text_58c8, "Div1");
-  SetText(data.text_58cd, "Div2");
-  SetText(data.text_58d2, "Div3");
-  SetText(data.text_58d7, "Div4");
-  SetText(data.text_58dc, "Cmdr ");
-  SetText(data.text_58e2, "Ops  ");
-  SetText(data.text_58e8, "Intl ");
+  SetText(data.tbl_post_div1, "Div1");
+  SetText(data.tbl_post_div2, "Div2");
+  SetText(data.tbl_post_div3, "Div3");
+  SetText(data.tbl_post_div4, "Div4");
+  SetText(data.tbl_post_cmdr, "Cmdr ");
+  SetText(data.tbl_post_ops, "Ops  ");
+  SetText(data.tbl_post_intl, "Intl ");
   SetText(data.tbl_person_name, "%-11.11s");
   SetText(data.tbl_person_blank, "    ");
   SetText(data.tbl_person_rest, "Rest");
@@ -144,8 +144,8 @@ auto InitialLabels(DataSegment& data) -> void {
     0x000a, 0x0018, 0x0048, 0x00d3, 0x5a8f, 0x15, { 0x0ff4, 0x0c45 },
           { 0x0ff0, 0x0c45 }
   };
-  SetText(data.text_5abd, "Computer");
-  SetText(data.text_5ac6, "  User  ");
+  SetText(data.tbl_player_computer, "Computer");
+  SetText(data.tbl_player_user, "  User  ");
   SetText(data.tbl_save_header, " Scenario  Dfclty  Date(1939-45)    Axis     Allies  ");
   SetText(data.tbl_save_number, "No.%2d");
   SetText(data.tbl_map_france, "France");

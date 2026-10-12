@@ -36,8 +36,7 @@ constexpr std::uint16_t BRIEFING_CODE_SEGMENT{ 0x0d9b };
 // supplies) that receives the text formatted with the player's name.
 class Briefing {
 public:
-  Briefing(std::uint8_t* ds, HostEvent event, std::uint16_t closing)
-      : ds_{ ds }, event_{ event }, closing_{ closing } { }
+  Briefing(std::uint8_t* ds, HostEvent event, std::uint16_t closing) : ds_{ ds }, event_{ event }, closing_{ closing } { }
 
   auto Activate(std::uint8_t side) -> void {
     Call(ds_, event_, ACTIVATE, side);
@@ -107,35 +106,35 @@ void opeu_brief_france(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_5bb2);
+    briefing.Say(data.brief_france_axis_1);
     briefing.Staff();
     briefing.HookOn();
     briefing.Mark(0x1d, 0x18);
-    briefing.Say(data.text_5c13);
+    briefing.Say(data.brief_france_axis_2);
     briefing.Mark(0x01, 0x0e);
-    briefing.Say(data.text_5c4c);
+    briefing.Say(data.brief_france_axis_3);
     briefing.HookOff();
-    briefing.Say(data.text_5c84);
-    briefing.Say(data.text_5cab);
-    briefing.Format(data.text_5cde);
+    briefing.Say(data.brief_france_axis_4);
+    briefing.Say(data.brief_france_axis_5);
+    briefing.Format(data.brief_france_axis_6);
     briefing.SayClosing();
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_5d1c);
-    briefing.Say(data.text_5d5e);
-    briefing.Say(data.text_5da4);
+    briefing.Say(data.brief_france_allies_1);
+    briefing.Say(data.brief_france_allies_2);
+    briefing.Say(data.brief_france_allies_3);
     briefing.Staff();
     briefing.HookOn();
     briefing.Mark(0x1d, 0x18);
-    briefing.Say(data.text_5dde);
+    briefing.Say(data.brief_france_allies_4);
     briefing.Mark(0x01, 0x0e);
-    briefing.Say(data.text_5e15);
+    briefing.Say(data.brief_france_allies_5);
     briefing.Mark(0x0a, 0x21);
-    briefing.Say(data.text_5e56);
+    briefing.Say(data.brief_france_allies_6);
     briefing.HookOff();
-    briefing.Say(data.text_5e83);
-    briefing.Format(data.text_5ea9);
+    briefing.Say(data.brief_france_allies_7);
+    briefing.Format(data.brief_france_allies_8);
     briefing.SayClosing();
   }
 }
@@ -147,40 +146,40 @@ void opeu_brief_africa(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_5edb);
-    briefing.Say(data.text_5f01);
+    briefing.Say(data.brief_africa_axis_1);
+    briefing.Say(data.brief_africa_axis_2);
     briefing.Staff();
     briefing.HookOn();
     briefing.Mark(0x1c, 0x04);
-    briefing.Say(data.text_5f36);
+    briefing.Say(data.brief_africa_axis_3);
     briefing.HookOff();
-    briefing.Say(data.text_5f5c);
+    briefing.Say(data.brief_africa_axis_4);
     briefing.HookOn();
     briefing.Mark(0x21, 0x0d);
-    briefing.Say(data.text_5f81);
+    briefing.Say(data.brief_africa_axis_5);
     briefing.Mark(0x21, 0x0a);
-    briefing.Say(data.text_5fb0);
+    briefing.Say(data.brief_africa_axis_6);
     briefing.HookOff();
-    briefing.Say(data.text_5fdb);
-    briefing.Format(data.text_6008);
+    briefing.Say(data.brief_africa_axis_7);
+    briefing.Format(data.brief_africa_axis_8);
     briefing.SayClosing();
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_603e);
-    briefing.Say(data.text_6070);
-    briefing.Say(data.text_60b5);
+    briefing.Say(data.brief_africa_allies_1);
+    briefing.Say(data.brief_africa_allies_2);
+    briefing.Say(data.brief_africa_allies_3);
     briefing.Staff();
     briefing.HookOn();
     briefing.Mark(0x1c, 0x04);
-    briefing.Say(data.text_60e2);
+    briefing.Say(data.brief_africa_allies_4);
     briefing.Mark(0x21, 0x0a);
-    briefing.Say(data.text_6115);
+    briefing.Say(data.brief_africa_allies_5);
     briefing.Mark(0x21, 0x0d);
-    briefing.Say(data.text_6149);
+    briefing.Say(data.brief_africa_allies_6);
     briefing.HookOff();
-    briefing.Say(data.text_617f);
-    briefing.Format(data.text_61b3);
+    briefing.Say(data.brief_africa_allies_7);
+    briefing.Format(data.brief_africa_allies_8);
     briefing.SayClosing();
   }
 }
@@ -192,38 +191,38 @@ void opeu_brief_kursk(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_61d6);
-    briefing.Say(data.text_621c);
-    briefing.Say(data.text_6263);
-    briefing.Say(data.text_62a3);
+    briefing.Say(data.brief_kursk_axis_1);
+    briefing.Say(data.brief_kursk_axis_2);
+    briefing.Say(data.brief_kursk_axis_3);
+    briefing.Say(data.brief_kursk_axis_4);
     briefing.Staff();
-    briefing.Format(data.text_62d5);
+    briefing.Format(data.brief_kursk_axis_5);
     briefing.SayClosing();
     briefing.HookOn();
     briefing.Mark(0x1f, 0x24);
-    briefing.Say(data.text_6300);
+    briefing.Say(data.brief_kursk_axis_6);
     briefing.Mark(0x13, 0x04);
-    briefing.Say(data.text_6330);
+    briefing.Say(data.brief_kursk_axis_7);
     briefing.HookOff();
-    briefing.Say(data.text_636d);
-    briefing.Say(data.text_63ad);
+    briefing.Say(data.brief_kursk_axis_8);
+    briefing.Say(data.brief_kursk_axis_9);
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_63e7);
-    briefing.Say(data.text_6420);
-    briefing.Say(data.text_6454);
-    briefing.Say(data.text_6492);
-    briefing.Say(data.text_64cd);
+    briefing.Say(data.brief_kursk_allies_1);
+    briefing.Say(data.brief_kursk_allies_2);
+    briefing.Say(data.brief_kursk_allies_3);
+    briefing.Say(data.brief_kursk_allies_4);
+    briefing.Say(data.brief_kursk_allies_5);
     briefing.Staff();
     briefing.HookOn();
-    briefing.Format(data.text_6507);
+    briefing.Format(data.brief_kursk_allies_6);
     briefing.SayClosing();
-    briefing.Say(data.text_6534);
+    briefing.Say(data.brief_kursk_allies_7);
     briefing.HookOff();
-    briefing.Say(data.text_656b);
-    briefing.Say(data.text_659d);
-    briefing.Say(data.text_65d7);
+    briefing.Say(data.brief_kursk_allies_8);
+    briefing.Say(data.brief_kursk_allies_9);
+    briefing.Say(data.brief_kursk_allies_10);
   }
 }
 
@@ -234,41 +233,41 @@ void opeu_brief_normandy(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_6612);
-    briefing.Say(data.text_6639);
-    briefing.Say(data.text_6658);
-    briefing.Say(data.text_668c);
+    briefing.Say(data.brief_normandy_axis_1);
+    briefing.Say(data.brief_normandy_axis_2);
+    briefing.Say(data.brief_normandy_axis_3);
+    briefing.Say(data.brief_normandy_axis_4);
     briefing.Staff();
     briefing.HookOn();
     briefing.Mark(0x1c, 0x0d);
-    briefing.Say(data.text_66cb);
+    briefing.Say(data.brief_normandy_axis_5);
     briefing.HookOff();
-    briefing.Say(data.text_6708);
+    briefing.Say(data.brief_normandy_axis_6);
     briefing.Mark(0x0c, 0x02);
-    briefing.Say(data.text_674a);
+    briefing.Say(data.brief_normandy_axis_7);
     briefing.HookOff();
-    briefing.Format(data.text_6780);
+    briefing.Format(data.brief_normandy_axis_8);
     briefing.SayClosing();
-    briefing.Say(data.text_67b7);
-    briefing.Say(data.text_67e8);
+    briefing.Say(data.brief_normandy_axis_9);
+    briefing.Say(data.brief_normandy_axis_10);
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_682a);
-    briefing.Say(data.text_686b);
-    briefing.Say(data.text_68b6);
-    briefing.Say(data.text_68cd);
+    briefing.Say(data.brief_normandy_allies_1);
+    briefing.Say(data.brief_normandy_allies_2);
+    briefing.Say(data.brief_normandy_allies_3);
+    briefing.Say(data.brief_normandy_allies_4);
     briefing.Staff();
-    briefing.Say(data.text_68ff);
+    briefing.Say(data.brief_normandy_allies_5);
     briefing.HookOn();
     briefing.Mark(0x1c, 0x0d);
-    briefing.Say(data.text_693a);
+    briefing.Say(data.brief_normandy_allies_6);
     briefing.Mark(0x0c, 0x02);
-    briefing.Say(data.text_6982);
+    briefing.Say(data.brief_normandy_allies_7);
     briefing.Mark(0x12, 0x02);
-    briefing.Say(data.text_69db);
+    briefing.Say(data.brief_normandy_allies_8);
     briefing.HookOff();
-    briefing.Format(data.text_6a14);
+    briefing.Format(data.brief_normandy_allies_9);
     briefing.SayClosing();
   }
 }
@@ -280,37 +279,37 @@ void opeu_brief_ardennes(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_6a5c);
-    briefing.Say(data.text_6a91);
-    briefing.Say(data.text_6ad5);
-    briefing.Say(data.text_6b1a);
-    briefing.Say(data.text_6b52);
+    briefing.Say(data.brief_ardennes_axis_1);
+    briefing.Say(data.brief_ardennes_axis_2);
+    briefing.Say(data.brief_ardennes_axis_3);
+    briefing.Say(data.brief_ardennes_axis_4);
+    briefing.Say(data.brief_ardennes_axis_5);
     briefing.Staff();
-    briefing.Say(data.text_6b9f);
-    briefing.Say(data.text_6be5);
+    briefing.Say(data.brief_ardennes_axis_6);
+    briefing.Say(data.brief_ardennes_axis_7);
     briefing.HookOn();
     briefing.Mark(0x05, 0x11);
-    briefing.Say(data.text_6c17);
+    briefing.Say(data.brief_ardennes_axis_8);
     briefing.HookOff();
-    briefing.Say(data.text_6c50);
-    briefing.Format(data.text_6cab);
+    briefing.Say(data.brief_ardennes_axis_9);
+    briefing.Format(data.brief_ardennes_axis_10);
     briefing.SayClosing();
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_6ce6);
-    briefing.Say(data.text_6d30);
-    briefing.Say(data.text_6d52);
-    briefing.Say(data.text_6d8f);
+    briefing.Say(data.brief_ardennes_allies_1);
+    briefing.Say(data.brief_ardennes_allies_2);
+    briefing.Say(data.brief_ardennes_allies_3);
+    briefing.Say(data.brief_ardennes_allies_4);
     briefing.Staff();
-    briefing.Say(data.text_6db6);
+    briefing.Say(data.brief_ardennes_allies_5);
     briefing.HookOn();
     briefing.Mark(0x05, 0x11);
-    briefing.Say(data.text_6def);
+    briefing.Say(data.brief_ardennes_allies_6);
     briefing.HookOff();
-    briefing.Say(data.text_6e31);
-    briefing.Say(data.text_6e76);
-    briefing.Say(data.text_6ea7);
+    briefing.Say(data.brief_ardennes_allies_7);
+    briefing.Say(data.brief_ardennes_allies_8);
+    briefing.Say(data.brief_ardennes_allies_9);
   }
 }
 
@@ -321,43 +320,43 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
   if (data.current_side == 0) {
     briefing.Activate(0);
     briefing.Commander();
-    briefing.Say(data.text_6ed5);
-    briefing.Say(data.text_6ef1);
-    briefing.Say(data.text_6f1f);
-    briefing.Say(data.text_6f60);
-    briefing.Say(data.text_6f99);
+    briefing.Say(data.brief_berlin_axis_1);
+    briefing.Say(data.brief_berlin_axis_2);
+    briefing.Say(data.brief_berlin_axis_3);
+    briefing.Say(data.brief_berlin_axis_4);
+    briefing.Say(data.brief_berlin_axis_5);
     briefing.Staff();
-    briefing.Say(data.text_6fc2);
+    briefing.Say(data.brief_berlin_axis_6);
     briefing.HookOn();
     briefing.Mark(0x19, 0x15);
-    briefing.Say(data.text_7008);
+    briefing.Say(data.brief_berlin_axis_7);
     briefing.Mark(0x03, 0x0a);
-    briefing.Say(data.text_703f);
+    briefing.Say(data.brief_berlin_axis_8);
     briefing.HookOff();
-    briefing.Say(data.text_707e);
-    briefing.Format(data.text_709d);
+    briefing.Say(data.brief_berlin_axis_9);
+    briefing.Format(data.brief_berlin_axis_10);
     briefing.SayClosing();
-    briefing.Say(data.text_70d8);
+    briefing.Say(data.brief_berlin_axis_11);
   } else if (data.current_side == 1) {
     briefing.Activate(1);
     briefing.Commander();
-    briefing.Say(data.text_7113);
-    briefing.Say(data.text_7140);
-    briefing.Say(data.text_716c);
-    briefing.Say(data.text_719d);
-    briefing.Say(data.text_71e2);
+    briefing.Say(data.brief_berlin_allies_1);
+    briefing.Say(data.brief_berlin_allies_2);
+    briefing.Say(data.brief_berlin_allies_3);
+    briefing.Say(data.brief_berlin_allies_4);
+    briefing.Say(data.brief_berlin_allies_5);
     briefing.Staff();
-    briefing.Format(data.text_7217);
+    briefing.Format(data.brief_berlin_allies_6);
     briefing.SayClosing();
-    briefing.Say(data.text_7235);
+    briefing.Say(data.brief_berlin_allies_7);
     briefing.HookOn();
     briefing.Mark(0x19, 0x15);
-    briefing.Say(data.text_726e);
+    briefing.Say(data.brief_berlin_allies_8);
     briefing.Mark(0x03, 0x0a);
-    briefing.Say(data.text_728e);
+    briefing.Say(data.brief_berlin_allies_9);
     briefing.HookOff();
-    briefing.Say(data.text_72bc);
-    briefing.Say(data.text_730e);
+    briefing.Say(data.brief_berlin_allies_10);
+    briefing.Say(data.brief_berlin_allies_11);
   }
 }
 
@@ -370,16 +369,11 @@ uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     opeu_daily_activate(ds, svc_maperase, f, (uint8_t)Arg(args, count, 0));
     port_frame_leave();
     break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case OVERVIEW_PIXEL: opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case INVERT:
-    r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                    Arg(args, count, 4));
-    break;
-  case FORMAT: b1_request_format(ds, args, count); break;
-  default:     port_unhandled("scenbrf", id, count);
+  case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OVERVIEW_PIXEL:  opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case INVERT:          r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case FORMAT:          b1_request_format(ds, args, count); break;
+  default:              port_unhandled("scenbrf", id, count);
   }
   return r;
 }

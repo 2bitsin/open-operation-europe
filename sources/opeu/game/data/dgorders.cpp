@@ -31,34 +31,34 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.target_cell_format, "Move to (%d-%d)?");
   SetText(data.target_cancel_text, "Should we cancel this\012mission?");
   SetText(data.cancel_orders_prompt, "Cancel orders?");
-  SetText(data.text_8578, "Move   ");
-  SetText(data.text_8580, "Occupy ");
-  SetText(data.text_8588, "Attack ");
-  SetText(data.text_8590, "Defend ");
-  SetText(data.text_8598, "Destroy");
-  SetText(data.text_85a0, "Supply ");
-  SetText(data.text_85a8, "Pursue ");
-  SetText(data.text_85b0, "Rest   ");
-  SetText(data.text_85b8, "Move   ");
-  SetText(data.text_85c0, "Mine   ");
-  SetText(data.text_85c8, "Bridge ");
-  SetText(data.text_85d0, "Destroy");
-  SetText(data.text_85d8, "Supply ");
-  SetText(data.text_85e0, "Pursue ");
-  SetText(data.text_85e8, "Rest   ");
-  SetText(data.text_85f0, "Move   ");
-  SetText(data.text_85f8, "Supply ");
-  SetText(data.text_8600, "Repair ");
-  SetText(data.text_8608, "Pursue ");
-  SetText(data.text_8610, "Rest   ");
-  SetText(data.text_8618, "Move   ");
-  SetText(data.text_8620, "Supply ");
-  SetText(data.text_8628, "Pursue ");
-  SetText(data.text_8630, "Rest   ");
-  SetText(data.text_8638, "City    ");
-  SetText(data.text_8641, "Regiment");
-  SetText(data.text_864a, "City Weapons");
-  SetText(data.text_8657, "Rgmt Weapons");
+  SetText(data.order_combat_move, "Move   ");
+  SetText(data.order_combat_occupy, "Occupy ");
+  SetText(data.order_combat_attack, "Attack ");
+  SetText(data.order_combat_defend, "Defend ");
+  SetText(data.order_combat_destroy, "Destroy");
+  SetText(data.order_combat_supply, "Supply ");
+  SetText(data.order_combat_pursue, "Pursue ");
+  SetText(data.order_combat_rest, "Rest   ");
+  SetText(data.order_engineer_move, "Move   ");
+  SetText(data.order_engineer_mine, "Mine   ");
+  SetText(data.order_engineer_bridge, "Bridge ");
+  SetText(data.order_engineer_destroy, "Destroy");
+  SetText(data.order_engineer_supply, "Supply ");
+  SetText(data.order_engineer_pursue, "Pursue ");
+  SetText(data.order_engineer_rest, "Rest   ");
+  SetText(data.order_repair_move, "Move   ");
+  SetText(data.order_repair_supply, "Supply ");
+  SetText(data.order_repair_repair, "Repair ");
+  SetText(data.order_repair_pursue, "Pursue ");
+  SetText(data.order_repair_rest, "Rest   ");
+  SetText(data.order_supply_move, "Move   ");
+  SetText(data.order_supply_supply, "Supply ");
+  SetText(data.order_supply_pursue, "Pursue ");
+  SetText(data.order_supply_rest, "Rest   ");
+  SetText(data.supply_choice_city, "City    ");
+  SetText(data.supply_choice_regiment, "Regiment");
+  SetText(data.repair_choice_city_weapons, "City Weapons");
+  SetText(data.repair_choice_rgmt_weapons, "Rgmt Weapons");
   // clang-format off
   data.order_menus = { {
     { { { 0x0032, 0x00a3, 0x0009, 0x0700, 0x8578, 0x8001 }, { 0x0039, 0x00a3, 0x0009, 0x0700, 0x8580, 0x8002 }, { 0x0032, 0x00bb, 0x0009, 0x0700, 0x8588, 0x8003 }, { 0x0039, 0x00bb, 0x0009, 0x0700, 0x8590, 0x8004 }, { 0x0032, 0x00d3, 0x0009, 0x0700, 0x8598, 0x8005 }, { 0x0039, 0x00d3, 0x0009, 0x0700, 0x85a0, 0x8006 }, { 0x0032, 0x00eb, 0x0009, 0x0700, 0x85a8, 0x8007 }, { 0x0039, 0x00eb, 0x0009, 0x0700, 0x85b0, 0x8008 } } },
@@ -161,12 +161,12 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.rest_thanks_text, "Thank you very much, sir!\033W2");
   SetText(data.assign_thanks_text, "You can count on me, sir!");
   SetText(data.division_charge_prompt, "Which division commander do you want to put in charge?");
-  SetText(data.text_8dc0, "Div 1: ");
-  SetText(data.text_8dc8, "Div 2: ");
-  SetText(data.text_8dd0, "Div 3: ");
-  SetText(data.text_8dd8, "Div 4: ");
-  SetText(data.text_8de0, "Ops Ofc: ");
-  SetText(data.text_8dea, "Intel: ");
+  SetText(data.post_div_1, "Div 1: ");
+  SetText(data.post_div_2, "Div 2: ");
+  SetText(data.post_div_3, "Div 3: ");
+  SetText(data.post_div_4, "Div 4: ");
+  SetText(data.post_ops_ofc, "Ops Ofc: ");
+  SetText(data.post_intel, "Intel: ");
   SetText(data.none_available_text, "No one is available, sir.\033S");
   SetText(data.assign_who_prompt, "Who will you assign?");
   SetText(data.post_format_1, "%s%-8s");
@@ -191,9 +191,9 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.none_to_rest_text, "There are no commanders who can rest.\033E2");
   SetText(data.rest_who_prompt, "Who shall we rest?");
   SetText(data.rest_days_prompt, "How many days should\012Commander %s\012take leave");
-  SetText(data.text_8f45, "Reassign");
-  SetText(data.text_8f4e, "Appoint");
-  SetText(data.text_8f56, "Rest");
+  SetText(data.personnel_reassign, "Reassign");
+  SetText(data.personnel_appoint, "Appoint");
+  SetText(data.personnel_rest, "Rest");
   SetText(data.personnel_prompt, "Select an order");
   // clang-format off
   data.personnel_actions = { {
@@ -233,11 +233,11 @@ auto InitialOrderText(DataSegment& data) -> void {
     { 0x1279, 0x3ad9 },
   } };
   // clang-format on
-  SetText(data.text_8ff8, "Tactical Advice");
-  SetText(data.text_9008, "Regiment Status");
-  SetText(data.text_9018, "Enemy Conditions");
-  SetText(data.text_9029, "Tide of War");
-  SetText(data.text_9035, "Operation Hints");
+  SetText(data.advice_tactical_advice, "Tactical Advice");
+  SetText(data.advice_regiment_status, "Regiment Status");
+  SetText(data.advice_enemy_conditions, "Enemy Conditions");
+  SetText(data.advice_tide_of_war, "Tide of War");
+  SetText(data.advice_operation_hints, "Operation Hints");
   SetText(data.advice_prompt, "What are you interested in");
   // clang-format off
   data.advice_actions = { {
@@ -258,8 +258,8 @@ auto InitialOrderText(DataSegment& data) -> void {
     { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, // the end
   } };
   // clang-format on
-  SetText(data.text_90bc, "Operations");
-  SetText(data.text_90c7, "Intelligence");
+  SetText(data.staff_operations, "Operations");
+  SetText(data.staff_intelligence, "Intelligence");
   SetText(data.staff_prompt, "Which do you w");
   // clang-format off
   data.staff_actions = { {

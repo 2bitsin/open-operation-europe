@@ -594,207 +594,207 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 1314> unit_type_names; // DS:27be..2ce0
     struct {
-      std::uint8_t         save_last; // DS:27be
-      std::uint8_t         save_end;  // DS:27bf
-      std::array<char, 11> text_27c0; // DS:27c0
-      std::array<char, 12> text_27cb; // DS:27cb
-      std::array<char, 14> text_27d7; // DS:27d7
-      std::array<char, 14> text_27e5; // DS:27e5
-      std::array<char, 10> text_27f3; // DS:27f3
-      std::array<char, 14> text_27fd; // DS:27fd
-      std::array<char, 12> text_280b; // DS:280b
-      std::array<char, 13> text_2817; // DS:2817
-      std::array<char, 9>  text_2824; // DS:2824
-      std::array<char, 10> text_282d; // DS:282d
-      std::array<char, 11> text_2837; // DS:2837
-      std::array<char, 11> text_2842; // DS:2842
-      std::array<char, 12> text_284d; // DS:284d
-      std::array<char, 12> text_2859; // DS:2859
-      std::array<char, 12> text_2865; // DS:2865
-      std::array<char, 12> text_2871; // DS:2871
-      std::array<char, 12> text_287d; // DS:287d
-      std::array<char, 11> text_2889; // DS:2889
-      std::array<char, 12> text_2894; // DS:2894
-      std::array<char, 12> text_28a0; // DS:28a0
-      std::array<char, 11> text_28ac; // DS:28ac
-      std::array<char, 11> text_28b7; // DS:28b7
-      std::array<char, 10> text_28c2; // DS:28c2
-      std::array<char, 10> text_28cc; // DS:28cc
-      std::array<char, 8>  text_28d6; // DS:28d6
-      std::array<char, 9>  text_28de; // DS:28de
-      std::array<char, 10> text_28e7; // DS:28e7
-      std::array<char, 10> text_28f1; // DS:28f1
-      std::array<char, 13> text_28fb; // DS:28fb
-      std::array<char, 14> text_2908; // DS:2908
-      std::array<char, 9>  text_2916; // DS:2916
-      std::array<char, 11> text_291f; // DS:291f
-      std::array<char, 12> text_292a; // DS:292a
-      std::array<char, 8>  text_2936; // DS:2936
-      std::array<char, 10> text_293e; // DS:293e
-      std::array<char, 10> text_2948; // DS:2948
-      std::array<char, 9>  text_2952; // DS:2952
-      std::array<char, 7>  text_295b; // DS:295b
-      std::array<char, 9>  text_2962; // DS:2962
-      std::array<char, 9>  text_296b; // DS:296b
-      std::array<char, 6>  text_2974; // DS:2974
-      std::array<char, 7>  text_297a; // DS:297a
-      std::array<char, 9>  text_2981; // DS:2981
-      std::array<char, 8>  text_298a; // DS:298a
-      std::array<char, 8>  text_2992; // DS:2992
-      std::array<char, 8>  text_299a; // DS:299a
-      std::array<char, 8>  text_29a2; // DS:29a2
-      std::array<char, 11> text_29aa; // DS:29aa
-      std::array<char, 11> text_29b5; // DS:29b5
-      std::array<char, 11> text_29c0; // DS:29c0
-      std::array<char, 11> text_29cb; // DS:29cb
-      std::array<char, 12> text_29d6; // DS:29d6
-      std::array<char, 11> text_29e2; // DS:29e2
-      std::array<char, 12> text_29ed; // DS:29ed
-      std::array<char, 10> text_29f9; // DS:29f9
-      std::array<char, 9>  text_2a03; // DS:2a03
-      std::array<char, 3>  text_2a0c; // DS:2a0c
-      std::array<char, 7>  text_2a0f; // DS:2a0f
-      std::array<char, 16> text_2a16; // DS:2a16
-      std::array<char, 4>  text_2a26; // DS:2a26
-      std::array<char, 6>  text_2a2a; // DS:2a2a
-      std::array<char, 6>  text_2a30; // DS:2a30
-      std::array<char, 11> text_2a36; // DS:2a36
-      std::array<char, 10> text_2a41; // DS:2a41
-      std::array<char, 14> text_2a4b; // DS:2a4b
-      std::array<char, 8>  text_2a59; // DS:2a59
-      std::array<char, 4>  text_2a61; // DS:2a61
-      std::array<char, 9>  text_2a65; // DS:2a65
-      std::array<char, 16> text_2a6e; // DS:2a6e
-      std::array<char, 16> text_2a7e; // DS:2a7e
-      std::array<char, 10> text_2a8e; // DS:2a8e
-      std::array<char, 11> text_2a98; // DS:2a98
-      std::array<char, 11> text_2aa3; // DS:2aa3
-      std::array<char, 11> text_2aae; // DS:2aae
-      std::array<char, 12> text_2ab9; // DS:2ab9
-      std::array<char, 13> text_2ac5; // DS:2ac5
-      std::array<char, 12> text_2ad2; // DS:2ad2
-      std::array<char, 13> text_2ade; // DS:2ade
-      std::array<char, 9>  text_2aeb; // DS:2aeb
-      std::array<char, 10> text_2af4; // DS:2af4
-      std::array<char, 11> text_2afe; // DS:2afe
-      std::array<char, 10> text_2b09; // DS:2b09
-      std::array<char, 11> text_2b13; // DS:2b13
-      std::array<char, 12> text_2b1e; // DS:2b1e
-      std::array<char, 14> text_2b2a; // DS:2b2a
-      std::array<char, 13> text_2b38; // DS:2b38
-      std::array<char, 4>  text_2b45; // DS:2b45
-      std::array<char, 9>  text_2b49; // DS:2b49
-      std::array<char, 8>  text_2b52; // DS:2b52
-      std::array<char, 9>  text_2b5a; // DS:2b5a
-      std::array<char, 10> text_2b63; // DS:2b63
-      std::array<char, 10> text_2b6d; // DS:2b6d
-      std::array<char, 10> text_2b77; // DS:2b77
-      std::array<char, 7>  text_2b81; // DS:2b81
-      std::array<char, 6>  text_2b88; // DS:2b88
-      std::array<char, 11> text_2b8e; // DS:2b8e
-      std::array<char, 14> text_2b99; // DS:2b99
-      std::array<char, 11> text_2ba7; // DS:2ba7
-      std::array<char, 14> text_2bb2; // DS:2bb2
-      std::array<char, 15> text_2bc0; // DS:2bc0
-      std::array<char, 13> text_2bcf; // DS:2bcf
-      std::array<char, 9>  text_2bdc; // DS:2bdc
-      std::array<char, 14> text_2be5; // DS:2be5
-      std::array<char, 4>  text_2bf3; // DS:2bf3
-      std::array<char, 10> text_2bf7; // DS:2bf7
-      std::array<char, 7>  text_2c01; // DS:2c01
-      std::array<char, 10> text_2c08; // DS:2c08
-      std::array<char, 11> text_2c12; // DS:2c12
-      std::array<char, 9>  text_2c1d; // DS:2c1d
-      std::array<char, 11> text_2c26; // DS:2c26
-      std::array<char, 10> text_2c31; // DS:2c31
-      std::array<char, 14> text_2c3b; // DS:2c3b
-      std::array<char, 4>  text_2c49; // DS:2c49
-      std::array<char, 4>  text_2c4d; // DS:2c4d
-      std::array<char, 5>  text_2c51; // DS:2c51
-      std::array<char, 8>  text_2c56; // DS:2c56
-      std::array<char, 7>  text_2c5e; // DS:2c5e
-      std::array<char, 4>  text_2c65; // DS:2c65
-      std::array<char, 4>  text_2c69; // DS:2c69
-      std::array<char, 5>  text_2c6d; // DS:2c6d
-      std::array<char, 5>  text_2c72; // DS:2c72
-      std::array<char, 6>  text_2c77; // DS:2c77
-      std::array<char, 6>  text_2c7d; // DS:2c7d
-      std::array<char, 6>  text_2c83; // DS:2c83
-      std::array<char, 7>  text_2c89; // DS:2c89
-      std::array<char, 7>  text_2c90; // DS:2c90
-      std::array<char, 8>  text_2c97; // DS:2c97
-      std::array<char, 8>  text_2c9f; // DS:2c9f
-      std::array<char, 8>  text_2ca7; // DS:2ca7
-      std::array<char, 8>  text_2caf; // DS:2caf
-      std::array<char, 9>  text_2cb7; // DS:2cb7
-      std::array<char, 11> text_2cc0; // DS:2cc0
-      std::array<char, 11> text_2ccb; // DS:2ccb
-      std::array<char, 10> text_2cd6; // DS:2cd6
+      std::uint8_t         save_last;                // DS:27be
+      std::uint8_t         save_end;                 // DS:27bf
+      std::array<char, 11> type_ger_infantry_i;      // DS:27c0
+      std::array<char, 12> type_ger_infantry_ii;     // DS:27cb
+      std::array<char, 14> type_ger_civil_grndier;   // DS:27d7
+      std::array<char, 14> type_ger_combat_enginr;   // DS:27e5
+      std::array<char, 10> type_ger_paratroop;       // DS:27f3
+      std::array<char, 14> type_ger_apc_halftrack;   // DS:27fd
+      std::array<char, 12> type_ger_grenadier_i;     // DS:280b
+      std::array<char, 13> type_ger_grenadier_ii;    // DS:2817
+      std::array<char, 9>  type_ger_pzkpfw_i;        // DS:2824
+      std::array<char, 10> type_ger_pzkpfw_ii;       // DS:282d
+      std::array<char, 11> type_ger_pzkpfw_35t;      // DS:2837
+      std::array<char, 11> type_ger_pzkpfw_38t;      // DS:2842
+      std::array<char, 12> type_ger_pzkpfw_iiid;     // DS:284d
+      std::array<char, 12> type_ger_pzkpfw_iiie;     // DS:2859
+      std::array<char, 12> type_ger_pzkpfw_iiij;     // DS:2865
+      std::array<char, 12> type_ger_pzkpfw_iiil;     // DS:2871
+      std::array<char, 12> type_ger_pzkpfw_iiim;     // DS:287d
+      std::array<char, 11> type_ger_pzkpfw_ivd;      // DS:2889
+      std::array<char, 12> type_ger_pzkpfw_ivf1;     // DS:2894
+      std::array<char, 12> type_ger_pzkpfw_ivf2;     // DS:28a0
+      std::array<char, 11> type_ger_pzkpfw_ivg;      // DS:28ac
+      std::array<char, 11> type_ger_pzkpfw_ivh;      // DS:28b7
+      std::array<char, 10> type_ger_panther_d;       // DS:28c2
+      std::array<char, 10> type_ger_panther_g;       // DS:28cc
+      std::array<char, 8>  type_ger_tiger_i;         // DS:28d6
+      std::array<char, 9>  type_ger_tiger_ii;        // DS:28de
+      std::array<char, 10> type_ger_stug_iiib;       // DS:28e7
+      std::array<char, 10> type_ger_stug_iiif;       // DS:28f1
+      std::array<char, 13> type_ger_stug_iiig_75;    // DS:28fb
+      std::array<char, 14> type_ger_stug_iiig_105;   // DS:2908
+      std::array<char, 9>  type_ger_stug_ivg;        // DS:2916
+      std::array<char, 11> type_ger_stug_ivl70;      // DS:291f
+      std::array<char, 12> type_ger_jagdpanther;     // DS:292a
+      std::array<char, 8>  type_ger_elefant;         // DS:2936
+      std::array<char, 10> type_ger_jagdtiger;       // DS:293e
+      std::array<char, 10> type_ger_marder_ii;       // DS:2948
+      std::array<char, 9>  type_ger_nashorne;        // DS:2952
+      std::array<char, 7>  type_ger_hetzer;          // DS:295b
+      std::array<char, 9>  type_ger_hetzer_d;        // DS:2962
+      std::array<char, 9>  type_ger_brummbar;        // DS:296b
+      std::array<char, 6>  type_ger_wespe;           // DS:2974
+      std::array<char, 7>  type_ger_hummel;          // DS:297a
+      std::array<char, 9>  type_ger_maultier;        // DS:2981
+      std::array<char, 8>  type_ger_37mmpak;         // DS:298a
+      std::array<char, 8>  type_ger_50mmpak;         // DS:2992
+      std::array<char, 8>  type_ger_75mmpak;         // DS:299a
+      std::array<char, 8>  type_ger_88mmpak;         // DS:29a2
+      std::array<char, 11> type_ger_105mm_guns;      // DS:29aa
+      std::array<char, 11> type_ger_128mm_guns;      // DS:29b5
+      std::array<char, 11> type_ger_150mm_guns;      // DS:29c0
+      std::array<char, 11> type_ger_170mm_guns;      // DS:29cb
+      std::array<char, 12> type_ger_nebelwerfer;     // DS:29d6
+      std::array<char, 11> type_ita_infantry_i;      // DS:29e2
+      std::array<char, 12> type_ita_infantry_ii;     // DS:29ed
+      std::array<char, 10> type_eng_paratroop;       // DS:29f9
+      std::array<char, 9>  type_usa_infantry;        // DS:2a03
+      std::array<char, 3>  type_ita_l3;              // DS:2a0c
+      std::array<char, 7>  type_ita_m13_40;          // DS:2a0f
+      std::array<char, 16> type_ita_semovente_75_34; // DS:2a16
+      std::array<char, 4>  type_ita_p40;             // DS:2a26
+      std::array<char, 6>  type_ita_75_27;           // DS:2a2a
+      std::array<char, 6>  type_ita_75_32;           // DS:2a30
+      std::array<char, 11> type_ita_149mm_guns;      // DS:2a36
+      std::array<char, 10> type_usa_paratroop;       // DS:2a41
+      std::array<char, 14> type_usa_apc_halftrack;   // DS:2a4b
+      std::array<char, 8>  type_usa_chaffee;         // DS:2a59
+      std::array<char, 4>  type_usa_m36;             // DS:2a61
+      std::array<char, 9>  type_usa_pershing;        // DS:2a65
+      std::array<char, 16> type_usa_105mm_self_prop; // DS:2a6e
+      std::array<char, 16> type_usa_155mm_self_prop; // DS:2a7e
+      std::array<char, 10> type_usa_75mm_guns;       // DS:2a8e
+      std::array<char, 11> type_usa_105mm_guns;      // DS:2a98
+      std::array<char, 11> type_usa_155mm_guns;      // DS:2aa3
+      std::array<char, 11> type_eng_infantry_i;      // DS:2aae
+      std::array<char, 12> type_eng_royal_inf_i;     // DS:2ab9
+      std::array<char, 13> type_eng_royal_inf_ii;    // DS:2ac5
+      std::array<char, 12> type_eng_grenadier_i;     // DS:2ad2
+      std::array<char, 13> type_eng_grenadier_ii;    // DS:2ade
+      std::array<char, 9>  type_eng_a13mk_ii;        // DS:2aeb
+      std::array<char, 10> type_eng_matilda_i;       // DS:2af4
+      std::array<char, 11> type_eng_matilda_ii;      // DS:2afe
+      std::array<char, 10> type_eng_valentine;       // DS:2b09
+      std::array<char, 11> type_eng_crusader_i;      // DS:2b13
+      std::array<char, 12> type_eng_crusader_ii;     // DS:2b1e
+      std::array<char, 14> type_eng_churchill_iii;   // DS:2b2a
+      std::array<char, 13> type_eng_churchill_iv;    // DS:2b38
+      std::array<char, 4>  type_eng_lee;             // DS:2b45
+      std::array<char, 9>  type_eng_cromwell;        // DS:2b49
+      std::array<char, 8>  type_eng_firefly;         // DS:2b52
+      std::array<char, 9>  type_eng_6lb_guns;        // DS:2b5a
+      std::array<char, 10> type_eng_17lb_guns;       // DS:2b63
+      std::array<char, 10> type_eng_18lb_guns;       // DS:2b6d
+      std::array<char, 10> type_eng_25lb_guns;       // DS:2b77
+      std::array<char, 7>  type_usa_stuart;          // DS:2b81
+      std::array<char, 6>  type_usa_grant;           // DS:2b88
+      std::array<char, 11> type_usa_sherman_a1;      // DS:2b8e
+      std::array<char, 14> type_usa_sherman_a1_76;   // DS:2b99
+      std::array<char, 11> type_usa_sherman_a3;      // DS:2ba7
+      std::array<char, 14> type_usa_sherman_a3_76;   // DS:2bb2
+      std::array<char, 15> type_usa_sherman_a3_105;  // DS:2bc0
+      std::array<char, 13> type_usa_sherman_a3e8;    // DS:2bcf
+      std::array<char, 9>  type_fra_infantry;        // DS:2bdc
+      std::array<char, 14> type_fra_apc_halftrack;   // DS:2be5
+      std::array<char, 4>  type_fra_h35;             // DS:2bf3
+      std::array<char, 10> type_fra_somua_s35;       // DS:2bf7
+      std::array<char, 7>  type_fra_char_b;          // DS:2c01
+      std::array<char, 10> type_fra_75mm_guns;       // DS:2c08
+      std::array<char, 11> type_fra_155mm_guns;      // DS:2c12
+      std::array<char, 9>  type_rus_infantry;        // DS:2c1d
+      std::array<char, 11> type_rus_sp_guards;       // DS:2c26
+      std::array<char, 10> type_rus_paratroop;       // DS:2c31
+      std::array<char, 14> type_rus_apc_halftrack;   // DS:2c3b
+      std::array<char, 4>  type_rus_kv1;             // DS:2c49
+      std::array<char, 4>  type_rus_kv2;             // DS:2c4d
+      std::array<char, 5>  type_rus_kv85;            // DS:2c51
+      std::array<char, 8>  type_rus_t34_76c;         // DS:2c56
+      std::array<char, 7>  type_rus_t34_85;          // DS:2c5e
+      std::array<char, 4>  type_rus_js1;             // DS:2c65
+      std::array<char, 4>  type_rus_js2;             // DS:2c69
+      std::array<char, 5>  type_rus_su76;            // DS:2c6d
+      std::array<char, 5>  type_rus_su85;            // DS:2c72
+      std::array<char, 6>  type_rus_su100;           // DS:2c77
+      std::array<char, 6>  type_rus_su122;           // DS:2c7d
+      std::array<char, 6>  type_rus_su152;           // DS:2c83
+      std::array<char, 7>  type_rus_jsu122;          // DS:2c89
+      std::array<char, 7>  type_rus_jsu152;          // DS:2c90
+      std::array<char, 8>  type_rus_45mmpak;         // DS:2c97
+      std::array<char, 8>  type_rus_57mmpak;         // DS:2c9f
+      std::array<char, 8>  type_rus_76mmpak;         // DS:2ca7
+      std::array<char, 8>  type_rus_85mmpak;         // DS:2caf
+      std::array<char, 9>  type_rus_120mmmtr;        // DS:2cb7
+      std::array<char, 11> type_rus_122mm_guns;      // DS:2cc0
+      std::array<char, 11> type_rus_152mm_guns;      // DS:2ccb
+      std::array<char, 10> type_rus_katiuchas;       // DS:2cd6
     };
   };
   union {
     std::array<std::uint8_t, 428> general_names; // DS:2ce0..2e8c
     struct {
-      std::array<char, 6>  text_2ce0; // DS:2ce0
-      std::array<char, 7>  text_2ce6; // DS:2ce6
-      std::array<char, 5>  text_2ced; // DS:2ced
-      std::array<char, 5>  text_2cf2; // DS:2cf2
-      std::array<char, 4>  text_2cf7; // DS:2cf7
-      std::array<char, 7>  text_2cfb; // DS:2cfb
-      std::array<char, 5>  text_2d02; // DS:2d02
-      std::array<char, 7>  text_2d07; // DS:2d07
-      std::array<char, 4>  text_2d0e; // DS:2d0e
-      std::array<char, 4>  text_2d12; // DS:2d12
-      std::array<char, 4>  text_2d16; // DS:2d16
-      std::array<char, 4>  text_2d1a; // DS:2d1a
-      std::array<char, 4>  text_2d1e; // DS:2d1e
-      std::array<char, 4>  text_2d22; // DS:2d22
-      std::array<char, 11> text_2d26; // DS:2d26
-      std::array<char, 10> text_2d31; // DS:2d31
-      std::array<char, 11> text_2d3b; // DS:2d3b
-      std::array<char, 14> text_2d46; // DS:2d46
-      std::array<char, 15> text_2d54; // DS:2d54
-      std::array<char, 16> text_2d63; // DS:2d63
-      std::array<char, 21> text_2d73; // DS:2d73
-      std::array<char, 7>  text_2d88; // DS:2d88
-      std::array<char, 7>  text_2d8f; // DS:2d8f
-      std::array<char, 7>  text_2d96; // DS:2d96
-      std::array<char, 7>  text_2d9d; // DS:2d9d
-      std::array<char, 8>  text_2da4; // DS:2da4
-      std::array<char, 8>  text_2dac; // DS:2dac
-      std::array<char, 7>  text_2db4; // DS:2db4
-      std::array<char, 7>  text_2dbb; // DS:2dbb
-      std::array<char, 12> text_2dc2; // DS:2dc2
-      std::array<char, 5>  text_2dce; // DS:2dce
-      std::array<char, 5>  text_2dd3; // DS:2dd3
-      std::array<char, 7>  text_2dd8; // DS:2dd8
-      std::array<char, 7>  text_2ddf; // DS:2ddf
-      std::array<char, 6>  text_2de6; // DS:2de6
-      std::array<char, 6>  text_2dec; // DS:2dec
-      std::array<char, 10> text_2df2; // DS:2df2
-      std::array<char, 7>  text_2dfc; // DS:2dfc
-      std::array<char, 5>  text_2e03; // DS:2e03
-      std::array<char, 7>  text_2e08; // DS:2e08
-      std::array<char, 7>  text_2e0f; // DS:2e0f
-      std::array<char, 7>  text_2e16; // DS:2e16
-      std::array<char, 5>  text_2e1d; // DS:2e1d
-      std::array<char, 5>  text_2e22; // DS:2e22
-      std::array<char, 7>  text_2e27; // DS:2e27
-      std::array<char, 7>  text_2e2e; // DS:2e2e
-      std::array<char, 7>  text_2e35; // DS:2e35
-      std::array<char, 5>  text_2e3c; // DS:2e3c
-      std::array<char, 5>  text_2e41; // DS:2e41
-      std::array<char, 7>  text_2e46; // DS:2e46
-      std::array<char, 8>  text_2e4d; // DS:2e4d
-      std::array<char, 7>  text_2e55; // DS:2e55
-      std::array<char, 7>  text_2e5c; // DS:2e5c
-      std::array<char, 7>  text_2e63; // DS:2e63
-      std::array<char, 7>  text_2e6a; // DS:2e6a
-      std::array<char, 7>  text_2e71; // DS:2e71
-      std::array<char, 5>  text_2e78; // DS:2e78
-      std::array<char, 5>  text_2e7d; // DS:2e7d
-      std::array<char, 5>  text_2e82; // DS:2e82
-      std::array<char, 5>  text_2e87; // DS:2e87
+      std::array<char, 6>  weather_clear;             // DS:2ce0
+      std::array<char, 7>  weather_cloudy;            // DS:2ce6
+      std::array<char, 5>  weather_rain;              // DS:2ced
+      std::array<char, 5>  weather_snow;              // DS:2cf2
+      std::array<char, 4>  weather_fog;               // DS:2cf7
+      std::array<char, 7>  weather_stormy;            // DS:2cfb
+      std::array<char, 5>  ui_side_axis;              // DS:2d02
+      std::array<char, 7>  ui_side_allied;            // DS:2d07
+      std::array<char, 4>  mask_ger;                  // DS:2d0e
+      std::array<char, 4>  mask_ity;                  // DS:2d12
+      std::array<char, 4>  mask_usa;                  // DS:2d16
+      std::array<char, 4>  mask_eng;                  // DS:2d1a
+      std::array<char, 4>  mask_frn;                  // DS:2d1e
+      std::array<char, 4>  mask_rus;                  // DS:2d22
+      std::array<char, 11> role_army_cmndr;           // DS:2d26
+      std::array<char, 10> role_ops_chief;            // DS:2d31
+      std::array<char, 11> role_intl_chief;           // DS:2d3b
+      std::array<char, 14> role_supreme_cmndr;        // DS:2d46
+      std::array<char, 15> role_chief_of_staff;       // DS:2d54
+      std::array<char, 16> role_air_force_cmndr;      // DS:2d63
+      std::array<char, 21> role_special_forces_cmndr; // DS:2d73
+      std::array<char, 7>  unit_slot_battle_1;        // DS:2d88
+      std::array<char, 7>  unit_slot_battle_2;        // DS:2d8f
+      std::array<char, 7>  unit_slot_battle_3;        // DS:2d96
+      std::array<char, 7>  unit_slot_battle_4;        // DS:2d9d
+      std::array<char, 8>  unit_slot_assault_1;       // DS:2da4
+      std::array<char, 8>  unit_slot_assault_2;       // DS:2dac
+      std::array<char, 7>  unit_slot_enginr;          // DS:2db4
+      std::array<char, 7>  unit_slot_supply;          // DS:2dbb
+      std::array<char, 12> terrain_cant_enter;        // DS:2dc2
+      std::array<char, 5>  terrain_city;              // DS:2dce
+      std::array<char, 5>  terrain_road;              // DS:2dd3
+      std::array<char, 7>  terrain_plains;            // DS:2dd8
+      std::array<char, 7>  terrain_desert;            // DS:2ddf
+      std::array<char, 6>  terrain_river;             // DS:2de6
+      std::array<char, 6>  terrain_swamp;             // DS:2dec
+      std::array<char, 10> terrain_wasteland;         // DS:2df2
+      std::array<char, 7>  terrain_forest;            // DS:2dfc
+      std::array<char, 5>  terrain_hill;              // DS:2e03
+      std::array<char, 7>  terrain_bridge;            // DS:2e08
+      std::array<char, 7>  task_capture;              // DS:2e0f
+      std::array<char, 7>  task_hold;                 // DS:2e16
+      std::array<char, 5>  task_move;                 // DS:2e1d
+      std::array<char, 5>  order_move;                // DS:2e22
+      std::array<char, 7>  order_occupy;              // DS:2e27
+      std::array<char, 7>  order_attack;              // DS:2e2e
+      std::array<char, 7>  order_defend;              // DS:2e35
+      std::array<char, 5>  order_lay_mines;           // DS:2e3c
+      std::array<char, 5>  order_clear_mines;         // DS:2e41
+      std::array<char, 7>  order_build_bridge;        // DS:2e46
+      std::array<char, 8>  order_destroy_bridge;      // DS:2e4d
+      std::array<char, 7>  order_resupply;            // DS:2e55
+      std::array<char, 7>  order_supply_unit;         // DS:2e5c
+      std::array<char, 7>  order_repair_city;         // DS:2e63
+      std::array<char, 7>  order_repair_unit;         // DS:2e6a
+      std::array<char, 7>  order_pursue;              // DS:2e71
+      std::array<char, 5>  order_rest;                // DS:2e78
+      std::array<char, 5>  supply_ammo;               // DS:2e7d
+      std::array<char, 5>  supply_fuel;               // DS:2e82
+      std::array<char, 5>  supply_food;               // DS:2e87
     };
   };
   union {
@@ -805,7 +805,7 @@ struct DataSegment {
       std::uint8_t         unknown_2e9d;      // DS:2e9d
       std::array<char, 11> end_data_name;     // DS:2e9e
       std::uint8_t         unknown_2ea9;      // DS:2ea9
-      std::array<char, 13> text_2eaa;         // DS:2eaa
+      std::array<char, 13> logo_font_file;    // DS:2eaa
       std::uint8_t         unknown_2eb7;      // DS:2eb7
       std::array<char, 11> scensel_file;      // DS:2eb8
       std::uint8_t         unknown_2ec3;      // DS:2ec3
@@ -830,9 +830,9 @@ struct DataSegment {
       std::uint8_t         unknown_2f47;      // DS:2f47
       std::array<char, 10> msgrp_filename;    // DS:2f48
       std::array<char, 10> event_file_name;   // DS:2f52
-      std::array<char, 9>  text_2f5c;         // DS:2f5c
+      std::array<char, 9>  dcom_overlay_file; // DS:2f5c
       std::uint8_t         unknown_2f65;      // DS:2f65
-      std::array<char, 8>  text_2f66;         // DS:2f66
+      std::array<char, 8>  bitmap_data_file;  // DS:2f66
     };
   };
   union {
@@ -906,14 +906,14 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 94> template_tables; // DS:32d4..3332
     struct {
-      std::array<std::uint8_t, 6>  weather_obscurity; // DS:32d4: by weather, how much it hinders battle fire
-      std::array<std::uint8_t, 24> air_cover;         // DS:32da
-      std::array<std::uint8_t, 14> battle_levels;     // DS:32f2
-      std::array<char, 14>         text_3300;         // DS:3300
-      std::array<char, 12>         text_330e;         // DS:330e
-      std::array<char, 12>         text_331a;         // DS:331a
-      std::array<char, 11>         text_3326;         // DS:3326
-      std::uint8_t                 unknown_3331;      // DS:3331
+      std::array<std::uint8_t, 6>  weather_obscurity;  // DS:32d4: by weather, how much it hinders battle fire
+      std::array<std::uint8_t, 24> air_cover;          // DS:32da
+      std::array<std::uint8_t, 14> battle_levels;      // DS:32f2
+      std::array<char, 14>         type_engineer_unit; // DS:3300
+      std::array<char, 12>         type_repair_unit;   // DS:330e
+      std::array<char, 12>         type_supply_unit;   // DS:331a
+      std::array<char, 11>         type_mechanized;    // DS:3326
+      std::uint8_t                 unknown_3331;       // DS:3331
     };
   };
   std::array<ElementType, 158> element_types;    // DS:3332
@@ -938,30 +938,30 @@ struct DataSegment {
         std::array<std::uint8_t, 66> battle_digits;
         std::array<std::uint8_t, 66> digit_glyphs; // ten 6 x 6 digits, then a blank
       };
-      std::array<std::uint8_t, 56> rotated_glyphs;      // DS:3bf2: ten 8 x 5 digits on their side, then a blank
-      std::array<char, 5>          text_3c2a;           // DS:3c2a
-      std::array<char, 7>          text_3c2f;           // DS:3c2f
-      std::array<char, 6>          text_3c36;           // DS:3c36
-      std::array<char, 9>          text_3c3c;           // DS:3c3c
-      std::array<char, 7>          text_3c45;           // DS:3c45
-      std::array<char, 5>          text_3c4c;           // DS:3c4c
-      std::array<char, 5>          text_3c51;           // DS:3c51
-      std::array<char, 6>          text_3c56;           // DS:3c56
-      std::array<char, 7>          text_3c5c;           // DS:3c5c
-      std::array<char, 6>          text_3c63;           // DS:3c63
-      std::array<char, 6>          text_3c69;           // DS:3c69
-      std::array<char, 6>          text_3c6f;           // DS:3c6f
-      std::array<char, 7>          text_3c75;           // DS:3c75
-      std::array<char, 6>          text_3c7c;           // DS:3c7c
-      std::array<char, 7>          text_3c82;           // DS:3c82
-      std::array<char, 9>          text_3c89;           // DS:3c89
-      std::array<char, 7>          text_3c92;           // DS:3c92
-      std::uint8_t                 battle_ai_side;      // DS:3c99
-      std::uint8_t                 battle_active_side;  // DS:3c9a
-      std::uint8_t                 battle_active_group; // DS:3c9b
-      std::uint8_t                 battle_ai_index;     // DS:3c9c
-      std::uint8_t                 deploy_row;          // DS:3c9d
-      union {                                           // DS:3c9e
+      std::array<std::uint8_t, 56> rotated_glyphs;          // DS:3bf2: ten 8 x 5 digits on their side, then a blank
+      std::array<char, 5>          battle_order_move;       // DS:3c2a
+      std::array<char, 7>          battle_order_attack;     // DS:3c2f
+      std::array<char, 6>          battle_order_blitz;      // DS:3c36
+      std::array<char, 9>          battle_order_withdraw;   // DS:3c3c
+      std::array<char, 7>          battle_order_defend;     // DS:3c45
+      std::array<char, 5>          battle_order_wait;       // DS:3c4c
+      std::array<char, 5>          battle_terrain_road;     // DS:3c51
+      std::array<char, 6>          battle_terrain_plain;    // DS:3c56
+      std::array<char, 7>          battle_terrain_desert;   // DS:3c5c
+      std::array<char, 6>          battle_terrain_river;    // DS:3c63
+      std::array<char, 6>          battle_terrain_swamp;    // DS:3c69
+      std::array<char, 6>          battle_terrain_rough;    // DS:3c6f
+      std::array<char, 7>          battle_terrain_forest;   // DS:3c75
+      std::array<char, 6>          battle_terrain_hills;    // DS:3c7c
+      std::array<char, 7>          battle_terrain_bridge;   // DS:3c82
+      std::array<char, 9>          battle_terrain_building; // DS:3c89
+      std::array<char, 7>          battle_terrain_bunker;   // DS:3c92
+      std::uint8_t                 battle_ai_side;          // DS:3c99
+      std::uint8_t                 battle_active_side;      // DS:3c9a
+      std::uint8_t                 battle_active_group;     // DS:3c9b
+      std::uint8_t                 battle_ai_index;         // DS:3c9c
+      std::uint8_t                 deploy_row;              // DS:3c9d
+      union {                                               // DS:3c9e
         std::uint16_t battle_hq_intact[2];
         std::uint16_t battle_panel_shown[2];
       };
@@ -1081,157 +1081,157 @@ struct DataSegment {
         std::uint16_t               shown_portrait;
         std::array<std::uint8_t, 2> shown_portrait_bytes;
       };
-      ListWindow                   play_dialog;               // DS:4602: the generals' list of the play screen
-      std::uint8_t                 bytes_4615;                // DS:4615
-      ListWindow                   reinforce_dialog;          // DS:4616: the generals' list of the reinforcement screen
-      std::array<char, 10>         division_reserve_mark;     // DS:4629
-      std::uint8_t                 empty_suffix;              // DS:4633
-      std::array<char, 31>         division_strength_format;  // DS:4634
-      std::array<char, 16>         chief_ops_format;          // DS:4653
-      std::array<char, 38>         chief_ops_prompt;          // DS:4663
-      std::array<char, 16>         chief_intel_format;        // DS:4689
-      std::array<char, 39>         chief_intel_prompt;        // DS:4699
-      std::array<char, 16>         division_format;           // DS:46c0
-      std::array<char, 14>         division_short_format;     // DS:46d0
-      std::array<char, 16>         division_long_format;      // DS:46de
-      std::array<char, 16>         role_prompt;               // DS:46ee
-      std::array<char, 30>         division_prompt;           // DS:46fe
-      std::array<char, 41>         general_header;            // DS:471c
-      std::array<char, 9>          general_name_format;       // DS:4745
-      std::array<char, 46>         general_stats_format;      // DS:474e
-      std::array<char, 14>         text_477c;                 // DS:477c
-      std::array<char, 16>         text_478a;                 // DS:478a
-      std::array<char, 9>          side_title_format;         // DS:479a
-      std::uint8_t                 unknown_47a3;              // DS:47a3
-      std::uint16_t                side_titles[2];            // DS:47a4
-      std::array<std::uint8_t, 23> reinforce_title;           // DS:47a8
-      std::array<char, 90>         reinforce_mouse_help;      // DS:47bf
-      std::array<char, 87>         reinforce_key_help;        // DS:4819
-      std::array<char, 20>         play_prompt;               // DS:4870
-      std::array<char, 20>         use_generals_prompt;       // DS:4884
-      std::array<char, 16>         scenario_message_format;   // DS:4898
-      std::array<std::uint8_t, 2>  unknown_48a8;              // DS:48a8
-      std::array<char, 10>         text_48aa;                 // DS:48aa
-      std::array<char, 12>         text_48b4;                 // DS:48b4
-      std::array<char, 11>         text_48c0;                 // DS:48c0
-      std::array<char, 12>         text_48cb;                 // DS:48cb
-      std::array<char, 13>         text_48d7;                 // DS:48d7
-      std::array<char, 12>         text_48e4;                 // DS:48e4
-      std::array<char, 10>         text_48f0;                 // DS:48f0
-      std::array<char, 11>         text_48fa;                 // DS:48fa
-      std::array<char, 12>         text_4905;                 // DS:4905
-      std::array<char, 15>         text_4911;                 // DS:4911
-      std::array<char, 13>         text_4920;                 // DS:4920
-      std::array<char, 6>          text_492d;                 // DS:492d
-      std::array<char, 12>         text_4933;                 // DS:4933
-      std::array<char, 19>         text_493f;                 // DS:493f
-      std::array<char, 11>         text_4952;                 // DS:4952
-      std::array<char, 6>          text_495d;                 // DS:495d
-      std::array<char, 9>          text_4963;                 // DS:4963
-      std::array<char, 6>          text_496c;                 // DS:496c
-      std::array<char, 11>         text_4972;                 // DS:4972
-      std::array<char, 20>         text_497d;                 // DS:497d
-      std::array<char, 29>         text_4991;                 // DS:4991
-      std::array<char, 29>         text_49ae;                 // DS:49ae
-      std::array<char, 19>         text_49cb;                 // DS:49cb
-      std::array<char, 25>         text_49de;                 // DS:49de
-      std::array<char, 23>         text_49f7;                 // DS:49f7
-      std::array<char, 10>         scensel_colors;            // DS:4a0e
-      std::uint8_t                 scensel_empty;             // DS:4a18
-      std::array<char, 21>         scensel_france;            // DS:4a19
-      std::array<char, 26>         scensel_africa;            // DS:4a2e
-      std::array<char, 18>         scensel_kursk;             // DS:4a48
-      std::array<char, 17>         scensel_dday;              // DS:4a5a
-      std::array<char, 22>         scensel_bulge;             // DS:4a6b
-      std::array<char, 17>         scensel_berlin;            // DS:4a81
-      std::array<char, 17>         scensel_demo;              // DS:4a92
-      std::array<char, 20>         scensel_view_format;       // DS:4aa3
-      std::array<char, 16>         scensel_view_line;         // DS:4ab7
-      std::array<char, 29>         scensel_one_player;        // DS:4ac7
-      std::array<char, 20>         scensel_command_format;    // DS:4ae4
-      std::array<char, 19>         scensel_command_line;      // DS:4af8
-      std::array<char, 30>         scensel_two_players;       // DS:4b0b
-      std::array<char, 8>          scensel_aerial;            // DS:4b29
-      std::array<char, 8>          scensel_field;             // DS:4b31
-      std::array<char, 21>         scensel_map_format;        // DS:4b39
-      std::array<char, 19>         scensel_map_line;          // DS:4b4e
-      std::array<char, 23>         scensel_view_all;          // DS:4b61
-      std::array<char, 23>         scensel_view_none;         // DS:4b78
-      std::array<char, 23>         scensel_view_selected;     // DS:4b8f
-      std::array<char, 19>         scensel_battles_line;      // DS:4ba6
-      std::array<char, 19>         scensel_difficulty;        // DS:4bb9
-      std::array<char, 10>         scensel_very_easy;         // DS:4bcc
-      std::array<char, 10>         scensel_easy;              // DS:4bd6
-      std::array<char, 10>         scensel_average;           // DS:4be0
-      std::array<char, 10>         scensel_hard;              // DS:4bea
-      std::array<char, 10>         scensel_very_hard;         // DS:4bf4
-      std::array<char, 19>         scensel_difficulty_line;   // DS:4bfe
-      std::array<char, 21>         scensel_settings_ok;       // DS:4c11
-      std::array<char, 34>         scensel_reselect;          // DS:4c26
-      std::array<char, 35>         scensel_ready_demo;        // DS:4c48
-      std::array<char, 7>          scensel_ready_colors;      // DS:4c6b
-      std::array<char, 7>          scensel_load_colors;       // DS:4c72
-      std::array<char, 29>         scensel_ready_blank;       // DS:4c79
-      std::array<char, 27>         scensel_ready;             // DS:4c96
-      std::array<char, 10>         scensel_done_colors;       // DS:4cb1
-      std::uint8_t                 unknown_4cbb;              // DS:4cbb
-      std::array<MenuItem, 3>      scensel_start_menu;        // DS:4cbc
-      std::array<char, 32>         scensel_start_prompt;      // DS:4ce0
-      std::array<MenuItem, 4>      scensel_players_menu;      // DS:4d00
-      std::array<char, 24>         scensel_players_prompt;    // DS:4d30
-      std::array<char, 32>         scensel_view_prompt;       // DS:4d48
-      std::array<MenuItem, 3>      scensel_side_menu;         // DS:4d68
-      std::array<char, 35>         scensel_command_prompt;    // DS:4d8c
-      std::uint8_t                 unknown_4daf;              // DS:4daf
-      std::array<MenuItem, 3>      scensel_map_menu;          // DS:4db0
-      std::array<char, 30>         scensel_map_prompt;        // DS:4dd4
-      std::array<MenuItem, 3>      scensel_battles_menu;      // DS:4df2
-      std::array<char, 21>         scensel_battles_prompt;    // DS:4e16
-      std::uint8_t                 unknown_4e2b;              // DS:4e2b
-      std::array<MenuItem, 4>      scensel_battles_menu2;     // DS:4e2c
-      std::array<char, 21>         scensel_battles_prompt2;   // DS:4e5c
-      std::uint8_t                 unknown_4e71;              // DS:4e71
-      std::array<MenuItem, 6>      scensel_difficulty_menu;   // DS:4e72
-      std::array<char, 30>         scensel_difficulty_prompt; // DS:4eba
-      std::array<MenuItem, 7>      scensel_scenario_menu;     // DS:4ed8
-      std::array<char, 36>         scensel_scenario_prompt;   // DS:4f2c
-      std::uint16_t                scensel_pictures[7];       // DS:4f50
-      std::array<char, 67>         memory_message;            // DS:4f5e
-      std::array<char, 72>         memory_advice;             // DS:4fa1
-      std::array<char, 28>         memory_exit;               // DS:4fe9
-      std::array<char, 8>          setup_name_bmapseg;        // DS:5005
-      std::array<char, 9>          setup_name_hunitseg;       // DS:500d
-      std::array<char, 7>          setup_name_grpseg;         // DS:5016
-      std::array<char, 10>         setup_name_ms_winseg;      // DS:501d
-      std::array<char, 5>          setup_name_vseg;           // DS:5027
-      std::array<char, 9>          setup_name_hdispseg;       // DS:502c
-      std::array<char, 8>          setup_name_armsseg;        // DS:5035
-      std::array<char, 7>          setup_name_kaoseg;         // DS:503d
-      std::array<char, 9>          setup_name_mdispseg;       // DS:5044
-      std::array<char, 7>          setup_name_ms_seg;         // DS:504d
-      std::array<char, 9>          setup_name_hfontseg;       // DS:5054
-      std::array<char, 8>          setup_name_mmapseg;        // DS:505d
-      std::uint8_t                 unknown_5065;              // DS:5065
-      std::array<std::uint8_t, 48> end_palette;               // DS:5066
-      std::array<std::uint8_t, 43> end_palette_final;         // DS:5096
-      std::array<char, 5>          text_50c1;                 // DS:50c1
-      std::array<std::uint8_t, 12> end_text_format;           // DS:50c6
-      std::array<char, 11>         end_picture_name;          // DS:50d2
-      std::array<char, 27>         end_salute;                // DS:50dd
-      std::array<FarPointer, 4>    end_victory_texts;         // DS:50f8: by elimination, then by rank 1..3
-      std::array<FarPointer, 4>    end_defeat_texts;          // DS:5108: by the outcome reason
-      std::array<char, 8>          name_bmapseg;              // DS:5118
-      std::array<char, 8>          name_mmapseg;              // DS:5120
-      std::array<char, 9>          name_hdispseg;             // DS:5128
-      std::array<char, 9>          name_hunitseg;             // DS:5131
-      std::array<char, 7>          name_grpseg;               // DS:513a
-      std::array<char, 10>         name_ms_winseg;            // DS:5141
-      std::array<char, 7>          name_ms_seg;               // DS:514b
-      std::array<char, 9>          name_hfontseg;             // DS:5152
-      std::array<char, 5>          name_vseg;                 // DS:515b
-      std::array<char, 7>          name_kaoseg;               // DS:5160
-      std::array<char, 8>          name_armsseg;              // DS:5167
-      std::array<std::uint8_t, 8>  name_mdispseg;             // DS:516f
+      ListWindow                   play_dialog;                            // DS:4602: the generals' list of the play screen
+      std::uint8_t                 bytes_4615;                             // DS:4615
+      ListWindow                   reinforce_dialog;                       // DS:4616: the generals' list of the reinforcement screen
+      std::array<char, 10>         division_reserve_mark;                  // DS:4629
+      std::uint8_t                 empty_suffix;                           // DS:4633
+      std::array<char, 31>         division_strength_format;               // DS:4634
+      std::array<char, 16>         chief_ops_format;                       // DS:4653
+      std::array<char, 38>         chief_ops_prompt;                       // DS:4663
+      std::array<char, 16>         chief_intel_format;                     // DS:4689
+      std::array<char, 39>         chief_intel_prompt;                     // DS:4699
+      std::array<char, 16>         division_format;                        // DS:46c0
+      std::array<char, 14>         division_short_format;                  // DS:46d0
+      std::array<char, 16>         division_long_format;                   // DS:46de
+      std::array<char, 16>         role_prompt;                            // DS:46ee
+      std::array<char, 30>         division_prompt;                        // DS:46fe
+      std::array<char, 41>         general_header;                         // DS:471c
+      std::array<char, 9>          general_name_format;                    // DS:4745
+      std::array<char, 46>         general_stats_format;                   // DS:474e
+      std::array<char, 14>         side_title_the_axis_army;               // DS:477c
+      std::array<char, 16>         side_title_the_allied_army;             // DS:478a
+      std::array<char, 9>          side_title_format;                      // DS:479a
+      std::uint8_t                 unknown_47a3;                           // DS:47a3
+      std::uint16_t                side_titles[2];                         // DS:47a4
+      std::array<std::uint8_t, 23> reinforce_title;                        // DS:47a8
+      std::array<char, 90>         reinforce_mouse_help;                   // DS:47bf
+      std::array<char, 87>         reinforce_key_help;                     // DS:4819
+      std::array<char, 20>         play_prompt;                            // DS:4870
+      std::array<char, 20>         use_generals_prompt;                    // DS:4884
+      std::array<char, 16>         scenario_message_format;                // DS:4898
+      std::array<std::uint8_t, 2>  unknown_48a8;                           // DS:48a8
+      std::array<char, 10>         scensel_start_new_game;                 // DS:48aa
+      std::array<char, 12>         scensel_start_load_game;                // DS:48b4
+      std::array<char, 11>         scensel_players_demo_mode;              // DS:48c0
+      std::array<char, 12>         scensel_players_one_player;             // DS:48cb
+      std::array<char, 13>         scensel_players_two_players;            // DS:48d7
+      std::array<char, 12>         scensel_side_the_allies;                // DS:48e4
+      std::array<char, 10>         scensel_side_the_axis;                  // DS:48f0
+      std::array<char, 11>         scensel_map_field_map;                  // DS:48fa
+      std::array<char, 12>         scensel_map_aerial_map;                 // DS:4905
+      std::array<char, 15>         scensel_battles_view_battles;           // DS:4911
+      std::array<char, 13>         scensel_battles_dont_view;              // DS:4920
+      std::array<char, 6>          scensel_battles_menu2_view;             // DS:492d
+      std::array<char, 12>         scensel_battles_menu2_dont_view;        // DS:4933
+      std::array<char, 19>         scensel_battles_menu2_choose_at_battle; // DS:493f
+      std::array<char, 11>         scensel_difficulty_very_easy;           // DS:4952
+      std::array<char, 6>          scensel_difficulty_easy;                // DS:495d
+      std::array<char, 9>          scensel_difficulty_average;             // DS:4963
+      std::array<char, 6>          scensel_difficulty_hard;                // DS:496c
+      std::array<char, 11>         scensel_difficulty_very_hard;           // DS:4972
+      std::array<char, 20>         scensel_scenario_invasion_of_france;    // DS:497d
+      std::array<char, 29>         scensel_scenario_the_battle_for_north;  // DS:4991
+      std::array<char, 29>         scensel_scenario_the_armored_battle_at; // DS:49ae
+      std::array<char, 19>         scensel_scenario_d_day_at_normandy;     // DS:49cb
+      std::array<char, 25>         scensel_scenario_the_battle_of_the;     // DS:49de
+      std::array<char, 23>         scensel_scenario_the_battle_for_berlin; // DS:49f7
+      std::array<char, 10>         scensel_colors;                         // DS:4a0e
+      std::uint8_t                 scensel_empty;                          // DS:4a18
+      std::array<char, 21>         scensel_france;                         // DS:4a19
+      std::array<char, 26>         scensel_africa;                         // DS:4a2e
+      std::array<char, 18>         scensel_kursk;                          // DS:4a48
+      std::array<char, 17>         scensel_dday;                           // DS:4a5a
+      std::array<char, 22>         scensel_bulge;                          // DS:4a6b
+      std::array<char, 17>         scensel_berlin;                         // DS:4a81
+      std::array<char, 17>         scensel_demo;                           // DS:4a92
+      std::array<char, 20>         scensel_view_format;                    // DS:4aa3
+      std::array<char, 16>         scensel_view_line;                      // DS:4ab7
+      std::array<char, 29>         scensel_one_player;                     // DS:4ac7
+      std::array<char, 20>         scensel_command_format;                 // DS:4ae4
+      std::array<char, 19>         scensel_command_line;                   // DS:4af8
+      std::array<char, 30>         scensel_two_players;                    // DS:4b0b
+      std::array<char, 8>          scensel_aerial;                         // DS:4b29
+      std::array<char, 8>          scensel_field;                          // DS:4b31
+      std::array<char, 21>         scensel_map_format;                     // DS:4b39
+      std::array<char, 19>         scensel_map_line;                       // DS:4b4e
+      std::array<char, 23>         scensel_view_all;                       // DS:4b61
+      std::array<char, 23>         scensel_view_none;                      // DS:4b78
+      std::array<char, 23>         scensel_view_selected;                  // DS:4b8f
+      std::array<char, 19>         scensel_battles_line;                   // DS:4ba6
+      std::array<char, 19>         scensel_difficulty;                     // DS:4bb9
+      std::array<char, 10>         scensel_very_easy;                      // DS:4bcc
+      std::array<char, 10>         scensel_easy;                           // DS:4bd6
+      std::array<char, 10>         scensel_average;                        // DS:4be0
+      std::array<char, 10>         scensel_hard;                           // DS:4bea
+      std::array<char, 10>         scensel_very_hard;                      // DS:4bf4
+      std::array<char, 19>         scensel_difficulty_line;                // DS:4bfe
+      std::array<char, 21>         scensel_settings_ok;                    // DS:4c11
+      std::array<char, 34>         scensel_reselect;                       // DS:4c26
+      std::array<char, 35>         scensel_ready_demo;                     // DS:4c48
+      std::array<char, 7>          scensel_ready_colors;                   // DS:4c6b
+      std::array<char, 7>          scensel_load_colors;                    // DS:4c72
+      std::array<char, 29>         scensel_ready_blank;                    // DS:4c79
+      std::array<char, 27>         scensel_ready;                          // DS:4c96
+      std::array<char, 10>         scensel_done_colors;                    // DS:4cb1
+      std::uint8_t                 unknown_4cbb;                           // DS:4cbb
+      std::array<MenuItem, 3>      scensel_start_menu;                     // DS:4cbc
+      std::array<char, 32>         scensel_start_prompt;                   // DS:4ce0
+      std::array<MenuItem, 4>      scensel_players_menu;                   // DS:4d00
+      std::array<char, 24>         scensel_players_prompt;                 // DS:4d30
+      std::array<char, 32>         scensel_view_prompt;                    // DS:4d48
+      std::array<MenuItem, 3>      scensel_side_menu;                      // DS:4d68
+      std::array<char, 35>         scensel_command_prompt;                 // DS:4d8c
+      std::uint8_t                 unknown_4daf;                           // DS:4daf
+      std::array<MenuItem, 3>      scensel_map_menu;                       // DS:4db0
+      std::array<char, 30>         scensel_map_prompt;                     // DS:4dd4
+      std::array<MenuItem, 3>      scensel_battles_menu;                   // DS:4df2
+      std::array<char, 21>         scensel_battles_prompt;                 // DS:4e16
+      std::uint8_t                 unknown_4e2b;                           // DS:4e2b
+      std::array<MenuItem, 4>      scensel_battles_menu2;                  // DS:4e2c
+      std::array<char, 21>         scensel_battles_prompt2;                // DS:4e5c
+      std::uint8_t                 unknown_4e71;                           // DS:4e71
+      std::array<MenuItem, 6>      scensel_difficulty_menu;                // DS:4e72
+      std::array<char, 30>         scensel_difficulty_prompt;              // DS:4eba
+      std::array<MenuItem, 7>      scensel_scenario_menu;                  // DS:4ed8
+      std::array<char, 36>         scensel_scenario_prompt;                // DS:4f2c
+      std::uint16_t                scensel_pictures[7];                    // DS:4f50
+      std::array<char, 67>         memory_message;                         // DS:4f5e
+      std::array<char, 72>         memory_advice;                          // DS:4fa1
+      std::array<char, 28>         memory_exit;                            // DS:4fe9
+      std::array<char, 8>          setup_name_bmapseg;                     // DS:5005
+      std::array<char, 9>          setup_name_hunitseg;                    // DS:500d
+      std::array<char, 7>          setup_name_grpseg;                      // DS:5016
+      std::array<char, 10>         setup_name_ms_winseg;                   // DS:501d
+      std::array<char, 5>          setup_name_vseg;                        // DS:5027
+      std::array<char, 9>          setup_name_hdispseg;                    // DS:502c
+      std::array<char, 8>          setup_name_armsseg;                     // DS:5035
+      std::array<char, 7>          setup_name_kaoseg;                      // DS:503d
+      std::array<char, 9>          setup_name_mdispseg;                    // DS:5044
+      std::array<char, 7>          setup_name_ms_seg;                      // DS:504d
+      std::array<char, 9>          setup_name_hfontseg;                    // DS:5054
+      std::array<char, 8>          setup_name_mmapseg;                     // DS:505d
+      std::uint8_t                 unknown_5065;                           // DS:5065
+      std::array<std::uint8_t, 48> end_palette;                            // DS:5066
+      std::array<std::uint8_t, 43> end_palette_final;                      // DS:5096
+      std::array<char, 5>          end_palette_final_tail;                 // DS:50c1
+      std::array<std::uint8_t, 12> end_text_format;                        // DS:50c6
+      std::array<char, 11>         end_picture_name;                       // DS:50d2
+      std::array<char, 27>         end_salute;                             // DS:50dd
+      std::array<FarPointer, 4>    end_victory_texts;                      // DS:50f8: by elimination, then by rank 1..3
+      std::array<FarPointer, 4>    end_defeat_texts;                       // DS:5108: by the outcome reason
+      std::array<char, 8>          name_bmapseg;                           // DS:5118
+      std::array<char, 8>          name_mmapseg;                           // DS:5120
+      std::array<char, 9>          name_hdispseg;                          // DS:5128
+      std::array<char, 9>          name_hunitseg;                          // DS:5131
+      std::array<char, 7>          name_grpseg;                            // DS:513a
+      std::array<char, 10>         name_ms_winseg;                         // DS:5141
+      std::array<char, 7>          name_ms_seg;                            // DS:514b
+      std::array<char, 9>          name_hfontseg;                          // DS:5152
+      std::array<char, 5>          name_vseg;                              // DS:515b
+      std::array<char, 7>          name_kaoseg;                            // DS:5160
+      std::array<char, 8>          name_armsseg;                           // DS:5167
+      std::array<std::uint8_t, 8>  name_mdispseg;                          // DS:516f
     };
   };
   std::array<std::uint8_t, 13> calendar_days; // DS:5177
@@ -1254,7 +1254,7 @@ struct DataSegment {
       std::array<std::uint8_t, 24> palette_night;          // DS:528e
       std::array<std::uint8_t, 48> palette_title;          // DS:52a6
       std::array<std::uint8_t, 43> palette_map;            // DS:52d6
-      std::array<char, 5>          text_5301;              // DS:5301
+      std::array<char, 5>          palette_map_tail;       // DS:5301
       std::array<std::uint8_t, 48> general_stats_line;     // DS:5306
       std::array<char, 54>         div_commander_prompt;   // DS:5336
     };
@@ -1269,254 +1269,254 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 2102> label_text; // DS:537c..5bb2
     struct {
-      std::array<char, 7>          unit_name_format;       // DS:537c
-      std::array<char, 6>          type_name_suffix;       // DS:5383
-      std::uint8_t                 item_name_suffix;       // DS:5389
-      std::array<char, 8>          location_name_format;   // DS:538a
-      std::array<std::uint8_t, 4>  deputy_identity_ranges; // DS:5392
-      std::array<char, 12>         deputy_name;            // DS:5396
-      std::array<char, 27>         army_out;               // DS:53a2
-      std::array<char, 52>         army_row0;              // DS:53bd
-      std::array<char, 49>         army_row1;              // DS:53f1
-      std::array<char, 49>         army_row2;              // DS:5422
-      std::array<char, 33>         army_row3;              // DS:5453
-      std::array<char, 39>         army_row4;              // DS:5474
-      std::array<char, 37>         army_row5;              // DS:549b
-      std::array<char, 20>         army_hq;                // DS:54c0
-      std::array<char, 12>         army_person_format;     // DS:54d4
-      std::array<char, 8>          army_hq_label;          // DS:54e0
-      std::array<char, 15>         division_label_format;  // DS:54e8
-      std::array<char, 12>         division_person_format; // DS:54f7
-      std::array<char, 6>          panel_name_format;      // DS:5503
-      std::array<char, 11>         panel_count_format;     // DS:5509
-      std::array<char, 8>          text_5514;              // DS:5514
-      std::array<char, 8>          text_551c;              // DS:551c
-      std::array<char, 9>          text_5524;              // DS:5524
-      std::array<char, 7>          text_552d;              // DS:552d
-      std::array<char, 17>         panel_regiment_format;  // DS:5534
-      std::array<char, 7>          panel_battle;           // DS:5545
-      std::array<char, 3>          panel_string_format;    // DS:554c
-      std::uint8_t                 unknown_554f;           // DS:554f
-      std::array<std::uint16_t, 4> panel_regiment_names;   // DS:5550: the names of regiments 5-8 of a division
-      std::array<std::uint8_t, 36> credits_title;          // DS:5558
-      std::array<char, 28>         credits_main;           // DS:557c
-      std::array<char, 33>         credits_support;        // DS:5598
-      std::array<char, 58>         credits_translation;    // DS:55b9
-      std::uint8_t                 unknown_55f3;           // DS:55f3
-      std::array<char, 38>         tbl_group_header;       // DS:55f4
-      std::array<char, 3>          tbl_group_title;        // DS:561a
-      std::array<char, 4>          tbl_group_mark;         // DS:561d
-      std::array<char, 18>         tbl_group_division;     // DS:5621
-      std::array<char, 10>         tbl_group_empty;        // DS:5633
-      std::array<char, 6>          tbl_group_div;          // DS:563d
-      std::array<char, 7>          tbl_group_army;         // DS:5643
-      std::array<char, 38>         tbl_group_row;          // DS:564a
-      std::array<char, 39>         tbl_group_blank;        // DS:5670
-      std::array<char, 7>          division_widths;        // DS:5697
-      std::array<char, 10>         tbl_mission_header;     // DS:569e
-      std::array<char, 14>         tbl_mission_label;      // DS:56a8
-      std::array<char, 17>         tbl_mission_place;      // DS:56b6
-      std::array<char, 10>         tbl_mission_target;     // DS:56c7
-      std::array<char, 8>          tbl_mission_row;        // DS:56d1
-      std::array<char, 38>         tbl_mission_blank;      // DS:56d9
-      std::uint8_t                 unknown_56ff;           // DS:56ff
-      ListWindow                   division_dialog;        // DS:5700: the list of the side's divisions
-      std::array<std::uint8_t, 3>  order_target_widths;    // DS:5713
-      std::array<char, 47>         tbl_unit_header;        // DS:5716
-      std::array<char, 4>          tbl_unit_mark;          // DS:5745
-      std::array<char, 11>         tbl_unit_label;         // DS:5749
-      std::array<char, 13>         tbl_unit_empty;         // DS:5754
-      std::array<char, 48>         tbl_unit_blank;         // DS:5761
-      std::array<char, 5>          tbl_unit_wait;          // DS:5791
-      std::array<char, 42>         tbl_unit_row;           // DS:5796
-      std::array<char, 45>         tbl_unit_hidden;        // DS:57c0
-      std::uint8_t                 unknown_57ed;           // DS:57ed
-      ListWindow                   order_target_list;      // DS:57ee: the list of a division's objective tasks
-      std::array<std::uint8_t, 8>  organize_widths;        // DS:5801
-      std::array<char, 51>         tbl_order_header;       // DS:5809
-      std::array<char, 11>         tbl_order_label;        // DS:583c
-      std::uint8_t                 unknown_5847;           // DS:5847
-      ListWindow                   organize_list;          // DS:5848: the list of a division's regiments
-      std::array<std::uint8_t, 8>  regiment_widths;        // DS:585b
-      std::array<char, 30>         tbl_element_header;     // DS:5863
-      std::array<char, 4>          tbl_element_mark;       // DS:5881
-      std::array<char, 10>         tbl_element_name;       // DS:5885
-      std::array<char, 31>         tbl_element_row;        // DS:588f
-      ListWindow                   regiment_dialog;        // DS:58ae: the regiment choice list
-      std::array<std::uint8_t, 7>  choice_widths;          // DS:58c1
-      std::array<char, 5>          text_58c8;              // DS:58c8
-      std::array<char, 5>          text_58cd;              // DS:58cd
-      std::array<char, 5>          text_58d2;              // DS:58d2
-      std::array<char, 5>          text_58d7;              // DS:58d7
-      std::array<char, 6>          text_58dc;              // DS:58dc
-      std::array<char, 6>          text_58e2;              // DS:58e2
-      std::array<char, 6>          text_58e8;              // DS:58e8
-      std::array<char, 9>          tbl_person_name;        // DS:58ee
-      std::array<char, 5>          tbl_person_blank;       // DS:58f7
-      std::array<char, 5>          tbl_person_rest;        // DS:58fc
-      std::array<char, 5>          tbl_person_hurt;        // DS:5901
-      ListWindow                   choice_dialog;          // DS:5906: the element choice list
-      std::array<std::uint8_t, 1>  bytes_5919;             // DS:5919
-      std::uint16_t                tbl_post_names[7];      // DS:591a: Div1..Div4, then the staff posts Cmdr, Ops, Intl
-      std::array<std::uint8_t, 13> people_widths;          // DS:5928
-      std::array<char, 39>         tbl_type_header;        // DS:5935
-      std::array<char, 9>          tbl_type_name;          // DS:595c
-      std::array<char, 37>         tbl_type_row;           // DS:5965
-      ListWindow                   people_dialog;          // DS:598a: the list of generals
-      std::array<char, 8>          weapons_widths;         // DS:599d
-      std::array<std::uint8_t, 48> tbl_supply_header;      // DS:59a5
-      std::array<char, 9>          tbl_supply_name;        // DS:59d5
-      std::array<char, 47>         tbl_supply_row;         // DS:59de
-      std::array<char, 48>         tbl_supply_blank;       // DS:5a0d
-      std::uint8_t                 unknown_5a3d;           // DS:5a3d
-      ListWindow                   weapons_dialog;         // DS:5a3e: the list of equipment types
-      std::array<std::uint8_t, 6>  city_widths;            // DS:5a51
-      std::array<char, 13>         tbl_str_header;         // DS:5a57
-      std::array<char, 8>          tbl_str_name;           // DS:5a64
-      std::array<char, 11>         tbl_str_row;            // DS:5a6c
-      std::uint8_t                 unknown_5a77;           // DS:5a77
-      ListWindow                   city_dialog;            // DS:5a78: the list of the side's cities (core/vwcity, core/stockord)
-      std::array<std::uint8_t, 4>  stock_widths;           // DS:5a8b
-      std::array<std::uint8_t, 7>  save_widths;            // DS:5a8f
-      ListWindow                   stock_dialog;           // DS:5a96: the list of a city's stocks
-      std::uint8_t                 unknown_5aa9;           // DS:5aa9
-      ListWindow                   save_list;              // DS:5aaa: the saved-game list
-      std::array<char, 9>          text_5abd;              // DS:5abd
-      std::array<char, 9>          text_5ac6;              // DS:5ac6
-      std::array<char, 54>         tbl_save_header;        // DS:5acf
-      std::array<char, 7>          tbl_save_number;        // DS:5b05
-      std::array<char, 7>          tbl_map_france;         // DS:5b0c
-      std::array<char, 7>          tbl_map_africa;         // DS:5b13
-      std::array<char, 7>          tbl_map_kursk;          // DS:5b1a
-      std::array<char, 7>          tbl_map_dday;           // DS:5b21
-      std::array<char, 7>          tbl_map_bulge;          // DS:5b28
-      std::array<char, 7>          tbl_map_berlin;         // DS:5b2f
-      std::array<char, 7>          tbl_level_veasy;        // DS:5b36
-      std::array<char, 7>          tbl_level_easy;         // DS:5b3d
-      std::array<char, 7>          tbl_level_avg;          // DS:5b44
-      std::array<char, 7>          tbl_level_hard;         // DS:5b4b
-      std::array<char, 7>          tbl_level_vhard;        // DS:5b52
-      std::array<char, 42>         tbl_save_row;           // DS:5b59
-      std::uint8_t                 unknown_5b83;           // DS:5b83
-      std::uint16_t                tbl_player_names[2];    // DS:5b84
-      std::uint8_t                 music_current;          // DS:5b88
-      std::uint8_t                 effect_current;         // DS:5b89
-      std::array<std::uint8_t, 26> music_bank;             // DS:5b8a
-      std::array<std::uint8_t, 14> music_path;             // DS:5ba4
+      std::array<char, 7>          unit_name_format;         // DS:537c
+      std::array<char, 6>          type_name_suffix;         // DS:5383
+      std::uint8_t                 item_name_suffix;         // DS:5389
+      std::array<char, 8>          location_name_format;     // DS:538a
+      std::array<std::uint8_t, 4>  deputy_identity_ranges;   // DS:5392
+      std::array<char, 12>         deputy_name;              // DS:5396
+      std::array<char, 27>         army_out;                 // DS:53a2
+      std::array<char, 52>         army_row0;                // DS:53bd
+      std::array<char, 49>         army_row1;                // DS:53f1
+      std::array<char, 49>         army_row2;                // DS:5422
+      std::array<char, 33>         army_row3;                // DS:5453
+      std::array<char, 39>         army_row4;                // DS:5474
+      std::array<char, 37>         army_row5;                // DS:549b
+      std::array<char, 20>         army_hq;                  // DS:54c0
+      std::array<char, 12>         army_person_format;       // DS:54d4
+      std::array<char, 8>          army_hq_label;            // DS:54e0
+      std::array<char, 15>         division_label_format;    // DS:54e8
+      std::array<char, 12>         division_person_format;   // DS:54f7
+      std::array<char, 6>          panel_name_format;        // DS:5503
+      std::array<char, 11>         panel_count_format;       // DS:5509
+      std::array<char, 8>          panel_regiment_assault_1; // DS:5514
+      std::array<char, 8>          panel_regiment_assault_2; // DS:551c
+      std::array<char, 9>          panel_regiment_engineer;  // DS:5524
+      std::array<char, 7>          panel_regiment_supply;    // DS:552d
+      std::array<char, 17>         panel_regiment_format;    // DS:5534
+      std::array<char, 7>          panel_battle;             // DS:5545
+      std::array<char, 3>          panel_string_format;      // DS:554c
+      std::uint8_t                 unknown_554f;             // DS:554f
+      std::array<std::uint16_t, 4> panel_regiment_names;     // DS:5550: the names of regiments 5-8 of a division
+      std::array<std::uint8_t, 36> credits_title;            // DS:5558
+      std::array<char, 28>         credits_main;             // DS:557c
+      std::array<char, 33>         credits_support;          // DS:5598
+      std::array<char, 58>         credits_translation;      // DS:55b9
+      std::uint8_t                 unknown_55f3;             // DS:55f3
+      std::array<char, 38>         tbl_group_header;         // DS:55f4
+      std::array<char, 3>          tbl_group_title;          // DS:561a
+      std::array<char, 4>          tbl_group_mark;           // DS:561d
+      std::array<char, 18>         tbl_group_division;       // DS:5621
+      std::array<char, 10>         tbl_group_empty;          // DS:5633
+      std::array<char, 6>          tbl_group_div;            // DS:563d
+      std::array<char, 7>          tbl_group_army;           // DS:5643
+      std::array<char, 38>         tbl_group_row;            // DS:564a
+      std::array<char, 39>         tbl_group_blank;          // DS:5670
+      std::array<char, 7>          division_widths;          // DS:5697
+      std::array<char, 10>         tbl_mission_header;       // DS:569e
+      std::array<char, 14>         tbl_mission_label;        // DS:56a8
+      std::array<char, 17>         tbl_mission_place;        // DS:56b6
+      std::array<char, 10>         tbl_mission_target;       // DS:56c7
+      std::array<char, 8>          tbl_mission_row;          // DS:56d1
+      std::array<char, 38>         tbl_mission_blank;        // DS:56d9
+      std::uint8_t                 unknown_56ff;             // DS:56ff
+      ListWindow                   division_dialog;          // DS:5700: the list of the side's divisions
+      std::array<std::uint8_t, 3>  order_target_widths;      // DS:5713
+      std::array<char, 47>         tbl_unit_header;          // DS:5716
+      std::array<char, 4>          tbl_unit_mark;            // DS:5745
+      std::array<char, 11>         tbl_unit_label;           // DS:5749
+      std::array<char, 13>         tbl_unit_empty;           // DS:5754
+      std::array<char, 48>         tbl_unit_blank;           // DS:5761
+      std::array<char, 5>          tbl_unit_wait;            // DS:5791
+      std::array<char, 42>         tbl_unit_row;             // DS:5796
+      std::array<char, 45>         tbl_unit_hidden;          // DS:57c0
+      std::uint8_t                 unknown_57ed;             // DS:57ed
+      ListWindow                   order_target_list;        // DS:57ee: the list of a division's objective tasks
+      std::array<std::uint8_t, 8>  organize_widths;          // DS:5801
+      std::array<char, 51>         tbl_order_header;         // DS:5809
+      std::array<char, 11>         tbl_order_label;          // DS:583c
+      std::uint8_t                 unknown_5847;             // DS:5847
+      ListWindow                   organize_list;            // DS:5848: the list of a division's regiments
+      std::array<std::uint8_t, 8>  regiment_widths;          // DS:585b
+      std::array<char, 30>         tbl_element_header;       // DS:5863
+      std::array<char, 4>          tbl_element_mark;         // DS:5881
+      std::array<char, 10>         tbl_element_name;         // DS:5885
+      std::array<char, 31>         tbl_element_row;          // DS:588f
+      ListWindow                   regiment_dialog;          // DS:58ae: the regiment choice list
+      std::array<std::uint8_t, 7>  choice_widths;            // DS:58c1
+      std::array<char, 5>          tbl_post_div1;            // DS:58c8
+      std::array<char, 5>          tbl_post_div2;            // DS:58cd
+      std::array<char, 5>          tbl_post_div3;            // DS:58d2
+      std::array<char, 5>          tbl_post_div4;            // DS:58d7
+      std::array<char, 6>          tbl_post_cmdr;            // DS:58dc
+      std::array<char, 6>          tbl_post_ops;             // DS:58e2
+      std::array<char, 6>          tbl_post_intl;            // DS:58e8
+      std::array<char, 9>          tbl_person_name;          // DS:58ee
+      std::array<char, 5>          tbl_person_blank;         // DS:58f7
+      std::array<char, 5>          tbl_person_rest;          // DS:58fc
+      std::array<char, 5>          tbl_person_hurt;          // DS:5901
+      ListWindow                   choice_dialog;            // DS:5906: the element choice list
+      std::array<std::uint8_t, 1>  bytes_5919;               // DS:5919
+      std::uint16_t                tbl_post_names[7];        // DS:591a: Div1..Div4, then the staff posts Cmdr, Ops, Intl
+      std::array<std::uint8_t, 13> people_widths;            // DS:5928
+      std::array<char, 39>         tbl_type_header;          // DS:5935
+      std::array<char, 9>          tbl_type_name;            // DS:595c
+      std::array<char, 37>         tbl_type_row;             // DS:5965
+      ListWindow                   people_dialog;            // DS:598a: the list of generals
+      std::array<char, 8>          weapons_widths;           // DS:599d
+      std::array<std::uint8_t, 48> tbl_supply_header;        // DS:59a5
+      std::array<char, 9>          tbl_supply_name;          // DS:59d5
+      std::array<char, 47>         tbl_supply_row;           // DS:59de
+      std::array<char, 48>         tbl_supply_blank;         // DS:5a0d
+      std::uint8_t                 unknown_5a3d;             // DS:5a3d
+      ListWindow                   weapons_dialog;           // DS:5a3e: the list of equipment types
+      std::array<std::uint8_t, 6>  city_widths;              // DS:5a51
+      std::array<char, 13>         tbl_str_header;           // DS:5a57
+      std::array<char, 8>          tbl_str_name;             // DS:5a64
+      std::array<char, 11>         tbl_str_row;              // DS:5a6c
+      std::uint8_t                 unknown_5a77;             // DS:5a77
+      ListWindow                   city_dialog;              // DS:5a78: the list of the side's cities (core/vwcity, core/stockord)
+      std::array<std::uint8_t, 4>  stock_widths;             // DS:5a8b
+      std::array<std::uint8_t, 7>  save_widths;              // DS:5a8f
+      ListWindow                   stock_dialog;             // DS:5a96: the list of a city's stocks
+      std::uint8_t                 unknown_5aa9;             // DS:5aa9
+      ListWindow                   save_list;                // DS:5aaa: the saved-game list
+      std::array<char, 9>          tbl_player_computer;      // DS:5abd
+      std::array<char, 9>          tbl_player_user;          // DS:5ac6
+      std::array<char, 54>         tbl_save_header;          // DS:5acf
+      std::array<char, 7>          tbl_save_number;          // DS:5b05
+      std::array<char, 7>          tbl_map_france;           // DS:5b0c
+      std::array<char, 7>          tbl_map_africa;           // DS:5b13
+      std::array<char, 7>          tbl_map_kursk;            // DS:5b1a
+      std::array<char, 7>          tbl_map_dday;             // DS:5b21
+      std::array<char, 7>          tbl_map_bulge;            // DS:5b28
+      std::array<char, 7>          tbl_map_berlin;           // DS:5b2f
+      std::array<char, 7>          tbl_level_veasy;          // DS:5b36
+      std::array<char, 7>          tbl_level_easy;           // DS:5b3d
+      std::array<char, 7>          tbl_level_avg;            // DS:5b44
+      std::array<char, 7>          tbl_level_hard;           // DS:5b4b
+      std::array<char, 7>          tbl_level_vhard;          // DS:5b52
+      std::array<char, 42>         tbl_save_row;             // DS:5b59
+      std::uint8_t                 unknown_5b83;             // DS:5b83
+      std::uint16_t                tbl_player_names[2];      // DS:5b84
+      std::uint8_t                 music_current;            // DS:5b88
+      std::uint8_t                 effect_current;           // DS:5b89
+      std::array<std::uint8_t, 26> music_bank;               // DS:5b8a
+      std::array<std::uint8_t, 14> music_path;               // DS:5ba4
     };
   };
   union {
     std::array<std::uint8_t, 6056> briefing_text; // DS:5bb2..735a
     struct {
-      std::array<char, 97> text_5bb2; // DS:5bb2
-      std::array<char, 57> text_5c13; // DS:5c13
-      std::array<char, 56> text_5c4c; // DS:5c4c
-      std::array<char, 39> text_5c84; // DS:5c84
-      std::array<char, 51> text_5cab; // DS:5cab
-      std::array<char, 62> text_5cde; // DS:5cde
-      std::array<char, 66> text_5d1c; // DS:5d1c
-      std::array<char, 70> text_5d5e; // DS:5d5e
-      std::array<char, 58> text_5da4; // DS:5da4
-      std::array<char, 55> text_5dde; // DS:5dde
-      std::array<char, 65> text_5e15; // DS:5e15
-      std::array<char, 45> text_5e56; // DS:5e56
-      std::array<char, 38> text_5e83; // DS:5e83
-      std::array<char, 50> text_5ea9; // DS:5ea9
-      std::array<char, 38> text_5edb; // DS:5edb
-      std::array<char, 53> text_5f01; // DS:5f01
-      std::array<char, 38> text_5f36; // DS:5f36
-      std::array<char, 37> text_5f5c; // DS:5f5c
-      std::array<char, 47> text_5f81; // DS:5f81
-      std::array<char, 43> text_5fb0; // DS:5fb0
-      std::array<char, 45> text_5fdb; // DS:5fdb
-      std::array<char, 54> text_6008; // DS:6008
-      std::array<char, 50> text_603e; // DS:603e
-      std::array<char, 69> text_6070; // DS:6070
-      std::array<char, 45> text_60b5; // DS:60b5
-      std::array<char, 51> text_60e2; // DS:60e2
-      std::array<char, 52> text_6115; // DS:6115
-      std::array<char, 54> text_6149; // DS:6149
-      std::array<char, 52> text_617f; // DS:617f
-      std::array<char, 35> text_61b3; // DS:61b3
-      std::array<char, 70> text_61d6; // DS:61d6
-      std::array<char, 71> text_621c; // DS:621c
-      std::array<char, 64> text_6263; // DS:6263
-      std::array<char, 50> text_62a3; // DS:62a3
-      std::array<char, 43> text_62d5; // DS:62d5
-      std::array<char, 48> text_6300; // DS:6300
-      std::array<char, 61> text_6330; // DS:6330
-      std::array<char, 64> text_636d; // DS:636d
-      std::array<char, 58> text_63ad; // DS:63ad
-      std::array<char, 57> text_63e7; // DS:63e7
-      std::array<char, 52> text_6420; // DS:6420
-      std::array<char, 62> text_6454; // DS:6454
-      std::array<char, 59> text_6492; // DS:6492
-      std::array<char, 58> text_64cd; // DS:64cd
-      std::array<char, 45> text_6507; // DS:6507
-      std::array<char, 55> text_6534; // DS:6534
-      std::array<char, 50> text_656b; // DS:656b
-      std::array<char, 58> text_659d; // DS:659d
-      std::array<char, 59> text_65d7; // DS:65d7
-      std::array<char, 39> text_6612; // DS:6612
-      std::array<char, 31> text_6639; // DS:6639
-      std::array<char, 52> text_6658; // DS:6658
-      std::array<char, 63> text_668c; // DS:668c
-      std::array<char, 61> text_66cb; // DS:66cb
-      std::array<char, 66> text_6708; // DS:6708
-      std::array<char, 54> text_674a; // DS:674a
-      std::array<char, 55> text_6780; // DS:6780
-      std::array<char, 49> text_67b7; // DS:67b7
-      std::array<char, 66> text_67e8; // DS:67e8
-      std::array<char, 65> text_682a; // DS:682a
-      std::array<char, 75> text_686b; // DS:686b
-      std::array<char, 23> text_68b6; // DS:68b6
-      std::array<char, 50> text_68cd; // DS:68cd
-      std::array<char, 59> text_68ff; // DS:68ff
-      std::array<char, 72> text_693a; // DS:693a
-      std::array<char, 89> text_6982; // DS:6982
-      std::array<char, 57> text_69db; // DS:69db
-      std::array<char, 72> text_6a14; // DS:6a14
-      std::array<char, 53> text_6a5c; // DS:6a5c
-      std::array<char, 68> text_6a91; // DS:6a91
-      std::array<char, 69> text_6ad5; // DS:6ad5
-      std::array<char, 56> text_6b1a; // DS:6b1a
-      std::array<char, 77> text_6b52; // DS:6b52
-      std::array<char, 70> text_6b9f; // DS:6b9f
-      std::array<char, 50> text_6be5; // DS:6be5
-      std::array<char, 57> text_6c17; // DS:6c17
-      std::array<char, 91> text_6c50; // DS:6c50
-      std::array<char, 59> text_6cab; // DS:6cab
-      std::array<char, 74> text_6ce6; // DS:6ce6
-      std::array<char, 34> text_6d30; // DS:6d30
-      std::array<char, 61> text_6d52; // DS:6d52
-      std::array<char, 39> text_6d8f; // DS:6d8f
-      std::array<char, 57> text_6db6; // DS:6db6
-      std::array<char, 66> text_6def; // DS:6def
-      std::array<char, 69> text_6e31; // DS:6e31
-      std::array<char, 49> text_6e76; // DS:6e76
-      std::array<char, 46> text_6ea7; // DS:6ea7
-      std::array<char, 28> text_6ed5; // DS:6ed5
-      std::array<char, 46> text_6ef1; // DS:6ef1
-      std::array<char, 65> text_6f1f; // DS:6f1f
-      std::array<char, 57> text_6f60; // DS:6f60
-      std::array<char, 41> text_6f99; // DS:6f99
-      std::array<char, 70> text_6fc2; // DS:6fc2
-      std::array<char, 55> text_7008; // DS:7008
-      std::array<char, 63> text_703f; // DS:703f
-      std::array<char, 31> text_707e; // DS:707e
-      std::array<char, 59> text_709d; // DS:709d
-      std::array<char, 59> text_70d8; // DS:70d8
-      std::array<char, 45> text_7113; // DS:7113
-      std::array<char, 44> text_7140; // DS:7140
-      std::array<char, 49> text_716c; // DS:716c
-      std::array<char, 69> text_719d; // DS:719d
-      std::array<char, 53> text_71e2; // DS:71e2
-      std::array<char, 30> text_7217; // DS:7217
-      std::array<char, 57> text_7235; // DS:7235
-      std::array<char, 32> text_726e; // DS:726e
-      std::array<char, 46> text_728e; // DS:728e
-      std::array<char, 82> text_72bc; // DS:72bc
-      std::array<char, 76> text_730e; // DS:730e
+      std::array<char, 97> brief_france_axis_1;     // DS:5bb2
+      std::array<char, 57> brief_france_axis_2;     // DS:5c13
+      std::array<char, 56> brief_france_axis_3;     // DS:5c4c
+      std::array<char, 39> brief_france_axis_4;     // DS:5c84
+      std::array<char, 51> brief_france_axis_5;     // DS:5cab
+      std::array<char, 62> brief_france_axis_6;     // DS:5cde
+      std::array<char, 66> brief_france_allies_1;   // DS:5d1c
+      std::array<char, 70> brief_france_allies_2;   // DS:5d5e
+      std::array<char, 58> brief_france_allies_3;   // DS:5da4
+      std::array<char, 55> brief_france_allies_4;   // DS:5dde
+      std::array<char, 65> brief_france_allies_5;   // DS:5e15
+      std::array<char, 45> brief_france_allies_6;   // DS:5e56
+      std::array<char, 38> brief_france_allies_7;   // DS:5e83
+      std::array<char, 50> brief_france_allies_8;   // DS:5ea9
+      std::array<char, 38> brief_africa_axis_1;     // DS:5edb
+      std::array<char, 53> brief_africa_axis_2;     // DS:5f01
+      std::array<char, 38> brief_africa_axis_3;     // DS:5f36
+      std::array<char, 37> brief_africa_axis_4;     // DS:5f5c
+      std::array<char, 47> brief_africa_axis_5;     // DS:5f81
+      std::array<char, 43> brief_africa_axis_6;     // DS:5fb0
+      std::array<char, 45> brief_africa_axis_7;     // DS:5fdb
+      std::array<char, 54> brief_africa_axis_8;     // DS:6008
+      std::array<char, 50> brief_africa_allies_1;   // DS:603e
+      std::array<char, 69> brief_africa_allies_2;   // DS:6070
+      std::array<char, 45> brief_africa_allies_3;   // DS:60b5
+      std::array<char, 51> brief_africa_allies_4;   // DS:60e2
+      std::array<char, 52> brief_africa_allies_5;   // DS:6115
+      std::array<char, 54> brief_africa_allies_6;   // DS:6149
+      std::array<char, 52> brief_africa_allies_7;   // DS:617f
+      std::array<char, 35> brief_africa_allies_8;   // DS:61b3
+      std::array<char, 70> brief_kursk_axis_1;      // DS:61d6
+      std::array<char, 71> brief_kursk_axis_2;      // DS:621c
+      std::array<char, 64> brief_kursk_axis_3;      // DS:6263
+      std::array<char, 50> brief_kursk_axis_4;      // DS:62a3
+      std::array<char, 43> brief_kursk_axis_5;      // DS:62d5
+      std::array<char, 48> brief_kursk_axis_6;      // DS:6300
+      std::array<char, 61> brief_kursk_axis_7;      // DS:6330
+      std::array<char, 64> brief_kursk_axis_8;      // DS:636d
+      std::array<char, 58> brief_kursk_axis_9;      // DS:63ad
+      std::array<char, 57> brief_kursk_allies_1;    // DS:63e7
+      std::array<char, 52> brief_kursk_allies_2;    // DS:6420
+      std::array<char, 62> brief_kursk_allies_3;    // DS:6454
+      std::array<char, 59> brief_kursk_allies_4;    // DS:6492
+      std::array<char, 58> brief_kursk_allies_5;    // DS:64cd
+      std::array<char, 45> brief_kursk_allies_6;    // DS:6507
+      std::array<char, 55> brief_kursk_allies_7;    // DS:6534
+      std::array<char, 50> brief_kursk_allies_8;    // DS:656b
+      std::array<char, 58> brief_kursk_allies_9;    // DS:659d
+      std::array<char, 59> brief_kursk_allies_10;   // DS:65d7
+      std::array<char, 39> brief_normandy_axis_1;   // DS:6612
+      std::array<char, 31> brief_normandy_axis_2;   // DS:6639
+      std::array<char, 52> brief_normandy_axis_3;   // DS:6658
+      std::array<char, 63> brief_normandy_axis_4;   // DS:668c
+      std::array<char, 61> brief_normandy_axis_5;   // DS:66cb
+      std::array<char, 66> brief_normandy_axis_6;   // DS:6708
+      std::array<char, 54> brief_normandy_axis_7;   // DS:674a
+      std::array<char, 55> brief_normandy_axis_8;   // DS:6780
+      std::array<char, 49> brief_normandy_axis_9;   // DS:67b7
+      std::array<char, 66> brief_normandy_axis_10;  // DS:67e8
+      std::array<char, 65> brief_normandy_allies_1; // DS:682a
+      std::array<char, 75> brief_normandy_allies_2; // DS:686b
+      std::array<char, 23> brief_normandy_allies_3; // DS:68b6
+      std::array<char, 50> brief_normandy_allies_4; // DS:68cd
+      std::array<char, 59> brief_normandy_allies_5; // DS:68ff
+      std::array<char, 72> brief_normandy_allies_6; // DS:693a
+      std::array<char, 89> brief_normandy_allies_7; // DS:6982
+      std::array<char, 57> brief_normandy_allies_8; // DS:69db
+      std::array<char, 72> brief_normandy_allies_9; // DS:6a14
+      std::array<char, 53> brief_ardennes_axis_1;   // DS:6a5c
+      std::array<char, 68> brief_ardennes_axis_2;   // DS:6a91
+      std::array<char, 69> brief_ardennes_axis_3;   // DS:6ad5
+      std::array<char, 56> brief_ardennes_axis_4;   // DS:6b1a
+      std::array<char, 77> brief_ardennes_axis_5;   // DS:6b52
+      std::array<char, 70> brief_ardennes_axis_6;   // DS:6b9f
+      std::array<char, 50> brief_ardennes_axis_7;   // DS:6be5
+      std::array<char, 57> brief_ardennes_axis_8;   // DS:6c17
+      std::array<char, 91> brief_ardennes_axis_9;   // DS:6c50
+      std::array<char, 59> brief_ardennes_axis_10;  // DS:6cab
+      std::array<char, 74> brief_ardennes_allies_1; // DS:6ce6
+      std::array<char, 34> brief_ardennes_allies_2; // DS:6d30
+      std::array<char, 61> brief_ardennes_allies_3; // DS:6d52
+      std::array<char, 39> brief_ardennes_allies_4; // DS:6d8f
+      std::array<char, 57> brief_ardennes_allies_5; // DS:6db6
+      std::array<char, 66> brief_ardennes_allies_6; // DS:6def
+      std::array<char, 69> brief_ardennes_allies_7; // DS:6e31
+      std::array<char, 49> brief_ardennes_allies_8; // DS:6e76
+      std::array<char, 46> brief_ardennes_allies_9; // DS:6ea7
+      std::array<char, 28> brief_berlin_axis_1;     // DS:6ed5
+      std::array<char, 46> brief_berlin_axis_2;     // DS:6ef1
+      std::array<char, 65> brief_berlin_axis_3;     // DS:6f1f
+      std::array<char, 57> brief_berlin_axis_4;     // DS:6f60
+      std::array<char, 41> brief_berlin_axis_5;     // DS:6f99
+      std::array<char, 70> brief_berlin_axis_6;     // DS:6fc2
+      std::array<char, 55> brief_berlin_axis_7;     // DS:7008
+      std::array<char, 63> brief_berlin_axis_8;     // DS:703f
+      std::array<char, 31> brief_berlin_axis_9;     // DS:707e
+      std::array<char, 59> brief_berlin_axis_10;    // DS:709d
+      std::array<char, 59> brief_berlin_axis_11;    // DS:70d8
+      std::array<char, 45> brief_berlin_allies_1;   // DS:7113
+      std::array<char, 44> brief_berlin_allies_2;   // DS:7140
+      std::array<char, 49> brief_berlin_allies_3;   // DS:716c
+      std::array<char, 69> brief_berlin_allies_4;   // DS:719d
+      std::array<char, 53> brief_berlin_allies_5;   // DS:71e2
+      std::array<char, 30> brief_berlin_allies_6;   // DS:7217
+      std::array<char, 57> brief_berlin_allies_7;   // DS:7235
+      std::array<char, 32> brief_berlin_allies_8;   // DS:726e
+      std::array<char, 46> brief_berlin_allies_9;   // DS:728e
+      std::array<char, 82> brief_berlin_allies_10;  // DS:72bc
+      std::array<char, 76> brief_berlin_allies_11;  // DS:730e
     };
   };
   std::array<FarPointer, 6> side_initializers; // DS:735a
@@ -1558,50 +1558,50 @@ struct DataSegment {
           std::array<std::uint8_t, 13> month_climate;
         };
       };
-      std::array<char, 58>         air_postponed_text;     // DS:7a80: "Bad weather has postponed the %s"
-      std::array<char, 80>         air_canceled_text;      // DS:7aba: "... has been canceled"
-      std::array<char, 30>         air_destroyed_format;   // DS:7b0a
-      std::array<char, 11>         air_strike_name;        // DS:7b28
-      std::array<char, 22>         air_strike_begin;       // DS:7b33
-      std::array<char, 30>         air_strike_spotted;     // DS:7b49
-      std::array<char, 8>          air_bombers_name;       // DS:7b67
-      std::array<char, 15>         paratroop_drop_name;    // DS:7b6f: "paratroop drop"
-      std::array<char, 18>         paratroop_drop_begin;   // DS:7b7e: "Begin Airdrop!", our side
-      std::array<char, 25>         paratroop_drop_spotted; // DS:7b90: "Enemy planes spotted!", the other side
-      std::array<char, 11>         paratroop_planes_name;  // DS:7ba9: "transports"
-      std::array<char, 11>         cargo_drop_name;        // DS:7bb4
-      std::array<char, 19>         cargo_drop_begin;       // DS:7bbf
-      std::array<char, 26>         cargo_drop_spotted;     // DS:7bd2
-      std::array<char, 13>         cargo_planes_name;      // DS:7bec
-      std::array<char, 54>         cargo_unit_report;      // DS:7bf9
-      std::array<char, 54>         cargo_city_report;      // DS:7c2f
-      std::uint8_t                 unknown_7c65;           // DS:7c65
-      std::array<char, 25>         visit_format;           // DS:7c66
-      std::array<char, 10>         text_7c7f;              // DS:7c7f
-      std::array<char, 6>          text_7c89;              // DS:7c89
-      std::uint8_t                 unknown_7c8f;           // DS:7c8f
-      std::uint16_t                hurricane_words[7];     // DS:7c90
-      std::array<char, 6>          text_7c9e;              // DS:7c9e
-      std::uint16_t                partisan_words[2];      // DS:7ca4: the partisan texts, in and out of the hurricane season
-      std::array<std::uint8_t, 9>  unknown_7ca8;           // DS:7ca8
-      std::array<char, 11>         text_7cb1;              // DS:7cb1
-      std::uint16_t                resistance_names[2];    // DS:7cbc
-      std::array<std::uint8_t, 29> angel_name;             // DS:7cc0
-      std::array<char, 15>         angel_format;           // DS:7cdd
-      std::array<FarPointer, 3>    angel_actions;          // DS:7cec: demoralize, inspire, judge by side (core/evangel)
-      std::array<char, 15>         spy_name_format;        // DS:7cf8
-      std::array<char, 19>         spy_laugh_text;         // DS:7d07
-      std::array<char, 34>         spy_move_text;          // DS:7d1a
-      std::array<char, 4>          spy_bold_off;           // DS:7d3c
-      std::array<char, 10>         spy_humph_text;         // DS:7d40
-      std::array<char, 11>         death_prefix;           // DS:7d4a
-      std::array<char, 34>         death_suffix;           // DS:7d55
-      std::array<char, 46>         comms_restored_format;  // DS:7d77
-      std::array<char, 47>         spy_captured_format;    // DS:7da5
-      std::array<char, 38>         comms_unit_text;        // DS:7dd4
-      std::array<char, 29>         spy_unit_text;          // DS:7dfa
-      std::uint8_t                 unknown_7e17;           // DS:7e17
-      std::uint16_t                quantity_divisors[8];   // DS:7e18
+      std::array<char, 58>         air_postponed_text;       // DS:7a80: "Bad weather has postponed the %s"
+      std::array<char, 80>         air_canceled_text;        // DS:7aba: "... has been canceled"
+      std::array<char, 30>         air_destroyed_format;     // DS:7b0a
+      std::array<char, 11>         air_strike_name;          // DS:7b28
+      std::array<char, 22>         air_strike_begin;         // DS:7b33
+      std::array<char, 30>         air_strike_spotted;       // DS:7b49
+      std::array<char, 8>          air_bombers_name;         // DS:7b67
+      std::array<char, 15>         paratroop_drop_name;      // DS:7b6f: "paratroop drop"
+      std::array<char, 18>         paratroop_drop_begin;     // DS:7b7e: "Begin Airdrop!", our side
+      std::array<char, 25>         paratroop_drop_spotted;   // DS:7b90: "Enemy planes spotted!", the other side
+      std::array<char, 11>         paratroop_planes_name;    // DS:7ba9: "transports"
+      std::array<char, 11>         cargo_drop_name;          // DS:7bb4
+      std::array<char, 19>         cargo_drop_begin;         // DS:7bbf
+      std::array<char, 26>         cargo_drop_spotted;       // DS:7bd2
+      std::array<char, 13>         cargo_planes_name;        // DS:7bec
+      std::array<char, 54>         cargo_unit_report;        // DS:7bf9
+      std::array<char, 54>         cargo_city_report;        // DS:7c2f
+      std::uint8_t                 unknown_7c65;             // DS:7c65
+      std::array<char, 25>         visit_format;             // DS:7c66
+      std::array<char, 10>         hurricane_word_hurricane; // DS:7c7f
+      std::array<char, 6>          hurricane_word_storm;     // DS:7c89
+      std::uint8_t                 unknown_7c8f;             // DS:7c8f
+      std::uint16_t                hurricane_words[7];       // DS:7c90
+      std::array<char, 6>          partisan_word_storm;      // DS:7c9e
+      std::uint16_t                partisan_words[2];        // DS:7ca4: the partisan texts, in and out of the hurricane season
+      std::array<std::uint8_t, 9>  unknown_7ca8;             // DS:7ca8
+      std::array<char, 11>         resistance_resistance;    // DS:7cb1
+      std::uint16_t                resistance_names[2];      // DS:7cbc
+      std::array<std::uint8_t, 29> angel_name;               // DS:7cc0
+      std::array<char, 15>         angel_format;             // DS:7cdd
+      std::array<FarPointer, 3>    angel_actions;            // DS:7cec: demoralize, inspire, judge by side (core/evangel)
+      std::array<char, 15>         spy_name_format;          // DS:7cf8
+      std::array<char, 19>         spy_laugh_text;           // DS:7d07
+      std::array<char, 34>         spy_move_text;            // DS:7d1a
+      std::array<char, 4>          spy_bold_off;             // DS:7d3c
+      std::array<char, 10>         spy_humph_text;           // DS:7d40
+      std::array<char, 11>         death_prefix;             // DS:7d4a
+      std::array<char, 34>         death_suffix;             // DS:7d55
+      std::array<char, 46>         comms_restored_format;    // DS:7d77
+      std::array<char, 47>         spy_captured_format;      // DS:7da5
+      std::array<char, 38>         comms_unit_text;          // DS:7dd4
+      std::array<char, 29>         spy_unit_text;            // DS:7dfa
+      std::uint8_t                 unknown_7e17;             // DS:7e17
+      std::uint16_t                quantity_divisors[8];     // DS:7e18
     };
   };
   std::array<char, 9>         request_supplies_name;     // DS:7e28
@@ -1639,7 +1639,7 @@ struct DataSegment {
       std::array<char, 48>         turn_label_format;       // DS:8078
       std::array<char, 6>          percent_text;            // DS:80a8
       std::array<char, 5>          not_available_text;      // DS:80ae
-      std::array<char, 2>          text_80b3;               // DS:80b3
+      std::array<char, 2>          percent_sign;            // DS:80b3
       std::uint8_t                 unknown_80b5;            // DS:80b5
       std::uint16_t                flash_state;             // DS:80b6
       std::array<char, 48>         regiment_position_text;  // DS:80b8
@@ -1689,67 +1689,67 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 3452> order_text; // DS:8396..9112
     struct {
-      std::array<char, 17>                       casualty_heading;        // DS:8396
-      std::array<char, 18>                       casualty_cut_selected;   // DS:83a7
-      std::array<char, 35>                       casualty_cut;            // DS:83b9
-      std::array<char, 20>                       casualty_loss_format;    // DS:83dc
-      std::array<char, 22>                       casualty_losses_format;  // DS:83f0
-      std::array<char, 17>                       casualty_wiped;          // DS:8406
-      std::array<char, 22>                       casualty_no_damage;      // DS:8417
-      std::array<char, 44>                       damage_supply_format;    // DS:842d
-      std::array<char, 22>                       damage_title;            // DS:8459
-      std::array<char, 34>                       damage_heading;          // DS:846f
-      std::array<char, 14>                       damage_element_format;   // DS:8491
-      std::array<char, 22>                       damage_none;             // DS:849f
-      std::array<char, 20>                       damage_loss_one;         // DS:84b5
-      std::array<char, 22>                       damage_loss_many;        // DS:84c9
-      std::array<char, 42>                       damage_endurance_format; // DS:84df
-      std::uint8_t                               unknown_8509;            // DS:8509
-      std::array<std::uint8_t, 8>                category_columns;        // DS:850a
-      std::array<std::uint8_t, 6>                ai_categories;           // DS:8512
-      std::array<char, 19>                       target_text;             // DS:8518
-      std::array<char, 7>                        target_two_line_format;  // DS:852b: "%s\n%s?"
-      std::array<char, 7>                        target_one_line_format;  // DS:8532: "%s %s?"
-      std::array<char, 17>                       target_cell_format;      // DS:8539: "Move to (%d-%d)?"
-      std::array<char, 31>                       target_cancel_text;      // DS:854a
-      std::array<char, 15>                       cancel_orders_prompt;    // DS:8569: "Cancel orders?"
-      std::array<char, 8>                        text_8578;               // DS:8578
-      std::array<char, 8>                        text_8580;               // DS:8580
-      std::array<char, 8>                        text_8588;               // DS:8588
-      std::array<char, 8>                        text_8590;               // DS:8590
-      std::array<char, 8>                        text_8598;               // DS:8598
-      std::array<char, 8>                        text_85a0;               // DS:85a0
-      std::array<char, 8>                        text_85a8;               // DS:85a8
-      std::array<char, 8>                        text_85b0;               // DS:85b0
-      std::array<char, 8>                        text_85b8;               // DS:85b8
-      std::array<char, 8>                        text_85c0;               // DS:85c0
-      std::array<char, 8>                        text_85c8;               // DS:85c8
-      std::array<char, 8>                        text_85d0;               // DS:85d0
-      std::array<char, 8>                        text_85d8;               // DS:85d8
-      std::array<char, 8>                        text_85e0;               // DS:85e0
-      std::array<char, 8>                        text_85e8;               // DS:85e8
-      std::array<char, 8>                        text_85f0;               // DS:85f0
-      std::array<char, 8>                        text_85f8;               // DS:85f8
-      std::array<char, 8>                        text_8600;               // DS:8600
-      std::array<char, 8>                        text_8608;               // DS:8608
-      std::array<char, 8>                        text_8610;               // DS:8610
-      std::array<char, 8>                        text_8618;               // DS:8618
-      std::array<char, 8>                        text_8620;               // DS:8620
-      std::array<char, 8>                        text_8628;               // DS:8628
-      std::array<char, 8>                        text_8630;               // DS:8630
-      std::array<char, 9>                        text_8638;               // DS:8638
-      std::array<char, 9>                        text_8641;               // DS:8641
-      std::array<char, 13>                       text_864a;               // DS:864a
-      std::array<char, 13>                       text_8657;               // DS:8657
-      std::array<std::array<MenuItem, 9>, 4>     order_menus;             // DS:8664: the Orders command's menus, eight orders each
-      std::array<MenuItem, 3>                    supply_choices;          // DS:8814: supply a city or a regiment
-      std::array<MenuItem, 3>                    repair_choices;          // DS:8838: repair a city or a regiment
-      std::array<ScreenPoint, 8>                 order_spots;             // DS:885c: where the eight orders of a menu go
-      std::array<ScreenPoint, 2>                 choice_spots;            // DS:887c: where the two choices go
-      OrderPrompts                               issue_prompts;           // DS:8884: the Orders command's messages
-      std::array<std::array<std::uint8_t, 8>, 4> issue_order_codes;       // DS:89bc: the orders of each menu, 0xff-padded
-      std::array<char, 27>                       awaiting_orders;         // DS:89dc: "Awaiting your orders, sir."
-      OrderPrompts                               action_prompts;          // DS:89f7: the map cursor's unit action messages
+      std::array<char, 17>                       casualty_heading;           // DS:8396
+      std::array<char, 18>                       casualty_cut_selected;      // DS:83a7
+      std::array<char, 35>                       casualty_cut;               // DS:83b9
+      std::array<char, 20>                       casualty_loss_format;       // DS:83dc
+      std::array<char, 22>                       casualty_losses_format;     // DS:83f0
+      std::array<char, 17>                       casualty_wiped;             // DS:8406
+      std::array<char, 22>                       casualty_no_damage;         // DS:8417
+      std::array<char, 44>                       damage_supply_format;       // DS:842d
+      std::array<char, 22>                       damage_title;               // DS:8459
+      std::array<char, 34>                       damage_heading;             // DS:846f
+      std::array<char, 14>                       damage_element_format;      // DS:8491
+      std::array<char, 22>                       damage_none;                // DS:849f
+      std::array<char, 20>                       damage_loss_one;            // DS:84b5
+      std::array<char, 22>                       damage_loss_many;           // DS:84c9
+      std::array<char, 42>                       damage_endurance_format;    // DS:84df
+      std::uint8_t                               unknown_8509;               // DS:8509
+      std::array<std::uint8_t, 8>                category_columns;           // DS:850a
+      std::array<std::uint8_t, 6>                ai_categories;              // DS:8512
+      std::array<char, 19>                       target_text;                // DS:8518
+      std::array<char, 7>                        target_two_line_format;     // DS:852b: "%s\n%s?"
+      std::array<char, 7>                        target_one_line_format;     // DS:8532: "%s %s?"
+      std::array<char, 17>                       target_cell_format;         // DS:8539: "Move to (%d-%d)?"
+      std::array<char, 31>                       target_cancel_text;         // DS:854a
+      std::array<char, 15>                       cancel_orders_prompt;       // DS:8569: "Cancel orders?"
+      std::array<char, 8>                        order_combat_move;          // DS:8578
+      std::array<char, 8>                        order_combat_occupy;        // DS:8580
+      std::array<char, 8>                        order_combat_attack;        // DS:8588
+      std::array<char, 8>                        order_combat_defend;        // DS:8590
+      std::array<char, 8>                        order_combat_destroy;       // DS:8598
+      std::array<char, 8>                        order_combat_supply;        // DS:85a0
+      std::array<char, 8>                        order_combat_pursue;        // DS:85a8
+      std::array<char, 8>                        order_combat_rest;          // DS:85b0
+      std::array<char, 8>                        order_engineer_move;        // DS:85b8
+      std::array<char, 8>                        order_engineer_mine;        // DS:85c0
+      std::array<char, 8>                        order_engineer_bridge;      // DS:85c8
+      std::array<char, 8>                        order_engineer_destroy;     // DS:85d0
+      std::array<char, 8>                        order_engineer_supply;      // DS:85d8
+      std::array<char, 8>                        order_engineer_pursue;      // DS:85e0
+      std::array<char, 8>                        order_engineer_rest;        // DS:85e8
+      std::array<char, 8>                        order_repair_move;          // DS:85f0
+      std::array<char, 8>                        order_repair_supply;        // DS:85f8
+      std::array<char, 8>                        order_repair_repair;        // DS:8600
+      std::array<char, 8>                        order_repair_pursue;        // DS:8608
+      std::array<char, 8>                        order_repair_rest;          // DS:8610
+      std::array<char, 8>                        order_supply_move;          // DS:8618
+      std::array<char, 8>                        order_supply_supply;        // DS:8620
+      std::array<char, 8>                        order_supply_pursue;        // DS:8628
+      std::array<char, 8>                        order_supply_rest;          // DS:8630
+      std::array<char, 9>                        supply_choice_city;         // DS:8638
+      std::array<char, 9>                        supply_choice_regiment;     // DS:8641
+      std::array<char, 13>                       repair_choice_city_weapons; // DS:864a
+      std::array<char, 13>                       repair_choice_rgmt_weapons; // DS:8657
+      std::array<std::array<MenuItem, 9>, 4>     order_menus;                // DS:8664: the Orders command's menus, eight orders each
+      std::array<MenuItem, 3>                    supply_choices;             // DS:8814: supply a city or a regiment
+      std::array<MenuItem, 3>                    repair_choices;             // DS:8838: repair a city or a regiment
+      std::array<ScreenPoint, 8>                 order_spots;                // DS:885c: where the eight orders of a menu go
+      std::array<ScreenPoint, 2>                 choice_spots;               // DS:887c: where the two choices go
+      OrderPrompts                               issue_prompts;              // DS:8884: the Orders command's messages
+      std::array<std::array<std::uint8_t, 8>, 4> issue_order_codes;          // DS:89bc: the orders of each menu, 0xff-padded
+      std::array<char, 27>                       awaiting_orders;            // DS:89dc: "Awaiting your orders, sir."
+      OrderPrompts                               action_prompts;             // DS:89f7: the map cursor's unit action messages
       std::uint8_t                               unknown_8b2f;
       std::array<std::array<std::uint8_t, 8>, 3> action_order_codes;      // DS:8b30: as issue_order_codes
       std::array<char, 24>                       select_division;         // DS:8b48
@@ -1777,12 +1777,12 @@ struct DataSegment {
       std::array<char, 26>                       assign_thanks_text;      // DS:8d69: "You can count on me, sir!"
       std::array<char, 55>                       division_charge_prompt;  // DS:8d83: "Which division commander do you want to put in charge?"
       std::array<std::uint8_t, 6>                post_label_none;         // DS:8dba: the empty label of the posts menu
-      std::array<char, 8>                        text_8dc0;               // DS:8dc0
-      std::array<char, 8>                        text_8dc8;               // DS:8dc8
-      std::array<char, 8>                        text_8dd0;               // DS:8dd0
-      std::array<char, 8>                        text_8dd8;               // DS:8dd8
-      std::array<char, 10>                       text_8de0;               // DS:8de0
-      std::array<char, 8>                        text_8dea;               // DS:8dea
+      std::array<char, 8>                        post_div_1;              // DS:8dc0
+      std::array<char, 8>                        post_div_2;              // DS:8dc8
+      std::array<char, 8>                        post_div_3;              // DS:8dd0
+      std::array<char, 8>                        post_div_4;              // DS:8dd8
+      std::array<char, 10>                       post_ops_ofc;            // DS:8de0
+      std::array<char, 8>                        post_intel;              // DS:8dea
       std::array<char, 28>                       none_available_text;     // DS:8df2: "No one is available, sir."
       std::array<char, 21>                       assign_who_prompt;       // DS:8e0e: "Who will you assign?"
       std::uint8_t                               no_holder_1;             // DS:8e23: "": a division without a commander
@@ -1802,24 +1802,24 @@ struct DataSegment {
       std::array<char, 41>                       none_to_rest_text;       // DS:8edc: "There are no commanders who can rest."
       std::array<char, 19>                       rest_who_prompt;         // DS:8f05: "Who shall we rest?"
       std::array<char, 45>                       rest_days_prompt;        // DS:8f18: "How many days should Commander %s take leave"
-      std::array<char, 9>                        text_8f45;               // DS:8f45
-      std::array<char, 8>                        text_8f4e;               // DS:8f4e
-      std::array<char, 5>                        text_8f56;               // DS:8f56
+      std::array<char, 9>                        personnel_reassign;      // DS:8f45
+      std::array<char, 8>                        personnel_appoint;       // DS:8f4e
+      std::array<char, 5>                        personnel_rest;          // DS:8f56
       std::array<char, 16>                       personnel_prompt;        // DS:8f5b: "Select an order"
       std::uint8_t                               unknown_8f6b;            // DS:8f6b
       std::array<FarPointer, 3>                  personnel_actions;       // DS:8f6c: reassign, appoint, rest
       std::array<MenuItem, 4>                    personnel_menu;          // DS:8f78: "Reassign", "Appoint", "Rest"
       std::array<FarPointer, 20>                 advice_tips;             // DS:8fa8: the twenty general tips, far pointers to advice texts
-      std::array<char, 16>                       text_8ff8;               // DS:8ff8
-      std::array<char, 16>                       text_9008;               // DS:9008
-      std::array<char, 17>                       text_9018;               // DS:9018
-      std::array<char, 12>                       text_9029;               // DS:9029
-      std::array<char, 16>                       text_9035;               // DS:9035
+      std::array<char, 16>                       advice_tactical_advice;  // DS:8ff8
+      std::array<char, 16>                       advice_regiment_status;  // DS:9008
+      std::array<char, 17>                       advice_enemy_conditions; // DS:9018
+      std::array<char, 12>                       advice_tide_of_war;      // DS:9029
+      std::array<char, 16>                       advice_operation_hints;  // DS:9035
       std::array<char, 27>                       advice_prompt;           // DS:9045
       std::array<FarPointer, 5>                  advice_actions;          // DS:9060: the action of each advice topic
       std::array<MenuItem, 6>                    advice_menu;             // DS:9074
-      std::array<char, 11>                       text_90bc;               // DS:90bc
-      std::array<char, 13>                       text_90c7;               // DS:90c7
+      std::array<char, 11>                       staff_operations;        // DS:90bc
+      std::array<char, 13>                       staff_intelligence;      // DS:90c7
       std::array<char, 14>                       staff_prompt;            // DS:90d4
       std::array<FarPointer, 3>                  staff_actions;           // DS:90e2: the action of each staff officer
       std::array<MenuItem, 3>                    staff_menu;              // DS:90ee
@@ -1828,42 +1828,42 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 3326> supply_text; // DS:9112..9e10
     struct {
-      std::array<char, 53>         panel_fuel_ammo;   // DS:9112
-      std::array<char, 50>         panel_food_end;    // DS:9147
-      std::array<char, 33>         panel_garrison;    // DS:9179
-      std::array<char, 28>         panel_stock_row;   // DS:919a
-      std::array<char, 13>         panel_no_stock;    // DS:91b6
-      std::uint8_t                 unknown_91c3;      // DS:91c3
-      std::array<ScreenPoint, 6>   stock_rows;        // DS:91c4: where the city panel prints its stocks
-      std::array<char, 8>          panel_waiting;     // DS:91dc
-      std::array<char, 53>         panel_orders;      // DS:91e4
-      std::array<char, 51>         panel_target;      // DS:9219
-      std::array<char, 53>         panel_fatigue;     // DS:924c
-      std::array<char, 28>         panel_element_row; // DS:9281
-      std::uint8_t                 unknown_929d;      // DS:929d
-      std::array<ScreenPoint, 6>   element_rows;      // DS:929e: where the regiment panel prints its battalions
-      std::array<char, 13>         text_92b6;         // DS:92b6
-      std::array<char, 12>         text_92c3;         // DS:92c3
-      std::array<char, 12>         text_92cf;         // DS:92cf
-      std::array<char, 12>         text_92db;         // DS:92db
-      std::array<char, 48>         contact_prompt;    // DS:92e7
-      std::array<char, 44>         contact_lost;      // DS:9317
-      std::uint8_t                 unknown_9343;      // DS:9343
-      std::array<MenuItem, 5>      contact_menu;      // DS:9344
-      std::array<char, 17>         people_here;       // DS:9380
-      std::array<char, 23>         people_none;       // DS:9391
-      std::array<char, 9>          text_93a8;         // DS:93a8
-      std::array<char, 6>          text_93b1;         // DS:93b1
-      std::array<std::uint8_t, 31> people_prompt;     // DS:93b7
-      std::array<FarPointer, 2>    people_actions;    // DS:93d6: the menu's actions
-      std::array<MenuItem, 3>      people_menu;       // DS:93de
-      std::array<char, 26>         city_prompt;       // DS:9402
-      std::array<char, 3>          city_format;       // DS:941c
-      std::array<char, 31>         city_none_own;     // DS:941f
-      std::array<char, 30>         city_none_enemy;   // DS:943e
-      std::array<char, 9>          text_945c;         // DS:945c
-      std::array<char, 6>          text_9465;         // DS:9465
-      union {                                         // DS:946b
+      std::array<char, 53>         panel_fuel_ammo;    // DS:9112
+      std::array<char, 50>         panel_food_end;     // DS:9147
+      std::array<char, 33>         panel_garrison;     // DS:9179
+      std::array<char, 28>         panel_stock_row;    // DS:919a
+      std::array<char, 13>         panel_no_stock;     // DS:91b6
+      std::uint8_t                 unknown_91c3;       // DS:91c3
+      std::array<ScreenPoint, 6>   stock_rows;         // DS:91c4: where the city panel prints its stocks
+      std::array<char, 8>          panel_waiting;      // DS:91dc
+      std::array<char, 53>         panel_orders;       // DS:91e4
+      std::array<char, 51>         panel_target;       // DS:9219
+      std::array<char, 53>         panel_fatigue;      // DS:924c
+      std::array<char, 28>         panel_element_row;  // DS:9281
+      std::uint8_t                 unknown_929d;       // DS:929d
+      std::array<ScreenPoint, 6>   element_rows;       // DS:929e: where the regiment panel prints its battalions
+      std::array<char, 13>         contact_division_1; // DS:92b6
+      std::array<char, 12>         contact_division_2; // DS:92c3
+      std::array<char, 12>         contact_division_3; // DS:92cf
+      std::array<char, 12>         contact_division_4; // DS:92db
+      std::array<char, 48>         contact_prompt;     // DS:92e7
+      std::array<char, 44>         contact_lost;       // DS:9317
+      std::uint8_t                 unknown_9343;       // DS:9343
+      std::array<MenuItem, 5>      contact_menu;       // DS:9344
+      std::array<char, 17>         people_here;        // DS:9380
+      std::array<char, 23>         people_none;        // DS:9391
+      std::array<char, 9>          people_friendly;    // DS:93a8
+      std::array<char, 6>          people_enemy;       // DS:93b1
+      std::array<std::uint8_t, 31> people_prompt;      // DS:93b7
+      std::array<FarPointer, 2>    people_actions;     // DS:93d6: the menu's actions
+      std::array<MenuItem, 3>      people_menu;        // DS:93de
+      std::array<char, 26>         city_prompt;        // DS:9402
+      std::array<char, 3>          city_format;        // DS:941c
+      std::array<char, 31>         city_none_own;      // DS:941f
+      std::array<char, 30>         city_none_enemy;    // DS:943e
+      std::array<char, 9>          city_side_friendly; // DS:945c
+      std::array<char, 6>          city_side_enemy;    // DS:9465
+      union {                                          // DS:946b
         std::uint16_t                city_side_prompt[15];
         std::array<std::uint8_t, 30> city_side_prompt_bytes;
       };
@@ -1874,297 +1874,297 @@ struct DataSegment {
       std::array<char, 3>       regiment_format;      // DS:94d9
       std::array<char, 30>      view_division_prompt; // DS:94dc
       std::array<char, 27>      units_none_enemy;     // DS:94fa
-      std::array<char, 9>       text_9515;            // DS:9515
-      std::array<char, 6>       text_951e;            // DS:951e
+      std::array<char, 9>       info_friendly;        // DS:9515
+      std::array<char, 6>       info_enemy;           // DS:951e
       std::uint16_t             info_prompt[15];      // DS:9524
       std::array<FarPointer, 2> info_actions;         // DS:9542: the menu's actions
       std::array<MenuItem, 3>   info_menu;            // DS:954a
       std::array<char, 29>      weapons_prompt;       // DS:956e
       std::array<char, 19>      weapons_here;         // DS:958b
-      std::array<char, 9>       text_959e;            // DS:959e
-      std::array<char, 6>       text_95a7;            // DS:95a7
+      std::array<char, 9>       arms_friendly;        // DS:959e
+      std::array<char, 6>       arms_enemy;           // DS:95a7
       union {                                         // DS:95ad
         std::uint16_t                arms_prompt[10];
         std::array<std::uint8_t, 20> arms_prompt_bytes;
       };
-      std::uint8_t              unknown_95c1;   // DS:95c1
-      std::array<FarPointer, 2> arms_actions;   // DS:95c2: the menu's actions
-      std::array<MenuItem, 3>   arms_menu;      // DS:95ca
-      std::array<char, 19>      victory_title;  // DS:95ee
-      std::array<char, 15>      victory_format; // DS:9601
-      std::array<char, 28>      victory_orders; // DS:9610
-      std::array<char, 10>      text_962c;      // DS:962c
-      std::array<char, 9>       text_9636;      // DS:9636
-      std::array<char, 7>       text_963f;      // DS:963f
-      std::array<char, 6>       text_9646;      // DS:9646
-      std::array<char, 10>      text_964c;      // DS:964c
-      std::array<char, 19>      text_9656;      // DS:9656
-      union {                                   // DS:9669
+      std::uint8_t              unknown_95c1;                 // DS:95c1
+      std::array<FarPointer, 2> arms_actions;                 // DS:95c2: the menu's actions
+      std::array<MenuItem, 3>   arms_menu;                    // DS:95ca
+      std::array<char, 19>      victory_title;                // DS:95ee
+      std::array<char, 15>      victory_format;               // DS:9601
+      std::array<char, 28>      victory_orders;               // DS:9610
+      std::array<char, 10>      view_main_divisions;          // DS:962c
+      std::array<char, 9>       view_main_officers;           // DS:9636
+      std::array<char, 7>       view_main_cities;             // DS:963f
+      std::array<char, 6>       view_main_units;              // DS:9646
+      std::array<char, 10>      view_main_armaments;          // DS:964c
+      std::array<char, 19>      view_main_victory_conditions; // DS:9656
+      union {                                                 // DS:9669
         std::uint16_t                view_main_prompt[18];
         std::array<std::uint8_t, 36> view_main_prompt_bytes;
       };
-      std::uint8_t                       unknown_968d;            // DS:968d
-      std::array<FarPointer, 6>          view_main_actions;       // DS:968e: the menu's actions
-      std::array<MenuItem, 7>            view_main_menu;          // DS:96a6
-      std::array<char, 29>               ops_chief_format;        // DS:96fa
-      std::array<char, 9>                number_range_format;     // DS:9717
-      std::uint16_t                      supply_unlimited;        // DS:9720: 60000, the capacity of a city stockpile
-      std::uint16_t                      supply_panel_x;          // DS:9722
-      std::uint16_t                      supply_panel_y;          // DS:9724
-      std::array<char, 15>               supply_name_format;      // DS:9726
-      std::array<char, 12>               supply_name_text;        // DS:9735
-      std::array<char, 3>                supply_arrow_none;       // DS:9741
-      std::array<char, 3>                supply_arrow_left;       // DS:9744
-      std::array<char, 3>                supply_arrow_right;      // DS:9747
-      std::array<char, 10>               supply_row_left;         // DS:974a
-      std::array<char, 4>                supply_row_right;        // DS:9754
-      std::array<char, 7>                supply_row_end;          // DS:9758
-      std::uint8_t                       unknown_975f;            // DS:975f
-      std::uint16_t                      supply_arrows[3];        // DS:9760: near pointers to the none, left and right arrows (not drawn)
-      std::array<std::uint8_t, 24>       supply_prompt;           // DS:9766
-      std::array<char, 10>               supply_continue;         // DS:977e
-      std::array<char, 6>                tank_suffix;             // DS:9788
-      std::array<std::array<char, 4>, 7> nation_codes;            // DS:978e: GER ITY USA ENG FRN RUS, and USA for 12
-      std::array<char, 5>                nation_code_other;       // DS:97aa: the blank code of any other nation value
-      std::array<char, 4>                text_97af;               // DS:97af
-      std::uint8_t                       unknown_97b3;            // DS:97b3
-      ListWindow                         supply_type_list;        // DS:97b4: the allocation screen's list of types
-      std::array<char, 30>               supply_type_header;      // DS:97c7
-      std::array<char, 32>               supply_type_row;         // DS:97e5
-      std::array<char, 4>                text_9805;               // DS:9805
-      std::array<char, 40>               supply_returned_slot;    // DS:9809
-      std::uint8_t                       unknown_9831;            // DS:9831
-      ListWindow                         supply_slot_list;        // DS:9832: the allocation screen's list of the units' slots
-      std::array<char, 32>               supply_slot_header;      // DS:9845
-      std::array<char, 23>               supply_slot_row;         // DS:9865
-      std::array<char, 30>               supply_empty_slot;       // DS:987c
-      std::array<char, 17>               alloc_amount_format;     // DS:989a
-      std::array<char, 15>               alloc_first_format;      // DS:98ab
-      std::array<char, 15>               alloc_second_format;     // DS:98ba
-      std::array<char, 29>               alloc_heading;           // DS:98c9
-      std::array<char, 22>               alloc_row_format;        // DS:98e6
-      std::array<char, 15>               alloc_name_format;       // DS:98fc
-      std::array<char, 124>              alloc_stats_format;      // DS:990b
-      std::array<char, 31>               regiment_hq_prompt;      // DS:9987
-      std::array<char, 32>               organize_none;           // DS:99a6
-      std::array<char, 25>               organize_which;          // DS:99c6
-      std::array<char, 26>               organize_confirm_format; // DS:99df
-      std::array<char, 20>               organize_no_arms;        // DS:99f9
-      std::array<char, 49>               organize_no_neighbor;    // DS:9a0d
-      std::array<char, 30>               organize_with;           // DS:9a3e
-      std::array<char, 40>               organize_full;           // DS:9a5c
-      std::array<char, 16>               organize_dispatch;       // DS:9a84
-      std::array<char, 70>               organize_complete;       // DS:9a94
-      std::array<char, 20>               organize_cancel;         // DS:9ada
-      std::array<char, 20>               organize_select;         // DS:9aee
-      std::array<char, 24>               organize_number;         // DS:9b02
-      std::array<char, 40>               rq_no_more_text;         // DS:9b1a
-      std::array<char, 51>               rq_cancel_text;          // DS:9b42
-      std::array<char, 37>               rq_filed_text;           // DS:9b75
-      std::array<char, 9>                rq_supplies_text;        // DS:9b9a
-      std::array<char, 17>               rq_supplies_title;       // DS:9ba3
-      std::array<char, 51>               rq_supplies_where;       // DS:9bb4
-      std::array<char, 26>               rq_supplies_confirm;     // DS:9be7
-      std::array<char, 8>                text_9c01;               // DS:9c01
-      std::uint8_t                       unknown_9c09;            // DS:9c09
-      ListWindow                         rq_type_dialog;          // DS:9c0a: the battalion types of the arms request
-      std::array<char, 38>               rq_type_header;          // DS:9c1d
-      std::array<char, 9>                rq_type_name;            // DS:9c43
-      std::array<char, 35>               rq_type_row;             // DS:9c4c
-      std::array<char, 5>                rq_arms_text;            // DS:9c6f
-      std::array<char, 44>               rq_arms_which;           // DS:9c74
-      std::array<char, 50>               rq_arms_where;           // DS:9ca0
-      std::array<char, 26>               rq_arms_confirm;         // DS:9cd2
-      std::array<char, 6>                text_9cec;               // DS:9cec
-      ListWindow                         rq_regiment_list;        // DS:9cf2: the free regiments of the regiment request
-      std::array<char, 24>               rq_unit_header;          // DS:9d05
-      std::array<char, 9>                rq_unit_name;            // DS:9d1d
-      std::array<char, 25>               rq_unit_row;             // DS:9d26
-      std::array<char, 9>                text_9d3f;               // DS:9d3f
-      std::array<char, 11>               text_9d48;               // DS:9d48
-      std::array<char, 8>                text_9d53;               // DS:9d53
-      std::array<char, 10>               text_9d5b;               // DS:9d5b
-      std::array<char, 15>               rq_reinforcements_text;  // DS:9d65
-      std::array<char, 9>                rq_regiment_text;        // DS:9d74
-      std::array<char, 10>               rq_battalion_text;       // DS:9d7d
-      std::array<char, 39>               rq_which_regiment_text;  // DS:9d87
-      std::array<char, 10>               rq_regiments_text;       // DS:9dae
-      std::array<char, 27>               rq_regiment_kind_text;   // DS:9db8
-      std::uint8_t                       unknown_9dd3;            // DS:9dd3
-      std::array<MenuItem, 5>            rq_regiment_kind_menu;   // DS:9dd4
+      std::uint8_t                       unknown_968d;                      // DS:968d
+      std::array<FarPointer, 6>          view_main_actions;                 // DS:968e: the menu's actions
+      std::array<MenuItem, 7>            view_main_menu;                    // DS:96a6
+      std::array<char, 29>               ops_chief_format;                  // DS:96fa
+      std::array<char, 9>                number_range_format;               // DS:9717
+      std::uint16_t                      supply_unlimited;                  // DS:9720: 60000, the capacity of a city stockpile
+      std::uint16_t                      supply_panel_x;                    // DS:9722
+      std::uint16_t                      supply_panel_y;                    // DS:9724
+      std::array<char, 15>               supply_name_format;                // DS:9726
+      std::array<char, 12>               supply_name_text;                  // DS:9735
+      std::array<char, 3>                supply_arrow_none;                 // DS:9741
+      std::array<char, 3>                supply_arrow_left;                 // DS:9744
+      std::array<char, 3>                supply_arrow_right;                // DS:9747
+      std::array<char, 10>               supply_row_left;                   // DS:974a
+      std::array<char, 4>                supply_row_right;                  // DS:9754
+      std::array<char, 7>                supply_row_end;                    // DS:9758
+      std::uint8_t                       unknown_975f;                      // DS:975f
+      std::uint16_t                      supply_arrows[3];                  // DS:9760: near pointers to the none, left and right arrows (not drawn)
+      std::array<std::uint8_t, 24>       supply_prompt;                     // DS:9766
+      std::array<char, 10>               supply_continue;                   // DS:977e
+      std::array<char, 6>                tank_suffix;                       // DS:9788
+      std::array<std::array<char, 4>, 7> nation_codes;                      // DS:978e: GER ITY USA ENG FRN RUS, and USA for 12
+      std::array<char, 5>                nation_code_other;                 // DS:97aa: the blank code of any other nation value
+      std::array<char, 4>                supply_type_list_widths;           // DS:97af
+      std::uint8_t                       unknown_97b3;                      // DS:97b3
+      ListWindow                         supply_type_list;                  // DS:97b4: the allocation screen's list of types
+      std::array<char, 30>               supply_type_header;                // DS:97c7
+      std::array<char, 32>               supply_type_row;                   // DS:97e5
+      std::array<char, 4>                supply_slot_list_widths;           // DS:9805
+      std::array<char, 40>               supply_returned_slot;              // DS:9809
+      std::uint8_t                       unknown_9831;                      // DS:9831
+      ListWindow                         supply_slot_list;                  // DS:9832: the allocation screen's list of the units' slots
+      std::array<char, 32>               supply_slot_header;                // DS:9845
+      std::array<char, 23>               supply_slot_row;                   // DS:9865
+      std::array<char, 30>               supply_empty_slot;                 // DS:987c
+      std::array<char, 17>               alloc_amount_format;               // DS:989a
+      std::array<char, 15>               alloc_first_format;                // DS:98ab
+      std::array<char, 15>               alloc_second_format;               // DS:98ba
+      std::array<char, 29>               alloc_heading;                     // DS:98c9
+      std::array<char, 22>               alloc_row_format;                  // DS:98e6
+      std::array<char, 15>               alloc_name_format;                 // DS:98fc
+      std::array<char, 124>              alloc_stats_format;                // DS:990b
+      std::array<char, 31>               regiment_hq_prompt;                // DS:9987
+      std::array<char, 32>               organize_none;                     // DS:99a6
+      std::array<char, 25>               organize_which;                    // DS:99c6
+      std::array<char, 26>               organize_confirm_format;           // DS:99df
+      std::array<char, 20>               organize_no_arms;                  // DS:99f9
+      std::array<char, 49>               organize_no_neighbor;              // DS:9a0d
+      std::array<char, 30>               organize_with;                     // DS:9a3e
+      std::array<char, 40>               organize_full;                     // DS:9a5c
+      std::array<char, 16>               organize_dispatch;                 // DS:9a84
+      std::array<char, 70>               organize_complete;                 // DS:9a94
+      std::array<char, 20>               organize_cancel;                   // DS:9ada
+      std::array<char, 20>               organize_select;                   // DS:9aee
+      std::array<char, 24>               organize_number;                   // DS:9b02
+      std::array<char, 40>               rq_no_more_text;                   // DS:9b1a
+      std::array<char, 51>               rq_cancel_text;                    // DS:9b42
+      std::array<char, 37>               rq_filed_text;                     // DS:9b75
+      std::array<char, 9>                rq_supplies_text;                  // DS:9b9a
+      std::array<char, 17>               rq_supplies_title;                 // DS:9ba3
+      std::array<char, 51>               rq_supplies_where;                 // DS:9bb4
+      std::array<char, 26>               rq_supplies_confirm;               // DS:9be7
+      std::array<char, 8>                rq_type_dialog_widths;             // DS:9c01
+      std::uint8_t                       unknown_9c09;                      // DS:9c09
+      ListWindow                         rq_type_dialog;                    // DS:9c0a: the battalion types of the arms request
+      std::array<char, 38>               rq_type_header;                    // DS:9c1d
+      std::array<char, 9>                rq_type_name;                      // DS:9c43
+      std::array<char, 35>               rq_type_row;                       // DS:9c4c
+      std::array<char, 5>                rq_arms_text;                      // DS:9c6f
+      std::array<char, 44>               rq_arms_which;                     // DS:9c74
+      std::array<char, 50>               rq_arms_where;                     // DS:9ca0
+      std::array<char, 26>               rq_arms_confirm;                   // DS:9cd2
+      std::array<char, 6>                rq_regiment_list_widths;           // DS:9cec
+      ListWindow                         rq_regiment_list;                  // DS:9cf2: the free regiments of the regiment request
+      std::array<char, 24>               rq_unit_header;                    // DS:9d05
+      std::array<char, 9>                rq_unit_name;                      // DS:9d1d
+      std::array<char, 25>               rq_unit_row;                       // DS:9d26
+      std::array<char, 9>                rq_regiment_kind_label_infantry;   // DS:9d3f
+      std::array<char, 11>               rq_regiment_kind_label_mechanized; // DS:9d48
+      std::array<char, 8>                rq_regiment_kind_label_armored;    // DS:9d53
+      std::array<char, 10>               rq_regiment_kind_label_artillery;  // DS:9d5b
+      std::array<char, 15>               rq_reinforcements_text;            // DS:9d65
+      std::array<char, 9>                rq_regiment_text;                  // DS:9d74
+      std::array<char, 10>               rq_battalion_text;                 // DS:9d7d
+      std::array<char, 39>               rq_which_regiment_text;            // DS:9d87
+      std::array<char, 10>               rq_regiments_text;                 // DS:9dae
+      std::array<char, 27>               rq_regiment_kind_text;             // DS:9db8
+      std::uint8_t                       unknown_9dd3;                      // DS:9dd3
+      std::array<MenuItem, 5>            rq_regiment_kind_menu;             // DS:9dd4
     };
   };
   union {
     std::array<std::uint8_t, 4126> air_text; // DS:9e10..ae2e
     struct {
-      std::array<char, 43>         rq_header_text;            // DS:9e10
-      std::array<char, 9>          text_9e3b;                 // DS:9e3b
-      std::array<char, 11>         text_9e44;                 // DS:9e44
-      std::array<char, 6>          text_9e4f;                 // DS:9e4f
-      std::array<char, 10>         text_9e55;                 // DS:9e55
-      std::array<char, 9>          text_9e5f;                 // DS:9e5f
-      std::array<char, 7>          text_9e68;                 // DS:9e68
-      std::array<char, 9>          text_9e6f;                 // DS:9e6f
-      std::array<char, 11>         text_9e78;                 // DS:9e78
-      std::array<char, 10>         text_9e83;                 // DS:9e83
-      std::array<char, 8>          rq_title_text;             // DS:9e8d
-      std::array<char, 44>         rq_supply_row_text;        // DS:9e95
-      std::array<char, 44>         rq_supply_filed_text;      // DS:9ec1
-      std::array<char, 43>         rq_battalion_row_text;     // DS:9eed
-      std::array<char, 42>         rq_battalion_filed_text;   // DS:9f18
-      std::array<char, 47>         rq_regiment_row_text;      // DS:9f42
-      std::array<char, 46>         rq_regiment_filed_text;    // DS:9f71
-      std::array<char, 18>         rq_menu_prompt_text;       // DS:9f9f
-      std::array<char, 63>         rq_busy_text;              // DS:9fb1
-      std::array<char, 31>         rq_no_city_text;           // DS:9ff0
-      std::uint8_t                 unknown_a00f;              // DS:a00f
-      std::uint16_t                rq_regiment_kind_names[6]; // DS:a010: near pointers to the regiment kinds' names
-      std::array<std::uint8_t, 2>  bytes_a01c;                // DS:a01c
-      std::array<FarPointer, 3>    request_handlers;          // DS:a01e: the request menu's supplies, battalion and regiment handlers
-      std::array<MenuItem, 4>      rq_menu;                   // DS:a02a
-      std::array<char, 3>          air_question_mark;         // DS:a05a: the number prompt's "? " in the mouse input mode
-      std::array<char, 13>         air_range_format;          // DS:a05d: "(%d-%d)? "
-      std::array<char, 4>          air_input_begin;           // DS:a06a
-      std::array<char, 4>          air_input_end;             // DS:a06e
-      std::array<char, 13>         air_hostile_city;          // DS:a072: "hostile city"
-      std::array<char, 25>         air_understood;            // DS:a07f
-      std::array<char, 17>         bombing_carpet_name;       // DS:a098
-      std::array<char, 17>         bombing_sortie_name;       // DS:a0a9
-      std::array<char, 11>         bombing_strafing_name;     // DS:a0ba
-      std::array<char, 6>          air_plane;                 // DS:a0c5
-      std::array<char, 7>          air_planes;                // DS:a0cb
-      std::array<char, 5>          air_hour;                  // DS:a0d2
-      std::array<char, 6>          air_hours;                 // DS:a0d7
-      std::uint8_t                 unknown_a0dd;              // DS:a0dd
-      std::array<BombingFlight, 3> bombing_flights;           // DS:a0de: the planes each bombing mission type sends
-      std::uint16_t                bombing_names[3];          // DS:a0e4: near pointers to the mission type names
-      std::array<char, 30>         bombing_carpet_label;      // DS:a0ea
-      std::array<char, 29>         bombing_sortie_label;      // DS:a108
-      std::array<char, 29>         bombing_strafing_label;    // DS:a125
-      std::array<char, 10>         air_null_order;            // DS:a142
-      std::array<char, 15>         bombing_title;             // DS:a14c
-      std::array<char, 22>         bombing_site_prompt;       // DS:a15b
-      std::uint8_t                 unknown_a171;              // DS:a171
-      std::array<MenuItem, 4>      bombing_menu;              // DS:a172
-      std::array<char, 37>         drop_ask_troops;           // DS:a1a2
-      std::array<char, 26>         drop_troops_assigned;      // DS:a1c7
-      std::array<char, 39>         drop_which_regiment;       // DS:a1e1
-      std::array<char, 26>         drop_assign_soldiers;      // DS:a208
-      std::array<char, 45>         drop_command_post;         // DS:a222
-      std::array<char, 25>         drop_understood;           // DS:a24f
-      std::array<char, 6>          drop_plane;                // DS:a268
-      std::array<char, 7>          drop_planes;               // DS:a26e
-      std::array<char, 34>         drop_no_paratroopers;      // DS:a275
-      std::array<char, 16>         drop_cancel;               // DS:a297
-      std::array<char, 46>         drop_no_transports;        // DS:a2a7
-      std::array<char, 41>         drop_no_regiments;         // DS:a2d5
-      std::array<char, 42>         drop_no_battalions;        // DS:a2fe
-      std::array<char, 45>         drop_where;                // DS:a328
-      std::array<char, 13>         drop_paratroopers;         // DS:a355
-      std::array<char, 33>         drop_hours_prompt;         // DS:a362
-      std::array<char, 71>         drop_ask_hq;               // DS:a383
-      std::array<char, 44>         lift_lead_format;          // DS:a3ca: the officer needs at least %d hours
-      std::array<char, 25>         lift_understood;           // DS:a3f6
-      std::array<char, 6>          air_lift_plane;            // DS:a40f
-      std::array<char, 7>          air_lift_planes;           // DS:a415
-      std::array<char, 5>          air_lift_hour;             // DS:a41c
-      std::array<char, 6>          air_lift_hours;            // DS:a421
-      std::array<char, 47>         lift_start_format;         // DS:a427: In %d %s, %d %s will start their cargo lift
-      std::array<char, 20>         lift_cancel;               // DS:a456: cancel the pending airlift?
-      std::array<char, 47>         lift_no_planes;            // DS:a46a
-      std::array<char, 22>         lift_ask_ammo;             // DS:a499
-      std::array<char, 22>         lift_ask_fuel;             // DS:a4af
-      std::array<char, 22>         lift_ask_food;             // DS:a4c5
-      std::array<char, 25>         lift_select_point;         // DS:a4db
-      std::array<char, 6>          lift_cargo_name;           // DS:a4f4: "cargo"
-      std::array<char, 23>         lift_ask_hours;            // DS:a4fa
-      std::array<char, 65>         lift_confirm;              // DS:a511
-      std::array<char, 29>         air_header_format;         // DS:a552: the mission table header
-      std::array<char, 11>         text_a56f;                 // DS:a56f
-      std::array<char, 13>         text_a57a;                 // DS:a57a
-      std::array<char, 11>         text_a587;                 // DS:a587
-      std::array<char, 10>         air_title;                 // DS:a592
-      std::array<char, 42>         air_strike_format;         // DS:a59c
-      std::array<char, 42>         air_drop_format;           // DS:a5c6
-      std::array<char, 42>         air_lift_format;           // DS:a5f0
-      std::array<char, 23>         air_mission_question;      // DS:a61a: which mission to plan
-      std::uint8_t                 unknown_a631;              // DS:a631
-      std::array<FarPointer, 3>    air_missions;              // DS:a632: the routines of the strike, drop and airlift missions
-      std::array<MenuItem, 4>      air_mission_menu;          // DS:a63e
-      std::array<char, 5>          raid_title;                // DS:a66e
-      std::array<char, 19>         raid_prompt;               // DS:a673
-      std::array<char, 17>         raid_city_question;        // DS:a686
-      std::array<char, 9>          raid_unit_question;        // DS:a697
-      std::array<char, 39>         raid_refusal_1;            // DS:a6a0
-      std::array<char, 53>         raid_refusal_2;            // DS:a6c7
-      std::array<char, 51>         raid_refusal_3;            // DS:a6fc
-      std::array<char, 36>         raid_refusal_4;            // DS:a72f
-      std::array<char, 35>         raid_lieutenant;           // DS:a753
-      std::array<char, 9>          sabotage_title;            // DS:a776
-      std::array<char, 38>         sabotage_prompt;           // DS:a77f
-      std::array<char, 15>         sabotage_city_question;    // DS:a7a5
-      std::array<char, 42>         sabotage_refusal_1;        // DS:a7b4
-      std::array<char, 47>         sabotage_refusal_2;        // DS:a7de
-      std::array<char, 49>         sabotage_refusal_3;        // DS:a80d
-      std::array<char, 34>         sabotage_refusal_4;        // DS:a83e
-      std::array<char, 60>         sabotage_duration;         // DS:a860
-      std::array<char, 40>         sabotage_lieutenant;       // DS:a89c
-      std::array<char, 9>          cut_comm_title;            // DS:a8c4
-      std::array<char, 34>         cut_comm_prompt;           // DS:a8cd
-      std::array<char, 28>         cut_comm_city_question;    // DS:a8ef
-      std::array<char, 9>          cut_comm_unit_question;    // DS:a90b
-      std::array<char, 35>         cut_comm_refusal_1;        // DS:a914
-      std::array<char, 44>         cut_comm_refusal_2;        // DS:a937
-      std::array<char, 53>         cut_comm_refusal_3;        // DS:a963
-      std::array<char, 53>         cut_comm_refusal_4;        // DS:a998
-      std::array<char, 5>          cut_comm_hour;             // DS:a9cd
-      std::array<char, 6>          cut_comm_hours;            // DS:a9d2
-      std::array<char, 48>         cut_comm_duration;         // DS:a9d8
-      std::array<char, 45>         cut_comm_lieutenant;       // DS:aa08
-      std::array<char, 11>         assassinate_title;         // DS:aa35
-      std::array<char, 28>         assassinate_prompt;        // DS:aa40
-      std::array<char, 27>         assassinate_unit_question; // DS:aa5c
-      std::array<char, 22>         assassinate_refusal_1;     // DS:aa77
-      std::array<char, 47>         assassinate_refusal_2;     // DS:aa8d
-      std::array<char, 19>         assassinate_refusal_3;     // DS:aabc
-      std::array<char, 47>         assassinate_refusal_4;     // DS:aacf
-      std::array<char, 58>         assassinate_duration;      // DS:aafe
-      std::array<char, 35>         assassinate_lieutenant;    // DS:ab38
-      std::array<char, 6>          recon_title;               // DS:ab5b
-      std::array<char, 23>         recon_prompt;              // DS:ab61
-      std::array<char, 9>          recon_city_question;       // DS:ab78
-      std::array<char, 15>         recon_unit_question;       // DS:ab81
-      std::array<char, 38>         recon_refusal_1;           // DS:ab90
-      std::array<char, 48>         recon_refusal_2;           // DS:abb6
-      std::array<char, 39>         recon_refusal_3;           // DS:abe6
-      std::array<char, 5>          recon_hour;                // DS:ac0d
-      std::array<char, 6>          recon_hours;               // DS:ac12
-      std::array<char, 43>         recon_duration;            // DS:ac18
-      std::array<char, 37>         recon_lieutenant;          // DS:ac43
-      std::array<char, 6>          text_ac68;                 // DS:ac68
-      std::array<char, 10>         text_ac6e;                 // DS:ac6e
-      std::array<char, 9>          text_ac78;                 // DS:ac78
-      std::array<char, 5>          text_ac81;                 // DS:ac81
-      std::array<char, 12>         text_ac86;                 // DS:ac86
-      std::array<char, 10>         text_ac92;                 // DS:ac92
-      std::array<char, 10>         text_ac9c;                 // DS:ac9c
-      std::array<char, 12>         text_aca6;                 // DS:aca6
-      std::array<char, 14>         text_acb2;                 // DS:acb2
-      std::array<char, 14>         text_acc0;                 // DS:acc0
-      std::array<char, 15>         text_acce;                 // DS:acce
-      std::array<char, 11>         text_acdd;                 // DS:acdd
-      std::array<char, 11>         text_ace8;                 // DS:ace8
-      std::array<char, 15>         special_forces_title;      // DS:acf3
-      std::array<char, 26>         special_orders_line;       // DS:ad02
-      std::array<char, 26>         special_target_line;       // DS:ad1c
-      std::array<char, 26>         special_time_line;         // DS:ad36
-      std::array<char, 74>         special_cancel_question;   // DS:ad50
-      std::array<char, 27>         special_select_question;   // DS:ad9a
-      std::uint8_t                 unknown_adb5;              // DS:adb5
-      std::array<FarPointer, 5>    special_missions;          // DS:adb6: raid, sabotage, cut comm, assassinate, recon
-      std::array<MenuItem, 6>      special_menu;              // DS:adca
-      std::uint16_t                special_mission_names[8];  // DS:ae12: near pointers to the names, by mission code
-      std::array<std::uint8_t, 12> unknown_ae22;              // DS:ae22
+      std::array<char, 43>         rq_header_text;                 // DS:9e10
+      std::array<char, 9>          rq_regiment_kind_infantry;      // DS:9e3b
+      std::array<char, 11>         rq_regiment_kind_mechanized;    // DS:9e44
+      std::array<char, 6>          rq_regiment_kind_armor;         // DS:9e4f
+      std::array<char, 10>         rq_regiment_kind_artillery;     // DS:9e55
+      std::array<char, 9>          rq_regiment_kind_engineer;      // DS:9e5f
+      std::array<char, 7>          rq_regiment_kind_supply;        // DS:9e68
+      std::array<char, 9>          rq_supplies;                    // DS:9e6f
+      std::array<char, 11>         rq_battalions;                  // DS:9e78
+      std::array<char, 10>         rq_regiments;                   // DS:9e83
+      std::array<char, 8>          rq_title_text;                  // DS:9e8d
+      std::array<char, 44>         rq_supply_row_text;             // DS:9e95
+      std::array<char, 44>         rq_supply_filed_text;           // DS:9ec1
+      std::array<char, 43>         rq_battalion_row_text;          // DS:9eed
+      std::array<char, 42>         rq_battalion_filed_text;        // DS:9f18
+      std::array<char, 47>         rq_regiment_row_text;           // DS:9f42
+      std::array<char, 46>         rq_regiment_filed_text;         // DS:9f71
+      std::array<char, 18>         rq_menu_prompt_text;            // DS:9f9f
+      std::array<char, 63>         rq_busy_text;                   // DS:9fb1
+      std::array<char, 31>         rq_no_city_text;                // DS:9ff0
+      std::uint8_t                 unknown_a00f;                   // DS:a00f
+      std::uint16_t                rq_regiment_kind_names[6];      // DS:a010: near pointers to the regiment kinds' names
+      std::array<std::uint8_t, 2>  bytes_a01c;                     // DS:a01c
+      std::array<FarPointer, 3>    request_handlers;               // DS:a01e: the request menu's supplies, battalion and regiment handlers
+      std::array<MenuItem, 4>      rq_menu;                        // DS:a02a
+      std::array<char, 3>          air_question_mark;              // DS:a05a: the number prompt's "? " in the mouse input mode
+      std::array<char, 13>         air_range_format;               // DS:a05d: "(%d-%d)? "
+      std::array<char, 4>          air_input_begin;                // DS:a06a
+      std::array<char, 4>          air_input_end;                  // DS:a06e
+      std::array<char, 13>         air_hostile_city;               // DS:a072: "hostile city"
+      std::array<char, 25>         air_understood;                 // DS:a07f
+      std::array<char, 17>         bombing_carpet_name;            // DS:a098
+      std::array<char, 17>         bombing_sortie_name;            // DS:a0a9
+      std::array<char, 11>         bombing_strafing_name;          // DS:a0ba
+      std::array<char, 6>          air_plane;                      // DS:a0c5
+      std::array<char, 7>          air_planes;                     // DS:a0cb
+      std::array<char, 5>          air_hour;                       // DS:a0d2
+      std::array<char, 6>          air_hours;                      // DS:a0d7
+      std::uint8_t                 unknown_a0dd;                   // DS:a0dd
+      std::array<BombingFlight, 3> bombing_flights;                // DS:a0de: the planes each bombing mission type sends
+      std::uint16_t                bombing_names[3];               // DS:a0e4: near pointers to the mission type names
+      std::array<char, 30>         bombing_carpet_label;           // DS:a0ea
+      std::array<char, 29>         bombing_sortie_label;           // DS:a108
+      std::array<char, 29>         bombing_strafing_label;         // DS:a125
+      std::array<char, 10>         air_null_order;                 // DS:a142
+      std::array<char, 15>         bombing_title;                  // DS:a14c
+      std::array<char, 22>         bombing_site_prompt;            // DS:a15b
+      std::uint8_t                 unknown_a171;                   // DS:a171
+      std::array<MenuItem, 4>      bombing_menu;                   // DS:a172
+      std::array<char, 37>         drop_ask_troops;                // DS:a1a2
+      std::array<char, 26>         drop_troops_assigned;           // DS:a1c7
+      std::array<char, 39>         drop_which_regiment;            // DS:a1e1
+      std::array<char, 26>         drop_assign_soldiers;           // DS:a208
+      std::array<char, 45>         drop_command_post;              // DS:a222
+      std::array<char, 25>         drop_understood;                // DS:a24f
+      std::array<char, 6>          drop_plane;                     // DS:a268
+      std::array<char, 7>          drop_planes;                    // DS:a26e
+      std::array<char, 34>         drop_no_paratroopers;           // DS:a275
+      std::array<char, 16>         drop_cancel;                    // DS:a297
+      std::array<char, 46>         drop_no_transports;             // DS:a2a7
+      std::array<char, 41>         drop_no_regiments;              // DS:a2d5
+      std::array<char, 42>         drop_no_battalions;             // DS:a2fe
+      std::array<char, 45>         drop_where;                     // DS:a328
+      std::array<char, 13>         drop_paratroopers;              // DS:a355
+      std::array<char, 33>         drop_hours_prompt;              // DS:a362
+      std::array<char, 71>         drop_ask_hq;                    // DS:a383
+      std::array<char, 44>         lift_lead_format;               // DS:a3ca: the officer needs at least %d hours
+      std::array<char, 25>         lift_understood;                // DS:a3f6
+      std::array<char, 6>          air_lift_plane;                 // DS:a40f
+      std::array<char, 7>          air_lift_planes;                // DS:a415
+      std::array<char, 5>          air_lift_hour;                  // DS:a41c
+      std::array<char, 6>          air_lift_hours;                 // DS:a421
+      std::array<char, 47>         lift_start_format;              // DS:a427: In %d %s, %d %s will start their cargo lift
+      std::array<char, 20>         lift_cancel;                    // DS:a456: cancel the pending airlift?
+      std::array<char, 47>         lift_no_planes;                 // DS:a46a
+      std::array<char, 22>         lift_ask_ammo;                  // DS:a499
+      std::array<char, 22>         lift_ask_fuel;                  // DS:a4af
+      std::array<char, 22>         lift_ask_food;                  // DS:a4c5
+      std::array<char, 25>         lift_select_point;              // DS:a4db
+      std::array<char, 6>          lift_cargo_name;                // DS:a4f4: "cargo"
+      std::array<char, 23>         lift_ask_hours;                 // DS:a4fa
+      std::array<char, 65>         lift_confirm;                   // DS:a511
+      std::array<char, 29>         air_header_format;              // DS:a552: the mission table header
+      std::array<char, 11>         air_mission_air_strike;         // DS:a56f
+      std::array<char, 13>         air_mission_paratroopers;       // DS:a57a
+      std::array<char, 11>         air_mission_cargo_drop;         // DS:a587
+      std::array<char, 10>         air_title;                      // DS:a592
+      std::array<char, 42>         air_strike_format;              // DS:a59c
+      std::array<char, 42>         air_drop_format;                // DS:a5c6
+      std::array<char, 42>         air_lift_format;                // DS:a5f0
+      std::array<char, 23>         air_mission_question;           // DS:a61a: which mission to plan
+      std::uint8_t                 unknown_a631;                   // DS:a631
+      std::array<FarPointer, 3>    air_missions;                   // DS:a632: the routines of the strike, drop and airlift missions
+      std::array<MenuItem, 4>      air_mission_menu;               // DS:a63e
+      std::array<char, 5>          raid_title;                     // DS:a66e
+      std::array<char, 19>         raid_prompt;                    // DS:a673
+      std::array<char, 17>         raid_city_question;             // DS:a686
+      std::array<char, 9>          raid_unit_question;             // DS:a697
+      std::array<char, 39>         raid_refusal_1;                 // DS:a6a0
+      std::array<char, 53>         raid_refusal_2;                 // DS:a6c7
+      std::array<char, 51>         raid_refusal_3;                 // DS:a6fc
+      std::array<char, 36>         raid_refusal_4;                 // DS:a72f
+      std::array<char, 35>         raid_lieutenant;                // DS:a753
+      std::array<char, 9>          sabotage_title;                 // DS:a776
+      std::array<char, 38>         sabotage_prompt;                // DS:a77f
+      std::array<char, 15>         sabotage_city_question;         // DS:a7a5
+      std::array<char, 42>         sabotage_refusal_1;             // DS:a7b4
+      std::array<char, 47>         sabotage_refusal_2;             // DS:a7de
+      std::array<char, 49>         sabotage_refusal_3;             // DS:a80d
+      std::array<char, 34>         sabotage_refusal_4;             // DS:a83e
+      std::array<char, 60>         sabotage_duration;              // DS:a860
+      std::array<char, 40>         sabotage_lieutenant;            // DS:a89c
+      std::array<char, 9>          cut_comm_title;                 // DS:a8c4
+      std::array<char, 34>         cut_comm_prompt;                // DS:a8cd
+      std::array<char, 28>         cut_comm_city_question;         // DS:a8ef
+      std::array<char, 9>          cut_comm_unit_question;         // DS:a90b
+      std::array<char, 35>         cut_comm_refusal_1;             // DS:a914
+      std::array<char, 44>         cut_comm_refusal_2;             // DS:a937
+      std::array<char, 53>         cut_comm_refusal_3;             // DS:a963
+      std::array<char, 53>         cut_comm_refusal_4;             // DS:a998
+      std::array<char, 5>          cut_comm_hour;                  // DS:a9cd
+      std::array<char, 6>          cut_comm_hours;                 // DS:a9d2
+      std::array<char, 48>         cut_comm_duration;              // DS:a9d8
+      std::array<char, 45>         cut_comm_lieutenant;            // DS:aa08
+      std::array<char, 11>         assassinate_title;              // DS:aa35
+      std::array<char, 28>         assassinate_prompt;             // DS:aa40
+      std::array<char, 27>         assassinate_unit_question;      // DS:aa5c
+      std::array<char, 22>         assassinate_refusal_1;          // DS:aa77
+      std::array<char, 47>         assassinate_refusal_2;          // DS:aa8d
+      std::array<char, 19>         assassinate_refusal_3;          // DS:aabc
+      std::array<char, 47>         assassinate_refusal_4;          // DS:aacf
+      std::array<char, 58>         assassinate_duration;           // DS:aafe
+      std::array<char, 35>         assassinate_lieutenant;         // DS:ab38
+      std::array<char, 6>          recon_title;                    // DS:ab5b
+      std::array<char, 23>         recon_prompt;                   // DS:ab61
+      std::array<char, 9>          recon_city_question;            // DS:ab78
+      std::array<char, 15>         recon_unit_question;            // DS:ab81
+      std::array<char, 38>         recon_refusal_1;                // DS:ab90
+      std::array<char, 48>         recon_refusal_2;                // DS:abb6
+      std::array<char, 39>         recon_refusal_3;                // DS:abe6
+      std::array<char, 5>          recon_hour;                     // DS:ac0d
+      std::array<char, 6>          recon_hours;                    // DS:ac12
+      std::array<char, 43>         recon_duration;                 // DS:ac18
+      std::array<char, 37>         recon_lieutenant;               // DS:ac43
+      std::array<char, 6>          special_recon;                  // DS:ac68
+      std::array<char, 10>         special_cut_lines;              // DS:ac6e
+      std::array<char, 9>          special_sabotage;               // DS:ac78
+      std::array<char, 5>          special_raid;                   // DS:ac81
+      std::array<char, 12>         special_assassinate;            // DS:ac86
+      std::array<char, 10>         special_mission_city_raid;      // DS:ac92
+      std::array<char, 10>         special_mission_unit_raid;      // DS:ac9c
+      std::array<char, 12>         special_mission_supply_raid;    // DS:aca6
+      std::array<char, 14>         special_mission_cut_city_comm;  // DS:acb2
+      std::array<char, 14>         special_mission_cut_unit_comm;  // DS:acc0
+      std::array<char, 15>         special_mission_eliminate_cmdr; // DS:acce
+      std::array<char, 11>         special_mission_recon_city;     // DS:acdd
+      std::array<char, 11>         special_mission_recon_unit;     // DS:ace8
+      std::array<char, 15>         special_forces_title;           // DS:acf3
+      std::array<char, 26>         special_orders_line;            // DS:ad02
+      std::array<char, 26>         special_target_line;            // DS:ad1c
+      std::array<char, 26>         special_time_line;              // DS:ad36
+      std::array<char, 74>         special_cancel_question;        // DS:ad50
+      std::array<char, 27>         special_select_question;        // DS:ad9a
+      std::uint8_t                 unknown_adb5;                   // DS:adb5
+      std::array<FarPointer, 5>    special_missions;               // DS:adb6: raid, sabotage, cut comm, assassinate, recon
+      std::array<MenuItem, 6>      special_menu;                   // DS:adca
+      std::uint16_t                special_mission_names[8];       // DS:ae12: near pointers to the names, by mission code
+      std::array<std::uint8_t, 12> unknown_ae22;                   // DS:ae22
     };
   };
   union {
@@ -2386,11 +2386,11 @@ struct DataSegment {
       std::array<char, 29>                       battle_msg_set_target;      // DS:bb28
       std::array<char, 26>                       battle_msg_no_units;        // DS:bb45
       std::array<char, 34>                       battle_msg_withdraw_from;   // DS:bb5f
-      std::array<char, 5>                        text_bb81;                  // DS:bb81
-      std::array<char, 7>                        text_bb86;                  // DS:bb86
-      std::array<char, 6>                        text_bb8d;                  // DS:bb8d
-      std::array<char, 7>                        text_bb93;                  // DS:bb93
-      std::array<char, 9>                        text_bb9a;                  // DS:bb9a
+      std::array<char, 5>                        battle_menu_move;           // DS:bb81
+      std::array<char, 7>                        battle_menu_attack;         // DS:bb86
+      std::array<char, 6>                        battle_menu_blitz;          // DS:bb8d
+      std::array<char, 7>                        battle_menu_defend;         // DS:bb93
+      std::array<char, 9>                        battle_menu_withdraw;       // DS:bb9a
       std::uint8_t                               unknown_bba3;               // DS:bba3
       std::array<MenuItem, 6>                    battle_menu_items;          // DS:bba4: the battle orders menu, ended by a 0 label
       std::array<ScreenPoint, 5>                 battle_menu_places;         // DS:bbec: the keyboard menu's button places
@@ -2922,208 +2922,208 @@ static_assert(offsetof(DataSegment, influence_map) == 0x26f6);
 static_assert(offsetof(DataSegment, unit_type_names) == 0x27be);
 static_assert(offsetof(DataSegment, save_last) == 0x27be);
 static_assert(offsetof(DataSegment, save_end) == 0x27bf);
-static_assert(offsetof(DataSegment, text_27c0) == 0x27c0);
-static_assert(offsetof(DataSegment, text_27cb) == 0x27cb);
-static_assert(offsetof(DataSegment, text_27d7) == 0x27d7);
-static_assert(offsetof(DataSegment, text_27e5) == 0x27e5);
-static_assert(offsetof(DataSegment, text_27f3) == 0x27f3);
-static_assert(offsetof(DataSegment, text_27fd) == 0x27fd);
-static_assert(offsetof(DataSegment, text_280b) == 0x280b);
-static_assert(offsetof(DataSegment, text_2817) == 0x2817);
-static_assert(offsetof(DataSegment, text_2824) == 0x2824);
-static_assert(offsetof(DataSegment, text_282d) == 0x282d);
-static_assert(offsetof(DataSegment, text_2837) == 0x2837);
-static_assert(offsetof(DataSegment, text_2842) == 0x2842);
-static_assert(offsetof(DataSegment, text_284d) == 0x284d);
-static_assert(offsetof(DataSegment, text_2859) == 0x2859);
-static_assert(offsetof(DataSegment, text_2865) == 0x2865);
-static_assert(offsetof(DataSegment, text_2871) == 0x2871);
-static_assert(offsetof(DataSegment, text_287d) == 0x287d);
-static_assert(offsetof(DataSegment, text_2889) == 0x2889);
-static_assert(offsetof(DataSegment, text_2894) == 0x2894);
-static_assert(offsetof(DataSegment, text_28a0) == 0x28a0);
-static_assert(offsetof(DataSegment, text_28ac) == 0x28ac);
-static_assert(offsetof(DataSegment, text_28b7) == 0x28b7);
-static_assert(offsetof(DataSegment, text_28c2) == 0x28c2);
-static_assert(offsetof(DataSegment, text_28cc) == 0x28cc);
-static_assert(offsetof(DataSegment, text_28d6) == 0x28d6);
-static_assert(offsetof(DataSegment, text_28de) == 0x28de);
-static_assert(offsetof(DataSegment, text_28e7) == 0x28e7);
-static_assert(offsetof(DataSegment, text_28f1) == 0x28f1);
-static_assert(offsetof(DataSegment, text_28fb) == 0x28fb);
-static_assert(offsetof(DataSegment, text_2908) == 0x2908);
-static_assert(offsetof(DataSegment, text_2916) == 0x2916);
-static_assert(offsetof(DataSegment, text_291f) == 0x291f);
-static_assert(offsetof(DataSegment, text_292a) == 0x292a);
-static_assert(offsetof(DataSegment, text_2936) == 0x2936);
-static_assert(offsetof(DataSegment, text_293e) == 0x293e);
-static_assert(offsetof(DataSegment, text_2948) == 0x2948);
-static_assert(offsetof(DataSegment, text_2952) == 0x2952);
-static_assert(offsetof(DataSegment, text_295b) == 0x295b);
-static_assert(offsetof(DataSegment, text_2962) == 0x2962);
-static_assert(offsetof(DataSegment, text_296b) == 0x296b);
-static_assert(offsetof(DataSegment, text_2974) == 0x2974);
-static_assert(offsetof(DataSegment, text_297a) == 0x297a);
-static_assert(offsetof(DataSegment, text_2981) == 0x2981);
-static_assert(offsetof(DataSegment, text_298a) == 0x298a);
-static_assert(offsetof(DataSegment, text_2992) == 0x2992);
-static_assert(offsetof(DataSegment, text_299a) == 0x299a);
-static_assert(offsetof(DataSegment, text_29a2) == 0x29a2);
-static_assert(offsetof(DataSegment, text_29aa) == 0x29aa);
-static_assert(offsetof(DataSegment, text_29b5) == 0x29b5);
-static_assert(offsetof(DataSegment, text_29c0) == 0x29c0);
-static_assert(offsetof(DataSegment, text_29cb) == 0x29cb);
-static_assert(offsetof(DataSegment, text_29d6) == 0x29d6);
-static_assert(offsetof(DataSegment, text_29e2) == 0x29e2);
-static_assert(offsetof(DataSegment, text_29ed) == 0x29ed);
-static_assert(offsetof(DataSegment, text_29f9) == 0x29f9);
-static_assert(offsetof(DataSegment, text_2a03) == 0x2a03);
-static_assert(offsetof(DataSegment, text_2a0c) == 0x2a0c);
-static_assert(offsetof(DataSegment, text_2a0f) == 0x2a0f);
-static_assert(offsetof(DataSegment, text_2a16) == 0x2a16);
-static_assert(offsetof(DataSegment, text_2a26) == 0x2a26);
-static_assert(offsetof(DataSegment, text_2a2a) == 0x2a2a);
-static_assert(offsetof(DataSegment, text_2a30) == 0x2a30);
-static_assert(offsetof(DataSegment, text_2a36) == 0x2a36);
-static_assert(offsetof(DataSegment, text_2a41) == 0x2a41);
-static_assert(offsetof(DataSegment, text_2a4b) == 0x2a4b);
-static_assert(offsetof(DataSegment, text_2a59) == 0x2a59);
-static_assert(offsetof(DataSegment, text_2a61) == 0x2a61);
-static_assert(offsetof(DataSegment, text_2a65) == 0x2a65);
-static_assert(offsetof(DataSegment, text_2a6e) == 0x2a6e);
-static_assert(offsetof(DataSegment, text_2a7e) == 0x2a7e);
-static_assert(offsetof(DataSegment, text_2a8e) == 0x2a8e);
-static_assert(offsetof(DataSegment, text_2a98) == 0x2a98);
-static_assert(offsetof(DataSegment, text_2aa3) == 0x2aa3);
-static_assert(offsetof(DataSegment, text_2aae) == 0x2aae);
-static_assert(offsetof(DataSegment, text_2ab9) == 0x2ab9);
-static_assert(offsetof(DataSegment, text_2ac5) == 0x2ac5);
-static_assert(offsetof(DataSegment, text_2ad2) == 0x2ad2);
-static_assert(offsetof(DataSegment, text_2ade) == 0x2ade);
-static_assert(offsetof(DataSegment, text_2aeb) == 0x2aeb);
-static_assert(offsetof(DataSegment, text_2af4) == 0x2af4);
-static_assert(offsetof(DataSegment, text_2afe) == 0x2afe);
-static_assert(offsetof(DataSegment, text_2b09) == 0x2b09);
-static_assert(offsetof(DataSegment, text_2b13) == 0x2b13);
-static_assert(offsetof(DataSegment, text_2b1e) == 0x2b1e);
-static_assert(offsetof(DataSegment, text_2b2a) == 0x2b2a);
-static_assert(offsetof(DataSegment, text_2b38) == 0x2b38);
-static_assert(offsetof(DataSegment, text_2b45) == 0x2b45);
-static_assert(offsetof(DataSegment, text_2b49) == 0x2b49);
-static_assert(offsetof(DataSegment, text_2b52) == 0x2b52);
-static_assert(offsetof(DataSegment, text_2b5a) == 0x2b5a);
-static_assert(offsetof(DataSegment, text_2b63) == 0x2b63);
-static_assert(offsetof(DataSegment, text_2b6d) == 0x2b6d);
-static_assert(offsetof(DataSegment, text_2b77) == 0x2b77);
-static_assert(offsetof(DataSegment, text_2b81) == 0x2b81);
-static_assert(offsetof(DataSegment, text_2b88) == 0x2b88);
-static_assert(offsetof(DataSegment, text_2b8e) == 0x2b8e);
-static_assert(offsetof(DataSegment, text_2b99) == 0x2b99);
-static_assert(offsetof(DataSegment, text_2ba7) == 0x2ba7);
-static_assert(offsetof(DataSegment, text_2bb2) == 0x2bb2);
-static_assert(offsetof(DataSegment, text_2bc0) == 0x2bc0);
-static_assert(offsetof(DataSegment, text_2bcf) == 0x2bcf);
-static_assert(offsetof(DataSegment, text_2bdc) == 0x2bdc);
-static_assert(offsetof(DataSegment, text_2be5) == 0x2be5);
-static_assert(offsetof(DataSegment, text_2bf3) == 0x2bf3);
-static_assert(offsetof(DataSegment, text_2bf7) == 0x2bf7);
-static_assert(offsetof(DataSegment, text_2c01) == 0x2c01);
-static_assert(offsetof(DataSegment, text_2c08) == 0x2c08);
-static_assert(offsetof(DataSegment, text_2c12) == 0x2c12);
-static_assert(offsetof(DataSegment, text_2c1d) == 0x2c1d);
-static_assert(offsetof(DataSegment, text_2c26) == 0x2c26);
-static_assert(offsetof(DataSegment, text_2c31) == 0x2c31);
-static_assert(offsetof(DataSegment, text_2c3b) == 0x2c3b);
-static_assert(offsetof(DataSegment, text_2c49) == 0x2c49);
-static_assert(offsetof(DataSegment, text_2c4d) == 0x2c4d);
-static_assert(offsetof(DataSegment, text_2c51) == 0x2c51);
-static_assert(offsetof(DataSegment, text_2c56) == 0x2c56);
-static_assert(offsetof(DataSegment, text_2c5e) == 0x2c5e);
-static_assert(offsetof(DataSegment, text_2c65) == 0x2c65);
-static_assert(offsetof(DataSegment, text_2c69) == 0x2c69);
-static_assert(offsetof(DataSegment, text_2c6d) == 0x2c6d);
-static_assert(offsetof(DataSegment, text_2c72) == 0x2c72);
-static_assert(offsetof(DataSegment, text_2c77) == 0x2c77);
-static_assert(offsetof(DataSegment, text_2c7d) == 0x2c7d);
-static_assert(offsetof(DataSegment, text_2c83) == 0x2c83);
-static_assert(offsetof(DataSegment, text_2c89) == 0x2c89);
-static_assert(offsetof(DataSegment, text_2c90) == 0x2c90);
-static_assert(offsetof(DataSegment, text_2c97) == 0x2c97);
-static_assert(offsetof(DataSegment, text_2c9f) == 0x2c9f);
-static_assert(offsetof(DataSegment, text_2ca7) == 0x2ca7);
-static_assert(offsetof(DataSegment, text_2caf) == 0x2caf);
-static_assert(offsetof(DataSegment, text_2cb7) == 0x2cb7);
-static_assert(offsetof(DataSegment, text_2cc0) == 0x2cc0);
-static_assert(offsetof(DataSegment, text_2ccb) == 0x2ccb);
-static_assert(offsetof(DataSegment, text_2cd6) == 0x2cd6);
+static_assert(offsetof(DataSegment, type_ger_infantry_i) == 0x27c0);
+static_assert(offsetof(DataSegment, type_ger_infantry_ii) == 0x27cb);
+static_assert(offsetof(DataSegment, type_ger_civil_grndier) == 0x27d7);
+static_assert(offsetof(DataSegment, type_ger_combat_enginr) == 0x27e5);
+static_assert(offsetof(DataSegment, type_ger_paratroop) == 0x27f3);
+static_assert(offsetof(DataSegment, type_ger_apc_halftrack) == 0x27fd);
+static_assert(offsetof(DataSegment, type_ger_grenadier_i) == 0x280b);
+static_assert(offsetof(DataSegment, type_ger_grenadier_ii) == 0x2817);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_i) == 0x2824);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ii) == 0x282d);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_35t) == 0x2837);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_38t) == 0x2842);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_iiid) == 0x284d);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_iiie) == 0x2859);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_iiij) == 0x2865);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_iiil) == 0x2871);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_iiim) == 0x287d);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ivd) == 0x2889);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ivf1) == 0x2894);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ivf2) == 0x28a0);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ivg) == 0x28ac);
+static_assert(offsetof(DataSegment, type_ger_pzkpfw_ivh) == 0x28b7);
+static_assert(offsetof(DataSegment, type_ger_panther_d) == 0x28c2);
+static_assert(offsetof(DataSegment, type_ger_panther_g) == 0x28cc);
+static_assert(offsetof(DataSegment, type_ger_tiger_i) == 0x28d6);
+static_assert(offsetof(DataSegment, type_ger_tiger_ii) == 0x28de);
+static_assert(offsetof(DataSegment, type_ger_stug_iiib) == 0x28e7);
+static_assert(offsetof(DataSegment, type_ger_stug_iiif) == 0x28f1);
+static_assert(offsetof(DataSegment, type_ger_stug_iiig_75) == 0x28fb);
+static_assert(offsetof(DataSegment, type_ger_stug_iiig_105) == 0x2908);
+static_assert(offsetof(DataSegment, type_ger_stug_ivg) == 0x2916);
+static_assert(offsetof(DataSegment, type_ger_stug_ivl70) == 0x291f);
+static_assert(offsetof(DataSegment, type_ger_jagdpanther) == 0x292a);
+static_assert(offsetof(DataSegment, type_ger_elefant) == 0x2936);
+static_assert(offsetof(DataSegment, type_ger_jagdtiger) == 0x293e);
+static_assert(offsetof(DataSegment, type_ger_marder_ii) == 0x2948);
+static_assert(offsetof(DataSegment, type_ger_nashorne) == 0x2952);
+static_assert(offsetof(DataSegment, type_ger_hetzer) == 0x295b);
+static_assert(offsetof(DataSegment, type_ger_hetzer_d) == 0x2962);
+static_assert(offsetof(DataSegment, type_ger_brummbar) == 0x296b);
+static_assert(offsetof(DataSegment, type_ger_wespe) == 0x2974);
+static_assert(offsetof(DataSegment, type_ger_hummel) == 0x297a);
+static_assert(offsetof(DataSegment, type_ger_maultier) == 0x2981);
+static_assert(offsetof(DataSegment, type_ger_37mmpak) == 0x298a);
+static_assert(offsetof(DataSegment, type_ger_50mmpak) == 0x2992);
+static_assert(offsetof(DataSegment, type_ger_75mmpak) == 0x299a);
+static_assert(offsetof(DataSegment, type_ger_88mmpak) == 0x29a2);
+static_assert(offsetof(DataSegment, type_ger_105mm_guns) == 0x29aa);
+static_assert(offsetof(DataSegment, type_ger_128mm_guns) == 0x29b5);
+static_assert(offsetof(DataSegment, type_ger_150mm_guns) == 0x29c0);
+static_assert(offsetof(DataSegment, type_ger_170mm_guns) == 0x29cb);
+static_assert(offsetof(DataSegment, type_ger_nebelwerfer) == 0x29d6);
+static_assert(offsetof(DataSegment, type_ita_infantry_i) == 0x29e2);
+static_assert(offsetof(DataSegment, type_ita_infantry_ii) == 0x29ed);
+static_assert(offsetof(DataSegment, type_eng_paratroop) == 0x29f9);
+static_assert(offsetof(DataSegment, type_usa_infantry) == 0x2a03);
+static_assert(offsetof(DataSegment, type_ita_l3) == 0x2a0c);
+static_assert(offsetof(DataSegment, type_ita_m13_40) == 0x2a0f);
+static_assert(offsetof(DataSegment, type_ita_semovente_75_34) == 0x2a16);
+static_assert(offsetof(DataSegment, type_ita_p40) == 0x2a26);
+static_assert(offsetof(DataSegment, type_ita_75_27) == 0x2a2a);
+static_assert(offsetof(DataSegment, type_ita_75_32) == 0x2a30);
+static_assert(offsetof(DataSegment, type_ita_149mm_guns) == 0x2a36);
+static_assert(offsetof(DataSegment, type_usa_paratroop) == 0x2a41);
+static_assert(offsetof(DataSegment, type_usa_apc_halftrack) == 0x2a4b);
+static_assert(offsetof(DataSegment, type_usa_chaffee) == 0x2a59);
+static_assert(offsetof(DataSegment, type_usa_m36) == 0x2a61);
+static_assert(offsetof(DataSegment, type_usa_pershing) == 0x2a65);
+static_assert(offsetof(DataSegment, type_usa_105mm_self_prop) == 0x2a6e);
+static_assert(offsetof(DataSegment, type_usa_155mm_self_prop) == 0x2a7e);
+static_assert(offsetof(DataSegment, type_usa_75mm_guns) == 0x2a8e);
+static_assert(offsetof(DataSegment, type_usa_105mm_guns) == 0x2a98);
+static_assert(offsetof(DataSegment, type_usa_155mm_guns) == 0x2aa3);
+static_assert(offsetof(DataSegment, type_eng_infantry_i) == 0x2aae);
+static_assert(offsetof(DataSegment, type_eng_royal_inf_i) == 0x2ab9);
+static_assert(offsetof(DataSegment, type_eng_royal_inf_ii) == 0x2ac5);
+static_assert(offsetof(DataSegment, type_eng_grenadier_i) == 0x2ad2);
+static_assert(offsetof(DataSegment, type_eng_grenadier_ii) == 0x2ade);
+static_assert(offsetof(DataSegment, type_eng_a13mk_ii) == 0x2aeb);
+static_assert(offsetof(DataSegment, type_eng_matilda_i) == 0x2af4);
+static_assert(offsetof(DataSegment, type_eng_matilda_ii) == 0x2afe);
+static_assert(offsetof(DataSegment, type_eng_valentine) == 0x2b09);
+static_assert(offsetof(DataSegment, type_eng_crusader_i) == 0x2b13);
+static_assert(offsetof(DataSegment, type_eng_crusader_ii) == 0x2b1e);
+static_assert(offsetof(DataSegment, type_eng_churchill_iii) == 0x2b2a);
+static_assert(offsetof(DataSegment, type_eng_churchill_iv) == 0x2b38);
+static_assert(offsetof(DataSegment, type_eng_lee) == 0x2b45);
+static_assert(offsetof(DataSegment, type_eng_cromwell) == 0x2b49);
+static_assert(offsetof(DataSegment, type_eng_firefly) == 0x2b52);
+static_assert(offsetof(DataSegment, type_eng_6lb_guns) == 0x2b5a);
+static_assert(offsetof(DataSegment, type_eng_17lb_guns) == 0x2b63);
+static_assert(offsetof(DataSegment, type_eng_18lb_guns) == 0x2b6d);
+static_assert(offsetof(DataSegment, type_eng_25lb_guns) == 0x2b77);
+static_assert(offsetof(DataSegment, type_usa_stuart) == 0x2b81);
+static_assert(offsetof(DataSegment, type_usa_grant) == 0x2b88);
+static_assert(offsetof(DataSegment, type_usa_sherman_a1) == 0x2b8e);
+static_assert(offsetof(DataSegment, type_usa_sherman_a1_76) == 0x2b99);
+static_assert(offsetof(DataSegment, type_usa_sherman_a3) == 0x2ba7);
+static_assert(offsetof(DataSegment, type_usa_sherman_a3_76) == 0x2bb2);
+static_assert(offsetof(DataSegment, type_usa_sherman_a3_105) == 0x2bc0);
+static_assert(offsetof(DataSegment, type_usa_sherman_a3e8) == 0x2bcf);
+static_assert(offsetof(DataSegment, type_fra_infantry) == 0x2bdc);
+static_assert(offsetof(DataSegment, type_fra_apc_halftrack) == 0x2be5);
+static_assert(offsetof(DataSegment, type_fra_h35) == 0x2bf3);
+static_assert(offsetof(DataSegment, type_fra_somua_s35) == 0x2bf7);
+static_assert(offsetof(DataSegment, type_fra_char_b) == 0x2c01);
+static_assert(offsetof(DataSegment, type_fra_75mm_guns) == 0x2c08);
+static_assert(offsetof(DataSegment, type_fra_155mm_guns) == 0x2c12);
+static_assert(offsetof(DataSegment, type_rus_infantry) == 0x2c1d);
+static_assert(offsetof(DataSegment, type_rus_sp_guards) == 0x2c26);
+static_assert(offsetof(DataSegment, type_rus_paratroop) == 0x2c31);
+static_assert(offsetof(DataSegment, type_rus_apc_halftrack) == 0x2c3b);
+static_assert(offsetof(DataSegment, type_rus_kv1) == 0x2c49);
+static_assert(offsetof(DataSegment, type_rus_kv2) == 0x2c4d);
+static_assert(offsetof(DataSegment, type_rus_kv85) == 0x2c51);
+static_assert(offsetof(DataSegment, type_rus_t34_76c) == 0x2c56);
+static_assert(offsetof(DataSegment, type_rus_t34_85) == 0x2c5e);
+static_assert(offsetof(DataSegment, type_rus_js1) == 0x2c65);
+static_assert(offsetof(DataSegment, type_rus_js2) == 0x2c69);
+static_assert(offsetof(DataSegment, type_rus_su76) == 0x2c6d);
+static_assert(offsetof(DataSegment, type_rus_su85) == 0x2c72);
+static_assert(offsetof(DataSegment, type_rus_su100) == 0x2c77);
+static_assert(offsetof(DataSegment, type_rus_su122) == 0x2c7d);
+static_assert(offsetof(DataSegment, type_rus_su152) == 0x2c83);
+static_assert(offsetof(DataSegment, type_rus_jsu122) == 0x2c89);
+static_assert(offsetof(DataSegment, type_rus_jsu152) == 0x2c90);
+static_assert(offsetof(DataSegment, type_rus_45mmpak) == 0x2c97);
+static_assert(offsetof(DataSegment, type_rus_57mmpak) == 0x2c9f);
+static_assert(offsetof(DataSegment, type_rus_76mmpak) == 0x2ca7);
+static_assert(offsetof(DataSegment, type_rus_85mmpak) == 0x2caf);
+static_assert(offsetof(DataSegment, type_rus_120mmmtr) == 0x2cb7);
+static_assert(offsetof(DataSegment, type_rus_122mm_guns) == 0x2cc0);
+static_assert(offsetof(DataSegment, type_rus_152mm_guns) == 0x2ccb);
+static_assert(offsetof(DataSegment, type_rus_katiuchas) == 0x2cd6);
 static_assert(offsetof(DataSegment, general_names) == 0x2ce0);
-static_assert(offsetof(DataSegment, text_2ce0) == 0x2ce0);
-static_assert(offsetof(DataSegment, text_2ce6) == 0x2ce6);
-static_assert(offsetof(DataSegment, text_2ced) == 0x2ced);
-static_assert(offsetof(DataSegment, text_2cf2) == 0x2cf2);
-static_assert(offsetof(DataSegment, text_2cf7) == 0x2cf7);
-static_assert(offsetof(DataSegment, text_2cfb) == 0x2cfb);
-static_assert(offsetof(DataSegment, text_2d02) == 0x2d02);
-static_assert(offsetof(DataSegment, text_2d07) == 0x2d07);
-static_assert(offsetof(DataSegment, text_2d0e) == 0x2d0e);
-static_assert(offsetof(DataSegment, text_2d12) == 0x2d12);
-static_assert(offsetof(DataSegment, text_2d16) == 0x2d16);
-static_assert(offsetof(DataSegment, text_2d1a) == 0x2d1a);
-static_assert(offsetof(DataSegment, text_2d1e) == 0x2d1e);
-static_assert(offsetof(DataSegment, text_2d22) == 0x2d22);
-static_assert(offsetof(DataSegment, text_2d26) == 0x2d26);
-static_assert(offsetof(DataSegment, text_2d31) == 0x2d31);
-static_assert(offsetof(DataSegment, text_2d3b) == 0x2d3b);
-static_assert(offsetof(DataSegment, text_2d46) == 0x2d46);
-static_assert(offsetof(DataSegment, text_2d54) == 0x2d54);
-static_assert(offsetof(DataSegment, text_2d63) == 0x2d63);
-static_assert(offsetof(DataSegment, text_2d73) == 0x2d73);
-static_assert(offsetof(DataSegment, text_2d88) == 0x2d88);
-static_assert(offsetof(DataSegment, text_2d8f) == 0x2d8f);
-static_assert(offsetof(DataSegment, text_2d96) == 0x2d96);
-static_assert(offsetof(DataSegment, text_2d9d) == 0x2d9d);
-static_assert(offsetof(DataSegment, text_2da4) == 0x2da4);
-static_assert(offsetof(DataSegment, text_2dac) == 0x2dac);
-static_assert(offsetof(DataSegment, text_2db4) == 0x2db4);
-static_assert(offsetof(DataSegment, text_2dbb) == 0x2dbb);
-static_assert(offsetof(DataSegment, text_2dc2) == 0x2dc2);
-static_assert(offsetof(DataSegment, text_2dce) == 0x2dce);
-static_assert(offsetof(DataSegment, text_2dd3) == 0x2dd3);
-static_assert(offsetof(DataSegment, text_2dd8) == 0x2dd8);
-static_assert(offsetof(DataSegment, text_2ddf) == 0x2ddf);
-static_assert(offsetof(DataSegment, text_2de6) == 0x2de6);
-static_assert(offsetof(DataSegment, text_2dec) == 0x2dec);
-static_assert(offsetof(DataSegment, text_2df2) == 0x2df2);
-static_assert(offsetof(DataSegment, text_2dfc) == 0x2dfc);
-static_assert(offsetof(DataSegment, text_2e03) == 0x2e03);
-static_assert(offsetof(DataSegment, text_2e08) == 0x2e08);
-static_assert(offsetof(DataSegment, text_2e0f) == 0x2e0f);
-static_assert(offsetof(DataSegment, text_2e16) == 0x2e16);
-static_assert(offsetof(DataSegment, text_2e1d) == 0x2e1d);
-static_assert(offsetof(DataSegment, text_2e22) == 0x2e22);
-static_assert(offsetof(DataSegment, text_2e27) == 0x2e27);
-static_assert(offsetof(DataSegment, text_2e2e) == 0x2e2e);
-static_assert(offsetof(DataSegment, text_2e35) == 0x2e35);
-static_assert(offsetof(DataSegment, text_2e3c) == 0x2e3c);
-static_assert(offsetof(DataSegment, text_2e41) == 0x2e41);
-static_assert(offsetof(DataSegment, text_2e46) == 0x2e46);
-static_assert(offsetof(DataSegment, text_2e4d) == 0x2e4d);
-static_assert(offsetof(DataSegment, text_2e55) == 0x2e55);
-static_assert(offsetof(DataSegment, text_2e5c) == 0x2e5c);
-static_assert(offsetof(DataSegment, text_2e63) == 0x2e63);
-static_assert(offsetof(DataSegment, text_2e6a) == 0x2e6a);
-static_assert(offsetof(DataSegment, text_2e71) == 0x2e71);
-static_assert(offsetof(DataSegment, text_2e78) == 0x2e78);
-static_assert(offsetof(DataSegment, text_2e7d) == 0x2e7d);
-static_assert(offsetof(DataSegment, text_2e82) == 0x2e82);
-static_assert(offsetof(DataSegment, text_2e87) == 0x2e87);
+static_assert(offsetof(DataSegment, weather_clear) == 0x2ce0);
+static_assert(offsetof(DataSegment, weather_cloudy) == 0x2ce6);
+static_assert(offsetof(DataSegment, weather_rain) == 0x2ced);
+static_assert(offsetof(DataSegment, weather_snow) == 0x2cf2);
+static_assert(offsetof(DataSegment, weather_fog) == 0x2cf7);
+static_assert(offsetof(DataSegment, weather_stormy) == 0x2cfb);
+static_assert(offsetof(DataSegment, ui_side_axis) == 0x2d02);
+static_assert(offsetof(DataSegment, ui_side_allied) == 0x2d07);
+static_assert(offsetof(DataSegment, mask_ger) == 0x2d0e);
+static_assert(offsetof(DataSegment, mask_ity) == 0x2d12);
+static_assert(offsetof(DataSegment, mask_usa) == 0x2d16);
+static_assert(offsetof(DataSegment, mask_eng) == 0x2d1a);
+static_assert(offsetof(DataSegment, mask_frn) == 0x2d1e);
+static_assert(offsetof(DataSegment, mask_rus) == 0x2d22);
+static_assert(offsetof(DataSegment, role_army_cmndr) == 0x2d26);
+static_assert(offsetof(DataSegment, role_ops_chief) == 0x2d31);
+static_assert(offsetof(DataSegment, role_intl_chief) == 0x2d3b);
+static_assert(offsetof(DataSegment, role_supreme_cmndr) == 0x2d46);
+static_assert(offsetof(DataSegment, role_chief_of_staff) == 0x2d54);
+static_assert(offsetof(DataSegment, role_air_force_cmndr) == 0x2d63);
+static_assert(offsetof(DataSegment, role_special_forces_cmndr) == 0x2d73);
+static_assert(offsetof(DataSegment, unit_slot_battle_1) == 0x2d88);
+static_assert(offsetof(DataSegment, unit_slot_battle_2) == 0x2d8f);
+static_assert(offsetof(DataSegment, unit_slot_battle_3) == 0x2d96);
+static_assert(offsetof(DataSegment, unit_slot_battle_4) == 0x2d9d);
+static_assert(offsetof(DataSegment, unit_slot_assault_1) == 0x2da4);
+static_assert(offsetof(DataSegment, unit_slot_assault_2) == 0x2dac);
+static_assert(offsetof(DataSegment, unit_slot_enginr) == 0x2db4);
+static_assert(offsetof(DataSegment, unit_slot_supply) == 0x2dbb);
+static_assert(offsetof(DataSegment, terrain_cant_enter) == 0x2dc2);
+static_assert(offsetof(DataSegment, terrain_city) == 0x2dce);
+static_assert(offsetof(DataSegment, terrain_road) == 0x2dd3);
+static_assert(offsetof(DataSegment, terrain_plains) == 0x2dd8);
+static_assert(offsetof(DataSegment, terrain_desert) == 0x2ddf);
+static_assert(offsetof(DataSegment, terrain_river) == 0x2de6);
+static_assert(offsetof(DataSegment, terrain_swamp) == 0x2dec);
+static_assert(offsetof(DataSegment, terrain_wasteland) == 0x2df2);
+static_assert(offsetof(DataSegment, terrain_forest) == 0x2dfc);
+static_assert(offsetof(DataSegment, terrain_hill) == 0x2e03);
+static_assert(offsetof(DataSegment, terrain_bridge) == 0x2e08);
+static_assert(offsetof(DataSegment, task_capture) == 0x2e0f);
+static_assert(offsetof(DataSegment, task_hold) == 0x2e16);
+static_assert(offsetof(DataSegment, task_move) == 0x2e1d);
+static_assert(offsetof(DataSegment, order_move) == 0x2e22);
+static_assert(offsetof(DataSegment, order_occupy) == 0x2e27);
+static_assert(offsetof(DataSegment, order_attack) == 0x2e2e);
+static_assert(offsetof(DataSegment, order_defend) == 0x2e35);
+static_assert(offsetof(DataSegment, order_lay_mines) == 0x2e3c);
+static_assert(offsetof(DataSegment, order_clear_mines) == 0x2e41);
+static_assert(offsetof(DataSegment, order_build_bridge) == 0x2e46);
+static_assert(offsetof(DataSegment, order_destroy_bridge) == 0x2e4d);
+static_assert(offsetof(DataSegment, order_resupply) == 0x2e55);
+static_assert(offsetof(DataSegment, order_supply_unit) == 0x2e5c);
+static_assert(offsetof(DataSegment, order_repair_city) == 0x2e63);
+static_assert(offsetof(DataSegment, order_repair_unit) == 0x2e6a);
+static_assert(offsetof(DataSegment, order_pursue) == 0x2e71);
+static_assert(offsetof(DataSegment, order_rest) == 0x2e78);
+static_assert(offsetof(DataSegment, supply_ammo) == 0x2e7d);
+static_assert(offsetof(DataSegment, supply_fuel) == 0x2e82);
+static_assert(offsetof(DataSegment, supply_food) == 0x2e87);
 static_assert(offsetof(DataSegment, resource_filenames) == 0x2e8c);
 static_assert(offsetof(DataSegment, scenario_filename) == 0x2e8c);
 static_assert(offsetof(DataSegment, face_file_name) == 0x2e94);
 static_assert(offsetof(DataSegment, unknown_2e9d) == 0x2e9d);
 static_assert(offsetof(DataSegment, end_data_name) == 0x2e9e);
 static_assert(offsetof(DataSegment, unknown_2ea9) == 0x2ea9);
-static_assert(offsetof(DataSegment, text_2eaa) == 0x2eaa);
+static_assert(offsetof(DataSegment, logo_font_file) == 0x2eaa);
 static_assert(offsetof(DataSegment, unknown_2eb7) == 0x2eb7);
 static_assert(offsetof(DataSegment, scensel_file) == 0x2eb8);
 static_assert(offsetof(DataSegment, unknown_2ec3) == 0x2ec3);
@@ -3148,9 +3148,9 @@ static_assert(offsetof(DataSegment, hexfonts_filename) == 0x2f3a);
 static_assert(offsetof(DataSegment, unknown_2f47) == 0x2f47);
 static_assert(offsetof(DataSegment, msgrp_filename) == 0x2f48);
 static_assert(offsetof(DataSegment, event_file_name) == 0x2f52);
-static_assert(offsetof(DataSegment, text_2f5c) == 0x2f5c);
+static_assert(offsetof(DataSegment, dcom_overlay_file) == 0x2f5c);
 static_assert(offsetof(DataSegment, unknown_2f65) == 0x2f65);
-static_assert(offsetof(DataSegment, text_2f66) == 0x2f66);
+static_assert(offsetof(DataSegment, bitmap_data_file) == 0x2f66);
 static_assert(offsetof(DataSegment, turn_variables) == 0x2f6e);
 static_assert(offsetof(DataSegment, picture_handle) == 0x2f6e);
 static_assert(offsetof(DataSegment, portrait_handle) == 0x2f70);
@@ -3205,10 +3205,10 @@ static_assert(offsetof(DataSegment, template_tables) == 0x32d4);
 static_assert(offsetof(DataSegment, weather_obscurity) == 0x32d4);
 static_assert(offsetof(DataSegment, air_cover) == 0x32da);
 static_assert(offsetof(DataSegment, battle_levels) == 0x32f2);
-static_assert(offsetof(DataSegment, text_3300) == 0x3300);
-static_assert(offsetof(DataSegment, text_330e) == 0x330e);
-static_assert(offsetof(DataSegment, text_331a) == 0x331a);
-static_assert(offsetof(DataSegment, text_3326) == 0x3326);
+static_assert(offsetof(DataSegment, type_engineer_unit) == 0x3300);
+static_assert(offsetof(DataSegment, type_repair_unit) == 0x330e);
+static_assert(offsetof(DataSegment, type_supply_unit) == 0x331a);
+static_assert(offsetof(DataSegment, type_mechanized) == 0x3326);
 static_assert(offsetof(DataSegment, unknown_3331) == 0x3331);
 static_assert(offsetof(DataSegment, element_types) == 0x3332);
 static_assert(offsetof(DataSegment, weather_names) == 0x3b38);
@@ -3225,23 +3225,23 @@ static_assert(offsetof(DataSegment, small_glyphs) == 0x3bb0);
 static_assert(offsetof(DataSegment, battle_digits) == 0x3bb0);
 static_assert(offsetof(DataSegment, digit_glyphs) == 0x3bb0);
 static_assert(offsetof(DataSegment, rotated_glyphs) == 0x3bf2);
-static_assert(offsetof(DataSegment, text_3c2a) == 0x3c2a);
-static_assert(offsetof(DataSegment, text_3c2f) == 0x3c2f);
-static_assert(offsetof(DataSegment, text_3c36) == 0x3c36);
-static_assert(offsetof(DataSegment, text_3c3c) == 0x3c3c);
-static_assert(offsetof(DataSegment, text_3c45) == 0x3c45);
-static_assert(offsetof(DataSegment, text_3c4c) == 0x3c4c);
-static_assert(offsetof(DataSegment, text_3c51) == 0x3c51);
-static_assert(offsetof(DataSegment, text_3c56) == 0x3c56);
-static_assert(offsetof(DataSegment, text_3c5c) == 0x3c5c);
-static_assert(offsetof(DataSegment, text_3c63) == 0x3c63);
-static_assert(offsetof(DataSegment, text_3c69) == 0x3c69);
-static_assert(offsetof(DataSegment, text_3c6f) == 0x3c6f);
-static_assert(offsetof(DataSegment, text_3c75) == 0x3c75);
-static_assert(offsetof(DataSegment, text_3c7c) == 0x3c7c);
-static_assert(offsetof(DataSegment, text_3c82) == 0x3c82);
-static_assert(offsetof(DataSegment, text_3c89) == 0x3c89);
-static_assert(offsetof(DataSegment, text_3c92) == 0x3c92);
+static_assert(offsetof(DataSegment, battle_order_move) == 0x3c2a);
+static_assert(offsetof(DataSegment, battle_order_attack) == 0x3c2f);
+static_assert(offsetof(DataSegment, battle_order_blitz) == 0x3c36);
+static_assert(offsetof(DataSegment, battle_order_withdraw) == 0x3c3c);
+static_assert(offsetof(DataSegment, battle_order_defend) == 0x3c45);
+static_assert(offsetof(DataSegment, battle_order_wait) == 0x3c4c);
+static_assert(offsetof(DataSegment, battle_terrain_road) == 0x3c51);
+static_assert(offsetof(DataSegment, battle_terrain_plain) == 0x3c56);
+static_assert(offsetof(DataSegment, battle_terrain_desert) == 0x3c5c);
+static_assert(offsetof(DataSegment, battle_terrain_river) == 0x3c63);
+static_assert(offsetof(DataSegment, battle_terrain_swamp) == 0x3c69);
+static_assert(offsetof(DataSegment, battle_terrain_rough) == 0x3c6f);
+static_assert(offsetof(DataSegment, battle_terrain_forest) == 0x3c75);
+static_assert(offsetof(DataSegment, battle_terrain_hills) == 0x3c7c);
+static_assert(offsetof(DataSegment, battle_terrain_bridge) == 0x3c82);
+static_assert(offsetof(DataSegment, battle_terrain_building) == 0x3c89);
+static_assert(offsetof(DataSegment, battle_terrain_bunker) == 0x3c92);
 static_assert(offsetof(DataSegment, battle_ai_side) == 0x3c99);
 static_assert(offsetof(DataSegment, battle_active_side) == 0x3c9a);
 static_assert(offsetof(DataSegment, battle_active_group) == 0x3c9b);
@@ -3360,8 +3360,8 @@ static_assert(offsetof(DataSegment, division_prompt) == 0x46fe);
 static_assert(offsetof(DataSegment, general_header) == 0x471c);
 static_assert(offsetof(DataSegment, general_name_format) == 0x4745);
 static_assert(offsetof(DataSegment, general_stats_format) == 0x474e);
-static_assert(offsetof(DataSegment, text_477c) == 0x477c);
-static_assert(offsetof(DataSegment, text_478a) == 0x478a);
+static_assert(offsetof(DataSegment, side_title_the_axis_army) == 0x477c);
+static_assert(offsetof(DataSegment, side_title_the_allied_army) == 0x478a);
 static_assert(offsetof(DataSegment, side_title_format) == 0x479a);
 static_assert(offsetof(DataSegment, unknown_47a3) == 0x47a3);
 static_assert(offsetof(DataSegment, side_titles) == 0x47a4);
@@ -3372,31 +3372,31 @@ static_assert(offsetof(DataSegment, play_prompt) == 0x4870);
 static_assert(offsetof(DataSegment, use_generals_prompt) == 0x4884);
 static_assert(offsetof(DataSegment, scenario_message_format) == 0x4898);
 static_assert(offsetof(DataSegment, unknown_48a8) == 0x48a8);
-static_assert(offsetof(DataSegment, text_48aa) == 0x48aa);
-static_assert(offsetof(DataSegment, text_48b4) == 0x48b4);
-static_assert(offsetof(DataSegment, text_48c0) == 0x48c0);
-static_assert(offsetof(DataSegment, text_48cb) == 0x48cb);
-static_assert(offsetof(DataSegment, text_48d7) == 0x48d7);
-static_assert(offsetof(DataSegment, text_48e4) == 0x48e4);
-static_assert(offsetof(DataSegment, text_48f0) == 0x48f0);
-static_assert(offsetof(DataSegment, text_48fa) == 0x48fa);
-static_assert(offsetof(DataSegment, text_4905) == 0x4905);
-static_assert(offsetof(DataSegment, text_4911) == 0x4911);
-static_assert(offsetof(DataSegment, text_4920) == 0x4920);
-static_assert(offsetof(DataSegment, text_492d) == 0x492d);
-static_assert(offsetof(DataSegment, text_4933) == 0x4933);
-static_assert(offsetof(DataSegment, text_493f) == 0x493f);
-static_assert(offsetof(DataSegment, text_4952) == 0x4952);
-static_assert(offsetof(DataSegment, text_495d) == 0x495d);
-static_assert(offsetof(DataSegment, text_4963) == 0x4963);
-static_assert(offsetof(DataSegment, text_496c) == 0x496c);
-static_assert(offsetof(DataSegment, text_4972) == 0x4972);
-static_assert(offsetof(DataSegment, text_497d) == 0x497d);
-static_assert(offsetof(DataSegment, text_4991) == 0x4991);
-static_assert(offsetof(DataSegment, text_49ae) == 0x49ae);
-static_assert(offsetof(DataSegment, text_49cb) == 0x49cb);
-static_assert(offsetof(DataSegment, text_49de) == 0x49de);
-static_assert(offsetof(DataSegment, text_49f7) == 0x49f7);
+static_assert(offsetof(DataSegment, scensel_start_new_game) == 0x48aa);
+static_assert(offsetof(DataSegment, scensel_start_load_game) == 0x48b4);
+static_assert(offsetof(DataSegment, scensel_players_demo_mode) == 0x48c0);
+static_assert(offsetof(DataSegment, scensel_players_one_player) == 0x48cb);
+static_assert(offsetof(DataSegment, scensel_players_two_players) == 0x48d7);
+static_assert(offsetof(DataSegment, scensel_side_the_allies) == 0x48e4);
+static_assert(offsetof(DataSegment, scensel_side_the_axis) == 0x48f0);
+static_assert(offsetof(DataSegment, scensel_map_field_map) == 0x48fa);
+static_assert(offsetof(DataSegment, scensel_map_aerial_map) == 0x4905);
+static_assert(offsetof(DataSegment, scensel_battles_view_battles) == 0x4911);
+static_assert(offsetof(DataSegment, scensel_battles_dont_view) == 0x4920);
+static_assert(offsetof(DataSegment, scensel_battles_menu2_view) == 0x492d);
+static_assert(offsetof(DataSegment, scensel_battles_menu2_dont_view) == 0x4933);
+static_assert(offsetof(DataSegment, scensel_battles_menu2_choose_at_battle) == 0x493f);
+static_assert(offsetof(DataSegment, scensel_difficulty_very_easy) == 0x4952);
+static_assert(offsetof(DataSegment, scensel_difficulty_easy) == 0x495d);
+static_assert(offsetof(DataSegment, scensel_difficulty_average) == 0x4963);
+static_assert(offsetof(DataSegment, scensel_difficulty_hard) == 0x496c);
+static_assert(offsetof(DataSegment, scensel_difficulty_very_hard) == 0x4972);
+static_assert(offsetof(DataSegment, scensel_scenario_invasion_of_france) == 0x497d);
+static_assert(offsetof(DataSegment, scensel_scenario_the_battle_for_north) == 0x4991);
+static_assert(offsetof(DataSegment, scensel_scenario_the_armored_battle_at) == 0x49ae);
+static_assert(offsetof(DataSegment, scensel_scenario_d_day_at_normandy) == 0x49cb);
+static_assert(offsetof(DataSegment, scensel_scenario_the_battle_of_the) == 0x49de);
+static_assert(offsetof(DataSegment, scensel_scenario_the_battle_for_berlin) == 0x49f7);
 static_assert(offsetof(DataSegment, scensel_colors) == 0x4a0e);
 static_assert(offsetof(DataSegment, scensel_empty) == 0x4a18);
 static_assert(offsetof(DataSegment, scensel_france) == 0x4a19);
@@ -3475,7 +3475,7 @@ static_assert(offsetof(DataSegment, setup_name_mmapseg) == 0x505d);
 static_assert(offsetof(DataSegment, unknown_5065) == 0x5065);
 static_assert(offsetof(DataSegment, end_palette) == 0x5066);
 static_assert(offsetof(DataSegment, end_palette_final) == 0x5096);
-static_assert(offsetof(DataSegment, text_50c1) == 0x50c1);
+static_assert(offsetof(DataSegment, end_palette_final_tail) == 0x50c1);
 static_assert(offsetof(DataSegment, end_text_format) == 0x50c6);
 static_assert(offsetof(DataSegment, end_picture_name) == 0x50d2);
 static_assert(offsetof(DataSegment, end_salute) == 0x50dd);
@@ -3511,7 +3511,7 @@ static_assert(offsetof(DataSegment, palette_dusk) == 0x5276);
 static_assert(offsetof(DataSegment, palette_night) == 0x528e);
 static_assert(offsetof(DataSegment, palette_title) == 0x52a6);
 static_assert(offsetof(DataSegment, palette_map) == 0x52d6);
-static_assert(offsetof(DataSegment, text_5301) == 0x5301);
+static_assert(offsetof(DataSegment, palette_map_tail) == 0x5301);
 static_assert(offsetof(DataSegment, general_stats_line) == 0x5306);
 static_assert(offsetof(DataSegment, div_commander_prompt) == 0x5336);
 static_assert(offsetof(DataSegment, step_data) == 0x536c);
@@ -3538,10 +3538,10 @@ static_assert(offsetof(DataSegment, division_label_format) == 0x54e8);
 static_assert(offsetof(DataSegment, division_person_format) == 0x54f7);
 static_assert(offsetof(DataSegment, panel_name_format) == 0x5503);
 static_assert(offsetof(DataSegment, panel_count_format) == 0x5509);
-static_assert(offsetof(DataSegment, text_5514) == 0x5514);
-static_assert(offsetof(DataSegment, text_551c) == 0x551c);
-static_assert(offsetof(DataSegment, text_5524) == 0x5524);
-static_assert(offsetof(DataSegment, text_552d) == 0x552d);
+static_assert(offsetof(DataSegment, panel_regiment_assault_1) == 0x5514);
+static_assert(offsetof(DataSegment, panel_regiment_assault_2) == 0x551c);
+static_assert(offsetof(DataSegment, panel_regiment_engineer) == 0x5524);
+static_assert(offsetof(DataSegment, panel_regiment_supply) == 0x552d);
 static_assert(offsetof(DataSegment, panel_regiment_format) == 0x5534);
 static_assert(offsetof(DataSegment, panel_battle) == 0x5545);
 static_assert(offsetof(DataSegment, panel_string_format) == 0x554c);
@@ -3593,13 +3593,13 @@ static_assert(offsetof(DataSegment, tbl_element_name) == 0x5885);
 static_assert(offsetof(DataSegment, tbl_element_row) == 0x588f);
 static_assert(offsetof(DataSegment, regiment_dialog) == 0x58ae);
 static_assert(offsetof(DataSegment, choice_widths) == 0x58c1);
-static_assert(offsetof(DataSegment, text_58c8) == 0x58c8);
-static_assert(offsetof(DataSegment, text_58cd) == 0x58cd);
-static_assert(offsetof(DataSegment, text_58d2) == 0x58d2);
-static_assert(offsetof(DataSegment, text_58d7) == 0x58d7);
-static_assert(offsetof(DataSegment, text_58dc) == 0x58dc);
-static_assert(offsetof(DataSegment, text_58e2) == 0x58e2);
-static_assert(offsetof(DataSegment, text_58e8) == 0x58e8);
+static_assert(offsetof(DataSegment, tbl_post_div1) == 0x58c8);
+static_assert(offsetof(DataSegment, tbl_post_div2) == 0x58cd);
+static_assert(offsetof(DataSegment, tbl_post_div3) == 0x58d2);
+static_assert(offsetof(DataSegment, tbl_post_div4) == 0x58d7);
+static_assert(offsetof(DataSegment, tbl_post_cmdr) == 0x58dc);
+static_assert(offsetof(DataSegment, tbl_post_ops) == 0x58e2);
+static_assert(offsetof(DataSegment, tbl_post_intl) == 0x58e8);
 static_assert(offsetof(DataSegment, tbl_person_name) == 0x58ee);
 static_assert(offsetof(DataSegment, tbl_person_blank) == 0x58f7);
 static_assert(offsetof(DataSegment, tbl_person_rest) == 0x58fc);
@@ -3630,8 +3630,8 @@ static_assert(offsetof(DataSegment, save_widths) == 0x5a8f);
 static_assert(offsetof(DataSegment, stock_dialog) == 0x5a96);
 static_assert(offsetof(DataSegment, unknown_5aa9) == 0x5aa9);
 static_assert(offsetof(DataSegment, save_list) == 0x5aaa);
-static_assert(offsetof(DataSegment, text_5abd) == 0x5abd);
-static_assert(offsetof(DataSegment, text_5ac6) == 0x5ac6);
+static_assert(offsetof(DataSegment, tbl_player_computer) == 0x5abd);
+static_assert(offsetof(DataSegment, tbl_player_user) == 0x5ac6);
 static_assert(offsetof(DataSegment, tbl_save_header) == 0x5acf);
 static_assert(offsetof(DataSegment, tbl_save_number) == 0x5b05);
 static_assert(offsetof(DataSegment, tbl_map_france) == 0x5b0c);
@@ -3653,115 +3653,115 @@ static_assert(offsetof(DataSegment, effect_current) == 0x5b89);
 static_assert(offsetof(DataSegment, music_bank) == 0x5b8a);
 static_assert(offsetof(DataSegment, music_path) == 0x5ba4);
 static_assert(offsetof(DataSegment, briefing_text) == 0x5bb2);
-static_assert(offsetof(DataSegment, text_5bb2) == 0x5bb2);
-static_assert(offsetof(DataSegment, text_5c13) == 0x5c13);
-static_assert(offsetof(DataSegment, text_5c4c) == 0x5c4c);
-static_assert(offsetof(DataSegment, text_5c84) == 0x5c84);
-static_assert(offsetof(DataSegment, text_5cab) == 0x5cab);
-static_assert(offsetof(DataSegment, text_5cde) == 0x5cde);
-static_assert(offsetof(DataSegment, text_5d1c) == 0x5d1c);
-static_assert(offsetof(DataSegment, text_5d5e) == 0x5d5e);
-static_assert(offsetof(DataSegment, text_5da4) == 0x5da4);
-static_assert(offsetof(DataSegment, text_5dde) == 0x5dde);
-static_assert(offsetof(DataSegment, text_5e15) == 0x5e15);
-static_assert(offsetof(DataSegment, text_5e56) == 0x5e56);
-static_assert(offsetof(DataSegment, text_5e83) == 0x5e83);
-static_assert(offsetof(DataSegment, text_5ea9) == 0x5ea9);
-static_assert(offsetof(DataSegment, text_5edb) == 0x5edb);
-static_assert(offsetof(DataSegment, text_5f01) == 0x5f01);
-static_assert(offsetof(DataSegment, text_5f36) == 0x5f36);
-static_assert(offsetof(DataSegment, text_5f5c) == 0x5f5c);
-static_assert(offsetof(DataSegment, text_5f81) == 0x5f81);
-static_assert(offsetof(DataSegment, text_5fb0) == 0x5fb0);
-static_assert(offsetof(DataSegment, text_5fdb) == 0x5fdb);
-static_assert(offsetof(DataSegment, text_6008) == 0x6008);
-static_assert(offsetof(DataSegment, text_603e) == 0x603e);
-static_assert(offsetof(DataSegment, text_6070) == 0x6070);
-static_assert(offsetof(DataSegment, text_60b5) == 0x60b5);
-static_assert(offsetof(DataSegment, text_60e2) == 0x60e2);
-static_assert(offsetof(DataSegment, text_6115) == 0x6115);
-static_assert(offsetof(DataSegment, text_6149) == 0x6149);
-static_assert(offsetof(DataSegment, text_617f) == 0x617f);
-static_assert(offsetof(DataSegment, text_61b3) == 0x61b3);
-static_assert(offsetof(DataSegment, text_61d6) == 0x61d6);
-static_assert(offsetof(DataSegment, text_621c) == 0x621c);
-static_assert(offsetof(DataSegment, text_6263) == 0x6263);
-static_assert(offsetof(DataSegment, text_62a3) == 0x62a3);
-static_assert(offsetof(DataSegment, text_62d5) == 0x62d5);
-static_assert(offsetof(DataSegment, text_6300) == 0x6300);
-static_assert(offsetof(DataSegment, text_6330) == 0x6330);
-static_assert(offsetof(DataSegment, text_636d) == 0x636d);
-static_assert(offsetof(DataSegment, text_63ad) == 0x63ad);
-static_assert(offsetof(DataSegment, text_63e7) == 0x63e7);
-static_assert(offsetof(DataSegment, text_6420) == 0x6420);
-static_assert(offsetof(DataSegment, text_6454) == 0x6454);
-static_assert(offsetof(DataSegment, text_6492) == 0x6492);
-static_assert(offsetof(DataSegment, text_64cd) == 0x64cd);
-static_assert(offsetof(DataSegment, text_6507) == 0x6507);
-static_assert(offsetof(DataSegment, text_6534) == 0x6534);
-static_assert(offsetof(DataSegment, text_656b) == 0x656b);
-static_assert(offsetof(DataSegment, text_659d) == 0x659d);
-static_assert(offsetof(DataSegment, text_65d7) == 0x65d7);
-static_assert(offsetof(DataSegment, text_6612) == 0x6612);
-static_assert(offsetof(DataSegment, text_6639) == 0x6639);
-static_assert(offsetof(DataSegment, text_6658) == 0x6658);
-static_assert(offsetof(DataSegment, text_668c) == 0x668c);
-static_assert(offsetof(DataSegment, text_66cb) == 0x66cb);
-static_assert(offsetof(DataSegment, text_6708) == 0x6708);
-static_assert(offsetof(DataSegment, text_674a) == 0x674a);
-static_assert(offsetof(DataSegment, text_6780) == 0x6780);
-static_assert(offsetof(DataSegment, text_67b7) == 0x67b7);
-static_assert(offsetof(DataSegment, text_67e8) == 0x67e8);
-static_assert(offsetof(DataSegment, text_682a) == 0x682a);
-static_assert(offsetof(DataSegment, text_686b) == 0x686b);
-static_assert(offsetof(DataSegment, text_68b6) == 0x68b6);
-static_assert(offsetof(DataSegment, text_68cd) == 0x68cd);
-static_assert(offsetof(DataSegment, text_68ff) == 0x68ff);
-static_assert(offsetof(DataSegment, text_693a) == 0x693a);
-static_assert(offsetof(DataSegment, text_6982) == 0x6982);
-static_assert(offsetof(DataSegment, text_69db) == 0x69db);
-static_assert(offsetof(DataSegment, text_6a14) == 0x6a14);
-static_assert(offsetof(DataSegment, text_6a5c) == 0x6a5c);
-static_assert(offsetof(DataSegment, text_6a91) == 0x6a91);
-static_assert(offsetof(DataSegment, text_6ad5) == 0x6ad5);
-static_assert(offsetof(DataSegment, text_6b1a) == 0x6b1a);
-static_assert(offsetof(DataSegment, text_6b52) == 0x6b52);
-static_assert(offsetof(DataSegment, text_6b9f) == 0x6b9f);
-static_assert(offsetof(DataSegment, text_6be5) == 0x6be5);
-static_assert(offsetof(DataSegment, text_6c17) == 0x6c17);
-static_assert(offsetof(DataSegment, text_6c50) == 0x6c50);
-static_assert(offsetof(DataSegment, text_6cab) == 0x6cab);
-static_assert(offsetof(DataSegment, text_6ce6) == 0x6ce6);
-static_assert(offsetof(DataSegment, text_6d30) == 0x6d30);
-static_assert(offsetof(DataSegment, text_6d52) == 0x6d52);
-static_assert(offsetof(DataSegment, text_6d8f) == 0x6d8f);
-static_assert(offsetof(DataSegment, text_6db6) == 0x6db6);
-static_assert(offsetof(DataSegment, text_6def) == 0x6def);
-static_assert(offsetof(DataSegment, text_6e31) == 0x6e31);
-static_assert(offsetof(DataSegment, text_6e76) == 0x6e76);
-static_assert(offsetof(DataSegment, text_6ea7) == 0x6ea7);
-static_assert(offsetof(DataSegment, text_6ed5) == 0x6ed5);
-static_assert(offsetof(DataSegment, text_6ef1) == 0x6ef1);
-static_assert(offsetof(DataSegment, text_6f1f) == 0x6f1f);
-static_assert(offsetof(DataSegment, text_6f60) == 0x6f60);
-static_assert(offsetof(DataSegment, text_6f99) == 0x6f99);
-static_assert(offsetof(DataSegment, text_6fc2) == 0x6fc2);
-static_assert(offsetof(DataSegment, text_7008) == 0x7008);
-static_assert(offsetof(DataSegment, text_703f) == 0x703f);
-static_assert(offsetof(DataSegment, text_707e) == 0x707e);
-static_assert(offsetof(DataSegment, text_709d) == 0x709d);
-static_assert(offsetof(DataSegment, text_70d8) == 0x70d8);
-static_assert(offsetof(DataSegment, text_7113) == 0x7113);
-static_assert(offsetof(DataSegment, text_7140) == 0x7140);
-static_assert(offsetof(DataSegment, text_716c) == 0x716c);
-static_assert(offsetof(DataSegment, text_719d) == 0x719d);
-static_assert(offsetof(DataSegment, text_71e2) == 0x71e2);
-static_assert(offsetof(DataSegment, text_7217) == 0x7217);
-static_assert(offsetof(DataSegment, text_7235) == 0x7235);
-static_assert(offsetof(DataSegment, text_726e) == 0x726e);
-static_assert(offsetof(DataSegment, text_728e) == 0x728e);
-static_assert(offsetof(DataSegment, text_72bc) == 0x72bc);
-static_assert(offsetof(DataSegment, text_730e) == 0x730e);
+static_assert(offsetof(DataSegment, brief_france_axis_1) == 0x5bb2);
+static_assert(offsetof(DataSegment, brief_france_axis_2) == 0x5c13);
+static_assert(offsetof(DataSegment, brief_france_axis_3) == 0x5c4c);
+static_assert(offsetof(DataSegment, brief_france_axis_4) == 0x5c84);
+static_assert(offsetof(DataSegment, brief_france_axis_5) == 0x5cab);
+static_assert(offsetof(DataSegment, brief_france_axis_6) == 0x5cde);
+static_assert(offsetof(DataSegment, brief_france_allies_1) == 0x5d1c);
+static_assert(offsetof(DataSegment, brief_france_allies_2) == 0x5d5e);
+static_assert(offsetof(DataSegment, brief_france_allies_3) == 0x5da4);
+static_assert(offsetof(DataSegment, brief_france_allies_4) == 0x5dde);
+static_assert(offsetof(DataSegment, brief_france_allies_5) == 0x5e15);
+static_assert(offsetof(DataSegment, brief_france_allies_6) == 0x5e56);
+static_assert(offsetof(DataSegment, brief_france_allies_7) == 0x5e83);
+static_assert(offsetof(DataSegment, brief_france_allies_8) == 0x5ea9);
+static_assert(offsetof(DataSegment, brief_africa_axis_1) == 0x5edb);
+static_assert(offsetof(DataSegment, brief_africa_axis_2) == 0x5f01);
+static_assert(offsetof(DataSegment, brief_africa_axis_3) == 0x5f36);
+static_assert(offsetof(DataSegment, brief_africa_axis_4) == 0x5f5c);
+static_assert(offsetof(DataSegment, brief_africa_axis_5) == 0x5f81);
+static_assert(offsetof(DataSegment, brief_africa_axis_6) == 0x5fb0);
+static_assert(offsetof(DataSegment, brief_africa_axis_7) == 0x5fdb);
+static_assert(offsetof(DataSegment, brief_africa_axis_8) == 0x6008);
+static_assert(offsetof(DataSegment, brief_africa_allies_1) == 0x603e);
+static_assert(offsetof(DataSegment, brief_africa_allies_2) == 0x6070);
+static_assert(offsetof(DataSegment, brief_africa_allies_3) == 0x60b5);
+static_assert(offsetof(DataSegment, brief_africa_allies_4) == 0x60e2);
+static_assert(offsetof(DataSegment, brief_africa_allies_5) == 0x6115);
+static_assert(offsetof(DataSegment, brief_africa_allies_6) == 0x6149);
+static_assert(offsetof(DataSegment, brief_africa_allies_7) == 0x617f);
+static_assert(offsetof(DataSegment, brief_africa_allies_8) == 0x61b3);
+static_assert(offsetof(DataSegment, brief_kursk_axis_1) == 0x61d6);
+static_assert(offsetof(DataSegment, brief_kursk_axis_2) == 0x621c);
+static_assert(offsetof(DataSegment, brief_kursk_axis_3) == 0x6263);
+static_assert(offsetof(DataSegment, brief_kursk_axis_4) == 0x62a3);
+static_assert(offsetof(DataSegment, brief_kursk_axis_5) == 0x62d5);
+static_assert(offsetof(DataSegment, brief_kursk_axis_6) == 0x6300);
+static_assert(offsetof(DataSegment, brief_kursk_axis_7) == 0x6330);
+static_assert(offsetof(DataSegment, brief_kursk_axis_8) == 0x636d);
+static_assert(offsetof(DataSegment, brief_kursk_axis_9) == 0x63ad);
+static_assert(offsetof(DataSegment, brief_kursk_allies_1) == 0x63e7);
+static_assert(offsetof(DataSegment, brief_kursk_allies_2) == 0x6420);
+static_assert(offsetof(DataSegment, brief_kursk_allies_3) == 0x6454);
+static_assert(offsetof(DataSegment, brief_kursk_allies_4) == 0x6492);
+static_assert(offsetof(DataSegment, brief_kursk_allies_5) == 0x64cd);
+static_assert(offsetof(DataSegment, brief_kursk_allies_6) == 0x6507);
+static_assert(offsetof(DataSegment, brief_kursk_allies_7) == 0x6534);
+static_assert(offsetof(DataSegment, brief_kursk_allies_8) == 0x656b);
+static_assert(offsetof(DataSegment, brief_kursk_allies_9) == 0x659d);
+static_assert(offsetof(DataSegment, brief_kursk_allies_10) == 0x65d7);
+static_assert(offsetof(DataSegment, brief_normandy_axis_1) == 0x6612);
+static_assert(offsetof(DataSegment, brief_normandy_axis_2) == 0x6639);
+static_assert(offsetof(DataSegment, brief_normandy_axis_3) == 0x6658);
+static_assert(offsetof(DataSegment, brief_normandy_axis_4) == 0x668c);
+static_assert(offsetof(DataSegment, brief_normandy_axis_5) == 0x66cb);
+static_assert(offsetof(DataSegment, brief_normandy_axis_6) == 0x6708);
+static_assert(offsetof(DataSegment, brief_normandy_axis_7) == 0x674a);
+static_assert(offsetof(DataSegment, brief_normandy_axis_8) == 0x6780);
+static_assert(offsetof(DataSegment, brief_normandy_axis_9) == 0x67b7);
+static_assert(offsetof(DataSegment, brief_normandy_axis_10) == 0x67e8);
+static_assert(offsetof(DataSegment, brief_normandy_allies_1) == 0x682a);
+static_assert(offsetof(DataSegment, brief_normandy_allies_2) == 0x686b);
+static_assert(offsetof(DataSegment, brief_normandy_allies_3) == 0x68b6);
+static_assert(offsetof(DataSegment, brief_normandy_allies_4) == 0x68cd);
+static_assert(offsetof(DataSegment, brief_normandy_allies_5) == 0x68ff);
+static_assert(offsetof(DataSegment, brief_normandy_allies_6) == 0x693a);
+static_assert(offsetof(DataSegment, brief_normandy_allies_7) == 0x6982);
+static_assert(offsetof(DataSegment, brief_normandy_allies_8) == 0x69db);
+static_assert(offsetof(DataSegment, brief_normandy_allies_9) == 0x6a14);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_1) == 0x6a5c);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_2) == 0x6a91);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_3) == 0x6ad5);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_4) == 0x6b1a);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_5) == 0x6b52);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_6) == 0x6b9f);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_7) == 0x6be5);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_8) == 0x6c17);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_9) == 0x6c50);
+static_assert(offsetof(DataSegment, brief_ardennes_axis_10) == 0x6cab);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_1) == 0x6ce6);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_2) == 0x6d30);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_3) == 0x6d52);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_4) == 0x6d8f);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_5) == 0x6db6);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_6) == 0x6def);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_7) == 0x6e31);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_8) == 0x6e76);
+static_assert(offsetof(DataSegment, brief_ardennes_allies_9) == 0x6ea7);
+static_assert(offsetof(DataSegment, brief_berlin_axis_1) == 0x6ed5);
+static_assert(offsetof(DataSegment, brief_berlin_axis_2) == 0x6ef1);
+static_assert(offsetof(DataSegment, brief_berlin_axis_3) == 0x6f1f);
+static_assert(offsetof(DataSegment, brief_berlin_axis_4) == 0x6f60);
+static_assert(offsetof(DataSegment, brief_berlin_axis_5) == 0x6f99);
+static_assert(offsetof(DataSegment, brief_berlin_axis_6) == 0x6fc2);
+static_assert(offsetof(DataSegment, brief_berlin_axis_7) == 0x7008);
+static_assert(offsetof(DataSegment, brief_berlin_axis_8) == 0x703f);
+static_assert(offsetof(DataSegment, brief_berlin_axis_9) == 0x707e);
+static_assert(offsetof(DataSegment, brief_berlin_axis_10) == 0x709d);
+static_assert(offsetof(DataSegment, brief_berlin_axis_11) == 0x70d8);
+static_assert(offsetof(DataSegment, brief_berlin_allies_1) == 0x7113);
+static_assert(offsetof(DataSegment, brief_berlin_allies_2) == 0x7140);
+static_assert(offsetof(DataSegment, brief_berlin_allies_3) == 0x716c);
+static_assert(offsetof(DataSegment, brief_berlin_allies_4) == 0x719d);
+static_assert(offsetof(DataSegment, brief_berlin_allies_5) == 0x71e2);
+static_assert(offsetof(DataSegment, brief_berlin_allies_6) == 0x7217);
+static_assert(offsetof(DataSegment, brief_berlin_allies_7) == 0x7235);
+static_assert(offsetof(DataSegment, brief_berlin_allies_8) == 0x726e);
+static_assert(offsetof(DataSegment, brief_berlin_allies_9) == 0x728e);
+static_assert(offsetof(DataSegment, brief_berlin_allies_10) == 0x72bc);
+static_assert(offsetof(DataSegment, brief_berlin_allies_11) == 0x730e);
 static_assert(offsetof(DataSegment, side_initializers) == 0x735a);
 static_assert(offsetof(DataSegment, event_tables) == 0x7372);
 static_assert(offsetof(DataSegment, new_weapon_tank) == 0x7372);
@@ -3811,14 +3811,14 @@ static_assert(offsetof(DataSegment, cargo_unit_report) == 0x7bf9);
 static_assert(offsetof(DataSegment, cargo_city_report) == 0x7c2f);
 static_assert(offsetof(DataSegment, unknown_7c65) == 0x7c65);
 static_assert(offsetof(DataSegment, visit_format) == 0x7c66);
-static_assert(offsetof(DataSegment, text_7c7f) == 0x7c7f);
-static_assert(offsetof(DataSegment, text_7c89) == 0x7c89);
+static_assert(offsetof(DataSegment, hurricane_word_hurricane) == 0x7c7f);
+static_assert(offsetof(DataSegment, hurricane_word_storm) == 0x7c89);
 static_assert(offsetof(DataSegment, unknown_7c8f) == 0x7c8f);
 static_assert(offsetof(DataSegment, hurricane_words) == 0x7c90);
-static_assert(offsetof(DataSegment, text_7c9e) == 0x7c9e);
+static_assert(offsetof(DataSegment, partisan_word_storm) == 0x7c9e);
 static_assert(offsetof(DataSegment, partisan_words) == 0x7ca4);
 static_assert(offsetof(DataSegment, unknown_7ca8) == 0x7ca8);
-static_assert(offsetof(DataSegment, text_7cb1) == 0x7cb1);
+static_assert(offsetof(DataSegment, resistance_resistance) == 0x7cb1);
 static_assert(offsetof(DataSegment, resistance_names) == 0x7cbc);
 static_assert(offsetof(DataSegment, angel_name) == 0x7cc0);
 static_assert(offsetof(DataSegment, angel_format) == 0x7cdd);
@@ -3869,7 +3869,7 @@ static_assert(offsetof(DataSegment, direction_keys) == 0x8070);
 static_assert(offsetof(DataSegment, turn_label_format) == 0x8078);
 static_assert(offsetof(DataSegment, percent_text) == 0x80a8);
 static_assert(offsetof(DataSegment, not_available_text) == 0x80ae);
-static_assert(offsetof(DataSegment, text_80b3) == 0x80b3);
+static_assert(offsetof(DataSegment, percent_sign) == 0x80b3);
 static_assert(offsetof(DataSegment, unknown_80b5) == 0x80b5);
 static_assert(offsetof(DataSegment, flash_state) == 0x80b6);
 static_assert(offsetof(DataSegment, regiment_position_text) == 0x80b8);
@@ -3939,34 +3939,34 @@ static_assert(offsetof(DataSegment, target_one_line_format) == 0x8532);
 static_assert(offsetof(DataSegment, target_cell_format) == 0x8539);
 static_assert(offsetof(DataSegment, target_cancel_text) == 0x854a);
 static_assert(offsetof(DataSegment, cancel_orders_prompt) == 0x8569);
-static_assert(offsetof(DataSegment, text_8578) == 0x8578);
-static_assert(offsetof(DataSegment, text_8580) == 0x8580);
-static_assert(offsetof(DataSegment, text_8588) == 0x8588);
-static_assert(offsetof(DataSegment, text_8590) == 0x8590);
-static_assert(offsetof(DataSegment, text_8598) == 0x8598);
-static_assert(offsetof(DataSegment, text_85a0) == 0x85a0);
-static_assert(offsetof(DataSegment, text_85a8) == 0x85a8);
-static_assert(offsetof(DataSegment, text_85b0) == 0x85b0);
-static_assert(offsetof(DataSegment, text_85b8) == 0x85b8);
-static_assert(offsetof(DataSegment, text_85c0) == 0x85c0);
-static_assert(offsetof(DataSegment, text_85c8) == 0x85c8);
-static_assert(offsetof(DataSegment, text_85d0) == 0x85d0);
-static_assert(offsetof(DataSegment, text_85d8) == 0x85d8);
-static_assert(offsetof(DataSegment, text_85e0) == 0x85e0);
-static_assert(offsetof(DataSegment, text_85e8) == 0x85e8);
-static_assert(offsetof(DataSegment, text_85f0) == 0x85f0);
-static_assert(offsetof(DataSegment, text_85f8) == 0x85f8);
-static_assert(offsetof(DataSegment, text_8600) == 0x8600);
-static_assert(offsetof(DataSegment, text_8608) == 0x8608);
-static_assert(offsetof(DataSegment, text_8610) == 0x8610);
-static_assert(offsetof(DataSegment, text_8618) == 0x8618);
-static_assert(offsetof(DataSegment, text_8620) == 0x8620);
-static_assert(offsetof(DataSegment, text_8628) == 0x8628);
-static_assert(offsetof(DataSegment, text_8630) == 0x8630);
-static_assert(offsetof(DataSegment, text_8638) == 0x8638);
-static_assert(offsetof(DataSegment, text_8641) == 0x8641);
-static_assert(offsetof(DataSegment, text_864a) == 0x864a);
-static_assert(offsetof(DataSegment, text_8657) == 0x8657);
+static_assert(offsetof(DataSegment, order_combat_move) == 0x8578);
+static_assert(offsetof(DataSegment, order_combat_occupy) == 0x8580);
+static_assert(offsetof(DataSegment, order_combat_attack) == 0x8588);
+static_assert(offsetof(DataSegment, order_combat_defend) == 0x8590);
+static_assert(offsetof(DataSegment, order_combat_destroy) == 0x8598);
+static_assert(offsetof(DataSegment, order_combat_supply) == 0x85a0);
+static_assert(offsetof(DataSegment, order_combat_pursue) == 0x85a8);
+static_assert(offsetof(DataSegment, order_combat_rest) == 0x85b0);
+static_assert(offsetof(DataSegment, order_engineer_move) == 0x85b8);
+static_assert(offsetof(DataSegment, order_engineer_mine) == 0x85c0);
+static_assert(offsetof(DataSegment, order_engineer_bridge) == 0x85c8);
+static_assert(offsetof(DataSegment, order_engineer_destroy) == 0x85d0);
+static_assert(offsetof(DataSegment, order_engineer_supply) == 0x85d8);
+static_assert(offsetof(DataSegment, order_engineer_pursue) == 0x85e0);
+static_assert(offsetof(DataSegment, order_engineer_rest) == 0x85e8);
+static_assert(offsetof(DataSegment, order_repair_move) == 0x85f0);
+static_assert(offsetof(DataSegment, order_repair_supply) == 0x85f8);
+static_assert(offsetof(DataSegment, order_repair_repair) == 0x8600);
+static_assert(offsetof(DataSegment, order_repair_pursue) == 0x8608);
+static_assert(offsetof(DataSegment, order_repair_rest) == 0x8610);
+static_assert(offsetof(DataSegment, order_supply_move) == 0x8618);
+static_assert(offsetof(DataSegment, order_supply_supply) == 0x8620);
+static_assert(offsetof(DataSegment, order_supply_pursue) == 0x8628);
+static_assert(offsetof(DataSegment, order_supply_rest) == 0x8630);
+static_assert(offsetof(DataSegment, supply_choice_city) == 0x8638);
+static_assert(offsetof(DataSegment, supply_choice_regiment) == 0x8641);
+static_assert(offsetof(DataSegment, repair_choice_city_weapons) == 0x864a);
+static_assert(offsetof(DataSegment, repair_choice_rgmt_weapons) == 0x8657);
 static_assert(offsetof(DataSegment, order_menus) == 0x8664);
 static_assert(offsetof(DataSegment, supply_choices) == 0x8814);
 static_assert(offsetof(DataSegment, repair_choices) == 0x8838);
@@ -4003,12 +4003,12 @@ static_assert(offsetof(DataSegment, rest_thanks_text) == 0x8d4c);
 static_assert(offsetof(DataSegment, assign_thanks_text) == 0x8d69);
 static_assert(offsetof(DataSegment, division_charge_prompt) == 0x8d83);
 static_assert(offsetof(DataSegment, post_label_none) == 0x8dba);
-static_assert(offsetof(DataSegment, text_8dc0) == 0x8dc0);
-static_assert(offsetof(DataSegment, text_8dc8) == 0x8dc8);
-static_assert(offsetof(DataSegment, text_8dd0) == 0x8dd0);
-static_assert(offsetof(DataSegment, text_8dd8) == 0x8dd8);
-static_assert(offsetof(DataSegment, text_8de0) == 0x8de0);
-static_assert(offsetof(DataSegment, text_8dea) == 0x8dea);
+static_assert(offsetof(DataSegment, post_div_1) == 0x8dc0);
+static_assert(offsetof(DataSegment, post_div_2) == 0x8dc8);
+static_assert(offsetof(DataSegment, post_div_3) == 0x8dd0);
+static_assert(offsetof(DataSegment, post_div_4) == 0x8dd8);
+static_assert(offsetof(DataSegment, post_ops_ofc) == 0x8de0);
+static_assert(offsetof(DataSegment, post_intel) == 0x8dea);
 static_assert(offsetof(DataSegment, none_available_text) == 0x8df2);
 static_assert(offsetof(DataSegment, assign_who_prompt) == 0x8e0e);
 static_assert(offsetof(DataSegment, no_holder_1) == 0x8e23);
@@ -4028,24 +4028,24 @@ static_assert(offsetof(DataSegment, inactive_division_label) == 0x8ed2);
 static_assert(offsetof(DataSegment, none_to_rest_text) == 0x8edc);
 static_assert(offsetof(DataSegment, rest_who_prompt) == 0x8f05);
 static_assert(offsetof(DataSegment, rest_days_prompt) == 0x8f18);
-static_assert(offsetof(DataSegment, text_8f45) == 0x8f45);
-static_assert(offsetof(DataSegment, text_8f4e) == 0x8f4e);
-static_assert(offsetof(DataSegment, text_8f56) == 0x8f56);
+static_assert(offsetof(DataSegment, personnel_reassign) == 0x8f45);
+static_assert(offsetof(DataSegment, personnel_appoint) == 0x8f4e);
+static_assert(offsetof(DataSegment, personnel_rest) == 0x8f56);
 static_assert(offsetof(DataSegment, personnel_prompt) == 0x8f5b);
 static_assert(offsetof(DataSegment, unknown_8f6b) == 0x8f6b);
 static_assert(offsetof(DataSegment, personnel_actions) == 0x8f6c);
 static_assert(offsetof(DataSegment, personnel_menu) == 0x8f78);
 static_assert(offsetof(DataSegment, advice_tips) == 0x8fa8);
-static_assert(offsetof(DataSegment, text_8ff8) == 0x8ff8);
-static_assert(offsetof(DataSegment, text_9008) == 0x9008);
-static_assert(offsetof(DataSegment, text_9018) == 0x9018);
-static_assert(offsetof(DataSegment, text_9029) == 0x9029);
-static_assert(offsetof(DataSegment, text_9035) == 0x9035);
+static_assert(offsetof(DataSegment, advice_tactical_advice) == 0x8ff8);
+static_assert(offsetof(DataSegment, advice_regiment_status) == 0x9008);
+static_assert(offsetof(DataSegment, advice_enemy_conditions) == 0x9018);
+static_assert(offsetof(DataSegment, advice_tide_of_war) == 0x9029);
+static_assert(offsetof(DataSegment, advice_operation_hints) == 0x9035);
 static_assert(offsetof(DataSegment, advice_prompt) == 0x9045);
 static_assert(offsetof(DataSegment, advice_actions) == 0x9060);
 static_assert(offsetof(DataSegment, advice_menu) == 0x9074);
-static_assert(offsetof(DataSegment, text_90bc) == 0x90bc);
-static_assert(offsetof(DataSegment, text_90c7) == 0x90c7);
+static_assert(offsetof(DataSegment, staff_operations) == 0x90bc);
+static_assert(offsetof(DataSegment, staff_intelligence) == 0x90c7);
 static_assert(offsetof(DataSegment, staff_prompt) == 0x90d4);
 static_assert(offsetof(DataSegment, staff_actions) == 0x90e2);
 static_assert(offsetof(DataSegment, staff_menu) == 0x90ee);
@@ -4064,18 +4064,18 @@ static_assert(offsetof(DataSegment, panel_fatigue) == 0x924c);
 static_assert(offsetof(DataSegment, panel_element_row) == 0x9281);
 static_assert(offsetof(DataSegment, unknown_929d) == 0x929d);
 static_assert(offsetof(DataSegment, element_rows) == 0x929e);
-static_assert(offsetof(DataSegment, text_92b6) == 0x92b6);
-static_assert(offsetof(DataSegment, text_92c3) == 0x92c3);
-static_assert(offsetof(DataSegment, text_92cf) == 0x92cf);
-static_assert(offsetof(DataSegment, text_92db) == 0x92db);
+static_assert(offsetof(DataSegment, contact_division_1) == 0x92b6);
+static_assert(offsetof(DataSegment, contact_division_2) == 0x92c3);
+static_assert(offsetof(DataSegment, contact_division_3) == 0x92cf);
+static_assert(offsetof(DataSegment, contact_division_4) == 0x92db);
 static_assert(offsetof(DataSegment, contact_prompt) == 0x92e7);
 static_assert(offsetof(DataSegment, contact_lost) == 0x9317);
 static_assert(offsetof(DataSegment, unknown_9343) == 0x9343);
 static_assert(offsetof(DataSegment, contact_menu) == 0x9344);
 static_assert(offsetof(DataSegment, people_here) == 0x9380);
 static_assert(offsetof(DataSegment, people_none) == 0x9391);
-static_assert(offsetof(DataSegment, text_93a8) == 0x93a8);
-static_assert(offsetof(DataSegment, text_93b1) == 0x93b1);
+static_assert(offsetof(DataSegment, people_friendly) == 0x93a8);
+static_assert(offsetof(DataSegment, people_enemy) == 0x93b1);
 static_assert(offsetof(DataSegment, people_prompt) == 0x93b7);
 static_assert(offsetof(DataSegment, people_actions) == 0x93d6);
 static_assert(offsetof(DataSegment, people_menu) == 0x93de);
@@ -4083,8 +4083,8 @@ static_assert(offsetof(DataSegment, city_prompt) == 0x9402);
 static_assert(offsetof(DataSegment, city_format) == 0x941c);
 static_assert(offsetof(DataSegment, city_none_own) == 0x941f);
 static_assert(offsetof(DataSegment, city_none_enemy) == 0x943e);
-static_assert(offsetof(DataSegment, text_945c) == 0x945c);
-static_assert(offsetof(DataSegment, text_9465) == 0x9465);
+static_assert(offsetof(DataSegment, city_side_friendly) == 0x945c);
+static_assert(offsetof(DataSegment, city_side_enemy) == 0x9465);
 static_assert(offsetof(DataSegment, city_side_prompt) == 0x946b);
 static_assert(offsetof(DataSegment, city_side_prompt_bytes) == 0x946b);
 static_assert(offsetof(DataSegment, unknown_9489) == 0x9489);
@@ -4094,15 +4094,15 @@ static_assert(offsetof(DataSegment, regiment_prompt) == 0x94b6);
 static_assert(offsetof(DataSegment, regiment_format) == 0x94d9);
 static_assert(offsetof(DataSegment, view_division_prompt) == 0x94dc);
 static_assert(offsetof(DataSegment, units_none_enemy) == 0x94fa);
-static_assert(offsetof(DataSegment, text_9515) == 0x9515);
-static_assert(offsetof(DataSegment, text_951e) == 0x951e);
+static_assert(offsetof(DataSegment, info_friendly) == 0x9515);
+static_assert(offsetof(DataSegment, info_enemy) == 0x951e);
 static_assert(offsetof(DataSegment, info_prompt) == 0x9524);
 static_assert(offsetof(DataSegment, info_actions) == 0x9542);
 static_assert(offsetof(DataSegment, info_menu) == 0x954a);
 static_assert(offsetof(DataSegment, weapons_prompt) == 0x956e);
 static_assert(offsetof(DataSegment, weapons_here) == 0x958b);
-static_assert(offsetof(DataSegment, text_959e) == 0x959e);
-static_assert(offsetof(DataSegment, text_95a7) == 0x95a7);
+static_assert(offsetof(DataSegment, arms_friendly) == 0x959e);
+static_assert(offsetof(DataSegment, arms_enemy) == 0x95a7);
 static_assert(offsetof(DataSegment, arms_prompt) == 0x95ad);
 static_assert(offsetof(DataSegment, arms_prompt_bytes) == 0x95ad);
 static_assert(offsetof(DataSegment, unknown_95c1) == 0x95c1);
@@ -4111,12 +4111,12 @@ static_assert(offsetof(DataSegment, arms_menu) == 0x95ca);
 static_assert(offsetof(DataSegment, victory_title) == 0x95ee);
 static_assert(offsetof(DataSegment, victory_format) == 0x9601);
 static_assert(offsetof(DataSegment, victory_orders) == 0x9610);
-static_assert(offsetof(DataSegment, text_962c) == 0x962c);
-static_assert(offsetof(DataSegment, text_9636) == 0x9636);
-static_assert(offsetof(DataSegment, text_963f) == 0x963f);
-static_assert(offsetof(DataSegment, text_9646) == 0x9646);
-static_assert(offsetof(DataSegment, text_964c) == 0x964c);
-static_assert(offsetof(DataSegment, text_9656) == 0x9656);
+static_assert(offsetof(DataSegment, view_main_divisions) == 0x962c);
+static_assert(offsetof(DataSegment, view_main_officers) == 0x9636);
+static_assert(offsetof(DataSegment, view_main_cities) == 0x963f);
+static_assert(offsetof(DataSegment, view_main_units) == 0x9646);
+static_assert(offsetof(DataSegment, view_main_armaments) == 0x964c);
+static_assert(offsetof(DataSegment, view_main_victory_conditions) == 0x9656);
 static_assert(offsetof(DataSegment, view_main_prompt) == 0x9669);
 static_assert(offsetof(DataSegment, view_main_prompt_bytes) == 0x9669);
 static_assert(offsetof(DataSegment, unknown_968d) == 0x968d);
@@ -4142,12 +4142,12 @@ static_assert(offsetof(DataSegment, supply_continue) == 0x977e);
 static_assert(offsetof(DataSegment, tank_suffix) == 0x9788);
 static_assert(offsetof(DataSegment, nation_codes) == 0x978e);
 static_assert(offsetof(DataSegment, nation_code_other) == 0x97aa);
-static_assert(offsetof(DataSegment, text_97af) == 0x97af);
+static_assert(offsetof(DataSegment, supply_type_list_widths) == 0x97af);
 static_assert(offsetof(DataSegment, unknown_97b3) == 0x97b3);
 static_assert(offsetof(DataSegment, supply_type_list) == 0x97b4);
 static_assert(offsetof(DataSegment, supply_type_header) == 0x97c7);
 static_assert(offsetof(DataSegment, supply_type_row) == 0x97e5);
-static_assert(offsetof(DataSegment, text_9805) == 0x9805);
+static_assert(offsetof(DataSegment, supply_slot_list_widths) == 0x9805);
 static_assert(offsetof(DataSegment, supply_returned_slot) == 0x9809);
 static_assert(offsetof(DataSegment, unknown_9831) == 0x9831);
 static_assert(offsetof(DataSegment, supply_slot_list) == 0x9832);
@@ -4181,7 +4181,7 @@ static_assert(offsetof(DataSegment, rq_supplies_text) == 0x9b9a);
 static_assert(offsetof(DataSegment, rq_supplies_title) == 0x9ba3);
 static_assert(offsetof(DataSegment, rq_supplies_where) == 0x9bb4);
 static_assert(offsetof(DataSegment, rq_supplies_confirm) == 0x9be7);
-static_assert(offsetof(DataSegment, text_9c01) == 0x9c01);
+static_assert(offsetof(DataSegment, rq_type_dialog_widths) == 0x9c01);
 static_assert(offsetof(DataSegment, unknown_9c09) == 0x9c09);
 static_assert(offsetof(DataSegment, rq_type_dialog) == 0x9c0a);
 static_assert(offsetof(DataSegment, rq_type_header) == 0x9c1d);
@@ -4191,15 +4191,15 @@ static_assert(offsetof(DataSegment, rq_arms_text) == 0x9c6f);
 static_assert(offsetof(DataSegment, rq_arms_which) == 0x9c74);
 static_assert(offsetof(DataSegment, rq_arms_where) == 0x9ca0);
 static_assert(offsetof(DataSegment, rq_arms_confirm) == 0x9cd2);
-static_assert(offsetof(DataSegment, text_9cec) == 0x9cec);
+static_assert(offsetof(DataSegment, rq_regiment_list_widths) == 0x9cec);
 static_assert(offsetof(DataSegment, rq_regiment_list) == 0x9cf2);
 static_assert(offsetof(DataSegment, rq_unit_header) == 0x9d05);
 static_assert(offsetof(DataSegment, rq_unit_name) == 0x9d1d);
 static_assert(offsetof(DataSegment, rq_unit_row) == 0x9d26);
-static_assert(offsetof(DataSegment, text_9d3f) == 0x9d3f);
-static_assert(offsetof(DataSegment, text_9d48) == 0x9d48);
-static_assert(offsetof(DataSegment, text_9d53) == 0x9d53);
-static_assert(offsetof(DataSegment, text_9d5b) == 0x9d5b);
+static_assert(offsetof(DataSegment, rq_regiment_kind_label_infantry) == 0x9d3f);
+static_assert(offsetof(DataSegment, rq_regiment_kind_label_mechanized) == 0x9d48);
+static_assert(offsetof(DataSegment, rq_regiment_kind_label_armored) == 0x9d53);
+static_assert(offsetof(DataSegment, rq_regiment_kind_label_artillery) == 0x9d5b);
 static_assert(offsetof(DataSegment, rq_reinforcements_text) == 0x9d65);
 static_assert(offsetof(DataSegment, rq_regiment_text) == 0x9d74);
 static_assert(offsetof(DataSegment, rq_battalion_text) == 0x9d7d);
@@ -4210,15 +4210,15 @@ static_assert(offsetof(DataSegment, unknown_9dd3) == 0x9dd3);
 static_assert(offsetof(DataSegment, rq_regiment_kind_menu) == 0x9dd4);
 static_assert(offsetof(DataSegment, air_text) == 0x9e10);
 static_assert(offsetof(DataSegment, rq_header_text) == 0x9e10);
-static_assert(offsetof(DataSegment, text_9e3b) == 0x9e3b);
-static_assert(offsetof(DataSegment, text_9e44) == 0x9e44);
-static_assert(offsetof(DataSegment, text_9e4f) == 0x9e4f);
-static_assert(offsetof(DataSegment, text_9e55) == 0x9e55);
-static_assert(offsetof(DataSegment, text_9e5f) == 0x9e5f);
-static_assert(offsetof(DataSegment, text_9e68) == 0x9e68);
-static_assert(offsetof(DataSegment, text_9e6f) == 0x9e6f);
-static_assert(offsetof(DataSegment, text_9e78) == 0x9e78);
-static_assert(offsetof(DataSegment, text_9e83) == 0x9e83);
+static_assert(offsetof(DataSegment, rq_regiment_kind_infantry) == 0x9e3b);
+static_assert(offsetof(DataSegment, rq_regiment_kind_mechanized) == 0x9e44);
+static_assert(offsetof(DataSegment, rq_regiment_kind_armor) == 0x9e4f);
+static_assert(offsetof(DataSegment, rq_regiment_kind_artillery) == 0x9e55);
+static_assert(offsetof(DataSegment, rq_regiment_kind_engineer) == 0x9e5f);
+static_assert(offsetof(DataSegment, rq_regiment_kind_supply) == 0x9e68);
+static_assert(offsetof(DataSegment, rq_supplies) == 0x9e6f);
+static_assert(offsetof(DataSegment, rq_battalions) == 0x9e78);
+static_assert(offsetof(DataSegment, rq_regiments) == 0x9e83);
 static_assert(offsetof(DataSegment, rq_title_text) == 0x9e8d);
 static_assert(offsetof(DataSegment, rq_supply_row_text) == 0x9e95);
 static_assert(offsetof(DataSegment, rq_supply_filed_text) == 0x9ec1);
@@ -4292,9 +4292,9 @@ static_assert(offsetof(DataSegment, lift_cargo_name) == 0xa4f4);
 static_assert(offsetof(DataSegment, lift_ask_hours) == 0xa4fa);
 static_assert(offsetof(DataSegment, lift_confirm) == 0xa511);
 static_assert(offsetof(DataSegment, air_header_format) == 0xa552);
-static_assert(offsetof(DataSegment, text_a56f) == 0xa56f);
-static_assert(offsetof(DataSegment, text_a57a) == 0xa57a);
-static_assert(offsetof(DataSegment, text_a587) == 0xa587);
+static_assert(offsetof(DataSegment, air_mission_air_strike) == 0xa56f);
+static_assert(offsetof(DataSegment, air_mission_paratroopers) == 0xa57a);
+static_assert(offsetof(DataSegment, air_mission_cargo_drop) == 0xa587);
 static_assert(offsetof(DataSegment, air_title) == 0xa592);
 static_assert(offsetof(DataSegment, air_strike_format) == 0xa59c);
 static_assert(offsetof(DataSegment, air_drop_format) == 0xa5c6);
@@ -4353,19 +4353,19 @@ static_assert(offsetof(DataSegment, recon_hour) == 0xac0d);
 static_assert(offsetof(DataSegment, recon_hours) == 0xac12);
 static_assert(offsetof(DataSegment, recon_duration) == 0xac18);
 static_assert(offsetof(DataSegment, recon_lieutenant) == 0xac43);
-static_assert(offsetof(DataSegment, text_ac68) == 0xac68);
-static_assert(offsetof(DataSegment, text_ac6e) == 0xac6e);
-static_assert(offsetof(DataSegment, text_ac78) == 0xac78);
-static_assert(offsetof(DataSegment, text_ac81) == 0xac81);
-static_assert(offsetof(DataSegment, text_ac86) == 0xac86);
-static_assert(offsetof(DataSegment, text_ac92) == 0xac92);
-static_assert(offsetof(DataSegment, text_ac9c) == 0xac9c);
-static_assert(offsetof(DataSegment, text_aca6) == 0xaca6);
-static_assert(offsetof(DataSegment, text_acb2) == 0xacb2);
-static_assert(offsetof(DataSegment, text_acc0) == 0xacc0);
-static_assert(offsetof(DataSegment, text_acce) == 0xacce);
-static_assert(offsetof(DataSegment, text_acdd) == 0xacdd);
-static_assert(offsetof(DataSegment, text_ace8) == 0xace8);
+static_assert(offsetof(DataSegment, special_recon) == 0xac68);
+static_assert(offsetof(DataSegment, special_cut_lines) == 0xac6e);
+static_assert(offsetof(DataSegment, special_sabotage) == 0xac78);
+static_assert(offsetof(DataSegment, special_raid) == 0xac81);
+static_assert(offsetof(DataSegment, special_assassinate) == 0xac86);
+static_assert(offsetof(DataSegment, special_mission_city_raid) == 0xac92);
+static_assert(offsetof(DataSegment, special_mission_unit_raid) == 0xac9c);
+static_assert(offsetof(DataSegment, special_mission_supply_raid) == 0xaca6);
+static_assert(offsetof(DataSegment, special_mission_cut_city_comm) == 0xacb2);
+static_assert(offsetof(DataSegment, special_mission_cut_unit_comm) == 0xacc0);
+static_assert(offsetof(DataSegment, special_mission_eliminate_cmdr) == 0xacce);
+static_assert(offsetof(DataSegment, special_mission_recon_city) == 0xacdd);
+static_assert(offsetof(DataSegment, special_mission_recon_unit) == 0xace8);
 static_assert(offsetof(DataSegment, special_forces_title) == 0xacf3);
 static_assert(offsetof(DataSegment, special_orders_line) == 0xad02);
 static_assert(offsetof(DataSegment, special_target_line) == 0xad1c);
@@ -4571,11 +4571,11 @@ static_assert(offsetof(DataSegment, battle_msg_select_target) == 0xbb0b);
 static_assert(offsetof(DataSegment, battle_msg_set_target) == 0xbb28);
 static_assert(offsetof(DataSegment, battle_msg_no_units) == 0xbb45);
 static_assert(offsetof(DataSegment, battle_msg_withdraw_from) == 0xbb5f);
-static_assert(offsetof(DataSegment, text_bb81) == 0xbb81);
-static_assert(offsetof(DataSegment, text_bb86) == 0xbb86);
-static_assert(offsetof(DataSegment, text_bb8d) == 0xbb8d);
-static_assert(offsetof(DataSegment, text_bb93) == 0xbb93);
-static_assert(offsetof(DataSegment, text_bb9a) == 0xbb9a);
+static_assert(offsetof(DataSegment, battle_menu_move) == 0xbb81);
+static_assert(offsetof(DataSegment, battle_menu_attack) == 0xbb86);
+static_assert(offsetof(DataSegment, battle_menu_blitz) == 0xbb8d);
+static_assert(offsetof(DataSegment, battle_menu_defend) == 0xbb93);
+static_assert(offsetof(DataSegment, battle_menu_withdraw) == 0xbb9a);
 static_assert(offsetof(DataSegment, unknown_bba3) == 0xbba3);
 static_assert(offsetof(DataSegment, battle_menu_items) == 0xbba4);
 static_assert(offsetof(DataSegment, battle_menu_places) == 0xbbec);

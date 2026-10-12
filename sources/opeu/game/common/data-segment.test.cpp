@@ -185,4 +185,18 @@ TEST(DataSegment, PointsTheListWindowsAtTheirColumnWidths) {
   EXPECT_EQ(Text(data, data.supply_arrows[1]), "<-");
   EXPECT_EQ(Text(data, data.transfer_arrows[2]), "->");
 }
+
+TEST(DataSegment, PointsTheNameTablesAtTheNamedStrings) {
+  auto const& data{ Initial() };
+  EXPECT_EQ(data.weather_names[0], Near(data, data.weather_clear));
+  EXPECT_EQ(data.order_names[Bits(TaskKind::HOLD)], Near(data, data.task_hold));
+  EXPECT_EQ(data.order_names[Bits(UnitOrder::LAY_MINES) + 3], Near(data, data.order_lay_mines));
+  EXPECT_EQ(data.order_names[Bits(UnitOrder::REST) + 3], Near(data, data.order_rest));
+  EXPECT_EQ(data.cursor_code_text[Bits(Terrain::BRIDGE)], Near(data, data.terrain_bridge));
+  EXPECT_EQ(data.element_types[2].name, Near(data, data.type_ger_infantry_i));
+  EXPECT_EQ(data.element_types[0].name, Near(data, data.type_supply_unit));
+  EXPECT_EQ(data.special_mission_names[5], Near(data, data.special_mission_eliminate_cmdr));
+  EXPECT_EQ(Text(data, Near(data, data.brief_france_axis_2)).substr(0, 16), "Your mission is ");
+  EXPECT_EQ(Text(data, Near(data, data.type_rus_t34_85)), "T34/85");
+}
 } // namespace opeu::game::detail::data_segment

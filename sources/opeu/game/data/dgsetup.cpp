@@ -56,8 +56,8 @@ auto InitialSetupText(DataSegment& data) -> void {
   SetText(data.general_header, "Lead  Chrm  Brvy  Hlth  Infy  Arty  Tank");
   SetText(data.general_name_format, "%-12.12s");
   SetText(data.general_stats_format, "%2d    %2d    %2d    %2d    %2d    %2d    %2d");
-  SetText(data.text_477c, "The Axis Army");
-  SetText(data.text_478a, "The Allied Army");
+  SetText(data.side_title_the_axis_army, "The Axis Army");
+  SetText(data.side_title_the_allied_army, "The Allied Army");
   SetText(data.side_title_format, "\033Y1%s\033Y0");
   data.side_titles[0]  = 0x477c;
   data.side_titles[1]  = 0x478a;
@@ -69,31 +69,31 @@ auto InitialSetupText(DataSegment& data) -> void {
   SetText(data.play_prompt, "Who will you play ?");
   SetText(data.use_generals_prompt, "Use these generals?");
   SetText(data.scenario_message_format, "\033C1\033B7%s\012\033C0\033B7");
-  SetText(data.text_48aa, " New Game");
-  SetText(data.text_48b4, " Load Game ");
-  SetText(data.text_48c0, " Demo Mode");
-  SetText(data.text_48cb, " One Player");
-  SetText(data.text_48d7, " Two Players");
-  SetText(data.text_48e4, " The Allies");
-  SetText(data.text_48f0, " The Axis");
-  SetText(data.text_48fa, " Field Map");
-  SetText(data.text_4905, " Aerial Map");
-  SetText(data.text_4911, " View Battles ");
-  SetText(data.text_4920, " Don't View ");
-  SetText(data.text_492d, " View");
-  SetText(data.text_4933, " Don't View");
-  SetText(data.text_493f, " Choose at Battle ");
-  SetText(data.text_4952, " Very Easy");
-  SetText(data.text_495d, " Easy");
-  SetText(data.text_4963, " Average");
-  SetText(data.text_496c, " Hard");
-  SetText(data.text_4972, " Very Hard");
-  SetText(data.text_497d, " Invasion of France");
-  SetText(data.text_4991, " The Battle for North Africa");
-  SetText(data.text_49ae, " The Armored Battle at Kursk");
-  SetText(data.text_49cb, " D-Day at Normandy");
-  SetText(data.text_49de, " The Battle of the Bulge");
-  SetText(data.text_49f7, " The Battle for Berlin");
+  SetText(data.scensel_start_new_game, " New Game");
+  SetText(data.scensel_start_load_game, " Load Game ");
+  SetText(data.scensel_players_demo_mode, " Demo Mode");
+  SetText(data.scensel_players_one_player, " One Player");
+  SetText(data.scensel_players_two_players, " Two Players");
+  SetText(data.scensel_side_the_allies, " The Allies");
+  SetText(data.scensel_side_the_axis, " The Axis");
+  SetText(data.scensel_map_field_map, " Field Map");
+  SetText(data.scensel_map_aerial_map, " Aerial Map");
+  SetText(data.scensel_battles_view_battles, " View Battles ");
+  SetText(data.scensel_battles_dont_view, " Don't View ");
+  SetText(data.scensel_battles_menu2_view, " View");
+  SetText(data.scensel_battles_menu2_dont_view, " Don't View");
+  SetText(data.scensel_battles_menu2_choose_at_battle, " Choose at Battle ");
+  SetText(data.scensel_difficulty_very_easy, " Very Easy");
+  SetText(data.scensel_difficulty_easy, " Easy");
+  SetText(data.scensel_difficulty_average, " Average");
+  SetText(data.scensel_difficulty_hard, " Hard");
+  SetText(data.scensel_difficulty_very_hard, " Very Hard");
+  SetText(data.scensel_scenario_invasion_of_france, " Invasion of France");
+  SetText(data.scensel_scenario_the_battle_for_north, " The Battle for North Africa");
+  SetText(data.scensel_scenario_the_armored_battle_at, " The Armored Battle at Kursk");
+  SetText(data.scensel_scenario_d_day_at_normandy, " D-Day at Normandy");
+  SetText(data.scensel_scenario_the_battle_of_the, " The Battle of the Bulge");
+  SetText(data.scensel_scenario_the_battle_for_berlin, " The Battle for Berlin");
   SetText(data.scensel_colors, "\033C0\033B7\033R$");
   SetText(data.scensel_france, " Invasion of France ");
   SetText(data.scensel_africa, " Battle for North Africa ");
@@ -223,12 +223,12 @@ auto InitialSetupText(DataSegment& data) -> void {
   SetText(data.setup_name_ms_seg, "ms_seg");
   SetText(data.setup_name_hfontseg, "hfontseg");
   SetText(data.setup_name_mmapseg, "mmapseg");
-  data.end_palette       = { 0x00, 0x00, 0x00, 0x09, 0x01, 0x04, 0x03, 0x0d, 0x03, 0x0b, 0x0d, 0x07, 0x04, 0x04, 0x09, 0x0b, 0x07, 0x0b, 0x06, 0x0f, 0x0c, 0x0f, 0x0f, 0x0f,
-                             0x02, 0x06, 0x04, 0x05, 0x09, 0x07, 0x07, 0x0c, 0x0a, 0x04, 0x06, 0x06, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0a, 0x02, 0x01, 0x05, 0x09, 0x06, 0x09 };
-  data.end_palette_final = { 0x00, 0x00, 0x00, 0x0f, 0x05, 0x03, 0x05, 0x0f, 0x05, 0x09, 0x0f, 0x0d, 0x07, 0x07, 0x0b, 0x0f, 0x09, 0x0b, 0x05, 0x05, 0x07,
-                             0x0f, 0x0f, 0x0f, 0x07, 0x07, 0x07, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x0a, 0x0a, 0x00, 0x00, 0x00, 0x08, 0x0a, 0x00, 0x0a };
-  data.text_50c1         = { 0x0a, 0x0a, 0x0a, 0x0a, 0x0a };
-  data.end_text_format   = { 0x1b, 0x42, 0x30, 0x1b, 0x52, 0x29, 0x25, 0x73, 0x1b, 0x52, 0x2c };
+  data.end_palette            = { 0x00, 0x00, 0x00, 0x09, 0x01, 0x04, 0x03, 0x0d, 0x03, 0x0b, 0x0d, 0x07, 0x04, 0x04, 0x09, 0x0b, 0x07, 0x0b, 0x06, 0x0f, 0x0c, 0x0f, 0x0f, 0x0f,
+                                  0x02, 0x06, 0x04, 0x05, 0x09, 0x07, 0x07, 0x0c, 0x0a, 0x04, 0x06, 0x06, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0a, 0x02, 0x01, 0x05, 0x09, 0x06, 0x09 };
+  data.end_palette_final      = { 0x00, 0x00, 0x00, 0x0f, 0x05, 0x03, 0x05, 0x0f, 0x05, 0x09, 0x0f, 0x0d, 0x07, 0x07, 0x0b, 0x0f, 0x09, 0x0b, 0x05, 0x05, 0x07,
+                                  0x0f, 0x0f, 0x0f, 0x07, 0x07, 0x07, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x0a, 0x0a, 0x00, 0x00, 0x00, 0x08, 0x0a, 0x00, 0x0a };
+  data.end_palette_final_tail = { 0x0a, 0x0a, 0x0a, 0x0a, 0x0a };
+  data.end_text_format        = { 0x1b, 0x42, 0x30, 0x1b, 0x52, 0x29, 0x25, 0x73, 0x1b, 0x52, 0x2c };
   SetText(data.end_picture_name, "endgrp.npk");
   SetText(data.end_salute, "I salute you Commander %s!");
   // clang-format off

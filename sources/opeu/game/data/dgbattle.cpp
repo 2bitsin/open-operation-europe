@@ -189,11 +189,11 @@ auto InitialBattleText(DataSegment& data) -> void {
   SetText(data.battle_msg_set_target, "\033M4\033C7\033B0Set your target.\033M0");
   SetText(data.battle_msg_no_units, "There are no units there.");
   SetText(data.battle_msg_withdraw_from, "We cannot withdraw\012from there.\033W2");
-  SetText(data.text_bb81, "Move");
-  SetText(data.text_bb86, "Attack");
-  SetText(data.text_bb8d, "Blitz");
-  SetText(data.text_bb93, "Defend");
-  SetText(data.text_bb9a, "Withdraw");
+  SetText(data.battle_menu_move, "Move");
+  SetText(data.battle_menu_attack, "Attack");
+  SetText(data.battle_menu_blitz, "Blitz");
+  SetText(data.battle_menu_defend, "Defend");
+  SetText(data.battle_menu_withdraw, "Withdraw");
   // clang-format off
   data.battle_menu_items = { {
     { 0x0001, 0x015c, 0x0009, 0x0700, 0xbb81, 0x8001 },

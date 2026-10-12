@@ -228,14 +228,14 @@ auto InitialEventText(DataSegment& data) -> void {
   SetText(data.cargo_city_report, "\033C%c%s\012\033C7Fuel  %u(+%u)\012Ammo  "
                                   "%u(+%u)\012Food  %u(+%u)\033S");
   SetText(data.visit_format, "At ease, Commander %s.\033S");
-  SetText(data.text_7c7f, "hurricane");
-  SetText(data.text_7c89, "storm");
+  SetText(data.hurricane_word_hurricane, "hurricane");
+  SetText(data.hurricane_word_storm, "storm");
   SetEach(std::to_array<std::uint16_t>({ 0x7c7f, 0x7c89, 0x7568, 0x7272, 0x6369, 0x6e61, 0x0065 }), [&](std::size_t index, std::uint16_t value) { data.hurricane_words[index] = value; });
-  SetText(data.text_7c9e, "storm");
+  SetText(data.partisan_word_storm, "storm");
   data.partisan_words[0] = 0x7c94;
   data.partisan_words[1] = 0x7c9e;
   data.unknown_7ca8      = { 0x50, 0x61, 0x72, 0x74, 0x69, 0x73, 0x61, 0x6e };
-  SetText(data.text_7cb1, "Resistance");
+  SetText(data.resistance_resistance, "Resistance");
   data.resistance_names[0] = 0x7ca8;
   data.resistance_names[1] = 0x7cb1;
   data.angel_name          = { 0x1b, 0x4d, 0x34, 0x1b, 0x43, 0x36, 0x53, 0x69, 0x73, 0x74, 0x65, 0x72, 0x20, 0x41, 0x6e, 0x67, 0x65, 0x6c, 0x69, 0x71, 0x75, 0x65, 0x1b, 0x4d, 0x30, 0x1b, 0x43, 0x37 };
