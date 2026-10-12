@@ -48,16 +48,14 @@ auto ToAsset(Json const& entry) -> PackedAsset {
 
 auto ToColours(Json const& rows) -> PaletteColours {
   auto colours{ PaletteColours{} };
-  std::ranges::transform(rows.get<std::vector<std::array<std::uint8_t, 3>>>() | std::views::take(colours.size()), colours.begin(), [](std::array<std::uint8_t, 3> const& rgb) -> Colour {
-    auto const [r, g, b]{ rgb };
-    return Colour{ .r = r, .g = g, .b = b };
-  });
+  std::ranges::transform(rows.get<std::vector<std::array<std::uint8_t, 3>>>() | std::views::take(colours.size()), colours.begin(),
+                         [](std::array<std::uint8_t, 3> const& rgb) -> Colour { return Colour{ .r = std::get<0>(rgb), .g = std::get<1>(rgb), .b = std::get<2>(rgb) }; });
   return colours;
 }
 
 auto ToFont(Json const& font) -> Font {
-  auto const [width, height]{ font.at("cell").get<std::array<std::size_t, 2>>() };
-  return Font{ .cell_width = width, .cell_height = height, .glyphs = font.at("glyphs").get<std::vector<std::string>>() };
+  auto const cell{ font.at("cell").get<std::array<std::size_t, 2>>() };
+  return Font{ .cell_width = std::get<0>(cell), .cell_height = std::get<1>(cell), .glyphs = font.at("glyphs").get<std::vector<std::string>>() };
 }
 
 auto ToIds(Json const& ids) -> std::vector<std::string> {
