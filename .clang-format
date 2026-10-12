@@ -36,14 +36,14 @@ SpacesBeforeTrailingComments: 1
 AlignAfterOpenBracket: Align
 AlignOperands: Align
 AlignEscapedNewlines: Left
-# Off: tools/lint/columns.py owns these columns.
-AlignConsecutiveAssignments: { Enabled: false }
-AlignConsecutiveDeclarations: { Enabled: false }
-AlignConsecutiveBitFields: { Enabled: false }
-AlignConsecutiveMacros: { Enabled: false }
-AlignConsecutiveShortCaseStatements: { Enabled: false }
-AlignTrailingComments: { Kind: Leave }
-AlignArrayOfStructures: None
+# Columnar alignment is part of the house format (with 2-space indentation, non-negotiable).
+AlignConsecutiveAssignments: { Enabled: true, AcrossEmptyLines: false, AcrossComments: false, AlignCompound: true, PadOperators: true }
+AlignConsecutiveDeclarations: { Enabled: true, AcrossEmptyLines: false, AcrossComments: false }
+AlignConsecutiveBitFields: { Enabled: true, AcrossEmptyLines: false, AcrossComments: false }
+AlignConsecutiveMacros: { Enabled: true, AcrossEmptyLines: false, AcrossComments: false }
+AlignConsecutiveShortCaseStatements: { Enabled: true, AcrossEmptyLines: false, AcrossComments: false }
+AlignTrailingComments: { Kind: Always, OverEmptyLines: 0 }
+AlignArrayOfStructures: Left
 BreakBeforeBinaryOperators: NonAssignment
 BreakBinaryOperations: Never
 BreakBeforeTernaryOperators: true
