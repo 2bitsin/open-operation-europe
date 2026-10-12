@@ -1,12 +1,14 @@
+// DS:7f6d..7fdf: command prompts and eleven far action pointers.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-#include "data/image.hpp"
+namespace opeu::game::detail::ctrltext {
 
-using opeu::game::FarPointer;
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialControlText(DataSegment& data) -> void;
+} // namespace opeu::game::detail::ctrltext
 
-extern char       opeu_control_prompt[31];
-extern char       opeu_control_ready[39];
-extern uint8_t    opeu_control_text_padding;
-extern FarPointer opeu_control_actions[11];
+namespace opeu::game {
+using detail::ctrltext::InitialControlText;
+} // namespace opeu::game

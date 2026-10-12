@@ -1,17 +1,15 @@
+// Data segment DS:b242..b2d3 (146 bytes). Combat messages. DS:b312..b34d is BTLCALC's module-local data and DS:b34e
+// onward continues in DGBATTLE.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-#pragma pack(push, 1)
-struct dg_b242 {
-  char s_b242[13];
-  char s_b24f[14];
-  char s_b25d[10];
-  char s_b267[32];
-  char s_b287[25];
-  char s_b2a0[27];
-  char s_b2bb[25];
-};
-#pragma pack(pop)
+namespace opeu::game::detail::dgcombat {
 
-extern struct dg_b242 opeu_combat_text;
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialCombatText(DataSegment& data) -> void;
+} // namespace opeu::game::detail::dgcombat
+
+namespace opeu::game {
+using detail::dgcombat::InitialCombatText;
+} // namespace opeu::game

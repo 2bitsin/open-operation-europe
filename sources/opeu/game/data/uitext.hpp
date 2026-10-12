@@ -1,16 +1,14 @@
+// Data segment DS:7e28..7f21: request labels and commander text.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-extern char     opeu_request_supplies_name[9];
-extern char     opeu_request_battalions_name[11];
-extern char     opeu_request_regiments_name[10];
-extern uint16_t opeu_request_kind_names[3];
-extern uint8_t  opeu_request_delay_bases[3];
-extern char     opeu_equipment_delivery_format[13];
-extern uint8_t  opeu_request_weights2[6];
-extern char     opeu_context_name_format[23];
-extern char     opeu_context_stats_format[146];
-extern char     opeu_context_blank_format[16];
-extern uint8_t  opeu_context_text_padding;
-extern uint8_t  opeu_scenario_contexts[6];
+namespace opeu::game::detail::uitext {
+
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialUiText(DataSegment& data) -> void;
+} // namespace opeu::game::detail::uitext
+
+namespace opeu::game {
+using detail::uitext::InitialUiText;
+} // namespace opeu::game

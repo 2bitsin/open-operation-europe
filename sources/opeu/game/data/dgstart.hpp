@@ -1,15 +1,15 @@
+// Data segment DS:5184..536b (488 bytes). Startup keyboard prompt, palette/display tables and division-command text.
+// DS:5184 is the startup mode byte; DS:536c..537b belongs to STEP.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-#pragma pack(push, 1)
-struct dg_5184 {
-  char    s_5184_startup_mode[60];
-  uint8_t z_51c0[2];
-  uint8_t b_51c2[319];
-  char    s_5301[53];
-  char    s_5336[54];
-};
-#pragma pack(pop)
+namespace opeu::game::detail::dgstart {
 
-extern struct dg_5184 opeu_startup_text;
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialStartupText(DataSegment& data) -> void;
+} // namespace opeu::game::detail::dgstart
+
+namespace opeu::game {
+using detail::dgstart::InitialStartupText;
+} // namespace opeu::game

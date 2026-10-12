@@ -1,18 +1,14 @@
+// DS:7f22..7f6c menu labels and DS:7fe0..806f menu descriptor. DS:7f6d..7fdf between them belongs to CTRLTEXT.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-#include "data/image.hpp"
+namespace opeu::game::detail::menutext {
 
-extern char     opeu_menu_pass_label[7];
-extern char     opeu_menu_tact_label[7];
-extern char     opeu_menu_city_label[7];
-extern char     opeu_menu_tsfr_label[6];
-extern char     opeu_menu_ofcr_label[7];
-extern char     opeu_menu_info_label[7];
-extern char     opeu_menu_orgz_label[7];
-extern char     opeu_menu_rqst_label[7];
-extern char     opeu_menu_air_label[6];
-extern char     opeu_menu_spfc_label[7];
-extern char     opeu_menu_game_label[7];
-extern MenuItem opeu_control_menu[12];
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialMenuText(DataSegment& data) -> void;
+} // namespace opeu::game::detail::menutext
+
+namespace opeu::game {
+using detail::menutext::InitialMenuText;
+} // namespace opeu::game

@@ -1701,7 +1701,7 @@ struct DataSegment {
   std::array<char, 39>          control_ready;             // DS:7f8c
   std::uint8_t                  control_text_padding;      // DS:7fb3
   std::array<FarPointer, 11>    control_actions;           // DS:7fb4: the routine of each command menu entry
-  std::array<std::uint8_t, 144> control_menu;              // DS:7fe0
+  std::array<MenuItem, 12>      control_menu;              // DS:7fe0: the command menu
   union {
     std::array<std::uint8_t, 798> turn_text; // DS:8070..838e
     struct {

@@ -1,53 +1,45 @@
-// The data image: the initialised objects of MAIN's data segment and far data, which the start-up copies into the
-// arena at their segment:offset (link/gen/data-image.cpp). Pointers in them are 16-bit DS offsets (near) or
-// segment:offset words (far) of that layout.
+// The start-up data image of the data segment: each data module writes its fields' initial values into the zeroed
+// arena (link/image.cpp), the far data modules' objects are copied to their segments (link/gen/data-image.cpp).
 #pragma once
 
 #include "common/data-segment.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace opeu::game::detail::image {
 
-using NearPointer = std::uint16_t; // a DS offset
-using FarCode =
-    std::uint32_t; // a routine's segment:offset, segment in the high word
-using FarText =
-    std::uint32_t; // a far text's segment:offset, segment in the high word
-using ElementLink =
-    std::uint16_t; // a near pointer to an Element, 0 at the end of a chain
-
-// The near pointer of `target`, an object of the data image at DS offset `offset`.
-constexpr auto NearTo(auto const& /*target*/, std::uint16_t offset)
-    -> NearPointer {
-  return offset;
-}
-
-// The far pointer of the routine `function` at segment:offset.
-constexpr auto FarCodeTo(auto const& /*function*/, std::uint16_t segment,
-                         std::uint16_t offset) -> FarCode {
-  return static_cast<FarCode>(segment) << 16 | offset;
-}
-
-// The far pointer of the text at segment:offset of a far text segment.
-constexpr auto FarTextAt(std::uint16_t segment, std::uint16_t offset)
-    -> FarText {
-  return static_cast<FarText>(segment) << 16 | offset;
-}
-
 // The near pointer of element `index`.
-constexpr auto ElementNear(std::uint16_t index) -> ElementLink {
-  return static_cast<ElementLink>(ELEMENTS_AT + index * sizeof(Element));
+constexpr auto ElementNear(std::uint16_t index) -> std::uint16_t {
+  return static_cast<std::uint16_t>(ELEMENTS_AT + index * sizeof(Element));
 }
+
+// Copies the text into the start of the field; a text as long as the field has no terminator.
+template <std::size_t N, std::size_t M>
+constexpr auto SetText(std::array<char, N>& field, char const (&text)[M])
+    -> void {
+  static_assert(M - 1 <= N, "the text is longer than its field");
+  std::copy_n(text, M - 1, field.begin());
+}
+
+// Passes each value with its index to `set`, which stores it (the packed segment's word arrays take no reference).
+template <typename T, std::size_t N, typename Set>
+constexpr auto SetEach(std::array<T, N> const& values, Set set) -> void {
+  [&]<std::size_t... INDEX>(std::index_sequence<INDEX...>) {
+    (set(INDEX, values[INDEX]), ...);
+  }(std::make_index_sequence<N>{});
+}
+
+// Writes the start-up values of every data module that lives in the data segment.
+auto InitialDataSegment(DataSegment& data) -> void;
 } // namespace opeu::game::detail::image
 
 namespace opeu::game {
-using detail::image::ElementLink;
 using detail::image::ElementNear;
-using detail::image::FarCode;
-using detail::image::FarCodeTo;
-using detail::image::FarText;
-using detail::image::FarTextAt;
-using detail::image::NearPointer;
-using detail::image::NearTo;
+using detail::image::InitialDataSegment;
+using detail::image::SetEach;
+using detail::image::SetText;
 } // namespace opeu::game

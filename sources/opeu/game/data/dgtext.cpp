@@ -1,16 +1,15 @@
-/* Data segment DS:3eba..3eeb (50 bytes): the initialised variables of the text output (core/textout) and the
- * keyboard's idle hook (io/keyboard), after the data of the file and VGA libraries; DGFONT continues at DS:3eec.
- * z_ members are zero bytes whose meaning is not yet assigned.
- */
+// Data segment DS:3eba..3eeb (50 bytes): the initialised variables of the text output (core/textout) and the
+// keyboard's idle hook (io/keyboard), after the data of the file and VGA libraries; DGFONT continues at DS:3eec.
 #include "data/dgtext.hpp"
+#include "data/image.hpp"
 
-#pragma pack(1)
+namespace opeu::game::detail::dgtext {
 
-/* DS:3eba..3eeb, 50 bytes. */
-
-struct dg_3eba opeu_text_vars = { 0, { 0 },  0,      0, 0,    0x0050,
-                                  0, 0x00c8, 0x0010, 0, 0x00, 0x07,
-                                  0, 0,      0,      0, 0,    0x07,
-                                  0, 0,      0,      0 };
-
-#pragma pack()
+auto InitialTextState(DataSegment& data) -> void {
+  data.text_right  = 80;
+  data.text_bottom = 200;
+  data.text_height = 16;
+  data.text_ink    = 0x07;
+  data.saved_ink   = 0x07;
+}
+} // namespace opeu::game::detail::dgtext

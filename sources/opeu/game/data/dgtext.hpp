@@ -1,36 +1,15 @@
+// Data segment DS:3eba..3eeb (50 bytes): the initialised variables of the text output (core/textout) and the
+// keyboard's idle hook (io/keyboard), after the data of the file and VGA libraries; DGFONT continues at DS:3eec.
 #pragma once
 
-#include <cstdint>
+#include "common/data-segment.hpp"
 
-#include "data/image.hpp"
+namespace opeu::game::detail::dgtext {
 
-using opeu::game::FarCode;
+// Writes the module's start-up values into its fields of the data segment (the rest of the arena is zero).
+auto InitialTextState(DataSegment& data) -> void;
+} // namespace opeu::game::detail::dgtext
 
-#pragma pack(push, 1)
-struct dg_3eba {
-  FarCode idle_hook; /* 3eba: far routine called while waiting for a key */
-  uint8_t z_3ebe[12];
-  int16_t x;                /* 3eca: text cursor column */
-  int16_t y;                /* 3ecc: text cursor row */
-  int16_t left;             /* 3ece: window origin and extent */
-  int16_t right;            /* 3ed0 */
-  int16_t top;              /* 3ed2 */
-  int16_t bottom;           /* 3ed4 */
-  int16_t height;           /* 3ed6: line height */
-  int16_t scroll;           /* 3ed8 */
-  uint8_t paper;            /* 3eda */
-  uint8_t ink;              /* 3edb */
-  int16_t background;       /* 3edc */
-  int16_t saved_x;          /* 3ede: context saved by @opeu_context_save */
-  int16_t saved_y;          /* 3ee0 */
-  int16_t saved_left;       /* 3ee2 */
-  uint8_t saved_paper;      /* 3ee4 */
-  uint8_t saved_ink;        /* 3ee5 */
-  uint8_t saved_background; /* 3ee6 */
-  uint8_t lead;             /* 3ee7 */
-  int16_t state;            /* 3ee8: escape-sequence parser state */
-  int16_t format_output;    /* 3eea: formatter output pointer */
-};
-#pragma pack(pop)
-
-extern struct dg_3eba opeu_text_vars;
+namespace opeu::game {
+using detail::dgtext::InitialTextState;
+} // namespace opeu::game
