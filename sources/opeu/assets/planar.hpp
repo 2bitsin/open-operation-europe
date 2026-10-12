@@ -10,8 +10,7 @@ namespace opeu::assets::detail::planar {
 
 // Rows of `width_bytes` byte columns, each column `planes` bytes (plane 0 first): the map tiles, the dialog bitmaps
 // (four planes) and the portraits (three planes, colours 0..7).
-[[nodiscard]] auto DecodeInterleaved(Bytes bytes, std::size_t width_bytes, std::size_t height, std::size_t planes)
-    -> Decoded<Image>;
+[[nodiscard]] auto DecodeInterleaved(Bytes bytes, std::size_t width_bytes, std::size_t height, std::size_t planes) -> Decoded<Image>;
 
 // Rows of `width_bytes` bytes, one bit per pixel: a set bit is index 1, a clear bit index 0.
 [[nodiscard]] auto DecodeBitmap(Bytes bytes, std::size_t width_bytes, std::size_t height) -> Decoded<Image>;
@@ -25,8 +24,7 @@ inline constexpr auto CELL_HEIGHT{ std::size_t{ 26 } };
 [[nodiscard]] auto DecodeCell(Bytes bytes) -> Decoded<Image>;
 
 // A sprite stored as an interleaved four-plane image and a separate one-bit AND mask (set = background).
-[[nodiscard]] auto DecodeMaskedSprite(Bytes image, Bytes mask, std::size_t width_bytes, std::size_t height)
-    -> Decoded<Image>;
+[[nodiscard]] auto DecodeMaskedSprite(Bytes image, Bytes mask, std::size_t width_bytes, std::size_t height) -> Decoded<Image>;
 
 }
 

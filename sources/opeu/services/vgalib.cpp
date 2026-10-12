@@ -16,8 +16,7 @@ namespace {
 }
 
 // The bytes an image of `rows` rows of `row_bytes` bytes occupies.
-[[nodiscard]] auto Image(const uint8_t* data, std::size_t row_bytes, std::size_t rows) noexcept
-    -> std::span<uint8_t const> {
+[[nodiscard]] auto Image(const uint8_t* data, std::size_t row_bytes, std::size_t rows) noexcept -> std::span<uint8_t const> {
   return { data, row_bytes * rows };
 }
 
@@ -31,8 +30,7 @@ int16_t opeu_set_palette(uint8_t first, uint8_t count, const uint8_t* rgb) {
   auto const index{ static_cast<uint8_t>(first & 0x0F) };
   auto const n{ count > 16 ? static_cast<uint8_t>(16 - index) : count };
   for (uint8_t i{}; i < n; i++, rgb += 3)
-    Screen().SetPaletteEntry(static_cast<uint8_t>(index + i), static_cast<uint8_t>(rgb[1] << 2),
-                             static_cast<uint8_t>(rgb[2] << 2), static_cast<uint8_t>(rgb[0] << 2));
+    Screen().SetPaletteEntry(static_cast<uint8_t>(index + i), static_cast<uint8_t>(rgb[1] << 2), static_cast<uint8_t>(rgb[2] << 2), static_cast<uint8_t>(rgb[0] << 2));
   return 0;
 }
 
@@ -140,8 +138,6 @@ void vgalib_init(void) {
 int vgalib_render(uint8_t* out, uint8_t pal[768]) {
   auto&      screen{ Screen() };
   auto const changed{ screen.TakeChanged() };
-  screen.Render(
-      std::span<uint8_t, opeu::services::detail::canvas::PIXELS>{ out, opeu::services::detail::canvas::PIXELS },
-      std::span<uint8_t, 768>{ pal, 768 });
+  screen.Render(std::span<uint8_t, opeu::services::detail::canvas::PIXELS>{ out, opeu::services::detail::canvas::PIXELS }, std::span<uint8_t, 768>{ pal, 768 });
   return changed;
 }

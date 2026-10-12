@@ -16,8 +16,7 @@ constexpr auto MAX_WIDTH{ 640 };
 constexpr auto MAX_HEIGHT{ 400 };
 
 // Which two planes a sixteen-colour literal byte fills, high nibble first.
-constexpr auto PLANE_PAIRS{ std::array<std::array<unsigned, 2>, 6>{
-    { { 1, 0 }, { 2, 0 }, { 3, 0 }, { 2, 1 }, { 3, 1 }, { 3, 2 } } } };
+constexpr auto PLANE_PAIRS{ std::array<std::array<unsigned, 2>, 6>{ { { 1, 0 }, { 2, 0 }, { 3, 0 }, { 2, 1 }, { 3, 1 }, { 3, 2 } } } };
 
 // Draws one stream into a screen-wide unit buffer as the game's decoder does, then reads the picture back.
 class StreamDecoder {
@@ -44,8 +43,7 @@ private:
   auto DecodeRow(std::size_t const start) -> bool {
     auto const end{ start + (std::size_t{ _width } + 3) / 4 };
     auto       at{ start };
-    auto const commands{ std::views::iota(0uz)
-                         | std::views::take_while([&](std::size_t) { return at < end && !_reader.Overrun(); }) };
+    auto const commands{ std::views::iota(0uz) | std::views::take_while([&](std::size_t) { return at < end && !_reader.Overrun(); }) };
     std::ranges::for_each(commands, [&](std::size_t) {
       auto const command{ _reader.Next() };
       at += (command & 0x80) != 0 ? Copy(command, at) : Literal(command, at);
@@ -64,8 +62,7 @@ private:
 
   auto Literal(std::uint8_t const command, std::size_t const at) -> std::size_t {
     auto const count{ _colours == Colours::EIGHT ? (command >> 4 & 0x07uz) + 1 : (command & 0x07uz) + 1 };
-    auto const value{ _colours == Colours::EIGHT ? static_cast<unsigned>((command & 0x0F) << 8 | _reader.Next())
-                                                 : SixteenColourValue(command) };
+    auto const value{ _colours == Colours::EIGHT ? static_cast<unsigned>((command & 0x0F) << 8 | _reader.Next()) : SixteenColourValue(command) };
     std::ranges::fill_n(_units.begin() + static_cast<std::ptrdiff_t>(at), static_cast<std::ptrdiff_t>(count), value);
     return count;
   }
@@ -94,10 +91,8 @@ private:
     for (auto const row : Indices(_height)) {
       for (auto const x : Indices(_width)) {
         auto const unit{ _units[TOP + row * LINE_UNITS + x / 4] };
-        pixels.push_back(
-            std::ranges::fold_left(Indices(4), std::uint8_t{ 0 }, [&](std::uint8_t const index, auto const plane) {
-              return static_cast<std::uint8_t>(index | (unit >> (4 * plane + 3 - x % 4) & 1) << plane);
-            }));
+        pixels.push_back(std::ranges::fold_left(Indices(4), std::uint8_t{ 0 },
+                                                [&](std::uint8_t const index, auto const plane) { return static_cast<std::uint8_t>(index | (unit >> (4 * plane + 3 - x % 4) & 1) << plane); }));
       }
     }
     return Image{ _width, _height, std::move(pixels) };

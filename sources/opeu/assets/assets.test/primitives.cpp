@@ -43,8 +43,7 @@ TEST(Runs, ZeroAndFfRepeatOtherBytesStand) {
   auto const expanded{ ExpandRuns(bytes, 5) };
   ASSERT_TRUE(expanded);
   EXPECT_EQ(expanded->consumed, 5U);
-  EXPECT_EQ(expanded->bytes,
-            (std::vector{ std::byte{ 0 }, std::byte{ 0 }, std::byte{ 0 }, std::byte{ 0x42 }, std::byte{ 0xFF } }));
+  EXPECT_EQ(expanded->bytes, (std::vector{ std::byte{ 0 }, std::byte{ 0 }, std::byte{ 0 }, std::byte{ 0x42 }, std::byte{ 0xFF } }));
   EXPECT_EQ(ExpandRuns(bytes, 9).error(), DecodeError::TRUNCATED);
 }
 

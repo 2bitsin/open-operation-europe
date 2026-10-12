@@ -87,36 +87,25 @@ public:
   auto SetPlaneBits(Offset at, int plane, std::uint8_t bits, std::uint8_t mask = 0xFF) noexcept -> void;
 
   // ---- primitives ----
-  auto DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                   std::span<std::uint8_t const> image, int planes) noexcept -> Drawn;
-  auto DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                std::span<std::uint8_t const> bits) noexcept -> Drawn;
-  auto DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                       std::span<std::uint8_t const> bits) noexcept -> Drawn;
-  auto DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                       std::span<std::uint8_t const> bits) noexcept -> Drawn;
-  auto DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h,
-                          std::span<std::uint8_t const> image) noexcept -> void;
-  auto SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h,
-                   std::span<std::uint8_t> image) const noexcept -> void;
+  auto DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> image, int planes) noexcept -> Drawn;
+  auto DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn;
+  auto DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn;
+  auto DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn;
+  auto DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t const> image) noexcept -> void;
+  auto SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t> image) const noexcept -> void;
   auto Box(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept -> Drawn;
-  auto Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept
-      -> Drawn;
-  auto Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept
-      -> void;
+  auto Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept -> Drawn;
+  auto Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void;
   auto Plot(std::uint16_t x, std::uint16_t y, std::uint16_t colour) noexcept -> void;
-  auto Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept
-      -> void;
-  auto CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2,
-                   std::uint16_t y2) noexcept -> void;
+  auto Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void;
+  auto CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2, std::uint16_t y2) noexcept -> void;
   auto DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bool masked) noexcept -> Drawn;
 
   // ---- presentation ----
   // True once after every change.
   [[nodiscard]] auto TakeChanged() noexcept -> bool;
   // The frame as palette entries (all 0 while text is shown) and the palette in 8-bit levels.
-  auto Render(std::span<std::uint8_t, PIXELS> frame, std::span<std::uint8_t, PALETTE_BYTES> palette) const noexcept
-      -> void;
+  auto               Render(std::span<std::uint8_t, PIXELS> frame, std::span<std::uint8_t, PALETTE_BYTES> palette) const noexcept -> void;
   [[nodiscard]] auto Palette() const noexcept -> std::span<std::uint8_t const, PALETTE_BYTES> {
     return _palette;
   }
@@ -146,13 +135,11 @@ private:
   // `count` pixels from `at` (wrapped), cut at the end of the store.
   [[nodiscard]] auto Run(Offset at, std::int64_t count) noexcept -> std::span<canvas::Pixel> {
     auto const start{ Wrap(at) };
-    return std::span{ _pixels }.subspan(start,
-                                        static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
+    return std::span{ _pixels }.subspan(start, static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
   }
   [[nodiscard]] auto Run(Offset at, std::int64_t count) const noexcept -> std::span<canvas::Pixel const> {
     auto const start{ Wrap(at) };
-    return std::span{ _pixels }.subspan(start,
-                                        static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
+    return std::span{ _pixels }.subspan(start, static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
   }
   // Calls `next(i, pixels)` for the `count` octets from `at` and stores what it returns.
   template <typename Next>
@@ -163,8 +150,7 @@ private:
   auto               Store(Offset at, std::uint64_t pixels) noexcept -> void;
   auto               SelectPen(std::uint8_t op, std::uint8_t colour) noexcept -> void;
   auto               PenBits(Offset at, std::uint8_t bits) noexcept -> void;
-  auto PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t colour, std::uint8_t& pattern_bit) noexcept
-      -> void;
+  auto               PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t colour, std::uint8_t& pattern_bit) noexcept -> void;
   auto               PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void;
   [[nodiscard]] auto MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept -> std::uint16_t;
 
@@ -175,7 +161,7 @@ private:
   bool                                    _graphics_before{}; // the mode EnterGraphics left
   bool                                    _changed{ true };
   Pen                                     _pen{};
-  std::array<std::uint16_t, 8> _picture_runs{}; // the masked pictures' run-colour table, kept between pictures
+  std::array<std::uint16_t, 8>            _picture_runs{}; // the masked pictures' run-colour table, kept between pictures
 };
 
 // The one screen of the running program. Transitional: the game's drawing calls reach the canvas through this until

@@ -22,18 +22,16 @@ using test::Shipped;
 // Every asset of a file decoded; each must decode.
 auto ImagesOf(std::string_view const file) -> std::vector<Image> {
   auto const catalogue{ Catalogue{ Embedded() } };
-  return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; })
-         | std::views::transform([&catalogue](Asset const& asset) {
-             auto image{ catalogue.Decode(asset) };
-             EXPECT_TRUE(image) << asset.id;
-             return image.value_or(Image{});
-           })
+  return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::views::transform([&catalogue](Asset const& asset) {
+           auto image{ catalogue.Decode(asset) };
+           EXPECT_TRUE(image) << asset.id;
+           return image.value_or(Image{});
+         })
          | std::ranges::to<std::vector>();
 }
 
 auto AllSized(std::vector<Image> const& images, std::size_t const width, std::size_t const height) -> bool {
-  return std::ranges::all_of(images,
-                             [&](Image const& image) { return image.Width() == width && image.Height() == height; });
+  return std::ranges::all_of(images, [&](Image const& image) { return image.Width() == width && image.Height() == height; });
 }
 
 auto Highest(Image const& image) -> std::uint8_t {
@@ -91,8 +89,7 @@ TEST(ShippedPortraits, HoldOneHundredTwentyEightColourFaces) {
 
 TEST(ShippedSilhouettes, HoldOneHundredFiftyNineRunPackedRecords) {
   auto const catalogue{ Catalogue{ Embedded() } };
-  auto const records{ catalogue.Assets() | std::views::filter([](Asset const& a) { return a.file == "ARMS.SIL"; })
-                      | std::ranges::to<std::vector>() };
+  auto const records{ catalogue.Assets() | std::views::filter([](Asset const& a) { return a.file == "ARMS.SIL"; }) | std::ranges::to<std::vector>() };
   ASSERT_EQ(records.size(), 159U);
   auto const bytes{ Shipped("ARMS.SIL") };
   auto const ends{ std::views::zip(records, records | std::views::drop(1)) };
@@ -155,9 +152,7 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
   auto glyphs{ DecodeGlyphs(Shipped("MSG.16P")).value() };
   EXPECT_EQ(glyphs.size(), GAME_GLYPHS);
   EXPECT_TRUE(std::ranges::equal(Shipped("MSG"), Shipped("MSG.16P")));
-  auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES)
-                      | std::views::transform([](Bytes const glyph) { return glyph | std::ranges::to<std::vector>(); })
-                      | std::ranges::to<std::vector>() };
+  auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES) | std::views::transform([](Bytes const glyph) { return glyph | std::ranges::to<std::vector>(); }) | std::ranges::to<std::vector>() };
   auto       sorted{ records };
   std::ranges::sort(sorted);
   EXPECT_EQ(std::ranges::unique(sorted).begin(), sorted.end());
@@ -166,8 +161,7 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
 TEST(ShippedCatalogue, DecodesEveryAssetOfEveryFile) {
   auto const catalogue{ Catalogue{ Embedded() } };
   EXPECT_EQ(catalogue.Assets().size(), 3'098U);
-  EXPECT_TRUE(
-      std::ranges::all_of(catalogue.Assets(), [&](Asset const& asset) { return catalogue.Decode(asset).has_value(); }));
+  EXPECT_TRUE(std::ranges::all_of(catalogue.Assets(), [&](Asset const& asset) { return catalogue.Decode(asset).has_value(); }));
   auto ids{ catalogue.Assets() | std::views::transform(&Asset::id) | std::ranges::to<std::vector>() };
   std::ranges::sort(ids);
   EXPECT_EQ(std::ranges::adjacent_find(ids), ids.end());

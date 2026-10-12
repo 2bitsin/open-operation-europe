@@ -46,8 +46,7 @@ auto Contents(std::filesystem::path const& path) -> std::string {
 class FileLayer : public ::testing::Test {
 protected:
   void SetUp() override {
-    saves_ = std::filesystem::temp_directory_path()
-             / ("opeu-file-layer-" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() });
+    saves_ = std::filesystem::temp_directory_path() / ("opeu-file-layer-" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() });
     std::filesystem::remove_all(saves_);
     plat_set_save_dir(saves_.string().c_str());
     opeu_files_use_assets(&Find);

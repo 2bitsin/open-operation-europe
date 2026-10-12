@@ -28,19 +28,14 @@ auto Failed(std::string_view const what, assets::DecodeError const error) -> Don
 
 // The indices an image draws, ascending.
 auto ColoursUsed(assets::Image const& image) -> std::vector<int> {
-  auto drawn{ std::views::iota(0uz, image.Pixels().size()) | std::views::filter([&image](std::size_t const n) {
-                return image.Opaque().empty() || image.Opaque()[n] != 0;
-              })
-              | std::views::transform([&image](std::size_t const n) { return int{ image.Pixels()[n] }; })
-              | std::ranges::to<std::set>() };
+  auto drawn{ std::views::iota(0uz, image.Pixels().size()) | std::views::filter([&image](std::size_t const n) { return image.Opaque().empty() || image.Opaque()[n] != 0; })
+              | std::views::transform([&image](std::size_t const n) { return int{ image.Pixels()[n] }; }) | std::ranges::to<std::set>() };
   return drawn | std::ranges::to<std::vector>();
 }
 
 // Rows of a square grid of bytes as a JSON array of arrays.
 auto Grid(std::span<std::uint8_t const> const cells, std::size_t const side) -> std::string {
-  return json::Array(std::views::iota(0uz, cells.size() / side) | std::views::transform([&](std::size_t const row) {
-                       return json::Array(cells.subspan(row * side, side));
-                     }));
+  return json::Array(std::views::iota(0uz, cells.size() / side) | std::views::transform([&](std::size_t const row) { return json::Array(cells.subspan(row * side, side)); }));
 }
 
 // A game text field: ASCII as a string; text in KOEI's double-byte code (the Chinese edition's names in set-up 0)
@@ -49,10 +44,7 @@ auto GameText(json::Object& record, std::string_view const name, std::string_vie
   if (std::ranges::all_of(text, [](char const c) { return static_cast<unsigned char>(c) < 0x80; })) {
     return record.Text(name, text);
   }
-  auto const hex{ text | std::views::transform([](char const c) {
-                    return std::format("{:02x}", static_cast<unsigned char>(c));
-                  })
-                  | std::views::join | std::ranges::to<std::string>() };
+  auto const hex{ text | std::views::transform([](char const c) { return std::format("{:02x}", static_cast<unsigned char>(c)); }) | std::views::join | std::ranges::to<std::string>() };
   return record.Raw(name, "null").Text(std::format("{}_koei", name), hex);
 }
 
@@ -83,28 +75,16 @@ auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object
 
 }
 
-Extractor::Extractor(assets::Source const& source, std::filesystem::path out, Emit emit)
-    : _source{ source }, _catalogue{ source }, _out{ std::move(out) }, _emit{ std::move(emit) } { }
+Extractor::Extractor(assets::Source const& source, std::filesystem::path out, Emit emit) : _source{ source }, _catalogue{ source }, _out{ std::move(out) }, _emit{ std::move(emit) } { }
 
 auto Extractor::Run() const -> Done {
-  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Scenarios(); }).and_then([this] {
-    return Maps();
-  });
+  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Scenarios(); }).and_then([this] { return Maps(); });
 }
 
 auto Extractor::Palettes() const -> Done {
   std::ranges::for_each(assets::ClassicPalettes(), [this](assets::NamedPalette const& palette) {
-    auto colours{ assets::Colours(palette.levels) | std::views::transform([](assets::Colour const& c) {
-                    return json::Array(std::array{ c.r, c.g, c.b });
-                  })
-                  | std::ranges::to<std::vector>() };
-    _emit(json::Object{}
-              .Text("kind", "palette")
-              .Text("name", palette.name)
-              .Text("use", palette.use)
-              .Raw("levels", json::Array(palette.levels))
-              .Raw("colours", json::Array(colours))
-              .Encoded());
+    auto colours{ assets::Colours(palette.levels) | std::views::transform([](assets::Colour const& c) { return json::Array(std::array{ c.r, c.g, c.b }); }) | std::ranges::to<std::vector>() };
+    _emit(json::Object{}.Text("kind", "palette").Text("name", palette.name).Text("use", palette.use).Raw("levels", json::Array(palette.levels)).Raw("colours", json::Array(colours)).Encoded());
   });
   return {};
 }
@@ -123,13 +103,10 @@ auto Extractor::Graphic(Asset const& asset) const -> Done {
   if (!palette) return std::unexpected{ std::format("extract-assets: {}: no palette {}", asset.id, asset.palette) };
   auto const base{ _out / "images" / asset.id };
   auto       record{ AssetRecord(asset, *image) };
-  auto       done{ WriteTexture(base.string() + ".png", assets::ToTexture(*image, *palette)).and_then([&] {
-    return WriteIndices(base.string() + ".index.png", *image);
-  }) };
+  auto       done{ WriteTexture(base.string() + ".png", assets::ToTexture(*image, *palette)).and_then([&] { return WriteIndices(base.string() + ".index.png", *image); }) };
   if (done && asset.side_coloured) {
     done = WriteTexture(base.string() + ".side-0.png", assets::ToTexture(assets::SideZeroColours(*image), *palette));
-    record.Flag("side_coloured", true)
-        .Raw("variants", json::Object{}.Text("side-0", std::format("images/{}.side-0.png", asset.id)).Encoded());
+    record.Flag("side_coloured", true).Raw("variants", json::Object{}.Text("side-0", std::format("images/{}.side-0.png", asset.id)).Encoded());
   }
   if (done) _emit(record.Encoded());
   return done;
@@ -143,48 +120,35 @@ auto Extractor::Scenarios() const -> Done {
               .Text("kind", "scenario-text")
               .Number("scenario", n)
               .Text("description", file->Description(n))
-              .Raw("conditions",
-                   json::Array(std::array{ json::Quoted(file->Condition(n, 0)), json::Quoted(file->Condition(n, 1)) }))
+              .Raw("conditions", json::Array(std::array{ json::Quoted(file->Condition(n, 0)), json::Quoted(file->Condition(n, 1)) }))
               .Encoded());
   }
   for (auto const n : std::views::iota(0uz, assets::detail::scenario::SETUPS)) {
     auto const& s{ file->SetupOf(n) };
-    auto const  sides{
-      s.sides | std::views::transform([](auto const& side) {
-        return json::Object{}.Raw("stock", json::Array(side.stock)).Raw("income", json::Array(side.income)).Encoded();
+    auto const  sides{ s.sides | std::views::transform([](auto const& side) { return json::Object{}.Raw("stock", json::Array(side.stock)).Raw("income", json::Array(side.income)).Encoded(); }) };
+    auto        people{ std::views::zip(std::views::iota(0), s.people) | std::views::filter([](auto const& p) { return !std::get<1>(p).name.empty(); }) | std::views::transform([](auto const& p) {
+                   auto const& [index, person]{ p };
+                   return GameText(json::Object{}.Number("index", index), "name", person.name)
+                       .Number("side", person.side)
+                       .Number("portrait", person.portrait)
+                       .Raw("abilities", json::Array(person.abilities))
+                       .Encoded();
+                 }) };
+    auto objectives{ std::views::zip(std::views::iota(0), s.objectives) | std::views::filter([](auto const& o) { return !std::get<1>(o).name.empty(); }) | std::views::transform([](auto const& o) {
+                       auto const& [index, objective]{ o };
+                       return GameText(json::Object{}.Number("index", index), "name", objective.name)
+                           .Number("x", objective.x)
+                           .Number("y", objective.y)
+                           .Number("garrison", objective.garrison)
+                           .Number("points", objective.points)
+                           .Number("flags", objective.flags)
+                           .Encoded();
+                     }) };
+    auto units{
+      s.units | std::views::transform([](auto const& unit) {
+        return json::Object{}.Number("first_element", unit.first_element).Number("x", unit.x).Number("y", unit.y).Raw("supplies", json::Array(unit.supplies)).Number("flags", unit.flags).Encoded();
       })
     };
-    auto people{ std::views::zip(std::views::iota(0), s.people)
-                 | std::views::filter([](auto const& p) { return !std::get<1>(p).name.empty(); })
-                 | std::views::transform([](auto const& p) {
-                     auto const& [index, person]{ p };
-                     return GameText(json::Object{}.Number("index", index), "name", person.name)
-                         .Number("side", person.side)
-                         .Number("portrait", person.portrait)
-                         .Raw("abilities", json::Array(person.abilities))
-                         .Encoded();
-                   }) };
-    auto objectives{ std::views::zip(std::views::iota(0), s.objectives)
-                     | std::views::filter([](auto const& o) { return !std::get<1>(o).name.empty(); })
-                     | std::views::transform([](auto const& o) {
-                         auto const& [index, objective]{ o };
-                         return GameText(json::Object{}.Number("index", index), "name", objective.name)
-                             .Number("x", objective.x)
-                             .Number("y", objective.y)
-                             .Number("garrison", objective.garrison)
-                             .Number("points", objective.points)
-                             .Number("flags", objective.flags)
-                             .Encoded();
-                       }) };
-    auto units{ s.units | std::views::transform([](auto const& unit) {
-                  return json::Object{}
-                      .Number("first_element", unit.first_element)
-                      .Number("x", unit.x)
-                      .Number("y", unit.y)
-                      .Raw("supplies", json::Array(unit.supplies))
-                      .Number("flags", unit.flags)
-                      .Encoded();
-                }) };
     auto elements{ s.elements | std::views::transform([](auto const& e) {
                      return json::Object{}
                          .Number("next", e.next)
@@ -215,9 +179,7 @@ auto Extractor::Scenarios() const -> Done {
 }
 
 auto Extractor::Maps() const -> Done {
-  auto const grids{ [this](std::string_view const name) {
-    return _source.get().File(name).and_then(assets::DecodeCellGrids);
-  } };
+  auto const grids{ [this](std::string_view const name) { return _source.get().File(name).and_then(assets::DecodeCellGrids); } };
   auto const cells{ grids("MAPINF.DAT") };
   auto const tiles{ grids("MAPPNO.DAT") };
   auto const selectors{ grids("HEXDISP.DAT") };
@@ -234,21 +196,12 @@ auto Extractor::Maps() const -> Done {
               .Encoded());
   }
   for (auto const [n, field] : std::views::zip(std::views::iota(0uz), *fields)) {
-    _emit(json::Object{}
-              .Text("kind", "battle-field")
-              .Number("field", n)
-              .Raw("cells", Grid(field, assets::FIELD_SIDE))
-              .Encoded());
+    _emit(json::Object{}.Text("kind", "battle-field").Number("field", n).Raw("cells", Grid(field, assets::FIELD_SIDE)).Encoded());
   }
   auto const token{ _source.get().File("ENDGRP.NPK") };
   if (!token) return Failed("ENDGRP.NPK", token.error());
-  auto bytes{ token->subspan(assets::EPILOGUE_TOKEN_AT, assets::EPILOGUE_TOKEN_BYTES)
-              | std::views::transform([](std::byte const b) { return std::to_integer<int>(b); }) };
-  _emit(json::Object{}
-            .Text("kind", "epilogue-token")
-            .Number("at", assets::EPILOGUE_TOKEN_AT)
-            .Raw("bytes", json::Array(bytes))
-            .Encoded());
+  auto bytes{ token->subspan(assets::EPILOGUE_TOKEN_AT, assets::EPILOGUE_TOKEN_BYTES) | std::views::transform([](std::byte const b) { return std::to_integer<int>(b); }) };
+  _emit(json::Object{}.Text("kind", "epilogue-token").Number("at", assets::EPILOGUE_TOKEN_AT).Raw("bytes", json::Array(bytes)).Encoded());
   return {};
 }
 

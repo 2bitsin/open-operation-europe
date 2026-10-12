@@ -226,8 +226,7 @@ void port_fm_init(void) {
     last_clock_us = plat_ticks_us();
   }
   port_trace("fm", "driver installed; clock: %s", audio_device ? "audio device" : "event pump");
-  if (!port_options.headless && !port_options.mute && !audio_device)
-    fprintf(stderr, "opeu: no audio output; the music is silent\n");
+  if (!port_options.headless && !port_options.mute && !audio_device) fprintf(stderr, "opeu: no audio output; the music is silent\n");
 }
 
 /* ---- INT 66h ------------------------------------------------------------------ */
@@ -251,8 +250,7 @@ void port_fm_int66(uint16_t* ax, uint16_t* bx, uint16_t* dx, uint16_t* ds) {
   r.dx       = *dx;
   r.ds       = *ds;
   driver_call(&r);
-  port_trace("fm", "frame %llu int66 ax=%04x bx=%04x dx=%04x ds=%04x -> ax=%04x bx=%04x",
-             (unsigned long long)clock_frames, *ax, *bx, *dx, *ds, r.ax, r.bx);
+  port_trace("fm", "frame %llu int66 ax=%04x bx=%04x dx=%04x ds=%04x -> ax=%04x bx=%04x", (unsigned long long)clock_frames, *ax, *bx, *dx, *ds, r.ax, r.bx);
   *ax = r.ax;
   *bx = r.bx;
   *dx = r.dx;

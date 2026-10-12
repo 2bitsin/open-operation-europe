@@ -254,9 +254,7 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
       case 'O':
         i = 8;
       number:
-        if (f == 0)
-          e = static_cast<int16_t>(
-              e - opeu_put_unsigned(ds, host, &h, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(i)));
+        if (f == 0) e = static_cast<int16_t>(e - opeu_put_unsigned(ds, host, &h, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(i)));
         goto term;
       case 'S':
         h = NextWord(ds, p);
@@ -342,8 +340,8 @@ void opeu_text_paper_set(uint8_t* ds, [[maybe_unused]] TextHost* host, uint8_t p
 }
 
 /* 045a: the glyph output of this build draws nothing. */
-void opeu_text_glyph([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHost* host, [[maybe_unused]] int16_t x,
-                     [[maybe_unused]] int16_t y, [[maybe_unused]] int16_t attribute, [[maybe_unused]] uint16_t code) { }
+void opeu_text_glyph([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHost* host, [[maybe_unused]] int16_t x, [[maybe_unused]] int16_t y, [[maybe_unused]] int16_t attribute,
+                     [[maybe_unused]] uint16_t code) { }
 
 /* 045e: lines are 16 pixels, 32 in large mode. */
 void opeu_text_newline(uint8_t* ds, [[maybe_unused]] TextHost* host) {
@@ -383,10 +381,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     case 'Y': Data(ds).text_state = 8; break;
     case 'E': Event(ds, host, STUB_B, 6);
     case 'W': Data(ds).text_state = 9; break;
-    case 'T':
-      Event(ds, host, BOX, Data(ds).text_x, Data(ds).text_y, 80 - Data(ds).text_x, (Data(ds).text_large != 0) ? 32 : 16,
-            Data(ds).text_background);
-      goto reset;
+    case 'T': Event(ds, host, BOX, Data(ds).text_x, Data(ds).text_y, 80 - Data(ds).text_x, (Data(ds).text_large != 0) ? 32 : 16, Data(ds).text_background); goto reset;
     case '*': Event(ds, host, CLEAR); goto reset;
     case 'S': Event(ds, host, STUB_A, 1); goto reset;
     default:  break;

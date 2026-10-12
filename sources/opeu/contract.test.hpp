@@ -76,21 +76,18 @@ auto ExpectStopped(_Broken&& broken, std::string_view kind, std::string_view tex
 }
 
 template <typename _Broken>
-auto ExpectContractPrecondition(_Broken&& broken, std::string_view text,
-                                std::source_location where = std::source_location::current()) -> void {
+auto ExpectContractPrecondition(_Broken&& broken, std::string_view text, std::source_location where = std::source_location::current()) -> void {
   ExpectStopped<CONTRACTS_STOP>(broken, "precondition", text, where);
 }
 
 template <typename _Broken>
-auto ExpectContractPostcondition(_Broken&& broken, std::string_view text,
-                                 std::source_location where = std::source_location::current()) -> void {
+auto ExpectContractPostcondition(_Broken&& broken, std::string_view text, std::source_location where = std::source_location::current()) -> void {
   ExpectStopped<CONTRACTS_STOP>(broken, "postcondition", text, where);
 }
 
 // Unreachable has no continuation in any mode, so only halt survives it.
 template <typename _Broken>
-auto ExpectContractUnreachable(_Broken&& broken, std::string_view text,
-                               std::source_location where = std::source_location::current()) -> void {
+auto ExpectContractUnreachable(_Broken&& broken, std::string_view text, std::source_location where = std::source_location::current()) -> void {
   ExpectStopped<true>(broken, "unreachable", text, where);
 }
 

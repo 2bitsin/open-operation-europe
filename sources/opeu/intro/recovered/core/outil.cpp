@@ -20,8 +20,7 @@ namespace opeu::intro::detail::outil {
 namespace {
 using enum UtilServiceId;
 
-auto util_call(uint8_t* ds, UtilService event, UtilServiceId id, uint16_t count, uint16_t a, uint16_t b, uint16_t c,
-               uint16_t d, uint16_t e) -> uint32_t {
+auto util_call(uint8_t* ds, UtilService event, UtilServiceId id, uint16_t count, uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e) -> uint32_t {
   uint16_t words[5];
   words[0] = a;
   words[1] = b;
@@ -117,16 +116,14 @@ auto opeu_mouse_right(uint8_t* ds, UtilService event) -> int {
 
 /* 062d:011a (MAIN 05a8:0158). */
 auto opeu_turn_input_a(uint8_t* ds, UtilService event) -> int {
-  return static_cast<int>((static_cast<int>(opeu_mouse_left(ds, event) != 0) != 0)
-                          || (opeu_mouse_right(ds, event) != 0));
+  return static_cast<int>((static_cast<int>(opeu_mouse_left(ds, event) != 0) != 0) || (opeu_mouse_right(ds, event) != 0));
 }
 
 /* 062d:0132 (MAIN 0a04:0132 with a 0x5000-byte buffer at offset 0). */
 auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t {
   if (Data(ds).stream_count == 0) {
     Data(ds).stream_segment = Data(ds).buffer_g;
-    Data(ds).stream_count   = static_cast<uint16_t>(
-        Call(ds, event, DOS_READ_FAR, Data(ds).picture_handle, Data(ds).buffer_g, Data(ds).stream_offset = 0, 0x5000));
+    Data(ds).stream_count   = static_cast<uint16_t>(Call(ds, event, DOS_READ_FAR, Data(ds).picture_handle, Data(ds).buffer_g, Data(ds).stream_offset = 0, 0x5000));
   }
   Data(ds).stream_count--;
   return util_stream_next(ds, event);
@@ -134,10 +131,7 @@ auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t {
 
 /* 062d:016a (MAIN 0a04:0250 on the picture file). DX:AX=position. */
 void opeu_stream_seek(uint8_t* ds, UtilService event, int32_t position) {
-  if (static_cast<int32_t>(
-          Call(ds, event, DOS_SEEK, Data(ds).picture_handle, position, static_cast<uint32_t>(position) >> 16, 0))
-      != -1)
-    Data(ds).stream_count = 0;
+  if (static_cast<int32_t>(Call(ds, event, DOS_SEEK, Data(ds).picture_handle, position, static_cast<uint32_t>(position) >> 16, 0)) != -1) Data(ds).stream_count = 0;
 }
 
 /* 062d:018e (bytes of MAIN 0a04:0272). AX=x, DX=y, stack position; RETF 4. */
@@ -269,8 +263,7 @@ void opeu_open_text_clear(uint8_t* ds, UtilService event) {
 }
 
 /* 062d:03b4 (MAIN 0a04:065a). */
-void opeu_ui_outline(uint8_t* ds, UtilService event, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
-                     uint16_t color) {
+void opeu_ui_outline(uint8_t* ds, UtilService event, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
   Call(ds, event, UI_LINE, x1, y1, x2, y1, color);
   Call(ds, event, UI_LINE, x2, y1, x2, y2, color);
   Call(ds, event, UI_LINE, x1, y2, x2, y2, color);

@@ -36,8 +36,7 @@ uint8_t opeu_open_digit_font[10][16] = {
 /* DS:0132: the pair {0000:0680 bitmap draw, 0000:069d clipped draw} twice
  * (MAIN's setup data DS:44ec starts with the same pair). The four segment
  * words carry the MZ relocations at image 0x94d4/94d8/94dc/94e0. */
-uint32_t opeu_open_draw_hooks[4] = { FarCode(0x0000, 0x0680), FarCode(0x0000, 0x069d), FarCode(0x0000, 0x0680),
-                                     FarCode(0x0000, 0x069d) };
+uint32_t opeu_open_draw_hooks[4] = { FarCode(0x0000, 0x0680), FarCode(0x0000, 0x069d), FarCode(0x0000, 0x0680), FarCode(0x0000, 0x069d) };
 
 /* DS:0142: backspace, ESC M 0 (paper 0), blank, backspace; printed by
  * opeu_text_erase_char. The array is 8 bytes (one NUL of padding). */

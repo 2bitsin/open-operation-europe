@@ -15,12 +15,9 @@ namespace opeu::probes::extract_assets::detail::png {
 
 namespace {
 
-auto Write(std::filesystem::path const& path, std::size_t const width, std::size_t const height, int const channels,
-           std::span<std::byte const> const bytes) -> std::expected<void, std::string> {
+auto Write(std::filesystem::path const& path, std::size_t const width, std::size_t const height, int const channels, std::span<std::byte const> const bytes) -> std::expected<void, std::string> {
   std::filesystem::create_directories(path.parent_path());
-  if (stbi_write_png(path.string().c_str(), static_cast<int>(width), static_cast<int>(height), channels, bytes.data(),
-                     static_cast<int>(width) * channels)
-      == 0) {
+  if (stbi_write_png(path.string().c_str(), static_cast<int>(width), static_cast<int>(height), channels, bytes.data(), static_cast<int>(width) * channels) == 0) {
     return std::unexpected{ std::format("extract-assets: cannot write {}", path.string()) };
   }
   return {};
@@ -28,8 +25,7 @@ auto Write(std::filesystem::path const& path, std::size_t const width, std::size
 
 }
 
-auto WriteTexture(std::filesystem::path const& path, assets::Texture const& texture)
-    -> std::expected<void, std::string> {
+auto WriteTexture(std::filesystem::path const& path, assets::Texture const& texture) -> std::expected<void, std::string> {
   return Write(path, texture.Width(), texture.Height(), 4, texture.Pixels());
 }
 

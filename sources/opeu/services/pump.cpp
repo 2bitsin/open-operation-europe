@@ -135,9 +135,8 @@ static const struct {
 static const char    row_chars[] = "1234567890-=qwertyuiop[]asdfghjkl;'`\\zxcvbnm,./";
 static const char    row_shift[] = "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"~|ZXCVBNM<>?";
 static const uint8_t row_scan[]  = {
-  0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x10, 0x11, 0x12, 0x13,
-  0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
-  0x26, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+  0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+  0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
 };
 
 static int char_key(char c, uint8_t* scan, uint8_t* ascii) {
@@ -201,8 +200,7 @@ static void script_load(const char* path) {
     if (sscanf(line, "%lu %31s%n", &ms, verb, &n) < 2) continue;
     e.ms = (uint32_t)ms;
     if (!strcmp(verb, "key")) {
-      if (sscanf(line + n, "%399s", arg) != 1 || !parse_key(arg, &e.scan, &e.ascii))
-        port_fatal("%s:%d: unknown key", path, number);
+      if (sscanf(line + n, "%399s", arg) != 1 || !parse_key(arg, &e.scan, &e.ascii)) port_fatal("%s:%d: unknown key", path, number);
       e.kind = 0;
       script_add(e);
     } else if (!strcmp(verb, "text")) {
@@ -284,8 +282,7 @@ static void headless_pump(void) {
   }
   if (port_options.stop_ms && now_ms >= port_options.stop_ms) {
     present(1);
-    if (port_options.png_path && plat_write_png(port_options.png_path) != 0)
-      port_fatal("cannot write %s", port_options.png_path);
+    if (port_options.png_path && plat_write_png(port_options.png_path) != 0) port_fatal("cannot write %s", port_options.png_path);
     port_trace("svc", "headless stop at %u ms", (unsigned)now_ms);
 #if defined(__APPLE__) || defined(__linux__)
     if (getenv("OPEU_BACKTRACE")) {

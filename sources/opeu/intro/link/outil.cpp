@@ -65,26 +65,18 @@ auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) 
   case FM_BUSY:     return opeu_fm_busy();
   case MOUSE_INT33: mouse_int33(words); return words[0];
   case DOS_INT21:
-    if (arg(0) != 0x21 || arg(1) != 0x0d)
-      port_fatal("OPEN: int86(%02x) AH=%02x is not issued by the opening", arg(0), arg(1));
+    if (arg(0) != 0x21 || arg(1) != 0x0d) port_fatal("OPEN: int86(%02x) AH=%02x is not issued by the opening", arg(0), arg(1));
     port_disk_reset();
     return 0;
-  case DOS_READ_FAR:
-    return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
-  case DOS_SEEK:
-    return static_cast<uint32_t>(opeu_dos_seek(
-        static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(words, count, 1)), static_cast<int16_t>(arg(3))));
-  case SET_PALETTE:
-    vga_retrace_wait();
-    return static_cast<uint16_t>(
-        opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), ds + arg(2)));
+  case DOS_READ_FAR:          return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
+  case DOS_SEEK:              return static_cast<uint32_t>(opeu_dos_seek(static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(words, count, 1)), static_cast<int16_t>(arg(3))));
+  case SET_PALETTE:           vga_retrace_wait(); return static_cast<uint16_t>(opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), ds + arg(2)));
   case IDENTITY_PALETTE:      koei_vga_identity_palette(); return 0;
   case UI_LINE:               opeu_ui_fill(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
   case PICTURE_DECODE_MASKED: {
     uint8_t* saved = reader_ds;
     int16_t  r     = 0;
-    if (arg(2) != STREAM_READER_OFFSET || arg(3) != STREAM_READER_SEGMENT)
-      port_fatal("OPEN: picture reader %04x:%04x is not OUTIL's stream reader", arg(3), arg(2));
+    if (arg(2) != STREAM_READER_OFFSET || arg(3) != STREAM_READER_SEGMENT) port_fatal("OPEN: picture reader %04x:%04x is not OUTIL's stream reader", arg(3), arg(2));
     reader_ds = ds;
     r         = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
     reader_ds = saved;

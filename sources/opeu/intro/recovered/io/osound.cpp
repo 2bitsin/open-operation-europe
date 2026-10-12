@@ -31,8 +31,7 @@ auto host_copy(uint8_t* ds, uint16_t source, uint16_t destination, uint16_t size
   if (destination < source)
     for (i = 0; i < size; i++) ds[static_cast<uint16_t>(destination + i)] = ds[static_cast<uint16_t>(source + i)];
   else
-    for (i = size; i != 0u; i--)
-      ds[static_cast<uint16_t>(destination + i - 1)] = ds[static_cast<uint16_t>(source + i - 1)];
+    for (i = size; i != 0u; i--) ds[static_cast<uint16_t>(destination + i - 1)] = ds[static_cast<uint16_t>(source + i - 1)];
 }
 
 auto host_int86(uint8_t* ds, SoundService service, Regs* r, SegRegs* s) -> uint16_t {

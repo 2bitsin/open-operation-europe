@@ -99,7 +99,7 @@ auto ParseOptions(std::span<char*> args, char const*& dump_path) -> bool {
 auto DumpArena(char const* path) -> void {
   std::ofstream file{ path, std::ios::binary };
   file.write(reinterpret_cast<char const*>(port_arena), PORT_ARENA_SIZE); // NOLINT(*-reinterpret-cast): bytes out
-  if (!file) port_fatal("cannot write %s", path); // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
+  if (!file) port_fatal("cannot write %s", path);                         // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
 } // namespace
 

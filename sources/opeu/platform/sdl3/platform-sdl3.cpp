@@ -236,8 +236,7 @@ struct FindContext {
   bool        ok{ false };
 };
 
-auto SDLCALL FindEntry(void* context, [[maybe_unused]] char const* directory, char const* name)
-    -> SDL_EnumerationResult {
+auto SDLCALL FindEntry(void* context, [[maybe_unused]] char const* directory, char const* name) -> SDL_EnumerationResult {
   auto& find{ *static_cast<FindContext*>(context) };
   if (SDL_strcasecmp(name, find.want.c_str()) == 0) {
     find.found = name;
@@ -252,8 +251,7 @@ class Backend {
 public:
   auto               Init(PlatConfig const& config) -> int;
   auto               Shutdown() -> void;
-  auto               Present(std::span<std::uint8_t const> pixels, int width, int height,
-                             std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void;
+  auto               Present(std::span<std::uint8_t const> pixels, int width, int height, std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void;
   auto               WritePng(char const* path) const -> int;
   auto               PollEvent(PlatEvent& event) -> int;
   [[nodiscard]] auto ShiftFlags() const -> std::uint8_t;
@@ -416,8 +414,7 @@ auto Backend::Redraw() const -> void {
   SDL_RenderPresent(_renderer);
 }
 
-auto Backend::Present(std::span<std::uint8_t const> pixels, int width, int height,
-                      std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void {
+auto Backend::Present(std::span<std::uint8_t const> pixels, int width, int height, std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void {
   _frame.assign(pixels.begin(), pixels.end());
   _frame_width  = width;
   _frame_height = height;
@@ -436,25 +433,22 @@ auto Backend::Present(std::span<std::uint8_t const> pixels, int width, int heigh
   }
 
   std::array<std::uint32_t, 256> lut{};
-  std::ranges::transform(std::views::iota(0uz, lut.size()), lut.begin(),
-                         [&palette](std::size_t index) -> std::uint32_t {
-                           std::array<std::uint32_t, 3> rgb{};
-                           std::ranges::copy(palette.subspan(index * 3, 3), rgb.begin());
-                           auto const [red, green, blue]{ rgb };
-                           return 0xFF000000u | red << 16 | green << 8 | blue;
-                         });
+  std::ranges::transform(std::views::iota(0uz, lut.size()), lut.begin(), [&palette](std::size_t index) -> std::uint32_t {
+    std::array<std::uint32_t, 3> rgb{};
+    std::ranges::copy(palette.subspan(index * 3, 3), rgb.begin());
+    auto const [red, green, blue]{ rgb };
+    return 0xFF000000u | red << 16 | green << 8 | blue;
+  });
 
   void* locked{ nullptr };
   int   pitch{ 0 };
   if (SDL_LockTexture(_texture, nullptr, &locked, &pitch)) {
     auto const      row_bytes{ static_cast<std::size_t>(width) * sizeof(std::uint32_t) };
-    std::span const texture{ static_cast<std::byte*>(locked),
-                             static_cast<std::size_t>(pitch) * static_cast<std::size_t>(height) };
+    std::span const texture{ static_cast<std::byte*>(locked), static_cast<std::size_t>(pitch) * static_cast<std::size_t>(height) };
     _row.resize(static_cast<std::size_t>(width));
     auto const columns{ static_cast<std::size_t>(width) };
     for (auto const y : std::views::iota(0uz, static_cast<std::size_t>(height))) {
-      std::ranges::transform(pixels.subspan(y * columns, columns), _row.begin(),
-                             [&lut](std::uint8_t index) -> std::uint32_t { return lut.at(index); });
+      std::ranges::transform(pixels.subspan(y * columns, columns), _row.begin(), [&lut](std::uint8_t index) -> std::uint32_t { return lut.at(index); });
       std::memcpy(texture.subspan(y * static_cast<std::size_t>(pitch)).data(), _row.data(), row_bytes);
     }
     SDL_UnlockTexture(_texture);
@@ -632,9 +626,8 @@ auto Backend::Resolve(std::string_view dos_name, bool create) -> std::pair<int, 
 
 // ---- audio --------------------------------------------------------------------------------------------------------
 
-auto SDLCALL Backend::FillAudio(void* backend, SDL_AudioStream* stream, int additional, [[maybe_unused]] int total)
-    -> void {
-  auto const& self{ *static_cast<Backend const*>(backend) };
+auto SDLCALL Backend::FillAudio(void* backend, SDL_AudioStream* stream, int additional, [[maybe_unused]] int total) -> void {
+  auto const&                                                                self{ *static_cast<Backend const*>(backend) };
   std::array<std::int16_t, static_cast<std::size_t>(AUDIO_CHUNK_FRAMES) * 2> samples{};
   // `additional` is in bytes; one frame is 4 bytes (S16 stereo).
   while (additional >= 4) {
@@ -700,8 +693,7 @@ auto plat_shutdown() -> void {
 auto plat_present(std::uint8_t const* pixels, int width, int height, std::uint8_t const* palette) -> void {
   if (pixels == nullptr || palette == nullptr || width <= 0 || height <= 0) return;
   auto const count{ static_cast<std::size_t>(width) * static_cast<std::size_t>(height) };
-  TheBackend().Present({ pixels, count }, width, height,
-                       std::span<std::uint8_t const, PALETTE_BYTES>{ palette, PALETTE_BYTES });
+  TheBackend().Present({ pixels, count }, width, height, std::span<std::uint8_t const, PALETTE_BYTES>{ palette, PALETTE_BYTES });
 }
 
 auto plat_write_png(char const* path) -> int {

@@ -63,33 +63,24 @@ auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t c
   using enum OpenEventId;
   auto const arg{ [&](int i) -> uint16_t { return Arg(args, count, i); } };
   switch (id) {
-  case SFX_PLAY:      opeu_open_sfx_play(arg(0)); return 0;
-  case SFX_BUSY:      return opeu_open_sfx_busy();
-  case FM_BUSY:       return opeu_fm_busy();
-  case INPUT_POLL:    return static_cast<uint16_t>(opeu_open_input_poll(ds, link_outil));
-  case VGA_CLEAR:     return static_cast<uint16_t>(opeu_vga_clear());
-  case PALETTE_FADE:  return static_cast<uint16_t>(opeu_open_palette_fade(ds, link_outil, ds + arg(1), arg(0)));
-  case PALETTE_STEP:  return static_cast<uint16_t>(opeu_open_palette_step(ds, link_outil, ds + arg(0)));
-  case PALETTE_SET:   opeu_open_palette_set(ds, link_outil, ds + arg(0)); return 0;
-  case FADE_OUT:      return static_cast<uint16_t>(opeu_open_fade_in(ds, link_outil));
-  case FADE_OUT_WAIT: return static_cast<uint16_t>(opeu_open_fade_in_wait(ds, link_outil));
-  case PICTURE_AT:
-    opeu_picture_file_at(ds, link_outil, arg(0), arg(1), static_cast<int32_t>(Arg32(args, count, 2)));
-    return 0;
-  case GFX_WAIT:       opeu_gfx_wait(ds, link_oemsmap); return 0;
-  case MUSIC_START:    opeu_music_start(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
-  case MUSIC_COMMAND4: opeu_finish_side_initialization(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
-  case DOS_SEEK:
-    return static_cast<uint16_t>(opeu_dos_seek(
-        static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(arg(3))));
-  case DOS_READ_FAR:
-    return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
-  case DRAW_FAR:
-    return static_cast<uint16_t>(opeu_draw_far(arg(0), arg(1), arg(2), arg(3), arg(4),
-                                               source_bytes(arg(5), arg(6), blit_size(arg(2), arg(3), 1))));
-  case BLIT_FAR:
-    return static_cast<uint16_t>(opeu_bitmap_restore(arg(0), arg(1), arg(2), arg(3), arg(4),
-                                                     source_bytes(arg(5), arg(6), blit_size(arg(2), arg(3), 4))));
+  case SFX_PLAY:             opeu_open_sfx_play(arg(0)); return 0;
+  case SFX_BUSY:             return opeu_open_sfx_busy();
+  case FM_BUSY:              return opeu_fm_busy();
+  case INPUT_POLL:           return static_cast<uint16_t>(opeu_open_input_poll(ds, link_outil));
+  case VGA_CLEAR:            return static_cast<uint16_t>(opeu_vga_clear());
+  case PALETTE_FADE:         return static_cast<uint16_t>(opeu_open_palette_fade(ds, link_outil, ds + arg(1), arg(0)));
+  case PALETTE_STEP:         return static_cast<uint16_t>(opeu_open_palette_step(ds, link_outil, ds + arg(0)));
+  case PALETTE_SET:          opeu_open_palette_set(ds, link_outil, ds + arg(0)); return 0;
+  case FADE_OUT:             return static_cast<uint16_t>(opeu_open_fade_in(ds, link_outil));
+  case FADE_OUT_WAIT:        return static_cast<uint16_t>(opeu_open_fade_in_wait(ds, link_outil));
+  case PICTURE_AT:           opeu_picture_file_at(ds, link_outil, arg(0), arg(1), static_cast<int32_t>(Arg32(args, count, 2))); return 0;
+  case GFX_WAIT:             opeu_gfx_wait(ds, link_oemsmap); return 0;
+  case MUSIC_START:          opeu_music_start(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
+  case MUSIC_COMMAND4:       opeu_finish_side_initialization(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
+  case DOS_SEEK:             return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(arg(3))));
+  case DOS_READ_FAR:         return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
+  case DRAW_FAR:             return static_cast<uint16_t>(opeu_draw_far(arg(0), arg(1), arg(2), arg(3), arg(4), source_bytes(arg(5), arg(6), blit_size(arg(2), arg(3), 1))));
+  case BLIT_FAR:             return static_cast<uint16_t>(opeu_bitmap_restore(arg(0), arg(1), arg(2), arg(3), arg(4), source_bytes(arg(5), arg(6), blit_size(arg(2), arg(3), 4))));
   case BITMAP_SAVE:          opeu_open_bitmap_save(arg(0), arg(1), arg(2), arg(3), arg(4), arg(5)); return 0;
   case DISSOLVE:             opeu_open_dissolve_blit(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
   case SCREEN_COPY:          opeu_screen_copy(arg(0), arg(1), arg(2), arg(3), arg(4), arg(5)); return 0;

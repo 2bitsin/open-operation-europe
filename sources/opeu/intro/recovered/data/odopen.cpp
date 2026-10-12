@@ -17,8 +17,7 @@ int16_t opeu_open_aborted = 0; /* DS:01ac input abort flag */
 /* DS:01ae..01ef: per-frame rows, heights and capture-buffer offsets. */
 int16_t  opeu_open_frame_y[11]   = { 196, 196, 100, 100, 100, 100, 100, 164, 228, 196, 196 };
 int16_t  opeu_open_frame_h[11]   = { 96, 96, 192, 192, 192, 192, 192, 128, 64, 96, 96 };
-uint16_t opeu_open_frame_off[11] = { 0x0000, 0x1e00, 0x3c00, 0x7800, 0xb400, 0x0000,
-                                     0x3c00, 0x7800, 0xa000, 0xb400, 0xd200 };
+uint16_t opeu_open_frame_off[11] = { 0x0000, 0x1e00, 0x3c00, 0x7800, 0xb400, 0x0000, 0x3c00, 0x7800, 0xa000, 0xb400, 0xd200 };
 
 /* DS:01f0: bobbing curve of the first aircraft group (pixel rows). */
 uint16_t opeu_open_bob_a[20] = { 80, 83, 85, 87, 90, 90, 87, 85, 83, 80, 80, 77, 75, 73, 70, 70, 73, 75, 77, 80 };

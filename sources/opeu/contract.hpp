@@ -45,14 +45,12 @@ public:
 };
 
 // "<kind>: <file>:<line> <function>: <text>", the one shape every mode says.
-inline auto ContractLine(std::string_view kind, std::string_view text, std::source_location const& where)
-    -> std::string {
+inline auto ContractLine(std::string_view kind, std::string_view text, std::source_location const& where) -> std::string {
   return std::format("{}: {}:{} {}: {}", kind, where.file_name(), where.line(), where.function_name(), text);
 }
 
 // The out-of-line half of a broken contract; a held one never reaches it.
-[[gnu::cold]] inline auto Broken(std::string_view kind, std::string_view text, std::source_location const& where)
-    -> void {
+[[gnu::cold]] inline auto Broken(std::string_view kind, std::string_view text, std::source_location const& where) -> void {
   auto const line{ ContractLine(kind, text, where) };
   std::println(stderr, "{}", line);
   std::fflush(stderr);
@@ -63,8 +61,7 @@ inline auto ContractLine(std::string_view kind, std::string_view text, std::sour
   }
 }
 
-constexpr auto Expects(bool held, std::string_view text, std::source_location where = std::source_location::current())
-    -> void {
+constexpr auto Expects(bool held, std::string_view text, std::source_location where = std::source_location::current()) -> void {
   if constexpr (CONTRACT_MODE != ContractMode::OFF) {
     if (!held) {
       Broken("precondition", text, where);
@@ -72,8 +69,7 @@ constexpr auto Expects(bool held, std::string_view text, std::source_location wh
   }
 }
 
-constexpr auto Ensures(bool held, std::string_view text, std::source_location where = std::source_location::current())
-    -> void {
+constexpr auto Ensures(bool held, std::string_view text, std::source_location where = std::source_location::current()) -> void {
   if constexpr (CONTRACT_MODE != ContractMode::OFF) {
     if (!held) {
       Broken("postcondition", text, where);
@@ -85,8 +81,7 @@ constexpr auto Ensures(bool held, std::string_view text, std::source_location wh
 // halt ends the program here, ignore included. An enumeration is said as
 // its number, which is what the original's tables and save files carry.
 template <typename _Value>
-[[noreturn]] auto Unreachable(_Value const& value, std::source_location where = std::source_location::current())
-    -> void {
+[[noreturn]] auto Unreachable(_Value const& value, std::source_location where = std::source_location::current()) -> void {
   auto said{ std::string{} };
   if constexpr (std::is_enum_v<_Value>) {
     said = std::format("{}", std::to_underlying(value));

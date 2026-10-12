@@ -16,8 +16,7 @@ auto opeu_asset_find(char const* const dos_name, unsigned char const** const dat
     name.remove_prefix(last + 1);
   }
   auto upper{ std::string{ name } };
-  std::ranges::transform(upper, upper.begin(),
-                         [](unsigned char const c) -> char { return static_cast<char>(std::toupper(c)); });
+  std::ranges::transform(upper, upper.begin(), [](unsigned char const c) -> char { return static_cast<char>(std::toupper(c)); });
   auto const* const found{ opeu::resources::find(upper) };
   if (found == nullptr) {
     return 0;

@@ -45,8 +45,7 @@ void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
   } while (--rows);
 }
 
-void opeu_open_far_copy(uint16_t source_segment, uint16_t source_offset, uint16_t segment, uint16_t offset,
-                        uint16_t count) {
+void opeu_open_far_copy(uint16_t source_segment, uint16_t source_offset, uint16_t segment, uint16_t offset, uint16_t count) {
   uint16_t words = (uint16_t)(count >> 1), si = source_offset, di = offset;
   while (words--) { /* REP MOVSW: CX = 0 copies nothing */
     *far_byte(segment, di)                 = *far_byte(source_segment, si);
@@ -56,8 +55,7 @@ void opeu_open_far_copy(uint16_t source_segment, uint16_t source_offset, uint16_
   }
 }
 
-void opeu_open_buf_or(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t source_segment,
-                      uint16_t source_offset) {
+void opeu_open_buf_or(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t source_segment, uint16_t source_offset) {
   uint16_t si = source_offset, di = offset, rows = h;
   do { /* 1C54: CX = rows, inner CX = 2 * columns (LOOP) */
     uint16_t words = (uint16_t)(w << 1);
@@ -70,8 +68,7 @@ void opeu_open_buf_or(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h,
   } while (--rows);
 }
 
-void opeu_open_buf_and_mask(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t mask_segment,
-                            uint16_t mask_offset) {
+void opeu_open_buf_and_mask(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t mask_segment, uint16_t mask_offset) {
   uint16_t si = mask_offset, di = offset, rows = h;
   do {
     uint16_t pairs = (uint16_t)(w >> 1);
@@ -100,8 +97,7 @@ void opeu_open_dissolve_blit(uint16_t x, uint16_t y, uint16_t segment, uint16_t 
       d = di;
       for (c = 0; c < 0x13; c++) {
         uint16_t ax = (uint16_t)(*far_byte(segment, s) << 8 | *far_byte(segment, (uint16_t)(s + 4)));
-        uint16_t bx = (uint16_t)(Screen().PlaneBits(column_at(d), DISSOLVE_BIT) << 8
-                                 | Screen().PlaneBits(column_at((uint16_t)(d + 1)), DISSOLVE_BIT));
+        uint16_t bx = (uint16_t)(Screen().PlaneBits(column_at(d), DISSOLVE_BIT) << 8 | Screen().PlaneBits(column_at((uint16_t)(d + 1)), DISSOLVE_BIT));
         ax          = (uint16_t)((ax & dx) | (bx & (uint16_t)~dx));
         Screen().SetPlaneBits(column_at(d), p, (uint8_t)(ax >> 8));
         Screen().SetPlaneBits(column_at((uint16_t)(d + 1)), p, (uint8_t)ax);

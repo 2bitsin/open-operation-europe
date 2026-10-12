@@ -39,8 +39,7 @@ auto main(int const argc, char const* const* const argv) -> int {
   auto const args{
     std::span{ argv, static_cast<std::size_t>(argc) }
     | std::views::transform([](char const* const arg) { return std::string_view{ arg }; }
-    )
-    | std::ranges::to<std::vector>()
+    ) | std::ranges::to<std::vector>()
   };
   return opeu::probes::extract_assets::Run(args);
 }

@@ -40,8 +40,7 @@ namespace opeu::intro::detail::openmain {
 namespace {
 using enum OpenEventId;
 
-auto open_call(uint8_t* ds, OpenEvent event, OpenEventId id, uint16_t count, uint16_t a0, uint16_t a1, uint16_t a2,
-               uint16_t a3, uint16_t a4, uint16_t a5, uint16_t a6) -> uint16_t {
+auto open_call(uint8_t* ds, OpenEvent event, OpenEventId id, uint16_t count, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3, uint16_t a4, uint16_t a5, uint16_t a6) -> uint16_t {
   uint16_t args[7];
   args[0] = a0;
   args[1] = a1;
@@ -57,8 +56,7 @@ auto open_call(uint8_t* ds, OpenEvent event, OpenEventId id, uint16_t count, uin
 template <class... Words>
 auto Call(uint8_t* ds, OpenEvent event, OpenEventId id, Words... words) -> uint16_t {
   uint16_t const padded[7]{ static_cast<uint16_t>(words)... };
-  return open_call(ds, event, id, sizeof...(Words), padded[0], padded[1], padded[2], padded[3], padded[4], padded[5],
-                   padded[6]);
+  return open_call(ds, event, id, sizeof...(Words), padded[0], padded[1], padded[2], padded[3], padded[4], padded[5], padded[6]);
 }
 
 /* The services whose arguments are converted on the way. */
@@ -514,13 +512,11 @@ auto opeu_open_units_animate(uint8_t* ds, OpenEvent event) -> int {
       Call(ds, event, PALETTE_SET, Palette(ds, 36));
     }
     Call(ds, event, UI_BOX, 0x2a, 0x64, 0x14, 0x80, 0);
-    Call(ds, event, BLIT_FAR, 0x2a, Data(ds).frame_y[j], 0x14, Data(ds).frame_h[j], 0,
-         j < 5 ? Data(ds).buffer_a : Data(ds).buffer_b, Data(ds).frame_off[j]);
+    Call(ds, event, BLIT_FAR, 0x2a, Data(ds).frame_y[j], 0x14, Data(ds).frame_h[j], 0, j < 5 ? Data(ds).buffer_a : Data(ds).buffer_b, Data(ds).frame_off[j]);
     j++;
     if (j == 11) j = 8;
     Call(ds, event, UI_BOX, 0x10, 0x64, 0x14, 0x80, 0);
-    Call(ds, event, BLIT_FAR, 0x10, Data(ds).frame_y[k], 0x14, Data(ds).frame_h[k], 0,
-         k < 5 ? Data(ds).buffer_a : Data(ds).buffer_b, Data(ds).frame_off[k]);
+    Call(ds, event, BLIT_FAR, 0x10, Data(ds).frame_y[k], 0x14, Data(ds).frame_h[k], 0, k < 5 ? Data(ds).buffer_a : Data(ds).buffer_b, Data(ds).frame_off[k]);
     if (i > 2) {
       k++;
       if (k == 11) k = 8;
@@ -640,8 +636,7 @@ auto opeu_open_bomb_explosions(uint8_t* ds, OpenEvent event) -> int {
       Call(ds, event, BUF_OR, Data(ds).buffer_c, pos, 0x1a, 0xb0, Data(ds).buffer_f, Data(ds).blast_sprites[j]);
     }
     for (pos = 0, j = 0; j < 6; j++) {
-      Call(ds, event, BLIT_FAR, Data(ds).blast_x[k], Data(ds).blast_y[k], 0x1a, 0xb0, 4,
-           j < 3 ? Data(ds).buffer_b : Data(ds).buffer_c, pos);
+      Call(ds, event, BLIT_FAR, Data(ds).blast_x[k], Data(ds).blast_y[k], 0x1a, 0xb0, 4, j < 3 ? Data(ds).buffer_b : Data(ds).buffer_c, pos);
       if (pos == 0x8f00)
         pos = 0;
       else
@@ -733,8 +728,7 @@ auto opeu_open_bomber_flak(uint8_t* ds, OpenEvent event) -> int {
     if (i < g) Call(ds, event, UI_BOX, 0, i + 0xa0, 0x50, g - i, 0);
     b = f % 10;
     if (b > 4 && b < 9) {
-      Call(ds, event, BLIT_FAR, Data(ds).flak_x[f / 10 % 4] - b + 5, Data(ds).flak_y[f / 10 % 4], 6, 0x3c, 0,
-           Data(ds).buffer_b, j);
+      Call(ds, event, BLIT_FAR, Data(ds).flak_x[f / 10 % 4] - b + 5, Data(ds).flak_y[f / 10 % 4], 6, 0x3c, 0, Data(ds).buffer_b, j);
       j += 0x5a0;
       if (j >= 0x1680) j = 0;
     }
@@ -847,11 +841,9 @@ void opeu_open_flash_toggle(uint8_t* ds, OpenEvent event) {
 auto opeu_open_shell_run(uint8_t* ds, OpenEvent event, int first) -> int {
   int i = 0;
   for (i = first; i < first + 3; i++) {
-    Call(ds, event, DRAW_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_w[i], Data(ds).shell_h[i], 0x407,
-         Data(ds).buffer_h, Data(ds).shell_sprite[i]);
+    Call(ds, event, DRAW_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_w[i], Data(ds).shell_h[i], 0x407, Data(ds).buffer_h, Data(ds).shell_sprite[i]);
     if (opeu_open_wait(ds, event, 1) != 0) return 1;
-    Call(ds, event, BLIT_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_ws[i], Data(ds).shell_h[i], 0,
-         Data(ds).buffer_a, Data(ds).shell_save[i]);
+    Call(ds, event, BLIT_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_ws[i], Data(ds).shell_h[i], 0, Data(ds).buffer_a, Data(ds).shell_save[i]);
     opeu_open_flash_toggle(ds, event);
   }
   return 0;
@@ -862,15 +854,11 @@ auto opeu_open_shell_run_pair(uint8_t* ds, OpenEvent event) -> int {
   int j = 0;
   j     = 3;
   for (i = 0; i < 3; i++, j++) {
-    Call(ds, event, DRAW_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_w[i], Data(ds).shell_h[i], 0x407,
-         Data(ds).buffer_h, Data(ds).shell_sprite[i]);
-    Call(ds, event, DRAW_FAR, Data(ds).shell_x[j], Data(ds).shell_y[j], Data(ds).shell_w[j], Data(ds).shell_h[j], 0x407,
-         Data(ds).buffer_h, Data(ds).shell_sprite[j]);
+    Call(ds, event, DRAW_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_w[i], Data(ds).shell_h[i], 0x407, Data(ds).buffer_h, Data(ds).shell_sprite[i]);
+    Call(ds, event, DRAW_FAR, Data(ds).shell_x[j], Data(ds).shell_y[j], Data(ds).shell_w[j], Data(ds).shell_h[j], 0x407, Data(ds).buffer_h, Data(ds).shell_sprite[j]);
     if (opeu_open_wait(ds, event, 1) != 0) return 1;
-    Call(ds, event, BLIT_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_ws[i], Data(ds).shell_h[i], 0,
-         Data(ds).buffer_a, Data(ds).shell_save[i]);
-    Call(ds, event, BLIT_FAR, Data(ds).shell_x[j], Data(ds).shell_y[j], Data(ds).shell_ws[j], Data(ds).shell_h[j], 0,
-         Data(ds).buffer_a, Data(ds).shell_save[j]);
+    Call(ds, event, BLIT_FAR, Data(ds).shell_x[i], Data(ds).shell_y[i], Data(ds).shell_ws[i], Data(ds).shell_h[i], 0, Data(ds).buffer_a, Data(ds).shell_save[i]);
+    Call(ds, event, BLIT_FAR, Data(ds).shell_x[j], Data(ds).shell_y[j], Data(ds).shell_ws[j], Data(ds).shell_h[j], 0, Data(ds).buffer_a, Data(ds).shell_save[j]);
     opeu_open_flash_toggle(ds, event);
   }
   return 0;
@@ -885,8 +873,7 @@ auto opeu_open_gun_fire(uint8_t* ds, OpenEvent event) -> int {
   int frame = 0;
   int shot  = 0;
   for (frame = 0; frame < 6; frame++)
-    Call(ds, event, BITMAP_SAVE, Data(ds).shell_x[frame], Data(ds).shell_y[frame], Data(ds).shell_ws[frame],
-         Data(ds).shell_h[frame], Data(ds).buffer_a, Data(ds).shell_save[frame]);
+    Call(ds, event, BITMAP_SAVE, Data(ds).shell_x[frame], Data(ds).shell_y[frame], Data(ds).shell_ws[frame], Data(ds).shell_h[frame], Data(ds).buffer_a, Data(ds).shell_save[frame]);
   frame = runs = shot = 0;
   for (; frame < 50; frame++) {
     if (frame == 7) {
@@ -996,8 +983,7 @@ void opeu_open_init(uint8_t* ds, OpenEvent event) {
     Hang(ds, event);
   }
   ems = Call(ds, event, EMS_DETECT);
-  if ((Data(ds).buffer_f = Call(ds, event, DOS_ALLOC, 0x1000)) == 0
-      && ((ems == 0) || (Call(ds, event, EMS_ALLOC_SPRITE) == 0u))) {
+  if ((Data(ds).buffer_f = Call(ds, event, DOS_ALLOC, 0x1000)) == 0 && ((ems == 0) || (Call(ds, event, EMS_ALLOC_SPRITE) == 0u))) {
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).alloc_err9));
     Hang(ds, event);
   }

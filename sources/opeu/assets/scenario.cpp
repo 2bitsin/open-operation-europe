@@ -27,8 +27,7 @@ constexpr auto OBJECTIVE_COUNT{ 21uz };
 
 // The NUL-terminated text of a fixed-size field.
 auto Text(Bytes const field) -> std::string {
-  return field | std::views::take_while([](std::byte const b) { return b != std::byte{ 0 }; })
-         | std::views::transform([](std::byte const b) { return static_cast<char>(b); })
+  return field | std::views::take_while([](std::byte const b) { return b != std::byte{ 0 }; }) | std::views::transform([](std::byte const b) { return static_cast<char>(b); })
          | std::ranges::to<std::string>();
 }
 
@@ -40,34 +39,20 @@ auto Person(Bytes const r) -> scenario::Person {
   auto person{
     scenario::Person{ .name = Text(r.first(18)), .side = Byte(r, 18), .abilities{}, .portrait = Byte(r, 29) }
   };
-  std::ranges::transform(r.subspan(19, person.abilities.size()), person.abilities.begin(),
-                         [](std::byte const b) { return std::to_integer<std::uint8_t>(b); });
+  std::ranges::transform(r.subspan(19, person.abilities.size()), person.abilities.begin(), [](std::byte const b) { return std::to_integer<std::uint8_t>(b); });
   return person;
 }
 
 auto Element(Bytes const r) -> scenario::Element {
-  return { .next       = ReadWord(r, 0),
-           .type       = Byte(r, 2),
-           .quantity   = ReadWord(r, 3),
-           .morale     = Byte(r, 9),
-           .training   = Byte(r, 10),
-           .experience = Byte(r, 11),
-           .state      = Byte(r, 12) };
+  return { .next = ReadWord(r, 0), .type = Byte(r, 2), .quantity = ReadWord(r, 3), .morale = Byte(r, 9), .training = Byte(r, 10), .experience = Byte(r, 11), .state = Byte(r, 12) };
 }
 
 auto Unit(Bytes const r) -> scenario::Unit {
-  return {
-    .first_element = ReadWord(r, 0), .x = Byte(r, 2), .y = Byte(r, 3), .supplies = Words3(r, 6), .flags = Byte(r, 21)
-  };
+  return { .first_element = ReadWord(r, 0), .x = Byte(r, 2), .y = Byte(r, 3), .supplies = Words3(r, 6), .flags = Byte(r, 21) };
 }
 
 auto Objective(Bytes const r) -> scenario::Objective {
-  return { .name     = Text(r.first(0x15)),
-           .x        = Byte(r, 0x15),
-           .y        = Byte(r, 0x16),
-           .garrison = Byte(r, 0x23),
-           .points   = Byte(r, 0x24),
-           .flags    = Byte(r, 0x43) };
+  return { .name = Text(r.first(0x15)), .x = Byte(r, 0x15), .y = Byte(r, 0x16), .garrison = Byte(r, 0x23), .points = Byte(r, 0x24), .flags = Byte(r, 0x43) };
 }
 
 template <class Read>

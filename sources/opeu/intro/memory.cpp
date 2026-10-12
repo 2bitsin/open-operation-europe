@@ -78,8 +78,7 @@ auto open_dos_free(uint16_t segment) -> int {
 
 auto open_stack_enter(uint16_t bytes) -> uint16_t {
   auto sp = static_cast<uint16_t>(open_sp - 4);
-  if (static_cast<uint32_t>(open_sp) < static_cast<uint32_t>(OPEN_DS_END) + 4u + bytes)
-    port_fatal("OPEN: modeled stack overflow (sp=%04x, %u bytes)", open_sp, bytes);
+  if (static_cast<uint32_t>(open_sp) < static_cast<uint32_t>(OPEN_DS_END) + 4u + bytes) port_fatal("OPEN: modeled stack overflow (sp=%04x, %u bytes)", open_sp, bytes);
   open_sp = static_cast<uint16_t>(open_sp - 4 - bytes);
   return sp;
 }

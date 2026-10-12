@@ -31,12 +31,10 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   EXPECT_TRUE(file->Description(0).starts_with("  The Russo-German Non-aggression Pact"));
   EXPECT_TRUE(file->Condition(0, 0).starts_with(" 1. Occupy Sedan and"));
   EXPECT_TRUE(file->Condition(0, 1).starts_with(" 1. Defend Sedan."));
-  EXPECT_TRUE(std::ranges::all_of(std::views::iota(0uz, 6uz), [&](std::size_t const n) {
-    return file->Condition(n, 0).size() < 200 && file->Condition(n, 1).size() < 200 && !file->Description(n).empty();
-  }));
+  EXPECT_TRUE(
+      std::ranges::all_of(std::views::iota(0uz, 6uz), [&](std::size_t const n) { return file->Condition(n, 0).size() < 200 && file->Condition(n, 1).size() < 200 && !file->Description(n).empty(); }));
   EXPECT_EQ(file->SetupOf(0).scenario, 0x80);
-  constexpr auto STARTS{ std::array<std::array<unsigned, 3>, 6>{
-      { { 1940, 5, 10 }, { 1942, 5, 26 }, { 1943, 7, 5 }, { 1944, 6, 6 }, { 1944, 12, 16 }, { 1945, 4, 16 } } } };
+  constexpr auto STARTS{ std::array<std::array<unsigned, 3>, 6>{ { { 1940, 5, 10 }, { 1942, 5, 26 }, { 1943, 7, 5 }, { 1944, 6, 6 }, { 1944, 12, 16 }, { 1945, 4, 16 } } } };
   for (auto const [n, start] : std::views::zip(std::views::iota(1uz), STARTS)) {
     auto const& setup{ file->SetupOf(n) };
     EXPECT_EQ(setup.scenario, n - 1);
@@ -48,8 +46,7 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   }
   auto const& france{ file->SetupOf(1) };
   EXPECT_TRUE(std::ranges::contains(france.people, std::string{ "Rundstedt" }, &detail::scenario::Person::name));
-  EXPECT_TRUE(
-      std::ranges::contains(france.objectives, std::string{ "San Michel" }, &detail::scenario::Objective::name));
+  EXPECT_TRUE(std::ranges::contains(france.objectives, std::string{ "San Michel" }, &detail::scenario::Objective::name));
   EXPECT_EQ(france.sides[0].stock, (std::array<unsigned, 3>{ 60000, 60000, 60000 }));
   EXPECT_EQ(france.sides[0].income, (std::array<unsigned, 3>{ 2000, 2000, 2000 }));
   EXPECT_FALSE(DecodeScenarioFile(Shipped("SCEDATA").first(100)));
@@ -59,19 +56,17 @@ TEST(ShippedMapCells, HoldSixFortyByFortyMaps) {
   auto const cells{ Grids("MAPINF.DAT") };
   auto       histogram{ std::map<int, int>{} };
   std::ranges::for_each(cells[0], [&histogram](std::uint8_t const cell) { ++histogram[cell & 0x0F]; });
-  EXPECT_EQ(histogram,
-            (std::map<int, int>{
-                { 1,  11  },
-                { 2,  79  },
-                { 3,  239 },
-                { 5,  156 },
-                { 7,  651 },
-                { 8,  283 },
-                { 9,  171 },
-                { 10, 10  }
+  EXPECT_EQ(histogram, (std::map<int, int>{
+                           { 1,  11  },
+                           { 2,  79  },
+                           { 3,  239 },
+                           { 5,  156 },
+                           { 7,  651 },
+                           { 8,  283 },
+                           { 9,  171 },
+                           { 10, 10  }
   }));
-  EXPECT_TRUE(std::ranges::contains(cells[1], std::uint8_t{ 0x80 | 2 })
-              || std::ranges::contains(cells[1], std::uint8_t{ 130 }));
+  EXPECT_TRUE(std::ranges::contains(cells[1], std::uint8_t{ 0x80 | 2 }) || std::ranges::contains(cells[1], std::uint8_t{ 130 }));
 }
 
 TEST(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
@@ -100,8 +95,7 @@ TEST(ShippedBattleFields, Hold537FieldsOfKnownTerrain) {
   auto const fields{ DecodeBattleFields(Shipped("HEXMAP.DAT")) };
   ASSERT_TRUE(fields);
   EXPECT_EQ(fields->size(), FIELD_COUNT);
-  EXPECT_TRUE(
-      std::ranges::all_of(*fields | std::views::join, [](std::uint8_t const cell) { return (cell & 0x3F) <= 42; }));
+  EXPECT_TRUE(std::ranges::all_of(*fields | std::views::join, [](std::uint8_t const cell) { return (cell & 0x3F) <= 42; }));
   EXPECT_EQ(FIRST_FIELD.back() + 89U, FIELD_COUNT);
   EXPECT_EQ(BattleTerrain(5), 17);
   EXPECT_EQ(BattleTerrain(60), 0);

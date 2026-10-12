@@ -146,8 +146,7 @@ static int copy_on_write(int16_t handle) {
   void*  f    = plat_fopen(handles[handle].name, "w+b");
   size_t size = handles[handle].asset_size;
   if (!f) return -1;
-  if ((size && plat_fwrite(handles[handle].asset, size, f) != size)
-      || plat_fseek(f, handles[handle].asset_pos, SEEK_SET) < 0) {
+  if ((size && plat_fwrite(handles[handle].asset, size, f) != size) || plat_fseek(f, handles[handle].asset_pos, SEEK_SET) < 0) {
     plat_fclose(f);
     return -1;
   }
@@ -217,16 +216,10 @@ int32_t opeu_dos_seek(int16_t handle, int32_t position, int16_t origin) {
   /* DOS takes CX:DX as a signed 32-bit offset for origins 1 and 2 and as
      * unsigned for 0. */
   if (handles[handle].file) {
-    r = plat_fseek(handles[handle].file, al == 0 ? (long)(uint32_t)position : (long)position,
-                   al == 0   ? SEEK_SET
-                   : al == 1 ? SEEK_CUR
-                             : SEEK_END);
+    r = plat_fseek(handles[handle].file, al == 0 ? (long)(uint32_t)position : (long)position, al == 0 ? SEEK_SET : al == 1 ? SEEK_CUR : SEEK_END);
   } else {
     /* as fseek on a file: before the start fails, past the end is allowed */
-    r = (al == 0   ? 0
-         : al == 1 ? handles[handle].asset_pos
-                   : (long)handles[handle].asset_size)
-        + (al == 0 ? (long)(uint32_t)position : (long)position);
+    r = (al == 0 ? 0 : al == 1 ? handles[handle].asset_pos : (long)handles[handle].asset_size) + (al == 0 ? (long)(uint32_t)position : (long)position);
     if (r < 0)
       r = -1;
     else

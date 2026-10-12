@@ -32,8 +32,7 @@ using Bytes = std::span<std::byte const>;
 
 // `count` consecutive records of `size` bytes from the start of `bytes` (which must hold them).
 [[nodiscard]] constexpr auto Records(Bytes const bytes, std::size_t const size, std::size_t const count) {
-  return Indices(count)
-         | std::views::transform([bytes, size](std::size_t const n) { return bytes.subspan(n * size, size); });
+  return Indices(count) | std::views::transform([bytes, size](std::size_t const n) { return bytes.subspan(n * size, size); });
 }
 
 // As many whole records of `size` bytes as `bytes` holds.
@@ -42,8 +41,7 @@ using Bytes = std::span<std::byte const>;
 }
 
 // `count` bytes from `at`, or nothing when the span is shorter.
-[[nodiscard]] constexpr auto Slice(Bytes const bytes, std::size_t const at, std::size_t const count)
-    -> std::optional<Bytes> {
+[[nodiscard]] constexpr auto Slice(Bytes const bytes, std::size_t const at, std::size_t const count) -> std::optional<Bytes> {
   if (at > bytes.size() || count > bytes.size() - at) return std::nullopt;
   return bytes.subspan(at, count);
 }

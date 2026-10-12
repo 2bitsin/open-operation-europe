@@ -110,12 +110,10 @@ auto port_picture_reader(uint16_t off, uint16_t seg) -> PortByteReader;
 /* 1707:03e4 daily_show(id, side, far presenter (offset, segment)). */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg);
 /* A briefing of core/scenbrf.c with its 100-byte closing buffer reserved. */
-using PortBriefing = void (*)(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t),
-                              uint16_t closing);
+using PortBriefing = void (*)(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t), uint16_t closing);
 auto port_run_briefing(uint8_t* ds, PortBriefing briefing) -> uint32_t;
 /* Address-keyed forward with reordered words: out[i] = in[order[i]]. */
-auto btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order,
-                 unsigned n) -> uint16_t;
+auto btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) -> uint16_t;
 /* Call a linked routine by its reference name. */
 auto port_call_named(uint8_t* ds, const char* name, const uint16_t* args, unsigned count) -> uint32_t;
 

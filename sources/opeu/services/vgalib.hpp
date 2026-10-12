@@ -30,16 +30,16 @@ int16_t koei_27c2(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode,
 int16_t opeu_blit_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 // 1-bit image of w bytes per row. Low byte of mode: the colour; (mode & 7FFF) >> 8: 0 opaque (0 bits draw colour 0),
 // 4 set, 1 XOR, 2 AND (0 bits clear the colour's bits), 3 OR; 5-7F repeat the previous pen. Bit 15 doubles rows.
-int16_t opeu_draw_near(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
+int16_t                opeu_draw_near(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 inline constexpr auto& opeu_code_0000_28a8{ opeu_draw_near };
-int16_t opeu_draw_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
+int16_t                opeu_draw_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 // 1-bit glyph on paper: 1 bits colour (mode & 15), 0 bits colour ((mode >> 8) & 15).
 void opeu_code_0000_28c5(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 // 1-bit image at any pixel x (x and w in pixels, rows of ceil(w / 8) bytes, whole source bytes drawn). High byte of
 // mode: 0 or 4 set, 1 XOR, 2 AND, 3 OR, others the previous pen; the pixels of the edge columns outside the image
 // get a 0 bit (a 1 bit for AND). Returns 0 or -1.
-int16_t opeu_vga_glyph(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
-int16_t opeu_gfx_blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
+int16_t                opeu_vga_glyph(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
+int16_t                opeu_gfx_blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 inline constexpr auto& opeu_bitmap_draw{ opeu_gfx_blit };
 // Clears the screen to colour 0. Returns 0.
 int16_t opeu_vga_clear(void);
@@ -68,7 +68,6 @@ void opeu_text_mode(void);
 // Copies a column rectangle (x1, y1) -> (x2, y2), w columns x h lines, as memmove in screen order.
 void                   opeu_screen_copy(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t x2, uint16_t y2);
 inline constexpr auto& opeu_vga_copy{ opeu_screen_copy };
-// Picture decoders (stream format at Canvas::DecodePicture): masked (run table, 16 colours) and plain (8 colours).
-// 0 or -1.
+// Picture decoders (stream format at Canvas::DecodePicture): masked (run table, 16 colours) and plain (8 colours). 0 or -1.
 int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader reader);
 int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader reader);

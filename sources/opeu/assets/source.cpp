@@ -18,8 +18,7 @@ auto ReadAll(std::filesystem::path const& path) -> std::expected<std::vector<std
   auto const bytes{
     std::vector<char>{ std::istreambuf_iterator<char>{ file }, std::istreambuf_iterator<char>{} }
   };
-  return bytes | std::views::transform([](char const c) { return static_cast<std::byte>(c); })
-         | std::ranges::to<std::vector>();
+  return bytes | std::views::transform([](char const c) { return static_cast<std::byte>(c); }) | std::ranges::to<std::vector>();
 }
 
 }

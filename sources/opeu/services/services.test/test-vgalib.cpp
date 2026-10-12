@@ -21,8 +21,7 @@ struct CheckMessage {
   std::source_location         where;
 
   template <typename _Text>
-  consteval CheckMessage(_Text const& text, std::source_location where = std::source_location::current())
-      : text{ text }, where{ where } { }
+  consteval CheckMessage(_Text const& text, std::source_location where = std::source_location::current()) : text{ text }, where{ where } { }
 };
 
 // Count the check; print the place and the message when it does not hold.
@@ -31,8 +30,7 @@ auto Check(bool held, CheckMessage<std::type_identity_t<_Args>...> message, _Arg
   checks++;
   if (!held) {
     failures++;
-    std::println("FAIL {}:{}: {}", message.where.file_name(), message.where.line(),
-                 std::format(message.text, std::forward<_Args>(args)...));
+    std::println("FAIL {}:{}: {}", message.where.file_name(), message.where.line(), std::format(message.text, std::forward<_Args>(args)...));
   }
 }
 
@@ -328,8 +326,7 @@ static void test_picture(void) {
   Check(opeu_picture_decode_masked(4, 0, rd) == 0, "masked decode ok");
   /* value 0x1234: plane0=4 (0100) pixel1, plane1=3 (0011) pixels 2,3,
        plane2=2 (0010) pixel 2, plane3=1 (0001) pixel 3 */
-  Check(px(4, 0) == 0 && px(5, 0) == 1 && px(6, 0) == 6 && px(7, 0) == 10, "masked run table: {} {} {} {}", px(4, 0),
-        px(5, 0), px(6, 0), px(7, 0));
+  Check(px(4, 0) == 0 && px(5, 0) == 1 && px(6, 0) == 6 && px(7, 0) == 10, "masked run table: {} {} {} {}", px(4, 0), px(5, 0), px(6, 0), px(7, 0));
 
   fillpx(0);
   stream = masked2;
@@ -337,10 +334,8 @@ static void test_picture(void) {
   /* ABCD: plane0=D(1101) plane1=C(1100) plane2=B(1011) plane3=A(1010) */
   {
     int e0 = 1 | 2 | 4 | 8, e1 = 1 | 2 | 0 | 0, e2 = 0 | 0 | 4 | 8, e3 = 1 | 0 | 4 | 0;
-    Check(px(0, 0) == e0 && px(1, 0) == e1 && px(2, 0) == e2 && px(3, 0) == e3, "full literal {} {} {} {}", px(0, 0),
-          px(1, 0), px(2, 0), px(3, 0));
-    Check(px(4, 0) == e0 && px(5, 0) == e1 && px(6, 0) == e2 && px(7, 0) == e3,
-          "copy 1 unit back (odd parity, rotate path)");
+    Check(px(0, 0) == e0 && px(1, 0) == e1 && px(2, 0) == e2 && px(3, 0) == e3, "full literal {} {} {} {}", px(0, 0), px(1, 0), px(2, 0), px(3, 0));
+    Check(px(4, 0) == e0 && px(5, 0) == e1 && px(6, 0) == e2 && px(7, 0) == e3, "copy 1 unit back (odd parity, rotate path)");
   }
 
   fillpx(0);

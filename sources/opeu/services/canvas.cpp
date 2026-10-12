@@ -60,23 +60,20 @@ template <std::size_t PLANES>
 }
 
 // Keeps `pixels` where `mask` is 0xFF and `under` elsewhere.
-[[nodiscard]] constexpr auto Select(std::uint64_t mask, std::uint64_t pixels, std::uint64_t under) noexcept
-    -> std::uint64_t {
+[[nodiscard]] constexpr auto Select(std::uint64_t mask, std::uint64_t pixels, std::uint64_t under) noexcept -> std::uint64_t {
   return (pixels & mask) | (under & ~mask);
 }
 
 // Consecutive pieces of `size` elements (the standard library here has no views::chunk).
 template <typename T>
 [[nodiscard]] constexpr auto Chunks(std::span<T> elements, std::size_t size) noexcept {
-  return std::views::iota(0uz, elements.size() / size)
-         | std::views::transform([elements, size](std::size_t i) { return elements.subspan(i * size, size); });
+  return std::views::iota(0uz, elements.size() / size) | std::views::transform([elements, size](std::size_t i) { return elements.subspan(i * size, size); });
 }
 
 // Consecutive pieces of N elements.
 template <std::size_t N, typename T>
 [[nodiscard]] constexpr auto FixedChunks(std::span<T> elements) noexcept {
-  return std::views::iota(0uz, elements.size() / N)
-         | std::views::transform([elements](std::size_t i) { return elements.subspan(i * N).template first<N>(); });
+  return std::views::iota(0uz, elements.size() / N) | std::views::transform([elements](std::size_t i) { return elements.subspan(i * N).template first<N>(); });
 }
 
 // Eight neighbouring pixels of the screen, read and written as one word.
@@ -95,8 +92,7 @@ auto Set(Octet octet, std::uint64_t pixels) noexcept -> void {
 // The whole octets of a run of pixels.
 template <typename T>
 [[nodiscard]] auto Octets(std::span<T> run) noexcept {
-  return std::views::iota(0uz, run.size() / 8)
-         | std::views::transform([run](std::size_t i) { return run.subspan(i * 8).template first<8>(); });
+  return std::views::iota(0uz, run.size() / 8) | std::views::transform([run](std::size_t i) { return run.subspan(i * 8).template first<8>(); });
 }
 
 [[nodiscard]] constexpr auto Low4(int colour) noexcept -> Pixel {
@@ -104,16 +100,14 @@ template <typename T>
 }
 
 // The rectangle (x, w in 8-pixel columns, y, h in game lines) lies inside the game area and is not empty.
-[[nodiscard]] constexpr auto Clip(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h) noexcept
-    -> Drawn {
+[[nodiscard]] constexpr auto Clip(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h) noexcept -> Drawn {
   if (x > 79 || w == 0 || x + w > 80) return std::unexpected{ DrawError::OUTSIDE };
   if (y >= GAME_LINES || h == 0 || y + h > GAME_LINES) return std::unexpected{ DrawError::OUTSIDE };
   return {};
 }
 
 // The colour map the graphics mode starts with: colour 6 shows entry 0x14 (brown), colours 8-15 entries 0x38-0x3F.
-constexpr std::array<std::uint8_t, COLOURS> START_COLOUR_MAP{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07,
-                                                              0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
+constexpr std::array<std::uint8_t, COLOURS> START_COLOUR_MAP{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
 // The first pixel of picture unit `unit` (4 pixels, 160 per line from game line 0).
 [[nodiscard]] constexpr auto UnitAt(std::uint16_t unit) noexcept -> Offset {
@@ -144,9 +138,7 @@ auto Canvas::Reset(bool shown) noexcept -> void {
   _colour_map = START_COLOUR_MAP;
   _palette.fill(0);
   for (auto const entry : std::views::iota(0, 64)) {
-    auto const level{ [entry](int high, int low) {
-      return static_cast<std::uint8_t>(((entry >> high) & 1) * 0x2A + ((entry >> low) & 1) * 0x15);
-    } };
+    auto const level{ [entry](int high, int low) { return static_cast<std::uint8_t>(((entry >> high) & 1) * 0x2A + ((entry >> low) & 1) * 0x15); } };
     SetPaletteEntry(static_cast<std::uint8_t>(entry), level(2, 5), level(1, 4), level(0, 3));
   }
   _shown   = shown;
@@ -174,8 +166,7 @@ auto Canvas::MapColour(std::uint8_t colour, std::uint8_t entry) noexcept -> void
   _changed                   = true;
 }
 
-auto Canvas::SetPaletteEntry(std::uint8_t entry, std::uint8_t red, std::uint8_t green, std::uint8_t blue) noexcept
-    -> void {
+auto Canvas::SetPaletteEntry(std::uint8_t entry, std::uint8_t red, std::uint8_t green, std::uint8_t blue) noexcept -> void {
   auto const rgb{ std::span{ _palette }.subspan(entry * 3uz, 3) };
   rgb[0]   = static_cast<std::uint8_t>(red & 0x3F);
   rgb[1]   = static_cast<std::uint8_t>(green & 0x3F);
@@ -293,8 +284,7 @@ auto Canvas::PenBits(Offset at, std::uint8_t bits) noexcept -> void {
 // (colour 0 keeps the screen). 3 bytes (bit 3 not stored): mode & 3FFF, copy with bit 3 = 0 (1 with mode bit 14), the
 // logical modes keep bit 3, the transparent copy clears it under the drawn pixels. Copy with mode bit 15 draws every
 // row on two lines (the clip checks h only).
-auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                         std::span<std::uint8_t const> image, int planes) noexcept -> Drawn {
+auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> image, int planes) noexcept -> Drawn {
   auto const op{ mode & (planes == 4 ? 0x7FFF : 0x3FFF) };
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op > 4) return std::unexpected{ DrawError::BAD_MODE };
@@ -306,9 +296,7 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
     auto line{ y + GAME_TOP };
     for (auto const source : Chunks(image.first(std::size_t{ w } * h * PLANES), std::size_t{ w } * PLANES))
       for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-        EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) {
-          return apply(under, Colours(source.subspan(i * PLANES).template first<PLANES>()));
-        });
+        EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) { return apply(under, Colours(source.subspan(i * PLANES).template first<PLANES>())); });
         line++;
       }
   } };
@@ -319,13 +307,11 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
       rows.template operator()<3>(apply);
   } };
   switch (op) {
-  case 0: draw([fill](std::uint64_t, std::uint64_t colours) { return colours | fill; }); break;
-  case 1: draw([](std::uint64_t under, std::uint64_t colours) { return under ^ colours; }); break;
-  case 2: draw([unstored](std::uint64_t under, std::uint64_t colours) { return under & (colours | unstored); }); break;
-  case 3: draw([](std::uint64_t under, std::uint64_t colours) { return under | colours; }); break;
-  default:
-    draw([](std::uint64_t under, std::uint64_t colours) { return Select(NonZero(colours), colours, under); });
-    break;
+  case 0:  draw([fill](std::uint64_t, std::uint64_t colours) { return colours | fill; }); break;
+  case 1:  draw([](std::uint64_t under, std::uint64_t colours) { return under ^ colours; }); break;
+  case 2:  draw([unstored](std::uint64_t under, std::uint64_t colours) { return under & (colours | unstored); }); break;
+  case 3:  draw([](std::uint64_t under, std::uint64_t colours) { return under | colours; }); break;
+  default: draw([](std::uint64_t under, std::uint64_t colours) { return Select(NonZero(colours), colours, under); }); break;
   }
   _changed = true;
   return {};
@@ -333,8 +319,7 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
 
 // w bytes per row. Low byte of mode the colour; (mode & 7FFF) >> 8: 0 opaque (0 bits colour 0), 4 set, 1-3 the pen
 // operations, others the previous pen. Bit 15 doubles rows.
-auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                      std::span<std::uint8_t const> bits) noexcept -> Drawn {
+auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn {
   auto const op{ static_cast<std::uint8_t>((mode & 0x7FFF) >> 8) };
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op != 0) SelectPen(op == 4 ? 0 : op, static_cast<std::uint8_t>(mode));
@@ -342,9 +327,7 @@ auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::ui
   auto       line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w))
     for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-      EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) {
-        return op == 0 ? Expand(source[i]) & Solid(mode) : _pen.Apply(under, source[i]);
-      });
+      EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) { return op == 0 ? Expand(source[i]) & Solid(mode) : _pen.Apply(under, source[i]); });
       line++;
     }
   _changed = true;
@@ -352,13 +335,11 @@ auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::ui
 }
 
 // 1 bits colour (mode & 15), 0 bits colour ((mode >> 8) & 15).
-auto Canvas::DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                             std::span<std::uint8_t const> bits) noexcept -> Drawn {
+auto Canvas::DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn {
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   auto line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w)) {
-    EachOctet(At(x * 8, line), w,
-              [&](std::size_t i, std::uint64_t) { return Select(Expand(source[i]), Solid(mode), Solid(mode >> 8)); });
+    EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t) { return Select(Expand(source[i]), Solid(mode), Solid(mode >> 8)); });
     line++;
   }
   _changed = true;
@@ -367,8 +348,7 @@ auto Canvas::DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
 
 // x and w in pixels, rows of ceil(w / 8) bytes, all bits of the source bytes drawn with the pen over whole 8-pixel
 // columns from pixel x & ~7; the pixels of those columns outside the image get a 0 bit (a 1 bit for AND).
-auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode,
-                             std::span<std::uint8_t const> bits) noexcept -> Drawn {
+auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t mode, std::span<std::uint8_t const> bits) noexcept -> Drawn {
   if (x >= WIDTH || w == 0 || x + w > WIDTH) return std::unexpected{ DrawError::OUTSIDE };
   if (y >= GAME_LINES || h == 0 || y + h > GAME_LINES) return std::unexpected{ DrawError::OUTSIDE };
   auto op{ static_cast<std::uint8_t>(mode >> 8) };
@@ -386,8 +366,7 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
     std::ranges::copy(source, framed.begin() + 1);
     framed[bytes + 1] = outside;
     auto const base{ GameAt(x & ~7, line) };
-    for (auto const [column, left, right] :
-         std::views::zip(std::views::iota(0), framed, framed | std::views::drop(1)) | std::views::take(columns))
+    for (auto const [column, left, right] : std::views::zip(std::views::iota(0), framed, framed | std::views::drop(1)) | std::views::take(columns))
       PenBits(base + column * 8, static_cast<std::uint8_t>((left << 8 | right) >> shift));
     line++;
   }
@@ -398,15 +377,12 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
 // after a row's first take the screen pixels that the row's first column had before drawing (at the same position in
 // the column), not their own; only the trailing partial column keeps its own. w = 0 draws 65536 columns, h = 0 65536
 // rows.
-auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h,
-                                std::span<std::uint8_t const> image) noexcept -> void {
+auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t const> image) noexcept -> void {
   auto const shift{ x & 7 };
   auto const columns{ static_cast<std::uint16_t>(w - 1) + 1uz };
   auto const rows{ h ? std::size_t{ h } : 0x10000uz };
-  auto const shifted{ [shift](std::uint64_t previous, std::uint64_t current) {
-    return shift ? current << (8 * shift) | previous >> (8 * (8 - shift)) : current;
-  } };
-  auto line{ y };
+  auto const shifted{ [shift](std::uint64_t previous, std::uint64_t current) { return shift ? current << (8 * shift) | previous >> (8 * (8 - shift)) : current; } };
+  auto       line{ y };
   for (auto const source : Chunks(image.first(columns * rows * 4), columns * 4)) {
     auto const    base{ GameAt(x & ~7, line) };
     auto const    first{ Load(base) };
@@ -426,45 +402,38 @@ auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t 
 }
 
 // The column rectangle in the 4-byte-column format, unclipped; w = 0 or h = 0 saves nothing.
-auto Canvas::SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h,
-                         std::span<std::uint8_t> image) const noexcept -> void {
+auto Canvas::SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t> image) const noexcept -> void {
   if (!w || !h) return;
   auto line{ y };
   for (auto const target : Chunks(image.first(std::size_t{ w } * h * 4), std::size_t{ w } * 4)) {
-    for (auto const [column, bits] : std::views::zip(std::views::iota(int{ x }), Chunks(target, 4)))
-      std::ranges::copy(Column(GameAt(column * 8, line)), bits.begin());
+    for (auto const [column, bits] : std::views::zip(std::views::iota(int{ x }), Chunks(target, 4))) std::ranges::copy(Column(GameAt(column * 8, line)), bits.begin());
     line++;
   }
 }
 
 // ---- fills ---------------------------------------------------------------------------------------------------------
 
-auto Canvas::Box(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept
-    -> Drawn {
+auto Canvas::Box(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept -> Drawn {
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
-  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h))
-    std::ranges::fill(Run(At(x * 8, line), w * 8), Low4(colour));
+  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) std::ranges::fill(Run(At(x * 8, line), w * 8), Low4(colour));
   _changed = true;
   return {};
 }
 
 // XOR (high byte 1), AND (2: no change) or OR (3) the colour over a box, selecting that pen.
-auto Canvas::Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h,
-                       std::uint16_t colour) noexcept -> Drawn {
+auto Canvas::Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept -> Drawn {
   auto const op{ static_cast<std::uint8_t>(colour >> 8) };
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op == 0 || op >= 4) return std::unexpected{ DrawError::BAD_MODE };
   SelectPen(op, static_cast<std::uint8_t>(colour));
-  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h))
-    EachOctet(At(x * 8, line), w, [this](std::size_t, std::uint64_t under) { return _pen.Apply(under, 0xFF); });
+  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) EachOctet(At(x * 8, line), w, [this](std::size_t, std::uint64_t under) { return _pen.Apply(under, 0xFF); });
   _changed = true;
   return {};
 }
 
 // Pixels x1..x2, y1..y2 inclusive: whole 8-pixel columns between the edge columns, the edge columns under masks.
 // Unclipped: x2 < x1 or y2 < y1 run on through the 16-bit counts.
-auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept
-    -> void {
+auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void {
   auto       left{ static_cast<std::uint8_t>(0xFF >> (x1 & 7)) };
   auto       right{ static_cast<std::uint8_t>(~(0xFF >> ((x2 & 7) + 1))) };
   auto       middle{ static_cast<std::uint16_t>((x2 >> 3) - (x1 >> 3)) };
@@ -475,10 +444,8 @@ auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
     middle  = 1;
   }
   middle--;
-  auto const masked{ [this, colour](Offset at, std::uint8_t mask) {
-    Store(at, Select(Expand(mask), Solid(colour), Load(at)));
-  } };
-  auto line{ static_cast<std::uint16_t>(y1 + GAME_TOP) };
+  auto const masked{ [this, colour](Offset at, std::uint8_t mask) { Store(at, Select(Expand(mask), Solid(colour), Load(at))); } };
+  auto       line{ static_cast<std::uint16_t>(y1 + GAME_TOP) };
   for ([[maybe_unused]] auto const row : std::views::iota(0, rows ? int{ rows } : 0x10000)) {
     auto const at{ At((x1 >> 3) * 8, line) };
     masked(at, left);
@@ -493,8 +460,7 @@ auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
 // Plots game pixel (x, y) (dropped outside the game area). Colour word: low nibble colour, bits 4-7 operation (0 set,
 // 1 XOR, 2 AND, 3 OR, 4 OR on pattern bits only, 5-15 set), high byte dash pattern. A 0 pattern bit draws colour 0
 // with the operation, or nothing with operation 4; the pattern advances on every point inside the game area.
-auto Canvas::PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t word, std::uint8_t& pattern_bit) noexcept
-    -> void {
+auto Canvas::PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t word, std::uint8_t& pattern_bit) noexcept -> void {
   auto       colour{ static_cast<std::uint8_t>(word) };
   auto const pattern{ static_cast<std::uint8_t>(word >> 8) };
   if (y >= GAME_LINES || x >= WIDTH) return;
@@ -527,8 +493,7 @@ auto Canvas::Plot(std::uint16_t x, std::uint16_t y, std::uint16_t colour) noexce
 
 // Bresenham from the end with the smaller major coordinate, the error starting at half the major length; the minor
 // step is +1 when x and y increase together, else -1. The dash pattern starts at its first bit.
-auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept
-    -> void {
+auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void {
   auto const   dx{ Abs16(static_cast<std::uint16_t>(x2 - x1)) };
   auto const   dy{ Abs16(static_cast<std::uint16_t>(y2 - y1)) };
   auto const   sx1{ static_cast<std::int16_t>(x1) }, sx2{ static_cast<std::int16_t>(x2) };
@@ -558,8 +523,7 @@ auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
 
 // Column by column (80 per screen line); when the destination is not before the source, from the last column
 // backwards, so an overlapping copy moves the block intact. Unclipped; h = 0 copies 65536 rows.
-auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2,
-                         std::uint16_t y2) noexcept -> void {
+auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2, std::uint16_t y2) noexcept -> void {
   auto const from{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y1 + GAME_TOP) * 80u + x1) };
   auto const to{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y2 + GAME_TOP) * 80u + x2) };
   // Column by column in one direction at a constant distance: memmove of each row, the rows in the same direction.
@@ -578,8 +542,7 @@ auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, st
 
 // A unit value holds one nibble per colour bit (nibble p = bit p of the 4 pixels, the leftmost in the nibble's bit 3).
 auto Canvas::PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void {
-  auto const pixels{ NIBBLE_SPREAD[value & 0x0F] | NIBBLE_SPREAD[(value >> 4) & 0x0F] << 1
-                     | NIBBLE_SPREAD[(value >> 8) & 0x0F] << 2 | NIBBLE_SPREAD[value >> 12] << 3 };
+  auto const pixels{ NIBBLE_SPREAD[value & 0x0F] | NIBBLE_SPREAD[(value >> 4) & 0x0F] << 1 | NIBBLE_SPREAD[(value >> 8) & 0x0F] << 2 | NIBBLE_SPREAD[value >> 12] << 3 };
   std::ranges::copy(std::bit_cast<std::array<canvas::Pixel, 4>>(pixels), Run(UnitAt(unit), 4).begin());
   _changed = true;
 }
@@ -632,8 +595,7 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bo
       std::uint16_t n{};
       if (!(command & 0x80)) {
         n = static_cast<std::uint16_t>(masked ? (command & 7) + 1 : ((command >> 4) & 7) + 1);
-        auto const value{ masked ? MaskedLiteral(command, read)
-                                 : static_cast<std::uint16_t>((command & 0x0F) << 8 | read()) };
+        auto const value{ masked ? MaskedLiteral(command, read) : static_cast<std::uint16_t>((command & 0x0F) << 8 | read()) };
         for (auto const i : std::views::iota(0, int{ n })) PutUnit(static_cast<std::uint16_t>(unit + i), value);
       } else {
         auto back{ static_cast<std::uint16_t>(((command & 0x30) >> 4) + 1) };
@@ -642,8 +604,7 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bo
         // Unit by unit from the start, so a copy that overlaps its source repeats it.
         auto const from{ UnitAt(static_cast<std::uint16_t>(unit - back)) };
         auto const target{ Run(UnitAt(unit), n * 4) };
-        std::ranges::for_each(std::views::iota(0uz, target.size()),
-                              [&](std::size_t i) { target[i] = Pixel(from + Offset(i)); });
+        std::ranges::for_each(std::views::iota(0uz, target.size()), [&](std::size_t i) { target[i] = Pixel(from + Offset(i)); });
         _changed = true;
       }
       unit  = static_cast<std::uint16_t>(unit + n);
@@ -659,16 +620,13 @@ auto Canvas::TakeChanged() noexcept -> bool {
   return std::exchange(_changed, false);
 }
 
-auto Canvas::Render(std::span<std::uint8_t, PIXELS>        frame,
-                    std::span<std::uint8_t, PALETTE_BYTES> palette) const noexcept -> void {
-  std::ranges::transform(_palette, palette.begin(),
-                         [](std::uint8_t v) { return static_cast<std::uint8_t>(v << 2 | v >> 4); });
+auto Canvas::Render(std::span<std::uint8_t, PIXELS> frame, std::span<std::uint8_t, PALETTE_BYTES> palette) const noexcept -> void {
+  std::ranges::transform(_palette, palette.begin(), [](std::uint8_t v) { return static_cast<std::uint8_t>(v << 2 | v >> 4); });
   if (!_shown) {
     std::ranges::fill(frame, 0);
     return;
   }
-  std::ranges::transform(std::span{ _pixels }.first<PIXELS>(), frame.begin(),
-                         [this](canvas::Pixel pixel) { return _colour_map[pixel]; });
+  std::ranges::transform(std::span{ _pixels }.first<PIXELS>(), frame.begin(), [this](canvas::Pixel pixel) { return _colour_map[pixel]; });
 }
 
 auto Screen() noexcept -> Canvas& {

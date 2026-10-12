@@ -62,8 +62,7 @@ auto port_segment_of(const void* p) -> uint16_t {
 auto port_offset_of(const void* p, uint16_t seg) -> uint16_t {
   const auto* b      = static_cast<const uint8_t*>(p);
   auto        linear = static_cast<size_t>(b - port_arena);
-  if (b < port_arena || linear < static_cast<size_t>(seg) * 16u || linear - (static_cast<size_t>(seg) * 16u) > 0xffffu)
-    port_fatal("pointer %p is not addressable from segment %04x", p, seg);
+  if (b < port_arena || linear < static_cast<size_t>(seg) * 16u || linear - (static_cast<size_t>(seg) * 16u) > 0xffffu) port_fatal("pointer %p is not addressable from segment %04x", p, seg);
   return static_cast<uint16_t>(linear - (static_cast<size_t>(seg) * 16u));
 }
 
@@ -110,8 +109,7 @@ auto port_dos_free(uint16_t segment) -> int {
  * callee's locals and the frames of the routines it calls internally. */
 auto port_stack_enter(uint16_t bytes) -> uint16_t {
   auto sp = static_cast<uint16_t>(port_sp - 4);
-  if (static_cast<uint32_t>(port_sp) < static_cast<uint32_t>(PORT_DS_END) + 4u + bytes)
-    port_fatal("modeled DGROUP stack overflow (sp=%04x, %u bytes)", port_sp, bytes);
+  if (static_cast<uint32_t>(port_sp) < static_cast<uint32_t>(PORT_DS_END) + 4u + bytes) port_fatal("modeled DGROUP stack overflow (sp=%04x, %u bytes)", port_sp, bytes);
   port_sp = static_cast<uint16_t>(port_sp - 4 - bytes);
   return sp;
 }

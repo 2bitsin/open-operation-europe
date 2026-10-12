@@ -31,18 +31,14 @@ auto SaveCell(Offset at, Cell cell) noexcept -> void {
   for (auto const row : std::views::iota(0, CELL_LINES)) {
     auto const line{ cell.subspan(static_cast<std::size_t>(row) * 20, 20) };
     for (auto const column : std::views::iota(0, 5))
-      for (auto const [plane, bits] :
-           std::views::zip(std::views::iota(0), Screen().Column(at + row * 640 + column * 8)))
-        line[static_cast<std::size_t>(plane * 5 + column)] = bits;
+      for (auto const [plane, bits] : std::views::zip(std::views::iota(0), Screen().Column(at + row * 640 + column * 8))) line[static_cast<std::size_t>(plane * 5 + column)] = bits;
   }
 }
 
 auto RestoreCell(Offset at, std::span<uint8_t const, SYSLIB_CELL_BYTES> cell) noexcept -> void {
   for (auto const row : std::views::iota(0, CELL_LINES)) {
     auto const line{ cell.subspan(static_cast<std::size_t>(row) * 20, 20) };
-    for (auto const column : std::views::iota(0, 5))
-      Screen().SetColumn(at + row * 640 + column * 8,
-                         { line[column], line[column + 5uz], line[column + 10uz], line[column + 15uz] });
+    for (auto const column : std::views::iota(0, 5)) Screen().SetColumn(at + row * 640 + column * 8, { line[column], line[column + 5uz], line[column + 10uz], line[column + 15uz] });
   }
 }
 
@@ -53,9 +49,7 @@ auto SaveRect(Offset at, uint16_t w, uint16_t h, uint8_t* buffer) noexcept -> ui
   std::span const target{ buffer, 4 * count };
   for (auto const row : std::views::iota(0u, LoopCount(h)))
     for (auto const column : std::views::iota(0u, uint32_t{ w }))
-      for (auto const [plane, bits] :
-           std::views::zip(std::views::iota(0uz), Screen().Column(at + Offset{ row } * 640 + column * 8)))
-        target[plane * count + row * w + column] = bits;
+      for (auto const [plane, bits] : std::views::zip(std::views::iota(0uz), Screen().Column(at + Offset{ row } * 640 + column * 8))) target[plane * count + row * w + column] = bits;
   return static_cast<uint32_t>(count);
 }
 
@@ -65,8 +59,7 @@ auto RestoreRect(Offset at, uint16_t w, uint16_t h, uint8_t const* buffer) noexc
   for (auto const row : std::views::iota(0u, LoopCount(h)))
     for (auto const column : std::views::iota(0u, uint32_t{ w })) {
       auto const i{ std::size_t{ row } * w + column };
-      Screen().SetColumn(at + Offset{ row } * 640 + column * 8,
-                         { source[i], source[count + i], source[2 * count + i], source[3 * count + i] });
+      Screen().SetColumn(at + Offset{ row } * 640 + column * 8, { source[i], source[count + i], source[2 * count + i], source[3 * count + i] });
     }
 }
 
@@ -175,9 +168,7 @@ void opeu_vram_load(uint8_t* vram, const uint8_t* mask) {
 // bits 0-2 keep. Unclipped.
 void koei_3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
   for (auto const row : std::views::iota(0u, LoopCount(h)))
-    for (auto const column : std::views::iota(int{ x }, x + w))
-      Screen().SetPlaneBits(ColumnAt(static_cast<uint16_t>(column), y) + Offset{ row } * 640, 3,
-                            static_cast<uint8_t>(color));
+    for (auto const column : std::views::iota(int{ x }, x + w)) Screen().SetPlaneBits(ColumnAt(static_cast<uint16_t>(column), y) + Offset{ row } * 640, 3, static_cast<uint8_t>(color));
 }
 
 // Copies the 3-column x 24-line block at (x1, y1) to (x2, y2), line by line from the top; within a line the first two
@@ -191,8 +182,7 @@ void koei_3bc5(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
 }
 
 // n = w * h in 16 bits; a product of 0 runs the AND and OR passes 65536 times.
-void opeu_sprite_compose(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask,
-                         const uint8_t* or_image, uint8_t* buffer, uint16_t flags) {
+void opeu_sprite_compose(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask, const uint8_t* or_image, uint8_t* buffer, uint16_t flags) {
   auto const at{ ColumnAt(x, y) };
   uint16_t   n16 = (uint16_t)((uint32_t)w * h);
   uint32_t   n   = LoopCount(n16), i;
@@ -246,8 +236,7 @@ static uint8_t* or_shifted(uint8_t* d, const uint8_t* s, unsigned c, uint16_t W,
 // W = (w >> 3) + 1 columns from column x >> 3: save, AND the same mask into each colour-bit block, OR image bits 0-2
 // (stride 3 + flags, the whole flags word), then bit 3 and the restore only when flags bit 0 is set. With bit 0 clear
 // the routine composes the buffer and leaves the screen alone (the game never asks for that).
-void koei_3f26(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask, const uint8_t* or_image,
-               uint8_t* buffer, uint16_t flags) {
+void koei_3f26(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask, const uint8_t* or_image, uint8_t* buffer, uint16_t flags) {
   auto const at{ ColumnAt(static_cast<uint16_t>(x >> 3), y) };
   uint16_t   W      = (uint16_t)((w >> 3) + 1);
   uint16_t   stride = (uint16_t)(3 + flags);

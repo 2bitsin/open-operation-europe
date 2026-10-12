@@ -32,8 +32,7 @@ auto WrappedWord(uint8_t const* ds, uint16_t at) -> uint16_t {
   return static_cast<uint16_t>(ds[at] | ds[static_cast<uint16_t>(at + 1)] << 8);
 }
 
-auto ems_service(uint8_t* ds, EmsEvent event, EmsEventId id, uint16_t count, uint16_t first, uint16_t second,
-                 uint16_t third) -> uint16_t {
+auto ems_service(uint8_t* ds, EmsEvent event, EmsEventId id, uint16_t count, uint16_t first, uint16_t second, uint16_t third) -> uint16_t {
   uint16_t args[3];
   args[0] = first;
   args[1] = second;
@@ -76,9 +75,7 @@ auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t {
 auto opeu_ems_reserve(uint8_t* ds, EmsEvent event, uint16_t sp, uint16_t handle, int16_t pages) -> int16_t {
   auto total       = static_cast<uint16_t>(sp - 4);
   auto unallocated = static_cast<uint16_t>(sp - 6);
-  if (Ems(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(WrappedWord(ds, unallocated)) >= pages
-      && Ems(ds, event, ALLOCATE, pages, handle) == 0)
-    return 1;
+  if (Ems(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(WrappedWord(ds, unallocated)) >= pages && Ems(ds, event, ALLOCATE, pages, handle) == 0) return 1;
   return 0;
 }
 
@@ -110,8 +107,7 @@ auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
       if (static_cast<int16_t>(WrappedWord(ds, count)) - n < 4) goto fail;
       opeu_copy_bytes(ds, static_cast<uint16_t>(pages + (4 * n)), offsetof(OpenDataSegment, ems_pages), 16);
       for (n = 0; n < 3; n++)
-        if (static_cast<uint16_t>(Data(ds).ems_pages[n].segment - Data(ds).ems_pages[n + 1].segment) != 0xfc00)
-          goto fail;
+        if (static_cast<uint16_t>(Data(ds).ems_pages[n].segment - Data(ds).ems_pages[n + 1].segment) != 0xfc00) goto fail;
       return 1;
     }
   }

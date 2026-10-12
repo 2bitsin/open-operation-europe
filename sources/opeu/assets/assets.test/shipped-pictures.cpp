@@ -30,8 +30,7 @@ struct Size {
 // The assets of one file in catalogue order.
 auto AssetsOf(std::string_view const file) -> std::vector<Asset> {
   auto const catalogue{ Catalogue{ Embedded() } };
-  return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; })
-         | std::ranges::to<std::vector>();
+  return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::ranges::to<std::vector>();
 }
 
 // Each picture of a file decoded, with its offset and stream length.
@@ -88,10 +87,8 @@ TEST(ShippedSelection, HoldsTheTitleAndSixScenarioPictures) {
 TEST(ShippedOutcome, HoldsFourOutcomesAndSixMedals) {
   auto const pictures{ PicturesOf("SCEEND.DAT") };
   ASSERT_EQ(pictures.size(), 10U);
-  auto const outcomes{ std::ranges::count_if(
-      pictures, [](auto const& entry) { return SizeOf(entry.second) == Size{ 480, 240 }; }) };
-  auto const medals{ std::ranges::count_if(pictures,
-                                           [](auto const& entry) { return SizeOf(entry.second) == Size{ 96, 144 }; }) };
+  auto const outcomes{ std::ranges::count_if(pictures, [](auto const& entry) { return SizeOf(entry.second) == Size{ 480, 240 }; }) };
+  auto const medals{ std::ranges::count_if(pictures, [](auto const& entry) { return SizeOf(entry.second) == Size{ 96, 144 }; }) };
   EXPECT_EQ(outcomes, 4);
   EXPECT_EQ(medals, 6);
   ExpectBlocksDoNotOverlap(pictures);
@@ -112,18 +109,15 @@ TEST(ShippedFrame, HoldsTheMainScreensPieces) {
 TEST(ShippedEpilogue, HoldsSevenPicturesBackToBackAndABlankToken) {
   auto const pictures{ PicturesOf("ENDGRP.NPK") };
   ASSERT_EQ(pictures.size(), 7U);
-  constexpr auto SIZES{ std::array<Size, 7>{
-      { { 640, 160 }, { 640, 224 }, { 320, 224 }, { 320, 224 }, { 640, 184 }, { 640, 368 }, { 384, 160 } } } };
-  for (auto const& [entry, size] : std::views::zip(pictures, SIZES))
-    EXPECT_EQ(SizeOf(entry.second), size) << entry.first.id;
+  constexpr auto SIZES{ std::array<Size, 7>{ { { 640, 160 }, { 640, 224 }, { 320, 224 }, { 320, 224 }, { 640, 184 }, { 640, 368 }, { 384, 160 } } } };
+  for (auto const& [entry, size] : std::views::zip(pictures, SIZES)) EXPECT_EQ(SizeOf(entry.second), size) << entry.first.id;
   for (auto const& [current, next] : std::views::zip(pictures, pictures | std::views::drop(1))) {
     EXPECT_EQ(current.first.at + current.second.length, next.first.at) << current.first.id;
   }
   EXPECT_EQ(pictures.back().first.at + pictures.back().second.length, 0x145F5U);
   auto const bytes{ Shipped("ENDGRP.NPK") };
   ASSERT_EQ(bytes.size(), EPILOGUE_TOKEN_AT + EPILOGUE_TOKEN_BYTES);
-  EXPECT_TRUE(
-      std::ranges::all_of(bytes.subspan(EPILOGUE_TOKEN_AT), [](std::byte const b) { return b == std::byte{ ' ' }; }));
+  EXPECT_TRUE(std::ranges::all_of(bytes.subspan(EPILOGUE_TOKEN_AT), [](std::byte const b) { return b == std::byte{ ' ' }; }));
 }
 
 TEST(ShippedOpening, HoldsThirtyPicturesThatFillTheFile) {
