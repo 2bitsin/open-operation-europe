@@ -5,7 +5,10 @@ launcher. On first use it creates the project venv in `_pyvenv/`, installs
 buildutil 0.100 (and pytest; the project declares no further Python
 dependencies, which would go in `buildutil.toml` `[venv] extra_deps`), and
 reads `buildutil.toml`. From then on every command
-is `./buildutil <verb>`.
+is `./buildutil <verb>`. `.buildutil/` is the vendored copy of buildutil
+0.100.0 that `./buildutil install` wrote; it is tracked so a clone builds
+without network access to the buildutil package, and `./buildutil install`
+refreshes it when the launcher is upgraded.
 
 ## Prerequisites
 
