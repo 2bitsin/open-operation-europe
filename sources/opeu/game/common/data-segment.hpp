@@ -2184,12 +2184,12 @@ struct DataSegment {
       std::array<char, 5>          stock_food;               // DS:8ca4
       std::array<char, 22>         stock_no_cities;               // DS:8ca9
       std::array<char, 15>         stock_select_city;               // DS:8cbf
-      std::array<char, 36>         text_8cce;               // DS:8cce
-      std::array<char, 16>         text_8cf2;               // DS:8cf2
-      std::array<char, 13>         text_8d02;               // DS:8d02
+      std::array<char, 36>         transfer_which_division; // DS:8cce
+      std::array<char, 16>         transfer_which_regiment; // DS:8cf2
+      std::array<char, 13>         transfer_which_group;    // DS:8d02
       std::array<char, 5>          transfer_hour;           // DS:8d0f
       std::array<char, 6>          transfer_hours_text;     // DS:8d14
-      std::array<char, 50>         text_8d1a;               // DS:8d1a
+      std::array<char, 50>         transfer_confirm;        // DS:8d1a: "It will take about %u %s ..."
       std::array<char, 29>         rest_thanks_text; // DS:8d4c: "Thank you very much, sir!"
       std::array<char, 26>         assign_thanks_text; // DS:8d69: "You can count on me, sir!"
       std::array<char, 55>         division_charge_prompt; // DS:8d83: "Which division commander do you want to put in charge?"
@@ -3182,6 +3182,7 @@ struct DataSegment {
   union {                                       // DS:cfc6
     std::uint16_t ai_unit_list[32];
     std::uint16_t supply_units[32];
+    std::uint16_t row_units[32]; // the regiments of a list dialog's rows
   };
   std::array<SaveSlot, 20>      save_slots;       // DS:d006
   std::uint16_t                 icon_segment;     // DS:d0f6
@@ -3249,6 +3250,7 @@ struct DataSegment {
     std::uint16_t ai_element_list[128];
     std::uint16_t tally_records[128];
     std::uint16_t alloc_elements[128];
+    std::uint16_t row_elements[128]; // the elements of a list dialog's rows
   };
   union { // DS:e946
     std::array<std::uint8_t, 22> battle_garrison;
@@ -5021,12 +5023,12 @@ static_assert(offsetof(DataSegment, stock_ammo) == 0x8c9f);
 static_assert(offsetof(DataSegment, stock_food) == 0x8ca4);
 static_assert(offsetof(DataSegment, stock_no_cities) == 0x8ca9);
 static_assert(offsetof(DataSegment, stock_select_city) == 0x8cbf);
-static_assert(offsetof(DataSegment, text_8cce) == 0x8cce);
-static_assert(offsetof(DataSegment, text_8cf2) == 0x8cf2);
-static_assert(offsetof(DataSegment, text_8d02) == 0x8d02);
+static_assert(offsetof(DataSegment, transfer_which_division) == 0x8cce);
+static_assert(offsetof(DataSegment, transfer_which_regiment) == 0x8cf2);
+static_assert(offsetof(DataSegment, transfer_which_group) == 0x8d02);
 static_assert(offsetof(DataSegment, transfer_hour) == 0x8d0f);
 static_assert(offsetof(DataSegment, transfer_hours_text) == 0x8d14);
-static_assert(offsetof(DataSegment, text_8d1a) == 0x8d1a);
+static_assert(offsetof(DataSegment, transfer_confirm) == 0x8d1a);
 static_assert(offsetof(DataSegment, rest_thanks_text) == 0x8d4c);
 static_assert(offsetof(DataSegment, assign_thanks_text) == 0x8d69);
 static_assert(offsetof(DataSegment, division_charge_prompt) == 0x8d83);

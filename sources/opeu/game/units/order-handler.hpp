@@ -1,0 +1,64 @@
+// What the order handlers (units/ordarriv, ordattk, orddefnd, ordbridg, engineer) share: their service calls, the
+// current regiment and its order, and the random bound of their rolls.
+#pragma once
+
+#include "common/data-segment.hpp"
+#include "types/events.hpp"
+#include "common/memory.hpp"
+#include "common/order-service.hpp"
+
+#include <cstdint>
+#include <utility>
+
+namespace opeu::game::detail::order_handler {
+
+// side_control of a player-controlled side.
+inline constexpr std::uint16_t PLAYER{ 1 };
+// cell_side of a cell no side holds.
+inline constexpr std::uint8_t NO_SIDE{ 0xff };
+// pending_finish's value when a show ends.
+inline constexpr std::uint16_t SHOW_DONE{ 3 };
+
+// Calls an order service through the handler's event.
+inline auto Serve(std::uint8_t* ds, HostEvent event, OrderService service,
+                  auto... words) -> std::uint16_t {
+  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
+}
+
+// The regiment whose order runs.
+[[nodiscard]] inline auto CurrentUnit(DataSegment& data) noexcept -> Unit& {
+  return Record<Unit>(data, data.current_unit_ptr);
+}
+
+// The near pointer of the running order (the current regiment's first order slot).
+[[nodiscard]] inline auto CurrentOrder(DataSegment& data) noexcept
+    -> std::uint16_t {
+  return Near(data, CurrentUnit(data).orders[0]);
+}
+
+// The random bound of a handler's roll: the delivery level + 1 for a player's regiment, 3 for the computer's.
+[[nodiscard]] inline auto RollBound(DataSegment const& data) noexcept
+    -> std::uint16_t {
+  return data.side_control[data.current_side] == PLAYER
+             ? static_cast<std::uint16_t>(data.delivery_level + 1)
+             : 3;
+}
+
+// Whether the current regiment stands on the cell whose coordinates are the frame bytes at x and y.
+[[nodiscard]] inline auto StandsOn(std::uint8_t const* ds, std::uint16_t x,
+                                   std::uint16_t y) noexcept -> bool {
+  auto const& unit{ Record<Unit>(Data(ds), Data(ds).current_unit_ptr) };
+  return unit.x == ds[x] && unit.y == ds[y];
+}
+} // namespace opeu::game::detail::order_handler
+
+namespace opeu::game {
+using detail::order_handler::CurrentOrder;
+using detail::order_handler::CurrentUnit;
+using detail::order_handler::NO_SIDE;
+using detail::order_handler::PLAYER;
+using detail::order_handler::RollBound;
+using detail::order_handler::Serve;
+using detail::order_handler::SHOW_DONE;
+using detail::order_handler::StandsOn;
+} // namespace opeu::game
