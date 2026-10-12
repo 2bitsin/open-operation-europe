@@ -21,8 +21,7 @@ enum class Scenario : std::uint8_t {
 inline constexpr std::uint8_t SCENARIO_MASK{ 0x7f };
 
 // The scenario being played.
-[[nodiscard]] inline auto CurrentScenario(DataSegment const& data) noexcept
-    -> Scenario {
+[[nodiscard]] inline auto CurrentScenario(DataSegment const& data) noexcept -> Scenario {
   return static_cast<Scenario>(data.scenario & SCENARIO_MASK);
 }
 

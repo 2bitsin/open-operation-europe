@@ -1,9 +1,9 @@
 // Limits and signed-word helpers.
-#include "types.hpp"
 #include "core/limits.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 uint16_t opeu_min16(uint16_t a, uint16_t b) {
@@ -24,14 +24,12 @@ uint16_t opeu_negative_to_minus_one(uint16_t value) {
 }
 
 // The routines other modules reach through the link table.
-auto port_routine_opeu_max16(std::uint8_t* ds, std::uint16_t const* args,
-                             unsigned count) -> std::uint32_t {
+auto port_routine_opeu_max16(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
   return opeu_max16(Arg(args, count, 0), Arg(args, count, 1));
 }
 
-auto port_routine_opeu_min16(std::uint8_t* ds, std::uint16_t const* args,
-                             unsigned count) -> std::uint32_t {
+auto port_routine_opeu_min16(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
   return opeu_min16(Arg(args, count, 0), Arg(args, count, 1));
 }

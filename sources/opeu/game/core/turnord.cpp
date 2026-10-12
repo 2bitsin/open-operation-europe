@@ -1,8 +1,8 @@
 // Shuffling the turn order: 100 random swaps among its 64 slots.
-#include "types.hpp"
 #include "core/turnord.hpp"
 #include "core/random.hpp"
 #include "data/mapstate.hpp"
+#include "types.hpp"
 
 #include <utility>
 

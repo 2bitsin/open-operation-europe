@@ -1,19 +1,19 @@
 // Puts the turn state in order before a side's turn is processed: units stand on cells their side holds and carry
 // no more than they can, the map marks only cells a unit of that side occupies, every active side, division and
 // regiment has a selection, and the element chains of fielded regiments are all marked fielded.
-#include "types.hpp"
 #include "core/normal.hpp"
+#include "common/element-chain.hpp"
+#include "common/map-grid.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
+#include "data-segment.hpp"
 #include "map/occupy.hpp"
 #include "map/query.hpp"
+#include "types.hpp"
 #include "units/capacity.hpp"
 #include "units/percent.hpp"
 #include "units/select.hpp"
 #include "units/selelem.hpp"
-#include "common/element-chain.hpp"
-#include "common/map-grid.hpp"
-#include "data-segment.hpp"
 
 using namespace opeu::game;
 
@@ -23,19 +23,15 @@ namespace {
 // when the cell does not show its side.
 void ClampFieldedUnits(uint8_t* ds, DataSegment& data) {
   for (auto& unit : data.units) {
-    if (!(unit.flags & Bits(UnitFlag::READY)))
-      continue;
+    if (!(unit.flags & Bits(UnitFlag::READY))) continue;
     auto const near{ Near(data, unit) };
-    if (opeu_cell_side(ds, unit.x, unit.y) != opeu_unit_side(near))
-      opeu_place_unit(ds, near);
+    if (opeu_cell_side(ds, unit.x, unit.y) != opeu_unit_side(near)) opeu_place_unit(ds, near);
     uint16_t percent[3];
     uint16_t capacity[3];
-    opeu_unit_resource_percentages(ds, near, &percent[0], &percent[1],
-                                   &percent[2]);
+    opeu_unit_resource_percentages(ds, near, &percent[0], &percent[1], &percent[2]);
     opeu_unit_capacities(ds, near, &capacity[0], &capacity[1], &capacity[2]);
     for (auto i = 0; i < 3; ++i)
-      if (unit.resources[i] && percent[i] > 100)
-        unit.resources[i] = capacity[i];
+      if (unit.resources[i] && percent[i] > 100) unit.resources[i] = capacity[i];
   }
 }
 
@@ -44,11 +40,9 @@ void ClearStaleOccupants(uint8_t* ds, DataSegment& data) {
   for (uint8_t y = 0; y < MAP_HEIGHT; ++y)
     for (uint8_t x = 0; x < MAP_WIDTH; ++x) {
       auto const side{ opeu_cell_side(ds, x, y) };
-      if (side == 0xff)
-        continue;
+      if (side == 0xff) continue;
       auto const unit{ opeu_find_unit_at(ds, x, y) };
-      if (!unit || side != opeu_unit_side(unit))
-        MapCellAt(data, x, y) &= ~Bits(MapCell::OCCUPANT_MASK);
+      if (!unit || side != opeu_unit_side(unit)) MapCellAt(data, x, y) &= ~Bits(MapCell::OCCUPANT_MASK);
     }
 }
 
@@ -56,21 +50,16 @@ void ClearStaleOccupants(uint8_t* ds, DataSegment& data) {
 // selected element.
 void FillSelections(uint8_t* ds, DataSegment& data) {
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
-    if (!opeu_find_side_selected_unit(ds, side))
-      opeu_select_first_group(ds, side);
+    if (!opeu_find_side_selected_unit(ds, side)) opeu_select_first_group(ds, side);
     for (uint8_t division = 0; division < GROUPS_PER_SIDE; ++division) {
       auto const& group{ data.groups[side * GROUPS_PER_SIDE + division] };
       auto const  group_near{ Near(data, group) };
-      if ((group.flags & Bits(GroupFlag::READY)) &&
-          !opeu_find_group_selected_unit(ds, group_near))
+      if ((group.flags & Bits(GroupFlag::READY)) && !opeu_find_group_selected_unit(ds, group_near))
         opeu_select_first_unit(ds, group_near);
       for (uint8_t i = 0; i < UNITS_PER_GROUP; ++i) {
-        auto const& unit{
-          data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i]
-        };
-        auto const unit_near{ Near(data, unit) };
-        if ((unit.flags & Bits(UnitFlag::READY)) &&
-            !opeu_unit_selected_element(ds, unit_near))
+        auto const& unit{ data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i] };
+        auto const  unit_near{ Near(data, unit) };
+        if ((unit.flags & Bits(UnitFlag::READY)) && !opeu_unit_selected_element(ds, unit_near))
           opeu_select_preferred_element(ds, unit_near);
       }
     }
@@ -84,18 +73,14 @@ void StandDownEmpty(DataSegment& data) {
       auto& group{ data.groups[side * GROUPS_PER_SIDE + division] };
       auto  manned{ false };
       for (uint8_t i = 0; i < UNITS_PER_GROUP; ++i) {
-        auto& unit{
-          data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i]
-        };
-        if (!(unit.flags & Bits(UnitFlag::READY)))
-          continue;
+        auto& unit{ data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i] };
+        if (!(unit.flags & Bits(UnitFlag::READY))) continue;
         if (!unit.first)
           unit.flags &= ~Bits(UnitFlag::READY);
         else
           manned = true;
       }
-      if ((group.flags & Bits(GroupFlag::READY)) && !manned)
-        group.flags &= ~Bits(GroupFlag::READY);
+      if ((group.flags & Bits(GroupFlag::READY)) && !manned) group.flags &= ~Bits(GroupFlag::READY);
     }
 }
 
@@ -109,6 +94,5 @@ void opeu_normalize_turn_state(uint8_t ds[65536]) {
   StandDownEmpty(data);
   for (auto const& unit : data.units)
     if (unit.flags & Bits(UnitFlag::READY))
-      for (auto& element : Elements(data, unit))
-        element.flags |= Bits(ElementFlag::READY);
+      for (auto& element : Elements(data, unit)) element.flags |= Bits(ElementFlag::READY);
 }

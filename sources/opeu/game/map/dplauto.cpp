@@ -1,17 +1,17 @@
 // Automatic deployment. A unit's elements are placed by template (zone codes per approach direction), by the
 // attacker's scan rectangles over the zone bits and clear terrain, at random inside the field centre, or, for a
 // defending garrison, around the defenders already placed using the facing offsets.
-#include "types.hpp"
 #include "map/dplauto.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "map/dplcell.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 #include <utility>
@@ -42,36 +42,28 @@ constexpr uint8_t SCAN_CELLS{ 4 };
 constexpr uint8_t OFFSET_CELLS{ 5 };
 constexpr uint8_t ZONE_CODES{ 8 };
 
-[[nodiscard]] auto DirectionOf(uint8_t* ds, BattleEvent event, uint16_t unit)
-    -> uint8_t {
-  return static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
+[[nodiscard]] auto DirectionOf(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
+  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
 }
 
-[[nodiscard]] auto Random(uint8_t* ds, BattleEvent event, uint16_t bound)
-    -> uint16_t {
+[[nodiscard]] auto Random(uint8_t* ds, BattleEvent event, uint16_t bound) -> uint16_t {
   return Call(ds, event, BattleRoutine::RAND_BOUNDED, bound);
 }
 
-[[nodiscard]] auto CanPlace(uint8_t* ds, BattleEvent event, uint8_t x,
-                            uint8_t y, uint16_t element) -> bool {
+[[nodiscard]] auto CanPlace(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> bool {
   return opeu_deploy_can_place(ds, event, x, y, element);
 }
 
-[[nodiscard]] auto TypeOf(DataSegment const& data, uint16_t element)
-    -> ElementType const& {
+[[nodiscard]] auto TypeOf(DataSegment const& data, uint16_t element) -> ElementType const& {
   return data.element_types[Record<Element>(data, element).type];
 }
 
 // The placement byte n of an element (its position word points at the placement).
-[[nodiscard]] auto PlacementByte(uint8_t* ds, uint16_t element, uint16_t n)
-    -> uint8_t& {
-  return Byte(ds, static_cast<uint16_t>(
-                      Record<Element>(Data(ds), element).position + n));
+[[nodiscard]] auto PlacementByte(uint8_t* ds, uint16_t element, uint16_t n) -> uint8_t& {
+  return Byte(ds, static_cast<uint16_t>(Record<Element>(Data(ds), element).position + n));
 }
 
-[[nodiscard]] auto ClearTerrain(DataSegment const& data, uint8_t x, uint8_t y)
-    -> bool {
+[[nodiscard]] auto ClearTerrain(DataSegment const& data, uint8_t x, uint8_t y) -> bool {
   return (data.battle_terrain[y * BATTLE_WIDTH + x] & TERRAIN_KIND) == CLEAR;
 }
 
@@ -82,22 +74,18 @@ constexpr uint8_t ZONE_CODES{ 8 };
 
 // Scans the attacker's 4 x 4 rectangle row by row (directions 1 and 6) or column by column; a cell is accepted in
 // the attacker's zone, on clear terrain (or, without `clear`, by a 3 in 10 chance) where the element may stand.
-[[nodiscard]] auto ScanRectangle(uint8_t* ds, BattleEvent event,
-                                 uint8_t direction, bool clear,
-                                 uint16_t element, uint8_t& found_x,
-                                 uint8_t& found_y) -> bool {
+[[nodiscard]] auto ScanRectangle(uint8_t* ds, BattleEvent event, uint8_t direction, bool clear, uint16_t element,
+                                 uint8_t& found_x, uint8_t& found_y) -> bool {
   auto& data{ Data(ds) };
   // Read where the original reads it, for any direction.
   auto const scan{ [&](uint8_t n) {
-    return Byte(ds, static_cast<uint16_t>(Near(data, data.deploy_scan) +
-                                          direction * SCAN_CELLS + n));
+    return Byte(ds, static_cast<uint16_t>(Near(data, data.deploy_scan) + direction * SCAN_CELLS + n));
   } };
   auto const step_x{ scan(0) };
   auto const step_y{ scan(1) };
   auto const accept{ [&](uint8_t x, uint8_t y) {
-    return (data.deploy_zone_bits[y][x] & 1 << direction) &&
-           (clear ? ClearTerrain(data, x, y) : Random(ds, event, 10) < 3) &&
-           CanPlace(ds, event, x, y, element);
+    return (data.deploy_zone_bits[y][x] & 1 << direction)
+           && (clear ? ClearTerrain(data, x, y) : Random(ds, event, 10) < 3) && CanPlace(ds, event, x, y, element);
   } };
   auto const found{ [&](uint8_t x, uint8_t y) {
     found_x = x;
@@ -109,51 +97,40 @@ constexpr uint8_t ZONE_CODES{ 8 };
     for (uint8_t row{ 0 }; row < SCAN_CELLS; y += step_y, ++row) {
       uint8_t x{ scan(2) };
       for (uint8_t column{ 0 }; column < SCAN_CELLS; x += step_x, ++column)
-        if (accept(x, y))
-          return found(x, y);
+        if (accept(x, y)) return found(x, y);
     }
   } else {
     uint8_t x{ scan(2) };
     for (uint8_t column{ 0 }; column < SCAN_CELLS; x += step_x, ++column) {
       uint8_t y{ scan(3) };
       for (uint8_t row{ 0 }; row < SCAN_CELLS; y += step_y, ++row)
-        if (accept(x, y))
-          return found(x, y);
+        if (accept(x, y)) return found(x, y);
     }
   }
   return false;
 }
 } // namespace
 
-uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x,
-                                   uint16_t y, uint16_t element,
+uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element,
                                    uint8_t index) {
   auto&      data{ Data(ds) };
-  auto const unit{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT,
-                        element) };
+  auto const unit{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element) };
   auto const direction{ DirectionOf(ds, event, unit) };
   auto const heavy{ TypeOf(data, element).mode > 1 };
   uint8_t    code{ 0 };
   switch (direction) {
-    case 1:
-    case 3:
-    case 4:
-    case 6:
-      code = static_cast<uint8_t>(direction << 4 |
-                                  data.deploy_zone_codes[heavy ? 0 : 2][index]);
-      break;
-    case 0:
-    case 2:
-    case 5:
-    case 7:
-      code = static_cast<uint8_t>(direction << 4 |
-                                  data.deploy_zone_codes[heavy ? 1 : 3][index]);
-      break;
+  case 1:
+  case 3:
+  case 4:
+  case 6: code = static_cast<uint8_t>(direction << 4 | data.deploy_zone_codes[heavy ? 0 : 2][index]); break;
+  case 0:
+  case 2:
+  case 5:
+  case 7: code = static_cast<uint8_t>(direction << 4 | data.deploy_zone_codes[heavy ? 1 : 3][index]); break;
   }
   for (uint8_t row{ 0 }; row < BATTLE_WIDTH; ++row)
     for (uint8_t column{ 0 }; column < BATTLE_WIDTH; ++column)
-      if (data.deploy_templates[row][column] == code &&
-          CanPlace(ds, event, column, row, element)) {
+      if (data.deploy_templates[row][column] == code && CanPlace(ds, event, column, row, element)) {
         Byte(ds, x) = column;
         Byte(ds, y) = row;
         return 1;
@@ -161,19 +138,16 @@ uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x,
   return 0;
 }
 
-void opeu_deploy_by_template(uint8_t* ds, BattleEvent event, uint16_t x,
-                             uint16_t y, uint16_t element) {
+void opeu_deploy_by_template(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element) {
   for (uint8_t index{ 0 }; index < ZONE_CODES; ++index)
-    if (opeu_deploy_template_cell(ds, event, TEMPLATE_X_AT, TEMPLATE_Y_AT,
-                                  element, index)) {
+    if (opeu_deploy_template_cell(ds, event, TEMPLATE_X_AT, TEMPLATE_Y_AT, element, index)) {
       Byte(ds, x) = Byte(ds, TEMPLATE_X_AT);
       Byte(ds, y) = Byte(ds, TEMPLATE_Y_AT);
       break;
     }
 }
 
-void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y,
-                         uint16_t element) {
+void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element) {
   auto&      data{ Data(ds) };
   auto const direction{ DirectionOf(ds, event, data.battle_units[0]) };
   uint8_t    found_x;
@@ -182,8 +156,8 @@ void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y,
     Byte(ds, x) = found_x;
     Byte(ds, y) = found_y;
   } };
-  if (ScanRectangle(ds, event, direction, true, element, found_x, found_y) ||
-      ScanRectangle(ds, event, direction, false, element, found_x, found_y)) {
+  if (ScanRectangle(ds, event, direction, true, element, found_x, found_y)
+      || ScanRectangle(ds, event, direction, false, element, found_x, found_y)) {
     place();
     return;
   }
@@ -191,14 +165,10 @@ void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y,
   auto const sweep{ [&] {
     for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
       for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
-        if (ClearTerrain(data, found_x, found_y) &&
-            CanPlace(ds, event, found_x, found_y, element))
-          return true;
+        if (ClearTerrain(data, found_x, found_y) && CanPlace(ds, event, found_x, found_y, element)) return true;
     for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
       for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
-        if (CanPlace(ds, event, found_x, found_y, element) &&
-            Random(ds, event, 10) < 1)
-          return true;
+        if (CanPlace(ds, event, found_x, found_y, element) && Random(ds, event, 10) < 1) return true;
     return false;
   } };
   while (!sweep()) {
@@ -206,24 +176,19 @@ void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y,
   place();
 }
 
-void opeu_deploy_at_random(uint8_t* ds, BattleEvent event, uint16_t x,
-                           uint16_t y, uint16_t element) {
+void opeu_deploy_at_random(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element) {
   uint8_t    found_x;
   uint8_t    found_y;
   auto const centre{ [&] {
     for (found_y = CENTRE_FIRST; found_y < CENTRE_END; ++found_y)
       for (found_x = CENTRE_FIRST; found_x < CENTRE_END; ++found_x)
-        if (Random(ds, event, 10) < 2 &&
-            CanPlace(ds, event, found_x, found_y, element))
-          return true;
+        if (Random(ds, event, 10) < 2 && CanPlace(ds, event, found_x, found_y, element)) return true;
     return false;
   } };
   auto const anywhere{ [&] {
     for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
       for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
-        if (CanPlace(ds, event, found_x, found_y, element) &&
-            Random(ds, event, 10) < 1)
-          return true;
+        if (CanPlace(ds, event, found_x, found_y, element) && Random(ds, event, 10) < 1) return true;
     return false;
   } };
   if (!centre())
@@ -233,16 +198,14 @@ void opeu_deploy_at_random(uint8_t* ds, BattleEvent event, uint16_t x,
   Byte(ds, y) = found_y;
 }
 
-void opeu_deploy_put_at(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y,
-                        uint16_t element) {
+void opeu_deploy_put_at(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
   auto& data{ Data(ds) };
   PlacementByte(ds, element, 5) = x;
   PlacementByte(ds, element, 6) = y;
   PlacementByte(ds, element, 7) = PLACED;
   Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
   auto facing{ opeu_deploy_facing(ds, event, element) };
-  if (!TypeOf(data, element).category)
-    facing = 0;
+  if (!TypeOf(data, element).category) facing = 0;
   Call(ds, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, x, y, element, facing);
 }
 
@@ -252,12 +215,10 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
   // The elements of type mode above 1 first: each placed at random (or where it stands) marks the garrison's centre.
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (TypeOf(data, element).mode <= 1)
-      continue;
+    if (TypeOf(data, element).mode <= 1) continue;
     if (PlacementByte(ds, element, 0) == OFF_FIELD) {
       opeu_deploy_at_random(ds, event, GARRISON_X_AT, GARRISON_Y_AT, element);
-      opeu_deploy_put_at(ds, event, Byte(ds, GARRISON_X_AT),
-                         Byte(ds, GARRISON_Y_AT), element);
+      opeu_deploy_put_at(ds, event, Byte(ds, GARRISON_X_AT), Byte(ds, GARRISON_Y_AT), element);
     } else {
       Byte(ds, GARRISON_X_AT) = PlacementByte(ds, element, 0);
       Byte(ds, GARRISON_Y_AT) = PlacementByte(ds, element, 1);
@@ -265,31 +226,23 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
   }
   // The others around it, facing the attacker.
   uint8_t facing{ 0 };
-  if (auto const attacker{ Call(ds, event, BattleRoutine::FIND_UNIT_AT,
-                                data.battle_attacker_x,
-                                data.battle_attacker_y) })
+  if (auto const attacker{
+          Call(ds, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) })
     facing = static_cast<uint8_t>(7 - DirectionOf(ds, event, attacker));
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (PlacementByte(ds, element, 0) != OFF_FIELD ||
-        TypeOf(data, element).mode != 1)
-      continue;
+    if (PlacementByte(ds, element, 0) != OFF_FIELD || TypeOf(data, element).mode != 1) continue;
     auto const placed{ [&] {
       for (uint8_t n{ 0 }; n < OFFSET_CELLS; ++n) {
         // Read where the original reads it: a facing past 7 (an attacker that defends) leaves the table.
-        auto const offset{ Byte(
-            ds, static_cast<uint16_t>(Near(data, data.deploy_offsets) +
-                                      facing * OFFSET_CELLS + n)) };
-        auto const cell_y{ static_cast<int16_t>(SignedNibble(offset & 0xf) +
-                                                Byte(ds, GARRISON_Y_AT)) };
-        auto const cell_x{ static_cast<int16_t>(SignedNibble(offset >> 4) +
-                                                Byte(ds, GARRISON_X_AT)) };
-        if (cell_x >= 0 && cell_x < static_cast<int16_t>(BATTLE_WIDTH) &&
-            cell_y >= 0 && cell_y < static_cast<int16_t>(BATTLE_WIDTH) &&
-            CanPlace(ds, event, static_cast<uint8_t>(cell_x),
-                     static_cast<uint8_t>(cell_y), element)) {
-          opeu_deploy_put_at(ds, event, static_cast<uint8_t>(cell_x),
-                             static_cast<uint8_t>(cell_y), element);
+        auto const offset{ Byte(ds,
+                                static_cast<uint16_t>(Near(data, data.deploy_offsets) + facing * OFFSET_CELLS + n)) };
+        auto const cell_y{ static_cast<int16_t>(SignedNibble(offset & 0xf) + Byte(ds, GARRISON_Y_AT)) };
+        auto const cell_x{ static_cast<int16_t>(SignedNibble(offset >> 4) + Byte(ds, GARRISON_X_AT)) };
+        if (cell_x >= 0 && cell_x < static_cast<int16_t>(BATTLE_WIDTH) && cell_y >= 0
+            && cell_y < static_cast<int16_t>(BATTLE_WIDTH)
+            && CanPlace(ds, event, static_cast<uint8_t>(cell_x), static_cast<uint8_t>(cell_y), element)) {
+          opeu_deploy_put_at(ds, event, static_cast<uint8_t>(cell_x), static_cast<uint8_t>(cell_y), element);
           return true;
         }
       }
@@ -297,8 +250,7 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
     } };
     if (!placed()) {
       opeu_deploy_at_random(ds, event, SPARE_X_AT, SPARE_Y_AT, element);
-      opeu_deploy_put_at(ds, event, Byte(ds, SPARE_X_AT), Byte(ds, SPARE_Y_AT),
-                         element);
+      opeu_deploy_put_at(ds, event, Byte(ds, SPARE_X_AT), Byte(ds, SPARE_Y_AT), element);
     }
   }
 }
@@ -314,66 +266,48 @@ void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
       }
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (PlacementByte(ds, element, 0) != OFF_FIELD)
-      continue;
+    if (PlacementByte(ds, element, 0) != OFF_FIELD) continue;
     if (DirectionOf(ds, event, unit) != DEFENDING) {
       opeu_deploy_by_template(ds, event, AUTO_X_AT, AUTO_Y_AT, element);
     } else if (unit != Near(data, data.garrison_unit)) {
       // The unit's place in its group of eight.
       auto const index{ static_cast<uint8_t>(
-          static_cast<uint8_t>(static_cast<int16_t>(unit - UNITS_AT) /
-                               static_cast<int16_t>(sizeof(Unit))) &
-          7) };
-      if (Call(ds, event, BattleRoutine::CATEGORY_6, index) ||
-          Call(ds, event, BattleRoutine::CATEGORY_7, index))
+          static_cast<uint8_t>(static_cast<int16_t>(unit - UNITS_AT) / static_cast<int16_t>(sizeof(Unit))) & 7) };
+      if (Call(ds, event, BattleRoutine::CATEGORY_6, index) || Call(ds, event, BattleRoutine::CATEGORY_7, index))
         opeu_deploy_at_random(ds, event, AUTO_X_AT, AUTO_Y_AT, element);
       else
         opeu_deploy_by_scan(ds, event, AUTO_X_AT, AUTO_Y_AT, element);
     } else {
       opeu_deploy_by_scan(ds, event, AUTO_X_AT, AUTO_Y_AT, element);
     }
-    opeu_deploy_put_at(ds, event, Byte(ds, AUTO_X_AT), Byte(ds, AUTO_Y_AT),
-                       element);
+    opeu_deploy_put_at(ds, event, Byte(ds, AUTO_X_AT), Byte(ds, AUTO_Y_AT), element);
   }
 }
 
 // The deployment group's services (dplauto, dplcell, dplrows, dplside, dplunit): btl_reorder puts the argument words
 // in source order into the order the routine's register convention takes them.
-uint16_t svc_battle_deploy(uint8_t* ds, uint32_t address, const uint16_t* args,
-                           unsigned count) {
+uint16_t svc_battle_deploy(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
   static constexpr unsigned char unit_name[]   = { 1, 0 }; // (unit, buffer)
-  static constexpr unsigned char list_dialog[] = {
-    1, 2, 0
-  }; // (window, limit, flags)
-  static constexpr unsigned char set_order[] = { 1, 0 }; // (element, order)
-  static constexpr unsigned char grid_step[] = { 1, 2,
-                                                 0 }; // (x*, y*, direction)
-  static constexpr unsigned char put_range[] = { 1, 2, 0 }; // (s, start, count)
-  static constexpr unsigned char columns[]   = {
-    0, 2, 1, 3, 4
-  }; // (column, first, rows, second, third)
-  static constexpr unsigned char message[] = { 1, 2, 0 }; // (text, side, value)
+  static constexpr unsigned char list_dialog[] = { 1, 2, 0 }; // (window, limit, flags)
+  static constexpr unsigned char set_order[]   = { 1, 0 };    // (element, order)
+  static constexpr unsigned char grid_step[]   = { 1, 2, 0 }; // (x*, y*, direction)
+  static constexpr unsigned char put_range[]   = { 1, 2, 0 }; // (s, start, count)
+  static constexpr unsigned char columns[]     = { 0, 2, 1, 3, 4 }; // (column, first, rows, second, third)
+  static constexpr unsigned char message[]     = { 1, 2, 0 }; // (text, side, value)
   switch (address) {
-    case std::to_underlying(BattleRoutine::UNIT_NAME):
-      return btl_reorder(ds, address, args, count, unit_name, 2);
-    case std::to_underlying(BattleRoutine::LIST_DIALOG):
-      return btl_reorder(ds, address, args, count, list_dialog, 3);
-    case std::to_underlying(BattleRoutine::BATTLE_SET_ORDER):
-      return btl_reorder(ds, address, args, count, set_order, 2);
-    case std::to_underlying(BattleRoutine::GRID_STEP):
-      return btl_reorder(ds, address, args, count, grid_step, 3);
-    case std::to_underlying(BattleRoutine::TEXT_PUT_RANGE):
-      return btl_reorder(ds, address, args, count, put_range, 3);
-    case std::to_underlying(BattleRoutine::TABLE_COLUMNS):
-      return btl_reorder(ds, address, args, count, columns, 5);
-    case std::to_underlying(BattleRoutine::BATTLE_COMMANDER_MESSAGE):
-      return btl_reorder(ds, address, args, count, message, 3);
-    default: return port_service(ds, address, args, count);
+  case std::to_underlying(BattleRoutine::UNIT_NAME):   return btl_reorder(ds, address, args, count, unit_name, 2);
+  case std::to_underlying(BattleRoutine::LIST_DIALOG): return btl_reorder(ds, address, args, count, list_dialog, 3);
+  case std::to_underlying(BattleRoutine::BATTLE_SET_ORDER): return btl_reorder(ds, address, args, count, set_order, 2);
+  case std::to_underlying(BattleRoutine::GRID_STEP):        return btl_reorder(ds, address, args, count, grid_step, 3);
+  case std::to_underlying(BattleRoutine::TEXT_PUT_RANGE):   return btl_reorder(ds, address, args, count, put_range, 3);
+  case std::to_underlying(BattleRoutine::TABLE_COLUMNS):    return btl_reorder(ds, address, args, count, columns, 5);
+  case std::to_underlying(BattleRoutine::BATTLE_COMMANDER_MESSAGE):
+    return btl_reorder(ds, address, args, count, message, 3);
+  default: return port_service(ds, address, args, count);
   }
 }
 
 // Services of this module: the deployment group's.
-uint16_t svc_dplauto(uint8_t* ds, uint32_t service, const uint16_t* args,
-                     unsigned int count) {
+uint16_t svc_dplauto(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
   return svc_battle_deploy(ds, service, args, count);
 }

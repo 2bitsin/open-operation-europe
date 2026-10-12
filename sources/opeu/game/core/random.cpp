@@ -1,9 +1,9 @@
 // The game's random-number generator: a 32-bit linear congruential state.
-#include "types.hpp"
 #include "core/random.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 uint32_t opeu_random_state;
@@ -20,12 +20,10 @@ void opeu_rand_seed(uint16_t seed) {
 
 // A number below bound; a zero bound gives 0 without advancing the state.
 uint16_t opeu_rand_bounded(uint16_t bound) {
-  if (bound == 0)
-    return bound;
+  if (bound == 0) return bound;
   return opeu_rand_next() % bound;
 }
 
-auto port_routine_opeu_rand_bounded(std::uint8_t* ds, std::uint16_t const* args,
-                                    unsigned count) -> std::uint32_t {
+auto port_routine_opeu_rand_bounded(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return port_rand_bounded(ds, Arg(args, count, 0));
 }

@@ -1,7 +1,7 @@
 // The conversion team's credits, shown after the division panel when the player answers its key prompt with '!'.
-#include "types.hpp"
 #include "core/credits.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
@@ -31,10 +31,8 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t CREDITS_TITLE{ offsetof(DataSegment, credits_title) };
 constexpr std::uint16_t CREDITS_MAIN{ offsetof(DataSegment, credits_main) };
-constexpr std::uint16_t CREDITS_SUPPORT{ offsetof(DataSegment,
-                                                  credits_support) };
-constexpr std::uint16_t CREDITS_TRANSLATION{ offsetof(DataSegment,
-                                                      credits_translation) };
+constexpr std::uint16_t CREDITS_SUPPORT{ offsetof(DataSegment, credits_support) };
+constexpr std::uint16_t CREDITS_TRANSLATION{ offsetof(DataSegment, credits_translation) };
 constexpr std::uint16_t CREDITS_X{ 17 };
 } // namespace
 
@@ -44,8 +42,7 @@ void opeu_division_credits(uint8_t* ds, HostEvent event) {
   auto& data{ Data(ds) };
   Call(ds, event, INPUT_FLUSH);
   while (data.input_mode)
-    if (Call(ds, event, INPUT_A))
-      return;
+    if (Call(ds, event, INPUT_A)) return;
   if (static_cast<char>(Call(ds, event, GETCH)) == '!') {
     Call(ds, event, FILL_COLOR, 1);
     data.restart_flag = 1;
@@ -62,29 +59,21 @@ void opeu_division_credits(uint8_t* ds, HostEvent event) {
   }
 }
 
-uint16_t svc_credits(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count) {
+uint16_t svc_credits(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-    case INPUT_FLUSH:
-      opeu_input_flush(ds, (TextHost*)port_textout_host());
-      break;
-    case INPUT_A:
-      result = static_cast<uint16_t>(opeu_turn_input_a(ds, svc_mouse));
-      break;
-    case GETCH: result = static_cast<uint16_t>(port_getch()); break;
-    case FILL_COLOR:
-      opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(),
-                               static_cast<uint8_t>(Arg(args, count, 0)));
-      break;
-    case POSITION:
-      opeu_army_position(ds, (TextHost*)port_textout_host(),
-                         (int16_t)Arg(args, count, 0),
-                         (int16_t)Arg(args, count, 1));
-      break;
-    case PRINT:   b1_cursor_print(ds, args, count); break;
-    case INPUT_B: result = opeu_turn_input_b(); break;
-    default:      port_unhandled("credits", id, count);
+  case INPUT_FLUSH: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
+  case INPUT_A:     result = static_cast<uint16_t>(opeu_turn_input_a(ds, svc_mouse)); break;
+  case GETCH:       result = static_cast<uint16_t>(port_getch()); break;
+  case FILL_COLOR:
+    opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), static_cast<uint8_t>(Arg(args, count, 0)));
+    break;
+  case POSITION:
+    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
+    break;
+  case PRINT:   b1_cursor_print(ds, args, count); break;
+  case INPUT_B: result = opeu_turn_input_b(); break;
+  default:      port_unhandled("credits", id, count);
   }
   return result;
 }

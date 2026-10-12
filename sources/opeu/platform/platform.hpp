@@ -19,14 +19,14 @@
 /* ---- lifecycle ---------------------------------------------------------- */
 
 struct PlatConfig {
-  const char* title;      /* window title */
-  int width, height;      /* logical framebuffer size (640x480 for mode 12h) */
-  int scale;              /* initial window scale factor (>=1) */
-  int headless;           /* 1: no window, no audio device, no real input */
-  int fullscreen;
+  const char* title;         /* window title */
+  int         width, height; /* logical framebuffer size (640x480 for mode 12h) */
+  int         scale;         /* initial window scale factor (>=1) */
+  int         headless;      /* 1: no window, no audio device, no real input */
+  int         fullscreen;
 };
 
-auto plat_init(const PlatConfig* cfg) -> int;   /* 0 on success, -1 on failure */
+auto plat_init(const PlatConfig* cfg) -> int; /* 0 on success, -1 on failure */
 void plat_shutdown();
 
 /* ---- video -------------------------------------------------------------- */
@@ -45,24 +45,24 @@ auto plat_write_png(const char* path) -> int;
 // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): PlatEvent::type holds these as ints across the contract
 enum {
   PLAT_EV_NONE = 0,
-  PLAT_EV_QUIT,           /* window closed / Cmd-Q */
-  PLAT_EV_KEY_DOWN,       /* scancode + ascii valid */
-  PLAT_EV_KEY_UP,         /* scancode valid */
-  PLAT_EV_MOUSE_MOVE,     /* x, y valid (framebuffer pixels, clamped) */
-  PLAT_EV_MOUSE_DOWN,     /* button valid (0 left, 1 right, 2 middle), x, y */
+  PLAT_EV_QUIT,       /* window closed / Cmd-Q */
+  PLAT_EV_KEY_DOWN,   /* scancode + ascii valid */
+  PLAT_EV_KEY_UP,     /* scancode valid */
+  PLAT_EV_MOUSE_MOVE, /* x, y valid (framebuffer pixels, clamped) */
+  PLAT_EV_MOUSE_DOWN, /* button valid (0 left, 1 right, 2 middle), x, y */
   PLAT_EV_MOUSE_UP
 };
 
 struct PlatEvent {
-  int type;
-  uint8_t scancode;       /* PC set-1 make code; bit 7 clear.  0xE0-prefixed
+  int     type;
+  uint8_t scancode; /* PC set-1 make code; bit 7 clear.  0xE0-prefixed
                                keys (arrows, Home, ...) use their base code and
                                set extended=1 */
   uint8_t extended;
-  uint8_t ascii;          /* BIOS INT 16h ASCII for this key with current
+  uint8_t ascii; /* BIOS INT 16h ASCII for this key with current
                                modifiers (0 for none) */
   uint8_t button;
-  int x, y;
+  int     x, y;
 };
 
 /* Pump the OS event queue and return the next event; 0 when empty. */
@@ -74,8 +74,8 @@ auto plat_shift_flags() -> uint8_t;
 
 /* ---- time --------------------------------------------------------------- */
 
-auto plat_ticks_us() -> uint64_t;   /* monotonic microseconds since plat_init */
-void plat_sleep_ms(int ms); /* yields; never called on Emscripten frames */
+auto plat_ticks_us() -> uint64_t; /* monotonic microseconds since plat_init */
+void plat_sleep_ms(int ms);       /* yields; never called on Emscripten frames */
 
 /* ---- files -------------------------------------------------------------- */
 
@@ -92,7 +92,7 @@ auto plat_fopen(const char* dos_name, const char* mode) -> void*;
 auto plat_fclose(void* f) -> int;
 auto plat_fread(void* buf, size_t n, void* f) -> size_t;
 auto plat_fwrite(const void* buf, size_t n, void* f) -> size_t;
-auto plat_fseek(void* f, long off, int whence) -> long;   /* returns new position or -1 */
+auto plat_fseek(void* f, long off, int whence) -> long; /* returns new position or -1 */
 auto plat_fsize(void* f) -> long;
 auto plat_fexists(const char* dos_name) -> int;
 auto plat_fdelete(const char* dos_name) -> int;
@@ -105,6 +105,6 @@ auto plat_frename(const char* from, const char* to) -> int;
  * headless mode) means silence. */
 using PlatAudioFn = void (*)(void* user, int16_t* out, int frames, int rate);
 auto plat_audio_open(int rate, PlatAudioFn fn, void* user) -> int;
-auto plat_audio_active() -> int;           /* 1 when a device stream is open */
+auto plat_audio_active() -> int; /* 1 when a device stream is open */
 void plat_audio_lock();
 void plat_audio_unlock();

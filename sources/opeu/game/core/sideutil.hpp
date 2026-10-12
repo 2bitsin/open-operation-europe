@@ -1,8 +1,8 @@
 // Side helpers: the other side, the side a status points to, the side colour, the side an equipment type serves.
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 uint8_t opeu_opposite_side(uint8_t side);
 uint8_t opeu_side_for_status(const uint8_t* ds, uint8_t side);

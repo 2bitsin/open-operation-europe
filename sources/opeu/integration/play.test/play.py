@@ -175,6 +175,32 @@ def load_save():
     return s
 
 
+# The command bar of One Player, left to right; `command` opens an entry by
+# moving right from Pass, where the highlight rests after every command.
+BAR = ['pass', 'tact', 'city', 'tsfr', 'ofcr', 'info', 'orgz', 'rqst', 'air', 'spfc', 'game']
+
+
+def keys(s, ms, *tokens, step=1500):
+    """The tokens one `step` apart: a key name, `name*N` (the key N times,
+    100 ms apart) or `=digits` (typed 200 ms apart). Returns the time after."""
+    for token in tokens:
+        if token.startswith('='):
+            for i, char in enumerate(token[1:]):
+                s.text(ms + 200 * i, char)
+        else:
+            name, _, count = token.partition('*')
+            for i in range(int(count or 1)):
+                s.key(ms + 100 * i, name)
+        ms += step
+    return ms
+
+
+def command(s, ms, entry, *tokens):
+    """The command bar's `entry` opened, then the tokens."""
+    moves = [f'right*{BAR.index(entry)}'] if BAR.index(entry) else []
+    return keys(s, ms, *moves, 'enter', *tokens)
+
+
 def fixture_text(name):
     return (FIXTURES / name).read_text()
 

@@ -1,20 +1,20 @@
 // The player's battle orders menu: where its buttons go, and the dispatch of the order chosen.
-#include "types.hpp"
 #include "map/btlmenu.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "map/btlcmds.hpp"
 #include "map/btlexec.hpp"
 #include "map/btllist.hpp"
 #include "map/btlreach.hpp"
 #include "map/btlunit.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
@@ -62,21 +62,18 @@ void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t frame) {
     Call(ds, event, BattleRoutine::MOUSE_POSITION, mouse_y_at, mouse_x_at);
     auto y{ static_cast<uint16_t>(Word(ds, mouse_y_at) + POINTER_DY) };
     auto x{ static_cast<uint16_t>(Word(ds, mouse_x_at) + POINTER_DX) };
-    x = Call(ds, event, BattleRoutine::MAX16,
-             Call(ds, event, BattleRoutine::MIN16, x >> 3, LAST_COLUMN), 1);
+    x = Call(ds, event, BattleRoutine::MAX16, Call(ds, event, BattleRoutine::MIN16, x >> 3, LAST_COLUMN), 1);
     y = Call(ds, event, BattleRoutine::MIN16, y, LAST_ROW);
     SetWord(ds, mouse_x_at, x);
     SetWord(ds, mouse_y_at, y);
     for (unsigned i{ 0 }; i < BUTTONS; ++i) {
       data.battle_menu_items[i].x = x;
-      data.battle_menu_items[i].y =
-          static_cast<uint16_t>(BUTTON_HEIGHT * i + y);
+      data.battle_menu_items[i].y = static_cast<uint16_t>(BUTTON_HEIGHT * i + y);
     }
   } else {
     for (unsigned i{ 0 }; i < BUTTONS; ++i) {
-      data.battle_menu_items[i].x =
-          static_cast<uint16_t>(data.battle_menu_places[i].x +
-                                (data.battle_active_side ? SIDE_1_SHIFT : 0));
+      data.battle_menu_items[i].x = static_cast<uint16_t>(data.battle_menu_places[i].x
+                                                          + (data.battle_active_side ? SIDE_1_SHIFT : 0));
       data.battle_menu_items[i].y = data.battle_menu_places[i].y;
     }
   }
@@ -84,17 +81,14 @@ void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t frame) {
 
 // The cursor starts on the element's goal (its target's cell when engaged); a withdrawal marks the exits first. After
 // the order, a unit not next to the battle's cell takes the exit direction of its first withdrawing element.
-uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event,
-                                 uint16_t element, uint16_t frame) {
+uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
   auto&      data{ Data(ds) };
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
   Call(ds, event, BattleRoutine::BATTLE_ELEMENT_PANEL, 0, element);
   for (;;) {
     opeu_battle_menu_place(ds, event, Local(frame, MENU_FRAME));
-    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL,
-         data.battle_active_side, 0);
-    auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS,
-                      Near(data, data.battle_msg_orders), 1,
+    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
+    auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1,
                       Near(data, data.battle_menu_items)) };
     if (choice == CANCELLED) {
       Panels(ds, event);
@@ -102,59 +96,48 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event,
       return 0;
     }
     Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
-    if (choice == std::to_underlying(Choice::REST))
-      choice = std::to_underlying(Choice::WITHDRAW);
+    if (choice == std::to_underlying(Choice::REST)) choice = std::to_underlying(Choice::WITHDRAW);
     auto const withdraw{ choice == std::to_underlying(Choice::WITHDRAW) };
     switch (static_cast<Choice>(choice)) {
-      case Choice::MOVE:
-      case Choice::ATTACK:
-      case Choice::BLITZ:
-      case Choice::WITHDRAW: {
-        auto const& position{ PositionOf(data, element) };
-        if (opeu_battle_engaged(ds, event, element)) {
-          auto const& target{ PositionOf(data, position.target) };
-          data.battle_cursor_x = target.x;
-          data.battle_cursor_y = target.y;
-        } else {
-          data.battle_cursor_x = position.goal_x;
-          data.battle_cursor_y = position.goal_y;
-        }
-        if (withdraw) {
-          if (opeu_battle_lone_withdrawal(ds, event, element))
-            data.battle_exit_direction[0] = NO_SIDE;
-          if (!opeu_battle_mark_exits(ds, event, element)) {
-            Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE,
-                 data.battle_active_side, 1,
-                 Near(data, data.battle_msg_cannot_withdraw));
-            continue;
-          }
-        }
-        if (!opeu_battle_order_command(ds, event, element,
-                                       static_cast<uint8_t>(choice - 1),
-                                       Local(frame, MENU_FRAME)))
-          data.battle_cursor_x = data.battle_cursor_y = 0;
-        if (withdraw)
-          opeu_battle_unmark_exits(ds, event, element);
-        break;
+    case Choice::MOVE:
+    case Choice::ATTACK:
+    case Choice::BLITZ:
+    case Choice::WITHDRAW: {
+      auto const& position{ PositionOf(data, element) };
+      if (opeu_battle_engaged(ds, event, element)) {
+        auto const& target{ PositionOf(data, position.target) };
+        data.battle_cursor_x = target.x;
+        data.battle_cursor_y = target.y;
+      } else {
+        data.battle_cursor_x = position.goal_x;
+        data.battle_cursor_y = position.goal_y;
       }
-      case Choice::DEFEND: opeu_battle_order_defend(ds, event, element); break;
-      case Choice::REST:   opeu_battle_order_rest(ds, event, element); break;
+      if (withdraw) {
+        if (opeu_battle_lone_withdrawal(ds, event, element)) data.battle_exit_direction[0] = NO_SIDE;
+        if (!opeu_battle_mark_exits(ds, event, element)) {
+          Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1,
+               Near(data, data.battle_msg_cannot_withdraw));
+          continue;
+        }
+      }
+      if (!opeu_battle_order_command(ds, event, element, static_cast<uint8_t>(choice - 1), Local(frame, MENU_FRAME)))
+        data.battle_cursor_x = data.battle_cursor_y = 0;
+      if (withdraw) opeu_battle_unmark_exits(ds, event, element);
+      break;
+    }
+    case Choice::DEFEND: opeu_battle_order_defend(ds, event, element); break;
+    case Choice::REST:   opeu_battle_order_rest(ds, event, element); break;
     }
     break;
   }
-  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION,
-                                unit)) == BATTLE_NOT_ADJACENT &&
-      unit != Near(data, data.battle_garrison)) {
+  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT
+      && unit != Near(data, data.battle_garrison)) {
     auto exit{ NO_SIDE };
-    for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() };
-         it != std::default_sentinel; ++it)
-      if (opeu_battle_state(ds, event, it.Near()) ==
-          std::to_underlying(BattleState::WITHDRAW)) {
+    for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
+      if (opeu_battle_state(ds, event, it.Near()) == std::to_underlying(BattleState::WITHDRAW)) {
         auto const& position{ PositionOf(data, it.Near()) };
         exit = static_cast<uint8_t>(
-            (BattleCellAt(data, position.goal_x, position.goal_y) >>
-             std::to_underlying(BattleCell::EXIT_SHIFT)) -
-            1);
+            (BattleCellAt(data, position.goal_x, position.goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1);
         break;
       }
     data.battle_exit_direction[0] = exit;
@@ -164,7 +147,6 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event,
 }
 
 // The services of this module: the player orders group's (map/btlcmds).
-uint16_t svc_btlmenu(uint8_t* ds, uint32_t service, const uint16_t* args,
-                     unsigned int count) {
+uint16_t svc_btlmenu(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
   return svc_battle_orders(ds, service, args, count);
 }

@@ -1,17 +1,17 @@
 // The supply exchange: loads the current and capacity resource words of two units, or of a unit and an objective,
 // into the transfer table, runs the transfer dialog until it reports completion, then stores the edited amounts back.
-#include "types.hpp"
 #include "units/supply.hpp"
 #include "common/data-segment.hpp"
 #include "core/suppanel.hpp"
+#include "types.hpp"
 #include "units/capacity.hpp"
 #include "units/resagg.hpp"
 #include "units/unitname.hpp"
 
-#include "port.hpp"
-#include "glue.hpp"
-#include "services.hpp"
 #include "core/supstep.hpp"
+#include "glue.hpp"
+#include "port.hpp"
+#include "services.hpp"
 
 using namespace opeu::game;
 
@@ -28,19 +28,17 @@ constexpr std::uint16_t NO_OBJECTIVE{ 0 };
 constexpr std::uint8_t  CURRENT{ 0 };
 constexpr std::uint8_t  CAPACITY{ 1 };
 
-auto Raise(uint8_t* ds, SupplyEvent event, std::uint16_t id,
-           std::uint16_t count, std::uint16_t first, std::uint16_t second)
-    -> std::uint16_t {
+auto Raise(uint8_t* ds, SupplyEvent event, std::uint16_t id, std::uint16_t count, std::uint16_t first,
+           std::uint16_t second) -> std::uint16_t {
   std::uint16_t args[2]{ first, second };
   return event(ds, id, args, count);
 }
 
 // Draws the dialog for two units; a and b are the name buffers. The second name is formatted first.
-auto DrawUnits(uint8_t* ds, SupplyEvent event, std::uint16_t first,
-               std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
+auto DrawUnits(uint8_t* ds, SupplyEvent event, std::uint16_t first, std::uint16_t a, std::uint16_t second,
+               std::uint16_t b) -> void {
   auto const second_name{ opeu_unit_name(ds, event, second, b) };
-  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, first, a),
-        second_name);
+  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, first, a), second_name);
 }
 
 // Runs the dialog until it reports completion.
@@ -80,8 +78,7 @@ void opeu_supply_load_objective(uint8_t ds[65536], uint16_t objective) {
 }
 
 // Exchanges supplies between two units; a and b are the caller's name buffers.
-void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event,
-                                uint16_t first, uint16_t second, uint16_t a,
+void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t a,
                                 uint16_t b) {
   auto& data{ Data(ds) };
   data.supply_objective = NO_OBJECTIVE;
@@ -94,15 +91,13 @@ void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event,
 }
 
 // Exchanges supplies between a unit and an objective; a is the caller's name buffer.
-void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event,
-                                    uint16_t unit, uint16_t objective,
+void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective,
                                     uint16_t a) {
   auto& data{ Data(ds) };
   data.supply_objective = objective;
   opeu_supply_load_unit(ds, unit, 0);
   opeu_supply_load_objective(ds, objective);
-  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, unit, a),
-        objective);
+  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, unit, a), objective);
   RunDialog(ds, event);
   StoreBack(data, 0, Record<Unit>(data, unit));
   StoreBack(data, 1, Record<Objective>(data, objective));
@@ -115,21 +110,17 @@ constexpr std::uint16_t STEP_FRAME{ 0x200u };
 
 // The services the module calls out to: the transfer dialog's draw and step, and request_format (id 2), which
 // opeu_unit_name raises through the event it receives.
-uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args,
-                    uint16_t count) {
+uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t sp, r = 0;
   switch (id) {
-    case 2: r = lf_request_format(ds, args, count); break;
-    case SUPPLY_DRAW:
-      opeu_supply_draw(ds, svc_suppanel, Arg(args, count, 0),
-                       Arg(args, count, 1));
-      break;
-    case SUPPLY_STEP: // selection: the selected-row byte of the step's frame (BP-8)
-      sp = port_stack_enter(STEP_FRAME);
-      r  = opeu_supply_step(ds, svc_supstep, (uint16_t)(sp - 2u - 8u));
-      port_stack_leave(STEP_FRAME);
-      break;
-    default: port_unhandled("supply", id, count);
+  case 2:           r = lf_request_format(ds, args, count); break;
+  case SUPPLY_DRAW: opeu_supply_draw(ds, svc_suppanel, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case SUPPLY_STEP: // selection: the selected-row byte of the step's frame (BP-8)
+    sp = port_stack_enter(STEP_FRAME);
+    r  = opeu_supply_step(ds, svc_supstep, (uint16_t)(sp - 2u - 8u));
+    port_stack_leave(STEP_FRAME);
+    break;
+  default: port_unhandled("supply", id, count);
   }
   return r;
 }

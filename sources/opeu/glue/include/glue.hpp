@@ -93,11 +93,11 @@ auto port_ds_word_ptr(uint16_t off) -> uint16_t*;
 
 /* ---- struct hosts (port/core/hosts.c) ------------------------------------- */
 
-auto port_textout_host() -> void*;   /* TextHost {event, sp}: sp = port_sp */
-auto port_textout_host_sp() -> uint16_t*;  /* its sp (svc_textout saves/restores it) */
-auto port_uiprim_host() -> void*;    /* UiHost {memory, segments, event} */
-auto port_dialogs_host() -> void*;   /* DialogHost {event, load, scratch} */
-auto port_numdlg_host() -> void*;    /* numdlg's bridge {service} */
+auto port_textout_host() -> void*;        /* TextHost {event, sp}: sp = port_sp */
+auto port_textout_host_sp() -> uint16_t*; /* its sp (svc_textout saves/restores it) */
+auto port_uiprim_host() -> void*;         /* UiHost {memory, segments, event} */
+auto port_dialogs_host() -> void*;        /* DialogHost {event, load, scratch} */
+auto port_numdlg_host() -> void*;         /* numdlg's bridge {service} */
 
 /* ---- far code pointers of the recovered data ------------------------------ */
 

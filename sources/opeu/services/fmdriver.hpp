@@ -59,102 +59,102 @@ typedef struct FmdHost {
  * drums in rhythm mode). fmd_clear_voice() resets the fields above
  * opl_channel; the fields from opl_channel on survive it. */
 typedef struct FmdVoice {
-  uint16_t track;                 /* current track offset in the bank segment, 0 = ended */
-  uint16_t loop;                  /* loop point (track start until FEh) */
-  uint8_t flags;                  /* FMD_VOICE_* */
-  uint8_t volume;                 /* track volume 0-7Fh */
-  uint8_t note;                   /* last note (FFh none); rhythm voice: drums keyed on */
-  uint8_t length;                 /* default note length (ticks) */
-  uint8_t gate;                   /* default key-on time (ticks) */
-  uint8_t length_count;
-  uint8_t gate_count;
-  uint8_t repeat_count;
+  uint16_t track;  /* current track offset in the bank segment, 0 = ended */
+  uint16_t loop;   /* loop point (track start until FEh) */
+  uint8_t  flags;  /* FMD_VOICE_* */
+  uint8_t  volume; /* track volume 0-7Fh */
+  uint8_t  note;   /* last note (FFh none); rhythm voice: drums keyed on */
+  uint8_t  length; /* default note length (ticks) */
+  uint8_t  gate;   /* default key-on time (ticks) */
+  uint8_t  length_count;
+  uint8_t  gate_count;
+  uint8_t  repeat_count;
   uint16_t repeat_start;
   uint16_t repeat_exit;
-  uint16_t frequency;             /* unmodulated block/F-number (B0h:A0h) */
-  uint8_t level[2];               /* operator levels after volume */
-  uint8_t level_mod[2];           /* tremolo attenuation */
+  uint16_t frequency;    /* unmodulated block/F-number (B0h:A0h) */
+  uint8_t  level[2];     /* operator levels after volume */
+  uint8_t  level_mod[2]; /* tremolo attenuation */
   uint16_t instrument_off, instrument_seg;
-  uint8_t instrument_transpose;   /* signed semitones */
-  uint8_t lfo_flags;              /* FMD_LFO_* */
+  uint8_t  instrument_transpose; /* signed semitones */
+  uint8_t  lfo_flags;            /* FMD_LFO_* */
   uint16_t lfo_rate;
   uint16_t lfo_depth;
   uint16_t lfo_count;
-  uint16_t lfo_direction;         /* +1 / -1 */
+  uint16_t lfo_direction; /* +1 / -1 */
   uint16_t lfo_phase;
   /* not cleared by fmd_clear_voice: */
-  uint8_t opl_channel;            /* 0-8 */
-  uint8_t opl_operator;           /* modulator operator offset (carrier = +3) */
-  uint8_t ksl_tl[2];              /* cached registers 40h/43h + operator */
-  uint8_t fnum;                   /* cached register A0h + channel */
-  uint8_t keyon;                  /* cached register B0h + channel */
-  uint8_t volume_offset;          /* API 80h; bit 7 mutes key-on */
-  uint8_t transpose;              /* API 81h, signed semitones */
+  uint8_t opl_channel;   /* 0-8 */
+  uint8_t opl_operator;  /* modulator operator offset (carrier = +3) */
+  uint8_t ksl_tl[2];     /* cached registers 40h/43h + operator */
+  uint8_t fnum;          /* cached register A0h + channel */
+  uint8_t keyon;         /* cached register B0h + channel */
+  uint8_t volume_offset; /* API 80h; bit 7 mutes key-on */
+  uint8_t transpose;     /* API 81h, signed semitones */
 } FmdVoice;
 
 /* FmdVoice.flags */
 enum FmdVoiceFlag : std::uint8_t {
-  FMD_VOICE_WAITING = 0x01,       /* first event of the track not read yet */
-  FMD_VOICE_VIBRATO = 0x02,       /* software vibrato (F6h/F7h) set */
+  FMD_VOICE_WAITING       = 0x01, /* first event of the track not read yet */
+  FMD_VOICE_VIBRATO       = 0x02, /* software vibrato (F6h/F7h) set */
   FMD_VOICE_LFO_AVAILABLE = 0x04, /* instrument has an LFO */
-  FMD_VOICE_LFO_WANTED = 0x08,    /* F8h: run the instrument LFO */
-  FMD_VOICE_LEGATO = 0x20,        /* gate longer than length: tie the next note */
-  FMD_VOICE_SOUNDED = 0x40,       /* keyed on since the last silence */
-  FMD_VOICE_KEY_ON = 0x80,        /* key is on */
+  FMD_VOICE_LFO_WANTED    = 0x08, /* F8h: run the instrument LFO */
+  FMD_VOICE_LEGATO        = 0x20, /* gate longer than length: tie the next note */
+  FMD_VOICE_SOUNDED       = 0x40, /* keyed on since the last silence */
+  FMD_VOICE_KEY_ON        = 0x80, /* key is on */
 };
 
 /* FmdVoice.lfo_flags */
 enum FmdLfoFlag : std::uint8_t {
   FMD_LFO_STATE = 0x03, /* 0 idle, 1 delay, 2 running, 3 (re)start */
-  FMD_LFO_DOWN = 0x04,  /* software vibrato bends downwards */
-  FMD_LFO_RAMP = 0x40,  /* software vibrato ramp in progress */
-  FMD_LFO_ON = 0x80,    /* instrument LFO enabled */
+  FMD_LFO_DOWN  = 0x04, /* software vibrato bends downwards */
+  FMD_LFO_RAMP  = 0x40, /* software vibrato ramp in progress */
+  FMD_LFO_ON    = 0x80, /* instrument LFO enabled */
 };
 
 inline constexpr auto FMD_VOICES{ 6 };
 inline constexpr auto FMD_RHYTHM{ 6 };
 
 typedef struct FmDriver {
-  FmdHost host;
-  FmdVoice voice[FMD_VOICES + 1];     /* [FMD_RHYTHM] is the rhythm voice */
+  FmdHost  host;
+  FmdVoice voice[FMD_VOICES + 1]; /* [FMD_RHYTHM] is the rhythm voice */
 
-    /* timer */
-  uint16_t tempo_increment;           /* added to tempo_accumulator per PIT tick */
+  /* timer */
+  uint16_t tempo_increment; /* added to tempo_accumulator per PIT tick */
   uint16_t tempo_accumulator;
-  uint16_t pending_music_ticks;       /* accumulator carries not yet sequenced */
+  uint16_t pending_music_ticks; /* accumulator carries not yet sequenced */
   uint16_t pending_fixed_ticks;
-  uint8_t fixed_tick_accumulator;     /* += 36h per PIT tick */
-  uint8_t bios_tick_divider;          /* every 16th PIT tick goes to the BIOS */
-  uint8_t countdown_accumulator[2];   /* += 35h per PIT tick */
-  uint16_t countdown[2];              /* INT 66h F0h/F1h */
-  uint8_t enabled;                    /* FFh once an OPL chip was found */
-  uint8_t busy;                       /* nonzero: the tick must not sequence */
+  uint8_t  fixed_tick_accumulator;   /* += 36h per PIT tick */
+  uint8_t  bios_tick_divider;        /* every 16th PIT tick goes to the BIOS */
+  uint8_t  countdown_accumulator[2]; /* += 35h per PIT tick */
+  uint16_t countdown[2];             /* INT 66h F0h/F1h */
+  uint8_t  enabled;                  /* FFh once an OPL chip was found */
+  uint8_t  busy;                     /* nonzero: the tick must not sequence */
 
-    /* client data */
-  uint16_t music_off, music_seg;      /* song bank (API 00h) */
-  uint16_t effects_off, effects_seg;  /* sound-effect bank (API 10h) */
-  uint16_t callback_off, callback_seg;/* end-of-song callback (API 09h) */
+  /* client data */
+  uint16_t music_off, music_seg;       /* song bank (API 00h) */
+  uint16_t effects_off, effects_seg;   /* sound-effect bank (API 10h) */
+  uint16_t callback_off, callback_seg; /* end-of-song callback (API 09h) */
 
-    /* song state */
-  uint16_t fixed_tick_count;          /* fixed ticks since install (LFO seed) */
-  uint16_t random_state;              /* sample-and-hold LFO generator */
-  uint16_t music_ticks;               /* API 03h */
-  uint16_t effect_ticks;              /* API 13h */
-  uint8_t tempo;                      /* beats per minute (0 = stopped) */
-  uint8_t fade_length;                /* API 02h; 0 = no fade */
-  uint8_t fade_prescaler;             /* the fade advances every 4 fixed ticks */
-  uint8_t fade_step;
-  uint8_t fade_attenuation;           /* 0-FFh */
-  uint8_t repeat_mode;                /* API 04h */
-  uint8_t current_song;               /* 0 = none */
-  uint8_t queued_repeat;              /* API 08h */
-  uint8_t queued_song;
-  uint8_t current_effect;
+  /* song state */
+  uint16_t fixed_tick_count; /* fixed ticks since install (LFO seed) */
+  uint16_t random_state;     /* sample-and-hold LFO generator */
+  uint16_t music_ticks;      /* API 03h */
+  uint16_t effect_ticks;     /* API 13h */
+  uint8_t  tempo;            /* beats per minute (0 = stopped) */
+  uint8_t  fade_length;      /* API 02h; 0 = no fade */
+  uint8_t  fade_prescaler;   /* the fade advances every 4 fixed ticks */
+  uint8_t  fade_step;
+  uint8_t  fade_attenuation; /* 0-FFh */
+  uint8_t  repeat_mode;      /* API 04h */
+  uint8_t  current_song;     /* 0 = none */
+  uint8_t  queued_repeat;    /* API 08h */
+  uint8_t  queued_song;
+  uint8_t  current_effect;
 
   /* rhythm mode: drum levels from the instrument set, per-drum velocity */
   uint8_t level_bd, level_hh, level_sd, level_tom, level_cym;
   uint8_t velocity_bd, velocity_hh, velocity_sd, velocity_tom, velocity_cym;
-  uint8_t rhythm_control;             /* shadow of register BDh (AM/VIB depth) */
+  uint8_t rhythm_control; /* shadow of register BDh (AM/VIB depth) */
 } FmDriver;
 
 /* Install: reset the state; with detect != 0 run the original timer-overflow

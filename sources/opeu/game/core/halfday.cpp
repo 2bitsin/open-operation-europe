@@ -1,8 +1,8 @@
 // The half-day dispatch: every turn prepares the turn; at midnight the sides receive their daily resources, at noon
 // the record counters count down and the noon events run.
-#include "types.hpp"
 #include "core/halfday.hpp"
 #include "core/periodic.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "core/dialogs.hpp"
@@ -20,17 +20,12 @@ enum Service : std::uint16_t {
 };
 
 constexpr std::uint16_t NOON_RESERVE{ 0x200 }; // DS stack the noon events use
-constexpr std::uint16_t FAR_TEXT_SEGMENT{
-  0x3895
-}; // the far text the noon events read
-constexpr std::uint16_t NOON_CODE_SEGMENT{
-  0x0e57
-}; // the records' far actions in this code segment are noon events
+constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 }; // the far text the noon events read
+constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
 } // namespace
 
 void opeu_turn_half_day(uint8_t ds[65536],
-                        uint16_t (*event)(uint8_t*, uint16_t, uint16_t,
-                                          uint16_t, uint16_t, uint16_t)) {
+                        uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto const& data{ Data(ds) };
   event(ds, PREPARE, 0, 0, 0, 0);
   if (data.hour == 0)
@@ -42,24 +37,20 @@ void opeu_turn_half_day(uint8_t ds[65536],
 }
 
 // The services of the half-day dispatch as direct calls.
-uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1,
-                     uint16_t a2, uint16_t a3) {
+uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
   (void)a0;
   (void)a1;
   (void)a2;
   (void)a3;
   switch (id) {
-    case PREPARE:
-      opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host());
-      break;
-    case NOON_EVENTS: {
-      auto const sp{ port_stack_enter(NOON_RESERVE) };
-      opeu_turn_noon_events(ds, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, sp,
-                            NOON_CODE_SEGMENT);
-      port_stack_leave(NOON_RESERVE);
-      break;
-    }
-    default: port_unhandled("halfday", id, 4);
+  case PREPARE:     opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
+  case NOON_EVENTS: {
+    auto const sp{ port_stack_enter(NOON_RESERVE) };
+    opeu_turn_noon_events(ds, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, sp, NOON_CODE_SEGMENT);
+    port_stack_leave(NOON_RESERVE);
+    break;
+  }
+  default: port_unhandled("halfday", id, 4);
   }
   return 0;
 }

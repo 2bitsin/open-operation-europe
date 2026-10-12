@@ -10,7 +10,7 @@
 
 namespace opeu::intro::detail::odems {
 
-char opeu_ems_device_name[8] = { 'E', 'M', 'M', 'X', 'X', 'X', 'X', '0' };  /* DS:0178 */
-int16_t opeu_sprite_mapped = 0;                /* DS:0180 */
+char    opeu_ems_device_name[8] = { 'E', 'M', 'M', 'X', 'X', 'X', 'X', '0' }; /* DS:0178 */
+int16_t opeu_sprite_mapped      = 0;                                          /* DS:0180 */
 
 }

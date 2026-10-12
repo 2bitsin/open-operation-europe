@@ -8,7 +8,7 @@
  * value in BX; the result is (BX >> 1) & 0FFh (AH cleared). */
 uint16_t opeu_isqrt(uint32_t value) {
   uint16_t dx = (uint16_t)value, cx = 0, bx = 0, al;
-  int i;
+  int      i;
   if (dx & 0x8000) return 0xffff;
   for (i = 0; i < 8; i++) {
     cx = (uint16_t)(cx << 2 | dx >> 14);
@@ -16,7 +16,7 @@ uint16_t opeu_isqrt(uint32_t value) {
     bx = (uint16_t)(bx << 1 | 1);
     al = 2;
     if (cx < bx) {
-      al = 0;                       /* borrow: CX is restored */
+      al = 0; /* borrow: CX is restored */
     } else {
       cx = (uint16_t)(cx - bx);
     }

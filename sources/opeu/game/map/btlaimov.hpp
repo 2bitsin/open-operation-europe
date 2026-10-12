@@ -1,21 +1,15 @@
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit,
-                               uint16_t all);
-void    opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x,
-                               uint8_t y, uint16_t element);
-void    opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element,
-                              uint16_t unit, uint16_t target, uint16_t frame);
-void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event,
-                                uint16_t element, uint16_t unit, uint16_t sp);
-void opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element,
-                               uint16_t unit, uint16_t sp);
-void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element,
-                               uint16_t unit, uint16_t sp);
+uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t all);
+void    opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element);
+void    opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target,
+                              uint16_t frame);
+void    opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);
+void    opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);
+void    opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);
 
 // The services of this module.
-uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args,
-                      unsigned int count);
+uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count);

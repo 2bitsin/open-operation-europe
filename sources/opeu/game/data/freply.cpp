@@ -5,70 +5,51 @@
  */
 /* The module's far objects lie in declaration order, without padding, in one paragraph-aligned segment. */
 
-/* +0000 */ char opeu_reply_000[] =
-    "\033C%c%s Special Forces \033C7successfully completed %s.\033S";
+/* +0000 */ char opeu_reply_000[] = "\033C%c%s Special Forces \033C7successfully completed %s.\033S";
 /* +0036 */ char opeu_reply_001[] = "\033C%c%s SpFc team attack:\n"
                                     "\033C7%s\033S";
-/* +0057 */ char opeu_reply_002[] =
-    "\033C%c%s Special Forces \033C7failed %s.\033S";
+/* +0057 */ char opeu_reply_002[] = "\033C%c%s Special Forces \033C7failed %s.\033S";
 /* +007d */ char opeu_reply_003[] = " has been assassinated!\033S";
-/* +0097 */ char opeu_reply_004[] =
-    "Well, you and your men have your orders, so I'm afraid\n";
+/* +0097 */ char opeu_reply_004[] = "Well, you and your men have your orders, so I'm afraid\n";
 /* +00cf */ char opeu_reply_005[] = "Preparations will take\n"
                                     "about %d hours, but\n"
                                     "we'll try to speed things up.\033S";
 /* +011a */ char opeu_reply_006[] = " assassination mission";
-/* +0131 */ char opeu_reply_007[] =
-    "this is goodbye for now. Hopefully this will all be\n";
-/* +0166 */ char opeu_reply_008[] =
-    "Let me offer my deepest congratulations, Commander!\n";
-/* +019b */ char opeu_reply_009[] =
-    "You and your men have done a marvelous job. You\n";
-/* +01cc */ char opeu_reply_010[] =
-    "should all be very proud of yourselves. Your country\n";
+/* +0131 */ char opeu_reply_007[] = "this is goodbye for now. Hopefully this will all be\n";
+/* +0166 */ char opeu_reply_008[] = "Let me offer my deepest congratulations, Commander!\n";
+/* +019b */ char opeu_reply_009[] = "You and your men have done a marvelous job. You\n";
+/* +01cc */ char opeu_reply_010[] = "should all be very proud of yourselves. Your country\n";
 /* +0202 */ char opeu_reply_011[] = "thanks you for your honorable service.";
-/* +0229 */ char opeu_reply_012[] =
-    "At ease men. I'm not here on any serious business.\033S";
+/* +0229 */ char opeu_reply_012[] = "At ease men. I'm not here on any serious business.\033S";
 /* +025e */ char opeu_reply_013[] = "I wanted to see you and your men in "
                                     "action. So I came to the front line.\033S";
-/* +02a9 */ char opeu_reply_014[] =
-    "And by gone it! Your men are putting up one hell of a fight!";
+/* +02a9 */ char opeu_reply_014[] = "And by gone it! Your men are putting up one hell of a fight!";
 /* +02e6 */ char opeu_reply_015[] = "With you in charge here, it won't be long "
                                     "before they run crying home.\033S";
-/* +032f */ char opeu_reply_016[] =
-    "I'm counting on you. Keep up the good work.\033S";
-/* +035d */ char opeu_reply_017[] =
-    "Thanks for coming to meet me personally.\033S";
-/* +0388 */ char opeu_reply_018[] =
-    "What is the status of your forces, Commander %s?\033S";
+/* +032f */ char opeu_reply_016[] = "I'm counting on you. Keep up the good work.\033S";
+/* +035d */ char opeu_reply_017[] = "Thanks for coming to meet me personally.\033S";
+/* +0388 */ char opeu_reply_018[] = "What is the status of your forces, Commander %s?\033S";
 /* +03bb */ char opeu_reply_019[] = "It doesn't seem too\n"
                                     "bad.\033S";
 /* +03d6 */ char opeu_reply_020[] = "I have every confidence\n"
                                     "that will complete your\n"
                                     "duties successfully.\033S";
 /* +041d */ char opeu_reply_021[] = "";
-/* +041e */ char opeu_reply_022[] =
-    "I'll be at Army HQ, waiting for some positive news.\033S";
-/* +0454 */ char opeu_reply_023[] =
-    "Commander %s! What are you waiting for?!\033S";
-/* +047f */ char opeu_reply_024[] =
-    "When I heard you were having trouble, I came right over;\033S";
-/* +04ba */ char opeu_reply_025[] =
-    "but these guys should take you no time at\n"
-    "all!\033S";
+/* +041e */ char opeu_reply_022[] = "I'll be at Army HQ, waiting for some positive news.\033S";
+/* +0454 */ char opeu_reply_023[] = "Commander %s! What are you waiting for?!\033S";
+/* +047f */ char opeu_reply_024[] = "When I heard you were having trouble, I came right over;\033S";
+/* +04ba */ char opeu_reply_025[] = "but these guys should take you no time at\n"
+                                    "all!\033S";
 /* +04eb */ char opeu_reply_026[] = "You'd better finish these guys off quick! "
                                     "And that's an order, mister!\033S";
 /* +0534 */ char opeu_reply_027[] = "A bridge was wiped out by the %s.\033S";
 /* +0558 */ char opeu_reply_028[] = "The %s damaged\n"
                                     "the defenses in\n"
                                     "%s!\033S";
-/* +057d */ char opeu_reply_029[] =
-    "\033C7%s forces raided \033C6Axis %s\033C7.\033S";
+/* +057d */ char opeu_reply_029[] = "\033C7%s forces raided \033C6Axis %s\033C7.\033S";
 /* +05a2 */ char opeu_reply_030[] = "We've been attacked by %s forces!\033S";
-/* +05c6 */ char opeu_reply_031[] =
-    "Our battleships hit the \033C6Axis %s\033C7!\033S";
-/* +05ef */ char opeu_reply_032[] =
-    "We've been hit by the \033C5Allied battleships\033C7!\033S";
+/* +05c6 */ char opeu_reply_031[] = "Our battleships hit the \033C6Axis %s\033C7!\033S";
+/* +05ef */ char opeu_reply_032[] = "We've been hit by the \033C5Allied battleships\033C7!\033S";
 /* +0621 */ char opeu_reply_033[] = "Fire the V-1 rockets!\033S";
 /* +0639 */ char opeu_reply_034[] = "The V-1 rockets hit\n"
                                     "\033C5%s\033C7!\033S";
@@ -119,41 +100,28 @@
 /* +0990 */ char opeu_reply_051[] = "I hope to see you again\n"
                                     "someday.\n"
                                     "Goodbye now...\033S";
-/* +09c2 */ char opeu_reply_052[] =
-    "I know how you must be feeling; the destruction, the\n";
-/* +09f8 */ char opeu_reply_053[] =
-    "killing...The terrible face of war has been emblazoned on\n";
-/* +0a33 */ char opeu_reply_054[] =
-    "your soul, and I doubt you'll ever forget it.";
-/* +0a61 */ char opeu_reply_055[] =
-    "over soon, but until then Commander, your country is\n";
-/* +0a97 */ char opeu_reply_056[] =
-    "There's a girl here to see you, Commandant. She says she's brought you "
-    "some tea.\033S";
+/* +09c2 */ char opeu_reply_052[] = "I know how you must be feeling; the destruction, the\n";
+/* +09f8 */ char opeu_reply_053[] = "killing...The terrible face of war has been emblazoned on\n";
+/* +0a33 */ char opeu_reply_054[] = "your soul, and I doubt you'll ever forget it.";
+/* +0a61 */ char opeu_reply_055[] = "over soon, but until then Commander, your country is\n";
+/* +0a97 */ char opeu_reply_056[] = "There's a girl here to see you, Commandant. She says she's brought you "
+                                    "some tea.\033S";
 /* +0aea */ char opeu_reply_057[] = "Will you see her?";
 /* +0afc */ char opeu_reply_058[] = "That girl is back again.\n"
                                     "Should we let her in,\n"
                                     "Commandant?";
 /* +0b37 */ char opeu_reply_059[] = "The troops are exhausted.\033S";
 /* +0b53 */ char opeu_reply_060[] = "We're out of fuel.\033S";
-/* +0b68 */ char opeu_reply_061[] =
-    "%s is under enemy control. We cannot get %s to you.\033S";
-/* +0b9e */ char opeu_reply_062[] =
-    "Your forces are isolated. We cannot get %s to you.\033S";
-/* +0bd3 */ char opeu_reply_063[] =
-    "I'm sorry, but our plan to send you %s had to be aborted.\033S";
-/* +0c0f */ char opeu_reply_064[] =
-    "Your request for %s has been approved. They will be sent soon.\033S";
-/* +0c50 */ char opeu_reply_065[] =
-    "They have decided that you can continue to fight without %s.";
-/* +0c8d */ char opeu_reply_066[] =
-    "After an evaluation, they decided to turn down your request for %s.\033S";
-/* +0cd3 */ char opeu_reply_067[] =
-    "Their evaluation states that your request for %s be denied.\033S";
+/* +0b68 */ char opeu_reply_061[] = "%s is under enemy control. We cannot get %s to you.\033S";
+/* +0b9e */ char opeu_reply_062[] = "Your forces are isolated. We cannot get %s to you.\033S";
+/* +0bd3 */ char opeu_reply_063[] = "I'm sorry, but our plan to send you %s had to be aborted.\033S";
+/* +0c0f */ char opeu_reply_064[] = "Your request for %s has been approved. They will be sent soon.\033S";
+/* +0c50 */ char opeu_reply_065[] = "They have decided that you can continue to fight without %s.";
+/* +0c8d */ char opeu_reply_066[] = "After an evaluation, they decided to turn down your request for %s.\033S";
+/* +0cd3 */ char opeu_reply_067[] = "Their evaluation states that your request for %s be denied.\033S";
 /* +0d11 */ char opeu_reply_068[] = "They do not see the need for additional\n"
                                     "%s.\033S";
-/* +0d3f */ char opeu_reply_069[] =
-    "Your request for %s has been turned down.\033S";
+/* +0d3f */ char opeu_reply_069[] = "Your request for %s has been turned down.\033S";
 /* +0d6b */ char opeu_reply_070[] = "We are preparing for a large-scale "
                                     "offensive. We cannot spare any %s.\033S";
 /* +0db3 */ char opeu_reply_071[] = "They can't send\n"
@@ -164,66 +132,44 @@
 /* +0e17 */ char opeu_reply_073[] = "Fuel %u(+%u)\n"
                                     "Ammo %u(+%u)\n"
                                     "Food %u(+%u)\033S";
-/* +0e40 */ char opeu_reply_074[] =
-    "A supplement of new troops has arrived in %s.\033S";
-/* +0e70 */ char opeu_reply_075[] =
-    "The \033C%c%s \033C%c%s\033C7 has arrived!\033S";
-/* +0e94 */ char opeu_reply_076[] =
-    "You've won today's battle, but the war rages on in other\n";
-/* +0ece */ char opeu_reply_077[] =
-    "parts of the world. We need you and your brave men,\n";
-/* +0f03 */ char opeu_reply_078[] =
-    "Commander. Their courage and fighting spirit, under\n";
-/* +0f38 */ char opeu_reply_079[] =
-    "your leadership, could put an end to this whole mess.";
-/* +0f6e */ char opeu_reply_080[] =
-    "Without control of the skies, we can't make a large-scale air raid.\033S";
-/* +0fb4 */ char opeu_reply_081[] =
-    "With the number of bombers we have now, we can't make a very effective "
-    "bombing run.\033S";
-/* +100a */ char opeu_reply_082[] =
-    "We don't have any bombers you can use at this time.\033S";
-/* +1040 */ char opeu_reply_083[] =
-    "Carpet bombing over enemy units is a waste of planes.\033S";
-/* +1078 */ char opeu_reply_084[] =
-    "Unfortunately, this is not a good time.\033S";
-/* +10a2 */ char opeu_reply_085[] =
-    "Without command of the skies, we can't afford to send out too many of our "
-    "bombers.\033S";
-/* +10f7 */ char opeu_reply_086[] =
-    "We cannot provide effective air support with the number of bombers we "
-    "have now.\033S";
-/* +1149 */ char opeu_reply_087[] =
-    "A strafing attack should stop the enemy units.\033S";
-/* +117a */ char opeu_reply_088[] =
-    "Due to a lack of bombers, we can't make an effective city bombing.\033S";
-/* +11bf */ char opeu_reply_089[] =
-    "Our ground forces shouldn't expect too much air support when we attack "
-    "the city.\033S";
-/* +1212 */ char opeu_reply_090[] =
-    "Are you telling me that I should just send my pilots out to die?!";
-/* +1254 */ char opeu_reply_091[] =
-    "With this few bombers, we will never be able to give our ground forces "
-    "support.\033S";
-/* +12a6 */ char opeu_reply_092[] =
-    "It's very dangerous to attack a city without control of the skies.\033S";
+/* +0e40 */ char opeu_reply_074[] = "A supplement of new troops has arrived in %s.\033S";
+/* +0e70 */ char opeu_reply_075[] = "The \033C%c%s \033C%c%s\033C7 has arrived!\033S";
+/* +0e94 */ char opeu_reply_076[] = "You've won today's battle, but the war rages on in other\n";
+/* +0ece */ char opeu_reply_077[] = "parts of the world. We need you and your brave men,\n";
+/* +0f03 */ char opeu_reply_078[] = "Commander. Their courage and fighting spirit, under\n";
+/* +0f38 */ char opeu_reply_079[] = "your leadership, could put an end to this whole mess.";
+/* +0f6e */ char opeu_reply_080[] = "Without control of the skies, we can't make a large-scale air raid.\033S";
+/* +0fb4 */ char opeu_reply_081[] = "With the number of bombers we have now, we can't make a very effective "
+                                    "bombing run.\033S";
+/* +100a */ char opeu_reply_082[] = "We don't have any bombers you can use at this time.\033S";
+/* +1040 */ char opeu_reply_083[] = "Carpet bombing over enemy units is a waste of planes.\033S";
+/* +1078 */ char opeu_reply_084[] = "Unfortunately, this is not a good time.\033S";
+/* +10a2 */ char opeu_reply_085[] = "Without command of the skies, we can't afford to send out too many of our "
+                                    "bombers.\033S";
+/* +10f7 */ char opeu_reply_086[] = "We cannot provide effective air support with the number of bombers we "
+                                    "have now.\033S";
+/* +1149 */ char opeu_reply_087[] = "A strafing attack should stop the enemy units.\033S";
+/* +117a */ char opeu_reply_088[] = "Due to a lack of bombers, we can't make an effective city bombing.\033S";
+/* +11bf */ char opeu_reply_089[] = "Our ground forces shouldn't expect too much air support when we attack "
+                                    "the city.\033S";
+/* +1212 */ char opeu_reply_090[] = "Are you telling me that I should just send my pilots out to die?!";
+/* +1254 */ char opeu_reply_091[] = "With this few bombers, we will never be able to give our ground forces "
+                                    "support.\033S";
+/* +12a6 */ char opeu_reply_092[] = "It's very dangerous to attack a city without control of the skies.\033S";
 /* +12eb */ char opeu_reply_093[] = "How do you propose we attack the city "
                                     "with the number of bombers we have now?!";
-/* +133a */ char opeu_reply_094[] =
-    "Machine gunfire is very ineffective against cities.\033S";
+/* +133a */ char opeu_reply_094[] = "Machine gunfire is very ineffective against cities.\033S";
 /* +1370 */ char opeu_reply_095[] = "In %d %s, %d %s\n"
                                     "will execute\n"
                                     "%s operation.\033S";
 /* +139d */ char opeu_reply_096[] = "Call off the\n"
                                     "air mission, sir?";
-/* +13bc */ char opeu_reply_097[] =
-    "There are no aircraft ready for action.\033E2";
+/* +13bc */ char opeu_reply_097[] = "There are no aircraft ready for action.\033E2";
 /* +13e7 */ char opeu_reply_098[] = "We will ask Airforce HQ\n"
                                     "for an air strike.\n"
                                     "Are these your orders?";
 /* +1429 */ char opeu_reply_099[] = "depending on you. ";
-/* +143c */ char opeu_reply_100[] =
-    "They are presently executing a mission, sir.\033W2";
+/* +143c */ char opeu_reply_100[] = "They are presently executing a mission, sir.\033W2";
 /* +146c */ char opeu_reply_101[] = " had their communications cut!";
 /* +148b */ char opeu_reply_102[] = "You cannot drop %s over a %s.\033W3";
 /* +14ac */ char opeu_reply_103[] = "Orders understood.\n"
@@ -253,19 +199,14 @@
                                     "at least %d hours.\033S";
 /* +16b5 */ char opeu_reply_115[] = "Preparation usually takes %d hours but, "
                                     "we'll try to shorten it for you.\033S";
-/* +1700 */ char opeu_reply_116[] =
-    "Transporting cargo in the daytime is too dangerous!\033S";
+/* +1700 */ char opeu_reply_116[] = "Transporting cargo in the daytime is too dangerous!\033S";
 /* +1736 */ char opeu_reply_117[] = "How long should we wait, sir(1-24)";
 /* +1759 */ char opeu_reply_118[] = "How long should we wait, sir";
 /* +1776 */ char opeu_reply_119[] = "We'll wait 1 hour.\n"
                                     "Is this correct, sir?";
-/* +179f */ char opeu_reply_120[] =
-    "%2s   %2d    %2d    %2d    %2d    %2d    %2d    %2d    %2d  %-4.4s  %-4s";
-/* +17e8 */ char opeu_reply_121[] =
-    "In %d hours, %d %s will drop our paratroops.\033S";
-/* +1817 */ char opeu_reply_122[] =
-    "Nat  Ldr  Chrm  Brvy   Hlt   Inf  Arty  Tanks  Exp  Cmd   Stat";
-/* +1856 */ char opeu_reply_123[] =
-    "   ------      ------    ----   ----   ----   ---- ";
+/* +179f */ char opeu_reply_120[] = "%2s   %2d    %2d    %2d    %2d    %2d    %2d    %2d    %2d  %-4.4s  %-4s";
+/* +17e8 */ char opeu_reply_121[] = "In %d hours, %d %s will drop our paratroops.\033S";
+/* +1817 */ char opeu_reply_122[] = "Nat  Ldr  Chrm  Brvy   Hlt   Inf  Arty  Tanks  Exp  Cmd   Stat";
+/* +1856 */ char opeu_reply_123[] = "   ------      ------    ----   ----   ----   ---- ";
 /* +188a */ char opeu_reply_124[] = "Understood, sir.\n"
                                     "It will take about %d hours.\033S";

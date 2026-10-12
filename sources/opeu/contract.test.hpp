@@ -64,7 +64,9 @@ auto ThrownContract(_Broken&& broken) -> std::string {
 // Failures are reported at the caller's line.
 template <bool _Stopping, typename _Broken>
 auto ExpectStopped(_Broken&& broken, std::string_view kind, std::string_view text, std::source_location where) -> void {
-  auto const trace{ testing::ScopedTrace{ where.file_name(), static_cast<int>(where.line()), "broken contract" } };
+  auto const trace{
+    testing::ScopedTrace{ where.file_name(), static_cast<int>(where.line()), "broken contract" }
+  };
   if constexpr (CONTRACTS_HALT) {
     auto const thrown{ ThrownContract(broken) };
     EXPECT_TRUE(SaysContract(thrown, kind, text)) << thrown;

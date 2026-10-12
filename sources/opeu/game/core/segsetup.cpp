@@ -1,21 +1,21 @@
 // Start-up: allocating the game's memory blocks (falling back to EMS buffers), opening the data files, and the
 // out-of-memory notice.
-#include "types.hpp"
 #include "core/segsetup.hpp"
-#include "core/emsmap.hpp"
 #include "common/data-segment.hpp"
-#include "common/memory.hpp"
 #include "common/events.hpp"
+#include "common/memory.hpp"
+#include "core/emsmap.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
-#include <utility>
 #include "core/settings.hpp"
 #include "core/uiprim.hpp"
 #include "io/resopen.hpp"
 #include "io/sound.hpp"
+#include <utility>
 
 using namespace opeu::game;
 
@@ -42,8 +42,7 @@ constexpr uint16_t EMS_CALL_DEPTH{ 8 };
 constexpr uint16_t SETUP_CALL_DEPTH{ 0x16 };
 
 // Allocates a memory block and stores its segment; returns the segment (0 when memory is short).
-auto Allocate(uint8_t* ds, HostEvent event, uint16_t& segment,
-              uint16_t paragraphs) -> uint16_t {
+auto Allocate(uint8_t* ds, HostEvent event, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
   return segment = Call(ds, event, SetupService::ALLOCATE, paragraphs);
 }
 
@@ -62,8 +61,7 @@ void opeu_memory_fail(uint8_t ds[65536], HostEvent event, uint16_t) {
   Call(ds, event, SetupService::PRINT, Near(data, data.memory_message));
   Call(ds, event, SetupService::PRINT, Near(data, data.memory_advice));
   Call(ds, event, SetupService::PRINT, Near(data, data.memory_exit));
-  while (!Call(ds, event, SetupService::WAIT_KEY))
-    ;
+  while (!Call(ds, event, SetupService::WAIT_KEY));
   Call(ds, event, SetupService::QUIT);
 }
 
@@ -72,10 +70,8 @@ void opeu_memory_fail(uint8_t ds[65536], HostEvent event, uint16_t) {
 void opeu_alloc_segments(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const ems_sp{ static_cast<uint16_t>(sp - EMS_CALL_DEPTH) };
-  auto const need{ [&](uint16_t& segment, uint16_t paragraphs,
-                       auto const& name) {
-    if (Allocate(ds, event, segment, paragraphs) == 0)
-      opeu_memory_fail(ds, event, Near(Data(ds), name));
+  auto const need{ [&](uint16_t& segment, uint16_t paragraphs, auto const& name) {
+    if (Allocate(ds, event, segment, paragraphs) == 0) opeu_memory_fail(ds, event, Near(Data(ds), name));
   } };
   need(data.overview_tile_segment, 0xc1, data.setup_name_bmapseg);
   need(data.icon_segment, 0x867, data.setup_name_hunitseg);
@@ -86,17 +82,15 @@ void opeu_alloc_segments(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   need(data.face_segment, 0x4b0, data.setup_name_armsseg);
   need(data.portrait_segment, 0x4b0, data.setup_name_kaoseg);
   int16_t const ems = opeu_ems_detect(ds, event, ems_sp);
-  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 &&
-      (ems == 0 || opeu_ems_alloc_frame(ds, event, ems_sp) == 0))
+  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event, ems_sp) == 0))
     opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
-  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0 &&
-      (ems == 0 || opeu_ems_alloc_numdlg(ds, event, ems_sp) == 0))
+  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0
+      && (ems == 0 || opeu_ems_alloc_numdlg(ds, event, ems_sp) == 0))
     opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
-  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0 &&
-      (ems == 0 || opeu_ems_alloc_sprite(ds, event, ems_sp) == 0))
+  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0
+      && (ems == 0 || opeu_ems_alloc_sprite(ds, event, ems_sp) == 0))
     opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
-  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 &&
-      (ems == 0 || opeu_ems_alloc_tile(ds, event, ems_sp) == 0))
+  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event, ems_sp) == 0))
     opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
 }
 
@@ -121,29 +115,22 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   opeu_open_data_files(ds, event);
 }
 
-uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args,
-                      uint16_t count) {
-  if (id <= std::to_underlying(SetupService::EMS_LAST))
-    return svc_emsmap(ds, id, args, count);
+uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+  if (id <= std::to_underlying(SetupService::EMS_LAST)) return svc_emsmap(ds, id, args, count);
   switch (static_cast<SetupService>(id)) {
-    case SetupService::PRINT:    a_cursor_print(ds, args, 1); break;
-    case SetupService::WAIT_KEY: return opeu_turn_input_b();
-    case SetupService::QUIT:     opeu_quit_to_dos(ds, svc_settings); break;
-    case SetupService::ALLOCATE: return opeu_dos_alloc(Arg(args, count, 0));
-    case SetupService::OPEN_RESOURCE:
-      return static_cast<uint16_t>(
-          opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
-    case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;
-    case SetupService::VGA_SETUP:        koei_2fea(); break;
-    case SetupService::IDENTITY_PALETTE: koei_vga_identity_palette(); break;
-    case SetupService::VGA_CLEAR:        opeu_vga_clear(); break;
-    case SetupService::PALETTE_TITLE:
-      opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host());
-      break;
-    case SetupService::SOUND_INITIALIZE:
-      opeu_sound_initialize(ds, svc_sound);
-      break;
-    default: port_unhandled("segsetup", id, count);
+  case SetupService::PRINT:    a_cursor_print(ds, args, 1); break;
+  case SetupService::WAIT_KEY: return opeu_turn_input_b();
+  case SetupService::QUIT:     opeu_quit_to_dos(ds, svc_settings); break;
+  case SetupService::ALLOCATE: return opeu_dos_alloc(Arg(args, count, 0));
+  case SetupService::OPEN_RESOURCE:
+    return static_cast<uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
+  case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;
+  case SetupService::VGA_SETUP:        koei_2fea(); break;
+  case SetupService::IDENTITY_PALETTE: koei_vga_identity_palette(); break;
+  case SetupService::VGA_CLEAR:        opeu_vga_clear(); break;
+  case SetupService::PALETTE_TITLE:    opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host()); break;
+  case SetupService::SOUND_INITIALIZE: opeu_sound_initialize(ds, svc_sound); break;
+  default:                             port_unhandled("segsetup", id, count);
   }
   return 0;
 }

@@ -7,11 +7,7 @@ uint16_t opeu_unit_special(uint8_t* ds, uint16_t unit);
 uint16_t opeu_unit_average9(uint8_t* ds, uint16_t unit);
 uint16_t opeu_unit_average10(uint8_t* ds, uint16_t unit);
 uint16_t opeu_unit_average11(uint8_t* ds, uint16_t unit);
-uint16_t opeu_unit_quantity(uint8_t* ds, uint16_t unit, uint8_t category,
-                            uint8_t* count);
-uint16_t opeu_group_quantity(uint8_t* ds, uint16_t group, uint8_t category,
-                             uint8_t* count);
-uint32_t opeu_side_quantity(uint8_t* ds, uint8_t side, uint8_t category,
-                            uint8_t* count);
-uint16_t opeu_objective_quantity(uint8_t* ds, uint16_t objective,
-                                 uint8_t category, uint8_t* count);
+uint16_t opeu_unit_quantity(uint8_t* ds, uint16_t unit, uint8_t category, uint8_t* count);
+uint16_t opeu_group_quantity(uint8_t* ds, uint16_t group, uint8_t category, uint8_t* count);
+uint32_t opeu_side_quantity(uint8_t* ds, uint8_t side, uint8_t category, uint8_t* count);
+uint16_t opeu_objective_quantity(uint8_t* ds, uint16_t objective, uint8_t category, uint8_t* count);

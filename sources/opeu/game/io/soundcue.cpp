@@ -73,67 +73,56 @@ void opeu_sound_cue16(std::uint8_t* ds, HostService service) {
   opeu_effect_play(ds, service, 16);
 }
 
-auto svc_soundcue(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words)
-    -> std::uint16_t {
+auto svc_soundcue(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
   return svc_sound(ds, call, words);
 }
 
-auto port_routine_opeu_control_begin(std::uint8_t* ds, std::uint16_t const*,
-                                     unsigned) -> std::uint32_t {
+auto port_routine_opeu_control_begin(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_control_begin(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue0(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue0(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue0(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue1(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue1(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue1(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue2(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue2(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue2(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue3(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue3(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue3(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue4(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue4(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue4(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue5(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue5(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue5(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue6(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue6(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue6(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue7(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue7(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue7(ds, svc_soundcue);
   return 0;
 }
 
-auto port_routine_opeu_sound_cue9(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_sound_cue9(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_sound_cue9(ds, svc_soundcue);
   return 0;
 }

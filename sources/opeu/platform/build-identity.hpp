@@ -13,8 +13,8 @@ struct BuildIdentity {
   std::string_view commit;   // short hash, "unknown" outside git
   std::string_view tag;      // exact tag of the commit, empty when none
   std::string_view time;     // UTC, "YYYY-MM-DDTHH:MMZ"
-  bool dirty{};    // tracked files differed from the commit
-  std::uint32_t number{};   // this checkout's build counter
+  bool             dirty{};  // tracked files differed from the commit
+  std::uint32_t    number{}; // this checkout's build counter
 
   auto operator==(BuildIdentity const&) const noexcept -> bool = default;
 };

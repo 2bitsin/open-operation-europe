@@ -157,172 +157,105 @@
                                        "through to Berlin. We\n"
                                        "can no longer send you\n"
                                        "reinforcements.";
-/* +0aa3 */ char opeu_war_news_049[] =
-    "Germans have started an all-out attack on the Western Front.";
-/* +0ae0 */ char opeu_war_news_050[] =
-    "Holland surrendered! Germany is out for all of Europe!";
+/* +0aa3 */ char opeu_war_news_049[] = "Germans have started an all-out attack on the Western Front.";
+/* +0ae0 */ char opeu_war_news_050[] = "Holland surrendered! Germany is out for all of Europe!";
 /* +0b17 */ char opeu_war_news_051[] = "German forces have occupied Brussels.";
-/* +0b3d */ char opeu_war_news_052[] =
-    "Allied forces have counter-attacked at Dunkirk.";
+/* +0b3d */ char opeu_war_news_052[] = "Allied forces have counter-attacked at Dunkirk.";
 /* +0b6d */ char opeu_war_news_053[] = "The German advance was halted!";
-/* +0b8c */ char opeu_war_news_054[] =
-    "British-French forces have begun to withdraw from Dunkirk.";
-/* +0bc7 */ char opeu_war_news_055[] =
-    "Belgium and Leopold III have surrendered.";
-/* +0bf1 */ char opeu_war_news_056[] =
-    "British-French forces have completely withdrawn from Dunkirk.";
-/* +0c2f */ char opeu_war_news_057[] =
-    "German forces have launched a massive offensive into Somme.";
-/* +0c6b */ char opeu_war_news_058[] =
-    "Norway surrendered. Italy has declared war on Britain and France.";
+/* +0b8c */ char opeu_war_news_054[] = "British-French forces have begun to withdraw from Dunkirk.";
+/* +0bc7 */ char opeu_war_news_055[] = "Belgium and Leopold III have surrendered.";
+/* +0bf1 */ char opeu_war_news_056[] = "British-French forces have completely withdrawn from Dunkirk.";
+/* +0c2f */ char opeu_war_news_057[] = "German forces have launched a massive offensive into Somme.";
+/* +0c6b */ char opeu_war_news_058[] = "Norway surrendered. Italy has declared war on Britain and France.";
 /* +0cad */ char opeu_war_news_059[] = "Allied command has ordered defending "
                                        "units on the Maginot Line to withdraw.";
-/* +0cf9 */ char opeu_war_news_060[] =
-    "German forces have forced their way into Paris.";
-/* +0d29 */ char opeu_war_news_061[] =
-    "The 'Free France' movement was established.";
-/* +0d55 */ char opeu_war_news_062[] =
-    "France signed a cease-fire agreement with Germany.";
-/* +0d88 */ char opeu_war_news_063[] =
-    "German and Italian forces have started an offensive into northern Africa.";
-/* +0dd2 */ char opeu_war_news_064[] =
-    "Mexico has declared war on the Axis powers.";
-/* +0dfe */ char opeu_war_news_065[] =
-    "British forces air raided Klin. The Russian counter-attack at Volkhov was "
-    "a failure.";
-/* +0e53 */ char opeu_war_news_066[] =
-    "The Royal British air force executed mass raids over Essen.";
-/* +0e8f */ char opeu_war_news_067[] =
-    "The Japanese navy was defeated at Midway.";
-/* +0eb9 */ char opeu_war_news_068[] =
-    "Japanese troops began landing on the Aleutian Islands.";
+/* +0cf9 */ char opeu_war_news_060[] = "German forces have forced their way into Paris.";
+/* +0d29 */ char opeu_war_news_061[] = "The 'Free France' movement was established.";
+/* +0d55 */ char opeu_war_news_062[] = "France signed a cease-fire agreement with Germany.";
+/* +0d88 */ char opeu_war_news_063[] = "German and Italian forces have started an offensive into northern Africa.";
+/* +0dd2 */ char opeu_war_news_064[] = "Mexico has declared war on the Axis powers.";
+/* +0dfe */ char opeu_war_news_065[] = "British forces air raided Klin. The Russian counter-attack at Volkhov was "
+                                       "a failure.";
+/* +0e53 */ char opeu_war_news_066[] = "The Royal British air force executed mass raids over Essen.";
+/* +0e8f */ char opeu_war_news_067[] = "The Japanese navy was defeated at Midway.";
+/* +0eb9 */ char opeu_war_news_068[] = "Japanese troops began landing on the Aleutian Islands.";
 /* +0ef0 */ char opeu_war_news_069[] = "US-Russia sign Mutual Aid Agreement.";
-/* +0f15 */ char opeu_war_news_070[] =
-    "German-Italian forces blocked a British landing on Malta.";
-/* +0f4f */ char opeu_war_news_071[] =
-    "The Japanese have landed at Guadalcanal.";
-/* +0f78 */ char opeu_war_news_072[] =
-    "Britian-Russia sign Mutual Aid Agreement.";
-/* +0fa2 */ char opeu_war_news_073[] =
-    "German forces have begun a summer offensive against Russia.";
-/* +0fde */ char opeu_war_news_074[] =
-    "German troops have occupied Sebastopol.";
-/* +1006 */ char opeu_war_news_075[] =
-    "German forces ordered to cancel the Tobruk offensive.";
-/* +103c */ char opeu_war_news_076[] =
-    "German troops took the offensive in the Kursk area.";
+/* +0f15 */ char opeu_war_news_070[] = "German-Italian forces blocked a British landing on Malta.";
+/* +0f4f */ char opeu_war_news_071[] = "The Japanese have landed at Guadalcanal.";
+/* +0f78 */ char opeu_war_news_072[] = "Britian-Russia sign Mutual Aid Agreement.";
+/* +0fa2 */ char opeu_war_news_073[] = "German forces have begun a summer offensive against Russia.";
+/* +0fde */ char opeu_war_news_074[] = "German troops have occupied Sebastopol.";
+/* +1006 */ char opeu_war_news_075[] = "German forces ordered to cancel the Tobruk offensive.";
+/* +103c */ char opeu_war_news_076[] = "German troops took the offensive in the Kursk area.";
 /* +1070 */ char opeu_war_news_077[] = "Allies began landing on Sicily.";
-/* +1090 */ char opeu_war_news_078[] =
-    "Russian forces have made a massive offensive into Briansk in northern "
-    "Kursk.";
+/* +1090 */ char opeu_war_news_078[] = "Russian forces have made a massive offensive into Briansk in northern "
+                                       "Kursk.";
 /* +10dd */ char opeu_war_news_079[] = "Allied forces have occupied Palermo.";
-/* +1102 */ char opeu_war_news_080[] =
-    "US-British forces carried out heavy air raids on Hamburg.";
-/* +113c */ char opeu_war_news_081[] =
-    "In Italy, the Fascist Regime collapsed, and Mussolini was arrested.";
-/* +1180 */ char opeu_war_news_082[] =
-    "New Italian Prime Minister Badoglio declared that Italy will stay in the "
-    "war.";
-/* +11ce */ char opeu_war_news_083[] =
-    "Japanese troops withdrew from the Aleutian Islands.";
+/* +1102 */ char opeu_war_news_080[] = "US-British forces carried out heavy air raids on Hamburg.";
+/* +113c */ char opeu_war_news_081[] = "In Italy, the Fascist Regime collapsed, and Mussolini was arrested.";
+/* +1180 */ char opeu_war_news_082[] = "New Italian Prime Minister Badoglio declared that Italy will stay in the "
+                                       "war.";
+/* +11ce */ char opeu_war_news_083[] = "Japanese troops withdrew from the Aleutian Islands.";
 /* +1202 */ char opeu_war_news_084[] = "Burma has declared its independence.";
-/* +1227 */ char opeu_war_news_085[] =
-    "Russian troops retook Orel. German troops in northern Kursk began to "
-    "withdraw.";
-/* +1276 */ char opeu_war_news_086[] =
-    "German-Italian forces withdrew from Sicily. Russian troops recaptured "
-    "Briansk.";
+/* +1227 */ char opeu_war_news_085[] = "Russian troops retook Orel. German troops in northern Kursk began to "
+                                       "withdraw.";
+/* +1276 */ char opeu_war_news_086[] = "German-Italian forces withdrew from Sicily. Russian troops recaptured "
+                                       "Briansk.";
 /* +12c5 */ char opeu_war_news_087[] = "German troops withdrew from Volkhov.";
-/* +12ea */ char opeu_war_news_088[] =
-    "Rome announced its inability to defend itself.";
-/* +1319 */ char opeu_war_news_089[] =
-    "Japanese forces were defeated on New Georgia Island.";
-/* +134e */ char opeu_war_news_090[] =
-    "Italy has signed an armistice with the Allies.";
-/* +137d */ char opeu_war_news_091[] =
-    "German forces ordered to cancel Kursk offensive.";
-/* +13ae */ char opeu_war_news_092[] =
-    "Allied forces began landing in Normandy.";
-/* +13d7 */ char opeu_war_news_093[] =
-    "German forces began launching V-1 rockets.";
+/* +12ea */ char opeu_war_news_088[] = "Rome announced its inability to defend itself.";
+/* +1319 */ char opeu_war_news_089[] = "Japanese forces were defeated on New Georgia Island.";
+/* +134e */ char opeu_war_news_090[] = "Italy has signed an armistice with the Allies.";
+/* +137d */ char opeu_war_news_091[] = "German forces ordered to cancel Kursk offensive.";
+/* +13ae */ char opeu_war_news_092[] = "Allied forces began landing in Normandy.";
+/* +13d7 */ char opeu_war_news_093[] = "German forces began launching V-1 rockets.";
 /* +1402 */ char opeu_war_news_094[] = "US forces landed on Saipan.";
-/* +141e */ char opeu_war_news_095[] =
-    "Japanese forces were defeated in a battle for the Marianas Islands.";
+/* +141e */ char opeu_war_news_095[] = "Japanese forces were defeated in a battle for the Marianas Islands.";
 /* +1462 */ char opeu_war_news_096[] = "French troops occupied Elba Island.";
-/* +1486 */ char opeu_war_news_097[] =
-    "Allied forces bombed industrial facilities near Berlin.";
-/* +14be */ char opeu_war_news_098[] =
-    "Russian forces started a massive offensive into White Russia.";
-/* +14fc */ char opeu_war_news_099[] =
-    "Fortified city of Cherbourg has capitulated.";
-/* +1529 */ char opeu_war_news_100[] =
-    "Japanese forces were crushed in Saipan.";
+/* +1486 */ char opeu_war_news_097[] = "Allied forces bombed industrial facilities near Berlin.";
+/* +14be */ char opeu_war_news_098[] = "Russian forces started a massive offensive into White Russia.";
+/* +14fc */ char opeu_war_news_099[] = "Fortified city of Cherbourg has capitulated.";
+/* +1529 */ char opeu_war_news_100[] = "Japanese forces were crushed in Saipan.";
 /* +1551 */ char opeu_war_news_101[] = "Russian forces have liberated Minsk.";
-/* +1576 */ char opeu_war_news_102[] =
-    "Italian government will return to Rome.";
-/* +159e */ char opeu_war_news_103[] =
-    "Everyone in the Japanese Tojo cabinet has resigned.";
-/* +15d2 */ char opeu_war_news_104[] =
-    "Hitler survived an assassination attempt. Russian forces have occupied "
-    "Luberlin.";
+/* +1576 */ char opeu_war_news_102[] = "Italian government will return to Rome.";
+/* +159e */ char opeu_war_news_103[] = "Everyone in the Japanese Tojo cabinet has resigned.";
+/* +15d2 */ char opeu_war_news_104[] = "Hitler survived an assassination attempt. Russian forces have occupied "
+                                       "Luberlin.";
 /* +1623 */ char opeu_war_news_105[] = "Russian forces have occupied Luberlin.";
 /* +164a */ char opeu_war_news_106[] = "US forces have occupied Pisa.";
 /* +1668 */ char opeu_war_news_107[] = "Allied forces have occupied Avranches.";
 /* +168f */ char opeu_war_news_108[] = "There was an uprising in Warsaw.";
-/* +16b0 */ char opeu_war_news_109[] =
-    "German forces have withdrawn from Finland.";
-/* +16db */ char opeu_war_news_110[] =
-    "The German counter-attack at Avranches has failed.";
+/* +16b0 */ char opeu_war_news_109[] = "German forces have withdrawn from Finland.";
+/* +16db */ char opeu_war_news_110[] = "The German counter-attack at Avranches has failed.";
 /* +170e */ char opeu_war_news_111[] = "Allied forces have occupied Le Mans.";
-/* +1733 */ char opeu_war_news_112[] =
-    "Japanese troops in Guam were destroyed.";
-/* +175b */ char opeu_war_news_113[] =
-    "Allied forces have landed in southern France.";
-/* +1789 */ char opeu_war_news_114[] =
-    "German troops in southern France have been ordered to pull-back.";
-/* +17ca */ char opeu_war_news_115[] =
-    "Uprising in Paris. German troops were ordered to withdraw from Normandy.";
-/* +1813 */ char opeu_war_news_116[] =
-    "German forces began a counter-offensive in the Ardennes.";
-/* +184c */ char opeu_war_news_117[] =
-    "Japanese forces in Leyte were destroyed.";
+/* +1733 */ char opeu_war_news_112[] = "Japanese troops in Guam were destroyed.";
+/* +175b */ char opeu_war_news_113[] = "Allied forces have landed in southern France.";
+/* +1789 */ char opeu_war_news_114[] = "German troops in southern France have been ordered to pull-back.";
+/* +17ca */ char opeu_war_news_115[] = "Uprising in Paris. German troops were ordered to withdraw from Normandy.";
+/* +1813 */ char opeu_war_news_116[] = "German forces began a counter-offensive in the Ardennes.";
+/* +184c */ char opeu_war_news_117[] = "Japanese forces in Leyte were destroyed.";
 /* +1875 */ char opeu_war_news_118[] = "German troops occupied St. Vith.";
-/* +1896 */ char opeu_war_news_119[] =
-    "Allied forces counter-attack near Dinan. German advance halted.";
-/* +18d6 */ char opeu_war_news_120[] =
-    "German forces have launched a counter-offensive at Strausberg.";
-/* +1915 */ char opeu_war_news_121[] =
-    "Greek National Liberation Front has signed a cease-fire agreement with "
-    "Britain.";
-/* +1965 */ char opeu_war_news_122[] =
-    "Russian forces began a massive offensive on the Eastern Front.";
-/* +19a4 */ char opeu_war_news_123[] =
-    "Russian forces have attacked Eastern Prussia.";
+/* +1896 */ char opeu_war_news_119[] = "Allied forces counter-attack near Dinan. German advance halted.";
+/* +18d6 */ char opeu_war_news_120[] = "German forces have launched a counter-offensive at Strausberg.";
+/* +1915 */ char opeu_war_news_121[] = "Greek National Liberation Front has signed a cease-fire agreement with "
+                                       "Britain.";
+/* +1965 */ char opeu_war_news_122[] = "Russian forces began a massive offensive on the Eastern Front.";
+/* +19a4 */ char opeu_war_news_123[] = "Russian forces have attacked Eastern Prussia.";
 /* +19d2 */ char opeu_war_news_124[] = "Russian forces have occupied Warsaw.";
-/* +19f7 */ char opeu_war_news_125[] =
-    "Polish provisional government has moved to Warsaw.";
-/* +1a2a */ char opeu_war_news_126[] =
-    "German command has ordered a stop to the attack on the Ardennes.";
-/* +1a6b */ char opeu_war_news_127[] =
-    "Russian forces have crossed the Nice River.";
-/* +1a97 */ char opeu_war_news_128[] =
-    "German troops have surrendered at the Ruhr River.";
-/* +1ac9 */ char opeu_war_news_129[] =
-    "US forces were stopped before advancing into Prague.";
-/* +1afe */ char opeu_war_news_130[] =
-    "Allied forces have crossed the Po River and invaded Northern Italy "
-    "(Trento area).";
+/* +19f7 */ char opeu_war_news_125[] = "Polish provisional government has moved to Warsaw.";
+/* +1a2a */ char opeu_war_news_126[] = "German command has ordered a stop to the attack on the Ardennes.";
+/* +1a6b */ char opeu_war_news_127[] = "Russian forces have crossed the Nice River.";
+/* +1a97 */ char opeu_war_news_128[] = "German troops have surrendered at the Ruhr River.";
+/* +1ac9 */ char opeu_war_news_129[] = "US forces were stopped before advancing into Prague.";
+/* +1afe */ char opeu_war_news_130[] = "Allied forces have crossed the Po River and invaded Northern Italy "
+                                       "(Trento area).";
 /* +1b50 */ char opeu_war_news_131[] = "Hitler celebrated his 57th birthday.";
 /* +1b75 */ char opeu_war_news_132[] = "Allied forces have freed Stuttgart.";
-/* +1b99 */ char opeu_war_news_133[] =
-    "US and Soviet forces have joined together at the Elbe River.";
+/* +1b99 */ char opeu_war_news_133[] = "US and Soviet forces have joined together at the Elbe River.";
 /* +1bd6 */ char opeu_war_news_134[] = "Mussolini has been executed.";
 /* +1bf3 */ char opeu_war_news_135[] = "Allied forces have occupied Turin.";
 /* +1c16 */ char opeu_war_news_136[] = "The war in Burma has ended.";
 /* +1c32 */ char opeu_war_news_137[] = "They're rioting in Prague!";
 /* +1c4d */ char opeu_war_news_138[] = "US-British forces have entered Berlin.";
-/* +1c74 */ char opeu_war_news_139[] =
-    "German troops in Bohemia have surrendered.";
+/* +1c74 */ char opeu_war_news_139[] = "German troops in Bohemia have surrendered.";
 /* +1c9f */ char opeu_war_news_140[] = "Hitler has committed suicide.";
-/* +1cbd */ char opeu_war_news_141[] =
-    "Reinforcements will arrive soon. Try to hold on.";
+/* +1cbd */ char opeu_war_news_141[] = "Reinforcements will arrive soon. Try to hold on.";

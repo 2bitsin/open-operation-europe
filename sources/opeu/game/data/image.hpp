@@ -19,8 +19,7 @@ constexpr auto ElementNear(std::uint16_t index) -> std::uint16_t {
 
 // Copies the text into the start of the field; a text as long as the field has no terminator.
 template <std::size_t N, std::size_t M>
-constexpr auto SetText(std::array<char, N>& field, char const (&text)[M])
-    -> void {
+constexpr auto SetText(std::array<char, N>& field, char const (&text)[M]) -> void {
   static_assert(M - 1 <= N, "the text is longer than its field");
   std::copy_n(text, M - 1, field.begin());
 }

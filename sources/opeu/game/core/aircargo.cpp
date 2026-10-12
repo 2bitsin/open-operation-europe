@@ -7,11 +7,11 @@
 //
 // Routine frames live on the DS stack: bp is the routine's frame pointer, and a local whose address reaches a
 // service sits at Local(bp, n).
-#include "types.hpp"
 #include "core/aircargo.hpp"
+#include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
@@ -45,8 +45,7 @@ namespace {
 
 // The services the air operations call through their event.
 enum Service : std::uint16_t {
-  AIR_REPORT =
-      0, // (mission name, hours left) -> 0 fly now, 1 wait an hour, 2 cancel
+  AIR_REPORT        = 0,  // (mission name, hours left) -> 0 fly now, 1 wait an hour, 2 cancel
   DAMAGE_ROLL       = 1,  // (x, y, waves) -> planes shot down
   DESTROYED_MESSAGE = 2,  // (mission name)
   SPRITE_DRAW       = 3,  // (x, y, side)
@@ -64,22 +63,21 @@ enum Service : std::uint16_t {
   REQUEST_FORMAT    = 15, // (destination, format, words...)
   MAP_CENTER        = 16, // (x, y, side)
   VIEW_PIXEL        = 17, // (&x, &y): a cell to its screen pixel
-  DAILY_SHOW     = 18, // (picture, side, presenter offset, presenter segment)
-  MUSIC_COMMAND7 = 19, // ()
-  DELAY          = 20, // (ticks)
-  UNIT_AT        = 21, // (x, y) -> unit or 0
-  OBJECTIVE_AT   = 22, // (x, y) -> objective or 0
-  UNIT_SIDE      = 23, // (unit)
-  OBJECTIVE_SIDE = 24, // (objective)
-  CAPACITIES     = 25, // (unit, &ammunition, &fuel, &food)
-  UNIT_NAME      = 26, // (unit, buffer) -> the name
-  OFFICER_GAIN   = 27, // (side, kind)
+  DAILY_SHOW        = 18, // (picture, side, presenter offset, presenter segment)
+  MUSIC_COMMAND7    = 19, // ()
+  DELAY             = 20, // (ticks)
+  UNIT_AT           = 21, // (x, y) -> unit or 0
+  OBJECTIVE_AT      = 22, // (x, y) -> objective or 0
+  UNIT_SIDE         = 23, // (unit)
+  OBJECTIVE_SIDE    = 24, // (objective)
+  CAPACITIES        = 25, // (unit, &ammunition, &fuel, &food)
+  UNIT_NAME         = 26, // (unit, buffer) -> the name
+  OFFICER_GAIN      = 27, // (side, kind)
 };
 
 constexpr std::uint16_t CARGO_NAME{ offsetof(DataSegment, cargo_drop_name) };
 constexpr std::uint16_t CARGO_BEGIN{ offsetof(DataSegment, cargo_drop_begin) };
-constexpr std::uint16_t CARGO_SPOTTED{ offsetof(DataSegment,
-                                                cargo_drop_spotted) };
+constexpr std::uint16_t CARGO_SPOTTED{ offsetof(DataSegment, cargo_drop_spotted) };
 constexpr std::uint16_t PLANES_NAME{ offsetof(DataSegment, cargo_planes_name) };
 constexpr std::uint16_t UNIT_REPORT{ offsetof(DataSegment, cargo_unit_report) };
 constexpr std::uint16_t CITY_REPORT{ offsetof(DataSegment, cargo_city_report) };
@@ -93,20 +91,12 @@ constexpr std::uint16_t OWN_COLOR{ 0x36 };   // side 0's name color in a report
 constexpr std::uint16_t OTHER_COLOR{ 0x35 }; // side 1's
 constexpr std::uint16_t SCREEN_TOP{ 0x15c };
 constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };
-constexpr std::uint16_t LOST_ROW{
-  0x114
-}; // with no plane left the flight ends here
-constexpr std::uint16_t DROP_LEAD{
-  0x20
-}; // rows above the target where the load drops
+constexpr std::uint16_t LOST_ROW{ 0x114 }; // with no plane left the flight ends here
+constexpr std::uint16_t DROP_LEAD{ 0x20 }; // rows above the target where the load drops
 constexpr std::uint16_t CARGO_PICTURE{ 0x103 };
-constexpr std::uint16_t CARGO_PRESENTER{
-  0x1042
-}; // opeu_cargo_drop_present, in the code segment below
+constexpr std::uint16_t CARGO_PRESENTER{ 0x1042 }; // opeu_cargo_drop_present, in the code segment below
 constexpr std::uint16_t CARGO_SEGMENT{ 0x0f43 };
-constexpr std::uint16_t EVENT_DEPTH{
-  6
-}; // opeu_cargo_drop_event's frame below opeu_air_operations' entry SP
+constexpr std::uint16_t EVENT_DEPTH{ 6 }; // opeu_cargo_drop_event's frame below opeu_air_operations' entry SP
 
 // opeu_cargo_drop_event's frame: the target's pixel, the unit's capacities, the report and the unit's name.
 constexpr std::uint16_t PIXEL_X_LOCAL{ 2 };
@@ -126,26 +116,20 @@ auto NameColor(std::uint16_t side) -> std::uint16_t {
 }
 
 // Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before.
-auto Unload(AirLift& lift, std::uint16_t (&stock)[3],
-            std::uint16_t const (&limit)[3]) -> void {
+auto Unload(AirLift& lift, std::uint16_t (&stock)[3], std::uint16_t const (&limit)[3]) -> void {
   for (int i{ 0 }; i < 3; ++i) {
     auto const before{ stock[i] };
     auto const after{ opeu_add_word(lift.supplies[i], limit[i], &stock[i]) };
-    lift.supplies[i] = static_cast<std::uint16_t>(
-        lift.supplies[i] + static_cast<std::uint16_t>(before - after));
+    lift.supplies[i] = static_cast<std::uint16_t>(lift.supplies[i] + static_cast<std::uint16_t>(before - after));
   }
 }
 
 // The report on what a unit or objective received: color, name, then each supply's new and old amount (fuel,
 // ammunition, food).
-auto Report(std::uint8_t* ds, HostEvent event, std::uint16_t text,
-            std::uint16_t format, std::uint16_t color, std::uint16_t name,
-            std::uint16_t const (&now)[3], std::uint16_t const (&before)[3])
-    -> void {
-  Call(ds, event, REQUEST_FORMAT, text, format, color, name, now[1],
-       static_cast<std::uint16_t>(now[1] - before[1]), now[0],
-       static_cast<std::uint16_t>(now[0] - before[0]), now[2],
-       static_cast<std::uint16_t>(now[2] - before[2]));
+auto Report(std::uint8_t* ds, HostEvent event, std::uint16_t text, std::uint16_t format, std::uint16_t color,
+            std::uint16_t name, std::uint16_t const (&now)[3], std::uint16_t const (&before)[3]) -> void {
+  Call(ds, event, REQUEST_FORMAT, text, format, color, name, now[1], static_cast<std::uint16_t>(now[1] - before[1]),
+       now[0], static_cast<std::uint16_t>(now[0] - before[0]), now[2], static_cast<std::uint16_t>(now[2] - before[2]));
 }
 } // namespace
 
@@ -153,15 +137,13 @@ auto Report(std::uint8_t* ds, HostEvent event, std::uint16_t text,
 // else it waits another hour or is cancelled.
 uint16_t opeu_cargo_drop_due(uint8_t ds[65536], HostEvent event) {
   auto& lift{ AirSide(Data(ds)).lift };
-  if (!lift.planes)
-    return 0;
+  if (!lift.planes) return 0;
   opeu_sub_byte(1, &lift.turns);
   if (!opeu_sub_byte(1, &lift.hours))
-    switch (static_cast<std::uint8_t>(
-        Call(ds, event, AIR_REPORT, CARGO_NAME, lift.turns))) {
-      case 0: return 1;
-      case 1: lift.hours = 1; break;
-      case 2: lift.planes = 0; break;
+    switch (static_cast<std::uint8_t>(Call(ds, event, AIR_REPORT, CARGO_NAME, lift.turns))) {
+    case 0: return 1;
+    case 1: lift.hours = 1; break;
+    case 2: lift.planes = 0; break;
     }
   return 0;
 }
@@ -173,13 +155,11 @@ void opeu_cargo_distribute(uint8_t ds[65536], uint16_t cargo, uint16_t amount) {
   std::uint16_t load[3]{ lift.supplies[0], lift.supplies[1], lift.supplies[2] };
   while (amount != 0 && (load[2] | load[1] | load[0]) != 0)
     for (auto& supply : load) {
-      auto const taken{ opeu_min16(
-          RandomBelow(ds, static_cast<std::uint16_t>(amount + 1)), supply) };
+      auto const taken{ opeu_min16(RandomBelow(ds, static_cast<std::uint16_t>(amount + 1)), supply) };
       opeu_sub_word(taken, &supply);
       amount = static_cast<std::uint16_t>(amount - taken);
     }
-  for (int i{ 0 }; i < 3; ++i)
-    lift.supplies[i] = load[i];
+  for (int i{ 0 }; i < 3; ++i) lift.supplies[i] = load[i];
 }
 
 // The daily-show presenter of an airlift: the side's air officer announces it, or the enemy's sees it coming.
@@ -188,15 +168,11 @@ void opeu_cargo_drop_present(uint8_t ds[65536], HostEvent event) {
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ Call(ds, event, SIDE_RECORD, side, RANK_COMMANDER) };
-    auto const officer{ Call(ds, event, PERSON_TEMPLATE,
-                             Record<Person>(data, commander).status,
-                             TEMPLATE_AIR) };
+    auto const officer{ Call(ds, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, TEMPLATE_AIR) };
     Call(ds, event, MESSAGE, CARGO_BEGIN, officer);
   } else {
-    auto const enemy{ static_cast<std::uint8_t>(
-        Call(ds, event, OPPOSITE_SIDE, side)) };
-    Call(ds, event, MESSAGE, CARGO_SPOTTED,
-         Call(ds, event, SIDE_RECORD, enemy, AIR_KIND));
+    auto const enemy{ static_cast<std::uint8_t>(Call(ds, event, OPPOSITE_SIDE, side)) };
+    Call(ds, event, MESSAGE, CARGO_SPOTTED, Call(ds, event, SIDE_RECORD, enemy, AIR_KIND));
   }
   Call(ds, event, SOUND_CUE);
 }
@@ -211,18 +187,12 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto const y{ lift.y };
   auto       planes{ lift.planes };
   opeu_sub_word(planes, &record.planes);
-  for (int i{ 0 }; i < 3; ++i)
-    opeu_sub_word(lift.supplies[i], &record.stock[i]);
-  opeu_sub_word(
-      Call(ds, event, DAMAGE_ROLL, x, y, opeu_min16(planes, 0x1d) / 10),
-      &planes);
-  opeu_cargo_distribute(
-      ds, Near(data, lift),
-      static_cast<std::uint16_t>((lift.planes - planes) * LOAD_PER_PLANE));
+  for (int i{ 0 }; i < 3; ++i) opeu_sub_word(lift.supplies[i], &record.stock[i]);
+  opeu_sub_word(Call(ds, event, DAMAGE_ROLL, x, y, opeu_min16(planes, 0x1d) / 10), &planes);
+  opeu_cargo_distribute(ds, Near(data, lift), static_cast<std::uint16_t>((lift.planes - planes) * LOAD_PER_PLANE));
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
-  Call(ds, event, MAP_CENTER, x, y,
-       static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
+  Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
   auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
   auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
   SetWord(ds, pixel_x, x);
@@ -236,53 +206,38 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     }
     Call(ds, event, SPRITE_DRAW, Word(ds, pixel_x), row, side);
     if (Word(ds, pixel_y) == row) {
-      auto const shown{ static_cast<std::uint8_t>(
-          Call(ds, event, SIDE_FOR_STATUS, side)) };
-      Call(ds, event, DAILY_SHOW, CARGO_PICTURE, shown, CARGO_PRESENTER,
-           CARGO_SEGMENT);
+      auto const shown{ static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)) };
+      Call(ds, event, DAILY_SHOW, CARGO_PICTURE, shown, CARGO_PRESENTER, CARGO_SEGMENT);
     }
     if (static_cast<std::uint16_t>(Word(ds, pixel_y) - row) == DROP_LEAD) {
       Call(ds, event, MUSIC_COMMAND7);
       if (auto const near{ Call(ds, event, UNIT_AT, x, y) }; near != 0) {
-        Call(ds, event, CAPACITIES, near, Local(bp, AMMO_CAPACITY_LOCAL),
-             Local(bp, FUEL_CAPACITY_LOCAL), Local(bp, FOOD_CAPACITY_LOCAL));
+        Call(ds, event, CAPACITIES, near, Local(bp, AMMO_CAPACITY_LOCAL), Local(bp, FUEL_CAPACITY_LOCAL),
+             Local(bp, FOOD_CAPACITY_LOCAL));
         auto&               unit{ Record<Unit>(data, near) };
-        std::uint16_t const before[3]{ unit.resources[0], unit.resources[1],
-                                       unit.resources[2] };
+        std::uint16_t const before[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
         std::uint16_t const limit[3]{ Word(ds, Local(bp, AMMO_CAPACITY_LOCAL)),
                                       Word(ds, Local(bp, FUEL_CAPACITY_LOCAL)),
-                                      Word(ds,
-                                           Local(bp, FOOD_CAPACITY_LOCAL)) };
+                                      Word(ds, Local(bp, FOOD_CAPACITY_LOCAL)) };
         Unload(lift, unit.resources, limit);
-        if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near)) ==
-            side) {
-          std::uint16_t const now[3]{ unit.resources[0], unit.resources[1],
-                                      unit.resources[2] };
-          auto const          name{ Call(ds, event, UNIT_NAME, near,
-                                         Local(bp, NAME_LOCAL)) };
-          auto const color{ NameColor(Call(ds, event, UNIT_SIDE, near)) };
+        if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near)) == side) {
+          std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
+          auto const          name{ Call(ds, event, UNIT_NAME, near, Local(bp, NAME_LOCAL)) };
+          auto const          color{ NameColor(Call(ds, event, UNIT_SIDE, near)) };
           Report(ds, event, text, UNIT_REPORT, color, name, now, before);
-          Call(ds, event, MESSAGE, text,
-               Call(ds, event, SIDE_RECORD, side, AIR_KIND));
+          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_KIND));
         }
       }
       if (auto const near{ Call(ds, event, OBJECTIVE_AT, x, y) }; near != 0) {
         auto&                   objective{ Record<Objective>(data, near) };
-        std::uint16_t const     before[3]{ objective.resources[0],
-                                           objective.resources[1],
-                                           objective.resources[2] };
-        constexpr std::uint16_t LIMIT[3]{ STOCK_LIMIT, STOCK_LIMIT,
-                                          STOCK_LIMIT };
+        std::uint16_t const     before[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
+        constexpr std::uint16_t LIMIT[3]{ STOCK_LIMIT, STOCK_LIMIT, STOCK_LIMIT };
         Unload(lift, objective.resources, LIMIT);
-        if (static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near)) ==
-            side) {
-          std::uint16_t const now[3]{ objective.resources[0],
-                                      objective.resources[1],
-                                      objective.resources[2] };
-          auto const color{ NameColor(Call(ds, event, OBJECTIVE_SIDE, near)) };
+        if (static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near)) == side) {
+          std::uint16_t const now[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
+          auto const          color{ NameColor(Call(ds, event, OBJECTIVE_SIDE, near)) };
           Report(ds, event, text, CITY_REPORT, color, near, now, before);
-          Call(ds, event, MESSAGE, text,
-               Call(ds, event, SIDE_RECORD, side, AIR_KIND));
+          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_KIND));
         }
       }
     }
@@ -290,12 +245,10 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     Call(ds, event, SPRITE_RESTORE, Word(ds, pixel_x), row);
   }
   data.map_mode[0] = view;
-  for (int i{ 0 }; i < 3; ++i)
-    opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);
+  for (int i{ 0 }; i < 3; ++i) opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);
   if (planes != 0) {
     Call(ds, event, OFFICER_GAIN, side, AIR_KIND);
-    record.pending_planes =
-        static_cast<std::uint16_t>(record.pending_planes + planes);
+    record.pending_planes = static_cast<std::uint16_t>(record.pending_planes + planes);
   }
   lift.planes = 0;
 }
@@ -305,128 +258,94 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
 void opeu_air_operations(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto& data{ Data(ds) };
   for (data.air_side = 0; data.air_side < 2; ++data.air_side) {
-    if (Call(ds, event, STRIKE_DUE))
-      Call(ds, event, STRIKE_EVENT);
+    if (Call(ds, event, STRIKE_DUE)) Call(ds, event, STRIKE_EVENT);
     if (Call(ds, event, PARA_DUE)) {
       Call(ds, event, PARA_EVENT);
-      data.side_flags[data.air_side] &=
-          static_cast<std::uint8_t>(~Bits(SideFlag::AIR_DROP_READY));
+      data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_DROP_READY));
     }
     if (opeu_cargo_drop_due(ds, event)) {
-      opeu_cargo_drop_event(ds, event,
-                            static_cast<std::uint16_t>(sp - EVENT_DEPTH));
-      data.side_flags[data.air_side] &=
-          static_cast<std::uint8_t>(~Bits(SideFlag::AIR_CARGO_READY));
+      opeu_cargo_drop_event(ds, event, static_cast<std::uint16_t>(sp - EVENT_DEPTH));
+      data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_CARGO_READY));
     }
   }
 }
 
-uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args,
-                      uint16_t count) {
+uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t   result{ 0 };
-  auto const byte{ [&](unsigned i) {
-    return static_cast<std::uint8_t>(Arg(args, count, i));
-  } };
+  auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
   switch (id) {
-    case AIR_REPORT: {
-      auto const frame{ c2_air_bp_enter() };
-      result =
-          opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 0), byte(1));
-      c2_air_leave();
-      break;
-    }
-    case DAMAGE_ROLL:
-      result = opeu_air_damage_roll(ds, svc_airstrk, byte(0), byte(1), byte(2));
-      break;
-    case DESTROYED_MESSAGE: {
-      auto const frame{ c2_air_bp_enter() };
-      opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
-      c2_air_leave();
-      break;
-    }
-    case SPRITE_DRAW: {
-      auto const frame{ c2_air_bp_enter() };
-      opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0),
-                           Arg(args, count, 1), byte(2));
-      c2_air_leave();
-      break;
-    }
-    case SPRITE_RESTORE:
-      opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0),
-                              Arg(args, count, 1));
-      break;
-    case STRIKE_DUE:   result = opeu_air_strike_due(ds, svc_airstrk); break;
-    case STRIKE_EVENT: {
-      auto const frame{ c2_air_bp_enter() };
-      opeu_air_strike_event(ds, svc_airstrk, frame);
-      c2_air_leave();
-      break;
-    }
-    case PARA_DUE:   result = opeu_para_drop_due(ds, svc_paradrop); break;
-    case PARA_EVENT: {
-      auto const frame{ c2_air_bp_enter() };
-      opeu_para_drop_event(ds, svc_paradrop, 0, frame);
-      c2_air_leave();
-      break;
-    }
-    case SIDE_RECORD:
-      result = opeu_find_side_record(ds, byte(0), byte(1));
-      break;
-    case PERSON_TEMPLATE:
-      result = opeu_find_person_template(ds, byte(0), byte(1));
-      break;
-    case OPPOSITE_SIDE:   result = opeu_opposite_side(byte(0)); break;
-    case SIDE_FOR_STATUS: result = opeu_side_for_status(ds, byte(0)); break;
-    case MESSAGE:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
-                           Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case SOUND_CUE:      opeu_sound_cue4(ds, svc_soundcue); break;
-    case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
-    case MAP_CENTER:     {
-      auto const frame{ port_frame_enter() };
-      opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));
-      port_frame_leave();
-      break;
-    }
-    case VIEW_PIXEL:
-      opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case DAILY_SHOW:
-      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(),
-                      Arg(args, count, 0), byte(1),
-                      static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 |
-                          Arg(args, count, 2));
-      break;
-    case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;
-    case DELAY:   opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
-    case UNIT_AT: result = opeu_find_unit_at(ds, byte(0), byte(1)); break;
-    case OBJECTIVE_AT:
-      result = opeu_find_objective_at(ds, byte(0), byte(1));
-      break;
-    case UNIT_SIDE: result = opeu_unit_side(Arg(args, count, 0)); break;
-    case OBJECTIVE_SIDE:
-      result = opeu_objective_side(ds, Arg(args, count, 0));
-      break;
-    case CAPACITIES:
-      opeu_unit_capacities(ds, Arg(args, count, 0),
-                           (uint16_t*)PORT_DS(Arg(args, count, 1)),
-                           (uint16_t*)PORT_DS(Arg(args, count, 2)),
-                           (uint16_t*)PORT_DS(Arg(args, count, 3)));
-      break;
-    case UNIT_NAME:
-      result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0),
-                              Arg(args, count, 1));
-      break;
-    case OFFICER_GAIN: opeu_officer_gain(ds, byte(0), byte(1)); break;
-    default:           port_unhandled("aircargo", id, count);
+  case AIR_REPORT: {
+    auto const frame{ c2_air_bp_enter() };
+    result = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 0), byte(1));
+    c2_air_leave();
+    break;
+  }
+  case DAMAGE_ROLL:       result = opeu_air_damage_roll(ds, svc_airstrk, byte(0), byte(1), byte(2)); break;
+  case DESTROYED_MESSAGE: {
+    auto const frame{ c2_air_bp_enter() };
+    opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
+    c2_air_leave();
+    break;
+  }
+  case SPRITE_DRAW: {
+    auto const frame{ c2_air_bp_enter() };
+    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1), byte(2));
+    c2_air_leave();
+    break;
+  }
+  case SPRITE_RESTORE: opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case STRIKE_DUE:     result = opeu_air_strike_due(ds, svc_airstrk); break;
+  case STRIKE_EVENT:   {
+    auto const frame{ c2_air_bp_enter() };
+    opeu_air_strike_event(ds, svc_airstrk, frame);
+    c2_air_leave();
+    break;
+  }
+  case PARA_DUE:   result = opeu_para_drop_due(ds, svc_paradrop); break;
+  case PARA_EVENT: {
+    auto const frame{ c2_air_bp_enter() };
+    opeu_para_drop_event(ds, svc_paradrop, 0, frame);
+    c2_air_leave();
+    break;
+  }
+  case SIDE_RECORD:     result = opeu_find_side_record(ds, byte(0), byte(1)); break;
+  case PERSON_TEMPLATE: result = opeu_find_person_template(ds, byte(0), byte(1)); break;
+  case OPPOSITE_SIDE:   result = opeu_opposite_side(byte(0)); break;
+  case SIDE_FOR_STATUS: result = opeu_side_for_status(ds, byte(0)); break;
+  case MESSAGE:
+    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  case SOUND_CUE:      opeu_sound_cue4(ds, svc_soundcue); break;
+  case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
+  case MAP_CENTER:     {
+    auto const frame{ port_frame_enter() };
+    opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));
+    port_frame_leave();
+    break;
+  }
+  case VIEW_PIXEL: opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW:
+    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1),
+                    static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
+    break;
+  case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;
+  case DELAY:          opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
+  case UNIT_AT:        result = opeu_find_unit_at(ds, byte(0), byte(1)); break;
+  case OBJECTIVE_AT:   result = opeu_find_objective_at(ds, byte(0), byte(1)); break;
+  case UNIT_SIDE:      result = opeu_unit_side(Arg(args, count, 0)); break;
+  case OBJECTIVE_SIDE: result = opeu_objective_side(ds, Arg(args, count, 0)); break;
+  case CAPACITIES:
+    opeu_unit_capacities(ds, Arg(args, count, 0), (uint16_t*)PORT_DS(Arg(args, count, 1)),
+                         (uint16_t*)PORT_DS(Arg(args, count, 2)), (uint16_t*)PORT_DS(Arg(args, count, 3)));
+    break;
+  case UNIT_NAME:    result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OFFICER_GAIN: opeu_officer_gain(ds, byte(0), byte(1)); break;
+  default:           port_unhandled("aircargo", id, count);
   }
   return result;
 }
 
-auto port_routine_opeu_cargo_drop_present(std::uint8_t* ds,
-                                          std::uint16_t const*, unsigned)
-    -> std::uint32_t {
+auto port_routine_opeu_cargo_drop_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_cargo_drop_present(ds, svc_aircargo);
   return 0;
 }

@@ -1,23 +1,22 @@
 // The Special Forces missions: raid, sabotage, cut communications, assassination and reconnaissance.
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include <cstdint>
 
 // The services the Special Forces command (core/specfrc) and its missions call through their event.
 enum class SpecialService : std::uint16_t {
-  REQUEST_FORMAT    = 0, // (destination, format, arguments...)
-  CONTROL_MESSAGE   = 1, // (text, person)
-  CONFIRM_MESSAGE   = 2, // (text, person) -> yes
-  MESSAGE_LOOKUP    = 3, // (id) -> near pointer to the message
-  ARMY_PRINT        = 4, // (format, arguments...)
-  PENDING_FINISH    = 5, // (value)
-  DAILY_SHOW        = 6, // (id, side, presenter offset, presenter segment)
-  FIND_OBJECTIVE_AT = 7, // (x, y) -> objective
-  DELAY_DIALOG =
-      8, // (text, last, person, menu) -> choice, 0xffff when cancelled
+  REQUEST_FORMAT       = 0,  // (destination, format, arguments...)
+  CONTROL_MESSAGE      = 1,  // (text, person)
+  CONFIRM_MESSAGE      = 2,  // (text, person) -> yes
+  MESSAGE_LOOKUP       = 3,  // (id) -> near pointer to the message
+  ARMY_PRINT           = 4,  // (format, arguments...)
+  PENDING_FINISH       = 5,  // (value)
+  DAILY_SHOW           = 6,  // (id, side, presenter offset, presenter segment)
+  FIND_OBJECTIVE_AT    = 7,  // (x, y) -> objective
+  DELAY_DIALOG         = 8,  // (text, last, person, menu) -> choice, 0xffff when cancelled
   ARMY_TITLE           = 9,  // (text)
   MAP_PICK_LOCATION    = 10, // (near x, near y) -> picked
   OBJECTIVE_SIDE       = 11, // (objective) -> side
@@ -53,5 +52,4 @@ void opeu_special_assassinate(uint8_t* ds, HostEvent event, uint16_t sp);
 void opeu_special_recon(uint8_t* ds, HostEvent event, uint16_t sp);
 
 // The services of the Special Forces command and its missions as direct calls.
-uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count);
+uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

@@ -1,9 +1,9 @@
 // The hourly condition of every ready regiment of both sides: lost communications may come back and an enemy spy may
 // be caught (each reported), the regiment eats into its food, and each battalion's fatigue and morale move with its
 // orders and supplies before the regiment's morale check.
-#include "types.hpp"
 #include "core/evunits.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
@@ -33,14 +33,10 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t COMMS_TEXT{ offsetof(DataSegment, comms_unit_text) };
 constexpr std::uint16_t SPY_TEXT{ offsetof(DataSegment, spy_unit_text) };
-constexpr std::uint16_t COMPUTER_LEVEL{
-  2
-}; // the level of a computer-commanded side
+constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer-commanded side
 constexpr std::uint8_t  CATEGORIES{ 8 };
 constexpr std::uint16_t RATING_LIMIT{ 99 };
-constexpr std::uint8_t  ORDER_DONE{
-  100
-}; // Order::progress of an order carried out
+constexpr std::uint8_t  ORDER_DONE{ 100 }; // Order::progress of an order carried out
 
 auto Rand(std::uint8_t* ds, unsigned bound) -> std::uint16_t {
   return RandomBelow(ds, static_cast<std::uint16_t>(bound));
@@ -51,35 +47,26 @@ auto Rand(std::uint8_t* ds, unsigned bound) -> std::uint16_t {
 void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (std::uint8_t side{ 0 }; side < 2; ++side) {
-    std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED
-                                   ? data.delivery_level
-                                   : COMPUTER_LEVEL };
+    std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED ? data.delivery_level : COMPUTER_LEVEL };
     for (std::uint8_t group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
       auto const units{ GroupUnits(data, side, group) };
       for (std::uint8_t slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
         auto&      unit{ units[slot] };
         auto const near{ Near(data, unit) };
-        if (!(unit.flags & Bits(UnitFlag::READY)))
-          continue;
-        if (!(unit.flags & Bits(UnitFlag::COMMUNICATIONS)) &&
-            Rand(ds, level * 10u + 24u) == 6) {
+        if (!(unit.flags & Bits(UnitFlag::READY))) continue;
+        if (!(unit.flags & Bits(UnitFlag::COMMUNICATIONS)) && Rand(ds, level * 10u + 24u) == 6) {
           unit.flags |= Bits(UnitFlag::COMMUNICATIONS);
           Call(ds, event, UNIT_MESSAGE, near, COMMS_TEXT);
         }
-        if ((unit.flags & Bits(UnitFlag::SPOTTED)) &&
-            Rand(ds, (level + 5u) * 20u) == 8) {
+        if ((unit.flags & Bits(UnitFlag::SPOTTED)) && Rand(ds, (level + 5u) * 20u) == 8) {
           unit.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SPOTTED));
           Call(ds, event, UNIT_MESSAGE, near, SPY_TEXT);
         }
         for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) {
-          std::uint8_t count{};
-          auto const quantity{ opeu_unit_quantity(ds, near, category, &count) };
+          std::uint8_t  count{};
+          auto const    quantity{ opeu_unit_quantity(ds, near, category, &count) };
           std::uint16_t food{ unit.resources[2] };
-          opeu_sub_word(
-              opeu_max16(quantity /
-                             opeu_max16(data.quantity_divisors[category], 1),
-                         1),
-              &food);
+          opeu_sub_word(opeu_max16(quantity / opeu_max16(data.quantity_divisors[category], 1), 1), &food);
           unit.resources[2] = food;
         }
         auto const& food{ unit.resources[2] };
@@ -101,11 +88,8 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
             opeu_add_byte(Rand(ds, 3) + 1, RATING_LIMIT, &element.morale);
           else
             opeu_sub_byte(Rand(ds, 3) + 2, &element.morale);
-          if (data.element_types[element.type].usage != 0 &&
-              unit.resources[1] == 0)
-            opeu_sub_byte(1, &element.morale);
-          if (unit.resources[0] == 0)
-            opeu_sub_byte(1, &element.morale);
+          if (data.element_types[element.type].usage != 0 && unit.resources[1] == 0) opeu_sub_byte(1, &element.morale);
+          if (unit.resources[0] == 0) opeu_sub_byte(1, &element.morale);
           if (element.morale < opeu_unit_average9(ds, near))
             opeu_add_byte(1, RATING_LIMIT, &element.morale);
           else
@@ -117,20 +101,17 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
   }
 }
 
-uint16_t svc_evunits(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count) {
+uint16_t svc_evunits(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-    case UNIT_MESSAGE:
-      opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(),
-                       Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    default: port_unhandled("evunits", id, count);
+  case UNIT_MESSAGE:
+    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  default: port_unhandled("evunits", id, count);
   }
   return 0;
 }
 
-auto port_routine_opeu_unit_hourly_event(std::uint8_t* ds, std::uint16_t const*,
-                                         unsigned) -> std::uint32_t {
+auto port_routine_opeu_unit_hourly_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_unit_hourly_event(ds, svc_evunits);
   return 0;
 }

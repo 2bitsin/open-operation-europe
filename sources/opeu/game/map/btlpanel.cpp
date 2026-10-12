@@ -1,21 +1,21 @@
 // The battle element information panel: the unit or garrison, the element's condition and supplies, its order and
 // target, and its type's ratings beside its picture.
-#include "types.hpp"
 #include "map/btlpanel.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/sideutil.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
 #include "map/query.hpp"
+#include "types.hpp"
 #include "units/labels.hpp"
 #include "units/unitname.hpp"
-#include "common/events.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
@@ -47,46 +47,37 @@ constexpr uint16_t PICTURE_Y{ 0x140 };
 
 // opeu_unit_name reports its formatter as its service 2; this forwards it to the battle's request formatter.
 BattleEvent name_event;
-uint16_t    NameForward(uint8_t* ds, uint16_t, const uint16_t* args,
-                        uint16_t count) {
-  return name_event(ds, std::to_underlying(BattleRoutine::REQUEST_FORMAT), args,
-                    count);
+uint16_t    NameForward(uint8_t* ds, uint16_t, const uint16_t* args, uint16_t count) {
+  return name_event(ds, std::to_underlying(BattleRoutine::REQUEST_FORMAT), args, count);
 }
 } // namespace
 
 // orders_hidden: the enemy's element, whose order the panel does not show. frame: the routine's frame on the DS
 // stack; the names are formatted there.
-void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
-                               uint16_t orders_hidden, uint16_t frame) {
+void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden,
+                               uint16_t frame) {
   auto&       data{ Data(ds) };
   auto const& record{ Record<Element>(data, element) };
   auto const  unit_name{ Local(frame, UNIT_NAME_AT) };
   auto const  element_name{ Local(frame, ELEMENT_NAME_AT) };
   auto        side{ opeu_battle_element_side(ds, event, element) };
   auto const  unit{ opeu_battle_element_unit(ds, event, element) };
-  auto const  at{ [&](uint16_t column, uint16_t row) {
-    Call(ds, event, BattleRoutine::ARMY_POSITION, column, row);
-  } };
-  auto const print{ [&](auto const& format, auto... words) {
+  auto const  at{ [&](uint16_t column, uint16_t row) { Call(ds, event, BattleRoutine::ARMY_POSITION, column, row); } };
+  auto const  print{ [&](auto const& format, auto... words) {
     Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...);
   } };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   at(TITLE_COLUMN, 0);
   uint16_t name;
   if (unit == GARRISON_AT) {
-    auto const objective{ opeu_find_objective_at(ds, data.battle_x,
-                                                 data.battle_y) };
-    print(data.battle_fmt_garrison,
-          opeu_objective_side(ds, objective) ? SIDE_1_ESCAPE : SIDE_0_ESCAPE,
-          objective);
+    auto const objective{ opeu_find_objective_at(ds, data.battle_x, data.battle_y) };
+    print(data.battle_fmt_garrison, opeu_objective_side(ds, objective) ? SIDE_1_ESCAPE : SIDE_0_ESCAPE, objective);
     at(TITLE_COLUMN, LINE);
-    name = opeu_type_name(ds, Near(data, data.element_types[record.type]),
-                          element_name);
+    name = opeu_type_name(ds, Near(data, data.element_types[record.type]), element_name);
   } else {
     name_event = event;
     name       = opeu_unit_name(ds, NameForward, unit, unit_name);
-    print(data.battle_fmt_title, side ? SIDE_1_ESCAPE : SIDE_0_ESCAPE,
-          data.side_names[side], name);
+    print(data.battle_fmt_title, side ? SIDE_1_ESCAPE : SIDE_0_ESCAPE, data.side_names[side], name);
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(ds, element, element_name);
   }
@@ -106,9 +97,7 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   uint8_t target_y;
   if (opeu_battle_engaged(ds, event, element)) {
     auto const  target{ PositionOf(data, element).target };
-    auto const& position{ PositionOf(
-        data,
-        opeu_battle_element_active(ds, event, target) ? target : element) };
+    auto const& position{ PositionOf(data, opeu_battle_element_active(ds, event, target) ? target : element) };
     target_x = position.x;
     target_y = position.y;
   } else {
@@ -125,16 +114,11 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   if (orders_hidden)
     print(data.battle_fmt_no_orders);
   else
-    print(data.battle_fmt_orders,
-          data.battle_order_names[opeu_battle_state(ds, event, element)]);
+    print(data.battle_fmt_orders, data.battle_order_names[opeu_battle_state(ds, event, element)]);
   at(TARGET_COLUMN, TARGET_ROW);
-  if (!orders_hidden)
-    print(data.battle_fmt_target, target_x, target_y);
-  if (orders_hidden)
-    side = opeu_opposite_side(side);
-  Call(ds, event,
-       side == 0 ? BattleRoutine::BATTLE_PANEL_SIDE0
-                 : BattleRoutine::BATTLE_PANEL_SIDE1);
+  if (!orders_hidden) print(data.battle_fmt_target, target_x, target_y);
+  if (orders_hidden) side = opeu_opposite_side(side);
+  Call(ds, event, side == 0 ? BattleRoutine::BATTLE_PANEL_SIDE0 : BattleRoutine::BATTLE_PANEL_SIDE1);
   auto const& type{ data.element_types[record.type] };
   auto const  card{ side ? CARD_COLUMN_1 : CARD_COLUMN_0 };
   at(card, CARD_ROW);
@@ -145,22 +129,18 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   print(data.battle_fmt_speed, type.speed);
   at(card, CARD_ROW + 3 * LINE);
   print(data.battle_fmt_range, type.mode);
-  Call(ds, event, BattleRoutine::FACE_DRAW, side ? PICTURE_X_1 : PICTURE_X_0,
-       PICTURE_Y, 0, record.type);
+  Call(ds, event, BattleRoutine::FACE_DRAW, side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, record.type);
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_fmt_end));
 }
 
-uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args,
-                      unsigned int count) {
+uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_element_panel(std::uint8_t*        ds,
-                                            std::uint16_t const* args,
-                                            unsigned count) -> std::uint32_t {
+auto port_routine_opeu_battle_element_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   WithBattleStack([&](uint16_t sp) {
-    opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1),
-                              Arg(args, count, 0), BattleFrame(sp));
+    opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp));
   });
   return 0;
 }

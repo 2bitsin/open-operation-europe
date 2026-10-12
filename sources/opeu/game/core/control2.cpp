@@ -1,8 +1,8 @@
 // Turn control of a side the player does not command through the menu: when the side is shown, the map moves to the
 // current unit and the commander's context is refreshed.
-#include "types.hpp"
 #include "core/control2.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
@@ -26,8 +26,7 @@ enum Service : std::uint16_t {
 constexpr std::uint8_t NO_SIDE{ 0xff };
 } // namespace
 
-void opeu_turn_control_other(uint8_t ds[65536], HostEvent event,
-                             HostEvent context_event) {
+void opeu_turn_control_other(uint8_t ds[65536], HostEvent event, HostEvent context_event) {
   auto&      data{ Data(ds) };
   auto const side{ data.current_side };
   if (data.side_status[side] == SIDE_PLAYED) {
@@ -39,20 +38,17 @@ void opeu_turn_control_other(uint8_t ds[65536], HostEvent event,
   Call(ds, event, FINISH);
 }
 
-uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args,
-                      uint16_t count) {
+uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-    case LOCATION:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_arrival_location(ds, svc_mappos,
-                              static_cast<std::uint16_t>(sp - 2),
-                              static_cast<std::uint8_t>(Arg(args, count, 0)),
-                              static_cast<std::uint8_t>(Arg(args, count, 1)),
-                              static_cast<std::uint8_t>(Arg(args, count, 2)));
-      });
-      break;
-    case FINISH: opeu_control_other_finish(ds); break;
-    default:     port_unhandled("control2", id, count);
+  case LOCATION:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+      opeu_arrival_location(
+          ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)),
+          static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    });
+    break;
+  case FINISH: opeu_control_other_finish(ds); break;
+  default:     port_unhandled("control2", id, count);
   }
   return 0;
 }

@@ -18,4 +18,4 @@ TEST(Fixtures, HoldTheSmokeScriptsAndTheSavedGame) {
   EXPECT_GT(FixtureSize("OPEU.SAV"), 0U);
 }
 
-}  // namespace
+} // namespace

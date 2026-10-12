@@ -70,20 +70,26 @@ enum {
 
 /* Drum bits of register BDh / of the rhythm events. */
 namespace {
-enum Drum : std::uint8_t { DRUM_HH = 0x01, DRUM_CYM = 0x02, DRUM_TOM = 0x04, DRUM_SD = 0x08, DRUM_BD = 0x10 };
+enum Drum : std::uint8_t {
+  DRUM_HH  = 0x01,
+  DRUM_CYM = 0x02,
+  DRUM_TOM = 0x04,
+  DRUM_SD  = 0x08,
+  DRUM_BD  = 0x10
+};
 }
 
 /* [0710] vibrato depths (index 0-12) and [072a]... LFO depth steps. */
 static const uint16_t modulation_depth_table[13] = { 0x0000, 0x079c, 0x0fad, 0x1838, 0x2145, 0x2adc, 0x3505,
                                                      0x3fc8, 0x4b2f, 0x5744, 0x6411, 0x71a1, 0x7fff };
-static const uint16_t modulation_step_table[16] = { 0x004c, 0x0072, 0x00be, 0x010a, 0x017d, 0x02fe, 0x079c, 0x0fad,
-                                                    0x2145, 0x2adc, 0x3fc8, 0x4b2f, 0x5744, 0x7fff, 0x9f58, 0xea08 };
+static const uint16_t modulation_step_table[16]  = { 0x004c, 0x0072, 0x00be, 0x010a, 0x017d, 0x02fe, 0x079c, 0x0fad,
+                                                     0x2145, 0x2adc, 0x3fc8, 0x4b2f, 0x5744, 0x7fff, 0x9f58, 0xea08 };
 /* OPL F-numbers of C, C#, ... B. */
 static const uint16_t note_frequency_table[12] = { 0x0157, 0x016b, 0x0181, 0x0198, 0x01b0, 0x01ca,
                                                    0x01e5, 0x0202, 0x0220, 0x0241, 0x0263, 0x0287 };
 
 /* OPL channel and modulator operator offset of each voice record. */
-static const uint8_t voice_channel[FMD_VOICES + 1] = { 0, 1, 2, 3, 4, 5, 6 };
+static const uint8_t voice_channel[FMD_VOICES + 1]  = { 0, 1, 2, 3, 4, 5, 6 };
 static const uint8_t voice_operator[FMD_VOICES + 1] = { 0x00, 0x01, 0x02, 0x08, 0x09, 0x0a, 0x00 };
 
 /* ---- host access --------------------------------------------------------- */
@@ -111,23 +117,23 @@ static void voice_key_on(FmDriver* d, FmdVoice* v) {
   if (v->volume_offset & 0x80) return;
   v->keyon |= 0x20;
   opl(d, (uint8_t)(0xb0 + v->opl_channel), v->keyon);
-  v->flags |= FMD_VOICE_KEY_ON | FMD_VOICE_SOUNDED;
-  v->lfo_flags |= FMD_LFO_STATE;              /* restart the LFO */
+  v->flags     |= FMD_VOICE_KEY_ON | FMD_VOICE_SOUNDED;
+  v->lfo_flags |= FMD_LFO_STATE; /* restart the LFO */
 }
 
 /* [078a] voice_key_off. */
 static void voice_key_off(FmDriver* d, FmdVoice* v) {
   v->keyon &= 0xdf;
   opl(d, (uint8_t)(0xb0 + v->opl_channel), v->keyon);
-  v->flags &= (uint8_t)~(FMD_VOICE_KEY_ON | FMD_VOICE_LEGATO);
+  v->flags     &= (uint8_t)~(FMD_VOICE_KEY_ON | FMD_VOICE_LEGATO);
   v->lfo_flags &= (uint8_t)~FMD_LFO_RAMP;
 }
 
 /* [07a6] voice_silence: frequency 0, fastest release, full attenuation. */
 static void voice_silence(FmDriver* d, FmdVoice* v) {
   uint8_t op = v->opl_operator;
-  v->fnum = 0;
-  v->keyon = 0;
+  v->fnum    = 0;
+  v->keyon   = 0;
   opl(d, (uint8_t)(0xa0 + v->opl_channel), 0);
   opl(d, (uint8_t)(0xb0 + v->opl_channel), 0);
   opl(d, (uint8_t)(0x80 + op), 0x0f);
@@ -135,8 +141,8 @@ static void voice_silence(FmDriver* d, FmdVoice* v) {
   opl(d, (uint8_t)(0x40 + op), 0x3f);
   v->ksl_tl[0] = 0x3f;
   opl(d, (uint8_t)(0x43 + op), 0x3f);
-  v->ksl_tl[1] = 0x3f;
-  v->flags &= 0x1f;                           /* key, sounded, (40h) cleared */
+  v->ksl_tl[1]  = 0x3f;
+  v->flags     &= 0x1f; /* key, sounded, (40h) cleared */
   v->lfo_flags &= (uint8_t)~FMD_LFO_RAMP;
 }
 
@@ -144,7 +150,7 @@ static void voice_silence(FmDriver* d, FmdVoice* v) {
  * channel (20/23, C0, E0/E3, 40/43, 60/63, 80/83). */
 static void load_operator_pair(FmDriver* d, uint16_t seg, uint16_t off, uint8_t op, uint8_t channel) {
   static const uint8_t base[11] = { 0x20, 0x23, 0xc0, 0xe0, 0xe3, 0x40, 0x43, 0x60, 0x63, 0x80, 0x83 };
-  int i;
+  int                  i;
   for (i = 0; i < 11; i++) {
     uint8_t reg = (uint8_t)(base[i] + (i == 2 ? channel : op));
     opl(d, reg, peek(d, seg, (uint16_t)(off + i)));
@@ -155,11 +161,11 @@ static void load_operator_pair(FmDriver* d, uint16_t seg, uint16_t off, uint8_t 
  * tremolo attenuation, written to 40h/43h+op if it changed. */
 static void write_operator_level(FmDriver* d, FmdVoice* v, int which, uint8_t reg, uint8_t level) {
   uint8_t loudness = (uint8_t)(~level & 0x3f);
-  uint8_t cut = (uint8_t)((unsigned)loudness * v->level_mod[which] / 0x7f);
+  uint8_t cut      = (uint8_t)((unsigned)loudness * v->level_mod[which] / 0x7f);
   uint8_t value, old;
   loudness = loudness >= cut ? (uint8_t)(loudness - cut) : 0;
-  old = v->ksl_tl[which];
-  value = (uint8_t)((~loudness & 0x3f) | (old & 0xc0));
+  old      = v->ksl_tl[which];
+  value    = (uint8_t)((~loudness & 0x3f) | (old & 0xc0));
   if (value != old) {
     v->ksl_tl[which] = value;
     opl(d, reg, value);
@@ -184,16 +190,16 @@ static void write_frequency(FmDriver* d, FmdVoice* v, uint16_t frequency) {
  * tick to the 16-bit tempo accumulator, one music tick per carry. */
 static void set_tempo(FmDriver* d, uint8_t bpm) {
   if (bpm == 0) return;
-  d->tempo = bpm;
-  d->tempo_increment = (uint16_t)((uint32_t)bpm * 0x464e / 100);
+  d->tempo             = bpm;
+  d->tempo_increment   = (uint16_t)((uint32_t)bpm * 0x464e / 100);
   d->tempo_accumulator = 0;
 }
 
 /* [0913] apply_fade: volume plus the fade attenuation, clamped to 7Fh. */
 static uint8_t apply_fade(const FmDriver* d, uint8_t volume) {
-  uint8_t a = d->fade_attenuation;
+  uint8_t  a = d->fade_attenuation;
   unsigned sum;
-  a = a >= 0x80 ? (uint8_t)(a - 0x40) : (uint8_t)(a >> 1);
+  a   = a >= 0x80 ? (uint8_t)(a - 0x40) : (uint8_t)(a >> 1);
   sum = (unsigned)volume + a;
   return sum > 0x7f ? 0x7f : (uint8_t)sum;
 }
@@ -202,11 +208,11 @@ static uint8_t apply_fade(const FmDriver* d, uint8_t volume) {
 static void clear_voice(FmdVoice* v) {
   size_t keep = offsetof(FmdVoice, opl_channel);
   memset(v, 0, keep);
-  v->flags = FMD_VOICE_WAITING;
-  v->note = 0xff;
-  v->length = 0x30;
-  v->gate = 0x2d;
-  v->length_count = 1;
+  v->flags         = FMD_VOICE_WAITING;
+  v->note          = 0xff;
+  v->length        = 0x30;
+  v->gate          = 0x2d;
+  v->length_count  = 1;
   v->lfo_direction = 1;
 }
 
@@ -215,8 +221,8 @@ static void clear_voice(FmdVoice* v) {
  * follows the volume, the modulator only in additive mode (C0h bit 0). */
 static void voice_update_volume(FmDriver* d, FmdVoice* v, uint8_t volume) {
   unsigned sum = (unsigned)volume + (v->volume_offset & 0x7f);
-  uint8_t attenuation, scaled;
-  int i;
+  uint8_t  attenuation, scaled;
+  int      i;
   volume = sum > 0x7f ? 0x7f : (uint8_t)sum;
   if (v->opl_channel < 4) volume = apply_fade(d, volume);
   attenuation = (uint8_t)(volume >> 1);
@@ -228,8 +234,8 @@ static void voice_update_volume(FmDriver* d, FmdVoice* v, uint8_t volume) {
       level = (uint8_t)(level + attenuation);
       if (level > 0x3f) level = 0x3f;
     }
-    scaled >>= 1;
-    v->level[i] = level;
+    scaled      >>= 1;
+    v->level[i]   = level;
     write_operator_level(d, v, i, (uint8_t)(0x40 + v->opl_operator + 3 * i), level);
   }
 }
@@ -254,18 +260,18 @@ static void voice_set_instrument(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_
   v->instrument_seg = seg;
   voice_silence(d, v);
   load_operator_pair(d, seg, off, v->opl_operator, v->opl_channel);
-  v->ksl_tl[0] = peek(d, seg, (uint16_t)(off + 5));
-  v->ksl_tl[1] = peek(d, seg, (uint16_t)(off + 6));
-  v->instrument_transpose = peek(d, seg, (uint16_t)(off + 11));
-  v->lfo_flags &= (uint8_t)~FMD_LFO_ON;
-  v->flags &= (uint8_t)~FMD_VOICE_LFO_AVAILABLE;
+  v->ksl_tl[0]             = peek(d, seg, (uint16_t)(off + 5));
+  v->ksl_tl[1]             = peek(d, seg, (uint16_t)(off + 6));
+  v->instrument_transpose  = peek(d, seg, (uint16_t)(off + 11));
+  v->lfo_flags            &= (uint8_t)~FMD_LFO_ON;
+  v->flags                &= (uint8_t)~FMD_VOICE_LFO_AVAILABLE;
   if (peek(d, seg, (uint16_t)(off + 21)) != 0) {
     v->flags |= FMD_VOICE_LFO_AVAILABLE;
     if (v->flags & FMD_VOICE_LFO_WANTED) {
-      v->lfo_flags |= FMD_LFO_ON;
-      v->lfo_count = 0;
-      v->lfo_phase = 0;
-      v->lfo_direction = 1;
+      v->lfo_flags     |= FMD_LFO_ON;
+      v->lfo_count      = 0;
+      v->lfo_phase      = 0;
+      v->lfo_direction  = 1;
     }
   }
   voice_reset_level_modulation(d, v);
@@ -279,19 +285,19 @@ static void voice_start_note(FmDriver* d, FmdVoice* v, uint8_t note, uint8_t gat
     v->note = 0xff;
     if (v->flags & FMD_VOICE_KEY_ON) voice_key_off(d, v);
   } else {
-    uint16_t total = (uint16_t)(note + (int8_t)v->instrument_transpose + (int8_t)v->transpose);
-    int octave = (int16_t)total / 12;       /* idiv: truncating */
-    int semitone = (int16_t)total % 12;
-    uint8_t block, key;
-    int same = 0;
+    uint16_t total    = (uint16_t)(note + (int8_t)v->instrument_transpose + (int8_t)v->transpose);
+    int      octave   = (int16_t)total / 12; /* idiv: truncating */
+    int      semitone = (int16_t)total % 12;
+    uint8_t  block, key;
+    int      same = 0;
     if ((total & 0xff00) == 0) {
       block = (uint8_t)octave;
-      key = (uint8_t)total;
-      if (block > 7) {                    /* above the top octave: clamp to block 7 */
+      key   = (uint8_t)total;
+      if (block > 7) { /* above the top octave: clamp to block 7 */
         block = 7;
-        key = (uint8_t)(semitone + 0x54);
+        key   = (uint8_t)(semitone + 0x54);
       }
-    } else {                                /* below C0 (or >= 256): block 0 */
+    } else { /* below C0 (or >= 256): block 0 */
       block = 0;
       if (semitone != 0) semitone += 12;
       key = (uint8_t)semitone;
@@ -307,7 +313,7 @@ static void voice_start_note(FmDriver* d, FmdVoice* v, uint8_t note, uint8_t gat
              * That needs transposes summing to over 160 semitones; here the
              * index wraps instead. */
       uint16_t frequency = (uint16_t)(note_frequency_table[(unsigned)semitone % 12] | block << 10);
-      v->note = key;
+      v->note            = key;
       write_frequency(d, v, frequency);
       v->frequency = frequency;
       if (!(v->flags & FMD_VOICE_LEGATO)) voice_key_on(d, v);
@@ -315,9 +321,9 @@ static void voice_start_note(FmDriver* d, FmdVoice* v, uint8_t note, uint8_t gat
     }
     if (v->flags & FMD_VOICE_VIBRATO) v->lfo_flags |= FMD_LFO_RAMP;
   }
-  v->length_count = v->length;
-  v->gate_count = v->gate;
-  v->flags &= (uint8_t)~(FMD_VOICE_LEGATO | FMD_VOICE_VIBRATO);
+  v->length_count  = v->length;
+  v->gate_count    = v->gate;
+  v->flags        &= (uint8_t)~(FMD_VOICE_LEGATO | FMD_VOICE_VIBRATO);
   if (v->gate > v->length) v->flags |= FMD_VOICE_LEGATO;
 }
 
@@ -350,14 +356,14 @@ static void rhythm_load_instruments(FmDriver* d, uint16_t seg, uint16_t off) {
   /* bass drum: channel 6, operators 10h/13h */
   opl(d, 0xa6, peek(d, seg, off));
   opl(d, 0xb6, (uint8_t)(peek(d, seg, (uint16_t)(off + 1)) & 0x1f));
-  off = (uint16_t)(off + 2);
+  off         = (uint16_t)(off + 2);
   d->level_bd = (uint8_t)(peek(d, seg, (uint16_t)(off + 6)) & 0x3f);
   load_operator_pair(d, seg, off, 0x10, 6);
   off = (uint16_t)(off + 11);
   /* hi-hat (modulator) and snare (carrier): channel 7, operators 11h/14h */
   opl(d, 0xa7, peek(d, seg, off));
   opl(d, 0xb7, (uint8_t)(peek(d, seg, (uint16_t)(off + 1)) & 0x1f));
-  off = (uint16_t)(off + 2);
+  off         = (uint16_t)(off + 2);
   d->level_hh = (uint8_t)(peek(d, seg, (uint16_t)(off + 5)) & 0x3f);
   d->level_sd = (uint8_t)(peek(d, seg, (uint16_t)(off + 6)) & 0x3f);
   load_operator_pair(d, seg, off, 0x11, 7);
@@ -365,7 +371,7 @@ static void rhythm_load_instruments(FmDriver* d, uint16_t seg, uint16_t off) {
   /* tom (modulator) and cymbal (carrier): channel 8, operators 12h/15h */
   opl(d, 0xa8, peek(d, seg, off));
   opl(d, 0xb8, (uint8_t)(peek(d, seg, (uint16_t)(off + 1)) & 0x1f));
-  off = (uint16_t)(off + 2);
+  off          = (uint16_t)(off + 2);
   d->level_tom = (uint8_t)(peek(d, seg, (uint16_t)(off + 5)) & 0x3f);
   d->level_cym = (uint8_t)(peek(d, seg, (uint16_t)(off + 6)) & 0x3f);
   load_operator_pair(d, seg, off, 0x12, 8);
@@ -379,7 +385,7 @@ static uint8_t drum_level(uint8_t base, uint8_t attenuation) {
 /* Rhythm voice volume (plus offset and fade) as an attenuation 0-3Fh. */
 static uint8_t rhythm_attenuation(FmDriver* d, const FmdVoice* v, uint8_t volume) {
   unsigned sum = (unsigned)volume + (v->volume_offset & 0x7f);
-  volume = sum > 0x7f ? 0x7f : (uint8_t)sum;
+  volume       = sum > 0x7f ? 0x7f : (uint8_t)sum;
   return (uint8_t)(apply_fade(d, volume) >> 1);
 }
 
@@ -387,7 +393,7 @@ static uint8_t rhythm_attenuation(FmDriver* d, const FmdVoice* v, uint8_t volume
  * levels are written at once. */
 static void rhythm_set_velocity(FmDriver* d, FmdVoice* v, uint8_t drums, uint8_t velocity) {
   uint8_t attenuation;
-  velocity = (uint8_t)((velocity & 0x7f) >> 1);
+  velocity    = (uint8_t)((velocity & 0x7f) >> 1);
   attenuation = (uint8_t)(rhythm_attenuation(d, v, v->volume) + velocity);
   if (drums & DRUM_HH) {
     d->velocity_hh = velocity;
@@ -414,7 +420,7 @@ static void rhythm_set_velocity(FmDriver* d, FmdVoice* v, uint8_t drums, uint8_t
 /* [0f64] rhythm_update_volume: new rhythm volume; all five drum levels. */
 static void rhythm_update_volume(FmDriver* d, FmdVoice* v, uint8_t volume) {
   uint8_t attenuation;
-  v->volume = (uint8_t)(volume & 0x7f);
+  v->volume   = (uint8_t)(volume & 0x7f);
   attenuation = rhythm_attenuation(d, v, v->volume);
   opl(d, 0x53, drum_level((uint8_t)(d->level_bd + d->velocity_bd), attenuation));
   opl(d, 0x54, drum_level((uint8_t)(d->level_sd + d->velocity_sd), attenuation));
@@ -427,7 +433,7 @@ static void rhythm_update_volume(FmDriver* d, FmdVoice* v, uint8_t volume) {
  * their key bits off, then on together with the drums already sounding. */
 static void rhythm_key_on(FmDriver* d, FmdVoice* v, uint8_t drums) {
   drums &= 0x1f;
-  if (v->volume_offset & 0x80) drums = 0;                              /* muted */
+  if (v->volume_offset & 0x80) drums = 0; /* muted */
   if (((v->note & 0x1f) | drums) == 0) return;
   opl(d, 0xbd, (uint8_t)((~drums & v->note) | 0x20));
   v->note |= drums;
@@ -442,21 +448,21 @@ static void stop_music(FmDriver* d);
  * rhythm voice, tempo 120. */
 static void start_song(FmDriver* d, uint8_t song) {
   uint16_t entry, track;
-  int i;
+  int      i;
   if (song == 0) return;
-  d->current_song = song;
-  d->music_ticks = 0;
-  d->fade_length = 0;
-  d->fade_prescaler = 0;
-  d->fade_step = 0;
+  d->current_song     = song;
+  d->music_ticks      = 0;
+  d->fade_length      = 0;
+  d->fade_prescaler   = 0;
+  d->fade_step        = 0;
   d->fade_attenuation = 0;
-  entry = (uint16_t)(d->music_off + 10u * (uint8_t)(song - 1));
+  entry               = (uint16_t)(d->music_off + 10u * (uint8_t)(song - 1));
   for (i = 0; i < 4; i++) {
     FmdVoice* v = &d->voice[i];
     clear_voice(v);
     track = peek_word(d, d->music_seg, (uint16_t)(entry + 2 * i));
     if (track) track = (uint16_t)(track + entry);
-    v->loop = track;
+    v->loop  = track;
     v->track = track;
   }
   {
@@ -464,11 +470,11 @@ static void start_song(FmDriver* d, uint8_t song) {
     clear_voice(v);
     track = peek_word(d, d->music_seg, (uint16_t)(entry + 8));
     if (track) track = (uint16_t)(track + entry);
-    v->loop = track;
+    v->loop  = track;
     v->track = track;
   }
   d->velocity_bd = d->velocity_hh = d->velocity_sd = d->velocity_tom = d->velocity_cym = 0;
-  d->rhythm_control = 0;
+  d->rhythm_control                                                                    = 0;
   opl(d, 0xbd, 0);
   set_tempo(d, 120);
 }
@@ -482,19 +488,19 @@ static void key_off_effect_voices(FmDriver* d) {
 /* [046a] start_effect: effect n (1-based) of the effect bank on voices 4-5. */
 static void start_effect(FmDriver* d, uint8_t effect) {
   uint16_t entry;
-  int i;
+  int      i;
   if (effect == 0) return;
   d->current_effect = effect;
-  entry = (uint16_t)(d->effects_off + 4u * (uint8_t)(effect - 1));
+  entry             = (uint16_t)(d->effects_off + 4u * (uint8_t)(effect - 1));
   key_off_effect_voices(d);
   for (i = 0; i < 2; i++) {
     FmdVoice* v = effect_voice(d, (unsigned)i);
-    uint16_t track;
+    uint16_t  track;
     clear_voice(v);
     v->volume = 0x0f;
-    track = peek_word(d, d->effects_seg, (uint16_t)(entry + 2 * i));
+    track     = peek_word(d, d->effects_seg, (uint16_t)(entry + 2 * i));
     if (track) track = (uint16_t)(track + entry);
-    v->loop = track;
+    v->loop  = track;
     v->track = track;
   }
 }
@@ -502,8 +508,8 @@ static void start_effect(FmDriver* d, uint8_t effect) {
 /* [092e] stop_music: silence voices 0-3 and the drums. */
 static void stop_music(FmDriver* d) {
   int i;
-  d->current_song = 0;
-  d->fade_length = 0;
+  d->current_song     = 0;
+  d->fade_length      = 0;
   d->fade_attenuation = 0;
   for (i = 0; i < 4; i++) {
     voice_silence(d, &d->voice[i]);
@@ -515,20 +521,20 @@ static void stop_music(FmDriver* d) {
 /* [0953] song_finished: the client callback, then the queued song. */
 static void song_finished(FmDriver* d) {
   FmdCallbackRegs cr;
-  uint8_t song, repeat;
+  uint8_t         song, repeat;
   cr.ax = (uint16_t)(d->queued_song | d->current_song << 8);
   cr.bx = (uint16_t)(d->queued_repeat | d->repeat_mode << 8);
   cr.cx = d->queued_repeat;
   cr.dx = (uint16_t)(d->callback_off | d->callback_seg);
   if (cr.dx != 0 && d->host.callback) d->host.callback(d->host.user, d->callback_seg, d->callback_off, &cr);
-  song = (uint8_t)cr.ax;
-  repeat = (uint8_t)cr.bx;
+  song            = (uint8_t)cr.ax;
+  repeat          = (uint8_t)cr.bx;
   d->current_song = song;
   if (song) {
     d->repeat_mode = repeat;
     start_song(d, song);
   }
-  d->queued_song = (uint8_t)(cr.cx >> 8);
+  d->queued_song   = (uint8_t)(cr.cx >> 8);
   d->queued_repeat = (uint8_t)cr.cx;
 }
 
@@ -544,7 +550,7 @@ static uint16_t cmd_repeat(FmdVoice* v, uint16_t at, uint8_t command) {
   if (v->repeat_start == 0) return at;
   if (v->repeat_count == 0) {
     v->repeat_count = (uint8_t)(times + 1);
-    v->repeat_exit = at;
+    v->repeat_exit  = at;
   }
   if (--v->repeat_count != 0) return v->repeat_start;
   v->repeat_start = 0;
@@ -561,10 +567,10 @@ static uint16_t cmd_repeat_break(FmdVoice* v, uint16_t at) {
 
 /* Restart a track at its loop point (end of track with repeat on). */
 static uint16_t restart_track(FmdVoice* v) {
-  v->length = 0x30;
-  v->gate = 0x2d;
+  v->length       = 0x30;
+  v->gate         = 0x2d;
   v->length_count = 1;
-  v->gate_count = 0;
+  v->gate_count   = 0;
   v->repeat_count = 0;
   v->repeat_start = 0;
   return v->loop;
@@ -573,18 +579,18 @@ static uint16_t restart_track(FmdVoice* v) {
 /* [0b62]/[0b6d] F7h/F6h depth, rate: software vibrato (a one-shot pitch
  * ramp after each note). `period` is the ramp length in fixed ticks. */
 static void start_vibrato(FmDriver* d, FmdVoice* v, uint8_t depth, uint16_t period) {
-  v->lfo_rate = (uint16_t)(0x8000u / period);
+  v->lfo_rate   = (uint16_t)(0x8000u / period);
   v->lfo_flags &= (uint8_t)~FMD_LFO_DOWN;
   if (depth & 0x80) {
-    depth = (uint8_t)-depth;
+    depth         = (uint8_t)-depth;
     v->lfo_flags |= FMD_LFO_DOWN;
   }
   if (depth > 12) depth = 0;
-  v->lfo_depth = modulation_depth_table[depth];
-  v->lfo_count = 0;
-  v->lfo_phase = 0;
-  v->lfo_direction = 1;
-  v->flags |= FMD_VOICE_VIBRATO;
+  v->lfo_depth      = modulation_depth_table[depth];
+  v->lfo_count      = 0;
+  v->lfo_phase      = 0;
+  v->lfo_direction  = 1;
+  v->flags         |= FMD_VOICE_VIBRATO;
   voice_restore_frequency(d, v);
 }
 
@@ -592,42 +598,42 @@ static void start_vibrato(FmDriver* d, FmdVoice* v, uint8_t depth, uint16_t peri
  * the next track offset (0 = track ended). [0c91]..[0c54] */
 static uint16_t melody_command(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t at, uint8_t command) {
   uint8_t value;
-  if (command < 0xd0) return at;                              /* C0-CF: no operand, ignored */
+  if (command < 0xd0) return at; /* C0-CF: no operand, ignored */
   if (command < 0xe0) return cmd_repeat(v, at, command);
-  if (command < MEL_AM_DEPTH) return (uint16_t)(at + 1);              /* E0-ED: one operand, ignored */
+  if (command < MEL_AM_DEPTH) return (uint16_t)(at + 1); /* E0-ED: one operand, ignored */
   switch (command) {
-  case MEL_AM_DEPTH:                          /* [0c0b] BDh bit 7 */
-    value = peek(d, seg, at++);
+  case MEL_AM_DEPTH: /* [0c0b] BDh bit 7 */
+    value             = peek(d, seg, at++);
     d->rhythm_control = (uint8_t)((d->rhythm_control & 0x7f) | (value & 1) << 7);
     opl(d, 0xbd, d->rhythm_control);
     return at;
-  case MEL_VIBRATO_DEPTH:                     /* [0c23] BDh bit 6 */
-    value = peek(d, seg, at++);
+  case MEL_VIBRATO_DEPTH: /* [0c23] BDh bit 6 */
+    value             = peek(d, seg, at++);
     d->rhythm_control = (uint8_t)((d->rhythm_control & 0xbf) | (value & 1) << 6);
     opl(d, 0xbd, d->rhythm_control);
     return at;
-  case MEL_VOLUME:                            /* [0a5e] */
+  case MEL_VOLUME: /* [0a5e] */
     v->volume = (uint8_t)(peek(d, seg, at++) & 0x7f);
     voice_update_volume(d, v, v->volume);
     return at;
-  case MEL_TEMPO_PERIOD: {                    /* [0ae6] tempo from a period byte */
+  case MEL_TEMPO_PERIOD: { /* [0ae6] tempo from a period byte */
     uint16_t span = (uint16_t)(((uint8_t)~peek(d, seg, at++) + 1u) * 0x12u);
     set_tempo(d, (uint8_t)(0x1312du / span));
     return at;
   }
-  case MEL_TEMPO:                             /* [0ad3] only music voices 0-3 */
+  case MEL_TEMPO: /* [0ad3] only music voices 0-3 */
     value = peek(d, seg, at++);
     if (v->opl_channel < 4 || v->opl_channel == 6) set_tempo(d, value);
     return at;
-  case MEL_INSTRUMENT: {                      /* [0b00] relative instrument offset */
+  case MEL_INSTRUMENT: { /* [0b00] relative instrument offset */
     uint16_t rel = peek_word(d, seg, at);
-    at = (uint16_t)(at + 2);
+    at           = (uint16_t)(at + 2);
     voice_set_instrument(d, v, seg, (uint16_t)(rel + at - 3));
     return at;
   }
-  case MEL_VIBRATO_TEMPO: {                   /* [0b6d] period scaled by the tempo */
-    uint8_t depth = peek(d, seg, at++);
-    uint32_t rate = peek(d, seg, at++);
+  case MEL_VIBRATO_TEMPO: { /* [0b6d] period scaled by the tempo */
+    uint8_t  depth = peek(d, seg, at++);
+    uint32_t rate  = peek(d, seg, at++);
     uint16_t tempo = d->tempo ? d->tempo : 1;
     uint16_t period;
     if (rate == 0) rate = 0x100;
@@ -635,30 +641,30 @@ static uint16_t melody_command(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t 
     start_vibrato(d, v, depth, period ? period : 1);
     return at;
   }
-  case MEL_VIBRATO_RATE: {                    /* [0b62] direct period */
-    uint8_t depth = peek(d, seg, at++);
+  case MEL_VIBRATO_RATE: { /* [0b62] direct period */
+    uint8_t  depth  = peek(d, seg, at++);
     uint16_t period = (uint16_t)(peek(d, seg, at++) + 1u);
     start_vibrato(d, v, depth, period);
     return at;
   }
-  case MEL_LFO_ON:                            /* [0bd8] */
+  case MEL_LFO_ON: /* [0bd8] */
     if (!(v->lfo_flags & FMD_LFO_ON)) {
       v->flags |= FMD_VOICE_LFO_WANTED;
       if (v->flags & FMD_VOICE_LFO_AVAILABLE) v->lfo_flags |= FMD_LFO_ON | FMD_LFO_STATE;
     }
     return at;
-  case MEL_LFO_OFF:                           /* [0bed] */
+  case MEL_LFO_OFF: /* [0bed] */
     if (v->lfo_flags & FMD_LFO_ON) {
-      v->flags &= (uint8_t)~FMD_VOICE_LFO_WANTED;
+      v->flags     &= (uint8_t)~FMD_VOICE_LFO_WANTED;
       v->lfo_flags &= (uint8_t)~FMD_LFO_ON;
       if (v->flags & (FMD_VOICE_KEY_ON | FMD_VOICE_SOUNDED)) voice_restore_frequency(d, v);
     }
     return at;
-  case MEL_SKIP1: return (uint16_t)(at + 1);
-  case MEL_SKIP2: return (uint16_t)(at + 2);
+  case MEL_SKIP1:        return (uint16_t)(at + 1);
+  case MEL_SKIP2:        return (uint16_t)(at + 2);
   case MEL_REPEAT_BREAK: return cmd_repeat_break(v, at);
-  case MEL_LOOP_POINT: /* [0c50] */ v->loop = at; return at;
-  case MEL_END:                               /* [0c54] music voices loop when repeating */
+  case MEL_LOOP_POINT:   /* [0c50] */ v->loop = at; return at;
+  case MEL_END:          /* [0c54] music voices loop when repeating */
     voice_key_off(d, v);
     if (v->opl_channel >= 4 || d->repeat_mode == 0 || (v->flags & FMD_VOICE_WAITING)) return 0;
     d->music_ticks = 0;
@@ -671,13 +677,13 @@ static uint16_t melody_command(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t 
 static uint16_t melody_voice_read(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t at) {
   for (;;) {
     uint8_t byte = peek(d, seg, at++);
-    if (byte <= 0x5f) {                     /* note, length, gate */
+    if (byte <= 0x5f) { /* note, length, gate */
       v->length = peek(d, seg, at++);
-      v->gate = peek(d, seg, at++);
+      v->gate   = peek(d, seg, at++);
       voice_start_note(d, v, byte, v->gate);
       return at;
     }
-    if (byte <= 0xbf) {                     /* note with the default length and gate */
+    if (byte <= 0xbf) { /* note with the default length and gate */
       voice_start_note(d, v, (uint8_t)(byte - 0x60), v->gate);
       return at;
     }
@@ -690,7 +696,7 @@ static uint16_t melody_voice_read(FmDriver* d, FmdVoice* v, uint16_t seg, uint16
 static void melody_voice_tick(FmDriver* d, FmdVoice* v, uint16_t seg) {
   if (v->track == 0) return;
   if (--v->length_count == 0) {
-    v->track = melody_voice_read(d, v, seg, v->track);
+    v->track  = melody_voice_read(d, v, seg, v->track);
     v->flags &= (uint8_t)~FMD_VOICE_WAITING;
     return;
   }
@@ -701,33 +707,33 @@ static void melody_voice_tick(FmDriver* d, FmdVoice* v, uint16_t seg) {
 
 /* One rhythm command at `at`; returns the next offset (0 = ended). [1024] table */
 static uint16_t rhythm_command(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t at, uint8_t command) {
-  if (command < 0xa0) {                       /* [0ec0] 80-9F: velocity for the drums in bits 0-4 */
+  if (command < 0xa0) { /* [0ec0] 80-9F: velocity for the drums in bits 0-4 */
     rhythm_set_velocity(d, v, command, peek(d, seg, at));
     return (uint16_t)(at + 1);
   }
-  if (command < 0xd0) return at;                              /* A0-CF: ignored */
+  if (command < 0xd0) return at; /* A0-CF: ignored */
   if (command < 0xe0) return cmd_repeat(v, at, command);
-  if (command < RHY_VOLUME) return (uint16_t)(at + 1);              /* E0-EF: one operand, ignored */
+  if (command < RHY_VOLUME) return (uint16_t)(at + 1); /* E0-EF: one operand, ignored */
   switch (command) {
   case RHY_VOLUME: /* [0f62] */ rhythm_update_volume(d, v, peek(d, seg, at)); return (uint16_t)(at + 1);
   case RHY_TEMPO:
-    set_tempo(d, peek(d, seg, at));         /* the rhythm voice may set the tempo */
+    set_tempo(d, peek(d, seg, at)); /* the rhythm voice may set the tempo */
     return (uint16_t)(at + 1);
-  case RHY_INSTRUMENTS: {                     /* [0fe3] relative rhythm set */
+  case RHY_INSTRUMENTS: { /* [0fe3] relative rhythm set */
     uint16_t rel = peek_word(d, seg, at);
-    at = (uint16_t)(at + 2);
+    at           = (uint16_t)(at + 2);
     rhythm_load_instruments(d, seg, (uint16_t)(rel + at - 3));
     rhythm_update_volume(d, v, v->volume);
     return at;
   }
   case RHY_SKIP1_F1:
-  case RHY_SKIP1_F3: return (uint16_t)(at + 1);
+  case RHY_SKIP1_F3:     return (uint16_t)(at + 1);
   case RHY_SKIP2_F5:
   case RHY_SKIP2_F6:
-  case RHY_SKIP2_F7: return (uint16_t)(at + 2);
+  case RHY_SKIP2_F7:     return (uint16_t)(at + 2);
   case RHY_REPEAT_BREAK: return cmd_repeat_break(v, at);
-  case RHY_LOOP_POINT: v->loop = at; return at;
-  case RHY_END:                               /* [0ff8] */
+  case RHY_LOOP_POINT:   v->loop = at; return at;
+  case RHY_END:          /* [0ff8] */
     if (d->repeat_mode == 0 || (v->flags & FMD_VOICE_WAITING)) return 0;
     return restart_track(v);
   default: /* F8-FC */ return at;
@@ -756,7 +762,7 @@ static uint16_t rhythm_read(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t at)
 static void rhythm_tick(FmDriver* d, FmdVoice* v, uint16_t seg) {
   if (v->track == 0) return;
   if (--v->length_count != 0) return;
-  v->track = rhythm_read(d, v, seg, v->track);
+  v->track  = rhythm_read(d, v, seg, v->track);
   v->flags &= (uint8_t)~FMD_VOICE_WAITING;
 }
 
@@ -766,8 +772,8 @@ static void rhythm_tick(FmDriver* d, FmdVoice* v, uint16_t seg) {
  * is left unchanged and 1 is returned. */
 static int lfo_step(FmdVoice* v) {
   uint16_t delta = (uint16_t)((int16_t)v->lfo_rate * (int16_t)v->lfo_direction);
-  uint16_t old = v->lfo_phase;
-  v->lfo_phase = (uint16_t)(old + delta);
+  uint16_t old   = v->lfo_phase;
+  v->lfo_phase   = (uint16_t)(old + delta);
   if ((old ^ v->lfo_phase) & 0x8000) {
     v->lfo_phase = old;
     return 1;
@@ -779,8 +785,8 @@ static int lfo_step(FmdVoice* v) {
  * value returned is the phase before negation). */
 static uint16_t lfo_sawtooth(FmdVoice* v) {
   uint16_t value;
-  int wrapped = lfo_step(v);
-  value = v->lfo_phase;
+  int      wrapped = lfo_step(v);
+  value            = v->lfo_phase;
   if (wrapped) v->lfo_phase = (uint16_t)-v->lfo_phase;
   return value;
 }
@@ -789,10 +795,10 @@ static uint16_t lfo_sawtooth(FmdVoice* v) {
  * top and bottom. */
 static uint16_t lfo_triangle(FmdVoice* v) {
   uint16_t delta = (uint16_t)((int16_t)(uint16_t)(v->lfo_rate << 1) * (int16_t)v->lfo_direction);
-  uint16_t old = v->lfo_phase;
-  v->lfo_phase = (uint16_t)(old + delta);
+  uint16_t old   = v->lfo_phase;
+  v->lfo_phase   = (uint16_t)(old + delta);
   if (((old ^ v->lfo_phase) & 0x8000) && ((v->lfo_direction ^ v->lfo_phase) & 0x8000)) {
-    v->lfo_phase = old;
+    v->lfo_phase     = old;
     v->lfo_direction = (uint16_t)-v->lfo_direction;
   }
   return v->lfo_phase;
@@ -835,10 +841,10 @@ static uint16_t lfo_random(FmDriver* d, FmdVoice* v) {
 static uint16_t lfo_sample(FmDriver* d, FmdVoice* v, uint8_t shape) {
   uint16_t value;
   switch (shape) {
-  case 1: value = lfo_square(v); break;
-  case 2: value = lfo_triangle(v); break;
-  case 3: value = lfo_random(d, v); break;
-  case 4: value = lfo_ramp(v); break;
+  case 1:  value = lfo_square(v); break;
+  case 2:  value = lfo_triangle(v); break;
+  case 3:  value = lfo_random(d, v); break;
+  case 4:  value = lfo_ramp(v); break;
   default: value = lfo_sawtooth(v); break;
   }
   return value == 0x8000 ? 0x8001 : value;
@@ -848,30 +854,30 @@ static uint16_t lfo_sample(FmDriver* d, FmdVoice* v, uint8_t shape) {
  * depth applied to the F-number; the block is renormalised upwards. The
  * resulting block/F-number is written and returned. */
 static uint16_t voice_bend_frequency(FmDriver* d, FmdVoice* v, uint16_t bend) {
-  uint16_t fnum = v->frequency & 0x3ff;
+  uint16_t fnum  = v->frequency & 0x3ff;
   uint16_t block = v->frequency & 0x1c00;
   uint16_t value;
   if (!(bend & 0x8000)) {
     uint32_t up = (uint32_t)fnum * bend / 0x7fff;
-    up = up * v->lfo_depth / 0x7fff;
-    value = (uint16_t)(up + fnum);
+    up          = up * v->lfo_depth / 0x7fff;
+    value       = (uint16_t)(up + fnum);
     while (value > 0x3ff) {
       if (block >= 0x1c00) {
         block = 0x1c00;
         value = 0x3ff;
         break;
       }
-      block = (uint16_t)(block + 0x400);
+      block   = (uint16_t)(block + 0x400);
       value >>= 1;
     }
   } else {
     /* f * 7FFFh / (7FFFh + |bend| * depth / 7FFFh); numerator and
          * divisor halved when the divisor exceeds 16 bits. */
-    uint32_t down = (uint32_t)(uint16_t)-bend * v->lfo_depth / 0x7fff;
+    uint32_t down      = (uint32_t)(uint16_t)-bend * v->lfo_depth / 0x7fff;
     uint32_t numerator = (uint32_t)fnum * 0x7fff;
-    uint32_t divisor = (uint16_t)down + 0x7fffu;
+    uint32_t divisor   = (uint16_t)down + 0x7fffu;
     if (divisor > 0xffff) {
-      divisor >>= 1;
+      divisor   >>= 1;
       numerator >>= 1;
     }
     value = (uint16_t)(numerator / divisor);
@@ -892,11 +898,11 @@ static void apply_pitch_modulation(FmDriver* d, FmdVoice* v, uint16_t value, int
 /* [123d] apply_level_modulation: tremolo from the LFO value; instrument
  * byte 17 is the depth, bytes 18/19 scale it per operator (0-15). */
 static void apply_level_modulation(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t off, uint16_t value) {
-  uint8_t shape = peek(d, seg, (uint16_t)(off + 14));
-  int8_t depth = (int8_t)peek(d, seg, (uint16_t)(off + 17));
+  uint8_t  shape = peek(d, seg, (uint16_t)(off + 14));
+  int8_t   depth = (int8_t)peek(d, seg, (uint16_t)(off + 17));
   uint16_t magnitude;
   uint16_t amount;
-  int i;
+  int      i;
   if (shape == 4) {
     value = (uint16_t)(value << 1);
   } else if (shape == 1) {
@@ -909,7 +915,7 @@ static void apply_level_modulation(FmDriver* d, FmdVoice* v, uint16_t seg, uint1
   if (depth < 0) value = (uint16_t)~value;
   amount = (uint16_t)((uint32_t)value * magnitude / 0xfffe);
   for (i = 0; i < 2; i++) {
-    uint16_t scale = peek(d, seg, (uint16_t)(off + 18 + i)) & 0x0f;
+    uint16_t scale  = peek(d, seg, (uint16_t)(off + 18 + i)) & 0x0f;
     v->level_mod[i] = (uint8_t)((uint32_t)amount * scale / 0x0f);
     write_operator_level(d, v, i, (uint8_t)(0x40 + v->opl_operator + 3 * i), v->level[i]);
   }
@@ -919,47 +925,47 @@ static void apply_level_modulation(FmDriver* d, FmdVoice* v, uint16_t seg, uint1
  * delay, run) for one fixed tick. */
 static void voice_lfo_tick(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t off) {
   uint8_t shape = peek(d, seg, (uint16_t)(off + 14));
-  int run = 0;
+  int     run   = 0;
   if (!(v->lfo_flags & FMD_LFO_ON)) {
     v->lfo_count++;
     return;
   }
   if (v->flags & (FMD_VOICE_KEY_ON | FMD_VOICE_SOUNDED)) {
     v->lfo_depth = modulation_step_table[peek(d, seg, (uint16_t)(off + 16)) & 0x0f];
-    v->lfo_rate = peek_word(d, seg, (uint16_t)(off + 12));
+    v->lfo_rate  = peek_word(d, seg, (uint16_t)(off + 12));
   }
   if (!(v->flags & (FMD_VOICE_KEY_ON | FMD_VOICE_SOUNDED)) || v->lfo_rate == 0) {
-    v->lfo_flags |= FMD_LFO_STATE;          /* wait for the next key-on */
+    v->lfo_flags |= FMD_LFO_STATE; /* wait for the next key-on */
     v->lfo_count++;
     return;
   }
   switch (v->lfo_flags & FMD_LFO_STATE) {
   case 0: /* idle */ break;
-  case 1:                                     /* delay: count down, then start */
+  case 1: /* delay: count down, then start */
     if (--v->lfo_count != 0) return;
-    v->lfo_count = 0;
-    v->lfo_phase = 0;
+    v->lfo_count     = 0;
+    v->lfo_phase     = 0;
     v->lfo_direction = 1;
-    v->lfo_flags = (uint8_t)((v->lfo_flags & ~FMD_LFO_STATE) | 2);
-    run = 1;
+    v->lfo_flags     = (uint8_t)((v->lfo_flags & ~FMD_LFO_STATE) | 2);
+    run              = 1;
     break;
-  case 2: /* running */ run = 1; break;
-  default: {                                  /* (re)start after a key-on */
+  case 2:  /* running */ run = 1; break;
+  default: { /* (re)start after a key-on */
     uint8_t delay = peek(d, seg, (uint16_t)(off + 20));
-    v->lfo_flags = (uint8_t)((v->lfo_flags & ~FMD_LFO_STATE) | 1);
+    v->lfo_flags  = (uint8_t)((v->lfo_flags & ~FMD_LFO_STATE) | 1);
     if (delay == 0 && shape != 4) {
       v->lfo_count = d->fixed_tick_count; /* free-running phase */
     } else if (delay <= 1) {
-      v->lfo_count = 0;
-      v->lfo_phase = 0;
+      v->lfo_count     = 0;
+      v->lfo_phase     = 0;
       v->lfo_direction = 1;
     } else {
-      v->lfo_count = (uint16_t)((delay - 1u) * 4u);   /* 4 fixed ticks per step after the first */
+      v->lfo_count = (uint16_t)((delay - 1u) * 4u); /* 4 fixed ticks per step after the first */
       v->lfo_count++;
       return;
     }
     v->lfo_flags = (uint8_t)((v->lfo_flags & ~FMD_LFO_STATE) | 2);
-    run = 1;
+    run          = 1;
     break;
   }
   }
@@ -976,7 +982,7 @@ static void voice_lfo_tick(FmDriver* d, FmdVoice* v, uint16_t seg, uint16_t off)
 /* [0e0c] effect_tick: voices 4-5; the effect ends when both tracks end. */
 static void effect_tick(FmDriver* d) {
   uint16_t any = 0;
-  int i;
+  int      i;
   if (d->current_effect == 0) return;
   for (i = 0; i < 2; i++) {
     FmdVoice* v = effect_voice(d, (unsigned)i);
@@ -986,7 +992,7 @@ static void effect_tick(FmDriver* d) {
   d->effect_ticks++;
   if (any == 0) {
     d->current_effect = 0;
-    d->effect_ticks = 0;
+    d->effect_ticks   = 0;
   }
 }
 
@@ -994,7 +1000,7 @@ static void effect_tick(FmDriver* d) {
  * every track has ended. */
 static void music_tick(FmDriver* d) {
   uint16_t any = 0;
-  int i;
+  int      i;
   if (d->current_song != 0) {
     for (i = 0; i < 4; i++) {
       melody_voice_tick(d, &d->voice[i], d->music_seg);
@@ -1007,8 +1013,8 @@ static void music_tick(FmDriver* d) {
     song_finished(d);
     if (d->current_song != 0) return;
   }
-  d->tempo_increment = 0;                     /* no song: the music clock stops */
-  d->tempo = 0;
+  d->tempo_increment = 0; /* no song: the music clock stops */
+  d->tempo           = 0;
 }
 
 /* [133e] fixed_tick (about 62 Hz): fade-out, effects, vibrato and LFOs. */
@@ -1017,10 +1023,10 @@ static void fixed_tick(FmDriver* d) {
   if (d->fade_length != 0) {
     uint8_t prescaler = (uint8_t)(d->fade_prescaler + 1);
     if (prescaler >= 4) {
-      uint8_t length = d->fade_length;
-      uint8_t step = d->fade_step;
+      uint8_t  length = d->fade_length;
+      uint8_t  step   = d->fade_step;
       uint32_t attenuation;
-      if (step >= length) {               /* faded out: stop, next song */
+      if (step >= length) { /* faded out: stop, next song */
         stop_music(d);
         song_finished(d);
         d->fixed_tick_count++;
@@ -1043,13 +1049,13 @@ static void fixed_tick(FmDriver* d) {
   effect_tick(d);
   for (i = 0; i < FMD_VOICES; i++) {
     FmdVoice* v = &d->voice[i];
-    if (v->lfo_flags & FMD_LFO_RAMP) {      /* software vibrato */
+    if (v->lfo_flags & FMD_LFO_RAMP) { /* software vibrato */
       uint16_t bend = lfo_ramp(v);
       uint16_t frequency;
       if (v->lfo_flags & FMD_LFO_DOWN) bend = (uint16_t)-bend;
       frequency = voice_bend_frequency(d, v, bend);
-      if (v->lfo_phase == 0x7fff) {       /* ramp done: keep the bent pitch */
-        v->frequency = frequency;
+      if (v->lfo_phase == 0x7fff) { /* ramp done: keep the bent pitch */
+        v->frequency  = frequency;
         v->lfo_flags &= (uint8_t)~FMD_LFO_RAMP;
       }
     } else if (v->instrument_seg | v->instrument_off) {
@@ -1080,8 +1086,8 @@ static void update_sequencer(FmDriver* d) {
  * 35h/256 (60.3 Hz). Every 16th PIT tick belongs to the BIOS clock (18.2
  * Hz) and does not sequence; its ticks run on the next one. */
 void fmd_timer_tick(FmDriver* d) {
-  int n;
-  uint32_t sum = (uint32_t)d->tempo_accumulator + d->tempo_increment;
+  int      n;
+  uint32_t sum         = (uint32_t)d->tempo_accumulator + d->tempo_increment;
   d->tempo_accumulator = (uint16_t)sum;
   if (sum > 0xffff) d->pending_music_ticks++;
   if (d->fixed_tick_accumulator + 0x36u > 0xff) d->pending_fixed_ticks++;
@@ -1130,24 +1136,24 @@ static void api_load_music(FmDriver* d, FmdRegs* r) {
   d->music_off = r->dx;
   for (i = 0; i < 4; i++) {
     d->voice[i].volume_offset = 0;
-    d->voice[i].transpose = 0;
+    d->voice[i].transpose     = 0;
   }
   d->voice[FMD_RHYTHM].volume_offset = 0;
-  d->voice[FMD_RHYTHM].transpose = 0;
-  r->ax = 0;
+  d->voice[FMD_RHYTHM].transpose     = 0;
+  r->ax                              = 0;
 }
 
 /* 10h: effect bank at DS:DX. */
 static void api_load_effects(FmDriver* d, FmdRegs* r) {
   int i;
   api_stop_effect(d);
-  d->effects_seg = r->ds;
-  d->effects_off = r->dx;
+  d->effects_seg  = r->ds;
+  d->effects_off  = r->dx;
   d->effect_ticks = 0;
   key_off_effect_voices(d);
   for (i = 0; i < 2; i++) {
     effect_voice(d, (unsigned)i)->volume_offset = 0x0f;
-    effect_voice(d, (unsigned)i)->transpose = 0;
+    effect_voice(d, (unsigned)i)->transpose     = 0;
   }
   r->ax = 0;
 }
@@ -1164,8 +1170,8 @@ static void api_set_voice_instrument(FmDriver* d, uint8_t n, FmdRegs* r) {
       opl(d, (uint8_t)(0x43 + v->opl_operator), 0x3f);
       v->ksl_tl[1] = 0x3f;
     } else {
-      v->volume = 0;
-      v->flags |= FMD_VOICE_LFO_WANTED;
+      v->volume  = 0;
+      v->flags  |= FMD_VOICE_LFO_WANTED;
       voice_set_instrument(d, v, r->ds, r->dx);
     }
   }
@@ -1176,8 +1182,8 @@ static void api_set_voice_instrument(FmDriver* d, uint8_t n, FmdRegs* r) {
 static void api_play_voice_note(FmDriver* d, uint8_t n, FmdRegs* r) {
   uint8_t note = (uint8_t)r->dx;
   if (n < 2 && note <= 0x5f) {
-    FmdVoice* v = effect_voice(d, n);
-    v->flags &= 0x9d;                       /* not legato, no vibrato, not sounded */
+    FmdVoice* v  = effect_voice(d, n);
+    v->flags    &= 0x9d; /* not legato, no vibrato, not sounded */
     voice_start_note(d, v, note, 1);
     v->flags &= (uint8_t)~(FMD_VOICE_LEGATO | FMD_VOICE_VIBRATO);
   }
@@ -1188,7 +1194,7 @@ static void api_play_voice_note(FmDriver* d, uint8_t n, FmdRegs* r) {
 static void api_set_voice_volume(FmDriver* d, uint8_t n, uint8_t offset) {
   FmdVoice* v;
   if (n > 6) return;
-  v = &d->voice[n];
+  v                = &d->voice[n];
   v->volume_offset = offset;
   if (n == 6)
     rhythm_update_volume(d, v, v->volume);
@@ -1217,57 +1223,57 @@ static void api_rhythm_key(FmDriver* d, uint8_t velocity, uint8_t drums) {
 /* [0277] dispatch_api: functions 00-09h, 10-13h, 80-83h. Registers not
  * named as results come back unchanged. */
 static void dispatch(FmDriver* d, FmdRegs* r) {
-  uint8_t function = (uint8_t)(r->ax >> 8), arg = (uint8_t)r->ax;
+  uint8_t  function = (uint8_t)(r->ax >> 8), arg = (uint8_t)r->ax;
   uint16_t swap;
   if (!(function <= 0x09 || (function >= 0x10 && function <= 0x13) || (function >= 0x80 && function <= 0x83))) return;
   d->busy++;
   switch (function) {
   case 0x00: api_load_music(d, r); break;
-  case 0x01:                                  /* play song AL */
+  case 0x01: /* play song AL */
     api_stop_music(d, 0, r);
     if (d->music_seg | d->music_off) start_song(d, arg);
     return_status(d, r);
     break;
   case 0x02: api_stop_music(d, arg, r); break;
-  case 0x03:                                  /* BX = music ticks */
+  case 0x03: /* BX = music ticks */
     r->bx = d->music_ticks;
     return_status(d, r);
     break;
-  case 0x04:                                  /* repeat mode */
+  case 0x04: /* repeat mode */
     d->repeat_mode = arg;
     return_status(d, r);
     break;
   case 0x05: api_set_voice_instrument(d, arg, r); break;
   case 0x06: api_play_voice_note(d, arg, r); break;
-  case 0x07:                                  /* key off effect voice AL */
+  case 0x07: /* key off effect voice AL */
     if (arg < 2) voice_key_off(d, effect_voice(d, arg));
     r->ax = 0;
     break;
-  case 0x08:                                  /* queue song AL with repeat mode DL */
-    d->queued_song = arg;
+  case 0x08: /* queue song AL with repeat mode DL */
+    d->queued_song   = arg;
     d->queued_repeat = (uint8_t)r->dx;
     return_status(d, r);
     break;
-  case 0x09:                                  /* swap the end-of-song callback */
-    swap = d->callback_seg;
+  case 0x09: /* swap the end-of-song callback */
+    swap            = d->callback_seg;
     d->callback_seg = r->ds;
-    r->ds = swap;
-    swap = d->callback_off;
+    r->ds           = swap;
+    swap            = d->callback_off;
     d->callback_off = r->dx;
-    r->dx = swap;
+    r->dx           = swap;
     break;
   case 0x10: api_load_effects(d, r); break;
-  case 0x11:                                  /* play effect AL */
+  case 0x11: /* play effect AL */
     api_stop_effect(d);
     start_effect(d, arg);
     break;
   case 0x12: api_stop_effect(d); break;
-  case 0x13:                                  /* AL = effect, BX = effect ticks */
+  case 0x13: /* AL = effect, BX = effect ticks */
     r->ax = (uint16_t)((r->ax & 0xff00) | d->current_effect);
     r->bx = d->effect_ticks;
     break;
   case 0x80: api_set_voice_volume(d, arg, (uint8_t)r->dx); break;
-  case 0x81:                                  /* transpose DL for melody voice AL */
+  case 0x81: /* transpose DL for melody voice AL */
     if (arg < 6) d->voice[arg].transpose = (uint8_t)r->dx;
     break;
   case 0x82: api_set_rhythm_instruments(d, r); break;
@@ -1290,11 +1296,11 @@ void fmd_interrupt(FmDriver* d, FmdRegs* r) {
   case 0xff: fmd_uninstall(d); return;
   case 0xfe: /* version 3.3, AH = enabled */ r->ax = (uint16_t)(d->enabled << 8 | 0x33); return;
   case 0xf0:
-  case 0xf1:                                  /* countdowns: AL = 0 read, else set */
+  case 0xf1: /* countdowns: AL = 0 read, else set */
     if (arg == 0) {
       r->bx = d->countdown[function & 1];
     } else {
-      d->countdown[function & 1] = r->bx;
+      d->countdown[function & 1]             = r->bx;
       d->countdown_accumulator[function & 1] = 0;
     }
     return;
@@ -1337,13 +1343,13 @@ int fmd_install(FmDriver* d, const FmdHost* host, int detect) {
   memset(d, 0, sizeof *d);
   d->host = *host;
   for (i = 0; i <= FMD_VOICES; i++) {
-    d->voice[i].opl_channel = voice_channel[i];
+    d->voice[i].opl_channel  = voice_channel[i];
     d->voice[i].opl_operator = voice_operator[i];
   }
   d->bios_tick_divider = 1;
-  d->random_state = 0x037d;
-  d->tempo = 120;
-  if (detect && !detect_chip(d)) return 0;                               /* resident without a sequencer */
+  d->random_state      = 0x037d;
+  d->tempo             = 120;
+  if (detect && !detect_chip(d)) return 0; /* resident without a sequencer */
   d->enabled = 0xff;
   d->busy++;
   initialize_chip(d);

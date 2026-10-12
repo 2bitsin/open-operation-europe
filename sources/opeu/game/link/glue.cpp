@@ -7,7 +7,6 @@
 
 #include "data-segment.hpp"
 
-#include "services.hpp"
 #include "core/aiops1.hpp"
 #include "core/dialogs.hpp"
 #include "core/random.hpp"
@@ -17,6 +16,7 @@
 #include "io/loadscen.hpp"
 #include "io/resopen.hpp"
 #include "map/cellpred.hpp"
+#include "services.hpp"
 
 /* ---- modeled DGROUP stack ------------------------------------------------ */
 
@@ -26,31 +26,18 @@ using opeu::game::Near;
 
 // Stack reserves of the module families: the deepest buffers a routine keeps on the modeled stack plus the frames of
 // the routines it calls.
-constexpr std::uint16_t AIR_FRAME{
-  0x200
-}; // air modules: objective_damage's buffers and its callees
-constexpr std::uint16_t BATTLE_RESERVE{
-  0x200
-}; // battle: deepest buffers and nested frames stay below 0x180
-constexpr std::uint16_t MAP_FRAME{
-  0x300
-}; // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
-constexpr std::uint16_t UNITS_FRAME{
-  0x200
-}; // units: locals plus internal frames
-constexpr std::uint16_t KEY_SCRATCH{
-  16
-}; // keyboard prompts: the caller's 16-byte scratch area
-constexpr std::uint16_t CLOSING_BUFFER{
-  100
-}; // briefings: the closing-text buffer
+constexpr std::uint16_t AIR_FRAME{ 0x200 }; // air modules: objective_damage's buffers and its callees
+constexpr std::uint16_t BATTLE_RESERVE{ 0x200 }; // battle: deepest buffers and nested frames stay below 0x180
+constexpr std::uint16_t MAP_FRAME{ 0x300 }; // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
+constexpr std::uint16_t UNITS_FRAME{ 0x200 }; // units: locals plus internal frames
+constexpr std::uint16_t KEY_SCRATCH{ 16 }; // keyboard prompts: the caller's 16-byte scratch area
+constexpr std::uint16_t CLOSING_BUFFER{ 100 }; // briefings: the closing-text buffer
 } // namespace
 
 uint16_t a_push_words(const uint16_t* args, unsigned count) {
   uint16_t at = (uint16_t)(port_stack_enter((uint16_t)(2 * count)) - 2 * count);
   unsigned i;
-  for (i = 0; i < count; i++)
-    port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
+  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
   return at;
 }
 
@@ -118,8 +105,7 @@ void map_frame_leave(void) {
 uint16_t b1_push_words(const uint16_t* args, unsigned count) {
   uint16_t at = b1_stack_alloc((uint16_t)(2 * count));
   unsigned i;
-  for (i = 0; i < count; i++)
-    port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
+  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2 * i), args[i]);
   return at;
 }
 
@@ -150,8 +136,7 @@ void b1_request_format(uint8_t* ds, const uint16_t* args, unsigned count) {
 }
 
 /* words at the reserved base */
-static void b2_frame_call(uint8_t* ds, TextFrameRoutine routine,
-                          const uint16_t* words, unsigned n) {
+static void b2_frame_call(uint8_t* ds, TextFrameRoutine routine, const uint16_t* words, unsigned n) {
   uint16_t bytes = (uint16_t)(2u * n), frame;
   unsigned i;
   frame = (uint16_t)(port_stack_enter(bytes) - bytes);
@@ -172,8 +157,7 @@ void b2_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
 }
 
 /* words at SP+4 of `bytes` reserved (c1_, c2_ and map_ conventions) */
-static void sp4_frame_call(uint8_t* ds, TextFrameRoutine routine,
-                           const uint16_t* words, unsigned n, uint16_t bytes) {
+static void sp4_frame_call(uint8_t* ds, TextFrameRoutine routine, const uint16_t* words, unsigned n, uint16_t bytes) {
   uint16_t frame;
   unsigned i;
   port_stack_enter(bytes);
@@ -211,8 +195,7 @@ void map_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
 }
 
 /* battle: one extra word reserved */
-void btl_frame_call(uint8_t* ds, BtlFrameRoutine routine, const uint16_t* words,
-                    unsigned n) {
+void btl_frame_call(uint8_t* ds, BtlFrameRoutine routine, const uint16_t* words, unsigned n) {
   uint16_t bytes = (uint16_t)(2u * n + 2u), frame;
   unsigned i;
   port_stack_enter(bytes);
@@ -246,8 +229,7 @@ uint16_t lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count) {
   uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
   uint16_t at = (uint16_t)(sp - 2u * count);
   uint16_t i;
-  for (i = 0; i < count; i++)
-    port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
+  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
   opeu_request_format(ds, (TextHost*)port_textout_host(), at);
   port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
   return 0;
@@ -257,8 +239,7 @@ uint16_t lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count) {
   uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
   uint16_t at = (uint16_t)(sp - 2u * count);
   uint16_t i;
-  for (i = 0; i < count; i++)
-    port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
+  for (i = 0; i < count; i++) port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
   opeu_cursor_print(ds, (TextHost*)port_textout_host(), at);
   port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
   return 0;
@@ -298,21 +279,16 @@ constexpr std::uint32_t ARRIVAL_CELL_ALLOWED_AT{ 0x145cu * 16u + 0x1152u };
 
 PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
   uint32_t address = (uint32_t)seg * 16u + off;
-  if (address == REQUEST_CELL_ALLOWED_AT)
-    return opeu_request_cell_allowed;
-  if (address == ARRIVAL_CELL_ALLOWED_AT)
-    return opeu_arrival_cell_allowed;
-  port_fatal("request_cells: predicate %04x:%04x is not a cell predicate", seg,
-             off);
+  if (address == REQUEST_CELL_ALLOWED_AT) return opeu_request_cell_allowed;
+  if (address == ARRIVAL_CELL_ALLOWED_AT) return opeu_arrival_cell_allowed;
+  port_fatal("request_cells: predicate %04x:%04x is not a cell predicate", seg, off);
   return 0;
 }
 
-/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its
- * present service, i.e. by routine identifier. */
-void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off,
-                     uint16_t seg) {
-  opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side,
-                  (uint32_t)seg << 16 | off);
+/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls
+ * it back through its present service, i.e. by routine identifier. */
+void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
+  opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
 }
 
 /* The briefings (core/scenbrf) keep their 100-byte closing-text buffer on
@@ -324,20 +300,17 @@ uint32_t port_run_briefing(uint8_t* ds, PortBriefing briefing) {
   return 0;
 }
 
-uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args,
-                     unsigned count, const unsigned char* order, unsigned n) {
+uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order,
+                     unsigned n) {
   uint16_t out[8];
   unsigned i;
-  for (i = 0; i < n && i < 8; ++i)
-    out[i] = order[i] < count ? args[order[i]] : 0;
+  for (i = 0; i < n && i < 8; ++i) out[i] = order[i] < count ? args[order[i]] : 0;
   return (uint16_t)port_call(ds, address, out, n);
 }
 
-uint32_t port_call_named(uint8_t* ds, const char* name, const uint16_t* args,
-                         unsigned count) {
+uint32_t port_call_named(uint8_t* ds, const char* name, const uint16_t* args, unsigned count) {
   uint32_t address = port_routine_address(name);
-  if (!address)
-    port_fatal("no routine named %s", name);
+  if (!address) port_fatal("no routine named %s", name);
   return port_call(ds, address, args, count);
 }
 
@@ -346,18 +319,17 @@ uint32_t port_call_named(uint8_t* ds, const char* name, const uint16_t* args,
 /* INT 33h: int86 copies the output registers back and returns AX. */
 uint16_t port_mouse_int33(uint16_t* w) {
   switch (w[0]) {
-    case 0:
-      w[0] = port_mouse_reset();
-      w[1] = 2; /* BX: number of buttons */
-      break;
-    case 1: port_mouse_show(); break;
-    case 2: port_mouse_hide(); break;
-    case 3: port_mouse_state(&w[1], &w[2], &w[3]); break;
-    case 4: port_mouse_set_position(w[2], w[3]); break;
-    case 7: port_mouse_x_range(w[2], w[3]); break;
-    case 8: port_mouse_y_range(w[2], w[3]); break;
-    default:
-      port_fatal("mouse: INT 33h function %04x is not issued by MAIN", w[0]);
+  case 0:
+    w[0] = port_mouse_reset();
+    w[1] = 2; /* BX: number of buttons */
+    break;
+  case 1:  port_mouse_show(); break;
+  case 2:  port_mouse_hide(); break;
+  case 3:  port_mouse_state(&w[1], &w[2], &w[3]); break;
+  case 4:  port_mouse_set_position(w[2], w[3]); break;
+  case 7:  port_mouse_x_range(w[2], w[3]); break;
+  case 8:  port_mouse_y_range(w[2], w[3]); break;
+  default: port_fatal("mouse: INT 33h function %04x is not issued by MAIN", w[0]);
   }
   w[6] = 0; /* cflag: int86 copies CF, clear */
   return w[0];
@@ -373,18 +345,16 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
 
 /* ---- keyboard prompts ----------------------------------------------------------- */
 
-uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max,
-                            uint16_t items) {
+uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
   uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
   r          = opeu_prompt_value_cancel(ds, svc_keyboard, text, max, items, s);
   port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
-uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max,
-                              uint16_t items) {
+uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
   uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
-  r = opeu_prompt_value_required(ds, svc_keyboard, text, max, items, s);
+  r          = opeu_prompt_value_required(ds, svc_keyboard, text, max, items, s);
   port_scratch_leave(KEY_SCRATCH);
   return r;
 }
@@ -406,22 +376,17 @@ static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
   int32_t  end = h < 0 ? 0 : opeu_dos_seek(h, 0, 2);
   uint8_t* data;
   size_t   done = 0;
-  if (end < 0)
-    end = 0;
+  if (end < 0) end = 0;
   data = (uint8_t*)std::malloc((size_t)end + 1);
-  if (!data)
-    port_fatal("scensel: out of memory");
+  if (!data) port_fatal("scensel: out of memory");
   if (h >= 0) {
     opeu_dos_seek(h, 0, 0);
     while (done < (size_t)end) {
       size_t   chunk = (size_t)end - done;
       uint16_t n;
-      if (chunk > 0x8000u)
-        chunk = 0x8000u;
-      n = (uint16_t)opeu_dos_read(h, data + done,
-                                  (uint16_t)chunk); /* AX: unsigned count */
-      if (n == 0 || n == 0xffffu)
-        break;
+      if (chunk > 0x8000u) chunk = 0x8000u;
+      n = (uint16_t)opeu_dos_read(h, data + done, (uint16_t)chunk); /* AX: unsigned count */
+      if (n == 0 || n == 0xffffu) break;
       done += n;
     }
     opeu_dos_close(h);
@@ -433,15 +398,12 @@ static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
 void port_load_scenario(uint8_t* ds, uint16_t scenario) {
   size_t   scedata_size, mapinf_size;
   auto&    data{ Data(ds) };
-  uint8_t* scedata =
-      read_resource(ds, Near(data, data.scenario_filename), &scedata_size);
-  uint8_t* mapinf =
-      read_resource(ds, Near(data, data.map_filename), &mapinf_size);
+  uint8_t* scedata = read_resource(ds, Near(data, data.scenario_filename), &scedata_size);
+  uint8_t* mapinf  = read_resource(ds, Near(data, data.map_filename), &mapinf_size);
   /* The loader returns -1 (and leaves DS untouched) when a file is shorter
    * than the records it reads; the game has no result for that, so nothing
    * is reported beyond a trace. */
-  if (opeu_load_scenario(ds, (uint8_t)scenario, scedata, scedata_size, mapinf,
-                         mapinf_size) != 0)
+  if (opeu_load_scenario(ds, (uint8_t)scenario, scedata, scedata_size, mapinf, mapinf_size) != 0)
     port_trace("link",
                "scensel: scenario %u: SCENARIO/MAP files shorter than the "
                "records read",

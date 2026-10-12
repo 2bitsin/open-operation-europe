@@ -11,15 +11,12 @@ enum class OutcomeReason : uint8_t {
   DEADLINE         = 3, // the scenario's last day came
 };
 
-inline constexpr uint8_t NO_OUTCOME{
-  0xff
-}; // outcome_side and outcome_reason while the scenario goes on
+inline constexpr uint8_t NO_OUTCOME{ 0xff }; // outcome_side and outcome_reason while the scenario goes on
 
 void     opeu_set_outcome(uint8_t* ds, uint8_t side, uint8_t reason);
 void     opeu_check_sides(uint8_t* ds);
 uint8_t  opeu_objective_flag(const uint8_t* ds, uint8_t index);
-uint16_t opeu_deadline_components(const uint8_t* ds, uint8_t year,
-                                  uint8_t month, uint8_t day);
+uint16_t opeu_deadline_components(const uint8_t* ds, uint8_t year, uint8_t month, uint8_t day);
 void     opeu_check_objectives(uint8_t* ds);
 void     opeu_check_deadline(uint8_t* ds);
 uint16_t opeu_check_victory(uint8_t* ds);

@@ -1,14 +1,11 @@
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t frame,
-                            uint8_t x, uint8_t y);
-uint16_t opeu_move_objective_target(uint8_t* ds, HostEvent event, uint16_t x,
-                                    uint16_t y, uint8_t side);
-uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame,
-                               uint16_t x, uint16_t y);
+uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y);
+uint16_t opeu_move_objective_target(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint8_t side);
+uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y);
 uint16_t opeu_move_level_raise(uint8_t* ds, uint16_t record, uint8_t value);
 uint16_t opeu_move_level_lower(uint8_t* ds, uint16_t record, uint8_t value);
 
@@ -48,7 +45,5 @@ enum class MoveService : uint16_t {
 };
 
 // The services of this module.
-uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id,
-                      const uint16_t* args, uint16_t count);
-uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count);
+uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_movetgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

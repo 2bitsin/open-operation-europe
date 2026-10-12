@@ -3,5 +3,4 @@
 
 #include "types.hpp"
 
-uint16_t opeu_ai_supply_share(uint8_t* ds, uint16_t* budget, uint16_t amount,
-                              uint8_t which);
+uint16_t opeu_ai_supply_share(uint8_t* ds, uint16_t* budget, uint16_t amount, uint8_t which);

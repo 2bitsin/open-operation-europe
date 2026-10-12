@@ -46,14 +46,14 @@ constexpr auto STALL_US{ 200000u };
 }
 
 static FmDriver driver;
-static int installed;
-static int audio_device;            /* 1: the audio callback clocks the driver */
-static uint32_t tick_phase;         /* PIT input clock units since the last tick */
-static uint64_t clock_frames;       /* output frames the driver clock has advanced */
-static uint64_t last_clock_us;      /* host time of the last callback / pump clocking */
-static FILE* wav;
+static int      installed;
+static int      audio_device;  /* 1: the audio callback clocks the driver */
+static uint32_t tick_phase;    /* PIT input clock units since the last tick */
+static uint64_t clock_frames;  /* output frames the driver clock has advanced */
+static uint64_t last_clock_us; /* host time of the last callback / pump clocking */
+static FILE*    wav;
 static uint64_t wav_frames;
-static FILE* opl_log;
+static FILE*    opl_log;
 
 /* ---- driver host hooks ---------------------------------------------------- */
 
@@ -85,7 +85,7 @@ static void host_callback(void* user, uint16_t seg, uint16_t off, FmdCallbackReg
 
 static void wav_header(FILE* f, uint64_t frames) {
   uint32_t data = (uint32_t)(frames * 4u), rate = OPL_SAMPLE_RATE;
-  uint8_t h[44];
+  uint8_t  h[44];
   memcpy(h, "RIFF", 4);
   h[4] = (uint8_t)(data + 36);
   h[5] = (uint8_t)((data + 36) >> 8);
@@ -94,22 +94,22 @@ static void wav_header(FILE* f, uint64_t frames) {
   memcpy(h + 8, "WAVEfmt ", 8);
   h[16] = 16;
   h[17] = h[18] = h[19] = 0;
-  h[20] = 1;
-  h[21] = 0;                       /* PCM */
-  h[22] = 2;
-  h[23] = 0;                       /* stereo */
-  h[24] = (uint8_t)rate;
-  h[25] = (uint8_t)(rate >> 8);
-  h[26] = (uint8_t)(rate >> 16);
-  h[27] = 0;
-  h[28] = (uint8_t)(rate * 4);
-  h[29] = (uint8_t)((rate * 4) >> 8);
-  h[30] = (uint8_t)((rate * 4) >> 16);
-  h[31] = (uint8_t)((rate * 4) >> 24);
-  h[32] = 4;
-  h[33] = 0;                       /* block align */
-  h[34] = 16;
-  h[35] = 0;                      /* bits */
+  h[20]                 = 1;
+  h[21]                 = 0; /* PCM */
+  h[22]                 = 2;
+  h[23]                 = 0; /* stereo */
+  h[24]                 = (uint8_t)rate;
+  h[25]                 = (uint8_t)(rate >> 8);
+  h[26]                 = (uint8_t)(rate >> 16);
+  h[27]                 = 0;
+  h[28]                 = (uint8_t)(rate * 4);
+  h[29]                 = (uint8_t)((rate * 4) >> 8);
+  h[30]                 = (uint8_t)((rate * 4) >> 16);
+  h[31]                 = (uint8_t)((rate * 4) >> 24);
+  h[32]                 = 4;
+  h[33]                 = 0; /* block align */
+  h[34]                 = 16;
+  h[35]                 = 0; /* bits */
   memcpy(h + 36, "data", 4);
   h[40] = (uint8_t)data;
   h[41] = (uint8_t)(data >> 8);
@@ -124,9 +124,9 @@ static void wav_header(FILE* f, uint64_t frames) {
 static void clock_frames_advance(int16_t* out, int frames) {
   static int16_t scratch[2 * 512];
   while (frames > 0) {
-    uint32_t need = PIT_UNITS_PER_TICK - tick_phase;
+    uint32_t need  = PIT_UNITS_PER_TICK - tick_phase;
     uint32_t until = (need + PIT_UNITS_PER_FRAME - 1) / PIT_UNITS_PER_FRAME;
-    int n = (int)(until < (uint32_t)frames ? until : (uint32_t)frames);
+    int      n     = (int)(until < (uint32_t)frames ? until : (uint32_t)frames);
     if (tick_phase >= PIT_UNITS_PER_TICK) n = 0;
     if (n > 512) n = 512;
     if (n > 0) {
@@ -137,9 +137,9 @@ static void clock_frames_advance(int16_t* out, int frames) {
         wav_frames += (uint64_t)n;
       }
       if (out) out += 2 * n;
-      tick_phase += (uint32_t)n * PIT_UNITS_PER_FRAME;
+      tick_phase   += (uint32_t)n * PIT_UNITS_PER_FRAME;
       clock_frames += (uint64_t)n;
-      frames -= n;
+      frames       -= n;
     }
     if (tick_phase >= PIT_UNITS_PER_TICK) {
       tick_phase -= PIT_UNITS_PER_TICK;
@@ -162,7 +162,7 @@ void port_fm_clock(void) {
   if (!installed) return;
   if (audio_device) {
     plat_audio_lock();
-    now = plat_ticks_us();          /* after the lock: the callback may just have run */
+    now = plat_ticks_us(); /* after the lock: the callback may just have run */
     if (now > last_clock_us && now - last_clock_us > STALL_US) {
       /* the device stopped pulling samples: keep the driver's time */
       uint64_t frames = (now - last_clock_us) * OPL_SAMPLE_RATE / 1000000u;
@@ -200,11 +200,11 @@ static void fm_shutdown(void) {
 /* Install the driver (FMDRV ran from OPEU.BAT before MAIN) and the audio. */
 void port_fm_init(void) {
   FmdHost host;
-  host.user = NULL;
+  host.user           = NULL;
   host.write_register = host_write_register;
-  host.read_status = host_read_status;
-  host.peek = host_peek;
-  host.callback = host_callback;
+  host.read_status    = host_read_status;
+  host.peek           = host_peek;
+  host.callback       = host_callback;
   if (port_options.wav_path) {
     wav = fopen(port_options.wav_path, "wb");
     if (!wav) port_fatal("cannot write %s", port_options.wav_path);
@@ -222,7 +222,7 @@ void port_fm_init(void) {
   installed = 1;
   atexit(fm_shutdown);
   if (!port_options.headless && !port_options.mute && plat_audio_open(OPL_SAMPLE_RATE, audio_callback, NULL) == 0) {
-    audio_device = plat_audio_active();
+    audio_device  = plat_audio_active();
     last_clock_us = plat_ticks_us();
   }
   port_trace("fm", "driver installed; clock: %s", audio_device ? "audio device" : "event pump");
@@ -246,10 +246,10 @@ static void driver_call(FmdRegs* r) {
 void port_fm_int66(uint16_t* ax, uint16_t* bx, uint16_t* dx, uint16_t* ds) {
   FmdRegs r;
   uint8_t ah = (uint8_t)(*ax >> 8);
-  r.ax = *ax;
-  r.bx = *bx;
-  r.dx = *dx;
-  r.ds = *ds;
+  r.ax       = *ax;
+  r.bx       = *bx;
+  r.dx       = *dx;
+  r.ds       = *ds;
   driver_call(&r);
   port_trace("fm", "frame %llu int66 ax=%04x bx=%04x dx=%04x ds=%04x -> ax=%04x bx=%04x",
              (unsigned long long)clock_frames, *ax, *bx, *dx, *ds, r.ax, r.bx);

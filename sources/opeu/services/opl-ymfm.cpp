@@ -30,11 +30,11 @@ Chip& chip() {
 // again, the chip is advanced by one sample first, as the microseconds
 // between the writes would on hardware; that sample is queued and handed
 // out by the next opl_render, so the output keeps its length.
-uint8_t key_regs[9];                // last B0h-B8h values (bit 5: key on)
-uint8_t rhythm_reg;                 // last BDh value (bits 0-4: drum keys)
-uint32_t released;                  // keys turned off since the last sample: bit n = channel n, bit 9+d = drum d
-int16_t queued[64];                 // samples generated ahead by a retrigger
-int queued_count;
+uint8_t  key_regs[9]; // last B0h-B8h values (bit 5: key on)
+uint8_t  rhythm_reg;  // last BDh value (bits 0-4: drum keys)
+uint32_t released;    // keys turned off since the last sample: bit n = channel n, bit 9+d = drum d
+int16_t  queued[64];  // samples generated ahead by a retrigger
+int      queued_count;
 
 int16_t next_sample() {
   ymfm::ym3812::output_data out;
@@ -56,16 +56,16 @@ void retrigger_gap(uint32_t struck) {
 void opl_reset(void) {
   chip().m_chip.reset();
   for (uint8_t& r : key_regs) r = 0;
-  rhythm_reg = 0;
-  released = 0;
+  rhythm_reg   = 0;
+  released     = 0;
   queued_count = 0;
 }
 
 void opl_write(uint8_t reg, uint8_t value) {
   if (reg >= 0xb0 && reg <= 0xb8) {
-    int const ch = reg - 0xb0;
+    int const      ch  = reg - 0xb0;
     uint32_t const bit = 1u << ch;
-    bool const was = key_regs[ch] & 0x20, now = value & 0x20;
+    bool const     was = key_regs[ch] & 0x20, now = value & 0x20;
     if (!was && now)
       retrigger_gap(bit);
     else if (was && !now)
@@ -74,8 +74,8 @@ void opl_write(uint8_t reg, uint8_t value) {
   } else if (reg == 0xbd) {
     uint32_t const was = rhythm_reg & 0x1f, now = value & 0x1f;
     if (value & 0x20) retrigger_gap((now & ~was) << 9);
-    released |= (was & ~now) << 9;
-    rhythm_reg = value;
+    released   |= (was & ~now) << 9;
+    rhythm_reg  = value;
   }
   chip().m_chip.write(0, reg);
   chip().m_chip.write(1, value);
@@ -94,7 +94,7 @@ void opl_render(int16_t* stereo, int frames) {
       s = 32767;
     else if (s < -32768)
       s = -32768;
-    stereo[2 * i] = (int16_t)s;
+    stereo[2 * i]     = (int16_t)s;
     stereo[2 * i + 1] = (int16_t)s;
   }
   for (int i = used; i < queued_count; i++) queued[i - used] = queued[i];

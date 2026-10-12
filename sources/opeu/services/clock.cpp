@@ -13,8 +13,8 @@ uint16_t port_clock_ticks_low(void) {
   uint64_t us = port_time_us();
   uint64_t ticks;
   if (!port_options.headless) {
-    time_t now = time(NULL);
-    struct tm* t = localtime(&now);
+    time_t     now = time(NULL);
+    struct tm* t   = localtime(&now);
     if (t) us = (uint64_t)(t->tm_hour * 3600 + t->tm_min * 60 + t->tm_sec) * 1000000u + us % 1000000u;
   }
   ticks = us * 1193182u / 65536u / 1000000u;
@@ -26,9 +26,9 @@ uint16_t port_clock_ticks_low(void) {
  * ASCII 0 returns 0 and its scan code on the next call. */
 int port_getch(void) {
   static int pending = -1;
-  uint16_t k;
+  uint16_t   k;
   if (pending >= 0) {
-    int r = pending;
+    int r   = pending;
     pending = -1;
     return r;
   }

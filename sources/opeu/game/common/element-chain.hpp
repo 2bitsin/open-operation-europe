@@ -14,8 +14,7 @@ namespace opeu::game::detail::element_chain {
 // the iterator advances, so the loop body may relink the element it holds.
 template <typename Segment> class ElementChain {
 public:
-  using Value =
-      std::conditional_t<std::is_const_v<Segment>, Element const, Element>;
+  using Value = std::conditional_t<std::is_const_v<Segment>, Element const, Element>;
 
   class Iterator {
   public:
@@ -23,8 +22,7 @@ public:
     using difference_type = std::ptrdiff_t;
 
     Iterator() = default;
-    Iterator(Segment* data, std::uint16_t near) noexcept
-        : _data{ data }, _near{ near } {}
+    Iterator(Segment* data, std::uint16_t near) noexcept : _data{ data }, _near{ near } { }
 
     [[nodiscard]] auto operator*() const noexcept -> Value& {
       return Record<Element>(*_data, _near);
@@ -38,8 +36,7 @@ public:
       ++*this;
       return before;
     }
-    [[nodiscard]] auto operator==(std::default_sentinel_t) const noexcept
-        -> bool {
+    [[nodiscard]] auto operator==(std::default_sentinel_t) const noexcept -> bool {
       return _near == 0;
     }
     // The near pointer of the element the iterator holds.
@@ -52,8 +49,7 @@ public:
     std::uint16_t _near{};
   };
 
-  ElementChain(Segment& data, std::uint16_t first) noexcept
-      : _data{ &data }, _first{ first } {}
+  ElementChain(Segment& data, std::uint16_t first) noexcept : _data{ &data }, _first{ first } { }
 
   [[nodiscard]] auto begin() const noexcept -> Iterator {
     return { _data, _first };
@@ -68,23 +64,18 @@ private:
 };
 
 // The chain starting at the element `first` points to (a Unit's first or an Element's next).
-[[nodiscard]] inline auto Elements(DataSegment&  data,
-                                   std::uint16_t first) noexcept
-    -> ElementChain<DataSegment> {
+[[nodiscard]] inline auto Elements(DataSegment& data, std::uint16_t first) noexcept -> ElementChain<DataSegment> {
   return { data, first };
 }
-[[nodiscard]] inline auto Elements(DataSegment const& data,
-                                   std::uint16_t      first) noexcept
+[[nodiscard]] inline auto Elements(DataSegment const& data, std::uint16_t first) noexcept
     -> ElementChain<DataSegment const> {
   return { data, first };
 }
 // The elements of a unit.
-[[nodiscard]] inline auto Elements(DataSegment& data, Unit const& unit) noexcept
-    -> ElementChain<DataSegment> {
+[[nodiscard]] inline auto Elements(DataSegment& data, Unit const& unit) noexcept -> ElementChain<DataSegment> {
   return { data, unit.first };
 }
-[[nodiscard]] inline auto Elements(DataSegment const& data,
-                                   Unit const&        unit) noexcept
+[[nodiscard]] inline auto Elements(DataSegment const& data, Unit const& unit) noexcept
     -> ElementChain<DataSegment const> {
   return { data, unit.first };
 }

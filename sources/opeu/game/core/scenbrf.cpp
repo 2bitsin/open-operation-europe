@@ -1,9 +1,9 @@
 // The scenario briefings: the six side initializers of the scenarios speak the opening briefing of the current side.
 // The side's commander and then its staff officer read the briefing texts; one text is formatted with the player's
 // name. While a target city is named, the message hook blinks a marker on its cell of the overview map.
-#include "types.hpp"
 #include "core/scenbrf.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
@@ -37,7 +37,7 @@ constexpr std::uint16_t BRIEFING_CODE_SEGMENT{ 0x0d9b };
 class Briefing {
 public:
   Briefing(std::uint8_t* ds, HostEvent event, std::uint16_t closing)
-      : ds_{ ds }, event_{ event }, closing_{ closing } {}
+      : ds_{ ds }, event_{ event }, closing_{ closing } { }
 
   auto Activate(std::uint8_t side) -> void {
     Call(ds_, event_, ACTIVATE, side);
@@ -97,8 +97,7 @@ void opeu_brief_mark(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y) {
   auto& data{ Data(ds) };
   data.brief_mark_x = x;
   data.brief_mark_y = y;
-  Call(ds, event, OVERVIEW_PIXEL, offsetof(DataSegment, brief_mark_x),
-       offsetof(DataSegment, brief_mark_y));
+  Call(ds, event, OVERVIEW_PIXEL, offsetof(DataSegment, brief_mark_x), offsetof(DataSegment, brief_mark_y));
 }
 
 // France 1940.
@@ -363,80 +362,66 @@ void opeu_brief_berlin(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
 }
 
 // The services in the native build.
-uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count) {
+uint16_t svc_scenbrf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0, f;
   switch (id) {
-    case ACTIVATE:
-      f = b1_frame_enter();
-      opeu_daily_activate(ds, svc_maperase, f, (uint8_t)Arg(args, count, 0));
-      port_frame_leave();
-      break;
-    case CONTROL_MESSAGE:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
-                           Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case OVERVIEW_PIXEL:
-      opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case INVERT:
-      r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1),
-                                      Arg(args, count, 2), Arg(args, count, 3),
-                                      Arg(args, count, 4));
-      break;
-    case FORMAT: b1_request_format(ds, args, count); break;
-    default:     port_unhandled("scenbrf", id, count);
+  case ACTIVATE:
+    f = b1_frame_enter();
+    opeu_daily_activate(ds, svc_maperase, f, (uint8_t)Arg(args, count, 0));
+    port_frame_leave();
+    break;
+  case CONTROL_MESSAGE:
+    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  case OVERVIEW_PIXEL: opeu_overview_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case INVERT:
+    r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
+                                    Arg(args, count, 4));
+    break;
+  case FORMAT: b1_request_format(ds, args, count); break;
+  default:     port_unhandled("scenbrf", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_brief_africa(std::uint8_t* ds, std::uint16_t const* args,
-                                    unsigned count) -> std::uint32_t {
+auto port_routine_opeu_brief_africa(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_africa);
 }
 
-auto port_routine_opeu_brief_ardennes(std::uint8_t*        ds,
-                                      std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_brief_ardennes(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_ardennes);
 }
 
-auto port_routine_opeu_brief_berlin(std::uint8_t* ds, std::uint16_t const* args,
-                                    unsigned count) -> std::uint32_t {
+auto port_routine_opeu_brief_berlin(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_berlin);
 }
 
-auto port_routine_opeu_brief_blink(std::uint8_t* ds, std::uint16_t const* args,
-                                   unsigned count) -> std::uint32_t {
+auto port_routine_opeu_brief_blink(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_brief_blink(ds, svc_scenbrf);
   return 0;
 }
 
-auto port_routine_opeu_brief_france(std::uint8_t* ds, std::uint16_t const* args,
-                                    unsigned count) -> std::uint32_t {
+auto port_routine_opeu_brief_france(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_france);
 }
 
-auto port_routine_opeu_brief_kursk(std::uint8_t* ds, std::uint16_t const* args,
-                                   unsigned count) -> std::uint32_t {
+auto port_routine_opeu_brief_kursk(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_kursk);
 }
 
-auto port_routine_opeu_brief_normandy(std::uint8_t*        ds,
-                                      std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_brief_normandy(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return port_run_briefing(ds, opeu_brief_normandy);

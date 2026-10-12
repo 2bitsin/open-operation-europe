@@ -23,13 +23,16 @@ TEST(BuildIdentity, StampsEveryFieldTheDriverWrites) {
 }
 
 TEST(BuildIdentity, DescribesVersionNumberAndTime) {
-  auto const build{ BuildIdentity{
-      .version = "v1.2.3-4-gabcdef0", .commit = "abcdef0", .time = "2026-10-09T21:05Z", .number = 17u } };
+  auto const build{
+    BuildIdentity{ .version = "v1.2.3-4-gabcdef0", .commit = "abcdef0", .time = "2026-10-09T21:05Z", .number = 17u }
+  };
   EXPECT_EQ(Describe(build), "opeu v1.2.3-4-gabcdef0 (build 17, 2026-10-09T21:05Z)");
 }
 
 TEST(BuildIdentity, LeavesOutATimeTheStampDidNotCarry) {
-  auto const build{ BuildIdentity{ .version = "unknown", .commit = "unknown", .number = 0u } };
+  auto const build{
+    BuildIdentity{ .version = "unknown", .commit = "unknown", .number = 0u }
+  };
   EXPECT_EQ(Describe(build), "opeu unknown (build 0)");
 }
 

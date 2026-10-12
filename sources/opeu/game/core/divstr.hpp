@@ -1,8 +1,8 @@
 // The division strength line of the current side's army panel: infantry, tanks and artillery of a division.
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 void opeu_show_division_strength(uint8_t* ds, HostNotify event, uint8_t div);
 

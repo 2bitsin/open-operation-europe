@@ -12,12 +12,9 @@
 namespace opeu::game::detail::data_segment {
 namespace {
 static_assert(sizeof(DataSegment) == 0x10000);
-static_assert(UNITS_AT == 0x14fc && GROUPS_AT == 0x0774 &&
-              ELEMENTS_AT == 0x07fc && OBJECTIVES_AT == 0x1a7c);
-static_assert(sizeof(Unit) * UNITS_PER_SIDE * SIDE_COUNT ==
-              sizeof(DataSegment::units));
-static_assert(sizeof(Element) * ELEMENTS_PER_SIDE * SIDE_COUNT ==
-              sizeof(DataSegment::elements));
+static_assert(UNITS_AT == 0x14fc && GROUPS_AT == 0x0774 && ELEMENTS_AT == 0x07fc && OBJECTIVES_AT == 0x1a7c);
+static_assert(sizeof(Unit) * UNITS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::units));
+static_assert(sizeof(Element) * ELEMENTS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::elements));
 
 // The data image the game starts from: MAIN's data objects and module data copied into a fresh arena.
 auto Initial() -> DataSegment const& {
@@ -26,8 +23,7 @@ auto Initial() -> DataSegment const& {
 }
 
 auto IsElement(std::uint16_t near) -> bool {
-  return near >= ELEMENTS_AT && near < UNITS_AT &&
-         (near - ELEMENTS_AT) % sizeof(Element) == 0;
+  return near >= ELEMENTS_AT && near < UNITS_AT && (near - ELEMENTS_AT) % sizeof(Element) == 0;
 }
 
 auto Text(DataSegment const& data, std::uint16_t near) -> std::string_view {
@@ -62,8 +58,7 @@ TEST(DataSegment, LinksUnitsToTheirElements) {
   auto        linked{ 0 };
   for (auto const& unit : data.units) {
     EXPECT_TRUE(unit.first == 0 || IsElement(unit.first)) << unit.first;
-    for (auto near{ unit.first }; near != 0 && linked < 1000;
-         near = Record<Element>(data, near).next) {
+    for (auto near{ unit.first }; near != 0 && linked < 1000; near = Record<Element>(data, near).next) {
       ASSERT_TRUE(IsElement(near)) << near;
       ++linked;
     }
@@ -75,8 +70,7 @@ TEST(DataSegment, NamesEveryElementTypeWithADataSegmentString) {
   auto const& data{ Initial() };
   auto        named{ 0 };
   for (auto const& type : data.element_types) {
-    if (type.name == 0)
-      continue;
+    if (type.name == 0) continue;
     EXPECT_FALSE(Text(data, type.name).empty()) << type.name;
     ++named;
   }
@@ -86,8 +80,9 @@ TEST(DataSegment, NamesEveryElementTypeWithADataSegmentString) {
 TEST(DataSegment, HoldsTheModuleTablesAndFileNames) {
   auto const& data{ Initial() };
   EXPECT_EQ(std::string_view(data.scenario_filename.data()), "SCEDATA");
-  auto const days{ std::array<std::uint8_t, 13>{ 0, 31, 28, 31, 30, 31, 30, 31,
-                                                 31, 30, 31, 30, 31 } };
+  auto const days{
+    std::array<std::uint8_t, 13>{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+  };
   EXPECT_EQ(data.calendar_days, days);
 }
 
@@ -95,8 +90,7 @@ TEST(DataSegment, TurnsNearPointersIntoRecordsAndBack) {
   auto& data{ Data(port_ds) };
   EXPECT_EQ(Near(data, data.units[5]), UNITS_AT + 5 * sizeof(Unit));
   EXPECT_EQ(&Record<Unit>(data, Near(data, data.units[5])), &data.units[5]);
-  EXPECT_EQ(Near(data, data.groups[GROUPS_PER_SIDE + 1].flags),
-            GROUPS_AT + 5 * sizeof(Group) + 16);
+  EXPECT_EQ(Near(data, data.groups[GROUPS_PER_SIDE + 1].flags), GROUPS_AT + 5 * sizeof(Group) + 16);
   EXPECT_EQ(Bits(UnitFlag::READY), 4);
 }
 } // namespace opeu::game::detail::data_segment

@@ -1,13 +1,13 @@
 // The request menu (turn action 7): the table of the side's requests and the choice of supplies, a battalion or a
 // regiment.
-#include "types.hpp"
 #include "core/rqmenu.hpp"
+#include "common/memory.hpp"
 #include "core/rqcommon.hpp"
 #include "data-segment.hpp"
-#include "common/memory.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 #include <utility>
@@ -22,20 +22,15 @@ constexpr uint16_t HEADER_Y{ 0xa3 };
 constexpr uint16_t FIRST_ROW_Y{ 0xbf };
 constexpr uint16_t ROW_HEIGHT{ 0x12 };
 constexpr uint16_t CHOICES{ 3 }; // supplies, battalion, regiment
-constexpr uint16_t CANCELLED{
-  0xffff
-}; // the menu's answer when the player backs out
-constexpr uint16_t TYPE_RECORD_WORDS{
-  7
-}; // the words of an equipment type record a filed battalion row prints
+constexpr uint16_t CANCELLED{ 0xffff }; // the menu's answer when the player backs out
+constexpr uint16_t TYPE_RECORD_WORDS{ 7 }; // the words of an equipment type record a filed battalion row prints
 
 } // namespace
 
 // "Request   Dest     Type      Wait" at the top of the request table.
 void opeu_request_header(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, RequestMenuService::POSITION, TABLE_X, HEADER_Y);
-  Call(ds, event, RequestMenuService::PRINT,
-       offsetof(DataSegment, rq_header_text));
+  Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_header_text));
 }
 
 // The request menu. Each kind the side may request now (its booked request is of that kind: the request under
@@ -46,103 +41,79 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
   auto const& config{ data.request_configs[data.current_side] };
   uint16_t    preparing[CHOICES];
-  for (uint16_t kind = 0; kind < CHOICES; ++kind)
-    preparing[kind] = Call(ds, event, RequestMenuService::MODE_IS, kind);
+  for (uint16_t kind = 0; kind < CHOICES; ++kind) preparing[kind] = Call(ds, event, RequestMenuService::MODE_IS, kind);
   auto const filed{ [&](RequestKind kind) -> RequestSlot const& {
-    return Record<Side>(data, data.current_side_ptr)
-        .requests[std::to_underlying(kind)];
+    return Record<Side>(data, data.current_side_ptr).requests[std::to_underlying(kind)];
   } };
   auto const shown{ [&](RequestKind kind) {
-    return Call(ds, event, RequestMenuService::PENDING,
-                std::to_underlying(kind)) ||
-           preparing[std::to_underlying(kind)];
+    return Call(ds, event, RequestMenuService::PENDING, std::to_underlying(kind))
+           || preparing[std::to_underlying(kind)];
   } };
   do {
     uint16_t rows = 0;
-    Call(ds, event, RequestMenuService::TITLE,
-         offsetof(DataSegment, rq_title_text));
+    Call(ds, event, RequestMenuService::TITLE, offsetof(DataSegment, rq_title_text));
     if (shown(RequestKind::SUPPLIES)) {
       opeu_request_header(ds, event);
       Call(ds, event, RequestMenuService::POSITION, TABLE_X, FIRST_ROW_Y);
       if (preparing[0])
-        Call(ds, event, RequestMenuService::PRINT,
-             offsetof(DataSegment, rq_supply_row_text), config.target,
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_row_text), config.target,
              config.delay);
       else
-        Call(ds, event, RequestMenuService::PRINT,
-             offsetof(DataSegment, rq_supply_filed_text),
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_filed_text),
              filed(RequestKind::SUPPLIES).target);
       rows++;
     }
     if (shown(RequestKind::BATTALION)) {
       opeu_request_header(ds, event);
-      Call(ds, event, RequestMenuService::POSITION, TABLE_X,
-           rows * ROW_HEIGHT + FIRST_ROW_Y);
+      Call(ds, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[1]) {
-        Call(ds, event, RequestMenuService::PRINT,
-             offsetof(DataSegment, rq_battalion_row_text), config.target,
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_battalion_row_text), config.target,
              data.element_types[config.argument].name, config.delay);
       } else {
         // The row prints the type's name; the whole type record is passed by value, as seven words.
         auto const& request{ filed(RequestKind::BATTALION) };
         auto const  type_at{ Near(data, data.element_types[request.argument]) };
-        uint16_t    words[2 + TYPE_RECORD_WORDS]{
-          static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)),
-          request.target
-        };
+        uint16_t    words[2 + TYPE_RECORD_WORDS]{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)),
+                                                  request.target };
         for (uint16_t i = 0; i < TYPE_RECORD_WORDS; ++i)
           words[2 + i] = Word(ds, static_cast<uint16_t>(type_at + 2 * i));
-        event(ds, std::to_underlying(RequestMenuService::PRINT), words,
-              static_cast<uint16_t>(std::size(words)));
+        event(ds, std::to_underlying(RequestMenuService::PRINT), words, static_cast<uint16_t>(std::size(words)));
       }
       rows++;
     }
     if (shown(RequestKind::REGIMENT)) {
       opeu_request_header(ds, event);
-      Call(ds, event, RequestMenuService::POSITION, TABLE_X,
-           rows * ROW_HEIGHT + FIRST_ROW_Y);
+      Call(ds, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[2])
-        Call(ds, event, RequestMenuService::PRINT,
-             offsetof(DataSegment, rq_regiment_row_text),
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_row_text),
              data.rq_regiment_kind_names[config.argument], config.delay);
       else
-        Call(
-            ds, event, RequestMenuService::PRINT,
-            offsetof(DataSegment, rq_regiment_filed_text),
-            data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]);
+        Call(ds, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_filed_text),
+             data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]);
     }
     uint16_t choice;
     for (;;) {
-      choice = Call(ds, event, RequestMenuService::DELAY_DIALOG,
-                    offsetof(DataSegment, rq_menu_prompt_text), CHOICES,
+      choice = Call(ds, event, RequestMenuService::DELAY_DIALOG, offsetof(DataSegment, rq_menu_prompt_text), CHOICES,
                     data.context_record2, offsetof(DataSegment, rq_menu_items));
-      if (choice == CANCELLED)
-        return;
+      if (choice == CANCELLED) return;
       choice--;
-      if (!preparing[choice])
-        break;
-      Call(ds, event, RequestMenuService::MESSAGE,
-           offsetof(DataSegment, rq_busy_text), data.context_record3);
+      if (!preparing[choice]) break;
+      Call(ds, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_busy_text), data.context_record3);
     }
-    if (choice != std::to_underlying(RequestKind::REGIMENT) &&
-        !Call(ds, event, RequestMenuService::HAS_CITY)) {
-      Call(ds, event, RequestMenuService::MESSAGE,
-           offsetof(DataSegment, rq_no_city_text), data.context_record3);
+    if (choice != std::to_underlying(RequestKind::REGIMENT) && !Call(ds, event, RequestMenuService::HAS_CITY)) {
+      Call(ds, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_no_city_text), data.context_record3);
     } else {
       auto const& handler{ data.request_handlers[choice] };
-      Call(ds, event, RequestMenuService::FAR_CALL, handler.offset,
-           handler.segment);
+      Call(ds, event, RequestMenuService::FAR_CALL, handler.offset, handler.segment);
     }
   } while (data.side_delays[data.current_side] == 0);
 }
 
-uint16_t svc_rqmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
-                    uint16_t count) {
+uint16_t svc_rqmenu(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   return svc_request("rqmenu", ds, id, args, count);
 }
 
-auto port_routine_opeu_turn_action_7(std::uint8_t* ds, std::uint16_t const*,
-                                     unsigned) -> std::uint32_t {
+auto port_routine_opeu_turn_action_7(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_turn_action_7(ds, svc_rqmenu);
   return 0;
 }

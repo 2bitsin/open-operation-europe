@@ -79,9 +79,7 @@ auto opeu_open_wait_ticks(uint8_t* ds, UtilService event, uint16_t ticks) -> int
 
 /* 062d:003e (MAIN 05a8:0210). AX=x, DX=y, BX=width, stack height; RETF 2. */
 void opeu_mouse_window(uint8_t* ds, UtilService event, int16_t x, int16_t y, int16_t width, int16_t height) {
-  Regs r = {
-    { 0, 0, 0, 0, 0, 0, 0 }
-  };
+  Regs r = {};
   r.x.ax = 7;
   r.x.cx = static_cast<uint16_t>(x);
   r.x.dx = static_cast<uint16_t>(width + x);
@@ -94,9 +92,7 @@ void opeu_mouse_window(uint8_t* ds, UtilService event, int16_t x, int16_t y, int
 
 /* 062d:0094 (MAIN 05a8:000c). INT 33h reset, then limit to 640x400; returns the reset AX. */
 auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t {
-  Regs r = {
-    { 0, 0, 0, 0, 0, 0, 0 }
-  };
+  Regs r = {};
   r.x.ax = 0;
   util_int86(ds, event, &r);
   opeu_mouse_window(ds, event, 0, 0, 640, 400);
@@ -105,9 +101,7 @@ auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t {
 
 /* 062d:00c6 (MAIN 05a8:0104). Queries the driver even without a mouse. */
 auto opeu_mouse_left(uint8_t* ds, UtilService event) -> int {
-  Regs r = {
-    { 0, 0, 0, 0, 0, 0, 0 }
-  };
+  Regs r = {};
   r.x.ax = 3;
   util_int86(ds, event, &r);
   return ((r.x.bx & 1) != 0) ? -1 : 0;
@@ -115,9 +109,7 @@ auto opeu_mouse_left(uint8_t* ds, UtilService event) -> int {
 
 /* 062d:00f0 (MAIN 05a8:012e). */
 auto opeu_mouse_right(uint8_t* ds, UtilService event) -> int {
-  Regs r = {
-    { 0, 0, 0, 0, 0, 0, 0 }
-  };
+  Regs r = {};
   r.x.ax = 3;
   util_int86(ds, event, &r);
   return ((r.x.bx & 2) != 0) ? -1 : 0;

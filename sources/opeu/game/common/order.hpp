@@ -23,11 +23,11 @@ inline constexpr std::uint8_t ORDER_UNUSED{ 0xff };
 // Whether an order of `kind` targets a regiment (its slot holds the unit's near pointer) rather than a cell.
 [[nodiscard]] constexpr auto TargetsUnit(std::uint8_t kind) noexcept -> bool {
   switch (static_cast<UnitOrder>(kind)) {
-    case UnitOrder::ATTACK:
-    case UnitOrder::SUPPLY_UNIT:
-    case UnitOrder::REPAIR_UNIT:
-    case UnitOrder::PURSUE:      return true;
-    default:                     return false;
+  case UnitOrder::ATTACK:
+  case UnitOrder::SUPPLY_UNIT:
+  case UnitOrder::REPAIR_UNIT:
+  case UnitOrder::PURSUE:      return true;
+  default:                     return false;
   }
 }
 } // namespace opeu::game::detail::order

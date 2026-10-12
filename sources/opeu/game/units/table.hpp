@@ -3,9 +3,9 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
-#include "common/events.hpp"
 
 #include "port.hpp"
 
@@ -22,57 +22,46 @@ inline constexpr std::uint16_t TABLE_SCRATCH{ 0xc0 };
 inline constexpr std::uint16_t ROW_TEXT{ 4 };
 
 // The text column of the table body's left edge (the column's lead within the window).
-[[nodiscard]] inline auto BodyX(DataSegment const&  data,
-                                ListWindow const&   window,
-                                TableColumns const& layout) -> std::uint16_t {
+[[nodiscard]] inline auto BodyX(DataSegment const& data, ListWindow const& window, TableColumns const& layout)
+    -> std::uint16_t {
   return ColumnX(data, window, layout, -0x20);
 }
 
 // Formats the heading `format` into `text` and prints the column's part of it above the rows.
-inline auto DrawHeading(std::uint8_t* ds, HostEvent event,
-                        ListWindow const& window, TableColumns const& layout,
+inline auto DrawHeading(std::uint8_t* ds, HostEvent event, ListWindow const& window, TableColumns const& layout,
                         std::uint16_t text, std::uint16_t format) -> void {
   auto const& data{ Data(ds) };
   Call(ds, event, TableService::FORMAT, text, format);
-  Call(ds, event, TableService::POSITION, BodyX(data, window, layout),
-       window.y + 1);
+  Call(ds, event, TableService::POSITION, BodyX(data, window, layout), window.y + 1);
   Call(ds, event, TableService::SIDE_COLOR, data.current_side);
   Call(ds, event, TableService::PUT_RANGE, text, layout.start, layout.count);
 }
 
 // Prints the column's part of the row text at row `entry`.
-inline auto DrawRowText(std::uint8_t* ds, HostEvent event,
-                        ListWindow const& window, TableColumns const& layout,
+inline auto DrawRowText(std::uint8_t* ds, HostEvent event, ListWindow const& window, TableColumns const& layout,
                         std::uint8_t entry, std::uint16_t text) -> void {
   auto const& data{ Data(ds) };
-  Call(ds, event, TableService::POSITION, BodyX(data, window, layout),
-       RowY(data, window, entry));
+  Call(ds, event, TableService::POSITION, BodyX(data, window, layout), RowY(data, window, entry));
   Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
   Call(ds, event, TableService::PUT_RANGE, text, layout.start, layout.count);
 }
 
 // Moves the text cursor to the name of row `entry`, `indent` columns into the window, in the colour of `side`.
-inline auto StartRowName(std::uint8_t* ds, HostEvent event,
-                         ListWindow const& window, std::uint8_t entry,
+inline auto StartRowName(std::uint8_t* ds, HostEvent event, ListWindow const& window, std::uint8_t entry,
                          std::uint16_t indent, std::uint8_t side) -> void {
   auto const& data{ Data(ds) };
-  Call(ds, event, TableService::POSITION, window.x + indent,
-       RowY(data, window, entry));
+  Call(ds, event, TableService::POSITION, window.x + indent, RowY(data, window, entry));
   Call(ds, event, TableService::SIDE_COLOR, side);
 }
 
 // Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
 // argument words.
 template <typename Draw>
-inline auto RunUnitTable(std::uint8_t* ds, HostEvent event, Draw draw,
-                         std::uint16_t const* args, unsigned count)
+inline auto RunUnitTable(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count)
     -> std::uint32_t {
-  auto const byte{ [&](unsigned i) {
-    return static_cast<std::uint8_t>(Arg(args, count, i));
-  } };
+  auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
   WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-    draw(ds, event, static_cast<std::uint16_t>(sp - TABLE_SCRATCH), byte(0),
-         byte(1), byte(2), byte(3), byte(4));
+    draw(ds, event, static_cast<std::uint16_t>(sp - TABLE_SCRATCH), byte(0), byte(1), byte(2), byte(3), byte(4));
   });
   return 0;
 }

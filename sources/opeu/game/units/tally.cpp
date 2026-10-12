@@ -1,40 +1,37 @@
 // Per-type tallies of unit elements and objective stock with weighted averages, for a unit/objective or unit/unit
 // comparison. Quantities sum into 16-bit words, weighted values into 32-bit accumulators; averages are signed 32-bit
 // quotients truncated to bytes. Stock items that do not fit the requested class go to a separate list.
-#include "types.hpp"
 #include "units/tally.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
+#include "types.hpp"
 #include "units/unitname.hpp"
 #include "units/value.hpp"
-#include "common/events.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
 
 namespace {
 // Adds quantity, second amount and weighted values to the tally row `row`, or starts a new row at `count`.
-auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type,
-               std::uint16_t quantity, std::uint16_t second,
-               std::uint32_t sum_a, std::uint32_t sum_b, std::uint32_t sum_c,
-               bool accumulate_new) -> void {
+auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::uint16_t quantity, std::uint16_t second,
+               std::uint32_t sum_a, std::uint32_t sum_b, std::uint32_t sum_c, bool accumulate_new) -> void {
   std::uint8_t row{ 0 };
-  while (row < count && data.supply_types[row] != type)
-    ++row;
+  while (row < count && data.supply_types[row] != type) ++row;
   data.supply_total += quantity;
   if (row != count) {
     data.supply_amounts[row] += quantity;
-    data.supply_others[row] += second;
-    data.supply_sum_a[row] += sum_a;
-    data.supply_sum_b[row] += sum_b;
-    data.supply_sum_c[row] += sum_c;
+    data.supply_others[row]  += second;
+    data.supply_sum_a[row]   += sum_a;
+    data.supply_sum_b[row]   += sum_b;
+    data.supply_sum_c[row]   += sum_c;
     return;
   }
   data.supply_types[count]   = type;
@@ -53,8 +50,8 @@ auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type,
 }
 
 // Records the compared records and names the unit in the first heading.
-auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit,
-                std::uint16_t other, std::uint16_t source) -> void {
+auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source)
+    -> void {
   auto& data{ Data(ds) };
   data.tally_unit       = unit;
   data.tally_other_unit = other;
@@ -66,8 +63,7 @@ auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit,
 // Selects the element of the list row the cursor is on.
 uint8_t opeu_tally_mark(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
-  Record<Element>(data, data.tally_records[data.list_row]).flags |=
-      Bits(ElementFlag::SELECTED);
+  Record<Element>(data, data.tally_records[data.list_row]).flags |= Bits(ElementFlag::SELECTED);
   return 1;
 }
 
@@ -76,42 +72,29 @@ uint8_t opeu_tally_elements(uint8_t ds[65536], uint16_t unit, uint8_t count) {
   auto& data{ Data(ds) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const quantity{ element.quantity };
-    TallyInto(data, count, element.type, quantity, element.damage,
-              std::uint32_t{ element.morale } * quantity,
-              std::uint32_t{ element.training } * quantity,
-              std::uint32_t{ element.experience } * quantity, true);
+    TallyInto(data, count, element.type, quantity, element.damage, std::uint32_t{ element.morale } * quantity,
+              std::uint32_t{ element.training } * quantity, std::uint32_t{ element.experience } * quantity, true);
   }
   return count;
 }
 
 // Tallies the objective's stock items of the requested class: kind 0-4 accepts categories 0-4, kind 5 only 5, kind 6+
 // only 6+. The other items go to the reject list.
-uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset,
-                         uint8_t count, uint8_t kind) {
+uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset, uint8_t count, uint8_t kind) {
   auto& data{ Data(ds) };
   auto& source{ Record<Objective>(data, source_offset) };
   data.tally_reject_count = 0;
   for (auto const& item : source.items) {
-    if (!item.quantity)
-      continue;
+    if (!item.quantity) continue;
     auto const category{ data.element_types[item.type].category };
-    if ((kind <= 4 && category <= 4) || (kind == 5 && category == 5) ||
-        (kind >= 6 && category >= 6)) {
-      std::uint32_t const fill{
-        static_cast<std::uint32_t>(opeu_min16(
-            99, opeu_mul_div(item.quantity, 100,
-                             data.request_capacities[category] * 3))) *
-        item.quantity
-      };
-      std::uint32_t const strength{ source.strength *
-                                    static_cast<std::uint32_t>(item.quantity) };
-      std::uint32_t const condition{
-        opeu_min16(99, 100 - opeu_mul_div(source.strength, 100,
-                                          source.strength_limit)) *
-        static_cast<std::uint32_t>(item.quantity)
-      };
-      TallyInto(data, count, item.type, item.quantity, item.extra, fill,
-                strength, condition, false);
+    if ((kind <= 4 && category <= 4) || (kind == 5 && category == 5) || (kind >= 6 && category >= 6)) {
+      std::uint32_t const fill{ static_cast<std::uint32_t>(opeu_min16(
+                                    99, opeu_mul_div(item.quantity, 100, data.request_capacities[category] * 3)))
+                                * item.quantity };
+      std::uint32_t const strength{ source.strength * static_cast<std::uint32_t>(item.quantity) };
+      std::uint32_t const condition{ opeu_min16(99, 100 - opeu_mul_div(source.strength, 100, source.strength_limit))
+                                     * static_cast<std::uint32_t>(item.quantity) };
+      TallyInto(data, count, item.type, item.quantity, item.extra, fill, strength, condition, false);
     } else {
       auto& reject{ data.supply_spare[data.tally_reject_count] };
       reject.type     = item.type;
@@ -127,23 +110,17 @@ uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset,
 void opeu_tally_average(uint8_t ds[65536], uint8_t count) {
   auto& data{ Data(ds) };
   for (std::uint8_t row{ 0 }; row < count; ++row) {
-    auto const divisor{ static_cast<std::int32_t>(
-        opeu_max16(data.supply_amounts[row], 1)) };
-    data.supply_avg_a[row] =
-        static_cast<std::int32_t>(data.supply_sum_a[row]) / divisor;
-    data.supply_avg_b[row] =
-        static_cast<std::int32_t>(data.supply_sum_b[row]) / divisor;
-    data.supply_avg_c[row] =
-        static_cast<std::int32_t>(data.supply_sum_c[row]) / divisor;
+    auto const divisor{ static_cast<std::int32_t>(opeu_max16(data.supply_amounts[row], 1)) };
+    data.supply_avg_a[row] = static_cast<std::int32_t>(data.supply_sum_a[row]) / divisor;
+    data.supply_avg_b[row] = static_cast<std::int32_t>(data.supply_sum_b[row]) / divisor;
+    data.supply_avg_c[row] = static_cast<std::int32_t>(data.supply_sum_c[row]) / divisor;
   }
 }
 
 // A unit against an objective's stock; the unit's slot selects the stock kind.
-uint8_t opeu_tally_unit_stock(uint8_t ds[65536], HostEvent event, uint16_t unit,
-                              uint16_t source_offset) {
+uint8_t opeu_tally_unit_stock(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t source_offset) {
   StartTally(ds, event, unit, 0, source_offset);
-  opeu_string_copy(ds, Near(Data(ds), Data(ds).tally_second_name),
-                   source_offset);
+  opeu_string_copy(ds, Near(Data(ds), Data(ds).tally_second_name), source_offset);
   uint8_t kind;
   if (opeu_category_6(opeu_unit_index(unit)))
     kind = 5;
@@ -151,36 +128,31 @@ uint8_t opeu_tally_unit_stock(uint8_t ds[65536], HostEvent event, uint16_t unit,
     kind = 6;
   else
     kind = 4;
-  auto const count{ opeu_tally_stock(ds, source_offset,
-                                     opeu_tally_elements(ds, unit, 0), kind) };
+  auto const count{ opeu_tally_stock(ds, source_offset, opeu_tally_elements(ds, unit, 0), kind) };
   opeu_tally_average(ds, count);
   return count;
 }
 
 // Two units' elements merged into one tally.
-uint8_t opeu_tally_units(uint8_t ds[65536], HostEvent event, uint16_t unit,
-                         uint16_t other) {
+uint8_t opeu_tally_units(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t other) {
   StartTally(ds, event, unit, other, 0);
   opeu_unit_name(ds, event, other, Near(Data(ds), Data(ds).tally_second_name));
-  auto const count{ opeu_tally_elements(ds, other,
-                                        opeu_tally_elements(ds, unit, 0)) };
+  auto const count{ opeu_tally_elements(ds, other, opeu_tally_elements(ds, unit, 0)) };
   opeu_tally_average(ds, count);
   return count;
 }
 
 // The services the module calls out to: opeu_unit_name formats the unit's name through request_format (id 2).
-uint16_t svc_tally(uint8_t* ds, uint16_t id, const uint16_t* args,
-                   uint16_t count) {
+uint16_t svc_tally(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-    case 2:  r = lf_request_format(ds, args, count); break;
-    default: port_unhandled("tally", id, count);
+  case 2:  r = lf_request_format(ds, args, count); break;
+  default: port_unhandled("tally", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_tally_mark(std::uint8_t* ds, std::uint16_t const* args,
-                                  unsigned count) -> std::uint32_t {
+auto port_routine_opeu_tally_mark(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_tally_mark(ds);

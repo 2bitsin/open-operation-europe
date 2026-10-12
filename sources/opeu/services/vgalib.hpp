@@ -68,6 +68,7 @@ void opeu_text_mode(void);
 // Copies a column rectangle (x1, y1) -> (x2, y2), w columns x h lines, as memmove in screen order.
 void                   opeu_screen_copy(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t x2, uint16_t y2);
 inline constexpr auto& opeu_vga_copy{ opeu_screen_copy };
-// Picture decoders (stream format at Canvas::DecodePicture): masked (run table, 16 colours) and plain (8 colours). 0 or -1.
+// Picture decoders (stream format at Canvas::DecodePicture): masked (run table, 16 colours) and plain (8 colours).
+// 0 or -1.
 int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader reader);
 int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader reader);

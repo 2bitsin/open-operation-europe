@@ -1,9 +1,9 @@
 // The unit a general currently has selected.
-#include "types.hpp"
 #include "core/perssel.hpp"
 #include "core/personfl.hpp"
 #include "core/selunit.hpp"
 #include "data-segment.hpp"
+#include "types.hpp"
 
 using namespace opeu::game;
 
@@ -18,9 +18,6 @@ uint16_t opeu_person_selected_unit(const uint8_t ds[65536], uint16_t person) {
     unit = opeu_find_side_selected_unit(ds, side);
   else if (record.assignment & Bits(Assignment::DIVISION))
     unit = opeu_find_group_selected_unit(
-        ds,
-        Near(data,
-             data.groups[(record.assignment & Bits(Assignment::DIVISION_MASK)) +
-                         side * GROUPS_PER_SIDE]));
+        ds, Near(data, data.groups[(record.assignment & Bits(Assignment::DIVISION_MASK)) + side * GROUPS_PER_SIDE]));
   return unit;
 }

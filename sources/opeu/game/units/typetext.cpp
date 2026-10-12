@@ -1,10 +1,10 @@
 // Equipment type names, nation codes, chain length and the unit-slot class comparison.
-#include "types.hpp"
 #include "units/typetext.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
+#include "types.hpp"
 #include "units/value.hpp"
 
 #include <iterator>
@@ -17,13 +17,11 @@ inline constexpr std::uint8_t TYPE_FLAG_NO_TANK_SUFFIX{ 0x04 };
 } // namespace
 
 // The name of an item's equipment type; tanks without the flag get " Tank" appended.
-uint16_t opeu_item_type_name(uint8_t ds[65536], uint16_t item,
-                             uint16_t buffer) {
+uint16_t opeu_item_type_name(uint8_t ds[65536], uint16_t item, uint16_t buffer) {
   auto&       data{ Data(ds) };
   auto const& type{ data.element_types[Record<Item>(data, item).type] };
   opeu_string_copy(ds, buffer, type.name);
-  if (type.category == Bits(Category::TANKS) &&
-      !(type.flags & TYPE_FLAG_NO_TANK_SUFFIX))
+  if (type.category == Bits(Category::TANKS) && !(type.flags & TYPE_FLAG_NO_TANK_SUFFIX))
     opeu_string_append(ds, buffer, Near(data, data.tank_suffix));
   return buffer;
 }
@@ -33,14 +31,14 @@ uint16_t opeu_nation_code(uint8_t ds[65536], uint16_t type, uint16_t buffer) {
   auto&         data{ Data(ds) };
   std::uint16_t code;
   switch (Record<ElementType>(data, type).sides) {
-    case 1:  code = Near(data, data.nation_codes[0]); break;
-    case 2:  code = Near(data, data.nation_codes[1]); break;
-    case 4:  code = Near(data, data.nation_codes[2]); break;
-    case 8:  code = Near(data, data.nation_codes[3]); break;
-    case 16: code = Near(data, data.nation_codes[4]); break;
-    case 32: code = Near(data, data.nation_codes[5]); break;
-    case 12: code = Near(data, data.nation_codes[6]); break;
-    default: code = Near(data, data.nation_code_other); break;
+  case 1:  code = Near(data, data.nation_codes[0]); break;
+  case 2:  code = Near(data, data.nation_codes[1]); break;
+  case 4:  code = Near(data, data.nation_codes[2]); break;
+  case 8:  code = Near(data, data.nation_codes[3]); break;
+  case 16: code = Near(data, data.nation_codes[4]); break;
+  case 32: code = Near(data, data.nation_codes[5]); break;
+  case 12: code = Near(data, data.nation_codes[6]); break;
+  default: code = Near(data, data.nation_code_other); break;
   }
   opeu_string_copy(ds, buffer, code);
   return buffer;
@@ -49,8 +47,7 @@ uint16_t opeu_nation_code(uint8_t ds[65536], uint16_t type, uint16_t buffer) {
 // The number of elements chained after a list head (a record whose first word links the first element).
 uint8_t opeu_list_length(uint8_t ds[65536], uint16_t list) {
   auto& data{ Data(ds) };
-  return static_cast<std::uint8_t>(
-      std::ranges::distance(Elements(data, Record<std::uint16_t>(data, list))));
+  return static_cast<std::uint8_t>(std::ranges::distance(Elements(data, Record<std::uint16_t>(data, list))));
 }
 
 // Unit slots 0-5 form one class; slots 6 and 7 each form their own.
@@ -58,8 +55,7 @@ uint16_t opeu_same_unit_class(uint16_t first, uint16_t second) {
   auto const a{ opeu_unit_index(first) };
   auto const b{ opeu_unit_index(second) };
   if (opeu_category_0_to_3(a) || opeu_category_4_or_5(a)) {
-    if (opeu_category_0_to_3(b) || opeu_category_4_or_5(b))
-      return 1;
+    if (opeu_category_0_to_3(b) || opeu_category_4_or_5(b)) return 1;
   } else if (opeu_category_6(a))
     return opeu_category_6(b);
   else if (opeu_category_7(a))

@@ -46,22 +46,22 @@ uint8_t opeu_text_erase[8] = "\b\033M0 \b";
 /* DS:014a..0159: zero bytes no recovered routine addresses. */
 uint8_t opeu_text_unused_014a[16] = { 0 };
 
-int16_t opeu_text_x = 0;                /* DS:015a column 0..79 */
-int16_t opeu_text_y = 0;                /* DS:015c pixel row */
-int16_t opeu_text_left = 0;             /* DS:015e left column (ESC R) */
-uint8_t opeu_text_paper = 0x00;         /* DS:0160 */
-uint8_t opeu_text_ink = 0x07;           /* DS:0161 */
-uint8_t opeu_text_background = 0x00;    /* DS:0162 */
-uint8_t opeu_text_z_0163 = 0;          /* DS:0163 alignment byte */
-int16_t opeu_text_large = 0;            /* DS:0164 large mode (ESC Y 1) */
+int16_t opeu_text_x          = 0;    /* DS:015a column 0..79 */
+int16_t opeu_text_y          = 0;    /* DS:015c pixel row */
+int16_t opeu_text_left       = 0;    /* DS:015e left column (ESC R) */
+uint8_t opeu_text_paper      = 0x00; /* DS:0160 */
+uint8_t opeu_text_ink        = 0x07; /* DS:0161 */
+uint8_t opeu_text_background = 0x00; /* DS:0162 */
+uint8_t opeu_text_z_0163     = 0;    /* DS:0163 alignment byte */
+int16_t opeu_text_large      = 0;    /* DS:0164 large mode (ESC Y 1) */
 
 /* DS:0166..0171: a saved copy of the console state in MAIN's order (x, y,
  * left, paper, ink 7, background); OPEN never saves or restores it. */
 TextSaved opeu_text_saved = { 0, 0, 0, 0x00, 0x07, 0x00, 0x00, 0 };
 
-uint8_t opeu_text_lead = 0x00;          /* DS:0172 pending Shift-JIS lead byte */
-uint8_t opeu_text_z_0173 = 0;          /* DS:0173 alignment byte */
-int16_t opeu_text_state = 0;            /* DS:0174 escape-sequence state */
+uint8_t  opeu_text_lead     = 0x00; /* DS:0172 pending Shift-JIS lead byte */
+uint8_t  opeu_text_z_0173   = 0;    /* DS:0173 alignment byte */
+int16_t  opeu_text_state    = 0;    /* DS:0174 escape-sequence state */
 uint16_t opeu_format_output = 0;    /* DS:0176 opeu_request_format destination */
 
 }

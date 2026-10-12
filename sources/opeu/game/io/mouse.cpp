@@ -35,8 +35,8 @@ auto HasMouse(std::uint8_t const* ds) -> bool {
 }
 
 // INT 33h with AX = `function`; the registers come back.
-auto Mouse(std::uint8_t* ds, HostService service, Function function,
-           std::uint16_t cx = 0, std::uint16_t dx = 0) -> Regs {
+auto Mouse(std::uint8_t* ds, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0)
+    -> Regs {
   Regs r{};
   r.x.ax = function;
   r.x.cx = cx;
@@ -54,18 +54,15 @@ auto opeu_mouse_reset(std::uint8_t* ds, HostService service) -> std::uint16_t {
 }
 
 void opeu_mouse_show(std::uint8_t* ds, HostService service) {
-  if (HasMouse(ds))
-    Mouse(ds, service, SHOW);
+  if (HasMouse(ds)) Mouse(ds, service, SHOW);
 }
 
 void opeu_mouse_hide(std::uint8_t* ds, HostService service) {
-  if (HasMouse(ds))
-    Mouse(ds, service, HIDE);
+  if (HasMouse(ds)) Mouse(ds, service, HIDE);
 }
 
 // Stores the position at the DS words x and y; both 0 without a mouse.
-void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x,
-                         std::uint16_t y) {
+void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
   if (!HasMouse(ds)) {
     SetWord(ds, x, 0);
     SetWord(ds, y, 0);
@@ -76,10 +73,8 @@ void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x,
   }
 }
 
-void opeu_mouse_move(std::uint8_t* ds, HostService service, std::uint16_t x,
-                     std::uint16_t y) {
-  if (HasMouse(ds))
-    Mouse(ds, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
+void opeu_mouse_move(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
+  if (HasMouse(ds)) Mouse(ds, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
 }
 
 // Queries the driver even without a mouse.
@@ -97,15 +92,12 @@ auto opeu_turn_input_a(std::uint8_t* ds, HostService service) -> int {
 
 // 0 without a mouse or a button; else 0x80 | 1 left | 2 right.
 auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t {
-  if (!HasMouse(ds))
-    return 0;
+  if (!HasMouse(ds)) return 0;
   std::uint8_t buttons{ 0 };
   if (opeu_turn_input_a(ds, service)) {
     buttons = PRESSED;
-    if (opeu_mouse_left(ds, service))
-      buttons = PRESSED | LEFT;
-    if (opeu_mouse_right(ds, service))
-      buttons |= RIGHT;
+    if (opeu_mouse_left(ds, service)) buttons = PRESSED | LEFT;
+    if (opeu_mouse_right(ds, service)) buttons |= RIGHT;
   }
   return buttons;
 }
@@ -113,17 +105,13 @@ auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t {
 // Waits until every button is released.
 void opeu_input_reset(std::uint8_t* ds, HostService service) {
   if (HasMouse(ds))
-    while (opeu_turn_input_a(ds, service))
-      ;
+    while (opeu_turn_input_a(ds, service));
 }
 
 // Waits for a press and its release; 3 without a mouse.
-auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service)
-    -> std::uint8_t {
-  if (!HasMouse(ds))
-    return NO_MOUSE_CLICK;
-  while (!opeu_turn_input_a(ds, service))
-    ;
+auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service) -> std::uint8_t {
+  if (!HasMouse(ds)) return NO_MOUSE_CLICK;
+  while (!opeu_turn_input_a(ds, service));
   std::uint8_t buttons{ PRESSED };
   for (;;) {
     if (opeu_mouse_left(ds, service)) {
@@ -135,68 +123,56 @@ auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service)
       break;
     }
   }
-  while (opeu_turn_input_a(ds, service))
-    ;
+  while (opeu_turn_input_a(ds, service));
   return buttons;
 }
 
-void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x,
-                       std::int16_t y, std::int16_t width,
+void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width,
                        std::int16_t height) {
-  Mouse(ds, service, X_RANGE, static_cast<std::uint16_t>(x),
-        static_cast<std::uint16_t>(width + x));
+  Mouse(ds, service, X_RANGE, static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x));
   Mouse(ds, service, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET),
         static_cast<std::uint16_t>(y + height + ROW_OFFSET));
 }
 
 // The input driver call: int86(0x33) with the seven register words. The keyboard and dialog modules forward their
 // driver calls here.
-auto svc_mouse(std::uint8_t*, std::uint16_t call, std::uint16_t* words)
-    -> std::uint16_t {
+auto svc_mouse(std::uint8_t*, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
   switch (call) {
-    case INT86_CALL: return port_mouse_int33(words);
-    default:         port_unhandled("mouse", call, 7);
+  case INT86_CALL: return port_mouse_int33(words);
+  default:         port_unhandled("mouse", call, 7);
   }
   return 0;
 }
 
-auto port_routine_opeu_input_reset(std::uint8_t* ds, std::uint16_t const*,
-                                   unsigned) -> std::uint32_t {
+auto port_routine_opeu_input_reset(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_input_reset(ds, svc_mouse);
   return 0;
 }
 
-auto port_routine_opeu_mouse_buttons(std::uint8_t* ds, std::uint16_t const*,
-                                     unsigned) -> std::uint32_t {
+auto port_routine_opeu_mouse_buttons(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   return opeu_mouse_buttons(ds, svc_mouse);
 }
 
-auto port_routine_opeu_mouse_hide(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_mouse_hide(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_mouse_hide(ds, svc_mouse);
   return 0;
 }
 
-auto port_routine_opeu_mouse_left(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_mouse_left(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   return static_cast<std::uint16_t>(opeu_mouse_left(ds, svc_mouse));
 }
 
 // The game passes y, then x.
-auto port_routine_opeu_mouse_position(std::uint8_t*        ds,
-                                      std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mouse_position(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_mouse_position(ds, svc_mouse, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_mouse_right(std::uint8_t* ds, std::uint16_t const*,
-                                   unsigned) -> std::uint32_t {
+auto port_routine_opeu_mouse_right(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   return static_cast<std::uint16_t>(opeu_mouse_right(ds, svc_mouse));
 }
 
-auto port_routine_opeu_mouse_show(std::uint8_t* ds, std::uint16_t const*,
-                                  unsigned) -> std::uint32_t {
+auto port_routine_opeu_mouse_show(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_mouse_show(ds, svc_mouse);
   return 0;
 }

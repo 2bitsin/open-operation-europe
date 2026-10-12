@@ -1,9 +1,9 @@
 // Selection recovery for divisions, units and elements: select the first ready one, or the preferred element.
-#include "types.hpp"
 #include "units/select.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "core/recindex.hpp"
+#include "types.hpp"
 
 using namespace opeu::game;
 
@@ -22,8 +22,7 @@ void opeu_select_first_group(uint8_t ds[65536], uint8_t side) {
 // Selects the division's first ready unit.
 void opeu_select_first_unit(uint8_t ds[65536], uint16_t group) {
   auto&      data{ Data(ds) };
-  auto const first{ UNITS_PER_SIDE * opeu_group_side(group) +
-                    UNITS_PER_GROUP * opeu_group_index(group) };
+  auto const first{ UNITS_PER_SIDE * opeu_group_side(group) + UNITS_PER_GROUP * opeu_group_index(group) };
   for (std::uint8_t index{ 0 }; index < UNITS_PER_GROUP; ++index) {
     auto& unit{ data.units[first + index] };
     if (unit.flags & Bits(UnitFlag::READY)) {
@@ -39,14 +38,11 @@ void opeu_select_preferred_element(uint8_t ds[65536], uint16_t unit) {
   Element*     preferred{ nullptr };
   std::uint8_t best{ 255 };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
-    auto const rank{
-      data.select_category_ranks[data.element_types[element.type].category]
-    };
+    auto const rank{ data.select_category_ranks[data.element_types[element.type].category] };
     if (rank < best) {
       best      = rank;
       preferred = &element;
     }
   }
-  if (preferred)
-    preferred->flags |= Bits(ElementFlag::SELECTED);
+  if (preferred) preferred->flags |= Bits(ElementFlag::SELECTED);
 }

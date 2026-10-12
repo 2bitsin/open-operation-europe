@@ -1,7 +1,7 @@
 // The computer side's passes after its turn: staff rotation, division leaders, restocking units from objectives,
 // supply and equipment requests, raising a new regiment, air plans and the attack target.
-#include "types.hpp"
 #include "core/aiops5.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
@@ -24,62 +24,47 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t NO_REQUEST{ 0xff };
-constexpr std::uint8_t RAISE_REQUEST{
-  2
-}; // the request slot and configuration kind of a new regiment
-constexpr std::uint8_t REQUEST_FILED{
-  2
-}; // RequestSlot::kind of the filed regiment request
-constexpr std::uint8_t REINFORCE_DELAY{
-  6
-}; // reinforcements wait while the side's request is this far along
+constexpr std::uint8_t  NO_REQUEST{ 0xff };
+constexpr std::uint8_t  RAISE_REQUEST{ 2 }; // the request slot and configuration kind of a new regiment
+constexpr std::uint8_t  REQUEST_FILED{ 2 }; // RequestSlot::kind of the filed regiment request
+constexpr std::uint8_t  REINFORCE_DELAY{ 6 }; // reinforcements wait while the side's request is this far along
 constexpr std::uint16_t UNIT_LIST{ offsetof(DataSegment, ai_unit_list) };
 constexpr std::uint16_t ELEMENT_LIST{ offsetof(DataSegment, ai_element_list) };
 
 // The equipment kinds a new regiment is raised with: whether an element type of `category` suits the kind for
 // `side`.
-auto SuitsKind(std::uint8_t kind, std::uint8_t side, std::uint8_t category)
-    -> bool {
+auto SuitsKind(std::uint8_t kind, std::uint8_t side, std::uint8_t category) -> bool {
   switch (kind) {
-    case 0: return category == 0;
-    case 1: return category == 1;
-    case 2: return (side == 0 && category == 3) || (side == 1 && category == 2);
-    case 3: return (side == 0 && category == 4) || (side == 1 && category == 0);
-    case 4: return category == 5;
-    case 5: return (side == 0 && category == 7) || (side == 1 && category == 6);
-    default: return true;
+  case 0:  return category == 0;
+  case 1:  return category == 1;
+  case 2:  return (side == 0 && category == 3) || (side == 1 && category == 2);
+  case 3:  return (side == 0 && category == 4) || (side == 1 && category == 0);
+  case 4:  return category == 5;
+  case 5:  return (side == 0 && category == 7) || (side == 1 && category == 6);
+  default: return true;
   }
 }
 } // namespace
 
 // Loads the element with a random quantity of a random element type suiting `kind` for `side`: types are drawn by
 // the side's request weights among those the side's nations field.
-void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind,
-                           uint8_t side) {
+void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind, uint8_t side) {
   auto& data{ Data(ds) };
   for (;;) {
-    auto const index{ static_cast<std::uint8_t>(
-        opeu_rand_bounded(ELEMENT_TYPE_COUNT)) };
+    auto const index{ static_cast<std::uint8_t>(opeu_rand_bounded(ELEMENT_TYPE_COUNT)) };
     auto const weight{ data.request_weights1[index] };
-    if (!weight)
-      continue;
+    if (!weight) continue;
     auto const& type{ data.element_types[index] };
-    if (!SuitsKind(kind, side, type.category) ||
-        !(data.side_masks[data.current_side] & type.sides) ||
-        weight <= opeu_rand_bounded(100))
+    if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides)
+        || weight <= opeu_rand_bounded(100))
       continue;
     auto&      load{ Record<Element>(data, element) };
     auto const capacity{ data.request_capacities[type.category] };
-    auto const typical{ static_cast<std::uint16_t>(
-        capacity / (opeu_max16(type.soft_rating, type.hard_rating) / 20 + 1) +
-        18) };
-    load.type = index;
-    load.quantity =
-        opeu_min16(static_cast<std::uint16_t>(opeu_rand_bounded(typical / 3) +
-                                              (typical >> 1)),
-                   capacity);
-    load.damage = 0;
+    auto const typical{ static_cast<std::uint16_t>(capacity / (opeu_max16(type.soft_rating, type.hard_rating) / 20 + 1)
+                                                   + 18) };
+    load.type     = index;
+    load.quantity = opeu_min16(static_cast<std::uint16_t>(opeu_rand_bounded(typical / 3) + (typical >> 1)), capacity);
+    load.damage   = 0;
     return;
   }
 }
@@ -88,16 +73,11 @@ void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind,
 // kind (the support kinds 4 and 5 for the regiment slots of those categories) and equips free elements for it, at
 // least two, at most the slot's element count, each with morale and training by the delivery level. 1 when raised.
 uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
-  if (opeu_ai_request_pending(ds, RAISE_REQUEST) ||
-      opeu_ai_config_kind_is(ds, RAISE_REQUEST))
-    return 0;
+  if (opeu_ai_request_pending(ds, RAISE_REQUEST) || opeu_ai_config_kind_is(ds, RAISE_REQUEST)) return 0;
   auto const units{ AiFreeUnits(ds, UNIT_LIST, Bits(UnitFlag::REQUESTED)) };
-  if (!units)
-    return 0;
-  auto elements{ AiFreeElements(ds, ELEMENT_LIST,
-                                Bits(ElementFlag::REQUESTED)) };
-  if (!elements)
-    return 0;
+  if (!units) return 0;
+  auto elements{ AiFreeElements(ds, ELEMENT_LIST, Bits(ElementFlag::REQUESTED)) };
+  if (!elements) return 0;
   auto&        data{ Data(ds) };
   auto const   unit{ data.ai_unit_list[opeu_rand_bounded(units)] };
   auto const   slot{ opeu_unit_index(unit) };
@@ -110,27 +90,20 @@ uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
     kind = static_cast<std::uint8_t>(opeu_rand_bounded(4));
   Record<Unit>(data, unit).flags = Bits(UnitFlag::REQUESTED);
   for (std::uint8_t i{ 0 }; i < data.ai_unit_element_counts[slot]; ++i) {
-    if (!opeu_rand_bounded(static_cast<std::uint16_t>(
-            data.ai_unit_element_counts[slot] + data.delivery_level)) &&
-        i > 1)
+    if (!opeu_rand_bounded(static_cast<std::uint16_t>(data.ai_unit_element_counts[slot] + data.delivery_level))
+        && i > 1)
       break;
-    if (!elements)
-      break;
+    if (!elements) break;
     auto const near{ data.ai_element_list[i] };
-    opeu_ai_equip_element(ds, near, kind,
-                          static_cast<std::uint8_t>(opeu_rand_bounded(2)));
+    opeu_ai_equip_element(ds, near, kind, static_cast<std::uint8_t>(opeu_rand_bounded(2)));
     auto& element{ Record<Element>(data, near) };
-    element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(20) +
-                                                   20 * data.delivery_level);
-    element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(20) +
-                                                   20 * data.delivery_level);
+    element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
+    element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
     element.experience = static_cast<std::uint8_t>(opeu_rand_bounded(10));
     element.flags      = Bits(ElementFlag::REQUESTED);
     --elements;
   }
-  auto& request{
-    Record<Side>(data, data.current_side_ptr).requests[RAISE_REQUEST]
-  };
+  auto& request{ Record<Side>(data, data.current_side_ptr).requests[RAISE_REQUEST] };
   request.target   = 0;
   request.argument = kind;
   request.kind     = REQUEST_FILED;
@@ -150,24 +123,20 @@ void opeu_ai_reinforce(uint8_t ds[65536]) {
 
 // Moves the objective's stock of each of the unit's element types into the elements, up to the type's capacity.
 // 1 when anything moved.
-uint16_t opeu_ai_restock_unit(uint8_t ds[65536], uint16_t objective,
-                              uint16_t unit) {
+uint16_t opeu_ai_restock_unit(uint8_t ds[65536], uint16_t objective, uint16_t unit) {
   auto&         data{ Data(ds) };
   auto&         store{ Record<Objective>(data, objective) };
   std::uint16_t moved{ 0 };
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) {
     for (auto& item : store.items) {
-      if (!item.quantity || item.type != element.type)
-        continue;
+      if (!item.quantity || item.type != element.type) continue;
       auto const amount{ opeu_min16(
-          static_cast<std::uint16_t>(
-              data.request_capacities[data.element_types[element.type]
-                                          .category] -
-              element.quantity),
+          static_cast<std::uint16_t>(data.request_capacities[data.element_types[element.type].category]
+                                     - element.quantity),
           item.quantity) };
       element.quantity += amount;
-      item.quantity -= amount;
-      moved = 1;
+      item.quantity    -= amount;
+      moved             = 1;
     }
   }
   return moved;
@@ -179,16 +148,13 @@ uint16_t opeu_ai_restock_from_objectives(uint8_t ds[65536]) {
   std::uint16_t moved{ 0 };
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (!objective.active ||
-        opeu_objective_side(ds, near) != data.current_side ||
-        !AiObjectiveEligible(ds, near))
+    if (!objective.active || opeu_objective_side(ds, near) != data.current_side || !AiObjectiveEligible(ds, near))
       continue;
     for (std::uint8_t direction{ 0 }; direction <= 8; ++direction) {
       std::uint8_t x{ objective.x };
       std::uint8_t y{ objective.y };
-      if (opeu_grid_step(&x, &y, direction) &&
-          opeu_cell_side(ds, x, y) == data.current_side &&
-          opeu_ai_restock_unit(ds, near, opeu_find_unit_at(ds, x, y)))
+      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(ds, x, y) == data.current_side
+          && opeu_ai_restock_unit(ds, near, opeu_find_unit_at(ds, x, y)))
         moved = 1;
     }
   }
@@ -199,14 +165,12 @@ uint16_t opeu_ai_restock_from_objectives(uint8_t ds[65536]) {
 void opeu_ai_mark_group_leaders(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
-    if (!(GroupOf(data, data.current_side, group).flags &
-          Bits(GroupFlag::READY)))
-      continue;
+    if (!(GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY))) continue;
     bool marked{ false };
     for (auto& unit : GroupUnits(data, data.current_side, group)) {
       if (!marked && (unit.flags & Bits(UnitFlag::READY))) {
         unit.flags |= Bits(UnitFlag::SELECTED);
-        marked = true;
+        marked      = true;
       } else
         unit.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SELECTED));
     }
@@ -218,8 +182,7 @@ void opeu_ai_15c0(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     auto& division{ GroupOf(data, data.current_side, group) };
-    if (division.flags & Bits(GroupFlag::READY))
-      division.flags |= Bits(GroupFlag::AI_MARK);
+    if (division.flags & Bits(GroupFlag::READY)) division.flags |= Bits(GroupFlag::AI_MARK);
   }
 }
 

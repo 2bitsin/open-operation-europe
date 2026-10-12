@@ -1,8 +1,8 @@
 // One step from a cell in one of the eight directions, without a bounds check. Directions 0..7 run from the row below
 // (left to right), through the left and right neighbours, to the row above; other directions leave the cell as it is.
 // Byte arithmetic wraps.
-#include "types.hpp"
 #include "map/step.hpp"
+#include "types.hpp"
 
 #include <array>
 

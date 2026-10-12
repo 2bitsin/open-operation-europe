@@ -16,8 +16,8 @@ auto link_oemsmap(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t cou
   using enum EmsEventId;
   auto const arg{ [&](int i) -> uint16_t { return Arg(args, count, i); } };
   switch (id) {
-  case PRESENT: return static_cast<uint16_t>(opeu_ems_present());
-  case STATUS: return static_cast<uint16_t>(opeu_ems_status());
+  case PRESENT:    return static_cast<uint16_t>(opeu_ems_present());
+  case STATUS:     return static_cast<uint16_t>(opeu_ems_status());
   case PAGE_COUNT: return static_cast<uint16_t>(opeu_ems_page_count(reinterpret_cast<int16_t*>(ds + arg(0))));
   case FREE_PAGES:
     return static_cast<uint16_t>(
@@ -30,7 +30,7 @@ auto link_oemsmap(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t cou
   case MAP:
     return static_cast<uint16_t>(opeu_ems_map(static_cast<int16_t>(arg(0)), arg(1), static_cast<int16_t>(arg(2))));
   case RELEASE: return static_cast<uint16_t>(opeu_ems_release(static_cast<int16_t>(arg(0))));
-  default: port_unhandled("oemsmap", static_cast<unsigned>(id), count);
+  default:      port_unhandled("oemsmap", static_cast<unsigned>(id), count);
   }
   return 0;
 }

@@ -10,8 +10,7 @@ namespace opeu::game::detail::battle_field {
 // An element's battle record (DS:d0f8, 60 x 10 bytes); Element::position points to it while a battle runs.
 #pragma pack(push, 1)
 struct BattlePosition {
-  std::uint8_t
-      x; // column; BATTLE_UNPLACED before deployment, BATTLE_LEFT set once the element left the field
+  std::uint8_t x; // column; BATTLE_UNPLACED before deployment, BATTLE_LEFT set once the element left the field
   union {
     std::uint8_t y;      // row; BATTLE_UNPLACED before deployment
     std::uint8_t rounds; // in a battle fought out of sight: the rounds between the element's shots (map/btlend)
@@ -66,8 +65,7 @@ inline constexpr std::uint8_t BATTLE_NOT_ADJACENT{ 9 };
 // Bits of a battle cell (battle_cells): the low two bits hold the occupying side + 1.
 enum class BattleCell : std::uint8_t {
   OCCUPANT_MASK = 0x03,
-  EXIT_SHIFT =
-      4, // the high nibble: the strategic direction + 1 an element leaving the field from there takes
+  EXIT_SHIFT    = 4, // the high nibble: the strategic direction + 1 an element leaving the field from there takes
 };
 
 // battle_terrain: the low six bits hold the terrain code, the top two bits are kept from the hex map.
@@ -76,32 +74,22 @@ inline constexpr std::uint8_t BATTLE_TERRAIN_MASK{ 0x3f };
 inline constexpr std::uint8_t BATTLE_CITY{ 1 };
 
 // The battle record of an element.
-[[nodiscard]] inline auto PositionOf(DataSegment&  data,
-                                     std::uint16_t element) noexcept
-    -> BattlePosition& {
+[[nodiscard]] inline auto PositionOf(DataSegment& data, std::uint16_t element) noexcept -> BattlePosition& {
   return Record<BattlePosition>(data, Record<Element>(data, element).position);
 }
 
 // The battle cell byte at (x, y), addressed as the original does (a column past the edge reaches the next row).
-[[nodiscard]] inline auto BattleCellAt(DataSegment& data, unsigned x,
-                                       unsigned y) noexcept -> std::uint8_t& {
-  return Record<std::uint8_t>(
-      data, static_cast<std::uint16_t>(Near(data, data.battle_cells) +
-                                       y * BATTLE_WIDTH + x));
+[[nodiscard]] inline auto BattleCellAt(DataSegment& data, unsigned x, unsigned y) noexcept -> std::uint8_t& {
+  return Record<std::uint8_t>(data, static_cast<std::uint16_t>(Near(data, data.battle_cells) + y * BATTLE_WIDTH + x));
 }
 
 // The battle terrain byte at (x, y).
-[[nodiscard]] inline auto BattleTerrainAt(DataSegment& data, unsigned x,
-                                          unsigned y) noexcept
-    -> std::uint8_t& {
-  return Record<std::uint8_t>(
-      data, static_cast<std::uint16_t>(Near(data, data.battle_terrain) +
-                                       y * BATTLE_WIDTH + x));
+[[nodiscard]] inline auto BattleTerrainAt(DataSegment& data, unsigned x, unsigned y) noexcept -> std::uint8_t& {
+  return Record<std::uint8_t>(data, static_cast<std::uint16_t>(Near(data, data.battle_terrain) + y * BATTLE_WIDTH + x));
 }
 
 // The side an element fights for in a battle.
-[[nodiscard]] inline auto BattleSide(Element const& element) noexcept
-    -> std::uint8_t {
+[[nodiscard]] inline auto BattleSide(Element const& element) noexcept -> std::uint8_t {
   return element.flags & Bits(ElementFlag::SIDE_1) ? 1 : 0;
 }
 
@@ -113,17 +101,14 @@ struct BattleExtra {
   std::uint8_t count;
 };
 inline constexpr unsigned BATTLE_EXTRA_COUNT{ 10 };
-[[nodiscard]] inline auto BattleExtraAt(DataSegment& data, unsigned i) noexcept
-    -> BattleExtra& {
+[[nodiscard]] inline auto BattleExtraAt(DataSegment& data, unsigned i) noexcept -> BattleExtra& {
   return Record<BattleExtra>(
-      data, static_cast<std::uint16_t>(Near(data, data.battle_terrain_extras) +
-                                       i * sizeof(BattleExtra)));
+      data, static_cast<std::uint16_t>(Near(data, data.battle_terrain_extras) + i * sizeof(BattleExtra)));
 }
 
 // The battle's unit lists: battle_lists[side * 9 + i], 0 after the last.
 inline constexpr unsigned BATTLE_LIST_LENGTH{ 9 };
-[[nodiscard]] inline auto BattleList(DataSegment& data, unsigned side,
-                                     unsigned i) noexcept -> std::uint16_t& {
+[[nodiscard]] inline auto BattleList(DataSegment& data, unsigned side, unsigned i) noexcept -> std::uint16_t& {
   return data.battle_lists[side * BATTLE_LIST_LENGTH + i];
 }
 

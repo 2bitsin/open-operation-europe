@@ -30,22 +30,13 @@ uint16_t* port_textout_host_sp(void) {
 
 /* ---- UIPRIM: UiHost {memory, ds_segment, tiles_segment, code_segment, event} - */
 namespace {
-constexpr std::uint16_t UIPRIM_CODE_SEGMENT{
-  0x0a04
-}; // UIPRIM's code segment: its far code pointers name it
-constexpr std::uint16_t UIPRIM_TILES_SEGMENT{
-  0x3873
-}; // the far segment of opeu_frame_tiles (data/fg3873)
-constexpr std::uint16_t UIPRIM_FILE_READER{
-  0x0132
-}; // opeu_stream_file_byte in UIPRIM_CODE_SEGMENT
-constexpr std::uint16_t UIPRIM_MEMORY_READER{
-  0x01fc
-}; // opeu_stream_memory_byte in UIPRIM_CODE_SEGMENT
+constexpr std::uint16_t UIPRIM_CODE_SEGMENT{ 0x0a04 }; // UIPRIM's code segment: its far code pointers name it
+constexpr std::uint16_t UIPRIM_TILES_SEGMENT{ 0x3873 }; // the far segment of opeu_frame_tiles (data/fg3873)
+constexpr std::uint16_t UIPRIM_FILE_READER{ 0x0132 }; // opeu_stream_file_byte in UIPRIM_CODE_SEGMENT
+constexpr std::uint16_t UIPRIM_MEMORY_READER{ 0x01fc }; // opeu_stream_memory_byte in UIPRIM_CODE_SEGMENT
 } // namespace
 
-static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT,
-                              UIPRIM_CODE_SEGMENT, svc_uiprim };
+static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT, UIPRIM_CODE_SEGMENT, svc_uiprim };
 
 void* port_uiprim_host(void) {
   uiprim_host.memory = port_arena;
@@ -64,12 +55,9 @@ static uint8_t read_memory_stream(void) {
 }
 
 PortByteReader port_picture_reader(uint16_t off, uint16_t seg) {
-  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_FILE_READER)
-    return read_file_stream;
-  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_MEMORY_READER)
-    return read_memory_stream;
-  port_fatal("uiprim: picture reader %04x:%04x is not a known stream reader",
-             seg, off);
+  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_FILE_READER) return read_file_stream;
+  if (seg == UIPRIM_CODE_SEGMENT && off == UIPRIM_MEMORY_READER) return read_memory_stream;
+  port_fatal("uiprim: picture reader %04x:%04x is not a known stream reader", seg, off);
   return 0;
 }
 
@@ -90,8 +78,7 @@ void* port_dialogs_host(void) {
  * shape ({ service }) for callers that want the service through a host
  * pointer. */
 namespace {
-using InputService = auto (*)(uint8_t* ds, uint16_t call, uint16_t* words)
-    -> uint16_t;
+using InputService = auto (*)(uint8_t* ds, uint16_t call, uint16_t* words) -> uint16_t;
 struct OutlineBridge {
   InputService service;
 };

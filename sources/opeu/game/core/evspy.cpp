@@ -3,17 +3,17 @@
 // follow: the approach scene asks a yes/no question, and the accepted ending raises the commander's experience, lowers
 // his health limit and caps his health at it. The commander must be fit (charm and health 70 or more, experience 50
 // or more), the weather calm and his unit safe.
-#include "types.hpp"
 #include "core/evspy.hpp"
+#include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/perssel.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
-#include "common/scenario.hpp"
 #include "common/memory.hpp"
+#include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/evvisit.hpp"
 #include "core/msglook.hpp"
@@ -33,13 +33,12 @@ namespace {
 
 // The services the event calls through its event.
 enum Service : std::uint16_t {
-  SAFE  = 0, // (unit) -> whether the commander's unit is safe for a visit
-  PANEL = 1, // () the message panel
-  FRAME = 2, // (x, y, width)
-  PRINT = 3, // (format)
-  SEEK  = 4, // (handle, offset low, offset high, origin) in the portrait file
-  DRAW =
-      5, // (x, y, width, height, mode, handle) the portrait read from the file
+  SAFE     = 0,  // (unit) -> whether the commander's unit is safe for a visit
+  PANEL    = 1,  // () the message panel
+  FRAME    = 2,  // (x, y, width)
+  PRINT    = 3,  // (format)
+  SEEK     = 4,  // (handle, offset low, offset high, origin) in the portrait file
+  DRAW     = 5,  // (x, y, width, height, mode, handle) the portrait read from the file
   POSITION = 6,  // (x, y)
   FORMAT   = 7,  // (buffer, format[, argument])
   TEXT     = 8,  // (text) into the message panel
@@ -59,9 +58,7 @@ constexpr std::uint16_t LAUGH{ offsetof(DataSegment, spy_laugh_text) };
 constexpr std::uint16_t MOVE{ offsetof(DataSegment, spy_move_text) };
 constexpr std::uint16_t BOLD_OFF{ offsetof(DataSegment, spy_bold_off) };
 constexpr std::uint16_t HUMPH{ offsetof(DataSegment, spy_humph_text) };
-constexpr std::uint16_t PORTRAIT_LOW{
-  0x7500
-}; // her portrait's position in the portrait file
+constexpr std::uint16_t PORTRAIT_LOW{ 0x7500 }; // her portrait's position in the portrait file
 constexpr std::uint16_t PORTRAIT_HIGH{ 3 };
 constexpr std::uint16_t SPY_CONTEXT{ 0x11 };
 constexpr std::uint16_t CODE_SEGMENT{ 0x108c }; // the presenters' code segment
@@ -78,8 +75,7 @@ constexpr std::uint16_t MAX_RATING{ 99 };
 constexpr std::uint8_t  FIT{ 70 };
 constexpr std::uint8_t  EXPERIENCED{ 50 };
 
-auto Lookup(std::uint8_t* ds, HostEvent event, std::uint16_t id)
-    -> std::uint16_t {
+auto Lookup(std::uint8_t* ds, HostEvent event, std::uint16_t id) -> std::uint16_t {
   return Call(ds, event, LOOKUP, id);
 }
 auto Commander(std::uint8_t* ds) -> std::uint16_t {
@@ -93,17 +89,14 @@ uint16_t opeu_spy_commander_ready(uint8_t ds[65536], HostEvent event) {
   auto const  near{ Commander(ds) };
   auto const  unit{ opeu_person_selected_unit(ds, near) };
   auto const& commander{ Record<Person>(data, near) };
-  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT &&
-                 commander.health >= FIT &&
-                 commander.experience >= EXPERIENCED &&
-                 Call(ds, event, SAFE, unit)
+  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT && commander.health >= FIT
+                 && commander.experience >= EXPERIENCED && Call(ds, event, SAFE, unit)
              ? 1
              : 0;
 }
 
 // The message panel with her name and, when `show`, her portrait; then the text.
-void opeu_spy_portrait_text(uint8_t ds[65536], HostEvent event, uint16_t text,
-                            uint16_t show) {
+void opeu_spy_portrait_text(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t show) {
   auto const& data{ Data(ds) };
   Call(ds, event, PANEL);
   Call(ds, event, FRAME, 44, 282, 15);
@@ -140,8 +133,7 @@ void opeu_spy_present_b(uint8_t ds[65536], HostEvent event) {
   auto& commander{ Record<Person>(Data(ds), Commander(ds)) };
   opeu_add_byte(1, MAX_RATING, &commander.experience);
   opeu_sub_byte(1, &commander.byte_17);
-  commander.health = static_cast<std::uint8_t>(
-      opeu_min16(commander.health, commander.byte_17));
+  commander.health = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.byte_17));
 }
 
 // The approach scene and its question.
@@ -170,16 +162,12 @@ void opeu_spy_approach(uint8_t ds[65536], HostEvent event) {
 // The hourly check (SideFlag::SPY_SENT: the offer was taken, SPY_DONE: the event is over for the day).
 void opeu_spy_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
-  if (CurrentScenario(data) != SPY_SCENARIO ||
-      data.side_control[0] != SIDE_PLAYED)
-    return;
+  if (CurrentScenario(data) != SPY_SCENARIO || data.side_control[0] != SIDE_PLAYED) return;
   auto const adviser{ opeu_find_side_record(ds, 0, ADVISER) };
   auto&      flags{ data.side_flags[0] };
   auto const sent{ Bits(SideFlag::SPY_SENT) };
-  auto const over{ static_cast<std::uint8_t>(Bits(SideFlag::SPY_SENT) |
-                                             Bits(SideFlag::SPY_DONE)) };
-  if (data.hour == OFFER_HOUR && !(flags & sent) &&
-      opeu_spy_commander_ready(ds, event)) {
+  auto const over{ static_cast<std::uint8_t>(Bits(SideFlag::SPY_SENT) | Bits(SideFlag::SPY_DONE)) };
+  if (data.hour == OFFER_HOUR && !(flags & sent) && opeu_spy_commander_ready(ds, event)) {
     Call(ds, event, MESSAGE, Lookup(ds, event, 0x38), adviser);
     if (Call(ds, event, ASK, Lookup(ds, event, 0x39), adviser)) {
       opeu_spy_show_a(ds, event);
@@ -187,101 +175,70 @@ void opeu_spy_event(uint8_t ds[65536], HostEvent event) {
     } else
       flags |= over;
   }
-  if (data.hour == APPROACH_HOUR && (flags & over) == sent &&
-      opeu_spy_commander_ready(ds, event)) {
-    if (Call(ds, event, ASK, Lookup(ds, event, 0x3a), adviser))
-      opeu_spy_approach(ds, event);
+  if (data.hour == APPROACH_HOUR && (flags & over) == sent && opeu_spy_commander_ready(ds, event)) {
+    if (Call(ds, event, ASK, Lookup(ds, event, 0x3a), adviser)) opeu_spy_approach(ds, event);
     flags |= Bits(SideFlag::SPY_DONE);
   }
 }
 
-uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args,
-                   uint16_t count) {
+uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-    case SAFE: result = opeu_visit_unit_safe(ds, Arg(args, count, 0)); break;
-    case PANEL:
-      opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host());
-      break;
-    case FRAME:
-      opeu_context_frame(ds, (const UiHost*)port_uiprim_host(),
-                         Arg(args, count, 0), Arg(args, count, 1),
-                         Arg(args, count, 2));
-      break;
-    case PRINT: c1_cursor_print(ds, args, count); break;
-    case SEEK:
-      result = static_cast<uint16_t>(opeu_dos_seek(
-          (int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1),
-          (int16_t)Arg(args, count, 3)));
-      break;
-    case DRAW:
-      opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(),
-                           Arg(args, count, 0), Arg(args, count, 1),
-                           Arg(args, count, 2), Arg(args, count, 3),
-                           Arg(args, count, 4), (int16_t)Arg(args, count, 5));
-      break;
-    case POSITION:
-      opeu_army_position(ds, (TextHost*)port_textout_host(),
-                         (int16_t)Arg(args, count, 0),
-                         (int16_t)Arg(args, count, 1));
-      break;
-    case FORMAT: c1_request_format(ds, args, count); break;
-    case TEXT:
-      opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(),
-                     Arg(args, count, 0));
-      break;
-    case UI_TEXT:
-      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
-      break;
-    case ANSWER: {
-      auto const scratch{ port_scratch_enter(16) };
-      result = static_cast<uint16_t>(opeu_yes_no(ds, svc_keyboard, scratch));
-      port_scratch_leave(16);
-      break;
-    }
-    case CONTEXT:
-      opeu_set_turn_context(ds, svc_sound,
-                            static_cast<std::uint8_t>(Arg(args, count, 0)));
-      break;
-    case FINISH:
-      opeu_finish_side_initialization(
-          ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
-      break;
-    case SHOW:
-      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1),
-                      Arg(args, count, 2), Arg(args, count, 3));
-      break;
-    case MESSAGE:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
-                           Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case ASK:
-      result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(),
-                                    Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case LOOKUP:
-      result =
-          opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0));
-      break;
-    default: port_unhandled("evspy", id, count);
+  case SAFE:  result = opeu_visit_unit_safe(ds, Arg(args, count, 0)); break;
+  case PANEL: opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case FRAME:
+    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
+                       Arg(args, count, 2));
+    break;
+  case PRINT: c1_cursor_print(ds, args, count); break;
+  case SEEK:
+    result = static_cast<uint16_t>(
+        opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3)));
+    break;
+  case DRAW:
+    opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
+                         Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
+    break;
+  case POSITION:
+    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
+    break;
+  case FORMAT:  c1_request_format(ds, args, count); break;
+  case TEXT:    opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case UI_TEXT: opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case ANSWER:  {
+    auto const scratch{ port_scratch_enter(16) };
+    result = static_cast<uint16_t>(opeu_yes_no(ds, svc_keyboard, scratch));
+    port_scratch_leave(16);
+    break;
+  }
+  case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case FINISH:  opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case SHOW:
+    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
+    break;
+  case MESSAGE:
+    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  case ASK:
+    result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  case LOOKUP: result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  default:     port_unhandled("evspy", id, count);
   }
   return result;
 }
 
-auto port_routine_opeu_spy_event(std::uint8_t* ds, std::uint16_t const*,
-                                 unsigned) -> std::uint32_t {
+auto port_routine_opeu_spy_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_spy_event(ds, svc_evspy);
   return 0;
 }
 
-auto port_routine_opeu_spy_present_a(std::uint8_t* ds, std::uint16_t const*,
-                                     unsigned) -> std::uint32_t {
+auto port_routine_opeu_spy_present_a(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_spy_present_a(ds, svc_evspy);
   return 0;
 }
 
-auto port_routine_opeu_spy_present_b(std::uint8_t* ds, std::uint16_t const*,
-                                     unsigned) -> std::uint32_t {
+auto port_routine_opeu_spy_present_b(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_spy_present_b(ds, svc_evspy);
   return 0;
 }

@@ -32,10 +32,10 @@ auto link_osound([[maybe_unused]] uint8_t* ds, SoundServiceId call, uint16_t* wo
   }
   case INT86X: return osound_int66(words, &words[10]);
   case SEGREAD:
-    words[0] = OPEN_DS_SEGMENT;      /* ES */
-    words[1] = OPEN_CODE_0349;       /* CS */
-    words[2] = OPEN_DS_SEGMENT;      /* SS */
-    words[3] = OPEN_DS_SEGMENT;      /* DS */
+    words[0] = OPEN_DS_SEGMENT; /* ES */
+    words[1] = OPEN_CODE_0349;  /* CS */
+    words[2] = OPEN_DS_SEGMENT; /* SS */
+    words[3] = OPEN_DS_SEGMENT; /* DS */
     return 0;
   default: port_unhandled("osound", static_cast<unsigned>(call), 0);
   }

@@ -1,13 +1,13 @@
 // The arc of a shot between two screen points, drawn as small outlined boxes.
-#include "types.hpp"
 #include "map/btlline.hpp"
 #include "common/battle-routine.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
@@ -28,23 +28,18 @@ void Outline(uint8_t* ds, BattleEvent event, int16_t x, int16_t y) {
 } // namespace
 
 // The arithmetic is on 16-bit words, as the original's: the square is truncated to 16 bits before the division.
-void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0,
-                           int16_t y0, int16_t x1, int16_t y1) {
+void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
   auto const dx{ static_cast<int16_t>(x1 - x0) };
   auto const dy{ static_cast<int16_t>(y1 - y0) };
   auto const width{ Abs(dx) };
   auto const height{ Abs(dy) };
-  int16_t    slope{ static_cast<int16_t>(
-      (x1 > x0 && y1 > y0) || (x1 < x0 && y1 < y0) ? 1 : -1) };
+  int16_t    slope{ static_cast<int16_t>((x1 > x0 && y1 > y0) || (x1 < x0 && y1 < y0) ? 1 : -1) };
   auto const half{ static_cast<int16_t>(width / 2) };
-  auto const curve{ static_cast<int16_t>(static_cast<int16_t>(half * half) /
-                                         ARC_FLATNESS) };
+  auto const curve{ static_cast<int16_t>(static_cast<int16_t>(half * half) / ARC_FLATNESS) };
   int16_t    along{ static_cast<int16_t>(-half) };
   int16_t    step{ 1 };
   auto const lift{ [&] {
-    return curve ? static_cast<int16_t>(static_cast<int16_t>(along * along) /
-                                        curve)
-                 : int16_t{ 0 };
+    return curve ? static_cast<int16_t>(static_cast<int16_t>(along * along) / curve) : int16_t{ 0 };
   } };
   int16_t x{ x0 };
   int16_t y{ y0 };
@@ -57,15 +52,13 @@ void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0,
     for (int16_t n{ width }; n; --n) {
       auto const px{ x };
       auto const py{ static_cast<int16_t>(y - lift() - ARC_RISE) };
-      if (py >= 0)
-        Outline(ds, event, px, py);
+      if (py >= 0) Outline(ds, event, px, py);
       error = static_cast<int16_t>(error - height);
       if (error < 0) {
         error = static_cast<int16_t>(error + width);
         y     = static_cast<int16_t>(y + slope);
       }
-      if (py >= 0)
-        Outline(ds, event, px, py);
+      if (py >= 0) Outline(ds, event, px, py);
       x = static_cast<int16_t>(x + step);
       ++along;
     }
@@ -78,22 +71,19 @@ void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0,
     for (int16_t n{ height }; n; --n) {
       auto const px{ x };
       auto const py{ static_cast<int16_t>(y - lift() - ARC_RISE) };
-      if (py >= 0)
-        Outline(ds, event, px, py);
+      if (py >= 0) Outline(ds, event, px, py);
       error = static_cast<int16_t>(error - width);
       if (error < 0) {
         error = static_cast<int16_t>(error + height);
         x     = static_cast<int16_t>(x + slope);
         ++along;
       }
-      if (py >= 0)
-        Outline(ds, event, px, py);
+      if (py >= 0) Outline(ds, event, px, py);
       y = static_cast<int16_t>(y + step);
     }
   }
 }
 
-uint16_t svc_btlline(uint8_t* ds, uint32_t address, const uint16_t* args,
-                     unsigned int count) {
+uint16_t svc_btlline(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
   return port_service(ds, address, args, count);
 }

@@ -1,9 +1,9 @@
 // Placing a unit on the strategic map, removing it, and the side whose unit stands on a cell.
-#include "types.hpp"
 #include "map/occupy.hpp"
 #include "common/data-segment.hpp"
 #include "common/map-grid.hpp"
 #include "core/recindex.hpp"
+#include "types.hpp"
 
 using namespace opeu::game;
 
@@ -15,27 +15,23 @@ constexpr uint8_t NO_SIDE{ 255 };
 void opeu_place_unit(uint8_t* ds, uint16_t unit) {
   auto& data{ Data(ds) };
   auto& record{ Record<Unit>(data, unit) };
-  if (!record.first)
-    return;
+  if (!record.first) return;
   record.flags |= Bits(UnitFlag::READY);
   auto& cell{ MapCellAt(data, record.x, record.y) };
   cell &= ~Bits(MapCell::OCCUPANT_MASK);
-  cell |=
-      opeu_unit_side(unit) == 0 ? Bits(MapCell::SIDE_0) : Bits(MapCell::SIDE_1);
+  cell |= opeu_unit_side(unit) == 0 ? Bits(MapCell::SIDE_0) : Bits(MapCell::SIDE_1);
 }
 
 void opeu_remove_unit(uint8_t* ds, uint16_t unit) {
   auto& data{ Data(ds) };
   auto& record{ Record<Unit>(data, unit) };
-  record.flags &= ~Bits(UnitFlag::READY);
+  record.flags                        &= ~Bits(UnitFlag::READY);
   MapCellAt(data, record.x, record.y) &= ~Bits(MapCell::OCCUPANT_MASK);
 }
 
 // 255 for an empty cell; side 0 wins when both occupant bits are set.
 uint8_t opeu_cell_side(const uint8_t* ds, uint8_t x, uint8_t y) {
-  auto const occupant{ MapCellAt(Data(ds), x, y) &
-                       Bits(MapCell::OCCUPANT_MASK) };
-  if (!occupant)
-    return NO_SIDE;
+  auto const occupant{ MapCellAt(Data(ds), x, y) & Bits(MapCell::OCCUPANT_MASK) };
+  if (!occupant) return NO_SIDE;
   return (occupant & Bits(MapCell::SIDE_0)) == 0;
 }

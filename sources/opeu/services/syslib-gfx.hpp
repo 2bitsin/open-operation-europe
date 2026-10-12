@@ -38,7 +38,8 @@ void koei_3bc5(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 /* save the w-byte x h-line screen rectangle at (x, y) into `buffer`
  * (colour-bit-major, 4 * w * h bytes), AND every colour bit with `and_mask` (w * h
  * bytes), OR `or_image` (3 bytes per byte column, or 4 when flags bit 0) into
- * bits 0-2 (0-3), and write the buffer back.  In this argument order callers label and_mask "image" and or_image "mask". */
+ * bits 0-2 (0-3), and write the buffer back.  In this argument order callers label and_mask "image" and
+ * or_image "mask". */
 void opeu_sprite_compose(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask,
                          const uint8_t* or_image, uint8_t* buffer, uint16_t flags);
 /* pixel-positioned variant of opeu_sprite_compose: x and w in pixels. With flags bit 0

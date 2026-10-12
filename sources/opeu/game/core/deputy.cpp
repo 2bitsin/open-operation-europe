@@ -1,6 +1,6 @@
 // Deputies: a new deputy's identity (portrait) and starting ratings.
-#include "types.hpp"
 #include "core/deputy.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/random.hpp"
@@ -24,8 +24,7 @@ struct IdentityRange {
 };
 
 auto Range(DataSegment const& data, std::uint8_t side) -> IdentityRange {
-  return { data.deputy_identity_ranges[2 * side],
-           data.deputy_identity_ranges[2 * side + 1] };
+  return { data.deputy_identity_ranges[2 * side], data.deputy_identity_ranges[2 * side + 1] };
 }
 } // namespace
 
@@ -36,15 +35,12 @@ uint8_t opeu_choose_deputy_identity(uint8_t ds[65536], uint8_t side) {
   std::uint8_t identity{ range.first };
   for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
     auto const& person{ data.people[PEOPLE_PER_SIDE * side + i] };
-    if (person.status != PERSON_VACANT &&
-        (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity)
+    if (person.status != PERSON_VACANT && (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity)
       identity = person.portrait;
   }
   if (range.last <= identity)
-    identity = static_cast<std::uint8_t>(
-        RandomBelow(ds,
-                    static_cast<std::uint16_t>(range.last - range.first + 1)) +
-        range.first);
+    identity = static_cast<std::uint8_t>(RandomBelow(ds, static_cast<std::uint16_t>(range.last - range.first + 1))
+                                         + range.first);
   else
     ++identity;
   return identity;
@@ -65,13 +61,10 @@ void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
   deputy.artillery  = DEPUTY_RATING;
   deputy.armor      = DEPUTY_RATING;
   deputy.experience = 0;
-  deputy.portrait =
-      opeu_choose_deputy_identity(ds, opeu_person_lacks_side0_flag(ds, person));
+  deputy.portrait   = opeu_choose_deputy_identity(ds, opeu_person_lacks_side0_flag(ds, person));
 }
 
-auto port_routine_opeu_initialize_deputy(std::uint8_t*        ds,
-                                         std::uint16_t const* args,
-                                         unsigned count) -> std::uint32_t {
+auto port_routine_opeu_initialize_deputy(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_initialize_deputy(ds, Arg(args, count, 0));
   return 0;
 }

@@ -1,11 +1,9 @@
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame,
-                                uint16_t x, uint16_t y);
+uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y);
 
 // The services of this module.
-uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count);
+uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

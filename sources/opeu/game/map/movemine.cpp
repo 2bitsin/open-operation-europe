@@ -1,7 +1,6 @@
 // A unit that moves into a minefield: an engineer unit only reports the mines; any other reports the minefield, shows
 // it to a player's side that may see the unit and takes casualties. Either way the cell is marked for the side and the
 // unit moves on. Also: element damage capped at the quantity, and the current unit's movement rating.
-#include "types.hpp"
 #include "map/movemine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
@@ -14,6 +13,7 @@
 #include "map/cellflag.hpp"
 #include "map/maperase.hpp"
 #include "map/support.hpp"
+#include "types.hpp"
 #include "units/casualty.hpp"
 #include "units/stats.hpp"
 #include "units/value.hpp"
@@ -49,21 +49,15 @@ void opeu_move_mines(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const current{ data.current_unit_ptr };
   if (Call(ds, event, MineService::IS_ENGINEER, data.current_entry)) {
-    Call(ds, event, MineService::UNIT_MESSAGE, current,
-         Near(data, data.mines_found_text));
+    Call(ds, event, MineService::UNIT_MESSAGE, current, Near(data, data.mines_found_text));
   } else {
-    Call(ds, event, MineService::UNIT_MESSAGE, current,
-         Near(data, data.minefield_text));
+    Call(ds, event, MineService::UNIT_MESSAGE, current, Near(data, data.minefield_text));
     auto const own{ data.current_side };
     auto const enemy{ opeu_opposite_side(data.current_side) };
-    if (data.side_status[own] == SIDE_PLAYED &&
-        Call(ds, event, MineService::UNIT_ELIGIBLE, current))
-      Call(ds, event, MineService::DAILY_SHOW, MINES_PICTURE, own,
-           MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
-    else if (data.side_status[enemy] == SIDE_PLAYED &&
-             Call(ds, event, MineService::UNIT_SPOTTED, current))
-      Call(ds, event, MineService::DAILY_SHOW, MINES_PICTURE, enemy,
-           MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
+    if (data.side_status[own] == SIDE_PLAYED && Call(ds, event, MineService::UNIT_ELIGIBLE, current))
+      Call(ds, event, MineService::DAILY_SHOW, MINES_PICTURE, own, MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
+    else if (data.side_status[enemy] == SIDE_PLAYED && Call(ds, event, MineService::UNIT_SPOTTED, current))
+      Call(ds, event, MineService::DAILY_SHOW, MINES_PICTURE, enemy, MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
     Call(ds, event, MineService::CASUALTIES, current, 100, 3, 15, 0, 1);
   }
   auto& unit{ Record<Unit>(data, current) };
@@ -77,8 +71,7 @@ void opeu_move_mines(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
 // Caps each element's damage at its quantity.
 void opeu_move_clamp(uint8_t* ds) {
   auto& data{ Data(ds) };
-  for (auto& element :
-       Elements(data, Record<Unit>(data, data.current_unit_ptr)))
+  for (auto& element : Elements(data, Record<Unit>(data, data.current_unit_ptr)))
     element.damage = opeu_min16(element.quantity, element.damage);
 }
 
@@ -89,56 +82,37 @@ uint8_t opeu_move_rating(uint8_t* ds, HostEvent event) {
   auto const  morale{ Call(ds, event, MineService::MORALE, current) };
   auto const  training{ Call(ds, event, MineService::TRAINING, current) };
   auto const  experience{ Call(ds, event, MineService::EXPERIENCE, current) };
-  auto const  leadership{
-    Record<Person>(data, data.context_group_record).leadership
-  };
-  auto       rating{ static_cast<uint16_t>(
-      static_cast<uint16_t>(leadership + morale + training) / 3) };
-  auto const bonus{ data.side_control[data.current_side] == 0
-                        ? data.delivery_level
-                        : 0 };
-  return static_cast<uint8_t>(
-      Call(ds, event, MineService::ISQRT, opeu_sub_word(experience, &rating)) +
-      bonus);
+  auto const  leadership{ Record<Person>(data, data.context_group_record).leadership };
+  auto        rating{ static_cast<uint16_t>(static_cast<uint16_t>(leadership + morale + training) / 3) };
+  auto const  bonus{ data.side_control[data.current_side] == 0 ? data.delivery_level : 0 };
+  return static_cast<uint8_t>(Call(ds, event, MineService::ISQRT, opeu_sub_word(experience, &rating)) + bonus);
 }
 
-uint16_t svc_movemine(uint8_t* ds, uint16_t id, const uint16_t* args,
-                      uint16_t count) {
+uint16_t svc_movemine(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
-  auto const byte{ [&](unsigned i) {
-    return static_cast<uint8_t>(Arg(args, count, i));
-  } };
+  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   switch (static_cast<MineService>(id)) {
-    case MineService::IS_ENGINEER: return opeu_category_6(byte(0));
-    case MineService::UNIT_MESSAGE:
-      opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()),
-                       arg(0), arg(1));
-      return 0;
-    case MineService::UNIT_ELIGIBLE:
-      return opeu_unit_selection_eligible(ds, arg(0));
-    case MineService::UNIT_SPOTTED: return opeu_unit_special(ds, arg(0));
-    case MineService::DAILY_SHOW:
-      port_daily_show(ds, arg(0), arg(1), arg(2), arg(3));
-      return 0;
-    case MineService::CASUALTIES:
-      WithMapFrame([&](uint16_t frame) {
-        opeu_unit_casualties(ds, svc_casualty, frame, arg(0), arg(1), arg(2),
-                             arg(3), arg(4), arg(5));
-      });
-      return 0;
-    case MineService::MARK_CELL:
-      opeu_mark_cell(ds, byte(0), byte(1), byte(2));
-      return 0;
-    case MineService::UNIT_ERASE:
-      WithMapFrame([&](uint16_t frame) {
-        opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0));
-      });
-      return 0;
-    case MineService::MORALE:     return opeu_unit_average9(ds, arg(0));
-    case MineService::TRAINING:   return opeu_unit_average10(ds, arg(0));
-    case MineService::EXPERIENCE: return opeu_unit_average11(ds, arg(0));
-    case MineService::ISQRT:      return opeu_isqrt(arg(0));
-    default:                      port_unhandled("movemine", id, count);
+  case MineService::IS_ENGINEER: return opeu_category_6(byte(0));
+  case MineService::UNIT_MESSAGE:
+    opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1));
+    return 0;
+  case MineService::UNIT_ELIGIBLE: return opeu_unit_selection_eligible(ds, arg(0));
+  case MineService::UNIT_SPOTTED:  return opeu_unit_special(ds, arg(0));
+  case MineService::DAILY_SHOW:    port_daily_show(ds, arg(0), arg(1), arg(2), arg(3)); return 0;
+  case MineService::CASUALTIES:
+    WithMapFrame([&](uint16_t frame) {
+      opeu_unit_casualties(ds, svc_casualty, frame, arg(0), arg(1), arg(2), arg(3), arg(4), arg(5));
+    });
+    return 0;
+  case MineService::MARK_CELL: opeu_mark_cell(ds, byte(0), byte(1), byte(2)); return 0;
+  case MineService::UNIT_ERASE:
+    WithMapFrame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); });
+    return 0;
+  case MineService::MORALE:     return opeu_unit_average9(ds, arg(0));
+  case MineService::TRAINING:   return opeu_unit_average10(ds, arg(0));
+  case MineService::EXPERIENCE: return opeu_unit_average11(ds, arg(0));
+  case MineService::ISQRT:      return opeu_isqrt(arg(0));
+  default:                      port_unhandled("movemine", id, count);
   }
   return 0;
 }

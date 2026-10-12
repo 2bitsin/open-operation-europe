@@ -1,20 +1,14 @@
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-void opeu_battle_ai_plan_unit(uint8_t* ds, BattleEvent event, uint16_t element,
-                              uint16_t sp);
-void opeu_battle_ai_enter_or_hold(uint8_t* ds, BattleEvent event,
-                                  uint16_t element);
-void opeu_battle_ai_element(uint8_t* ds, BattleEvent event, uint16_t element,
-                            uint16_t sp);
-void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side,
-                                   uint8_t index);
-void opeu_battle_ai_plan_side(uint8_t* ds, BattleEvent event, uint16_t unit,
-                              uint16_t sp);
+void opeu_battle_ai_plan_unit(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp);
+void opeu_battle_ai_enter_or_hold(uint8_t* ds, BattleEvent event, uint16_t element);
+void opeu_battle_ai_element(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp);
+void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side, uint8_t index);
+void opeu_battle_ai_plan_side(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t sp);
 void opeu_battle_select_service(uint8_t* ds, BattleEvent event, uint16_t sp);
 
 // The services of this module.
-uint16_t svc_btlaitrn(uint8_t* ds, uint32_t service, const uint16_t* args,
-                      unsigned int count);
+uint16_t svc_btlaitrn(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count);

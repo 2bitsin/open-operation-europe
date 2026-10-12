@@ -1,28 +1,22 @@
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-void opeu_battle_restore_tile(uint8_t* ds, BattleEvent event, uint8_t column,
-                              uint8_t row);
+void opeu_battle_restore_tile(uint8_t* ds, BattleEvent event, uint8_t column, uint8_t row);
 void opeu_battle_info_clear(uint8_t* ds, BattleEvent event);
 void opeu_battle_panel_begin(uint8_t* ds, BattleEvent event);
 void opeu_battle_panel_side1(uint8_t* ds, BattleEvent event);
 void opeu_battle_panel_side0(uint8_t* ds, BattleEvent event);
 void opeu_battle_name_clear_left(uint8_t* ds, BattleEvent event);
 void opeu_battle_name_clear_right(uint8_t* ds, BattleEvent event);
-void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side,
-                                 uint16_t refresh, uint16_t frame);
-void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text,
-                                uint8_t side, uint8_t value, uint16_t frame);
-void opeu_battle_commander_message(uint8_t* ds, BattleEvent event,
-                                   uint16_t text, uint8_t side, uint8_t value,
+void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh, uint16_t frame);
+void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
+                                uint16_t frame);
+void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
                                    uint16_t frame);
-void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event,
-                                 uint16_t element);
+void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event, uint16_t element);
 
 // The services of this module.
-uint16_t svc_battle_commander(uint8_t* ds, uint32_t address,
-                              const uint16_t* args, unsigned count);
-uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args,
-                     unsigned int count);
+uint16_t svc_battle_commander(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count);
+uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count);

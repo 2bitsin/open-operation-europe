@@ -25,5 +25,4 @@ void opeu_sound_cue15(std::uint8_t* ds, HostService service);
 void opeu_sound_cue16(std::uint8_t* ds, HostService service);
 
 // The module's services: the effects go to the sound driver's service.
-auto svc_soundcue(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words)
-    -> std::uint16_t;
+auto svc_soundcue(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words) -> std::uint16_t;

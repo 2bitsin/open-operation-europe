@@ -205,8 +205,7 @@ inline auto WithBattleStack(Body&& body) -> decltype(body(std::uint16_t{})) {
 }
 
 // The frame pointer of a battle routine entered with stack pointer sp: its locals lie below it.
-[[nodiscard]] constexpr auto BattleFrame(std::uint16_t sp) noexcept
-    -> std::uint16_t {
+[[nodiscard]] constexpr auto BattleFrame(std::uint16_t sp) noexcept -> std::uint16_t {
   return static_cast<std::uint16_t>(sp - 2);
 }
 } // namespace opeu::game::detail::battle_routine

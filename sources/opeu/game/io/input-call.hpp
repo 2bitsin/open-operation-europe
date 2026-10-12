@@ -32,8 +32,7 @@ enum class InputCall : std::uint16_t {
   TIMER_START    = 25, // (ticks)
   TIMER_RUNNING  = 26, // -> word
   KEY_PENDING    = 27, // -> word
-  SPRITE_DRAW =
-      28, // (x, y, w, h, image offset, segment, mask offset, segment, buffer offset, segment, flags)
+  SPRITE_DRAW    = 28, // (x, y, w, h, image offset, segment, mask offset, segment, buffer offset, segment, flags)
   DRAW_FAR       = 29, // (x, y, w, h, mode, segment, offset)
   CURSOR_INVERT  = 30, // (x, y, w, h, mode)
   DELAY_TICKS    = 31, // (ticks)
@@ -44,11 +43,8 @@ enum class InputCall : std::uint16_t {
 
 // A call with up to eleven argument words.
 template <typename... Words>
-inline auto Input(std::uint8_t* ds, HostService service, InputCall call,
-                  Words... words) -> std::uint16_t {
-  std::uint16_t args[sizeof...(Words) < 7 ? 7 : sizeof...(Words)]{
-    static_cast<std::uint16_t>(words)...
-  };
+inline auto Input(std::uint8_t* ds, HostService service, InputCall call, Words... words) -> std::uint16_t {
+  std::uint16_t args[sizeof...(Words) < 7 ? 7 : sizeof...(Words)]{ static_cast<std::uint16_t>(words)... };
   return service(ds, std::to_underlying(call), args);
 }
 } // namespace opeu::game::detail::input_call

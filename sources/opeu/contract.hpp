@@ -19,10 +19,10 @@
 namespace opeu::detail::contract {
 
 enum class ContractMode : std::uint8_t {
-  STOP,      // report on stderr, then std::abort()
-  HALT,      // report on stderr, then throw ContractFailure
-  COMPLAIN,  // report on stderr and carry on
-  OFF,       // say nothing; only an unreachable branch still stops
+  STOP,     // report on stderr, then std::abort()
+  HALT,     // report on stderr, then throw ContractFailure
+  COMPLAIN, // report on stderr and carry on
+  OFF,      // say nothing; only an unreachable branch still stops
 };
 // OFF, not IGNORE: <winbase.h> defines IGNORE as a macro.
 

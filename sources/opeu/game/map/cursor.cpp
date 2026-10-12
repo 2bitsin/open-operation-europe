@@ -1,6 +1,5 @@
 // The map cursor's status line: the cell's coordinates in map scale, the objective's name or the terrain, then the
 // side and name of a unit there when the current side may see it.
-#include "types.hpp"
 #include "map/cursor.hpp"
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
@@ -10,6 +9,7 @@
 #include "map/occupy.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"
+#include "types.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
 
@@ -26,53 +26,39 @@ enum class CursorService : uint16_t {
   PRINT  = 3, // format and its two argument words
 };
 constexpr uint8_t  NO_SIDE{ 255 };
-constexpr uint16_t NAME_BUFFER{
-  38
-}; // below the frame: the unit's name is formatted there
+constexpr uint16_t NAME_BUFFER{ 38 }; // below the frame: the unit's name is formatted there
 } // namespace
 
 // frame: this routine's frame; x and y: the cell (their low bytes).
-void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x,
-                     uint16_t y) {
+void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y) {
   auto const& data{ Data(ds) };
   auto const  cell_x{ static_cast<uint8_t>(x) };
   auto const  cell_y{ static_cast<uint8_t>(y) };
   auto const  terrain{ opeu_map_code(ds, cell_x, cell_y) };
   Call(ds, event, CursorService::BEGIN);
-  Call(ds, event, CursorService::PRINT, Near(data, data.cursor_position_format),
-       data.map_scale * cell_x, data.map_scale * cell_y);
+  Call(ds, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x,
+       data.map_scale * cell_y);
   Call(ds, event, CursorService::TEXT,
-       terrain == Bits(Terrain::CITY)
-           ? opeu_find_objective_at(ds, cell_x, cell_y)
-           : data.terrain_names[terrain]);
+       terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(ds, cell_x, cell_y) : data.terrain_names[terrain]);
   auto const side{ opeu_cell_side(ds, cell_x, cell_y) };
   if (side != NO_SIDE) {
     auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-    if ((side == data.current_side && opeu_unit_selection_eligible(ds, unit)) ||
-        (side != data.current_side && opeu_unit_special(ds, unit))) {
-      auto const name{ opeu_unit_name(ds, event, unit,
-                                      Local(frame, NAME_BUFFER)) };
-      Call(ds, event, CursorService::PRINT, Near(data, data.cursor_unit_format),
-           data.side_names[side], name);
+    if ((side == data.current_side && opeu_unit_selection_eligible(ds, unit))
+        || (side != data.current_side && opeu_unit_special(ds, unit))) {
+      auto const name{ opeu_unit_name(ds, event, unit, Local(frame, NAME_BUFFER)) };
+      Call(ds, event, CursorService::PRINT, Near(data, data.cursor_unit_format), data.side_names[side], name);
     }
   }
   Call(ds, event, CursorService::TEXT, Near(data, data.cursor_end));
 }
 
-uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args,
-                    uint16_t count) {
+uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<CursorService>(id)) {
-    case CursorService::BEGIN:
-      opeu_turn_active_begin(
-          ds, static_cast<DialogHost const*>(port_dialogs_host()));
-      break;
-    case CursorService::TEXT:
-      opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()),
-                   Arg(args, count, 0));
-      break;
-    case CursorService::FORMAT: map_request_format(ds, args, count); break;
-    case CursorService::PRINT:  map_cursor_print(ds, args, count); break;
-    default:                    port_unhandled("cursor", id, count);
+  case CursorService::BEGIN:  opeu_turn_active_begin(ds, static_cast<DialogHost const*>(port_dialogs_host())); break;
+  case CursorService::TEXT:   opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
+  case CursorService::FORMAT: map_request_format(ds, args, count); break;
+  case CursorService::PRINT:  map_cursor_print(ds, args, count); break;
+  default:                    port_unhandled("cursor", id, count);
   }
   return 0;
 }

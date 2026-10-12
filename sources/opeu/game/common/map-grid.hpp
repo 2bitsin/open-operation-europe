@@ -9,31 +9,25 @@
 namespace opeu::game::detail::map_grid {
 
 // The map_cells byte of the cell (x, y).
-[[nodiscard]] inline auto MapCellAt(DataSegment& data, std::uint8_t x,
-                                    std::uint8_t y) noexcept -> std::uint8_t& {
+[[nodiscard]] inline auto MapCellAt(DataSegment& data, std::uint8_t x, std::uint8_t y) noexcept -> std::uint8_t& {
   return data.map_cells[y * MAP_WIDTH + x];
 }
-[[nodiscard]] inline auto MapCellAt(DataSegment const& data, std::uint8_t x,
-                                    std::uint8_t y) noexcept
+[[nodiscard]] inline auto MapCellAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept
     -> std::uint8_t const& {
   return data.map_cells[y * MAP_WIDTH + x];
 }
 
 // The influence word of the block holding the cell (x, y): positive for side 0, negative for side 1.
-[[nodiscard]] inline auto InfluenceAt(DataSegment& data, std::uint8_t x,
-                                      std::uint8_t y) noexcept
-    -> std::int16_t& {
+[[nodiscard]] inline auto InfluenceAt(DataSegment& data, std::uint8_t x, std::uint8_t y) noexcept -> std::int16_t& {
   return data.influence_map[y / 4 * INFLUENCE_WIDTH + x / 4];
 }
-[[nodiscard]] inline auto InfluenceAt(DataSegment const& data, std::uint8_t x,
-                                      std::uint8_t y) noexcept
+[[nodiscard]] inline auto InfluenceAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept
     -> std::int16_t const& {
   return data.influence_map[y / 4 * INFLUENCE_WIDTH + x / 4];
 }
 
 // Whether (x, y) lies on the map; coordinates are bytes, so a step off the top or left edge wraps to a large value.
-[[nodiscard]] constexpr auto OnMap(std::uint8_t x, std::uint8_t y) noexcept
-    -> bool {
+[[nodiscard]] constexpr auto OnMap(std::uint8_t x, std::uint8_t y) noexcept -> bool {
   return x < MAP_WIDTH && y < MAP_HEIGHT;
 }
 } // namespace opeu::game::detail::map_grid

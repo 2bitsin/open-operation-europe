@@ -30,44 +30,33 @@ auto Window(DataSegment& data, std::uint16_t near) -> ListWindow& {
   return Record<ListWindow>(data, near);
 }
 
-auto SaveScreen(std::uint8_t* ds, HostWordsEvent event,
-                ListWindow const& window) -> void {
-  List(ds, event, ListCall::BITMAP_SAVE, window.x, window.y,
-       static_cast<std::uint16_t>(window.right - window.x + 1),
-       static_cast<std::uint16_t>(window.bottom - window.y + 1),
-       Data(ds).bitmap_buffer, 0);
+auto SaveScreen(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window) -> void {
+  List(ds, event, ListCall::BITMAP_SAVE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1),
+       static_cast<std::uint16_t>(window.bottom - window.y + 1), Data(ds).bitmap_buffer, 0);
 }
 
-auto RestoreScreen(std::uint8_t* ds, HostWordsEvent event,
-                   ListWindow const& window) -> void {
-  List(ds, event, ListCall::BITMAP_RESTORE, window.x, window.y,
-       static_cast<std::uint16_t>(window.right - window.x + 1),
-       static_cast<std::uint16_t>(window.bottom - window.y + 1), 0,
-       Data(ds).bitmap_buffer, 0);
+auto RestoreScreen(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window) -> void {
+  List(ds, event, ListCall::BITMAP_RESTORE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1),
+       static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, Data(ds).bitmap_buffer, 0);
 }
 
-auto Select(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window,
-            std::uint8_t count) -> std::uint8_t {
-  return static_cast<std::uint8_t>(List(ds, event, ListCall::SELECT,
-                                        window.select.offset,
-                                        window.select.segment, count));
+auto Select(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
+  return static_cast<std::uint8_t>(
+      List(ds, event, ListCall::SELECT, window.select.offset, window.select.segment, count));
 }
 
 auto NextKey(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t {
   return Data(ds).input_mode ? opeu_list_mouse_key(ds, event)
-                             : static_cast<std::uint8_t>(
-                                   List(ds, event, ListCall::KEYBOARD_KEY));
+                             : static_cast<std::uint8_t>(List(ds, event, ListCall::KEYBOARD_KEY));
 }
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
 // activation) and inverts the selected row.
-auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near,
-          std::uint8_t flags) -> void {
+auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t flags) -> void {
   auto&       data{ Data(ds) };
   auto const& window{ Window(data, near) };
   data.list_mouse = !(flags & KEYBOARD_ONLY);
-  if (flags & SAVE_SCREEN)
-    SaveScreen(ds, event, window);
+  if (flags & SAVE_SCREEN) SaveScreen(ds, event, window);
   std::uint8_t column;
   if (flags & FIRST_ACTIVATION) {
     data.list_window = near;
@@ -82,9 +71,8 @@ auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near,
 
 // The commander dialog: keeps the picked generals (general_list entries) and, after the seventh pick, asks "Are you
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
-auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event,
-                                std::uint16_t near, std::uint8_t,
-                                std::uint8_t  flags) -> std::uint16_t {
+auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t,
+                                std::uint8_t flags) -> std::uint16_t {
   auto&         data{ Data(ds) };
   auto const&   window{ Window(data, near) };
   std::uint16_t picked[10]{};
@@ -103,106 +91,89 @@ auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event,
     std::uint8_t key{ NextKey(ds, event) };
     bool         withdraw{ false };
     switch (key) {
-      case KEY_SCROLL_UP:
-        if (data.list_top == 0)
-          continue;
-        opeu_list_invert(ds, event);
+    case KEY_SCROLL_UP:
+      if (data.list_top == 0) continue;
+      opeu_list_invert(ds, event);
+      start--;
+      data.list_row--;
+      break;
+    case KEY_SCROLL_DOWN:
+      if (data.list_top + data.list_rows + 1 >= window.rows) continue;
+      opeu_list_invert(ds, event);
+      start++;
+      data.list_row++;
+      break;
+    case KEY_UP:
+    case KEY_UP_5:
+      if (data.list_row == 0) continue;
+      opeu_list_invert(ds, event);
+      if (data.list_row-- != data.list_top)
+        scroll = false;
+      else
         start--;
-        data.list_row--;
-        break;
-      case KEY_SCROLL_DOWN:
-        if (data.list_top + data.list_rows + 1 >= window.rows)
-          continue;
-        opeu_list_invert(ds, event);
+      break;
+    case KEY_DOWN:
+      if (window.rows <= data.list_row + 2) continue;
+      opeu_list_invert(ds, event);
+      data.list_row++;
+      if (data.list_row - data.list_top + 1 <= data.list_rows)
+        scroll = false;
+      else
         start++;
-        data.list_row++;
-        break;
-      case KEY_UP:
-      case KEY_UP_5:
-        if (data.list_row == 0)
-          continue;
-        opeu_list_invert(ds, event);
-        if (data.list_row-- != data.list_top)
-          scroll = false;
-        else
-          start--;
-        break;
-      case KEY_DOWN:
-        if (window.rows <= data.list_row + 2)
-          continue;
-        opeu_list_invert(ds, event);
-        data.list_row++;
-        if (data.list_row - data.list_top + 1 <= data.list_rows)
-          scroll = false;
-        else
-          start++;
-        break;
-      case KEY_ENTER: {
-        auto const added{ Select(ds, event, window, used) };
-        used += added;
-        if ((flags & FIRST_ACTIVATION) && added)
-          picked[used] = data.general_list[data.list_row];
-        opeu_list_invert(ds, event);
-        refresh = true;
-        break;
-      }
-      case KEY_ESCAPE:
-      case KEY_ZERO:   withdraw = true; break;
-      default:         continue;
+      break;
+    case KEY_ENTER: {
+      auto const added{ Select(ds, event, window, used) };
+      used += added;
+      if ((flags & FIRST_ACTIVATION) && added) picked[used] = data.general_list[data.list_row];
+      opeu_list_invert(ds, event);
+      refresh = true;
+      break;
+    }
+    case KEY_ESCAPE:
+    case KEY_ZERO:   withdraw = true; break;
+    default:         continue;
     }
     for (;;) {
       if (withdraw) {
         // withdraws the last pick and reprints its general's line in the list
         auto const general{ picked[used] };
-        used -= Select(ds, event, window,
-                       static_cast<std::uint8_t>(used + WITHDRAW));
+        used -= Select(ds, event, window, static_cast<std::uint8_t>(used + WITHDRAW));
         std::uint16_t i{ 0 };
-        while (data.general_list[i] != general && i <= 11)
-          i++;
-        std::uint16_t const screen_y =
-            (i - data.list_top) * ROW_HEIGHT + window.y + 1;
+        while (data.general_list[i] != general && i <= 11) i++;
+        std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
         if (screen_y > 0xe8 && screen_y < 0x140) {
           auto const& person{ Record<Person>(data, general) };
           List(ds, event, ListCall::TEXT_COLOUR, 7);
-          List(ds, event, ListCall::TEXT_POSITION,
-               ds[window.widths] + window.x - 0x1c,
+          List(ds, event, ListCall::TEXT_POSITION, ds[window.widths] + window.x - 0x1c,
                (i - data.list_top) * ROW_HEIGHT + window.y + 0x12);
-          List(ds, event, ListCall::PRINT, Near(data, data.general_stats_line),
-               person.leadership, person.charm, person.bravery, person.health,
-               person.infantry, person.artillery, person.armor);
+          List(ds, event, ListCall::PRINT, Near(data, data.general_stats_line), person.leadership, person.charm,
+               person.bravery, person.health, person.infantry, person.artillery, person.armor);
         }
         opeu_list_invert(ds, event);
         refresh = true;
-        if (used > 6)
-          used = 6;
+        if (used > 6) used = 6;
         withdraw = false;
         scroll   = true;
       }
-      if (scroll)
-        opeu_list_scroll(ds, event, near, column, start);
+      if (scroll) opeu_list_scroll(ds, event, near, column, start);
       opeu_list_invert(ds, event);
-      if (used > COMMANDERS)
-        used = COMMANDERS;
+      if (used > COMMANDERS) used = COMMANDERS;
       if (used == COMMANDERS) {
         List(ds, event, ListCall::PAPER, 4);
         for (std::uint16_t y{ 0x170 }; y < 0x188; y += 0x10)
-          for (std::uint16_t x{ 0 }; x < 0x50; x += 2)
-            List(ds, event, ListCall::SCREEN_COPY, 0, 0, 2, 0x10, x, y);
+          for (std::uint16_t x{ 0 }; x < 0x50; x += 2) List(ds, event, ListCall::SCREEN_COPY, 0, 0, 2, 0x10, x, y);
         List(ds, event, ListCall::TEXT_POSITION, 0x15, 0x170);
-        if (!List(ds, event, ListCall::YES_NO,
-                  Near(data, data.div_commander_prompt))) {
+        if (!List(ds, event, ListCall::YES_NO, Near(data, data.div_commander_prompt))) {
           used     = COMMANDERS;
           withdraw = true;
           continue;
         }
         List(ds, event, ListCall::PAPER, 0);
         result = 1;
-        if (flags & SAVE_SCREEN)
-          RestoreScreen(ds, event, window);
+        if (flags & SAVE_SCREEN) RestoreScreen(ds, event, window);
         return result;
       }
-      if (used > 6)
-        used = 6;
+      if (used > 6) used = 6;
       break;
     }
   }
@@ -211,8 +182,7 @@ auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event,
 // The list dialog: runs until `limit` choices are made (or the player cancels when allowed). On a window at column
 // 12h OK cancels and ESC selects: the dialog tests (flags == 1 | 2), which always holds. Windows at columns 0Fh and
 // 9 restore the screen and start over when another key ends the switch.
-auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event,
-                      std::uint16_t near, std::uint8_t limit,
+auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t limit,
                       std::uint8_t flags) -> std::uint16_t {
   auto&                   data{ Data(ds) };
   auto const&             window{ Window(data, near) };
@@ -239,53 +209,45 @@ auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event,
         CANCEL
       } step{ Step::NONE };
       switch (NextKey(ds, event)) {
-        case KEY_SCROLL_UP:
-          if (data.list_top == 0)
-            continue;
-          opeu_list_invert(ds, event);
+      case KEY_SCROLL_UP:
+        if (data.list_top == 0) continue;
+        opeu_list_invert(ds, event);
+        first--;
+        data.list_row--;
+        step = Step::SCROLL;
+        break;
+      case KEY_SCROLL_DOWN:
+        if (data.list_top + data.list_rows + 1 >= window.rows) continue;
+        opeu_list_invert(ds, event);
+        first++;
+        data.list_row++;
+        step = Step::SCROLL;
+        break;
+      case KEY_UP:
+      case KEY_UP_5:
+        if (data.list_row == 0) continue;
+        opeu_list_invert(ds, event);
+        if (data.list_row-- != data.list_top)
+          step = Step::MOVED;
+        else {
           first--;
-          data.list_row--;
           step = Step::SCROLL;
-          break;
-        case KEY_SCROLL_DOWN:
-          if (data.list_top + data.list_rows + 1 >= window.rows)
-            continue;
-          opeu_list_invert(ds, event);
+        }
+        break;
+      case KEY_DOWN:
+        if (window.rows <= data.list_row + 2) continue;
+        opeu_list_invert(ds, event);
+        data.list_row++;
+        if (data.list_row - data.list_top + 1 <= data.list_rows)
+          step = Step::MOVED;
+        else {
           first++;
-          data.list_row++;
           step = Step::SCROLL;
-          break;
-        case KEY_UP:
-        case KEY_UP_5:
-          if (data.list_row == 0)
-            continue;
-          opeu_list_invert(ds, event);
-          if (data.list_row-- != data.list_top)
-            step = Step::MOVED;
-          else {
-            first--;
-            step = Step::SCROLL;
-          }
-          break;
-        case KEY_DOWN:
-          if (window.rows <= data.list_row + 2)
-            continue;
-          opeu_list_invert(ds, event);
-          data.list_row++;
-          if (data.list_row - data.list_top + 1 <= data.list_rows)
-            step = Step::MOVED;
-          else {
-            first++;
-            step = Step::SCROLL;
-          }
-          break;
-        case KEY_ENTER:
-          step = window.x == SWAPPED_COLUMN ? Step::CANCEL : Step::SELECT;
-          break;
-        case KEY_ESCAPE:
-        case KEY_ZERO:
-          step = window.x == SWAPPED_COLUMN ? Step::SELECT : Step::CANCEL;
-          break;
+        }
+        break;
+      case KEY_ENTER:  step = window.x == SWAPPED_COLUMN ? Step::CANCEL : Step::SELECT; break;
+      case KEY_ESCAPE:
+      case KEY_ZERO:   step = window.x == SWAPPED_COLUMN ? Step::SELECT : Step::CANCEL; break;
       }
       if (step == Step::SELECT) {
         count += Select(ds, event, window, count);
@@ -318,22 +280,18 @@ auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event,
       }
     }
     if (finished) {
-      if (flags & SAVE_SCREEN)
-        RestoreScreen(ds, event, window);
+      if (flags & SAVE_SCREEN) RestoreScreen(ds, event, window);
       return done;
     }
   }
 }
 
-auto svc_listdlg(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args,
-                 std::uint16_t count) -> std::uint16_t {
+auto svc_listdlg(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t {
   return svc_listui(ds, kind, args, count);
 }
 
 // The game passes the window last.
-auto port_routine_opeu_list_dialog(std::uint8_t* ds, std::uint16_t const* args,
-                                   unsigned count) -> std::uint32_t {
-  return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 2),
-                          static_cast<std::uint8_t>(Arg(args, count, 0)),
+auto port_routine_opeu_list_dialog(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 2), static_cast<std::uint8_t>(Arg(args, count, 0)),
                           static_cast<std::uint8_t>(Arg(args, count, 1)));
 }

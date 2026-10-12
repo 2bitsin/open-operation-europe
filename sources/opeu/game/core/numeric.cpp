@@ -1,16 +1,15 @@
 // Arithmetic helpers: scaled products and capped additions and subtractions on bytes and words.
-#include "types.hpp"
 #include "core/numeric.hpp"
 #include "core/limits.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
 #include "glue.hpp"
+#include "port.hpp"
 #include "services.hpp"
 
 // a * b / denominator: the full 32-bit product divided as a signed number; 0xffff for a zero denominator.
 uint16_t opeu_mul_div(uint16_t a, uint16_t b, uint16_t denominator) {
-  if (!denominator)
-    return 0xffff;
+  if (!denominator) return 0xffff;
   return (uint16_t)((int32_t)((uint32_t)a * b) / (int32_t)denominator);
 }
 
@@ -35,8 +34,7 @@ uint8_t opeu_sub_byte(uint16_t amount, uint8_t* value) {
 // Adds amount to the word, capped at limit; unlike the byte helper the sum does not wrap.
 uint16_t opeu_add_word(uint16_t amount, uint16_t limit, uint16_t* value) {
   int32_t sum = (int32_t)amount + *value;
-  if (sum > limit)
-    sum = limit;
+  if (sum > limit) sum = limit;
   return *value = (uint16_t)sum;
 }
 
@@ -46,22 +44,17 @@ uint16_t opeu_sub_word(uint16_t amount, uint16_t* value) {
   return *value;
 }
 
-auto port_routine_opeu_mul_div(std::uint8_t* ds, std::uint16_t const* args,
-                               unsigned count) -> std::uint32_t {
+auto port_routine_opeu_mul_div(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_mul_div(Arg(args, count, 0), Arg(args, count, 1),
-                      Arg(args, count, 2));
+  return opeu_mul_div(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
 }
 
-auto port_routine_opeu_sub_byte(std::uint8_t* ds, std::uint16_t const* args,
-                                unsigned count) -> std::uint32_t {
+auto port_routine_opeu_sub_byte(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
   return opeu_sub_byte(Arg(args, count, 0), PORT_DS(Arg(args, count, 1)));
 }
 
-auto port_routine_opeu_sub_word(std::uint8_t* ds, std::uint16_t const* args,
-                                unsigned count) -> std::uint32_t {
+auto port_routine_opeu_sub_word(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_sub_word(Arg(args, count, 0),
-                       (uint16_t*)(void*)PORT_DS(Arg(args, count, 1)));
+  return opeu_sub_word(Arg(args, count, 0), (uint16_t*)(void*)PORT_DS(Arg(args, count, 1)));
 }

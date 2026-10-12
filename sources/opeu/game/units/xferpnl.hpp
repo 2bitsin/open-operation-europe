@@ -1,24 +1,18 @@
 // The supply-transfer panel: keypad, input, the transfer table, the title, the rows and the computer's keys.
 #pragma once
 
-#include "types.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
-uint8_t opeu_transfer_keypad_hit(uint8_t* ds, uint16_t x, uint16_t y);
-uint8_t opeu_transfer_input(uint8_t* ds, HostWordsEvent event, uint16_t row);
-void opeu_transfer_set(uint8_t* ds, uint8_t side, uint8_t row, uint8_t column,
-                       uint16_t value);
-uint16_t opeu_transfer_get(const uint8_t* ds, uint8_t side, uint8_t row,
-                           uint8_t column);
-void     opeu_transfer_draw(uint8_t* ds, HostWordsEvent event, uint16_t first,
-                            uint16_t second);
-void     opeu_transfer_digits(uint8_t* ds, HostWordsEvent event, uint16_t x,
-                              uint16_t y, uint16_t value);
-void     opeu_transfer_draw_row(uint8_t* ds, HostWordsEvent event, uint8_t row,
-                                uint8_t column);
+uint8_t  opeu_transfer_keypad_hit(uint8_t* ds, uint16_t x, uint16_t y);
+uint8_t  opeu_transfer_input(uint8_t* ds, HostWordsEvent event, uint16_t row);
+void     opeu_transfer_set(uint8_t* ds, uint8_t side, uint8_t row, uint8_t column, uint16_t value);
+uint16_t opeu_transfer_get(const uint8_t* ds, uint8_t side, uint8_t row, uint8_t column);
+void     opeu_transfer_draw(uint8_t* ds, HostWordsEvent event, uint16_t first, uint16_t second);
+void     opeu_transfer_digits(uint8_t* ds, HostWordsEvent event, uint16_t x, uint16_t y, uint16_t value);
+void     opeu_transfer_draw_row(uint8_t* ds, HostWordsEvent event, uint8_t row, uint8_t column);
 uint8_t  opeu_transfer_auto_key(uint8_t* ds, uint8_t row);
 
 // The transfer services (TransferService, units/transfer-service.hpp); `module` names the caller in diagnostics.
-uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id,
-                      uint16_t* args, uint16_t count);
+uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* args, uint16_t count);
 uint16_t svc_xferpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count);

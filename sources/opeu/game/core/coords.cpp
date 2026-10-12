@@ -1,8 +1,8 @@
 // The map inspection mode: the player moves a cursor over the map by keyboard or mouse; the panel shows the objective
 // or regiment under it, a click or Enter on one of the side's regiments gives it an order, Escape or the right button
 // leaves. The cell is kept in the byte variables at the near addresses x and y.
-#include "types.hpp"
 #include "core/coords.hpp"
+#include "common/events.hpp"
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "map/grid.hpp"
@@ -12,7 +12,7 @@
 #include "map/stepmap.hpp"
 #include "map/support.hpp"
 #include "map/viewstep.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
@@ -57,15 +57,13 @@ enum Service : std::uint16_t {
   LOOKUP          = 15, // (message id) -> the text
   MESSAGE         = 16, // (text, person)
   KEY             = 17, // () -> the key
-  RESTORE = 18, // (x, y, width, height, mode, segment, offset) the screen
+  RESTORE         = 18, // (x, y, width, height, mode, segment, offset) the screen
 };
 
 constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint8_t  NONE{ 0xff };
 constexpr std::uint8_t  DIRECTIONS{ 8 };
-constexpr std::uint16_t DIVISION_BUSY{
-  100
-}; // message id: the division is under the computer's command
+constexpr std::uint16_t DIVISION_BUSY{ 100 }; // message id: the division is under the computer's command
 constexpr std::uint16_t SAVE_OFFSET{ 0x120 };
 
 // Directions of the tactical view's steps (map/viewstep) a pan stands for.
@@ -98,8 +96,7 @@ auto Inside(Area const& area, std::uint16_t x, std::uint16_t y) -> bool {
 
 // Runs the inspection from the cell at the near addresses x and y; returns 1 when the player picked a cell (or
 // ordered a regiment), 0 when he left.
-uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
-                                  uint16_t scratch, uint16_t x, uint16_t y) {
+uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t scratch, uint16_t x, uint16_t y) {
   auto&      data{ Data(ds) };
   auto&      cell_x{ Byte(ds, x) };
   auto&      cell_y{ Byte(ds, y) };
@@ -110,8 +107,7 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
   auto const side{ data.current_side };
   auto const tactical{ [&] { return data.view_side != NONE; } };
   auto const strategic{ [&] { return data.overview_side != NONE; } };
-  auto const pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x,
-                      std::uint8_t at_y) {
+  auto const pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) {
     Call(ds, event, PAN, dx, dy, at_x, side, at_y);
   } };
   std::uint16_t result{ 0 };
@@ -124,11 +120,9 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
   auto const pick{ [&] {
     result = 1;
     auto const owner{ opeu_cell_side(ds, display_x, display_y) };
-    if (owner == NONE)
-      return false;
+    if (owner == NONE) return false;
     auto const unit{ opeu_find_unit_at(ds, display_x, display_y) };
-    if (owner != side || !opeu_unit_selection_eligible(ds, unit))
-      return false;
+    if (owner != side || !opeu_unit_selection_eligible(ds, unit)) return false;
     auto const group{ opeu_unit_group_index(unit) };
     auto const person{ opeu_find_group_record(ds, side, group) };
     if (GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))
@@ -147,8 +141,7 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
   Call(ds, event, SAVE, 0, 0, 80, 24, data.bitmap_buffer, SAVE_OFFSET);
   data.control_selection = 0;
   for (bool done{ false }; !done;) {
-    if (display_x != NONE)
-      Call(ds, event, ERASE, display_x, display_y);
+    if (display_x != NONE) Call(ds, event, ERASE, display_x, display_y);
     display_x = cell_x;
     display_y = cell_y;
     Call(ds, event, INSPECT, display_x, display_y);
@@ -165,49 +158,42 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
     }
     if (objective) {
       auto const owner{ opeu_objective_side(ds, objective) };
-      if ((owner == side && opeu_objective_eligible(ds, objective)) ||
-          (owner != side && (Record<Objective>(data, objective).flags &
-                             Bits(ObjectiveFlag::MARKED)))) {
+      if ((owner == side && opeu_objective_eligible(ds, objective))
+          || (owner != side && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::MARKED)))) {
         Call(ds, event, OBJECTIVE_PANEL, objective);
         panel = 1;
       }
     }
     if (unit) {
       auto const owner{ opeu_unit_side(unit) };
-      if ((owner == side && opeu_unit_selection_eligible(ds, unit)) ||
-          (owner != side &&
-           (Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED)))) {
+      if ((owner == side && opeu_unit_selection_eligible(ds, unit))
+          || (owner != side && (Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED)))) {
         Call(ds, event, UNIT_PANEL, unit);
         panel = 1;
       }
     }
-    if (!panel && previous_panel == 1)
-      Call(ds, event, SUMMARY);
+    if (!panel && previous_panel == 1) Call(ds, event, SUMMARY);
     previous_panel = panel;
     if (data.input_mode) {
       for (;;) {
         Call(ds, event, MOUSE_SHOW);
-        auto const buttons{ static_cast<std::uint8_t>(
-            Call(ds, event, MOUSE_BUTTONS)) };
+        auto const buttons{ static_cast<std::uint8_t>(Call(ds, event, MOUSE_BUTTONS)) };
         Call(ds, event, MOUSE_POSITION, mouse_x_at, mouse_y_at);
         auto const mouse_x{ Word(ds, mouse_x_at) };
         auto const mouse_y{ Word(ds, mouse_y_at) };
         if (buttons & 1) {
           Call(ds, event, MOUSE_HIDE);
-          if ((tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y)) ||
-              (strategic() && Inside(STRATEGIC_MAP, mouse_x, mouse_y) &&
-               display_x < MAP_SIZE && display_y < MAP_SIZE &&
-               opeu_map_code(ds, display_x, display_y))) {
+          if ((tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y))
+              || (strategic() && Inside(STRATEGIC_MAP, mouse_x, mouse_y) && display_x < MAP_SIZE && display_y < MAP_SIZE
+                  && opeu_map_code(ds, display_x, display_y))) {
             // A click on a cell of no side or of a regiment the side cannot order keeps the inspection going.
-            if (!pick())
-              continue;
+            if (!pick()) continue;
             done = true;
             break;
           }
           if (tactical()) {
             std::uint8_t direction{ NONE };
-            if (mouse_x >= 320 && mouse_x <= 351 && mouse_y >= 84 &&
-                mouse_y <= 371) {
+            if (mouse_x >= 320 && mouse_x <= 351 && mouse_y >= 84 && mouse_y <= 371) {
               pan(1, 0, display_x, display_y);
               direction = RIGHT;
             }
@@ -215,13 +201,11 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
               pan(-1, 0, display_x, display_y);
               direction = LEFT;
             }
-            if (mouse_x >= 32 && mouse_x <= 319 && mouse_y >= 56 &&
-                mouse_y <= 83) {
+            if (mouse_x >= 32 && mouse_x <= 319 && mouse_y >= 56 && mouse_y <= 83) {
               pan(0, -1, display_x, display_y);
               direction = UP;
             }
-            if (mouse_x >= 32 && mouse_x <= 319 && mouse_y >= 372 &&
-                mouse_y <= 399) {
+            if (mouse_x >= 32 && mouse_x <= 319 && mouse_y >= 372 && mouse_y <= 399) {
               pan(0, 1, display_x, display_y);
               direction = DOWN;
             }
@@ -240,90 +224,77 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
           break;
         }
         if (tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y)) {
-          auto const next_y{ static_cast<std::int16_t>(
-              (static_cast<std::int16_t>(mouse_y) - 84) / 24 +
-              static_cast<std::int16_t>(data.viewport_y)) };
-          auto const next_x{ static_cast<std::int16_t>(
-              (static_cast<std::int16_t>(mouse_x) - 32) / 24 +
-              static_cast<std::int16_t>(data.viewport_x)) };
-          if (next_x < 0 || next_y < 0 || next_x >= MAP_SIZE ||
-              next_y >= MAP_SIZE)
-            continue;
+          auto const next_y{ static_cast<std::int16_t>((static_cast<std::int16_t>(mouse_y) - 84) / 24
+                                                       + static_cast<std::int16_t>(data.viewport_y)) };
+          auto const next_x{ static_cast<std::int16_t>((static_cast<std::int16_t>(mouse_x) - 32) / 24
+                                                       + static_cast<std::int16_t>(data.viewport_x)) };
+          if (next_x < 0 || next_y < 0 || next_x >= MAP_SIZE || next_y >= MAP_SIZE) continue;
           cell_x = static_cast<std::uint8_t>(next_x);
           cell_y = static_cast<std::uint8_t>(next_y);
         } else {
-          if (!strategic() || !Inside(STRATEGIC_MAP, mouse_x, mouse_y))
-            continue;
+          if (!strategic() || !Inside(STRATEGIC_MAP, mouse_x, mouse_y)) continue;
           cell_x = static_cast<std::uint8_t>((mouse_x - 16) >> 3);
           cell_y = static_cast<std::uint8_t>((mouse_y - 68) >> 3);
         }
-        if (cell_x == display_x && cell_y == display_y)
-          continue;
+        if (cell_x == display_x && cell_y == display_y) continue;
         Call(ds, event, MOUSE_HIDE);
         break;
       }
-      if (done)
-        break;
+      if (done) break;
     } else {
       std::uint8_t direction{ NONE };
       auto const   key{ static_cast<std::uint8_t>(Call(ds, event, KEY)) };
       switch (key) {
-        case '6':
-          if (tactical()) {
-            pan(1, 0, display_x, display_y);
-            direction = RIGHT;
-          } else
-            ++cell_x;
-          break;
-        case '4':
-          if (tactical()) {
-            pan(-1, 0, display_x, display_y);
-            direction = LEFT;
-          } else
-            --cell_x;
-          break;
-        case '8':
-          if (tactical()) {
-            pan(0, -1, display_x, display_y);
-            direction = UP;
-          } else
-            --cell_y;
-          break;
-        case '2':
-          if (tactical()) {
-            pan(0, 1, display_x, display_y);
-            direction = DOWN;
-          } else
-            ++cell_y;
-          break;
-        case 27:
-        case '0':
-          result = 0;
-          done   = true;
-          break;
-        case 13:
-          if (!opeu_map_code(ds, display_x, display_y))
-            break;
-          pick();
-          done = true;
-          break;
-        default:
-          for (std::uint8_t i{ 0 }; i < DIRECTIONS; ++i)
-            if (key == static_cast<std::uint8_t>(data.direction_keys[i])) {
-              direction = i;
-              break;
-            }
-      }
-      if (done)
+      case '6':
+        if (tactical()) {
+          pan(1, 0, display_x, display_y);
+          direction = RIGHT;
+        } else
+          ++cell_x;
         break;
-      if (cell_x > MAP_SIZE)
-        cell_x = 0;
-      if (cell_y > MAP_SIZE)
-        cell_y = 0;
-      if (cell_x > MAP_SIZE - 1)
-        cell_x = MAP_SIZE - 1;
-      if (cell_y > MAP_SIZE - 1)
-        cell_y = MAP_SIZE - 1;
+      case '4':
+        if (tactical()) {
+          pan(-1, 0, display_x, display_y);
+          direction = LEFT;
+        } else
+          --cell_x;
+        break;
+      case '8':
+        if (tactical()) {
+          pan(0, -1, display_x, display_y);
+          direction = UP;
+        } else
+          --cell_y;
+        break;
+      case '2':
+        if (tactical()) {
+          pan(0, 1, display_x, display_y);
+          direction = DOWN;
+        } else
+          ++cell_y;
+        break;
+      case 27:
+      case '0':
+        result = 0;
+        done   = true;
+        break;
+      case 13:
+        if (!opeu_map_code(ds, display_x, display_y)) break;
+        pick();
+        done = true;
+        break;
+      default:
+        for (std::uint8_t i{ 0 }; i < DIRECTIONS; ++i)
+          if (key == static_cast<std::uint8_t>(data.direction_keys[i])) {
+            direction = i;
+            break;
+          }
+      }
+      if (done) break;
+      if (cell_x > MAP_SIZE) cell_x = 0;
+      if (cell_y > MAP_SIZE) cell_y = 0;
+      if (cell_x > MAP_SIZE - 1) cell_x = MAP_SIZE - 1;
+      if (cell_y > MAP_SIZE - 1) cell_y = MAP_SIZE - 1;
       if (tactical())
         opeu_grid_step_viewport(ds, x, y, direction);
       else
@@ -337,96 +308,70 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event,
   return result;
 }
 
-uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args,
-                    uint16_t count) {
+uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-    case LOCATION:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_arrival_location(ds, svc_mappos,
-                              static_cast<std::uint16_t>(sp - 2),
-                              static_cast<std::uint8_t>(Arg(args, count, 0)),
-                              static_cast<std::uint8_t>(Arg(args, count, 1)),
-                              static_cast<std::uint8_t>(Arg(args, count, 2)));
-      });
-      break;
-    case RESET: opeu_input_reset(ds, svc_mouse); break;
-    case SAVE:
-      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2), Arg(args, count, 3),
-                       port_far(Arg(args, count, 4), Arg(args, count, 5)));
-      break;
-    case ERASE:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_map_erase(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2),
-                       static_cast<std::uint8_t>(Arg(args, count, 0)),
-                       static_cast<std::uint8_t>(Arg(args, count, 1)));
-      });
-      break;
-    case INSPECT:
-      opeu_map_inspect(ds, svc_inspect,
-                       static_cast<std::uint8_t>(Arg(args, count, 0)),
-                       static_cast<std::uint8_t>(Arg(args, count, 1)));
-      break;
-    case CURSOR:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_map_cursor(ds, svc_cursor, static_cast<std::uint16_t>(sp - 2),
-                        Arg(args, count, 0), Arg(args, count, 1));
-      });
-      break;
-    case OBJECTIVE_PANEL:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_objective_panel(ds, svc_vwpanel, sp, Arg(args, count, 0));
-      });
-      break;
-    case UNIT_PANEL:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_unit_panel(ds, svc_vwpanel, sp, Arg(args, count, 0));
-      });
-      break;
-    case SUMMARY:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_army_summary(ds, svc_armysum,
-                          static_cast<std::uint16_t>(sp - 2 - 0x50));
-      });
-      break;
-    case MOUSE_SHOW:    opeu_mouse_show(ds, svc_mouse); break;
-    case MOUSE_BUTTONS: result = opeu_mouse_buttons(ds, svc_mouse); break;
-    case MOUSE_POSITION:
-      opeu_mouse_position(ds, svc_mouse, Arg(args, count, 0),
-                          Arg(args, count, 1));
-      break;
-    case MOUSE_HIDE: opeu_mouse_hide(ds, svc_mouse); break;
-    case PAN:
-      opeu_viewport_pan(ds, svc_viewpan,
-                        static_cast<std::int16_t>(Arg(args, count, 0)),
-                        static_cast<std::int16_t>(Arg(args, count, 1)),
-                        static_cast<std::uint8_t>(Arg(args, count, 2)),
-                        static_cast<std::uint8_t>(Arg(args, count, 4)),
-                        static_cast<std::uint8_t>(Arg(args, count, 3)));
-      break;
-    case UNIT_ACTION:
-      WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-        opeu_unit_action(ds, svc_ordact, sp, Arg(args, count, 0),
-                         Arg(args, count, 1));
-      });
-      break;
-    case LOOKUP:
-      result = opeu_message_lookup(
-          ds, svc_msglook, static_cast<std::int16_t>(Arg(args, count, 0)));
-      break;
-    case MESSAGE:
-      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(),
-                           Arg(args, count, 0), Arg(args, count, 1));
-      break;
-    case KEY: result = opeu_keyboard_key(ds, svc_keyboard); break;
-    case RESTORE:
-      opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2), Arg(args, count, 3),
-                          Arg(args, count, 4),
-                          port_far(Arg(args, count, 5), Arg(args, count, 6)));
-      break;
-    default: port_unhandled("coords", id, count);
+  case LOCATION:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+      opeu_arrival_location(
+          ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)),
+          static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    });
+    break;
+  case RESET: opeu_input_reset(ds, svc_mouse); break;
+  case SAVE:
+    opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
+                     port_far(Arg(args, count, 4), Arg(args, count, 5)));
+    break;
+  case ERASE:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+      opeu_map_erase(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2),
+                     static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
+    });
+    break;
+  case INSPECT:
+    opeu_map_inspect(ds, svc_inspect, static_cast<std::uint8_t>(Arg(args, count, 0)),
+                     static_cast<std::uint8_t>(Arg(args, count, 1)));
+    break;
+  case CURSOR:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+      opeu_map_cursor(ds, svc_cursor, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1));
+    });
+    break;
+  case OBJECTIVE_PANEL:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_objective_panel(ds, svc_vwpanel, sp, Arg(args, count, 0)); });
+    break;
+  case UNIT_PANEL:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_panel(ds, svc_vwpanel, sp, Arg(args, count, 0)); });
+    break;
+  case SUMMARY:
+    WithStack(PORT_FRAME,
+              [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); });
+    break;
+  case MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
+  case MOUSE_BUTTONS:  result = opeu_mouse_buttons(ds, svc_mouse); break;
+  case MOUSE_POSITION: opeu_mouse_position(ds, svc_mouse, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MOUSE_HIDE:     opeu_mouse_hide(ds, svc_mouse); break;
+  case PAN:
+    opeu_viewport_pan(ds, svc_viewpan, static_cast<std::int16_t>(Arg(args, count, 0)),
+                      static_cast<std::int16_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
+                      static_cast<std::uint8_t>(Arg(args, count, 4)), static_cast<std::uint8_t>(Arg(args, count, 3)));
+    break;
+  case UNIT_ACTION:
+    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+      opeu_unit_action(ds, svc_ordact, sp, Arg(args, count, 0), Arg(args, count, 1));
+    });
+    break;
+  case LOOKUP: result = opeu_message_lookup(ds, svc_msglook, static_cast<std::int16_t>(Arg(args, count, 0))); break;
+  case MESSAGE:
+    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
+    break;
+  case KEY: result = opeu_keyboard_key(ds, svc_keyboard); break;
+  case RESTORE:
+    opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
+                        Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    break;
+  default: port_unhandled("coords", id, count);
   }
   return result;
 }

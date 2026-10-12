@@ -4,8 +4,7 @@
 
 #include "types.hpp"
 
-void     opeu_ai_equip_element(uint8_t* ds, uint16_t element, uint8_t kind,
-                               uint8_t side);
+void     opeu_ai_equip_element(uint8_t* ds, uint16_t element, uint8_t kind, uint8_t side);
 uint16_t opeu_ai_raise_unit(uint8_t* ds);
 void     opeu_ai_reinforce(uint8_t* ds);
 uint16_t opeu_ai_restock_unit(uint8_t* ds, uint16_t objective, uint16_t unit);

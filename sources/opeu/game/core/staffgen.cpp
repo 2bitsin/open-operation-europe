@@ -1,17 +1,17 @@
 // The staff candidates: their ratings drawn around the base records, and the selected candidate's portrait.
-#include "types.hpp"
 #include "core/staffgen.hpp"
+#include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/random.hpp"
-#include "common/events.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
-#include "glue.hpp"
-#include "services.hpp"
+#include "common/memory.hpp"
 #include "core/uiprim.hpp"
 #include "data-segment.hpp"
-#include "common/memory.hpp"
+#include "glue.hpp"
+#include "port.hpp"
+#include "services.hpp"
 
 using namespace opeu::game;
 
@@ -48,8 +48,8 @@ void opeu_staff_roll_flag(uint8_t ds[65536], uint16_t person) {
 // Draws the ratings of the current side's candidate `index` again around the candidate's base record; health and its
 // companion byte_17 get the same value.
 void opeu_staff_reroll_person(uint8_t ds[65536], uint8_t index) {
-  auto& data{ Data(ds) };
-  auto& person{ data.people[data.current_side * PEOPLE_PER_SIDE + index] };
+  auto&       data{ Data(ds) };
+  auto&       person{ data.people[data.current_side * PEOPLE_PER_SIDE + index] };
   auto const& base{ data.people_backup[index] };
   person.leadership = opeu_staff_jitter_stat(base.leadership);
   person.charm      = opeu_staff_jitter_stat(base.charm);
@@ -73,21 +73,18 @@ uint8_t opeu_staff_reroll_selected(uint8_t ds[65536], HostNotify event) {
   return 0;
 }
 
-void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args,
-                  uint16_t count) {
+void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-    case SHOW_PORTRAIT:
-      opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(),
-                            Arg(args, count, 0), Arg(args, count, 1),
-                            Arg(args, count, 2));
-      break;
-    default: port_unhandled("staffgen", id, count);
+  case SHOW_PORTRAIT:
+    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
+                          Arg(args, count, 2));
+    break;
+  default: port_unhandled("staffgen", id, count);
   }
 }
 
-auto port_routine_opeu_staff_reroll_selected(std::uint8_t*        ds,
-                                             std::uint16_t const* args,
-                                             unsigned count) -> std::uint32_t {
+auto port_routine_opeu_staff_reroll_selected(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
+    -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_staff_reroll_selected(ds, svc_staffgen);

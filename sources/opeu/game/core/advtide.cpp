@@ -1,8 +1,8 @@
 // The staff's "Tide of War" advice: six checks may each give one advice, written into the tide topic's buffer; the
 // entry runs them in order until one does.
-#include "types.hpp"
 #include "core/advtide.hpp"
 #include "common/events.hpp"
+#include "types.hpp"
 
 #include "common/advice.hpp"
 #include "common/data-segment.hpp"
@@ -28,12 +28,9 @@ constexpr std::uint8_t  ALL_CATEGORIES{ 0xff };
 constexpr std::uint8_t  CITY_LEVEL{ 4 };
 constexpr std::uint16_t CHEAP_UNIT{ 300 };
 constexpr std::uint8_t  MAP_SIZE{ 40 };
-constexpr std::uint8_t  SAMPLE_STEP{
-  4
-}; // the territory sample takes every fourth cell each way
+constexpr std::uint8_t  SAMPLE_STEP{ 4 }; // the territory sample takes every fourth cell each way
 
-auto Tide(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text,
-          std::uint16_t sp) -> Advisor {
+auto Tide(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text, std::uint16_t sp) -> Advisor {
   return { ds, far_text, event, AdviceTopic::TIDE_OF_WAR, sp };
 }
 } // namespace
@@ -41,48 +38,39 @@ auto Tide(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text,
 // One time in three, the first objective of ours without a garrison outside our influence: a city is well isolated
 // from the enemy, a lesser objective must be abandoned. Failing that, with no cell to request, one time in three our
 // forces are isolated.
-uint16_t opeu_advice_tide_isolation(uint8_t ds[65536], const uint8_t* far_text,
-                                    HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_tide_isolation(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Tide(ds, event, far_text, sp) };
   auto const side{ data.current_side };
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (!objective.active || opeu_objective_side(ds, near) != side)
-      continue;
+    if (!objective.active || opeu_objective_side(ds, near) != side) continue;
     std::uint8_t count{};
-    auto const   garrison{ opeu_objective_quantity(ds, near, ALL_CATEGORIES,
-                                                   &count) };
-    if (opeu_cell_influence_side(ds, objective.x, objective.y) != side &&
-        garrison == 0 && advisor.Random(3) == 1)
+    auto const   garrison{ opeu_objective_quantity(ds, near, ALL_CATEGORIES, &count) };
+    if (opeu_cell_influence_side(ds, objective.x, objective.y) != side && garrison == 0 && advisor.Random(3) == 1)
       return advisor.SayFormatted(advisor.Scratch(0x6c),
-                                  opeu_objective_level(ds, near) >= CITY_LEVEL
-                                      ? AdviceText::OBJECTIVE_SAFE
-                                      : AdviceText::ABANDON_OBJECTIVE,
+                                  opeu_objective_level(ds, near) >= CITY_LEVEL ? AdviceText::OBJECTIVE_SAFE
+                                                                               : AdviceText::ABANDON_OBJECTIVE,
                                   near);
   }
-  if (opeu_request_cells(ds, side, opeu_request_cell_allowed) == 0 &&
-      advisor.Random(3) == 1)
+  if (opeu_request_cells(ds, side, opeu_request_cell_allowed) == 0 && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::FORCES_ISOLATED);
   return 0;
 }
 
 // Counts the cheap regiments of the active divisions that can act. 12 to 19, one time in four: the buffer is shown as
 // it stands (nothing is copied into it); 20 or more, one time in four: we wait for our recovery.
-uint16_t opeu_staff_1ad2(uint8_t ds[65536], const uint8_t* far_text,
-                         HostEvent event, uint16_t sp) {
+uint16_t opeu_staff_1ad2(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&        data{ Data(ds) };
   auto const   advisor{ Tide(ds, event, far_text, sp) };
   auto const   side{ data.current_side };
   std::uint8_t cheap{ 0 };
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
-    if (!IsActiveGroup(GroupOf(data, side, g)))
-      continue;
+    if (!IsActiveGroup(GroupOf(data, side, g))) continue;
     for (auto const& unit : GroupUnits(data, side, g)) {
       auto const near{ Near(data, unit) };
-      if ((unit.flags & Bits(UnitFlag::READY)) &&
-          opeu_unit_selection_eligible(ds, near) &&
-          opeu_unit_value(ds, near) <= CHEAP_UNIT)
+      if ((unit.flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(ds, near)
+          && opeu_unit_value(ds, near) <= CHEAP_UNIT)
         ++cheap;
     }
   }
@@ -90,17 +78,14 @@ uint16_t opeu_staff_1ad2(uint8_t ds[65536], const uint8_t* far_text,
     advisor.Show();
     return 1;
   }
-  if (cheap >= 20 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::WAIT_FOR_RECOVERY);
+  if (cheap >= 20 && advisor.Random(4) == 1) return advisor.Say(AdviceText::WAIT_FOR_RECOVERY);
   return 0;
 }
 
 // Compares both sides' unit counts. Ours above twice the enemy's: go on the offensive. Defending with the enemy's
 // above twice ours: wait it out. Attacking with fewer than 30 and a reserve division waiting: wait for the
 // reinforcements (the division number is not formatted in). Each one time in four.
-uint16_t opeu_advice_tide_strength_balance(uint8_t        ds[65536],
-                                           const uint8_t* far_text,
-                                           HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_tide_strength_balance(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&        data{ Data(ds) };
   auto const   advisor{ Tide(ds, event, far_text, sp) };
   auto const   side{ data.current_side };
@@ -108,22 +93,18 @@ uint16_t opeu_advice_tide_strength_balance(uint8_t        ds[65536],
   std::uint8_t waiting{ 0 };
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
     auto const flags{ GroupOf(data, side, g).flags };
-    if ((flags & Bits(GroupFlag::READY)) && (flags & Bits(GroupFlag::RESERVE)))
-      ++waiting;
+    if ((flags & Bits(GroupFlag::READY)) && (flags & Bits(GroupFlag::RESERVE))) ++waiting;
   }
   std::uint8_t ours{};
   std::uint8_t theirs{};
   opeu_side_quantity(ds, side, ALL_CATEGORIES, &ours);
   opeu_side_quantity(ds, foe, ALL_CATEGORIES, &theirs);
-  if (static_cast<std::int16_t>(theirs * 2) < static_cast<std::int16_t>(ours) &&
-      advisor.Random(4) == 1)
+  if (static_cast<std::int16_t>(theirs * 2) < static_cast<std::int16_t>(ours) && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::GO_ON_OFFENSIVE);
-  if (data.side_stance[side] == Bits(Stance::DEFENSIVE) &&
-      static_cast<std::int16_t>(ours * 2) < static_cast<std::int16_t>(theirs) &&
-      advisor.Random(4) == 1)
+  if (data.side_stance[side] == Bits(Stance::DEFENSIVE)
+      && static_cast<std::int16_t>(ours * 2) < static_cast<std::int16_t>(theirs) && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::WAIT_IT_OUT);
-  if (data.side_stance[side] == Bits(Stance::OFFENSIVE) && ours < 30 &&
-      waiting != 0 && advisor.Random(4) == 1)
+  if (data.side_stance[side] == Bits(Stance::OFFENSIVE) && ours < 30 && waiting != 0 && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::WAIT_FOR_REINFORCEMENTS);
   return 0;
 }
@@ -131,51 +112,37 @@ uint16_t opeu_advice_tide_strength_balance(uint8_t        ds[65536],
 // Counts the cells of a 10 x 10 sample of the map under our influence: none, the situation couldn't be worse; over
 // 75, we overwhelm the enemy; 1 to 24, the enemy is very powerful; 41 to 59, the enemy is as strong as we are. Each
 // one time in four.
-uint16_t opeu_advice_tide_territory_control(uint8_t        ds[65536],
-                                            const uint8_t* far_text,
-                                            HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_tide_territory_control(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto const&   data{ Data(ds) };
   auto const    advisor{ Tide(ds, event, far_text, sp) };
   std::uint16_t held{ 0 };
   for (std::uint8_t y{ 0 }; y < MAP_SIZE; y += SAMPLE_STEP)
     for (std::uint8_t x{ 0 }; x < MAP_SIZE; x += SAMPLE_STEP)
-      if (opeu_cell_influence_side(ds, x, y) == data.current_side)
-        ++held;
-  if (held == 0 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::SITUATION_WORST);
-  if (held > 75 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::OVERWHELMING_ENEMY);
-  if (held != 0 && held < 25 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_POWERFUL);
-  if (held > 40 && held < 60 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_EQUAL);
+      if (opeu_cell_influence_side(ds, x, y) == data.current_side) ++held;
+  if (held == 0 && advisor.Random(4) == 1) return advisor.Say(AdviceText::SITUATION_WORST);
+  if (held > 75 && advisor.Random(4) == 1) return advisor.Say(AdviceText::OVERWHELMING_ENEMY);
+  if (held != 0 && held < 25 && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_POWERFUL);
+  if (held > 40 && held < 60 && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_EQUAL);
   return 0;
 }
 
 // The side's air strength: 30 or less, the enemy rules the skies; 70 or more, we do. Each one time in four.
-uint16_t opeu_advice_tide_air_superiority(uint8_t        ds[65536],
-                                          const uint8_t* far_text,
-                                          HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_tide_air_superiority(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Tide(ds, event, far_text, sp) };
   auto const air{ Record<Side>(data, data.current_side_ptr).strength };
-  if (air <= 30 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_RULES_SKIES);
-  if (air >= 70 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::WE_RULE_SKIES);
+  if (air <= 30 && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_RULES_SKIES);
+  if (air >= 70 && advisor.Random(4) == 1) return advisor.Say(AdviceText::WE_RULE_SKIES);
   return 0;
 }
 
 // The fallback: there have been no advances.
-uint16_t opeu_advice_tide_no_advances(uint8_t        ds[65536],
-                                      const uint8_t* far_text, HostEvent event,
-                                      uint16_t sp) {
+uint16_t opeu_advice_tide_no_advances(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   return Tide(ds, event, far_text, sp).Say(AdviceText::NO_ADVANCES);
 }
 
 // Tide of War: runs the checks until one gives advice.
-void opeu_advice_tide_of_war(uint8_t ds[65536], const uint8_t* far_text,
-                             HostEvent event, uint16_t sp) {
+void opeu_advice_tide_of_war(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   using Check = uint16_t (*)(uint8_t*, const uint8_t*, HostEvent, uint16_t);
   static constexpr Check CHECKS[]{
     opeu_advice_tide_isolation,        opeu_staff_1ad2,
@@ -184,20 +151,14 @@ void opeu_advice_tide_of_war(uint8_t ds[65536], const uint8_t* far_text,
   };
   auto const nested{ static_cast<std::uint16_t>(sp - 4) };
   for (auto const check : CHECKS)
-    if (check(ds, far_text, event, nested))
-      return;
+    if (check(ds, far_text, event, nested)) return;
 }
 
-uint16_t svc_advtide(uint8_t* ds, uint16_t id, const uint16_t* args,
-                     uint16_t count) {
+uint16_t svc_advtide(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   return svc_advice("advtide", ds, id, args, count);
 }
 
-auto port_routine_opeu_advice_tide_of_war(std::uint8_t* ds,
-                                          std::uint16_t const*, unsigned)
-    -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    opeu_advice_tide_of_war(ds, AdviceTexts(), svc_advtide, sp);
-  });
+auto port_routine_opeu_advice_tide_of_war(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
+  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_advice_tide_of_war(ds, AdviceTexts(), svc_advtide, sp); });
   return 0;
 }

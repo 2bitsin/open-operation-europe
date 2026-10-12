@@ -23,7 +23,9 @@ void plat_set_save_dir(char const* dir);
 
 namespace {
 
-constexpr auto SHIPPED{ std::array<unsigned char, 6>{ 'S', 'H', 'I', 'P', 'P', 'D' } };
+constexpr auto SHIPPED{
+  std::array<unsigned char, 6>{ 'S', 'H', 'I', 'P', 'P', 'D' }
+};
 
 auto Find(char const* const name, unsigned char const** const data, std::size_t* const size) -> int {
   if (std::strcmp(name, "SCEDATA") != 0) {
@@ -35,7 +37,9 @@ auto Find(char const* const name, unsigned char const** const data, std::size_t*
 }
 
 auto Contents(std::filesystem::path const& path) -> std::string {
-  auto in{ std::ifstream{ path, std::ios::binary } };
+  auto in{
+    std::ifstream{ path, std::ios::binary }
+  };
   return { std::istreambuf_iterator<char>{ in }, {} };
 }
 
@@ -76,7 +80,7 @@ TEST_F(FileLayer, CopiesAShippedFileOnItsFirstWrite) {
   EXPECT_EQ(opeu_dos_write(h, two.data(), 2), 2);
   opeu_dos_close(h);
   EXPECT_EQ(Contents(saves_ / "SCEDATA"), "SHIPED");
-  auto const again{ opeu_dos_open("SCEDATA", 0) };  // the save directory shadows the table
+  auto const                  again{ opeu_dos_open("SCEDATA", 0) }; // the save directory shadows the table
   std::array<std::uint8_t, 6> buffer{};
   EXPECT_EQ(opeu_dos_read(again, buffer.data(), 6), 6);
   EXPECT_EQ(std::string(buffer.begin(), buffer.end()), "SHIPED");
@@ -93,4 +97,4 @@ TEST_F(FileLayer, CreatesSavedGamesInTheSaveDirectory) {
   EXPECT_EQ(opeu_dos_exists("SAVEDATA"), 1);
 }
 
-}  // namespace
+} // namespace

@@ -45,7 +45,7 @@ void port_input_key(uint8_t scan, uint8_t ascii) {
     return;
   }
   keys[key_tail] = (uint16_t)(scan << 8 | ascii);
-  key_tail = next;
+  key_tail       = next;
 }
 
 uint16_t port_key_available(void) {
@@ -56,7 +56,7 @@ uint16_t port_key_available(void) {
 uint16_t port_key_read(void) {
   uint16_t k;
   while (key_head == key_tail) port_pump();
-  k = keys[key_head];
+  k        = keys[key_head];
   key_head = (key_head + 1) % KEY_BUFFER;
   port_trace("svc", "int16 read -> %04x", k);
   return k;
@@ -65,13 +65,13 @@ uint16_t port_key_read(void) {
 /* ---- mouse ------------------------------------------------------------- */
 
 static struct {
-  int x, y;                  /* driver position */
-  int xmin, xmax, ymin, ymax;
-  int counter;               /* 0 = visible */
-  unsigned buttons;          /* current host state */
-  unsigned latched;          /* pressed since the last AX=3 */
-  int host_x, host_y;
-  int drawn_x, drawn_y, drawn_visible;
+  int      x, y; /* driver position */
+  int      xmin, xmax, ymin, ymax;
+  int      counter; /* 0 = visible */
+  unsigned buttons; /* current host state */
+  unsigned latched; /* pressed since the last AX=3 */
+  int      host_x, host_y;
+  int      drawn_x, drawn_y, drawn_visible;
 } mouse = { 320, 240, 0, 639, 0, 479, -1, 0, 0, 320, 240, -1, -1, 0 };
 
 static int clampi(int v, int lo, int hi) {
@@ -86,14 +86,14 @@ static void mouse_clamp(void) {
 void port_input_mouse_move(int x, int y) {
   mouse.host_x = x;
   mouse.host_y = y;
-  mouse.x = x;
-  mouse.y = y;
+  mouse.x      = x;
+  mouse.y      = y;
   mouse_clamp();
 }
 
 void port_input_mouse_button(int button, int down, int x, int y) {
   unsigned bit;
-  if (button < 0 || button > 1) return;                 /* two-button driver */
+  if (button < 0 || button > 1) return; /* two-button driver */
   port_input_mouse_move(x, y);
   bit = 1u << button;
   if (down) {
@@ -106,12 +106,12 @@ void port_input_mouse_button(int button, int down, int x, int y) {
 
 uint16_t port_mouse_reset(void) {
   mouse.counter = -1;
-  mouse.xmin = 0;
-  mouse.xmax = 639;
-  mouse.ymin = 0;
-  mouse.ymax = 479;
-  mouse.x = 320;
-  mouse.y = 240;
+  mouse.xmin    = 0;
+  mouse.xmax    = 639;
+  mouse.ymin    = 0;
+  mouse.ymax    = 479;
+  mouse.x       = 320;
+  mouse.y       = 240;
   mouse.latched = 0;
   port_trace("svc", "int33 reset");
   return 0xffff;
@@ -127,10 +127,10 @@ void port_mouse_hide(void) {
 
 void port_mouse_state(uint16_t* buttons, uint16_t* x, uint16_t* y) {
   port_pump();
-  *buttons = (uint16_t)((mouse.buttons | mouse.latched) & 3);
+  *buttons      = (uint16_t)((mouse.buttons | mouse.latched) & 3);
   mouse.latched = 0;
-  *x = (uint16_t)mouse.x;
-  *y = (uint16_t)mouse.y;
+  *x            = (uint16_t)mouse.x;
+  *y            = (uint16_t)mouse.y;
 }
 
 void port_mouse_set_position(uint16_t x, uint16_t y) {
@@ -163,7 +163,10 @@ static const char* const arrow[16] = {
 };
 
 namespace {
-enum PointerColor : std::uint8_t { POINTER_BLACK = 254, POINTER_WHITE = 255 };
+enum PointerColor : std::uint8_t {
+  POINTER_BLACK = 254,
+  POINTER_WHITE = 255
+};
 }
 
 int port_input_pointer_dirty(void) {
@@ -174,8 +177,8 @@ int port_input_pointer_dirty(void) {
 int port_input_draw_pointer(uint8_t* frame, uint8_t pal_rgb8[768]) {
   int r, c;
   mouse.drawn_visible = mouse.counter >= 0;
-  mouse.drawn_x = mouse.x;
-  mouse.drawn_y = mouse.y;
+  mouse.drawn_x       = mouse.x;
+  mouse.drawn_y       = mouse.y;
   if (!mouse.drawn_visible) return 0;
   pal_rgb8[POINTER_BLACK * 3 + 0] = 0;
   pal_rgb8[POINTER_BLACK * 3 + 1] = 0;

@@ -1,13 +1,13 @@
 // Side helpers: the other side, the side a status points to, the side colour, the side an equipment type serves.
-#include "types.hpp"
 #include "core/sideutil.hpp"
-#include "data-segment.hpp"
 #include "common/events.hpp"
+#include "data-segment.hpp"
+#include "types.hpp"
 
-#include "port.hpp"
-#include "glue.hpp"
-#include "services.hpp"
 #include "core/textout.hpp"
+#include "glue.hpp"
+#include "port.hpp"
+#include "services.hpp"
 
 using namespace opeu::game;
 
@@ -29,16 +29,14 @@ uint8_t opeu_side_for_status(const uint8_t ds[65536], uint8_t side) {
   return Data(ds).side_status[side] == 1 ? side : opeu_opposite_side(side);
 }
 
-void opeu_select_side_color(uint8_t ds[65536], SideColorEvent event,
-                            uint8_t side) {
+void opeu_select_side_color(uint8_t ds[65536], SideColorEvent event, uint8_t side) {
   event(ds, side ? SIDE1_COLOR : SIDE0_COLOR);
 }
 
 // 0 when the element type at near pointer record is fielded by side 0's nations, else 1.
 uint8_t opeu_record_side(const uint8_t ds[65536], uint16_t record) {
   auto const& data{ Data(ds) };
-  if (data.side_masks[0] & Record<ElementType>(data, record).sides)
-    return 0;
+  if (data.side_masks[0] & Record<ElementType>(data, record).sides) return 0;
   return 1;
 }
 
