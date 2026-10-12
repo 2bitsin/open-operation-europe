@@ -3,7 +3,7 @@ link layer (link/: the routine link table, the data image and the service adapte
 import buildutil_configure as bc
 
 opeu = bc.source_dir().parent
-# common/ (types.hpp, records.hpp) before the module's own areas, then the glue's
+# common/ (data-segment.hpp and the other shared headers) before the module's own areas, then the glue's
 # headers (port.hpp, services.hpp, glue.hpp) and the services' (vgalib.hpp).
 roots = ["game/common", "game", "glue/include", "services"]
 # The services are direct calls without OPEU_HOST_EVENTS, so the `event`
