@@ -6,10 +6,11 @@
 namespace opeu::game::detail::dgcombat {
 
 auto InitialCombatText(DataSegment& data) -> void {
-  SetText(data.text_b242, "cannot move!");
-  SetText(data.text_b24f, "cannot fight!");
-  SetText(data.text_b25d, "Defenders");
-  SetText(data.text_b267, "\033C%c%s\033C7\012is out of %s!\012They %s");
+  SetText(data.text_cannot_move, "cannot move!");
+  SetText(data.text_cannot_fight, "cannot fight!");
+  SetText(data.text_defenders, "Defenders");
+  SetText(data.supply_notice_format,
+          "\033C%c%s\033C7\012is out of %s!\012They %s");
   SetText(data.battle_siege_stalemate_text,
           "\033M4\033C6\033B0Stalemate\033C7\033M0");
   SetText(data.battle_victory_format,
