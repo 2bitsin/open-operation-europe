@@ -488,6 +488,9 @@ enum class Category : std::uint8_t {
   INFANTRY_X5  = 2,
   TANKS        = 3,
   ARTILLERY    = 4,
+  ENGINEERS    = 5, // the engineer regiment's elements: they lay and clear mines and build and blow bridges
+  REPAIR       = 6, // the repair regiment's elements: they repair arms
+  SUPPLY       = 7, // the supply regiment's elements: they carry supplies
 };
 
 // The value of a flag or code as the byte the record stores.
@@ -2857,8 +2860,7 @@ struct DataSegment {
     Unit                         garrison; // the pseudo-unit a besieged objective fights with (core/notice)
   };
   std::uint16_t                 frame_segment;     // DS:e95c
-  std::uint8_t                  battle_path_queue; // DS:e95e
-  std::array<std::uint8_t, 195> unknown_e95f;
+  std::array<std::uint8_t, 196> battle_path_queue; // DS:e95e: battle cells (x + 14 y) by rising path cost
   std::uint16_t                 sprite_segment;   // DS:ea22
   std::uint16_t                 tile_segment;     // DS:ea24
   std::uint16_t                 face_segment;     // DS:ea26
@@ -5148,7 +5150,6 @@ static_assert(offsetof(DataSegment, battle_garrison) == 0xe946);
 static_assert(offsetof(DataSegment, garrison_unit) == 0xe946);
 static_assert(offsetof(DataSegment, frame_segment) == 0xe95c);
 static_assert(offsetof(DataSegment, battle_path_queue) == 0xe95e);
-static_assert(offsetof(DataSegment, unknown_e95f) == 0xe95f);
 static_assert(offsetof(DataSegment, sprite_segment) == 0xea22);
 static_assert(offsetof(DataSegment, tile_segment) == 0xea24);
 static_assert(offsetof(DataSegment, face_segment) == 0xea26);
