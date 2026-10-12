@@ -87,7 +87,6 @@ constexpr std::uint16_t CITY_REPORT{ offsetof(DataSegment, cargo_city_report) };
 constexpr std::uint8_t  AIR_KIND{ 3 }; // the air officer
 constexpr std::uint8_t  RANK_COMMANDER{ 1 };
 constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
-constexpr std::uint16_t SIDE_SHOWN{ 1 };
 constexpr std::uint16_t LOAD_PER_PLANE{ 3000 };
 constexpr std::uint16_t STOCK_LIMIT{ 60000 };
 constexpr std::uint16_t OWN_COLOR{ 0x36 };   // side 0's name color in a report
@@ -187,7 +186,7 @@ void opeu_cargo_distribute(uint8_t ds[65536], uint16_t cargo, uint16_t amount) {
 void opeu_cargo_drop_present(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
-  if (data.side_status[side] == SIDE_SHOWN) {
+  if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ Call(ds, event, SIDE_RECORD, side, RANK_COMMANDER) };
     auto const officer{ Call(ds, event, PERSON_TEMPLATE,
                              Record<Person>(data, commander).status,

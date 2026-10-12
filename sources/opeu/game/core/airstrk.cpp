@@ -91,9 +91,6 @@ constexpr std::uint8_t AIR_KIND{
 }; // the air officer, for ratings and gains and the side's record
 constexpr std::uint8_t  RANK_COMMANDER{ 1 };
 constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // side_status of a side the player watches
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
 constexpr std::uint16_t TEXT_LOCAL{ 0x64 }; // opeu_air_destroyed_message's text
@@ -186,7 +183,7 @@ uint16_t opeu_air_strike_due(uint8_t ds[65536], HostEvent event) {
 void opeu_air_strike_present(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
-  if (data.side_status[side] == SIDE_SHOWN) {
+  if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ Call(ds, event, SIDE_RECORD, side, RANK_COMMANDER) };
     auto const officer{ Call(ds, event, PERSON_TEMPLATE,
                              Record<Person>(data, commander).status,
@@ -255,7 +252,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
   Call(ds, event, TURN_CONTEXT,
-       data.side_status[side] == SIDE_SHOWN ? 0xd : 0xe);
+       data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe);
   auto&         record{ data.sides[side] };
   auto const    x{ record.strike.x };
   auto const    y{ record.strike.y };

@@ -24,7 +24,6 @@ enum Service : std::uint16_t {
   SHOW     = 3, // (picture, side, callback offset, callback segment)
 };
 
-constexpr std::uint16_t SIDE_SHOWN{ 1 };
 constexpr std::uint16_t EVENT_PICTURE{ 0x73 };
 // The far routine that presents the event (opeu_daily_present), as the segment the link table resolves.
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x0e36 };
@@ -35,7 +34,7 @@ void opeu_scan_daily_events(uint8_t ds[65536],
                                               uint16_t, uint16_t, uint16_t)) {
   auto& data{ Data(ds) };
   for (data.daily_side = 0; data.daily_side < SIDE_COUNT; ++data.daily_side) {
-    if (data.side_status[data.daily_side] != SIDE_SHOWN)
+    if (data.side_status[data.daily_side] != SIDE_PLAYED)
       continue;
     data.daily_record = DAILY_RECORDS_AT;
     for (std::uint8_t index{ 0 }; index < ELEMENT_TYPE_COUNT;

@@ -23,9 +23,6 @@ enum Service : std::uint16_t {
   FINISH   = 1, // ()
 };
 
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // DataSegment::side_status of a side the player watches
 constexpr std::uint8_t NO_SIDE{ 0xff };
 } // namespace
 
@@ -33,7 +30,7 @@ void opeu_turn_control_other(uint8_t ds[65536], HostEvent event,
                              HostEvent context_event) {
   auto&      data{ Data(ds) };
   auto const side{ data.current_side };
-  if (data.side_status[side] == SIDE_SHOWN) {
+  if (data.side_status[side] == SIDE_PLAYED) {
     auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
     Call(ds, event, LOCATION, unit.x, unit.y, side);
     data.context_side = NO_SIDE;

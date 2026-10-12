@@ -33,9 +33,6 @@ constexpr std::uint16_t RESTORED_FORMAT{ offsetof(DataSegment,
                                                   comms_restored_format) };
 constexpr std::uint16_t CAPTURED_FORMAT{ offsetof(DataSegment,
                                                   spy_captured_format) };
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_control of a side the player commands
 constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
 constexpr std::uint8_t  ADVISER{ 3 }; // the side record kind of the adviser
 constexpr std::uint16_t NEWS_BELOW_SP{
@@ -54,8 +51,9 @@ void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event,
       continue;
     auto const    camp{ Near(data, objective) };
     auto const    side{ opeu_objective_side(ds, camp) };
-    std::uint16_t level{ data.side_control[side] == PLAYER ? data.delivery_level
-                                                           : COMPUTER_LEVEL };
+    std::uint16_t level{ data.side_control[side] == SIDE_PLAYED
+                             ? data.delivery_level
+                             : COMPUTER_LEVEL };
     auto const    speaker{ opeu_find_side_record(ds, side, ADVISER) };
     opeu_add_byte(
         static_cast<std::uint16_t>(

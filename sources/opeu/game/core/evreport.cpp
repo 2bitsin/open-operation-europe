@@ -75,9 +75,6 @@ constexpr std::uint16_t NO_FUEL_ITEM{
   0x156
 }; // and of the first out-of-fuel report
 constexpr std::uint16_t RESTED_AVERAGE{ 90 };
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // DataSegment::side_status of a side the player watches
 
 // Reports each listed regiment with the message; the first report opens the daily item.
 void ReportUnits(std::uint8_t* ds, HostEvent event, ReportList const& list,
@@ -149,7 +146,7 @@ void opeu_report_event(uint8_t ds[65536], HostEvent event) {
         }
       }
     }
-    if (data.side_status[side] == SIDE_SHOWN) {
+    if (data.side_status[side] == SIDE_PLAYED) {
       opeu_report_units_a(ds, event, rested);
       opeu_report_units_b(ds, event, no_fuel);
     }

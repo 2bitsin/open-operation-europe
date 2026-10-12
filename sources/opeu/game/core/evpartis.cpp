@@ -57,10 +57,7 @@ constexpr std::uint16_t PRESENTER_SEGMENT{ 0x108c };
 constexpr std::uint8_t  PARTISAN_TERRAIN{ 10 };
 constexpr std::uint8_t  NO_SIDE{ 0xff };
 constexpr std::uint8_t  MAP_SIZE{ 40 };
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // DataSegment::side_status of a side the player watches
-constexpr std::uint8_t COMMANDER{
+constexpr std::uint8_t  COMMANDER{
   3
 }; // opeu_find_side_record's kind for the side's commander
 
@@ -116,7 +113,7 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
     auto const near{ Near(data, objective) };
     if (opeu_objective_eligible(ds, near)) {
       auto const side{ opeu_objective_side(ds, near) };
-      if (data.side_status[side] == SIDE_SHOWN) {
+      if (data.side_status[side] == SIDE_PLAYED) {
         Call(ds, event, FORMAT, TEXT,
              Call(ds, event, LOOKUP, OBJECTIVE_RISING_MESSAGE), partisans,
              near);

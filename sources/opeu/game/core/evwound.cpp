@@ -48,9 +48,6 @@ constexpr std::uint16_t PRESENT_SEGMENT{ 0x11e5 };
 constexpr std::uint16_t SHOWN{
   1
 }; // DataSegment::side_status of a side the player watches
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_control of a side the player commands
 constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
 constexpr std::uint8_t  ADVISER{ 3 }; // the side record kind of the adviser
 constexpr std::uint8_t  GENERAL_ROLE{
@@ -104,7 +101,7 @@ void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t bp,
 void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto& data{ Data(ds) };
   for (std::uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
-    std::uint16_t const level{ data.side_control[side] == PLAYER
+    std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED
                                    ? data.delivery_level
                                    : COMPUTER_LEVEL };
     for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {

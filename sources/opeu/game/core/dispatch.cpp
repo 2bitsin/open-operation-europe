@@ -64,12 +64,6 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t LABEL_FORMAT{ offsetof(DataSegment,
                                                turn_label_format) };
-constexpr std::uint16_t SIDE_SHOWN{
-  1
-}; // DataSegment::side_status of a side the player watches
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_control of a side the player commands
 // The scratch string of opeu_turn_control_one and the words around it: 56 bytes below its frame.
 constexpr std::uint16_t CONTROL_SCRATCH{ 2 + 56 };
 
@@ -108,7 +102,7 @@ void opeu_process_selected_turn(uint8_t ds[65536], Event event) {
   if (!(Record<Unit>(data, data.current_unit_ptr).flags &
         Bits(UnitFlag::READY)))
     return;
-  if (data.side_status[data.current_side] == SIDE_SHOWN) {
+  if (data.side_status[data.current_side] == SIDE_PLAYED) {
     Send(ds, event, ACTIVE_BEGIN);
     Send(ds, event, LABEL, LABEL_FORMAT, data.side_names[data.current_side],
          static_cast<std::uint16_t>(data.current_group * 10 +
@@ -116,7 +110,7 @@ void opeu_process_selected_turn(uint8_t ds[65536], Event event) {
          data.entry_names[data.current_entry]);
     if (Send(ds, event, SIDE_SELECTED, data.current_side) ==
             data.current_unit_ptr &&
-        data.side_control[data.current_side] == PLAYER) {
+        data.side_control[data.current_side] == SIDE_PLAYED) {
       if (data.input_mode ? Send(ds, event, INPUT_A) : Send(ds, event, INPUT_B))
         data.side_delays[data.current_side] = 0;
     }
@@ -124,7 +118,7 @@ void opeu_process_selected_turn(uint8_t ds[65536], Event event) {
   if (Send(ds, event, SIDE_SELECTED, data.current_side) ==
       data.current_unit_ptr) {
     Send(ds, event, SELECTED_BEGIN);
-    if (data.side_control[data.current_side] == PLAYER) {
+    if (data.side_control[data.current_side] == SIDE_PLAYED) {
       if (data.side_delays[data.current_side] == 0)
         Send(ds, event, CONTROL_ONE);
     } else

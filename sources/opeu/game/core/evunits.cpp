@@ -33,9 +33,6 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t COMMS_TEXT{ offsetof(DataSegment, comms_unit_text) };
 constexpr std::uint16_t SPY_TEXT{ offsetof(DataSegment, spy_unit_text) };
-constexpr std::uint16_t PLAYER{
-  1
-}; // DataSegment::side_control of a side the player commands
 constexpr std::uint16_t COMPUTER_LEVEL{
   2
 }; // the level of a computer-commanded side
@@ -54,7 +51,7 @@ auto Rand(std::uint8_t* ds, unsigned bound) -> std::uint16_t {
 void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (std::uint8_t side{ 0 }; side < 2; ++side) {
-    std::uint16_t const level{ data.side_control[side] == PLAYER
+    std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED
                                    ? data.delivery_level
                                    : COMPUTER_LEVEL };
     for (std::uint8_t group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
