@@ -2,6 +2,7 @@
 // into the transfer table, runs the transfer dialog until it reports completion, then stores the edited amounts back.
 #include "units/supply.hpp"
 #include "common/data-segment.hpp"
+#include "common/memory.hpp"
 #include "core/suppanel.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
@@ -40,6 +41,9 @@ auto DrawUnits(uint8_t* ds, SupplyEvent event, std::uint16_t first, std::uint16_
   Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, first, a), second_name);
 }
 
+// A unit name buffer the unit-name service formats into.
+constexpr std::uint16_t NAME_BYTES{ 0x20 };
+
 // Runs the dialog until it reports completion.
 auto RunDialog(uint8_t* ds, SupplyEvent event) -> void {
   while (!Raise(ds, event, SUPPLY_STEP, 0, 0, 0)) {
@@ -73,25 +77,27 @@ void opeu_supply_load_objective(uint8_t ds[65536], uint16_t objective) {
   for (std::uint8_t resource{ 0 }; resource < 3; ++resource) data.supply_table[1][resource][CURRENT] = record.resources[resource];
 }
 
-// Exchanges supplies between two units; a and b are the caller's name buffers.
-void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t a, uint16_t b) {
-  auto& data{ Data(ds) };
+// Exchanges supplies between two units; the units' names are formatted into the routine's two 32-byte buffers.
+void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t /*a*/, uint16_t /*b*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const names{ 2 * NAME_BYTES };
   data.supply_objective = NO_OBJECTIVE;
   opeu_supply_load_unit(ds, first, 0);
   opeu_supply_load_unit(ds, second, 1);
-  DrawUnits(ds, event, first, a, second, b);
+  DrawUnits(ds, event, first, names.At(NAME_BYTES), second, names.At(0));
   RunDialog(ds, event);
   StoreBack(data, 0, Record<Unit>(data, first));
   StoreBack(data, 1, Record<Unit>(data, second));
 }
 
-// Exchanges supplies between a unit and an objective; a is the caller's name buffer.
-void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective, uint16_t a) {
-  auto& data{ Data(ds) };
+// Exchanges supplies between a unit and an objective; the unit's name is formatted into the routine's 32-byte buffer.
+void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective, uint16_t /*a*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const name{ NAME_BYTES };
   data.supply_objective = objective;
   opeu_supply_load_unit(ds, unit, 0);
   opeu_supply_load_objective(ds, objective);
-  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, unit, a), objective);
+  Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, unit, name.At(0)), objective);
   RunDialog(ds, event);
   StoreBack(data, 0, Record<Unit>(data, unit));
   StoreBack(data, 1, Record<Objective>(data, objective));

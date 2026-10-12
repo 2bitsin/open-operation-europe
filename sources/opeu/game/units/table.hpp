@@ -16,7 +16,8 @@ namespace opeu::game::detail::unit_table {
 // Bits of a row-draw callback's flags: draw the heading, draw the row names.
 inline constexpr std::uint8_t DRAW_HEADING{ 3 };
 inline constexpr std::uint8_t DRAW_NAMES{ 5 };
-// The callback's frame buffers lie this far below the entry stack pointer.
+// The bytes of a callback's buffers (the column layout bytes, the row text and its other texts), which it reserves
+// itself: the services format and print them in the data segment.
 inline constexpr std::uint16_t TABLE_SCRATCH{ 0xc0 };
 // The row text buffer at the start of the frame buffers.
 inline constexpr std::uint16_t ROW_TEXT{ 4 };
@@ -68,4 +69,5 @@ using detail::unit_table::DrawRowText;
 using detail::unit_table::ROW_TEXT;
 using detail::unit_table::RunUnitTable;
 using detail::unit_table::StartRowName;
+using detail::unit_table::TABLE_SCRATCH;
 } // namespace opeu::game

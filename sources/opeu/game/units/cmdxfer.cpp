@@ -57,8 +57,8 @@ constexpr std::uint16_t LIST_LIMIT{ 1 };
 constexpr std::uint16_t LIST_FLAGS{ 7 };
 // pending_finish's value when the show ends.
 constexpr std::uint16_t SHOW_DONE{ 3 };
-// The message buffer, as an offset below the entry stack pointer.
-constexpr std::uint16_t MESSAGE_BUFFER{ 2 + 0x6c };
+// The confirmation message buffer the services format and show.
+constexpr std::uint16_t MESSAGE_BYTES{ 0x6c };
 
 auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
   return Call(ds, event, static_cast<std::uint16_t>(service), words...);
@@ -136,10 +136,11 @@ void opeu_transfer_present(uint8_t ds[65536], HostEvent event) {
   Send(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
-// The transfer dialog; sp is the entry stack pointer, segment the transfer's code segment.
-void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ static_cast<std::uint16_t>(sp - MESSAGE_BUFFER) };
+// The transfer dialog; segment: the transfer's code segment.
+void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t segment) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const message{ MESSAGE_BYTES };
+  auto const          buffer{ message.At(0) };
   enum class Step {
     DIVISION,
     REGIMENT,

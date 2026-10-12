@@ -25,6 +25,10 @@
 using namespace opeu::game;
 
 namespace {
+// The buffers the prompt and a unit's name are formatted into.
+constexpr std::uint16_t PROMPT_BYTES{ 0x64 };
+constexpr std::uint16_t NAME_BYTES{ 0x20 };
+
 // The services the module calls through its event (svc_allocdst). Capacities come back in args[1..3].
 enum Service : std::uint16_t {
   REMOVE_ELEMENT       = 0,  // (unit, element)
@@ -134,10 +138,14 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
   }
 }
 
-// For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters. `text` and
-// `name` are the caller's 100- and 32-byte buffers; the dialog's select callback is opeu_tally_mark.
-void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t text, uint16_t name, uint16_t callback_segment) {
-  auto& data{ Data(ds) };
+// For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters, formatting
+// the prompt (100 bytes) and the unit's name (32 bytes) in the routine's buffers; the dialog's select callback is
+// opeu_tally_mark.
+void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t /*text*/, uint16_t /*name*/, uint16_t callback_segment) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const buffers{ PROMPT_BYTES + NAME_BYTES };
+  auto const          name{ buffers.At(0) };
+  auto const          text{ buffers.At(NAME_BYTES) };
   for (std::uint8_t i{ 0 }; i < 2; ++i) {
     auto const unit_near{ data.alloc_units[i] };
     if (unit_near == 0) continue;

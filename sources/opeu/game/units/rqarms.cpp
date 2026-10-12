@@ -27,7 +27,8 @@
 using namespace opeu::game;
 
 namespace {
-// The request's frame on the DS stack: the picked cell's x and y bytes, then the confirmation text.
+// A request's buffers in the data segment (its own reserve, and the frame the request services are given): the picked
+// cell's x and y bytes, then the confirmation text.
 constexpr std::uint16_t REQUEST_SCRATCH{ 0x80 };
 constexpr std::uint16_t CONFIRM_BUFFER{ 4 };
 // The request-menu prompts keep their text buffer at the same place in their own frame.
@@ -36,12 +37,14 @@ constexpr std::uint16_t PICK_FRAME{ 2 };
 
 // "What kind of battalion would you like sent?": cancels a filed battalion request, or has the player choose one of
 // the side's available equipment types and the own city that receives it, then files the request.
-void opeu_request_arms(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
-  auto&      data{ Data(ds) };
-  auto&      x{ Record<std::uint8_t>(data, scratch) };
-  auto&      y{ Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)) };
-  auto const buffer{ static_cast<std::uint16_t>(scratch + CONFIRM_BUFFER) };
-  auto const battalion{ std::to_underlying(RequestKind::BATTALION) };
+void opeu_request_arms(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const buffers{ REQUEST_SCRATCH };
+  auto const          scratch{ buffers.At(0) };
+  auto&               x{ Record<std::uint8_t>(data, scratch) };
+  auto&               y{ Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)) };
+  auto const          buffer{ static_cast<std::uint16_t>(scratch + CONFIRM_BUFFER) };
+  auto const          battalion{ std::to_underlying(RequestKind::BATTALION) };
   if (Call(ds, event, RequestService::PENDING, battalion)) {
     if (!Call(ds, event, RequestService::CANCEL_PROMPT, Near(data, data.rq_arms_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[battalion].kind = std::to_underlying(RequestKind::NONE);

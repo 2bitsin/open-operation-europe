@@ -17,6 +17,9 @@
 using namespace opeu::game;
 
 namespace {
+// The buffer a type's nation code is written to.
+constexpr std::uint16_t NATION_BYTES{ 0x1a };
+
 // The services the screen calls through its event (svc_allocscr).
 enum Service : std::uint16_t {
   POSITION = 0, // (x, y)
@@ -59,11 +62,13 @@ void opeu_alloc_take(uint8_t ds[65536], HostWordsEvent event, uint16_t entry, ui
 }
 
 // Draws both unit columns (an empty second column takes `third` rows), the names capped at ten characters, and the
-// type list. `buffer` is the caller's 22-byte nation text.
-void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count, uint16_t buffer) {
-  auto&      data{ Data(ds) };
-  auto const first_name{ Near(data, data.tally_first_name) };
-  auto const second_name{ Near(data, data.tally_second_name) };
+// type list; each type's nation code is written to the routine's 22-byte text buffer for printing.
+void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count, uint16_t /*buffer*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const nation{ NATION_BYTES };
+  auto const          buffer{ nation.At(0) };
+  auto const          first_name{ Near(data, data.tally_first_name) };
+  auto const          second_name{ Near(data, data.tally_second_name) };
 
   Call(ds, event, BACKDROP, static_cast<std::uint8_t>(data.current_side ? 1 : 2));
   Call(ds, event, FILL, 0x2b, 0x110, 0x23, 0x70, 0);
