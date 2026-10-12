@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <tuple>
 #include <utility>
 
 namespace opeu::assets::detail::planar {
@@ -12,8 +13,8 @@ namespace {
 [[nodiscard]] auto ColumnIndex(Bytes const column, std::size_t const pixel) -> std::uint8_t {
   return std::ranges::fold_left(std::views::zip(Indices(column.size()), column), std::uint8_t{ 0 },
                                 [pixel](std::uint8_t const index, auto const plane_byte) {
-                                  auto const [plane, b]{ plane_byte };
-                                  return static_cast<std::uint8_t>(index | PixelBit(b, pixel) << plane);
+                                  return static_cast<std::uint8_t>(
+                                      index | PixelBit(std::get<1>(plane_byte), pixel) << std::get<0>(plane_byte));
                                 });
 }
 
@@ -45,8 +46,8 @@ auto DecodeCell(Bytes const bytes) -> Decoded<Image> {
   constexpr auto PLANE_BYTES{ CELL_WIDTH / 8 };
   constexpr auto IMAGE_BYTES{ CELL_HEIGHT * PLANE_BYTES * 4 };
   return Need(bytes, 0, CELL_BYTES).transform([](Bytes const cell) {
-    auto pixels{ std::vector<std::uint8_t>{} };
-    auto opaque{ std::vector<std::uint8_t>{} };
+    auto       pixels{ std::vector<std::uint8_t>{} };
+    auto       opaque{ std::vector<std::uint8_t>{} };
     auto const rows{ Chunks(cell.first(IMAGE_BYTES), PLANE_BYTES * 4) };
     auto const masks{ Chunks(cell.subspan(IMAGE_BYTES), PLANE_BYTES) };
     for (auto const [row, mask] : std::views::zip(rows, masks)) {

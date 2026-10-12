@@ -10,13 +10,13 @@
 namespace opeu::assets::detail::picture_stream {
 
 enum class Colours : std::uint8_t {
-  EIGHT,    // literals carry three planes (colours 0..7); no run table
-  SIXTEEN,  // literals choose among a run table, zero, one or two planes, or all four
+  EIGHT,   // literals carry three planes (colours 0..7); no run table
+  SIXTEEN, // literals choose among a run table, zero, one or two planes, or all four
 };
 
 struct Picture {
-  Image image;
-  std::size_t length{};  // stream bytes, header included
+  Image       image;
+  std::size_t length{}; // stream bytes, header included
 
   auto operator==(Picture const&) const -> bool = default;
 };

@@ -7,9 +7,10 @@ namespace opeu::assets::detail::maps {
 
 namespace {
 
-constexpr auto TERRAIN{ std::array<std::uint8_t, 43>{ 0,  1,  2,  3,  4,  17, 18, 19, 20, 14, 15, 16, 21, 22, 23,
-                                                      24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-                                                      39, 40, 41, 42, 43, 5,  6,  7,  8,  9,  10, 11, 12 } };
+constexpr auto TERRAIN{
+  std::array<std::uint8_t, 43>{ 0,  1,  2,  3,  4,  17, 18, 19, 20, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                               31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 5,  6,  7,  8,  9,  10, 11, 12 }
+};
 
 template <class Record>
 auto Values(Bytes const record) -> Record {

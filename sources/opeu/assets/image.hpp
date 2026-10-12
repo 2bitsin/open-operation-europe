@@ -53,18 +53,18 @@ public:
   auto operator==(Image const&) const -> bool = default;
 
 private:
-  std::size_t _width{};
-  std::size_t _height{};
+  std::size_t               _width{};
+  std::size_t               _height{};
   std::vector<std::uint8_t> _pixels;
   std::vector<std::uint8_t> _opaque;
 };
 
 enum class DecodeError : std::uint8_t {
-  TRUNCATED,     // the bytes end before the record does
-  BAD_HEADER,    // a picture stream's size is outside the 640x400 screen
-  BAD_SIZE,      // a file whose size is not the shipped format's
-  OUT_OF_RANGE,  // an index or offset past the end of the file
-  MISSING_FILE,  // the source has no file of that name
+  TRUNCATED,    // the bytes end before the record does
+  BAD_HEADER,   // a picture stream's size is outside the 640x400 screen
+  BAD_SIZE,     // a file whose size is not the shipped format's
+  OUT_OF_RANGE, // an index or offset past the end of the file
+  MISSING_FILE, // the source has no file of that name
 };
 
 template <class T>
@@ -72,9 +72,9 @@ using Decoded = std::expected<T, DecodeError>;
 
 [[nodiscard]] constexpr auto Describe(DecodeError const error) noexcept -> std::string_view {
   switch (error) {
-  case DecodeError::TRUNCATED: return "truncated";
-  case DecodeError::BAD_HEADER: return "bad picture header";
-  case DecodeError::BAD_SIZE: return "unexpected file size";
+  case DecodeError::TRUNCATED:    return "truncated";
+  case DecodeError::BAD_HEADER:   return "bad picture header";
+  case DecodeError::BAD_SIZE:     return "unexpected file size";
   case DecodeError::OUT_OF_RANGE: return "out of range";
   case DecodeError::MISSING_FILE: return "missing file";
   }

@@ -35,12 +35,12 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
     return file->Condition(n, 0).size() < 200 && file->Condition(n, 1).size() < 200 && !file->Description(n).empty();
   }));
   EXPECT_EQ(file->SetupOf(0).scenario, 0x80);
-  constexpr auto STARTS{ std::array<std::array<int, 3>, 6>{
+  constexpr auto STARTS{ std::array<std::array<unsigned, 3>, 6>{
       { { 1940, 5, 10 }, { 1942, 5, 26 }, { 1943, 7, 5 }, { 1944, 6, 6 }, { 1944, 12, 16 }, { 1945, 4, 16 } } } };
   for (auto const [n, start] : std::views::zip(std::views::iota(1uz), STARTS)) {
     auto const& setup{ file->SetupOf(n) };
     EXPECT_EQ(setup.scenario, n - 1);
-    EXPECT_EQ((std::array<int, 3>{ setup.year, setup.month, setup.day }), start) << n;
+    EXPECT_EQ((std::array<unsigned, 3>{ setup.year, setup.month, setup.day }), start) << n;
     EXPECT_EQ(setup.people.size(), 40U);
     EXPECT_EQ(setup.elements.size(), 256U);
     EXPECT_EQ(setup.units.size(), 64U);
@@ -50,25 +50,35 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   EXPECT_TRUE(std::ranges::contains(france.people, std::string{ "Rundstedt" }, &detail::scenario::Person::name));
   EXPECT_TRUE(
       std::ranges::contains(france.objectives, std::string{ "San Michel" }, &detail::scenario::Objective::name));
-  EXPECT_EQ(france.sides[0].stock, (std::array<std::uint16_t, 3>{ 60000, 60000, 60000 }));
-  EXPECT_EQ(france.sides[0].income, (std::array<std::uint16_t, 3>{ 2000, 2000, 2000 }));
+  EXPECT_EQ(france.sides[0].stock, (std::array<unsigned, 3>{ 60000, 60000, 60000 }));
+  EXPECT_EQ(france.sides[0].income, (std::array<unsigned, 3>{ 2000, 2000, 2000 }));
   EXPECT_FALSE(DecodeScenarioFile(Shipped("SCEDATA").first(100)));
 }
 
 TEST(ShippedMapCells, HoldSixFortyByFortyMaps) {
   auto const cells{ Grids("MAPINF.DAT") };
-  auto histogram{ std::map<int, int>{} };
+  auto       histogram{ std::map<int, int>{} };
   std::ranges::for_each(cells[0], [&histogram](std::uint8_t const cell) { ++histogram[cell & 0x0F]; });
   EXPECT_EQ(histogram,
             (std::map<int, int>{
-                { 1, 11 }, { 2, 79 }, { 3, 239 }, { 5, 156 }, { 7, 651 }, { 8, 283 }, { 9, 171 }, { 10, 10 } }));
+                { 1,  11  },
+                { 2,  79  },
+                { 3,  239 },
+                { 5,  156 },
+                { 7,  651 },
+                { 8,  283 },
+                { 9,  171 },
+                { 10, 10  }
+  }));
   EXPECT_TRUE(std::ranges::contains(cells[1], std::uint8_t{ 0x80 | 2 })
               || std::ranges::contains(cells[1], std::uint8_t{ 130 }));
 }
 
 TEST(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
-  auto const tiles{ Grids("MAPPNO.DAT") };
-  constexpr auto HIGHEST{ std::array<std::uint8_t, MAP_COUNT>{ 79, 41, 33, 70, 70, 79 } };
+  auto const     tiles{ Grids("MAPPNO.DAT") };
+  constexpr auto HIGHEST{
+    std::array<std::uint8_t, MAP_COUNT>{ 79, 41, 33, 70, 70, 79 }
+  };
   for (auto const& [grid, highest] : std::views::zip(tiles, HIGHEST)) {
     EXPECT_EQ(std::ranges::max(grid), highest);
     EXPECT_LT(std::ranges::max(grid), TILES_PER_MAP);
@@ -76,8 +86,10 @@ TEST(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
 }
 
 TEST(ShippedBattleSelectors, NameEveryFieldOfTheirMap) {
-  auto const selectors{ Grids("HEXDISP.DAT") };
-  constexpr auto FIELDS{ std::array<std::uint8_t, MAP_COUNT>{ 93, 88, 61, 85, 121, 89 } };
+  auto const     selectors{ Grids("HEXDISP.DAT") };
+  constexpr auto FIELDS{
+    std::array<std::uint8_t, MAP_COUNT>{ 93, 88, 61, 85, 121, 89 }
+  };
   for (auto const& [grid, fields] : std::views::zip(selectors, FIELDS)) {
     EXPECT_EQ(std::ranges::min(grid), 1);
     EXPECT_EQ(std::ranges::max(grid), fields);

@@ -3,9 +3,11 @@
 #include "opeu/assets/picture-stream.hpp"
 #include "opeu/assets/planar.hpp"
 #include "opeu/assets/runs.hpp"
+#include "opeu/assets/texture.hpp"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 
@@ -52,9 +54,7 @@ TEST(PictureStream, EightColourLiteralAndCopies) {
   auto const picture{ DecodePicture(bytes, Colours::EIGHT) };
   ASSERT_TRUE(picture);
   EXPECT_EQ(picture->length, bytes.size());
-  for (auto y{ 0uz }; y < 2; ++y) {
-    for (auto x{ 0uz }; x < 8; ++x) EXPECT_EQ(picture->image.At(x, y), 1) << x << ',' << y;
-  }
+  EXPECT_TRUE(std::ranges::all_of(picture->image.Pixels(), [](std::uint8_t const index) { return index == 1; }));
 }
 
 TEST(PictureStream, RefuseAnOffScreenSize) {
@@ -74,6 +74,19 @@ TEST(Palette, LevelsBecomeTheScreensColours) {
   EXPECT_EQ(ClassicPalettes().size(), 121U);
   EXPECT_EQ(FindPalette("open/112")->use, "the opening's alternative fade target");
   EXPECT_FALSE(FindPalette("none"));
+}
+
+TEST(Texture, ResolvesPaletteAndMaskToRgba) {
+  auto const image{
+    Image{ 2, 1, { 7, 1 }, { 1, 0 } }
+  };
+  auto const texture{ ToTexture(image, FindPalette("main/day").value()) };
+  EXPECT_EQ(texture.Width(), 2U);
+  EXPECT_EQ(texture.Pitch(), 8U);
+  EXPECT_EQ(texture.Pixels().size(), 8U);
+  EXPECT_EQ(texture.Pixels()[0], std::byte{ 243 });  // colour 7, red
+  EXPECT_EQ(texture.Pixels()[3], std::byte{ 0xFF }); // drawn
+  EXPECT_EQ(texture.Pixels()[7], std::byte{ 0 });    // the background shows
 }
 
 }

@@ -26,9 +26,9 @@ struct Colour {
 using Levels = std::array<std::uint8_t, 48>;
 
 struct NamedPalette {
-  std::string_view name;  // "main/day", "open/005", ...
-  Levels levels;
-  std::string_view use;   // where the game shows it
+  std::string_view name; // "main/day", "open/005", ...
+  Levels           levels;
+  std::string_view use; // where the game shows it
 };
 
 // The DAC's colour for a 4-bit level (0..15 -> 0..255, as the screen shows it).

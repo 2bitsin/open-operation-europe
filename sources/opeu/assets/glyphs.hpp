@@ -23,7 +23,7 @@ inline constexpr auto GAME_GLYPHS{ std::size_t{ 1080 } };
 
 // The ending's text codes, glyph n answering code n: KOEI's own double-byte code (lead bytes 0x81..0xD8), neither
 // Shift-JIS nor Big5.
-[[nodiscard]] auto EndingGlyphCodes() noexcept -> std::span<std::uint16_t const, ENDING_GLYPHS>;
+[[nodiscard]] auto EndingGlyphCodes() noexcept -> std::span<unsigned const, ENDING_GLYPHS>;
 
 }
 

@@ -123,11 +123,11 @@ auto Extractor::Graphic(Asset const& asset) const -> Done {
   if (!palette) return std::unexpected{ std::format("extract-assets: {}: no palette {}", asset.id, asset.palette) };
   auto const base{ _out / "images" / asset.id };
   auto       record{ AssetRecord(asset, *image) };
-  auto       done{ WriteColour(base.string() + ".png", *image, *palette).and_then([&] {
+  auto       done{ WriteTexture(base.string() + ".png", assets::ToTexture(*image, *palette)).and_then([&] {
     return WriteIndices(base.string() + ".index.png", *image);
   }) };
   if (done && asset.side_coloured) {
-    done = WriteColour(base.string() + ".side-0.png", assets::SideZeroColours(*image), *palette);
+    done = WriteTexture(base.string() + ".side-0.png", assets::ToTexture(assets::SideZeroColours(*image), *palette));
     record.Flag("side_coloured", true)
         .Raw("variants", json::Object{}.Text("side-0", std::format("images/{}.side-0.png", asset.id)).Encoded());
   }

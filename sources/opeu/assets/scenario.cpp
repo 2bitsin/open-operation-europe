@@ -32,41 +32,42 @@ auto Text(Bytes const field) -> std::string {
          | std::ranges::to<std::string>();
 }
 
-auto Words3(Bytes const bytes, std::size_t const at) -> std::array<std::uint16_t, 3> {
-  return { Word(bytes, at), Word(bytes, at + 2), Word(bytes, at + 4) };
+auto Words3(Bytes const bytes, std::size_t const at) -> std::array<unsigned, 3> {
+  return { ReadWord(bytes, at), ReadWord(bytes, at + 2), ReadWord(bytes, at + 4) };
 }
 
 auto Person(Bytes const r) -> scenario::Person {
-  auto person{ scenario::Person{
-      .name = Text(r.first(18)), .side = Byte(r, 18), .abilities{}, .portrait = Byte(r, 29) } };
+  auto person{
+    scenario::Person{ .name = Text(r.first(18)), .side = Byte(r, 18), .abilities{}, .portrait = Byte(r, 29) }
+  };
   std::ranges::transform(r.subspan(19, person.abilities.size()), person.abilities.begin(),
                          [](std::byte const b) { return std::to_integer<std::uint8_t>(b); });
   return person;
 }
 
 auto Element(Bytes const r) -> scenario::Element {
-  return { .next = Word(r, 0),
-           .type = Byte(r, 2),
-           .quantity = Word(r, 3),
-           .morale = Byte(r, 9),
-           .training = Byte(r, 10),
+  return { .next       = ReadWord(r, 0),
+           .type       = Byte(r, 2),
+           .quantity   = ReadWord(r, 3),
+           .morale     = Byte(r, 9),
+           .training   = Byte(r, 10),
            .experience = Byte(r, 11),
-           .state = Byte(r, 12) };
+           .state      = Byte(r, 12) };
 }
 
 auto Unit(Bytes const r) -> scenario::Unit {
   return {
-    .first_element = Word(r, 0), .x = Byte(r, 2), .y = Byte(r, 3), .supplies = Words3(r, 6), .flags = Byte(r, 21)
+    .first_element = ReadWord(r, 0), .x = Byte(r, 2), .y = Byte(r, 3), .supplies = Words3(r, 6), .flags = Byte(r, 21)
   };
 }
 
 auto Objective(Bytes const r) -> scenario::Objective {
-  return { .name = Text(r.first(0x15)),
-           .x = Byte(r, 0x15),
-           .y = Byte(r, 0x16),
+  return { .name     = Text(r.first(0x15)),
+           .x        = Byte(r, 0x15),
+           .y        = Byte(r, 0x16),
            .garrison = Byte(r, 0x23),
-           .points = Byte(r, 0x24),
-           .flags = Byte(r, 0x43) };
+           .points   = Byte(r, 0x24),
+           .flags    = Byte(r, 0x43) };
 }
 
 template <class Read>
@@ -75,18 +76,20 @@ auto Table(Bytes const setup, std::size_t const at, std::size_t const size, std:
 }
 
 auto DecodeSetup(Bytes const s) -> Setup {
-  auto setup{ Setup{ .scenario = Byte(s, HEADER),
-                     .year = static_cast<std::uint16_t>(1940 + Byte(s, HEADER + 1)),
-                     .month = Byte(s, HEADER + 2),
-                     .day = Byte(s, HEADER + 3),
-                     .hour = Byte(s, HEADER + 4),
-                     .weather = Byte(s, HEADER + 5),
-                     .difficulty = Byte(s, HEADER + 8),
-                     .sides{},
-                     .people = Table(s, PEOPLE, PERSON_BYTES, PERSON_COUNT, Person),
-                     .elements = Table(s, ELEMENTS, ELEMENT_BYTES, ELEMENT_COUNT, Element),
-                     .units = Table(s, UNITS, UNIT_BYTES, UNIT_COUNT, Unit),
-                     .objectives = Table(s, OBJECTIVES, OBJECTIVE_BYTES, OBJECTIVE_COUNT, Objective) } };
+  auto setup{
+    Setup{ .scenario   = Byte(s, HEADER),
+          .year       = static_cast<unsigned>(1940 + Byte(s, HEADER + 1)),
+          .month      = Byte(s, HEADER + 2),
+          .day        = Byte(s, HEADER + 3),
+          .hour       = Byte(s, HEADER + 4),
+          .weather    = Byte(s, HEADER + 5),
+          .difficulty = Byte(s, HEADER + 8),
+          .sides{},
+          .people     = Table(s, PEOPLE, PERSON_BYTES, PERSON_COUNT, Person),
+          .elements   = Table(s, ELEMENTS, ELEMENT_BYTES, ELEMENT_COUNT, Element),
+          .units      = Table(s, UNITS, UNIT_BYTES, UNIT_COUNT, Unit),
+          .objectives = Table(s, OBJECTIVES, OBJECTIVE_BYTES, OBJECTIVE_COUNT, Objective) }
+  };
   for (auto const side : Indices(2)) {
     auto const at{ SIDES + side * SIDE_BYTES };
     setup.sides[side] = Side{ .stock = Words3(s, at), .income = Words3(s, at + 6) };
@@ -113,9 +116,9 @@ auto ScenarioFile::SetupOf(std::size_t const n) const -> Setup const& {
 
 auto DecodeScenarioFile(Bytes const bytes) -> Decoded<ScenarioFile> {
   if (bytes.size() != FILE_BYTES) return std::unexpected{ DecodeError::BAD_SIZE };
-  auto descriptions{ ScenarioFile::Descriptions{} };
-  auto conditions{ ScenarioFile::Conditions{} };
-  auto setups{ ScenarioFile::Setups{} };
+  auto           descriptions{ ScenarioFile::Descriptions{} };
+  auto           conditions{ ScenarioFile::Conditions{} };
+  auto           setups{ ScenarioFile::Setups{} };
   constexpr auto HALF{ TEXT_BYTES / 2 };
   for (auto const n : Indices(SCENARIOS)) {
     descriptions[n] = Text(bytes.subspan(n * TEXT_BYTES, TEXT_BYTES));

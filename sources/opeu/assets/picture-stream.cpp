@@ -10,8 +10,8 @@ namespace opeu::assets::detail::picture_stream {
 
 namespace {
 
-constexpr auto LINE_UNITS{ std::size_t{ 160 } };  // a 640-pixel screen line, four pixels to a unit
-constexpr auto TOP{ 4 * LINE_UNITS };             // blank lines above: a row-up copy reaches four rows back
+constexpr auto LINE_UNITS{ std::size_t{ 160 } }; // a 640-pixel screen line, four pixels to a unit
+constexpr auto TOP{ 4 * LINE_UNITS };            // blank lines above: a row-up copy reaches four rows back
 constexpr auto MAX_WIDTH{ 640 };
 constexpr auto MAX_HEIGHT{ 400 };
 
@@ -25,14 +25,14 @@ public:
   StreamDecoder(Bytes const bytes, Colours const colours) : _reader{ bytes }, _colours{ colours } { }
 
   auto Run() -> Decoded<Picture> {
-    _width = _reader.NextWord();
+    _width  = _reader.NextWord();
     _height = _reader.NextWord();
     if (_reader.Overrun()) return std::unexpected{ DecodeError::TRUNCATED };
     if (_width < 1 || _width > MAX_WIDTH || _height < 1 || _height > MAX_HEIGHT) {
       return std::unexpected{ DecodeError::BAD_HEADER };
     }
     if (_colours == Colours::SIXTEEN) std::ranges::generate(_runs, [this] { return _reader.NextWord(); });
-    _units.assign(TOP + LINE_UNITS * (_height + 1) + 16, 0);
+    _units.assign(TOP + (_height + 1uz) * LINE_UNITS + 16, 0);
     for (auto const row : Indices(_height)) {
       if (!DecodeRow(TOP + row * LINE_UNITS)) return std::unexpected{ DecodeError::TRUNCATED };
     }
@@ -40,16 +40,17 @@ public:
   }
 
 private:
-  // Commands until the row's units are covered; the last may run past the row's end.
-  auto DecodeRow(std::size_t at) -> bool {
-    for (auto left{ (std::size_t{ _width } + 3) / 4 };;) {
+  // Commands until the row's units are covered (the last may run past its end) or the stream runs out.
+  auto DecodeRow(std::size_t const start) -> bool {
+    auto const end{ start + (std::size_t{ _width } + 3) / 4 };
+    auto       at{ start };
+    auto const commands{ std::views::iota(0uz)
+                         | std::views::take_while([&](std::size_t) { return at < end && !_reader.Overrun(); }) };
+    std::ranges::for_each(commands, [&](std::size_t) {
       auto const command{ _reader.Next() };
-      auto const count{ (command & 0x80) != 0 ? Copy(command, at) : Literal(command, at) };
-      if (_reader.Overrun()) return false;
-      at += count;
-      if (left <= count) return true;
-      left -= count;
-    }
+      at += (command & 0x80) != 0 ? Copy(command, at) : Literal(command, at);
+    });
+    return !_reader.Overrun();
   }
 
   // 1 s d d c c c c: c + 1 units from d + 1 units back (s = 0) or d + 1 rows up (s = 1), unit by unit, so an
@@ -63,7 +64,7 @@ private:
 
   auto Literal(std::uint8_t const command, std::size_t const at) -> std::size_t {
     auto const count{ _colours == Colours::EIGHT ? (command >> 4 & 0x07uz) + 1 : (command & 0x07uz) + 1 };
-    auto const value{ _colours == Colours::EIGHT ? static_cast<std::uint16_t>((command & 0x0F) << 8 | _reader.Next())
+    auto const value{ _colours == Colours::EIGHT ? static_cast<unsigned>((command & 0x0F) << 8 | _reader.Next())
                                                  : SixteenColourValue(command) };
     std::ranges::fill_n(_units.begin() + static_cast<std::ptrdiff_t>(at), static_cast<std::ptrdiff_t>(count), value);
     return count;
@@ -71,17 +72,19 @@ private:
 
   // 0 k k k k r r r: kkkk = 0 zero, 1ttt run table entry ttt, 0111 two bytes for all four planes, 0mmm one byte
   // for the planes PLANE_PAIRS[m - 1].
-  auto SixteenColourValue(std::uint8_t const command) -> std::uint16_t {
+  auto SixteenColourValue(std::uint8_t const command) -> unsigned {
     auto const mode{ static_cast<unsigned>(command >> 3 & 0x0F) };
     if (mode == 0) return 0;
     if ((mode & 0x08) != 0) return _runs[mode & 0x07];
     if (mode == 0x07) {
       auto const high{ _reader.Next() };
-      return static_cast<std::uint16_t>(high << 8 | _reader.Next());
+      return static_cast<unsigned>(high << 8 | _reader.Next());
     }
-    auto const c{ _reader.Next() };
-    auto const [upper, lower]{ PLANE_PAIRS[mode - 1] };
-    return static_cast<std::uint16_t>((c >> 4) << (4 * upper) | (c & 0x0F) << (4 * lower));
+    auto const  c{ _reader.Next() };
+    auto const& planes{ PLANE_PAIRS.at(mode - 1) };
+    auto const  upper{ planes.front() };
+    auto const  lower{ planes.back() };
+    return static_cast<unsigned>((c >> 4) << (4 * upper) | (c & 0x0F) << (4 * lower));
   }
 
   // Unit values (nibble p = plane p, bit 3 the leftmost pixel) to palette indices.
@@ -100,12 +103,12 @@ private:
     return Image{ _width, _height, std::move(pixels) };
   }
 
-  ByteReader _reader;
-  Colours _colours;
-  std::uint16_t _width{};
-  std::uint16_t _height{};
-  std::array<std::uint16_t, 8> _runs{};
-  std::vector<std::uint16_t> _units;
+  ByteReader              _reader;
+  Colours                 _colours;
+  unsigned                _width{};
+  unsigned                _height{};
+  std::array<unsigned, 8> _runs{};
+  std::vector<unsigned>   _units;
 };
 
 }

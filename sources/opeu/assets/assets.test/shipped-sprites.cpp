@@ -158,7 +158,7 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
   auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES)
                       | std::views::transform([](Bytes const glyph) { return glyph | std::ranges::to<std::vector>(); })
                       | std::ranges::to<std::vector>() };
-  auto sorted{ records };
+  auto       sorted{ records };
   std::ranges::sort(sorted);
   EXPECT_EQ(std::ranges::unique(sorted).begin(), sorted.end());
 }
@@ -171,7 +171,10 @@ TEST(ShippedCatalogue, DecodesEveryAssetOfEveryFile) {
   auto ids{ catalogue.Assets() | std::views::transform(&Asset::id) | std::ranges::to<std::vector>() };
   std::ranges::sort(ids);
   EXPECT_EQ(std::ranges::adjacent_find(ids), ids.end());
-  EXPECT_TRUE(catalogue.Find("portrait/119"));
+  auto const texture{ catalogue.DecodeTexture(catalogue.Find("portrait/119").value()) };
+  ASSERT_TRUE(texture);
+  EXPECT_EQ(texture->Pitch(), 64U * 4U);
+  EXPECT_EQ(texture->Pixels().size(), 64U * 80U * 4U);
   EXPECT_FALSE(catalogue.Find("portrait/120"));
 }
 

@@ -22,10 +22,10 @@ public:
   [[nodiscard]] virtual auto File(std::string_view name) const -> Decoded<Bytes> = 0;
 
 protected:
-  Source() = default;
-  Source(Source const&) = default;
-  Source(Source&&) noexcept = default;
-  auto operator=(Source const&) -> Source& = default;
+  Source()                                     = default;
+  Source(Source const&)                        = default;
+  Source(Source&&) noexcept                    = default;
+  auto operator=(Source const&) -> Source&     = default;
   auto operator=(Source&&) noexcept -> Source& = default;
 };
 

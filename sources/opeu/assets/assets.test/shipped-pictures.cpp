@@ -24,7 +24,7 @@ using test::Shipped;
 struct Size {
   std::size_t width;
   std::size_t height;
-  auto operator==(Size const&) const -> bool = default;
+  auto        operator==(Size const&) const -> bool = default;
 };
 
 // The assets of one file in catalogue order.
@@ -39,7 +39,7 @@ auto PicturesOf(std::string_view const file) -> std::vector<std::pair<Asset, Pic
   auto const bytes{ Shipped(file) };
   return AssetsOf(file) | std::views::transform([bytes](Asset const& asset) {
            auto const colours{ asset.layout == Layout::STREAM_8 ? Colours::EIGHT : Colours::SIXTEEN };
-           auto picture{ DecodePicture(bytes.subspan(asset.at), colours) };
+           auto       picture{ DecodePicture(bytes.subspan(asset.at), colours) };
            EXPECT_TRUE(picture) << asset.id;
            return std::pair{ asset, picture.value_or(Picture{}) };
          })
@@ -76,7 +76,9 @@ TEST(ShippedSelection, HoldsTheTitleAndSixScenarioPictures) {
   for (auto const& [asset, picture] : pictures | std::views::drop(1)) {
     EXPECT_EQ(SizeOf(picture), (Size{ 256, 128 })) << asset.id;
   }
-  constexpr auto LENGTHS{ std::array{ 7'605uz, 3'295uz, 6'729uz, 5'435uz, 7'454uz, 5'765uz } };
+  constexpr auto LENGTHS{
+    std::array{ 7'605uz, 3'295uz, 6'729uz, 5'435uz, 7'454uz, 5'765uz }
+  };
   for (auto const& [entry, length] : std::views::zip(pictures | std::views::drop(1), LENGTHS)) {
     EXPECT_EQ(entry.second.length, length) << entry.first.id;
   }
@@ -131,7 +133,7 @@ TEST(ShippedOpening, HoldsThirtyPicturesThatFillTheFile) {
     EXPECT_EQ(current.first.at + current.second.length, next.first.at) << current.first.id;
   }
   EXPECT_EQ(pictures.back().first.at + pictures.back().second.length, Shipped("OPENGRP.NPK").size());
-  EXPECT_EQ(SizeOf(pictures[28].second), (Size{ 520, 240 }));  // the OPERATION EUROPE logo
+  EXPECT_EQ(SizeOf(pictures[28].second), (Size{ 520, 240 })); // the OPERATION EUROPE logo
 }
 
 }

@@ -11,7 +11,7 @@ namespace opeu::assets::detail::runs {
 
 struct Expanded {
   std::vector<std::byte> bytes;
-  std::size_t consumed{};  // input bytes the record used
+  std::size_t            consumed{}; // input bytes the record used
 };
 
 [[nodiscard]] auto ExpandRuns(Bytes bytes, std::size_t size) -> Decoded<Expanded>;

@@ -16,8 +16,8 @@ using Bytes = std::span<std::byte const>;
   return std::to_integer<std::uint8_t>(bytes[at]);
 }
 
-[[nodiscard]] constexpr auto Word(Bytes const bytes, std::size_t const at) -> std::uint16_t {
-  return static_cast<std::uint16_t>(Byte(bytes, at) | Byte(bytes, at + 1) << 8);
+[[nodiscard]] constexpr auto ReadWord(Bytes const bytes, std::size_t const at) -> unsigned {
+  return static_cast<unsigned>(Byte(bytes, at) | Byte(bytes, at + 1) << 8);
 }
 
 // Bit `pixel` of a byte counted from the left (bit 7 is pixel 0).
@@ -60,9 +60,9 @@ public:
     }
     return Byte(_bytes, _at++);
   }
-  constexpr auto NextWord() -> std::uint16_t {
+  constexpr auto NextWord() -> unsigned {
     auto const low{ Next() };
-    return static_cast<std::uint16_t>(low | Next() << 8);
+    return static_cast<unsigned>(low | Next() << 8);
   }
   [[nodiscard]] constexpr auto Position() const noexcept -> std::size_t {
     return _at;
@@ -72,9 +72,9 @@ public:
   }
 
 private:
-  Bytes _bytes;
+  Bytes       _bytes;
   std::size_t _at{};
-  bool _overrun{};
+  bool        _overrun{};
 };
 
 }
@@ -88,5 +88,5 @@ using detail::bytes::Indices;
 using detail::bytes::PixelBit;
 using detail::bytes::Records;
 using detail::bytes::Slice;
-using detail::bytes::Word;
+using detail::bytes::ReadWord;
 }
