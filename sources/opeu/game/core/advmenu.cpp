@@ -107,26 +107,17 @@ uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args,
   return r;
 }
 
-auto port_routine_opeu_staff_advice_menu(std::uint8_t*        ds,
-                                         std::uint16_t const* args,
-                                         unsigned count) -> std::uint32_t {
-  uint16_t sp;
-  (void)args;
-  (void)count;
-  sp = port_stack_enter(PORT_FRAME);
-  opeu_staff_advice_menu(ds, svc_advmenu, sp);
-  port_stack_leave(PORT_FRAME);
+auto port_routine_opeu_staff_advice_menu(std::uint8_t* ds, std::uint16_t const*,
+                                         unsigned) -> std::uint32_t {
+  WithStack(PORT_FRAME, [&](std::uint16_t sp) {
+    opeu_staff_advice_menu(ds, svc_advmenu, sp);
+  });
   return 0;
 }
 
-auto port_routine_opeu_turn_action_5(std::uint8_t*        ds,
-                                     std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  uint16_t sp;
-  (void)args;
-  (void)count;
-  sp = port_stack_enter(PORT_FRAME);
-  opeu_turn_action_5(ds, svc_advmenu, sp);
-  port_stack_leave(PORT_FRAME);
+auto port_routine_opeu_turn_action_5(std::uint8_t* ds, std::uint16_t const*,
+                                     unsigned) -> std::uint32_t {
+  WithStack(PORT_FRAME,
+            [&](std::uint16_t sp) { opeu_turn_action_5(ds, svc_advmenu, sp); });
   return 0;
 }
