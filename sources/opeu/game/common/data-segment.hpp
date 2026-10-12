@@ -223,6 +223,19 @@ struct SaveSlot {
   std::uint16_t checksum;
 };
 
+// A list window (io/listui; list_window points to the active one): its frame in 8-pixel columns and pixels, the
+// column widths, the row count and the far row-draw and select callbacks.
+struct ListWindow {
+  std::uint16_t x;      // left, in 8-pixel columns
+  std::uint16_t y;      // top, in pixels
+  std::uint16_t right;  // right column
+  std::uint16_t bottom; // bottom pixel
+  std::uint16_t widths; // near pointer to the width bytes: the row width, then one per column, 0-terminated
+  std::uint8_t  rows;
+  FarPointer    draw;
+  FarPointer    select;
+};
+
 // Bits of Unit::flags.
 enum class UnitFlag : std::uint8_t {
   SELECTED = 0x01, // the unit selected in its division (units/select)
@@ -273,6 +286,13 @@ enum class Assignment : std::uint8_t {
 
 // Person::status of an unused record (otherwise the general's nation bits, matched against side_masks).
 inline constexpr std::uint8_t PERSON_VACANT{ 0xff };
+
+// Bits of ElementType::flags as units/value weighs them: a heavy type is worth 100 points, a light tank type counts
+// like ten infantry.
+enum class TypeFlag : std::uint8_t {
+  HEAVY = 0x08,
+  LIGHT = 0x10,
+};
 
 // ElementType::category (core/divstr).
 enum class Category : std::uint8_t {
@@ -1262,9 +1282,8 @@ struct DataSegment {
       std::array<char, 5>          tbl_person_blank;   // DS:58f7
       std::array<char, 5>          tbl_person_rest;    // DS:58fc
       std::array<char, 5>          tbl_person_hurt;    // DS:5901
-      std::array<std::uint8_t, 11> choice_dialog;      // DS:5906
-      FarPointer                   far_code_5911;      // DS:5911
-      std::array<std::uint8_t, 5>  bytes_5915;         // DS:5915
+      ListWindow                   choice_dialog;      // DS:5906: the element choice list
+      std::array<std::uint8_t, 1>  bytes_5919;         // DS:5919
       std::uint16_t                tbl_post_names;     // DS:591a
       std::uint16_t                near_591c;          // DS:591c
       std::uint16_t                near_591e;          // DS:591e
@@ -2322,14 +2341,8 @@ struct DataSegment {
       std::array<std::uint8_t, 24> supply_prompt;           // DS:9766
       std::array<char, 10>         supply_continue;         // DS:977e
       std::array<char, 6>          tank_suffix;             // DS:9788
-      std::array<char, 4>          nation_codes;            // DS:978e
-      std::array<char, 4>          text_9792;               // DS:9792
-      std::array<char, 4>          text_9796;               // DS:9796
-      std::array<char, 4>          text_979a;               // DS:979a
-      std::array<char, 4>          text_979e;               // DS:979e
-      std::array<char, 4>          text_97a2;               // DS:97a2
-      std::array<char, 4>          text_97a6;               // DS:97a6
-      std::array<char, 5>          text_97aa;               // DS:97aa
+      std::array<std::array<char, 4>, 7> nation_codes; // DS:978e: GER ITY USA ENG FRN RUS, and USA for 12
+      std::array<char, 5> nation_code_other; // DS:97aa: the blank code of any other nation value
       std::array<char, 4>          text_97af;               // DS:97af
       std::uint8_t                 unknown_97b3;            // DS:97b3
       std::array<std::uint8_t, 11> supply_type_list;        // DS:97b4
@@ -3059,21 +3072,8 @@ struct DataSegment {
       std::uint8_t                  unknown_c0ab;               // DS:c0ab
       std::array<char, 27>          arrived_text;               // DS:c0ac
       std::uint8_t                  unknown_c0c7;               // DS:c0c7
-      FarPointer                    order_handlers;             // DS:c0c8
-      FarPointer                    far_code_c0cc;              // DS:c0cc
-      FarPointer                    far_code_c0d0;              // DS:c0d0
-      FarPointer                    far_code_c0d4;              // DS:c0d4
-      FarPointer                    far_code_c0d8;              // DS:c0d8
-      FarPointer                    far_code_c0dc;              // DS:c0dc
-      FarPointer                    far_code_c0e0;              // DS:c0e0
-      FarPointer                    far_code_c0e4;              // DS:c0e4
-      FarPointer                    far_code_c0e8;              // DS:c0e8
-      FarPointer                    far_code_c0ec;              // DS:c0ec
-      FarPointer                    far_code_c0f0;              // DS:c0f0
-      FarPointer                    far_code_c0f4;              // DS:c0f4
-      FarPointer                    far_code_c0f8;              // DS:c0f8
-      FarPointer                    far_code_c0fc;              // DS:c0fc
-      std::uint16_t                 order_moves[14];            // DS:c100
+      std::array<FarPointer, 14>    order_handlers; // DS:c0c8: the handler of each order code
+      std::uint16_t                 order_moves[14]; // DS:c100: the repeat flag of each order code
       std::array<std::uint8_t, 8>   move_class;                 // DS:c11c
       std::array<std::uint8_t, 6>   sight_ranges;               // DS:c124
       std::array<std::uint8_t, 23>  mines_found_text;           // DS:c12a
@@ -3201,7 +3201,7 @@ struct DataSegment {
     std::uint16_t               supply_objective;
     std::array<std::uint8_t, 2> supply_objective_bytes;
   };
-  std::array<std::uint8_t, 36> supply_table; // DS:ca62
+  std::uint16_t supply_table[2][3][3]; // DS:ca62: [party][ammunition, fuel, food][current, capacity, -]
   std::uint16_t                supply_total; // DS:ca86
   std::uint8_t                 supply_count; // DS:ca88
   std::array<std::uint8_t, 1>  unknown_ca89;
@@ -3219,17 +3219,18 @@ struct DataSegment {
   std::array<std::uint8_t, 12> supply_avg_a;      // DS:cba2
   std::array<std::uint8_t, 12> supply_avg_c;      // DS:cbae
   union {                                         // DS:cbba
-    std::uint16_t tally_unit;
-    std::uint16_t alloc_units;
+    struct {
+      std::uint16_t tally_unit;       // DS:cbba
+      std::uint16_t tally_other_unit; // DS:cbbc: 0 when the unit is compared with an objective
+    };
+    std::uint16_t alloc_units[2]; // the two units sharing the allocation
   };
-  std::uint16_t               tally_other_unit; // DS:cbbc
   union {                                       // DS:cbbe
     std::uint16_t tally_source;
     std::uint16_t alloc_objective;
   };
   std::array<Item, 6>           supply_spare;  // DS:cbc0; tally: the stock items of another class
-  std::uint8_t                  supply_slots;  // DS:cbde
-  std::array<std::uint8_t, 59>  alloc_amounts; // DS:cbdf
+  std::array<Item, 12>          alloc_slots;   // DS:cbde: the items allocated to the units, one row per type
   std::array<std::uint8_t, 158> rq_type_list;  // DS:cc1a
   std::uint8_t                  air_stat_14;   // DS:ccb8
   std::uint8_t                  air_stat_1b;   // DS:ccb9
@@ -4347,8 +4348,7 @@ static_assert(offsetof(DataSegment, tbl_person_blank) == 0x58f7);
 static_assert(offsetof(DataSegment, tbl_person_rest) == 0x58fc);
 static_assert(offsetof(DataSegment, tbl_person_hurt) == 0x5901);
 static_assert(offsetof(DataSegment, choice_dialog) == 0x5906);
-static_assert(offsetof(DataSegment, far_code_5911) == 0x5911);
-static_assert(offsetof(DataSegment, bytes_5915) == 0x5915);
+static_assert(offsetof(DataSegment, bytes_5919) == 0x5919);
 static_assert(offsetof(DataSegment, tbl_post_names) == 0x591a);
 static_assert(offsetof(DataSegment, near_591c) == 0x591c);
 static_assert(offsetof(DataSegment, near_591e) == 0x591e);
@@ -5377,13 +5377,7 @@ static_assert(offsetof(DataSegment, supply_prompt) == 0x9766);
 static_assert(offsetof(DataSegment, supply_continue) == 0x977e);
 static_assert(offsetof(DataSegment, tank_suffix) == 0x9788);
 static_assert(offsetof(DataSegment, nation_codes) == 0x978e);
-static_assert(offsetof(DataSegment, text_9792) == 0x9792);
-static_assert(offsetof(DataSegment, text_9796) == 0x9796);
-static_assert(offsetof(DataSegment, text_979a) == 0x979a);
-static_assert(offsetof(DataSegment, text_979e) == 0x979e);
-static_assert(offsetof(DataSegment, text_97a2) == 0x97a2);
-static_assert(offsetof(DataSegment, text_97a6) == 0x97a6);
-static_assert(offsetof(DataSegment, text_97aa) == 0x97aa);
+static_assert(offsetof(DataSegment, nation_code_other) == 0x97aa);
 static_assert(offsetof(DataSegment, text_97af) == 0x97af);
 static_assert(offsetof(DataSegment, unknown_97b3) == 0x97b3);
 static_assert(offsetof(DataSegment, supply_type_list) == 0x97b4);
@@ -6090,19 +6084,6 @@ static_assert(offsetof(DataSegment, unknown_c0ab) == 0xc0ab);
 static_assert(offsetof(DataSegment, arrived_text) == 0xc0ac);
 static_assert(offsetof(DataSegment, unknown_c0c7) == 0xc0c7);
 static_assert(offsetof(DataSegment, order_handlers) == 0xc0c8);
-static_assert(offsetof(DataSegment, far_code_c0cc) == 0xc0cc);
-static_assert(offsetof(DataSegment, far_code_c0d0) == 0xc0d0);
-static_assert(offsetof(DataSegment, far_code_c0d4) == 0xc0d4);
-static_assert(offsetof(DataSegment, far_code_c0d8) == 0xc0d8);
-static_assert(offsetof(DataSegment, far_code_c0dc) == 0xc0dc);
-static_assert(offsetof(DataSegment, far_code_c0e0) == 0xc0e0);
-static_assert(offsetof(DataSegment, far_code_c0e4) == 0xc0e4);
-static_assert(offsetof(DataSegment, far_code_c0e8) == 0xc0e8);
-static_assert(offsetof(DataSegment, far_code_c0ec) == 0xc0ec);
-static_assert(offsetof(DataSegment, far_code_c0f0) == 0xc0f0);
-static_assert(offsetof(DataSegment, far_code_c0f4) == 0xc0f4);
-static_assert(offsetof(DataSegment, far_code_c0f8) == 0xc0f8);
-static_assert(offsetof(DataSegment, far_code_c0fc) == 0xc0fc);
 static_assert(offsetof(DataSegment, order_moves) == 0xc100);
 static_assert(offsetof(DataSegment, move_class) == 0xc11c);
 static_assert(offsetof(DataSegment, sight_ranges) == 0xc124);
@@ -6238,8 +6219,7 @@ static_assert(offsetof(DataSegment, tally_other_unit) == 0xcbbc);
 static_assert(offsetof(DataSegment, tally_source) == 0xcbbe);
 static_assert(offsetof(DataSegment, alloc_objective) == 0xcbbe);
 static_assert(offsetof(DataSegment, supply_spare) == 0xcbc0);
-static_assert(offsetof(DataSegment, supply_slots) == 0xcbde);
-static_assert(offsetof(DataSegment, alloc_amounts) == 0xcbdf);
+static_assert(offsetof(DataSegment, alloc_slots) == 0xcbde);
 static_assert(offsetof(DataSegment, rq_type_list) == 0xcc1a);
 static_assert(offsetof(DataSegment, air_stat_14) == 0xccb8);
 static_assert(offsetof(DataSegment, air_stat_1b) == 0xccb9);
@@ -6421,6 +6401,8 @@ using detail::data_segment::GROUPS_AT;
 using detail::data_segment::GROUPS_PER_SIDE;
 using detail::data_segment::INFLUENCE_WIDTH;
 using detail::data_segment::Item;
+using detail::data_segment::ListWindow;
+using detail::data_segment::TypeFlag;
 using detail::data_segment::MAP_HEIGHT;
 using detail::data_segment::MAP_WIDTH;
 using detail::data_segment::Near;
