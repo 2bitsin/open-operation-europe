@@ -19,9 +19,7 @@
  * entry SP passed as `sp`.
  */
 #include "recovered.hpp"
-
-/* MAIN's MEMORY routine, linked into OPEN unchanged. */
-void opeu_copy_bytes(uint8_t ds[65536], uint16_t source, uint16_t destination, uint16_t size);
+#include "segment-bytes.hpp"
 
 namespace opeu::intro::detail::oemsmap {
 namespace {
@@ -105,7 +103,7 @@ auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t {
   for (n = 0; n < static_cast<int16_t>(WrappedWord(ds, count)) - 1; n++) {
     if (WrappedWord(ds, static_cast<uint16_t>(pages + (4 * n))) == WrappedWord(ds, frame)) {
       if (static_cast<int16_t>(WrappedWord(ds, count)) - n < 4) goto fail;
-      opeu_copy_bytes(ds, static_cast<uint16_t>(pages + (4 * n)), offsetof(OpenDataSegment, ems_pages), 16);
+      CopyBytes(Segment{ ds, SEGMENT_SIZE }, { .source = static_cast<uint16_t>(pages + (4 * n)), .destination = offsetof(OpenDataSegment, ems_pages), .size = 16 });
       for (n = 0; n < 3; n++)
         if (static_cast<uint16_t>(Data(ds).ems_pages[n].segment - Data(ds).ems_pages[n + 1].segment) != 0xfc00) goto fail;
       return 1;

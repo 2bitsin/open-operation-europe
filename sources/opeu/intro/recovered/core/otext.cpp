@@ -31,12 +31,9 @@
  * insensitive; any other character after % is copied literally.
  */
 #include "recovered.hpp"
+#include "segment-bytes.hpp"
 
 #include <algorithm>
-
-/* MAIN's STRINGS routines, linked into OPEN unchanged. */
-extern auto opeu_string_length(uint8_t ds[65536], uint16_t string) -> uint16_t;
-extern auto opeu_ascii_upper(uint8_t code) -> uint8_t;
 
 /* DS is explicit and near pointers are 16-bit DS offsets. The original's
  * automatic conversion buffer lives on the DGROUP stack (SS = DS); here it
@@ -220,11 +217,11 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         m = 1;
         c = At(ds, j++);
       }
-      if (opeu_ascii_upper(c) == 'L') {
+      if (AsciiUpper(c) == 'L') {
         f = 1;
         c = At(ds, j++);
       }
-      switch (opeu_ascii_upper(c)) {
+      switch (AsciiUpper(c)) {
       case 'X': i = 16; goto number;
       case 'D':
         if (f != 0) {
@@ -258,7 +255,7 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
         goto term;
       case 'S':
         h = NextWord(ds, p);
-        e = static_cast<int16_t>(e - opeu_string_length(ds, h));
+        e = static_cast<int16_t>(e - StringLength(ConstSegment{ ds, SEGMENT_SIZE }, h));
         goto pad;
       case 'C':
         At(ds, h) = static_cast<uint8_t>(NextInt(ds, p));
