@@ -22,12 +22,12 @@ auto Numbered() -> std::unique_ptr<Bytes> {
   return bytes;
 }
 
-auto Write(Bytes& bytes, std::uint16_t at, std::initializer_list<std::uint8_t> values) -> void {
+auto Write(Bytes& bytes, NearWord at, std::initializer_list<std::uint8_t> values) -> void {
   std::ranges::for_each(values, [&](std::uint8_t value) { bytes[at++] = value; });
 }
 
-auto Read(Bytes const& bytes, std::uint16_t at, std::uint16_t count) -> std::vector<std::uint8_t> {
-  return std::views::iota(std::uint16_t{ 0 }, count) | std::views::transform([&](std::uint16_t step) { return bytes[static_cast<std::uint16_t>(at + step)]; }) | std::ranges::to<std::vector>();
+auto Read(Bytes const& bytes, NearWord at, NearWord count) -> std::vector<std::uint8_t> {
+  return std::views::iota(NearWord{ 0 }, count) | std::views::transform([&](NearWord step) { return bytes[static_cast<NearWord>(at + step)]; }) | std::ranges::to<std::vector>();
 }
 
 TEST(CopyBytes, MovesABlockBetweenDisjointPlaces) {
