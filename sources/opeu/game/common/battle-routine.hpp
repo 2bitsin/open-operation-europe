@@ -8,6 +8,7 @@
 namespace opeu::game::detail::battle_routine {
 
 enum class BattleRoutine : std::uint32_t {
+  GFX_BLIT                   = 0x2a96,
   VGA_CLEAR                  = 0x2aac,
   UI_LINE                    = 0x2d16,
   SCREEN_COPY                = 0x301f,
@@ -43,6 +44,7 @@ enum class BattleRoutine : std::uint32_t {
   MOUSE_RIGHT                = 0x5bae,
   MOUSE_BUTTONS              = 0x5bf0,
   INPUT_RESET                = 0x5c34,
+  GFX_WAIT                   = 0x6b2a,
   READ_FAR_BYTES             = 0x9d68,
   STRING_COPY                = 0x9e90,
   MIN16                      = 0x9f3e,
@@ -51,8 +53,10 @@ enum class BattleRoutine : std::uint32_t {
   SUB_BYTE                   = 0x9fac,
   SUB_WORD                   = 0x9ff0,
   RAND_BOUNDED               = 0xa034,
+  CONTEXT_FRAME              = 0xa2e0,
   CONTEXT_PORTRAIT           = 0xa4ac,
   FACE_DRAW                  = 0xa642,
+  UI_OUTLINE                 = 0xa69a,
   PALETTE_FOR_HOUR           = 0xa834,
   DELAY_UNITS                = 0xa92c,
   TABLE_COLUMNS              = 0xaa20,
@@ -131,6 +135,7 @@ enum class BattleRoutine : std::uint32_t {
   BATTLE_ELEMENT_COUNT       = 0x286dc,
   BATTLE_ELEMENT_PANEL       = 0x28908,
   BATTLE_DRAW_CURSOR         = 0x28cd0,
+  BATTLE_HIGHLIGHT_CELL      = 0x28d16,
   BATTLE_DRAW_CELL           = 0x290f2,
   BATTLE_DRAW_ELEMENT_AT     = 0x2955e,
   BATTLE_REDRAW_CELL         = 0x296a0,

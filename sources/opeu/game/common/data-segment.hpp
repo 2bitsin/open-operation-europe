@@ -369,6 +369,7 @@ enum class ElementFlag : std::uint8_t {
   REQUESTED = 0x08, // a battalion of the requested regiment (core/requnit)
   AIRBORNE = 0x10, // set aside for the side's pending airborne drop (core/airdrop, core/paradrop)
   BIT_5 = 0x20, // cleared when the element's unit arrives (core/arrivals)
+  SIDE_1 = 0x80, // in a battle, the element fights for side 1 (map/btlend sets it, map/btllist reads it)
 };
 
 // Objective::flags: the low nibble is the objective's level (core/objrank), 0x10 the holding side, 0x40 a marker bit.
@@ -441,6 +442,7 @@ enum class SideFlag : std::uint8_t {
 // like ten infantry.
 enum class TypeFlag : std::uint8_t {
   AIRBORNE = 0x01, // a paratroop type (core/airdrop)
+  BIT_2 = 0x04, // a tank type not LIGHT drawn with the third tank icon in battle (map/btlicon)
   HEAVY = 0x08,
   LIGHT = 0x10,
 };
@@ -976,19 +978,9 @@ struct DataSegment {
         std::uint16_t battle_hq_intact[2];
         std::uint16_t battle_panel_shown[2];
       };
-      std::array<std::uint8_t, 5>  battle_cells;         // DS:3ca2
-      std::array<char, 5>          text_3ca7;            // DS:3ca7
-      std::array<std::uint8_t, 9>  unknown_3cac;         // DS:3cac
-      std::array<char, 5>          text_3cb5;            // DS:3cb5
-      std::array<std::uint8_t, 58> unknown_3cba;         // DS:3cba
-      std::array<char, 5>          text_3cf4;            // DS:3cf4
-      std::array<std::uint8_t, 9>  bytes_3cf9;           // DS:3cf9
-      std::array<char, 5>          text_3d02;            // DS:3d02
-      std::array<std::uint8_t, 9>  bytes_3d07;           // DS:3d07
-      std::array<char, 5>          text_3d10;            // DS:3d10
-      std::array<std::uint8_t, 9>  bytes_3d15;           // DS:3d15
-      std::array<char, 3>          text_3d1e;            // DS:3d1e
-      std::array<std::uint8_t, 69> unknown_3d21;         // DS:3d21
+      // DS:3ca2: the battle map, 14 x 14 cells by row: the low two bits are the side occupying the cell + 1, the high
+      // nibble the direction + 1 of the map edge a side enters or leaves by (BattleCell)
+      std::array<std::array<std::uint8_t, 14>, 14> battle_cells;
       std::uint8_t                 battle_numbers_shown; // DS:3d66
       std::array<std::uint8_t, 1>  unknown_3d67;
       std::array<std::uint8_t, 18> battle_ai_plans;       // DS:3d68
@@ -1010,23 +1002,8 @@ struct DataSegment {
       std::array<std::uint8_t, 8>  battle_type_factors;   // DS:3dae
       std::array<std::uint8_t, 8>  battle_spot_range;     // DS:3db6
       std::array<std::uint8_t, 30> battle_terrain_extras; // DS:3dbe
-      std::uint16_t                battle_order_names;    // DS:3ddc
-      std::uint16_t                near_3dde;             // DS:3dde
-      std::uint16_t                near_3de0;             // DS:3de0
-      std::uint16_t                near_3de2;             // DS:3de2
-      std::uint16_t                near_3de4;             // DS:3de4
-      std::uint16_t                near_3de6;             // DS:3de6
-      std::uint16_t                battle_terrain_names;  // DS:3de8
-      std::uint16_t                near_3dea;             // DS:3dea
-      std::uint16_t                near_3dec;             // DS:3dec
-      std::uint16_t                near_3dee;             // DS:3dee
-      std::uint16_t                near_3df0;             // DS:3df0
-      std::uint16_t                near_3df2;             // DS:3df2
-      std::uint16_t                near_3df4;             // DS:3df4
-      std::uint16_t                near_3df6;             // DS:3df6
-      std::uint16_t                near_3df8;             // DS:3df8
-      std::uint16_t                near_3dfa;             // DS:3dfa
-      std::uint16_t                near_3dfc;             // DS:3dfc
+      std::uint16_t battle_order_names[6];    // DS:3ddc
+      std::uint16_t battle_terrain_names[11]; // DS:3de8: the battle terrain codes' names
       std::array<std::uint8_t, 88> battle_terrain_costs;  // DS:3dfe
       std::uint8_t                 battle_terrain_cover;  // DS:3e56
       std::uint8_t                 battle_visibility;     // DS:3e57
@@ -1776,13 +1753,13 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 3452> order_text; // DS:8396..9112
     struct {
-      std::array<char, 17>         text_8396;               // DS:8396
-      std::array<char, 18>         text_83a7;               // DS:83a7
-      std::array<char, 35>         text_83b9;               // DS:83b9
-      std::array<char, 20>         text_83dc;               // DS:83dc
-      std::array<char, 22>         text_83f0;               // DS:83f0
-      std::array<char, 17>         text_8406;               // DS:8406
-      std::array<char, 22>         text_8417;               // DS:8417
+      std::array<char, 17>         casualty_heading;        // DS:8396
+      std::array<char, 18>         casualty_cut_selected;   // DS:83a7
+      std::array<char, 35>         casualty_cut;            // DS:83b9
+      std::array<char, 20>         casualty_loss_format;    // DS:83dc
+      std::array<char, 22>         casualty_losses_format;  // DS:83f0
+      std::array<char, 17>         casualty_wiped;          // DS:8406
+      std::array<char, 22>         casualty_no_damage;      // DS:8417
       std::array<char, 44>         damage_supply_format;    // DS:842d
       std::array<char, 22>         damage_title;            // DS:8459
       std::array<char, 34>         damage_heading;          // DS:846f
@@ -2067,17 +2044,13 @@ struct DataSegment {
       std::array<char, 5> nation_code_other; // DS:97aa: the blank code of any other nation value
       std::array<char, 4>          text_97af;               // DS:97af
       std::uint8_t                 unknown_97b3;            // DS:97b3
-      std::array<std::uint8_t, 11> supply_type_list;        // DS:97b4
-      FarPointer                   far_code_97bf;           // DS:97bf
-      FarPointer                   far_code_97c3;           // DS:97c3
+      ListWindow                   supply_type_list;        // DS:97b4: the allocation screen's list of types
       std::array<char, 30>         supply_header_a;         // DS:97c7
       std::array<char, 32>         supply_row_a;            // DS:97e5
       std::array<char, 4>          text_9805;               // DS:9805
       std::array<char, 40>         supply_empty_a;          // DS:9809
       std::uint8_t                 unknown_9831;            // DS:9831
-      std::array<std::uint8_t, 11> supply_slot_list;        // DS:9832
-      FarPointer                   far_code_983d;           // DS:983d
-      FarPointer                   far_code_9841;           // DS:9841
+      ListWindow                   supply_slot_list;        // DS:9832: the allocation screen's list of the units' slots
       std::array<char, 32>         supply_header_b;         // DS:9845
       std::array<char, 23>         supply_row_b;            // DS:9865
       std::array<char, 30>         supply_empty_b;          // DS:987c
@@ -2422,21 +2395,21 @@ struct DataSegment {
       std::array<char, 14> text_b24f; // DS:b24f
       std::array<char, 10> text_b25d; // DS:b25d
       std::array<char, 32> text_b267; // DS:b267
-      std::array<char, 25> text_b287; // DS:b287
-      std::array<char, 27> text_b2a0; // DS:b2a0
-      std::array<char, 25> text_b2bb; // DS:b2bb
+      std::array<char, 25> battle_siege_stalemate_text; // DS:b287
+      std::array<char, 27> battle_victory_format; // DS:b2a0
+      std::array<char, 25> battle_stalemate_text; // DS:b2bb
     };
   };
   union {
     std::array<std::uint8_t, 42> btlready_data; // DS:b2d4..b2fe
     struct {
-      std::uint8_t                 btlready_text_b2d4; // DS:b2d4
+      std::uint8_t                 battle_ready_blank; // DS:b2d4
       std::array<std::uint8_t, 1>  unknown_b2d5;
-      std::array<std::uint8_t, 13> btlready_text_b2d6; // DS:b2d6
-      std::array<std::uint8_t, 27> btlready_text_b2e3; // DS:b2e3
+      std::array<std::uint8_t, 13> battle_ready_name_format; // DS:b2d6
+      std::array<std::uint8_t, 27> battle_ready_text; // DS:b2e3
     };
   };
-  std::array<std::uint8_t, 20> btlsetup_text_b2fe; // DS:b2fe
+  std::array<std::uint8_t, 20> battle_round_format; // DS:b2fe: "TURN %d", the round banner
   union {
     std::array<std::uint8_t, 60> btlcalc_data; // DS:b312..b34e
     struct {
@@ -2501,9 +2474,7 @@ struct DataSegment {
       std::array<char, 19>          battle_terrain_format;      // DS:b51d
       std::array<char, 7>           battle_title_end;           // DS:b530
       std::array<std::uint8_t, 9>   unknown_b537;               // DS:b537
-      std::array<std::uint8_t, 11>  deploy_dialog;              // DS:b540
-      FarPointer                    far_code_b54b;              // DS:b54b
-      FarPointer                    far_code_b54f;              // DS:b54f
+      ListWindow                    deploy_window;              // DS:b540: the element list of the battle deployment
       std::array<char, 30>          deploy_header;              // DS:b553
       std::array<char, 4>           deploy_mark;                // DS:b571
       std::array<char, 13>          deploy_name;                // DS:b575
@@ -2519,30 +2490,18 @@ struct DataSegment {
       std::array<char, 16>          deploy_others;              // DS:b654
       std::array<char, 40>          deploy_ask_auto;            // DS:b664
       std::array<char, 32>          deploy_ask_done;            // DS:b68c
-      std::array<char, 4>           deploy_templates;           // DS:b6ac
-      std::uint8_t                  unknown_b6b0;               // DS:b6b0
-      std::array<char, 5>           text_b6b1;                  // DS:b6b1
-      std::uint8_t                  unknown_b6b6;               // DS:b6b6
-      std::array<char, 7>           text_b6b7;                  // DS:b6b7
-      std::uint8_t                  unknown_b6be;               // DS:b6be
-      std::array<char, 5>           text_b6bf;                  // DS:b6bf
-      std::uint8_t                  unknown_b6c4;               // DS:b6c4
-      std::array<char, 6>           text_b6c5;                  // DS:b6c5
-      std::array<std::uint8_t, 9>   unknown_b6cb;               // DS:b6cb
-      std::array<char, 3>           text_b6d4;                  // DS:b6d4
-      std::array<std::uint8_t, 39>  unknown_b6d7;               // DS:b6d7
-      std::array<char, 5>           text_b6fe;                  // DS:b6fe
-      std::array<std::uint8_t, 9>   unknown_b703;               // DS:b703
-      std::array<char, 5>           text_b70c;                  // DS:b70c
-      std::array<std::uint8_t, 9>   unknown_b711;               // DS:b711
-      std::array<char, 5>           text_b71a;                  // DS:b71a
-      std::array<std::uint8_t, 9>   unknown_b71f;               // DS:b71f
-      std::array<char, 3>           text_b728;                  // DS:b728
-      std::array<std::uint8_t, 69>  unknown_b72b;               // DS:b72b
-      std::array<std::uint8_t, 32>  deploy_zone_codes;          // DS:b770
-      std::array<std::uint8_t, 196> deploy_zone_bits;           // DS:b790
-      std::array<std::uint8_t, 32>  deploy_scan;                // DS:b854
-      std::array<std::uint8_t, 40>  deploy_offsets;             // DS:b874
+      // DS:b6ac: the deployment templates, 14 x 14 cells by row: approach direction << 4 | zone code (map/dplauto)
+      std::array<std::array<std::uint8_t, 14>, 14> deploy_templates;
+      // DS:b770: the template zone codes in turn, by table: type mode above 1 (or not) on a straight (or diagonal)
+      // approach
+      std::array<std::array<std::uint8_t, 8>, 4> deploy_zone_codes;
+      // DS:b790: per battle cell (by row), a bit per approach direction from which an attacker may deploy there
+      std::array<std::array<std::uint8_t, 14>, 14> deploy_zone_bits;
+      // DS:b854: per approach direction, the attacker's 4 x 4 scan: x step, y step, first x, first y
+      std::array<std::array<std::uint8_t, 4>, 8> deploy_scan;
+      // DS:b874: per facing, the five cells tried around a garrison's element of type mode above 1: a signed x nibble
+      // << 4 | a signed y nibble
+      std::array<std::array<std::uint8_t, 5>, 8> deploy_offsets;
       std::array<std::uint8_t, 8>   hq_fmt_side;                // DS:b89c
       std::array<char, 14>          hq_city_garrison;           // DS:b8a4
       std::array<char, 17>          hq_new_title;               // DS:b8b2
@@ -2825,7 +2784,7 @@ struct DataSegment {
     std::uint16_t               transfer_objective_ptr;
     std::array<std::uint8_t, 2> transfer_objective_ptr_bytes;
   };
-  std::array<std::uint8_t, 36>  transfer_table;       // DS:ced4
+  std::uint16_t                 transfer_table[2][3][3]; // DS:ced4: [side][ammunition, fuel, food][TransferColumn]
   std::uint16_t                 transfer_interactive; // DS:cef8
   std::array<std::uint8_t, 6>   unknown_cefa;
   std::array<std::uint8_t, 198> battle_terrain; // DS:cf00
@@ -3471,18 +3430,6 @@ static_assert(offsetof(DataSegment, deploy_row) == 0x3c9d);
 static_assert(offsetof(DataSegment, battle_hq_intact) == 0x3c9e);
 static_assert(offsetof(DataSegment, battle_panel_shown) == 0x3c9e);
 static_assert(offsetof(DataSegment, battle_cells) == 0x3ca2);
-static_assert(offsetof(DataSegment, text_3ca7) == 0x3ca7);
-static_assert(offsetof(DataSegment, unknown_3cac) == 0x3cac);
-static_assert(offsetof(DataSegment, text_3cb5) == 0x3cb5);
-static_assert(offsetof(DataSegment, unknown_3cba) == 0x3cba);
-static_assert(offsetof(DataSegment, text_3cf4) == 0x3cf4);
-static_assert(offsetof(DataSegment, bytes_3cf9) == 0x3cf9);
-static_assert(offsetof(DataSegment, text_3d02) == 0x3d02);
-static_assert(offsetof(DataSegment, bytes_3d07) == 0x3d07);
-static_assert(offsetof(DataSegment, text_3d10) == 0x3d10);
-static_assert(offsetof(DataSegment, bytes_3d15) == 0x3d15);
-static_assert(offsetof(DataSegment, text_3d1e) == 0x3d1e);
-static_assert(offsetof(DataSegment, unknown_3d21) == 0x3d21);
 static_assert(offsetof(DataSegment, battle_numbers_shown) == 0x3d66);
 static_assert(offsetof(DataSegment, unknown_3d67) == 0x3d67);
 static_assert(offsetof(DataSegment, battle_ai_plans) == 0x3d68);
@@ -3501,22 +3448,7 @@ static_assert(offsetof(DataSegment, battle_type_factors) == 0x3dae);
 static_assert(offsetof(DataSegment, battle_spot_range) == 0x3db6);
 static_assert(offsetof(DataSegment, battle_terrain_extras) == 0x3dbe);
 static_assert(offsetof(DataSegment, battle_order_names) == 0x3ddc);
-static_assert(offsetof(DataSegment, near_3dde) == 0x3dde);
-static_assert(offsetof(DataSegment, near_3de0) == 0x3de0);
-static_assert(offsetof(DataSegment, near_3de2) == 0x3de2);
-static_assert(offsetof(DataSegment, near_3de4) == 0x3de4);
-static_assert(offsetof(DataSegment, near_3de6) == 0x3de6);
 static_assert(offsetof(DataSegment, battle_terrain_names) == 0x3de8);
-static_assert(offsetof(DataSegment, near_3dea) == 0x3dea);
-static_assert(offsetof(DataSegment, near_3dec) == 0x3dec);
-static_assert(offsetof(DataSegment, near_3dee) == 0x3dee);
-static_assert(offsetof(DataSegment, near_3df0) == 0x3df0);
-static_assert(offsetof(DataSegment, near_3df2) == 0x3df2);
-static_assert(offsetof(DataSegment, near_3df4) == 0x3df4);
-static_assert(offsetof(DataSegment, near_3df6) == 0x3df6);
-static_assert(offsetof(DataSegment, near_3df8) == 0x3df8);
-static_assert(offsetof(DataSegment, near_3dfa) == 0x3dfa);
-static_assert(offsetof(DataSegment, near_3dfc) == 0x3dfc);
 static_assert(offsetof(DataSegment, battle_terrain_costs) == 0x3dfe);
 static_assert(offsetof(DataSegment, battle_terrain_cover) == 0x3e56);
 static_assert(offsetof(DataSegment, battle_visibility) == 0x3e57);
@@ -4214,13 +4146,13 @@ static_assert(offsetof(DataSegment, unknown_8377) == 0x8377);
 static_assert(offsetof(DataSegment, general_casualty_format) == 0x8378);
 static_assert(offsetof(DataSegment, select_category_ranks) == 0x838e);
 static_assert(offsetof(DataSegment, order_text) == 0x8396);
-static_assert(offsetof(DataSegment, text_8396) == 0x8396);
-static_assert(offsetof(DataSegment, text_83a7) == 0x83a7);
-static_assert(offsetof(DataSegment, text_83b9) == 0x83b9);
-static_assert(offsetof(DataSegment, text_83dc) == 0x83dc);
-static_assert(offsetof(DataSegment, text_83f0) == 0x83f0);
-static_assert(offsetof(DataSegment, text_8406) == 0x8406);
-static_assert(offsetof(DataSegment, text_8417) == 0x8417);
+static_assert(offsetof(DataSegment, casualty_heading) == 0x8396);
+static_assert(offsetof(DataSegment, casualty_cut_selected) == 0x83a7);
+static_assert(offsetof(DataSegment, casualty_cut) == 0x83b9);
+static_assert(offsetof(DataSegment, casualty_loss_format) == 0x83dc);
+static_assert(offsetof(DataSegment, casualty_losses_format) == 0x83f0);
+static_assert(offsetof(DataSegment, casualty_wiped) == 0x8406);
+static_assert(offsetof(DataSegment, casualty_no_damage) == 0x8417);
 static_assert(offsetof(DataSegment, damage_supply_format) == 0x842d);
 static_assert(offsetof(DataSegment, damage_title) == 0x8459);
 static_assert(offsetof(DataSegment, damage_heading) == 0x846f);
@@ -4496,16 +4428,12 @@ static_assert(offsetof(DataSegment, nation_code_other) == 0x97aa);
 static_assert(offsetof(DataSegment, text_97af) == 0x97af);
 static_assert(offsetof(DataSegment, unknown_97b3) == 0x97b3);
 static_assert(offsetof(DataSegment, supply_type_list) == 0x97b4);
-static_assert(offsetof(DataSegment, far_code_97bf) == 0x97bf);
-static_assert(offsetof(DataSegment, far_code_97c3) == 0x97c3);
 static_assert(offsetof(DataSegment, supply_header_a) == 0x97c7);
 static_assert(offsetof(DataSegment, supply_row_a) == 0x97e5);
 static_assert(offsetof(DataSegment, text_9805) == 0x9805);
 static_assert(offsetof(DataSegment, supply_empty_a) == 0x9809);
 static_assert(offsetof(DataSegment, unknown_9831) == 0x9831);
 static_assert(offsetof(DataSegment, supply_slot_list) == 0x9832);
-static_assert(offsetof(DataSegment, far_code_983d) == 0x983d);
-static_assert(offsetof(DataSegment, far_code_9841) == 0x9841);
 static_assert(offsetof(DataSegment, supply_header_b) == 0x9845);
 static_assert(offsetof(DataSegment, supply_row_b) == 0x9865);
 static_assert(offsetof(DataSegment, supply_empty_b) == 0x987c);
@@ -4838,15 +4766,15 @@ static_assert(offsetof(DataSegment, text_b242) == 0xb242);
 static_assert(offsetof(DataSegment, text_b24f) == 0xb24f);
 static_assert(offsetof(DataSegment, text_b25d) == 0xb25d);
 static_assert(offsetof(DataSegment, text_b267) == 0xb267);
-static_assert(offsetof(DataSegment, text_b287) == 0xb287);
-static_assert(offsetof(DataSegment, text_b2a0) == 0xb2a0);
-static_assert(offsetof(DataSegment, text_b2bb) == 0xb2bb);
+static_assert(offsetof(DataSegment, battle_siege_stalemate_text) == 0xb287);
+static_assert(offsetof(DataSegment, battle_victory_format) == 0xb2a0);
+static_assert(offsetof(DataSegment, battle_stalemate_text) == 0xb2bb);
 static_assert(offsetof(DataSegment, btlready_data) == 0xb2d4);
-static_assert(offsetof(DataSegment, btlready_text_b2d4) == 0xb2d4);
+static_assert(offsetof(DataSegment, battle_ready_blank) == 0xb2d4);
 static_assert(offsetof(DataSegment, unknown_b2d5) == 0xb2d5);
-static_assert(offsetof(DataSegment, btlready_text_b2d6) == 0xb2d6);
-static_assert(offsetof(DataSegment, btlready_text_b2e3) == 0xb2e3);
-static_assert(offsetof(DataSegment, btlsetup_text_b2fe) == 0xb2fe);
+static_assert(offsetof(DataSegment, battle_ready_name_format) == 0xb2d6);
+static_assert(offsetof(DataSegment, battle_ready_text) == 0xb2e3);
+static_assert(offsetof(DataSegment, battle_round_format) == 0xb2fe);
 static_assert(offsetof(DataSegment, btlcalc_data) == 0xb312);
 static_assert(offsetof(DataSegment, btlcalc_skill_class) == 0xb312);
 static_assert(offsetof(DataSegment, btlcalc_terrain_class) == 0xb31a);
@@ -4905,9 +4833,7 @@ static_assert(offsetof(DataSegment, battle_place_format) == 0xb50a);
 static_assert(offsetof(DataSegment, battle_terrain_format) == 0xb51d);
 static_assert(offsetof(DataSegment, battle_title_end) == 0xb530);
 static_assert(offsetof(DataSegment, unknown_b537) == 0xb537);
-static_assert(offsetof(DataSegment, deploy_dialog) == 0xb540);
-static_assert(offsetof(DataSegment, far_code_b54b) == 0xb54b);
-static_assert(offsetof(DataSegment, far_code_b54f) == 0xb54f);
+static_assert(offsetof(DataSegment, deploy_window) == 0xb540);
 static_assert(offsetof(DataSegment, deploy_header) == 0xb553);
 static_assert(offsetof(DataSegment, deploy_mark) == 0xb571);
 static_assert(offsetof(DataSegment, deploy_name) == 0xb575);
@@ -4924,25 +4850,6 @@ static_assert(offsetof(DataSegment, deploy_others) == 0xb654);
 static_assert(offsetof(DataSegment, deploy_ask_auto) == 0xb664);
 static_assert(offsetof(DataSegment, deploy_ask_done) == 0xb68c);
 static_assert(offsetof(DataSegment, deploy_templates) == 0xb6ac);
-static_assert(offsetof(DataSegment, unknown_b6b0) == 0xb6b0);
-static_assert(offsetof(DataSegment, text_b6b1) == 0xb6b1);
-static_assert(offsetof(DataSegment, unknown_b6b6) == 0xb6b6);
-static_assert(offsetof(DataSegment, text_b6b7) == 0xb6b7);
-static_assert(offsetof(DataSegment, unknown_b6be) == 0xb6be);
-static_assert(offsetof(DataSegment, text_b6bf) == 0xb6bf);
-static_assert(offsetof(DataSegment, unknown_b6c4) == 0xb6c4);
-static_assert(offsetof(DataSegment, text_b6c5) == 0xb6c5);
-static_assert(offsetof(DataSegment, unknown_b6cb) == 0xb6cb);
-static_assert(offsetof(DataSegment, text_b6d4) == 0xb6d4);
-static_assert(offsetof(DataSegment, unknown_b6d7) == 0xb6d7);
-static_assert(offsetof(DataSegment, text_b6fe) == 0xb6fe);
-static_assert(offsetof(DataSegment, unknown_b703) == 0xb703);
-static_assert(offsetof(DataSegment, text_b70c) == 0xb70c);
-static_assert(offsetof(DataSegment, unknown_b711) == 0xb711);
-static_assert(offsetof(DataSegment, text_b71a) == 0xb71a);
-static_assert(offsetof(DataSegment, unknown_b71f) == 0xb71f);
-static_assert(offsetof(DataSegment, text_b728) == 0xb728);
-static_assert(offsetof(DataSegment, unknown_b72b) == 0xb72b);
 static_assert(offsetof(DataSegment, deploy_zone_codes) == 0xb770);
 static_assert(offsetof(DataSegment, deploy_zone_bits) == 0xb790);
 static_assert(offsetof(DataSegment, deploy_scan) == 0xb854);
