@@ -279,6 +279,19 @@ static void test_screen_copy(void) {
   setpx(0, 0, 5);
   opeu_screen_copy(0, 0, 1, 1, 3, 2);
   Check(px(24, 2) == 5, "copy to another line");
+  /* rows overlapping downwards: the block moves intact (bottom row first) */
+  fillpx(0);
+  setpx(0, 0, 1);
+  setpx(0, 1, 2);
+  setpx(0, 2, 3);
+  opeu_screen_copy(0, 0, 1, 3, 0, 1);
+  Check(px(0, 1) == 1 && px(0, 2) == 2 && px(0, 3) == 3, "overlapping rows downwards");
+  fillpx(0);
+  setpx(0, 1, 1);
+  setpx(0, 2, 2);
+  setpx(0, 3, 3);
+  opeu_screen_copy(0, 1, 1, 3, 0, 0);
+  Check(px(0, 0) == 1 && px(0, 1) == 2 && px(0, 2) == 3, "overlapping rows upwards");
 }
 
 static void test_picture(void) {

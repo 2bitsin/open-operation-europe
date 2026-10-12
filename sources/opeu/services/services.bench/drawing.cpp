@@ -75,6 +75,12 @@ auto BattleCell(benchmark::State& state) -> void {
 }
 BENCHMARK(BattleCell);
 
+auto CellBlockCopy(benchmark::State& state) -> void {
+  Ready();
+  for (auto _ : state) koei_3bc5(10, 100, 20, 140);
+}
+BENCHMARK(CellBlockCopy);
+
 auto SpriteCompose(benchmark::State& state) -> void {
   Ready();
   std::array<std::uint8_t, 6 * 26 * 4> buffer{};

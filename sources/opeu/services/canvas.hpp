@@ -2,6 +2,7 @@
 // indices to palette entries, the 256-entry palette in 6-bit levels, and the drawing primitives of the game's library.
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -20,8 +21,13 @@ inline constexpr auto PALETTE_BYTES{ 256 * 3 };
 using Pixel = std::uint8_t; // a colour 0..15
 
 // A pixel position as one number, row-major from the top-left corner: x past the right edge continues on the next
-// line. Positions outside the screen are dropped by writes and read as colour 0.
+// line, past the store (STORED) it wraps to the start.
 using Offset = std::int64_t;
+
+// The canvas stores 819.2 lines: the screen and the lines below it, which the game's unclipped routines may reach. An
+// offset past the store wraps to its start, so out-of-range coordinates land where the game's 16-bit screen addresses
+// (80 bytes of 8 pixels per line) take them.
+inline constexpr Offset STORED{ Offset{ 1 } << 19 };
 
 [[nodiscard]] constexpr auto At(std::int64_t x, std::int64_t line) noexcept -> Offset {
   return line * WIDTH + x;
@@ -62,9 +68,16 @@ public:
 
   // ---- pixels ----
   [[nodiscard]] auto Row(int line) const noexcept -> std::span<Pixel const, WIDTH>;
-  [[nodiscard]] auto Pixel(Offset at) const noexcept -> canvas::Pixel;
-  auto               Put(Offset at, canvas::Pixel colour) noexcept -> void;
-  auto               Clear() noexcept -> void;
+  [[nodiscard]] auto Pixel(Offset at) const noexcept -> canvas::Pixel {
+    return _pixels[Wrap(at)];
+  }
+  auto Put(Offset at, canvas::Pixel colour) noexcept -> void {
+    _pixels[Wrap(at)] = static_cast<canvas::Pixel>(colour & 0x0F);
+    _changed          = true;
+  }
+  // Copies `count` pixels as memmove does (the source read before it is overwritten).
+  auto Move(Offset to, Offset from, std::int64_t count) noexcept -> void;
+  auto Clear() noexcept -> void;
   // Bit `plane` of the 8 pixels from `at`, the leftmost in bit 7: the form of the game's save buffers.
   [[nodiscard]] auto PlaneBits(Offset at, int plane) const noexcept -> std::uint8_t;
   // The 8 pixels from `at` as one byte per colour bit, and back.
@@ -126,10 +139,24 @@ private:
     [[nodiscard]] auto Apply(std::uint64_t pixels, std::uint8_t bits) const noexcept -> std::uint64_t;
   };
 
-  auto Reset(bool shown) noexcept -> void;
-  // `count` pixels from `at`, cut at the end of the screen; empty outside it.
-  [[nodiscard]] auto Run(Offset at, std::int64_t count) noexcept -> std::span<canvas::Pixel>;
-  [[nodiscard]] auto Run(Offset at, std::int64_t count) const noexcept -> std::span<canvas::Pixel const>;
+  auto                                Reset(bool shown) noexcept -> void;
+  [[nodiscard]] static constexpr auto Wrap(Offset at) noexcept -> std::size_t {
+    return static_cast<std::size_t>(at & (STORED - 1));
+  }
+  // `count` pixels from `at` (wrapped), cut at the end of the store.
+  [[nodiscard]] auto Run(Offset at, std::int64_t count) noexcept -> std::span<canvas::Pixel> {
+    auto const start{ Wrap(at) };
+    return std::span{ _pixels }.subspan(start,
+                                        static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
+  }
+  [[nodiscard]] auto Run(Offset at, std::int64_t count) const noexcept -> std::span<canvas::Pixel const> {
+    auto const start{ Wrap(at) };
+    return std::span{ _pixels }.subspan(start,
+                                        static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
+  }
+  // Calls `next(i, pixels)` for the `count` octets from `at` and stores what it returns.
+  template <typename Next>
+  auto EachOctet(Offset at, std::size_t count, Next next) noexcept -> void;
   // The 8 pixels from `at` as the bytes of a word, the leftmost lowest (pixels outside the screen read 0 and are
   // not written).
   [[nodiscard]] auto Load(Offset at) const noexcept -> std::uint64_t;
@@ -139,10 +166,9 @@ private:
   auto PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t colour, std::uint8_t& pattern_bit) noexcept
       -> void;
   auto               PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void;
-  [[nodiscard]] auto UnitValue(std::uint16_t unit) const noexcept -> std::uint16_t;
   [[nodiscard]] auto MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept -> std::uint16_t;
 
-  std::array<canvas::Pixel, PIXELS>       _pixels{};
+  std::array<canvas::Pixel, STORED>       _pixels{};
   std::array<std::uint8_t, PALETTE_BYTES> _palette{};
   std::array<std::uint8_t, COLOURS>       _colour_map{};
   bool                                    _shown{};

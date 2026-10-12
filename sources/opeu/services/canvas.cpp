@@ -16,6 +16,14 @@ static_assert(std::endian::native == std::endian::little, "pixel words are littl
 
 constexpr std::uint64_t ONES{ 0x0101010101010101 };
 
+// Byte j of NIBBLE_SPREAD[n] is bit 3 - j of n.
+constexpr auto NIBBLE_SPREAD{ [] {
+  std::array<std::uint32_t, 16> spread{};
+  for (auto const [n, word] : std::views::zip(std::views::iota(0), spread))
+    for (auto const j : std::views::iota(0, 4)) word |= static_cast<std::uint32_t>((n >> (3 - j)) & 1) << (8 * j);
+  return spread;
+}() };
+
 // Byte i of SPREAD[b] is bit 7 - i of b.
 constexpr auto SPREAD{ [] {
   std::array<std::uint64_t, 256> spread{};
@@ -181,50 +189,55 @@ auto Canvas::Row(int line) const noexcept -> std::span<canvas::Pixel const, WIDT
   return std::span{ _pixels }.subspan(static_cast<std::size_t>(line) * WIDTH).first<WIDTH>();
 }
 
-auto Canvas::Run(Offset at, std::int64_t count) noexcept -> std::span<canvas::Pixel> {
-  if (at < 0 || at >= PIXELS || count <= 0) return {};
-  return std::span{ _pixels }.subspan(static_cast<std::size_t>(at),
-                                      static_cast<std::size_t>(std::min<std::int64_t>(count, PIXELS - at)));
-}
-
-auto Canvas::Run(Offset at, std::int64_t count) const noexcept -> std::span<canvas::Pixel const> {
-  return const_cast<Canvas*>(this)->Run(at, count);
-}
-
 auto Canvas::Load(Offset at) const noexcept -> std::uint64_t {
   std::array<canvas::Pixel, 8> group{};
-  auto const                   run{ Run(at, 8) };
-  if (run.size() == 8)
+  if (auto const run{ Run(at, 8) }; run.size() == 8)
     std::ranges::copy(run.first<8>(), group.begin());
   else
-    std::ranges::copy(run, group.begin());
+    std::ranges::transform(std::views::iota(0, 8), group.begin(), [&](int i) { return Pixel(at + i); });
   return std::bit_cast<std::uint64_t>(group);
+}
+
+template <typename Next>
+auto Canvas::EachOctet(Offset at, std::size_t count, Next next) noexcept -> void {
+  if (auto const run{ Run(at, static_cast<std::int64_t>(count * 8)) }; run.size() == count * 8)
+    for (auto const [i, octet] : std::views::zip(std::views::iota(0uz), Octets(run))) Set(octet, next(i, Get(octet)));
+  else
+    for (auto const i : std::views::iota(0uz, count)) Store(at + Offset(i) * 8, next(i, Load(at + Offset(i) * 8)));
+  _changed = true;
 }
 
 auto Canvas::Store(Offset at, std::uint64_t pixels) noexcept -> void {
   auto const group{ std::bit_cast<std::array<canvas::Pixel, 8>>(pixels) };
-  auto const run{ Run(at, 8) };
-  if (run.size() == 8)
+  if (auto const run{ Run(at, 8) }; run.size() == 8)
     std::ranges::copy(group, run.first<8>().begin());
   else
-    std::ranges::copy(group | std::views::take(run.size()), run.begin());
+    for (auto const [i, pixel] : std::views::zip(std::views::iota(0), group)) Put(at + i, pixel);
   _changed = true;
 }
 
-auto Canvas::Pixel(Offset at) const noexcept -> canvas::Pixel {
-  auto const run{ Run(at, 1) };
-  return run.empty() ? canvas::Pixel{ 0 } : run.front();
-}
-
-auto Canvas::Put(Offset at, canvas::Pixel colour) noexcept -> void {
-  auto const run{ Run(at, 1) };
-  if (run.empty()) return;
-  run.front() = Low4(colour);
-  _changed    = true;
+auto Canvas::Move(Offset to, Offset from, std::int64_t count) noexcept -> void {
+  auto const target{ Run(to, count) };
+  auto const source{ std::as_const(*this).Run(from, count) };
+  if (target.size() == static_cast<std::size_t>(count) && source.size() == target.size()) {
+    if (to < from)
+      std::ranges::copy(source, target.begin());
+    else
+      std::ranges::copy_backward(source, target.end());
+  } else {
+    // Across the end of the store: pixel by pixel in the same order.
+    auto const order{ std::views::iota(std::int64_t{ 0 }, count) };
+    auto const move{ [&](std::int64_t i) { Put(to + i, Pixel(from + i)); } };
+    if (to < from)
+      std::ranges::for_each(order, move);
+    else
+      std::ranges::for_each(order | std::views::reverse, move);
+  }
+  _changed = true;
 }
 
 auto Canvas::Clear() noexcept -> void {
-  _pixels.fill(0);
+  std::ranges::fill(std::span{ _pixels }.first<PIXELS>(), 0);
   _changed = true;
 }
 
@@ -293,9 +306,9 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
     auto line{ y + GAME_TOP };
     for (auto const source : Chunks(image.first(std::size_t{ w } * h * PLANES), std::size_t{ w } * PLANES))
       for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-        for (auto const [octet, bits] :
-             std::views::zip(Octets(Run(At(x * 8, line), w * 8)), FixedChunks<PLANES>(source)))
-          Set(octet, apply(Get(octet), Colours(bits)));
+        EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) {
+          return apply(under, Colours(source.subspan(i * PLANES).template first<PLANES>()));
+        });
         line++;
       }
   } };
@@ -329,8 +342,9 @@ auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::ui
   auto       line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w))
     for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-      for (auto const [octet, byte] : std::views::zip(Octets(Run(At(x * 8, line), w * 8)), source))
-        Set(octet, op == 0 ? Expand(byte) & Solid(mode) : _pen.Apply(Get(octet), byte));
+      EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) {
+        return op == 0 ? Expand(source[i]) & Solid(mode) : _pen.Apply(under, source[i]);
+      });
       line++;
     }
   _changed = true;
@@ -343,8 +357,8 @@ auto Canvas::DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   auto line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w)) {
-    for (auto const [octet, byte] : std::views::zip(Octets(Run(At(x * 8, line), w * 8)), source))
-      Set(octet, Select(Expand(byte), Solid(mode), Solid(mode >> 8)));
+    EachOctet(At(x * 8, line), w,
+              [&](std::size_t i, std::uint64_t) { return Select(Expand(source[i]), Solid(mode), Solid(mode >> 8)); });
     line++;
   }
   _changed = true;
@@ -442,7 +456,7 @@ auto Canvas::Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::u
   if (op == 0 || op >= 4) return std::unexpected{ DrawError::BAD_MODE };
   SelectPen(op, static_cast<std::uint8_t>(colour));
   for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h))
-    for (auto const octet : Octets(Run(At(x * 8, line), w * 8))) Set(octet, _pen.Apply(Get(octet), 0xFF));
+    EachOctet(At(x * 8, line), w, [this](std::size_t, std::uint64_t under) { return _pen.Apply(under, 0xFF); });
   _changed = true;
   return {};
 }
@@ -468,7 +482,7 @@ auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
   for ([[maybe_unused]] auto const row : std::views::iota(0, rows ? int{ rows } : 0x10000)) {
     auto const at{ At((x1 >> 3) * 8, line) };
     masked(at, left);
-    std::ranges::fill(Run(at + 8, middle * 8), Low4(colour));
+    EachOctet(at + 8, middle, [colour](std::size_t, std::uint64_t) { return Solid(colour); });
     masked(at + 8 + middle * 8, right);
     line++;
   }
@@ -546,43 +560,28 @@ auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
 // backwards, so an overlapping copy moves the block intact. Unclipped; h = 0 copies 65536 rows.
 auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2,
                          std::uint16_t y2) noexcept -> void {
-  auto       from{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y1 + GAME_TOP) * 80u + x1) };
-  auto       to{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y2 + GAME_TOP) * 80u + x2) };
-  auto       step{ static_cast<std::uint16_t>(80 - w) };
-  auto const backward{ !(to < from) };
-  if (backward) {
-    auto const last{ static_cast<std::uint16_t>(80u * static_cast<std::uint16_t>(h - 1) + w - 1) };
-    from = static_cast<std::uint16_t>(from + last);
-    to   = static_cast<std::uint16_t>(to + last);
-    step = static_cast<std::uint16_t>(w - 80);
-  }
-  for ([[maybe_unused]] auto const row : std::views::iota(0, h ? int{ h } : 0x10000)) {
-    for ([[maybe_unused]] auto const column : std::views::iota(0, int{ w })) {
-      Store(Offset{ to } * 8, Load(Offset{ from } * 8));
-      from = static_cast<std::uint16_t>(backward ? from - 1 : from + 1);
-      to   = static_cast<std::uint16_t>(backward ? to - 1 : to + 1);
-    }
-    from = static_cast<std::uint16_t>(from + step);
-    to   = static_cast<std::uint16_t>(to + step);
-  }
+  auto const from{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y1 + GAME_TOP) * 80u + x1) };
+  auto const to{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y2 + GAME_TOP) * 80u + x2) };
+  // Column by column in one direction at a constant distance: memmove of each row, the rows in the same direction.
+  auto const row{ [&](int r) {
+    auto const at{ [r](std::uint16_t start) { return Offset{ static_cast<std::uint16_t>(start + r * 80) } * 8; } };
+    Move(at(to), at(from), w * 8);
+  } };
+  auto const rows{ std::views::iota(0, h ? int{ h } : 0x10000) };
+  if (to < from)
+    std::ranges::for_each(rows, row);
+  else
+    std::ranges::for_each(rows | std::views::reverse, row);
 }
 
 // ---- pictures ------------------------------------------------------------------------------------------------------
 
 // A unit value holds one nibble per colour bit (nibble p = bit p of the 4 pixels, the leftmost in the nibble's bit 3).
 auto Canvas::PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void {
-  for (auto const [j, pixel] : std::views::zip(std::views::iota(0), Run(UnitAt(unit), 4)))
-    pixel = static_cast<canvas::Pixel>(((value >> (3 - j)) & 1) | ((value >> (6 - j)) & 2) | ((value >> (9 - j)) & 4)
-                                       | ((value >> (12 - j)) & 8));
+  auto const pixels{ NIBBLE_SPREAD[value & 0x0F] | NIBBLE_SPREAD[(value >> 4) & 0x0F] << 1
+                     | NIBBLE_SPREAD[(value >> 8) & 0x0F] << 2 | NIBBLE_SPREAD[value >> 12] << 3 };
+  std::ranges::copy(std::bit_cast<std::array<canvas::Pixel, 4>>(pixels), Run(UnitAt(unit), 4).begin());
   _changed = true;
-}
-
-auto Canvas::UnitValue(std::uint16_t unit) const noexcept -> std::uint16_t {
-  std::uint16_t value{};
-  for (auto const [j, pixel] : std::views::zip(std::views::iota(0), Run(UnitAt(unit), 4)))
-    value |= static_cast<std::uint16_t>(((pixel & 1) << (3 - j)) | ((pixel & 2) << (6 - j)) | ((pixel & 4) << (9 - j))
-                                        | ((pixel & 8) << (12 - j)));
-  return value;
 }
 
 auto Canvas::MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept -> std::uint16_t {
@@ -640,9 +639,12 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bo
         auto back{ static_cast<std::uint16_t>(((command & 0x30) >> 4) + 1) };
         if (command & 0x40) back = static_cast<std::uint16_t>(back * 160u);
         n = static_cast<std::uint16_t>((command & 0x0F) + 1);
-        auto const from{ static_cast<std::uint16_t>(unit - back) };
-        for (auto const i : std::views::iota(0, int{ n }))
-          PutUnit(static_cast<std::uint16_t>(unit + i), UnitValue(static_cast<std::uint16_t>(from + i)));
+        // Unit by unit from the start, so a copy that overlaps its source repeats it.
+        auto const from{ UnitAt(static_cast<std::uint16_t>(unit - back)) };
+        auto const target{ Run(UnitAt(unit), n * 4) };
+        std::ranges::for_each(std::views::iota(0uz, target.size()),
+                              [&](std::size_t i) { target[i] = Pixel(from + Offset(i)); });
+        _changed = true;
       }
       unit  = static_cast<std::uint16_t>(unit + n);
       left -= n;
@@ -665,7 +667,8 @@ auto Canvas::Render(std::span<std::uint8_t, PIXELS>        frame,
     std::ranges::fill(frame, 0);
     return;
   }
-  std::ranges::transform(_pixels, frame.begin(), [this](canvas::Pixel pixel) { return _colour_map[pixel]; });
+  std::ranges::transform(std::span{ _pixels }.first<PIXELS>(), frame.begin(),
+                         [this](canvas::Pixel pixel) { return _colour_map[pixel]; });
 }
 
 auto Screen() noexcept -> Canvas& {
