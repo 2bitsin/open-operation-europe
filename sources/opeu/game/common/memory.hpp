@@ -68,6 +68,28 @@ inline auto WithStack(std::uint16_t bytes, Body&& call) -> decltype(call(std::ui
   } const frame{ bytes, port_stack_enter(bytes) };
   return call(frame.sp);
 }
+
+// The DS bytes a routine reserves on the DS stack for its locals whose near address it hands to a service: the
+// service reads and writes them in the data segment. Only those locals live here (#13 gives the services typed
+// parameters and removes it); every other local is a C++ local.
+class ServiceLocals {
+public:
+  explicit ServiceLocals(std::uint16_t bytes) : _bytes{ bytes }, _base{ static_cast<std::uint16_t>(port_stack_enter(bytes) - bytes) } { }
+  ServiceLocals(ServiceLocals const&)                    = delete;
+  auto operator=(ServiceLocals const&) -> ServiceLocals& = delete;
+  ~ServiceLocals() {
+    port_stack_leave(_bytes);
+  }
+
+  // The near address of the local `offset` bytes into the reserve.
+  [[nodiscard]] auto At(std::uint16_t offset) const noexcept -> std::uint16_t {
+    return static_cast<std::uint16_t>(_base + offset);
+  }
+
+private:
+  std::uint16_t _bytes;
+  std::uint16_t _base;
+};
 } // namespace opeu::game::detail::memory
 
 namespace opeu::game {
@@ -78,6 +100,7 @@ using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
 using detail::memory::Local;
 using detail::memory::SERVICE_STACK;
+using detail::memory::ServiceLocals;
 using detail::memory::SetWord;
 using detail::memory::SPRITE_SEGMENT;
 using detail::memory::WithStack;

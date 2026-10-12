@@ -174,16 +174,17 @@ private:
 
   // The converted text (up to its terminator) padded to the width; a string's precision limits the characters copied.
   void Pad(Spec directive, std::string_view text) {
-    if (!directive.left)
-      while (directive.width-- > 0) _output += directive.pad;
+    if (!directive.left) Fill(directive.width, directive.pad);
     for (auto const c : CString(text)) {
       if (!directive.has_precision || directive.precision > 0) {
         _output += c;
         directive.precision--;
       }
     }
-    if (directive.left)
-      while (directive.width-- > 0) _output += ' ';
+    if (directive.left) Fill(directive.width, ' ');
+  }
+  void Fill(std::int16_t width, char pad) {
+    if (width > 0) _output.append(static_cast<std::size_t>(width), pad);
   }
 
   DataSegment const&             _data;
