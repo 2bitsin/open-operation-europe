@@ -97,9 +97,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame, ui
   Call(ds, event, PickService::INPUT_RESET);
   Call(ds, event, PickService::BITMAP_SAVE, 0, 0, 80, 24, data.bitmap_buffer, STATUS_OFFSET);
   data.control_selection = 0;
-  auto const pan{ [&](int16_t dx, int16_t dy) {
-    Call(ds, event, PickService::VIEWPORT_PAN, dx, dy, shown_x, data.current_side, shown_y);
-  } };
+  auto const pan{ [&](int16_t dx, int16_t dy) { Call(ds, event, PickService::VIEWPORT_PAN, dx, dy, shown_x, data.current_side, shown_y); } };
 
   // Mouse input until the pointer moves to another cell or a button decides.
   auto const mouse{ [&]() -> Outcome {
@@ -113,9 +111,7 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame, ui
       auto const in{ [&](Area const& area) { return area.Holds(pointer_x(), pointer_y()); } };
       if (buttons & LEFT_BUTTON) {
         Call(ds, event, PickService::MOUSE_HIDE);
-        if ((view_up() && in(VIEW_CELLS))
-            || (overview_up() && in(OVERVIEW_CELLS) && OnMap(shown_x, shown_y) && opeu_map_code(ds, shown_x, shown_y)))
-          return Outcome::ACCEPT;
+        if ((view_up() && in(VIEW_CELLS)) || (overview_up() && in(OVERVIEW_CELLS) && OnMap(shown_x, shown_y) && opeu_map_code(ds, shown_x, shown_y))) return Outcome::ACCEPT;
         if (view_up()) {
           uint8_t direction{ NONE };
           if (in(PAN_RIGHT)) {
@@ -148,13 +144,9 @@ uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame, ui
         return Outcome::CANCEL;
       }
       if (view_up() && in(VIEW_CELLS)) {
-        auto const cell_y{ static_cast<int16_t>((static_cast<int16_t>(pointer_y()) - VIEW_CELLS.top) / VIEW_CELL_PIXELS
-                                                + static_cast<int16_t>(data.viewport_y)) };
-        auto const cell_x{ static_cast<int16_t>((static_cast<int16_t>(pointer_x()) - VIEW_CELLS.left) / VIEW_CELL_PIXELS
-                                                + static_cast<int16_t>(data.viewport_x)) };
-        if (cell_x < 0 || cell_y < 0 || cell_x >= static_cast<int16_t>(MAP_WIDTH)
-            || cell_y >= static_cast<int16_t>(MAP_HEIGHT))
-          continue;
+        auto const cell_y{ static_cast<int16_t>((static_cast<int16_t>(pointer_y()) - VIEW_CELLS.top) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_y)) };
+        auto const cell_x{ static_cast<int16_t>((static_cast<int16_t>(pointer_x()) - VIEW_CELLS.left) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_x)) };
+        if (cell_x < 0 || cell_y < 0 || cell_x >= static_cast<int16_t>(MAP_WIDTH) || cell_y >= static_cast<int16_t>(MAP_HEIGHT)) continue;
         Byte(ds, x) = static_cast<uint8_t>(cell_x);
         Byte(ds, y) = static_cast<uint8_t>(cell_y);
       } else {
@@ -247,31 +239,20 @@ uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   switch (static_cast<PickService>(id)) {
-  case PickService::ARRIVAL_LOCATION:
-    WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); });
-    return 0;
-  case PickService::INPUT_RESET: opeu_input_reset(ds, svc_mouse); return 0;
-  case PickService::BITMAP_SAVE: opeu_bitmap_save(arg(0), arg(1), arg(2), arg(3), port_far(arg(4), arg(5))); return 0;
-  case PickService::MAP_ERASE:
-    WithMapFrame([&](uint16_t frame) { opeu_map_erase(ds, svc_maperase, frame, byte(0), byte(1)); });
-    return 0;
-  case PickService::INSPECT: opeu_map_inspect(ds, svc_inspect, byte(0), byte(1)); return 0;
-  case PickService::CURSOR:
-    WithMapFrame([&](uint16_t frame) { opeu_map_cursor(ds, svc_cursor, frame, arg(0), arg(1)); });
-    return 0;
-  case PickService::MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); return 0;
-  case PickService::MOUSE_BUTTONS:  return opeu_mouse_buttons(ds, svc_mouse);
-  case PickService::MOUSE_POSITION: opeu_mouse_position(ds, svc_mouse, arg(0), arg(1)); return 0;
-  case PickService::MOUSE_HIDE:     opeu_mouse_hide(ds, svc_mouse); return 0;
-  case PickService::VIEWPORT_PAN:
-    opeu_viewport_pan(ds, svc_viewpan, static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1)), byte(2), byte(4),
-                      byte(3));
-    return 0;
-  case PickService::KEYBOARD_KEY: return opeu_keyboard_key(ds, svc_keyboard);
-  case PickService::BITMAP_RESTORE:
-    opeu_bitmap_restore(arg(0), arg(1), arg(2), arg(3), arg(4), port_far(arg(5), arg(6)));
-    return 0;
-  default: port_unhandled("mappick", id, count);
+  case PickService::ARRIVAL_LOCATION: WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); }); return 0;
+  case PickService::INPUT_RESET:      opeu_input_reset(ds, svc_mouse); return 0;
+  case PickService::BITMAP_SAVE:      opeu_bitmap_save(arg(0), arg(1), arg(2), arg(3), port_far(arg(4), arg(5))); return 0;
+  case PickService::MAP_ERASE:        WithMapFrame([&](uint16_t frame) { opeu_map_erase(ds, svc_maperase, frame, byte(0), byte(1)); }); return 0;
+  case PickService::INSPECT:          opeu_map_inspect(ds, svc_inspect, byte(0), byte(1)); return 0;
+  case PickService::CURSOR:           WithMapFrame([&](uint16_t frame) { opeu_map_cursor(ds, svc_cursor, frame, arg(0), arg(1)); }); return 0;
+  case PickService::MOUSE_SHOW:       opeu_mouse_show(ds, svc_mouse); return 0;
+  case PickService::MOUSE_BUTTONS:    return opeu_mouse_buttons(ds, svc_mouse);
+  case PickService::MOUSE_POSITION:   opeu_mouse_position(ds, svc_mouse, arg(0), arg(1)); return 0;
+  case PickService::MOUSE_HIDE:       opeu_mouse_hide(ds, svc_mouse); return 0;
+  case PickService::VIEWPORT_PAN:     opeu_viewport_pan(ds, svc_viewpan, static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1)), byte(2), byte(4), byte(3)); return 0;
+  case PickService::KEYBOARD_KEY:     return opeu_keyboard_key(ds, svc_keyboard);
+  case PickService::BITMAP_RESTORE:   opeu_bitmap_restore(arg(0), arg(1), arg(2), arg(3), arg(4), port_far(arg(5), arg(6))); return 0;
+  default:                            port_unhandled("mappick", id, count);
   }
   return 0;
 }

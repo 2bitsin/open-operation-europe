@@ -21,8 +21,7 @@ constexpr uint8_t  LAST_CELL{ MAP_WIDTH - 1 };
   return static_cast<uint16_t>(Near(data, data.rotated_glyphs) + 5 * digit);
 }
 
-void Glyph(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color,
-           uint16_t glyph) {
+void Glyph(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color, uint16_t glyph) {
   Call(ds, event, MapService::GLYPH_NEAR, x, y, w, h, color, glyph);
 }
 
@@ -49,8 +48,7 @@ void opeu_view_number(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint
 
 // Blanks three upright digit cells leftward from x in colour back, then draws value right-aligned at x in colour fore
 // when it is on the scale.
-void opeu_scale_label_x(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t back, uint16_t fore,
-                        int16_t value) {
+void opeu_scale_label_x(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t back, uint16_t fore, int16_t value) {
   auto const& data{ Data(ds) };
   uint16_t    at{ x };
   for (uint8_t cell{ 0 }; cell < 3; at -= 6, cell++) Glyph(ds, event, at, y, 6, 6, back, UprightGlyph(data, BLANK));
@@ -62,8 +60,7 @@ void opeu_scale_label_x(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, ui
 }
 
 // The same with rotated digits running downward from y.
-void opeu_scale_label_y(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t back, uint16_t fore,
-                        int16_t value) {
+void opeu_scale_label_y(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t back, uint16_t fore, int16_t value) {
   auto const& data{ Data(ds) };
   uint16_t    at{ y };
   for (uint8_t cell{ 0 }; cell < 3; at += 5, cell++) Glyph(ds, event, x, at, 8, 5, back, RotatedGlyph(data, BLANK));

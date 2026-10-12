@@ -65,15 +65,11 @@ uint16_t svc_credits(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case INPUT_FLUSH: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
   case INPUT_A:     result = static_cast<uint16_t>(opeu_turn_input_a(ds, svc_mouse)); break;
   case GETCH:       result = static_cast<uint16_t>(port_getch()); break;
-  case FILL_COLOR:
-    opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), static_cast<uint8_t>(Arg(args, count, 0)));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT:   b1_cursor_print(ds, args, count); break;
-  case INPUT_B: result = opeu_turn_input_b(); break;
-  default:      port_unhandled("credits", id, count);
+  case FILL_COLOR:  opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:       b1_cursor_print(ds, args, count); break;
+  case INPUT_B:     result = opeu_turn_input_b(); break;
+  default:          port_unhandled("credits", id, count);
   }
   return result;
 }

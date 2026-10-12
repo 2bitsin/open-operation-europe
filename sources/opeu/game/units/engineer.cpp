@@ -103,18 +103,15 @@ auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> 
 
 // The engineering skill roll, computed in 16-bit words of which the low byte is kept. The services are called in the
 // order general, random bound, engineer count, average10, average11.
-auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t frame, std::uint16_t person, std::uint16_t bound,
-               std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
+auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t frame, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus)
+    -> std::uint8_t {
   auto&               data{ Data(ds) };
   std::uint16_t const random{ Send(ds, event, RAND_BOUNDED, bound) };
-  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS),
-                                      Local(frame, ENGINEER_COUNT)) };
+  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), Local(frame, ENGINEER_COUNT)) };
   std::uint16_t const average10{ Send(ds, event, UNIT_AVERAGE10, data.current_unit_ptr) };
   std::uint16_t const average11{ Send(ds, event, UNIT_AVERAGE11, data.current_unit_ptr) };
-  return static_cast<std::uint8_t>(average11 / 19
-                                   - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10)
-                                         / leadership_divisor
-                                   - engineers / engineer_divisor + random + bonus);
+  return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random
+                                   + bonus);
 }
 
 // Lowers the current order's progress by the roll; nonzero when it runs out. The regiment is read after the roll.
@@ -157,8 +154,7 @@ uint16_t opeu_engineer_lay_mines(uint8_t ds[65536], HostEvent event, uint16_t fr
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
   if (!Send(ds, event, CELL_MARKED, x, y, data.current_side) && (regiment.x != x || regiment.y != y)) {
     if (!Send(ds, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(ds, event, opeu_mine_skill(ds, event, Local(frame, SKILL_FRAME)))
-        && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
+    if (LowerProgress(ds, event, opeu_mine_skill(ds, event, Local(frame, SKILL_FRAME))) && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
       Report(ds, event, data.mines_laid_text);
       Send(ds, event, MARK_CELL, x, y, data.current_side);
       Send(ds, event, MAP_ERASE, x, y);
@@ -218,8 +214,7 @@ uint16_t opeu_engineer_build_bridge(uint8_t ds[65536], HostEvent event, uint16_t
   auto const y{ Byte(ds, at_y) };
   if (static_cast<Terrain>(static_cast<std::uint8_t>(Send(ds, event, MAP_CODE, x, y))) == Terrain::RIVER) {
     if (!Send(ds, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(ds, event, opeu_bridge_skill(ds, event, Local(frame, SKILL_FRAME)))
-        && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
+    if (LowerProgress(ds, event, opeu_bridge_skill(ds, event, Local(frame, SKILL_FRAME))) && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
       Report(ds, event, data.bridge_built_text);
       Send(ds, event, MAP_MARK_BRIDGE, x, y);
       Send(ds, event, MAP_ERASE, x, y);
@@ -241,8 +236,7 @@ uint16_t opeu_arms_repair(uint8_t ds[65536], uint16_t amount, uint16_t body) {
   auto const budget{ Word(ds, amount) };
   if (!budget || !item.extra) return 0;
   auto const capacity{ data.request_capacities[data.element_types[item.type].category] };
-  auto const repaired{ static_cast<std::uint16_t>(opeu_min16(opeu_min16(budget, item.extra) + item.quantity, capacity)
-                                                  - item.quantity) };
+  auto const repaired{ static_cast<std::uint16_t>(opeu_min16(opeu_min16(budget, item.extra) + item.quantity, capacity) - item.quantity) };
   item.extra    -= repaired;
   item.quantity += repaired;
   SetWord(ds, amount, static_cast<std::uint16_t>(budget - repaired));
@@ -268,9 +262,7 @@ uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event, uint
   if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto const budget{ Local(frame, REPAIR_BUDGET) };
-  SetWord(ds, budget,
-          static_cast<std::uint16_t>(
-              Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
+  SetWord(ds, budget, static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
   bool repaired{ false };
   for (auto& item : Record<Objective>(data, objective).items)
     if (item.quantity && opeu_arms_repair(ds, budget, Near(data, item))) repaired = true;
@@ -297,9 +289,7 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event, uint16_t 
   if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto const budget{ Local(frame, REPAIR_BUDGET) };
-  SetWord(ds, budget,
-          static_cast<std::uint16_t>(
-              Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
+  SetWord(ds, budget, static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1));
   bool repaired{ false };
   for (auto element{ Record<Unit>(data, unit).first }; element; element = Record<Element>(data, element).next)
     if (opeu_arms_repair(ds, budget, Near(data, Record<Element>(data, element).type))) repaired = true;
@@ -341,22 +331,13 @@ uint16_t svc_engineer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   };
   uint16_t r = 0;
   switch (id) {
-  case UNIT_QUANTITY:
-    r = opeu_unit_quantity(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2)));
-    break;
-  case CELL_MARKED:
-    r = opeu_cell_marked(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    break;
-  case MARK_CELL:
-    opeu_mark_cell(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    break;
-  case UNMARK_CELL:
-    opeu_unmark_cell(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    break;
+  case UNIT_QUANTITY:   r = opeu_unit_quantity(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2))); break;
+  case CELL_MARKED:     r = opeu_cell_marked(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case MARK_CELL:       opeu_mark_cell(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case UNMARK_CELL:     opeu_unmark_cell(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case MAP_MARK_BRIDGE: opeu_map_mark_10(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:
-    if (id >= SERVICES || shared[id] == NONE || !svc_order_handler(ds, shared[id], args, count, &r))
-      port_unhandled("engineer", id, count);
+    if (id >= SERVICES || shared[id] == NONE || !svc_order_handler(ds, shared[id], args, count, &r)) port_unhandled("engineer", id, count);
   }
   return r;
 }
@@ -366,78 +347,43 @@ uint16_t svc_engineer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result) {
   uint16_t r = 0;
   switch (id) {
-  case OrderService::UNIT_AVERAGE11:     r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
-  case OrderService::RAND_BOUNDED:       r = port_rand_bounded(ds, Arg(args, count, 0)); break;
-  case OrderService::RESTORE_UNIT_ORDER: opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
-  case OrderService::GRID_STEP:
-    r = opeu_grid_step(PORT_DS(Arg(args, count, 0)), PORT_DS(Arg(args, count, 1)), (uint8_t)Arg(args, count, 2));
-    break;
-  case OrderService::FIND_UNIT_AT:
-    r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case OrderService::UNIT_SIDE:     r = opeu_unit_side(Arg(args, count, 0)); break;
-  case OrderService::UNIT_VALUE:    r = opeu_unit_value(ds, Arg(args, count, 0)); break;
-  case OrderService::MOVE_SUPPLIED: r = opeu_move_supplied(ds); break;
-  case OrderService::UNIT_REPORT:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case OrderService::UNIT_AVERAGE11:          r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
+  case OrderService::RAND_BOUNDED:            r = port_rand_bounded(ds, Arg(args, count, 0)); break;
+  case OrderService::RESTORE_UNIT_ORDER:      opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
+  case OrderService::GRID_STEP:               r = opeu_grid_step(PORT_DS(Arg(args, count, 0)), PORT_DS(Arg(args, count, 1)), (uint8_t)Arg(args, count, 2)); break;
+  case OrderService::FIND_UNIT_AT:            r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::UNIT_SIDE:               r = opeu_unit_side(Arg(args, count, 0)); break;
+  case OrderService::UNIT_VALUE:              r = opeu_unit_value(ds, Arg(args, count, 0)); break;
+  case OrderService::MOVE_SUPPLIED:           r = opeu_move_supplied(ds); break;
+  case OrderService::UNIT_REPORT:             opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::UNIT_SELECTION_ELIGIBLE: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
   case OrderService::REQUEST_FORMAT:          r = lf_request_format(ds, args, count); break;
-  case OrderService::CONFIRM_MESSAGE:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case OrderService::DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    Arg32(args, count, 2));
-    break;
-  case OrderService::OPPOSITE_SIDE: r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
-  case OrderService::MOVE_OBJECTIVE_TARGET:
-    r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1),
-                                   (uint8_t)Arg(args, count, 2));
-    break;
+  case OrderService::CONFIRM_MESSAGE:         r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OrderService::DAILY_SHOW:              opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
+  case OrderService::OPPOSITE_SIDE:           r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
+  case OrderService::MOVE_OBJECTIVE_TARGET:   r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case OrderService::MOVE_ADJACENT:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      return opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2u), (uint8_t)Arg(args, count, 0),
-                                (uint8_t)Arg(args, count, 1));
-    });
+    r = WithStack(SERVICE_STACK,
+                  [&](std::uint16_t sp) { return opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); });
     break;
-  case OrderService::MOVE_LEVEL_LOWER:
-    r = opeu_move_level_lower(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case OrderService::CELL_SIDE:
-    r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case OrderService::OBJECTIVE_QUANTITY:
-    r = opeu_objective_quantity(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2)));
-    break;
-  case OrderService::MOVE_UNIT:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      opeu_move_unit(ds, svc_moveunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0));
-    });
-    break;
+  case OrderService::MOVE_LEVEL_LOWER:     r = opeu_move_level_lower(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::CELL_SIDE:            r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::OBJECTIVE_QUANTITY:   r = opeu_objective_quantity(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2))); break;
+  case OrderService::MOVE_UNIT:            WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_move_unit(ds, svc_moveunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0)); }); break;
   case OrderService::SIDE_GROUPS_RETARGET: opeu_side_groups_retarget(ds, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::MOVE_UNIT_TARGET:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      return opeu_move_unit_target(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0),
-                                   Arg(args, count, 1));
-    });
+    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_move_unit_target(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), Arg(args, count, 1)); });
     break;
-  case OrderService::UNIT_NAME:   r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::ABS16_BITS:  r = opeu_abs16_bits(Arg(args, count, 0)); break;
-  case OrderService::UNIT_PERSON: r = opeu_unit_person(ds, Arg(args, count, 0)); break;
-  case OrderService::UNIT_AVERAGE10: r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
-  case OrderService::UNIT_AVERAGE9:  r = opeu_unit_average9(ds, Arg(args, count, 0)); break;
-  case OrderService::UNIT_ORDER_DESTINATION:
-    r = opeu_unit_order_destination(ds, Arg(args, count, 0), PORT_DS(Arg(args, count, 1)),
-                                    PORT_DS(Arg(args, count, 2)));
-    break;
-  case OrderService::MAP_CODE: r = opeu_map_code(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::MAP_MARK5: opeu_map_mark_5(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::UNIT_NAME:              r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OrderService::ABS16_BITS:             r = opeu_abs16_bits(Arg(args, count, 0)); break;
+  case OrderService::UNIT_PERSON:            r = opeu_unit_person(ds, Arg(args, count, 0)); break;
+  case OrderService::UNIT_AVERAGE10:         r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
+  case OrderService::UNIT_AVERAGE9:          r = opeu_unit_average9(ds, Arg(args, count, 0)); break;
+  case OrderService::UNIT_ORDER_DESTINATION: r = opeu_unit_order_destination(ds, Arg(args, count, 0), PORT_DS(Arg(args, count, 1)), PORT_DS(Arg(args, count, 2))); break;
+  case OrderService::MAP_CODE:               r = opeu_map_code(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::MAP_MARK5:              opeu_map_mark_5(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::MAP_ERASE:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      opeu_map_erase(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2u), (uint8_t)Arg(args, count, 0),
-                     (uint8_t)Arg(args, count, 1));
-    });
+    WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_map_erase(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); });
     break;
   case OrderService::PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::WAIT_UNITS:     opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
@@ -448,65 +394,48 @@ int svc_order_handler(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   return 1;
 }
 
-auto port_routine_opeu_arms_repaired_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_arms_repaired_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_arms_repaired_finish(ds, svc_engineer);
   return 0;
 }
 
-auto port_routine_opeu_bridge_built_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_bridge_built_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_bridge_built_finish(ds, svc_engineer);
   return 0;
 }
 
-auto port_routine_opeu_engineer_build_bridge(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_engineer_build_bridge(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_engineer_build_bridge(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_engineer_build_bridge(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2)); });
 }
 
-auto port_routine_opeu_engineer_lay_mines(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_engineer_lay_mines(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_engineer_lay_mines(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_engineer_lay_mines(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2)); });
 }
 
-auto port_routine_opeu_engineer_remove_mines(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_engineer_remove_mines(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_engineer_remove_mines(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_engineer_remove_mines(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2)); });
 }
 
-auto port_routine_opeu_engineer_repair_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_engineer_repair_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_engineer_repair_objective(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_engineer_repair_objective(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2)); });
 }
 
-auto port_routine_opeu_engineer_repair_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_engineer_repair_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_engineer_repair_unit(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_engineer_repair_unit(ds, svc_engineer, static_cast<std::uint16_t>(sp - 2)); });
 }
 
 auto port_routine_opeu_mines_laid_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -516,8 +445,7 @@ auto port_routine_opeu_mines_laid_finish(std::uint8_t* ds, std::uint16_t const* 
   return 0;
 }
 
-auto port_routine_opeu_mines_removed_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mines_removed_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_mines_removed_finish(ds, svc_engineer);

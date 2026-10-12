@@ -106,17 +106,14 @@ uint16_t opeu_battle_ai_entry_ok(uint8_t* ds, BattleEvent event, uint8_t x, uint
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const terrain{ static_cast<uint8_t>(MapCellAt(data, cell_x, cell_y) & Bits(MapCell::TERRAIN_MASK)) };
     auto const category{ data.element_types[element.type].category };
-    auto const cost{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.move_costs) + terrain * MOVE_CLASSES
-                                                                 + data.battle_ai_move_class[category])) };
+    auto const cost{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.move_costs) + terrain * MOVE_CLASSES + data.battle_ai_move_class[category])) };
     if (cost == IMPASSABLE) return 0;
   }
   if (MapCellAt(data, cell_x, cell_y) & Bits(MapCell::MARK_MASK)) {
     auto const mark{ Bits(opeu_battle_unit_side(ds, event, unit) ? MapCell::MARK_1 : MapCell::MARK_0) };
     if (MapCellAt(data, cell_x, cell_y) & mark) return 0;
   }
-  if (unit != Near(data, data.battle_garrison) && data.battle_ai_entry_side[0] != side
-      && data.battle_ai_entry_side[0] != NONE)
-    return 0;
+  if (unit != Near(data, data.battle_garrison) && data.battle_ai_entry_side[0] != side && data.battle_ai_entry_side[0] != NONE) return 0;
   return 1;
 }
 
@@ -141,8 +138,7 @@ uint16_t opeu_battle_ai_enter(uint8_t* ds, BattleEvent event, uint16_t element) 
   opeu_battle_disengage(ds, event, element);
   opeu_battle_set_facing(ds, event, element, NONE);
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
-  if (UnitDirection(ds, event, unit) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison))
-    data.battle_ai_entry_side[0] = static_cast<uint8_t>(EntrySide(data, x, y) - 1);
+  if (UnitDirection(ds, event, unit) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) data.battle_ai_entry_side[0] = static_cast<uint8_t>(EntrySide(data, x, y) - 1);
   return 1;
 }
 

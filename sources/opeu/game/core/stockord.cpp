@@ -43,8 +43,7 @@ uint8_t opeu_stock_cities_fill(uint8_t* ds, BattleEvent event, uint16_t sp) {
   uint8_t count{ 0 };
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (objective.active != 0 && static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near)) == data.current_side)
-      data.view_objectives[count++] = near;
+    if (objective.active != 0 && static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near)) == data.current_side) data.view_objectives[count++] = near;
   }
   return count;
 }
@@ -68,12 +67,9 @@ void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objec
   Call(ds, event, OBJECTIVE_CAPACITIES, objective, ammo, fuel, food);
   Call(ds, event, INFO_PANEL_BEGIN);
   Call(ds, event, UI_TEXT, offsetof(DataSegment, stock_header));
-  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_fuel_line), Word(ds, fuel), city.resources[FUEL],
-       city.reserves[FUEL]);
-  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_ammo_line), Word(ds, ammo), city.resources[AMMUNITION],
-       city.reserves[AMMUNITION]);
-  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_food_line), Word(ds, food), city.resources[FOOD],
-       city.reserves[FOOD]);
+  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_fuel_line), Word(ds, fuel), city.resources[FUEL], city.reserves[FUEL]);
+  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_ammo_line), Word(ds, ammo), city.resources[AMMUNITION], city.reserves[AMMUNITION]);
+  Call(ds, event, CURSOR_PRINT, offsetof(DataSegment, stock_food_line), Word(ds, food), city.resources[FOOD], city.reserves[FOOD]);
 }
 
 // The panel under the city's name.
@@ -86,8 +82,7 @@ void opeu_stock_show_titled(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_
 uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t what) {
   auto const& data{ Data(ds) };
   auto const  question{ Local(static_cast<std::uint16_t>(sp - 2), 0x64) };
-  Call(ds, event, REQUEST_FORMAT, question,
-       data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what);
+  Call(ds, event, REQUEST_FORMAT, question, data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what);
   return Call(ds, event, CONTROL_CHOOSE, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }
 
@@ -97,9 +92,7 @@ void opeu_stock_edit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objec
   auto&               city{ Record<Objective>(data, objective) };
   std::uint16_t const before[]{ city.reserves[AMMUNITION], city.reserves[FUEL], city.reserves[FOOD] };
   auto const          inner{ static_cast<std::uint16_t>(sp - 16) };
-  auto const          ask{ [&](Resource resource, std::uint16_t what) {
-    return (city.reserves[resource] = opeu_stock_ask(ds, event, inner, what)) != CANCELLED;
-  } };
+  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(ds, event, inner, what)) != CANCELLED; } };
   opeu_stock_show(ds, event, inner, objective);
   if (ask(FUEL, offsetof(DataSegment, stock_fuel))) {
     opeu_stock_show_titled(ds, event, inner, objective);
@@ -157,8 +150,7 @@ uint16_t svc_stockord(uint8_t* ds, uint32_t service, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_stock_city_enabled(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithBattleStack(
-      [ds](std::uint16_t sp) -> std::uint32_t { return opeu_stock_city_enabled(ds, svc_stockord, sp); });
+  return WithBattleStack([ds](std::uint16_t sp) -> std::uint32_t { return opeu_stock_city_enabled(ds, svc_stockord, sp); });
 }
 
 auto port_routine_opeu_turn_action_2(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {

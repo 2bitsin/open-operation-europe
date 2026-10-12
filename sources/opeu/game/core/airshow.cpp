@@ -64,8 +64,7 @@ void opeu_air_sprite_mirror(uint8_t ds[65536], uint16_t image, uint8_t keep) {
   for (std::size_t i = 0; i < mask.size(); i += 3) std::swap(mask[i], mask[i + 1]);
 }
 
-void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t bp, uint16_t x, uint16_t y,
-                          uint8_t keep) {
+void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t bp, uint16_t x, uint16_t y, uint8_t keep) {
   auto&         data{ Data(ds) };
   std::uint16_t mask{ Local(bp, 0xdc) };
   std::ranges::copy(opeu_view_type_masks[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
@@ -77,8 +76,7 @@ void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uin
   Call(ds, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream_ptr[1], data.stream_ptr[0]);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), PLANE_OFFSET);
   SetWord(ds, Local(bp, 4), mask);
-  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], Word(ds, Local(bp, 4)),
-       load + DATA_SEGMENT, 0, data.bitmap_buffer, 0);
+  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], Word(ds, Local(bp, 4)), load + DATA_SEGMENT, 0, data.bitmap_buffer, 0);
 }
 
 void opeu_air_sprite_restore(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
@@ -106,30 +104,20 @@ uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_
 uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case BITMAP_SAVE:
-    opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                     port_far(Arg(args, count, 4), Arg(args, count, 5)));
-    break;
+  case BITMAP_SAVE: opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
   case DRAW_FAR:
-    r = (uint16_t)opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    r = (uint16_t)opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
   case SPRITE_COMPOSE:
-    opeu_sprite_compose(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                        port_far(Arg(args, count, 5), Arg(args, count, 4)),
-                        port_far(Arg(args, count, 7), Arg(args, count, 6)),
-                        port_far(Arg(args, count, 9), Arg(args, count, 10)), Arg(args, count, 8));
+    opeu_sprite_compose(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 5), Arg(args, count, 4)),
+                        port_far(Arg(args, count, 7), Arg(args, count, 6)), port_far(Arg(args, count, 9), Arg(args, count, 10)), Arg(args, count, 8));
     break;
   case BITMAP_RESTORE:
-    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                                      Arg(args, count, 3), Arg(args, count, 4),
-                                      port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
-  case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  default: port_unhandled("airshow", id, count);
+  case REQUEST_FORMAT:  c2_request_format(ds, args, count); break;
+  case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  default:              port_unhandled("airshow", id, count);
   }
   return r;
 }

@@ -157,8 +157,7 @@ uint8_t opeu_general_assign_choice(uint8_t ds[65536], HostEvent event, uint8_t c
 
 // Row-draw callback for list rows first..last (last below 255). Flags bit 0 or 1 draws the ability header, bit 0 or
 // 2 the names.
-void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row,
-                                 uint8_t last, uint8_t flags) {
+void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
   auto const  row_width{ [&] { return Record<std::uint8_t>(data, window.widths); } };
@@ -183,8 +182,7 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event, uint8_t col
       Call(ds, event, SIDE_COLOR, data.current_side);
     else
       Call(ds, event, TEXT_COLOR, GREY);
-    Call(ds, event, PRINT, STATS_FORMAT, general.leadership, general.charm, general.bravery, general.health,
-         general.infantry, general.artillery, general.armor);
+    Call(ds, event, PRINT, STATS_FORMAT, general.leadership, general.charm, general.bravery, general.health, general.infantry, general.artillery, general.armor);
   }
   Call(ds, event, TEXT_COLOR, GREY);
 }
@@ -194,23 +192,17 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event, uint8_t col
 uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case SET_ROLE:  opeu_person_set_role(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case SET_GROUP: opeu_person_set_group(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case PORTRAIT:
-    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-    break;
+  case SET_ROLE:       opeu_person_set_role(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case SET_GROUP:      opeu_person_set_group(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case PORTRAIT:       opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case TEXT_ATTRIBUTE: opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case TEXT_COLOR:     opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT:      r = lf_cursor_print(ds, args, count); break;
-  case SIDE_COLOR: opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
+  case POSITION:       opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:          r = lf_cursor_print(ds, args, count); break;
+  case SIDE_COLOR:     opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
   case TABLE_COLUMNS:
     r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t {
-      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint16_t)(sp - 2u), (uint16_t)(sp - 4u), (uint16_t)(sp - 6u));
+      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint16_t)(sp - 2u), (uint16_t)(sp - 4u), (uint16_t)(sp - 6u));
       return Record<std::uint8_t>(Data(ds), (uint16_t)(sp - 2u));
     });
     break;
@@ -219,23 +211,18 @@ uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case FRAME_OPTION:           opeu_staff_frame_option(ds, svc_staffpnl, (int16_t)Arg(args, count, 0)); break;
   case SHOW_DIVISION_STRENGTH: opeu_show_division_strength(ds, svc_divstr, (uint8_t)Arg(args, count, 0)); break;
   case FIND_VACANT_POST:       r = opeu_find_vacant_post(ds); break;
-  case CLEAR_STAFF_ROLE: opeu_clear_staff_role(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CLEAR_DIVISION_COMMAND:
-    opeu_clear_division_command(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("genpick", id, count);
+  case CLEAR_STAFF_ROLE:       opeu_clear_staff_role(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case CLEAR_DIVISION_COMMAND: opeu_clear_division_command(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                     port_unhandled("genpick", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_general_assign_choice(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_general_assign_choice(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_general_assign_choice(ds, svc_genpick, (uint8_t)Arg(args, count, 0));
 }
 
-auto port_routine_opeu_general_list_draw_rows(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  opeu_general_list_draw_rows(ds, svc_genpick, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                              (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+auto port_routine_opeu_general_list_draw_rows(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_general_list_draw_rows(ds, svc_genpick, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   return 0;
 }

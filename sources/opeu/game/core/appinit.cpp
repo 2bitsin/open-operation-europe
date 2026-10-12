@@ -64,20 +64,15 @@ void opeu_app_initialize(uint8_t ds[65536], HostEvent event) {
 // The services of the startup and the input prompt as direct calls.
 uint16_t svc_appinit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case STARTUP:   opeu_app_startup_service(ds, svc_startup); break;
-  case VGA_CLEAR: opeu_vga_clear(); break;
-  case MOUSE_WINDOW:
-    opeu_mouse_window(ds, svc_mouse, (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1),
-                      (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3));
-    break;
-  case INPUT_FLUSH: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case TEXT:       opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case KEY_POLL:   return (uint16_t)opeu_turn_input_a(ds, svc_mouse);
-  case MOUSE_POLL: return opeu_turn_input_b();
-  default:         port_unhandled("appinit", id, count);
+  case STARTUP:      opeu_app_startup_service(ds, svc_startup); break;
+  case VGA_CLEAR:    opeu_vga_clear(); break;
+  case MOUSE_WINDOW: opeu_mouse_window(ds, svc_mouse, (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3)); break;
+  case INPUT_FLUSH:  opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
+  case POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TEXT:         opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case KEY_POLL:     return (uint16_t)opeu_turn_input_a(ds, svc_mouse);
+  case MOUSE_POLL:   return opeu_turn_input_b();
+  default:           port_unhandled("appinit", id, count);
   }
   return 0;
 }

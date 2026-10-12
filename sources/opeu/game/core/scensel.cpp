@@ -209,8 +209,7 @@ title:
       else
         data.map_mode[0] = 0;
     }
-    call(FORMAT, buf, at(data.scensel_map_format),
-         !data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field));
+    call(FORMAT, buf, at(data.scensel_map_format), !data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field));
     call(POSITION, 4, 0x37);
     call(PRINT, at(data.scensel_map_line), buf);
   battles:
@@ -243,8 +242,7 @@ title:
     if ((side_control[0] == 1 && side_control[1] == 0) || (side_control[0] == 0 && side_control[1] == 1)) {
       call(CLEAR_TEXT);
       call(POSITION, 4, 0x124);
-      data.delivery_level = call(PROMPT_CANCEL, at(data.scensel_difficulty_prompt), 5,
-                                 at(data.scensel_difficulty_menu));
+      data.delivery_level = call(PROMPT_CANCEL, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
       if (data.delivery_level == 0xff) goto battles;
       data.delivery_level--;
       call(STRING_COPY, buf, at(data.scensel_difficulty));
@@ -264,8 +262,7 @@ title:
       call(POSITION, 4, 0x154);
       call(PRINT, at(data.scensel_reselect));
       call(UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
-      if ((side_control[0] == 1 && side_control[1] == 0) || (side_control[0] == 0 && side_control[1] == 1))
-        goto difficulty;
+      if ((side_control[0] == 1 && side_control[1] == 0) || (side_control[0] == 0 && side_control[1] == 1)) goto difficulty;
       goto battles;
     }
     if (side_control[0] == 0 && side_control[1] == 0) {
@@ -302,46 +299,31 @@ start:
 uint16_t svc_scensel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case PRINT:  b1_cursor_print(ds, args, count); break;
-  case FORMAT: b1_request_format(ds, args, count); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case UI_TEXT:       opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PROMPT_CANCEL: r = port_prompt_cancel(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case PROMPT_REQUIRED:
-    r = port_prompt_required(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
-    break;
-  case YES_NO:       r = port_prompt_yes_no(ds, Arg(args, count, 0)); break;
-  case OPEN:         r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
-  case TURN_CONTEXT: opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case MUSIC_STOP:   opeu_music_stop(ds, svc_sound); break;
-  case FINISH_INIT:  opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case VGA_CLEAR:    r = (uint16_t)opeu_vga_clear(); break;
-  case PICTURE_MASKED:
-    opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                             (int16_t)Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case TITLE_PALETTE: opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host()); break;
-  case STRING_COPY:   r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case STRING_APPEND: r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UI_BOX:
-    r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                              Arg(args, count, 4));
-    break;
-  case DELAY:          opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case TEXT_ATTRIBUTE: opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case FRAMED_TEXT:
-    r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case CLOSE:         r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
-  case LOAD_SCENARIO: port_load_scenario(ds, Arg(args, count, 0)); break;
-  case MARKER_SHOW:   opeu_setup_marker_show(ds, svc_setmark, (uint8_t)Arg(args, count, 0)); break;
-  case MARKER_HIDE:   opeu_setup_marker_hide(ds, svc_setmark, (uint8_t)Arg(args, count, 0)); break;
-  case LOAD_SCENARIO_TEXT:
-    opeu_load_scenario_text(ds, svc_scenres, (uint8_t)Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case PRINT:                  b1_cursor_print(ds, args, count); break;
+  case FORMAT:                 b1_request_format(ds, args, count); break;
+  case POSITION:               opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case UI_TEXT:                opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case PROMPT_CANCEL:          r = port_prompt_cancel(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case PROMPT_REQUIRED:        r = port_prompt_required(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case YES_NO:                 r = port_prompt_yes_no(ds, Arg(args, count, 0)); break;
+  case OPEN:                   r = (uint16_t)opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)); break;
+  case TURN_CONTEXT:           opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
+  case MUSIC_STOP:             opeu_music_stop(ds, svc_sound); break;
+  case FINISH_INIT:            opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
+  case VGA_CLEAR:              r = (uint16_t)opeu_vga_clear(); break;
+  case PICTURE_MASKED:         opeu_picture_file_masked(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
+  case TITLE_PALETTE:          opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host()); break;
+  case STRING_COPY:            r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case STRING_APPEND:          r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UI_BOX:                 r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case DELAY:                  opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case TEXT_ATTRIBUTE:         opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case FRAMED_TEXT:            r = opeu_title_box(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case CLOSE:                  r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
+  case LOAD_SCENARIO:          port_load_scenario(ds, Arg(args, count, 0)); break;
+  case MARKER_SHOW:            opeu_setup_marker_show(ds, svc_setmark, (uint8_t)Arg(args, count, 0)); break;
+  case MARKER_HIDE:            opeu_setup_marker_hide(ds, svc_setmark, (uint8_t)Arg(args, count, 0)); break;
+  case LOAD_SCENARIO_TEXT:     opeu_load_scenario_text(ds, svc_scenres, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOAD_MESSAGE_GRAPHICS:  opeu_load_message_graphics(ds, svc_scenres); break;
   case LOAD_SCENARIO_GRAPHICS: opeu_load_scenario_graphics(ds, svc_scenres); break;
   case LOAD_SAVED_GAME:        r = opeu_load_saved_game(ds, svc_loadgame); break;

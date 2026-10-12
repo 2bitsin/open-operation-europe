@@ -40,8 +40,7 @@ uint8_t opeu_side_supported_units(uint8_t* ds, uint8_t side, uint16_t out) {
       bool       supported{ objective != 0 && opeu_objective_side(ds, objective) == data.current_side };
       if (!supported && direction != CENTER) {
         auto const neighbour{ opeu_find_unit_at(ds, x, y) };
-        supported = neighbour != 0 && opeu_unit_side(neighbour) == data.current_side
-                    && opeu_same_unit_class(unit, neighbour);
+        supported = neighbour != 0 && opeu_unit_side(neighbour) == data.current_side && opeu_same_unit_class(unit, neighbour);
       }
       if (supported) {
         Store(ds, out, unit);
@@ -63,8 +62,7 @@ uint8_t opeu_neighbor_units(uint8_t* ds, uint16_t unit, uint16_t out) {
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;
     auto const neighbour{ opeu_find_unit_at(ds, x, y) };
-    if (neighbour != 0 && opeu_unit_side(neighbour) == side && opeu_unit_selection_eligible(ds, neighbour)
-        && opeu_same_unit_class(unit, neighbour)) {
+    if (neighbour != 0 && opeu_unit_side(neighbour) == side && opeu_unit_selection_eligible(ds, neighbour) && opeu_same_unit_class(unit, neighbour)) {
       Store(ds, out, neighbour);
       ++found;
     }

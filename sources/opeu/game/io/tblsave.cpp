@@ -40,8 +40,7 @@ auto opeu_tbl_save_accept() -> std::uint8_t {
 
 // Draws the saved-game table: slot number, scenario, difficulty, date and players. `scratch` is a DS area of
 // SCRATCH_SIZE bytes: the column layout's three bytes, then the text buffer.
-void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column,
-                         std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
+void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
   auto&              data{ Data(ds) };
   auto const         buffer{ static_cast<std::uint16_t>(scratch + BUFFER_OFFSET) };
   auto const&        window{ Record<ListWindow>(data, data.list_window) };
@@ -79,8 +78,7 @@ void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint16_t scratc
     case 4: data.tbl_save_level = Near(data, data.tbl_level_vhard); break;
     }
     if ((slot.scenario & SCENARIO_MASK) != SLOT_EMPTY) {
-      Call(ds, event, FORMAT, buffer, Near(data, data.tbl_save_row), data.tbl_save_map, data.tbl_save_level, slot.month,
-           slot.day, slot.year, slot.hour, data.tbl_player_names[slot.control[0]],
+      Call(ds, event, FORMAT, buffer, Near(data, data.tbl_save_row), data.tbl_save_map, data.tbl_save_level, slot.month, slot.day, slot.year, slot.hour, data.tbl_player_names[slot.control[0]],
            data.tbl_player_names[slot.control[1]]);
       Call(ds, event, POSITION, text_x, y);
       Call(ds, event, PUT_RANGE, buffer, start, count);
@@ -88,23 +86,16 @@ void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint16_t scratc
   }
 }
 
-auto svc_tblsave(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count)
-    -> std::uint16_t {
+auto svc_tblsave(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   switch (kind) {
   case COLUMNS:
-    opeu_table_columns(ds, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)),
-                       static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3),
-                       Arg(args, count, 4));
+    opeu_table_columns(ds, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
     break;
-  case POSITION:
-    opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(Arg(args, count, 0)),
-                       static_cast<std::int16_t>(Arg(args, count, 1)));
-    break;
-  case FORMAT: b1_request_format(ds, args, count); break;
-  case PRINT:  b1_cursor_print(ds, args, count); break;
+  case POSITION: opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1))); break;
+  case FORMAT:   b1_request_format(ds, args, count); break;
+  case PRINT:    b1_cursor_print(ds, args, count); break;
   case PUT_RANGE:
-    opeu_text_put_range(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0),
-                        static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_text_put_range(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   default: port_unhandled("tblsave", kind, count);
   }
@@ -113,8 +104,7 @@ auto svc_tblsave(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args
 
 auto port_routine_opeu_tbl_draw_saves(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const scratch{ b1_stack_alloc(SCRATCH_SIZE) };
-  opeu_tbl_draw_saves(ds, svc_tblsave, scratch, static_cast<std::uint8_t>(Arg(args, count, 0)),
-                      static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
+  opeu_tbl_draw_saves(ds, svc_tblsave, scratch, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
                       static_cast<std::uint8_t>(Arg(args, count, 3)), static_cast<std::uint8_t>(Arg(args, count, 4)));
   port_scratch_leave(SCRATCH_SIZE);
   return 0;

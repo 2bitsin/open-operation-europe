@@ -70,26 +70,13 @@ void opeu_scenario_description(uint8_t ds[65536], HostEvent event, uint16_t text
 uint16_t svc_scenui(uint8_t* ds, uint16_t kind, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (kind) {
-  case OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT:   b1_cursor_print(ds, args, count); break;
-  case UI_TEXT: opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case BOX:
-    r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                              Arg(args, count, 4));
-    break;
-  case SCROLL_MODE:
-    r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0));
-    break;
-  case WINDOW:
-    opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1),
-                     (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3));
-    break;
+  case OUTLINE:     opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:       b1_cursor_print(ds, args, count); break;
+  case UI_TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case BOX:         r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case SCROLL_MODE: r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
+  case WINDOW:      opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3)); break;
   case WINDOW_RESET: opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
   default:           port_unhandled("scenui", kind, count);
   }

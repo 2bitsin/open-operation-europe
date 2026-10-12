@@ -8,8 +8,7 @@ uint16_t opeu_advice_tactical_objective_threat(uint8_t* ds, const uint8_t* far_t
 uint16_t opeu_advice_tactical_command(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp);
 uint16_t opeu_advice_tactical_reorganize(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp);
 uint16_t opeu_advice_tactical_unit_deployment(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp);
-uint16_t opeu_side_objective_slot_pending(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp,
-                                          uint8_t slot);
+uint16_t opeu_side_objective_slot_pending(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp, uint8_t slot);
 uint16_t opeu_side_request_kind_is(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp, uint8_t kind);
 uint16_t opeu_advice_tactical_supply_reinforce(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp);
 uint16_t opeu_advice_tactical_land_mines(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp);

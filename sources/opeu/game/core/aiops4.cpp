@@ -67,8 +67,7 @@ uint16_t opeu_ai_short_objective(uint8_t ds[65536]) {
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
     if (objective.active && opeu_objective_side(ds, near) == data.current_side
-        && (objective.resources[0] < SHORT_STOCK || objective.resources[1] < SHORT_STOCK
-            || objective.resources[2] < SHORT_STOCK))
+        && (objective.resources[0] < SHORT_STOCK || objective.resources[1] < SHORT_STOCK || objective.resources[2] < SHORT_STOCK))
       short_of[count++] = near;
   }
   return count ? short_of[opeu_rand_bounded(count)] : 0;

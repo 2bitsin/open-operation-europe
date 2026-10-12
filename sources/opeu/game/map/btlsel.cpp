@@ -118,8 +118,6 @@ auto port_routine_opeu_battle_key_select(std::uint8_t* ds, std::uint16_t const* 
   return opeu_battle_key_select(ds, svc_btlsel, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_mouse_select(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  return WithBattleStack(
-      [&](uint16_t sp) { return opeu_battle_mouse_select(ds, svc_btlsel, Arg(args, count, 0), BattleFrame(sp)); });
+auto port_routine_opeu_battle_mouse_select(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return WithBattleStack([&](uint16_t sp) { return opeu_battle_mouse_select(ds, svc_btlsel, Arg(args, count, 0), BattleFrame(sp)); });
 }

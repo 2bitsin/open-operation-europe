@@ -19,15 +19,12 @@ constexpr int16_t BLOCK{ 4 };
 // Forgets the shown view unless the block holding (x, y) lies one block inside the viewport origin on both axes.
 void opeu_control_position(uint8_t* ds, uint16_t x, uint16_t y) {
   auto& data{ Data(ds) };
-  if (static_cast<uint16_t>((x & BLOCK_MASK) - data.viewport_x) != BLOCK
-      || static_cast<uint16_t>((y & BLOCK_MASK) - data.viewport_y) != BLOCK)
-    data.view_side = NO_SIDE;
+  if (static_cast<uint16_t>((x & BLOCK_MASK) - data.viewport_x) != BLOCK || static_cast<uint16_t>((y & BLOCK_MASK) - data.viewport_y) != BLOCK) data.view_side = NO_SIDE;
 }
 
 // Scrolls so that the block holding (x, y) is one block inside the view. frame: this routine's frame.
 void opeu_map_center(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side) {
-  opeu_map_scroll_to(ds, event, Local(frame, 4), static_cast<int16_t>((x & BLOCK_MASK) - BLOCK),
-                     static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
+  opeu_map_scroll_to(ds, event, Local(frame, 4), static_cast<int16_t>((x & BLOCK_MASK) - BLOCK), static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
 }
 
 void opeu_arrival_location(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side) {

@@ -102,8 +102,7 @@ struct BattleExtra {
 };
 inline constexpr unsigned BATTLE_EXTRA_COUNT{ 10 };
 [[nodiscard]] inline auto BattleExtraAt(DataSegment& data, unsigned i) noexcept -> BattleExtra& {
-  return Record<BattleExtra>(
-      data, static_cast<std::uint16_t>(Near(data, data.battle_terrain_extras) + i * sizeof(BattleExtra)));
+  return Record<BattleExtra>(data, static_cast<std::uint16_t>(Near(data, data.battle_terrain_extras) + i * sizeof(BattleExtra)));
 }
 
 // The battle's unit lists: battle_lists[side * 9 + i], 0 after the last.

@@ -53,9 +53,7 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
   std::uint8_t  y;
   std::uint8_t  dir;
   std::uint16_t site;
-  if (data.side_control[side] == PLAYER
-      && !(data.groups[side * GROUPS_PER_SIDE + group].flags & Bits(GroupFlag::AI_MARK)))
-    return;
+  if (data.side_control[side] == PLAYER && !(data.groups[side * GROUPS_PER_SIDE + group].flags & Bits(GroupFlag::AI_MARK))) return;
   bool calm{ true };
   for (dir = 0; dir < 8; dir++) {
     x = regiment.x;
@@ -87,8 +85,7 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
       for (dir = 0; dir < 8; dir++) {
         x = regiment.x;
         y = regiment.y;
-        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(ds, x, y) == NO_SIDE
-            && opeu_move_cost(ds, x, y, unit) != IMPASSABLE
+        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(ds, x, y) == NO_SIDE && opeu_move_cost(ds, x, y, unit) != IMPASSABLE
             && ((site = opeu_find_objective_at(ds, x, y)) == 0 || opeu_objective_side(ds, site) == side)) {
           opeu_unit_fall_back(ds, unit, x, y);
           return;
@@ -98,13 +95,11 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
       return;
     }
   }
-  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER
-      && RandomBelow(ds, 2) == 0) {
+  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && RandomBelow(ds, 2) == 0) {
     for (dir = 0; dir < 8; dir++) {
       x = regiment.x;
       y = regiment.y;
-      if (opeu_grid_step(&x, &y, dir) && (site = opeu_find_objective_at(ds, x, y)) != 0
-          && opeu_objective_side(ds, site) != side) {
+      if (opeu_grid_step(&x, &y, dir) && (site = opeu_find_objective_at(ds, x, y)) != 0 && opeu_objective_side(ds, site) != side) {
         auto const& objective{ Record<Objective>(data, site) };
         opeu_set_unit_order(ds, unit, 0, objective.x, 1, ATTACK_OBJECTIVE, objective.y);
         break;

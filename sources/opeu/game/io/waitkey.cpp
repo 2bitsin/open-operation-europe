@@ -32,9 +32,7 @@ void opeu_delay_ticks(std::uint8_t* ds, HostEvent event, std::uint16_t ticks) {
   auto const& data{ Data(ds) };
   Call(ds, event, TIMER_START, ticks);
   while (Call(ds, event, TIMER_BUSY)) {
-    if (Call(ds, event, KEY_READY) && static_cast<std::uint8_t>(Call(ds, event, KEY_READ)) == ESCAPE
-        && (data.side_control[0] | data.side_control[1]) == 0)
-      Call(ds, event, QUIT);
+    if (Call(ds, event, KEY_READY) && static_cast<std::uint8_t>(Call(ds, event, KEY_READ)) == ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) Call(ds, event, QUIT);
   }
 }
 
@@ -46,8 +44,7 @@ void opeu_pending_finish(std::uint8_t* ds, HostEvent event, std::uint8_t) {
   opeu_delay_units(ds, event, static_cast<std::uint8_t>(Data(ds).message_speed * UNITS_PER_SPEED_STEP));
 }
 
-auto svc_waitkey(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count)
-    -> std::uint16_t {
+auto svc_waitkey(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   switch (kind) {
   case TIMER_START: opeu_fm_wait_start(Arg(args, count, 0)); break;
   case TIMER_BUSY:  return opeu_fm_busy();

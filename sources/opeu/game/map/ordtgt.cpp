@@ -47,8 +47,7 @@ uint8_t opeu_group_target_enabled(uint8_t* ds) {
   auto&      data{ Data(ds) };
   auto&      division{ DivisionOf(data, data.supply_row) };
   auto const group{ Near(data, division) };
-  return (division.flags & Bits(GroupFlag::READY))
-         && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group));
+  return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group));
 }
 
 uint8_t opeu_menu_always(void) {
@@ -83,13 +82,11 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t gr
     TaskKind   kind;
     if (objective) {
       kind = opeu_objective_side(ds, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD;
-      auto const format{ opeu_string_length(ds, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format)
-                                                                           : Near(data, data.target_one_line_format) };
+      auto const format{ opeu_string_length(ds, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format) : Near(data, data.target_one_line_format) };
       Call(ds, event, TargetService::FORMAT, text, format, data.order_names[Bits(kind)], objective);
     } else {
       kind = TaskKind::MOVE;
-      Call(ds, event, TargetService::FORMAT, text, Near(data, data.target_cell_format), data.map_scale * x,
-           y * data.map_scale);
+      Call(ds, event, TargetService::FORMAT, text, Near(data, data.target_cell_format), data.map_scale * x, y * data.map_scale);
     }
     if (Call(ds, event, TargetService::CONFIRM, text, person)) {
       task.x    = Byte(ds, x_at);
@@ -97,15 +94,13 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t gr
       task.kind = Bits(kind);
       changed   = true;
     }
-  } else if (task.kind != Bits(TaskKind::NONE)
-             && Call(ds, event, TargetService::CONFIRM, Near(data, data.target_cancel_text), person)) {
+  } else if (task.kind != Bits(TaskKind::NONE) && Call(ds, event, TargetService::CONFIRM, Near(data, data.target_cancel_text), person)) {
     task.kind = Bits(TaskKind::NONE);
     changed   = true;
   }
   if (!changed) return;
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++)
-    opeu_clear_unit_orders(ds, Near(data, data.units[first + i]), ORDER_SLOTS);
+  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(ds, Near(data, data.units[first + i]), ORDER_SLOTS);
 }
 
 uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
@@ -116,20 +111,15 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case TargetService::CONTROL_MESSAGE: opeu_control_message(ds, host(), arg(0), arg(1)); return 0;
   case TargetService::CONFIRM:         return opeu_confirm_message(ds, host(), arg(0), arg(1));
   case TargetService::ARRIVAL_LOCATION:
-    WithMapFrame([&](uint16_t frame) {
-      opeu_arrival_location(ds, svc_mappos, frame, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)),
-                            static_cast<uint8_t>(arg(2)));
-    });
+    WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); });
     return 0;
-  case TargetService::PICK_LOCATION:
-    return WithMapFrame([&](uint16_t frame) { return opeu_map_pick_location(ds, svc_mappick, frame, arg(0), arg(1)); });
-  default: port_unhandled("ordtgt", id, count);
+  case TargetService::PICK_LOCATION: return WithMapFrame([&](uint16_t frame) { return opeu_map_pick_location(ds, svc_mappick, frame, arg(0), arg(1)); });
+  default:                           port_unhandled("ordtgt", id, count);
   }
   return 0;
 }
 
-auto port_routine_opeu_group_target_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_group_target_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_group_target_enabled(ds);

@@ -57,16 +57,12 @@ auto ForEnemySpecialUnits(std::uint8_t* ds, Visit&& visit) -> bool {
 
 // Side 0 in scenarios 1 and 2: one time in four the enemy is laying a mine field; side 0 in scenario 3 in weather 0
 // or 1: one time in four the enemy fleets prepare a bombardment.
-uint16_t opeu_advice_enemy_mines_or_bombardment(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                                uint16_t sp) {
+uint16_t opeu_advice_enemy_mines_or_bombardment(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto const& data{ Data(ds) };
   auto const  advisor{ Enemy(ds, event, far_text, sp) };
   auto const  scenario{ CurrentScenario(data) };
-  if (data.current_side == 0 && (scenario == Scenario::AFRICA || scenario == Scenario::KURSK) && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_MINE_FIELD);
-  if (data.current_side == 0 && scenario == Scenario::D_DAY && (data.weather == 0 || data.weather == 1)
-      && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_BOMBARDMENT);
+  if (data.current_side == 0 && (scenario == Scenario::AFRICA || scenario == Scenario::KURSK) && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_MINE_FIELD);
+  if (data.current_side == 0 && scenario == Scenario::D_DAY && (data.weather == 0 || data.weather == 1) && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_BOMBARDMENT);
   return 0;
 }
 
@@ -82,8 +78,7 @@ uint16_t opeu_advice_enemy_division_unfit(uint8_t ds[65536], const uint8_t* far_
     std::uint8_t t{ 0 };
     for (; t < UNITS_PER_GROUP; ++t)
       if ((units[t].flags & Bits(UnitFlag::READY)) && opeu_category_0_to_5(t)) break;
-    if (t == UNITS_PER_GROUP && advisor.Random(static_cast<std::uint16_t>(7 - g)) == 1)
-      return advisor.SayFormatted(advisor.Scratch(0x6e), AdviceText::ENEMY_COMMANDER_UNFIT, g + 1);
+    if (t == UNITS_PER_GROUP && advisor.Random(static_cast<std::uint16_t>(7 - g)) == 1) return advisor.SayFormatted(advisor.Scratch(0x6e), AdviceText::ENEMY_COMMANDER_UNFIT, g + 1);
   }
   return 0;
 }
@@ -127,11 +122,9 @@ uint16_t opeu_advice_enemy_attack_plans(uint8_t ds[65536], const uint8_t* far_te
       auto const& order{ unit.orders[0] };
       auto const  chance{ static_cast<std::uint16_t>(7 - g) };
       if (IsAssault(order.kind)) {
-        if (pass == 0 && order.progress == 1 && advisor.Random(chance) == 1)
-          given = advisor.SayFormatted(text, AdviceText::ENEMY_ATTACK_SOON, advisor.UnitName(Near(data, unit), name));
+        if (pass == 0 && order.progress == 1 && advisor.Random(chance) == 1) given = advisor.SayFormatted(text, AdviceText::ENEMY_ATTACK_SOON, advisor.UnitName(Near(data, unit), name));
       } else if (order.kind == Bits(UnitOrder::REST)) {
-        if (pass == 1 && advisor.Random(chance) == 1)
-          given = advisor.SayFormatted(text, AdviceText::ENEMY_RESTING, advisor.UnitName(Near(data, unit), name));
+        if (pass == 1 && advisor.Random(chance) == 1) given = advisor.SayFormatted(text, AdviceText::ENEMY_RESTING, advisor.UnitName(Near(data, unit), name));
       }
       return given != 0;
     });
@@ -148,10 +141,8 @@ uint16_t opeu_advice_enemy_objective_intent(uint8_t ds[65536], const uint8_t* fa
   auto const foe{ opeu_opposite_side(data.current_side) };
   auto const target{ data.objective_links[foe * 21] };
   if (target != 0) {
-    if (opeu_objective_side(ds, target) == data.current_side && advisor.Random(4) == 1)
-      return advisor.SayFormatted(advisor.Scratch(0x68), AdviceText::ENEMY_PLOTS_TO_TAKE, target);
-    if (opeu_objective_side(ds, target) == foe && advisor.Random(4) == 1)
-      return advisor.SayFormatted(advisor.Scratch(0x68), AdviceText::ENEMY_STRENGTHENS, target);
+    if (opeu_objective_side(ds, target) == data.current_side && advisor.Random(4) == 1) return advisor.SayFormatted(advisor.Scratch(0x68), AdviceText::ENEMY_PLOTS_TO_TAKE, target);
+    if (opeu_objective_side(ds, target) == foe && advisor.Random(4) == 1) return advisor.SayFormatted(advisor.Scratch(0x68), AdviceText::ENEMY_STRENGTHENS, target);
   }
   return 0;
 }
@@ -161,26 +152,23 @@ uint16_t opeu_advice_enemy_objective_intent(uint8_t ds[65536], const uint8_t* fa
 uint16_t opeu_advice_enemy_recon_activity(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Enemy(ds, event, far_text, sp) };
-  if (data.sides[opeu_opposite_side(data.current_side)].order.kind != Bits(UnitOrder::NONE) && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::ENEMY_RECON_ACTIVE);
+  if (data.sides[opeu_opposite_side(data.current_side)].order.kind != Bits(UnitOrder::NONE) && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_RECON_ACTIVE);
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
     if (!(GroupOf(data, data.current_side, g).flags & Bits(GroupFlag::READY))) continue;
     for (auto const& unit : GroupUnits(data, data.current_side, g))
-      if ((unit.flags & Bits(UnitFlag::READY)) && (unit.flags & Bits(UnitFlag::SPOTTED)) && advisor.Random(4) == 1)
-        return advisor.Say(AdviceText::ENEMY_KNOWS_PLANS);
+      if ((unit.flags & Bits(UnitFlag::READY)) && (unit.flags & Bits(UnitFlag::SPOTTED)) && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_KNOWS_PLANS);
   }
   return 0;
 }
 
 // An objective in use not ours with plenty of all three stocks: one time in four we hear of its materials.
-uint16_t opeu_advice_enemy_plentiful_materials(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                               uint16_t sp) {
+uint16_t opeu_advice_enemy_plentiful_materials(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Enemy(ds, event, far_text, sp) };
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (objective.active && opeu_objective_side(ds, near) != data.current_side && objective.resources[0] >= PLENTY
-        && objective.resources[1] >= PLENTY && objective.resources[2] >= PLENTY && advisor.Random(4) == 1)
+    if (objective.active && opeu_objective_side(ds, near) != data.current_side && objective.resources[0] >= PLENTY && objective.resources[1] >= PLENTY && objective.resources[2] >= PLENTY
+        && advisor.Random(4) == 1)
       return advisor.SayFormatted(advisor.Scratch(0x68), AdviceText::PLENTY_OF_MATERIALS, near);
   }
   return 0;
@@ -198,11 +186,9 @@ uint16_t opeu_advice_enemy_unit_activity(uint8_t ds[65536], const uint8_t* far_t
     ForEnemySpecialUnits(ds, [&](std::uint8_t g, Unit& unit) {
       auto const near{ Near(data, unit) };
       auto const chance{ static_cast<std::uint16_t>(7 - g) };
-      if (pass == 0 && opeu_unit_average11(ds, near) >= 70 && opeu_unit_average9(ds, near) <= 20
-          && advisor.Random(chance) == 1)
+      if (pass == 0 && opeu_unit_average11(ds, near) >= 70 && opeu_unit_average9(ds, near) <= 20 && advisor.Random(chance) == 1)
         given = advisor.SayFormatted(text, AdviceText::ENEMY_SLOWING, advisor.UnitName(near, name));
-      else if (pass == 1 && opeu_unit_average11(ds, near) <= 5 && opeu_unit_average9(ds, near) >= 90
-               && advisor.Random(chance) == 1)
+      else if (pass == 1 && opeu_unit_average11(ds, near) <= 5 && opeu_unit_average9(ds, near) >= 90 && advisor.Random(chance) == 1)
         given = advisor.SayFormatted(text, AdviceText::ENEMY_ACTIVE, advisor.UnitName(near, name));
       return given != 0;
     });
@@ -213,8 +199,7 @@ uint16_t opeu_advice_enemy_unit_activity(uint8_t ds[65536], const uint8_t* far_t
 
 // A staff officer with a leadership of 90 or more, one time in 24: names the enemy army's commander and the first
 // enemy division that is selected.
-uint16_t opeu_advice_enemy_commander_location(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                              uint16_t sp) {
+uint16_t opeu_advice_enemy_commander_location(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Enemy(ds, event, far_text, sp) };
   if (Record<Person>(data, data.context_record2).leadership >= ALERT_OFFICER && advisor.Random(24) == 1) {
@@ -239,10 +224,8 @@ uint16_t opeu_advice_enemy_need_recon(uint8_t ds[65536], const uint8_t* far_text
 void opeu_advice_enemy_conditions(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   using Check = uint16_t (*)(uint8_t*, const uint8_t*, HostEvent, uint16_t);
   static constexpr Check CHECKS[]{
-    opeu_advice_enemy_mines_or_bombardment, opeu_advice_enemy_division_unfit,   opeu_advice_enemy_air_operations,
-    opeu_advice_enemy_attack_plans,         opeu_advice_enemy_objective_intent, opeu_advice_enemy_recon_activity,
-    opeu_advice_enemy_plentiful_materials,  opeu_advice_enemy_unit_activity,    opeu_advice_enemy_commander_location,
-    opeu_advice_enemy_need_recon,
+    opeu_advice_enemy_mines_or_bombardment, opeu_advice_enemy_division_unfit,      opeu_advice_enemy_air_operations, opeu_advice_enemy_attack_plans,       opeu_advice_enemy_objective_intent,
+    opeu_advice_enemy_recon_activity,       opeu_advice_enemy_plentiful_materials, opeu_advice_enemy_unit_activity,  opeu_advice_enemy_commander_location, opeu_advice_enemy_need_recon,
   };
   auto const nested{ static_cast<std::uint16_t>(sp - 4) };
   for (auto const check : CHECKS)
@@ -256,11 +239,9 @@ uint16_t svc_advenemy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 // The services every advice check calls through its event.
 uint16_t svc_advice(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case ADVICE_FORMAT: c2_request_format(ds, args, count); break;
-  case ADVICE_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  default: port_unhandled(module, id, count);
+  case ADVICE_FORMAT:  c2_request_format(ds, args, count); break;
+  case ADVICE_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  default:             port_unhandled(module, id, count);
   }
   return 0;
 }

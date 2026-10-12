@@ -47,8 +47,7 @@ uint8_t opeu_unit_side(uint16_t unit) {
 
 // Near pointer of the division the unit belongs to.
 uint16_t opeu_unit_group(uint16_t unit) {
-  return static_cast<uint16_t>(
-      GROUPS_AT + (opeu_unit_side(unit) * GROUPS_PER_SIDE + opeu_unit_group_index(unit)) * sizeof(Group));
+  return static_cast<uint16_t>(GROUPS_AT + (opeu_unit_side(unit) * GROUPS_PER_SIDE + opeu_unit_group_index(unit)) * sizeof(Group));
 }
 
 uint8_t opeu_element_side(uint16_t element) {

@@ -58,8 +58,7 @@ uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t frame, uint8_
   for (uint8_t direction{ 0 }; direction < DIRECTIONS_AND_CENTER; direction++) {
     Byte(ds, x_at) = unit.x;
     Byte(ds, y_at) = unit.y;
-    if (Call(ds, event, MoveService::GRID_STEP, x_at, y_at, direction) && x == Byte(ds, x_at) && y == Byte(ds, y_at))
-      return 1;
+    if (Call(ds, event, MoveService::GRID_STEP, x_at, y_at, direction) && x == Byte(ds, x_at) && y == Byte(ds, y_at)) return 1;
   }
   return 0;
 }
@@ -86,12 +85,10 @@ uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame, uin
     auto const target{ Call(ds, event, MoveService::FIND_UNIT, Byte(ds, x), Byte(ds, y)) };
     if (data.side_control[data.current_side] != SIDE_PLAYED && data.delivery_level >= 2) return target;
     auto const side{ static_cast<uint8_t>(Call(ds, event, MoveService::UNIT_SIDE, target)) };
-    auto const seen{ side == data.current_side ? Call(ds, event, MoveService::UNIT_ELIGIBLE, target)
-                                               : Call(ds, event, MoveService::UNIT_SPOTTED, target) };
+    auto const seen{ side == data.current_side ? Call(ds, event, MoveService::UNIT_ELIGIBLE, target) : Call(ds, event, MoveService::UNIT_SPOTTED, target) };
     if (seen) return target;
     auto const report{ Local(frame, REPORT_AT) };
-    Call(ds, event, MoveService::FORMAT, report, Near(data, data.lost_sight_format),
-         side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side],
+    Call(ds, event, MoveService::FORMAT, report, Near(data, data.lost_sight_format), side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side],
          Call(ds, event, MoveService::UNIT_NAME, target, Local(frame, NAME_AT)));
     Call(ds, event, MoveService::UNIT_MESSAGE, current, report);
   }
@@ -120,52 +117,38 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id, const uint16
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   auto const in_map_frame{ [](auto&& body) { return WithMapFrame([&](uint16_t frame) { return body(frame); }); } };
   switch (static_cast<MoveService>(id)) {
-  case MoveService::RATING:      return opeu_move_rating(ds, svc_movemine);
-  case MoveService::GRID_STEP:   return opeu_grid_step(PORT_DS(arg(0)), PORT_DS(arg(1)), byte(2));
-  case MoveService::COST:        return opeu_move_cost(ds, byte(0), byte(1), arg(2));
-  case MoveService::DISTANCE:    return opeu_grid_distance(byte(0), byte(1), byte(2), byte(3));
-  case MoveService::DESTINATION: return opeu_unit_order_destination(ds, arg(0), PORT_DS(arg(1)), PORT_DS(arg(2)));
-  case MoveService::REACHABLE:
-    return opeu_move_reachable(ds, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), byte(0), byte(1), byte(2),
-                               byte(3), arg(4));
-  case MoveService::IS_ENGINEER: return opeu_category_6(byte(0));
-  case MoveService::STEP_TOWARD:
-    return opeu_grid_step_toward(ds, port_far(PATH_SEGMENT, 0), arg(0), arg(1), byte(2), byte(3));
-  case MoveService::CLEAR_PATH:     opeu_move_clear(port_far(PATH_SEGMENT, 0), byte(0), byte(1)); return 0;
-  case MoveService::FIND_OBJECTIVE: return opeu_find_objective_at(ds, byte(0), byte(1));
-  case MoveService::OBJECTIVE_SIDE: return opeu_objective_side(ds, arg(0));
-  case MoveService::FIND_UNIT:      return opeu_find_unit_at(ds, byte(0), byte(1));
-  case MoveService::UNIT_SIDE:      return opeu_unit_side(arg(0));
-  case MoveService::CELL_SIDE:      return opeu_cell_side(ds, byte(0), byte(1));
-  case MoveService::SUPPLIED:       return opeu_move_supplied(ds);
-  case MoveService::ARRIVAL_LOCATION:
-    in_map_frame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); });
-    return 0;
-  case MoveService::ARRIVAL_VIEW:
-    in_map_frame([&](uint16_t frame) { opeu_arrival_view(ds, svc_mapunit, frame, arg(0)); });
-    return 0;
-  case MoveService::UNIT_ERASE:
-    in_map_frame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); });
-    return 0;
-  case MoveService::ARRIVAL_PREPARE:
-    in_map_frame([&](uint16_t frame) { opeu_arrival_prepare(ds, svc_maperase, frame, arg(0)); });
-    return 0;
-  case MoveService::CLAMP:       opeu_move_clamp(ds); return 0;
-  case MoveService::CELL_MARKED: return opeu_cell_marked(ds, byte(0), byte(1), byte(2));
-  case MoveService::MINES:       opeu_move_mines(ds, svc_movemine, byte(0), byte(1)); return 0;
-  case MoveService::SPOT:        opeu_move_spot(ds, svc_movespot); return 0;
-  case MoveService::CONSUME:     opeu_move_consume(ds); return 0;
-  case MoveService::ENEMY_ADJACENT:
-    return in_map_frame([&](uint16_t frame) { return opeu_move_enemy_adjacent(ds, svc_movespot, frame); });
-  case MoveService::RESTORE_ORDER: opeu_restore_unit_order(ds, arg(0)); return 0;
-  case MoveService::UNIT_ELIGIBLE: return opeu_unit_selection_eligible(ds, arg(0));
-  case MoveService::UNIT_SPOTTED:  return opeu_unit_special(ds, arg(0));
-  case MoveService::UNIT_NAME:     return opeu_unit_name(ds, svc_unitname, arg(0), arg(1));
-  case MoveService::FORMAT:        map_request_format(ds, args, count); return 0;
-  case MoveService::UNIT_MESSAGE:
-    opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1));
-    return 0;
-  default: port_unhandled(module, id, count);
+  case MoveService::RATING:           return opeu_move_rating(ds, svc_movemine);
+  case MoveService::GRID_STEP:        return opeu_grid_step(PORT_DS(arg(0)), PORT_DS(arg(1)), byte(2));
+  case MoveService::COST:             return opeu_move_cost(ds, byte(0), byte(1), arg(2));
+  case MoveService::DISTANCE:         return opeu_grid_distance(byte(0), byte(1), byte(2), byte(3));
+  case MoveService::DESTINATION:      return opeu_unit_order_destination(ds, arg(0), PORT_DS(arg(1)), PORT_DS(arg(2)));
+  case MoveService::REACHABLE:        return opeu_move_reachable(ds, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), byte(0), byte(1), byte(2), byte(3), arg(4));
+  case MoveService::IS_ENGINEER:      return opeu_category_6(byte(0));
+  case MoveService::STEP_TOWARD:      return opeu_grid_step_toward(ds, port_far(PATH_SEGMENT, 0), arg(0), arg(1), byte(2), byte(3));
+  case MoveService::CLEAR_PATH:       opeu_move_clear(port_far(PATH_SEGMENT, 0), byte(0), byte(1)); return 0;
+  case MoveService::FIND_OBJECTIVE:   return opeu_find_objective_at(ds, byte(0), byte(1));
+  case MoveService::OBJECTIVE_SIDE:   return opeu_objective_side(ds, arg(0));
+  case MoveService::FIND_UNIT:        return opeu_find_unit_at(ds, byte(0), byte(1));
+  case MoveService::UNIT_SIDE:        return opeu_unit_side(arg(0));
+  case MoveService::CELL_SIDE:        return opeu_cell_side(ds, byte(0), byte(1));
+  case MoveService::SUPPLIED:         return opeu_move_supplied(ds);
+  case MoveService::ARRIVAL_LOCATION: in_map_frame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); }); return 0;
+  case MoveService::ARRIVAL_VIEW:     in_map_frame([&](uint16_t frame) { opeu_arrival_view(ds, svc_mapunit, frame, arg(0)); }); return 0;
+  case MoveService::UNIT_ERASE:       in_map_frame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); }); return 0;
+  case MoveService::ARRIVAL_PREPARE:  in_map_frame([&](uint16_t frame) { opeu_arrival_prepare(ds, svc_maperase, frame, arg(0)); }); return 0;
+  case MoveService::CLAMP:            opeu_move_clamp(ds); return 0;
+  case MoveService::CELL_MARKED:      return opeu_cell_marked(ds, byte(0), byte(1), byte(2));
+  case MoveService::MINES:            opeu_move_mines(ds, svc_movemine, byte(0), byte(1)); return 0;
+  case MoveService::SPOT:             opeu_move_spot(ds, svc_movespot); return 0;
+  case MoveService::CONSUME:          opeu_move_consume(ds); return 0;
+  case MoveService::ENEMY_ADJACENT:   return in_map_frame([&](uint16_t frame) { return opeu_move_enemy_adjacent(ds, svc_movespot, frame); });
+  case MoveService::RESTORE_ORDER:    opeu_restore_unit_order(ds, arg(0)); return 0;
+  case MoveService::UNIT_ELIGIBLE:    return opeu_unit_selection_eligible(ds, arg(0));
+  case MoveService::UNIT_SPOTTED:     return opeu_unit_special(ds, arg(0));
+  case MoveService::UNIT_NAME:        return opeu_unit_name(ds, svc_unitname, arg(0), arg(1));
+  case MoveService::FORMAT:           map_request_format(ds, args, count); return 0;
+  case MoveService::UNIT_MESSAGE:     opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1)); return 0;
+  default:                            port_unhandled(module, id, count);
   }
   return 0;
 }

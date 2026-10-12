@@ -36,15 +36,12 @@ void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, u
   auto const  cell_y{ static_cast<uint8_t>(y) };
   auto const  terrain{ opeu_map_code(ds, cell_x, cell_y) };
   Call(ds, event, CursorService::BEGIN);
-  Call(ds, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x,
-       data.map_scale * cell_y);
-  Call(ds, event, CursorService::TEXT,
-       terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(ds, cell_x, cell_y) : data.terrain_names[terrain]);
+  Call(ds, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x, data.map_scale * cell_y);
+  Call(ds, event, CursorService::TEXT, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(ds, cell_x, cell_y) : data.terrain_names[terrain]);
   auto const side{ opeu_cell_side(ds, cell_x, cell_y) };
   if (side != NO_SIDE) {
     auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-    if ((side == data.current_side && opeu_unit_selection_eligible(ds, unit))
-        || (side != data.current_side && opeu_unit_special(ds, unit))) {
+    if ((side == data.current_side && opeu_unit_selection_eligible(ds, unit)) || (side != data.current_side && opeu_unit_special(ds, unit))) {
       auto const name{ opeu_unit_name(ds, event, unit, Local(frame, NAME_BUFFER)) };
       Call(ds, event, CursorService::PRINT, Near(data, data.cursor_unit_format), data.side_names[side], name);
     }

@@ -32,8 +32,7 @@ struct Pixel {
 // Converts the cell (x, y) to its pixel position with a map/mappixel converter, which works on coordinate words in
 // DS: they are the routine's locals at x_at and y_at.
 template <typename Convert>
-inline auto CellPixel(std::uint8_t* ds, std::uint16_t x_at, std::uint16_t y_at, std::uint8_t x, std::uint8_t y,
-                      Convert convert) -> Pixel {
+inline auto CellPixel(std::uint8_t* ds, std::uint16_t x_at, std::uint16_t y_at, std::uint8_t x, std::uint8_t y, Convert convert) -> Pixel {
   SetWord(ds, x_at, x);
   SetWord(ds, y_at, y);
   convert(ds, x_at, y_at);

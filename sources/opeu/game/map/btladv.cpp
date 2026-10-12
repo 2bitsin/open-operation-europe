@@ -57,8 +57,7 @@ void opeu_battle_exit_to_map(uint8_t* ds, BattleEvent event, uint16_t element, u
   if (opeu_battle_unit_active(ds, event, unit)) {
     data.battle_exit_direction[0] = 0xff;
     for (auto& other : Elements(data, Record<Unit>(data, unit)))
-      if (opeu_battle_state(ds, event, Near(data, other)) == Bits(BattleState::WITHDRAW))
-        opeu_battle_update_element(ds, event, Near(data, other));
+      if (opeu_battle_state(ds, event, Near(data, other)) == Bits(BattleState::WITHDRAW)) opeu_battle_update_element(ds, event, Near(data, other));
   }
 }
 
@@ -67,11 +66,9 @@ void opeu_battle_element_withdraw(uint8_t* ds, BattleEvent event, uint16_t eleme
   auto const goal_x{ PositionOf(data, element).goal_x };
   auto const goal_y{ PositionOf(data, element).goal_y };
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
-  if (opeu_battle_element_visible(ds, event, element))
-    opeu_battle_draw_cell(ds, event, PositionOf(data, element).x, PositionOf(data, element).y);
+  if (opeu_battle_element_visible(ds, event, element)) opeu_battle_draw_cell(ds, event, PositionOf(data, element).x, PositionOf(data, element).y);
   if (UnitDirection(ds, event, unit) == BATTLE_NOT_ADJACENT) {
-    auto const direction{ static_cast<uint8_t>(
-        (BattleCellAt(data, goal_x, goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1) };
+    auto const direction{ static_cast<uint8_t>((BattleCellAt(data, goal_x, goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1) };
     uint8_t    x{ data.battle_x };
     uint8_t    y{ data.battle_y };
     opeu_grid_step(&x, &y, direction);
@@ -88,8 +85,7 @@ void opeu_battle_element_withdraw(uint8_t* ds, BattleEvent event, uint16_t eleme
     if (opeu_battle_element_active(ds, event, Near(data, other))) ++active;
   if (active) return;
   auto const garrison{ Near(data, data.battle_garrison) };
-  if (UnitDirection(ds, event, unit) == BATTLE_NOT_ADJACENT && unit != garrison)
-    data.battle_direction = data.battle_exit_direction[0];
+  if (UnitDirection(ds, event, unit) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
   if (unit == garrison) {
     auto&   objective{ Record<Objective>(data, opeu_find_objective_at(ds, data.battle_x, data.battle_y)) };
     uint8_t gone{ 0 };
@@ -107,9 +103,7 @@ void opeu_battle_element_withdraw(uint8_t* ds, BattleEvent event, uint16_t eleme
 
 void opeu_battle_withdraw_step(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto const order{ opeu_battle_order(ds, event, element) };
-  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_EXECUTE_ORDER, order, element))
-      != Bits(BattleState::WITHDRAW))
-    return;
+  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_EXECUTE_ORDER, order, element)) != Bits(BattleState::WITHDRAW)) return;
   opeu_battle_element_withdraw(ds, event, element);
 }
 
@@ -123,8 +117,7 @@ void opeu_battle_hold_step(uint8_t* ds, BattleEvent event, uint16_t element) {
         return;
       }
       if (data.element_types[Record<Element>(data, element).type].category) {
-        auto const facing{ static_cast<uint8_t>(
-            Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)) };
+        auto const facing{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)) };
         Call(ds, event, BattleRoutine::BATTLE_ANIMATE_FACING, facing, element);
       }
     }
@@ -148,8 +141,7 @@ uint16_t svc_btladv(uint8_t* ds, uint32_t address, const uint16_t* args, unsigne
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_element_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_element_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_element_step(ds, svc_btladv, Arg(args, count, 0));
   return 0;
 }

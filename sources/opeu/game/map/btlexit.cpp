@@ -58,16 +58,13 @@ uint16_t opeu_battle_exit_ok(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t 
     auto const enemy_mark{ opeu_battle_unit_side(ds, event, unit) ? MapCell::MARK_1 : MapCell::MARK_0 };
     if (MapCellAt(data, cell_x, cell_y) & Bits(enemy_mark)) return 0;
   }
-  if (unit != Near(data, data.battle_garrison) && data.battle_exit_direction[0] != exit
-      && data.battle_exit_direction[0] != ANY_SIDE)
-    return 0;
+  if (unit != Near(data, data.battle_garrison) && data.battle_exit_direction[0] != exit && data.battle_exit_direction[0] != ANY_SIDE) return 0;
   return 1;
 }
 
 uint16_t opeu_battle_cursor_exit_ok(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto& data{ Data(ds) };
-  return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, data.battle_cursor_x, data.battle_cursor_y, element)
-         && opeu_battle_exit_ok(ds, event, data.battle_cursor_x, data.battle_cursor_y, element);
+  return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, data.battle_cursor_x, data.battle_cursor_y, element) && opeu_battle_exit_ok(ds, event, data.battle_cursor_x, data.battle_cursor_y, element);
 }
 
 // The services of this module: the player orders group's (map/btlcmds).

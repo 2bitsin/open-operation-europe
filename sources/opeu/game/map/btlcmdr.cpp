@@ -26,16 +26,14 @@ constexpr uint8_t  TEXT_WHITE{ 7 };
 template <typename Widths>
 void RestoreLeft(uint8_t* ds, BattleEvent event, Widths const& widths, uint8_t rows, uint8_t first) {
   for (uint8_t row{ 0 }; row < rows; ++row)
-    for (uint8_t column{ 0 }; column < widths[row]; ++column)
-      opeu_battle_restore_tile(ds, event, column, static_cast<uint8_t>(row + first));
+    for (uint8_t column{ 0 }; column < widths[row]; ++column) opeu_battle_restore_tile(ds, event, column, static_cast<uint8_t>(row + first));
 }
 
 // The same from the last column leftward.
 template <typename Widths>
 void RestoreRight(uint8_t* ds, BattleEvent event, Widths const& widths, uint8_t rows, uint8_t first) {
   for (uint8_t row{ 0 }; row < rows; ++row)
-    for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column)
-      opeu_battle_restore_tile(ds, event, column, static_cast<uint8_t>(row + first));
+    for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column) opeu_battle_restore_tile(ds, event, column, static_cast<uint8_t>(row + first));
 }
 
 // Takes percent of the word away through the original's services.
@@ -131,14 +129,12 @@ void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, u
 }
 
 // frame: the caller's frame; the panel runs on the frame below it.
-void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
-                                uint16_t frame) {
+void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame) {
   opeu_battle_commander_panel(ds, event, side, 1, Local(frame, CALLER_FRAME));
   Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(Data(ds), Data(ds).battle_wait_format), text, value + '0');
 }
 
-void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
-                                   uint16_t frame) {
+void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame) {
   opeu_battle_commander_panel(ds, event, side, 0, Local(frame, CALLER_FRAME));
   Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(Data(ds), Data(ds).battle_prompt_format), text, value + '0');
 }
@@ -166,12 +162,9 @@ void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event, uint16_t elemen
   }
   if (Call(ds, event, BattleRoutine::BATTLE_UNIT_ACTIVE, unit)) return;
   auto const garrison{ Near(data, data.battle_garrison) };
-  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT
-      && unit != garrison)
-    data.battle_direction = data.battle_exit_direction[0];
+  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
   if (unit == garrison) {
-    auto&   objective{ Record<Objective>(
-        data, Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
+    auto&   objective{ Record<Objective>(data, Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
     uint8_t gone{ 0 };
     for (auto& other : Elements(data, record))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
@@ -201,30 +194,20 @@ uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args, unsign
   return svc_battle_commander(ds, service, args, count);
 }
 
-auto port_routine_opeu_battle_commander_message(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_battle_commander_message(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)),
-                                  static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_commander_message(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack(
+      [&](uint16_t sp) { opeu_battle_commander_message(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp)); });
   return 0;
 }
 
-auto port_routine_opeu_battle_commander_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_battle_commander_panel(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1),
-                                BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_commander_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_commander_panel(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1), BattleFrame(sp)); });
   return 0;
 }
 
-auto port_routine_opeu_battle_commander_wait(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_battle_commander_wait(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)),
-                               static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_commander_wait(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack(
+      [&](uint16_t sp) { opeu_battle_commander_wait(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp)); });
   return 0;
 }
 
@@ -258,9 +241,7 @@ auto port_routine_opeu_battle_panel_side1(std::uint8_t* ds, std::uint16_t const*
   return 0;
 }
 
-auto port_routine_opeu_battle_restore_tile(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  opeu_battle_restore_tile(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)),
-                           static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_restore_tile(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_restore_tile(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return 0;
 }

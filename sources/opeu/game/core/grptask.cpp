@@ -63,20 +63,16 @@ uint16_t opeu_group_has_tasks(uint8_t ds[65536]) {
 
 // On a computer-controlled side: plans the division's tasks when its selected unit can act, the side has entries and
 // the division has no task yet.
-void opeu_turn_group_action(uint8_t ds[65536],
-                            uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_turn_group_action(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto& data{ Data(ds) };
   opeu_clean_group_tasks(ds);
   if (data.side_control[data.current_side] == 0)
-    if (opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, data.current_group_ptr))
-        && opeu_side_has_entries(ds) && !opeu_group_has_tasks(ds))
-      event(ds, GROUP_TASKS, 0, 0, 0, 0);
+    if (opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, data.current_group_ptr)) && opeu_side_has_entries(ds) && !opeu_group_has_tasks(ds)) event(ds, GROUP_TASKS, 0, 0, 0, 0);
 }
 
 // Whether the current unit already has an order; if not and its division is marked by the computer side and holds a
 // task, the unit is given one from the tasks (and the predicate still answers 0).
-uint16_t opeu_turn_final_predicate(uint8_t ds[65536],
-                                   uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+uint16_t opeu_turn_final_predicate(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto& data{ Data(ds) };
   if (opeu_unit_selection_eligible(ds, data.current_unit_ptr)) {
     if (Record<Unit>(data, data.current_unit_ptr).orders[0].kind != NO_ORDER) return 1;

@@ -52,8 +52,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(std::uint8_t* ds, HostWordsEvent event, std::uint8_t row) {
   auto const& data{ Data(ds) };
-  Call(ds, event, HIGHLIGHT, data.transfer_panel_x + 0xd, row * ROW_HEIGHT + data.transfer_panel_y + 0x23, 6, 0x1b,
-       HIGHLIGHT_COLOUR);
+  Call(ds, event, HIGHLIGHT, data.transfer_panel_x + 0xd, row * ROW_HEIGHT + data.transfer_panel_y + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
 }
 
 // The amount a key moves: 1, 10 or 100.
@@ -85,16 +84,13 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     auto const   left{ TableAt(0, selected, AMOUNT) };
     auto const   right{ TableAt(1, selected, AMOUNT) };
     auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
-    auto const   right_capacity{ data.transfer_objective_ptr
-                                     ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited))
-                                     : TableAt(1, selected, CAPACITY) };
+    auto const   right_capacity{ data.transfer_objective_ptr ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited)) : TableAt(1, selected, CAPACITY) };
     if (Played(data) && selected != highlighted) {
       if (highlighted != NO_ROW) Highlight(ds, event, highlighted);
       Highlight(ds, event, selected);
       highlighted = selected;
     }
-    auto const key{ data.transfer_interactive ? opeu_transfer_input(ds, event, SELECTION_AT)
-                                              : opeu_transfer_auto_key(ds, selected) };
+    auto const key{ data.transfer_interactive ? opeu_transfer_input(ds, event, SELECTION_AT) : opeu_transfer_auto_key(ds, selected) };
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;
@@ -106,8 +102,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     case '1':
     case '4':
     case '7': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left_capacity) - Word(ds, left), KeyAmount(key)),
-                                   Word(ds, right)) };
+      auto const moved{ opeu_min16(opeu_min16(Word(ds, left_capacity) - Word(ds, left), KeyAmount(key)), Word(ds, right)) };
       SetWord(ds, left, Word(ds, left) + moved);
       SetWord(ds, right, Word(ds, right) - moved);
       redraw = 1;
@@ -116,8 +111,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     case '3':
     case '6':
     case '9': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left), KeyAmount(key)),
-                                   Word(ds, right_capacity) - Word(ds, right)) };
+      auto const moved{ opeu_min16(opeu_min16(Word(ds, left), KeyAmount(key)), Word(ds, right_capacity) - Word(ds, right)) };
       SetWord(ds, left, Word(ds, left) - moved);
       SetWord(ds, right, Word(ds, right) + moved);
       redraw = 2;

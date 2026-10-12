@@ -44,14 +44,12 @@ uint16_t opeu_battle_ai_side_power(uint8_t* ds, BattleEvent event, uint8_t side,
     for (auto& element : Elements(data, Record<Unit>(data, unit))) {
       auto const near{ Near(data, element) };
       if (!opeu_battle_element_active(ds, event, near)) continue;
-      if (!all && (!opeu_battle_element_flag2(ds, event, near) || !opeu_battle_level_allowed(ds, event, near)))
-        continue;
+      if (!all && (!opeu_battle_element_flag2(ds, event, near) || !opeu_battle_level_allowed(ds, event, near))) continue;
       auto const category{ data.element_types[element.type].category };
       if (category >= FIRST_SINGLE_CATEGORY && category <= 7)
         ++total;
       else
-        total = static_cast<uint16_t>(
-            total + (category == Bits(Category::INFANTRY) ? element.quantity / 10 + 1 : element.quantity));
+        total = static_cast<uint16_t>(total + (category == Bits(Category::INFANTRY) ? element.quantity / 10 + 1 : element.quantity));
     }
   }
   return opeu_max16(total, 1);
@@ -66,11 +64,9 @@ uint8_t opeu_battle_ai_power_ratio(uint8_t* ds, BattleEvent event, uint16_t unit
   };
   auto const other{ static_cast<uint8_t>(side == 0) };
   if (power[other] == 0) return 5;
-  uint16_t ratio{ static_cast<uint16_t>(power[1] > power[0] ? power[1] / opeu_max16(power[0], 1)
-                                                            : power[0] / opeu_max16(power[1], 1)) };
+  uint16_t ratio{ static_cast<uint16_t>(power[1] > power[0] ? power[1] / opeu_max16(power[0], 1) : power[0] / opeu_max16(power[1], 1)) };
   if (ratio > 5) {
-    if (auto const found{
-            Call(ds, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) }) {
+    if (auto const found{ Call(ds, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) }) {
       if (found != unit) return power[side & 1] < power[other] ? 1 : 5;
       ratio = 5;
     }

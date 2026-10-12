@@ -56,8 +56,7 @@ uint16_t opeu_element_value(const uint8_t ds[65536], uint16_t element) {
 uint16_t opeu_unit_value(const uint8_t ds[65536], uint16_t unit) {
   auto const&   data{ Data(ds) };
   std::uint16_t value{ 0 };
-  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-    value += opeu_element_value(ds, it.Near());
+  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) value += opeu_element_value(ds, it.Near());
   return value;
 }
 

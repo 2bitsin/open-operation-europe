@@ -50,8 +50,7 @@ void SetStream(DataSegment& data, uint16_t offset) {
 // Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.
 void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
   auto const& data{ Data(ds) };
-  Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], sprite_offset,
-       sprite_segment, 0, data.bitmap_buffer, 0);
+  Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], sprite_offset, sprite_segment, 0, data.bitmap_buffer, 0);
 }
 
 // The order kinds whose sprite shows until the order has started; the others show until it is complete.
@@ -69,8 +68,7 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t 
   bool       order_shown{ false };
   uint8_t    destination_x;
   uint8_t    destination_y;
-  if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y)
-      && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
+  if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y) && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown = ShowsUntilStarted(kind) ? !order.progress : order.progress < 100;
@@ -91,8 +89,7 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t 
     SetStream(data, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(ds, event, x, y, sprite_buffer, DATA_SEGMENT);
   }
-  opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18),
-                   static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
+  opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
 
 // frame: the routine's frame on the DS stack; the pixel position is converted in place there, and the unit drawing
@@ -115,18 +112,13 @@ void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t 
     SetStream(data, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(ds, event, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);
   } };
-  if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(ds, cell_x, cell_y, data.view_side))
-    overlay(OVERLAY_SPRITE);
+  if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(ds, cell_x, cell_y, data.view_side)) overlay(OVERLAY_SPRITE);
   switch (opeu_map_code(ds, cell_x, cell_y)) {
-  case BRIDGE_CODE: overlay(BRIDGE_SPRITE); break;
-  case OBJECTIVE_CODE:
-    opeu_view_cell_paint(ds, event, pixel_x, pixel_y,
-                         opeu_objective_side(ds, opeu_find_objective_at(ds, cell_x, cell_y)) ? 1 : 2);
-    break;
+  case BRIDGE_CODE:    overlay(BRIDGE_SPRITE); break;
+  case OBJECTIVE_CODE: opeu_view_cell_paint(ds, event, pixel_x, pixel_y, opeu_objective_side(ds, opeu_find_objective_at(ds, cell_x, cell_y)) ? 1 : 2); break;
   }
   auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-  if (unit != 0 && opeu_unit_visible(ds, unit))
-    opeu_view_unit_draw(ds, event, Local(frame, 0x1c), unit, pixel_x, pixel_y);
+  if (unit != 0 && opeu_unit_visible(ds, unit)) opeu_view_unit_draw(ds, event, Local(frame, 0x1c), unit, pixel_x, pixel_y);
 }
 
 // The services this module raises (restore, compose, view prepare, far read) are the map segment's shared ones.

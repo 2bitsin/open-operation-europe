@@ -61,16 +61,14 @@ void opeu_ops_chief_text(uint8_t ds[65536], HostEvent event, uint16_t text) {
 }
 
 // Shows the text and the range "(low-high)" formatted into `buffer`, then reads a number in the range.
-uint16_t opeu_number_prompt(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high,
-                            uint16_t value, uint16_t d, uint16_t buffer) {
+uint16_t opeu_number_prompt(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d, uint16_t buffer) {
   Call(ds, event, FORMAT, buffer, RANGE_FORMAT, low, high);
   Call(ds, event, MESSAGE, text);
   Call(ds, event, MESSAGE, buffer);
   return Call(ds, event, INPUT, low, high, value, d);
 }
 
-uint16_t opeu_ops_chief_number(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high,
-                               uint16_t value, uint16_t d, uint16_t buffer) {
+uint16_t opeu_ops_chief_number(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d, uint16_t buffer) {
   opeu_ops_chief_show(ds, event);
   return opeu_number_prompt(ds, event, text, low, high, value, d, buffer);
 }
@@ -83,29 +81,17 @@ uint16_t opeu_ops_chief_wait(uint8_t ds[65536], HostEvent event, uint16_t text) 
 uint16_t svc_chief(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case FILL:
-    opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                Arg(args, count, 4));
-    break;
-  case FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case FORMAT: b2_request_format(ds, args, count); break;
-  case PRINT:  b2_cursor_print(ds, args, count); break;
-  case PORTRAIT:
-    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case MESSAGE: opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case WAIT:    result = opeu_confirm_prompt(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case FILL:     opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case FORMAT:   b2_request_format(ds, args, count); break;
+  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case MESSAGE:  opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case WAIT:     result = opeu_confirm_prompt(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case INPUT:
     result = WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      return opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2),
-                               Arg(args, count, 3), static_cast<std::uint16_t>(sp - 2 - 16));
+      return opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3), static_cast<std::uint16_t>(sp - 2 - 16));
     });
     break;
   default: port_unhandled("chief", id, count);

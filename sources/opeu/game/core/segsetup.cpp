@@ -82,16 +82,10 @@ void opeu_alloc_segments(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   need(data.face_segment, 0x4b0, data.setup_name_armsseg);
   need(data.portrait_segment, 0x4b0, data.setup_name_kaoseg);
   int16_t const ems = opeu_ems_detect(ds, event, ems_sp);
-  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event, ems_sp) == 0))
-    opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
-  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0
-      && (ems == 0 || opeu_ems_alloc_numdlg(ds, event, ems_sp) == 0))
-    opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
-  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0
-      && (ems == 0 || opeu_ems_alloc_sprite(ds, event, ems_sp) == 0))
-    opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
-  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event, ems_sp) == 0))
-    opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
+  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
+  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0 && (ems == 0 || opeu_ems_alloc_numdlg(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
+  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0 && (ems == 0 || opeu_ems_alloc_sprite(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
+  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
 }
 
 // Opens the portrait, arms and event data files.
@@ -118,12 +112,11 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   if (id <= std::to_underlying(SetupService::EMS_LAST)) return svc_emsmap(ds, id, args, count);
   switch (static_cast<SetupService>(id)) {
-  case SetupService::PRINT:    a_cursor_print(ds, args, 1); break;
-  case SetupService::WAIT_KEY: return opeu_turn_input_b();
-  case SetupService::QUIT:     opeu_quit_to_dos(ds, svc_settings); break;
-  case SetupService::ALLOCATE: return opeu_dos_alloc(Arg(args, count, 0));
-  case SetupService::OPEN_RESOURCE:
-    return static_cast<uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
+  case SetupService::PRINT:            a_cursor_print(ds, args, 1); break;
+  case SetupService::WAIT_KEY:         return opeu_turn_input_b();
+  case SetupService::QUIT:             opeu_quit_to_dos(ds, svc_settings); break;
+  case SetupService::ALLOCATE:         return opeu_dos_alloc(Arg(args, count, 0));
+  case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
   case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;
   case SetupService::VGA_SETUP:        koei_2fea(); break;
   case SetupService::IDENTITY_PALETTE: koei_vga_identity_palette(); break;

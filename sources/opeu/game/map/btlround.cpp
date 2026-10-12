@@ -46,8 +46,7 @@ constexpr uint16_t VICTORY_PAUSE{ 0x28 };
 }
 
 [[nodiscard]] auto AtCity(DataSegment const& data) -> bool {
-  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK))
-         == std::to_underlying(Terrain::CITY);
+  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK)) == std::to_underlying(Terrain::CITY);
 }
 
 void Stalemate(uint8_t* ds, BattleEvent event, uint16_t text) {
@@ -65,8 +64,7 @@ void opeu_battle_closing_music(uint8_t* ds, BattleEvent event, uint8_t side) {
   auto& data{ Data(ds) };
   Call(ds, event, BattleRoutine::MUSIC_STOP);
   uint16_t track;
-  if ((data.side_status[0] == SIDE_PLAYED && data.battle_side_routed[0])
-      || (data.side_status[1] == SIDE_PLAYED && data.battle_side_routed[1])) {
+  if ((data.side_status[0] == SIDE_PLAYED && data.battle_side_routed[0]) || (data.side_status[1] == SIDE_PLAYED && data.battle_side_routed[1])) {
     track = MUSIC_ROUTED;
   } else {
     auto const lead{ WordOf(ds, Near(data, data.battle_lists), side * BATTLE_LIST_LENGTH) };
@@ -83,8 +81,7 @@ void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
   if (result == SIDE_0_DECIDES) {
     data.battle_side = opeu_battle_unit_side(ds, event, data.battle_lists[0]);
     if (AtCity(data)) {
-      auto const near{ static_cast<uint16_t>(
-          Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
+      auto const near{ static_cast<uint16_t>(Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
       auto&      objective{ Record<Objective>(data, near) };
       for (auto const& item : objective.items)
         if (item.quantity) {
@@ -105,8 +102,7 @@ void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
   Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
   Call(ds, event, BattleRoutine::CONTEXT_FRAME, VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_victory_format),
-       WordOf(ds, Near(data, data.side_names), data.battle_side));
+  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_victory_format), WordOf(ds, Near(data, data.side_names), data.battle_side));
   opeu_battle_closing_music(ds, event, static_cast<uint8_t>(result - 1));
   Call(ds, event, BattleRoutine::DELAY_UNITS, VICTORY_PAUSE);
 }

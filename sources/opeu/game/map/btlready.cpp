@@ -54,8 +54,7 @@ uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event, uint16_t fra
       }
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, NAME_ROW);
       auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, Local(frame, NAME_AT), unit) };
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format),
-           side ? SIDE_1_COLOR : SIDE_0_COLOR, name);
+      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), side ? SIDE_1_COLOR : SIDE_0_COLOR, name);
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, READY_ROW);
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_text));
       announced = true;

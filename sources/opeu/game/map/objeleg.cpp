@@ -25,9 +25,7 @@ constexpr uint8_t DIRECTIONS_AND_CENTER{ 9 }; // direction 8 stays on the cell
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;
     auto const unit{ opeu_find_unit_at(ds, x, y) };
-    if (unit && opeu_unit_side(unit) == opeu_objective_side(ds, objective)
-        && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS)))
-      return true;
+    if (unit && opeu_unit_side(unit) == opeu_objective_side(ds, objective) && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS))) return true;
   }
   return false;
 }
@@ -38,7 +36,6 @@ uint16_t opeu_objective_eligible(const uint8_t* ds, uint16_t objective) {
   return opeu_unit_support_condition(ds, opeu_find_side_selected_unit(ds, opeu_objective_side(ds, objective)));
 }
 
-auto port_routine_opeu_objective_eligible(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_objective_eligible(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_objective_eligible(ds, Arg(args, count, 0));
 }

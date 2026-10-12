@@ -53,8 +53,7 @@ void opeu_unit_announce(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t u
   auto const& record{ Record<Unit>(data, unit) };
   if (!OverviewUp(data) || !(record.flags & Bits(UnitFlag::READY)) || !opeu_unit_visible(ds, unit)) return;
   opeu_map_cell_flash(ds, event, Local(frame, 6), record.x, record.y);
-  Call(ds, event, MapService::CONTROL_MESSAGE, Near(data, data.regiment_position_text),
-       opeu_find_group_record(ds, data.current_side, opeu_unit_group_index(unit)));
+  Call(ds, event, MapService::CONTROL_MESSAGE, Near(data, data.regiment_position_text), opeu_find_group_record(ds, data.current_side, opeu_unit_group_index(unit)));
   opeu_map_cell_flash(ds, event, Local(frame, 6), record.x, record.y);
 }
 
@@ -63,15 +62,9 @@ void opeu_unit_announce(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t u
 void opeu_group_show(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t group, uint8_t person) {
   auto&      data{ Data(ds) };
   auto const first{ (opeu_group_side(group) * GROUPS_PER_SIDE + opeu_group_index(group)) * UNITS_PER_GROUP };
-  auto const buffer{ [&](unsigned i) {
-    return static_cast<uint16_t>(Near(data, data.flash_buffers) + i * FLASH_BUFFER_BYTES);
-  } };
-  auto const shown{ [&](Unit const& unit) {
-    return OverviewUp(data) && (unit.flags & Bits(UnitFlag::READY)) && opeu_unit_visible(ds, Near(data, unit));
-  } };
-  auto const pixel_of{ [&](Unit const& unit) {
-    return CellPixel(ds, Local(frame, PIXEL_X_AT), Local(frame, PIXEL_Y_AT), unit.x, unit.y, opeu_overview_pixel);
-  } };
+  auto const buffer{ [&](unsigned i) { return static_cast<uint16_t>(Near(data, data.flash_buffers) + i * FLASH_BUFFER_BYTES); } };
+  auto const shown{ [&](Unit const& unit) { return OverviewUp(data) && (unit.flags & Bits(UnitFlag::READY)) && opeu_unit_visible(ds, Near(data, unit)); } };
+  auto const pixel_of{ [&](Unit const& unit) { return CellPixel(ds, Local(frame, PIXEL_X_AT), Local(frame, PIXEL_Y_AT), unit.x, unit.y, opeu_overview_pixel); } };
   for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) {
     auto const& unit{ data.units[first + i] };
     if (!shown(unit)) continue;
@@ -126,8 +119,6 @@ uint16_t svc_mapunit(uint8_t* ds, uint16_t kind, const uint16_t* args, uint16_t 
 }
 
 auto port_routine_opeu_unit_flash(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_unit_flash(ds, svc_mapunit, BattleFrame(sp), Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
-  });
+  WithBattleStack([&](uint16_t sp) { opeu_unit_flash(ds, svc_mapunit, BattleFrame(sp), Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0))); });
   return 0;
 }

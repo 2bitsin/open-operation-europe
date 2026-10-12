@@ -54,13 +54,11 @@ void FillSelections(uint8_t* ds, DataSegment& data) {
     for (uint8_t division = 0; division < GROUPS_PER_SIDE; ++division) {
       auto const& group{ data.groups[side * GROUPS_PER_SIDE + division] };
       auto const  group_near{ Near(data, group) };
-      if ((group.flags & Bits(GroupFlag::READY)) && !opeu_find_group_selected_unit(ds, group_near))
-        opeu_select_first_unit(ds, group_near);
+      if ((group.flags & Bits(GroupFlag::READY)) && !opeu_find_group_selected_unit(ds, group_near)) opeu_select_first_unit(ds, group_near);
       for (uint8_t i = 0; i < UNITS_PER_GROUP; ++i) {
         auto const& unit{ data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i] };
         auto const  unit_near{ Near(data, unit) };
-        if ((unit.flags & Bits(UnitFlag::READY)) && !opeu_unit_selected_element(ds, unit_near))
-          opeu_select_preferred_element(ds, unit_near);
+        if ((unit.flags & Bits(UnitFlag::READY)) && !opeu_unit_selected_element(ds, unit_near)) opeu_select_preferred_element(ds, unit_near);
       }
     }
   }

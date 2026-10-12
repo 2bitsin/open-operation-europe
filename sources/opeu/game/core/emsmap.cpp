@@ -103,10 +103,7 @@ int16_t opeu_memory_release(uint8_t ds[65536], HostEvent event) {
 int16_t opeu_ems_reserve(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t handle, int16_t pages) {
   auto const total{ static_cast<std::uint16_t>(sp - 4) };
   auto const unallocated{ static_cast<std::uint16_t>(sp - 6) };
-  return Call(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(Word(ds, unallocated)) >= pages
-                 && Call(ds, event, ALLOCATE, pages, handle) == 0
-             ? 1
-             : 0;
+  return Call(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(Word(ds, unallocated)) >= pages && Call(ds, event, ALLOCATE, pages, handle) == 0 ? 1 : 0;
 }
 
 int16_t opeu_ems_alloc_sprite(uint8_t ds[65536], HostEvent event, uint16_t sp) {
@@ -140,8 +137,7 @@ int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto const count_at{ static_cast<std::uint16_t>(sp - 0x104) };
   auto const frame_at{ static_cast<std::uint16_t>(sp - 0x106) };
   auto const count{ [&] { return static_cast<int16_t>(Word(ds, count_at)); } };
-  if (!Call(ds, event, PRESENT) || Call(ds, event, STATUS) || Call(ds, event, FRAME, frame_at)
-      || Call(ds, event, PAGE_COUNT, count_at) || count() > MAX_PAGES || Call(ds, event, PAGE_ARRAY, pages)
+  if (!Call(ds, event, PRESENT) || Call(ds, event, STATUS) || Call(ds, event, FRAME, frame_at) || Call(ds, event, PAGE_COUNT, count_at) || count() > MAX_PAGES || Call(ds, event, PAGE_ARRAY, pages)
       || Word(ds, frame_at) < FRAME_LOWEST)
     return 0;
   for (int16_t n{ 0 }; n < count() - 1; ++n) {
@@ -151,9 +147,7 @@ int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     opeu_copy_bytes(ds, entry, EMS_PAGES, 16);
     auto const& data{ Data(ds) };
     for (int i{ 0 }; i < 3; ++i)
-      if (static_cast<std::uint16_t>(PageSegment(data, i) - PageSegment(data, i + 1))
-          != static_cast<std::uint16_t>(-PAGE_PARAGRAPHS))
-        return 0;
+      if (static_cast<std::uint16_t>(PageSegment(data, i) - PageSegment(data, i + 1)) != static_cast<std::uint16_t>(-PAGE_PARAGRAPHS)) return 0;
     return 1;
   }
   return 0;
@@ -165,19 +159,13 @@ uint16_t svc_emsmap(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case PRESENT:    return static_cast<uint16_t>(opeu_ems_present());
   case STATUS:     return static_cast<uint16_t>(opeu_ems_status());
   case PAGE_COUNT: return static_cast<uint16_t>(opeu_ems_page_count((int16_t*)PORT_DS(Arg(args, count, 0))));
-  case FREE_PAGES:
-    return static_cast<uint16_t>(
-        opeu_ems_free_pages((int16_t*)PORT_DS(Arg(args, count, 0)), (int16_t*)PORT_DS(Arg(args, count, 1))));
-  case FRAME: return static_cast<uint16_t>(opeu_ems_frame((uint16_t*)PORT_DS(Arg(args, count, 0))));
-  case ALLOCATE:
-    return static_cast<uint16_t>(
-        opeu_ems_allocate((int16_t)Arg(args, count, 0), (int16_t*)PORT_DS(Arg(args, count, 1))));
+  case FREE_PAGES: return static_cast<uint16_t>(opeu_ems_free_pages((int16_t*)PORT_DS(Arg(args, count, 0)), (int16_t*)PORT_DS(Arg(args, count, 1))));
+  case FRAME:      return static_cast<uint16_t>(opeu_ems_frame((uint16_t*)PORT_DS(Arg(args, count, 0))));
+  case ALLOCATE:   return static_cast<uint16_t>(opeu_ems_allocate((int16_t)Arg(args, count, 0), (int16_t*)PORT_DS(Arg(args, count, 1))));
   case PAGE_ARRAY: return static_cast<uint16_t>(opeu_ems_page_array(PORT_DS(Arg(args, count, 0))));
-  case MAP:
-    return static_cast<uint16_t>(
-        opeu_ems_map((int16_t)Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2)));
-  case RELEASE: return static_cast<uint16_t>(opeu_ems_release((int16_t)Arg(args, count, 0)));
-  default:      port_unhandled("emsmap", id, count);
+  case MAP:        return static_cast<uint16_t>(opeu_ems_map((int16_t)Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2)));
+  case RELEASE:    return static_cast<uint16_t>(opeu_ems_release((int16_t)Arg(args, count, 0)));
+  default:         port_unhandled("emsmap", id, count);
   }
   return 0;
 }

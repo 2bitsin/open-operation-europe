@@ -105,8 +105,7 @@ auto MoraleLoss(std::uint8_t* ds, HostEvent event, std::uint16_t losses, Element
 // unit suffers casualties: each element loses up to c men plus kind (percent% of the time, otherwise up to c/2);
 // infantry (category 0) loses six to fifteen times that when d is set. e shows the blast animation. frame is the
 // routine's frame pointer on the DS stack.
-void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t unit, uint16_t percent,
-                          uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
+void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
   auto&      data{ Data(ds) };
   auto&      regiment{ Record<Unit>(data, unit) };
   auto const name{ Local(frame, UNIT_NAME_TEXT) };
@@ -143,24 +142,17 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, ui
     Send(ds, event, Service::ELEMENT_NAME, near, element_name);
     auto const    category{ data.element_types[element.type].category };
     bool const    infantry{ category == 0 };
-    std::uint16_t losses{ Send(ds, event, Service::RANDOM, 100) >= percent
-                              ? Send(ds, event, Service::RANDOM, c >> 1)
-                              : static_cast<std::uint16_t>(Send(ds, event, Service::RANDOM, c) + kind) };
-    if (d && infantry)
-      losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses)
-                                          * static_cast<std::uint32_t>(Send(ds, event, Service::RANDOM, 10) + 6));
+    std::uint16_t losses{ Send(ds, event, Service::RANDOM, 100) >= percent ? Send(ds, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Send(ds, event, Service::RANDOM, c) + kind) };
+    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Send(ds, event, Service::RANDOM, 10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    Send(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), side == 0 ? '6' : '5',
-         data.side_names[side], name, element_name);
+    Send(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), side == 0 ? '6' : '5', data.side_names[side], name, element_name);
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;
       if (element.flags & Bits(ElementFlag::SELECTED)) {
         if (side_selected)
-          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person)
-            Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::SIDE_RECORD, side, person));
-        if (group_selected)
-          Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::GROUP_RECORD, side, group));
+          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::SIDE_RECORD, side, person));
+        if (group_selected) Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::GROUP_RECORD, side, group));
         // One time in a hundred the regiment's communications are cut.
         if (Send(ds, event, Service::RANDOM, 100) == 0 && Send(ds, event, Service::UNIT_ELIGIBLE, unit)) {
           if (data.side_status[side] == SIDE_PLAYED) {
@@ -177,16 +169,14 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, ui
         }
       }
       if (element.quantity) {
-        opeu_add_byte(static_cast<std::uint16_t>(Send(ds, event, Service::SQUARE_ROOT, kind) * 2), EXPERIENCE_LIMIT,
-                      &element.experience);
+        opeu_add_byte(static_cast<std::uint16_t>(Send(ds, event, Service::SQUARE_ROOT, kind) * 2), EXPERIENCE_LIMIT, &element.experience);
         opeu_sub_byte(MoraleLoss(ds, event, infantry ? losses / 10 : losses, element), &element.morale);
         if (!infantry) {
           std::uint16_t damage{ element.damage };
           opeu_add_word(Send(ds, event, Service::RANDOM, losses / 3), data.request_capacities[category], &damage);
           element.damage = damage;
         }
-        Send(ds, event, Service::FORMAT, loss_text,
-             losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
+        Send(ds, event, Service::FORMAT, loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
         opeu_string_append(ds, text, loss_text);
       } else {
         switch (static_cast<std::uint8_t>(Send(ds, event, Service::REMOVE_ELEMENT, unit, near))) {
@@ -211,8 +201,7 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, ui
       if (visible) Send(ds, event, Service::REPORT_ELEMENT, near);
       if (wiped) {
         if (visible) {
-          auto const person{ side == viewer ? Send(ds, event, Service::GROUP_RECORD, viewer, group)
-                                            : Send(ds, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
+          auto const person{ side == viewer ? Send(ds, event, Service::GROUP_RECORD, viewer, group) : Send(ds, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
           Send(ds, event, Service::ARRIVAL_LOCATION, regiment.x, regiment.y, viewer);
           Send(ds, event, Service::CONTROL_MESSAGE, text, person);
         }
@@ -222,8 +211,7 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t frame, ui
   }
   regiment.moved = 0;
   Send(ds, event, Service::CAPACITIES, unit, capacities[0], capacities[1], capacities[2]);
-  for (std::size_t resource{ 0 }; resource < 3; ++resource)
-    regiment.resources[resource] = opeu_percent(Word(ds, capacities[resource]), Word(ds, percents[resource]));
+  for (std::size_t resource{ 0 }; resource < 3; ++resource) regiment.resources[resource] = opeu_percent(Word(ds, capacities[resource]), Word(ds, percents[resource]));
   if (visible && e) Send(ds, event, Service::BLAST_ERASE, x, y);
 }
 
@@ -235,13 +223,12 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case Service::UNIT_GROUP_INDEX:    r = opeu_unit_group_index(Arg(args, count, 0)); break;
   case Service::SIDE_SELECTED_UNIT:  r = opeu_find_side_selected_unit(ds, (uint8_t)Arg(args, count, 0)); break;
   case Service::GROUP_SELECTED_UNIT: r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_NAME:     r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::UNIT_SPECIAL:  r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_ELIGIBLE: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+  case Service::UNIT_NAME:           r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::UNIT_SPECIAL:        r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case Service::UNIT_ELIGIBLE:       r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
   case Service::LOCATION_BLAST:
     sp = port_stack_enter(SERVICE_STACK);
-    opeu_location_blast(ds, svc_blast, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                        (uint8_t)Arg(args, count, 2));
+    opeu_location_blast(ds, svc_blast, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_stack_leave(SERVICE_STACK);
     break;
   case Service::RESOURCE_PERCENTAGES:
@@ -256,38 +243,27 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case Service::ELEMENT_NAME: r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::RANDOM:       r = port_rand_bounded(ds, Arg(args, count, 0)); break;
   case Service::FORMAT:       r = lf_request_format(ds, args, count); break;
-  case Service::SIDE_RECORD:
-    r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
+  case Service::SIDE_RECORD:  r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::GENERAL_CASUALTY:
     sp = port_stack_enter(SERVICE_STACK);
     opeu_general_casualty(ds, svc_genwound, (uint16_t)(sp - 2u), Arg(args, count, 0));
     port_stack_leave(SERVICE_STACK);
     break;
-  case Service::GROUP_RECORD:
-    r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case Service::SIDE_REPORT:
-    opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case Service::GROUP_RECORD: r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SIDE_REPORT:  opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::ARRIVAL_LOCATION:
     sp = port_stack_enter(SERVICE_STACK);
-    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0),
-                          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_stack_leave(SERVICE_STACK);
     break;
-  case Service::SQUARE_ROOT:    r = opeu_isqrt(Arg(args, count, 0)); break;
-  case Service::REMOVE_ELEMENT: r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::SELECT_ELEMENT: opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
-  case Service::SELECT_UNIT:    opeu_select_first_unit(ds, Arg(args, count, 0)); break;
-  case Service::SET_COUNTER: opeu_set_record_counter(PORT_DS(Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
-  case Service::SELECT_GROUP: opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
-  case Service::REPORT_ELEMENT:
-    opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0));
-    break;
-  case Service::CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case Service::SQUARE_ROOT:     r = opeu_isqrt(Arg(args, count, 0)); break;
+  case Service::REMOVE_ELEMENT:  r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::SELECT_ELEMENT:  opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
+  case Service::SELECT_UNIT:     opeu_select_first_unit(ds, Arg(args, count, 0)); break;
+  case Service::SET_COUNTER:     opeu_set_record_counter(PORT_DS(Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SELECT_GROUP:    opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
+  case Service::REPORT_ELEMENT:  opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case Service::CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::CAPACITIES:
     a = port_ds_word(Arg(args, count, 1));
     b = port_ds_word(Arg(args, count, 2));
@@ -297,10 +273,8 @@ uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     port_ds_set_word(Arg(args, count, 2), b);
     port_ds_set_word(Arg(args, count, 3), c);
     break;
-  case Service::BLAST_ERASE:
-    opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("casualty", id, count);
+  case Service::BLAST_ERASE: opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                   port_unhandled("casualty", id, count);
   }
   return r;
 }

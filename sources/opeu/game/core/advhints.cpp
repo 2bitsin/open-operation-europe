@@ -40,24 +40,18 @@ uint16_t opeu_advice_situational_hint(uint8_t ds[65536], const uint8_t* far_text
   if (air >= 50 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_CARPET_BOMBING);
   if (air >= 30 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_AIR_GUNFIRE);
   for (std::uint8_t g{ 2 }; g < GROUPS_PER_SIDE; ++g)
-    if ((GroupOf(data, side, g).flags & Bits(GroupFlag::RESERVE)) && advisor.Random(4) == 1)
-      return advisor.SayFormatted(text, AdviceText::HINT_RESERVE_DIVISION, g + 1);
+    if ((GroupOf(data, side, g).flags & Bits(GroupFlag::RESERVE)) && advisor.Random(4) == 1) return advisor.SayFormatted(text, AdviceText::HINT_RESERVE_DIVISION, g + 1);
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
     auto const person{ opeu_find_group_record(ds, side, g) };
-    if (person && (Record<Person>(data, person).role & Bits(PersonRole::DEPUTY)) && advisor.Random(4) == 1)
-      return advisor.SayFormatted(text, AdviceText::HINT_DEPUTY, g + 1);
+    if (person && (Record<Person>(data, person).role & Bits(PersonRole::DEPUTY)) && advisor.Random(4) == 1) return advisor.SayFormatted(text, AdviceText::HINT_DEPUTY, g + 1);
   }
   if (Record<Person>(data, data.context_record3).charm <= 40 && advisor.Random(4) == 1)
-    return advisor.SayFormatted(
-        text, AdviceText::HINT_STAFF_DISAGREE, data.context_record3,
-        opeu_find_person_template(ds, Record<Person>(data, data.context_record1).status, STAFF_TEMPLATE));
+    return advisor.SayFormatted(text, AdviceText::HINT_STAFF_DISAGREE, data.context_record3, opeu_find_person_template(ds, Record<Person>(data, data.context_record1).status, STAFF_TEMPLATE));
   auto const scenario{ CurrentScenario(data) };
   if (scenario == Scenario::BULGE && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_ARDENNES_WINTER);
-  if (scenario == Scenario::D_DAY && data.month >= 7 && data.month <= 9 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::HINT_HURRICANE_SEASON);
+  if (scenario == Scenario::D_DAY && data.month >= 7 && data.month <= 9 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_HURRICANE_SEASON);
   if (scenario != Scenario::AFRICA && scenario != Scenario::KURSK && advisor.Random(6) == 1)
-    return advisor.Say(data.side_stance[side] == Bits(Stance::OFFENSIVE) ? AdviceText::HINT_BUILD_BRIDGE
-                                                                         : AdviceText::HINT_DESTROY_BRIDGES);
+    return advisor.Say(data.side_stance[side] == Bits(Stance::OFFENSIVE) ? AdviceText::HINT_BUILD_BRIDGE : AdviceText::HINT_DESTROY_BRIDGES);
   return 0;
 }
 
@@ -83,6 +77,5 @@ uint16_t svc_advhints(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_advice_operation_hints(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithStack(PORT_FRAME,
-                   [&](std::uint16_t sp) { return opeu_advice_operation_hints(ds, AdviceTexts(), svc_advhints, sp); });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_advice_operation_hints(ds, AdviceTexts(), svc_advhints, sp); });
 }

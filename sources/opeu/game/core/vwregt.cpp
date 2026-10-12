@@ -38,8 +38,7 @@ void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto const saved_window{ FrameLocal(sp, REGIMENT_SAVED_WINDOW) };
   auto const name{ FrameLocal(sp, REGIMENT_NAME) };
   auto const title{ FrameLocal(sp, REGIMENT_TITLE) };
-  for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL),
-                                  Call(ds, event, ViewService::CONTROL_MESSAGE, REGIMENT_PROMPT, data.context_record3),
+  for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL), Call(ds, event, ViewService::CONTROL_MESSAGE, REGIMENT_PROMPT, data.context_record3),
                                   Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.organize_list), 1, height);
        height = 6) {
     auto const unit{ data.supply_units[data.list_row] };
@@ -69,16 +68,13 @@ uint8_t opeu_list_group_units(uint8_t ds[65536], HostEvent, uint16_t, uint8_t gr
 void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const saved_window{ FrameLocal(sp, DIVISION_SAVED_WINDOW) };
-  for (std::uint16_t height{ 7 };
-       SetRowCheck(ds, event, data.division_dialog, RowCheck::DIVISION),
-       Call(ds, event, ViewService::CONTROL_MESSAGE, DIVISION_PROMPT, data.context_record3),
-       Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.division_dialog), 1, height);
+  for (std::uint16_t height{ 7 }; SetRowCheck(ds, event, data.division_dialog, RowCheck::DIVISION), Call(ds, event, ViewService::CONTROL_MESSAGE, DIVISION_PROMPT, data.context_record3),
+                                  Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.division_dialog), 1, height);
        height = 6) {
     auto const  division{ data.list_row };
     auto const& group{ data.groups[data.current_side * GROUPS_PER_SIDE + division] };
     Call(ds, event, ViewService::GROUP_SHOW, Near(data, group), division);
-    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(ds, event, CalleeStack(sp, 0xe), division)
-                                                   + 1);
+    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(ds, event, CalleeStack(sp, 0xe), division) + 1);
     SetRowCheck(ds, event, data.organize_list, RowCheck::REGIMENT);
     Call(ds, event, ViewService::COPY_BYTES, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
     opeu_view_regiment_list(ds, event, CalleeStack(sp, 0xe));
@@ -93,8 +89,7 @@ void opeu_view_enemy_units(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   std::uint8_t listed{ 0 };
   for (std::uint8_t n = 0; n < UNITS_PER_SIDE; n++) {
     auto const& unit{ data.units[enemy * UNITS_PER_SIDE + n] };
-    if ((unit.flags & Bits(UnitFlag::READY)) && Call(ds, event, ViewService::UNIT_SPECIAL, Near(data, unit)))
-      data.supply_units[listed++] = Near(data, unit);
+    if ((unit.flags & Bits(UnitFlag::READY)) && Call(ds, event, ViewService::UNIT_SPECIAL, Near(data, unit))) data.supply_units[listed++] = Near(data, unit);
   }
   if (listed == 0) {
     Call(ds, event, ViewService::CONTROL_MESSAGE, NONE_ENEMY, data.context_record3);

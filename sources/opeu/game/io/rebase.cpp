@@ -55,10 +55,8 @@ void opeu_rebase_scenario(std::uint8_t* ds, std::uint16_t extended) {
   for (auto& special : data.special) special.target = Rebased<Objective>(special.target, OBJECTIVES_AT);
   if (extended) {
     // word arrays of the packed segment: indexed, as a reference cannot bind to their elements
-    for (auto i{ 0u }; i < std::size(data.objective_links); i++)
-      data.objective_links[i] = Rebased<Objective>(data.objective_links[i], OBJECTIVES_AT);
-    for (auto i{ 0u }; i < std::size(data.unit_links); i++)
-      data.unit_links[i] = Rebased<Unit>(data.unit_links[i], UNITS_AT);
+    for (auto i{ 0u }; i < std::size(data.objective_links); i++) data.objective_links[i] = Rebased<Objective>(data.objective_links[i], OBJECTIVES_AT);
+    for (auto i{ 0u }; i < std::size(data.unit_links); i++) data.unit_links[i] = Rebased<Unit>(data.unit_links[i], UNITS_AT);
   }
   for (auto& unit : data.units)
     for (auto& order : unit.orders)

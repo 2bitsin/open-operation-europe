@@ -17,15 +17,11 @@ namespace opeu::game::detail::forces {
 }
 
 // The eight unit slots of division `group` of `side`, in order.
-[[nodiscard]] inline auto GroupUnits(DataSegment& data, unsigned side, unsigned group) noexcept
-    -> std::span<Unit, UNITS_PER_GROUP> {
-  return std::span<Unit, UNITS_PER_GROUP>{ data.units.data() + (side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP,
-                                           UNITS_PER_GROUP };
+[[nodiscard]] inline auto GroupUnits(DataSegment& data, unsigned side, unsigned group) noexcept -> std::span<Unit, UNITS_PER_GROUP> {
+  return std::span<Unit, UNITS_PER_GROUP>{ data.units.data() + (side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP, UNITS_PER_GROUP };
 }
-[[nodiscard]] inline auto GroupUnits(DataSegment const& data, unsigned side, unsigned group) noexcept
-    -> std::span<Unit const, UNITS_PER_GROUP> {
-  return std::span<Unit const, UNITS_PER_GROUP>{ data.units.data() + (side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP,
-                                                 UNITS_PER_GROUP };
+[[nodiscard]] inline auto GroupUnits(DataSegment const& data, unsigned side, unsigned group) noexcept -> std::span<Unit const, UNITS_PER_GROUP> {
+  return std::span<Unit const, UNITS_PER_GROUP>{ data.units.data() + (side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP, UNITS_PER_GROUP };
 }
 
 // The 32 unit slots of `side`, division by division.
@@ -34,8 +30,7 @@ namespace opeu::game::detail::forces {
 }
 
 // The 128 element slots of `side`.
-[[nodiscard]] inline auto SideElements(DataSegment& data, unsigned side) noexcept
-    -> std::span<Element, ELEMENTS_PER_SIDE> {
+[[nodiscard]] inline auto SideElements(DataSegment& data, unsigned side) noexcept -> std::span<Element, ELEMENTS_PER_SIDE> {
   return std::span<Element, ELEMENTS_PER_SIDE>{ data.elements.data() + side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE };
 }
 

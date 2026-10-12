@@ -24,8 +24,7 @@ constexpr std::uint16_t NAME_TEXT{ 104 };
 constexpr std::uint16_t NAME_INDENT{ 2 };
 } // namespace
 
-void opeu_tbl_draw_elements(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                            uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_elements(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
@@ -38,12 +37,10 @@ void opeu_tbl_draw_elements(uint8_t ds[65536], HostEvent event, uint16_t scratch
     auto const  side{ opeu_element_side(near) };
     if (flags & DRAW_NAMES) {
       StartRowName(ds, event, window, entry, NAME_INDENT, side);
-      if (element.flags & Bits(ElementFlag::SELECTED))
-        Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_element_mark));
+      if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_element_mark));
       Call(ds, event, TableService::PRINT, Near(data, data.tbl_element_name), opeu_element_name(ds, near, name));
     }
-    Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_element_row), element.quantity, element.damage,
-         element.morale, element.training, element.experience);
+    Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience);
     DrawRowText(ds, event, window, layout, entry, text);
   }
   Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);

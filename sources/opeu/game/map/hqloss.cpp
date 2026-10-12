@@ -73,20 +73,15 @@ void OfficerDraw(uint8_t* ds, BattleEvent event, uint16_t frame, uint8_t kind, O
   auto const side{ data.battle_active_side };
   auto const draw{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::RAND_BOUNDED, 100)) };
   if (draw >= 10) return;
-  auto const record{ kind ? opeu_find_side_record(ds, side, kind)
-                          : opeu_find_group_record(ds, side, data.battle_active_group) };
+  auto const record{ kind ? opeu_find_side_record(ds, side, kind) : opeu_find_group_record(ds, side, data.battle_active_group) };
   if (!record || Record<Person>(data, record).role & Bits(PersonRole::DEPUTY)) return;
-  if (Record<Person>(data, record).role & Bits(PersonRole::STAFF_TRAIT)
-      && Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < 50)
-    return;
+  if (Record<Person>(data, record).role & Bits(PersonRole::STAFF_TRAIT) && Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < 50) return;
   auto const fatal{ draw < 5 };
   auto const outcome{ fatal ? texts.killed : texts.injured };
   if (kind)
-    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], record,
-         outcome);
+    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], record, outcome);
   else
-    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side],
-         data.battle_active_group + 1, record, outcome);
+    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], data.battle_active_group + 1, record, outcome);
   opeu_battle_officer_hit(ds, event, Local(frame, HIT_FRAME), record, text, fatal);
 }
 } // namespace
@@ -109,13 +104,10 @@ void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event, uint16_t sp) {
     Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.hq_city_garrison));
   }
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.hq_new_title));
-  data.deploy_window.rows = static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, data.battle_lost_unit) + 1);
+  data.deploy_window.rows = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, data.battle_lost_unit) + 1);
   {
     uint8_t row{ 0 };
-    for (auto it{ Elements(data, Record<Unit>(data, data.battle_lost_unit)).begin() }; it != std::default_sentinel;
-         ++it, ++row)
-      data.ai_element_list[row] = it.Near();
+    for (auto it{ Elements(data, Record<Unit>(data, data.battle_lost_unit)).begin() }; it != std::default_sentinel; ++it, ++row) data.ai_element_list[row] = it.Near();
   }
   data.deploy_row = 0;
   auto draw{ FIRST_DRAW };
@@ -148,20 +140,16 @@ void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event, uint16_t sp) {
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const label{ Call(ds, event, BattleRoutine::ELEMENT_NAME, Local(frame, AUTO_LABEL), best) };
   auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, Local(frame, AUTO_NAME), data.battle_lost_unit) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, Local(frame, AUTO_TEXT), Near(data, data.hq_fmt_moved),
-       NameColor(side), name, label);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, Local(frame, AUTO_TEXT), Near(data, data.hq_fmt_moved), NameColor(side), name, label);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, MESSAGE_MODE, Local(frame, AUTO_TEXT));
 }
 
-void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t record, uint16_t text,
-                             uint16_t killed) {
+void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t record, uint16_t text, uint16_t killed) {
   auto&      data{ Data(ds) };
   auto const saved{ Local(BattleFrame(sp), HIT_SAVED) };
   auto const side{ data.battle_active_side };
   data.battle_hq_intact[side] = 0;
-  auto const message{ [&] {
-    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, data.battle_active_side, MESSAGE_MODE, text);
-  } };
+  auto const message{ [&] { Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, data.battle_active_side, MESSAGE_MODE, text); } };
   if (killed) {
     if (opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER)) == record)
       Record<Person>(data, record).role |= Bits(PersonRole::DEPUTY);
@@ -182,16 +170,11 @@ void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16
 void opeu_battle_officer_losses(uint8_t* ds, BattleEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const frame{ BattleFrame(sp) };
-  OfficerDraw(ds, event, frame, 0,
-              { Near(data, data.hq_fmt_division), Near(data, data.hq_div_killed), Near(data, data.hq_div_injured) });
-  if (opeu_unit_group_index(opeu_find_side_selected_unit(ds, data.battle_active_side)) != data.battle_active_group)
-    return;
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::ARMY_COMMANDER),
-              { Near(data, data.hq_fmt_army), Near(data, data.hq_army_killed), Near(data, data.hq_army_injured) });
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF),
-              { Near(data, data.hq_fmt_intel), Near(data, data.hq_intel_killed), Near(data, data.hq_intel_injured) });
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::OPERATIONS_CHIEF),
-              { Near(data, data.hq_fmt_ops), Near(data, data.hq_ops_killed), Near(data, data.hq_ops_injured) });
+  OfficerDraw(ds, event, frame, 0, { Near(data, data.hq_fmt_division), Near(data, data.hq_div_killed), Near(data, data.hq_div_injured) });
+  if (opeu_unit_group_index(opeu_find_side_selected_unit(ds, data.battle_active_side)) != data.battle_active_group) return;
+  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::ARMY_COMMANDER), { Near(data, data.hq_fmt_army), Near(data, data.hq_army_killed), Near(data, data.hq_army_injured) });
+  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF), { Near(data, data.hq_fmt_intel), Near(data, data.hq_intel_killed), Near(data, data.hq_intel_injured) });
+  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::OPERATIONS_CHIEF), { Near(data, data.hq_fmt_ops), Near(data, data.hq_ops_killed), Near(data, data.hq_ops_injured) });
 }
 
 uint16_t opeu_battle_side_commands(const uint8_t* ds) {
@@ -210,8 +193,7 @@ void opeu_battle_hq_shaken(uint8_t* ds, BattleEvent event, uint16_t unit) {
 
 void opeu_battle_hq_lost(uint8_t* ds, BattleEvent event, uint16_t sp) {
   auto& data{ Data(ds) };
-  data.battle_active_side = static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_lost_unit));
+  data.battle_active_side  = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_lost_unit));
   data.battle_active_group = opeu_unit_group_index(data.battle_lost_unit);
   auto const inner{ static_cast<uint16_t>(sp - INNER) };
   if (data.battle_lost_element) {
@@ -221,8 +203,7 @@ void opeu_battle_hq_lost(uint8_t* ds, BattleEvent event, uint16_t sp) {
       opeu_battle_auto_hq(ds, event, inner);
     opeu_battle_hq_shaken(ds, event, data.battle_lost_unit);
   }
-  if (Record<Unit>(data, data.battle_lost_unit).flags & Bits(UnitFlag::SELECTED))
-    opeu_battle_officer_losses(ds, event, inner);
+  if (Record<Unit>(data, data.battle_lost_unit).flags & Bits(UnitFlag::SELECTED)) opeu_battle_officer_losses(ds, event, inner);
 }
 
 uint16_t svc_hqloss(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {

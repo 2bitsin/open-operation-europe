@@ -38,11 +38,9 @@ void opeu_battle_draw_line(uint8_t* ds, BattleEvent event, int16_t x0, int16_t y
   auto const curve{ static_cast<int16_t>(static_cast<int16_t>(half * half) / ARC_FLATNESS) };
   int16_t    along{ static_cast<int16_t>(-half) };
   int16_t    step{ 1 };
-  auto const lift{ [&] {
-    return curve ? static_cast<int16_t>(static_cast<int16_t>(along * along) / curve) : int16_t{ 0 };
-  } };
-  int16_t x{ x0 };
-  int16_t y{ y0 };
+  auto const lift{ [&] { return curve ? static_cast<int16_t>(static_cast<int16_t>(along * along) / curve) : int16_t{ 0 }; } };
+  int16_t    x{ x0 };
+  int16_t    y{ y0 };
   if (height < width) {
     if (x1 < x0) {
       slope = static_cast<int16_t>(-slope);

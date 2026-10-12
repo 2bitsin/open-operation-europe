@@ -97,8 +97,7 @@ uint16_t opeu_ai_choose_target(uint8_t ds[65536]) {
 // A general's merit: twice the experience plus leadership, charm, bravery, health and the three arms ratings.
 uint16_t opeu_ai_person_merit(uint8_t ds[65536], uint16_t a) {
   auto const& person{ Record<Person>(Data(ds), a) };
-  return static_cast<uint16_t>(person.experience * 2 + person.leadership + person.charm + person.bravery + person.health
-                               + person.infantry + person.artillery + person.armor);
+  return static_cast<uint16_t>(person.experience * 2 + person.leadership + person.charm + person.bravery + person.health + person.infantry + person.artillery + person.armor);
 }
 
 // Lists the side's generals into `list` by descending merit; returns their count.
@@ -131,8 +130,7 @@ uint16_t opeu_ai_replace_person(uint8_t ds[65536], uint16_t person) {
   auto&         leaving{ Record<Person>(data, person) };
   for (std::uint8_t i{ 0 }; i < count; ++i) {
     auto& candidate{ Record<Person>(data, ranked[i]) };
-    if (candidate.status != PERSON_VACANT && !HasPost(candidate) && !opeu_get_record_counter(Counter(candidate))
-        && !(candidate.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY)))
+    if (candidate.status != PERSON_VACANT && !HasPost(candidate) && !opeu_get_record_counter(Counter(candidate)) && !(candidate.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY)))
         && candidate.health >= FIT_HEALTH) {
       candidate.assignment |= leaving.assignment & (Bits(Assignment::DIVISION) | Bits(Assignment::DIVISION_MASK));
       candidate.role       |= leaving.role & Bits(PersonRole::ROLE_MASK);
@@ -153,13 +151,11 @@ uint16_t opeu_ai_rotate_staff(uint8_t ds[65536]) {
     auto& person{ data.people[data.current_side * PEOPLE_PER_SIDE + i] };
     if (person.status == PERSON_VACANT) continue;
     if (HasPost(person)) {
-      if (!(person.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY))) && person.health >= FIT_HEALTH)
-        continue;
+      if (!(person.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY))) && person.health >= FIT_HEALTH) continue;
       if (!opeu_ai_replace_person(ds, Near(data, person))) continue;
       changed = 1;
     }
-    if (!(person.role & Bits(PersonRole::DEPUTY))
-        && ((person.role & Bits(PersonRole::POOR_HEALTH)) || person.health < FIT_HEALTH)) {
+    if (!(person.role & Bits(PersonRole::DEPUTY)) && ((person.role & Bits(PersonRole::POOR_HEALTH)) || person.health < FIT_HEALTH)) {
       opeu_set_record_counter(Counter(person), REST_TURNS);
       changed = 1;
     }

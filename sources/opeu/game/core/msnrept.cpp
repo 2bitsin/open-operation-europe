@@ -41,8 +41,7 @@ auto Text(uint8_t* ds, HostEvent event, uint16_t id) -> uint16_t {
 
 // The side's special-forces commander: the person template of that post for the army commander's nation.
 auto SpecialForcesCommander(uint8_t* ds, uint8_t side) -> uint16_t {
-  auto const& commander{ Record<Person>(
-      Data(ds), opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))) };
+  auto const& commander{ Record<Person>(Data(ds), opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))) };
   return opeu_find_person_template(ds, commander.status, std::to_underlying(StaffRole::SPECIAL_FORCES_COMMANDER));
 }
 
@@ -61,9 +60,7 @@ void ShowReport(uint8_t* ds, HostEvent event, uint16_t picture, uint8_t side, ui
 // The officer's mean of leadership, charm, bravery and experience, at most his health.
 uint16_t opeu_officer_rating(const uint8_t ds[65536], uint8_t side, uint8_t kind) {
   auto const& officer{ Record<Person>(Data(ds), opeu_find_side_record(ds, side, kind)) };
-  return opeu_min16(static_cast<uint16_t>(officer.leadership + officer.charm + officer.bravery + officer.experience)
-                        / 4,
-                    officer.health);
+  return opeu_min16(static_cast<uint16_t>(officer.leadership + officer.charm + officer.bravery + officer.experience) / 4, officer.health);
 }
 
 // One point of experience for the officer, up to 99.
@@ -80,8 +77,7 @@ void opeu_mission_delay_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // The special-forces commander tells his own side of the success and the map flashes the target's cell.
-void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text,
-                                 uint8_t x, uint8_t y) {
+void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
   auto const message{ Local(frame, 100) };
   auto const speaker{ SpecialForcesCommander(ds, side) };
   FormatReport(ds, event, message, SUCCESS_FORMAT, side, text);
@@ -91,13 +87,11 @@ void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t fr
 }
 
 // The attacked side's intelligence chief reports the enemy mission.
-void opeu_mission_report_enemy(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text,
-                               uint8_t x, uint8_t y) {
+void opeu_mission_report_enemy(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
   auto const message{ Local(frame, 100) };
   FormatReport(ds, event, message, ENEMY_FORMAT, side, text);
   auto const enemy{ opeu_opposite_side(side) };
-  Call(ds, event, MISSION_MESSAGE, message,
-       opeu_find_side_record(ds, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
+  Call(ds, event, MISSION_MESSAGE, message, opeu_find_side_record(ds, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
   ShowReport(ds, event, MISSION_PICTURE, enemy, FINISH_PRESENTER);
   Call(ds, event, MISSION_FLASH, x, y, enemy);
 }
@@ -111,11 +105,9 @@ void opeu_mission_report_failure(uint8_t ds[65536], HostEvent event, uint16_t fr
 }
 
 // Writes the unit's name into destination, after "Enemy " when a player commands the side; returns destination.
-uint16_t opeu_mission_target_name(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t unit,
-                                  uint16_t destination) {
+uint16_t opeu_mission_target_name(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t unit, uint16_t destination) {
   auto const name{ Call(ds, event, MISSION_UNIT_NAME, unit, Local(frame, 32)) };
-  auto const prefix{ Data(ds).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text)
-                                                               : offsetof(DataSegment, mission_empty_text) };
+  auto const prefix{ Data(ds).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
   opeu_string_append(ds, opeu_string_copy(ds, destination, static_cast<uint16_t>(prefix)), name);
   return destination;
 }
@@ -133,8 +125,7 @@ void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event, uint16_t fra
   }
   Call(ds, event, MISSION_DEPUTY, person);
   if (played()) {
-    Call(ds, event, MISSION_MESSAGE, message,
-         opeu_find_side_record(ds, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
+    Call(ds, event, MISSION_MESSAGE, message, opeu_find_side_record(ds, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
     ShowReport(ds, event, FALLEN_PICTURE, side, DELAY_PRESENTER);
   }
 }

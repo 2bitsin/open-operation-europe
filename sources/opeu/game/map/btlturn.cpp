@@ -49,8 +49,7 @@ void ForBattleElements(DataSegment& data, Body&& body) {
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (auto const unit{ BattleList(data, side, slot) })
-        for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-          body(unit, *it);
+        for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) body(unit, *it);
 }
 } // namespace
 
@@ -88,9 +87,7 @@ uint16_t opeu_battle_all_turns(uint8_t* ds, BattleEvent event) {
 uint16_t opeu_battle_side_controlled(uint8_t* ds, BattleEvent event, uint8_t side) {
   auto& data{ Data(ds) };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, side, slot) };
-        unit && Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit))
-      return 1;
+    if (auto const unit{ BattleList(data, side, slot) }; unit && Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) return 1;
   return 0;
 }
 
@@ -100,8 +97,7 @@ void opeu_battle_toggle_numbers(uint8_t* ds, BattleEvent event, uint16_t frame) 
   data.battle_numbers_shown = data.battle_numbers_shown == 1 ? 0 : 1;
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
-      if (opeu_battle_cell_occupied(ds, event, x, y)
-          || static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN)
+      if (opeu_battle_cell_occupied(ds, event, x, y) || static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN)
         opeu_battle_refresh_cell(ds, event, x, y, Local(frame, REFRESH_FRAME));
 }
 
@@ -127,10 +123,8 @@ uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event, uint16_t frame) {
         else
           buttons = 0;
         if ((buttons & LEFT_BUTTON) || key == KEY_ENTER)
-          if (opeu_battle_side_controlled(ds, event, 0) || opeu_battle_side_controlled(ds, event, 1))
-            Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
-        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE)
-          opeu_battle_toggle_numbers(ds, event, Local(frame, NUMBERS_FRAME));
+          if (opeu_battle_side_controlled(ds, event, 0) || opeu_battle_side_controlled(ds, event, 1)) Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
+        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(ds, event, Local(frame, NUMBERS_FRAME));
       }
     }
     Call(ds, event, BattleRoutine::INPUT_RESET);
@@ -182,8 +176,7 @@ void opeu_battle_daily_condition(uint8_t* ds, BattleEvent event) {
     } else {
       opeu_sub_byte(1, &element.morale);
       opeu_add_byte(1, CONDITION_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(static_cast<uint16_t>(opeu_rand_bounded(round) + 5), 10), CONDITION_LIMIT,
-                    &element.experience);
+      opeu_add_byte(opeu_min16(static_cast<uint16_t>(opeu_rand_bounded(round) + 5), 10), CONDITION_LIMIT, &element.experience);
     }
   });
 }

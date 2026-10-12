@@ -22,16 +22,14 @@ constexpr uint8_t  NONE{ 255 };
 } // namespace
 
 // x and y: DS offsets of the bytes that receive the cell; returns 0 when there is no candidate.
-uint16_t opeu_arrival_locate(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t),
-                             uint16_t x, uint16_t y, uint8_t side) {
+uint16_t opeu_arrival_locate(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t), uint16_t x, uint16_t y, uint8_t side) {
   auto const count{ event(ds, COUNT_CELLS, side, ARRIVAL_PREDICATE, PREDICATE_SEGMENT, 0) };
   if (!count) return 0;
   auto const& data{ Data(ds) };
   Byte(ds, x) = NONE;
   for (uint8_t cell_y{ 0 }; cell_y < MAP_HEIGHT; ++cell_y)
     for (uint8_t cell_x{ 0 }; cell_x < MAP_WIDTH; ++cell_x)
-      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1
-          && (Byte(ds, x) == NONE || RandomBelow(ds, count) == 0)) {
+      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(ds, x) == NONE || RandomBelow(ds, count) == 0)) {
         Byte(ds, x) = cell_x;
         Byte(ds, y) = cell_y;
       }
@@ -44,10 +42,8 @@ uint16_t svc_arrplace(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uin
     port_unhandled("arrplace", id, 0);
     return 0;
   }
-  if (seg == PREDICATE_SEGMENT && off == ARRIVAL_PREDICATE)
-    return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_arrival_cell_allowed);
-  if (seg == PREDICATE_SEGMENT && off == REQUEST_PREDICATE)
-    return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_request_cell_allowed);
+  if (seg == PREDICATE_SEGMENT && off == ARRIVAL_PREDICATE) return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_arrival_cell_allowed);
+  if (seg == PREDICATE_SEGMENT && off == REQUEST_PREDICATE) return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_request_cell_allowed);
   port_fatal("arrplace: %04x:%04x is not a request-cell predicate", seg, off);
   return 0;
 }

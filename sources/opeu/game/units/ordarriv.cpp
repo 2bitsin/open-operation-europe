@@ -39,8 +39,7 @@ uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto const x{ static_cast<std::uint16_t>(sp - 6) };
   auto const y{ static_cast<std::uint16_t>(sp - 8) };
-  if (Serve(ds, event, OrderService::MOVE_UNIT_TARGET, x, y))
-    return Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x), Byte(ds, y)) ? 1 : 0;
+  if (Serve(ds, event, OrderService::MOVE_UNIT_TARGET, x, y)) return Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x), Byte(ds, y)) ? 1 : 0;
   Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, Data(ds).current_unit_ptr);
   return 1;
 }
@@ -62,8 +61,7 @@ uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   if (!StandsOn(ds, x, y)) return 0;
   // The delay is taken before the current regiment is read again.
   auto const delay{ opeu_order_hold_delay(ds, event) };
-  if (Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), delay)
-      && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)
+  if (Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), delay) && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)
     for (auto const& element : Elements(data, CurrentUnit(data)))
       // The draw comes before the element is read.
       if (auto const draw{ Serve(ds, event, OrderService::RAND_BOUNDED, RESUME_DRAW) }; element.experience < draw) {

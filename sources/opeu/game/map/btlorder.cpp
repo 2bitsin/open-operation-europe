@@ -62,14 +62,12 @@ void Face(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t facing) {
 }
 
 void FaceTarget(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t target) {
-  Face(ds, event, element,
-       static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)));
+  Face(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)));
 }
 
 void FaceCell(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
   auto const& position{ Position(ds, element) };
-  Face(ds, event, element,
-       static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_FACING, position.x, position.y, x, y)));
+  Face(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_FACING, position.x, position.y, x, y)));
 }
 } // namespace
 
@@ -127,8 +125,7 @@ uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t eleme
       default:         break;
       }
       opeu_battle_set_strength(ds, event, element, x, y);
-      opeu_battle_set_facing(ds, event, element,
-                             static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_MOVE_COST, x, y, element)));
+      opeu_battle_set_facing(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_MOVE_COST, x, y, element)));
     }
     if (opeu_battle_facing(ds, event, element) > order) return wait();
     x = opeu_battle_strength_low(ds, event, element);
@@ -143,8 +140,7 @@ uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t eleme
     break;
   }
   auto const state{ opeu_battle_state(ds, event, element) };
-  if ((Is(state, BattleState::BLITZ) && !opeu_battle_engaged(ds, event, element)) || Is(state, BattleState::MOVE)
-      || Is(state, BattleState::WITHDRAW)) {
+  if ((Is(state, BattleState::BLITZ) && !opeu_battle_engaged(ds, event, element)) || Is(state, BattleState::MOVE) || Is(state, BattleState::WITHDRAW)) {
     auto const& position{ Position(ds, element) };
     if (position.goal_x == x && position.goal_y == y) return ARRIVED;
   }
@@ -204,8 +200,7 @@ void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element
 // frame: the routine's frame on the DS stack; the order runs below it.
 void opeu_battle_advance(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
   auto const order{ opeu_battle_order(ds, event, element) };
-  if (opeu_battle_execute_order(ds, event, element, order, Local(frame, ADVANCE_FRAME)) == ARRIVED)
-    opeu_battle_update_element(ds, event, element);
+  if (opeu_battle_execute_order(ds, event, element, order, Local(frame, ADVANCE_FRAME)) == ARRIVED) opeu_battle_update_element(ds, event, element);
 }
 
 // frame: the routine's frame on the DS stack; the order runs below it.
@@ -236,30 +231,21 @@ auto port_routine_opeu_battle_advance(std::uint8_t* ds, std::uint16_t const* arg
   return 0;
 }
 
-auto port_routine_opeu_battle_attack_or_hold(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_attack_or_hold(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_attack_or_hold(ds, svc_btlorder, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_continue_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack(
-      [&](uint16_t sp) { opeu_battle_continue_order(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
+auto port_routine_opeu_battle_continue_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_continue_order(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
   return 0;
 }
 
-auto port_routine_opeu_battle_execute_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) {
-    return opeu_battle_execute_order(ds, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)),
-                                     BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_execute_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return WithBattleStack([&](uint16_t sp) { return opeu_battle_execute_order(ds, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)), BattleFrame(sp)); });
 }
 
-auto port_routine_opeu_battle_seek_target(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack(
-      [&](uint16_t sp) { opeu_battle_seek_target(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
+auto port_routine_opeu_battle_seek_target(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_seek_target(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
   return 0;
 }

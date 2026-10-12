@@ -60,8 +60,7 @@ void opeu_division_heading(uint8_t ds[65536], HostNotify event, uint16_t person)
   Call(ds, event, FILL, 6, 143, 73, 256, 0);
   Call(ds, event, OUTLINE, 5, 142, 73, 257, COLOR_WHITE);
   Call(ds, event, CURSOR, 1, 225);
-  Call(ds, event, PRINT, DIVISION_LABEL, NameColor(data),
-       (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1);
+  Call(ds, event, PRINT, DIVISION_LABEL, NameColor(data), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1);
   Call(ds, event, CURSOR, 1, 241);
   Call(ds, event, PRINT, DIVISION_PERSON, NameColor(data), person);
   Call(ds, event, PORTRAIT, 1, 144, person);
@@ -69,28 +68,14 @@ void opeu_division_heading(uint8_t ds[65536], HostNotify event, uint16_t person)
 
 void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case FILL:
-    opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                 Arg(args, count, 4));
-    break;
-  case OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case CURSOR:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case TEXT:  opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT: b1_cursor_print(ds, args, count); break;
-  case PORTRAIT:
-    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-    break;
-  case LINE:
-    opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                 Arg(args, count, 4));
-    break;
-  default: port_unhandled("headings", id, count);
+  case FILL:     opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case OUTLINE:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case CURSOR:   opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case LINE:     opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  default:       port_unhandled("headings", id, count);
   }
 }
 

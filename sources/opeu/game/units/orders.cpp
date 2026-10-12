@@ -28,8 +28,7 @@ void opeu_clear_unit_orders(uint8_t ds[65536], uint16_t unit, uint8_t slots) {
 
 // Gives the regiment an order of kind `code` at `target` (or, when target is 0, at the cell x, y). With save_current
 // the current order moves to the saved slot first; otherwise the saved slot is cleared.
-void opeu_set_unit_order(uint8_t ds[65536], uint16_t unit, uint16_t target, uint8_t x, uint16_t save_current,
-                         uint8_t code, uint8_t y) {
+void opeu_set_unit_order(uint8_t ds[65536], uint16_t unit, uint16_t target, uint8_t x, uint16_t save_current, uint8_t code, uint8_t y) {
   auto& regiment{ Record<Unit>(Data(ds), unit) };
   auto& order{ regiment.orders[0] };
   if (save_current) {
@@ -77,9 +76,7 @@ uint16_t opeu_unit_order_destination(const uint8_t ds[65536], uint16_t unit, uin
   case UnitOrder::REST:
     *x = order.cell.x;
     *y = order.cell.y;
-    if ((kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY))
-        && !opeu_find_objective_at(ds, *x, *y))
-      return 0;
+    if ((kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY)) && !opeu_find_objective_at(ds, *x, *y)) return 0;
     break;
   case UnitOrder::ATTACK:
   case UnitOrder::SUPPLY_UNIT:

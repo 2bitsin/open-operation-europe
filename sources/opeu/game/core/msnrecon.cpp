@@ -38,8 +38,7 @@ void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint16_t f
   auto const target{ data.sides[side].order.target };
   auto&      city{ Record<Objective>(data, target) };
   opeu_string_copy(ds, text, At(offsetof(DataSegment, recon_objective_text)));
-  if (opeu_string_length(ds, target) > ONE_LINE_NAME)
-    opeu_string_append(ds, text, At(offsetof(DataSegment, recon_newline)));
+  if (opeu_string_length(ds, target) > ONE_LINE_NAME) opeu_string_append(ds, text, At(offsetof(DataSegment, recon_newline)));
   opeu_string_append(ds, text, target);
   auto const roll{ Call(ds, event, MISSION_RANDOM, 100) };
   if (opeu_officer_rating(ds, side, OFFICER) <= roll) {
@@ -75,16 +74,14 @@ uint16_t svc_msnrecon(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   return svc_mission("msnrecon", ds, id, args, count);
 }
 
-auto port_routine_opeu_mission_recon_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mission_recon_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
   opeu_mission_recon_objective(ds, svc_msnrecon, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-auto port_routine_opeu_mission_recon_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mission_recon_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
   opeu_mission_recon_unit(ds, svc_msnrecon, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();

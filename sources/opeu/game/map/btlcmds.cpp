@@ -91,15 +91,13 @@ void opeu_battle_order_rest(uint8_t* ds, BattleEvent event, uint16_t element) {
 void opeu_battle_order_refused(uint8_t* ds, BattleEvent event, uint8_t kind) {
   auto& data{ Data(ds) };
   if (kind != REFUSED_MOVE && kind != REFUSED_TARGET) return;
-  Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1,
-       kind == REFUSED_MOVE ? Near(data, data.battle_msg_cannot_move) : Near(data, data.battle_msg_select_target));
+  Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1, kind == REFUSED_MOVE ? Near(data, data.battle_msg_cannot_move) : Near(data, data.battle_msg_select_target));
 }
 
 // The services of the player orders segment; the hex mask table is read from its far segment.
 uint16_t svc_battle_orders(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
   auto const masks{ std::to_underlying(BattleRoutine::BATTLE_HEX_MASKS) };
-  if (address >= masks && address < masks + HEX_MASK_BYTES)
-    return *port_far(0x352du, static_cast<uint16_t>(address - masks));
+  if (address >= masks && address < masks + HEX_MASK_BYTES) return *port_far(0x352du, static_cast<uint16_t>(address - masks));
   return port_service(ds, address, args, count);
 }
 

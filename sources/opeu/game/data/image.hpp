@@ -27,9 +27,7 @@ constexpr auto SetText(std::array<char, N>& field, char const (&text)[M]) -> voi
 // Passes each value with its index to `set`, which stores it (the packed segment's word arrays take no reference).
 template <typename T, std::size_t N, typename Set>
 constexpr auto SetEach(std::array<T, N> const& values, Set set) -> void {
-  [&]<std::size_t... INDEX>(std::index_sequence<INDEX...>) {
-    (set(INDEX, values[INDEX]), ...);
-  }(std::make_index_sequence<N>{});
+  [&]<std::size_t... INDEX>(std::index_sequence<INDEX...>) { (set(INDEX, values[INDEX]), ...); }(std::make_index_sequence<N>{});
 }
 
 // Writes the start-up values of every data module that lives in the data segment.

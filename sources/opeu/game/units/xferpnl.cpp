@@ -92,13 +92,9 @@ uint8_t opeu_transfer_keypad_hit(uint8_t ds[65536], uint16_t x, uint16_t y) {
   auto const   top{ data.transfer_panel_y };
   std::uint8_t key{ NO_KEY };
   for (auto column = 0u; column < 3; ++column) {
-    if (static_cast<std::uint16_t>(left + KEY_COLUMNS[column]) > x
-        || static_cast<std::uint16_t>(left + KEY_COLUMNS[column + 1]) <= x)
-      continue;
+    if (static_cast<std::uint16_t>(left + KEY_COLUMNS[column]) > x || static_cast<std::uint16_t>(left + KEY_COLUMNS[column + 1]) <= x) continue;
     for (auto row = 0u; row < 3; ++row)
-      if (static_cast<std::uint16_t>(top + KEY_ROWS[row]) <= y
-          && static_cast<std::uint16_t>(top + KEY_ROWS[row + 1]) > y)
-        key = KEYS[column][row];
+      if (static_cast<std::uint16_t>(top + KEY_ROWS[row]) <= y && static_cast<std::uint16_t>(top + KEY_ROWS[row + 1]) > y) key = KEYS[column][row];
   }
   return key;
 }
@@ -146,8 +142,7 @@ void opeu_transfer_draw(uint8_t ds[65536], HostWordsEvent event, uint16_t first,
   if (!Played(data)) return;
   Call(ds, event, TITLE, offsetof(DataSegment, transfer_title));
   Call(ds, event, MAP_DIALOG);
-  Call(ds, event, RESTORE, data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0,
-       data.numdlg_image_segment, PANEL_IMAGE_AT);
+  Call(ds, event, RESTORE, data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(ds, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
@@ -244,24 +239,14 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* ar
   case MOUSE_HIDE: opeu_mouse_hide(ds, svc_mouse); break;
   case KEY:        r = opeu_keyboard_key(ds, svc_keyboard); break;
   case RESTORE:
-    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                                      Arg(args, count, 3), Arg(args, count, 4),
-                                      port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT: r = lf_cursor_print(ds, args, count); break;
-  case GLYPH:
-    r = (uint16_t)opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                 Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
-    break;
-  case TITLE:      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_DIALOG: opeu_ems_map_dialog(ds, svc_emsmap); break;
-  case BOX:
-    r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                              Arg(args, count, 4));
-    break;
+  case POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:           r = lf_cursor_print(ds, args, count); break;
+  case GLYPH:           r = (uint16_t)opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
+  case TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case MAP_DIALOG:      opeu_ems_map_dialog(ds, svc_emsmap); break;
+  case BOX:             r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case SOUND_CUE_14:    opeu_sound_cue14(ds, svc_soundcue); break;
   case SOUND_CUE_16:    opeu_sound_cue16(ds, svc_soundcue); break;
   case MUSIC_COMMAND_7: opeu_music_command7(ds, svc_sound); break;
@@ -269,52 +254,33 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* ar
   case DAILY_CONTEXT:   opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
   case CONFIRM:         r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case INPUT_RESET:     opeu_input_reset(ds, svc_mouse); break;
-  case HIGHLIGHT:
-    r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                    Arg(args, count, 4));
-    break;
-  case UNIT_REPORT:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case UNIT_ELIGIBLE: r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+  case HIGHLIGHT:       r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case UNIT_REPORT:     opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_ELIGIBLE:   r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
   case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
+    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
     break;
-  case UNIT_CAPACITIES:
-    opeu_unit_capacities(ds, Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)),
-                         port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3)));
-    break;
+  case UNIT_CAPACITIES: opeu_unit_capacities(ds, Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)), port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3))); break;
   case OBJECTIVE_CAPACITIES:
-    opeu_objective_capacities(ds, Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)),
-                              port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3)));
+    opeu_objective_capacities(ds, Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)), port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3)));
     break;
   case SIDE_PERCENTAGES:
-    opeu_side_resource_percentages(ds, (uint8_t)Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)),
-                                   port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3)),
+    opeu_side_resource_percentages(ds, (uint8_t)Arg(args, count, 0), port_ds_word_ptr(Arg(args, count, 1)), port_ds_word_ptr(Arg(args, count, 2)), port_ds_word_ptr(Arg(args, count, 3)),
                                    Arg(args, count, 4));
     break;
-  case UNIT_SLOT:       r = opeu_unit_index(Arg(args, count, 0)); break;
-  case LAST_SLOT:       r = opeu_category_7((uint8_t)Arg(args, count, 0)); break;
-  case UNIT_GROUP:      r = opeu_unit_group(Arg(args, count, 0)); break;
-  case UNIT_NAME:       r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_TRAINING:   r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
-  case UNIT_EXPERIENCE: r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
-  case OBJECTIVE_TARGET:
-    r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1),
-                                   (uint8_t)Arg(args, count, 2));
-    break;
+  case UNIT_SLOT:        r = opeu_unit_index(Arg(args, count, 0)); break;
+  case LAST_SLOT:        r = opeu_category_7((uint8_t)Arg(args, count, 0)); break;
+  case UNIT_GROUP:       r = opeu_unit_group(Arg(args, count, 0)); break;
+  case UNIT_NAME:        r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_TRAINING:    r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
+  case UNIT_EXPERIENCE:  r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
+  case OBJECTIVE_TARGET: r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case UNIT_TARGET:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      return opeu_move_unit_target(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0),
-                                   Arg(args, count, 1));
-    });
+    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_move_unit_target(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1)); });
     break;
   case ADJACENT:
     r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      return opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2),
-                                static_cast<std::uint8_t>(Arg(args, count, 0)),
-                                static_cast<std::uint8_t>(Arg(args, count, 1)));
+      return opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
     });
     break;
   case ORDER_PROGRESS: r = opeu_move_level_lower(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

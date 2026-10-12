@@ -17,8 +17,7 @@ namespace {
 }
 } // namespace
 
-void opeu_group_resource_percentages(uint8_t ds[65536], uint16_t group, uint16_t* result_a, uint16_t* result_b,
-                                     uint16_t* result_c) {
+void opeu_group_resource_percentages(uint8_t ds[65536], uint16_t group, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
   std::uint32_t stored_a, stored_b, stored_c, capacity_a, capacity_b, capacity_c;
   opeu_group_resources(ds, group, &stored_a, &stored_b, &stored_c, 1);
   opeu_group_resources(ds, group, &capacity_a, &capacity_b, &capacity_c, 0);
@@ -27,8 +26,7 @@ void opeu_group_resource_percentages(uint8_t ds[65536], uint16_t group, uint16_t
   *result_c = Percent(stored_c, capacity_c);
 }
 
-void opeu_side_resource_percentages(uint8_t ds[65536], uint8_t side, uint16_t* result_a, uint16_t* result_b,
-                                    uint16_t* result_c, uint16_t units_only) {
+void opeu_side_resource_percentages(uint8_t ds[65536], uint8_t side, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c, uint16_t units_only) {
   auto&         data{ Data(ds) };
   std::uint32_t stored[3], capacity[3];
   opeu_side_resources(ds, side, &stored[0], &stored[1], &stored[2], 1);
@@ -37,8 +35,7 @@ void opeu_side_resource_percentages(uint8_t ds[65536], uint8_t side, uint16_t* r
     for (auto const& objective : data.objectives)
       if (objective.active && opeu_objective_side(ds, Near(data, objective)) == side)
         for (auto resource{ 0 }; resource < 3; ++resource)
-          stored[resource] += static_cast<std::uint16_t>(
-              objective.resources[resource] - opeu_min16(objective.resources[resource], objective.reserves[resource]));
+          stored[resource] += static_cast<std::uint16_t>(objective.resources[resource] - opeu_min16(objective.resources[resource], objective.reserves[resource]));
   }
   *result_a = Percent(stored[0], capacity[0]);
   *result_b = Percent(stored[1], capacity[1]);

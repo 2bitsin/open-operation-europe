@@ -31,8 +31,7 @@ constexpr uint8_t ATTACKER_WON{ 2 };
 }
 
 [[nodiscard]] auto OnCity(DataSegment& data) -> bool {
-  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK))
-         == std::to_underlying(Terrain::CITY);
+  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK)) == std::to_underlying(Terrain::CITY);
 }
 
 void Finish(uint8_t* ds, BattleEvent event) {
@@ -49,12 +48,10 @@ uint16_t opeu_battle_random_target(uint8_t* ds, BattleEvent event, uint16_t elem
   auto const                first{ UnitSide(ds, event, BattleList(data, 0, 0)) };
   unsigned const            other{ first == mine ? 1u : 0u };
   uint8_t                   n{ 0 };
-  for (uint8_t i{ 0 }; BattleList(data, other, i) != 0 && i < BATTLE_LIST_LENGTH; ++i)
-    enemies[n++] = BattleList(data, other, i);
+  for (uint8_t i{ 0 }; BattleList(data, other, i) != 0 && i < BATTLE_LIST_LENGTH; ++i) enemies[n++] = BattleList(data, other, i);
   auto const unit{ enemies[static_cast<uint8_t>(Call(ds, event, BattleRoutine::RAND_BOUNDED, n))] };
   n = 0;
-  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-    members[n++] = it.Near();
+  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) members[n++] = it.Near();
   return members[static_cast<uint8_t>(Call(ds, event, BattleRoutine::RAND_BOUNDED, n))];
 }
 
@@ -86,8 +83,7 @@ uint16_t opeu_battle_round(uint8_t* ds, BattleEvent event) {
   for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
     for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
       auto const unit{ BattleList(data, side, i) };
-      if (unit != 0 && Call(ds, event, BattleRoutine::BATTLE_LEVEL_ALLOWED, Record<Unit>(data, unit).first)
-          && Record<Unit>(data, unit).resources[0] && !opeu_battle_unit_fight(ds, event, unit))
+      if (unit != 0 && Call(ds, event, BattleRoutine::BATTLE_LEVEL_ALLOWED, Record<Unit>(data, unit).first) && Record<Unit>(data, unit).resources[0] && !opeu_battle_unit_fight(ds, event, unit))
         return 0;
     }
   return 1;
@@ -120,8 +116,7 @@ void opeu_battle_finish_turn(uint8_t* ds, BattleEvent event) {
     }
   }
   if (result == ATTACKER_WON) {
-    data.battle_side = UnitSide(ds, event,
-                                BattleList(data, 1, 0) == 0 ? BattleList(data, 1, 1) : BattleList(data, 1, 0));
+    data.battle_side = UnitSide(ds, event, BattleList(data, 1, 0) == 0 ? BattleList(data, 1, 1) : BattleList(data, 1, 0));
     if (OnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   }
   Finish(ds, event);

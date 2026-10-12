@@ -72,8 +72,7 @@ void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t frame) {
     }
   } else {
     for (unsigned i{ 0 }; i < BUTTONS; ++i) {
-      data.battle_menu_items[i].x = static_cast<uint16_t>(data.battle_menu_places[i].x
-                                                          + (data.battle_active_side ? SIDE_1_SHIFT : 0));
+      data.battle_menu_items[i].x = static_cast<uint16_t>(data.battle_menu_places[i].x + (data.battle_active_side ? SIDE_1_SHIFT : 0));
       data.battle_menu_items[i].y = data.battle_menu_places[i].y;
     }
   }
@@ -88,8 +87,7 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t elemen
   for (;;) {
     opeu_battle_menu_place(ds, event, Local(frame, MENU_FRAME));
     Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
-    auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1,
-                      Near(data, data.battle_menu_items)) };
+    auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1, Near(data, data.battle_menu_items)) };
     if (choice == CANCELLED) {
       Panels(ds, event);
       Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
@@ -115,13 +113,11 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t elemen
       if (withdraw) {
         if (opeu_battle_lone_withdrawal(ds, event, element)) data.battle_exit_direction[0] = NO_SIDE;
         if (!opeu_battle_mark_exits(ds, event, element)) {
-          Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1,
-               Near(data, data.battle_msg_cannot_withdraw));
+          Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1, Near(data, data.battle_msg_cannot_withdraw));
           continue;
         }
       }
-      if (!opeu_battle_order_command(ds, event, element, static_cast<uint8_t>(choice - 1), Local(frame, MENU_FRAME)))
-        data.battle_cursor_x = data.battle_cursor_y = 0;
+      if (!opeu_battle_order_command(ds, event, element, static_cast<uint8_t>(choice - 1), Local(frame, MENU_FRAME))) data.battle_cursor_x = data.battle_cursor_y = 0;
       if (withdraw) opeu_battle_unmark_exits(ds, event, element);
       break;
     }
@@ -130,14 +126,12 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t elemen
     }
     break;
   }
-  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT
-      && unit != Near(data, data.battle_garrison)) {
+  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) {
     auto exit{ NO_SIDE };
     for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
       if (opeu_battle_state(ds, event, it.Near()) == std::to_underlying(BattleState::WITHDRAW)) {
         auto const& position{ PositionOf(data, it.Near()) };
-        exit = static_cast<uint8_t>(
-            (BattleCellAt(data, position.goal_x, position.goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1);
+        exit = static_cast<uint8_t>((BattleCellAt(data, position.goal_x, position.goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1);
         break;
       }
     data.battle_exit_direction[0] = exit;

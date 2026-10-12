@@ -20,8 +20,7 @@ void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker, u
     Call(ds, event, BattleRoutine::BATTLE_MINE_HIT, target);
   if (Data(ds).battle_element_destroyed) {
     if (target) opeu_battle_element_destroy(ds, event, target);
-    if (!static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) && attacker)
-      Call(ds, event, BattleRoutine::BATTLE_UPDATE_ELEMENT, attacker);
+    if (!static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) && attacker) Call(ds, event, BattleRoutine::BATTLE_UPDATE_ELEMENT, attacker);
   }
 }
 

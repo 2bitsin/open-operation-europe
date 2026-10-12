@@ -59,17 +59,10 @@ void opeu_setup_marker_hide(uint8_t ds[65536], HostEvent event, uint8_t index) {
 uint16_t svc_setmark(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   (void)ds;
   switch (id) {
-  case SAVE_AREA:
-    opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                     port_far(Arg(args, count, 4), Arg(args, count, 5)));
-    break;
-  case DRAW_IMAGE:
-    opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                  Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
+  case SAVE_AREA:  opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
+  case DRAW_IMAGE: opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
   case RESTORE_AREA:
-    opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                        Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
   default: port_unhandled("setmark", id, count);
   }

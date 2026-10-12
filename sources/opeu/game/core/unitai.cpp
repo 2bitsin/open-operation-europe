@@ -80,8 +80,7 @@ void IssueOrder(std::uint8_t* ds, UnitOrder kind, std::uint8_t x, std::uint8_t y
 
 // Fills path_cost outward from (x, y) in order of cost, each step costing the unit's terrain rating of the cell
 // entered. Returns 1 as soon as a step reaches (tx, ty), 0 when every reachable cell is costed.
-auto PathFill(std::uint8_t* ds, std::uint8_t x, std::uint8_t y, std::uint8_t tx, std::uint8_t ty, Unit const& unit)
-    -> std::uint16_t {
+auto PathFill(std::uint8_t* ds, std::uint8_t x, std::uint8_t y, std::uint8_t tx, std::uint8_t ty, Unit const& unit) -> std::uint16_t {
   auto const&   data{ Data(ds) };
   std::uint16_t head{ 0 };
   std::uint16_t tail{ 1 };
@@ -144,13 +143,11 @@ auto PathOrderStep(std::uint8_t* ds, Unit& unit) -> std::uint16_t {
 
 // Whether the objective holds more (Overstocked) or less (Understocked) of any supply than its reserve.
 auto Overstocked(Objective const& objective) -> bool {
-  return objective.resources[0] > objective.reserves[0] || objective.resources[1] > objective.reserves[1]
-         || objective.resources[2] > objective.reserves[2];
+  return objective.resources[0] > objective.reserves[0] || objective.resources[1] > objective.reserves[1] || objective.resources[2] > objective.reserves[2];
 }
 
 auto Understocked(Objective const& objective) -> bool {
-  return objective.resources[0] < objective.reserves[0] || objective.resources[1] < objective.reserves[1]
-         || objective.resources[2] < objective.reserves[2];
+  return objective.resources[0] < objective.reserves[0] || objective.resources[1] < objective.reserves[1] || objective.resources[2] < objective.reserves[2];
 }
 
 // The side's eligible objective nearest the current unit that satisfies the predicate.
@@ -161,8 +158,7 @@ auto NearestObjective(std::uint8_t* ds, Predicate predicate) -> Objective* {
   Objective*   nearest{ nullptr };
   std::uint8_t best{ UNREACHED };
   for (auto& objective : data.objectives)
-    if (objective.active && opeu_objective_side(ds, Near(data, objective)) == data.current_side
-        && opeu_objective_eligible(ds, Near(data, objective))) {
+    if (objective.active && opeu_objective_side(ds, Near(data, objective)) == data.current_side && opeu_objective_eligible(ds, Near(data, objective))) {
       auto const distance{ opeu_grid_distance(current.x, current.y, objective.x, objective.y) };
       if (predicate(objective) && distance < best) {
         nearest = &objective;
@@ -173,15 +169,12 @@ auto NearestObjective(std::uint8_t* ds, Predicate predicate) -> Objective* {
 }
 
 // Whether any of the unit's supplies is below its percentage of the unit's capacity.
-auto BelowPercent(std::uint8_t* ds, Unit const& unit, std::uint16_t ammo, std::uint16_t fuel, std::uint16_t food)
-    -> bool {
+auto BelowPercent(std::uint8_t* ds, Unit const& unit, std::uint16_t ammo, std::uint16_t fuel, std::uint16_t food) -> bool {
   std::uint16_t ammo_capacity;
   std::uint16_t fuel_capacity;
   std::uint16_t food_capacity;
   opeu_unit_capacities(ds, Near(Data(ds), unit), &ammo_capacity, &fuel_capacity, &food_capacity);
-  return opeu_mul_div(unit.resources[0], 100, ammo_capacity) < ammo
-         || opeu_mul_div(unit.resources[1], 100, fuel_capacity) < fuel
-         || opeu_mul_div(unit.resources[2], 100, food_capacity) < food;
+  return opeu_mul_div(unit.resources[0], 100, ammo_capacity) < ammo || opeu_mul_div(unit.resources[1], 100, fuel_capacity) < fuel || opeu_mul_div(unit.resources[2], 100, food_capacity) < food;
 }
 
 // The supported unit of the current division nearest the current unit with a supply below the given percentages.
@@ -191,8 +184,7 @@ auto NearestUnitInNeed(std::uint8_t* ds, std::uint16_t ammo, std::uint16_t fuel,
   Unit*        nearest{ nullptr };
   std::uint8_t best{ UNREACHED };
   for (auto& unit : GroupUnits(data, data.current_side, data.current_group))
-    if ((unit.flags & Bits(UnitFlag::READY)) && &unit != &current
-        && opeu_unit_support_condition(ds, Near(data, unit))) {
+    if ((unit.flags & Bits(UnitFlag::READY)) && &unit != &current && opeu_unit_support_condition(ds, Near(data, unit))) {
       auto const distance{ opeu_grid_distance(current.x, current.y, unit.x, unit.y) };
       if (BelowPercent(ds, unit, ammo, fuel, food) && distance < best) {
         nearest = &unit;
@@ -241,9 +233,7 @@ auto FullyAssigned(std::uint8_t* ds, Objective const* objective) -> bool {
   for (auto const& unit : GroupUnits(data, data.current_side, data.current_group)) {
     if (IsCombatSlot(slot)) {
       auto const& order{ unit.orders[0] };
-      if ((unit.flags & Bits(UnitFlag::READY)) && order.kind != Bits(UnitOrder::NONE)
-          && ObjectiveAt(ds, order.cell.x, order.cell.y) == objective)
-        ++assigned;
+      if ((unit.flags & Bits(UnitFlag::READY)) && order.kind != Bits(UnitOrder::NONE) && ObjectiveAt(ds, order.cell.x, order.cell.y) == objective) ++assigned;
     }
     ++slot;
   }
@@ -254,8 +244,7 @@ auto FullyAssigned(std::uint8_t* ds, Objective const* objective) -> bool {
 // delivery level is above 2.
 auto WorthAttacking(std::uint8_t* ds, Unit const& enemy) -> bool {
   auto& data{ Data(ds) };
-  return opeu_unit_special(ds, Near(data, enemy))
-         || (data.side_control[data.current_side] == 0 && data.delivery_level > 2);
+  return opeu_unit_special(ds, Near(data, enemy)) || (data.side_control[data.current_side] == 0 && data.delivery_level > 2);
 }
 
 } // namespace
@@ -370,16 +359,14 @@ uint16_t opeu_unit_resupply_order(uint8_t ds[65536]) {
   std::uint16_t fuel_capacity;
   std::uint16_t food_capacity;
   opeu_unit_capacities(ds, data.current_unit_ptr, &ammo_capacity, &fuel_capacity, &food_capacity);
-  if (opeu_percent(ammo_capacity, 20) > current.resources[0] || opeu_percent(fuel_capacity, 20) > current.resources[1]
-      || opeu_percent(food_capacity, 20) > current.resources[2]) {
+  if (opeu_percent(ammo_capacity, 20) > current.resources[0] || opeu_percent(fuel_capacity, 20) > current.resources[1] || opeu_percent(food_capacity, 20) > current.resources[2]) {
     auto const* overstocked{ NearestObjective(ds, Overstocked) };
     if (overstocked && GroupTargets(ds, overstocked)) {
       IssueOrder(ds, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
       return 1;
     }
     for (auto const& objective : data.objectives)
-      if (opeu_objective_side(ds, Near(data, objective)) != data.current_side && HasRemaining(ds, objective)
-          && GroupTargets(ds, &objective)) {
+      if (opeu_objective_side(ds, Near(data, objective)) != data.current_side && HasRemaining(ds, objective) && GroupTargets(ds, &objective)) {
         IssueOrder(ds, UnitOrder::OCCUPY, objective.x, objective.y);
         return 1;
       }
@@ -442,8 +429,7 @@ uint16_t opeu_unit_attack_order(uint8_t ds[65536]) {
   std::uint8_t best{ UNREACHED };
   Unit*        target{ nullptr };
   for (auto& enemy : SideUnits(data, opeu_opposite_side(side)))
-    if ((enemy.flags & Bits(UnitFlag::READY)) && WorthAttacking(ds, enemy)
-        && opeu_cell_influence_side(ds, enemy.x, enemy.y) == side) {
+    if ((enemy.flags & Bits(UnitFlag::READY)) && WorthAttacking(ds, enemy) && opeu_cell_influence_side(ds, enemy.x, enemy.y) == side) {
       auto const distance{ opeu_grid_distance(CurrentUnit(data).x, CurrentUnit(data).y, enemy.x, enemy.y) };
       if (distance < best) {
         target = &enemy;

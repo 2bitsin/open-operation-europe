@@ -24,8 +24,7 @@ constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 };  // the far text the noon ev
 constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
 } // namespace
 
-void opeu_turn_half_day(uint8_t ds[65536],
-                        uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_turn_half_day(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto const& data{ Data(ds) };
   event(ds, PREPARE, 0, 0, 0, 0);
   if (data.hour == 0)

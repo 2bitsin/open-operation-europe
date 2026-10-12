@@ -51,8 +51,7 @@ void opeu_move_clear(uint8_t* far_data, uint8_t x, uint8_t y) {
 }
 
 // far_words: the far data segment as words. The start cell must lie on the map.
-uint16_t opeu_move_reachable(uint8_t* ds, uint16_t* far_words, uint8_t x, uint8_t y, uint8_t tx, uint8_t ty,
-                             uint16_t unit) {
+uint16_t opeu_move_reachable(uint8_t* ds, uint16_t* far_words, uint8_t x, uint8_t y, uint8_t tx, uint8_t ty, uint16_t unit) {
   auto* const queue{ far_words };
   auto* const costs{ far_words + GRID_WORDS };
   unsigned    head{ 0 };

@@ -55,15 +55,11 @@ auto UiCall(std::uint8_t* ds, UiHost const* host, UiService service, Words... wo
   return host->event(ds, host->memory, std::to_underlying(service), args, sizeof...(Words));
 }
 
-auto Seek(std::uint8_t* ds, UiHost const* host, std::int16_t handle, std::int32_t position, std::uint16_t origin)
-    -> std::int32_t {
-  return static_cast<std::int32_t>(UiCall(ds, host, UiService::SEEK, handle, static_cast<std::uint16_t>(position),
-                                          static_cast<std::uint16_t>(static_cast<std::uint32_t>(position) >> 16),
-                                          origin));
+auto Seek(std::uint8_t* ds, UiHost const* host, std::int16_t handle, std::int32_t position, std::uint16_t origin) -> std::int32_t {
+  return static_cast<std::int32_t>(UiCall(ds, host, UiService::SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(static_cast<std::uint32_t>(position) >> 16), origin));
 }
 
-auto ReadFar(std::uint8_t* ds, UiHost const* host, std::int16_t handle, std::uint16_t segment, std::uint16_t offset,
-             std::uint16_t count) -> std::uint16_t {
+auto ReadFar(std::uint8_t* ds, UiHost const* host, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> std::uint16_t {
   return static_cast<std::uint16_t>(UiCall(ds, host, UiService::READ, handle, segment, offset, count));
 }
 
@@ -176,8 +172,7 @@ auto Lookup(DataSegment& data, Cache const& cache, std::uint8_t key) -> std::pai
 } // namespace
 
 // Reads a w x h picture of three planes from the file to the end of the image buffer and blits it.
-void opeu_image_read_draw(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                          uint16_t mode, int16_t handle) {
+void opeu_image_read_draw(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, int16_t handle) {
   auto const segment{ Data(ds).image_segment };
   auto const size{ Multiply(Multiply(h, w), 3) };
   if (size > IMAGE_END) return;
@@ -200,8 +195,7 @@ void opeu_rle_expand(uint8_t ds[65536], const UiHost* host, uint16_t count, FarP
 }
 
 // Draws the w x h mask at the end of the image buffer; mode 0 inverts the mask first and draws it in mode 0x407.
-void opeu_image_draw_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                            uint16_t mode) {
+void opeu_image_draw_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode) {
   auto const segment{ Data(ds).image_segment };
   auto const count{ Multiply(h, w) };
   if (static_cast<std::uint16_t>(count * 2) > IMAGE_END) return;
@@ -230,8 +224,7 @@ void opeu_stream_seek_block(uint8_t ds[65536], const UiHost* host, uint16_t x, u
   (void)x;
   (void)y;
   auto& data{ Data(ds) };
-  if (Seek(ds, host, data.picture_handle, static_cast<std::int32_t>(block) << 9, 0) != SEEK_FAILED)
-    data.stream_count = 0;
+  if (Seek(ds, host, data.picture_handle, static_cast<std::int32_t>(block) << 9, 0) != SEEK_FAILED) data.stream_count = 0;
 }
 
 void opeu_picture_file(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
@@ -240,8 +233,7 @@ void opeu_picture_file(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16
   UiCall(ds, host, UiService::DECODE, x, y, FILE_READER, host->code_segment);
 }
 
-void opeu_picture_file_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, int16_t handle,
-                              uint16_t block) {
+void opeu_picture_file_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(ds).picture_handle = handle;
   opeu_stream_seek_block(ds, host, x, y, block);
   UiCall(ds, host, UiService::DECODE_MASKED, x, y, FILE_READER, host->code_segment);
@@ -252,14 +244,12 @@ uint8_t opeu_stream_memory_byte(uint8_t ds[65536], const UiHost* host) {
   return StreamNext(ds, host);
 }
 
-void opeu_picture_memory(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t segment,
-                         uint16_t offset) {
+void opeu_picture_memory(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(ds), segment, offset);
   UiCall(ds, host, UiService::DECODE, x, y, MEMORY_READER, host->code_segment);
 }
 
-void opeu_picture_memory_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t segment,
-                                uint16_t offset) {
+void opeu_picture_memory_masked(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(ds), segment, offset);
   UiCall(ds, host, UiService::DECODE_MASKED, x, y, MEMORY_READER, host->code_segment);
 }
@@ -268,8 +258,7 @@ void opeu_stream_seek(uint8_t ds[65536], const UiHost* host, int32_t position, i
   if (Seek(ds, host, handle, position, 0) != SEEK_FAILED) Data(ds).stream_count = 0;
 }
 
-void opeu_picture_file_at(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, int16_t handle,
-                          int32_t position) {
+void opeu_picture_file_at(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t y, int16_t handle, int32_t position) {
   opeu_stream_seek(ds, host, position, handle);
   UiCall(ds, host, UiService::DECODE_MASKED, x, y, FILE_READER, host->code_segment);
 }
@@ -333,8 +322,7 @@ int16_t opeu_face_load(uint8_t ds[65536], const UiHost* host, uint8_t key) {
   auto const cache{ FaceCache(data) };
   auto const [node, cached]{ Lookup(data, cache, key) };
   if (cached) return static_cast<std::int16_t>(cache.SlotOffset(data, node));
-  Seek(ds, host, data.face_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(data.face_offsets[key]) << 2),
-       0);
+  Seek(ds, host, data.face_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(data.face_offsets[key]) << 2), 0);
   ReadFar(ds, host, data.face_handle, data.image_segment, FACE_BUFFER, IMAGE_BYTES);
   SetStream(data, data.image_segment, FACE_BUFFER);
   auto const result{ cache.SlotOffset(data, node) };
@@ -359,8 +347,7 @@ void opeu_face_draw(uint8_t ds[65536], const UiHost* host, uint16_t x, uint16_t 
   opeu_image_draw_masked(ds, host, x, y, 24, 80, mode);
 }
 
-void opeu_ui_outline(uint8_t ds[65536], const UiHost* host, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
-                     uint16_t color) {
+void opeu_ui_outline(uint8_t ds[65536], const UiHost* host, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
   UiCall(ds, host, UiService::LINE, x1, y1, x2, y1, color);
   UiCall(ds, host, UiService::LINE, x2, y1, x2, y2, color);
   UiCall(ds, host, UiService::LINE, x1, y2, x2, y2, color);
@@ -424,71 +411,39 @@ uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id, const uint16_t* a
   (void)ds;
   (void)memory;
   switch (static_cast<UiService>(id)) {
-  case UiService::SEEK:
-    return (uint32_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1),
-                                   (int16_t)Arg(args, count, 3));
-  case UiService::READ:
-    return (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                                       Arg(args, count, 3));
+  case UiService::SEEK: return (uint32_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3));
+  case UiService::READ: return (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
   case UiService::BLIT:
-    opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                  Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     return 0;
   case UiService::DRAW:
-    opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                  Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     return 0;
-  case UiService::DRAW_NEAR:
-    opeu_draw_near(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                   Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
-    return 0;
-  case UiService::LINE:
-    opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                 Arg(args, count, 4));
-    return 0;
-  case UiService::BOX:
-    opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                Arg(args, count, 4));
-    return 0;
-  case UiService::COPY:
-    opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                     Arg(args, count, 4), Arg(args, count, 5));
-    return 0;
-  case UiService::SET_PALETTE:
-    opeu_set_palette((uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2)));
-    return 0;
-  case UiService::DECODE:
-    opeu_picture_decode(Arg(args, count, 0), Arg(args, count, 1),
-                        port_picture_reader(Arg(args, count, 2), Arg(args, count, 3)));
-    return 0;
-  case UiService::DECODE_MASKED:
-    opeu_picture_decode_masked(Arg(args, count, 0), Arg(args, count, 1),
-                               port_picture_reader(Arg(args, count, 2), Arg(args, count, 3)));
-    return 0;
-  case UiService::POSITION:
-    opeu_army_position(port_ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0),
-                       (int16_t)Arg(args, count, 1));
-    return 0;
-  default: port_unhandled("uiprim", id, count);
+  case UiService::DRAW_NEAR:     opeu_draw_near(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); return 0;
+  case UiService::LINE:          opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); return 0;
+  case UiService::BOX:           opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); return 0;
+  case UiService::COPY:          opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); return 0;
+  case UiService::SET_PALETTE:   opeu_set_palette((uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), PORT_DS(Arg(args, count, 2))); return 0;
+  case UiService::DECODE:        opeu_picture_decode(Arg(args, count, 0), Arg(args, count, 1), port_picture_reader(Arg(args, count, 2), Arg(args, count, 3))); return 0;
+  case UiService::DECODE_MASKED: opeu_picture_decode_masked(Arg(args, count, 0), Arg(args, count, 1), port_picture_reader(Arg(args, count, 2), Arg(args, count, 3))); return 0;
+  case UiService::POSITION:      opeu_army_position(port_ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); return 0;
+  default:                       port_unhandled("uiprim", id, count);
   }
   return 0;
 }
 
 auto port_routine_opeu_context_frame(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                     Arg(args, count, 2));
+  opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
   return 0;
 }
 
 auto port_routine_opeu_context_portrait(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                        Arg(args, count, 2));
+  opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
   return 0;
 }
 
 auto port_routine_opeu_face_draw(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                 (uint8_t)Arg(args, count, 3));
+  opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3));
   return 0;
 }
 
@@ -498,7 +453,6 @@ auto port_routine_opeu_palette_for_hour(std::uint8_t* ds, std::uint16_t const*, 
 }
 
 auto port_routine_opeu_ui_outline(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                  Arg(args, count, 3), Arg(args, count, 4));
+  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
   return 0;
 }

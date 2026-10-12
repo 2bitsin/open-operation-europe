@@ -56,8 +56,7 @@ void opeu_update_influence_map(uint8_t* ds) {
         auto const& objective{ data.objectives[i] };
         if (objective_strength[i]) {
           int16_t value{ influence };
-          opeu_add_influence(
-              opeu_weight_influence(x, y, objective.x / BLOCK, objective.y / BLOCK, objective_strength[i]), &value);
+          opeu_add_influence(opeu_weight_influence(x, y, objective.x / BLOCK, objective.y / BLOCK, objective_strength[i]), &value);
           influence = value;
         }
       }

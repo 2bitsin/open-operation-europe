@@ -127,8 +127,7 @@ inline void CopyAdvice(std::uint8_t* ds, std::uint8_t const* far_text, std::uint
 
 // Formats into `destination` through request_format.
 template <typename... Words>
-inline void FormatAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t destination, std::uint16_t format,
-                         Words... words) {
+inline void FormatAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t destination, std::uint16_t format, Words... words) {
   Call(ds, event, ADVICE_FORMAT, destination, format, words...);
 }
 
@@ -139,14 +138,12 @@ inline void ShowAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t text) {
 
 // The event an advice check passed on to opeu_unit_name, which formats through its own service 2.
 inline HostEvent advice_name_event{};
-inline auto      AdviceNameFormat(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count)
-    -> std::uint16_t {
+inline auto      AdviceNameFormat(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   return advice_name_event(ds, id == 2 ? ADVICE_FORMAT : id, args, count);
 }
 
 // Writes the unit's name to a DS buffer through the advice check's own request_format; returns the buffer.
-inline auto AdviceUnitName(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t buffer)
-    -> std::uint16_t {
+inline auto AdviceUnitName(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
   advice_name_event = event;
   return opeu_unit_name(ds, AdviceNameFormat, unit, buffer);
 }

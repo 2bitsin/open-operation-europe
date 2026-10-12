@@ -63,9 +63,8 @@ void opeu_daily_context(uint8_t ds[65536], HostEvent event, uint8_t side) {
   Call(ds, event, FRAME, 44, 24, width + 13);
   Call(ds, event, PRINT, NAME_FORMAT, general);
   Call(ds, event, RESTORE);
-  Call(ds, event, PRINT, STATS_FORMAT, person.leadership, person.infantry, person.charm, person.artillery,
-       person.bravery, person.armor, (person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL,
-       person.health, person.experience);
+  Call(ds, event, PRINT, STATS_FORMAT, person.leadership, person.infantry, person.charm, person.artillery, person.bravery, person.armor,
+       (person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL, person.health, person.experience);
   Call(ds, event, PORTRAIT, 70, 40, general);
   for (std::uint16_t y{ 316 }; y < 382; y += 16) {
     Call(ds, event, POSITION, 45, y);
@@ -82,22 +81,14 @@ void opeu_turn_pre_context(uint8_t ds[65536], HostEvent event) {
 
 uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case BEGIN: opeu_context_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case SAVE:  opeu_context_save(ds, (TextHost*)port_textout_host()); break;
-  case FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case PRINT:   b1_cursor_print(ds, args, count); break;
-  case RESTORE: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
-  case PORTRAIT:
-    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case FINISH: {
+  case BEGIN:    opeu_context_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case SAVE:     opeu_context_save(ds, (TextHost*)port_textout_host()); break;
+  case FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case PRINT:    b1_cursor_print(ds, args, count); break;
+  case RESTORE:  opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
+  case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case FINISH:   {
     auto const workspace{ b1_stack_alloc(ARMY_WORKSPACE) };
     opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(workspace + 2));
     port_scratch_leave(ARMY_WORKSPACE);

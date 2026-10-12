@@ -60,15 +60,12 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8
   auto const buffer{ Local(frame, BUFFER) };
   auto const side{ data.current_side };
   auto const whole{ data.unit_order_active != 0 };
-  auto const division_units{ [&](std::uint8_t index) -> Unit& {
-    return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index];
-  } };
-  auto unit{ data.row_units[data.list_row] };
+  auto const division_units{ [&](std::uint8_t index) -> Unit& { return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index]; } };
+  auto       unit{ data.row_units[data.list_row] };
   if (whole) {
     // The last regiment with the selection flag; without one, whatever the frame word held.
     for (std::uint8_t index{ 0 }; index < 8; ++index)
-      if (division_units(index).flags & Bits(UnitFlag::SELECTED))
-        SetWord(ds, Local(frame, LAST), Near(data, division_units(index)));
+      if (division_units(index).flags & Bits(UnitFlag::SELECTED)) SetWord(ds, Local(frame, LAST), Near(data, division_units(index)));
     unit = Word(ds, Local(frame, LAST));
   }
   auto& regiment{ Record<Unit>(data, unit) };
@@ -84,9 +81,7 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8
     auto const count{ OrderCount(data.issue_order_codes[menu]) };
     opeu_order_layout(ds, menu);
     Send(ds, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
-    auto const choice{ SetWord(
-        ds, count_at,
-        Send(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu]))) };
+    auto const choice{ SetWord(ds, count_at, Send(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu]))) };
     Send(ds, event, ORDERS_SPEAKER_PANEL, person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(ds, event, unit, person);
@@ -129,8 +124,7 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8
       }
       // A regiment does not pursue or supply itself.
       auto const own_cell{ member.x == Byte(ds, x_at) && member.y == Byte(ds, y_at) };
-      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell))
-        opeu_set_unit_order(ds, near, target, Byte(ds, x_at), 0, kind, Byte(ds, y_at));
+      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell)) opeu_set_unit_order(ds, near, target, Byte(ds, x_at), 0, kind, Byte(ds, y_at));
     }
   Send(ds, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
   data.overview_side = NO_CELL;

@@ -52,8 +52,7 @@ void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   std::uint16_t const lower[2]{ slot, 0 };
   if (event(ds, LEVEL_LOWER, lower, 2)) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
   std::uint16_t const unit[1]{ data.current_unit_ptr };
-  std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(
-                                          static_cast<std::uint16_t>(99 - event(ds, AVERAGE9, unit, 1)) / 35 + 1) };
+  std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - event(ds, AVERAGE9, unit, 1)) / 35 + 1) };
   if (event(ds, LEVEL_RAISE, raise, 2)) {
     std::uint16_t const move[1]{ data.order_moves[code] };
     event(ds, MOVE, move, 1);
@@ -65,21 +64,14 @@ void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_finalact(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case DESTINATION: svc_order_handler(ds, OrderService::UNIT_ORDER_DESTINATION, args, count, &r); break;
-  case LEVEL_LOWER: svc_order_handler(ds, OrderService::MOVE_LEVEL_LOWER, args, count, &r); break;
-  case CLEAR_ORDERS:
-    opeu_clear_unit_orders(ds, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)));
-    break;
-  case HANDLER:
-    r = static_cast<std::uint16_t>(
-        port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), 0, 0));
-    break;
-  case LEVEL_RAISE:
-    r = opeu_move_level_raise(ds, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)));
-    break;
-  case AVERAGE9: svc_order_handler(ds, OrderService::UNIT_AVERAGE9, args, count, &r); break;
-  case MOVE:     svc_order_handler(ds, OrderService::MOVE_UNIT, args, count, &r); break;
-  default:       port_unhandled("finalact", id, count);
+  case DESTINATION:  svc_order_handler(ds, OrderService::UNIT_ORDER_DESTINATION, args, count, &r); break;
+  case LEVEL_LOWER:  svc_order_handler(ds, OrderService::MOVE_LEVEL_LOWER, args, count, &r); break;
+  case CLEAR_ORDERS: opeu_clear_unit_orders(ds, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case HANDLER:      r = static_cast<std::uint16_t>(port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), 0, 0)); break;
+  case LEVEL_RAISE:  r = opeu_move_level_raise(ds, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case AVERAGE9:     svc_order_handler(ds, OrderService::UNIT_AVERAGE9, args, count, &r); break;
+  case MOVE:         svc_order_handler(ds, OrderService::MOVE_UNIT, args, count, &r); break;
+  default:           port_unhandled("finalact", id, count);
   }
   return r;
 }

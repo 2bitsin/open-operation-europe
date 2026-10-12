@@ -25,13 +25,9 @@ uint16_t opeu_unit_support_condition(const uint8_t* ds, uint16_t unit) {
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;
     auto const objective{ opeu_find_objective_at(ds, x, y) };
-    if (objective && opeu_objective_side(ds, objective) == side
-        && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::COMMUNICATIONS)))
-      return 1;
+    if (objective && opeu_objective_side(ds, objective) == side && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::COMMUNICATIONS))) return 1;
     auto const neighbour{ opeu_find_unit_at(ds, x, y) };
-    if (neighbour && opeu_unit_side(neighbour) == side
-        && (Record<Unit>(data, neighbour).flags & Bits(UnitFlag::COMMUNICATIONS)))
-      return 1;
+    if (neighbour && opeu_unit_side(neighbour) == side && (Record<Unit>(data, neighbour).flags & Bits(UnitFlag::COMMUNICATIONS))) return 1;
   }
   return 0;
 }
@@ -41,6 +37,5 @@ uint16_t opeu_unit_selection_eligible(const uint8_t* ds, uint16_t unit) {
   auto const division_selected{ opeu_find_group_selected_unit(ds, opeu_unit_group(unit)) };
   auto const side_selected{ opeu_find_side_selected_unit(ds, opeu_unit_side(unit)) };
   if (side_selected == unit) return 1;
-  return opeu_unit_support_condition(ds, side_selected) && opeu_unit_support_condition(ds, division_selected)
-         && opeu_unit_support_condition(ds, unit);
+  return opeu_unit_support_condition(ds, side_selected) && opeu_unit_support_condition(ds, division_selected) && opeu_unit_support_condition(ds, unit);
 }

@@ -95,8 +95,7 @@ void opeu_text_cursor_clear(std::uint8_t* ds, HostService service) {
 void opeu_text_cursor_draw(std::uint8_t* ds, HostService service) {
   auto& data{ Data(ds) };
   SetStream(data, CURSOR_TILE);
-  Input(ds, service, InputCall::DRAW_FAR, opeu_min16(data.text_x, 0x4e), data.text_y, 2, 16, INVERT_MODE,
-        data.stream_ptr[1], data.stream_ptr[0]);
+  Input(ds, service, InputCall::DRAW_FAR, opeu_min16(data.text_x, 0x4e), data.text_y, 2, 16, INVERT_MODE, data.stream_ptr[1], data.stream_ptr[0]);
 }
 
 // Polls input (mouse buttons or a pending key) while a 15-tick timer runs; on input reseeds the random sequence with
@@ -154,8 +153,7 @@ void opeu_wait_confirm(std::uint8_t* ds, HostService service, int pause) {
 
 // Reads up to `digits` digits with echo; DEL, BS and left erase, ENTER or ESC ends. Returns the value, or -1 when
 // nothing was typed.
-auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digits, std::uint16_t scratch)
-    -> std::int32_t {
+auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digits, std::uint16_t scratch) -> std::int32_t {
   auto&        data{ Data(ds) };
   auto         digit{ [&](std::uint8_t n) -> std::uint8_t& { return ds[static_cast<std::uint16_t>(scratch + n)]; } };
   std::uint8_t typed{ 0 };
@@ -191,8 +189,7 @@ auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digi
 // (unless max is 24): keypad 2/6 next (wrapping to min), 8/4 previous (wrapping to max), ENTER accepts, ESC or 0
 // cancel (0xffff). Otherwise decimal entry in a field max's digits wide, repeated until in range; an empty entry
 // cancels only when allowed.
-auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min, std::uint16_t max, int cancel,
-                       std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
   auto&        data{ Data(ds) };
   std::int32_t value;
   if (max < min) return 0;
@@ -264,20 +261,17 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
 }
 
 // Prints the prompt `text`, then chooses.
-auto opeu_prompt_value(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t min, std::uint16_t max,
-                       int cancel, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_prompt_value(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
   auto const& data{ Data(ds) };
   Input(ds, service, InputCall::PRINT, Near(data, data.prompt_format), text);
   return opeu_choose_value(ds, service, min, max, cancel, items, scratch);
 }
 
-auto opeu_prompt_value_cancel(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max,
-                              std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_prompt_value_cancel(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
   return opeu_prompt_value(ds, service, text, 1, max, 1, items, scratch);
 }
 
-auto opeu_prompt_value_required(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max,
-                                std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
+auto opeu_prompt_value_required(std::uint8_t* ds, HostService service, std::uint16_t text, std::uint16_t max, std::uint16_t items, std::uint16_t scratch) -> std::uint16_t {
   return opeu_prompt_value(ds, service, text, 1, max, 0, items, scratch);
 }
 
@@ -300,8 +294,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scra
     auto const y{ Word(ds, y_at) };
     if (saved_column != 0xffff && (x != drawn_x || y != drawn_y)) {
       SetStream(data, POINTER_SAVE);
-      Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1],
-            data.stream_ptr[0]);
+      Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1], data.stream_ptr[0]);
     }
     if (x >> 3 != saved_column || y != saved_y) {
       saved_column = x >> 3;
@@ -311,8 +304,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scra
     }
     if (x != drawn_x || y != drawn_y) {
       SetStream(data, POINTER_SHAPE);
-      Input(ds, service, InputCall::SPRITE_DRAW, x, y, 32, 48, data.stream_ptr[0], data.stream_ptr[1], POINTER_MASK,
-            POINTER_SEGMENT, 0, data.numdlg_save_segment, 1);
+      Input(ds, service, InputCall::SPRITE_DRAW, x, y, 32, 48, data.stream_ptr[0], data.stream_ptr[1], POINTER_MASK, POINTER_SEGMENT, 0, data.numdlg_save_segment, 1);
       drawn_x = x;
       drawn_y = y;
       Input(ds, service, InputCall::DELAY_TICKS, 3);
@@ -328,8 +320,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service, std::uint16_t scra
     }
   }
   SetStream(data, POINTER_SAVE);
-  Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1],
-        data.stream_ptr[0]);
+  Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1], data.stream_ptr[0]);
   opeu_mouse_window(ds, service, 0, 0, 639, 399);
   return answer;
 }
@@ -380,9 +371,7 @@ auto svc_keyboard(std::uint8_t* ds, std::uint16_t call, std::uint16_t* w) -> std
   case InputCall::TIMER_START:    opeu_fm_wait_start(w[0]); break;
   case InputCall::TIMER_RUNNING:  return opeu_fm_busy();
   case InputCall::KEY_PENDING:    return opeu_turn_input_b();
-  case InputCall::SPRITE_DRAW:
-    koei_3f26(w[0], w[1], w[2], w[3], port_far(w[5], w[4]), port_far(w[7], w[6]), port_far(w[9], w[8]), w[10]);
-    break;
+  case InputCall::SPRITE_DRAW:    koei_3f26(w[0], w[1], w[2], w[3], port_far(w[5], w[4]), port_far(w[7], w[6]), port_far(w[9], w[8]), w[10]); break;
   case InputCall::DRAW_FAR:       opeu_draw_far(w[0], w[1], w[2], w[3], w[4], port_far(w[5], w[6])); break;
   case InputCall::CURSOR_INVERT:  opeu_ui_highlight(w[0], w[1], w[2], w[3], w[4]); break;
   case InputCall::DELAY_TICKS:    opeu_delay_ticks(ds, svc_waitkey, w[0]); break;
@@ -400,8 +389,7 @@ auto port_routine_opeu_keyboard_key(std::uint8_t* ds, std::uint16_t const*, unsi
 
 auto port_routine_opeu_prompt_value(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const scratch{ port_scratch_enter(SCRATCH_SIZE) };
-  auto const value{ opeu_prompt_value(ds, svc_keyboard, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1),
-                                      static_cast<std::int16_t>(Arg(args, count, 3)), Arg(args, count, 4), scratch) };
+  auto const value{ opeu_prompt_value(ds, svc_keyboard, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), static_cast<std::int16_t>(Arg(args, count, 3)), Arg(args, count, 4), scratch) };
   port_scratch_leave(SCRATCH_SIZE);
   return value;
 }

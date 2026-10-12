@@ -26,8 +26,7 @@ auto ListGenerals(DataSegment& data, std::uint8_t side) -> std::uint8_t {
   std::uint8_t listed{ 0 };
   for (std::uint8_t n = 0; n < PEOPLE_PER_SIDE; n++) {
     auto const& person{ data.people[side * PEOPLE_PER_SIDE + n] };
-    if (person.status != PERSON_VACANT && !(person.role & Bits(PersonRole::DEPUTY)))
-      data.general_list[listed++] = Near(data, person);
+    if (person.status != PERSON_VACANT && !(person.role & Bits(PersonRole::DEPUTY))) data.general_list[listed++] = Near(data, person);
   }
   return listed;
 }
@@ -66,10 +65,7 @@ void opeu_view_enemy_generals(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 // The generals menu (own, enemy) until cancelled.
 void opeu_view_generals_menu(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
-  for (std::uint16_t item;
-       (item = Call(ds, event, ViewService::DELAY_DIALOG, PEOPLE_PROMPT, 2, data.context_record2, PEOPLE_MENU))
-       != MENU_CANCELLED;)
-    RunAction(ds, event, data.people_actions, item);
+  for (std::uint16_t item; (item = Call(ds, event, ViewService::DELAY_DIALOG, PEOPLE_PROMPT, 2, data.context_record2, PEOPLE_MENU)) != MENU_CANCELLED;) RunAction(ds, event, data.people_actions, item);
 }
 
 uint16_t svc_vwpeople(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

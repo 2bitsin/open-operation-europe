@@ -78,9 +78,7 @@ auto Loss(std::uint8_t* ds, HostEvent event, std::uint16_t divisor) -> std::uint
   std::uint16_t const average9{ Serve(ds, event, OrderService::UNIT_AVERAGE9, data.current_unit_ptr) };
   std::uint16_t const average11{ Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) };
   auto const&         general{ Record<Person>(data, person) };
-  return static_cast<std::uint8_t>(average11 / 19
-                                   - static_cast<std::uint16_t>(general.leadership + average10 + average9) / divisor
-                                   - general.bravery / 80 + random + 6);
+  return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(general.leadership + average10 + average9) / divisor - general.bravery / 80 + random + 6);
 }
 } // namespace
 
@@ -101,8 +99,7 @@ uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint16_t 
     Byte(ds, step_y) = y;
     if (!Serve(ds, event, OrderService::GRID_STEP, step_x, step_y, direction)) continue;
     auto const unit{ Serve(ds, event, OrderService::FIND_UNIT_AT, Byte(ds, step_x), Byte(ds, step_y)) };
-    if (!unit || static_cast<std::uint8_t>(Serve(ds, event, OrderService::UNIT_SIDE, unit)) != data.current_side)
-      continue;
+    if (!unit || static_cast<std::uint8_t>(Serve(ds, event, OrderService::UNIT_SIDE, unit)) != data.current_side) continue;
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     if ((order.kind == Kind(UnitOrder::OCCUPY) || order.kind == Kind(UnitOrder::ATTACK)) && order.progress) return 0;
   }
@@ -110,8 +107,7 @@ uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint16_t 
   if (defender) {
     auto const& order{ Record<Unit>(data, defender).orders[0] };
     if (order.kind == Kind(UnitOrder::DEFEND) && order.progress == 0) {
-      auto const own{ static_cast<std::uint16_t>(Serve(ds, event, OrderService::UNIT_VALUE, data.current_unit_ptr)
-                                                 + 1) };
+      auto const own{ static_cast<std::uint16_t>(Serve(ds, event, OrderService::UNIT_VALUE, data.current_unit_ptr) + 1) };
       auto const other{ static_cast<std::uint16_t>(Serve(ds, event, OrderService::UNIT_VALUE, defender) + 1) };
       // A value of 0xffff wraps to 0: the comparison is skipped instead of dividing by zero.
       if (own && other / own > 3) return 0;
@@ -126,8 +122,7 @@ void opeu_order_attack_present(uint8_t ds[65536], HostEvent event) {
 
 // Starts the battle against `name` at x, y: needs supplies and ammunition; a player's division the computer does not
 // run asks for confirmation; otherwise the attack must be allowed and is reported.
-uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t name, uint8_t x,
-                                 uint8_t y) {
+uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t name, uint8_t x, uint8_t y) {
   auto& data{ Data(ds) };
   if (!Serve(ds, event, OrderService::MOVE_SUPPLIED)) {
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_no_fuel));
@@ -140,14 +135,12 @@ uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t fr
     return 0;
   }
   auto const text{ Local(frame, START_TEXT) };
-  if (data.side_control[data.current_side] == PLAYER
-      && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
+  if (data.side_control[data.current_side] == PLAYER && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
       && Serve(ds, event, OrderService::UNIT_SELECTION_ELIGIBLE, data.current_unit_ptr)) {
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_prepared));
     Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_ask_attack), name);
     auto const confirmed{ Serve(ds, event, OrderService::CONFIRM_MESSAGE, text, data.context_group_record) };
-    if (confirmed)
-      Serve(ds, event, OrderService::DAILY_SHOW, BATTLE_PICTURE, data.current_side, ATTACK_PRESENT, ORDER_SEGMENT);
+    if (confirmed) Serve(ds, event, OrderService::DAILY_SHOW, BATTLE_PICTURE, data.current_side, ATTACK_PRESENT, ORDER_SEGMENT);
     return confirmed;
   }
   if (!opeu_order_attack_allowed(ds, event, Local(frame, ALLOWED_FRAME), x, y)) return 0;
@@ -181,8 +174,7 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t fram
     auto& target{ Record<Objective>(data, objective) };
     target.flags ^= Bits(ObjectiveFlag::SIDE_1);
     Serve(ds, event, OrderService::MOVE_UNIT, 1);
-    if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE, Byte(ds, at_x), Byte(ds, at_y)))
-        != data.current_side) {
+    if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE, Byte(ds, at_x), Byte(ds, at_y))) != data.current_side) {
       target.flags ^= Bits(ObjectiveFlag::SIDE_1);
       return 1;
     }
@@ -195,8 +187,7 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t fram
     Serve(ds, event, OrderService::SIDE_GROUPS_RETARGET, 1);
     return 1;
   }
-  if (opeu_order_attack_start(ds, event, Local(frame, START_FRAME), objective, Byte(ds, at_x), Byte(ds, at_y)))
-    Engage(data, Byte(ds, at_x), Byte(ds, at_y));
+  if (opeu_order_attack_start(ds, event, Local(frame, START_FRAME), objective, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 
@@ -215,28 +206,21 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event, uint16_t fram
   auto const loss{ opeu_order_attack_loss(ds, event) };
   if (!Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), loss)) return 1;
   auto const name{ Serve(ds, event, OrderService::UNIT_NAME, unit, Local(frame, ATTACK_NAME)) };
-  auto const side_name{
-    data.side_names[Serve(ds, event, OrderService::ABS16_BITS, static_cast<std::uint16_t>(data.current_side - 1))]
-  };
+  auto const side_name{ data.side_names[Serve(ds, event, OrderService::ABS16_BITS, static_cast<std::uint16_t>(data.current_side - 1))] };
   auto const text{ Local(frame, ATTACK_TEXT) };
-  Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_unit_label),
-        data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name);
-  if (opeu_order_attack_start(ds, event, Local(frame, ATTACK_START_FRAME), text, Byte(ds, at_x), Byte(ds, at_y)))
-    Engage(data, Byte(ds, at_x), Byte(ds, at_y));
+  Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name);
+  if (opeu_order_attack_start(ds, event, Local(frame, ATTACK_START_FRAME), text, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 
 // The occupy and attack orders' calls are order services (all up to UNIT_AVERAGE9, pending_finish and wait_units).
 uint16_t svc_ordattk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
-  if ((id > OrderService::UNIT_AVERAGE9 && id != OrderService::PENDING_FINISH && id != OrderService::WAIT_UNITS)
-      || !svc_order_handler(ds, id, args, count, &r))
-    port_unhandled("ordattk", id, count);
+  if ((id > OrderService::UNIT_AVERAGE9 && id != OrderService::PENDING_FINISH && id != OrderService::WAIT_UNITS) || !svc_order_handler(ds, id, args, count, &r)) port_unhandled("ordattk", id, count);
   return r;
 }
 
-auto port_routine_opeu_order_attack_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_order_attack_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_order_attack_present(ds, svc_ordattk);
@@ -246,13 +230,10 @@ auto port_routine_opeu_order_attack_present(std::uint8_t* ds, std::uint16_t cons
 auto port_routine_opeu_order_attack_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-    return opeu_order_attack_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_order_attack_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2)); });
 }
 
-auto port_routine_opeu_order_occupied_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_order_occupied_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_order_occupied_present(ds, svc_ordattk);
@@ -262,7 +243,5 @@ auto port_routine_opeu_order_occupied_present(std::uint8_t* ds, std::uint16_t co
 auto port_routine_opeu_order_occupy_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-    return opeu_order_occupy_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_order_occupy_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2)); });
 }

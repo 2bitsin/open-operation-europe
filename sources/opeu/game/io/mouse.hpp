@@ -16,8 +16,7 @@ auto opeu_turn_input_a(std::uint8_t* ds, HostService service) -> int;
 auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t;
 void opeu_input_reset(std::uint8_t* ds, HostService service);
 auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service) -> std::uint8_t;
-void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width,
-                       std::int16_t height);
+void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width, std::int16_t height);
 
 // The module's services: the input driver call the mouse, keyboard and dialog modules share.
 auto svc_mouse(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words) -> std::uint16_t;

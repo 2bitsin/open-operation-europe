@@ -31,8 +31,7 @@ enum class AiService : std::uint16_t {
   SUPPLY_SHARE       = 5, // opeu_ai_supply_share(bx: &budget, ax: amount, dx: which)
 };
 
-inline auto AiCall(std::uint8_t* ds, AiService service, std::uint16_t ax, std::uint16_t dx, std::uint16_t* bx)
-    -> std::uint16_t {
+inline auto AiCall(std::uint8_t* ds, AiService service, std::uint16_t ax, std::uint16_t dx, std::uint16_t* bx) -> std::uint16_t {
   return opeu_ai_unrecovered(ds, std::to_underlying(service), ax, dx, bx);
 }
 
@@ -50,8 +49,7 @@ inline auto AiObjectiveLevel(std::uint8_t* ds, std::uint16_t objective) -> std::
 inline auto AiObjectiveEligible(std::uint8_t* ds, std::uint16_t objective) -> std::uint16_t {
   return AiCall(ds, AiService::OBJECTIVE_ELIGIBLE, 0, 0, &objective);
 }
-inline auto AiSupplyShare(std::uint8_t* ds, std::uint16_t* budget, std::uint16_t amount, std::uint8_t which)
-    -> std::uint16_t {
+inline auto AiSupplyShare(std::uint8_t* ds, std::uint16_t* budget, std::uint16_t amount, std::uint8_t which) -> std::uint16_t {
   return AiCall(ds, AiService::SUPPLY_SHARE, amount, which, budget);
 }
 } // namespace opeu::game::detail::ai_service

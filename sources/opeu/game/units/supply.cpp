@@ -28,15 +28,13 @@ constexpr std::uint16_t NO_OBJECTIVE{ 0 };
 constexpr std::uint8_t  CURRENT{ 0 };
 constexpr std::uint8_t  CAPACITY{ 1 };
 
-auto Raise(uint8_t* ds, SupplyEvent event, std::uint16_t id, std::uint16_t count, std::uint16_t first,
-           std::uint16_t second) -> std::uint16_t {
+auto Raise(uint8_t* ds, SupplyEvent event, std::uint16_t id, std::uint16_t count, std::uint16_t first, std::uint16_t second) -> std::uint16_t {
   std::uint16_t args[2]{ first, second };
   return event(ds, id, args, count);
 }
 
 // Draws the dialog for two units; a and b are the name buffers. The second name is formatted first.
-auto DrawUnits(uint8_t* ds, SupplyEvent event, std::uint16_t first, std::uint16_t a, std::uint16_t second,
-               std::uint16_t b) -> void {
+auto DrawUnits(uint8_t* ds, SupplyEvent event, std::uint16_t first, std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
   auto const second_name{ opeu_unit_name(ds, event, second, b) };
   Raise(ds, event, SUPPLY_DRAW, 2, opeu_unit_name(ds, event, first, a), second_name);
 }
@@ -49,15 +47,13 @@ auto RunDialog(uint8_t* ds, SupplyEvent event) -> void {
 
 // Stores the edited current amounts of a party back into the resources of its record (a Unit or an Objective).
 auto StoreBack(DataSegment& data, std::uint8_t party, auto& record) -> void {
-  for (std::uint8_t resource{ 0 }; resource < 3; ++resource)
-    record.resources[resource] = data.supply_table[party][resource][CURRENT];
+  for (std::uint8_t resource{ 0 }; resource < 3; ++resource) record.resources[resource] = data.supply_table[party][resource][CURRENT];
 }
 } // namespace
 
 void opeu_supply_load_unit(uint8_t ds[65536], uint16_t unit, uint8_t side) {
   auto const& record{ Record<Unit>(Data(ds), unit) };
-  for (std::uint8_t resource{ 0 }; resource < 3; ++resource)
-    opeu_supply_set(ds, side, resource, CURRENT, record.resources[resource]);
+  for (std::uint8_t resource{ 0 }; resource < 3; ++resource) opeu_supply_set(ds, side, resource, CURRENT, record.resources[resource]);
   uint16_t ammunition, fuel, food;
   opeu_unit_capacities(ds, unit, &ammunition, &fuel, &food);
   opeu_supply_set(ds, side, 0, CAPACITY, ammunition);
@@ -73,13 +69,11 @@ void opeu_supply_load_objective(uint8_t ds[65536], uint16_t objective) {
   data.supply_table[1][1][CAPACITY] = fuel;
   data.supply_table[1][2][CAPACITY] = food;
   auto const& record{ Record<Objective>(data, objective) };
-  for (std::uint8_t resource{ 0 }; resource < 3; ++resource)
-    data.supply_table[1][resource][CURRENT] = record.resources[resource];
+  for (std::uint8_t resource{ 0 }; resource < 3; ++resource) data.supply_table[1][resource][CURRENT] = record.resources[resource];
 }
 
 // Exchanges supplies between two units; a and b are the caller's name buffers.
-void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t a,
-                                uint16_t b) {
+void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t a, uint16_t b) {
   auto& data{ Data(ds) };
   data.supply_objective = NO_OBJECTIVE;
   opeu_supply_load_unit(ds, first, 0);
@@ -91,8 +85,7 @@ void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t f
 }
 
 // Exchanges supplies between a unit and an objective; a is the caller's name buffer.
-void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective,
-                                    uint16_t a) {
+void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective, uint16_t a) {
   auto& data{ Data(ds) };
   data.supply_objective = objective;
   opeu_supply_load_unit(ds, unit, 0);

@@ -61,13 +61,9 @@ uint8_t opeu_supply_keypad_hit(uint8_t ds[65536], uint16_t x, uint16_t y) {
   auto const   top{ data.supply_panel_y };
   std::uint8_t key{ NO_KEY };
   for (auto column = 0u; column < 3; ++column) {
-    if (static_cast<std::uint16_t>(left + KEY_COLUMNS[column]) > x
-        || static_cast<std::uint16_t>(left + KEY_COLUMNS[column + 1]) <= x)
-      continue;
+    if (static_cast<std::uint16_t>(left + KEY_COLUMNS[column]) > x || static_cast<std::uint16_t>(left + KEY_COLUMNS[column + 1]) <= x) continue;
     for (auto row = 0u; row < 3; ++row)
-      if (static_cast<std::uint16_t>(top + KEY_ROWS[row]) <= y
-          && static_cast<std::uint16_t>(top + KEY_ROWS[row + 1]) > y)
-        key = KEYS[column][row];
+      if (static_cast<std::uint16_t>(top + KEY_ROWS[row]) <= y && static_cast<std::uint16_t>(top + KEY_ROWS[row + 1]) > y) key = KEYS[column][row];
   }
   return key;
 }
@@ -111,8 +107,7 @@ uint16_t opeu_supply_get(const uint8_t ds[65536], uint8_t side, uint8_t row, uin
 // Restores the panel's background and centres the two names, at most ten characters each, in its title.
 void opeu_supply_draw(uint8_t ds[65536], HostEvent event, uint16_t first, uint16_t second) {
   auto const& data{ Data(ds) };
-  Call(ds, event, RESTORE, data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0,
-       data.numdlg_image_segment, PANEL_IMAGE_AT);
+  Call(ds, event, RESTORE, data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(ds, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
@@ -152,19 +147,11 @@ uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(ds, svc_mouse)); break;
   case MOUSE_HIDE: opeu_mouse_hide(ds, svc_mouse); break;
   case KEY:        r = opeu_keyboard_key(ds, svc_keyboard); break;
-  case RESTORE:
-    opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                        Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT: b2_cursor_print(ds, args, count); break;
-  case GLYPH:
-    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                   Arg(args, count, 4), PORT_DS(Arg(args, count, 5)));
-    break;
-  default: port_unhandled("suppanel", id, count);
+  case RESTORE: opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
+  default:       port_unhandled("suppanel", id, count);
   }
   return r;
 }

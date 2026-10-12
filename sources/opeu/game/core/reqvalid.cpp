@@ -53,9 +53,7 @@ uint16_t opeu_request_valid(uint8_t ds[65536], PendingEvent event, uint8_t side,
     event(ds, std::to_underlying(ValidService::SHOW), REQUEST_SHOW, side, ERROR_PRESENT_OFFSET, ERROR_PRESENT_SEGMENT);
     return uint16_t{ 0 };
   } };
-  auto const count_cells{ [&] {
-    return event(ds, std::to_underlying(ValidService::COUNT_CELLS), side, CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT, 0);
-  } };
+  auto const count_cells{ [&] { return event(ds, std::to_underlying(ValidService::COUNT_CELLS), side, CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT, 0); } };
   switch (static_cast<RequestKind>(slot.kind)) {
   case RequestKind::SUPPLIES:
     if (opeu_objective_side(ds, slot.target) != side) return fail(RequestError::LOST);
@@ -68,8 +66,7 @@ uint16_t opeu_request_valid(uint8_t ds[65536], PendingEvent event, uint8_t side,
     return 1;
   case RequestKind::REGIMENT:
     if (!opeu_request_group_ready(ds, side)) return fail(RequestError::NO_ROOM);
-    if (!opeu_arrival_locate(ds, event, offsetof(DataSegment, request_x), offsetof(DataSegment, request_y), side))
-      return fail(RequestError::NO_PLACE);
+    if (!opeu_arrival_locate(ds, event, offsetof(DataSegment, request_x), offsetof(DataSegment, request_y), side)) return fail(RequestError::NO_PLACE);
     return 1;
   default: return 0;
   }
@@ -79,10 +76,8 @@ uint16_t svc_reqvalid(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t
   uint16_t r = 0;
   switch (static_cast<ValidService>(id)) {
   case ValidService::COUNT_CELLS: r = opeu_request_cells(ds, (uint8_t)a, c2_cell_predicate(b, c)); break;
-  case ValidService::SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c);
-    break;
-  default: port_unhandled("reqvalid", id, 4);
+  case ValidService::SHOW:        opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
+  default:                        port_unhandled("reqvalid", id, 4);
   }
   return r;
 }

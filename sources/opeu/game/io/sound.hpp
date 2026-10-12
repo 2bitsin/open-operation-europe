@@ -14,8 +14,7 @@ void opeu_music_start(std::uint8_t* ds, HostService service, std::uint8_t track)
 void opeu_set_turn_context(std::uint8_t* ds, HostService service, std::uint8_t track);
 void opeu_music_load(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path);
 void opeu_music_select(std::uint8_t* ds, HostService service, std::uint8_t value);
-void opeu_music_load_select(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path,
-                            std::uint8_t value);
+void opeu_music_load_select(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path, std::uint8_t value);
 void opeu_music_command7(std::uint8_t* ds, HostService service);
 void opeu_effect_stop(std::uint8_t* ds, HostService service);
 auto opeu_effect_playing(std::uint8_t* ds, HostService service) -> int;

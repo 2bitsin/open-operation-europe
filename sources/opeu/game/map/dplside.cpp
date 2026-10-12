@@ -22,8 +22,7 @@ constexpr uint8_t BATTLE_UNITS_PER_SIDE{ 9 };
 void opeu_deploy_side(uint8_t* ds, BattleEvent event, uint8_t side) {
   auto& data{ Data(ds) };
   data.battle_ai_side     = side;
-  data.battle_active_side = static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_units[side * BATTLE_UNITS_PER_SIDE]));
+  data.battle_active_side = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_units[side * BATTLE_UNITS_PER_SIDE]));
   for (uint8_t index{ 0 }; index < BATTLE_UNITS_PER_SIDE; ++index)
     if (auto const unit{ data.battle_units[side * BATTLE_UNITS_PER_SIDE + index] }) {
       data.battle_ai_index = index;

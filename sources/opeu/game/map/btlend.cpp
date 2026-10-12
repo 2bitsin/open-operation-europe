@@ -84,8 +84,7 @@ void opeu_battle_init_elements(uint8_t* ds, BattleEvent event) {
         }
       } else {
         auto const team{ opeu_unit_side(unit) };
-        for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-          opeu_battle_init_element(ds, event, it.Near(), team, index++);
+        for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) opeu_battle_init_element(ds, event, it.Near(), team, index++);
       }
     }
 }
@@ -99,10 +98,8 @@ void opeu_battle_objective_damage(uint8_t* ds, BattleEvent event) {
   if (Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) > 40) return;
   uint8_t ours{ 0 };
   uint8_t enemies{ 0 };
-  for (unsigned i{ 0 }; BattleList(data, 0, i) != 0; ++i)
-    ours = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, BattleList(data, 0, i)));
-  for (unsigned i{ 0 }; BattleList(data, 1, i) != 0; ++i)
-    enemies = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, BattleList(data, 1, i)));
+  for (unsigned i{ 0 }; BattleList(data, 0, i) != 0; ++i) ours = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, BattleList(data, 0, i)));
+  for (unsigned i{ 0 }; BattleList(data, 1, i) != 0; ++i) enemies = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, BattleList(data, 1, i)));
   auto loss{ static_cast<uint16_t>(ours - enemies) };
   if (loss < 0xfffc) return;
   if (loss < 1) {

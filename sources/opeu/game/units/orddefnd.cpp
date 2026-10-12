@@ -24,9 +24,8 @@ uint8_t opeu_order_defend_loss(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   auto const          person{ Serve(ds, event, OrderService::UNIT_PERSON, data.current_unit_ptr) };
   std::uint16_t const average10{ Serve(ds, event, OrderService::UNIT_AVERAGE10, data.current_unit_ptr) };
-  auto const leadership{ static_cast<std::uint16_t>(average10 + Record<Person>(data, person).leadership) / 55 };
-  return static_cast<std::uint8_t>(Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) / 30
-                                   - leadership + 4);
+  auto const          leadership{ static_cast<std::uint16_t>(average10 + Record<Person>(data, person).leadership) / 55 };
+  return static_cast<std::uint8_t>(Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) / 30 - leadership + 4);
 }
 
 // Nonzero (the order step is done) while the regiment holds its destination.
@@ -58,7 +57,5 @@ uint16_t svc_orddefnd(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 auto port_routine_opeu_order_defend_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    return opeu_order_defend_run(ds, svc_orddefnd, static_cast<std::uint16_t>(sp - 2));
-  });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_order_defend_run(ds, svc_orddefnd, static_cast<std::uint16_t>(sp - 2)); });
 }

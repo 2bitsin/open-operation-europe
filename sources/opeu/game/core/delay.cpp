@@ -38,24 +38,17 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event, uint16_t scratch
   auto& data{ Data(ds) };
   opeu_string_copy(ds, scratch, Call(ds, event, TEXT, data.input_mode == 0 ? KEYBOARD_PROMPT : MOUSE_PROMPT));
   auto const hours{ Call(ds, event, DIALOG, scratch, DIALOG_X, data.context_record2, 0) };
-  if (hours != CANCELLED && Call(ds, event, CONFIRM, hours, data.context_record2))
-    data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
+  if (hours != CANCELLED && Call(ds, event, CONFIRM, hours, data.context_record2)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
 }
 
 // The dialog takes the person before the hours.
 uint16_t svc_delay(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case TEXT: r = opeu_message_lookup(ds, svc_msglook, static_cast<std::int16_t>(Arg(args, count, 0))); break;
-  case DIALOG:
-    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case CONFIRM:
-    r = opeu_delay_confirm(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 1),
-                           static_cast<std::uint8_t>(Arg(args, count, 0)));
-    break;
-  default: port_unhandled("delay", id, count);
+  case TEXT:    r = opeu_message_lookup(ds, svc_msglook, static_cast<std::int16_t>(Arg(args, count, 0))); break;
+  case DIALOG:  r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case CONFIRM: r = opeu_delay_confirm(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 1), static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  default:      port_unhandled("delay", id, count);
   }
   return r;
 }

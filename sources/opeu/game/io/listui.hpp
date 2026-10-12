@@ -51,20 +51,14 @@ using detail::list_call::List;
 using detail::list_call::ListCall;
 } // namespace opeu::game
 
-void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom,
-                      std::uint8_t lit);
-void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top,
-                         std::uint16_t bottom);
-void opeu_table_columns(std::uint8_t* ds, HostWordsEvent event, std::uint8_t column, std::uint8_t rows,
-                        std::uint16_t first, std::uint16_t second, std::uint16_t third);
-void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top,
-                          std::uint16_t bottom, std::uint8_t lit);
+void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
+void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
+void opeu_table_columns(std::uint8_t* ds, HostWordsEvent event, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
+void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t;
 void opeu_list_invert(std::uint8_t* ds, HostWordsEvent event);
-auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t first_column)
-    -> std::uint8_t;
-void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t column,
-                      std::uint8_t row);
+auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t first_column) -> std::uint8_t;
+void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t column, std::uint8_t row);
 
 // The module's services: the list calls.
 auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t;

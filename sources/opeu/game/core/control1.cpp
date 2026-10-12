@@ -102,35 +102,23 @@ uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:
     WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_arrival_location(
-          ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)),
-          static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+      opeu_arrival_location(ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)),
+                            static_cast<std::uint8_t>(Arg(args, count, 2)));
     });
     break;
-  case SUMMARY:
-    WithStack(PORT_FRAME,
-              [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); });
-    break;
-  case ACTIVE: opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case FORMAT: b2_request_format(ds, args, count); break;
+  case SUMMARY: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); }); break;
+  case ACTIVE:  opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case FORMAT:  b2_request_format(ds, args, count); break;
   case MENU:
-    result = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                                 Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    result = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
+                                 Arg(args, count, 5));
     break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case COORDINATES:
-    result = WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      return opeu_control_coordinates(ds, svc_coords, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0),
-                                      Arg(args, count, 1));
-    });
+    result = WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_control_coordinates(ds, svc_coords, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1)); });
     break;
-  case ACTION:
-    result = static_cast<uint16_t>(
-        port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0));
-    break;
-  default: port_unhandled("control1", id, count);
+  case ACTION: result = static_cast<uint16_t>(port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
+  default:     port_unhandled("control1", id, count);
   }
   return result;
 }

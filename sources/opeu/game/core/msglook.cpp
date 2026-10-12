@@ -40,11 +40,9 @@ uint16_t svc_msglook(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t r = 0;
   switch (id) {
   case SELECT_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
-  case COPY_TEXT:
-    r = opeu_string_copy_far(ds, Arg(args, count, 0), port_far(Arg(args, count, 2), 0), Arg(args, count, 1));
-    break;
-  case REPORT_ERROR: b1_request_format(ds, args, count); break;
-  default:           port_unhandled("msglook", id, count);
+  case COPY_TEXT:      r = opeu_string_copy_far(ds, Arg(args, count, 0), port_far(Arg(args, count, 2), 0), Arg(args, count, 1)); break;
+  case REPORT_ERROR:   b1_request_format(ds, args, count); break;
+  default:             port_unhandled("msglook", id, count);
   }
   return r;
 }

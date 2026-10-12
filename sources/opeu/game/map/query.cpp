@@ -36,8 +36,7 @@ uint8_t opeu_objective_side(const uint8_t* ds, uint16_t objective) {
 }
 
 auto port_routine_opeu_find_objective_at(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_find_objective_at(ds, static_cast<uint8_t>(Arg(args, count, 0)),
-                                static_cast<uint8_t>(Arg(args, count, 1)));
+  return opeu_find_objective_at(ds, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
 auto port_routine_opeu_find_unit_at(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {

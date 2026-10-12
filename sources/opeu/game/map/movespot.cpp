@@ -49,8 +49,7 @@ void opeu_move_spot(uint8_t* ds, HostEvent event) {
   auto const x{ mover.x };
   auto const y{ mover.y };
   auto const enemy{ static_cast<uint8_t>(Call(ds, event, SpotService::OPPOSITE_SIDE, data.current_side)) };
-  auto const sight{ static_cast<uint8_t>(data.sight_ranges[data.weather]
-                                         / (Call(ds, event, SpotService::IS_NIGHT, data.hour) ? 2 : 1)) };
+  auto const sight{ static_cast<uint8_t>(data.sight_ranges[data.weather] / (Call(ds, event, SpotService::IS_NIGHT, data.hour) ? 2 : 1)) };
   uint8_t    nearest{ NONE };
   uint16_t   spotter{ 0 };
   for (uint8_t i{ 0 }; i < UNITS_PER_SIDE; i++) {
@@ -62,9 +61,7 @@ void opeu_move_spot(uint8_t* ds, HostEvent event) {
       auto const was_spotted{ Call(ds, event, SpotService::UNIT_SPOTTED, unit) };
       for (auto& element : Elements(data, other))
         if (Call(ds, event, SpotService::RANDOM, sight) >= distance) element.flags |= Bits(ElementFlag::SPOTTED);
-      if (Call(ds, event, SpotService::UNIT_SPOTTED, unit) != was_spotted
-          && data.side_status[data.current_side] == SIDE_PLAYED)
-        opeu_move_sighted(ds, current, unit);
+      if (Call(ds, event, SpotService::UNIT_SPOTTED, unit) != was_spotted && data.side_status[data.current_side] == SIDE_PLAYED) opeu_move_sighted(ds, current, unit);
     }
     if (Call(ds, event, SpotService::UNIT_ELIGIBLE, unit) && distance < nearest) {
       nearest = distance;
@@ -79,9 +76,7 @@ void opeu_move_spot(uint8_t* ds, HostEvent event) {
     else if (!Call(ds, event, SpotService::RANDOM, sight * 10))
       element.flags &= ~Bits(ElementFlag::SPOTTED);
   }
-  if (!was_spotted && Call(ds, event, SpotService::UNIT_SPOTTED, current) != was_spotted
-      && data.side_status[enemy] == SIDE_PLAYED)
-    opeu_move_sighted(ds, spotter, current);
+  if (!was_spotted && Call(ds, event, SpotService::UNIT_SPOTTED, current) != was_spotted && data.side_status[enemy] == SIDE_PLAYED) opeu_move_sighted(ds, spotter, current);
 }
 
 // bp: this routine's frame; the step coordinates handed to the grid step live below it.
@@ -97,12 +92,8 @@ uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t bp) {
     Byte(ds, y_at) = y;
     if (!Call(ds, event, SpotService::GRID_STEP, x_at, y_at, direction)) continue;
     auto const side{ Call(ds, event, SpotService::CELL_SIDE, Byte(ds, x_at), Byte(ds, y_at)) };
-    if (static_cast<uint8_t>(Call(ds, event, SpotService::OPPOSITE_SIDE, data.current_side))
-        != static_cast<uint8_t>(side))
-      continue;
-    if (Call(ds, event, SpotService::UNIT_SPOTTED,
-             Call(ds, event, SpotService::FIND_UNIT, Byte(ds, x_at), Byte(ds, y_at))))
-      return 1;
+    if (static_cast<uint8_t>(Call(ds, event, SpotService::OPPOSITE_SIDE, data.current_side)) != static_cast<uint8_t>(side)) continue;
+    if (Call(ds, event, SpotService::UNIT_SPOTTED, Call(ds, event, SpotService::FIND_UNIT, Byte(ds, x_at), Byte(ds, y_at)))) return 1;
   }
   return 0;
 }

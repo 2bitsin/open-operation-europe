@@ -35,8 +35,7 @@ constexpr std::uint16_t NAME_INDENT{ 2 };
 
 // The regiment table: name, position, order target and order, and fuel, ammunition and food percentages. Own
 // regiments need to be selectable; enemy regiments show the full row only when spotted, otherwise just the position.
-void opeu_tbl_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                         uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };
@@ -54,8 +53,7 @@ void opeu_tbl_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch, u
     if (flags & DRAW_NAMES) {
       StartRowName(ds, event, window, entry, NAME_INDENT, side);
       if (ready) {
-        if (own && (regiment.flags & Bits(UnitFlag::SELECTED)))
-          Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_unit_mark));
+        if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_unit_mark));
         Call(ds, event, TableService::PRINT, Near(data, data.tbl_unit_label), opeu_unit_name(ds, event, unit, name));
       } else
         Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_unit_empty));
@@ -70,24 +68,19 @@ void opeu_tbl_draw_units(uint8_t ds[65536], HostEvent event, uint16_t scratch, u
       std::uint16_t food{};
       auto const    has_destination{ opeu_unit_order_destination(ds, unit, &x, &y) };
       opeu_unit_resource_percentages(ds, unit, &ammunition, &fuel, &food);
-      auto const target{ has_destination ? opeu_location_name(ds, event, x, y, name)
-                                         : opeu_location_name(ds, event, regiment.x, regiment.y, second) };
+      auto const target{ has_destination ? opeu_location_name(ds, event, x, y, name) : opeu_location_name(ds, event, regiment.x, regiment.y, second) };
       auto const here{ opeu_location_name(ds, event, regiment.x, regiment.y, second) };
-      auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + 3]
-                                        : Near(data, data.tbl_unit_wait) };
-      Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_unit_row), here, target, order, fuel, ammunition,
-           food);
+      auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + 3] : Near(data, data.tbl_unit_wait) };
+      Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_unit_row), here, target, order, fuel, ammunition, food);
     } else if (!own && !spotted)
-      Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_unit_hidden),
-           opeu_location_name(ds, event, regiment.x, regiment.y, name));
+      Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_unit_hidden), opeu_location_name(ds, event, regiment.x, regiment.y, name));
     DrawRowText(ds, event, window, layout, entry, text);
   }
   Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
 }
 
 // The regiment orders table: the regiment's name and a fixed request text.
-void opeu_tbl_draw_orders(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                          uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_orders(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };

@@ -101,8 +101,7 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t u
   auto const  destination_x{ FrameLocal(sp, DESTINATION_X_LOCAL) };
   auto const  destination_y{ FrameLocal(sp, DESTINATION_Y_LOCAL) };
   auto const  location_name{ FrameLocal(sp, LOCATION_NAME_LOCAL) };
-  Call(ds, event, ViewService::ARMY_TITLE,
-       Call(ds, event, ViewService::UNIT_NAME, unit, FrameLocal(sp, UNIT_NAME_LOCAL)));
+  Call(ds, event, ViewService::ARMY_TITLE, Call(ds, event, ViewService::UNIT_NAME, unit, FrameLocal(sp, UNIT_NAME_LOCAL)));
   Call(ds, event, ViewService::UNIT_CAPACITIES, unit, ammunition, fuel, food);
   // each capacity becomes the percentage of it the regiment holds
   for (auto const [kind, local] : {
@@ -116,14 +115,11 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t u
   auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + ORDER_NAME_BASE] : WAITING };
   Print(ds, event, ORDERS, order, regiment.resources[1], Word(ds, fuel));
   Position(ds, event, SECOND_ROW);
-  auto const target{ has_destination
-                         ? Call(ds, event, ViewService::LOCATION_NAME, Record<std::uint8_t>(data, destination_x),
-                                Record<std::uint8_t>(data, destination_y), location_name)
-                         : Call(ds, event, ViewService::LOCATION_NAME, regiment.x, regiment.y, location_name) };
+  auto const target{ has_destination ? Call(ds, event, ViewService::LOCATION_NAME, Record<std::uint8_t>(data, destination_x), Record<std::uint8_t>(data, destination_y), location_name)
+                                     : Call(ds, event, ViewService::LOCATION_NAME, regiment.x, regiment.y, location_name) };
   Print(ds, event, TARGET, target, regiment.resources[0], Word(ds, ammunition));
   Position(ds, event, THIRD_ROW);
-  Print(ds, event, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2],
-        Word(ds, food));
+  Print(ds, event, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(ds, food));
   std::uint8_t row{ 0 };
   for (auto element{ regiment.first }; element; element = Record<Element>(data, element).next, row++) {
     auto const& battalion{ Record<Element>(data, element) };

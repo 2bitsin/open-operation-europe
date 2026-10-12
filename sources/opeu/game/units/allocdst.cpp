@@ -48,8 +48,7 @@ constexpr std::uint16_t TALLY_MARK_OFFSET{ 0x10b8 };
 constexpr std::int32_t RESOURCE_LIMIT{ 60000 };
 
 // Asks the event for the three capacities of a unit or an objective.
-auto Capacities(std::uint8_t* ds, HostWordsEvent event, Service service, std::uint16_t owner, std::uint16_t& a,
-                std::uint16_t& b, std::uint16_t& c) -> void {
+auto Capacities(std::uint8_t* ds, HostWordsEvent event, Service service, std::uint16_t owner, std::uint16_t& a, std::uint16_t& b, std::uint16_t& c) -> void {
   std::uint16_t args[4]{ owner, a, b, c };
   event(ds, service, args, 1);
   a = args[1];
@@ -68,8 +67,7 @@ auto Fill(Item& item, Item const& row) -> void {
 // Rebuilds each unit's element list from its allocation rows (or fills the objective's six items), then splits the
 // summed resources: the first unit up to its capacities, the rest to the second unit or (capped at 60000) to the
 // objective.
-void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third,
-                           uint8_t count) {
+void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
   auto&         data{ Data(ds) };
   std::int32_t  sum_a{ 0 }, sum_b{ 0 }, sum_c{ 0 };
   std::uint16_t capacity_a[2]{}, capacity_b[2]{}, capacity_c[2]{};
@@ -137,19 +135,16 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
 
 // For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters. `text` and
 // `name` are the caller's 100- and 32-byte buffers; the dialog's select callback is opeu_tally_mark.
-void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t text, uint16_t name,
-                          uint16_t callback_segment) {
+void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t text, uint16_t name, uint16_t callback_segment) {
   auto& data{ Data(ds) };
   for (std::uint8_t i{ 0 }; i < 2; ++i) {
     auto const unit_near{ data.alloc_units[i] };
     if (unit_near == 0) continue;
     std::uint8_t listed{ 0 };
-    for (auto it{ Elements(data, Record<Unit>(data, unit_near)).begin() }; it != std::default_sentinel; ++it)
-      data.alloc_elements[listed++] = it.Near();
+    for (auto it{ Elements(data, Record<Unit>(data, unit_near)).begin() }; it != std::default_sentinel; ++it) data.alloc_elements[listed++] = it.Near();
     data.choice_dialog.rows   = static_cast<std::uint8_t>(listed + 1);
     data.choice_dialog.select = { TALLY_MARK_OFFSET, callback_segment };
-    Call(ds, event, REQUEST_FORMAT, text, Near(data, data.regiment_hq_prompt),
-         Call(ds, event, UNIT_NAME, unit_near, name));
+    Call(ds, event, REQUEST_FORMAT, text, Near(data, data.regiment_hq_prompt), Call(ds, event, UNIT_NAME, unit_near, name));
     Call(ds, event, CHIEF_TEXT, text);
     Call(ds, event, LIST_DIALOG, Near(data, data.choice_dialog), 1, 9);
   }
@@ -171,23 +166,18 @@ uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) 
   case 4: opeu_objective_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
   case 5: // the two 32-byte unit-name buffers live in a DS stack frame
     sp = port_stack_enter(SUPPLY_FRAME);
-    opeu_supply_exchange_units(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1), (uint16_t)(sp - 2u - 0x20u),
-                               (uint16_t)(sp - 2u - 0x40u));
+    opeu_supply_exchange_units(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1), (uint16_t)(sp - 2u - 0x20u), (uint16_t)(sp - 2u - 0x40u));
     port_stack_leave(SUPPLY_FRAME);
     break;
   case 6:
     sp = port_stack_enter(SUPPLY_FRAME);
-    opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1),
-                                   (uint16_t)(sp - 2u - 0x20u));
+    opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1), (uint16_t)(sp - 2u - 0x20u));
     port_stack_leave(SUPPLY_FRAME);
     break;
-  case 7: r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 8: r = lf_request_format(ds, args, count); break;
-  case 9: opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
-  case 10:
-    r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
-    break;
+  case 7:  r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 8:  r = lf_request_format(ds, args, count); break;
+  case 9:  opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
+  case 10: r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case 11: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   default: port_unhandled("allocdst", id, count);
   }

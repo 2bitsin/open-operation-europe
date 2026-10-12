@@ -36,15 +36,12 @@ uint8_t opeu_deploy_true(uint8_t*, BattleEvent) {
   return 1;
 }
 
-void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last,
-                           uint8_t flags) {
+void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
   Call(ds, event, BattleRoutine::TABLE_COLUMNS, column, COLUMNS_AT, row, COLUMNS_AT + 1, COLUMNS_AT + 2);
   // The strength column: the row indent, the first column and the window's left edge.
-  auto const strength_x{ [&] {
-    return static_cast<uint16_t>(Byte(ds, window.widths) + Byte(ds, COLUMNS_AT) + window.x - 0x20);
-  } };
+  auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(ds, window.widths) + Byte(ds, COLUMNS_AT) + window.x - 0x20); } };
   if (flags & DRAW_HEADER) {
     Call(ds, event, BattleRoutine::REQUEST_FORMAT, TEXT_AT, Near(data, data.deploy_header));
     Call(ds, event, BattleRoutine::ARMY_POSITION, strength_x(), window.y + 1);
@@ -54,14 +51,12 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8
   for (unsigned index{ first }; index <= last; ++index) {
     auto const  element_at{ data.ai_element_list[index] };
     auto const& element{ Record<Element>(data, element_at) };
-    auto const  y{ static_cast<uint16_t>((static_cast<int>(index) - data.list_top) * ROW_PIXELS + window.y
-                                         + HEADER_PIXELS) };
+    auto const  y{ static_cast<uint16_t>((static_cast<int>(index) - data.list_top) * ROW_PIXELS + window.y + HEADER_PIXELS) };
     if (flags & DRAW_NAMES) {
       Call(ds, event, BattleRoutine::ARMY_POSITION, window.x + 2, y);
       auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element_at)) };
       Call(ds, event, BattleRoutine::TEXT_COLOR, side == 0 ? OWN_COLOR : ENEMY_COLOR);
-      if (element.flags & Bits(ElementFlag::SELECTED))
-        Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_mark));
+      if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_mark));
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_name), data.element_types[element.type].name);
     }
     // In battle the element's position word points at its placement: the cell, 0xff (or the high bit) off the field.
@@ -70,14 +65,12 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8
       Call(ds, event, BattleRoutine::ARMY_POSITION, x, y);
       Call(ds, event, BattleRoutine::TEXT_COLOR, OWN_COLOR);
       auto const cell{ element.position };
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_placed), Byte(ds, cell),
-           Byte(ds, static_cast<uint16_t>(cell + 1)), element.quantity, element.morale, element.training,
+      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_placed), Byte(ds, cell), Byte(ds, static_cast<uint16_t>(cell + 1)), element.quantity, element.morale, element.training,
            element.experience);
     } else {
       Call(ds, event, BattleRoutine::ARMY_POSITION, x, y);
       Call(ds, event, BattleRoutine::TEXT_COLOR, PLAIN_COLOR);
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_waiting), element.quantity, element.morale,
-           element.training, element.experience);
+      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_waiting), element.quantity, element.morale, element.training, element.experience);
     }
   }
   Call(ds, event, BattleRoutine::TEXT_COLOR, PLAIN_COLOR);

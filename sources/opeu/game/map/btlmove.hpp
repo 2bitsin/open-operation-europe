@@ -3,8 +3,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void     opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y,
-                                  uint16_t element, uint8_t mode, uint16_t frame);
+void     opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode, uint16_t frame);
 void     opeu_battle_remove_unit(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t element);
 void     opeu_battle_remove_list(uint8_t* ds, BattleEvent event, uint16_t unit);
 uint8_t  opeu_battle_attack_rating(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target);

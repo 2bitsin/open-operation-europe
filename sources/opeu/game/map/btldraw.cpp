@@ -50,8 +50,7 @@ void BlitHexMask(uint8_t* ds, BattleEvent event, uint16_t mask, uint16_t x, uint
 void opeu_battle_dispatch(uint8_t* ds, BattleEvent event, uint8_t handler) {
   if (handler == NO_HANDLER) return;
   auto&       data{ Data(ds) };
-  auto const& routine{ Record<FarPointer>(
-      data, static_cast<uint16_t>(Near(data, data.battle_handlers) + handler * sizeof(FarPointer))) };
+  auto const& routine{ Record<FarPointer>(data, static_cast<uint16_t>(Near(data, data.battle_handlers) + handler * sizeof(FarPointer))) };
   event(ds, static_cast<uint32_t>(routine.segment) * 16 + routine.offset, nullptr, 0);
 }
 
@@ -97,8 +96,7 @@ uint16_t svc_btldraw(uint8_t* ds, uint32_t address, const uint16_t* args, unsign
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_draw_cursor(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_draw_cursor(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_draw_cursor(ds, svc_btldraw, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
   return 0;
 }

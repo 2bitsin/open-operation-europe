@@ -48,8 +48,7 @@ void Message(uint8_t* ds, BattleEvent event, uint16_t text) {
 // The cost for the element to enter the cursor's cell.
 [[nodiscard]] auto TerrainCost(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
   auto&      data{ Data(ds) };
-  auto const terrain{ static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, data.battle_cursor_x, data.battle_cursor_y)) };
+  auto const terrain{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, data.battle_cursor_x, data.battle_cursor_y)) };
   auto const category{ data.element_types[Record<Element>(data, element).type].category };
   return data.battle_terrain_costs[terrain * 8u + category];
 }
@@ -80,9 +79,7 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t elem
   auto&      data{ Data(ds) };
   auto const whole{ command >= WHOLE_UNIT };
   auto const side{ [&](uint16_t e) { return opeu_battle_element_side(ds, event, e); } };
-  auto const target_at_cursor{ [&] {
-    return Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y);
-  } };
+  auto const target_at_cursor{ [&] { return Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y); } };
   for (;;) {
     auto const unit{ opeu_battle_element_unit(ds, event, element) };
     Call(ds, event, BattleRoutine::INPUT_FLUSH);
@@ -101,8 +98,7 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t elem
         opeu_battle_order_refused(ds, event, REFUSED_FRIEND);
         continue;
       }
-      if ((BattleTerrainAt(data, data.battle_cursor_x, data.battle_cursor_y) & BATTLE_TERRAIN_MASK) == BATTLE_CITY
-          && side(element) == opeu_battle_unit_side(ds, event, data.battle_lists[0])) {
+      if ((BattleTerrainAt(data, data.battle_cursor_x, data.battle_cursor_y) & BATTLE_TERRAIN_MASK) == BATTLE_CITY && side(element) == opeu_battle_unit_side(ds, event, data.battle_lists[0])) {
         OrderAll(ds, event, Kind::ATTACK_CELL, whole, element, unit, 0);
         return 1;
       }
@@ -111,8 +107,7 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t elem
     }
     case 0:
     case 6:
-      if (TerrainCost(ds, event, element) != IMPASSABLE
-          && opeu_battle_cell_open(ds, event, data.battle_cursor_x, data.battle_cursor_y, element)) {
+      if (TerrainCost(ds, event, element) != IMPASSABLE && opeu_battle_cell_open(ds, event, data.battle_cursor_x, data.battle_cursor_y, element)) {
         OrderAll(ds, event, Kind::MOVE, whole, element, unit, 0);
         return 1;
       }

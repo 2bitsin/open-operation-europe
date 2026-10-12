@@ -93,8 +93,7 @@ void opeu_reinforce_screen(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, POSITION, 1, 0xe8);
   Call(ds, event, UI_TEXT, Near(data, data.reinforce_title));
   Call(ds, event, POSITION, 1, 0x170);
-  Call(ds, event, UI_TEXT,
-       data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
+  Call(ds, event, UI_TEXT, data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
   Call(ds, event, ATTRIBUTE, 0);
   Call(ds, event, LIST_DIALOG, Near(data, data.reinforce_dialog), 1, 3);
   Call(ds, event, RESTORE_BOTTOM);
@@ -141,31 +140,18 @@ void opeu_confirm_generals(uint8_t ds[65536], HostEvent event) {
 uint16_t svc_genconf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case BACKDROP: opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), (uint8_t)Arg(args, count, 0)); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT:      r = lf_cursor_print(ds, args, count); break;
-  case TEXT_COLOR: opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case ATTRIBUTE:  opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case UI_TEXT: opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case LIST_DIALOG:
-    r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
-    break;
-  case COMMANDER_DIALOG:
-    r = opeu_commander_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                                   (uint8_t)Arg(args, count, 2));
-    break;
+  case BACKDROP:         opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), (uint8_t)Arg(args, count, 0)); break;
+  case POSITION:         opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:            r = lf_cursor_print(ds, args, count); break;
+  case TEXT_COLOR:       opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case ATTRIBUTE:        opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case OUTLINE:          opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case UI_TEXT:          opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case LIST_DIALOG:      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case COMMANDER_DIALOG: r = opeu_commander_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ASK_YES_NO:
     // the prompt keeps a 16-byte answer buffer below the service's stack
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t {
-      return (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0), (uint16_t)(sp - 0x10u));
-    });
+    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t { return (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0), (uint16_t)(sp - 0x10u)); });
     break;
   case RESTORE_BOTTOM:    opeu_staff_restore_bottom(ds, svc_staffpnl); break;
   case RESTORE_LEFT:      opeu_staff_restore_left(ds, svc_staffpnl); break;

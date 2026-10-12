@@ -31,9 +31,7 @@ uint16_t opeu_arrival_cell_allowed(uint8_t* ds, uint8_t x, uint8_t y, uint8_t si
   case Terrain::CITY:
   case Terrain::RIVER:      break;
   default:
-    if (opeu_cell_influence_side(ds, x, y) == side && opeu_cell_side(ds, x, y) == ANY_SIDE
-        && !opeu_cell_marked(ds, x, y, ANY_SIDE))
-      MarkCandidate(ds, x, y);
+    if (opeu_cell_influence_side(ds, x, y) == side && opeu_cell_side(ds, x, y) == ANY_SIDE && !opeu_cell_marked(ds, x, y, ANY_SIDE)) MarkCandidate(ds, x, y);
     break;
   }
   return 1;

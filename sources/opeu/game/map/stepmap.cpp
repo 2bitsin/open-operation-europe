@@ -20,6 +20,5 @@ uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
 
 auto port_routine_opeu_grid_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
-  return opeu_grid_step(PORT_DS(Arg(args, count, 2)), PORT_DS(Arg(args, count, 0)),
-                        static_cast<uint8_t>(Arg(args, count, 1)));
+  return opeu_grid_step(PORT_DS(Arg(args, count, 2)), PORT_DS(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }

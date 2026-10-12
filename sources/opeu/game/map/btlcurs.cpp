@@ -32,17 +32,14 @@ constexpr int16_t MASK_ROW_BYTES{ 5 };
 
 // A byte of the hex-shape mask.
 [[nodiscard]] auto HexMask(uint8_t* ds, BattleEvent event, int16_t row, int16_t column) -> uint8_t {
-  return static_cast<uint8_t>(event(
-      ds, std::to_underlying(BattleRoutine::BATTLE_HEX_MASKS) + static_cast<uint16_t>(row * MASK_ROW_BYTES + column),
-      nullptr, 0));
+  return static_cast<uint8_t>(event(ds, std::to_underlying(BattleRoutine::BATTLE_HEX_MASKS) + static_cast<uint16_t>(row * MASK_ROW_BYTES + column), nullptr, 0));
 }
 } // namespace
 
 uint16_t opeu_battle_cell_open(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
   if (!opeu_battle_cell_occupied(ds, event, x, y)) return 1;
   auto const other{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, x, y) };
-  return other && opeu_battle_element_side(ds, event, element) != opeu_battle_element_side(ds, event, other)
-         && !opeu_battle_element_flag2(ds, event, other);
+  return other && opeu_battle_element_side(ds, event, element) != opeu_battle_element_side(ds, event, other) && !opeu_battle_element_flag2(ds, event, other);
 }
 
 void opeu_battle_cursor_draw(uint8_t* ds, BattleEvent event) {

@@ -20,8 +20,7 @@ constexpr std::uint8_t MAP_MASK{ 0x7f }; // the scenario byte's map number
 } // namespace
 
 // Returns -1, leaving the data segment untouched, when a file is shorter than the records it reads.
-auto opeu_load_scenario(std::uint8_t* ds, unsigned scenario, std::uint8_t const* scedata, std::size_t scedata_size,
-                        std::uint8_t const* mapinf, std::size_t mapinf_size) -> int {
+auto opeu_load_scenario(std::uint8_t* ds, unsigned scenario, std::uint8_t const* scedata, std::size_t scedata_size, std::uint8_t const* mapinf, std::size_t mapinf_size) -> int {
   if (scenario >= SCENARIO_COUNT) return -1;
   auto const position{ SCENARIOS_AT + scenario * RECORD_SIZE };
   if (position > scedata_size || scedata_size - position < RECORD_SIZE) return -1;

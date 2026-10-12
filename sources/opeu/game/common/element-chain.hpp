@@ -67,16 +67,14 @@ private:
 [[nodiscard]] inline auto Elements(DataSegment& data, std::uint16_t first) noexcept -> ElementChain<DataSegment> {
   return { data, first };
 }
-[[nodiscard]] inline auto Elements(DataSegment const& data, std::uint16_t first) noexcept
-    -> ElementChain<DataSegment const> {
+[[nodiscard]] inline auto Elements(DataSegment const& data, std::uint16_t first) noexcept -> ElementChain<DataSegment const> {
   return { data, first };
 }
 // The elements of a unit.
 [[nodiscard]] inline auto Elements(DataSegment& data, Unit const& unit) noexcept -> ElementChain<DataSegment> {
   return { data, unit.first };
 }
-[[nodiscard]] inline auto Elements(DataSegment const& data, Unit const& unit) noexcept
-    -> ElementChain<DataSegment const> {
+[[nodiscard]] inline auto Elements(DataSegment const& data, Unit const& unit) noexcept -> ElementChain<DataSegment const> {
   return { data, unit.first };
 }
 } // namespace opeu::game::detail::element_chain

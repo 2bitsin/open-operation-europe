@@ -7,8 +7,7 @@
 
 using namespace opeu::game;
 
-void opeu_objective_resource_percentages(uint8_t ds[65536], uint16_t objective, uint16_t* result_a, uint16_t* result_b,
-                                         uint16_t* result_c) {
+void opeu_objective_resource_percentages(uint8_t ds[65536], uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
   uint16_t capacity_c, capacity_b, capacity_a;
   opeu_objective_capacities(ds, objective, &capacity_a, &capacity_b, &capacity_c);
   auto const& record{ Record<Objective>(Data(ds), objective) };

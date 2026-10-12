@@ -53,11 +53,9 @@ struct SegRegs {
 // wrap within the segment.
 auto CopyNear(std::uint8_t* ds, std::uint16_t source, std::uint16_t destination, std::uint16_t size) -> void {
   if (destination < source)
-    for (std::uint16_t i{ 0 }; i < size; i++)
-      ds[static_cast<std::uint16_t>(destination + i)] = ds[static_cast<std::uint16_t>(source + i)];
+    for (std::uint16_t i{ 0 }; i < size; i++) ds[static_cast<std::uint16_t>(destination + i)] = ds[static_cast<std::uint16_t>(source + i)];
   else
-    for (std::uint16_t i{ size }; i; i--)
-      ds[static_cast<std::uint16_t>(destination + i - 1)] = ds[static_cast<std::uint16_t>(source + i - 1)];
+    for (std::uint16_t i{ size }; i; i--) ds[static_cast<std::uint16_t>(destination + i - 1)] = ds[static_cast<std::uint16_t>(source + i - 1)];
 }
 
 // int86x: INT 66h with the registers and the segment registers; both come back updated.
@@ -156,8 +154,7 @@ void opeu_music_select(std::uint8_t* ds, HostService service, std::uint8_t value
   }
 }
 
-void opeu_music_load_select(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path,
-                            std::uint8_t value) {
+void opeu_music_load_select(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path, std::uint8_t value) {
   if (!Data(ds).sound_enabled) return;
   opeu_music_load(ds, service, bank, path);
   opeu_music_select(ds, service, value);
@@ -237,8 +234,7 @@ auto port_routine_opeu_effect_finish(std::uint8_t* ds, std::uint16_t const*, uns
   return 0;
 }
 
-auto port_routine_opeu_finish_side_initialization(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_finish_side_initialization(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }

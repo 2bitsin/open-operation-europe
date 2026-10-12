@@ -20,9 +20,7 @@ void opeu_insert_element(uint8_t ds[65536], uint16_t unit, uint16_t element) {
   auto&      data{ Data(ds) };
   auto const category{ CategoryOf(data, element) };
   auto       at{ unit };
-  for (auto next{ Record<Element>(data, at).next }; next && CategoryOf(data, next) <= category;
-       next = Record<Element>(data, at).next)
-    at = next;
+  for (auto next{ Record<Element>(data, at).next }; next && CategoryOf(data, next) <= category; next = Record<Element>(data, at).next) at = next;
   auto& inserted{ Record<Element>(data, element) };
   inserted.next                   = Record<Element>(data, at).next;
   Record<Element>(data, at).next  = element;

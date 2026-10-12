@@ -91,8 +91,7 @@ uint16_t opeu_group_can_cover(uint8_t* ds, uint8_t group, uint16_t objective) {
     if (Ready(SideUnit(data, group, slot)) && slot <= LAST_COMBAT_SLOT) ++units;
   std::uint8_t needed{ opeu_objective_weight(Record<Objective>(data, objective)) };
   for (auto const& task : SideGroup(data, group).tasks)
-    if (!None(task) && (objective = opeu_find_objective_at(ds, task.x, task.y)) != 0)
-      needed += opeu_objective_weight(Record<Objective>(data, objective));
+    if (!None(task) && (objective = opeu_find_objective_at(ds, task.x, task.y)) != 0) needed += opeu_objective_weight(Record<Objective>(data, objective));
   return needed <= units;
 }
 
@@ -195,9 +194,7 @@ void opeu_group_task_service(uint8_t* ds) {
   if (!opeu_tasks_retained(current.tasks.data(), saved.data())) {
     for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot) {
       auto& unit{ SideUnit(data, data.current_group, slot) };
-      if (opeu_unit_selection_eligible(ds, Near(data, unit))
-          && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12))
-        opeu_clear_unit_orders(ds, Near(data, unit), 3);
+      if (opeu_unit_selection_eligible(ds, Near(data, unit)) && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12)) opeu_clear_unit_orders(ds, Near(data, unit), 3);
     }
     current.flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::RETARGET));
   }

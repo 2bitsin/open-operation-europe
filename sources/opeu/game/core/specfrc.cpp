@@ -44,8 +44,7 @@ void opeu_special_officer(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   (void)sp;
   auto& data{ Data(ds) };
   data.special_order  = Near(data, Record<Side>(data, data.current_side_ptr).order);
-  data.special_person = Call(ds, event, FIND_PERSON_TEMPLATE, Record<Person>(data, data.context_record1).status,
-                             OFFICER_KIND);
+  data.special_person = Call(ds, event, FIND_PERSON_TEMPLATE, Record<Person>(data, data.context_record1).status, OFFICER_KIND);
   auto const& deputy{ Record<Person>(data, data.context_record2) };
   auto const& commander{ Record<Person>(data, data.context_record1) };
   data.special_leadership = Average(deputy, commander, &Person::leadership);
@@ -84,16 +83,13 @@ void opeu_turn_action_9(uint8_t ds[65536], HostEvent event, uint16_t sp) {
       Call(ds, event, ARMY_POSITION, INFO_X, ORDERS_Y);
       Call(ds, event, ARMY_PRINT, offsetof(DataSegment, special_orders_line), data.special_mission_names[order.kind]);
       Call(ds, event, ARMY_POSITION, INFO_X, TARGET_Y);
-      Call(ds, event, ARMY_PRINT, offsetof(DataSegment, special_target_line),
-           opeu_special_unit_target(ds, event, inner) ? Call(ds, event, UNIT_NAME, order.target, name) : order.target);
+      Call(ds, event, ARMY_PRINT, offsetof(DataSegment, special_target_line), opeu_special_unit_target(ds, event, inner) ? Call(ds, event, UNIT_NAME, order.target, name) : order.target);
       Call(ds, event, ARMY_POSITION, INFO_X, TIME_Y);
       Call(ds, event, ARMY_PRINT, offsetof(DataSegment, special_time_line), order.progress);
-      if (!Call(ds, event, CONFIRM_MESSAGE, offsetof(DataSegment, special_cancel_question), data.context_record2))
-        break;
+      if (!Call(ds, event, CONFIRM_MESSAGE, offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
       order.kind = Bits(SpecialMission::NONE);
     }
-    auto const choice{ Call(ds, event, DELAY_DIALOG, offsetof(DataSegment, special_select_question), MISSION_COUNT,
-                            data.context_record2, offsetof(DataSegment, special_menu)) };
+    auto const choice{ Call(ds, event, DELAY_DIALOG, offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2, offsetof(DataSegment, special_menu)) };
     if (choice == CANCELLED) return;
     auto const& mission{ data.special_missions[choice - 1] };
     Call(ds, event, FAR_ACTION, mission.segment, mission.offset);

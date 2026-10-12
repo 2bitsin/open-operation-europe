@@ -57,8 +57,7 @@ void SetStream(DataSegment& data, uint16_t offset) {
 // Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
 void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
   auto const& data{ Data(ds) };
-  Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 1, 8, data.stream_ptr[0], data.stream_ptr[1], offset, segment, 0,
-       data.bitmap_buffer, 0);
+  Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 1, 8, data.stream_ptr[0], data.stream_ptr[1], offset, segment, 0, data.bitmap_buffer, 0);
 }
 
 // side_status of any side byte, 255 included, read where the original reads it.
@@ -85,23 +84,20 @@ void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint1
   auto const side{ opeu_unit_side(unit) };
   uint8_t    destination_x;
   uint8_t    destination_y;
-  if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y)
-      && (SideStatus(ds, side) == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
+  if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y) && (SideStatus(ds, side) == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown = ShowsUntilStarted(kind) ? !order.progress : order.progress < 100;
     if (order_shown) {
       auto const glyph{ data.order_glyphs[kind] };
-      draw(static_cast<uint16_t>(ORDER_GLYPHS + glyph * GLYPH_BYTES),
-           static_cast<uint16_t>(ORDER_MASKS + glyph * MASK_BYTES));
+      draw(static_cast<uint16_t>(ORDER_GLYPHS + glyph * GLYPH_BYTES), static_cast<uint16_t>(ORDER_MASKS + glyph * MASK_BYTES));
       if (kind == 1 || kind == 2 || kind == 3) order_shown = false;
     }
   }
   if (order_shown) return;
   auto const& element{ Record<Element>(data, opeu_unit_selected_element(ds, unit)) };
   auto const  glyph{ data.element_types[element.type].category };
-  draw(static_cast<uint16_t>(TYPE_GLYPHS + glyph * GLYPH_BYTES),
-       static_cast<uint16_t>(TYPE_MASKS + glyph * MASK_BYTES));
+  draw(static_cast<uint16_t>(TYPE_GLYPHS + glyph * GLYPH_BYTES), static_cast<uint16_t>(TYPE_MASKS + glyph * MASK_BYTES));
 }
 
 // frame: the routine's frame on the DS stack; the pixel position is converted in place there, and the unit drawing
@@ -120,8 +116,7 @@ void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint8
   if (auto const objective{ opeu_find_objective_at(ds, x, y) }) {
     auto const& modes{ CurrentScenario(data) == Scenario::BULGE ? BULGE_MARKER : MARKER };
     auto const  mode{ modes[opeu_objective_side(ds, objective) == 0 ? 0 : 1] };
-    Call(ds, event, MapService::DRAW_MASKED_NEAR, pixel_x, pixel_y, 1, 8, mode,
-         Near(data, data.overview_objective_glyph));
+    Call(ds, event, MapService::DRAW_MASKED_NEAR, pixel_x, pixel_y, 1, 8, mode, Near(data, data.overview_objective_glyph));
   }
   if (SideStatus(ds, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(ds, x, y, data.overview_side)) {
     SetStream(data, MARK_MASK);
@@ -131,8 +126,7 @@ void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint8
     SetStream(data, BRIDGE_GLYPH);
     Call(ds, event, MapService::BLIT_FAR, pixel_x, pixel_y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
   }
-  if (auto const unit{ opeu_find_unit_at(ds, x, y) }; unit && opeu_unit_visible(ds, unit))
-    opeu_overview_unit_draw(ds, event, Local(frame, UNIT_FRAME), unit, pixel_x, pixel_y);
+  if (auto const unit{ opeu_find_unit_at(ds, x, y) }; unit && opeu_unit_visible(ds, unit)) opeu_overview_unit_draw(ds, event, Local(frame, UNIT_FRAME), unit, pixel_x, pixel_y);
 }
 
 // Services of this module: the 15c4 segment's shared map services (map/blast).

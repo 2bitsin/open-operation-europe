@@ -51,8 +51,7 @@ auto RunList(std::uint8_t* ds, HostEvent event, ListWindow& list) -> std::uint16
 // Lists the eight regiments of the current side's division `group` in the regiment rows.
 uint8_t opeu_order_units_fill(uint8_t ds[65536], uint8_t group) {
   auto& data{ Data(ds) };
-  for (std::uint8_t index{ 0 }; index < 8; ++index)
-    data.row_units[index] = Near(data, data.units[(data.current_side * GROUPS_PER_SIDE + group) * 8 + index]);
+  for (std::uint8_t index{ 0 }; index < 8; ++index) data.row_units[index] = Near(data, data.units[(data.current_side * GROUPS_PER_SIDE + group) * 8 + index]);
   return 8;
 }
 

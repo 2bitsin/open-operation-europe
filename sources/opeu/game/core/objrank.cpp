@@ -59,8 +59,7 @@ uint8_t opeu_objective_rank_level(uint8_t ds[65536], uint16_t objective) {
 // Inserts objective at entries[last], carrying it through entries[first..last-1]: each slot keeps the objective
 // with the smaller influence (descending: the larger). From RANKED_DELIVERY on a computer side, a slot gives way
 // only to an objective of at least its level.
-void opeu_rank_entry_insert(uint8_t ds[65536], uint8_t side, uint8_t first, uint8_t last, uint16_t objective,
-                            uint8_t descending) {
+void opeu_rank_entry_insert(uint8_t ds[65536], uint8_t side, uint8_t first, uint8_t last, uint16_t objective, uint8_t descending) {
   auto&      data{ Data(ds) };
   auto const entries{ Entries(data, side) };
   auto const ranked{ !data.side_control[data.current_side] && data.delivery_level >= RANKED_DELIVERY };
@@ -84,14 +83,12 @@ void opeu_rank_side_entries(uint8_t ds[65536]) {
   auto&       data{ Data(ds) };
   auto const  offensive{ data.side_stance[data.current_side] == Bits(Stance::OFFENSIVE) };
   auto const  side{ static_cast<uint8_t>(data.current_side == 0 ? 0 : 1) };
-  auto const& order{ side == 0 ? (offensive ? SIDE_0_OFFENSIVE : SIDE_0_DEFENSIVE)
-                               : (offensive ? SIDE_1_OFFENSIVE : SIDE_1_DEFENSIVE) };
+  auto const& order{ side == 0 ? (offensive ? SIDE_0_OFFENSIVE : SIDE_0_DEFENSIVE) : (offensive ? SIDE_1_OFFENSIVE : SIDE_1_DEFENSIVE) };
   uint8_t     next{ 0 };
   for (auto const& pass : order) {
     auto const first{ next };
     for (auto& objective : data.objectives) {
-      if (objective.active && opeu_objective_side(ds, Near(data, objective)) == pass.owner
-          && opeu_cell_influence_side(ds, objective.x, objective.y) == pass.influence)
+      if (objective.active && opeu_objective_side(ds, Near(data, objective)) == pass.owner && opeu_cell_influence_side(ds, objective.x, objective.y) == pass.influence)
         opeu_rank_entry_insert(ds, side, first, next++, Near(data, objective), pass.owner);
     }
   }
@@ -103,8 +100,7 @@ void opeu_rank_side_entries(uint8_t ds[65536]) {
 void opeu_side_groups_retarget(uint8_t ds[65536], uint8_t side) {
   auto& data{ Data(ds) };
   if (data.side_control[side] == SIDE_PLAYED || !Entries(data, side)[0]) return;
-  for (uint8_t i = 0; i < GROUPS_PER_SIDE; i++)
-    data.groups[side * GROUPS_PER_SIDE + i].flags |= Bits(GroupFlag::RETARGET);
+  for (uint8_t i = 0; i < GROUPS_PER_SIDE; i++) data.groups[side * GROUPS_PER_SIDE + i].flags |= Bits(GroupFlag::RETARGET);
 }
 
 // Re-ranks the current side's objectives; an offensive computer side whose ranking changed retargets its divisions.
@@ -114,13 +110,10 @@ void opeu_turn_selected_begin(uint8_t ds[65536]) {
   std::array<uint16_t, OBJECTIVE_COUNT> before{};
   std::ranges::copy(Entries(data, side), before.begin());
   opeu_rank_side_entries(ds);
-  if (data.side_control[side] == 0 && data.side_stance[side] == Bits(Stance::OFFENSIVE)
-      && !std::ranges::equal(Entries(data, side), before))
-    opeu_side_groups_retarget(ds, side);
+  if (data.side_control[side] == 0 && data.side_stance[side] == Bits(Stance::OFFENSIVE) && !std::ranges::equal(Entries(data, side), before)) opeu_side_groups_retarget(ds, side);
 }
 
-auto port_routine_opeu_side_groups_retarget(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_side_groups_retarget(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_side_groups_retarget(ds, (uint8_t)Arg(args, count, 0));
   return 0;
 }

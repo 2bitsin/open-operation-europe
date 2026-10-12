@@ -77,8 +77,7 @@ void opeu_request_file(uint8_t ds[65536], HostEvent event, uint16_t request) {
   slot.argument = filed.argument;
   slot.kind     = filed.kind;
   Call(ds, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_filed_text), data.context_record2);
-  Call(ds, event, RequestMenuService::SHOW, REQUEST_SHOW, data.current_side, FINISH_PRESENT_OFFSET,
-       FINISH_PRESENT_SEGMENT);
+  Call(ds, event, RequestMenuService::SHOW, REQUEST_SHOW, data.current_side, FINISH_PRESENT_OFFSET, FINISH_PRESENT_SEGMENT);
 }
 
 // Whether the current side holds at least one objective (city).
@@ -108,41 +107,25 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_
     port_scratch_leave(sizeof(RequestSlot));
     break;
   }
-  case RequestMenuService::MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case RequestMenuService::TITLE:
-    opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0));
-    break;
-  case RequestMenuService::DELAY_DIALOG:
-    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case RequestMenuService::FORMAT: c2_request_format(ds, args, count); break;
-  case RequestMenuService::CONFIRM:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case RequestMenuService::FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    Arg32(args, count, 2));
-    break;
-  case RequestMenuService::PICK: {
+  case RequestMenuService::MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestMenuService::TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case RequestMenuService::DELAY_DIALOG: r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case RequestMenuService::FORMAT:       c2_request_format(ds, args, count); break;
+  case RequestMenuService::CONFIRM:      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestMenuService::FINISH:       opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case RequestMenuService::SHOW:         opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
+  case RequestMenuService::PICK:         {
     auto const frame{ port_frame_enter() };
     r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
     port_frame_leave();
     break;
   }
-  case RequestMenuService::POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1));
-    break;
+  case RequestMenuService::POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
   case RequestMenuService::PRINT:    c2_cursor_print(ds, args, count); break;
   case RequestMenuService::MODE_IS:  r = opeu_request_mode_is(ds, (uint8_t)Arg(args, count, 0)); break;
   case RequestMenuService::HAS_CITY: r = opeu_side_has_city(ds); break;
-  case RequestMenuService::FAR_CALL:
-    r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0);
-    break;
-  default: port_unhandled(module, id, count);
+  case RequestMenuService::FAR_CALL: r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
+  default:                           port_unhandled(module, id, count);
   }
   return r;
 }

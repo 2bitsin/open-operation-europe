@@ -17,9 +17,7 @@ uint16_t opeu_find_free_person(const uint8_t ds[65536], uint8_t side) {
   auto const& data{ Data(ds) };
   for (unsigned i = 0; i < PEOPLE_PER_SIDE; ++i) {
     auto const& person{ data.people[side * PEOPLE_PER_SIDE + i] };
-    if (person.status != ABSENT && !(person.role & BUSY_ROLES) && !(person.assignment & ASSIGNED)
-        && !(person.assignment >> COUNTER_SHIFT))
-      return Near(data, person);
+    if (person.status != ABSENT && !(person.role & BUSY_ROLES) && !(person.assignment & ASSIGNED) && !(person.assignment >> COUNTER_SHIFT)) return Near(data, person);
   }
   return 0;
 }

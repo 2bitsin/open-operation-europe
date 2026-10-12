@@ -84,8 +84,7 @@ void opeu_mission_raid_unit(uint8_t ds[65536], HostEvent event, uint16_t frame, 
   if (Played(ds, side))
     opeu_mission_report_success(ds, event, frame, side, text, unit.x, unit.y);
   else {
-    opeu_string_append(ds, opeu_mission_target_name(ds, event, frame, side, target, text),
-                       At(offsetof(DataSegment, raid_unit_tail)));
+    opeu_string_append(ds, opeu_mission_target_name(ds, event, frame, side, target, text), At(offsetof(DataSegment, raid_unit_tail)));
     opeu_mission_report_enemy(ds, event, frame, side, text, unit.x, unit.y);
   }
   Call(ds, event, MISSION_CASUALTIES, target, 30, 3, 15, 1, 1);
@@ -166,16 +165,14 @@ uint16_t svc_msnraid(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return svc_mission("msnraid", ds, id, args, count);
 }
 
-auto port_routine_opeu_mission_objective_3(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mission_objective_3(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
   opeu_mission_objective_3(ds, svc_msnraid, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();
   return 0;
 }
 
-auto port_routine_opeu_mission_raid_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mission_raid_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
   opeu_mission_raid_objective(ds, svc_msnraid, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();

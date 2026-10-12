@@ -41,8 +41,7 @@ constexpr uint8_t LAST_CELL{ BATTLE_WIDTH - 1 };
 
 uint16_t opeu_battle_sprite_offset(uint8_t* ds, BattleEvent, uint8_t sprite) {
   auto const& data{ Data(ds) };
-  if (sprite < TERRAIN_SPRITES)
-    return static_cast<uint16_t>((sprite * VARIANTS + data.sprite_variant[0]) * SPRITE_BYTES);
+  if (sprite < TERRAIN_SPRITES) return static_cast<uint16_t>((sprite * VARIANTS + data.sprite_variant[0]) * SPRITE_BYTES);
   return static_cast<uint16_t>((sprite + OVERLAYS_AT) * SPRITE_BYTES);
 }
 
@@ -106,8 +105,7 @@ void opeu_battle_draw_neighbors(uint8_t* ds, BattleEvent event, uint8_t x, uint8
   auto const overlay{ [&](uint8_t variant, uint8_t at_x, uint8_t at_y) {
     data.sprite_variant[0] = variant;
     auto const sprite{ static_cast<uint8_t>(BattleTerrainAt(data, at_x, at_y) & BATTLE_TERRAIN_MASK) };
-    if (opeu_battle_sprite_valid(ds, event, sprite))
-      opeu_battle_draw_sprite(ds, event, opeu_battle_sprite_offset(ds, event, sprite));
+    if (opeu_battle_sprite_valid(ds, event, sprite)) opeu_battle_draw_sprite(ds, event, opeu_battle_sprite_offset(ds, event, sprite));
   } };
   if (y < LAST_CELL) overlay(VARIANT_BELOW, x, y + 1);
   if (x < LAST_CELL) overlay(VARIANT_RIGHT, x + 1, y);

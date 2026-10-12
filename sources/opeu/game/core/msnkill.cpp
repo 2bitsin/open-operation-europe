@@ -105,8 +105,7 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event, uint16_t frame
     if (struck) {
       auto& data{ Data(ds) };
       auto& unit{ Record<Unit>(data, target) };
-      if (data.side_status[side] == SIDE_PLAYED)
-        opeu_mission_report_success(ds, event, frame, side, text, unit.x, unit.y);
+      if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(ds, event, frame, side, text, unit.x, unit.y);
       opeu_officer_gain(ds, side, OFFICER);
       for (auto& element : Elements(data, unit)) opeu_sub_byte(Random(ds, event, 20) + 30, &element.morale);
       return;
@@ -119,33 +118,25 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event, uint16_t frame
 uint16_t svc_mission(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0, frame, sp, words[1];
   switch (id) {
-  case MISSION_RANDOM: r = port_rand_bounded(ds, Arg(args, count, 0)); break;
-  case MISSION_TEXT:   r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0)); break;
-  case MISSION_FORMAT: c2_request_format(ds, args, count); break;
-  case MISSION_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case MISSION_DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    Arg32(args, count, 2));
-    break;
+  case MISSION_RANDOM:     r = port_rand_bounded(ds, Arg(args, count, 0)); break;
+  case MISSION_TEXT:       r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0)); break;
+  case MISSION_FORMAT:     c2_request_format(ds, args, count); break;
+  case MISSION_MESSAGE:    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MISSION_DAILY_SHOW: opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
   case MISSION_FLASH:
     frame = port_frame_enter();
-    opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                        (uint8_t)Arg(args, count, 2));
+    opeu_location_flash(ds, svc_mapunit, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   case MISSION_UNIT_NAME: r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case MISSION_OBJECTIVE_DAMAGE:
     frame = port_frame_enter();
-    opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                          Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
+    opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     port_frame_leave();
     break;
   case MISSION_CASUALTIES:
     frame = port_frame_enter();
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                         Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     port_frame_leave();
     break;
   case MISSION_TURN_CONTEXT:   opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
@@ -173,8 +164,7 @@ uint16_t svc_msnkill(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return svc_mission("msnkill", ds, id, args, count);
 }
 
-auto port_routine_opeu_mission_assassinate(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_mission_assassinate(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   uint16_t frame = port_frame_enter();
   opeu_mission_assassinate(ds, svc_msnkill, frame, (uint8_t)Arg(args, count, 0));
   port_frame_leave();

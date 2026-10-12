@@ -59,8 +59,7 @@ uint8_t opeu_deploy_facing(uint8_t* ds, BattleEvent event, uint16_t element) {
     for (uint8_t direction{ 0 }; direction < TOWARD.size(); ++direction) {
       Byte(ds, STEP_X_AT) = data.battle_map_x;
       Byte(ds, STEP_Y_AT) = data.battle_map_y;
-      if (Call(ds, event, BattleRoutine::GRID_STEP, STEP_X_AT, STEP_Y_AT, direction)
-          && data.battle_attacker_x == Byte(ds, STEP_X_AT) && data.battle_attacker_y == Byte(ds, STEP_Y_AT))
+      if (Call(ds, event, BattleRoutine::GRID_STEP, STEP_X_AT, STEP_Y_AT, direction) && data.battle_attacker_x == Byte(ds, STEP_X_AT) && data.battle_attacker_y == Byte(ds, STEP_Y_AT))
         return TOWARD[direction];
     }
   // Outside 0..7 the original falls off its switch with the direction itself.
@@ -127,8 +126,7 @@ uint16_t opeu_deploy_manual(uint8_t* ds, BattleEvent event, uint16_t element) {
       opeu_deploy_put(ds, event, element);
       return 1;
     }
-    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, Near(data, data.deploy_refused), data.battle_active_side,
-         1);
+    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, Near(data, data.deploy_refused), data.battle_active_side, 1);
   }
 }
 

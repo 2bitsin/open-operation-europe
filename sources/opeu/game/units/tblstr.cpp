@@ -20,8 +20,7 @@ namespace {
 constexpr std::uint16_t NAME_INDENT{ 2 };
 } // namespace
 
-void opeu_tbl_draw_strength(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                            uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_strength(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };

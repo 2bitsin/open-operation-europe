@@ -130,8 +130,7 @@ uint16_t opeu_para_drop_due(uint8_t ds[65536], HostEvent event) {
   if (!opeu_para_ready(ds, event) || !Call(ds, event, DropService::CELL_OK, drop.x, drop.y))
     opeu_para_clear(ds);
   else if (!opeu_sub_byte(1, &drop.hours))
-    switch (static_cast<AirAnswer>(
-        Call(ds, event, DropService::AIR_REPORT, drop.due, Near(data, data.paratroop_drop_name)) & 0xff)) {
+    switch (static_cast<AirAnswer>(Call(ds, event, DropService::AIR_REPORT, drop.due, Near(data, data.paratroop_drop_name)) & 0xff)) {
     case AirAnswer::FLY:      return 1;
     case AirAnswer::WAIT:     drop.hours = 1; break;
     case AirAnswer::CALL_OFF: opeu_para_clear(ds); break;
@@ -146,13 +145,11 @@ void opeu_para_drop_present(uint8_t ds[65536], HostEvent event) {
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ Call(ds, event, DropService::SIDE_RECORD, side, COMMANDER) };
-    auto const person{ Call(ds, event, DropService::PERSON_TEMPLATE, Record<Person>(data, commander).status,
-                            AIR_COMMANDER) };
+    auto const person{ Call(ds, event, DropService::PERSON_TEMPLATE, Record<Person>(data, commander).status, AIR_COMMANDER) };
     Call(ds, event, DropService::MESSAGE, Near(data, data.paratroop_drop_begin), person);
   } else {
     auto const other{ static_cast<uint8_t>(Call(ds, event, DropService::OPPOSITE_SIDE, side)) };
-    Call(ds, event, DropService::MESSAGE, Near(data, data.paratroop_drop_spotted),
-         Call(ds, event, DropService::SIDE_RECORD, other, INTELLIGENCE));
+    Call(ds, event, DropService::MESSAGE, Near(data, data.paratroop_drop_spotted), Call(ds, event, DropService::SIDE_RECORD, other, INTELLIGENCE));
   }
   Call(ds, event, DropService::CUE);
 }
@@ -189,14 +186,11 @@ void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, 
       break;
     }
     Call(ds, event, DropService::SPRITE_DRAW, target_x, row, side_index);
-    if (row == target_y)
-      Call(ds, event, DropService::DAILY_SHOW, SHOW_ID, Call(ds, event, DropService::SIDE_FOR_STATUS, side_index),
-           PRESENTER_OFFSET, segment + PRESENTER_SEGMENT);
+    if (row == target_y) Call(ds, event, DropService::DAILY_SHOW, SHOW_ID, Call(ds, event, DropService::SIDE_FOR_STATUS, side_index), PRESENTER_OFFSET, segment + PRESENTER_SEGMENT);
     if (target_y - row == LANDING_ROWS) {
       Call(ds, event, DropService::MUSIC);
       auto const unit{ Call(ds, event, DropService::UNIT_CREATE, side_index, Near(data, drop)) };
-      if (Call(ds, event, DropService::LAND, unit, (drop.transports - left) * 10))
-        Call(ds, event, DropService::ARRIVAL_PREPARE, unit);
+      if (Call(ds, event, DropService::LAND, unit, (drop.transports - left) * 10)) Call(ds, event, DropService::ARRIVAL_PREPARE, unit);
     }
     Call(ds, event, DropService::DELAY, 1);
     Call(ds, event, DropService::SPRITE_RESTORE, target_x, row);
@@ -215,45 +209,34 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   uint16_t r{ 0 };
   switch (static_cast<DropService>(id)) {
   case DropService::UNIT_GROUP: r = opeu_unit_group(Arg(args, count, 0)); break;
-  case DropService::CELL_OK:
-    r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
+  case DropService::CELL_OK:    r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case DropService::AIR_REPORT: {
     auto const frame{ port_frame_enter() };
     r = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
     port_frame_leave();
     break;
   }
-  case DropService::SIDE_RECORD:
-    r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case DropService::PERSON_TEMPLATE:
-    r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case DropService::OPPOSITE_SIDE: r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
-  case DropService::MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case DropService::SIDE_RECORD:     r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case DropService::PERSON_TEMPLATE: r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case DropService::OPPOSITE_SIDE:   r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
+  case DropService::MESSAGE:         opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::CUE:             opeu_sound_cue4(ds, svc_soundcue); break;
   case DropService::SIDE_FOR_STATUS: r = opeu_side_for_status(ds, (uint8_t)Arg(args, count, 0)); break;
   case DropService::MAP_CENTER:      {
     auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (uint8_t)Arg(args, count, 2));
+    opeu_map_center(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   }
-  case DropService::VIEW_PIXEL: opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DropService::DAILY_SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
+  case DropService::VIEW_PIXEL:  opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DropService::DAILY_SHOW:  port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case DropService::MUSIC:       opeu_music_command7(ds, svc_sound); break;
   case DropService::UNIT_CREATE: {
     auto const& drop{ Record<AirDrop>(Data(ds), Arg(args, count, 1)) };
     r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)Arg(args, count, 0), drop.x, drop.y);
     break;
   }
-  case DropService::LAND: r = opeu_para_land(ds, svc_paraunit, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DropService::LAND:            r = opeu_para_land(ds, svc_paraunit, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::ARRIVAL_PREPARE: {
     auto const frame{ port_frame_enter() };
     opeu_arrival_prepare(ds, svc_maperase, frame, Arg(args, count, 0));
@@ -263,28 +246,20 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case DropService::DELAY:       opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
   case DropService::SPRITE_DRAW: {
     auto const frame{ port_frame_enter() };
-    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
+    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   }
-  case DropService::SPRITE_RESTORE:
-    opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case DropService::DAMAGE_ROLL:
-    r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                             (uint8_t)Arg(args, count, 2));
-    break;
-  case DropService::DESTROYED: {
+  case DropService::SPRITE_RESTORE: opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DropService::DAMAGE_ROLL:    r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case DropService::DESTROYED:      {
     auto const frame{ port_frame_enter() };
     opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
     port_frame_leave();
     break;
   }
-  case DropService::OFFICER_GAIN:
-    opeu_officer_gain(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("paradrop", id, count);
+  case DropService::OFFICER_GAIN: opeu_officer_gain(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                        port_unhandled("paradrop", id, count);
   }
   return r;
 }

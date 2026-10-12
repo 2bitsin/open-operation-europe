@@ -52,14 +52,12 @@ void opeu_arrival_present(uint8_t ds[65536], HostEvent event, uint16_t scratch) 
 uint16_t svc_arrshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case MESSAGE_LOOKUP: r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case REQUEST_FORMAT: c1_request_format(ds, args, count); break;
-  case REQUEST_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case REQUEST_WAIT:  opeu_request_wait(ds, svc_soundcue); break;
-  case DAILY_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
-  default:            port_unhandled("arrshow", id, count);
+  case MESSAGE_LOOKUP:  r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case REQUEST_FORMAT:  c1_request_format(ds, args, count); break;
+  case REQUEST_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case REQUEST_WAIT:    opeu_request_wait(ds, svc_soundcue); break;
+  case DAILY_CONTEXT:   opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  default:              port_unhandled("arrshow", id, count);
   }
   return r;
 }

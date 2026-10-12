@@ -20,9 +20,7 @@ uint16_t opeu_grid_step_viewport(uint8_t* ds, uint16_t x, uint16_t y, uint8_t di
   opeu_grid_step_unchecked(&next_x, &next_y, direction);
   auto const view_x{ static_cast<int16_t>(data.viewport_x) };
   auto const view_y{ static_cast<int16_t>(data.viewport_y) };
-  if (!OnMap(next_x, next_y) || next_x < view_x || next_y < view_y
-      || next_x >= static_cast<int16_t>(view_x + VIEW_CELLS) || next_y >= static_cast<int16_t>(view_y + VIEW_CELLS))
-    return 0;
+  if (!OnMap(next_x, next_y) || next_x < view_x || next_y < view_y || next_x >= static_cast<int16_t>(view_x + VIEW_CELLS) || next_y >= static_cast<int16_t>(view_y + VIEW_CELLS)) return 0;
   Byte(ds, x) = next_x;
   Byte(ds, y) = next_y;
   return 1;

@@ -37,8 +37,7 @@ constexpr std::uint8_t CITY{ 1 };
 
 // Shows the speaker panel with the question and "(low-high)? " (or "? " in the mouse input mode), then reads a number
 // in low..high; returns it, or 0xffff when cancelled.
-uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t text, uint16_t low, uint16_t high,
-                            int cancel, uint16_t person, uint16_t items) {
+uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
   auto&      data{ Data(ds) };
   auto const line{ Local(sp, LINE_LOCAL) };
   Call(ds, event, SPEAKER, person, 1);

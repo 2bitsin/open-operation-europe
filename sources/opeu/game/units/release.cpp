@@ -48,9 +48,7 @@ uint8_t opeu_release_side_units(uint8_t ds[65536], uint16_t list, uint8_t mask) 
     if (!(data.groups[division].flags & Bits(GroupFlag::READY))) continue;
     for (std::uint8_t slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
       auto& unit{ data.units[division * UNITS_PER_GROUP + slot] };
-      if ((unit.flags & ~mask & UNIT_STATUS_BITS)
-          || (mask == LINE_ONLY_MASK && !opeu_category_0_to_3(slot) && !opeu_category_4_or_5(slot)))
-        continue;
+      if ((unit.flags & ~mask & UNIT_STATUS_BITS) || (mask == LINE_ONLY_MASK && !opeu_category_0_to_3(slot) && !opeu_category_4_or_5(slot))) continue;
       unit.first = 0;
       unit.y     = 255;
       unit.x     = 255;

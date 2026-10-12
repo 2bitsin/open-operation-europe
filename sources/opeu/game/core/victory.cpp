@@ -39,10 +39,8 @@ void opeu_check_sides(uint8_t ds[65536]) {
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     if (data.side_status[side] != SIDE_PLAYED) continue;
     // A side without the general reads the record at near 0, as the game does.
-    auto const& commander{ Record<Person>(
-        data, opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))) };
-    if (commander.role & Bits(PersonRole::DEPUTY))
-      SetOutcome(ds, static_cast<uint8_t>(!side), OutcomeReason::COMMANDER_FALLEN);
+    auto const& commander{ Record<Person>(data, opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))) };
+    if (commander.role & Bits(PersonRole::DEPUTY)) SetOutcome(ds, static_cast<uint8_t>(!side), OutcomeReason::COMMANDER_FALLEN);
   }
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     auto active{ false };
@@ -108,8 +106,7 @@ void opeu_check_deadline(uint8_t ds[65536]) {
   auto const scenario{ std::to_underlying(CurrentScenario(Data(ds))) };
   if (scenario >= std::size(DEADLINES)) return;
   auto const& deadline{ DEADLINES[scenario] };
-  if (opeu_deadline_components(ds, deadline.year, deadline.month, deadline.day))
-    SetOutcome(ds, deadline.winner, OutcomeReason::DEADLINE);
+  if (opeu_deadline_components(ds, deadline.year, deadline.month, deadline.day)) SetOutcome(ds, deadline.winner, OutcomeReason::DEADLINE);
 }
 
 // Nonzero when the scenario has ended; outcome_side and outcome_reason say how.

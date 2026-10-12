@@ -173,8 +173,7 @@ void opeu_notice_collect(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     if (!Call(ds, event, GRID_STEP, x_at, y_at, direction)) continue;
     if (!(unit = Call(ds, event, FIND_UNIT, x, y))) continue;
     if (static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, unit)) == side) {
-      if (x != data.battle_attacker_x || y != data.battle_attacker_y)
-        data.battle_units[UnitAt(ATTACKERS, attackers++)] = unit;
+      if (x != data.battle_attacker_x || y != data.battle_attacker_y) data.battle_units[UnitAt(ATTACKERS, attackers++)] = unit;
     } else
       data.battle_units[UnitAt(DEFENDERS, defenders++)] = unit;
   }
@@ -235,32 +234,26 @@ void opeu_notice_decide(uint8_t ds[65536], HostEvent event, uint16_t bp) {
           if (RandomBelow(ds, 100) < 50) data.battle_command[side] = 1;
           break;
         }
-        if (data.side_control[side] == PLAYER_CONTROL
-            && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0
+        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0
             && !(Record<Group>(data, Call(ds, event, UNIT_GROUP, unit)).flags & Bits(GroupFlag::AI_MARK))) {
           Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_command_text), data.side_names[side]);
           data.battle_command[side] = Call(ds, event, CONFIRM, text, Call(ds, event, SIDE_RECORD, side, 2));
           break;
         }
-      } else if (unit == GARRISON_AT
-                 && (objective = Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y)) != 0) {
+      } else if (unit == GARRISON_AT && (objective = Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y)) != 0) {
         auto const side{ static_cast<uint8_t>(Call(ds, event, OBJECTIVE_SIDE, objective)) };
         if (!data.side_control[side]) {
           if (RandomBelow(ds, 100) < 50) data.battle_command[side] = 1;
           break;
         }
-        if (data.side_control[side] == PLAYER_CONTROL
-            && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0) {
+        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0) {
           Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_control_text), data.side_names[side]);
           data.battle_command[side] = Call(ds, event, CONFIRM, text, Call(ds, event, SIDE_RECORD, side, 2));
           break;
         }
       }
     }
-  data.battle_report = (can_command[0] && data.side_status[0] == SIDE_PLAYED)
-                               || (can_command[1] && data.side_status[1] == SIDE_PLAYED)
-                           ? 1
-                           : 0;
+  data.battle_report = (can_command[0] && data.side_status[0] == SIDE_PLAYED) || (can_command[1] && data.side_status[1] == SIDE_PLAYED) ? 1 : 0;
 }
 
 // How the battle is presented: 0 when it is not reported, else the battle_view setting, asking the player when the
@@ -268,9 +261,7 @@ void opeu_notice_decide(uint8_t ds[65536], HostEvent event, uint16_t bp) {
 uint16_t opeu_notice_view_battle(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
   if (!data.battle_report) return 0;
-  if (data.battle_view == 0xff)
-    return Call(ds, event, CONFIRM, offsetof(DataSegment, notice_battle_text),
-                Call(ds, event, SIDE_RECORD, (uint8_t)(data.side_control[0] == PLAYER_CONTROL ? 0 : 1), 2));
+  if (data.battle_view == 0xff) return Call(ds, event, CONFIRM, offsetof(DataSegment, notice_battle_text), Call(ds, event, SIDE_RECORD, (uint8_t)(data.side_control[0] == PLAYER_CONTROL ? 0 : 1), 2));
   return data.battle_view;
 }
 
@@ -291,18 +282,15 @@ void opeu_notice_attack(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   uint16_t const objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
   if (Call(ds, event, UNIT_SPECIAL, attacker)) {
     uint16_t const side_name{ data.side_names[side] };
-    Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1],
-         side_name, Call(ds, event, UNIT_NAME, attacker, name));
+    Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, Call(ds, event, UNIT_NAME, attacker, name));
   } else
     Call(ds, event, COPY_STRING, text, offsetof(DataSegment, notice_under_attack_text));
   if (unit) {
     Call(ds, event, UNIT_MESSAGE, unit, text);
-    if (Call(ds, event, UNIT_ELIGIBLE, unit))
-      Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
+    if (Call(ds, event, UNIT_ELIGIBLE, unit)) Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
   } else if (objective) {
     Call(ds, event, OBJECTIVE_REPORT, objective, text);
-    if (Call(ds, event, OBJECTIVE_ELIGIBLE, objective))
-      Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
+    if (Call(ds, event, OBJECTIVE_ELIGIBLE, objective)) Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
   }
   if (!unit) return;
   auto const& order{ Record<Unit>(data, unit).orders[0] };
@@ -338,9 +326,7 @@ void opeu_notice_begin(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case FIND_OBJECTIVE:
-    r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
+  case FIND_OBJECTIVE:  r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case FIND_UNIT:       r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case UNIT_CAPACITIES: {
     uint16_t a, b, c;
@@ -350,41 +336,29 @@ uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
     port_set_word(ds, Arg(args, count, 3), c);
     break;
   }
-  case UNIT_SIDE: r = opeu_unit_side(Arg(args, count, 0)); break;
-  case GRID_STEP:
-    r = opeu_grid_step(ds + Arg(args, count, 0), ds + Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    break;
+  case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
+  case GRID_STEP:          r = opeu_grid_step(ds + Arg(args, count, 0), ds + Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ELEMENT_UNIT:       r = opeu_find_element_unit(ds, Arg(args, count, 0)); break;
   case UNIT_ELIGIBLE:      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
   case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
   case UNIT_GROUP:         r = opeu_unit_group(Arg(args, count, 0)); break;
   case OBJECTIVE_SIDE:     r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case FORMAT:             c1_request_format(ds, args, count); break;
-  case SIDE_RECORD: r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CONFIRM:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:   r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COPY_STRING:    r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_MESSAGE:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case OBJECTIVE_REPORT:
-    opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2));
-    break;
-  default: port_unhandled("notice", id, count);
+  case SIDE_RECORD:        r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case CONFIRM:            r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case PENDING_FINISH:     opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case UNIT_SPECIAL:       r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case UNIT_NAME:          r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case COPY_STRING:        r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_MESSAGE:       opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OBJECTIVE_REPORT:   opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW: opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
+  default:         port_unhandled("notice", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_notice_view_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_notice_view_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_notice_view_finish(ds, svc_notice);

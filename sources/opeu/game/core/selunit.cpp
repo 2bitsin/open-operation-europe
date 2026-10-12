@@ -23,8 +23,7 @@ uint16_t opeu_find_side_selected_unit(const uint8_t ds[65536], uint8_t side) {
   auto const& data{ Data(ds) };
   for (auto i{ side * GROUPS_PER_SIDE }; i < (side + 1u) * GROUPS_PER_SIDE; ++i) {
     auto const& group{ data.groups[i] };
-    if ((group.flags & Bits(GroupFlag::READY)) && (group.flags & Bits(GroupFlag::SELECTED)))
-      return opeu_find_group_selected_unit(ds, Near(data, group));
+    if ((group.flags & Bits(GroupFlag::READY)) && (group.flags & Bits(GroupFlag::SELECTED))) return opeu_find_group_selected_unit(ds, Near(data, group));
   }
   return 0;
 }

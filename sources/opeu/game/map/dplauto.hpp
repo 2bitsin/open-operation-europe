@@ -3,8 +3,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element,
-                                   uint8_t index);
+uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element, uint8_t index);
 void     opeu_deploy_by_template(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element);
 void     opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element);
 void     opeu_deploy_at_random(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element);

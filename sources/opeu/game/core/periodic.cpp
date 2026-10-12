@@ -16,8 +16,7 @@ void opeu_decrement_record_counters(uint8_t ds[65536]) {
   }
 }
 
-// Readies each side's air cargo flight and airborne drop for the day and books its pending reserves and planes and
-// ten times its income into its pools, each capped.
+// Readies each side's air cargo flight and airborne drop for the day and books its pending reserves and planes and ten times its income into its pools, each capped.
 void opeu_apply_daily_side_resources(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (uint8_t a = 0; a < SIDE_COUNT; ++a) {

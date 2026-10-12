@@ -258,8 +258,7 @@ void opeu_format(uint8_t ds[65536], TextHost* host, uint16_t args, TextOut out) 
           width -= opeu_put_long(ds, host, &text, Long(ds, p), base);
           p     += 4;
         } else
-          width -= opeu_put_unsigned(ds, host, &text, static_cast<uint16_t>(NextInt(ds, p)),
-                                     static_cast<uint16_t>(base));
+          width -= opeu_put_unsigned(ds, host, &text, static_cast<uint16_t>(NextInt(ds, p)), static_cast<uint16_t>(base));
         goto term;
       case 'S':
         text   = NextWord(ds, p);
@@ -306,9 +305,7 @@ void opeu_ui_text(uint8_t ds[65536], TextHost* host, uint16_t s) {
   uint16_t   next{ word };              // next byte to output
   uint16_t   printable{ 0 };            // printable width of the word
   // Whether the pending word does not fit before the window's right column.
-  auto const overflows{ [&] {
-    return static_cast<uint16_t>(data.text_x + printable) > static_cast<uint16_t>(data.text_right);
-  } };
+  auto const overflows{ [&] { return static_cast<uint16_t>(data.text_x + printable) > static_cast<uint16_t>(data.text_right); } };
   auto const flush{ [&] {
     while (next != end) {
       opeu_text_put(ds, host, At(ds, next));
@@ -395,8 +392,7 @@ int16_t opeu_text_scroll_mode(uint8_t ds[65536], [[maybe_unused]] TextHost* host
   return data.text_scroll;
 }
 
-void opeu_text_window(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t left, int16_t right, int16_t top,
-                      int16_t bottom) {
+void opeu_text_window(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t left, int16_t right, int16_t top, int16_t bottom) {
   auto& data{ Data(ds) };
   if (right > left && bottom > top) {
     data.text_left   = left;
@@ -409,8 +405,7 @@ void opeu_text_window(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_
 // In scroll mode, scrolls when the next line would pass the window's bottom; returns whether it did.
 int16_t opeu_text_scroll_check(uint8_t ds[65536], TextHost* host) {
   auto const& data{ Data(ds) };
-  if (data.text_scroll
-      && static_cast<uint16_t>(data.text_height + data.text_y) > static_cast<uint16_t>(data.text_bottom)) {
+  if (data.text_scroll && static_cast<uint16_t>(data.text_height + data.text_y) > static_cast<uint16_t>(data.text_bottom)) {
     opeu_text_scroll_up(ds, host);
     return 1;
   }
@@ -421,8 +416,7 @@ int16_t opeu_text_scroll_check(uint8_t ds[65536], TextHost* host) {
 void opeu_text_scroll_up(uint8_t ds[65536], TextHost* host) {
   auto const& data{ Data(ds) };
   Call(ds, host->event, WAIT_CONFIRM, 0);
-  Call(ds, host->event, BOX, data.text_left, data.text_top, data.text_right - data.text_left,
-       data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
+  Call(ds, host->event, BOX, data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
   opeu_army_position(ds, host, data.text_left, data.text_top);
 }
 
@@ -534,9 +528,7 @@ void opeu_text_glyph(uint8_t ds[65536], TextHost* host, int16_t x, int16_t y, in
   auto const& data{ Data(ds) };
   auto const  bits{ Reserve(host, GLYPH_BYTES) };
   if (code >= FIRST_GLYPH && code <= 0x7f) {
-    opeu_copy_far_to_near(ds, ds,
-                          static_cast<uint16_t>(offsetof(DataSegment, text_font) + (code - FIRST_GLYPH) * GLYPH_BYTES),
-                          bits, GLYPH_BYTES);
+    opeu_copy_far_to_near(ds, ds, static_cast<uint16_t>(offsetof(DataSegment, text_font) + (code - FIRST_GLYPH) * GLYPH_BYTES), bits, GLYPH_BYTES);
     auto const& routine{ data.glyph_draw[data.text_background != 0] };
     Call(ds, host->event, GLYPH_DRAW, routine.offset, routine.segment, x, y, 1, 16, attribute, bits);
   }
@@ -581,10 +573,7 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
     case 'Y': SetState(data, EscapeState::IGNORE); break;
     case 'E': Call(ds, host->event, SOUND_RESET, 6); [[fallthrough]];
     case 'W': SetState(data, EscapeState::FINISH); break;
-    case 'T':
-      Call(ds, host->event, BOX, data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height,
-           data.text_background);
-      goto reset;
+    case 'T': Call(ds, host->event, BOX, data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
     case '*': Call(ds, host->event, CLEAR); goto reset;
     case 'S':
       if (data.text_scroll)
@@ -694,13 +683,10 @@ uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t saved_port_sp = port_sp, saved_host_sp = *port_textout_host_sp();
   if (*port_textout_host_sp() < port_sp) port_sp = *port_textout_host_sp();
   switch (static_cast<TextService>(id)) {
-  case KEY_READ:     r = port_key_read(); break;
-  case KEY_WAITING:  r = opeu_turn_input_b(); break;
-  case WAIT_CONFIRM: opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
-  case BOX:
-    opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                Arg(args, count, 4));
-    break;
+  case KEY_READ:       r = port_key_read(); break;
+  case KEY_WAITING:    r = opeu_turn_input_b(); break;
+  case WAIT_CONFIRM:   opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
+  case BOX:            opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case CLEAR:          opeu_vga_clear(); break;
   case SOUND_RESET:    opeu_sound_reset(ds, svc_sound); break;
   case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
@@ -708,11 +694,9 @@ uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     uint16_t       off = Arg(args, count, 0), seg = Arg(args, count, 1);
     const uint8_t* bits = PORT_DS(Arg(args, count, 7));
     if (seg == 0 && off == GLYPH_TRANSPARENT)
-      opeu_draw_near(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5),
-                     Arg(args, count, 6), bits);
+      opeu_draw_near(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6), bits);
     else if (seg == 0 && off == GLYPH_OPAQUE)
-      opeu_code_0000_28c5(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5),
-                          Arg(args, count, 6), bits);
+      opeu_code_0000_28c5(Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6), bits);
     else
       port_fatal("textout: glyph routine %04x:%04x is not a known VGALIB entry", seg, off);
     break;
@@ -780,8 +764,7 @@ auto port_routine_opeu_text_paper_set(std::uint8_t* ds, std::uint16_t const* arg
 }
 
 auto port_routine_opeu_text_put_range(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 2), (uint8_t)Arg(args, count, 0),
-                      (uint8_t)Arg(args, count, 1));
+  opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
   return 0;
 }
 

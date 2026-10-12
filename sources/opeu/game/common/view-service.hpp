@@ -94,8 +94,7 @@ inline auto SetRowCheck(std::uint8_t* ds, HostEvent event, ListWindow& dialog, R
 
 // Runs the menu action `item` (1 first) of a far pointer table.
 template <std::size_t N>
-inline auto RunAction(std::uint8_t* ds, HostEvent event, std::array<FarPointer, N> const& actions, std::uint16_t item)
-    -> std::uint16_t {
+inline auto RunAction(std::uint8_t* ds, HostEvent event, std::array<FarPointer, N> const& actions, std::uint16_t item) -> std::uint16_t {
   auto const& action{ actions[item - 1u] };
   return Call(ds, event, ViewService::FAR_CALL, action.offset, action.segment);
 }

@@ -11,10 +11,8 @@ void opeu_battle_panel_side0(uint8_t* ds, BattleEvent event);
 void opeu_battle_name_clear_left(uint8_t* ds, BattleEvent event);
 void opeu_battle_name_clear_right(uint8_t* ds, BattleEvent event);
 void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh, uint16_t frame);
-void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
-                                uint16_t frame);
-void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value,
-                                   uint16_t frame);
+void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame);
+void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame);
 void opeu_battle_element_destroy(uint8_t* ds, BattleEvent event, uint16_t element);
 
 // The services of this module.

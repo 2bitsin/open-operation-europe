@@ -39,8 +39,7 @@ void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::BATTLE_INFO_CLEAR);
   Call(ds, event, BattleRoutine::TEXT_PAPER_SET, PAPER);
   Call(ds, event, BattleRoutine::ARMY_POSITION, LINE_X, CELL_LINE_Y);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_fmt_cursor), data.battle_cursor_x,
-       data.battle_cursor_y, data.battle_terrain_names[terrain]);
+  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_fmt_cursor), data.battle_cursor_x, data.battle_cursor_y, data.battle_terrain_names[terrain]);
   if (terrain == OBJECTIVE_TERRAIN)
     for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
       auto const& extra{ BattleExtraAt(data, i) };
@@ -51,11 +50,8 @@ void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event) {
       }
     }
   auto const element{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y) };
-  if (element
-      && (opeu_battle_element_side(ds, event, element) == data.battle_active_side
-          || opeu_battle_element_flag2(ds, event, element))) {
-    Call(ds, event, BattleRoutine::TEXT_COLOR,
-         opeu_battle_element_side(ds, event, element) ? SIDE_1_COLOR : SIDE_0_COLOR);
+  if (element && (opeu_battle_element_side(ds, event, element) == data.battle_active_side || opeu_battle_element_flag2(ds, event, element))) {
+    Call(ds, event, BattleRoutine::TEXT_COLOR, opeu_battle_element_side(ds, event, element) ? SIDE_1_COLOR : SIDE_0_COLOR);
     Call(ds, event, BattleRoutine::ARMY_POSITION, LINE_X, TYPE_LINE_Y);
     auto const& record{ Record<Element>(data, element) };
     Call(ds, event, BattleRoutine::UI_TEXT, data.element_types[record.type].name);

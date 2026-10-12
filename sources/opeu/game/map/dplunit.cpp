@@ -43,16 +43,14 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
   if (unit != Near(data, data.garrison_unit)) {
     auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, unit, NAME_AT) };
     auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, unit)) };
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title),
-         side == 0 ? OWN_NAME_COLOR : ENEMY_NAME_COLOR, name);
+    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), side == 0 ? OWN_NAME_COLOR : ENEMY_NAME_COLOR, name);
   } else {
     Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_garrison_title));
   }
   data.deploy_window.rows = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, unit) + 1);
   {
     uint8_t row{ 0 };
-    for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it, ++row)
-      data.ai_element_list[row] = it.Near();
+    for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it, ++row) data.ai_element_list[row] = it.Near();
   }
   for (;;) {
     data.deploy_row = 0;
@@ -79,8 +77,7 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
       }
       if (off_field) {
         panel();
-        Call(ds, event, BattleRoutine::REQUEST_FORMAT, QUESTION_AT, Near(data, data.deploy_ask_auto),
-             off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others));
+        Call(ds, event, BattleRoutine::REQUEST_FORMAT, QUESTION_AT, Near(data, data.deploy_ask_auto), off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others));
         if (!Call(ds, event, BattleRoutine::PROMPT_YES_NO, QUESTION_AT)) {
           close_question();
           break; // back to the list's first row

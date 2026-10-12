@@ -29,7 +29,6 @@ void opeu_request_complete(uint8_t ds[65536], uint8_t side) {
 uint16_t opeu_request_group_ready(uint8_t ds[65536], uint8_t side) {
   auto& data{ Data(ds) };
   for (auto& unit : SideUnits(data, side))
-    if (unit.flags & Bits(UnitFlag::REQUESTED))
-      return (Record<Group>(data, opeu_unit_group(Near(data, unit))).flags & Bits(GroupFlag::READY)) ? 1 : 0;
+    if (unit.flags & Bits(UnitFlag::REQUESTED)) return (Record<Group>(data, opeu_unit_group(Near(data, unit))).flags & Bits(GroupFlag::READY)) ? 1 : 0;
   return Near(data, SideUnits(data, side).front());
 }

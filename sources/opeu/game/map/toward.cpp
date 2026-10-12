@@ -34,8 +34,7 @@ uint16_t opeu_grid_step_toward(uint8_t* ds, const uint8_t* far_data, uint16_t x,
     uint8_t next_y{ Byte(ds, y) };
     if (!opeu_grid_step(&next_x, &next_y, direction)) continue;
     auto const cost{ PathCost(far_data, next_x, next_y) };
-    if (cost < best_cost
-        || (cost == best_cost && std::abs(next_x - tx) <= distance_x && std::abs(next_y - ty) <= distance_y)) {
+    if (cost < best_cost || (cost == best_cost && std::abs(next_x - tx) <= distance_x && std::abs(next_y - ty) <= distance_y)) {
       best_x    = next_x;
       best_y    = next_y;
       best_cost = cost;

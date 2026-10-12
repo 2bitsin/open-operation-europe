@@ -45,8 +45,7 @@ void opeu_view_cell_clear(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
   auto const& data{ Data(ds) };
   auto const  pixel_x{ static_cast<int16_t>((x - ViewX(data)) * 3 + 4) };
   auto const  pixel_y{ static_cast<int16_t>((y - ViewY(data)) * 24 + 84) };
-  for (int16_t row{ 0 }; row < 24; row += 2)
-    Call(ds, event, MapService::PATTERN_NEAR, pixel_x, pixel_y + row, 3, 2, 0, Near(data, data.view_clear_pattern));
+  for (int16_t row{ 0 }; row < 24; row += 2) Call(ds, event, MapService::PATTERN_NEAR, pixel_x, pixel_y + row, 3, 2, 0, Near(data, data.view_clear_pattern));
 }
 
 // frame: this routine's frame.

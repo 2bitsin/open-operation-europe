@@ -126,10 +126,10 @@ auto Unload(AirLift& lift, std::uint16_t (&stock)[3], std::uint16_t const (&limi
 
 // The report on what a unit or objective received: color, name, then each supply's new and old amount (fuel,
 // ammunition, food).
-auto Report(std::uint8_t* ds, HostEvent event, std::uint16_t text, std::uint16_t format, std::uint16_t color,
-            std::uint16_t name, std::uint16_t const (&now)[3], std::uint16_t const (&before)[3]) -> void {
-  Call(ds, event, REQUEST_FORMAT, text, format, color, name, now[1], static_cast<std::uint16_t>(now[1] - before[1]),
-       now[0], static_cast<std::uint16_t>(now[0] - before[0]), now[2], static_cast<std::uint16_t>(now[2] - before[2]));
+auto Report(std::uint8_t* ds, HostEvent event, std::uint16_t text, std::uint16_t format, std::uint16_t color, std::uint16_t name, std::uint16_t const (&now)[3], std::uint16_t const (&before)[3])
+    -> void {
+  Call(ds, event, REQUEST_FORMAT, text, format, color, name, now[1], static_cast<std::uint16_t>(now[1] - before[1]), now[0], static_cast<std::uint16_t>(now[0] - before[0]), now[2],
+       static_cast<std::uint16_t>(now[2] - before[2]));
 }
 } // namespace
 
@@ -139,8 +139,7 @@ uint16_t opeu_cargo_drop_due(uint8_t ds[65536], HostEvent event) {
   auto& lift{ AirSide(Data(ds)).lift };
   if (!lift.planes) return 0;
   opeu_sub_byte(1, &lift.turns);
-  if (!opeu_sub_byte(1, &lift.hours))
-    switch (static_cast<std::uint8_t>(Call(ds, event, AIR_REPORT, CARGO_NAME, lift.turns))) {
+  if (!opeu_sub_byte(1, &lift.hours)) switch (static_cast<std::uint8_t>(Call(ds, event, AIR_REPORT, CARGO_NAME, lift.turns))) {
     case 0: return 1;
     case 1: lift.hours = 1; break;
     case 2: lift.planes = 0; break;
@@ -212,13 +211,10 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     if (static_cast<std::uint16_t>(Word(ds, pixel_y) - row) == DROP_LEAD) {
       Call(ds, event, MUSIC_COMMAND7);
       if (auto const near{ Call(ds, event, UNIT_AT, x, y) }; near != 0) {
-        Call(ds, event, CAPACITIES, near, Local(bp, AMMO_CAPACITY_LOCAL), Local(bp, FUEL_CAPACITY_LOCAL),
-             Local(bp, FOOD_CAPACITY_LOCAL));
+        Call(ds, event, CAPACITIES, near, Local(bp, AMMO_CAPACITY_LOCAL), Local(bp, FUEL_CAPACITY_LOCAL), Local(bp, FOOD_CAPACITY_LOCAL));
         auto&               unit{ Record<Unit>(data, near) };
         std::uint16_t const before[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-        std::uint16_t const limit[3]{ Word(ds, Local(bp, AMMO_CAPACITY_LOCAL)),
-                                      Word(ds, Local(bp, FUEL_CAPACITY_LOCAL)),
-                                      Word(ds, Local(bp, FOOD_CAPACITY_LOCAL)) };
+        std::uint16_t const limit[3]{ Word(ds, Local(bp, AMMO_CAPACITY_LOCAL)), Word(ds, Local(bp, FUEL_CAPACITY_LOCAL)), Word(ds, Local(bp, FOOD_CAPACITY_LOCAL)) };
         Unload(lift, unit.resources, limit);
         if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near)) == side) {
           std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
@@ -312,35 +308,27 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case PERSON_TEMPLATE: result = opeu_find_person_template(ds, byte(0), byte(1)); break;
   case OPPOSITE_SIDE:   result = opeu_opposite_side(byte(0)); break;
   case SIDE_FOR_STATUS: result = opeu_side_for_status(ds, byte(0)); break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case SOUND_CUE:      opeu_sound_cue4(ds, svc_soundcue); break;
-  case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
-  case MAP_CENTER:     {
+  case MESSAGE:         opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case SOUND_CUE:       opeu_sound_cue4(ds, svc_soundcue); break;
+  case REQUEST_FORMAT:  c2_request_format(ds, args, count); break;
+  case MAP_CENTER:      {
     auto const frame{ port_frame_enter() };
     opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));
     port_frame_leave();
     break;
   }
-  case VIEW_PIXEL: opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1),
-                    static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
-    break;
+  case VIEW_PIXEL:     opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
   case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;
   case DELAY:          opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
   case UNIT_AT:        result = opeu_find_unit_at(ds, byte(0), byte(1)); break;
   case OBJECTIVE_AT:   result = opeu_find_objective_at(ds, byte(0), byte(1)); break;
   case UNIT_SIDE:      result = opeu_unit_side(Arg(args, count, 0)); break;
   case OBJECTIVE_SIDE: result = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case CAPACITIES:
-    opeu_unit_capacities(ds, Arg(args, count, 0), (uint16_t*)PORT_DS(Arg(args, count, 1)),
-                         (uint16_t*)PORT_DS(Arg(args, count, 2)), (uint16_t*)PORT_DS(Arg(args, count, 3)));
-    break;
-  case UNIT_NAME:    result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OFFICER_GAIN: opeu_officer_gain(ds, byte(0), byte(1)); break;
-  default:           port_unhandled("aircargo", id, count);
+  case CAPACITIES:     opeu_unit_capacities(ds, Arg(args, count, 0), (uint16_t*)PORT_DS(Arg(args, count, 1)), (uint16_t*)PORT_DS(Arg(args, count, 2)), (uint16_t*)PORT_DS(Arg(args, count, 3))); break;
+  case UNIT_NAME:      result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OFFICER_GAIN:   opeu_officer_gain(ds, byte(0), byte(1)); break;
+  default:             port_unhandled("aircargo", id, count);
   }
   return result;
 }

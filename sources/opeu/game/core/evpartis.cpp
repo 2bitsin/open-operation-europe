@@ -69,8 +69,7 @@ void opeu_hurricane_present(uint8_t ds[65536], HostEvent event) {
   bool const  season{ HurricaneSeason(data) };
   Call(ds, event, CUE);
   Call(ds, event, CONTEXT, data.current_side);
-  Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, HURRICANE_MESSAGE),
-       season ? data.hurricane_words[0] : data.hurricane_words[1]);
+  Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, HURRICANE_MESSAGE), season ? data.hurricane_words[0] : data.hurricane_words[1]);
   Call(ds, event, MESSAGE, TEXT, data.context_record2);
 }
 
@@ -85,9 +84,7 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, DAILY_SHOW, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
   for (std::uint8_t y{ 0 }; y < MAP_SIZE; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_SIZE; ++x) {
-      if (opeu_map_code(ds, x, y) != PARTISAN_TERRAIN || opeu_cell_side(ds, x, y) != NO_SIDE
-          || RandomBelow(ds, season ? 70 : 100) != 8)
-        continue;
+      if (opeu_map_code(ds, x, y) != PARTISAN_TERRAIN || opeu_cell_side(ds, x, y) != NO_SIDE || RandomBelow(ds, season ? 70 : 100) != 8) continue;
       Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, CELL_RISING_MESSAGE), partisans);
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
         Call(ds, event, MESSAGE, TEXT, opeu_find_side_record(ds, side, COMMANDER));
@@ -114,27 +111,21 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
 uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case CUE:     opeu_sound_cue15(ds, svc_soundcue); break;
-  case CONTEXT: opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case LOOKUP:  result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
-  case FORMAT:  c1_request_format(ds, args, count); break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case DAILY_SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case RISING: {
+  case CUE:        opeu_sound_cue15(ds, svc_soundcue); break;
+  case CONTEXT:    opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case LOOKUP:     result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
+  case FORMAT:     c1_request_format(ds, args, count); break;
+  case MESSAGE:    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case RISING:     {
     auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)),
-                        static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     port_frame_leave();
     break;
   }
   case ERASE: {
     auto const frame{ port_frame_enter() };
-    opeu_map_erase(ds, svc_maperase, frame, static_cast<uint8_t>(Arg(args, count, 0)),
-                   static_cast<uint8_t>(Arg(args, count, 1)));
+    opeu_map_erase(ds, svc_maperase, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
     port_frame_leave();
     break;
   }

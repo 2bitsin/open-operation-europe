@@ -25,8 +25,7 @@ using namespace opeu::game;
 
 namespace {
 [[nodiscard]] auto ExitCell(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> bool {
-  return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element)
-         && opeu_battle_exit_ok(ds, event, x, y, element);
+  return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element) && opeu_battle_exit_ok(ds, event, x, y, element);
 }
 } // namespace
 

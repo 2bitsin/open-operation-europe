@@ -77,8 +77,7 @@ uint16_t svc_ordunit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return r;
 }
 
-auto port_routine_opeu_supply_unit_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_supply_unit_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_supply_unit_enabled(ds);

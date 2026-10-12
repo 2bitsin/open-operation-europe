@@ -31,23 +31,21 @@ auto Window(DataSegment& data, std::uint16_t near) -> ListWindow& {
 }
 
 auto SaveScreen(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window) -> void {
-  List(ds, event, ListCall::BITMAP_SAVE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1),
-       static_cast<std::uint16_t>(window.bottom - window.y + 1), Data(ds).bitmap_buffer, 0);
+  List(ds, event, ListCall::BITMAP_SAVE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1), Data(ds).bitmap_buffer,
+       0);
 }
 
 auto RestoreScreen(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window) -> void {
-  List(ds, event, ListCall::BITMAP_RESTORE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1),
-       static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, Data(ds).bitmap_buffer, 0);
+  List(ds, event, ListCall::BITMAP_RESTORE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1), 0,
+       Data(ds).bitmap_buffer, 0);
 }
 
 auto Select(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
-  return static_cast<std::uint8_t>(
-      List(ds, event, ListCall::SELECT, window.select.offset, window.select.segment, count));
+  return static_cast<std::uint8_t>(List(ds, event, ListCall::SELECT, window.select.offset, window.select.segment, count));
 }
 
 auto NextKey(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t {
-  return Data(ds).input_mode ? opeu_list_mouse_key(ds, event)
-                             : static_cast<std::uint8_t>(List(ds, event, ListCall::KEYBOARD_KEY));
+  return Data(ds).input_mode ? opeu_list_mouse_key(ds, event) : static_cast<std::uint8_t>(List(ds, event, ListCall::KEYBOARD_KEY));
 }
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
@@ -71,8 +69,7 @@ auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8
 
 // The commander dialog: keeps the picked generals (general_list entries) and, after the seventh pick, asks "Are you
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
-auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t,
-                                std::uint8_t flags) -> std::uint16_t {
+auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
   auto&         data{ Data(ds) };
   auto const&   window{ Window(data, near) };
   std::uint16_t picked[10]{};
@@ -144,10 +141,8 @@ auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uin
         if (screen_y > 0xe8 && screen_y < 0x140) {
           auto const& person{ Record<Person>(data, general) };
           List(ds, event, ListCall::TEXT_COLOUR, 7);
-          List(ds, event, ListCall::TEXT_POSITION, ds[window.widths] + window.x - 0x1c,
-               (i - data.list_top) * ROW_HEIGHT + window.y + 0x12);
-          List(ds, event, ListCall::PRINT, Near(data, data.general_stats_line), person.leadership, person.charm,
-               person.bravery, person.health, person.infantry, person.artillery, person.armor);
+          List(ds, event, ListCall::TEXT_POSITION, ds[window.widths] + window.x - 0x1c, (i - data.list_top) * ROW_HEIGHT + window.y + 0x12);
+          List(ds, event, ListCall::PRINT, Near(data, data.general_stats_line), person.leadership, person.charm, person.bravery, person.health, person.infantry, person.artillery, person.armor);
         }
         opeu_list_invert(ds, event);
         refresh = true;
@@ -182,8 +177,7 @@ auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uin
 // The list dialog: runs until `limit` choices are made (or the player cancels when allowed). On a window at column
 // 12h OK cancels and ESC selects: the dialog tests (flags == 1 | 2), which always holds. Windows at columns 0Fh and
 // 9 restore the screen and start over when another key ends the switch.
-auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t limit,
-                      std::uint8_t flags) -> std::uint16_t {
+auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t limit, std::uint8_t flags) -> std::uint16_t {
   auto&                   data{ Data(ds) };
   auto const&             window{ Window(data, near) };
   constexpr std::uint16_t SWAPPED_COLUMN{ 0x12 };
@@ -292,6 +286,5 @@ auto svc_listdlg(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std:
 
 // The game passes the window last.
 auto port_routine_opeu_list_dialog(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 2), static_cast<std::uint8_t>(Arg(args, count, 0)),
-                          static_cast<std::uint8_t>(Arg(args, count, 1)));
+  return opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
 }

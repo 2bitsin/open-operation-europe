@@ -43,9 +43,7 @@ void Tire(uint8_t* ds, BattleEvent event, uint16_t person) {
 uint16_t opeu_battle_side_needs_input(uint8_t* ds, BattleEvent event, uint8_t side) {
   auto& data{ Data(ds) };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, side, slot) };
-        unit && !Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit))
-      return 1;
+    if (auto const unit{ BattleList(data, side, slot) }; unit && !Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) return 1;
   return 0;
 }
 
@@ -59,8 +57,7 @@ void opeu_battle_run_rounds(uint8_t* ds, BattleEvent event) {
     for (uint8_t line{ 1 }; line <= 4; ++line) Call(ds, event, BattleRoutine::BATTLE_RESTORE_TILE, line, 9);
     Call(ds, event, BattleRoutine::ARMY_POSITION, BANNER_X, BANNER_Y);
     Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_round_format), data.battle_level_limit + 1);
-    if (opeu_battle_side_needs_input(ds, event, 0) || opeu_battle_side_needs_input(ds, event, 1))
-      Call(ds, event, BattleRoutine::BATTLE_SELECT_SERVICE);
+    if (opeu_battle_side_needs_input(ds, event, 0) || opeu_battle_side_needs_input(ds, event, 1)) Call(ds, event, BattleRoutine::BATTLE_SELECT_SERVICE);
     if (data.battle_level_limit) Call(ds, event, BattleRoutine::BATTLE_ANNOUNCE_READY);
     if (!Call(ds, event, BattleRoutine::BATTLE_TURN_LOOP)) {
       opeu_battle_report_outcome(ds, event);
@@ -83,8 +80,7 @@ void opeu_battle_tire_leaders(uint8_t* ds, BattleEvent event) {
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
     if (!data.battle_command[side]) {
       for (uint8_t group{ 0 }; group < GROUPS_PER_SIDE; ++group)
-        if (present[side * GROUPS_PER_SIDE + group])
-          Tire(ds, event, Call(ds, event, BattleRoutine::FIND_GROUP_RECORD, side, group));
+        if (present[side * GROUPS_PER_SIDE + group]) Tire(ds, event, Call(ds, event, BattleRoutine::FIND_GROUP_RECORD, side, group));
     } else {
       Tire(ds, event, Call(ds, event, BattleRoutine::FIND_SIDE_RECORD, side, 1));
     }
@@ -94,8 +90,7 @@ void opeu_battle_tire_leaders(uint8_t* ds, BattleEvent event) {
 void opeu_battle_start_music(uint8_t* ds, BattleEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ opeu_battle_unit_side(ds, event, data.battle_lists[0]) };
-  Call(ds, event, BattleRoutine::SET_TURN_CONTEXT,
-       data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER);
+  Call(ds, event, BattleRoutine::SET_TURN_CONTEXT, data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER);
 }
 
 // side: nonzero for side 1. index: the element's position record.
@@ -133,8 +128,7 @@ void opeu_battle_reset_elements(uint8_t* ds, BattleEvent event) {
       } else {
         element_side = static_cast<uint8_t>(Call(ds, event, BattleRoutine::UNIT_SIDE, unit));
       }
-      for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-        opeu_battle_reset_element(ds, event, it.Near(), element_side, index++);
+      for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) opeu_battle_reset_element(ds, event, it.Near(), element_side, index++);
     }
 }
 

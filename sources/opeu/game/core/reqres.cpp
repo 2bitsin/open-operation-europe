@@ -45,15 +45,12 @@ void opeu_request_action0(uint8_t ds[65536], HostEvent event, uint8_t side, uint
   Call(ds, event, DeliveryService::LOCATION, objective.x, objective.y, side);
   // The words are taken before the text is looked up.
   uint16_t const header_words[]{ HEADER_SIDE_WORD[side == 0 ? 0 : 1], Near(data, objective) };
-  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, HEADER_MESSAGE),
-       header_words[0], header_words[1]);
+  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, HEADER_MESSAGE), header_words[0], header_words[1]);
   Call(ds, event, DeliveryService::MESSAGE, buffer, data.request_person);
   Call(ds, event, DeliveryService::WAIT);
-  uint16_t const detail_words[]{ now[1], static_cast<uint16_t>(now[1] - before[1]),
-                                 now[0], static_cast<uint16_t>(now[0] - before[0]),
-                                 now[2], static_cast<uint16_t>(now[2] - before[2]) };
-  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, DETAIL_MESSAGE),
-       detail_words[0], detail_words[1], detail_words[2], detail_words[3], detail_words[4], detail_words[5]);
+  uint16_t const detail_words[]{ now[1], static_cast<uint16_t>(now[1] - before[1]), now[0], static_cast<uint16_t>(now[0] - before[0]), now[2], static_cast<uint16_t>(now[2] - before[2]) };
+  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, DETAIL_MESSAGE), detail_words[0], detail_words[1], detail_words[2], detail_words[3], detail_words[4],
+       detail_words[5]);
   Call(ds, event, DeliveryService::MESSAGE, buffer, data.request_person);
 }
 
@@ -62,18 +59,15 @@ uint16_t svc_delivery(const char* module, uint8_t* ds, uint16_t id, const uint16
   switch (static_cast<DeliveryService>(id)) {
   case DeliveryService::LOCATION: {
     auto const frame{ port_frame_enter() };
-    opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                          (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   }
   case DeliveryService::MESSAGE_TEXT: r = opeu_message_lookup(ds, svc_msglook, (short)Arg(args, count, 0)); break;
   case DeliveryService::FORMAT:       c2_request_format(ds, args, count); break;
-  case DeliveryService::MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case DeliveryService::WAIT: opeu_request_wait(ds, svc_soundcue); break;
-  default:                    port_unhandled(module, id, count);
+  case DeliveryService::MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DeliveryService::WAIT:         opeu_request_wait(ds, svc_soundcue); break;
+  default:                            port_unhandled(module, id, count);
   }
   return r;
 }

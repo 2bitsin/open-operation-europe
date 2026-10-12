@@ -35,8 +35,7 @@ constexpr std::uint8_t DRAW_LABELS{ 5 }; // flags that draw the row labels
 
 // The division table: each division's label and, for a division with an eligible selected unit, its commander and
 // its fuel, ammunition and food percentages.
-void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                          uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  buffer{ static_cast<std::uint16_t>(scratch + 4) };
   auto const& window{ ActiveWindow(data) };
@@ -60,15 +59,13 @@ void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, 
         Call(ds, event, UI_TEXT, Near(data, data.tbl_group_empty));
     }
     auto const group_near{ Near(data, group) };
-    if ((group.flags & Bits(GroupFlag::READY))
-        && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group_near))) {
+    if ((group.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group_near))) {
       auto const    commander{ opeu_find_group_record(ds, side, g) };
       std::uint16_t ammo;
       std::uint16_t fuel;
       std::uint16_t food;
       opeu_group_resource_percentages(ds, group_near, &ammo, &fuel, &food);
-      auto const kind{ (group.flags & Bits(GroupFlag::AI_MARK)) ? Near(data, data.tbl_group_div)
-                                                                : Near(data, data.tbl_group_army) };
+      auto const kind{ (group.flags & Bits(GroupFlag::AI_MARK)) ? Near(data, data.tbl_group_div) : Near(data, data.tbl_group_army) };
       Call(ds, event, FORMAT, buffer, Near(data, data.tbl_group_row), kind, commander, fuel, ammo, food);
     } else
       opeu_string_copy(ds, buffer, Near(data, data.tbl_group_blank));
@@ -81,8 +78,7 @@ void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, 
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
 // cell, or the cell in map coordinates.
-void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                            uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  buffer{ static_cast<std::uint16_t>(scratch + 4) };
   auto const  place{ static_cast<std::uint16_t>(scratch + 64) };
@@ -124,22 +120,14 @@ void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint16_t scratch
 uint16_t svc_table(uint8_t* ds, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case COLUMNS:
-    opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2),
-                       Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case FORMAT:     b2_request_format(ds, args, count); break;
-  case TEXT_COLOR: opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case SIDE_COLOR: opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
-  case UI_TEXT:    opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT:      b2_cursor_print(ds, args, count); break;
-  case PUT_RANGE:
-    opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                        (uint8_t)Arg(args, count, 2));
-    break;
+  case COLUMNS:      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case FORMAT:       b2_request_format(ds, args, count); break;
+  case TEXT_COLOR:   opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case SIDE_COLOR:   opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
+  case UI_TEXT:      opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case PRINT:        b2_cursor_print(ds, args, count); break;
+  case PUT_RANGE:    opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case REQUEST_TEXT: r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   default:           port_unhandled(module, id, count);
   }

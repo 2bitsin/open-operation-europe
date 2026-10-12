@@ -40,9 +40,7 @@ uint16_t opeu_location_name(uint8_t ds[65536], HostEvent event, uint8_t x, uint8
   if (auto const objective{ opeu_find_objective_at(ds, x, y) }; objective != 0) {
     opeu_string_copy(ds, buffer, objective);
   } else {
-    std::uint16_t args[4]{ buffer, Near(data, data.location_name_format),
-                           static_cast<std::uint16_t>(x * data.map_scale),
-                           static_cast<std::uint16_t>(y * data.map_scale) };
+    std::uint16_t args[4]{ buffer, Near(data, data.location_name_format), static_cast<std::uint16_t>(x * data.map_scale), static_cast<std::uint16_t>(y * data.map_scale) };
     event(ds, 2, args, 4);
   }
   return buffer;

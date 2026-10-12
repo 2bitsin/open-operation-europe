@@ -97,9 +97,7 @@ uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t bp, ui
   Call(ds, event, QUANTITY, unit, ALL_CATEGORIES, at_count);
   auto const count{ static_cast<std::uint8_t>(Word(ds, at_count)) };
   if (!count) return 0;
-  if ((RandomBelow(ds, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(ds, 20))
-      || RandomBelow(ds, 20) + 20 > strength)
-    return 1;
+  if ((RandomBelow(ds, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(ds, 20)) || RandomBelow(ds, 20) + 20 > strength) return 1;
   return 0;
 }
 
@@ -123,9 +121,7 @@ void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     for (unsigned slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
       auto const near{ Near(data, data.units[group * UNITS_PER_GROUP + slot]) };
       if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY))) continue;
-      if (!Call(ds, event, CATEGORY_7, slot)
-          && !opeu_loss_unit_weak(ds, event, static_cast<std::uint16_t>(bp - WEAK_FRAME), near))
-        continue;
+      if (!Call(ds, event, CATEGORY_7, slot) && !opeu_loss_unit_weak(ds, event, static_cast<std::uint16_t>(bp - WEAK_FRAME), near)) continue;
       if (RandomBelow(ds, 100)) continue;
       if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
         auto const unit_name{ Call(ds, event, UNIT_NAME, near, name) };
@@ -160,9 +156,7 @@ void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
   for (unsigned i{ 0 }; i < UNITS_PER_SIDE; ++i) {
     auto const near{ Near(data, data.units[i]) };
-    if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(ds, near)
-        || RandomBelow(ds, 50))
-      continue;
+    if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(ds, near) || RandomBelow(ds, 50)) continue;
     if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
       Format(ds, event, ENEMY_LOSSES_NORTH, Call(ds, event, UNIT_NAME, near, name));
       Call(ds, event, UNIT_REPORT, near, TEXT);
@@ -180,37 +174,26 @@ void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t bp) {
 uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case QUANTITY:
-    result = opeu_unit_quantity(ds, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)),
-                                PORT_DS(Arg(args, count, 2)));
-    break;
-  case CATEGORY_7: result = opeu_category_7(static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case ELIGIBLE:   result = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case SPECIAL:    result = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:  result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOOKUP:     result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:     c1_request_format(ds, args, count); break;
-  case UNIT_MESSAGE:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case UNIT_REPORT:
-    opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case FLASH: {
+  case QUANTITY:     result = opeu_unit_quantity(ds, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), PORT_DS(Arg(args, count, 2))); break;
+  case CATEGORY_7:   result = opeu_category_7(static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case ELIGIBLE:     result = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+  case SPECIAL:      result = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case UNIT_NAME:    result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOOKUP:       result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case FORMAT:       c1_request_format(ds, args, count); break;
+  case UNIT_MESSAGE: opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_REPORT:  opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case FLASH:        {
     auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)),
-                        static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     port_frame_leave();
     break;
   }
-  case DAILY_SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
+  case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case MUSIC:      opeu_music_command7(ds, svc_sound); break;
   case CASUALTIES: {
     auto const frame{ port_frame_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                         Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     port_frame_leave();
     break;
   }
@@ -222,14 +205,12 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 }
 
 auto port_routine_opeu_loss_event_a(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME,
-            [&](std::uint16_t sp) { opeu_loss_event_a(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
+  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_loss_event_a(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
   return 0;
 }
 
 auto port_routine_opeu_loss_event_b(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME,
-            [&](std::uint16_t sp) { opeu_loss_event_b(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
+  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_loss_event_b(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
   return 0;
 }
 

@@ -15,8 +15,7 @@ auto port_routine_getch(std::uint8_t* ds, std::uint16_t const* args, unsigned co
 
 auto port_routine_opeu_gfx_blit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
-  return (uint16_t)opeu_gfx_blit(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                                 Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
+  return (uint16_t)opeu_gfx_blit(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
 }
 
 auto port_routine_opeu_isqrt(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -26,8 +25,7 @@ auto port_routine_opeu_isqrt(std::uint8_t* ds, std::uint16_t const* args, unsign
 
 auto port_routine_opeu_screen_copy(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)ds;
-  opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                   Arg(args, count, 4), Arg(args, count, 5));
+  opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
   return 0;
 }
 
@@ -67,8 +65,7 @@ auto port_routine_opeu_vram_glyph(std::uint8_t* ds, std::uint16_t const* args, u
 }
 
 auto port_routine_opeu_vram_glyph_color(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_vram_glyph_color(ds + Arg(args, count, 0), ds + Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                        Arg(args, count, 4));
+  opeu_vram_glyph_color(ds + Arg(args, count, 0), ds + Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
   return 0;
 }
 

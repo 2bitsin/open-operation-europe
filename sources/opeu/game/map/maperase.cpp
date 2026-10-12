@@ -29,8 +29,7 @@ void opeu_map_erase(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uin
   auto const  view_y{ static_cast<int16_t>(data.viewport_y) };
   if (data.overview_side != NO_SIDE)
     opeu_overview_cell_draw(ds, event, Local(frame, 10), x, y);
-  else if (data.view_side != NO_SIDE && x >= view_x && x <= static_cast<int16_t>(view_x + VIEW_LAST) && y >= view_y
-           && y <= static_cast<int16_t>(view_y + VIEW_LAST))
+  else if (data.view_side != NO_SIDE && x >= view_x && x <= static_cast<int16_t>(view_x + VIEW_LAST) && y >= view_y && y <= static_cast<int16_t>(view_y + VIEW_LAST))
     opeu_view_cell_draw(ds, event, Local(frame, 10), x, y);
 }
 

@@ -71,8 +71,7 @@ void opeu_move_mines(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
 // Caps each element's damage at its quantity.
 void opeu_move_clamp(uint8_t* ds) {
   auto& data{ Data(ds) };
-  for (auto& element : Elements(data, Record<Unit>(data, data.current_unit_ptr)))
-    element.damage = opeu_min16(element.quantity, element.damage);
+  for (auto& element : Elements(data, Record<Unit>(data, data.current_unit_ptr))) element.damage = opeu_min16(element.quantity, element.damage);
 }
 
 // sqrt(max(0, (leader + morale + training) / 3 - experience)), plus the delivery level for a computer side.
@@ -92,27 +91,19 @@ uint16_t svc_movemine(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   switch (static_cast<MineService>(id)) {
-  case MineService::IS_ENGINEER: return opeu_category_6(byte(0));
-  case MineService::UNIT_MESSAGE:
-    opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1));
-    return 0;
+  case MineService::IS_ENGINEER:   return opeu_category_6(byte(0));
+  case MineService::UNIT_MESSAGE:  opeu_unit_report(ds, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1)); return 0;
   case MineService::UNIT_ELIGIBLE: return opeu_unit_selection_eligible(ds, arg(0));
   case MineService::UNIT_SPOTTED:  return opeu_unit_special(ds, arg(0));
   case MineService::DAILY_SHOW:    port_daily_show(ds, arg(0), arg(1), arg(2), arg(3)); return 0;
-  case MineService::CASUALTIES:
-    WithMapFrame([&](uint16_t frame) {
-      opeu_unit_casualties(ds, svc_casualty, frame, arg(0), arg(1), arg(2), arg(3), arg(4), arg(5));
-    });
-    return 0;
-  case MineService::MARK_CELL: opeu_mark_cell(ds, byte(0), byte(1), byte(2)); return 0;
-  case MineService::UNIT_ERASE:
-    WithMapFrame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); });
-    return 0;
-  case MineService::MORALE:     return opeu_unit_average9(ds, arg(0));
-  case MineService::TRAINING:   return opeu_unit_average10(ds, arg(0));
-  case MineService::EXPERIENCE: return opeu_unit_average11(ds, arg(0));
-  case MineService::ISQRT:      return opeu_isqrt(arg(0));
-  default:                      port_unhandled("movemine", id, count);
+  case MineService::CASUALTIES:    WithMapFrame([&](uint16_t frame) { opeu_unit_casualties(ds, svc_casualty, frame, arg(0), arg(1), arg(2), arg(3), arg(4), arg(5)); }); return 0;
+  case MineService::MARK_CELL:     opeu_mark_cell(ds, byte(0), byte(1), byte(2)); return 0;
+  case MineService::UNIT_ERASE:    WithMapFrame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); }); return 0;
+  case MineService::MORALE:        return opeu_unit_average9(ds, arg(0));
+  case MineService::TRAINING:      return opeu_unit_average10(ds, arg(0));
+  case MineService::EXPERIENCE:    return opeu_unit_average11(ds, arg(0));
+  case MineService::ISQRT:         return opeu_isqrt(arg(0));
+  default:                         port_unhandled("movemine", id, count);
   }
   return 0;
 }

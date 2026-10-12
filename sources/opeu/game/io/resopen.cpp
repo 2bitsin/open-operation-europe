@@ -35,9 +35,7 @@ void opeu_disk_reset(std::uint8_t* ds, HostEvent event) {
 
 auto svc_resopen(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   switch (id) {
-  case OPEN:
-    return static_cast<std::uint16_t>(
-        opeu_dos_open(reinterpret_cast<char const*>(ds + Arg(args, count, 0)), Arg(args, count, 1)));
+  case OPEN:  return static_cast<std::uint16_t>(opeu_dos_open(reinterpret_cast<char const*>(ds + Arg(args, count, 0)), Arg(args, count, 1)));
   case CLOSE: return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
   case INTERRUPT:
     if (Arg(args, count, 0) == DOS && Arg(args, count, 1) == DISK_RESET) {

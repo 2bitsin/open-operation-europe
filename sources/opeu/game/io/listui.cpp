@@ -69,28 +69,23 @@ auto SetStream(DataSegment& data, std::uint16_t offset) -> void {
   data.stream_ptr[1] = ARROW_SEGMENT;
 }
 
-auto DrawRows(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, std::uint8_t column, std::uint8_t row,
-              std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
-  List(ds, event, ListCall::DRAW_ROWS, window.draw.offset, window.draw.segment, column, row, last_column, last_row,
-       area);
+auto DrawRows(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, std::uint8_t column, std::uint8_t row, std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
+  List(ds, event, ListCall::DRAW_ROWS, window.draw.offset, window.draw.segment, column, row, last_column, last_row, area);
 }
 } // namespace
 
 // Draws the up arrow (lit when lit is UP_LIT) and the down arrow (lit when DOWN_LIT) of the scroll strip at pixel
 // column x.
-void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom,
-                      std::uint8_t lit) {
+void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   auto& data{ Data(ds) };
   SetStream(data, lit == UP_LIT ? ARROW_UP_LIT : ARROW_UP);
   List(ds, event, ListCall::DRAW_FAR, x >> 3, top, 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
   SetStream(data, lit == DOWN_LIT ? ARROW_DOWN_LIT : ARROW_DOWN);
-  List(ds, event, ListCall::DRAW_FAR, x >> 3, static_cast<std::uint16_t>(bottom - 0x1f), 2, 0x20, 7, data.stream_ptr[1],
-       data.stream_ptr[0]);
+  List(ds, event, ListCall::DRAW_FAR, x >> 3, static_cast<std::uint16_t>(bottom - 0x1f), 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
 }
 
 // Outlines the scroll strip and draws both arrows unlit.
-void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top,
-                         std::uint16_t bottom) {
+void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom) {
   if (Data(ds).list_mouse) {
     List(ds, event, ListCall::OUTLINE, x, top, static_cast<std::uint16_t>(x + 15), bottom, COLOUR);
     opeu_list_arrows(ds, event, x, top, bottom, NONE_LIT);
@@ -99,8 +94,7 @@ void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x
 
 // Stores at the DS byte `first` the offset (8-pixel units, from 2) of column `column` from the first visible column,
 // at `second` and `third` the total widths of the columns 0..rows before and from `column`.
-void opeu_table_columns(std::uint8_t* ds, HostWordsEvent, std::uint8_t column, std::uint8_t rows, std::uint16_t first,
-                        std::uint16_t second, std::uint16_t third) {
+void opeu_table_columns(std::uint8_t* ds, HostWordsEvent, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third) {
   auto&       data{ Data(ds) };
   auto const& window{ Window(data, data.list_window) };
   ds[first] = 2;
@@ -116,8 +110,7 @@ void opeu_table_columns(std::uint8_t* ds, HostWordsEvent, std::uint8_t column, s
 }
 
 // Redraws the arrows with the mouse cursor hidden.
-void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top,
-                          std::uint16_t bottom, std::uint8_t lit) {
+void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   if (Data(ds).list_mouse) {
     List(ds, event, ListCall::MOUSE_HIDE);
     opeu_list_arrows(ds, event, x, top, bottom, lit);
@@ -157,9 +150,8 @@ auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t
       if (state == UP_LIT || state == DOWN_LIT) opeu_list_arrows_lit(ds, event, left, top, bottom, NONE_LIT);
       state = NONE_LIT;
       auto const rows_bottom{ opeu_min16(static_cast<std::uint16_t>(window.rows * ROW_HEIGHT + top), bottom) };
-      if (static_cast<std::uint16_t>(left + 16) <= x
-          && static_cast<std::uint16_t>((WidthByte(ds, window, 0) << 3) + left - 0xf1) >= x
-          && static_cast<std::uint16_t>(top + ROW_HEIGHT) <= y && rows_bottom >= y) {
+      if (static_cast<std::uint16_t>(left + 16) <= x && static_cast<std::uint16_t>((WidthByte(ds, window, 0) << 3) + left - 0xf1) >= x && static_cast<std::uint16_t>(top + ROW_HEIGHT) <= y
+          && rows_bottom >= y) {
         std::uint16_t const row_y = (data.list_row - data.list_top + 1) * ROW_HEIGHT + top;
         if (row_y > y) {
           key = KEY_UP;
@@ -196,15 +188,13 @@ auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t
 void opeu_list_invert(std::uint8_t* ds, HostWordsEvent event) {
   auto&       data{ Data(ds) };
   auto const& window{ Window(data, data.list_window) };
-  List(ds, event, ListCall::HIGHLIGHT, static_cast<std::uint16_t>(window.x + 2),
-       static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y),
-       WidthByte(ds, window, 0) - WIDTH_BIAS, 0x12, INVERT_MODE);
+  List(ds, event, ListCall::HIGHLIGHT, static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y), WidthByte(ds, window, 0) - WIDTH_BIAS,
+       0x12, INVERT_MODE);
 }
 
 // Draws the window grid from first_column: the scroll strip, the outline, a line under each row that fits (setting
 // list_rows) and the column separators (setting list_columns). Returns the previous visible column count.
-auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t first_column)
-    -> std::uint8_t {
+auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t first_column) -> std::uint8_t {
   auto&               data{ Data(ds) };
   auto const&         window{ Window(data, near) };
   auto const          saved{ data.list_columns };
@@ -238,8 +228,7 @@ auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near,
 // Shows the window from column and row. REDRAW_ORIGIN redraws from the origin, REDRAW_HERE at the current position;
 // otherwise a one-column or one-row step scrolls the drawn area and has the draw routine draw the uncovered part; an
 // unchanged position just redraws the selected row.
-void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t column,
-                      std::uint8_t row) {
+void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t column, std::uint8_t row) {
   auto&               data{ Data(ds) };
   auto const&         window{ Window(data, near) };
   std::uint16_t const width{ window.widths };
@@ -320,12 +309,8 @@ auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::
   auto* const text{ static_cast<TextHost*>(port_textout_host()) };
   auto const  word{ [&](unsigned i) { return Arg(args, count, i); } };
   switch (static_cast<ListCall>(kind)) {
-  case ListCall::DRAW_FAR:
-    return static_cast<std::uint16_t>(
-        opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-  case ListCall::OUTLINE:
-    opeu_ui_outline(ds, static_cast<UiHost const*>(port_uiprim_host()), word(0), word(1), word(2), word(3), word(4));
-    break;
+  case ListCall::DRAW_FAR:       return static_cast<std::uint16_t>(opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
+  case ListCall::OUTLINE:        opeu_ui_outline(ds, static_cast<UiHost const*>(port_uiprim_host()), word(0), word(1), word(2), word(3), word(4)); break;
   case ListCall::MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
   case ListCall::MOUSE_HIDE:     opeu_mouse_hide(ds, svc_mouse); break;
   case ListCall::MOUSE_POSITION: {
@@ -338,44 +323,33 @@ auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::
     port_scratch_leave(4);
     break;
   }
-  case ListCall::MOUSE_BUTTONS: return opeu_mouse_buttons(ds, svc_mouse);
-  case ListCall::INPUT_RESET:   opeu_input_reset(ds, svc_mouse); break;
-  case ListCall::HIGHLIGHT:
-    return static_cast<std::uint16_t>(opeu_ui_highlight(word(0), word(1), word(2), word(3), word(4)));
-  case ListCall::LINE:        opeu_ui_line(word(0), word(1), word(2), word(3), word(4)); break;
-  case ListCall::SCREEN_COPY: opeu_screen_copy(word(0), word(1), word(2), word(3), word(4), word(5)); break;
-  case ListCall::BOX: return static_cast<std::uint16_t>(opeu_ui_box(word(0), word(1), word(2), word(3), word(4)));
-  case ListCall::BITMAP_SAVE: opeu_bitmap_save(word(0), word(1), word(2), word(3), port_far(word(4), word(5))); break;
-  case ListCall::BITMAP_RESTORE:
-    return static_cast<std::uint16_t>(
-        opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-  case ListCall::PAPER:       opeu_text_paper_set(ds, text, static_cast<std::uint8_t>(word(0))); break;
-  case ListCall::TEXT_COLOUR: opeu_text_color(ds, text, word(0)); break;
-  case ListCall::TEXT_POSITION:
-    opeu_army_position(ds, text, static_cast<std::int16_t>(word(0)), static_cast<std::int16_t>(word(1)));
-    break;
-  case ListCall::PRINT:        b1_cursor_print(ds, args, count); break;
-  case ListCall::KEYBOARD_KEY: return opeu_keyboard_key(ds, svc_keyboard);
-  case ListCall::YES_NO:       {
+  case ListCall::MOUSE_BUTTONS:  return opeu_mouse_buttons(ds, svc_mouse);
+  case ListCall::INPUT_RESET:    opeu_input_reset(ds, svc_mouse); break;
+  case ListCall::HIGHLIGHT:      return static_cast<std::uint16_t>(opeu_ui_highlight(word(0), word(1), word(2), word(3), word(4)));
+  case ListCall::LINE:           opeu_ui_line(word(0), word(1), word(2), word(3), word(4)); break;
+  case ListCall::SCREEN_COPY:    opeu_screen_copy(word(0), word(1), word(2), word(3), word(4), word(5)); break;
+  case ListCall::BOX:            return static_cast<std::uint16_t>(opeu_ui_box(word(0), word(1), word(2), word(3), word(4)));
+  case ListCall::BITMAP_SAVE:    opeu_bitmap_save(word(0), word(1), word(2), word(3), port_far(word(4), word(5))); break;
+  case ListCall::BITMAP_RESTORE: return static_cast<std::uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
+  case ListCall::PAPER:          opeu_text_paper_set(ds, text, static_cast<std::uint8_t>(word(0))); break;
+  case ListCall::TEXT_COLOUR:    opeu_text_color(ds, text, word(0)); break;
+  case ListCall::TEXT_POSITION:  opeu_army_position(ds, text, static_cast<std::int16_t>(word(0)), static_cast<std::int16_t>(word(1))); break;
+  case ListCall::PRINT:          b1_cursor_print(ds, args, count); break;
+  case ListCall::KEYBOARD_KEY:   return opeu_keyboard_key(ds, svc_keyboard);
+  case ListCall::YES_NO:         {
     auto const scratch{ b1_stack_alloc(SCRATCH_SIZE) };
     auto const answer{ static_cast<std::uint16_t>(opeu_prompt_yes_no(ds, svc_keyboard, word(0), scratch)) };
     port_scratch_leave(SCRATCH_SIZE);
     return answer;
   }
-  case ListCall::DRAW_ROWS:
-    port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u);
-    break;
-  case ListCall::SELECT:
-    return static_cast<std::uint8_t>(
-        port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
-  default: port_unhandled("listui", kind, count);
+  case ListCall::DRAW_ROWS: port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u); break;
+  case ListCall::SELECT:    return static_cast<std::uint8_t>(port_call(ds, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
+  default:                  port_unhandled("listui", kind, count);
   }
   return 0;
 }
 
 auto port_routine_opeu_table_columns(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_table_columns(ds, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)),
-                     static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3),
-                     Arg(args, count, 4));
+  opeu_table_columns(ds, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
   return 0;
 }

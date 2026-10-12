@@ -63,8 +63,7 @@ uint16_t opeu_battle_element_flag2(uint8_t* ds, BattleEvent, uint16_t element) {
 
 // An element takes part while it is on the field and linked into its unit.
 uint16_t opeu_battle_element_active(uint8_t* ds, BattleEvent, uint16_t element) {
-  if ((Position(ds, element).x & BATTLE_LEFT) || !(Record<Element>(Data(ds), element).flags & Bits(ElementFlag::READY)))
-    return 0;
+  if ((Position(ds, element).x & BATTLE_LEFT) || !(Record<Element>(Data(ds), element).flags & Bits(ElementFlag::READY))) return 0;
   return 1;
 }
 
@@ -133,8 +132,7 @@ uint8_t opeu_battle_group_level(uint8_t* ds, BattleEvent event, uint16_t element
   auto const& order{ Record<Unit>(data, opeu_battle_element_unit(ds, event, element)).orders[0] };
   if (order.kind == NO_ORDER) return LEVEL_NO_ORDER;
   if (order.progress == ORDER_STARTED) return data.battle_levels[0];
-  if (order.progress == 0)
-    return Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_levels) + order.kind));
+  if (order.progress == 0) return Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_levels) + order.kind));
   return LEVEL_UNDER_WAY;
 }
 
@@ -151,30 +149,24 @@ uint16_t svc_btlunit(uint8_t* ds, uint32_t address, const uint16_t* args, unsign
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_cell_occupied(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  return opeu_battle_cell_occupied(ds, svc_btlunit, static_cast<uint8_t>(Arg(args, count, 0)),
-                                   static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_cell_occupied(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_cell_occupied(ds, svc_btlunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
 auto port_routine_opeu_battle_clear_cell(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_clear_cell(ds, svc_btlunit, static_cast<uint8_t>(Arg(args, count, 0)),
-                         static_cast<uint8_t>(Arg(args, count, 1)));
+  opeu_battle_clear_cell(ds, svc_btlunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return 0;
 }
 
-auto port_routine_opeu_battle_element_active(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_element_active(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_element_active(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_element_flag2(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_element_flag2(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_element_flag2(ds, svc_btlunit, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_level_allowed(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_level_allowed(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_level_allowed(ds, svc_btlunit, Arg(args, count, 0));
 }
 
@@ -191,7 +183,6 @@ auto port_routine_opeu_battle_set_order(std::uint8_t* ds, std::uint16_t const* a
   return 0;
 }
 
-auto port_routine_opeu_battle_unit_active(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_unit_active(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_unit_active(ds, svc_btlunit, Arg(args, count, 0));
 }

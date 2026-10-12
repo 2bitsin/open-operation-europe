@@ -27,8 +27,7 @@ enum SideInitService : uint16_t {
 
 // For a side a player commands: picks its first general and the general's templates of kinds 4 and 5, sets the turn
 // context, runs the scenario's initializer and finishes the side's set-up. side_initializing is set meanwhile.
-void opeu_initialize_turn_side(uint8_t ds[65536],
-                               uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_initialize_turn_side(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto& data{ Data(ds) };
   data.side_initializing = 1;
   if (data.side_status[data.current_side] == SIDE_PLAYED) {

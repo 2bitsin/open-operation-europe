@@ -34,14 +34,12 @@ void opeu_view_division_contact(uint8_t ds[65536], HostEvent event, uint16_t) {
   for (;;) {
     data.control_selection = 0;
     Call(ds, event, ViewService::TURN_ACTIVE_BEGIN);
-    answer = static_cast<uint8_t>(
-        Call(ds, event, ViewService::DELAY_DIALOG, CONTACT_PROMPT, 4, data.context_record3, CONTACT_MENU));
+    answer = static_cast<uint8_t>(Call(ds, event, ViewService::DELAY_DIALOG, CONTACT_PROMPT, 4, data.context_record3, CONTACT_MENU));
     if (answer == CANCELLED) break;
     uint8_t const division = answer - 1;
     auto&         group{ data.groups[division + data.current_side * GROUPS_PER_SIDE] };
     auto const    group_near{ Near(data, group) };
-    if ((group.flags & Bits(GroupFlag::READY))
-        && Call(ds, event, ViewService::UNIT_ELIGIBLE, Call(ds, event, ViewService::GROUP_SELECTED_UNIT, group_near))) {
+    if ((group.flags & Bits(GroupFlag::READY)) && Call(ds, event, ViewService::UNIT_ELIGIBLE, Call(ds, event, ViewService::GROUP_SELECTED_UNIT, group_near))) {
       Call(ds, event, ViewService::GROUP_SHOW, group_near, division);
       Call(ds, event, ViewService::BACKDROP_COLOR, data.current_side ? 1 : 2);
       auto const units{ Near(data, data.units[(division + data.current_side * GROUPS_PER_SIDE) * UNITS_PER_GROUP]) };

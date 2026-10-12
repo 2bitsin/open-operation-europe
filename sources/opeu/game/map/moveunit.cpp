@@ -30,8 +30,7 @@ constexpr uint16_t GOAL_Y_AT{ 0x1a };
 // Raises a service that updates a cell through the DS bytes at x_at and y_at: the cell is copied there before the
 // call and read back after it.
 template <typename... Words>
-auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x, uint16_t x_at, uint8_t& y,
-                 uint16_t y_at, Words... words) -> uint16_t {
+auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x, uint16_t x_at, uint8_t& y, uint16_t y_at, Words... words) -> uint16_t {
   Byte(ds, x_at) = x;
   Byte(ds, y_at) = y;
   auto const result{ Call(ds, event, service, words...) };
@@ -50,13 +49,8 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
   auto const probe_y_at{ Local(frame, PROBE_Y_AT) };
   auto const next_x_at{ Local(frame, NEXT_X_AT) };
   auto const next_y_at{ Local(frame, NEXT_Y_AT) };
-  auto const step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) {
-    return ThroughCell(ds, event, MoveService::GRID_STEP, x, probe_x_at, y, probe_y_at, probe_x_at, probe_y_at,
-                       direction);
-  } };
-  auto const cost_at{ [&](uint8_t x, uint8_t y) {
-    return static_cast<uint8_t>(Call(ds, event, MoveService::COST, x, y, current));
-  } };
+  auto const step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return ThroughCell(ds, event, MoveService::GRID_STEP, x, probe_x_at, y, probe_y_at, probe_x_at, probe_y_at, direction); } };
+  auto const cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(Call(ds, event, MoveService::COST, x, y, current)); } };
   uint8_t    next_x{ unit.x };
   uint8_t    next_y{ unit.y };
   auto const rating{ static_cast<uint8_t>(Call(ds, event, MoveService::RATING)) };
@@ -84,11 +78,7 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
       committed = false;
       restart   = false;
     }
-    if (unit.target_x == NONE
-        || (!committed
-            && static_cast<uint8_t>(
-                   Call(ds, event, MoveService::DISTANCE, next_x, next_y, unit.target_x, unit.target_y))
-                   < NEAR_DESTINATION)) {
+    if (unit.target_x == NONE || (!committed && static_cast<uint8_t>(Call(ds, event, MoveService::DISTANCE, next_x, next_y, unit.target_x, unit.target_y)) < NEAR_DESTINATION)) {
       // The destination lands in its DS bytes; where the unit has none they keep what they held.
       Call(ds, event, MoveService::DESTINATION, current, Local(frame, GOAL_X_AT), Local(frame, GOAL_Y_AT));
       uint8_t const goal_x{ Byte(ds, Local(frame, GOAL_X_AT)) };
@@ -102,8 +92,7 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
       uint8_t waypoint_x{ next_x };
       uint8_t waypoint_y{ next_y };
       for (uint8_t steps{ 0 }; (waypoint_x != goal_x || waypoint_y != goal_y) && steps < ROUTE_STEPS; steps++)
-        ThroughCell(ds, event, MoveService::STEP_TOWARD, waypoint_x, probe_x_at, waypoint_y, probe_y_at, probe_x_at,
-                    probe_y_at, goal_x, goal_y);
+        ThroughCell(ds, event, MoveService::STEP_TOWARD, waypoint_x, probe_x_at, waypoint_y, probe_y_at, probe_x_at, probe_y_at, goal_x, goal_y);
       unit.target_x = waypoint_x;
       unit.target_y = waypoint_y;
       committed     = true;
@@ -117,13 +106,10 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
     }
 
     Call(ds, event, MoveService::CLEAR_PATH, next_x, next_y);
-    remaining = ThroughCell(ds, event, MoveService::STEP_TOWARD, next_x, next_x_at, next_y, next_y_at, next_x_at,
-                            next_y_at, unit.target_x, unit.target_y);
+    remaining = ThroughCell(ds, event, MoveService::STEP_TOWARD, next_x, next_x_at, next_y, next_y_at, next_x_at, next_y_at, unit.target_x, unit.target_y);
     if (remaining == STUCK || (!repeat && !remaining)) return;
     auto const objective{ Call(ds, event, MoveService::FIND_OBJECTIVE, next_x, next_y) };
-    bool       blocked{ objective != 0
-                        && static_cast<uint8_t>(Call(ds, event, MoveService::OBJECTIVE_SIDE, objective))
-                               != data.current_side };
+    bool       blocked{ objective != 0 && static_cast<uint8_t>(Call(ds, event, MoveService::OBJECTIVE_SIDE, objective)) != data.current_side };
     if (!blocked) {
       auto const other{ Call(ds, event, MoveService::FIND_UNIT, next_x, next_y) };
       blocked = other != 0 && static_cast<uint8_t>(Call(ds, event, MoveService::UNIT_SIDE, other)) != data.current_side;
@@ -137,8 +123,7 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
 
     auto const cost{ cost_at(next_x, next_y) };
     unit.moved = static_cast<uint8_t>(opeu_min16(opeu_max16(cost, rating), unit.moved));
-    if (unit.moved < cost || static_cast<uint8_t>(Call(ds, event, MoveService::CELL_SIDE, next_x, next_y)) != NONE)
-      return;
+    if (unit.moved < cost || static_cast<uint8_t>(Call(ds, event, MoveService::CELL_SIDE, next_x, next_y)) != NONE) return;
     if (!Call(ds, event, MoveService::SUPPLIED)) {
       unit.moved = 0;
       return;

@@ -345,7 +345,7 @@ enum class GroupFlag : std::uint8_t {
   SELECTED = 0x02, // the division selected on its side (units/select)
   READY    = 0x04, // an active division (core/advenemy, core/aiops5)
   AI_MARK  = 0x08, // set on every ready group by the computer side (core/aiops5 1ac2:15c0)
-  RETARGET = 0x10, // the objective ranking changed: the division plans its tasks again (core/objrank, core/groupai)
+  RETARGET = 0x10, // the computer side's objective ranking changed: the division plans its tasks again (core/objrank, core/groupai)
 };
 
 // Bits of Element::flags.
@@ -406,8 +406,7 @@ enum class Stance : std::uint8_t {
   OFFENSIVE = 1,
 };
 
-// Bits of DataSegment::schedule_flags[0]: the rounds due before the next regiment's turn (core/app sets them,
-// core/dispatch runs and clears them).
+// Bits of DataSegment::schedule_flags[0]: the rounds due before the next regiment's turn (core/app sets them, core/dispatch runs and clears them).
 enum class ScheduleFlag : std::uint8_t {
   MONTHLY  = 0x01, // set on the first day of a month
   HALF_DAY = 0x02, // at hours 0 and 12

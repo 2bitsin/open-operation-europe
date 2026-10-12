@@ -19,14 +19,10 @@ void     opeu_daily_show(uint8_t* ds, const DialogHost* host, uint16_t id, uint8
 uint16_t opeu_speaker_panel(uint8_t* ds, const DialogHost* host, uint16_t person, uint16_t show);
 void     opeu_text_feed(uint8_t* ds, const DialogHost* host, uint16_t text);
 void     opeu_control_message(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t person);
-uint16_t opeu_menu_prompt(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t first, uint16_t last,
-                          uint16_t flag, uint16_t menu);
-uint16_t opeu_control_choose(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t first, uint16_t last,
-                             uint16_t flag, uint16_t person, uint16_t menu);
-uint16_t opeu_delay_dialog(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t last, uint16_t person,
-                           uint16_t menu);
-uint16_t opeu_choose_dialog(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t last, uint16_t person,
-                            uint16_t menu);
+uint16_t opeu_menu_prompt(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t menu);
+uint16_t opeu_control_choose(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t person, uint16_t menu);
+uint16_t opeu_delay_dialog(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t last, uint16_t person, uint16_t menu);
+uint16_t opeu_choose_dialog(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t last, uint16_t person, uint16_t menu);
 uint16_t opeu_confirm_prompt(uint8_t* ds, const DialogHost* host, uint16_t text);
 uint16_t opeu_confirm_message(uint8_t* ds, const DialogHost* host, uint16_t text, uint16_t person);
 uint16_t opeu_confirm_ok(uint8_t* ds, const DialogHost* host, uint16_t person);

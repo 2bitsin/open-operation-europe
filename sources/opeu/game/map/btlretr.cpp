@@ -37,8 +37,7 @@ constexpr uint8_t MOVE_CLASSES{ 5 }; // move_costs columns
 
 // The unit's slot in its division: its index in units (signed 16-bit division), low three bits.
 [[nodiscard]] auto UnitSlot(uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(
-      static_cast<int16_t>(static_cast<uint16_t>(unit - UNITS_AT)) / static_cast<int16_t>(sizeof(Unit)) & 7);
+  return static_cast<uint8_t>(static_cast<int16_t>(static_cast<uint16_t>(unit - UNITS_AT)) / static_cast<int16_t>(sizeof(Unit)) & 7);
 }
 
 [[nodiscard]] auto ComputerTurn(uint8_t* ds, BattleEvent event) -> uint8_t {
@@ -131,8 +130,7 @@ void opeu_battle_morale_check(uint8_t* ds, BattleEvent event) {
     strength[list] = 0;
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (auto const unit{ BattleList(data, list, slot) }) {
-        if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30)
-          opeu_battle_unit_retreat(ds, event, unit, list);
+        if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30) opeu_battle_unit_retreat(ds, event, unit, list);
         strength[list] = static_cast<uint8_t>(strength[list] + opeu_battle_element_count(ds, event, unit));
       }
     if (!strength[list]) return;
@@ -152,8 +150,7 @@ void opeu_battle_morale_check(uint8_t* ds, BattleEvent event) {
   } };
   if (odds > 5)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-      if (auto const unit{ BattleList(data, weaker, slot) };
-          unit && unit != GARRISON_AT && !support(unit) && opeu_rand_bounded(100) < 20) {
+      if (auto const unit{ BattleList(data, weaker, slot) }; unit && unit != GARRISON_AT && !support(unit) && opeu_rand_bounded(100) < 20) {
         opeu_battle_unit_retreat(ds, event, unit, weaker);
         if (ComputerTurn(ds, event)) return;
       }
@@ -165,8 +162,7 @@ void opeu_battle_morale_check(uint8_t* ds, BattleEvent event) {
       for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
         uint8_t x{ data.battle_x };
         uint8_t y{ data.battle_y };
-        if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(ds, event, x, y, unit))
-          chance = static_cast<uint8_t>(chance + 10);
+        if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(ds, event, x, y, unit)) chance = static_cast<uint8_t>(chance + 10);
       }
       if (opeu_rand_bounded(100) < chance) {
         opeu_battle_unit_retreat(ds, event, unit, list);

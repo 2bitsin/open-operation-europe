@@ -129,20 +129,15 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t bp, uint
 uint16_t svc_genwound(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case PERSON_LACKS_SIDE0_FLAG: r = opeu_person_lacks_side0_flag(ds, Arg(args, count, 0)); break;
-  case REQUEST_FORMAT:          r = lf_request_format(ds, args, count); break;
-  case INITIALIZE_DEPUTY:       opeu_initialize_deputy(ds, Arg(args, count, 0)); break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case PERSON_LACKS_SIDE0_FLAG:    r = opeu_person_lacks_side0_flag(ds, Arg(args, count, 0)); break;
+  case REQUEST_FORMAT:             r = lf_request_format(ds, args, count); break;
+  case INITIALIZE_DEPUTY:          opeu_initialize_deputy(ds, Arg(args, count, 0)); break;
+  case CONTROL_MESSAGE:            opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case WAIT_CONFIRM:               opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
   case SET_TURN_CONTEXT:           opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case FINISH_SIDE_INITIALIZATION: opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2));
-    break;
-  default: port_unhandled("genwound", id, count);
+  case DAILY_SHOW: opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
+  default:         port_unhandled("genwound", id, count);
   }
   return r;
 }

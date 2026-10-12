@@ -31,8 +31,7 @@ enum class SpawnService : uint16_t {
   FINISH   = 6, // opeu_finish_side_initialization(value)
 };
 
-auto Send(uint8_t* ds, PendingEvent event, SpawnService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0,
-          uint16_t d = 0) -> uint16_t {
+auto Send(uint8_t* ds, PendingEvent event, SpawnService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) -> uint16_t {
   return event(ds, std::to_underlying(service), a, b, c, d);
 }
 
@@ -74,9 +73,7 @@ uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t
     port_frame_leave();
     break;
   }
-  case SpawnService::SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c);
-    break;
+  case SpawnService::SHOW:   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
   case SpawnService::FINISH: opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a); break;
   default:                   port_unhandled("reqspawn", id, 4);
   }

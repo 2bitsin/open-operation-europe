@@ -5,8 +5,7 @@
 
 void     opeu_battle_pick_hq(uint8_t* ds, BattleEvent event, uint16_t sp);
 void     opeu_battle_auto_hq(uint8_t* ds, BattleEvent event, uint16_t sp);
-void     opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t record, uint16_t text,
-                                 uint16_t killed);
+void     opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t record, uint16_t text, uint16_t killed);
 void     opeu_battle_officer_losses(uint8_t* ds, BattleEvent event, uint16_t sp);
 uint16_t opeu_battle_side_commands(const uint8_t* ds);
 void     opeu_battle_hq_shaken(uint8_t* ds, BattleEvent event, uint16_t unit);

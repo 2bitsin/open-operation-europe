@@ -41,13 +41,10 @@ struct TableColumns {
 
 // Asks the layout service for a column of the active list window; the service writes the three bytes into the frame
 // buffer at scratch.
-inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column, std::uint8_t row)
-    -> TableColumns {
-  Call(ds, event, COLUMNS, column, row, scratch, static_cast<std::uint16_t>(scratch + 1),
-       static_cast<std::uint16_t>(scratch + 2));
+inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column, std::uint8_t row) -> TableColumns {
+  Call(ds, event, COLUMNS, column, row, scratch, static_cast<std::uint16_t>(scratch + 1), static_cast<std::uint16_t>(scratch + 2));
   auto const& data{ Data(ds) };
-  return { Record<std::uint8_t>(data, scratch), Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)),
-           Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 2)) };
+  return { Record<std::uint8_t>(data, scratch), Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)), Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 2)) };
 }
 
 // The active list window.
@@ -56,8 +53,7 @@ inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, st
 }
 
 // The text column where a table column starts: the window's left edge and the row width byte, plus the column's lead.
-[[nodiscard]] inline auto ColumnX(DataSegment const& data, ListWindow const& window, TableColumns const& columns,
-                                  int adjust) -> std::uint16_t {
+[[nodiscard]] inline auto ColumnX(DataSegment const& data, ListWindow const& window, TableColumns const& columns, int adjust) -> std::uint16_t {
   return static_cast<std::uint16_t>(Record<std::uint8_t>(data, window.widths) + columns.lead + window.x + adjust);
 }
 
@@ -74,11 +70,9 @@ inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, st
 // Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
 // argument words, its frame buffers on the DS stack.
 template <typename Draw>
-inline auto RunTableRows(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+inline auto RunTableRows(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  WithStack(PORT_FRAME,
-            [&](std::uint16_t sp) { draw(ds, event, TableScratch(sp), byte(0), byte(1), byte(2), byte(3), byte(4)); });
+  WithStack(PORT_FRAME, [&](std::uint16_t sp) { draw(ds, event, TableScratch(sp), byte(0), byte(1), byte(2), byte(3), byte(4)); });
   return 0;
 }
 } // namespace opeu::game::detail::table_rows

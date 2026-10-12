@@ -29,8 +29,7 @@ constexpr uint16_t CELL_HEIGHT{ 26 };
 // Saves the screen at the pixel position into the VRAM buffer, or restores it from there.
 void Vram(uint8_t* ds, BattleEvent event, bool save, uint16_t x, uint16_t y) {
   auto const buffer{ Near(Data(ds), Data(ds).vram) };
-  auto const routine{ (x & 7) ? (save ? BattleRoutine::VRAM_SAVE_ODD : BattleRoutine::VRAM_RESTORE_ODD)
-                              : (save ? BattleRoutine::VRAM_SAVE : BattleRoutine::VRAM_RESTORE) };
+  auto const routine{ (x & 7) ? (save ? BattleRoutine::VRAM_SAVE_ODD : BattleRoutine::VRAM_RESTORE_ODD) : (save ? BattleRoutine::VRAM_SAVE : BattleRoutine::VRAM_RESTORE) };
   Call(ds, event, routine, x >> 3, y, buffer);
 }
 
@@ -38,8 +37,7 @@ void DrawTerrain(uint8_t* ds, BattleEvent event, SpriteVariant variant, uint8_t 
   auto& data{ Data(ds) };
   data.sprite_variant[0] = Bits(variant);
   auto const terrain{ static_cast<uint8_t>(BattleTerrainAt(data, x, y) & BATTLE_TERRAIN_MASK) };
-  if (opeu_battle_sprite_valid(ds, event, terrain))
-    opeu_battle_draw_sprite(ds, event, opeu_battle_sprite_offset(ds, event, terrain));
+  if (opeu_battle_sprite_valid(ds, event, terrain)) opeu_battle_draw_sprite(ds, event, opeu_battle_sprite_offset(ds, event, terrain));
 }
 } // namespace
 
@@ -69,7 +67,6 @@ uint16_t svc_btlcell(uint8_t* ds, uint32_t address, const uint16_t* args, unsign
 }
 
 auto port_routine_opeu_battle_draw_cell(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_draw_cell(ds, svc_btlcell, static_cast<uint8_t>(Arg(args, count, 0)),
-                        static_cast<uint8_t>(Arg(args, count, 1)));
+  opeu_battle_draw_cell(ds, svc_btlcell, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return 0;
 }

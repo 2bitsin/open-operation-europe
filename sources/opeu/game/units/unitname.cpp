@@ -16,8 +16,7 @@ uint16_t opeu_unit_name(uint8_t ds[65536], HostEvent event, uint16_t unit, uint1
   auto const&         data{ Data(ds) };
   auto const          offset{ static_cast<std::int16_t>(static_cast<std::uint16_t>(unit - UNITS_AT)) };
   std::uint8_t const  index = offset / static_cast<std::int16_t>(sizeof(Unit));
-  std::uint16_t const args[4]{ buffer, Near(data, data.unit_name_format), data.entry_names[index % 8],
-                               static_cast<std::uint16_t>((index / 8 % 4) * 10 + index % 8 + 11) };
+  std::uint16_t const args[4]{ buffer, Near(data, data.unit_name_format), data.entry_names[index % 8], static_cast<std::uint16_t>((index / 8 % 4) * 10 + index % 8 + 11) };
   event(ds, 2, args, 4);
   return buffer;
 }

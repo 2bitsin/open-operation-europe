@@ -5,8 +5,7 @@
 
 uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t all);
 void    opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element);
-void    opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target,
-                              uint16_t frame);
+void    opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target, uint16_t frame);
 void    opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);
 void    opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);
 void    opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp);

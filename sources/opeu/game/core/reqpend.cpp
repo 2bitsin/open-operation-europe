@@ -41,8 +41,7 @@ constexpr uint16_t ACCEPTED_MESSAGE{ 64 };
 constexpr uint16_t REFUSED_MESSAGE{ 65 };
 constexpr uint16_t REFUSAL_COUNT{ 7 };
 
-auto Send(uint8_t* ds, PendingEvent event, PendingService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0,
-          uint16_t d = 0) -> uint16_t {
+auto Send(uint8_t* ds, PendingEvent event, PendingService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) -> uint16_t {
   return event(ds, std::to_underlying(service), a, b, c, d);
 }
 
@@ -106,9 +105,7 @@ void opeu_request_fallback(uint8_t ds[65536], PendingEvent event, uint8_t side, 
 uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
   uint16_t r = 0;
   switch (static_cast<PendingService>(id)) {
-  case PendingService::SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c);
-    break;
+  case PendingService::SHOW:         opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
   case PendingService::MESSAGE_TEXT: r = opeu_message_lookup(ds, svc_msglook, (short)a); break;
   case PendingService::FORMAT:       {
     uint16_t const words[]{ a, b, c };

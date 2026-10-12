@@ -92,16 +92,14 @@ uint16_t opeu_transfer_hours(uint8_t ds[65536], uint16_t from, uint16_t to, uint
   std::uint16_t const distance{ opeu_grid_distance(source.x, source.y, target.x, target.y) };
   std::uint16_t const supported{ opeu_cell_influence_side(ds, target.x, target.y) == side ? 10u : 0u };
   std::uint16_t const scale{ (data.scenario & 0x7f) == 1 ? 3u : 5u };
-  return static_cast<std::uint16_t>(
-      distance / scale * (80 - supported) / (data.sides[side].strength + Record<Person>(data, person).bravery) + 1);
+  return static_cast<std::uint16_t>(distance / scale * (80 - supported) / (data.sides[side].strength + Record<Person>(data, person).bravery) + 1);
 }
 
 // Division list predicate: an active division whose selected regiment may be selected.
 uint8_t opeu_transfer_group_enabled(uint8_t ds[65536]) {
   auto&       data{ Data(ds) };
   auto const& division{ Division(data, data.current_side, data.list_row) };
-  return (division.flags & Bits(GroupFlag::READY))
-         && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, Near(data, division)));
+  return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, Near(data, division)));
 }
 
 // Regiment list predicate: a ready regiment that may be selected.
@@ -120,8 +118,7 @@ uint8_t opeu_transfer_element_enabled(uint8_t ds[65536]) {
 // Lists the picked division's eight regiments.
 uint8_t opeu_transfer_units_fill(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
-  for (std::uint8_t index{ 0 }; index < 8; ++index)
-    data.row_units[index] = Near(data, Regiment(data, data.current_side, data.transfer_group, index));
+  for (std::uint8_t index{ 0 }; index < 8; ++index) data.row_units[index] = Near(data, Regiment(data, data.current_side, data.transfer_group, index));
   return 8;
 }
 
@@ -155,8 +152,7 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_
       SetPredicate(data.division_dialog, GROUP_ENABLED, segment);
       if (!Send(ds, event, LIST_DIALOG, Near(data, data.division_dialog), LIST_LIMIT, LIST_FLAGS)) return;
       data.transfer_group = data.list_row;
-      Send(ds, event, GROUP_SHOW, Near(data, Division(data, data.current_side, data.transfer_group)),
-           data.transfer_group);
+      Send(ds, event, GROUP_SHOW, Near(data, Division(data, data.current_side, data.transfer_group)), data.transfer_group);
       [[fallthrough]];
     case Step::REGIMENT:
       Send(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_regiment), data.context_record2);
@@ -179,27 +175,22 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_
         step = Step::REGIMENT;
         continue;
       }
-      auto const hours{ opeu_transfer_hours(ds, data.current_unit_ptr, Near(data, PickedRegiment(data)),
-                                            data.context_record1) };
-      Send(ds, event, REQUEST_FORMAT, buffer, Near(data, data.transfer_confirm), hours,
-           hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text));
+      auto const hours{ opeu_transfer_hours(ds, data.current_unit_ptr, Near(data, PickedRegiment(data)), data.context_record1) };
+      Send(ds, event, REQUEST_FORMAT, buffer, Near(data, data.transfer_confirm), hours, hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text));
       if (!Send(ds, event, CONFIRM_MESSAGE, buffer, data.context_record2)) {
         step = Step::ELEMENT;
         continue;
       }
       auto const side{ data.current_side };
-      Record<Group>(data, opeu_unit_group(opeu_find_side_selected_unit(ds, side))).flags &= static_cast<std::uint8_t>(
-          ~Bits(GroupFlag::SELECTED));
+      Record<Group>(data, opeu_unit_group(opeu_find_side_selected_unit(ds, side))).flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::SELECTED));
       auto& division{ Division(data, side, data.transfer_group) };
       division.flags                                                                    |= Bits(GroupFlag::SELECTED);
-      Record<Unit>(data, opeu_find_group_selected_unit(ds, Near(data, division))).flags &= static_cast<std::uint8_t>(
-          ~Bits(UnitFlag::SELECTED));
+      Record<Unit>(data, opeu_find_group_selected_unit(ds, Near(data, division))).flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SELECTED));
       auto& regiment{ PickedRegiment(data) };
       regiment.flags                                                                    |= Bits(UnitFlag::SELECTED);
-      Record<Element>(data, opeu_unit_selected_element(ds, Near(data, regiment))).flags &= static_cast<std::uint8_t>(
-          ~Bits(ElementFlag::SELECTED));
-      Record<Element>(data, data.row_elements[data.list_row]).flags |= Bits(ElementFlag::SELECTED);
-      data.side_delays[side]                                         = static_cast<std::uint8_t>(hours);
+      Record<Element>(data, opeu_unit_selected_element(ds, Near(data, regiment))).flags &= static_cast<std::uint8_t>(~Bits(ElementFlag::SELECTED));
+      Record<Element>(data, data.row_elements[data.list_row]).flags                     |= Bits(ElementFlag::SELECTED);
+      data.side_delays[side]                                                             = static_cast<std::uint8_t>(hours);
       Send(ds, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, PRESENT, segment);
       return;
     }
@@ -211,32 +202,15 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_
 uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case REQUEST_FORMAT: r = lf_request_format(ds, args, count); break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case CONFIRM_MESSAGE:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case CONTROL_PANEL: opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case LIST_DIALOG:
-    r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
-    break;
-  case GROUP_SHOW:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      opeu_group_show(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0),
-                      (uint8_t)Arg(args, count, 1));
-    });
-    break;
-  case UNIT_ANNOUNCE:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 1));
-    });
-    break;
+  case REQUEST_FORMAT:  r = lf_request_format(ds, args, count); break;
+  case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case GROUP_SHOW: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_group_show(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); }); break;
+  case UNIT_ANNOUNCE: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 1)); }); break;
   case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
+    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
     break;
   case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   default:             port_unhandled("cmdxfer", id, count);
@@ -244,15 +218,13 @@ uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return r;
 }
 
-auto port_routine_opeu_transfer_element_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_transfer_element_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_element_enabled(ds);
 }
 
-auto port_routine_opeu_transfer_group_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_transfer_group_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_group_enabled(ds);
@@ -265,8 +237,7 @@ auto port_routine_opeu_transfer_present(std::uint8_t* ds, std::uint16_t const* a
   return 0;
 }
 
-auto port_routine_opeu_transfer_unit_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_transfer_unit_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   return opeu_transfer_unit_enabled(ds);

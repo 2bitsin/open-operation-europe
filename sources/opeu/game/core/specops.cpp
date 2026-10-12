@@ -74,8 +74,7 @@ auto Raid() -> Mission {
     offsetof(DataSegment, raid_unit_question),
     SpecialMission::RAID_CITY,
     SpecialMission::RAID_UNIT,
-    { offsetof(DataSegment, raid_refusal_1), offsetof(DataSegment, raid_refusal_2),
-                 offsetof(DataSegment, raid_refusal_3), offsetof(DataSegment, raid_refusal_4) },
+    { offsetof(DataSegment, raid_refusal_1), offsetof(DataSegment, raid_refusal_2), offsetof(DataSegment, raid_refusal_3), offsetof(DataSegment, raid_refusal_4) },
     12,
     19,
     NO_TEXT,
@@ -94,8 +93,7 @@ auto Sabotage() -> Mission {
     NO_TEXT,
     SpecialMission::SABOTAGE,
     SpecialMission::SABOTAGE,
-    { offsetof(DataSegment, sabotage_refusal_1), offsetof(DataSegment, sabotage_refusal_2),
-                offsetof(DataSegment, sabotage_refusal_3), offsetof(DataSegment, sabotage_refusal_4) },
+    { offsetof(DataSegment, sabotage_refusal_1), offsetof(DataSegment, sabotage_refusal_2), offsetof(DataSegment, sabotage_refusal_3), offsetof(DataSegment, sabotage_refusal_4) },
     11,
     24,
     offsetof(DataSegment, sabotage_duration),
@@ -114,8 +112,7 @@ auto CutComm() -> Mission {
     offsetof(DataSegment, cut_comm_unit_question),
     SpecialMission::CUT_COMM_CITY,
     SpecialMission::CUT_COMM_UNIT,
-    { offsetof(DataSegment, cut_comm_refusal_1), offsetof(DataSegment, cut_comm_refusal_2),
-                     offsetof(DataSegment, cut_comm_refusal_3), offsetof(DataSegment, cut_comm_refusal_4) },
+    { offsetof(DataSegment, cut_comm_refusal_1), offsetof(DataSegment, cut_comm_refusal_2), offsetof(DataSegment, cut_comm_refusal_3), offsetof(DataSegment, cut_comm_refusal_4) },
     10,
     30,
     offsetof(DataSegment, cut_comm_duration),
@@ -134,8 +131,7 @@ auto Assassinate() -> Mission {
     offsetof(DataSegment, assassinate_unit_question),
     SpecialMission::ASSASSINATE,
     SpecialMission::ASSASSINATE,
-    { offsetof(DataSegment, assassinate_refusal_1), offsetof(DataSegment, assassinate_refusal_2),
-                   offsetof(DataSegment, assassinate_refusal_3), offsetof(DataSegment, assassinate_refusal_4) },
+    { offsetof(DataSegment, assassinate_refusal_1), offsetof(DataSegment, assassinate_refusal_2), offsetof(DataSegment, assassinate_refusal_3), offsetof(DataSegment, assassinate_refusal_4) },
     13,
     24,
     offsetof(DataSegment, assassinate_duration),
@@ -154,8 +150,7 @@ auto Recon() -> Mission {
     offsetof(DataSegment, recon_unit_question),
     SpecialMission::RECON_CITY,
     SpecialMission::RECON_UNIT,
-    { offsetof(DataSegment, recon_refusal_1), offsetof(DataSegment, recon_refusal_2),
-                  offsetof(DataSegment, recon_refusal_3), NO_TEXT },
+    { offsetof(DataSegment, recon_refusal_1), offsetof(DataSegment, recon_refusal_2), offsetof(DataSegment, recon_refusal_3), NO_TEXT },
     4,
     40,
     offsetof(DataSegment, recon_duration),
@@ -217,9 +212,7 @@ void Plan(std::uint8_t* ds, HostEvent event, std::uint16_t sp, Mission const& mi
       Call(ds, event, CONTROL_MESSAGE, mission.refusals[refusal], data.special_person);
       break;
     }
-    auto hours{ static_cast<std::uint8_t>(
-        mission.base
-        - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
+    auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
     hours += static_cast<std::uint8_t>(Call(ds, event, CELL_INFLUENCE_SIDE, x, y)) == data.current_side ? 0 : 1;
     if (mission.duration == NO_TEXT)
       Call(ds, event, REQUEST_FORMAT, text, Call(ds, event, MESSAGE_LOOKUP, RAID_DURATION_MESSAGE), hours);
@@ -270,26 +263,15 @@ void opeu_special_recon(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SpecialService>(id)) {
-  case REQUEST_FORMAT: c1_request_format(ds, args, count); break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case CONFIRM_MESSAGE:
-    r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case MESSAGE_LOOKUP: r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case ARMY_PRINT:     c1_cursor_print(ds, args, count); break;
-  case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case FIND_OBJECTIVE_AT:
-    r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case DELAY_DIALOG:
-    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2), Arg(args, count, 3));
-    break;
+  case REQUEST_FORMAT:    c1_request_format(ds, args, count); break;
+  case CONTROL_MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONFIRM_MESSAGE:   r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MESSAGE_LOOKUP:    r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case ARMY_PRINT:        c1_cursor_print(ds, args, count); break;
+  case PENDING_FINISH:    opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_SHOW:        port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case FIND_OBJECTIVE_AT: r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case DELAY_DIALOG:      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case ARMY_TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case MAP_PICK_LOCATION: {
     // The map pick keeps a 20-byte workspace below its own frame.
@@ -298,23 +280,17 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     port_frame_leave();
     break;
   }
-  case OBJECTIVE_SIDE: r = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case ARMY_POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case DAILY_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
-  case FAR_ACTION:    port_call(ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
-  case FIND_UNIT_AT:  r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case UNIT_SIDE:     r = opeu_unit_side(Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:  r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:     r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CELL_INFLUENCE_SIDE:
-    r = opeu_cell_influence_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  case FIND_PERSON_TEMPLATE:
-    r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("specops", id, count);
+  case OBJECTIVE_SIDE:       r = opeu_objective_side(ds, Arg(args, count, 0)); break;
+  case ARMY_POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case DAILY_CONTEXT:        opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case FAR_ACTION:           port_call(ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
+  case FIND_UNIT_AT:         r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
+  case UNIT_SPECIAL:         r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case UNIT_NAME:            r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CELL_INFLUENCE_SIDE:  r = opeu_cell_influence_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case FIND_PERSON_TEMPLATE: r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                   port_unhandled("specops", id, count);
   }
   return r;
 }

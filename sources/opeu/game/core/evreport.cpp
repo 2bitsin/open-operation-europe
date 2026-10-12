@@ -161,17 +161,13 @@ uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   switch (id) {
   case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, static_cast<uint8_t>(Arg(args, count, 0))); break;
   case LOOKUP:         result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
-  case UNIT_MESSAGE:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case UNIT_MESSAGE:   opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0),
-                    static_cast<uint8_t>(Arg(args, count, 1)),
-                    static_cast<uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
+    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
     break;
   case CONTEXT: opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case EVENT: port_call(ds, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0); break;
-  default:    port_unhandled("evreport", id, count);
+  case EVENT:   port_call(ds, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0); break;
+  default:      port_unhandled("evreport", id, count);
   }
   return result;
 }

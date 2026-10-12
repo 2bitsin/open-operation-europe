@@ -285,8 +285,7 @@ PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
   return 0;
 }
 
-/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls
- * it back through its present service, i.e. by routine identifier. */
+/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its present service, i.e. by routine identifier. */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
 }
@@ -300,8 +299,7 @@ uint32_t port_run_briefing(uint8_t* ds, PortBriefing briefing) {
   return 0;
 }
 
-uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order,
-                     unsigned n) {
+uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) {
   uint16_t out[8];
   unsigned i;
   for (i = 0; i < n && i < 8; ++i) out[i] = order[i] < count ? args[order[i]] : 0;

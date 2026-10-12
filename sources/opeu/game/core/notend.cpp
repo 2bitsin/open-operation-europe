@@ -102,9 +102,7 @@ void GainExperience(DataSegment& data, uint16_t person) {
 // Resumes the saved order of a unit of a computer-commanded division.
 void ResumeOrder(uint8_t ds[65536], uint16_t unit) {
   auto& data{ Data(ds) };
-  if (unit && (Record<Group>(data, opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK))
-      && Record<Unit>(data, unit).orders[1].kind != NO_ORDER)
-    opeu_restore_unit_order(ds, unit);
+  if (unit && (Record<Group>(data, opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK)) && Record<Unit>(data, unit).orders[1].kind != NO_ORDER) opeu_restore_unit_order(ds, unit);
 }
 
 } // namespace
@@ -261,15 +259,13 @@ void opeu_end_losses(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     }
     uint16_t const remaining{ Record<Element>(data, element).quantity };
     uint16_t const lost{ static_cast<uint16_t>(loss.item.quantity - remaining) };
-    Call(ds, event, FORMAT, report, offsetof(DataSegment, end_loss_format), SIDE_COLOUR[side == 0 ? 0 : 1],
-         data.side_names[side], unit_name, item_name);
+    Call(ds, event, FORMAT, report, offsetof(DataSegment, end_loss_format), SIDE_COLOUR[side == 0 ? 0 : 1], data.side_names[side], unit_name, item_name);
     if (!unit || !Record<Element>(data, element).quantity)
       Call(ds, event, APPEND_STRING, report, offsetof(DataSegment, end_wiped_out_text));
     else if (!lost)
       Call(ds, event, APPEND_STRING, report, offsetof(DataSegment, end_undamaged_text));
     else {
-      Call(ds, event, FORMAT, loss_text,
-           lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format), lost);
+      Call(ds, event, FORMAT, loss_text, lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format), lost);
       Call(ds, event, APPEND_STRING, report, loss_text);
     }
     Call(ds, event, CONTROL_MESSAGE, report, opeu_find_side_record(ds, opeu_side_for_status(ds, side), 3));
@@ -311,8 +307,7 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case WAIT:      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case SHOW_LOCATION:
     sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2), (uint8_t)Arg(args, count, 0),
-                          (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_stack_leave(PORT_FRAME);
     break;
   case ERASE_UNIT:
@@ -325,14 +320,9 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
     opeu_arrival_prepare(ds, svc_maperase, (uint16_t)(sp - 2), Arg(args, count, 0));
     port_stack_leave(PORT_FRAME);
     break;
-  case FORMAT: c1_request_format(ds, args, count); break;
-  case UNIT_MESSAGE:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                    (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2));
-    break;
+  case FORMAT:         c1_request_format(ds, args, count); break;
+  case UNIT_MESSAGE:   opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
   case ELEMENT_SIDE:   r = opeu_battle_element_side(ds, svc_btllist, Arg(args, count, 0)); break;
   case UNIT_NAME:      r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ITEM_NAME:      r = opeu_item_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
@@ -341,18 +331,15 @@ uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case APPEND_STRING:  r = opeu_string_append(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case REPORT_ELEMENT: opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case REPORT_ITEM:    opeu_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case CONTROL_MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case TURN_PREPARE:  opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
-  case DAILY_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
-  default:            port_unhandled("notend", id, count);
+  case CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case TURN_PREPARE:    opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
+  case DAILY_CONTEXT:   opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  default:              port_unhandled("notend", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_end_occupy_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_end_occupy_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
   opeu_end_occupy_present(ds, svc_notend);

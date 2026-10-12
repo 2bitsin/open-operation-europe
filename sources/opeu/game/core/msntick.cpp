@@ -27,9 +27,8 @@ uint16_t opeu_mission_target_valid(uint8_t ds[65536], uint16_t mission, uint8_t 
   case MissionKind::RAID_UNIT:
   case MissionKind::CUT_LINES_UNIT:
   case MissionKind::ASSASSINATION:
-  case MissionKind::RECON_UNIT:
-    return (Record<Unit>(Data(ds), order.target).flags & Bits(UnitFlag::READY)) && opeu_unit_special(ds, order.target);
-  default: return 0;
+  case MissionKind::RECON_UNIT:     return (Record<Unit>(Data(ds), order.target).flags & Bits(UnitFlag::READY)) && opeu_unit_special(ds, order.target);
+  default:                          return 0;
   }
 }
 

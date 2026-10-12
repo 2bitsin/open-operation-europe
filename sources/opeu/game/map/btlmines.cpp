@@ -38,8 +38,8 @@ void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t sp, uint16
   auto const buffer{ Local(sp, REPORT_TEXT) };
   auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
   if (data.side_status[side] == 0) return;
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), side ? SIDE_1_COLOR : SIDE_0_COLOR,
-       data.side_names[side], data.element_types[Record<Element>(data, element).type].name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), side ? SIDE_1_COLOR : SIDE_0_COLOR, data.side_names[side],
+       data.element_types[Record<Element>(data, element).type].name);
   Append(ds, buffer, Near(data, data.retreat_mines_text));
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, buffer, side, COMMANDER_REPORT);
 }
@@ -109,8 +109,7 @@ uint16_t svc_btlmines(uint8_t* ds, uint32_t service, const uint16_t* args, unsig
   return svc_battle_mines(ds, service, args, count);
 }
 
-auto port_routine_opeu_battle_mine_damage(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_mine_damage(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_mine_damage(ds, svc_btlmines, Arg(args, count, 0));
 }
 

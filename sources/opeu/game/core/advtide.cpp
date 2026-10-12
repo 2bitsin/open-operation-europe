@@ -48,13 +48,9 @@ uint16_t opeu_advice_tide_isolation(uint8_t ds[65536], const uint8_t* far_text, 
     std::uint8_t count{};
     auto const   garrison{ opeu_objective_quantity(ds, near, ALL_CATEGORIES, &count) };
     if (opeu_cell_influence_side(ds, objective.x, objective.y) != side && garrison == 0 && advisor.Random(3) == 1)
-      return advisor.SayFormatted(advisor.Scratch(0x6c),
-                                  opeu_objective_level(ds, near) >= CITY_LEVEL ? AdviceText::OBJECTIVE_SAFE
-                                                                               : AdviceText::ABANDON_OBJECTIVE,
-                                  near);
+      return advisor.SayFormatted(advisor.Scratch(0x6c), opeu_objective_level(ds, near) >= CITY_LEVEL ? AdviceText::OBJECTIVE_SAFE : AdviceText::ABANDON_OBJECTIVE, near);
   }
-  if (opeu_request_cells(ds, side, opeu_request_cell_allowed) == 0 && advisor.Random(3) == 1)
-    return advisor.Say(AdviceText::FORCES_ISOLATED);
+  if (opeu_request_cells(ds, side, opeu_request_cell_allowed) == 0 && advisor.Random(3) == 1) return advisor.Say(AdviceText::FORCES_ISOLATED);
   return 0;
 }
 
@@ -69,9 +65,7 @@ uint16_t opeu_staff_1ad2(uint8_t ds[65536], const uint8_t* far_text, HostEvent e
     if (!IsActiveGroup(GroupOf(data, side, g))) continue;
     for (auto const& unit : GroupUnits(data, side, g)) {
       auto const near{ Near(data, unit) };
-      if ((unit.flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(ds, near)
-          && opeu_unit_value(ds, near) <= CHEAP_UNIT)
-        ++cheap;
+      if ((unit.flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(ds, near) && opeu_unit_value(ds, near) <= CHEAP_UNIT) ++cheap;
     }
   }
   if (cheap >= 12 && cheap < 20 && advisor.Random(4) == 1) {
@@ -99,13 +93,10 @@ uint16_t opeu_advice_tide_strength_balance(uint8_t ds[65536], const uint8_t* far
   std::uint8_t theirs{};
   opeu_side_quantity(ds, side, ALL_CATEGORIES, &ours);
   opeu_side_quantity(ds, foe, ALL_CATEGORIES, &theirs);
-  if (static_cast<std::int16_t>(theirs * 2) < static_cast<std::int16_t>(ours) && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::GO_ON_OFFENSIVE);
-  if (data.side_stance[side] == Bits(Stance::DEFENSIVE)
-      && static_cast<std::int16_t>(ours * 2) < static_cast<std::int16_t>(theirs) && advisor.Random(4) == 1)
+  if (static_cast<std::int16_t>(theirs * 2) < static_cast<std::int16_t>(ours) && advisor.Random(4) == 1) return advisor.Say(AdviceText::GO_ON_OFFENSIVE);
+  if (data.side_stance[side] == Bits(Stance::DEFENSIVE) && static_cast<std::int16_t>(ours * 2) < static_cast<std::int16_t>(theirs) && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::WAIT_IT_OUT);
-  if (data.side_stance[side] == Bits(Stance::OFFENSIVE) && ours < 30 && waiting != 0 && advisor.Random(4) == 1)
-    return advisor.Say(AdviceText::WAIT_FOR_REINFORCEMENTS);
+  if (data.side_stance[side] == Bits(Stance::OFFENSIVE) && ours < 30 && waiting != 0 && advisor.Random(4) == 1) return advisor.Say(AdviceText::WAIT_FOR_REINFORCEMENTS);
   return 0;
 }
 
@@ -145,9 +136,7 @@ uint16_t opeu_advice_tide_no_advances(uint8_t ds[65536], const uint8_t* far_text
 void opeu_advice_tide_of_war(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   using Check = uint16_t (*)(uint8_t*, const uint8_t*, HostEvent, uint16_t);
   static constexpr Check CHECKS[]{
-    opeu_advice_tide_isolation,        opeu_staff_1ad2,
-    opeu_advice_tide_strength_balance, opeu_advice_tide_territory_control,
-    opeu_advice_tide_air_superiority,  opeu_advice_tide_no_advances,
+    opeu_advice_tide_isolation, opeu_staff_1ad2, opeu_advice_tide_strength_balance, opeu_advice_tide_territory_control, opeu_advice_tide_air_superiority, opeu_advice_tide_no_advances,
   };
   auto const nested{ static_cast<std::uint16_t>(sp - 4) };
   for (auto const check : CHECKS)

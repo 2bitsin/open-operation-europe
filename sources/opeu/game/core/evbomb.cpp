@@ -106,8 +106,7 @@ void opeu_bomb_draw_frame(uint8_t ds[65536], HostEvent event, uint16_t load, uin
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_IMAGE);
   Call(ds, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream.segment, data.stream.offset);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_SPRITE);
-  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream.offset, data.stream.segment, BOMB_MASK,
-       load + SPRITE_SEGMENT, 0, data.image_segment, 0);
+  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream.offset, data.stream.segment, BOMB_MASK, load + SPRITE_SEGMENT, 0, data.image_segment, 0);
 }
 
 // Puts the background under the bomb at (x, y) back.
@@ -124,8 +123,7 @@ void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16
   auto const  ux{ static_cast<std::uint16_t>(target.x) };
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
-  Call(ds, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy),
-       opeu_side_for_status(ds, side));
+  Call(ds, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy), opeu_side_for_status(ds, side));
   auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
   auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
   SetWord(ds, pixel_x, ux);
@@ -159,9 +157,7 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
-      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(ds, troop)
-          || RandomBelow(ds, static_cast<std::uint16_t>(150 - level * 20)))
-        continue;
+      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(ds, troop) || RandomBelow(ds, static_cast<std::uint16_t>(150 - level * 20))) continue;
       Call(ds, event, UNIT_NAME, troop, name);
       std::uint8_t voice{ NO_VOICE };
       if (data.side_status[0] == SIDE_PLAYED) {
@@ -191,23 +187,13 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   uint16_t   result{ 0 };
   auto const word{ [&](unsigned i) { return Arg(args, count, i); } };
   switch (id) {
-  case BITMAP_SAVE: opeu_bitmap_save(word(0), word(1), word(2), word(3), port_far(word(4), word(5))); break;
-  case DRAW_FAR:
-    result = static_cast<uint16_t>(
-        opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-    break;
-  case SPRITE_COMPOSE:
-    opeu_sprite_compose(word(0), word(1), word(2), word(3), port_far(word(5), word(4)), port_far(word(7), word(6)),
-                        port_far(word(9), word(8)), word(10));
-    break;
-  case BITMAP_RESTORE:
-    result = static_cast<uint16_t>(
-        opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-    break;
-  case MAP_CENTER: {
+  case BITMAP_SAVE:    opeu_bitmap_save(word(0), word(1), word(2), word(3), port_far(word(4), word(5))); break;
+  case DRAW_FAR:       result = static_cast<uint16_t>(opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6)))); break;
+  case SPRITE_COMPOSE: opeu_sprite_compose(word(0), word(1), word(2), word(3), port_far(word(5), word(4)), port_far(word(7), word(6)), port_far(word(9), word(8)), word(10)); break;
+  case BITMAP_RESTORE: result = static_cast<uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6)))); break;
+  case MAP_CENTER:     {
     auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)),
-                    static_cast<uint8_t>(word(2)));
+    opeu_map_center(ds, svc_mappos, frame, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
     port_frame_leave();
     break;
   }

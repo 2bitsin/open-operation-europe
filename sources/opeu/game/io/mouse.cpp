@@ -35,8 +35,7 @@ auto HasMouse(std::uint8_t const* ds) -> bool {
 }
 
 // INT 33h with AX = `function`; the registers come back.
-auto Mouse(std::uint8_t* ds, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0)
-    -> Regs {
+auto Mouse(std::uint8_t* ds, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0) -> Regs {
   Regs r{};
   r.x.ax = function;
   r.x.cx = cx;
@@ -127,11 +126,9 @@ auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service) -> std::uint8_
   return buttons;
 }
 
-void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width,
-                       std::int16_t height) {
+void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width, std::int16_t height) {
   Mouse(ds, service, X_RANGE, static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x));
-  Mouse(ds, service, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET),
-        static_cast<std::uint16_t>(y + height + ROW_OFFSET));
+  Mouse(ds, service, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET), static_cast<std::uint16_t>(y + height + ROW_OFFSET));
 }
 
 // The input driver call: int86(0x33) with the seven register words. The keyboard and dialog modules forward their

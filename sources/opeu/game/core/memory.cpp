@@ -25,19 +25,16 @@ void opeu_copy_bytes(uint8_t ds[65536], uint16_t source, uint16_t destination, u
   }
 }
 
-void opeu_copy_far_to_near(uint8_t ds[65536], uint8_t* source_segment, uint16_t source, uint16_t destination,
-                           uint16_t size) {
+void opeu_copy_far_to_near(uint8_t ds[65536], uint8_t* source_segment, uint16_t source, uint16_t destination, uint16_t size) {
   for (; size; size--) ds[destination++] = source_segment[source++];
 }
 
-void opeu_copy_near_to_far(uint8_t ds[65536], uint16_t source, uint8_t* destination_segment, uint16_t destination,
-                           uint16_t size) {
+void opeu_copy_near_to_far(uint8_t ds[65536], uint16_t source, uint8_t* destination_segment, uint16_t destination, uint16_t size) {
   for (; size; size--) destination_segment[destination++] = ds[source++];
 }
 
 // The same transfer as opeu_copy_far_to_near, under the name its other callers use.
-void opeu_read_far_bytes(uint8_t ds[65536], uint8_t* source_segment, uint16_t source, uint16_t destination,
-                         uint16_t size) {
+void opeu_read_far_bytes(uint8_t ds[65536], uint8_t* source_segment, uint16_t source, uint16_t destination, uint16_t size) {
   opeu_copy_far_to_near(ds, source_segment, source, destination, size);
 }
 
@@ -73,7 +70,6 @@ uint32_t opeu_parse_decimal(uint8_t ds[65536], uint16_t text) {
 }
 
 auto port_routine_opeu_read_far_bytes(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_read_far_bytes(ds, port_far(Arg(args, count, 3), 0), Arg(args, count, 2), Arg(args, count, 1),
-                      Arg(args, count, 0));
+  opeu_read_far_bytes(ds, port_far(Arg(args, count, 3), 0), Arg(args, count, 2), Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

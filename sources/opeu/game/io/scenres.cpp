@@ -36,12 +36,10 @@ auto Open(std::uint8_t* ds, HostEvent event, auto const& name) -> std::int16_t {
 }
 
 auto Seek(std::uint8_t* ds, HostEvent event, std::int16_t handle, std::uint32_t position) -> void {
-  Call(ds, event, SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16),
-       FROM_START);
+  Call(ds, event, SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), FROM_START);
 }
 
-auto ReadFar(std::uint8_t* ds, HostEvent event, std::int16_t handle, std::uint16_t segment, std::uint16_t offset,
-             std::uint16_t count) -> void {
+auto ReadFar(std::uint8_t* ds, HostEvent event, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> void {
   Call(ds, event, READ_FAR, handle, segment, offset, count);
 }
 } // namespace
@@ -119,8 +117,7 @@ void opeu_load_scenario_graphics(std::uint8_t* ds, HostEvent event) {
   ReadFar(ds, event, file, data.icon_segment, 0, 0x8660);
   Call(ds, event, CLOSE, file);
 
-  file = (data.scenario & MAP_MASK) != WINTER_MAP ? Open(ds, event, data.hexfont_filename)
-                                                  : Open(ds, event, data.hexfonts_filename);
+  file = (data.scenario & MAP_MASK) != WINTER_MAP ? Open(ds, event, data.hexfont_filename) : Open(ds, event, data.hexfonts_filename);
   Call(ds, event, GRAPHICS_WAIT);
   ReadFar(ds, event, file, data.sprite_segment, 0, 0xf136);
   Call(ds, event, CLOSE, file);
@@ -130,17 +127,11 @@ auto svc_scenres(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, 
   switch (id) {
   case OPEN: return static_cast<std::uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
   case SEEK:
-    return static_cast<std::uint16_t>(opeu_dos_seek(static_cast<std::int16_t>(Arg(args, count, 0)),
-                                                    static_cast<std::int32_t>(Arg32(args, count, 1)),
-                                                    static_cast<std::int16_t>(Arg(args, count, 3))));
-  case READ:
-    return static_cast<std::uint16_t>(opeu_dos_read(static_cast<std::int16_t>(Arg(args, count, 0)),
-                                                    PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)));
-  case READ_FAR:
-    return static_cast<std::uint16_t>(opeu_dos_read_far(static_cast<std::int16_t>(Arg(args, count, 0)),
-                                                        Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)));
-  case CLOSE:   return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
-  case EMS_MAP: opeu_ems_map_dialog(ds, svc_emsmap); break;
+    return static_cast<std::uint16_t>(opeu_dos_seek(static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int32_t>(Arg32(args, count, 1)), static_cast<std::int16_t>(Arg(args, count, 3))));
+  case READ:            return static_cast<std::uint16_t>(opeu_dos_read(static_cast<std::int16_t>(Arg(args, count, 0)), PORT_DS(Arg(args, count, 1)), Arg(args, count, 2)));
+  case READ_FAR:        return static_cast<std::uint16_t>(opeu_dos_read_far(static_cast<std::int16_t>(Arg(args, count, 0)), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)));
+  case CLOSE:           return static_cast<std::uint16_t>(opeu_dos_close(static_cast<std::int16_t>(Arg(args, count, 0))));
+  case EMS_MAP:         opeu_ems_map_dialog(ds, svc_emsmap); break;
   case DISPLAY_PREPARE: opeu_display_prepare(ds, svc_emsmap); break;
   case VIEW_PREPARE:    opeu_view_prepare(ds, svc_emsmap); break;
   case GRAPHICS_WAIT:   opeu_gfx_wait(ds, svc_emsmap); break;

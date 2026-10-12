@@ -40,8 +40,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(std::uint8_t* ds, HostEvent event, std::uint8_t row) {
   auto const& data{ Data(ds) };
-  Call(ds, event, HIGHLIGHT, data.supply_panel_x + 0xd, row * ROW_HEIGHT + data.supply_panel_y + 0x23, 6, 0x1b,
-       HIGHLIGHT_COLOUR);
+  Call(ds, event, HIGHLIGHT, data.supply_panel_x + 0xd, row * ROW_HEIGHT + data.supply_panel_y + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
 }
 
 // The amount a key moves: 1, 10 or 100.
@@ -72,9 +71,7 @@ uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event, uint16_t selection
     auto const   left{ TableAt(0, selected, CURRENT) };
     auto const   right{ TableAt(1, selected, CURRENT) };
     auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
-    auto const   right_capacity{ data.supply_objective
-                                     ? static_cast<std::uint16_t>(offsetof(DataSegment, supply_unlimited))
-                                     : TableAt(1, selected, CAPACITY) };
+    auto const   right_capacity{ data.supply_objective ? static_cast<std::uint16_t>(offsetof(DataSegment, supply_unlimited)) : TableAt(1, selected, CAPACITY) };
     if (selected != highlighted) {
       if (highlighted != NO_ROW) Highlight(ds, event, highlighted);
       Highlight(ds, event, selected);
@@ -92,8 +89,7 @@ uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event, uint16_t selection
     case '1':
     case '4':
     case '7': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left_capacity) - Word(ds, left), KeyAmount(key)),
-                                   Word(ds, right)) };
+      auto const moved{ opeu_min16(opeu_min16(Word(ds, left_capacity) - Word(ds, left), KeyAmount(key)), Word(ds, right)) };
       SetWord(ds, left, Word(ds, left) + moved);
       SetWord(ds, right, Word(ds, right) - moved);
       redraw = 1;
@@ -102,8 +98,7 @@ uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event, uint16_t selection
     case '3':
     case '6':
     case '9': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left), KeyAmount(key)),
-                                   Word(ds, right_capacity) - Word(ds, right)) };
+      auto const moved{ opeu_min16(opeu_min16(Word(ds, left), KeyAmount(key)), Word(ds, right_capacity) - Word(ds, right)) };
       SetWord(ds, left, Word(ds, left) - moved);
       SetWord(ds, right, Word(ds, right) + moved);
       redraw = 2;
@@ -128,15 +123,12 @@ uint16_t svc_supstep(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case LEFT_DOWN:
   case MOUSE_HIDE:
   case KEY:            r = svc_suppanel(ds, id, args, count); break;
-  case ROW: opeu_supply_draw_row(ds, svc_suprow, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CHIEF_TEXT:  opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
-  case INPUT_RESET: opeu_input_reset(ds, svc_mouse); break;
-  case HIGHLIGHT:
-    opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                      Arg(args, count, 4));
-    break;
-  case CHIEF_WAIT: r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
-  default:         port_unhandled("supstep", id, count);
+  case ROW:            opeu_supply_draw_row(ds, svc_suprow, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case CHIEF_TEXT:     opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
+  case INPUT_RESET:    opeu_input_reset(ds, svc_mouse); break;
+  case HIGHLIGHT:      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case CHIEF_WAIT:     r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
+  default:             port_unhandled("supstep", id, count);
   }
   return r;
 }

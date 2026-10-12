@@ -51,8 +51,7 @@ struct OutlineBridge {
   HostService service;
 };
 
-auto OutlineLine(std::uint8_t* ds, std::uint8_t* memory, std::uint16_t id, std::uint16_t const* args,
-                 std::uint16_t count) -> std::uint32_t {
+auto OutlineLine(std::uint8_t* ds, std::uint8_t* memory, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint32_t {
   constexpr std::uint16_t LINE_EVENT{ 5 };
   if (id != LINE_EVENT || count != 5) return 0;
   auto const* bridge{ reinterpret_cast<OutlineBridge const*>(memory) };
@@ -60,16 +59,14 @@ auto OutlineLine(std::uint8_t* ds, std::uint8_t* memory, std::uint16_t id, std::
   return 0;
 }
 
-auto Outline(std::uint8_t* ds, HostService service, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2,
-             std::uint16_t y2) -> void {
+auto Outline(std::uint8_t* ds, HostService service, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2) -> void {
   OutlineBridge bridge{ service };
   UiHost        host{ reinterpret_cast<std::uint8_t*>(&bridge), 0, 0, 0, OutlineLine };
   opeu_ui_outline(ds, &host, x1, y1, x2, y2, OUTLINE_COLOUR);
 }
 
 // Clamps a dialog value to lo..hi, showing the clamped value.
-auto Clamped(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, std::int32_t value)
-    -> std::int32_t {
+auto Clamped(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   if (value < lo) {
     value = lo;
     opeu_numdlg_show(ds, service, value);
@@ -86,8 +83,7 @@ void opeu_numdlg_button(std::uint8_t* ds, HostService service, std::uint8_t n, s
   auto const& data{ Data(ds) };
   opeu_mouse_hide(ds, service);
   Input(ds, service, InputCall::EMS_MAP);
-  Input(ds, service, InputCall::BITMAP_RESTORE, n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0,
-        data.message_picture_segment, tile);
+  Input(ds, service, InputCall::BITMAP_RESTORE, n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, data.message_picture_segment, tile);
   opeu_mouse_show(ds, service);
 }
 
@@ -105,16 +101,14 @@ void opeu_numdlg_open(std::uint8_t* ds, HostService service) {
   auto const& data{ Data(ds) };
   Input(ds, service, InputCall::BITMAP_SAVE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, data.numdlg_save_segment, 0);
   Input(ds, service, InputCall::EMS_MAP);
-  Input(ds, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0,
-        data.message_picture_segment, 0);
+  Input(ds, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.message_picture_segment, 0);
   opeu_numdlg_release(ds, service, CANCEL_BUTTON);
   opeu_numdlg_release(ds, service, OK_BUTTON);
 }
 
 void opeu_numdlg_close(std::uint8_t* ds, HostService service) {
   auto const& data{ Data(ds) };
-  Input(ds, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.numdlg_save_segment,
-        0);
+  Input(ds, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.numdlg_save_segment, 0);
 }
 
 void opeu_numdlg_digit(std::uint8_t* ds, HostService service, std::uint8_t i, std::uint8_t digit) {
@@ -180,8 +174,7 @@ auto opeu_numdlg_hit(std::uint8_t* ds, HostService, std::uint16_t mx, std::uint1
   auto const&         data{ Data(ds) };
   std::uint8_t        hit{ NOTHING };
   std::uint16_t const x{ Column(data) };
-  if (static_cast<std::uint16_t>(x + 0x10) > mx || static_cast<std::uint16_t>(data.numdlg_y + 0x20) > my)
-    return NOTHING;
+  if (static_cast<std::uint16_t>(x + 0x10) > mx || static_cast<std::uint16_t>(data.numdlg_y + 0x20) > my) return NOTHING;
   std::uint16_t row = my - data.numdlg_y - 0x10;
   if (row % 24 < 16) {
     row                  /= 24;
@@ -279,8 +272,7 @@ void opeu_numdlg_refresh(std::uint8_t* ds, HostService service, std::uint8_t n) 
 }
 
 // Digit n goes up, wrapping after 6 (the first) or 9; the value is clamped to lo..hi.
-auto opeu_numdlg_increment(std::uint8_t* ds, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi,
-                           std::int32_t value) -> std::int32_t {
+auto opeu_numdlg_increment(std::uint8_t* ds, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   opeu_numdlg_split(ds, service, value);
   auto&              digit{ Data(ds).numdlg_digits[n] };
   std::uint8_t const top{ static_cast<std::uint8_t>(n == 0 ? 6 : 9) };
@@ -291,8 +283,7 @@ auto opeu_numdlg_increment(std::uint8_t* ds, HostService service, std::uint8_t n
 }
 
 // Digit n goes down, wrapping from 0 to 6 (the first) or 9.
-auto opeu_numdlg_decrement(std::uint8_t* ds, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi,
-                           std::int32_t value) -> std::int32_t {
+auto opeu_numdlg_decrement(std::uint8_t* ds, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   opeu_numdlg_split(ds, service, value);
   auto& digit{ Data(ds).numdlg_digits[n] };
   if (digit == 0) digit = n == 0 ? 7 : 10;
@@ -306,16 +297,13 @@ auto opeu_numdlg_decrement(std::uint8_t* ds, HostService service, std::uint8_t n
 auto opeu_numdlg_outside(std::uint8_t* ds, HostService, std::uint16_t mx, std::uint16_t my) -> std::uint16_t {
   auto const&         data{ Data(ds) };
   std::uint16_t const x{ Column(data) };
-  if (x <= mx && static_cast<std::uint16_t>(x + 0x90) > mx && static_cast<std::uint16_t>(data.numdlg_y + 0x20) <= my
-      && static_cast<std::uint16_t>(data.numdlg_y + 0x60) > my)
-    return 0;
+  if (x <= mx && static_cast<std::uint16_t>(x + 0x90) > mx && static_cast<std::uint16_t>(data.numdlg_y + 0x20) <= my && static_cast<std::uint16_t>(data.numdlg_y + 0x60) > my) return 0;
   return 1;
 }
 
 // Runs the dialog until a value in lo..hi is accepted or (when allowed) the dialog is cancelled; returns the value or
 // 0xffff. The mouse position words are at scratch (x) and scratch+2 (y); dragging uses scratch+4..+7.
-auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel,
-                       std::uint16_t scratch) -> std::uint16_t {
+auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel, std::uint16_t scratch) -> std::uint16_t {
   auto const&  data{ Data(ds) };
   auto const   x_at{ scratch };
   auto const   y_at{ static_cast<std::uint16_t>(scratch + 2) };
@@ -390,8 +378,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
   return static_cast<std::uint16_t>(value);
 }
 
-auto opeu_numdlg_run(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel,
-                     std::uint16_t scratch) -> std::uint16_t {
+auto opeu_numdlg_run(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel, std::uint16_t scratch) -> std::uint16_t {
   opeu_numdlg_open(ds, service);
   auto const value{ opeu_numdlg_track(ds, service, lo, hi, cancel, scratch) };
   opeu_numdlg_close(ds, service);

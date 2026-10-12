@@ -50,14 +50,12 @@ void opeu_view_city_list(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_
   auto const title{ FrameLocal(sp, TITLE_LOCAL) };
   data.city_dialog.rows = static_cast<uint8_t>(count + 1);
   SetRowCheck(ds, event, data.city_dialog, RowCheck::OBJECTIVE);
-  for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL),
-                                  Call(ds, event, ViewService::CONTROL_MESSAGE, CITY_PROMPT, data.context_record3),
+  for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL), Call(ds, event, ViewService::CONTROL_MESSAGE, CITY_PROMPT, data.context_record3),
                                   Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.city_dialog), 1, height);
        height = 6) {
     auto const city{ data.view_objectives[data.list_row] };
     Call(ds, event, ViewService::UNIT_FLASH, city, 4);
-    data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(ds, event, CalleeStack(sp, 0x72), city)
-                                                  + 1);
+    data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(ds, event, CalleeStack(sp, 0x72), city) + 1);
     if (data.stock_dialog.rows > 1) {
       SetRowCheck(ds, event, data.stock_dialog, RowCheck::NONE_3);
       Call(ds, event, ViewService::CONTROL_PANEL);
@@ -84,9 +82,7 @@ void opeu_view_enemy_cities(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 // The cities menu (own, enemy) until cancelled.
 void opeu_view_cities_menu(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
-  for (std::uint16_t item;
-       (item = Call(ds, event, ViewService::DELAY_DIALOG, CITY_SIDE_PROMPT, 2, data.context_record2, CITY_SIDE_MENU))
-       != MENU_CANCELLED;)
+  for (std::uint16_t item; (item = Call(ds, event, ViewService::DELAY_DIALOG, CITY_SIDE_PROMPT, 2, data.context_record2, CITY_SIDE_MENU)) != MENU_CANCELLED;)
     RunAction(ds, event, data.city_actions, item);
 }
 

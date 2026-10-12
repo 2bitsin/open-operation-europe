@@ -46,8 +46,7 @@ void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element, 
   auto&      data{ Data(ds) };
   auto const message{ Local(frame, MESSAGE_AT) };
   auto const side{ opeu_battle_element_side(ds, event, element) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped),
-       side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.element_types[Record<Element>(data, element).type].name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.element_types[Record<Element>(data, element).type].name);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
@@ -77,8 +76,7 @@ void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, 
     Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_text_bunker));
   }
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, side, 1);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT,
-       side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1), shooter_name);
+  Call(ds, event, BattleRoutine::CURSOR_PRINT, side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1), shooter_name);
   Call(ds, event, BattleRoutine::TEXT_COLOR, WHITE);
   Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
 }
@@ -87,9 +85,7 @@ uint16_t svc_btlrpanl(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_wiped_notice(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack(
-      [&](uint16_t sp) { opeu_battle_wiped_notice(ds, svc_btlrpanl, Arg(args, count, 0), BattleFrame(sp)); });
+auto port_routine_opeu_battle_wiped_notice(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_wiped_notice(ds, svc_btlrpanl, Arg(args, count, 0), BattleFrame(sp)); });
   return 0;
 }

@@ -12,8 +12,7 @@ namespace opeu::game::detail::map_grid {
 [[nodiscard]] inline auto MapCellAt(DataSegment& data, std::uint8_t x, std::uint8_t y) noexcept -> std::uint8_t& {
   return data.map_cells[y * MAP_WIDTH + x];
 }
-[[nodiscard]] inline auto MapCellAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept
-    -> std::uint8_t const& {
+[[nodiscard]] inline auto MapCellAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept -> std::uint8_t const& {
   return data.map_cells[y * MAP_WIDTH + x];
 }
 
@@ -21,8 +20,7 @@ namespace opeu::game::detail::map_grid {
 [[nodiscard]] inline auto InfluenceAt(DataSegment& data, std::uint8_t x, std::uint8_t y) noexcept -> std::int16_t& {
   return data.influence_map[y / 4 * INFLUENCE_WIDTH + x / 4];
 }
-[[nodiscard]] inline auto InfluenceAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept
-    -> std::int16_t const& {
+[[nodiscard]] inline auto InfluenceAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept -> std::int16_t const& {
   return data.influence_map[y / 4 * INFLUENCE_WIDTH + x / 4];
 }
 
