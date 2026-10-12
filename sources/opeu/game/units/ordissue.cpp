@@ -99,7 +99,7 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp,
       return;
     }
     kind = data.issue_order_codes[menu][choice - 1];
-    if (kind == Kind(OrderKind::REPAIR_CITY) &&
+    if (kind == Kind(UnitOrder::REPAIR_CITY) &&
         !opeu_unit_quantity(ds, unit, REPAIR_CREWS, ds + count_at)) {
       Send(ds, event, ORDERS_CONTROL_MESSAGE,
            Near(data, prompts.no_repair_unit), person);
@@ -109,9 +109,9 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp,
   }
   std::uint16_t target{};
   for (;;) {
-    ds[x_at] = regiment.x;
-    ds[y_at] = regiment.y;
-    if (kind != Kind(OrderKind::REST) || !whole) {
+    Byte(ds, x_at) = regiment.x;
+    Byte(ds, y_at) = regiment.y;
+    if (kind != Kind(UnitOrder::REST) || !whole) {
       Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target),
            person);
       if (!Send(ds, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
@@ -119,8 +119,8 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp,
         return;
       }
     }
-    if (CheckOrderTarget(ds, event, prompts, buffer, person, unit, ds[x_at],
-                         ds[y_at], kind, target))
+    if (CheckOrderTarget(ds, event, prompts, buffer, person, unit,
+                         Byte(ds, x_at), Byte(ds, y_at), kind, target))
       break;
     Send(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
     Send(ds, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
@@ -128,7 +128,8 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp,
   }
   AnnounceOrder(ds, event, prompts, buffer, person, kind);
   if (!whole)
-    opeu_set_unit_order(ds, unit, target, ds[x_at], 0, kind, ds[y_at]);
+    opeu_set_unit_order(ds, unit, target, Byte(ds, x_at), 0, kind,
+                        Byte(ds, y_at));
   else
     for (std::uint8_t index{ 0 }; index < 8; ++index) {
       auto&      member{ division_units(index) };
@@ -136,16 +137,18 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t sp,
       if (!(member.flags & Bits(UnitFlag::READY)) ||
           !opeu_unit_selection_eligible(ds, near))
         continue;
-      if (kind == Kind(OrderKind::REST)) {
-        ds[x_at] = member.x;
-        ds[y_at] = member.y;
+      if (kind == Kind(UnitOrder::REST)) {
+        Byte(ds, x_at) = member.x;
+        Byte(ds, y_at) = member.y;
       }
       // A regiment does not pursue or supply itself.
-      auto const own_cell{ member.x == ds[x_at] && member.y == ds[y_at] };
-      if (!((kind == Kind(OrderKind::PURSUE) ||
-             kind == Kind(OrderKind::SUPPLY_UNIT)) &&
+      auto const own_cell{ member.x == Byte(ds, x_at) &&
+                           member.y == Byte(ds, y_at) };
+      if (!((kind == Kind(UnitOrder::PURSUE) ||
+             kind == Kind(UnitOrder::SUPPLY_UNIT)) &&
             own_cell))
-        opeu_set_unit_order(ds, near, target, ds[x_at], 0, kind, ds[y_at]);
+        opeu_set_unit_order(ds, near, target, Byte(ds, x_at), 0, kind,
+                            Byte(ds, y_at));
     }
   Send(ds, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
   data.overview_side = NO_CELL;

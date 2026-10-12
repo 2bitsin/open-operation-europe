@@ -130,7 +130,7 @@ void opeu_report_event(uint8_t ds[65536], HostEvent event) {
             !opeu_unit_selection_eligible(ds, near))
           continue;
         auto const order{ unit.orders[0].kind };
-        if (order == Kind(OrderKind::REST) || order == ORDER_UNUSED)
+        if (order == Kind(UnitOrder::REST) || order == ORDER_UNUSED)
           continue;
         if (opeu_unit_average11(ds, near) > RESTED_AVERAGE) {
           rested[group * UNITS_PER_GROUP + slot] = near;

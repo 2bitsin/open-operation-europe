@@ -68,29 +68,29 @@ uint16_t opeu_unit_order_destination(const uint8_t ds[65536], uint16_t unit,
   auto const& data{ Data(ds) };
   auto const& order{ Record<Unit>(data, unit).orders[0] };
   auto const  kind{ order.kind };
-  switch (static_cast<OrderKind>(kind)) {
-    case OrderKind::MOVE:
-    case OrderKind::OCCUPY:
-    case OrderKind::DEFEND:
-    case OrderKind::LAY_MINES:
-    case OrderKind::CLEAR_MINES:
-    case OrderKind::BUILD_BRIDGE:
-    case OrderKind::DESTROY_BRIDGE:
-    case OrderKind::SUPPLY_CITY:
-    case OrderKind::REPAIR_CITY:
-    case OrderKind::REST:
+  switch (static_cast<UnitOrder>(kind)) {
+    case UnitOrder::MOVE:
+    case UnitOrder::OCCUPY:
+    case UnitOrder::DEFEND:
+    case UnitOrder::LAY_MINES:
+    case UnitOrder::CLEAR_MINES:
+    case UnitOrder::BUILD_BRIDGE:
+    case UnitOrder::DESTROY_BRIDGE:
+    case UnitOrder::RESUPPLY:
+    case UnitOrder::REPAIR_CITY:
+    case UnitOrder::REST:
       *x = order.cell.x;
       *y = order.cell.y;
-      if ((kind == Kind(OrderKind::OCCUPY) ||
-           kind == Kind(OrderKind::SUPPLY_CITY) ||
-           kind == Kind(OrderKind::REPAIR_CITY)) &&
+      if ((kind == Kind(UnitOrder::OCCUPY) ||
+           kind == Kind(UnitOrder::RESUPPLY) ||
+           kind == Kind(UnitOrder::REPAIR_CITY)) &&
           !opeu_find_objective_at(ds, *x, *y))
         return 0;
       break;
-    case OrderKind::ATTACK:
-    case OrderKind::SUPPLY_UNIT:
-    case OrderKind::REPAIR_UNIT:
-    case OrderKind::PURSUE:      {
+    case UnitOrder::ATTACK:
+    case UnitOrder::SUPPLY_UNIT:
+    case UnitOrder::REPAIR_UNIT:
+    case UnitOrder::PURSUE:      {
       auto const& target{ Record<Unit>(data, order.target) };
       *x = target.x;
       *y = target.y;

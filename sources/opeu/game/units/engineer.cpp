@@ -9,6 +9,7 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "common/order-service.hpp"
+#include "units/order-handler.hpp"
 #include "core/limits.hpp"
 #include "types/events.hpp"
 
@@ -69,19 +70,6 @@ enum Service : std::uint16_t {
   SERVICES              = 21,
 };
 
-// The element kind unit_quantity counts for engineering (engineers).
-constexpr std::uint16_t ENGINEERS{ 5 };
-// The element kind unit_quantity counts for repairs.
-constexpr std::uint16_t REPAIR_CREWS{ 6 };
-// Map code of a river cell, where a bridge can be built.
-constexpr std::uint8_t RIVER{ 5 };
-// cell_side of a cell no side holds.
-constexpr std::uint8_t NO_SIDE{ 0xff };
-// side_control of a player-controlled side.
-constexpr std::uint16_t PLAYER{ 1 };
-// pending_finish's value when a show ends.
-constexpr std::uint16_t SHOW_DONE{ 3 };
-
 // The pictures of the day's show and the link-table addresses of the routines that end it.
 constexpr std::uint16_t ENGINEER_SEGMENT{ 0x319e };
 enum Picture : std::uint16_t {
@@ -123,9 +111,9 @@ auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t frame,
                std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(ds) };
   std::uint16_t const random{ Send(ds, event, RAND_BOUNDED, bound) };
-  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY,
-                                      data.current_unit_ptr, ENGINEERS,
-                                      Local(frame, ENGINEER_COUNT)) };
+  std::uint16_t const engineers{ Send(
+      ds, event, UNIT_QUANTITY, data.current_unit_ptr,
+      Bits(Category::ENGINEERS), Local(frame, ENGINEER_COUNT)) };
   std::uint16_t const average10{ Send(ds, event, UNIT_AVERAGE10,
                                       data.current_unit_ptr) };
   std::uint16_t const average11{ Send(ds, event, UNIT_AVERAGE11,
@@ -136,13 +124,6 @@ auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t frame,
                                  average10) /
           leadership_divisor -
       engineers / engineer_divisor + random + bonus);
-}
-
-// The random bound of the skill rolls: the delivery level + 1 for a player's regiment, 3 for the computer's.
-auto RollBound(DataSegment const& data) -> std::uint16_t {
-  return data.side_control[data.current_side] == PLAYER
-             ? data.delivery_level + 1
-             : 3;
 }
 
 // Lowers the current order's progress by the roll; nonzero when it runs out. The regiment is read after the roll.
@@ -186,8 +167,8 @@ uint16_t opeu_engineer_lay_mines(uint8_t ds[65536], HostEvent event,
   auto const at_x{ Local(frame, DESTINATION_X) };
   auto const at_y{ Local(frame, DESTINATION_Y) };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
-  auto const  x{ ds[at_x] };
-  auto const  y{ ds[at_y] };
+  auto const  x{ Byte(ds, at_x) };
+  auto const  y{ Byte(ds, at_y) };
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
   if (!Send(ds, event, CELL_MARKED, x, y, data.current_side) &&
       (regiment.x != x || regiment.y != y)) {
@@ -220,8 +201,8 @@ uint16_t opeu_engineer_remove_mines(uint8_t ds[65536], HostEvent event,
   auto const at_x{ Local(frame, DESTINATION_X) };
   auto const at_y{ Local(frame, DESTINATION_Y) };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
-  auto const x{ ds[at_x] };
-  auto const y{ ds[at_y] };
+  auto const x{ Byte(ds, at_x) };
+  auto const y{ Byte(ds, at_y) };
   if (Send(ds, event, CELL_MARKED, x, y, data.current_side)) {
     if (!Send(ds, event, MOVE_ADJACENT, x, y))
       return 0;
@@ -256,9 +237,10 @@ uint16_t opeu_engineer_build_bridge(uint8_t ds[65536], HostEvent event,
   auto const at_x{ Local(frame, DESTINATION_X) };
   auto const at_y{ Local(frame, DESTINATION_Y) };
   Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
-  auto const x{ ds[at_x] };
-  auto const y{ ds[at_y] };
-  if (static_cast<std::uint8_t>(Send(ds, event, MAP_CODE, x, y)) == RIVER) {
+  auto const x{ Byte(ds, at_x) };
+  auto const y{ Byte(ds, at_y) };
+  if (static_cast<Terrain>(static_cast<std::uint8_t>(
+          Send(ds, event, MAP_CODE, x, y))) == Terrain::RIVER) {
     if (!Send(ds, event, MOVE_ADJACENT, x, y))
       return 0;
     if (LowerProgress(
@@ -308,8 +290,8 @@ uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event,
                                         uint16_t frame) {
   auto&      data{ Data(ds) };
   auto const crews{ Local(frame, CITY_CREWS) };
-  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, REPAIR_CREWS,
-            crews)) {
+  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr,
+            Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
@@ -319,14 +301,14 @@ uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event,
                              data.current_side) };
   if (!objective)
     return 1;
-  if (!Send(ds, event, MOVE_ADJACENT, ds[at_x], ds[at_y]))
+  if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y)))
     return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto const budget{ Local(frame, REPAIR_BUDGET) };
   SetWord(ds, budget,
           static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY,
-                                          data.current_unit_ptr, REPAIR_CREWS,
-                                          crews) /
+                                          data.current_unit_ptr,
+                                          Bits(Category::REPAIR), crews) /
                                          10 +
                                      1));
   bool repaired{ false };
@@ -346,8 +328,8 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event,
                                    uint16_t frame) {
   auto&      data{ Data(ds) };
   auto const crews{ Local(frame, CREW_COUNT) };
-  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, REPAIR_CREWS,
-            crews)) {
+  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr,
+            Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
@@ -356,14 +338,14 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event,
   auto const unit{ Send(ds, event, MOVE_UNIT_TARGET, at_x, at_y) };
   if (!unit)
     return 1;
-  if (!Send(ds, event, MOVE_ADJACENT, ds[at_x], ds[at_y]))
+  if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y)))
     return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto const budget{ Local(frame, REPAIR_BUDGET) };
   SetWord(ds, budget,
           static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY,
-                                          data.current_unit_ptr, REPAIR_CREWS,
-                                          crews) /
+                                          data.current_unit_ptr,
+                                          Bits(Category::REPAIR), crews) /
                                          10 +
                                      1));
   bool repaired{ false };

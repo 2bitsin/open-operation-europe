@@ -89,7 +89,7 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
             opeu_sub_byte(Rand(ds, 5u - level) + 3, &element.experience);
           else if (unit.orders[0].progress >= ORDER_DONE)
             opeu_add_byte(1, RATING_LIMIT, &element.experience);
-          else if (order == Kind(OrderKind::REST) && food != 0) {
+          else if (order == Kind(UnitOrder::REST) && food != 0) {
             opeu_sub_byte(Rand(ds, (5u - level) * 2u) + 8, &element.experience);
             opeu_sub_byte(1, &element.morale);
           } else

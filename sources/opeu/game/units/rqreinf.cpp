@@ -19,13 +19,13 @@ using namespace opeu::game;
 
 namespace {
 // The equipment categories that suit each regiment kind, for each of the two alternatives the caller draws.
-constexpr std::array<std::array<std::uint8_t, 2>, 6> KIND_CATEGORIES{ {
-    { 0, 0 },
-    { 1, 1 },
-    { 3, 2 },
-    { 4, 0 },
-    { 5, 5 },
-    { 7, 6 },
+constexpr std::array<std::array<Category, 2>, 6> KIND_CATEGORIES{ {
+    { Category::INFANTRY, Category::INFANTRY },
+    { Category::INFANTRY_X10, Category::INFANTRY_X10 },
+    { Category::TANKS, Category::INFANTRY_X5 },
+    { Category::ARTILLERY, Category::INFANTRY },
+    { Category::ENGINEERS, Category::ENGINEERS },
+    { Category::SUPPLY, Category::REPAIR },
 } };
 
 // The number of equipment types the random draw picks from.
@@ -36,7 +36,7 @@ constexpr std::uint16_t TYPE_DRAW{ 158 };
                          std::uint8_t category) -> bool {
   if (kind >= KIND_CATEGORIES.size())
     return true;
-  return category == KIND_CATEGORIES[kind][alternative];
+  return category == Bits(KIND_CATEGORIES[kind][alternative]);
 }
 
 // The regiment kinds the player chooses from (the last two are fixed by the unit's slot).

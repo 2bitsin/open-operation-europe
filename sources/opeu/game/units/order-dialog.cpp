@@ -92,7 +92,7 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event,
   std::uint8_t unit_side{ target ? opeu_unit_side(target) : NO_SIDE };
   // The regiment itself (except for a repair), an unsighted enemy and an own regiment that may not be selected do
   // not count as targets.
-  if ((kind != Kind(OrderKind::REPAIR_CITY) && target == unit) ||
+  if ((kind != Kind(UnitOrder::REPAIR_CITY) && target == unit) ||
       (enemy == unit_side && !opeu_unit_special(ds, target)) ||
       (side == unit_side && !opeu_unit_selection_eligible(ds, target))) {
     target    = 0;
@@ -114,14 +114,14 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event,
   auto const terrain{ [&] {
     return static_cast<Terrain>(opeu_map_code(ds, x, y));
   } };
-  switch (static_cast<OrderKind>(kind)) {
-    case OrderKind::MOVE:
+  switch (static_cast<UnitOrder>(kind)) {
+    case UnitOrder::MOVE:
       return terrain() != Terrain::IMPASSABLE ? place() : cannot();
-    case OrderKind::OCCUPY:
+    case UnitOrder::OCCUPY:
       return enemy == city_side ? place() : refuse(prompts.not_enemy_city);
-    case OrderKind::REPAIR_CITY:
-    case OrderKind::SUPPLY_CITY: {
-      auto const repair{ kind == Kind(OrderKind::REPAIR_CITY) };
+    case UnitOrder::REPAIR_CITY:
+    case UnitOrder::RESUPPLY:    {
+      auto const repair{ kind == Kind(UnitOrder::REPAIR_CITY) };
       switch (ChooseCityOrRegiment(ds, event, side, city_side, unit_side,
                                    repair ? REPAIR_MENU : SUPPLY_MENU,
                                    repair ? Near(data, prompts.fix_which)
@@ -132,16 +132,16 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event,
         case Choice::CITY:    return place();
         case Choice::NEITHER: return cannot();
         case Choice::REGIMENT:
-          kind = Kind(repair ? OrderKind::REPAIR_UNIT : OrderKind::SUPPLY_UNIT);
+          kind = Kind(repair ? UnitOrder::REPAIR_UNIT : UnitOrder::SUPPLY_UNIT);
           return true;
       }
       return true;
     }
-    case OrderKind::DEFEND:
-    case OrderKind::REST:      return enemy == city_side ? cannot() : place();
-    case OrderKind::LAY_MINES: {
+    case UnitOrder::DEFEND:
+    case UnitOrder::REST:      return enemy == city_side ? cannot() : place();
+    case UnitOrder::LAY_MINES: {
       if (opeu_cell_marked(ds, x, y, side)) {
-        kind = Kind(OrderKind::CLEAR_MINES);
+        kind = Kind(UnitOrder::CLEAR_MINES);
         return place();
       }
       switch (terrain()) {
@@ -155,14 +155,14 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event,
         default: return place();
       }
     }
-    case OrderKind::BUILD_BRIDGE:
+    case UnitOrder::BUILD_BRIDGE:
       return terrain() == Terrain::RIVER ? place()
                                          : refuse(prompts.cannot_bridge);
-    case OrderKind::DESTROY_BRIDGE:
+    case UnitOrder::DESTROY_BRIDGE:
       return terrain() == Terrain::BRIDGE ? place() : refuse(prompts.no_bridge);
-    case OrderKind::ATTACK:
+    case UnitOrder::ATTACK:
       return enemy == unit_side ? true : refuse(prompts.no_enemy);
-    case OrderKind::PURSUE:
+    case UnitOrder::PURSUE:
       return side == unit_side ? true : refuse(prompts.nothing_to_chase);
     default: return true;
   }
@@ -178,11 +178,11 @@ auto AnnounceOrder(std::uint8_t* ds, HostEvent event,
     Send(ds, event, ORDERS_REQUEST_FORMAT, buffer,
          Send(ds, event, ORDERS_MESSAGE_LOOKUP, message));
   } };
-  if (kind == Kind(OrderKind::BUILD_BRIDGE))
+  if (kind == Kind(UnitOrder::BUILD_BRIDGE))
     engineering(BRIDGE_ORDERED);
-  if (kind == Kind(OrderKind::CLEAR_MINES))
+  if (kind == Kind(UnitOrder::CLEAR_MINES))
     engineering(CLEAR_ORDERED);
-  if (kind == Kind(OrderKind::DESTROY_BRIDGE))
+  if (kind == Kind(UnitOrder::DESTROY_BRIDGE))
     engineering(DESTROY_ORDERED);
   Send(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
 }

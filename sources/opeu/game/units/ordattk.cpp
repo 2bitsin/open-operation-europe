@@ -107,26 +107,26 @@ uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event,
   auto const step_x{ Local(frame, STEP_X) };
   auto const step_y{ Local(frame, STEP_Y) };
   for (std::uint8_t direction{ 0 }; direction < 8; ++direction) {
-    ds[step_x] = x;
-    ds[step_y] = y;
+    Byte(ds, step_x) = x;
+    Byte(ds, step_y) = y;
     if (!Serve(ds, event, OrderService::GRID_STEP, step_x, step_y, direction))
       continue;
-    auto const unit{ Serve(ds, event, OrderService::FIND_UNIT_AT, ds[step_x],
-                           ds[step_y]) };
+    auto const unit{ Serve(ds, event, OrderService::FIND_UNIT_AT,
+                           Byte(ds, step_x), Byte(ds, step_y)) };
     if (!unit ||
         static_cast<std::uint8_t>(Serve(ds, event, OrderService::UNIT_SIDE,
                                         unit)) != data.current_side)
       continue;
     auto const& order{ Record<Unit>(data, unit).orders[0] };
-    if ((order.kind == Kind(OrderKind::OCCUPY) ||
-         order.kind == Kind(OrderKind::ATTACK)) &&
+    if ((order.kind == Kind(UnitOrder::OCCUPY) ||
+         order.kind == Kind(UnitOrder::ATTACK)) &&
         order.progress)
       return 0;
   }
   auto const defender{ Serve(ds, event, OrderService::FIND_UNIT_AT, x, y) };
   if (defender) {
     auto const& order{ Record<Unit>(data, defender).orders[0] };
-    if (order.kind == Kind(OrderKind::DEFEND) && order.progress == 0) {
+    if (order.kind == Kind(UnitOrder::DEFEND) && order.progress == 0) {
       auto const own{ static_cast<std::uint16_t>(
           Serve(ds, event, OrderService::UNIT_VALUE, data.current_unit_ptr) +
           1) };
@@ -208,21 +208,23 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event,
                               at_x, at_y, enemy) };
   if (!objective)
     return 1;
-  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, ds[at_x], ds[at_y]))
+  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x),
+             Byte(ds, at_y)))
     return 0;
   auto const loss{ opeu_order_occupy_loss(ds, event) };
   if (!Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data),
              loss))
     return 1;
   if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE,
-                                      ds[at_x], ds[at_y])) == NO_SIDE &&
+                                      Byte(ds, at_x), Byte(ds, at_y))) ==
+          NO_SIDE &&
       !Serve(ds, event, OrderService::OBJECTIVE_QUANTITY, objective, ALL_ARMS,
              Local(frame, OCCUPY_COUNT))) {
     auto& target{ Record<Objective>(data, objective) };
     target.flags ^= Bits(ObjectiveFlag::SIDE_1);
     Serve(ds, event, OrderService::MOVE_UNIT, 1);
-    if (static_cast<std::uint8_t>(
-            Serve(ds, event, OrderService::CELL_SIDE, ds[at_x], ds[at_y])) !=
+    if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE,
+                                        Byte(ds, at_x), Byte(ds, at_y))) !=
         data.current_side) {
       target.flags ^= Bits(ObjectiveFlag::SIDE_1);
       return 1;
@@ -239,8 +241,8 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event,
     return 1;
   }
   if (opeu_order_attack_start(ds, event, Local(frame, START_FRAME), objective,
-                              ds[at_x], ds[at_y]))
-    Engage(data, ds[at_x], ds[at_y]);
+                              Byte(ds, at_x), Byte(ds, at_y)))
+    Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 
@@ -258,7 +260,8 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event,
                          at_y) };
   if (!unit)
     return 1;
-  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, ds[at_x], ds[at_y]))
+  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x),
+             Byte(ds, at_y)))
     return 0;
   auto const loss{ opeu_order_attack_loss(ds, event) };
   if (!Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data),
@@ -275,8 +278,8 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event,
         Near(data, data.order_unit_label),
         data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name);
   if (opeu_order_attack_start(ds, event, Local(frame, ATTACK_START_FRAME), text,
-                              ds[at_x], ds[at_y]))
-    Engage(data, ds[at_x], ds[at_y]);
+                              Byte(ds, at_x), Byte(ds, at_y)))
+    Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 

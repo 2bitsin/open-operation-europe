@@ -18,8 +18,6 @@ namespace {
 // The frame locals the destination is written to, as offsets below the frame pointer.
 constexpr std::uint16_t DESTINATION_X{ 2 };
 constexpr std::uint16_t DESTINATION_Y{ 4 };
-// Map code of a bridge.
-constexpr std::uint8_t BRIDGE{ 10 };
 // The day's picture of a blown bridge and the link-table address of the routine that ends its show.
 constexpr std::uint16_t BRIDGE_DESTROYED_PICTURE{ 0x5b };
 constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
@@ -56,25 +54,28 @@ uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event,
   auto const at_y{ Local(frame, DESTINATION_Y) };
   Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr,
         at_x, at_y);
-  if (static_cast<std::uint8_t>(Serve(ds, event, OrderService::MAP_CODE,
-                                      ds[at_x], ds[at_y])) != BRIDGE ||
+  if (static_cast<Terrain>(static_cast<std::uint8_t>(
+          Serve(ds, event, OrderService::MAP_CODE, Byte(ds, at_x),
+                Byte(ds, at_y)))) != Terrain::BRIDGE ||
       StandsOn(ds, at_x, at_y)) {
     Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
     return 1;
   }
-  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, ds[at_x], ds[at_y]))
+  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x),
+             Byte(ds, at_y)))
     return 0;
   auto const loss{ opeu_order_destroy_loss(ds, event) };
   if (Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data),
             loss) &&
       static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE,
-                                      ds[at_x], ds[at_y])) == NO_SIDE) {
+                                      Byte(ds, at_x), Byte(ds, at_y))) ==
+          NO_SIDE) {
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr,
           Near(data, data.order_bridge_destroyed));
     Serve(ds, event, OrderService::DAILY_SHOW, BRIDGE_DESTROYED_PICTURE,
           data.current_side, DESTROY_PRESENT, ORDER_SEGMENT);
-    Serve(ds, event, OrderService::MAP_MARK5, ds[at_x], ds[at_y]);
-    Serve(ds, event, OrderService::MAP_ERASE, ds[at_x], ds[at_y]);
+    Serve(ds, event, OrderService::MAP_MARK5, Byte(ds, at_x), Byte(ds, at_y));
+    Serve(ds, event, OrderService::MAP_ERASE, Byte(ds, at_x), Byte(ds, at_y));
     Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
   }
   return 1;
