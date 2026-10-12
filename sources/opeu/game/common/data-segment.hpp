@@ -41,6 +41,14 @@ struct Task {
   std::uint8_t progress;
 };
 
+// Task::kind: what the computer side's division is to do at the task's cell (core/groupai).
+enum class TaskKind : std::uint8_t {
+  CAPTURE = 0,    // take the enemy objective there
+  HOLD    = 1,    // hold the own objective there
+  MOVE    = 2,    // move into the quarter of the map around the cell
+  NONE    = 0xff, // an unused task slot
+};
+
 // Equipment held by an objective or carried by an element: type index, quantity, extra word.
 struct Item {
   std::uint8_t  type; // index into element_types
@@ -260,8 +268,9 @@ enum class GroupFlag : std::uint8_t {
 enum class ElementFlag : std::uint8_t {
   SELECTED = 0x01, // the element selected in its unit (units/select)
   BIT_1 = 0x02, // counted by units/vwlist (flag-2 elements of a kind)
-  BIT_2 = 0x04,
+  READY = 0x04, // linked into a unit (units/elemlink)
   BIT_4 = 0x10,
+  BIT_5 = 0x20, // cleared when the element's unit arrives (core/arrivals)
 };
 
 // Objective::flags: the low nibble is the objective's level (core/objrank), 0x40 a marker bit.
@@ -270,11 +279,11 @@ enum class ObjectiveFlag : std::uint8_t {
   MARKED     = 0x40,
 };
 
-// Person::role: the low three bits index role_names; 0x40 shows the health in red, 0x80 is tested by core/notend.
+// Person::role: the low three bits index role_names; 0x40 shows the health in red, 0x80 marks a deputy (core/deputy).
 enum class PersonRole : std::uint8_t {
   ROLE_MASK   = 0x07,
   POOR_HEALTH = 0x40,
-  BIT_7       = 0x80,
+  DEPUTY      = 0x80,
 };
 
 // Person::assignment: the low two bits are the division, 0x04 marks a general assigned to it; the top five bits
@@ -286,6 +295,17 @@ enum class Assignment : std::uint8_t {
 
 // Person::status of an unused record (otherwise the general's nation bits, matched against side_masks).
 inline constexpr std::uint8_t PERSON_VACANT{ 0xff };
+
+// Bits of DataSegment::side_flags, a side's state for the day.
+enum class SideFlag : std::uint8_t {
+  SPY_SENT         = 0x01, // core/evspy: the spy went out (at 15:00)
+  SPY_DONE         = 0x02, // core/evspy: the spy's report is in
+  VISITED          = 0x04, // core/evvisit: the day's visit took place
+  AIR_CARGO_READY  = 0x08, // set at midnight, cleared when the side's cargo flight lands (core/aircargo)
+  AIR_DROP_READY   = 0x10, // set at midnight, cleared when the side's airborne drop lands (core/aircargo)
+  RESERVES_PENDING = 0x20, // a reserve division waits to arrive (core/noonevt, core/arrivals)
+  TURN_STARTED     = 0x80, // the side's turn state is initialised (core/dispatch)
+};
 
 // Bits of ElementType::flags as units/value weighs them: a heavy type is worth 100 points, a light tank type counts
 // like ten infantry.
@@ -694,7 +714,8 @@ struct DataSegment {
       std::array<std::uint8_t, 1> unknown_2f97;
       std::uint16_t               control_selection;    // DS:2f98
       std::uint16_t               context_display_word; // DS:2f9a
-      std::array<std::uint8_t, 2> context_cached_side;  // DS:2f9c
+      std::uint8_t                context_side; // DS:2f9c: the side whose context the panel shows, 0xff for none
+      std::array<std::uint8_t, 1> unknown_2f9d;
       std::uint16_t               restart_flag;         // DS:2f9e
       std::uint16_t               presentation_mode;    // DS:2fa0
       union {                                           // DS:2fa2
@@ -1808,8 +1829,8 @@ struct DataSegment {
       FarPointer                   far_code_7a6c;         // DS:7a6c
       std::array<std::uint8_t, 3>  far_code_7a70;         // DS:7a70
       std::array<std::uint8_t, 13> month_climate;         // DS:7a73
-      std::array<std::uint8_t, 58> air_text_7a80;         // DS:7a80
-      std::array<char, 80>         air_text_7aba;         // DS:7aba
+      std::array<char, 58>         air_postponed_text;    // DS:7a80: "Bad weather has postponed the %s"
+      std::array<char, 80>         air_canceled_text;     // DS:7aba: "... has been canceled"
       std::array<char, 30>         air_text_7b0a;         // DS:7b0a
       std::array<char, 11>         air_text_7b28;         // DS:7b28
       std::array<char, 22>         air_text_7b33;         // DS:7b33
@@ -3817,7 +3838,8 @@ static_assert(offsetof(DataSegment, turn_frame_mode) == 0x2f96);
 static_assert(offsetof(DataSegment, unknown_2f97) == 0x2f97);
 static_assert(offsetof(DataSegment, control_selection) == 0x2f98);
 static_assert(offsetof(DataSegment, context_display_word) == 0x2f9a);
-static_assert(offsetof(DataSegment, context_cached_side) == 0x2f9c);
+static_assert(offsetof(DataSegment, context_side) == 0x2f9c);
+static_assert(offsetof(DataSegment, unknown_2f9d) == 0x2f9d);
 static_assert(offsetof(DataSegment, restart_flag) == 0x2f9e);
 static_assert(offsetof(DataSegment, presentation_mode) == 0x2fa0);
 static_assert(offsetof(DataSegment, battle_map_x) == 0x2fa2);
@@ -4861,8 +4883,8 @@ static_assert(offsetof(DataSegment, far_code_7a68) == 0x7a68);
 static_assert(offsetof(DataSegment, far_code_7a6c) == 0x7a6c);
 static_assert(offsetof(DataSegment, far_code_7a70) == 0x7a70);
 static_assert(offsetof(DataSegment, month_climate) == 0x7a73);
-static_assert(offsetof(DataSegment, air_text_7a80) == 0x7a80);
-static_assert(offsetof(DataSegment, air_text_7aba) == 0x7aba);
+static_assert(offsetof(DataSegment, air_postponed_text) == 0x7a80);
+static_assert(offsetof(DataSegment, air_canceled_text) == 0x7aba);
 static_assert(offsetof(DataSegment, air_text_7b0a) == 0x7b0a);
 static_assert(offsetof(DataSegment, air_text_7b28) == 0x7b28);
 static_assert(offsetof(DataSegment, air_text_7b33) == 0x7b33);
@@ -6425,10 +6447,12 @@ using detail::data_segment::SAVE_SLOT_COUNT;
 using detail::data_segment::SAVE_SLOTS_AT;
 using detail::data_segment::SaveSlot;
 using detail::data_segment::Side;
+using detail::data_segment::SideFlag;
 using detail::data_segment::SIDE_COUNT;
 using detail::data_segment::SIDES_AT;
 using detail::data_segment::SPECIAL_AT;
 using detail::data_segment::Task;
+using detail::data_segment::TaskKind;
 using detail::data_segment::Unit;
 using detail::data_segment::UnitFlag;
 using detail::data_segment::UNITS_AT;
