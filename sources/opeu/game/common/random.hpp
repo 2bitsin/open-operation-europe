@@ -19,8 +19,26 @@ inline auto RandomBelow(std::uint8_t* ds, std::uint16_t bound)
   std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
   return result;
 }
+
+// The next raw number of the sequence.
+inline auto RandomNext(std::uint8_t* ds) -> std::uint16_t {
+  auto& state{ Data(ds).random_state };
+  std::memcpy(&opeu_random_state, state.data(), sizeof opeu_random_state);
+  auto const result{ opeu_rand_next() };
+  std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
+  return result;
+}
+
+// Starts the sequence again from `seed`.
+inline auto RandomSeed(std::uint8_t* ds, std::uint16_t seed) -> void {
+  opeu_rand_seed(seed);
+  std::memcpy(Data(ds).random_state.data(), &opeu_random_state,
+              sizeof opeu_random_state);
+}
 } // namespace opeu::game::detail::random
 
 namespace opeu::game {
 using detail::random::RandomBelow;
+using detail::random::RandomNext;
+using detail::random::RandomSeed;
 } // namespace opeu::game

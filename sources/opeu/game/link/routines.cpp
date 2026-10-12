@@ -1,10 +1,8 @@
-/* Address-keyed handlers of the native services (moved from the former
- * port/link/routines/native_E.c). The recovered code reaches these
- * assembly-library and C-runtime routines by their original address (battle
- * services, far code pointers in the data); each handler converts the words
- * of port.h's convention to the native service's parameters. Handlers of
- * recovered routines are generated into their game/ module (routine handler in
- * the native-build section, tools/game-services.json "routines"). */
+/* Address-keyed handlers of the native services. The game reaches these
+ * library and C-runtime routines by their routine address (battle services,
+ * far code pointers in the data); each handler converts the argument words
+ * of port.hpp's convention to the service's parameters. The handlers of the
+ * game's own routines live in their modules. */
 #include "port.hpp"
 #include "services.hpp"
 

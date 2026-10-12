@@ -1,10 +1,8 @@
-/* Struct hosts of the four recovered modules whose host entries take a host
- * structure instead of a bare service callback (moved from the former
- * port/link/core/textout.c, uiprim.c, dialogs.c and io/numdlg.c). Each
- * getter returns the single instance; its `event` is the module's service
- * table (svc_textout, svc_uiprim, svc_dialogs: game/, native build), the
- * other members are platform state the host branches read: the modeled
- * stack pointer, the arena and the original segment numbers. */
+/* Struct hosts of the four modules whose entries take a host structure
+ * instead of a bare service callback. Each getter returns the single
+ * instance; its `event` is the module's service (svc_textout, svc_uiprim,
+ * svc_dialogs), the other members are platform state the modules read: the
+ * modeled stack pointer, the arena and the segment numbers of the layout. */
 #include "glue.hpp"
 
 #include "core/dialogs.hpp"
@@ -31,11 +29,20 @@ uint16_t* port_textout_host_sp(void) {
 }
 
 /* ---- UIPRIM: UiHost {memory, ds_segment, tiles_segment, code_segment, event} - */
-#define UIPRIM_CODE_SEGMENT 0x0a04u /* C0A04_UI */
-#define UIPRIM_TILES_SEGMENT \
-  0x3873u /* _opeu_frame_tiles = 3873:0000 (symbols.json) */
-#define UIPRIM_FILE_READER   0x0132u /* 0a04:0132 opeu_stream_file_byte */
-#define UIPRIM_MEMORY_READER 0x01fcu /* 0a04:01fc opeu_stream_memory_byte */
+namespace {
+constexpr std::uint16_t UIPRIM_CODE_SEGMENT{
+  0x0a04
+}; // UIPRIM's code segment: its far code pointers name it
+constexpr std::uint16_t UIPRIM_TILES_SEGMENT{
+  0x3873
+}; // the far segment of opeu_frame_tiles (data/fg3873)
+constexpr std::uint16_t UIPRIM_FILE_READER{
+  0x0132
+}; // opeu_stream_file_byte in UIPRIM_CODE_SEGMENT
+constexpr std::uint16_t UIPRIM_MEMORY_READER{
+  0x01fc
+}; // opeu_stream_memory_byte in UIPRIM_CODE_SEGMENT
+} // namespace
 
 static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT,
                               UIPRIM_CODE_SEGMENT, svc_uiprim };
@@ -46,8 +53,8 @@ void* port_uiprim_host(void) {
 }
 
 /* The decoder's reader is a far code pointer into UIPRIM's own segment:
- * 0a04:0132 opeu_stream_file_byte or 0a04:01fc opeu_stream_memory_byte;
- * both are recovered and called through the same host instance. */
+ * opeu_stream_file_byte or opeu_stream_memory_byte, both called through the
+ * same host instance. */
 static uint8_t read_file_stream(void) {
   return opeu_stream_file_byte(port_ds, (const UiHost*)port_uiprim_host());
 }
@@ -67,11 +74,10 @@ PortByteReader port_picture_reader(uint16_t off, uint16_t seg) {
 }
 
 /* ---- DIALOGS: DialogHost {event, load, scratch} ------------------------------ *
- * The original's near-stack buffers (at most 132 bytes, one owner active at
- * a time) live in the dialog routine's frame. The host takes one fixed DS
- * area for them: the bottom of the original 5120-byte stack (_end = ebe0h),
- * which the modeled stack (port.h, top ffe0h) never reaches in practice.
- * Segments are the original paragraph numbers (load segment 0). */
+ * The dialogs' stack buffers (at most 132 bytes, one owner active at a time)
+ * take one fixed DS area: the bottom of the 5120-byte stack (PORT_DS_END),
+ * which the modeled stack (top PORT_STACK_TOP) never reaches in practice.
+ * The load segment is 0. */
 static const DialogHost dialogs_host = { svc_dialogs, 0u, PORT_DS_END };
 
 void* port_dialogs_host(void) {
@@ -80,13 +86,16 @@ void* port_dialogs_host(void) {
 
 /* ---- NUMDLG ------------------------------------------------------------------ *
  * numdlg's routines take a bare service; the module builds its UiHost for
- * opeu_ui_outline internally (OutlineBridge, io/numdlg.c). The getter
- * returns that bridge shape ({ service }) for callers that want the
- * service through a host pointer. */
-typedef uint16_t (*InputService)(uint8_t* ds, uint16_t call, uint16_t* words);
-typedef struct {
+ * opeu_ui_outline internally (io/numdlg). The getter returns that bridge
+ * shape ({ service }) for callers that want the service through a host
+ * pointer. */
+namespace {
+using InputService = auto (*)(uint8_t* ds, uint16_t call, uint16_t* words)
+    -> uint16_t;
+struct OutlineBridge {
   InputService service;
-} OutlineBridge;
+};
+} // namespace
 static const OutlineBridge numdlg_bridge = { svc_numdlg };
 
 void* port_numdlg_host(void) {

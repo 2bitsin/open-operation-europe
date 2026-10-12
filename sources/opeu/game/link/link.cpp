@@ -20,12 +20,12 @@ static const PortLink* find(uint32_t address) {
   }
   if (lo < port_link_count && port_links[lo].address == address)
     return &port_links[lo];
-  return NULL;
+  return nullptr;
 }
 
 const char* port_routine_name(uint32_t address) {
   const PortLink* l = find(address);
-  return l ? l->name : NULL;
+  return l ? l->name : nullptr;
 }
 
 uint32_t port_routine_address(const char* name) {

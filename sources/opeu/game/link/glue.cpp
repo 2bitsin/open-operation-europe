@@ -1,16 +1,11 @@
-/* Platform glue of the game's services (declarations and rationale:
- * port/include/glue.h). Moved here unchanged from the former port/link
- * helpers (a_util.h, b1_util.h, core/b2_common.h, core/c1_common.h,
- * core/c2_common.h, core/c2_air.h, core/c2_msn.h, core/scensel.c,
- * core/notice.c, map/btl_link.h, map/map_common.h, units/units_F.h,
- * units/xferpnl.c, io/mouse.c, io/sound.c, routines/scenbrf.c, aiops.c);
- * token-identical copies are merged (port_scratch_*, port_frame_*,
- * port_rand_bounded, port_daily_show). Stack bookkeeping, argument word
- * placement and register blocks only: no game logic. */
+// Platform glue of the game's services (declarations and rationale: glue/include/glue.hpp): stack bookkeeping,
+// argument word placement, driver register blocks and file loading. No game logic.
 #include "glue.hpp"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+
+#include "data-segment.hpp"
 
 #include "services.hpp"
 #include "core/aiops1.hpp"
@@ -25,16 +20,31 @@
 
 /* ---- modeled DGROUP stack ------------------------------------------------ */
 
-#define PORT_C2_AIR_FRAME \
-  0x200u /* air modules: objective_damage's BP-0x9e buffers + callee frames */
-#define PORT_BTL_RESERVE \
-  0x200u /* battle: deepest documented buffers and nested frames < 0x180 */
-#define PORT_MAP_FRAME \
-  0x300u /* map: scroll_to -> scroll -> cell_draw -> unit_draw ~0x150 */
-#define PORT_LF_FRAME    0x200u /* units: locals plus internal sp-n frames */
-#define PORT_KEY_SCRATCH 16u    /* keyboard.c: 16-byte caller scratch area */
-#define PORT_CLOSING_BUFFER \
-  100u /* scenbrf.c: the briefing's closing-text buffer */
+namespace {
+using opeu::game::Data;
+using opeu::game::Near;
+
+// Stack reserves of the module families: the deepest buffers a routine keeps on the modeled stack plus the frames of
+// the routines it calls.
+constexpr std::uint16_t AIR_FRAME{
+  0x200
+}; // air modules: objective_damage's buffers and its callees
+constexpr std::uint16_t BATTLE_RESERVE{
+  0x200
+}; // battle: deepest buffers and nested frames stay below 0x180
+constexpr std::uint16_t MAP_FRAME{
+  0x300
+}; // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
+constexpr std::uint16_t UNITS_FRAME{
+  0x200
+}; // units: locals plus internal frames
+constexpr std::uint16_t KEY_SCRATCH{
+  16
+}; // keyboard prompts: the caller's 16-byte scratch area
+constexpr std::uint16_t CLOSING_BUFFER{
+  100
+}; // briefings: the closing-text buffer
+} // namespace
 
 uint16_t a_push_words(const uint16_t* args, unsigned count) {
   uint16_t at = (uint16_t)(port_stack_enter((uint16_t)(2 * count)) - 2 * count);
@@ -78,31 +88,31 @@ uint16_t b1_sp_enter(void) {
 }
 
 uint16_t c2_air_sp_enter(void) {
-  return port_stack_enter(PORT_C2_AIR_FRAME);
+  return port_stack_enter(AIR_FRAME);
 }
 
 uint16_t c2_air_bp_enter(void) {
-  return (uint16_t)(port_stack_enter(PORT_C2_AIR_FRAME) - 2u);
+  return (uint16_t)(port_stack_enter(AIR_FRAME) - 2u);
 }
 
 void c2_air_leave(void) {
-  port_stack_leave(PORT_C2_AIR_FRAME);
+  port_stack_leave(AIR_FRAME);
 }
 
 uint16_t btl_sp_enter(void) {
-  return port_stack_enter(PORT_BTL_RESERVE);
+  return port_stack_enter(BATTLE_RESERVE);
 }
 
 void btl_sp_leave(void) {
-  port_stack_leave(PORT_BTL_RESERVE);
+  port_stack_leave(BATTLE_RESERVE);
 }
 
 uint16_t map_frame_enter(void) {
-  return (uint16_t)(port_stack_enter(PORT_MAP_FRAME) - 2u);
+  return (uint16_t)(port_stack_enter(MAP_FRAME) - 2u);
 }
 
 void map_frame_leave(void) {
-  port_stack_leave(PORT_MAP_FRAME);
+  port_stack_leave(MAP_FRAME);
 }
 
 uint16_t b1_push_words(const uint16_t* args, unsigned count) {
@@ -114,11 +124,10 @@ uint16_t b1_push_words(const uint16_t* args, unsigned count) {
 }
 
 /* ---- variadic text routines ------------------------------------------------ *
- * 0480:0b9a request_format (sprintf) and 0480:0bb8 cursor_print (army_print,
- * context_print, turn_label) read the pushed argument words at the DS
- * offset `frame` (textout.c REQUEST_PARAMS / PRINT_PARAMS), first word at
- * the lowest address. The conventions differ in the reserve and in whether
- * the words sit at the reserved base or at SP+4. */
+ * request_format (sprintf) and cursor_print (army_print, context_print,
+ * turn_label) read the pushed argument words at the DS offset `frame`, first
+ * word at the lowest address. The conventions differ in the reserve and in
+ * whether the words sit at the reserved base or at SP+4. */
 
 typedef void (*TextFrameRoutine)(uint8_t* ds, TextHost* host, uint16_t frame);
 
@@ -234,35 +243,35 @@ void btl_cursor_print(uint8_t* ds, const uint16_t* words, unsigned n) {
 
 /* units: the words just below the entry SP of LF_FRAME + 2n reserved */
 uint16_t lf_request_format(uint8_t* ds, const uint16_t* args, uint16_t count) {
-  uint16_t sp = port_stack_enter((uint16_t)(PORT_LF_FRAME + 2u * count));
+  uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
   uint16_t at = (uint16_t)(sp - 2u * count);
   uint16_t i;
   for (i = 0; i < count; i++)
     port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
   opeu_request_format(ds, (TextHost*)port_textout_host(), at);
-  port_stack_leave((uint16_t)(PORT_LF_FRAME + 2u * count));
+  port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
   return 0;
 }
 
 uint16_t lf_cursor_print(uint8_t* ds, const uint16_t* args, uint16_t count) {
-  uint16_t sp = port_stack_enter((uint16_t)(PORT_LF_FRAME + 2u * count));
+  uint16_t sp = port_stack_enter((uint16_t)(UNITS_FRAME + 2u * count));
   uint16_t at = (uint16_t)(sp - 2u * count);
   uint16_t i;
   for (i = 0; i < count; i++)
     port_ds_set_word((uint16_t)(at + 2u * i), args[i]);
   opeu_cursor_print(ds, (TextHost*)port_textout_host(), at);
-  port_stack_leave((uint16_t)(PORT_LF_FRAME + 2u * count));
+  port_stack_leave((uint16_t)(UNITS_FRAME + 2u * count));
   return 0;
 }
 
 /* ---- C runtime random state ------------------------------------------------ *
- * 09f6:00d4 rand_bounded: the recovered generator keeps its state in a
- * global; the original state lives at DS:c6f4 (core/random.c). */
+ * rand_bounded: the generator keeps its state in a global; the saved game
+ * keeps it in the data segment's random_state. */
 uint16_t port_rand_bounded(uint8_t* ds, uint16_t bound) {
-  uint16_t r;
-  memcpy(&opeu_random_state, ds + 0xc6f4, 4);
-  r = opeu_rand_bounded(bound);
-  memcpy(ds + 0xc6f4, &opeu_random_state, 4);
+  auto& state{ Data(ds).random_state };
+  std::memcpy(&opeu_random_state, state.data(), 4);
+  auto const r{ opeu_rand_bounded(bound) };
+  std::memcpy(state.data(), &opeu_random_state, 4);
   return r;
 }
 
@@ -278,21 +287,27 @@ uint16_t* port_ds_word_ptr(uint16_t off) {
   return (uint16_t*)(void*)PORT_DS(off);
 }
 
-/* ---- far code pointers ------------------------------------------------------- */
+/* ---- far code pointers ------------------------------------------------------- *
+ * The data and the callers name the two cell predicates by their far code
+ * address (segment:offset of the routine in the original layout). */
+
+namespace {
+constexpr std::uint32_t REQUEST_CELL_ALLOWED_AT{ 0x145cu * 16u + 0x1114u };
+constexpr std::uint32_t ARRIVAL_CELL_ALLOWED_AT{ 0x145cu * 16u + 0x1152u };
+} // namespace
 
 PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
   uint32_t address = (uint32_t)seg * 16u + off;
-  if (address == 0x145cu * 16u + 0x1114u)
+  if (address == REQUEST_CELL_ALLOWED_AT)
     return opeu_request_cell_allowed;
-  if (address == 0x145cu * 16u + 0x1152u)
+  if (address == ARRIVAL_CELL_ALLOWED_AT)
     return opeu_arrival_cell_allowed;
   port_fatal("request_cells: predicate %04x:%04x is not a cell predicate", seg,
              off);
   return 0;
 }
 
-/* Daily presentation: 1707:03e4 daily_show(id, side, far presenter). The
- * presenter is a (offset, segment) pair; DIALOGS calls it back through its
+/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its
  * present service, i.e. by routine identifier. */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off,
                      uint16_t seg) {
@@ -300,12 +315,12 @@ void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off,
                   (uint32_t)seg << 16 | off);
 }
 
-/* The briefings of core/scenbrf.c keep their 100-byte closing-text buffer in
- * the original frame; the host takes its DS offset, reserved here. */
+/* The briefings (core/scenbrf) keep their 100-byte closing-text buffer on
+ * the modeled stack; it is reserved here and its DS offset passed in. */
 uint32_t port_run_briefing(uint8_t* ds, PortBriefing briefing) {
-  uint16_t closing = b1_stack_alloc(PORT_CLOSING_BUFFER);
+  uint16_t closing = b1_stack_alloc(CLOSING_BUFFER);
   briefing(ds, svc_scenbrf, closing);
-  port_scratch_leave(PORT_CLOSING_BUFFER);
+  port_scratch_leave(CLOSING_BUFFER);
   return 0;
 }
 
@@ -360,34 +375,31 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
 
 uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max,
                             uint16_t items) {
-  uint16_t s = b1_stack_alloc(PORT_KEY_SCRATCH), r;
+  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
   r          = opeu_prompt_value_cancel(ds, svc_keyboard, text, max, items, s);
-  port_scratch_leave(PORT_KEY_SCRATCH);
+  port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
 uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max,
                               uint16_t items) {
-  uint16_t s = b1_stack_alloc(PORT_KEY_SCRATCH), r;
+  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
   r = opeu_prompt_value_required(ds, svc_keyboard, text, max, items, s);
-  port_scratch_leave(PORT_KEY_SCRATCH);
+  port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
 uint16_t port_prompt_yes_no(uint8_t* ds, uint16_t text) {
-  uint16_t s = b1_stack_alloc(PORT_KEY_SCRATCH), r;
+  uint16_t s = b1_stack_alloc(KEY_SCRATCH), r;
   r          = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, text, s);
-  port_scratch_leave(PORT_KEY_SCRATCH);
+  port_scratch_leave(KEY_SCRATCH);
   return r;
 }
 
 /* ---- LOADSCEN ------------------------------------------------------------------- *
- * LOADSCEN's host entry (io/loadscen.c) takes the contents of the two files
- * the original opens by name (DS:2e8c opeu_scenario_filename, DS:2ef2
- * opeu_map_filename). Open them as the original does (0977:000e
- * opeu_open_resource) and hand over their whole contents. */
-#define SCENARIO_FILENAME 0x2e8cu
-#define MAP_FILENAME      0x2ef2u
+ * The scenario loader (io/loadscen) takes the contents of the two files the
+ * data segment names (scenario_filename, map_filename): open them as
+ * resources and hand over their whole contents. */
 
 static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
   int16_t  h   = opeu_open_resource(ds, svc_resopen, name);
@@ -396,7 +408,7 @@ static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
   size_t   done = 0;
   if (end < 0)
     end = 0;
-  data = (uint8_t*)malloc((size_t)end + 1);
+  data = (uint8_t*)std::malloc((size_t)end + 1);
   if (!data)
     port_fatal("scensel: out of memory");
   if (h >= 0) {
@@ -420,26 +432,28 @@ static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
 
 void port_load_scenario(uint8_t* ds, uint16_t scenario) {
   size_t   scedata_size, mapinf_size;
-  uint8_t* scedata = read_resource(ds, SCENARIO_FILENAME, &scedata_size);
-  uint8_t* mapinf  = read_resource(ds, MAP_FILENAME, &mapinf_size);
-  /* The host entry returns -1 (and leaves DS untouched) when a file is
-     * shorter than the records the original reads; the original has no
-     * result, so nothing is reported here beyond a trace. */
+  auto&    data{ Data(ds) };
+  uint8_t* scedata =
+      read_resource(ds, Near(data, data.scenario_filename), &scedata_size);
+  uint8_t* mapinf =
+      read_resource(ds, Near(data, data.map_filename), &mapinf_size);
+  /* The loader returns -1 (and leaves DS untouched) when a file is shorter
+   * than the records it reads; the game has no result for that, so nothing
+   * is reported beyond a trace. */
   if (opeu_load_scenario(ds, (uint8_t)scenario, scedata, scedata_size, mapinf,
                          mapinf_size) != 0)
     port_trace("link",
                "scensel: scenario %u: SCENARIO/MAP files shorter than the "
                "records read",
                scenario);
-  free(scedata);
-  free(mapinf);
+  std::free(scedata);
+  std::free(mapinf);
 }
 
 /* ---- boundary pointers ------------------------------------------------------- *
- * The host branches of aiops1..aiops5 call six routines through the global
- * opeu_ai_unrecovered (aiops1.c), written when those callees were not yet
- * recovered; svc_ai_unrecovered (game/core/aiops1.c, native build) maps its
- * ids to the recovered routines. Installed by main() before the entry. */
+ * aiops1..aiops5 call six routines through the global opeu_ai_unrecovered
+ * (core/aiops1); svc_ai_unrecovered maps its ids to those routines.
+ * Installed by main() before the entry. */
 void port_install_hooks(void) {
   opeu_ai_unrecovered = svc_ai_unrecovered;
 }

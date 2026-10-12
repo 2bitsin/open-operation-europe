@@ -3,6 +3,7 @@
 
 #include "types.hpp"
 #include "types/host.hpp"
+#include "common/menu.hpp"
 
 /* CommandAction: data/ctrltext */
 typedef struct {
@@ -76,19 +77,6 @@ typedef struct {
   uint16_t amount, extra;
 } LoadView;
 #pragma pack(pop)
-
-/* MenuLabel: data/menutext */
-typedef uint16_t MenuLabel;
-
-/* MenuItem: data/menutext */
-typedef struct {
-  uint16_t  x_column;
-  uint16_t  y_pixel;
-  uint16_t  width_columns;
-  uint16_t  text_attribute;
-  MenuLabel label;
-  uint16_t  selection_and_flags;
-} MenuItem;
 
 /* MissionView: core/msnkill, core/msnraid, core/msnrecon, core/msntick */
 #pragma pack(push, 1)
