@@ -72,6 +72,9 @@ its `link` row counts the routine link table and its `callback` row the
 event-typed parameters and `Call(` sites, the two that M2 takes to zero;
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
+starts from the baseline committed at `HEAD`, not the working file, and
+warns about any other row the working file changes, so concurrent
+re-baselines cannot revert each other). Every test runs from
 a clean clone with only conan and the embedded assets.
 
 `buildutil.toml` sets the project name, `cxx_standard = 23`, the `contracts`
