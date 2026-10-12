@@ -23,8 +23,7 @@ namespace {
 constexpr std::uint16_t NAME_INDENT{ 3 };
 } // namespace
 
-void opeu_tbl_draw_types(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first,
-                         uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_types(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(ds) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
@@ -39,9 +38,8 @@ void opeu_tbl_draw_types(uint8_t ds[65536], HostEvent event, uint16_t scratch, u
     }
     auto const    general{ Record<Person>(data, data.context_record1).status };
     std::uint16_t nations{ !(type.sides & general) ? type.sides : general };
-    Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_type_row),
-         opeu_first_mask_name(ds, static_cast<std::uint8_t>(nations)), type.hard_rating, type.soft_rating, type.range,
-         type.speed, static_cast<unsigned>(type.usage * type.weight) / 10, type.mode);
+    Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_type_row), opeu_first_mask_name(ds, static_cast<std::uint8_t>(nations)), type.anti_personnel, type.anti_tank, type.defense,
+         type.speed, static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10, type.gun_range);
     DrawRowText(ds, event, window, layout, entry, text);
   }
   Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);

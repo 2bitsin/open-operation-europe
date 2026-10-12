@@ -54,8 +54,7 @@ uint16_t    NameForward(uint8_t* ds, uint16_t, const uint16_t* args, uint16_t co
 
 // orders_hidden: the enemy's element, whose order the panel does not show. frame: the routine's frame on the DS
 // stack; the names are formatted there.
-void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden,
-                               uint16_t frame) {
+void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden, uint16_t frame) {
   auto&       data{ Data(ds) };
   auto const& record{ Record<Element>(data, element) };
   auto const  unit_name{ Local(frame, UNIT_NAME_AT) };
@@ -63,9 +62,7 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   auto        side{ opeu_battle_element_side(ds, event, element) };
   auto const  unit{ opeu_battle_element_unit(ds, event, element) };
   auto const  at{ [&](uint16_t column, uint16_t row) { Call(ds, event, BattleRoutine::ARMY_POSITION, column, row); } };
-  auto const  print{ [&](auto const& format, auto... words) {
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...);
-  } };
+  auto const  print{ [&](auto const& format, auto... words) { Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...); } };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   at(TITLE_COLUMN, 0);
   uint16_t name;
@@ -122,13 +119,13 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   auto const& type{ data.element_types[record.type] };
   auto const  card{ side ? CARD_COLUMN_1 : CARD_COLUMN_0 };
   at(card, CARD_ROW);
-  print(data.battle_fmt_apat, type.hard_rating, type.soft_rating);
+  print(data.battle_fmt_apat, type.anti_personnel, type.anti_tank);
   at(card, CARD_ROW + LINE);
-  print(data.battle_fmt_defense, type.range);
+  print(data.battle_fmt_defense, type.defense);
   at(card, CARD_ROW + 2 * LINE);
   print(data.battle_fmt_speed, type.speed);
   at(card, CARD_ROW + 3 * LINE);
-  print(data.battle_fmt_range, type.mode);
+  print(data.battle_fmt_range, type.gun_range);
   Call(ds, event, BattleRoutine::FACE_DRAW, side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, record.type);
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_fmt_end));
 }
@@ -137,10 +134,7 @@ uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_element_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_element_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp)); });
   return 0;
 }

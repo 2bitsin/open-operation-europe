@@ -53,8 +53,7 @@ constexpr uint8_t  DEFENCE_LEADERSHIP{ 0x46 };
 [[nodiscard]] auto Cover(uint8_t* ds, BattleEvent event, uint16_t target, uint16_t& weather) -> uint16_t {
   auto&       data{ Data(ds) };
   auto const& position{ PositionOf(data, target) };
-  auto const  terrain{ static_cast<uint8_t>(
-      Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, position.x, position.y)) };
+  auto const  terrain{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, position.x, position.y)) };
   weather = data.weather_obscurity[data.weather];
   return Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_terrain_cover) + terrain));
 }
@@ -102,8 +101,7 @@ uint16_t opeu_battle_ranged_hits(uint8_t* ds, BattleEvent event, uint16_t shoote
   chance = static_cast<uint16_t>(chance + (own.experience > other.experience ? 5 : 10));
   auto const mode{ opeu_battle_terrain_mode(ds, event, shooter, target) };
   // Signed halving: the range can fall short of the distance.
-  chance = static_cast<uint16_t>(
-      chance + static_cast<uint16_t>((static_cast<int>(TypeOf(data, shooter).mode) - mode + 1) / 2 + 1) * 5u);
+  chance = static_cast<uint16_t>(chance + static_cast<uint16_t>((static_cast<int>(TypeOf(data, shooter).gun_range) - mode + 1) / 2 + 1) * 5u);
   uint16_t   weather;
   auto const cover{ Cover(ds, event, target, weather) };
   chance = static_cast<uint16_t>(chance - Mul16(static_cast<uint16_t>(cover + weather), Night(data) ? 25 : 15) / 10);
@@ -115,15 +113,14 @@ uint16_t opeu_battle_ranged_power(uint8_t* ds, BattleEvent event, uint16_t shoot
   auto&          data{ Data(ds) };
   auto const&    type{ TypeOf(data, shooter) };
   auto const&    own{ Record<Element>(data, shooter) };
-  uint16_t const rating{ Is(TypeOf(data, target), Category::INFANTRY) ? type.hard_rating : type.soft_rating };
+  uint16_t const rating{ Is(TypeOf(data, target), Category::INFANTRY) ? type.anti_personnel : type.anti_tank };
   uint16_t const tactics{ Skill(ds, event, shooter, SKILL_TACTICS) };
   uint16_t const grade{ opeu_battle_type_skill(ds, event, shooter) };
   uint16_t const fire{ Skill(ds, event, shooter, SKILL_FIRE) };
   auto const     leadership{ Leadership(ds, event, shooter, POWER_LEADERSHIP) };
-  auto           value{ static_cast<uint16_t>(grade - own.experience + tactics + own.training + own.morale + fire
-                                              + RATING_BASE) };
+  auto           value{ static_cast<uint16_t>(grade - own.experience + tactics + own.training + own.morale + fire + RATING_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, rating) / 100);
-  auto const reach{ static_cast<uint16_t>(type.mode - opeu_battle_terrain_mode(ds, event, shooter, target) + 1) };
+  auto const reach{ static_cast<uint16_t>(type.gun_range - opeu_battle_terrain_mode(ds, event, shooter, target) + 1) };
   value = Mul16(value, static_cast<uint16_t>((reach >> 1) + 1));
   return Mul16(value, leadership);
 }
@@ -133,17 +130,15 @@ uint16_t opeu_battle_ranged_power(uint8_t* ds, BattleEvent event, uint16_t shoot
 uint16_t opeu_battle_ranged_defense(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&          data{ Data(ds) };
   auto const&    own{ Record<Element>(data, element) };
-  uint16_t const armour{ TypeOf(data, element).range };
+  uint16_t const armour{ TypeOf(data, element).defense };
   uint16_t const tactics{ Skill(ds, event, element, SKILL_TACTICS) };
   uint16_t const grade{ opeu_battle_type_skill(ds, event, element) };
   uint16_t const fire{ Skill(ds, event, element, SKILL_FIRE) };
   auto const     leadership{ Leadership(ds, event, element, DEFENCE_LEADERSHIP) };
-  auto           value{ static_cast<uint16_t>(own.training - own.experience + own.morale + fire + tactics + grade
-                                              + RATING_BASE) };
+  auto           value{ static_cast<uint16_t>(own.training - own.experience + own.morale + fire + tactics + grade + RATING_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ opeu_battle_element_side(ds, event, element) };
-  auto const bonus{ opeu_rand_bounded(
-      static_cast<uint16_t>(data.side_control[side] == 0 ? data.delivery_level + 1 : 1)) };
+  auto const bonus{ opeu_rand_bounded(static_cast<uint16_t>(data.side_control[side] == 0 ? data.delivery_level + 1 : 1)) };
   return static_cast<uint16_t>(Mul16(leadership, value) + bonus + 1);
 }
 
@@ -167,15 +162,13 @@ uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shoo
     }
   }
   auto&      unit{ Record<Unit>(data, opeu_battle_element_unit(ds, event, shooter)) };
-  auto const shots{ static_cast<uint16_t>(
-      static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, shooter)) / 3u) };
+  auto const shots{ static_cast<uint16_t>(static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, shooter)) / 3u) };
   auto const ammunition{ unit.resources[0] };
   unit.resources[0] = static_cast<uint16_t>(ammunition - (ammunition < shots ? ammunition : shots));
   auto const& type{ TypeOf(data, shooter) };
   uint16_t    count{ Record<Element>(data, shooter).quantity };
   if (Is(type, Category::INFANTRY)) count /= 10;
-  if (Word(ds, bunker))
-    return static_cast<uint16_t>(Mul16(Call(ds, event, BattleRoutine::ISQRT, type.soft_rating), count) / 100);
+  if (Word(ds, bunker)) return static_cast<uint16_t>(Mul16(Call(ds, event, BattleRoutine::ISQRT, type.anti_tank), count) / 100);
   if (!opeu_battle_ranged_hits(ds, event, shooter, target)) return 0;
   auto const power{ opeu_battle_ranged_power(ds, event, shooter, target) };
   auto const defence{ opeu_battle_ranged_defense(ds, event, target) };
@@ -189,17 +182,14 @@ uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shoo
   auto const cover{ Cover(ds, event, target, weather) };
   auto const spread{ opeu_max16(static_cast<uint16_t>(cover / 5 + weather / 3 + 2), 1) };
   auto const night{ Night(data) ? 2 : 1 };
-  if (Is(target_type, Category::SUPPLY) || Is(target_type, Category::REPAIR)
-      || (Is(target_type, Category::ARTILLERY) && (target_type.flags & Bits(TypeFlag::HEAVY)))) {
+  if (Is(target_type, Category::SUPPLY) || Is(target_type, Category::REPAIR) || (Is(target_type, Category::ARTILLERY) && (target_type.flags & Bits(TypeFlag::HEAVY)))) {
     auto const base{ static_cast<uint16_t>(Mul16(grade / 10, count) / 7 / night / spread) };
     auto const roll{ opeu_rand_bounded(2) };
     return static_cast<uint16_t>(roll + Mul16(opeu_rand_bounded(6) == 0 ? 2 : 1, base));
   }
   auto const base{ Mul16(static_cast<uint16_t>(Mul16(grade, count) / night / spread), size) };
   auto const roll{ opeu_rand_bounded(2) };
-  return static_cast<uint16_t>(roll
-                               + Mul16(static_cast<uint16_t>(base / (Is(target_type, Category::INFANTRY) ? 7 : 70)),
-                                       opeu_rand_bounded(6) == 0 ? 2 : 1));
+  return static_cast<uint16_t>(roll + Mul16(static_cast<uint16_t>(base / (Is(target_type, Category::INFANTRY) ? 7 : 70)), opeu_rand_bounded(6) == 0 ? 2 : 1));
 }
 
 uint16_t svc_btlrcalc(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {

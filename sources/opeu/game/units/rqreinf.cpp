@@ -59,12 +59,9 @@ void opeu_reinf_element(uint8_t ds[65536], HostEvent event, uint16_t element, ui
     if (!(data.side_masks[data.current_side] & type.sides)) continue;
     if (data.request_weights1[index] <= Call(ds, event, RequestService::RANDOM, 100)) continue;
     loaded.type           = index;
-    std::uint16_t amount  = data.request_capacities[category]
-                            / (Call(ds, event, RequestService::MAX16, type.soft_rating, type.hard_rating) / 20 + 1);
+    std::uint16_t amount  = data.request_capacities[category] / (Call(ds, event, RequestService::MAX16, type.anti_tank, type.anti_personnel) / 20 + 1);
     amount               += (5 - data.delivery_level) * 6;
-    loaded.quantity       = Call(ds, event, RequestService::MIN16,
-                                 Call(ds, event, RequestService::RANDOM, amount / 3) + (amount >> 1),
-                                 data.request_capacities[category]);
+    loaded.quantity       = Call(ds, event, RequestService::MIN16, Call(ds, event, RequestService::RANDOM, amount / 3) + (amount >> 1), data.request_capacities[category]);
     loaded.damage         = 0;
     return;
   }
@@ -82,14 +79,12 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
     Call(ds, event, RequestService::FREE_ELEMENTS, 0, requested);
     Record<Side>(data, data.current_side_ptr).requests[regiment].kind = std::to_underlying(RequestKind::NONE);
   }
-  auto const units{ static_cast<std::uint8_t>(
-      Call(ds, event, RequestService::FREE_UNITS, Near(data, data.ai_unit_list), requested)) };
+  auto const units{ static_cast<std::uint8_t>(Call(ds, event, RequestService::FREE_UNITS, Near(data, data.ai_unit_list), requested)) };
   if (!units) {
     Call(ds, event, RequestService::NO_MORE, Near(data, data.rq_regiment_text));
     return;
   }
-  auto elements{ static_cast<std::uint8_t>(
-      Call(ds, event, RequestService::FREE_ELEMENTS, Near(data, data.ai_element_list), requested)) };
+  auto elements{ static_cast<std::uint8_t>(Call(ds, event, RequestService::FREE_ELEMENTS, Near(data, data.ai_element_list), requested)) };
   if (!elements) {
     Call(ds, event, RequestService::NO_MORE, Near(data, data.rq_battalion_text));
     return;
@@ -101,11 +96,9 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
   auto const    unit{ data.ai_unit_list[data.list_row] };
   auto const    slot{ static_cast<std::uint8_t>(Call(ds, event, RequestService::UNIT_INDEX, unit)) };
   std::uint16_t kind;
-  if (Call(ds, event, RequestService::CATEGORY_0_TO_3, slot)
-      || Call(ds, event, RequestService::CATEGORY_4_OR_5, slot)) {
+  if (Call(ds, event, RequestService::CATEGORY_0_TO_3, slot) || Call(ds, event, RequestService::CATEGORY_4_OR_5, slot)) {
     Call(ds, event, RequestService::ARMY_TITLE, Near(data, data.rq_regiments_text));
-    kind = Call(ds, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS,
-                data.context_record2, Near(data, data.rq_slash_text));
+    kind = Call(ds, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_slash_text));
     if (kind == 0xffff) return;
     kind--;
   } else if (Call(ds, event, RequestService::CATEGORY_6, slot))
@@ -119,8 +112,7 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
     if (!Call(ds, event, RequestService::RANDOM, battalions) && row > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[row] };
-    opeu_reinf_element(ds, event, near, static_cast<std::uint8_t>(kind),
-                       static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 2)));
+    opeu_reinf_element(ds, event, near, static_cast<std::uint8_t>(kind), static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 2)));
     auto& element{ Record<Element>(data, near) };
     element.morale     = static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 80));
     element.training   = static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 80));

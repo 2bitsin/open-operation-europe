@@ -31,7 +31,7 @@ void opeu_request_action1(uint8_t ds[65536], HostEvent event, uint8_t side, uint
   auto const  before{ item.quantity };
   if (!before) item.extra = 0;
   auto const capacity{ data.request_capacities[type.category] };
-  auto       amount{ static_cast<uint16_t>(capacity / (opeu_max16(type.soft_rating, type.hard_rating) / 20 + 1)) };
+  auto       amount{ static_cast<uint16_t>(capacity / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1)) };
   if (data.side_control[side] == 1)
     amount = static_cast<uint16_t>(amount + (5 - data.delivery_level) * 6);
   else
@@ -40,12 +40,10 @@ void opeu_request_action1(uint8_t ds[65536], HostEvent event, uint8_t side, uint
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   Call(ds, event, DeliveryService::LOCATION, objective.x, objective.y, side);
-  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, HEADER_MESSAGE),
-       Near(data, objective));
+  Call(ds, event, DeliveryService::FORMAT, buffer, Call(ds, event, DeliveryService::MESSAGE_TEXT, HEADER_MESSAGE), Near(data, objective));
   Call(ds, event, DeliveryService::MESSAGE, buffer, data.request_person);
   Call(ds, event, DeliveryService::WAIT);
-  Call(ds, event, DeliveryService::FORMAT, buffer, offsetof(DataSegment, equipment_delivery_format),
-       data.element_types[item.type].name, item.quantity, item.quantity - before);
+  Call(ds, event, DeliveryService::FORMAT, buffer, offsetof(DataSegment, equipment_delivery_format), data.element_types[item.type].name, item.quantity, item.quantity - before);
   Call(ds, event, DeliveryService::MESSAGE, buffer, data.request_person);
 }
 

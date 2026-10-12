@@ -91,12 +91,10 @@ uint8_t opeu_air_mark_regiment(uint8_t ds[65536], HostEvent, uint16_t) {
 uint8_t opeu_air_assign_troops(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto&      element{ Record<Element>(data, data.alloc_elements[data.list_row]) };
-  auto const most{ opeu_min16(opeu_min16(opeu_air_free_planes(ds, event, CalleeSp(sp, 0x0e)) * TROOPS_PER_PLANE
-                                             + element.quantity - data.air_troops,
-                                         Record<Side>(data, data.current_side_ptr).paratroops),
-                              data.request_capacities[0]) };
-  auto const troops{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x14), Near(data, data.drop_ask_troops), 0, most, 1,
-                                        data.context_record3, 0) };
+  auto const most{ opeu_min16(
+      opeu_min16(opeu_air_free_planes(ds, event, CalleeSp(sp, 0x0e)) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
+      data.request_capacities[0]) };
+  auto const troops{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x14), Near(data, data.drop_ask_troops), 0, most, 1, data.context_record3, 0) };
   if (troops != CANCELLED) {
     data.air_troops  = static_cast<std::uint16_t>(data.air_troops + (troops - element.quantity));
     element.quantity = troops;
@@ -174,11 +172,9 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event, uint16_t sp)
 uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t hours) {
   auto&              data{ Data(ds) };
   auto const         text{ Local(sp, TEXT_LOCAL) };
-  std::uint8_t const estimate{ static_cast<std::uint8_t>(opeu_min16(
-      opeu_max16(RandomBelow(ds, data.delivery_level + 2) - data.air_stat_13 / 30 + data.air_troops / 300 + 6, 6),
-      24)) };
+  std::uint8_t const estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(RandomBelow(ds, data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
   if (estimate > hours) {
-    if (95 - static_cast<std::uint8_t>(RandomBelow(ds, 20)) > data.air_stat_14) {
+    if (95 - static_cast<std::uint8_t>(RandomBelow(ds, 20)) > data.air_charm) {
       Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, AIR_FORCE_DELAY), estimate);
       Call(ds, event, MESSAGE, text, data.air_person);
       return estimate;
@@ -187,8 +183,7 @@ uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t sp, uin
     Call(ds, event, MESSAGE, text, data.air_person);
     return hours;
   }
-  if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24))
-      && 60 - static_cast<std::uint8_t>(RandomBelow(ds, 20)) > data.air_stat_14) {
+  if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24)) && 60 - static_cast<std::uint8_t>(RandomBelow(ds, 20)) > data.air_charm) {
     Call(ds, event, MESSAGE, Call(ds, event, LOOKUP, DROP_REFUSED), data.air_person);
     return 0;
   }
@@ -202,8 +197,7 @@ uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint16_t sp, ui
   auto const text{ Local(sp, TEXT_LOCAL) };
   auto const troops{ data.air_troops };
   auto const planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
-  Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, PLANES_NEEDED), hours, planes,
-       planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes));
+  Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, PLANES_NEEDED), hours, planes, planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes));
   Call(ds, event, MESSAGE, text, data.air_person);
   if (opeu_air_confirm(ds, event, CalleeSp(sp, 0x7a))) {
     auto& drop{ CurrentDrop(data) };
@@ -225,11 +219,8 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const callee{ CalleeSp(sp, 0x10) };
   auto const message{ [&](auto const& text) { Call(ds, event, MESSAGE, Near(data, text), data.context_record3); } };
-  auto const confirm{ [&](auto const& text) {
-    return Call(ds, event, CONFIRM, Near(data, text), data.context_record3);
-  } };
-  if (opeu_air_paratroop_type(ds, event, callee) == NO_TYPE
-      || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
+  auto const confirm{ [&](auto const& text) { return Call(ds, event, CONFIRM, Near(data, text), data.context_record3); } };
+  if (opeu_air_paratroop_type(ds, event, callee) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
     message(data.drop_no_paratroopers);
     return;
   }
@@ -263,8 +254,7 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     message(data.drop_where);
     if (!Call(ds, event, PICK, site_x, site_y)) return;
   } while (!opeu_air_target_valid(ds, event, callee, x, y, Near(data, data.drop_paratroopers)));
-  auto const hours{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x16), Near(data, data.drop_hours_prompt), 6, 24, 1,
-                                       data.context_record3, 0) };
+  auto const hours{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x16), Near(data, data.drop_hours_prompt), 6, 24, 1, data.context_record3, 0) };
   if (hours == CANCELLED) return;
   if (!confirm(data.drop_ask_hq)) return;
   auto const delay{ opeu_air_drop_delay(ds, event, callee, static_cast<std::uint8_t>(hours)) };

@@ -35,12 +35,10 @@ uint8_t opeu_choose_deputy_identity(uint8_t ds[65536], uint8_t side) {
   std::uint8_t identity{ range.first };
   for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
     auto const& person{ data.people[PEOPLE_PER_SIDE * side + i] };
-    if (person.status != PERSON_VACANT && (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity)
-      identity = person.portrait;
+    if (person.status != PERSON_VACANT && (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity) identity = person.portrait;
   }
   if (range.last <= identity)
-    identity = static_cast<std::uint8_t>(RandomBelow(ds, static_cast<std::uint16_t>(range.last - range.first + 1))
-                                         + range.first);
+    identity = static_cast<std::uint8_t>(RandomBelow(ds, static_cast<std::uint16_t>(range.last - range.first + 1)) + range.first);
   else
     ++identity;
   return identity;
@@ -55,7 +53,7 @@ void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
   deputy.leadership = DEPUTY_RATING;
   deputy.charm      = DEPUTY_RATING;
   deputy.bravery    = DEPUTY_RATING;
-  deputy.byte_17    = DEPUTY_RATING;
+  deputy.max_health = DEPUTY_RATING;
   deputy.health     = DEPUTY_RATING;
   deputy.infantry   = DEPUTY_RATING;
   deputy.artillery  = DEPUTY_RATING;

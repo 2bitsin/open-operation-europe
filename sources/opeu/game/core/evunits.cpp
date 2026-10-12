@@ -88,7 +88,7 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
             opeu_add_byte(Rand(ds, 3) + 1, RATING_LIMIT, &element.morale);
           else
             opeu_sub_byte(Rand(ds, 3) + 2, &element.morale);
-          if (data.element_types[element.type].usage != 0 && unit.resources[1] == 0) opeu_sub_byte(1, &element.morale);
+          if (data.element_types[element.type].fuel_economy != 0 && unit.resources[1] == 0) opeu_sub_byte(1, &element.morale);
           if (unit.resources[0] == 0) opeu_sub_byte(1, &element.morale);
           if (element.morale < opeu_unit_average9(ds, near))
             opeu_add_byte(1, RATING_LIMIT, &element.morale);
@@ -103,10 +103,8 @@ void opeu_unit_hourly_event(uint8_t ds[65536], HostEvent event) {
 
 uint16_t svc_evunits(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case UNIT_MESSAGE:
-    opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  default: port_unhandled("evunits", id, count);
+  case UNIT_MESSAGE: opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  default:           port_unhandled("evunits", id, count);
   }
   return 0;
 }

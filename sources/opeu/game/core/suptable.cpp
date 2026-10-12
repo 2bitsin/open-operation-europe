@@ -57,18 +57,18 @@ uint8_t opeu_supply_unit_eligible(uint8_t ds[65536]) {
 void opeu_supply_reset(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (auto row = 0u; row < data.alloc_slots.size(); ++row) {
-    data.supply_sum_a[row]         = 0;
-    data.supply_sum_b[row]         = 0;
-    data.supply_sum_c[row]         = 0;
-    data.supply_avg_a[row]         = 0;
-    data.supply_avg_b[row]         = 0;
-    data.supply_avg_c[row]         = 0;
-    data.alloc_slots[row].type     = NO_TYPE;
-    data.supply_total              = 0;
-    data.supply_amounts[row]       = 0;
-    data.supply_others[row]        = 0;
-    data.alloc_slots[row].quantity = 0;
-    data.alloc_slots[row].extra    = 0;
+    data.supply_morale_sums[row]         = 0;
+    data.supply_training_sums[row]       = 0;
+    data.supply_experience_sums[row]     = 0;
+    data.supply_morale_averages[row]     = 0;
+    data.supply_training_averages[row]   = 0;
+    data.supply_experience_averages[row] = 0;
+    data.alloc_slots[row].type           = NO_TYPE;
+    data.supply_total                    = 0;
+    data.supply_amounts[row]             = 0;
+    data.supply_others[row]              = 0;
+    data.alloc_slots[row].quantity       = 0;
+    data.alloc_slots[row].extra          = 0;
   }
   for (auto& spare : data.supply_spare) {
     spare.type     = NO_TYPE;
@@ -82,14 +82,13 @@ uint8_t opeu_supply_true(void) {
 }
 
 // Draws the type rows first..last (last below 255); scratch holds the nation's buffer.
-void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first,
-                            uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto const& data{ Data(ds) };
   auto const& window{ Window(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_header_a));
+    Call(ds, event, PRINT, offsetof(DataSegment, supply_type_header));
   }
   for (std::uint8_t line = first; line <= last; ++line) {
     auto const type{ TypeAt(data.supply_types[line]) };
@@ -97,8 +96,7 @@ void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t scratc
     auto const amount{ data.supply_amounts[line] };
     auto const other{ data.supply_others[line] };
     auto const nation{ opeu_nation_code(ds, type, scratch) };
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_row_a), data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR,
-         Record<ElementType>(data, type).name, nation, amount, other);
+    Call(ds, event, PRINT, offsetof(DataSegment, supply_type_row), data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR, Record<ElementType>(data, type).name, nation, amount, other);
   }
 }
 
@@ -118,21 +116,19 @@ uint8_t opeu_supply_return_slot(uint8_t ds[65536], HostNotify event) {
   auto const y{ data.list_row * LINE_HEIGHT + 0x2e };
   Call(ds, event, HIGHLIGHT, 0x31, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
   Call(ds, event, POSITION, 0x2e, y);
-  Call(ds, event, PRINT, offsetof(DataSegment, supply_empty_a),
-       data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR);
+  Call(ds, event, PRINT, offsetof(DataSegment, supply_returned_slot), data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR);
   Call(ds, event, HIGHLIGHT, 0x2e, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
   return 1;
 }
 
 // Draws the slot rows first..last; scratch holds the type name's and, above it, the nation's buffer.
-void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first,
-                            uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto const& data{ Data(ds) };
   auto const& window{ Window(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_header_b));
+    Call(ds, event, PRINT, offsetof(DataSegment, supply_slot_header));
   }
   for (std::uint16_t line = first; line <= last; ++line) {
     Call(ds, event, POSITION, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
@@ -143,9 +139,9 @@ void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratc
       auto const amount{ slot.quantity };
       auto const nation{ opeu_nation_code(ds, TypeAt(slot.type), static_cast<std::uint16_t>(scratch + NAME_BUFFER)) };
       auto const name{ opeu_item_type_name(ds, Near(data, slot), scratch) };
-      Call(ds, event, PRINT, offsetof(DataSegment, supply_row_b), colour, name, nation, amount);
+      Call(ds, event, PRINT, offsetof(DataSegment, supply_slot_row), colour, name, nation, amount);
     } else {
-      Call(ds, event, PRINT, offsetof(DataSegment, supply_empty_b), colour);
+      Call(ds, event, PRINT, offsetof(DataSegment, supply_empty_slot), colour);
     }
   }
 }
@@ -155,20 +151,14 @@ void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count
   case LAYOUT: {
     // The layout's three byte outputs go to the DS stack and are not used.
     auto const out{ static_cast<std::uint16_t>(port_stack_enter(4) - 4) };
-    opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), out,
-                       (uint16_t)(out + 1), (uint16_t)(out + 2));
+    opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), out, (uint16_t)(out + 1), (uint16_t)(out + 2));
     port_stack_leave(4);
     break;
   }
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT: b2_cursor_print(ds, args, count); break;
-  case HIGHLIGHT:
-    opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                      Arg(args, count, 4));
-    break;
-  default: port_unhandled("suptable", id, count);
+  case POSITION:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:     b2_cursor_print(ds, args, count); break;
+  case HIGHLIGHT: opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  default:        port_unhandled("suptable", id, count);
   }
 }
 
@@ -185,15 +175,15 @@ template <typename View> auto WithScratch(View&& view) -> std::uint32_t {
 
 auto port_routine_opeu_supply_draw_slots(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return WithScratch([&](std::uint16_t scratch) {
-    opeu_supply_draw_slots(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                           (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+    opeu_supply_draw_slots(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+                           (uint8_t)Arg(args, count, 4));
   });
 }
 
 auto port_routine_opeu_supply_draw_types(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return WithScratch([&](std::uint16_t scratch) {
-    opeu_supply_draw_types(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                           (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+    opeu_supply_draw_types(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
+                           (uint8_t)Arg(args, count, 4));
   });
 }
 

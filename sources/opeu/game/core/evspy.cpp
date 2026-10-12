@@ -89,10 +89,7 @@ uint16_t opeu_spy_commander_ready(uint8_t ds[65536], HostEvent event) {
   auto const  near{ Commander(ds) };
   auto const  unit{ opeu_person_selected_unit(ds, near) };
   auto const& commander{ Record<Person>(data, near) };
-  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT && commander.health >= FIT
-                 && commander.experience >= EXPERIENCED && Call(ds, event, SAFE, unit)
-             ? 1
-             : 0;
+  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT && commander.health >= FIT && commander.experience >= EXPERIENCED && Call(ds, event, SAFE, unit) ? 1 : 0;
 }
 
 // The message panel with her name and, when `show`, her portrait; then the text.
@@ -132,8 +129,8 @@ void opeu_spy_present_b(uint8_t ds[65536], HostEvent event) {
   opeu_spy_portrait_text(ds, event, BUFFER, 1);
   auto& commander{ Record<Person>(Data(ds), Commander(ds)) };
   opeu_add_byte(1, MAX_RATING, &commander.experience);
-  opeu_sub_byte(1, &commander.byte_17);
-  commander.health = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.byte_17));
+  opeu_sub_byte(1, &commander.max_health);
+  commander.health = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.max_health));
 }
 
 // The approach scene and its question.
@@ -186,26 +183,17 @@ uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
   switch (id) {
   case SAFE:  result = opeu_visit_unit_safe(ds, Arg(args, count, 0)); break;
   case PANEL: opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
+  case FRAME: opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case PRINT: c1_cursor_print(ds, args, count); break;
-  case SEEK:
-    result = static_cast<uint16_t>(
-        opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3)));
-    break;
+  case SEEK:  result = static_cast<uint16_t>(opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3))); break;
   case DRAW:
-    opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                         Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
+    opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
     break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case FORMAT:  c1_request_format(ds, args, count); break;
-  case TEXT:    opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case UI_TEXT: opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case ANSWER:  {
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case FORMAT:   c1_request_format(ds, args, count); break;
+  case TEXT:     opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case UI_TEXT:  opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case ANSWER:   {
     auto const scratch{ port_scratch_enter(16) };
     result = static_cast<uint16_t>(opeu_yes_no(ds, svc_keyboard, scratch));
     port_scratch_leave(16);
@@ -213,17 +201,11 @@ uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
   }
   case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case FINISH:  opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case ASK:
-    result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case LOOKUP: result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  default:     port_unhandled("evspy", id, count);
+  case SHOW:    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ASK:     result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOOKUP:  result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  default:      port_unhandled("evspy", id, count);
   }
   return result;
 }

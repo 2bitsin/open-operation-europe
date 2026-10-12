@@ -26,7 +26,7 @@
 using namespace opeu::game;
 
 namespace {
-// ElementType::mode above this fires from afar.
+// ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
 // Below the callers' sp: the frames of the callees.
 constexpr uint16_t PLAN_UNIT_FRAME{ 12 };
@@ -46,7 +46,7 @@ constexpr uint16_t SELECT_FRAME{ 14 };
 
 void opeu_battle_ai_plan_unit(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp) {
   auto&      data{ Data(ds) };
-  auto const mode{ data.element_types[Record<Element>(data, element).type].mode };
+  auto const mode{ data.element_types[Record<Element>(data, element).type].gun_range };
   auto const target{ opeu_battle_ai_unit_target(ds, event, element) };
   if (opeu_battle_ai_choose_plan(ds, event, target) < 3 && mode <= RANGED_MODE && target)
     opeu_battle_ai_attack_near(ds, event, element, target, Local(sp, PLAN_UNIT_FRAME));
@@ -63,12 +63,11 @@ void opeu_battle_ai_element(uint8_t* ds, BattleEvent event, uint16_t element, ui
   auto const  unit{ opeu_battle_element_unit(ds, event, element) };
   auto const& record{ Record<Unit>(data, unit) };
   // A heavy element of a unit out of fuel stays; a unit out of ammunition, or set to leave, makes for the edge.
-  if (data.element_types[Record<Element>(data, element).type].weight && record.resources[1] == 0) {
+  if (data.element_types[Record<Element>(data, element).type].fuel_capacity && record.resources[1] == 0) {
     opeu_battle_ai_hold(ds, event, element);
     return;
   }
-  if (record.resources[0] == 0 || opeu_battle_ai_plan_low(ds, event, element) == 4
-      || opeu_battle_ai_plan_high(ds, event, element) == 1) {
+  if (record.resources[0] == 0 || opeu_battle_ai_plan_low(ds, event, element) == 4 || opeu_battle_ai_plan_high(ds, event, element) == 1) {
     opeu_battle_ai_enter_or_hold(ds, event, element);
     return;
   }
@@ -94,8 +93,7 @@ void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side,
       auto const target{ BattleList(data, 0, i) };
       if (!target) continue;
       auto const other{ UnitDirection(ds, event, target) };
-      if (data.battle_ai_pairs[direction * 2u] == other || data.battle_ai_pairs[direction * 2u + 1] == other)
-        slot = target;
+      if (data.battle_ai_pairs[direction * 2u] == other || data.battle_ai_pairs[direction * 2u + 1] == other) slot = target;
     }
   } else {
     auto const first{ BattleList(data, 1, 0) };
@@ -110,15 +108,12 @@ void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side,
 
 void opeu_battle_ai_plan_side(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t sp) {
   auto&      data{ Data(ds) };
-  auto const plan{ Record<Unit>(data, unit).resources[0] == 0 ? uint8_t{ 1 }
-                                                              : opeu_battle_ai_choose_plan(ds, event, unit) };
+  auto const plan{ Record<Unit>(data, unit).resources[0] == 0 ? uint8_t{ 1 } : opeu_battle_ai_choose_plan(ds, event, unit) };
   auto const profile{ opeu_battle_ai_profile(ds, event, unit, 1) };
-  data.battle_ai_plans[data.battle_ai_side * BATTLE_LIST_LENGTH + data.battle_ai_index] = static_cast<uint8_t>(
-      profile | plan << 4);
+  data.battle_ai_plans[data.battle_ai_side * BATTLE_LIST_LENGTH + data.battle_ai_index] = static_cast<uint8_t>(profile | plan << 4);
   opeu_battle_ai_assign_targets(ds, event, data.battle_ai_side, data.battle_ai_index);
   for (auto& element : Elements(data, Record<Unit>(data, unit)))
-    if (opeu_battle_element_active(ds, event, Near(data, element)))
-      opeu_battle_ai_element(ds, event, Near(data, element), Local(sp, PLAN_SIDE_FRAME));
+    if (opeu_battle_element_active(ds, event, Near(data, element))) opeu_battle_ai_element(ds, event, Near(data, element), Local(sp, PLAN_SIDE_FRAME));
 }
 
 void opeu_battle_select_service(uint8_t* ds, BattleEvent event, uint16_t sp) {
@@ -126,8 +121,7 @@ void opeu_battle_select_service(uint8_t* ds, BattleEvent event, uint16_t sp) {
   if (auto const selected{ data.battle_selected }) {
     auto const unit{ opeu_battle_element_unit(ds, event, selected) };
     auto const side{ opeu_battle_unit_side(ds, event, unit) };
-    data.battle_ai_side = static_cast<uint8_t>(opeu_battle_unit_side(ds, event, BattleList(data, 0, 0)) == side ? 0
-                                                                                                                : 1);
+    data.battle_ai_side = static_cast<uint8_t>(opeu_battle_unit_side(ds, event, BattleList(data, 0, 0)) == side ? 0 : 1);
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
       if (BattleList(data, data.battle_ai_side, i) == unit) {
         data.battle_ai_index = i;
@@ -142,8 +136,7 @@ void opeu_battle_select_service(uint8_t* ds, BattleEvent event, uint16_t sp) {
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
       data.battle_ai_index = i;
       auto const unit{ BattleList(data, side, i) };
-      if (unit && !Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)
-          && opeu_battle_level_allowed(ds, event, Record<Unit>(data, unit).first))
+      if (unit && !Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit) && opeu_battle_level_allowed(ds, event, Record<Unit>(data, unit).first))
         opeu_battle_ai_plan_side(ds, event, unit, Local(sp, SELECT_FRAME));
     }
   }

@@ -134,8 +134,7 @@ void opeu_panel_border(uint8_t ds[65536], const DialogHost* host, uint16_t which
   auto const  last_column{ data.panel_columns[which] };
   auto const  row{ data.panel_rows[which] };
   Send(ds, host, BITMAP_RESTORE, 0x2c, row, 1, 0x20, 0, corner.segment, corner.offset);
-  for (std::uint16_t column{ 0x2d }; column <= last_column; ++column)
-    Send(ds, host, BITMAP_RESTORE, column, row, 1, 0x20, 0, edge.segment, edge.offset);
+  for (std::uint16_t column{ 0x2d }; column <= last_column; ++column) Send(ds, host, BITMAP_RESTORE, column, row, 1, 0x20, 0, edge.segment, edge.offset);
 }
 
 // Puts up the message backdrop once per screen; nonzero when it was drawn now.
@@ -153,8 +152,7 @@ uint16_t opeu_message_backdrop(uint8_t ds[65536], const DialogHost* host) {
 void opeu_turn_prepare(uint8_t ds[65536], const DialogHost* host) {
   auto const&   data{ Data(ds) };
   std::uint16_t weather;
-  if (data.weather == HURRICANE_WEATHER && CurrentScenario(data) == HURRICANE_SCENARIO && data.month >= 7
-      && data.month <= 9)
+  if (data.weather == HURRICANE_WEATHER && CurrentScenario(data) == HURRICANE_SCENARIO && data.month >= 7 && data.month <= 9)
     weather = Near(data, data.hurricane_name);
   else
     weather = data.weather_names[data.weather];
@@ -175,14 +173,11 @@ void opeu_turn_frame(uint8_t ds[65536], const DialogHost* host, uint8_t mode) {
   if (data.turn_frame_mode != 1 || mode != 0) Send(ds, host, DISPLAY_PREPARE);
   Send(ds, host, PICTURE_MEMORY, 0, 0x38, data.frame_segment, 0x400);
   bool const          map{ mode == 0 };
-  std::uint16_t const offset{ CurrentScenario(data) == Scenario::AFRICA
-                                  ? (map ? std::uint16_t{ 0x120 } : std::uint16_t{ 0x360 })
-                                  : (map ? std::uint16_t{ 0x240 } : std::uint16_t{ 0x4e0 }) };
+  std::uint16_t const offset{ CurrentScenario(data) == Scenario::AFRICA ? (map ? std::uint16_t{ 0x120 } : std::uint16_t{ 0x360 }) : (map ? std::uint16_t{ 0x240 } : std::uint16_t{ 0x4e0 }) };
   auto const          frame{ Loaded(host, FRAME_SEGMENT, offset) };
   data.stream_ptr[0] = frame.offset;
   data.stream_ptr[1] = frame.segment;
-  Send(ds, host, BITMAP_RESTORE, 0x13, map ? 0x38 : 0x44, 6, map ? 0xc : 0x10, 0, data.stream_ptr[1],
-       data.stream_ptr[0]);
+  Send(ds, host, BITMAP_RESTORE, 0x13, map ? 0x38 : 0x44, 6, map ? 0xc : 0x10, 0, data.stream_ptr[1], data.stream_ptr[0]);
   data.turn_frame_mode = mode;
 }
 
@@ -301,8 +296,7 @@ uint16_t opeu_speaker_panel(uint8_t ds[65536], const DialogHost* host, uint16_t 
     Send(ds, host, UI_TEXT, Near(data, data.speaker_text));
     if (auto const role{ speaker.role & Bits(PersonRole::ROLE_MASK) }) {
       auto const post{ data.role_names[role - 1] };
-      Send(ds, host, CONTEXT_FRAME, 0x2c, 0x11a,
-           static_cast<std::uint8_t>(Send(ds, host, STRING_LENGTH, person) + Send(ds, host, STRING_LENGTH, post) + 5));
+      Send(ds, host, CONTEXT_FRAME, 0x2c, 0x11a, static_cast<std::uint8_t>(Send(ds, host, STRING_LENGTH, person) + Send(ds, host, STRING_LENGTH, post) + 5));
       Send(ds, host, UI_TEXT, post);
     } else {
       auto const division{ (speaker.assignment & Bits(Assignment::DIVISION_MASK)) + 1 };
@@ -342,8 +336,7 @@ void opeu_control_message(uint8_t ds[65536], const DialogHost* host, uint16_t te
 }
 
 // The prompt with its range ("(first-last)") and the value chosen.
-uint16_t opeu_menu_prompt(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t first, uint16_t last,
-                          uint16_t flag, uint16_t menu) {
+uint16_t opeu_menu_prompt(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t menu) {
   auto const& data{ Data(ds) };
   auto const  range{ host->scratch };
   Send(ds, host, REQUEST_FORMAT, range, Near(data, data.menu_prompt_format), first, last);
@@ -352,21 +345,18 @@ uint16_t opeu_menu_prompt(uint8_t ds[65536], const DialogHost* host, uint16_t te
   return Send(ds, host, MENU_SELECT, first, last, flag, menu);
 }
 
-uint16_t opeu_control_choose(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t first, uint16_t last,
-                             uint16_t flag, uint16_t person, uint16_t menu) {
+uint16_t opeu_control_choose(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t person, uint16_t menu) {
   opeu_speaker_panel(ds, host, person, 1);
   auto const value{ opeu_menu_prompt(ds, host, text, first, last, flag, menu) };
   opeu_speaker_panel(ds, host, person, 0);
   return value;
 }
 
-uint16_t opeu_delay_dialog(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t last, uint16_t person,
-                           uint16_t menu) {
+uint16_t opeu_delay_dialog(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t last, uint16_t person, uint16_t menu) {
   return opeu_control_choose(ds, host, text, 1, last, 1, person, menu);
 }
 
-uint16_t opeu_choose_dialog(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t last, uint16_t person,
-                            uint16_t menu) {
+uint16_t opeu_choose_dialog(uint8_t ds[65536], const DialogHost* host, uint16_t text, uint16_t last, uint16_t person, uint16_t menu) {
   return opeu_control_choose(ds, host, text, 1, last, 0, person, menu);
 }
 
@@ -406,13 +396,10 @@ void opeu_unit_report(uint8_t ds[65536], const DialogHost* host, uint16_t unit, 
   auto const  side{ static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)) };
   if (data.side_status[side] == SIDE_PLAYED && Send(ds, host, SELECTION_ELIGIBLE, unit)) {
     auto const& record{ Record<Unit>(data, unit) };
-    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.unit_report_format), SideMark(side), data.side_names[side],
-         Send(ds, host, UNIT_NAME, unit, name));
+    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.unit_report_format), SideMark(side), data.side_names[side], Send(ds, host, UNIT_NAME, unit, name));
     Send(ds, host, STRING_APPEND, text, message);
     Send(ds, host, ARRIVAL_LOCATION, record.x, record.y, side);
-    opeu_control_message(
-        ds, host, text,
-        Send(ds, host, FIND_GROUP_RECORD, side, static_cast<std::uint8_t>(Send(ds, host, GROUP_INDEX, unit))));
+    opeu_control_message(ds, host, text, Send(ds, host, FIND_GROUP_RECORD, side, static_cast<std::uint8_t>(Send(ds, host, GROUP_INDEX, unit))));
     Send(ds, host, ARRIVAL_VIEW, unit);
   }
 }
@@ -437,8 +424,7 @@ void opeu_objective_report(uint8_t ds[65536], const DialogHost* host, uint16_t o
 void opeu_unit_side_report(uint8_t ds[65536], const DialogHost* host, uint16_t unit, uint16_t message) {
   auto const&   data{ Data(ds) };
   std::uint16_t speaker;
-  auto          side{ static_cast<std::uint8_t>(
-      Send(ds, host, OPPOSITE_SIDE, static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)))) };
+  auto          side{ static_cast<std::uint8_t>(Send(ds, host, OPPOSITE_SIDE, static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)))) };
   if (data.side_status[side] == SIDE_PLAYED && Send(ds, host, UNIT_SPECIAL, unit))
     speaker = Send(ds, host, FIND_SIDE_RECORD, side, INTELLIGENCE_CHIEF_KIND);
   else {
@@ -456,8 +442,7 @@ void opeu_unit_side_report(uint8_t ds[65536], const DialogHost* host, uint16_t u
 // A message about the objective to the enemy's intelligence chief, else to its own side's when the player sees it.
 void opeu_objective_side_report(uint8_t ds[65536], const DialogHost* host, uint16_t objective, uint16_t message) {
   auto const& data{ Data(ds) };
-  auto        side{ static_cast<std::uint8_t>(
-      Send(ds, host, OPPOSITE_SIDE, static_cast<std::uint8_t>(Send(ds, host, OBJECTIVE_SIDE, objective)))) };
+  auto        side{ static_cast<std::uint8_t>(Send(ds, host, OPPOSITE_SIDE, static_cast<std::uint8_t>(Send(ds, host, OBJECTIVE_SIDE, objective)))) };
   if (data.side_status[side] != SIDE_PLAYED) {
     side = static_cast<std::uint8_t>(Send(ds, host, OPPOSITE_SIDE, side));
     if (data.side_status[side] != SIDE_PLAYED || !Send(ds, host, OBJECTIVE_ELIGIBLE, objective)) return;
@@ -471,21 +456,19 @@ void opeu_objective_side_report(uint8_t ds[65536], const DialogHost* host, uint1
 void opeu_element_type_panel(uint8_t ds[65536], const DialogHost* host, uint16_t type) {
   auto const& data{ Data(ds) };
   auto const& record{ Record<ElementType>(data, type) };
-  auto const  index{ static_cast<std::int16_t>(static_cast<std::uint16_t>(type - Near(data, data.element_types)))
-                     / static_cast<int>(sizeof(ElementType)) };
+  auto const  index{ static_cast<std::int16_t>(static_cast<std::uint16_t>(type - Near(data, data.element_types))) / static_cast<int>(sizeof(ElementType)) };
   opeu_army_title(ds, host, record.name);
   Send(ds, host, FACE_DRAW, 0x2d, 0xb4, 0, static_cast<std::uint8_t>(index));
   Send(ds, host, ARMY_POSITION, 0x44, 0xb4);
-  Send(ds, host, ARMY_PRINT, Near(data, data.attack_format), record.hard_rating, record.soft_rating);
+  Send(ds, host, ARMY_PRINT, Near(data, data.attack_format), record.anti_personnel, record.anti_tank);
   Send(ds, host, ARMY_POSITION, 0x45, 0xc4);
-  Send(ds, host, ARMY_PRINT, Near(data, data.defense_format), record.range);
+  Send(ds, host, ARMY_PRINT, Near(data, data.defense_format), record.defense);
   Send(ds, host, ARMY_POSITION, 0x45, 0xd4);
   Send(ds, host, ARMY_PRINT, Near(data, data.speed_format), record.speed);
   Send(ds, host, ARMY_POSITION, 0x45, 0xe4);
-  Send(ds, host, ARMY_PRINT, Near(data, data.move_range_format),
-       !record.category ? 0 : static_cast<std::uint16_t>(record.usage * record.weight) / 10);
+  Send(ds, host, ARMY_PRINT, Near(data, data.move_range_format), !record.category ? 0 : static_cast<std::uint16_t>(record.fuel_economy * record.fuel_capacity) / 10);
   Send(ds, host, ARMY_POSITION, 0x45, 0xf4);
-  Send(ds, host, ARMY_PRINT, Near(data, data.gun_range_format), record.mode);
+  Send(ds, host, ARMY_PRINT, Near(data, data.gun_range_format), record.gun_range);
 }
 
 // A battalion's panel: its type's name and face, quantity, morale, damage, training and experience.
@@ -496,8 +479,7 @@ void opeu_group_element_panel(uint8_t ds[65536], const DialogHost* host, uint16_
   opeu_army_title(ds, host, Send(ds, host, TYPE_NAME_TEXT, Near(data, data.element_types[record.type]), name));
   Send(ds, host, FACE_DRAW, 0x32, 0x9a, 0, record.type);
   Send(ds, host, ARMY_POSITION, 0x2e, 0xea);
-  Send(ds, host, ARMY_PRINT, Near(data, data.group_element_format), record.quantity, record.morale, record.damage,
-       record.training, record.experience);
+  Send(ds, host, ARMY_PRINT, Near(data, data.group_element_format), record.quantity, record.morale, record.damage, record.training, record.experience);
 }
 
 // An equipment item's panel: its type's name and face, quantity and extra word.
@@ -519,66 +501,32 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t r = 0, f;
   switch (id) {
   case BITMAP_RESTORE:
-    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                                      Arg(args, count, 3), Arg(args, count, 4),
-                                      port_far(Arg(args, count, 5), Arg(args, count, 6)));
+    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
     break;
-  case BITMAP_SAVE:
-    opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                     port_far(Arg(args, count, 4), Arg(args, count, 5)));
-    break;
-  case UI_BOX:
-    r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                              Arg(args, count, 4));
-    break;
-  case VGA_CLEAR:       r = (uint16_t)opeu_vga_clear(); break;
-  case DISPLAY_PREPARE: opeu_display_prepare(ds, svc_emsmap); break;
-  case PICTURE_MEMORY:
-    opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                               Arg(args, count, 2), Arg(args, count, 3));
-    break;
+  case BITMAP_SAVE:      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
+  case UI_BOX:           r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case VGA_CLEAR:        r = (uint16_t)opeu_vga_clear(); break;
+  case DISPLAY_PREPARE:  opeu_display_prepare(ds, svc_emsmap); break;
+  case PICTURE_MEMORY:   opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case PALETTE_FOR_HOUR: opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host()); break;
-  case PICTURE_FILE:
-    opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                      (int16_t)Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case UI_OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case CONTEXT_FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case CONTEXT_PORTRAIT:
-    opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                          Arg(args, count, 2));
-    break;
-  case FACE_DRAW:
-    opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                   (uint8_t)Arg(args, count, 3));
-    break;
-  case CONTEXT_SAVE:    opeu_context_save(ds, (TextHost*)port_textout_host()); break;
-  case CONTEXT_RESTORE: opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
-  case ARMY_POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case UI_TEXT:        opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case ARMY_PRINT:     b1_cursor_print(ds, args, count); break;
-  case REQUEST_FORMAT: b1_request_format(ds, args, count); break;
-  case TEXT_SCROLL_MODE:
-    r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0));
-    break;
-  case TEXT_WINDOW:
-    opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1),
-                     (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3));
-    break;
+  case PICTURE_FILE:     opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
+  case UI_OUTLINE:       opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case CONTEXT_FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case CONTEXT_PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case FACE_DRAW:        opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
+  case CONTEXT_SAVE:     opeu_context_save(ds, (TextHost*)port_textout_host()); break;
+  case CONTEXT_RESTORE:  opeu_context_restore(ds, (TextHost*)port_textout_host()); break;
+  case ARMY_POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case UI_TEXT:          opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case ARMY_PRINT:       b1_cursor_print(ds, args, count); break;
+  case REQUEST_FORMAT:   b1_request_format(ds, args, count); break;
+  case TEXT_SCROLL_MODE: r = (uint16_t)opeu_text_scroll_mode(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
+  case TEXT_WINDOW: opeu_text_window(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int16_t)Arg(args, count, 3)); break;
   case TEXT_WINDOW_RESET: opeu_text_window_reset(ds, (TextHost*)port_textout_host()); break;
   case TEXT_PUTC:         r = opeu_text_put(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case MENU_SELECT:
     f = b1_stack_alloc(KEY_SCRATCH);
-    r = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2),
-                          Arg(args, count, 3), f);
+    r = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3), f);
     port_scratch_leave(KEY_SCRATCH);
     break;
   case CONFIRM_INPUT:
@@ -600,14 +548,11 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case UNIT_NAME:          r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ARRIVAL_LOCATION:
     f = b1_frame_enter();
-    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                          (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
-  case GROUP_INDEX: r = opeu_unit_group_index(Arg(args, count, 0)); break;
-  case FIND_GROUP_RECORD:
-    r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
+  case GROUP_INDEX:       r = opeu_unit_group_index(Arg(args, count, 0)); break;
+  case FIND_GROUP_RECORD: r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ARRIVAL_VIEW:
     f = b1_frame_enter();
     opeu_arrival_view(ds, svc_mapunit, f, Arg(args, count, 0));
@@ -615,20 +560,17 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     break;
   case OBJECTIVE_SIDE:     r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
-  case FIND_SIDE_RECORD:
-    r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    break;
+  case FIND_SIDE_RECORD:   r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ARRIVAL_FLASH:
     f = b1_frame_enter();
-    opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1),
-                         (uint8_t)Arg(args, count, 2));
+    opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     port_frame_leave();
     break;
   case OPPOSITE_SIDE:  r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
   case UNIT_SPECIAL:   r = opeu_unit_special(ds, Arg(args, count, 0)); break;
   case TYPE_NAME_TEXT: r = opeu_type_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case PRESENT: r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:      port_unhandled("dialogs", id, count);
+  case PRESENT:        r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
+  default:             port_unhandled("dialogs", id, count);
   }
   return r;
 }
@@ -643,8 +585,7 @@ auto port_routine_opeu_confirm_ok(std::uint8_t* ds, std::uint16_t const* args, u
 }
 
 auto port_routine_opeu_control_choose(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 2), Arg(args, count, 0),
-                             Arg(args, count, 1), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+  return opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
 }
 
 auto port_routine_opeu_control_message(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {

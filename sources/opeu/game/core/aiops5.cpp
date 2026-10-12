@@ -55,13 +55,10 @@ void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind, ui
     auto const weight{ data.request_weights1[index] };
     if (!weight) continue;
     auto const& type{ data.element_types[index] };
-    if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides)
-        || weight <= opeu_rand_bounded(100))
-      continue;
+    if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides) || weight <= opeu_rand_bounded(100)) continue;
     auto&      load{ Record<Element>(data, element) };
     auto const capacity{ data.request_capacities[type.category] };
-    auto const typical{ static_cast<std::uint16_t>(capacity / (opeu_max16(type.soft_rating, type.hard_rating) / 20 + 1)
-                                                   + 18) };
+    auto const typical{ static_cast<std::uint16_t>(capacity / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1) + 18) };
     load.type     = index;
     load.quantity = opeu_min16(static_cast<std::uint16_t>(opeu_rand_bounded(typical / 3) + (typical >> 1)), capacity);
     load.damage   = 0;
@@ -90,9 +87,7 @@ uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
     kind = static_cast<std::uint8_t>(opeu_rand_bounded(4));
   Record<Unit>(data, unit).flags = Bits(UnitFlag::REQUESTED);
   for (std::uint8_t i{ 0 }; i < data.ai_unit_element_counts[slot]; ++i) {
-    if (!opeu_rand_bounded(static_cast<std::uint16_t>(data.ai_unit_element_counts[slot] + data.delivery_level))
-        && i > 1)
-      break;
+    if (!opeu_rand_bounded(static_cast<std::uint16_t>(data.ai_unit_element_counts[slot] + data.delivery_level)) && i > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[i] };
     opeu_ai_equip_element(ds, near, kind, static_cast<std::uint8_t>(opeu_rand_bounded(2)));
@@ -130,10 +125,7 @@ uint16_t opeu_ai_restock_unit(uint8_t ds[65536], uint16_t objective, uint16_t un
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) {
     for (auto& item : store.items) {
       if (!item.quantity || item.type != element.type) continue;
-      auto const amount{ opeu_min16(
-          static_cast<std::uint16_t>(data.request_capacities[data.element_types[element.type].category]
-                                     - element.quantity),
-          item.quantity) };
+      auto const amount{ opeu_min16(static_cast<std::uint16_t>(data.request_capacities[data.element_types[element.type].category] - element.quantity), item.quantity) };
       element.quantity += amount;
       item.quantity    -= amount;
       moved             = 1;
@@ -148,14 +140,11 @@ uint16_t opeu_ai_restock_from_objectives(uint8_t ds[65536]) {
   std::uint16_t moved{ 0 };
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (!objective.active || opeu_objective_side(ds, near) != data.current_side || !AiObjectiveEligible(ds, near))
-      continue;
+    if (!objective.active || opeu_objective_side(ds, near) != data.current_side || !AiObjectiveEligible(ds, near)) continue;
     for (std::uint8_t direction{ 0 }; direction <= 8; ++direction) {
       std::uint8_t x{ objective.x };
       std::uint8_t y{ objective.y };
-      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(ds, x, y) == data.current_side
-          && opeu_ai_restock_unit(ds, near, opeu_find_unit_at(ds, x, y)))
-        moved = 1;
+      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(ds, x, y) == data.current_side && opeu_ai_restock_unit(ds, near, opeu_find_unit_at(ds, x, y))) moved = 1;
     }
   }
   return moved;

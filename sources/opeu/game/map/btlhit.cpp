@@ -39,8 +39,7 @@ void SubWord(uint16_t& at, uint16_t amount) {
 
 // Types whose fire is indirect: categories 6 and 7, and heavy artillery.
 [[nodiscard]] auto Indirect(ElementType const& type) -> bool {
-  return type.category == 7 || type.category == 6
-         || (type.category == std::to_underlying(Category::ARTILLERY) && type.flags & Bits(TypeFlag::HEAVY));
+  return type.category == 7 || type.category == 6 || (type.category == std::to_underlying(Category::ARTILLERY) && type.flags & Bits(TypeFlag::HEAVY));
 }
 
 [[nodiscard]] auto IsInfantry(ElementType const& type) -> bool {
@@ -63,13 +62,11 @@ uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event, uint16_t atta
   auto const* model{ &data.element_types[Record<Element>(data, attacker).type] };
   uint16_t    headcount{ Record<Element>(data, attacker).quantity };
   if (IsInfantry(*model)) headcount /= 10;
-  if (target == 0)
-    return U16(U16(Call(ds, event, BattleRoutine::ISQRT, model->soft_rating) * static_cast<uint32_t>(headcount)) / 100);
+  if (target == 0) return U16(U16(Call(ds, event, BattleRoutine::ISQRT, model->anti_tank) * static_cast<uint32_t>(headcount)) / 100);
   if (Call(ds, event, BattleRoutine::BATTLE_FIRE_HITS, target, attacker) == 0) return 0;
   auto const strength{ Call(ds, event, BattleRoutine::BATTLE_FIRE_POWER, target, attacker) };
   auto const defense{ Call(ds, event, BattleRoutine::BATTLE_FIRE_DEFENSE, target) };
-  auto const odds{ U16(U16(strength * 10u)
-                       / opeu_max16(U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) + defense), 1)) };
+  auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) + defense), 1)) };
   headcount = U16(headcount / 10 + 1);
   model     = &data.element_types[Record<Element>(data, target).type];
   auto const quantity{ Record<Element>(data, target).quantity };
@@ -144,8 +141,7 @@ uint16_t svc_btlhit(uint8_t* ds, uint32_t address, const uint16_t* args, unsigne
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_resolve_attack(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_resolve_attack(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_resolve_attack(ds, svc_btlhit, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

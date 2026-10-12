@@ -51,8 +51,7 @@ auto IsEligible(std::uint8_t* ds, Unit const& unit) -> bool {
 }
 
 // Gives `text` about the regiment, formatted with its name, through the frame buffers at `scratch` and `name`.
-auto SayAboutUnit(Advisor const& advisor, std::uint16_t scratch, std::uint16_t name, AdviceText text, Unit const& unit)
-    -> std::uint16_t {
+auto SayAboutUnit(Advisor const& advisor, std::uint16_t scratch, std::uint16_t name, AdviceText text, Unit const& unit) -> std::uint16_t {
   return advisor.SayFormatted(scratch, text, advisor.UnitName(Near(Data(advisor.ds), unit), name));
 }
 } // namespace
@@ -60,8 +59,7 @@ auto SayAboutUnit(Advisor const& advisor, std::uint16_t scratch, std::uint16_t n
 // A regiment about to finish its order (progress 1), with chance 1/(7 - g): an occupy or attack order, the regiment
 // will be ready for battle shortly; a mine or bridge order of an engineer (category 6), or a supply or repair order
 // of a supply regiment (category 7), its operations finish shortly.
-uint16_t opeu_advice_regiment_order_finishing(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                              uint16_t sp) {
+uint16_t opeu_advice_regiment_order_finishing(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto const    advisor{ Regiments(ds, event, far_text, sp) };
   std::uint16_t given{ 0 };
   ForRegiments(ds, false, [&](std::uint8_t g, std::uint8_t k, Unit& unit) {
@@ -90,8 +88,7 @@ uint16_t opeu_advice_regiment_order_finishing(uint8_t ds[65536], const uint8_t* 
 
 // A regiment of an active division holding at most 10 percent of its capacity of a supply, with chance 1/(7 - g)
 // for each supply in turn: the regiment is short of it.
-uint16_t opeu_advice_regiment_supply_shortage(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                              uint16_t sp) {
+uint16_t opeu_advice_regiment_supply_shortage(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&         data{ Data(ds) };
   auto const    advisor{ Regiments(ds, event, far_text, sp) };
   std::uint16_t given{ 0 };
@@ -101,10 +98,8 @@ uint16_t opeu_advice_regiment_supply_shortage(uint8_t ds[65536], const uint8_t* 
     std::uint16_t capacity[3]{};
     opeu_unit_capacities(ds, near, &capacity[0], &capacity[1], &capacity[2]);
     for (std::uint8_t supply{ 0 }; supply < 3; ++supply)
-      if (opeu_resource_percent(unit.resources[supply], capacity[supply]) <= SHORT_SUPPLY
-          && advisor.Random(static_cast<std::uint16_t>(7 - g)) == 1) {
-        given = advisor.SayFormatted(advisor.Scratch(0x96), AdviceText::UNIT_SHORT_OF,
-                                     advisor.UnitName(near, advisor.Scratch(0x32)), data.supply_names[supply]);
+      if (opeu_resource_percent(unit.resources[supply], capacity[supply]) <= SHORT_SUPPLY && advisor.Random(static_cast<std::uint16_t>(7 - g)) == 1) {
+        given = advisor.SayFormatted(advisor.Scratch(0x96), AdviceText::UNIT_SHORT_OF, advisor.UnitName(near, advisor.Scratch(0x32)), data.supply_names[supply]);
         return true;
       }
     return false;
@@ -112,10 +107,9 @@ uint16_t opeu_advice_regiment_supply_shortage(uint8_t ds[65536], const uint8_t* 
   return given;
 }
 
-// Division commanders whose health is below a tenth of byte_17, one time in four: the first pass those in poor health
+// Division commanders whose health is below a tenth of max_health, one time in four: the first pass those in poor health
 // (seriously wounded), the second the others (fatigued).
-uint16_t opeu_advice_division_commander_condition(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                                  uint16_t sp) {
+uint16_t opeu_advice_division_commander_condition(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const advisor{ Regiments(ds, event, far_text, sp) };
   for (std::uint8_t pass{ 0 }; pass < 2; ++pass)
@@ -124,18 +118,15 @@ uint16_t opeu_advice_division_commander_condition(uint8_t ds[65536], const uint8
       if (!near) continue;
       auto const& person{ Record<Person>(data, near) };
       bool const  poor_health{ (person.role & Bits(PersonRole::POOR_HEALTH)) != 0 };
-      if (poor_health == (pass == 0) && person.byte_17 / 10 > person.health && advisor.Random(4) == 1)
-        return advisor.SayFormatted(advisor.Scratch(0x6a),
-                                    pass == 0 ? AdviceText::COMMANDER_WOUNDED : AdviceText::COMMANDER_FATIGUED, g + 1,
-                                    near);
+      if (poor_health == (pass == 0) && person.max_health / 10 > person.health && advisor.Random(4) == 1)
+        return advisor.SayFormatted(advisor.Scratch(0x6a), pass == 0 ? AdviceText::COMMANDER_WOUNDED : AdviceText::COMMANDER_FATIGUED, g + 1, near);
     }
   return 0;
 }
 
 // Regiments of active divisions, with chance 1/(7 - g): the first pass looks for one that can act with more than half
 // its arms damaged, the second for a ready one that cannot act (its communications are out).
-uint16_t opeu_advice_regiment_damage_or_comms(uint8_t ds[65536], const uint8_t* far_text, HostEvent event,
-                                              uint16_t sp) {
+uint16_t opeu_advice_regiment_damage_or_comms(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   auto&         data{ Data(ds) };
   auto const    advisor{ Regiments(ds, event, far_text, sp) };
   std::uint16_t given{ 0 };
@@ -152,8 +143,7 @@ uint16_t opeu_advice_regiment_damage_or_comms(uint8_t ds[65536], const uint8_t* 
         }
         if (static_cast<std::uint16_t>(damaged * 2u) <= quantity || advisor.Random(chance) != 1) return false;
         text = AdviceText::DAMAGED_ARMS;
-      } else if (pass == 1 && (unit.flags & Bits(UnitFlag::READY))
-                 && !opeu_unit_selection_eligible(ds, Near(data, unit)) && advisor.Random(chance) == 1) {
+      } else if (pass == 1 && (unit.flags & Bits(UnitFlag::READY)) && !opeu_unit_selection_eligible(ds, Near(data, unit)) && advisor.Random(chance) == 1) {
         text = AdviceText::COMMUNICATIONS_OUT;
       } else {
         return false;
@@ -210,9 +200,8 @@ uint16_t opeu_advice_regiment_nothing(uint8_t ds[65536], const uint8_t* far_text
 uint16_t opeu_advice_regiment_status(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
   using Check = uint16_t (*)(uint8_t*, const uint8_t*, HostEvent, uint16_t);
   static constexpr Check CHECKS[]{
-    opeu_advice_regiment_order_finishing,     opeu_advice_regiment_supply_shortage,
-    opeu_advice_division_commander_condition, opeu_advice_regiment_damage_or_comms,
-    opeu_advice_regiment_fatigue_morale,      opeu_advice_regiment_nothing,
+    opeu_advice_regiment_order_finishing, opeu_advice_regiment_supply_shortage, opeu_advice_division_commander_condition,
+    opeu_advice_regiment_damage_or_comms, opeu_advice_regiment_fatigue_morale,  opeu_advice_regiment_nothing,
   };
   auto const nested{ static_cast<std::uint16_t>(sp - 4) };
   for (auto const check : CHECKS)
@@ -225,6 +214,5 @@ uint16_t svc_advregt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_advice_regiment_status(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithStack(PORT_FRAME,
-                   [&](std::uint16_t sp) { return opeu_advice_regiment_status(ds, AdviceTexts(), svc_advregt, sp); });
+  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_advice_regiment_status(ds, AdviceTexts(), svc_advregt, sp); });
 }

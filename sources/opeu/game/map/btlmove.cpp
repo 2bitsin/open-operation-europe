@@ -49,8 +49,7 @@ void Settle(uint8_t* ds, BattleEvent event, uint16_t element, BattleState state)
 } // namespace
 
 // frame: the routine's frame on the DS stack; the drawing runs below it.
-void opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y,
-                              uint16_t element, uint8_t mode, uint16_t frame) {
+void opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode, uint16_t frame) {
   if (opeu_battle_element_visible(ds, event, element)) opeu_battle_draw_cell(ds, event, x, y);
   opeu_battle_draw_element_at(ds, event, to_x, to_y, element, mode, Local(frame, DRAW_FRAME));
   opeu_battle_clear_cell(ds, event, x, y);
@@ -85,8 +84,7 @@ void opeu_battle_remove_list(uint8_t* ds, BattleEvent, uint16_t unit) {
   for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
     for (unsigned slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (BattleList(data, side, slot) == unit) {
-        for (auto moved{ slot }; moved < BATTLE_LIST_LENGTH - 1; ++moved)
-          BattleList(data, side, moved) = BattleList(data, side, moved + 1);
+        for (auto moved{ slot }; moved < BATTLE_LIST_LENGTH - 1; ++moved) BattleList(data, side, moved) = BattleList(data, side, moved + 1);
         BattleList(data, side, BATTLE_LIST_LENGTH - 1) = 0;
         return;
       }
@@ -95,8 +93,7 @@ void opeu_battle_remove_list(uint8_t* ds, BattleEvent, uint16_t unit) {
 // How much the attacker wants to fight the target: the target's odds when they are low, otherwise half of them plus
 // the attacker's odds, more for a target in the open.
 uint8_t opeu_battle_attack_rating(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
-  if (opeu_battle_engaged(ds, event, attacker) && PositionOf(Data(ds), attacker).target == target)
-    return ENGAGED_RATING;
+  if (opeu_battle_engaged(ds, event, attacker) && PositionOf(Data(ds), attacker).target == target) return ENGAGED_RATING;
   auto const odds{ [&](uint16_t from, uint16_t to) {
     auto const rating{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_RATING, from, to)) };
     auto const range{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_RANGE, from)) };
@@ -106,8 +103,7 @@ uint8_t opeu_battle_attack_rating(uint8_t* ds, BattleEvent event, uint16_t attac
   auto const attack{ odds(attacker, target) };
   if (defence < LOW_ODDS) return defence;
   auto rating{ static_cast<uint8_t>((defence >> 1) + attack) };
-  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TERRAIN_MODE, target, attacker)) == OPEN_GROUND)
-    rating = static_cast<uint8_t>(rating + OPEN_GROUND_BONUS);
+  if (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TERRAIN_MODE, target, attacker)) == OPEN_GROUND) rating = static_cast<uint8_t>(rating + OPEN_GROUND_BONUS);
   return rating;
 }
 
@@ -115,7 +111,7 @@ uint8_t opeu_battle_attack_rating(uint8_t* ds, BattleEvent event, uint16_t attac
 // the low bytes of its int coordinates after its bounds check.
 uint16_t opeu_battle_best_target(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&       data{ Data(ds) };
-  auto const  reach{ data.element_types[Record<Element>(data, element).type].mode };
+  auto const  reach{ data.element_types[Record<Element>(data, element).type].gun_range };
   auto const  side{ opeu_battle_element_side(ds, event, element) };
   auto const& position{ PositionOf(data, element) };
   auto const  span{ static_cast<uint8_t>(reach * 2 + 1) };
@@ -126,14 +122,10 @@ uint16_t opeu_battle_best_target(uint8_t* ds, BattleEvent event, uint16_t elemen
   for (uint8_t row{ 0 }; row < span; ++row, ++y) {
     int x{ left };
     for (uint8_t column{ 0 }; column < span; ++column, ++x) {
-      if (x < 0 || x >= static_cast<int>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int>(BATTLE_WIDTH)
-          || !opeu_battle_cell_occupied(ds, event, static_cast<uint8_t>(x), static_cast<uint8_t>(y)))
+      if (x < 0 || x >= static_cast<int>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int>(BATTLE_WIDTH) || !opeu_battle_cell_occupied(ds, event, static_cast<uint8_t>(x), static_cast<uint8_t>(y)))
         continue;
-      auto const other{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, static_cast<uint8_t>(x),
-                             static_cast<uint8_t>(y)) };
-      if (!opeu_battle_element_active(ds, event, other) || opeu_battle_element_side(ds, event, other) == side
-          || !opeu_battle_element_flag2(ds, event, other))
-        continue;
+      auto const other{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+      if (!opeu_battle_element_active(ds, event, other) || opeu_battle_element_side(ds, event, other) == side || !opeu_battle_element_flag2(ds, event, other)) continue;
       if (auto const rating{ opeu_battle_attack_rating(ds, event, element, other) }; rating > best_rating) {
         best_rating = rating;
         best        = other;
@@ -166,12 +158,11 @@ void opeu_battle_update_element(uint8_t* ds, BattleEvent event, uint16_t element
   auto const& record{ Record<Unit>(data, unit) };
   if (!record.resources[0]) {
     Settle(ds, event, element, BattleState::REST);
-  } else if (data.element_types[Record<Element>(data, element).type].weight && !record.resources[1]) {
+  } else if (data.element_types[Record<Element>(data, element).type].fuel_capacity && !record.resources[1]) {
     Settle(ds, event, element, BattleState::DEFEND);
   } else if (Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) {
     if (opeu_battle_can_act(ds, event, element)) Settle(ds, event, element, BattleState::DEFEND);
-  } else if (opeu_battle_can_act(ds, event, element)
-             && !static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN))) {
+  } else if (opeu_battle_can_act(ds, event, element) && !static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN))) {
     data.battle_selected = element;
     Call(ds, event, BattleRoutine::BATTLE_SELECT_SERVICE);
   }
@@ -181,20 +172,17 @@ uint16_t svc_btlmove(uint8_t* ds, uint32_t address, const uint16_t* args, unsign
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_remove_list(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_remove_list(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_remove_list(ds, svc_btlmove, Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_remove_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_remove_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_remove_unit(ds, svc_btlmove, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_update_element(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_update_element(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_update_element(ds, svc_btlmove, Arg(args, count, 0));
   return 0;
 }

@@ -31,18 +31,15 @@ constexpr std::int32_t SHARE_CAP{ 60000 };
 
 // The average of supply type `slot` in `averages`; the slot past the last reads on into the next table, as the game
 // does when an element's type is not among the supply types.
-[[nodiscard]] auto Average(std::uint8_t* ds, std::array<std::uint8_t, 12> const& averages, std::uint8_t slot)
-    -> std::uint8_t {
+[[nodiscard]] auto Average(std::uint8_t* ds, std::array<std::uint8_t, 12> const& averages, std::uint8_t slot) -> std::uint8_t {
   return Byte(ds, static_cast<std::uint16_t>(Near(Data(ds), averages) + slot));
 }
 } // namespace
 
 // Restores the type panel's background from the off-screen copy.
 void opeu_alloc_clear_panel(uint8_t ds[65536], HostWordsEvent event) {
-  for (std::uint8_t row{ 0 }; row < 4; ++row)
-    Call(ds, event, Service::BLIT, 15, 0x108, 0x1a, 0x20, 1, row * 32 + 0x108);
-  for (std::uint8_t column{ 0 }; column < 2; ++column)
-    Call(ds, event, Service::BLIT, 0x22, 0xb8, 6, 0x50, column * 6 + 0x1c, 0x128);
+  for (std::uint8_t row{ 0 }; row < 4; ++row) Call(ds, event, Service::BLIT, 15, 0x108, 0x1a, 0x20, 1, row * 32 + 0x108);
+  for (std::uint8_t column{ 0 }; column < 2; ++column) Call(ds, event, Service::BLIT, 0x22, 0xb8, 6, 0x50, column * 6 + 0x1c, 0x128);
 }
 
 // The type's name, symbol and six statistics: hard and soft rating, range, speed, the load (usage times weight over
@@ -55,10 +52,9 @@ void opeu_alloc_type_panel(uint8_t ds[65536], HostWordsEvent event, uint8_t slot
   Call(ds, event, Service::PRINT, Near(data, data.alloc_name_format), kind.name);
   Call(ds, event, Service::SYMBOL, 3, 0x12c, 0, data.supply_types[slot]);
   Call(ds, event, Service::POSITION, 0x1c, 0x128);
-  std::uint16_t const load{ static_cast<std::uint16_t>(
-      kind.category == 0 ? 0 : static_cast<unsigned>(kind.usage * kind.weight) / 10) };
-  Call(ds, event, Service::PRINT, Near(data, data.alloc_stats_format), STAT_WIDTH, kind.hard_rating, STAT_WIDTH,
-       kind.soft_rating, STAT_WIDTH, kind.range, STAT_WIDTH, kind.speed, STAT_WIDTH, load, STAT_WIDTH, kind.mode);
+  std::uint16_t const load{ static_cast<std::uint16_t>(kind.category == 0 ? 0 : static_cast<unsigned>(kind.fuel_economy * kind.fuel_capacity) / 10) };
+  Call(ds, event, Service::PRINT, Near(data, data.alloc_stats_format), STAT_WIDTH, kind.anti_personnel, STAT_WIDTH, kind.anti_tank, STAT_WIDTH, kind.defense, STAT_WIDTH, kind.speed, STAT_WIDTH, load,
+       STAT_WIDTH, kind.gun_range);
 }
 
 // Whether the first unit's `first` allocated amounts, and the second unit's `second` after them (when it has any),
@@ -85,9 +81,9 @@ void opeu_alloc_element_values(uint8_t ds[65536], HostWordsEvent event, uint16_t
   auto&        unit_element{ Record<Element>(data, element) };
   std::uint8_t slot{ 0 };
   while (slot < count && data.supply_types[slot] != unit_element.type) ++slot;
-  unit_element.morale     = Average(ds, data.supply_avg_a, slot);
-  unit_element.training   = Average(ds, data.supply_avg_b, slot);
-  unit_element.experience = Average(ds, data.supply_avg_c, slot);
+  unit_element.morale     = Average(ds, data.supply_morale_averages, slot);
+  unit_element.training   = Average(ds, data.supply_training_averages, slot);
+  unit_element.experience = Average(ds, data.supply_experience_averages, slot);
 }
 
 // value * (amount * 100 / total) / 100, capped at 60000; nothing when there is no total. The product keeps its low
@@ -97,8 +93,7 @@ uint16_t opeu_alloc_scaled(uint8_t ds[65536], HostWordsEvent event, int32_t valu
   (void)event;
   if (!total) return 0;
   auto const percent{ static_cast<std::int32_t>(amount) * 100 / total };
-  auto const share{ static_cast<std::int32_t>(static_cast<std::uint32_t>(percent) * static_cast<std::uint32_t>(value))
-                    / 100 };
+  auto const share{ static_cast<std::int32_t>(static_cast<std::uint32_t>(percent) * static_cast<std::uint32_t>(value)) / 100 };
   return static_cast<std::uint16_t>(share > SHARE_CAP ? SHARE_CAP : share);
 }
 
@@ -106,23 +101,12 @@ uint16_t opeu_alloc_scaled(uint8_t ds[65536], HostWordsEvent event, int32_t valu
 uint16_t svc_allocpnl(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (static_cast<Service>(id)) {
-  case Service::BLIT:
-    opeu_vga_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                  Arg(args, count, 4), Arg(args, count, 5));
-    break;
-  case Service::FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
-  case Service::PRINT: r = lf_cursor_print(ds, args, count); break;
-  case Service::SYMBOL:
-    opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                   (uint8_t)Arg(args, count, 3));
-    break;
-  case Service::POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("allocpnl", id, count);
+  case Service::BLIT:     opeu_vga_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
+  case Service::FRAME:    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case Service::PRINT:    r = lf_cursor_print(ds, args, count); break;
+  case Service::SYMBOL:   opeu_face_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
+  case Service::POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  default:                port_unhandled("allocpnl", id, count);
   }
   return r;
 }

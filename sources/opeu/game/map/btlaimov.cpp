@@ -21,7 +21,7 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t NONE{ 0xff };
-// ElementType::mode above this fires from afar.
+// ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
 // ElementType::speed above this makes fast tanks.
 constexpr uint8_t FAST_SPEED{ 60 };
@@ -48,13 +48,12 @@ uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit, ui
     if (!opeu_battle_element_active(ds, event, Near(data, element))) continue;
     if ((element.flags & Bits(ElementFlag::SPOTTED)) || all) {
       auto const& type{ data.element_types[element.type] };
-      if (type.mode > RANGED_MODE)
+      if (type.gun_range > RANGED_MODE)
         ++counters[RANGED];
       else if (type.speed > FAST_SPEED && type.category == Bits(Category::TANKS))
         ++counters[FAST_TANKS];
       else {
-        auto const kind{ Record<uint8_t>(data,
-                                         static_cast<uint16_t>(Near(data, data.battle_ai_kind) + type.category)) };
+        auto const kind{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_ai_kind) + type.category)) };
         if (kind < KIND_COUNT || kind == ELEMENT_COUNT) ++counters[kind];
       }
     }
@@ -78,8 +77,7 @@ void opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y
 }
 
 // frame: the routine's frame on the DS stack; the random cell is written there.
-void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target,
-                           uint16_t frame) {
+void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target, uint16_t frame) {
   if (target) {
     auto& position{ PositionOf(Data(ds), element) };
     position.target = target;
@@ -95,18 +93,15 @@ void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uin
 }
 
 void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 0),
-                        Local(sp, ATTACK_FRAME));
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 0), Local(sp, ATTACK_FRAME));
 }
 
 void opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 1),
-                        Local(sp, ATTACK_FRAME));
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 1), Local(sp, ATTACK_FRAME));
 }
 
 void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 2),
-                        Local(sp, ATTACK_FRAME));
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 2), Local(sp, ATTACK_FRAME));
 }
 
 uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {

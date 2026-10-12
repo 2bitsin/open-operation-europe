@@ -35,8 +35,7 @@ auto LabelEvent(std::uint8_t* ds, std::uint16_t, std::uint16_t const* args, std:
   return air_event(ds, std::to_underlying(FORMAT), args, count);
 }
 
-auto Location(std::uint8_t* ds, HostEvent event, std::uint8_t x, std::uint8_t y, std::uint16_t buffer)
-    -> std::uint16_t {
+auto Location(std::uint8_t* ds, HostEvent event, std::uint8_t x, std::uint8_t y, std::uint16_t buffer) -> std::uint16_t {
   air_event = event;
   return opeu_location_name(ds, LabelEvent, x, y, buffer);
 }
@@ -52,10 +51,10 @@ void opeu_air_officer(uint8_t ds[65536], HostEvent, uint16_t) {
   auto&       data{ Data(ds) };
   auto const& commander{ Record<Person>(data, data.context_record1) };
   auto const& staff{ Record<Person>(data, data.context_record3) };
-  data.air_person  = opeu_find_person_template(ds, commander.status, OFFICER_KIND);
-  data.air_stat_13 = Average(staff.leadership, commander.leadership);
-  data.air_stat_14 = Average(staff.charm, commander.charm);
-  data.air_stat_1b = Average(staff.experience, commander.experience);
+  data.air_person     = opeu_find_person_template(ds, commander.status, OFFICER_KIND);
+  data.air_leadership = Average(staff.leadership, commander.leadership);
+  data.air_charm      = Average(staff.charm, commander.charm);
+  data.air_experience = Average(staff.experience, commander.experience);
 }
 
 // The mission table header.
@@ -77,25 +76,21 @@ void opeu_turn_action_8(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     if (side.strike.planes) {
       opeu_air_header(ds, event, callee_sp);
       Call(ds, event, POSITION, TABLE_X, TABLE_Y);
-      Call(ds, event, PRINT, Near(data, data.air_strike_format),
-           Location(ds, event, side.strike.x, side.strike.y, buffer), side.strike.planes, side.strike.hours);
+      Call(ds, event, PRINT, Near(data, data.air_strike_format), Location(ds, event, side.strike.x, side.strike.y, buffer), side.strike.planes, side.strike.hours);
       row = 1;
     }
     if (side.drop.transports) {
       opeu_air_header(ds, event, callee_sp);
       Call(ds, event, POSITION, TABLE_X, row * ROW_HEIGHT + TABLE_Y);
-      Call(ds, event, PRINT, Near(data, data.air_drop_format), Location(ds, event, side.drop.x, side.drop.y, buffer),
-           side.drop.transports, side.drop.hours);
+      Call(ds, event, PRINT, Near(data, data.air_drop_format), Location(ds, event, side.drop.x, side.drop.y, buffer), side.drop.transports, side.drop.hours);
       ++row;
     }
     if (side.lift.planes) {
       opeu_air_header(ds, event, callee_sp);
       Call(ds, event, POSITION, TABLE_X, row * ROW_HEIGHT + TABLE_Y);
-      Call(ds, event, PRINT, Near(data, data.air_lift_format), Location(ds, event, side.lift.x, side.lift.y, buffer),
-           side.lift.planes, side.lift.hours);
+      Call(ds, event, PRINT, Near(data, data.air_lift_format), Location(ds, event, side.lift.x, side.lift.y, buffer), side.lift.planes, side.lift.hours);
     }
-    auto const choice{ Call(ds, event, DIALOG, Near(data, data.air_mission_question), 3, data.context_record2,
-                            Near(data, data.air_mission_menu)) };
+    auto const choice{ Call(ds, event, DIALOG, Near(data, data.air_mission_question), 3, data.context_record2, Near(data, data.air_mission_menu)) };
     if (choice == CANCELLED) break;
     auto const mission{ data.air_missions[choice - 1] };
     Call(ds, event, FAR_ACTION, mission.segment, mission.offset);

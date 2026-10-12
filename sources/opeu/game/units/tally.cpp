@@ -21,37 +21,36 @@ using namespace opeu::game;
 
 namespace {
 // Adds quantity, second amount and weighted values to the tally row `row`, or starts a new row at `count`.
-auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::uint16_t quantity, std::uint16_t second,
-               std::uint32_t sum_a, std::uint32_t sum_b, std::uint32_t sum_c, bool accumulate_new) -> void {
+auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::uint16_t quantity, std::uint16_t second, std::uint32_t sum_a, std::uint32_t sum_b, std::uint32_t sum_c,
+               bool accumulate_new) -> void {
   std::uint8_t row{ 0 };
   while (row < count && data.supply_types[row] != type) ++row;
   data.supply_total += quantity;
   if (row != count) {
-    data.supply_amounts[row] += quantity;
-    data.supply_others[row]  += second;
-    data.supply_sum_a[row]   += sum_a;
-    data.supply_sum_b[row]   += sum_b;
-    data.supply_sum_c[row]   += sum_c;
+    data.supply_amounts[row]         += quantity;
+    data.supply_others[row]          += second;
+    data.supply_morale_sums[row]     += sum_a;
+    data.supply_training_sums[row]   += sum_b;
+    data.supply_experience_sums[row] += sum_c;
     return;
   }
   data.supply_types[count]   = type;
   data.supply_amounts[count] = quantity;
   data.supply_others[count]  = second;
   if (accumulate_new) {
-    data.supply_sum_a[count] += sum_a;
-    data.supply_sum_b[count] += sum_b;
-    data.supply_sum_c[count] += sum_c;
+    data.supply_morale_sums[count]     += sum_a;
+    data.supply_training_sums[count]   += sum_b;
+    data.supply_experience_sums[count] += sum_c;
   } else {
-    data.supply_sum_a[count] = sum_a;
-    data.supply_sum_b[count] = sum_b;
-    data.supply_sum_c[count] = sum_c;
+    data.supply_morale_sums[count]     = sum_a;
+    data.supply_training_sums[count]   = sum_b;
+    data.supply_experience_sums[count] = sum_c;
   }
   ++count;
 }
 
 // Records the compared records and names the unit in the first heading.
-auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source)
-    -> void {
+auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
   auto& data{ Data(ds) };
   data.tally_unit       = unit;
   data.tally_other_unit = other;
@@ -72,8 +71,8 @@ uint8_t opeu_tally_elements(uint8_t ds[65536], uint16_t unit, uint8_t count) {
   auto& data{ Data(ds) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const quantity{ element.quantity };
-    TallyInto(data, count, element.type, quantity, element.damage, std::uint32_t{ element.morale } * quantity,
-              std::uint32_t{ element.training } * quantity, std::uint32_t{ element.experience } * quantity, true);
+    TallyInto(data, count, element.type, quantity, element.damage, std::uint32_t{ element.morale } * quantity, std::uint32_t{ element.training } * quantity,
+              std::uint32_t{ element.experience } * quantity, true);
   }
   return count;
 }
@@ -88,12 +87,9 @@ uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset, uint8_t coun
     if (!item.quantity) continue;
     auto const category{ data.element_types[item.type].category };
     if ((kind <= 4 && category <= 4) || (kind == 5 && category == 5) || (kind >= 6 && category >= 6)) {
-      std::uint32_t const fill{ static_cast<std::uint32_t>(opeu_min16(
-                                    99, opeu_mul_div(item.quantity, 100, data.request_capacities[category] * 3)))
-                                * item.quantity };
+      std::uint32_t const fill{ static_cast<std::uint32_t>(opeu_min16(99, opeu_mul_div(item.quantity, 100, data.request_capacities[category] * 3))) * item.quantity };
       std::uint32_t const strength{ source.strength * static_cast<std::uint32_t>(item.quantity) };
-      std::uint32_t const condition{ opeu_min16(99, 100 - opeu_mul_div(source.strength, 100, source.strength_limit))
-                                     * static_cast<std::uint32_t>(item.quantity) };
+      std::uint32_t const condition{ opeu_min16(99, 100 - opeu_mul_div(source.strength, 100, source.strength_limit)) * static_cast<std::uint32_t>(item.quantity) };
       TallyInto(data, count, item.type, item.quantity, item.extra, fill, strength, condition, false);
     } else {
       auto& reject{ data.supply_spare[data.tally_reject_count] };
@@ -111,9 +107,9 @@ void opeu_tally_average(uint8_t ds[65536], uint8_t count) {
   auto& data{ Data(ds) };
   for (std::uint8_t row{ 0 }; row < count; ++row) {
     auto const divisor{ static_cast<std::int32_t>(opeu_max16(data.supply_amounts[row], 1)) };
-    data.supply_avg_a[row] = static_cast<std::int32_t>(data.supply_sum_a[row]) / divisor;
-    data.supply_avg_b[row] = static_cast<std::int32_t>(data.supply_sum_b[row]) / divisor;
-    data.supply_avg_c[row] = static_cast<std::int32_t>(data.supply_sum_c[row]) / divisor;
+    data.supply_morale_averages[row]     = static_cast<std::int32_t>(data.supply_morale_sums[row]) / divisor;
+    data.supply_training_averages[row]   = static_cast<std::int32_t>(data.supply_training_sums[row]) / divisor;
+    data.supply_experience_averages[row] = static_cast<std::int32_t>(data.supply_experience_sums[row]) / divisor;
   }
 }
 

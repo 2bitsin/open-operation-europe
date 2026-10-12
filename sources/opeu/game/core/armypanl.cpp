@@ -40,7 +40,6 @@ constexpr std::uint16_t BATTLE_TEXT{ offsetof(DataSegment, panel_battle) };
 constexpr std::uint16_t STRING_FORMAT{ offsetof(DataSegment, panel_string_format) };
 constexpr std::uint16_t ICONS{ 0x660 }; // eleven 64-byte element icons in the frame segment
 constexpr std::uint16_t ICON_BYTES{ 64 };
-constexpr std::uint8_t  SECOND_TANK_ICON{ 0x04 }; // ElementType::flags of a tank type drawn with the second tank icon
 constexpr std::uint16_t WHITE{ 7 };
 constexpr std::uint16_t NAME_BUFFER{ 0x2a };    // the element name buffer, below the entry SP
 constexpr std::uint16_t ELEMENTS_CALL_SP{ 16 }; // the entry SP of the element rows, below the regiments' own
@@ -72,7 +71,7 @@ uint32_t opeu_element_icon(const uint8_t ds[65536], uint16_t element) {
   switch (type.category) {
   case 1:  icon = 1; break;
   case 2:  icon = 2; break;
-  case 3:  icon = (type.flags & Bits(TypeFlag::LIGHT)) ? 3 : (type.flags & SECOND_TANK_ICON) ? 5 : 4; break;
+  case 3:  icon = (type.flags & Bits(TypeFlag::LIGHT)) ? 3 : (type.flags & Bits(TypeFlag::SELF_PROPELLED)) ? 5 : 4; break;
   case 4:  icon = (type.flags & Bits(TypeFlag::HEAVY)) ? 7 : 6; break;
   case 5:  icon = 8; break;
   case 6:  icon = 9; break;
@@ -96,8 +95,7 @@ void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int 
       data.gfx_source[1] = static_cast<std::uint16_t>(icon >> 16);
       auto const x{ 29 * (shown % 2) };
       auto const row_y{ 17 * (shown / 2) + y };
-      Call(ds, event, DRAW, x + 22, row_y, 4, 16, data.current_side ? 0x305 : 0x306, data.gfx_source[1],
-           data.gfx_source[0]);
+      Call(ds, event, DRAW, x + 22, row_y, 4, 16, data.current_side ? 0x305 : 0x306, data.gfx_source[1], data.gfx_source[0]);
       Call(ds, event, POSITION, x + 27, row_y);
       Call(ds, event, PRINT, NAME_FORMAT, Call(ds, event, NAME, near, buffer));
       Call(ds, event, POSITION, x + 47, row_y);
@@ -129,8 +127,7 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units,
     opeu_panel_battle_frame(ds, event, y);
     y += battle ? 10 : 2;
     Call(ds, event, POSITION, 12, battle ? y - 7 : y - 1);
-    Call(ds, event, PRINT, REGIMENT_FORMAT, NameColor(data),
-         (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1, i + 1);
+    Call(ds, event, PRINT, REGIMENT_FORMAT, NameColor(data), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1, i + 1);
     if (battle) {
       Call(ds, event, POSITION, 12, y + 9);
       Call(ds, event, PRINT, BATTLE_TEXT);
@@ -141,34 +138,19 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units,
       Call(ds, event, PRINT, STRING_FORMAT, data.panel_regiment_names[i - 4]);
       if (Call(ds, event, ELIGIBLE, units)) opeu_panel_slots(ds, event, y, 2);
     }
-    if (Call(ds, event, ELIGIBLE, units))
-      opeu_panel_elements(ds, event, units, y, static_cast<std::uint16_t>(sp - ELEMENTS_CALL_SP));
+    if (Call(ds, event, ELIGIBLE, units)) opeu_panel_elements(ds, event, units, y, static_cast<std::uint16_t>(sp - ELEMENTS_CALL_SP));
   }
 }
 
 uint16_t svc_armypanl(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case FILL:
-    opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                 Arg(args, count, 4));
-    break;
-  case OUTLINE:
-    opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                    Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case LINE:
-    opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                 Arg(args, count, 4));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  case PRINT: b2_cursor_print(ds, args, count); break;
-  case DRAW:
-    opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3),
-                  Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
+  case FILL:     opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case OUTLINE:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case LINE:     opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case DRAW:     opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
   case NAME:     result = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ELIGIBLE: result = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
   default:       port_unhandled("armypanl", id, count);

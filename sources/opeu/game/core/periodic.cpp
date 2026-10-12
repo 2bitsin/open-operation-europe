@@ -23,8 +23,8 @@ void opeu_apply_daily_side_resources(uint8_t ds[65536]) {
   for (uint8_t a = 0; a < SIDE_COUNT; ++a) {
     auto& side{ data.sides[a] };
     data.side_flags[a] |= Bits(SideFlag::AIR_CARGO_READY) | Bits(SideFlag::AIR_DROP_READY);
-    opeu_add_word(side.pending_a, 9999, &side.pool_a);
-    side.pending_a = 0;
+    opeu_add_word(side.pending_bombers, 9999, &side.bombers);
+    side.pending_bombers = 0;
     opeu_add_word(side.pending_planes, 999, &side.planes);
     side.pending_planes = 0;
     // The income times ten wraps to a word before the saturating addition.

@@ -25,12 +25,12 @@ enum class Icon : uint8_t {
   INFANTRY_X5     = 2,
   LIGHT_TANKS     = 3,
   TANKS           = 4,
-  TANKS_BIT_2     = 5,
+  SELF_PROPELLED  = 5,
   ARTILLERY       = 6,
   HEAVY_ARTILLERY = 7,
-  CATEGORY_5      = 8,
-  CATEGORY_6      = 9,
-  CATEGORY_7      = 10,
+  ENGINEERS       = 8,
+  REPAIR          = 9,
+  SUPPLY          = 10,
 };
 constexpr uint16_t ICON_BYTES{ 520 };  // a 20 x 26 bitmap of the icon segment
 constexpr uint16_t ICON_STRIDE{ 650 }; // a bitmap and its mask
@@ -58,16 +58,12 @@ uint8_t opeu_battle_element_icon(uint8_t* ds, BattleEvent, uint16_t element) {
   switch (static_cast<Category>(type.category)) {
   case Category::INFANTRY_X10: icon = Icon::INFANTRY_X10; break;
   case Category::INFANTRY_X5:  icon = Icon::INFANTRY_X5; break;
-  case Category::TANKS:
-    icon = flags & Bits(TypeFlag::LIGHT)   ? Icon::LIGHT_TANKS
-           : flags & Bits(TypeFlag::BIT_2) ? Icon::TANKS_BIT_2
-                                           : Icon::TANKS;
-    break;
-  case Category::ARTILLERY:      icon = flags & Bits(TypeFlag::HEAVY) ? Icon::HEAVY_ARTILLERY : Icon::ARTILLERY; break;
-  case static_cast<Category>(5): icon = Icon::CATEGORY_5; break;
-  case static_cast<Category>(6): icon = Icon::CATEGORY_6; break;
-  case static_cast<Category>(7): icon = Icon::CATEGORY_7; break;
-  default:                       break;
+  case Category::TANKS:        icon = flags & Bits(TypeFlag::LIGHT) ? Icon::LIGHT_TANKS : flags & Bits(TypeFlag::SELF_PROPELLED) ? Icon::SELF_PROPELLED : Icon::TANKS; break;
+  case Category::ARTILLERY:    icon = flags & Bits(TypeFlag::HEAVY) ? Icon::HEAVY_ARTILLERY : Icon::ARTILLERY; break;
+  case Category::ENGINEERS:    icon = Icon::ENGINEERS; break;
+  case Category::REPAIR:       icon = Icon::REPAIR; break;
+  case Category::SUPPLY:       icon = Icon::SUPPLY; break;
+  default:                     break;
   }
   return std::to_underlying(icon);
 }
@@ -98,8 +94,7 @@ uint16_t opeu_battle_code_low(uint8_t*, BattleEvent, uint8_t code) {
 
 // frame: the routine's frame on the DS stack; the icon's bitmap buffer lives there. Side 0's icons face the other
 // way: each row's two halves are swapped.
-void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode,
-                           uint16_t frame) {
+void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode, uint16_t frame) {
   auto&      data{ Data(ds) };
   auto const buffer{ Local(frame, ICON_BUFFER) };
   auto const icon{ opeu_battle_element_icon(ds, event, element) };

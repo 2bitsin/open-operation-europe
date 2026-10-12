@@ -68,8 +68,7 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
   }
   std::array<std::uint32_t, CATEGORIES> totals{};
   std::uint8_t                          counted{};
-  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category)
-    totals[category] = opeu_side_quantity(ds, side, category, &counted);
+  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) totals[category] = opeu_side_quantity(ds, side, category, &counted);
   std::uint16_t ammunition{};
   std::uint16_t fuel{};
   std::uint16_t food{};
@@ -90,7 +89,7 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
   Call(ds, event, PRINT, ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]));
   auto const& own{ Record<Side>(data, data.current_side_ptr) };
   row(245);
-  Call(ds, event, PRINT, ROW4, own.pool_a, cities, influence);
+  Call(ds, event, PRINT, ROW4, own.bombers, cities, influence);
   row(263);
   Call(ds, event, PRINT, ROW5, own.planes, own.paratroops, own.strength);
   Call(ds, event, POSITION, 54, 138);
@@ -99,14 +98,12 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
 
 uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case TITLE:  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case TEXT:   opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case FORMAT: b2_request_format(ds, args, count); break;
-  case PRINT:  b2_cursor_print(ds, args, count); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
-  default: port_unhandled("armysum", id, count);
+  case TITLE:    opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case FORMAT:   b2_request_format(ds, args, count); break;
+  case PRINT:    b2_cursor_print(ds, args, count); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  default:       port_unhandled("armysum", id, count);
   }
   return 0;
 }

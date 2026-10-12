@@ -34,8 +34,7 @@ enum Service : std::uint16_t {
   FINISH    = 6, // (value)
 };
 
-using ArrivalEvent = auto (*)(std::uint8_t*, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t)
-    -> std::uint16_t;
+using ArrivalEvent = auto (*)(std::uint8_t*, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t) -> std::uint16_t;
 
 constexpr std::uint8_t ORDER_SLOTS{ 3 };
 constexpr std::uint8_t RANK_COMMANDER{ 3 };
@@ -59,7 +58,7 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) 
       unit.flags  |= Bits(UnitFlag::READY);
       opeu_clear_unit_orders(ds, near, ORDER_SLOTS);
       for (auto& element : Elements(data, unit)) {
-        element.flags &= ~Bits(ElementFlag::BIT_5);
+        element.flags &= ~Bits(ElementFlag::ARRIVING);
         element.flags |= Bits(ElementFlag::READY);
       }
       event(ds, PREPARE, near, 0, 0, 0);
@@ -110,9 +109,7 @@ uint16_t svc_arrivals(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16
     opeu_arrival_view(ds, svc_mapunit, (uint16_t)(sp - 2), a0);
     port_stack_leave(PORT_FRAME);
     break;
-  case SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2);
-    break;
+  case SHOW:   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
   case FINISH: opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0); break;
   default:     port_unhandled("arrivals", id, 4);
   }

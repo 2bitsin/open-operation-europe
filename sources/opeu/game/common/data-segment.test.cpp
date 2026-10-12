@@ -93,4 +93,45 @@ TEST(DataSegment, TurnsNearPointersIntoRecordsAndBack) {
   EXPECT_EQ(Near(data, data.groups[GROUPS_PER_SIDE + 1].flags), GROUPS_AT + 5 * sizeof(Group) + 16);
   EXPECT_EQ(Bits(UnitFlag::READY), 4);
 }
+
+TEST(DataSegment, PlacesTheRenamedRecordFields) {
+  EXPECT_EQ(offsetof(Side, bombers), 12u);
+  EXPECT_EQ(offsetof(Side, pending_bombers), 16u);
+  EXPECT_EQ(offsetof(Person, max_health), 23u);
+  EXPECT_EQ(offsetof(ElementType, anti_tank), 5u);
+  EXPECT_EQ(offsetof(ElementType, anti_personnel), 6u);
+  EXPECT_EQ(offsetof(ElementType, defense), 7u);
+  EXPECT_EQ(offsetof(ElementType, fuel_economy), 9u);
+  EXPECT_EQ(offsetof(ElementType, fuel_capacity), 10u);
+  EXPECT_EQ(offsetof(ElementType, gun_range), 11u);
+  EXPECT_EQ(offsetof(DataSegment, air_charm), 0xccb8u);
+  EXPECT_EQ(offsetof(DataSegment, air_experience), 0xccb9u);
+  EXPECT_EQ(offsetof(DataSegment, air_leadership), 0xccbau);
+}
+
+TEST(DataSegment, KeepsTheStoredFlagBits) {
+  EXPECT_EQ(Bits(ElementFlag::ARRIVING), 0x20);
+  EXPECT_EQ(Bits(TypeFlag::AIRBORNE), 0x01);
+  EXPECT_EQ(Bits(TypeFlag::SELF_PROPELLED), 0x04);
+  EXPECT_EQ(Bits(TypeFlag::HEAVY), 0x08);
+  EXPECT_EQ(Bits(TypeFlag::LIGHT), 0x10);
+}
+
+TEST(DataSegment, FlagsTheSelfPropelledGunsAmongTheTanksAndTheParatroopsAsInfantry) {
+  auto const& data{ Initial() };
+  auto const  self_propelled{ std::ranges::count_if(data.element_types, [](auto const& type) { return (type.flags & Bits(TypeFlag::SELF_PROPELLED)) != 0; }) };
+  auto const  airborne{ std::ranges::count_if(data.element_types, [](auto const& type) { return (type.flags & Bits(TypeFlag::AIRBORNE)) != 0; }) };
+  EXPECT_GT(self_propelled, 20);
+  EXPECT_EQ(airborne, 4);
+  for (auto const& type : data.element_types) {
+    if (type.flags & Bits(TypeFlag::SELF_PROPELLED)) EXPECT_EQ(type.category, Bits(Category::TANKS)) << Text(data, type.name);
+    if (type.flags & Bits(TypeFlag::AIRBORNE)) EXPECT_EQ(type.category, Bits(Category::INFANTRY)) << Text(data, type.name);
+  }
+}
+
+TEST(DataSegment, GivesTheFuelUsersAFuelCapacity) {
+  auto const& data{ Initial() };
+  for (auto const& type : data.element_types)
+    if (type.name != 0 && type.fuel_economy != 0) EXPECT_NE(type.fuel_capacity, 0) << Text(data, type.name);
+}
 } // namespace opeu::game::detail::data_segment

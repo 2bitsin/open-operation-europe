@@ -98,7 +98,7 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
         if (RandomBelow(ds, static_cast<std::uint16_t>(level * 10 + 24)) == 2)
           person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
         else
-          opeu_sub_byte(static_cast<std::uint16_t>(10 - person.byte_17 / 10), &person.health);
+          opeu_sub_byte(static_cast<std::uint16_t>(10 - person.max_health / 10), &person.health);
         if (person.health == 0) {
           if (person.role & Bits(PersonRole::DEPUTY))
             person.health = 1;
@@ -113,7 +113,7 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
         amount = 1;
       else if (opeu_get_record_counter(reinterpret_cast<std::uint8_t*>(&person)))
         amount = 3;
-      opeu_add_byte(amount, person.byte_17, &person.health);
+      opeu_add_byte(amount, person.max_health, &person.health);
     }
   }
 }
@@ -123,13 +123,9 @@ uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case DELAY:   opeu_delay_units(ds, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case FINISH:  opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  default: port_unhandled("evwound", id, count);
+  case SHOW:    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  default:      port_unhandled("evwound", id, count);
   }
   return 0;
 }

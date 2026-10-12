@@ -11,18 +11,12 @@
 
 using namespace opeu::game;
 
-namespace {
-// ElementType::flags bit that keeps " Tank" off a tank type's name.
-inline constexpr std::uint8_t TYPE_FLAG_NO_TANK_SUFFIX{ 0x04 };
-} // namespace
-
-// The name of an item's equipment type; tanks without the flag get " Tank" appended.
+// The name of an item's equipment type; tanks that are not self-propelled guns get " Tank" appended.
 uint16_t opeu_item_type_name(uint8_t ds[65536], uint16_t item, uint16_t buffer) {
   auto&       data{ Data(ds) };
   auto const& type{ data.element_types[Record<Item>(data, item).type] };
   opeu_string_copy(ds, buffer, type.name);
-  if (type.category == Bits(Category::TANKS) && !(type.flags & TYPE_FLAG_NO_TANK_SUFFIX))
-    opeu_string_append(ds, buffer, Near(data, data.tank_suffix));
+  if (type.category == Bits(Category::TANKS) && !(type.flags & Bits(TypeFlag::SELF_PROPELLED))) opeu_string_append(ds, buffer, Near(data, data.tank_suffix));
   return buffer;
 }
 

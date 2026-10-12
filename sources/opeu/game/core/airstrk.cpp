@@ -113,19 +113,12 @@ auto IsNight(std::uint8_t* ds, HostEvent event) -> bool {
 uint16_t opeu_air_damage_roll(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint8_t n) {
   auto&         data{ Data(ds) };
   auto const    side{ data.air_side };
-  auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == 1 ? (data.delivery_level >> 1) * n : n)
-                                                  + 1) };
-  std::uint16_t lost{ Call(ds, event, OFFICER_RATING, side, AIR_KIND) >= STRONG_AIR_COMMAND
-                          ? std::uint16_t{ 0 }
-                          : static_cast<std::uint16_t>(RandomBelow(ds, bound) + 1) };
+  auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == 1 ? (data.delivery_level >> 1) * n : n) + 1) };
+  std::uint16_t lost{ Call(ds, event, OFFICER_RATING, side, AIR_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(ds, bound) + 1) };
   if (!IsNight(ds, event)) lost += RandomBelow(ds, bound) + 1;
   if (data.sides[side].strength <= HIGH_MORALE) lost += RandomBelow(ds, bound) + 1;
-  if (auto const foe{ Call(ds, event, UNIT_AT, x, y) };
-      foe != 0 && static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, foe)) != side)
-    lost += RandomBelow(ds, bound);
-  if (auto const objective{ Call(ds, event, OBJECTIVE_AT, x, y) };
-      objective != 0 && static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, objective)) != side)
-    lost += RandomBelow(ds, bound);
+  if (auto const foe{ Call(ds, event, UNIT_AT, x, y) }; foe != 0 && static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, foe)) != side) lost += RandomBelow(ds, bound);
+  if (auto const objective{ Call(ds, event, OBJECTIVE_AT, x, y) }; objective != 0 && static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, objective)) != side) lost += RandomBelow(ds, bound);
   return lost;
 }
 
@@ -143,8 +136,7 @@ uint16_t opeu_air_strike_due(uint8_t ds[65536], HostEvent event) {
   auto& strike{ AirSide(Data(ds)).strike };
   if (!strike.planes) return 0;
   opeu_sub_byte(1, &strike.turns);
-  if (!opeu_sub_byte(1, &strike.hours))
-    switch (static_cast<std::uint8_t>(Call(ds, event, AIR_REPORT, strike.turns, STRIKE_NAME))) {
+  if (!opeu_sub_byte(1, &strike.hours)) switch (static_cast<std::uint8_t>(Call(ds, event, AIR_REPORT, strike.turns, STRIKE_NAME))) {
     case 0: return 1;
     case 1: strike.hours = 1; break;
     case 2: strike.planes = 0; break;
@@ -181,10 +173,8 @@ void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint16_t bp, uint8_
   if (site) shield = Record<Objective>(data, site).strength / 15;
   auto const root{ Call(ds, event, ISQRT, n) };
   auto const night{ IsNight(ds, event) };
-  auto const rate{ static_cast<std::uint16_t>(
-      static_cast<std::uint16_t>(static_cast<std::uint16_t>(supply / 10 + n)
-                                 / static_cast<std::uint16_t>(night + shield + 1))
-      * static_cast<std::uint32_t>(root)) };
+  auto const rate{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(supply / 10 + n) / static_cast<std::uint16_t>(night + shield + 1))
+                                              * static_cast<std::uint32_t>(root)) };
   if (unit) {
     auto const percent{ RandomBelow(ds, 60) + 40 };
     Call(ds, event, CASUALTIES, unit, percent, rate, n, 0, 1);
@@ -194,13 +184,9 @@ void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint16_t bp, uint8_
     auto const works_night{ IsNight(ds, event) };
     auto const works_root{ Call(ds, event, ISQRT, n) };
     auto const works{ static_cast<std::uint16_t>(
-        static_cast<std::uint16_t>(
-            static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(works_root) * supply)
-                                       * static_cast<std::uint32_t>(n))
-            / (works_night + 1))
+        static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(works_root) * supply) * static_cast<std::uint32_t>(n)) / (works_night + 1))
         / divisor) };
-    auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n)
-                                                  / (IsNight(ds, event) + 1)) };
+    auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n) / (IsNight(ds, event) + 1)) };
     Call(ds, event, OBJECTIVE_DAMAGE, site, 0x5a, rate, works, stores, n, 0);
   }
   SetWord(ds, shield_at, shield);
@@ -216,7 +202,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto const    x{ record.strike.x };
   auto const    y{ record.strike.y };
   std::uint16_t planes{ record.strike.planes };
-  opeu_sub_word(planes, &record.pool_a);
+  opeu_sub_word(planes, &record.bombers);
   opeu_sub_word(opeu_air_damage_roll(ds, event, x, y, static_cast<std::uint8_t>(opeu_min16(planes, 20) / 7)), &planes);
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
@@ -250,7 +236,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   data.map_mode[0] = view;
   if (planes) {
     Call(ds, event, OFFICER_GAIN, side, AIR_KIND);
-    record.pending_a = static_cast<std::uint16_t>(record.pending_a + planes);
+    record.pending_bombers = static_cast<std::uint16_t>(record.pending_bombers + planes);
   }
   record.strike.planes = 0;
   Call(ds, event, FINISH_SIDE, 0);
@@ -271,10 +257,8 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case OBJECTIVE_SIDE: result = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case REQUEST_FORMAT: c2_request_format(ds, args, count); break;
   case SIDE_RECORD:    result = opeu_find_side_record(ds, byte(0), byte(1)); break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case AIR_REPORT: {
+  case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case AIR_REPORT:     {
     auto const frame{ c2_air_bp_enter() };
     result = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 1), byte(0));
     c2_air_leave();
@@ -287,15 +271,13 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case ISQRT:           result = opeu_isqrt(Arg(args, count, 0)); break;
   case CASUALTIES:      {
     auto const frame{ c2_air_bp_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                         Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     c2_air_leave();
     break;
   }
   case OBJECTIVE_DAMAGE: {
     auto const frame{ c2_air_bp_enter() };
-    opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2),
-                          Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
+    opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     c2_air_leave();
     break;
   }
@@ -314,10 +296,7 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     c2_air_leave();
     break;
   }
-  case DAILY_SHOW:
-    opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1),
-                    static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
-    break;
+  case DAILY_SHOW:       opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
   case MUSIC_COMMAND7:   opeu_music_command7(ds, svc_sound); break;
   case DELAY:            opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
   case SPRITE_RESTORE:   opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;

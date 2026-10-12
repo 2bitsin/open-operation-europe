@@ -98,7 +98,7 @@ void opeu_battle_ranged_sound(uint8_t* ds, BattleEvent event, uint16_t shooter) 
     return;
   }
   if (FiresShells(type))
-    opeu_battle_dispatch(ds, event, type.mode > 1 ? SOUND_LONG_GUN : SOUND_HEAVY_GUN);
+    opeu_battle_dispatch(ds, event, type.gun_range > 1 ? SOUND_LONG_GUN : SOUND_HEAVY_GUN);
   else if (type.category <= Bits(Category::SUPPLY))
     opeu_battle_dispatch(ds, event, SOUND_RIFLES);
 }
@@ -108,8 +108,7 @@ void opeu_battle_ranged_sound(uint8_t* ds, BattleEvent event, uint16_t shooter) 
 void opeu_battle_ranged_tracers(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target) {
   auto& data{ Data(ds) };
   opeu_battle_ranged_sound(ds, event, shooter);
-  if (data.side_status[opeu_battle_element_side(ds, event, shooter)] == SIDE_PLAYED
-      || opeu_battle_element_flag2(ds, event, shooter)) {
+  if (data.side_status[opeu_battle_element_side(ds, event, shooter)] == SIDE_PLAYED || opeu_battle_element_flag2(ds, event, shooter)) {
     auto const& from{ PositionOf(data, shooter) };
     auto const  from_x{ static_cast<uint16_t>(opeu_battle_cell_column(ds, event, from.x, from.y) + CENTRE_X) };
     auto const  from_y{ static_cast<uint16_t>(opeu_battle_cell_row(ds, event, from.x, from.y) + CENTRE_Y) };
@@ -119,9 +118,8 @@ void opeu_battle_ranged_tracers(uint8_t* ds, BattleEvent event, uint16_t shooter
     auto const  to_x{ static_cast<uint16_t>(opeu_battle_cell_column(ds, event, x, y) + CENTRE_X) };
     auto const  to_y{ static_cast<uint16_t>(opeu_battle_cell_row(ds, event, x, y) + CENTRE_Y) };
     auto const& type{ TypeOf(data, shooter) };
-    if (type.mode > 1) {
-      opeu_battle_draw_line(ds, event, static_cast<int16_t>(from_x), static_cast<int16_t>(from_y),
-                            static_cast<int16_t>(to_x), static_cast<int16_t>(to_y));
+    if (type.gun_range > 1) {
+      opeu_battle_draw_line(ds, event, static_cast<int16_t>(from_x), static_cast<int16_t>(from_y), static_cast<int16_t>(to_x), static_cast<int16_t>(to_y));
     } else {
       auto tracers{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, shooter)) };
       tracers = static_cast<uint8_t>((Is(type, Category::INFANTRY) ? tracers / 3 : tracers / 15) + 1);
@@ -189,8 +187,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
         auto const roll{ opeu_rand_bounded(300) };
         auto const skill{ opeu_battle_type_skill(ds, event, target) };
         uint16_t   damage{ hit.damage };
-        opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)),
-                      data.request_capacities[category], &damage);
+        opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category], &damage);
         hit.damage = damage;
       }
       opeu_battle_redraw_cell(ds, event, x, y, target, opeu_battle_mode(ds, event, target), Local(frame, REDRAW_FRAME));
@@ -216,10 +213,7 @@ uint16_t svc_btlrfire(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_ranged_fire(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) {
-    opeu_battle_ranged_fire(ds, svc_btlrfire, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp));
-  });
+auto port_routine_opeu_battle_ranged_fire(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  WithBattleStack([&](uint16_t sp) { opeu_battle_ranged_fire(ds, svc_btlrfire, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp)); });
   return 0;
 }

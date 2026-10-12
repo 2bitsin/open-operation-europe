@@ -85,26 +85,20 @@ uint16_t opeu_ai_002a(uint8_t ds[65536]) {
   if (opeu_rand_bounded(6)) return 0;
   auto const side_index{ data.current_side };
   auto&      side{ data.sides[side_index] };
-  if (!side.pool_a) return 0;
+  if (!side.bombers) return 0;
   std::uint8_t x{};
   std::uint8_t y{};
-  auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) {
-    return opeu_cell_side(ds, cx, cy) == opeu_opposite_side(side_index)
-           && opeu_unit_special(ds, opeu_find_unit_at(ds, cx, cy));
-  } };
-  bool found{ false };
+  auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) { return opeu_cell_side(ds, cx, cy) == opeu_opposite_side(side_index) && opeu_unit_special(ds, opeu_find_unit_at(ds, cx, cy)); } };
+  bool         found{ false };
   for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE && !found; ++i) {
     auto const near{ data.objective_links[side_index * ENTRIES_PER_SIDE + i] };
     if (!near) continue;
     auto const& objective{ Record<Objective>(data, near) };
     if (!objective.active) continue;
     if (opeu_objective_side(ds, near) == side_index) {
-      found = StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) {
-        return enemy_special(cx, cy) && !opeu_rand_bounded(2);
-      });
+      found = StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) { return enemy_special(cx, cy) && !opeu_rand_bounded(2); });
     } else if (StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) {
-                 return opeu_cell_side(ds, cx, cy) == side_index
-                        && opeu_unit_selection_eligible(ds, opeu_find_unit_at(ds, cx, cy)) && !opeu_rand_bounded(4);
+                 return opeu_cell_side(ds, cx, cy) == side_index && opeu_unit_selection_eligible(ds, opeu_find_unit_at(ds, cx, cy)) && !opeu_rand_bounded(4);
                })) {
       x     = objective.x;
       y     = objective.y;
@@ -113,16 +107,13 @@ uint16_t opeu_ai_002a(uint8_t ds[65536]) {
   }
   for (unsigned i{ 0 }; i < UNITS_PER_SIDE && !found; ++i) {
     auto const& unit{ data.units[side_index * UNITS_PER_SIDE + i] };
-    if (unit.flags & Bits(UnitFlag::READY))
-      found = StepAround(unit.x, unit.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) {
-        return enemy_special(cx, cy) && !opeu_rand_bounded(8);
-      });
+    if (unit.flags & Bits(UnitFlag::READY)) found = StepAround(unit.x, unit.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) { return enemy_special(cx, cy) && !opeu_rand_bounded(8); });
   }
   if (!found) return 0;
   auto& strike{ side.strike };
   strike.x      = x;
   strike.y      = y;
-  strike.planes = opeu_min16(side.pool_a, static_cast<std::uint16_t>(opeu_rand_bounded(11) + 10));
+  strike.planes = opeu_min16(side.bombers, static_cast<std::uint16_t>(opeu_rand_bounded(11) + 10));
   strike.hours  = 1;
   strike.turns  = 7;
   return 1;
@@ -160,8 +151,8 @@ uint16_t opeu_ai_free_cell_near(uint8_t ds[65536], uint16_t objective, uint8_t* 
     *y = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.y);
     opeu_sub_byte(3, x);
     opeu_sub_byte(3, y);
-    if (*x < MAP_SIZE && *y < MAP_SIZE && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(ds, *x, *y)))
-        && !opeu_cell_marked(ds, *x, *y, data.current_side) && opeu_cell_side(ds, *x, *y) == NO_SIDE)
+    if (*x < MAP_SIZE && *y < MAP_SIZE && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(ds, *x, *y))) && !opeu_cell_marked(ds, *x, *y, data.current_side)
+        && opeu_cell_side(ds, *x, *y) == NO_SIDE)
       return 1;
   }
   return 0;
@@ -194,15 +185,11 @@ uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
   auto const    slot{ opeu_unit_index(unit) };
   std::uint16_t troops_left{ paratroops };
   std::uint16_t planes_left{ planes };
-  for (std::uint8_t i{ 0 };
-       !i
-       || (troops_left && planes_left && data.ai_unit_element_counts[slot] > i && i < elements && opeu_rand_bounded(4));
-       ++i) {
+  for (std::uint8_t i{ 0 }; !i || (troops_left && planes_left && data.ai_unit_element_counts[slot] > i && i < elements && opeu_rand_bounded(4)); ++i) {
     auto& element{ Record<Element>(data, data.ai_element_list[i]) };
     element.flags     = Bits(ElementFlag::AIRBORNE);
     element.type      = type;
-    element.quantity  = opeu_min16(static_cast<std::uint16_t>(opeu_min16(planes_left, MAX_PLANES) * TROOPS_PER_PLANE),
-                                   CurrentSide(data).paratroops);
+    element.quantity  = opeu_min16(static_cast<std::uint16_t>(opeu_min16(planes_left, MAX_PLANES) * TROOPS_PER_PLANE), CurrentSide(data).paratroops);
     troops_left      -= element.quantity;
     planes_left      -= element.quantity / TROOPS_PER_PLANE;
     element.damage    = 0;
@@ -218,10 +205,9 @@ uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
 
 uint16_t svc_ai_unrecovered(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx) {
   switch (static_cast<AiService>(id)) {
-  case AiService::RELEASE_UNITS:    return opeu_release_side_units(ds, *bx, static_cast<uint8_t>(ax));
-  case AiService::RELEASE_ELEMENTS: return opeu_release_side_elements(ds, *bx, static_cast<uint8_t>(ax));
-  case AiService::DUE_RECORDS:
-    return opeu_list_due_records(ds, *bx, static_cast<uint8_t>(ax), static_cast<uint8_t>(dx));
+  case AiService::RELEASE_UNITS:      return opeu_release_side_units(ds, *bx, static_cast<uint8_t>(ax));
+  case AiService::RELEASE_ELEMENTS:   return opeu_release_side_elements(ds, *bx, static_cast<uint8_t>(ax));
+  case AiService::DUE_RECORDS:        return opeu_list_due_records(ds, *bx, static_cast<uint8_t>(ax), static_cast<uint8_t>(dx));
   case AiService::OBJECTIVE_LEVEL:    return opeu_objective_level(ds, *bx);
   case AiService::OBJECTIVE_ELIGIBLE: return opeu_objective_eligible(ds, *bx);
   case AiService::SUPPLY_SHARE:       return opeu_ai_supply_share(ds, bx, ax, static_cast<uint8_t>(dx));

@@ -117,7 +117,7 @@ uint8_t opeu_angel_portrait(uint8_t ds[65536], HostEvent event, uint8_t) {
 void opeu_angel_finish(uint8_t ds[65536], HostEvent, uint16_t, uint16_t unit) {
   ForEachGeneralOf(ds, unit, [](Person& person) {
     person.flags  &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
-    person.health  = person.byte_17;
+    person.health  = person.max_health;
   });
   auto& data{ Data(ds) };
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) element.experience = 0;
@@ -179,8 +179,7 @@ void opeu_angel_event(uint8_t ds[65536], HostEvent event, uint16_t code_segment)
     auto const& record{ Record<Unit>(data, unit) };
     auto const  x{ record.x };
     auto const  y{ record.y };
-    if (opeu_map_code(ds, x, y) == OPEN_GROUND && RandomBelow(ds, 30) == 3
-        && opeu_angel_unit_eligible(ds, event, unit)) {
+    if (opeu_map_code(ds, x, y) == OPEN_GROUND && RandomBelow(ds, 30) == 3 && opeu_angel_unit_eligible(ds, event, unit)) {
       Call(ds, event, LOCATION, x, y, data.event_side);
       Call(ds, event, MARK, x, y, data.event_side);
       Call(ds, event, SHOW, ANGEL_SHOW, data.event_side, PRESENT_OFFSET, code_segment);
@@ -192,43 +191,29 @@ uint16_t svc_evangel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t result{ 0 };
   switch (id) {
   case PANEL: opeu_message_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case FRAME:
-    opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                       Arg(args, count, 2));
-    break;
+  case FRAME: opeu_context_frame(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case PRINT: c1_cursor_print(ds, args, count); break;
-  case SEEK:
-    result = static_cast<uint16_t>(
-        opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3)));
-    break;
+  case SEEK:  result = static_cast<uint16_t>(opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3))); break;
   case DRAW:
-    opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1),
-                         Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
+    opeu_image_read_draw(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (int16_t)Arg(args, count, 5));
     break;
-  case LOOKUP: result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT: c1_request_format(ds, args, count); break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1));
-    break;
+  case LOOKUP:   result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case FORMAT:   c1_request_format(ds, args, count); break;
+  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case TEXT:     opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case LOCATION: {
     auto const frame{ port_frame_enter() };
-    opeu_arrival_location(ds, svc_mappos, frame, static_cast<std::uint8_t>(Arg(args, count, 0)),
-                          static_cast<std::uint8_t>(Arg(args, count, 1)),
-                          static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_arrival_location(ds, svc_mappos, frame, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     port_frame_leave();
     break;
   }
   case MARK: {
     auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<std::uint8_t>(Arg(args, count, 0)),
-                        static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(ds, svc_mapunit, frame, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     port_frame_leave();
     break;
   }
-  case SHOW:
-    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-    break;
+  case SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case FAR_ACTION:
     port_fatal("evangel: an outcome routine outside this module (person %04x "
                "unit %04x)",

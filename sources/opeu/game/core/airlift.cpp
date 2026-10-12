@@ -54,11 +54,10 @@ constexpr auto PlanesFor(std::uint16_t amount) -> std::uint16_t {
 uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t hours, uint16_t planes) {
   auto&      data{ Data(ds) };
   auto const text{ Local(sp, TEXT_LOCAL) };
-  auto       lead{ static_cast<std::uint8_t>(
-      opeu_min16(static_cast<std::uint16_t>(planes - data.air_stat_13 / 30 + 3), MAX_LEAD)) };
+  auto       lead{ static_cast<std::uint8_t>(opeu_min16(static_cast<std::uint16_t>(planes - data.air_leadership / 30 + 3), MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
-    if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_stat_14) {
+    if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_charm) {
       Call(ds, event, FORMAT, text, Near(data, data.lift_lead_format), lead);
       Call(ds, event, MESSAGE, text, data.air_person);
       return lead;
@@ -67,8 +66,7 @@ uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
     Call(ds, event, MESSAGE, text, data.air_person);
     return hours;
   }
-  if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24))
-      && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_stat_14) {
+  if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24)) && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_charm) {
     Call(ds, event, MESSAGE, Call(ds, event, LOOKUP, LIFT_REFUSED), data.air_person);
     return 0;
   }
@@ -78,12 +76,10 @@ uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
 
 // Announces "In %d hour(s), %d plane(s) will start their cargo lift" and, if the staff confirms, records the order.
 // Returns 1 if recorded.
-uint16_t opeu_air_lift_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours,
-                             uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
+uint16_t opeu_air_lift_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
   auto&      data{ Data(ds) };
   auto const text{ Local(sp, TEXT_LOCAL) };
-  Call(ds, event, FORMAT, text, Near(data, data.lift_start_format), hours,
-       hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours), planes,
+  Call(ds, event, FORMAT, text, Near(data, data.lift_start_format), hours, hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours), planes,
        planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes));
   Call(ds, event, MESSAGE, text, data.air_person);
   if (!opeu_air_confirm(ds, event, static_cast<std::uint16_t>(sp - 2 - 0x6c - 6 - 4))) return 0;
@@ -105,8 +101,7 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&      data{ Data(ds) };
   auto const callee_sp{ static_cast<std::uint16_t>(sp - COMMAND_FRAME - 4) };
   auto const ask{ [&](std::uint16_t text, std::uint16_t low, std::uint16_t high) {
-    return opeu_air_ask_count(ds, event, static_cast<std::uint16_t>(sp - COMMAND_FRAME - 6 - 4), text, low, high, 1,
-                              data.context_record3, 0);
+    return opeu_air_ask_count(ds, event, static_cast<std::uint16_t>(sp - COMMAND_FRAME - 6 - 4), text, low, high, 1, data.context_record3, 0);
   } };
   auto& side{ Record<Side>(data, data.current_side_ptr) };
   if (side.lift.planes != 0) {
@@ -150,10 +145,7 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto const planes{ static_cast<std::uint16_t>(initial - remaining) };
   if (!Call(ds, event, CONFIRM, Near(data, data.lift_confirm), data.context_record3)) return;
   hours = opeu_air_lift_lead(ds, event, callee_sp, hours, planes);
-  if (hours
-      && !opeu_air_lift_order(ds, event, static_cast<std::uint16_t>(sp - COMMAND_FRAME - 8 - 4), cell_x, cell_y, hours,
-                              planes, ammo, fuel, food))
-    return;
+  if (hours && !opeu_air_lift_order(ds, event, static_cast<std::uint16_t>(sp - COMMAND_FRAME - 8 - 4), cell_x, cell_y, hours, planes, ammo, fuel, food)) return;
   data.side_delays[data.current_side] = 1;
 }
 

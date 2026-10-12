@@ -100,17 +100,13 @@ auto CurrentSide(DataSegment& data) -> Side& {
 }
 
 // The message the air officer objects with, if any.
-auto Objection(std::uint8_t* ds, Objections const& rules, std::uint8_t fuel, std::uint16_t bombers)
-    -> std::optional<std::uint16_t> {
+auto Objection(std::uint8_t* ds, Objections const& rules, std::uint8_t fuel, std::uint16_t bombers) -> std::optional<std::uint16_t> {
   auto&      data{ Data(ds) };
-  auto const skill{ data.air_stat_14 };
-  auto const short_of{ [&](Shortage const& rule, std::uint16_t value) {
-    return value < rule.limit && (!rule.roll || static_cast<std::uint8_t>(RandomBelow(ds, 10)) + rule.roll > skill);
-  } };
+  auto const skill{ data.air_charm };
+  auto const short_of{ [&](Shortage const& rule, std::uint16_t value) { return value < rule.limit && (!rule.roll || static_cast<std::uint8_t>(RandomBelow(ds, 10)) + rule.roll > skill); } };
   if (short_of(rules.fuel, fuel)) return rules.fuel.message;
   if (short_of(rules.bombers, bombers)) return rules.bombers.message;
-  if (static_cast<std::uint8_t>(RandomBelow(ds, 20)) + rules.crew_roll > skill && data.air_stat_1b < rules.morale_limit)
-    return POOR_CREWS;
+  if (static_cast<std::uint8_t>(RandomBelow(ds, 20)) + rules.crew_roll > skill && data.air_experience < rules.morale_limit) return POOR_CREWS;
   if (!RandomBelow(ds, rules.chance)) return rules.chance_message;
   return std::nullopt;
 }
@@ -122,11 +118,10 @@ uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint16_t, uint8
   auto&         data{ Data(ds) };
   auto&         side{ CurrentSide(data) };
   auto const    fuel{ side.strength };
-  auto const    bombers{ side.pool_a };
+  auto const    bombers{ side.bombers };
   std::uint16_t text{ 0 };
   if (city < 2 && type < 3)
-    if (auto const message{ Objection(ds, OBJECTIONS[type][city], fuel, bombers) })
-      text = Call(ds, event, LOOKUP, *message);
+    if (auto const message{ Objection(ds, OBJECTIONS[type][city], fuel, bombers) }) text = Call(ds, event, LOOKUP, *message);
   if (text) {
     Call(ds, event, MESSAGE, text, data.air_person);
     return 0;
@@ -139,17 +134,14 @@ uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint16_t, uint8
 // air strike. The delay is random(level + 1), one more at night, more in bad weather, less for the lighter missions;
 // the planes are the type's base plus a random extra, at most the side's bombers. 1 when the strike was ordered.
 uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint16_t type) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(sp, 2 + TEXT_LOCAL) };
-  auto const hours{ static_cast<std::uint16_t>(RandomBelow(ds, data.delivery_level + 1)
-                                               + (opeu_hour_is_night(data.hour) != 0)
-                                               + static_cast<std::uint16_t>(0x81 - data.air_stat_13) / 30 - type + 2) };
+  auto&       data{ Data(ds) };
+  auto const  text{ Local(sp, 2 + TEXT_LOCAL) };
+  auto const  hours{ static_cast<std::uint16_t>(RandomBelow(ds, data.delivery_level + 1) + (opeu_hour_is_night(data.hour) != 0) + static_cast<std::uint16_t>(0x81 - data.air_leadership) / 30 - type
+                                                + 2) };
   auto const& flight{ data.bombing_flights[type] };
-  auto const  planes{ opeu_min16(CurrentSide(data).pool_a,
-                                 static_cast<std::uint16_t>(flight.base + RandomBelow(ds, flight.range))) };
+  auto const  planes{ opeu_min16(CurrentSide(data).bombers, static_cast<std::uint16_t>(flight.base + RandomBelow(ds, flight.range))) };
   auto const  format{ Call(ds, event, LOOKUP, ANNOUNCE) };
-  Call(ds, event, FORMAT, text, format, hours, hours == 1 ? HOUR_TEXT : HOURS_TEXT, planes,
-       planes == 1 ? PLANE_TEXT : PLANES_TEXT, data.bombing_names[type]);
+  Call(ds, event, FORMAT, text, format, hours, hours == 1 ? HOUR_TEXT : HOURS_TEXT, planes, planes == 1 ? PLANE_TEXT : PLANES_TEXT, data.bombing_names[type]);
   Call(ds, event, MESSAGE, text, data.air_person);
   if (!opeu_air_confirm(ds, event, Local(sp, 2 + ORDER_DEPTH))) return 0;
   auto& strike{ CurrentSide(data).strike };
@@ -170,7 +162,7 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     if (!Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CANCEL_ORDER), data.context_record3)) return;
     CurrentSide(data).strike.planes = 0;
   }
-  if (!CurrentSide(data).pool_a) {
+  if (!CurrentSide(data).bombers) {
     Call(ds, event, MESSAGE, Call(ds, event, LOOKUP, NO_BOMBERS), data.context_record3);
     return;
   }
@@ -188,8 +180,7 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   --type;
   if (!Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CONFIRM_MISSION), data.context_record3)) return;
   auto const callee{ Local(sp, 2 + COMMAND_DEPTH) };
-  if (!opeu_air_bomb_check(ds, event, callee, opeu_map_code(ds, site_x, site_y) == CITY_TERRAIN, type)
-      || opeu_air_bomb_order(ds, event, callee, site_x, site_y, type))
+  if (!opeu_air_bomb_check(ds, event, callee, opeu_map_code(ds, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(ds, event, callee, site_x, site_y, type))
     data.side_delays[data.current_side] = 1;
 }
 
@@ -197,51 +188,32 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (static_cast<AirService>(id)) {
-  case FORMAT: c2_request_format(ds, args, count); break;
-  case MESSAGE:
-    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case CONFIRM:
-    result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  case LOOKUP: result = opeu_message_lookup(ds, svc_msglook, static_cast<short>(Arg(args, count, 0))); break;
-  case PRINT:  c2_cursor_print(ds, args, count); break;
-  case SPEAKER:
-    result = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1));
-    break;
+  case FORMAT:    c2_request_format(ds, args, count); break;
+  case MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONFIRM:   result = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOOKUP:    result = opeu_message_lookup(ds, svc_msglook, static_cast<short>(Arg(args, count, 0))); break;
+  case PRINT:     c2_cursor_print(ds, args, count); break;
+  case SPEAKER:   result = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case TEXT_FEED: opeu_text_feed(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case VALUE:     {
     auto const scratch{ port_scratch_enter(0x40) };
-    result = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1),
-                               static_cast<int16_t>(Arg(args, count, 2)), Arg(args, count, 3), scratch);
+    result = opeu_choose_value(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), static_cast<int16_t>(Arg(args, count, 2)), Arg(args, count, 3), scratch);
     port_scratch_leave(0x40);
     break;
   }
-  case DIALOG:
-    result = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1),
-                               Arg(args, count, 2), Arg(args, count, 3));
-    break;
-  case TITLE: opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case PICK:  {
+  case DIALOG: result = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case TITLE:  opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case PICK:   {
     auto const frame{ port_frame_enter() };
     result = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
     port_frame_leave();
     break;
   }
-  case LIST_DIALOG:
-    result = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)),
-                              static_cast<uint8_t>(Arg(args, count, 2)));
-    break;
-  case POSITION:
-    opeu_army_position(ds, (TextHost*)port_textout_host(), static_cast<short>(Arg(args, count, 0)),
-                       static_cast<short>(Arg(args, count, 1)));
-    break;
-  case CONTEXT: opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case FAR_ACTION:
-    result = static_cast<uint16_t>(
-        port_call(ds, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0));
-    break;
-  default: port_unhandled(module, id, count);
+  case LIST_DIALOG: result = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2))); break;
+  case POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), static_cast<short>(Arg(args, count, 0)), static_cast<short>(Arg(args, count, 1))); break;
+  case CONTEXT:     opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case FAR_ACTION:  result = static_cast<uint16_t>(port_call(ds, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0)); break;
+  default:          port_unhandled(module, id, count);
   }
   return result;
 }

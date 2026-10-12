@@ -49,7 +49,7 @@ constexpr uint8_t  SIDE_RECORD_COMMANDER{ 1 };
 
 // 1 + the type's mode / 2: a factor of the type's fire.
 [[nodiscard]] auto ModeFactor(ElementType const& type) -> unsigned {
-  return (type.mode >> 1) + 1u;
+  return (type.gun_range >> 1) + 1u;
 }
 } // namespace
 
@@ -77,10 +77,7 @@ uint16_t opeu_battle_fire_hits(uint8_t* ds, BattleEvent event, uint16_t attacker
   chance = static_cast<uint16_t>(chance + (a.training < t.training ? 5 : 10));
   chance = static_cast<uint16_t>(chance + (a.experience > t.experience ? 5 : 10));
   chance = static_cast<uint16_t>(chance + ModeFactor(TypeOf(data, attacker)) * 5);
-  chance = static_cast<uint16_t>(
-      chance
-      - Mul16(data.weather_obscurity[data.weather] + data.battle_visibility, opeu_hour_is_night(data.hour) ? 25 : 15)
-            / 10);
+  chance = static_cast<uint16_t>(chance - Mul16(data.weather_obscurity[data.weather] + data.battle_visibility, opeu_hour_is_night(data.hour) ? 25 : 15) / 10);
   return Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < chance ? 1 : 0;
 }
 
@@ -89,15 +86,13 @@ uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacke
   auto&          data{ Data(ds) };
   auto const&    type{ TypeOf(data, attacker) };
   auto const&    a{ Record<Element>(data, attacker) };
-  uint16_t const rating{ TypeOf(data, target).category == std::to_underlying(Category::INFANTRY) ? type.hard_rating
-                                                                                                 : type.soft_rating };
+  uint16_t const rating{ TypeOf(data, target).category == std::to_underlying(Category::INFANTRY) ? type.anti_personnel : type.anti_tank };
   uint16_t const skill_2{ Skill(ds, event, attacker, SKILL_2) };
   uint16_t const grade{ Quality(ds, event, attacker) };
   uint16_t const skill_7{ Skill(ds, event, attacker, SKILL_7) };
   auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, attacker), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, attacker) };
-  auto           value{ static_cast<uint16_t>(a.training - a.experience + skill_7 + a.morale + grade + skill_2
-                                              + CONDITION_BASE) };
+  auto           value{ static_cast<uint16_t>(a.training - a.experience + skill_7 + a.morale + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, rating) / 100);
   value = Mul16(value, Record<Person>(data, record).leadership / 85 * lead + 1);
   return Mul16(value, ModeFactor(type));
@@ -108,18 +103,16 @@ uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacke
 uint16_t opeu_battle_fire_defense(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&          data{ Data(ds) };
   auto const&    e{ Record<Element>(data, element) };
-  uint16_t const armour{ TypeOf(data, element).range };
+  uint16_t const armour{ TypeOf(data, element).defense };
   uint16_t const skill_2{ Skill(ds, event, element, SKILL_2) };
   uint16_t const grade{ Quality(ds, event, element) };
   uint16_t const skill_7{ Skill(ds, event, element, SKILL_7) };
   auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, element), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, element) };
-  auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2
-                                              + CONDITION_BASE) };
+  auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ SideOf(ds, event, element) };
-  auto const bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED,
-                         data.side_control[side] == 0 ? data.delivery_level + 1 : 1) };
+  auto const bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, data.side_control[side] == 0 ? data.delivery_level + 1 : 1) };
   return static_cast<uint16_t>(Mul16(Record<Person>(data, record).leadership / 70 * lead + 1, value) + bonus + 1);
 }
 
@@ -127,8 +120,7 @@ uint16_t svc_btlfire(uint8_t* ds, uint32_t address, const uint16_t* args, unsign
   return port_service(ds, address, args, count);
 }
 
-auto port_routine_opeu_battle_fire_defense(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_fire_defense(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   return opeu_battle_fire_defense(ds, svc_btlfire, Arg(args, count, 0));
 }
 

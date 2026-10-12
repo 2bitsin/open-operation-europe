@@ -38,7 +38,7 @@ constexpr uint16_t NO_DISTANCE{ 0xffff };
 constexpr uint8_t  NONE{ 0xff };
 constexpr uint8_t  BATTLE_EDGE{ BATTLE_WIDTH - 1 };
 constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
-// ElementType::mode above this fires from afar.
+// ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
 // Below the callers' sp: the frames of the callees.
 constexpr uint16_t ATTACK_FRAME{ 12 };
@@ -60,8 +60,7 @@ constexpr uint16_t THINK_FRAME{ 16 };
 }
 
 // Floods the path costs from (from_x, from_y); nonzero when (x, y) is reached.
-[[nodiscard]] auto Flood(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t from_x, uint8_t from_y,
-                         uint16_t element) -> uint16_t {
+[[nodiscard]] auto Flood(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t from_x, uint8_t from_y, uint16_t element) -> uint16_t {
   return Call(ds, event, BattleRoutine::BATTLE_PATH_FLOOD, x, y, from_x, from_y, element, 1);
 }
 
@@ -110,11 +109,8 @@ uint16_t opeu_battle_ai_withdraw(uint8_t* ds, BattleEvent event, uint16_t elemen
 uint16_t opeu_battle_ai_try_fire(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t target) {
   auto& data{ Data(ds) };
   if (!CanEnter(ds, event, PositionOf(data, target).x, PositionOf(data, target).y, element)) return 0;
-  if (!Flood(ds, event, PositionOf(data, target).x, PositionOf(data, target).y, PositionOf(data, element).x,
-             PositionOf(data, element).y, element))
-    return 0;
-  PositionOf(data, element).state = Bits(TypeOf(data, element).category == Bits(Category::TANKS) ? BattleState::BLITZ
-                                                                                                 : BattleState::ATTACK);
+  if (!Flood(ds, event, PositionOf(data, target).x, PositionOf(data, target).y, PositionOf(data, element).x, PositionOf(data, element).y, element)) return 0;
+  PositionOf(data, element).state  = Bits(TypeOf(data, element).category == Bits(Category::TANKS) ? BattleState::BLITZ : BattleState::ATTACK);
   PositionOf(data, element).target = target;
   opeu_battle_engage(ds, event, element);
   opeu_battle_set_facing(ds, event, element, NONE);
@@ -125,9 +121,7 @@ void opeu_battle_ai_fire_or_attack(uint8_t* ds, BattleEvent event, uint16_t elem
   auto& data{ Data(ds) };
   for (auto& other : Elements(data, Record<Unit>(data, unit))) {
     auto const near{ Near(data, other) };
-    if (opeu_battle_element_active(ds, event, near) && TypeOf(data, near).mode > RANGED_MODE
-        && opeu_battle_ai_try_fire(ds, event, element, near))
-      return;
+    if (opeu_battle_element_active(ds, event, near) && TypeOf(data, near).gun_range > RANGED_MODE && opeu_battle_ai_try_fire(ds, event, element, near)) return;
   }
   opeu_battle_ai_attack_near(ds, event, element, unit, Local(sp, ATTACK_FRAME));
 }
@@ -148,21 +142,19 @@ void opeu_battle_ai_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
   for (auto& other : Elements(data, Record<Unit>(data, unit))) {
     auto const near{ Near(data, other) };
     if (!opeu_battle_element_active(ds, event, near)) continue;
-    if (TypeOf(data, near).mode <= RANGED_MODE) continue;
+    if (TypeOf(data, near).gun_range <= RANGED_MODE) continue;
     front_x = PositionOf(data, near).x;
     front_y = PositionOf(data, near).y;
     break;
   }
   if (front_x == NONE) opeu_battle_ai_hold(ds, event, element);
   auto direction{ Direction(ds, event, unit) };
-  if (direction == BATTLE_NOT_ADJACENT)
-    direction = static_cast<uint8_t>(7 - Direction(ds, event, opeu_battle_ai_unit_target(ds, event, element)));
+  if (direction == BATTLE_NOT_ADJACENT) direction = static_cast<uint8_t>(7 - Direction(ds, event, opeu_battle_ai_unit_target(ds, event, element)));
   uint16_t best{ NO_DISTANCE };
   uint8_t  best_x{ 0 };
   uint8_t  best_y{ 0 };
   for (uint8_t i{ 0 }; i < OFFSETS_PER_DIRECTION; ++i) {
-    auto const offset{ Record<uint8_t>(
-        data, static_cast<uint16_t>(Near(data, data.battle_ai_offsets) + direction * OFFSETS_PER_DIRECTION + i)) };
+    auto const offset{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_ai_offsets) + direction * OFFSETS_PER_DIRECTION + i)) };
     auto const high{ static_cast<uint8_t>(offset >> 4) };
     auto const low{ static_cast<uint8_t>(offset & 0x0f) };
     auto const dx{ Nibble(high) + front_x };
@@ -204,7 +196,7 @@ void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element
 }
 
 void opeu_battle_ai_act(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp) {
-  if (TypeOf(Data(ds), element).mode > RANGED_MODE)
+  if (TypeOf(Data(ds), element).gun_range > RANGED_MODE)
     opeu_battle_ai_engage_best(ds, event, element, Local(sp, ACT_FRAME));
   else
     opeu_battle_ai_advance(ds, event, element);
@@ -220,8 +212,7 @@ void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element, uint
   auto const inner{ Local(sp, THINK_FRAME) };
   auto const plan{ opeu_battle_ai_plan_low(ds, event, element) };
   auto const profile{ opeu_battle_ai_profile(ds, event, unit, 0) };
-  auto const action{ Record<uint8_t>(data,
-                                     static_cast<uint16_t>(Near(data, data.battle_ai_actions) + plan * 5u + profile)) };
+  auto const action{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_ai_actions) + plan * 5u + profile)) };
   switch (static_cast<AiAction>(action)) {
   case AiAction::WITHDRAW:
     if (opeu_battle_ai_withdraw(ds, event, element, unit)) break;

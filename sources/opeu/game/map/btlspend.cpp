@@ -30,9 +30,9 @@ enum class Supply : uint8_t {
 [[nodiscard]] auto Weight(DataSegment const& data, Element const& element, Supply supply) -> uint16_t {
   auto const& type{ data.element_types[element.type] };
   switch (supply) {
-  case Supply::AMMUNITION: return data.capacity_a_weights[type.category];
-  case Supply::FOOD:       return data.capacity_c_weights[type.category];
-  default:                 return type.weight;
+  case Supply::AMMUNITION: return data.ammunition_capacities[type.category];
+  case Supply::FOOD:       return data.food_capacities[type.category];
+  default:                 return type.fuel_capacity;
   }
 }
 
@@ -45,10 +45,7 @@ void Spend(DataSegment& data, uint16_t unit, uint16_t element, uint16_t before, 
   auto const  share{ opeu_mul_div(stock, 100, total) };
   auto const& lost{ Record<Element>(data, element) };
   uint16_t    value{ stock };
-  opeu_sub_word(
-      opeu_mul_div(static_cast<uint16_t>(Weight(data, lost, supply) * static_cast<uint16_t>(before - lost.quantity)),
-                   share, 100),
-      &value);
+  opeu_sub_word(opeu_mul_div(static_cast<uint16_t>(Weight(data, lost, supply) * static_cast<uint16_t>(before - lost.quantity)), share, 100), &value);
   stock = value;
 }
 } // namespace
@@ -92,8 +89,7 @@ auto port_routine_opeu_battle_spend_fuel(std::uint8_t* ds, std::uint16_t const* 
   return 0;
 }
 
-auto port_routine_opeu_battle_spend_stores(std::uint8_t* ds, std::uint16_t const* args, unsigned count)
-    -> std::uint32_t {
+auto port_routine_opeu_battle_spend_stores(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_battle_spend_stores(ds, svc_btlspend, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
