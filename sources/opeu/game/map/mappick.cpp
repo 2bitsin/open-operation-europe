@@ -81,7 +81,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
   uint8_t shown_x{ NONE };
   uint8_t shown_y{ 0 };
   if (!data.input_mode) opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y)), static_cast<uint8_t>(data.current_side));
-  opeu_input_reset(game, svc_mouse);
+  opeu_input_reset(game);
   opeu_bitmap_save(0, 0, 80, 24, port_far(static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
   data.control_selection = 0;
   auto const pan{ [&](int16_t dx, int16_t dy) {
@@ -92,15 +92,15 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
   // Mouse input until the pointer moves to another cell or a button decides.
   auto const mouse{ [&]() -> Outcome {
     for (;;) {
-      opeu_mouse_show(game, svc_mouse);
-      auto const buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game, svc_mouse)) };
-      opeu_mouse_position(game, svc_mouse, static_cast<std::uint16_t>(mouse_x_at), static_cast<std::uint16_t>(mouse_y_at));
+      opeu_mouse_show(game);
+      auto const buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game)) };
+      opeu_mouse_position(game, static_cast<std::uint16_t>(mouse_x_at), static_cast<std::uint16_t>(mouse_y_at));
       // The pointer words are read from DS at each use, as the services in between may write them.
       auto const pointer_x{ [&] { return Word(game, mouse_x_at); } };
       auto const pointer_y{ [&] { return Word(game, mouse_y_at); } };
       auto const in{ [&](Area const& area) { return area.Holds(pointer_x(), pointer_y()); } };
       if (buttons & LEFT_BUTTON) {
-        opeu_mouse_hide(game, svc_mouse);
+        opeu_mouse_hide(game);
         if ((view_up() && in(VIEW_CELLS)) || (overview_up() && in(OVERVIEW_CELLS) && OnMap(shown_x, shown_y) && opeu_map_code(game, shown_x, shown_y))) return Outcome::ACCEPT;
         if (view_up()) {
           uint8_t direction{ NONE };
@@ -124,13 +124,13 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
             Byte(game, x) = shown_x;
             Byte(game, y) = shown_y;
             opeu_grid_step_viewport(game, x, y, direction);
-            opeu_mouse_hide(game, svc_mouse);
+            opeu_mouse_hide(game);
             return Outcome::MOVE;
           }
         }
       }
       if (buttons & RIGHT_BUTTON) {
-        opeu_mouse_hide(game, svc_mouse);
+        opeu_mouse_hide(game);
         return Outcome::CANCEL;
       }
       if (view_up() && in(VIEW_CELLS)) {
@@ -145,7 +145,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         Byte(game, y) = static_cast<uint8_t>((pointer_y() - OVERVIEW_CELLS.top) >> 3);
       }
       if (Byte(game, x) == shown_x && Byte(game, y) == shown_y) continue;
-      opeu_mouse_hide(game, svc_mouse);
+      opeu_mouse_hide(game);
       return Outcome::MOVE;
     }
   } };
@@ -153,7 +153,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
   // One key: a move of the cursor (or a pan of the view), or a decision.
   auto const keyboard{ [&]() -> Outcome {
     uint8_t    direction{ NONE };
-    auto const key{ static_cast<uint8_t>(opeu_keyboard_key(game, svc_keyboard)) };
+    auto const key{ static_cast<uint8_t>(opeu_keyboard_key(game)) };
     switch (key) {
     case '6':
       if (view_up()) {

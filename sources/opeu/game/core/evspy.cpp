@@ -91,13 +91,13 @@ void opeu_spy_portrait_text(Game& game, uint16_t text, uint16_t show) {
 
 // The greeting scene (messages 44..51); the commander's charm rises by 1.
 void opeu_spy_present_a(Game& game) {
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(SPY_CONTEXT));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(SPY_CONTEXT));
   auto const near{ Commander(game) };
   for (std::uint16_t id{ 0x2c }; id <= 0x33; ++id) {
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, id)), static_cast<std::uint16_t>(near) });
     opeu_spy_portrait_text(game, BUFFER, 1);
   }
-  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+  opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
   opeu_add_byte(1, RATING_LIMIT, &Record<Person>(Data(game), near).charm);
 }
 
@@ -118,7 +118,7 @@ void opeu_spy_present_b(Game& game) {
 // The approach scene and its question.
 void opeu_spy_approach(Game& game) {
   auto const& data{ Data(game) };
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(SPY_CONTEXT));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(SPY_CONTEXT));
   opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, 0x6b)) });
   opeu_spy_portrait_text(game, BUFFER, 1);
   opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, 0x6c)) });
@@ -126,7 +126,7 @@ void opeu_spy_approach(Game& game) {
   opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   if (data.restart_flag == 1) {
     opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), MOVE);
-    auto const accepted{ static_cast<uint16_t>(opeu_yes_no(game, svc_keyboard)) };
+    auto const accepted{ static_cast<uint16_t>(opeu_yes_no(game)) };
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), BOLD_OFF);
     if (accepted)
       port_daily_show(game, ENDING_SHOW, 0, PRESENT_B_OFFSET, CODE_SEGMENT);
@@ -135,7 +135,7 @@ void opeu_spy_approach(Game& game) {
       opeu_spy_portrait_text(game, BUFFER, 1);
     }
   }
-  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+  opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
 }
 
 // The hourly check (SideFlag::SPY_SENT: the offer was taken, SPY_DONE: the event is over for the day).

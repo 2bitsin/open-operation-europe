@@ -103,7 +103,7 @@ void opeu_battle_animate_element(Game& game, uint8_t x, uint8_t y, uint16_t turn
   if (pause) {
     opeu_battle_dispatch(game, ANIMATION_HANDLER);
     if (turn) {
-      opeu_effect_finish(game, svc_sound);
+      opeu_effect_finish(game);
       opeu_battle_dispatch(game, ANIMATION_HANDLER);
     }
   }

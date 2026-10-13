@@ -33,7 +33,7 @@ void opeu_division_credits(Game& game) {
   auto& data{ Data(game) };
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
   while (data.input_mode)
-    if (static_cast<uint16_t>(opeu_turn_input_a(game, svc_mouse))) return;
+    if (static_cast<uint16_t>(opeu_turn_input_a(game))) return;
   if (static_cast<char>(static_cast<uint16_t>(port_getch())) == '!') {
     opeu_backdrop_fill_color(game, static_cast<const UiHost*>(port_uiprim_host()), static_cast<uint8_t>(1));
     data.restart_flag = 1;

@@ -56,7 +56,7 @@ auto HurricaneSeason(DataSegment const& data) -> bool {
 void opeu_hurricane_present(Game& game) {
   auto const& data{ Data(game) };
   bool const  season{ HurricaneSeason(data) };
-  opeu_sound_cue15(game, svc_soundcue);
+  opeu_sound_cue15(game);
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(HURRICANE_MESSAGE))),
                                                           static_cast<std::uint16_t>(season ? data.hurricane_words[0] : data.hurricane_words[1]) });

@@ -120,7 +120,7 @@ void opeu_air_strike_present(Game& game) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), STRIKE_SPOTTED,
                          opeu_find_side_record(game, static_cast<std::uint8_t>(enemy), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
   }
-  opeu_sound_cue4(game, svc_soundcue);
+  opeu_sound_cue4(game);
 }
 
 // The bombs fall on (x, y) from n planes: casualties to the unit there and damage to the objective there, at a rate
@@ -159,7 +159,7 @@ void opeu_air_strike_hit(Game& game, uint8_t x, uint8_t y, uint16_t n) {
 void opeu_air_strike_event(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.air_side };
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe));
   auto&         record{ data.sides[side] };
   auto const    x{ record.strike.x };
   auto const    y{ record.strike.y };
@@ -180,7 +180,7 @@ void opeu_air_strike_event(Game& game) {
                       static_cast<std::uint32_t>(STRIKE_SEGMENT) << 16 | STRIKE_PRESENTER);
     }
     if (my - row == BOMB_LEAD) {
-      opeu_music_command7(game, svc_sound);
+      opeu_music_command7(game);
       if (!planes) {
         opeu_air_destroyed_message(game, BOMBERS_NAME);
         opeu_air_sprite_restore(game, 0, hx, row);
@@ -197,9 +197,9 @@ void opeu_air_strike_event(Game& game) {
     record.pending_bombers = static_cast<std::uint16_t>(record.pending_bombers + planes);
   }
   record.strike.planes = 0;
-  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
-  opeu_music_command7(game, svc_sound);
-  opeu_music_stop(game, svc_sound);
+  opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
+  opeu_music_command7(game);
+  opeu_music_stop(game);
   opeu_turn_pre_context(game);
 }
 

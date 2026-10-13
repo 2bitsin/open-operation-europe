@@ -67,7 +67,7 @@ void opeu_daily_context(Game& game, uint8_t side) {
 
 void opeu_turn_pre_context(Game& game) {
   auto const& data{ Data(game) };
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.scenario_contexts[std::to_underlying(CurrentScenario(data))]));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(data.scenario_contexts[std::to_underlying(CurrentScenario(data))]));
 }
 
 auto port_routine_opeu_daily_context(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {

@@ -46,7 +46,7 @@ auto Select(Game& game, HostWordsEvent event, ListWindow const& window, std::uin
 }
 
 auto NextKey(Game& game, HostWordsEvent event) -> std::uint8_t {
-  return Data(game).input_mode ? opeu_list_mouse_key(game, event) : static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard));
+  return Data(game).input_mode ? opeu_list_mouse_key(game, event) : static_cast<std::uint8_t>(opeu_keyboard_key(game));
 }
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
@@ -82,7 +82,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
   bool               refresh{ true };
   for (;;) {
     if (refresh) {
-      opeu_input_reset(game, svc_mouse);
+      opeu_input_reset(game);
       refresh = false;
     }
     bool         scroll{ true };
@@ -162,7 +162,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
         for (std::uint16_t y{ 0x170 }; y < 0x188; y += 0x10)
           for (std::uint16_t x{ 0 }; x < 0x50; x += 2) opeu_screen_copy(0, 0, 2, 0x10, x, y);
         opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
-        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) {
+        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) {
           used     = COMMANDERS;
           withdraw = true;
           continue;
@@ -195,7 +195,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
     bool               finished{ false };
     for (;;) {
       if (fresh) {
-        opeu_input_reset(game, svc_mouse);
+        opeu_input_reset(game);
         fresh = false;
       }
       // what the key leads to
@@ -273,7 +273,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       }
       if (window.x == 0xf || window.x == 9) {
         RestoreScreen(game, window);
-        opeu_input_reset(game, svc_mouse);
+        opeu_input_reset(game);
         break; // start over
       }
     }

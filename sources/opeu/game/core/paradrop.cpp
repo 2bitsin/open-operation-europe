@@ -131,7 +131,7 @@ void opeu_para_drop_present(Game& game) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_spotted),
                          opeu_find_side_record(game, static_cast<uint8_t>(other), static_cast<uint8_t>(INTELLIGENCE)));
   }
-  opeu_sound_cue4(game, svc_soundcue);
+  opeu_sound_cue4(game);
 }
 
 // Flies the air side's drop: centres the map on the target, books the transports and the paratroops out of the
@@ -163,7 +163,7 @@ void opeu_para_drop_event(Game& game, uint16_t segment) {
     opeu_air_sprite_draw(game, 0, target_x, row, static_cast<uint8_t>(side_index));
     if (row == target_y) port_daily_show(game, SHOW_ID, static_cast<std::uint16_t>(opeu_side_for_status(game, static_cast<uint8_t>(side_index))), PRESENTER_OFFSET, segment + PRESENTER_SEGMENT);
     if (target_y - row == LANDING_ROWS) {
-      opeu_music_command7(game, svc_sound);
+      opeu_music_command7(game);
       auto const unit{ CreateDropUnit(game, static_cast<uint8_t>(side_index), Near(data, drop)) };
       if (opeu_para_land(game, svc_paraunit, unit, (drop.transports - left) * 10)) opeu_arrival_prepare(game, unit);
     }

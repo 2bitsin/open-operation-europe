@@ -93,8 +93,8 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
         Record<Person>(Data(game), commander).role |= Bits(PersonRole::DEPUTY);
         struck                                      = true;
         auto const commander_side{ opeu_person_lacks_side0_flag(game, commander) };
-        opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0x10));
-        opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
+        opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
+        opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
         opeu_string_copy(game, text, commander);
         opeu_string_append(game, text, MissionText(game, ASSASSINATED));
         opeu_string_append(game, text, static_cast<uint16_t>(offsetof(DataSegment, mission_bold_off)));
@@ -130,8 +130,8 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
     opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     break;
   case MISSION_CASUALTIES:     opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
-  case MISSION_TURN_CONTEXT:   opeu_set_turn_context(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_FINISH_SIDE:    opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
+  case MISSION_TURN_CONTEXT:   opeu_set_turn_context(game, (uint8_t)Arg(args, count, 0)); break;
+  case MISSION_FINISH_SIDE:    opeu_finish_side_initialization(game, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_DEPUTY:         opeu_initialize_deputy(game, Arg(args, count, 0)); break;
   case MISSION_PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_DELAY_UNITS:    opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;

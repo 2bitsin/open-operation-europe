@@ -123,7 +123,7 @@ void opeu_battle_pick_hq(Game& game) {
     data.deploy_row = data.list_row;
     for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
-    if (static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Near(data, data.hq_new_prompt)))) {
+    if (static_cast<std::uint16_t>(opeu_prompt_yes_no(game, Near(data, data.hq_new_prompt)))) {
       Record<Element>(data, element).flags |= Bits(ElementFlag::SELECTED);
       panels();
       return;

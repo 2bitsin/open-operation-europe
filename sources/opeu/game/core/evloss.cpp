@@ -86,7 +86,7 @@ uint16_t opeu_loss_unit_weak(Game& game, uint16_t unit) {
 }
 
 void opeu_loss_present_a(Game& game) {
-  opeu_sound_cue12(game, svc_soundcue);
+  opeu_sound_cue12(game);
   opeu_pending_finish(game, static_cast<uint8_t>(3));
 }
 
@@ -122,7 +122,7 @@ void opeu_loss_event_a(Game& game) {
         opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
         port_daily_show(game, PRESENT_A_ID, 0, PRESENT_A, PRESENT_SEGMENT);
       }
-      opeu_music_command7(game, svc_sound);
+      opeu_music_command7(game);
       opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
     }
 }

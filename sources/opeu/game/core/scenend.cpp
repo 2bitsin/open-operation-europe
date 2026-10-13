@@ -140,7 +140,7 @@ void opeu_scenario_end(Game& game) {
   auto const opposite{ [&] { return static_cast<uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side))); } };
 
   if (data.side_status[side] == SIDE_PLAYED) {
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(CONTEXT_VICTORY));
+    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_VICTORY));
     picture = VICTORY_PICTURE[side ? 1 : 0];
     if (reason == 0) {
       copy_text(data.end_victory_texts[0]);
@@ -158,7 +158,7 @@ void opeu_scenario_end(Game& game) {
       format_caption(side);
     }
   } else {
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(CONTEXT_DEFEAT));
+    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_DEFEAT));
     picture = DEFEAT_PICTURE[side ? 1 : 0];
     copy_text(data.end_defeat_texts[reason]);
     format_caption(opposite());
@@ -170,7 +170,7 @@ void opeu_scenario_end(Game& game) {
   opeu_dos_close(static_cast<int16_t>(handle));
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(9), static_cast<int16_t>(336));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), static_cast<std::uint16_t>(caption) });
-  opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(1));
+  opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
   opeu_delay_units(game, static_cast<uint8_t>(0x93));
   if (data.side_control[side] == SIDE_PLAYED) {
     // The epilogue of endgrp.npk for a human winner: four pages of text over pictures, then the last two pictures.
@@ -179,8 +179,8 @@ void opeu_scenario_end(Game& game) {
                            static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(at)))
                                                 | static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(at >> 16))) << 16));
     } };
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(CONTEXT_EPILOGUE));
-    opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
+    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_EPILOGUE));
+    opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
     handle = static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_picture_name))));
     opeu_vga_clear();
     opeu_end_palette_dark(game);
@@ -214,7 +214,7 @@ void opeu_scenario_end(Game& game) {
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
   opeu_delay_units(game, static_cast<uint8_t>(0x1e));
   for (;;) {
-    if (!static_cast<uint16_t>(opeu_music_playing(game, svc_sound)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game, svc_mouse)) : opeu_turn_input_b())) {
+    if (!static_cast<uint16_t>(opeu_music_playing(game)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b())) {
       opeu_quit_to_dos(game);
       return;
     }

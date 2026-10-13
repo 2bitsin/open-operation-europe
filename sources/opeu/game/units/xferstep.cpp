@@ -64,13 +64,13 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
   auto&               data{ Data(game) };
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
-  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) opeu_sound_cue14(game, svc_soundcue);
+  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) opeu_sound_cue14(game);
   data.transfer_auto = UNMOVED;
   selected           = 0;
   opeu_transfer_draw_row(game, event, 1, 0);
   opeu_transfer_draw_row(game, event, 0, 0);
   opeu_transfer_draw_row(game, event, 2, 0);
-  opeu_input_reset(game, svc_mouse);
+  opeu_input_reset(game);
   for (;;) {
     std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
     auto const   left{ TableAt(0, selected, AMOUNT) };
@@ -82,7 +82,7 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
       Highlight(game, event, selected);
       highlighted = selected;
     }
-    auto const key{ data.transfer_interactive ? opeu_transfer_input(game, event, selection) : opeu_transfer_auto_key(game, selected) };
+    auto const key{ data.transfer_interactive ? opeu_transfer_input(game, selection) : opeu_transfer_auto_key(game, selected) };
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;
@@ -115,8 +115,8 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
         data.transfer_interactive = opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_group_record);
         return;
       }
-      opeu_sound_cue16(game, svc_soundcue);
-      opeu_music_command7(game, svc_sound);
+      opeu_sound_cue16(game);
+      opeu_music_command7(game);
       opeu_pending_finish(game, static_cast<uint8_t>(FINISH_VALUE));
       opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
       data.transfer_interactive = 1;
@@ -140,7 +140,7 @@ uint16_t opeu_transfer_run(Game& game, HostWordsEvent event, uint16_t interactiv
                     static_cast<unsigned int>(static_cast<uint32_t>(STEP_SEGMENT) << 16 | STEP_OFFSET));
   else
     opeu_transfer_step(game, event);
-  opeu_music_command7(game, svc_sound);
+  opeu_music_command7(game);
   data.context_side = NO_CONTEXT;
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   return data.transfer_interactive;

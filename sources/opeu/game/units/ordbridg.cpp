@@ -42,7 +42,7 @@ uint8_t opeu_order_destroy_loss(Game& game) {
 }
 
 void opeu_order_destroy_present(Game& game) {
-  opeu_sound_cue5(game, svc_soundcue);
+  opeu_sound_cue5(game);
   opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 

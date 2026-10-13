@@ -108,7 +108,7 @@ uint16_t opeu_battle_turn_loop(Game& game) {
     if (!data.battle_level_limit && !step) {
       opeu_battle_player_turn(game);
     } else {
-      auto       buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game, svc_mouse)) };
+      auto       buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game)) };
       auto const input{ [&] {
         if (buttons & MOUSE_EVENT) return true;
         if (!opeu_turn_input_b()) return false;
@@ -125,7 +125,7 @@ uint16_t opeu_battle_turn_loop(Game& game) {
         if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(game);
       }
     }
-    opeu_input_reset(game, svc_mouse);
+    opeu_input_reset(game);
     if (!opeu_battle_all_turns(game)) return 0;
   }
   return 1;

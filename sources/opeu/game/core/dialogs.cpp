@@ -514,10 +514,10 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case TEXT_WINDOW_RESET:  opeu_text_window_reset(game, (TextHost*)port_textout_host()); break;
   case TEXT_PUTC:          r = opeu_text_put(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case MENU_SELECT:        r = opeu_choose_value(game, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
-  case CONFIRM_INPUT:      r = (uint16_t)opeu_yes_no(game, svc_keyboard); break;
+  case CONFIRM_INPUT:      r = (uint16_t)opeu_yes_no(game); break;
   case WAIT_TICKS:         opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case MUSIC_COMMAND7:     opeu_music_command7(game, svc_sound); break;
-  case SOUND_CUE16:        opeu_sound_cue16(game, svc_soundcue); break;
+  case MUSIC_COMMAND7:     opeu_music_command7(game); break;
+  case SOUND_CUE16:        opeu_sound_cue16(game); break;
   case LACKS_SIDE0:        r = opeu_person_lacks_side0_flag(game, Arg(args, count, 0)); break;
   case SELECTED_UNIT:      r = opeu_person_selected_unit(game, Arg(args, count, 0)); break;
   case SELECTION_ELIGIBLE: r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;

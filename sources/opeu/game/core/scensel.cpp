@@ -53,10 +53,10 @@ int opeu_new_game_setup(Game& game) {
   opeu_load_message_graphics(game);
   handle = static_cast<uint16_t>(opeu_open_resource(game, at(data.scensel_file)));
 restart:
-  opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0));
-  opeu_music_stop(game, svc_sound);
-  opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(7));
-  opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(1));
+  opeu_set_turn_context(game, static_cast<uint8_t>(0));
+  opeu_music_stop(game);
+  opeu_set_turn_context(game, static_cast<uint8_t>(7));
+  opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
 title:
   opeu_vga_clear();
   opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 0, static_cast<int16_t>(handle), 0);
@@ -80,9 +80,9 @@ title:
     opeu_setup_marker_show(game, static_cast<uint8_t>(scenario));
     if (!port_prompt_yes_no(game, at(data.scensel_empty))) goto rejected;
     port_load_scenario(game, scenario);
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0));
-    opeu_music_stop(game, svc_sound);
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(static_cast<uint8_t>(data.scenario + 1)));
+    opeu_set_turn_context(game, static_cast<uint8_t>(0));
+    opeu_music_stop(game);
+    opeu_set_turn_context(game, static_cast<uint8_t>(static_cast<uint8_t>(data.scenario + 1)));
   players:
     opeu_scenario_clear_panel(game);
     opeu_scenario_frame(game);
@@ -99,10 +99,10 @@ title:
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(4), static_cast<int16_t>(0xf4));
     selection = port_prompt_cancel(game, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
     if (selection == 0xff) {
-      opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0));
-      opeu_music_stop(game, svc_sound);
-      opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(7));
-      opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(1));
+      opeu_set_turn_context(game, static_cast<uint8_t>(0));
+      opeu_music_stop(game);
+      opeu_set_turn_context(game, static_cast<uint8_t>(7));
+      opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
     rejected:
       opeu_setup_marker_hide(game, static_cast<uint8_t>(scenario));
       goto scenario_menu;

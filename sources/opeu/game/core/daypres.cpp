@@ -44,7 +44,7 @@ void opeu_daily_present(Game& game) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  opeu_request_wait(game, svc_soundcue);
+  opeu_request_wait(game);
   opeu_element_type_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), data.daily_record);
   auto const& type{ Record<ElementType>(data, data.daily_record) };
   opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(NEW_WEAPON_FORMAT), static_cast<std::uint16_t>(type.name),

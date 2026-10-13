@@ -29,7 +29,7 @@ constexpr uint16_t FIRST_REASON_MESSAGE{ 61 };
 // of staff. When no side is played by a person the message closes by itself.
 void opeu_request_error_present(Game& game) {
   auto& data{ Data(game) };
-  opeu_pending_prepare(game, svc_soundcue);
+  opeu_pending_prepare(game);
   auto const& request{ Record<RequestSlot>(data, data.invalid_request) };
   auto const  buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   auto const  name{ data.request_kind_names[request.kind] };

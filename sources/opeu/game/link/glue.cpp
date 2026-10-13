@@ -111,7 +111,7 @@ uint16_t port_prompt_required(Game& game, uint16_t text, uint16_t max, uint16_t 
 }
 
 uint16_t port_prompt_yes_no(Game& game, uint16_t text) {
-  return (uint16_t)opeu_prompt_yes_no(game, svc_keyboard, text);
+  return (uint16_t)opeu_prompt_yes_no(game, text);
 }
 
 /* ---- LOADSCEN ------------------------------------------------------------------- *

@@ -112,7 +112,7 @@ void opeu_confirm_generals(Game& game) {
         opeu_play_screen(game);
         opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
         opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x14), static_cast<int16_t>(0x170));
-      } while (!static_cast<uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Near(data, data.use_generals_prompt))));
+      } while (!static_cast<uint16_t>(opeu_prompt_yes_no(game, Near(data, data.use_generals_prompt))));
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
     }
   }

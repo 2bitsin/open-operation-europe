@@ -37,39 +37,39 @@ uint16_t opeu_battle_mouse_select(Game& game, uint16_t show_info) {
   auto const          x_at{ locals.At(MOUSE_X_AT) };
   auto const          y_at{ locals.At(MOUSE_Y_AT) };
   opeu_battle_cursor_draw(game);
-  opeu_input_reset(game, svc_mouse);
+  opeu_input_reset(game);
   int16_t shown_x{ OFF_MAP };
   int16_t shown_y{ OFF_MAP };
   if (show_info) opeu_battle_cursor_info(game);
-  opeu_mouse_show(game, svc_mouse);
+  opeu_mouse_show(game);
   bool chosen;
   for (;;) {
-    if (static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse))) {
+    if (static_cast<std::uint16_t>(opeu_mouse_right(game))) {
       chosen = false;
       break;
     }
-    if (static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse))) {
+    if (static_cast<std::uint16_t>(opeu_mouse_left(game))) {
       chosen = true;
       break;
     }
-    opeu_mouse_position(game, svc_mouse, x_at, y_at);
+    opeu_mouse_position(game, x_at, y_at);
     opeu_battle_mouse_cell(game, x_at, y_at);
     auto const x{ static_cast<int16_t>(Word(game, x_at)) };
     auto const y{ static_cast<int16_t>(Word(game, y_at)) };
     if (shown_x == x && shown_y == y) continue;
     if (x != OFF_MAP) {
-      opeu_mouse_hide(game, svc_mouse);
+      opeu_mouse_hide(game);
       opeu_battle_cursor_draw(game);
       data.battle_cursor_x = static_cast<uint8_t>(x);
       data.battle_cursor_y = static_cast<uint8_t>(y);
       opeu_battle_cursor_draw(game);
       if (show_info) opeu_battle_cursor_info(game);
-      opeu_mouse_show(game, svc_mouse);
+      opeu_mouse_show(game);
     }
     shown_x = x;
     shown_y = y;
   }
-  opeu_mouse_hide(game, svc_mouse);
+  opeu_mouse_hide(game);
   opeu_battle_cursor_draw(game);
   return chosen;
 }
@@ -84,7 +84,7 @@ uint16_t opeu_battle_key_select(Game& game, uint16_t show_info) {
   auto choice{ Choice::PENDING };
   while (choice == Choice::PENDING) {
     if (show_info) opeu_battle_cursor_info(game);
-    switch (static_cast<uint8_t>(opeu_keyboard_key(game, svc_keyboard))) {
+    switch (static_cast<uint8_t>(opeu_keyboard_key(game))) {
     case KEY_ENTER:  choice = Choice::CHOSEN; break;
     case KEY_ESCAPE:
     case '0':        choice = Choice::CANCELLED; break;

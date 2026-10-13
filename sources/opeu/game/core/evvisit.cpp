@@ -129,11 +129,11 @@ void opeu_visit_event(Game& game) {
       auto const& target{ Record<Unit>(data, unit) };
       auto const  x{ target.x };
       auto const  y{ target.y };
-      opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(VISIT_CONTEXT));
+      opeu_set_turn_context(game, static_cast<std::uint8_t>(VISIT_CONTEXT));
       opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
       port_daily_show(game, VISIT_SHOW, data.event_side, PRESENT_OFFSET, PRESENT_SEGMENT);
       data.side_flags[data.event_side] |= Bits(SideFlag::VISITED);
-      opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+      opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
     }
   }
 }

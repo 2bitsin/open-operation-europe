@@ -55,9 +55,9 @@ uint16_t svc_sideinit(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_
   switch (id) {
   case FIND_SIDE_PERSON: r = opeu_find_side_record(game, (uint8_t)a0, (uint8_t)a1); break;
   case FIND_TEMPLATE:    r = opeu_find_person_template(game, (uint8_t)a0, (uint8_t)a1); break;
-  case SET_CONTEXT:      opeu_set_turn_context(game, svc_sound, (uint8_t)a0); break;
+  case SET_CONTEXT:      opeu_set_turn_context(game, (uint8_t)a0); break;
   case RUN_INITIALIZER:  r = (uint16_t)port_call(game, (uint32_t)a1 * 16u + a0, NULL, 0); break;
-  case FINISH:           opeu_finish_side_initialization(game, svc_sound, (uint8_t)a0); break;
+  case FINISH:           opeu_finish_side_initialization(game, (uint8_t)a0); break;
   default:               port_unhandled("sideinit", id, 4);
   }
   return r;

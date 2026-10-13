@@ -33,7 +33,7 @@ constexpr std::uint16_t SECOND_SIDE_TOKEN{ 53 };
 void opeu_arrival_present(Game& game) {
   ServiceLocals const locals{ 0x20 };
   auto&               data{ Data(game) };
-  opeu_request_wait(game, svc_soundcue);
+  opeu_request_wait(game);
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   auto const          name{ opeu_unit_name(game, data.arrival_unit, locals.At(0)) };
   auto const          side{ data.arrival_side };

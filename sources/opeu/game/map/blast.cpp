@@ -48,7 +48,7 @@ void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   auto&      data{ Data(game) };
   auto const shown{ static_cast<uint8_t>(opeu_side_for_status(game, static_cast<uint8_t>(side))) };
   opeu_arrival_location(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(shown));
-  opeu_sound_cue5(game, svc_soundcue);
+  opeu_sound_cue5(game);
   opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
   if (data.overview_side != NONE) {
     auto const pixel{ OverviewPixel({ x, y }) };
@@ -68,7 +68,7 @@ void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
       opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
     }
   }
-  opeu_effect_finish(game, svc_sound);
+  opeu_effect_finish(game);
 }
 
 void opeu_blast_erase(Game& game, uint8_t x, uint8_t y) {

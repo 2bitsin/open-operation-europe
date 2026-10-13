@@ -59,14 +59,14 @@ void Stalemate(Game& game, uint16_t text) {
   opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), STALEMATE_X, BANNER_Y, STALEMATE_COLOR);
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), text);
   opeu_delay_units(game, static_cast<std::uint8_t>(STALEMATE_PAUSE));
-  opeu_music_stop(game, svc_sound);
+  opeu_music_stop(game);
 }
 } // namespace
 
 // side: the winning list (0 or 1).
 void opeu_battle_closing_music(Game& game, uint8_t side) {
   auto& data{ Data(game) };
-  opeu_music_stop(game, svc_sound);
+  opeu_music_stop(game);
   uint16_t track;
   if ((data.side_status[0] == SIDE_PLAYED && data.battle_side_routed[0]) || (data.side_status[1] == SIDE_PLAYED && data.battle_side_routed[1])) {
     track = MUSIC_ROUTED;
@@ -75,8 +75,8 @@ void opeu_battle_closing_music(Game& game, uint8_t side) {
     auto const winner{ opeu_battle_unit_side(game, lead) };
     track = WordOf(game, Near(data, data.side_status), winner) == SIDE_PLAYED ? MUSIC_WON : MUSIC_LOST;
   }
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(track));
-  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(track));
+  opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
 }
 
 void opeu_battle_report_outcome(Game& game) {

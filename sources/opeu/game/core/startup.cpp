@@ -102,5 +102,5 @@ void opeu_app_startup_service(Game& game) {
   }
   data.startup_mode += STARTUP_STEP;
   opeu_vga_clear();
-  opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(1));
+  opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
 }

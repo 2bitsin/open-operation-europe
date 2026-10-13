@@ -112,7 +112,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
   cell_x %= MAP_WIDTH;
   cell_y %= MAP_HEIGHT;
   opeu_arrival_location(game, static_cast<std::uint8_t>(cell_x), static_cast<std::uint8_t>(cell_y), static_cast<std::uint8_t>(side));
-  opeu_input_reset(game, svc_mouse);
+  opeu_input_reset(game);
   opeu_bitmap_save(0, 0, 80, 24, port_far(data.bitmap_buffer, SAVE_OFFSET));
   data.control_selection = 0;
   for (bool done{ false }; !done;) {
@@ -149,13 +149,13 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     previous_panel = panel;
     if (data.input_mode) {
       for (;;) {
-        opeu_mouse_show(game, svc_mouse);
-        auto const buttons{ static_cast<std::uint8_t>(opeu_mouse_buttons(game, svc_mouse)) };
-        opeu_mouse_position(game, svc_mouse, mouse_x_at, mouse_y_at);
+        opeu_mouse_show(game);
+        auto const buttons{ static_cast<std::uint8_t>(opeu_mouse_buttons(game)) };
+        opeu_mouse_position(game, mouse_x_at, mouse_y_at);
         auto const mouse_x{ Word(game, mouse_x_at) };
         auto const mouse_y{ Word(game, mouse_y_at) };
         if (buttons & 1) {
-          opeu_mouse_hide(game, svc_mouse);
+          opeu_mouse_hide(game);
           if ((tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y))
               || (strategic() && Inside(STRATEGIC_MAP, mouse_x, mouse_y) && display_x < MAP_WIDTH && display_y < MAP_HEIGHT && opeu_map_code(game, display_x, display_y))) {
             // A click on a cell of no side or of a regiment the side cannot order keeps the inspection going.
@@ -190,7 +190,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
           }
         }
         if (buttons & 2) {
-          opeu_mouse_hide(game, svc_mouse);
+          opeu_mouse_hide(game);
           result = 0;
           done   = true;
           break;
@@ -207,13 +207,13 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
           cell_y = static_cast<std::uint8_t>((mouse_y - 68) >> 3);
         }
         if (cell_x == display_x && cell_y == display_y) continue;
-        opeu_mouse_hide(game, svc_mouse);
+        opeu_mouse_hide(game);
         break;
       }
       if (done) break;
     } else {
       std::uint8_t direction{ NONE };
-      auto const   key{ static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard)) };
+      auto const   key{ static_cast<std::uint8_t>(opeu_keyboard_key(game)) };
       switch (key) {
       case '6':
         if (tactical()) {

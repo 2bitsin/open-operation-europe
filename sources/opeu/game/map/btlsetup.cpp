@@ -107,7 +107,7 @@ void opeu_battle_tire_leaders(Game& game) {
 void opeu_battle_start_music(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ opeu_battle_unit_side(game, data.battle_lists[0]) };
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER));
+  opeu_set_turn_context(game, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER));
 }
 
 // side: nonzero for side 1. index: the element's position record.

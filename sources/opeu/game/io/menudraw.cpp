@@ -107,12 +107,12 @@ void opeu_menu_restore(Game& game, std::uint16_t near) {
 
 // Lights the item under the mouse (x*8..(x+width)*8-1, y..y+23); a left press chooses it, a right press cancels when
 // allowed. One more pass after the choice puts out every light.
-auto opeu_menu_track(Game& game, HostService service, std::uint16_t items, int cancel) -> std::uint16_t {
+auto opeu_menu_track(Game& game, std::uint16_t items, int cancel) -> std::uint16_t {
   std::array<int, MAX_ITEMS> lit{};
-  opeu_input_reset(game, service);
+  opeu_input_reset(game);
   std::uint16_t chosen{ NOT_CHOSEN };
   opeu_delay_units(game, static_cast<std::uint8_t>(1));
-  opeu_mouse_show(game, service);
+  opeu_mouse_show(game);
   std::uint16_t passes{ 0 };
   do {
     std::uint16_t index{ 0 };
@@ -122,30 +122,30 @@ auto opeu_menu_track(Game& game, HostService service, std::uint16_t items, int c
       std::uint16_t top    = item.y;
       std::uint16_t right  = left + (item.width << 3) - 1;
       std::uint16_t bottom = top + 23;
-      auto const [x, y]{ MousePosition(game, service) };
+      auto const [x, y]{ MousePosition(game) };
       if (!passes && left <= x && right >= x && top <= y && bottom >= y) {
         if (!lit[index]) {
-          opeu_mouse_hide(game, service);
+          opeu_mouse_hide(game);
           opeu_menu_draw_item(game, near, lit[index] = 1);
-          opeu_mouse_show(game, service);
+          opeu_mouse_show(game);
         }
-        if (opeu_mouse_left(game, service)) chosen = item.selection & SELECTION_MASK;
+        if (opeu_mouse_left(game)) chosen = item.selection & SELECTION_MASK;
       } else if (lit[index]) {
-        opeu_mouse_hide(game, service);
+        opeu_mouse_hide(game);
         opeu_menu_draw_item(game, near, lit[index] = 0);
-        opeu_mouse_show(game, service);
+        opeu_mouse_show(game);
       }
-      if (cancel && opeu_mouse_right(game, service)) chosen = MENU_CANCELLED;
+      if (cancel && opeu_mouse_right(game)) chosen = MENU_CANCELLED;
     }
     if (chosen != NOT_CHOSEN) passes++;
   } while (passes < 2);
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   return chosen;
 }
 
-auto opeu_menu_select(Game& game, HostService service, std::uint16_t items, int cancel) -> std::uint16_t {
+auto opeu_menu_select(Game& game, std::uint16_t items, int cancel) -> std::uint16_t {
   opeu_menu_draw(game, items);
-  auto const chosen{ opeu_menu_track(game, service, items, cancel) };
+  auto const chosen{ opeu_menu_track(game, items, cancel) };
   opeu_menu_restore(game, items);
   return chosen;
 }

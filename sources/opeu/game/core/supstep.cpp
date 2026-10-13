@@ -55,7 +55,7 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
   opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(0), static_cast<uint8_t>(0));
   opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(2), static_cast<uint8_t>(0));
   opeu_ops_chief_text(game, offsetof(DataSegment, supply_prompt));
-  opeu_input_reset(game, svc_mouse);
+  opeu_input_reset(game);
   for (;;) {
     std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
     auto const   left{ TableAt(0, selected, CURRENT) };
@@ -67,7 +67,7 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
       Highlight(game, event, selected);
       highlighted = selected;
     }
-    auto const key{ opeu_supply_input(game, event, selection) };
+    auto const key{ opeu_supply_input(game, selection) };
     switch (key) {
     case '2':
       if (selected++ == ROWS - 1) selected = 0;
@@ -115,7 +115,7 @@ uint16_t svc_supstep(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case KEY:            r = svc_suppanel(game, id, args, count); break;
   case ROW:            opeu_supply_draw_row(game, svc_suprow, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case CHIEF_TEXT:     opeu_ops_chief_text(game, Arg(args, count, 0)); break;
-  case INPUT_RESET:    opeu_input_reset(game, svc_mouse); break;
+  case INPUT_RESET:    opeu_input_reset(game); break;
   case HIGHLIGHT:      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case CHIEF_WAIT:     r = opeu_ops_chief_wait(game, Arg(args, count, 0)); break;
   default:             port_unhandled("supstep", id, count);

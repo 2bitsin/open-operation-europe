@@ -228,7 +228,7 @@ void opeu_settings_sound(Game& game) {
   auto&               data{ Data(game) };
   uint16_t const      message{ locals.At(0) };
   if (data.sound_enabled == 1) {
-    opeu_music_stop(game, svc_sound);
+    opeu_music_stop(game);
     data.sound_enabled = 0;
   } else {
     data.sound_enabled = 1;
@@ -345,7 +345,7 @@ void opeu_save_game(Game& game) {
       opeu_screen_copy(0, 240, 80, 48, 0, 320);
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_save_prompt_box(game, 35, 336, Near(data, data.save_confirm)));
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(39), static_cast<int16_t>(336));
-      if (!static_cast<uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Near(data, data.save_answer)))) continue;
+      if (!static_cast<uint16_t>(opeu_prompt_yes_no(game, Near(data, data.save_answer)))) continue;
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 35, 188, Near(data, data.save_saving)));
       auto& slot{ data.save_slots[data.save_slot] };
       FillSlot(data, slot);
@@ -380,11 +380,11 @@ void opeu_quit_to_dos(Game& game) {
   opeu_dos_close(static_cast<int16_t>(file));
   opeu_vga_clear();
   opeu_palette_title_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
-  opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
+  opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
   opeu_gfx_blit(216, 120, 208, 112, 2, port_far(data.bitmap_buffer, LOGO_AT));
   opeu_gfx_blit(160, 232, 320, 40, 7, port_far(data.bitmap_buffer, CAPTION_AT));
-  opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0));
-  opeu_music_stop(game, svc_sound);
+  opeu_set_turn_context(game, static_cast<uint8_t>(0));
+  opeu_music_stop(game);
   opeu_fm_wait_start(200);
   while (opeu_fm_busy());
   opeu_sound_open(0, 0, 0, 0);
@@ -405,8 +405,8 @@ void opeu_settings_new_game(Game& game) {
   auto& data{ Data(game) };
   if ((data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_COMPUTER)
       || opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.new_game_question), data.context_record2)) {
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0));
-    opeu_music_stop(game, svc_sound);
+    opeu_set_turn_context(game, static_cast<uint8_t>(0));
+    opeu_music_stop(game);
     opeu_sound_open(0, 0, 0, 0);
     opeu_close_data_files(game);
     opeu_palette_daylight(game, static_cast<const UiHost*>(port_uiprim_host()));

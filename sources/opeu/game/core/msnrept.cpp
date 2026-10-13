@@ -130,8 +130,8 @@ void opeu_mission_person_killed(Game& game, uint16_t person) {
   auto const          side{ opeu_person_lacks_side0_flag(game, person) };
   auto const          played{ [game, side] { return Data(game).side_status[side] == SIDE_PLAYED; } };
   if (played()) {
-    opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0x10));
-    opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
+    opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
+    opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
     opeu_string_copy(game, message, person);
     opeu_string_append(game, message, MissionText(game, ASSASSINATED));
   }

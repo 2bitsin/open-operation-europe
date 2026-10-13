@@ -51,7 +51,7 @@ void opeu_request_action0(Game& game, uint8_t side, uint16_t request) {
   opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(HEADER_MESSAGE))),
                                                           static_cast<std::uint16_t>(header_words[0]), static_cast<std::uint16_t>(header_words[1]) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
-  opeu_request_wait(game, svc_soundcue);
+  opeu_request_wait(game);
   uint16_t const detail_words[]{ now[1], static_cast<uint16_t>(now[1] - before[1]), now[0], static_cast<uint16_t>(now[0] - before[0]), now[2], static_cast<uint16_t>(now[2] - before[2]) };
   opeu_request_format(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(DETAIL_MESSAGE))),
                                                           static_cast<std::uint16_t>(detail_words[0]), static_cast<std::uint16_t>(detail_words[1]), static_cast<std::uint16_t>(detail_words[2]),

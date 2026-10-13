@@ -127,7 +127,7 @@ void opeu_battle_ranged_tracers(Game& game, uint16_t shooter, uint16_t target) {
   } else {
     Pause(game, FIRE_PAUSE);
   }
-  opeu_music_command7(game, svc_sound);
+  opeu_music_command7(game);
 }
 
 // frame: the routine's frame; the callees run below it.

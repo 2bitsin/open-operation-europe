@@ -68,42 +68,42 @@ auto Outline(Game& game, HostService service, std::uint16_t x1, std::uint16_t y1
 }
 
 // Clamps a dialog value to lo..hi, showing the clamped value.
-auto Clamped(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
+auto Clamped(Game& game, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   if (value < lo) {
     value = lo;
-    opeu_numdlg_show(game, service, value);
+    opeu_numdlg_show(game, value);
   } else if (value > hi) {
     value = hi;
-    opeu_numdlg_show(game, service, value);
+    opeu_numdlg_show(game, value);
   }
   return value;
 }
 } // namespace
 
 // Redraws button n's picture `tile`.
-void opeu_numdlg_button(Game& game, HostService service, std::uint8_t n, std::uint16_t tile) {
+void opeu_numdlg_button(Game& game, std::uint8_t n, std::uint16_t tile) {
   auto const& data{ Data(game) };
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   opeu_bitmap_restore(n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, port_far(data.message_picture_segment, tile));
-  opeu_mouse_show(game, service);
+  opeu_mouse_show(game);
 }
 
 // Button 1 (cancel) or 2 (OK) pressed.
-void opeu_numdlg_press(Game& game, HostService service, std::uint8_t n) {
-  opeu_numdlg_button(game, service, n - 1, n == CANCEL_BUTTON ? CANCEL_DOWN : OK_DOWN);
+void opeu_numdlg_press(Game& game, std::uint8_t n) {
+  opeu_numdlg_button(game, n - 1, n == CANCEL_BUTTON ? CANCEL_DOWN : OK_DOWN);
 }
 
-void opeu_numdlg_release(Game& game, HostService service, std::uint8_t n) {
-  opeu_numdlg_button(game, service, n - 1, n == CANCEL_BUTTON ? CANCEL_UP : OK_UP);
+void opeu_numdlg_release(Game& game, std::uint8_t n) {
+  opeu_numdlg_button(game, n - 1, n == CANCEL_BUTTON ? CANCEL_UP : OK_UP);
 }
 
 // Saves the covered area, draws the dialog and both buttons.
-void opeu_numdlg_open(Game& game, HostService service) {
+void opeu_numdlg_open(Game& game) {
   auto const& data{ Data(game) };
   opeu_bitmap_save(data.numdlg_x, data.numdlg_y, 0x12, 0x60, port_far(data.numdlg_save_segment, 0));
   opeu_bitmap_restore(data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, port_far(data.message_picture_segment, 0));
-  opeu_numdlg_release(game, service, CANCEL_BUTTON);
-  opeu_numdlg_release(game, service, OK_BUTTON);
+  opeu_numdlg_release(game, CANCEL_BUTTON);
+  opeu_numdlg_release(game, OK_BUTTON);
 }
 
 void opeu_numdlg_close(Game& game) {
@@ -142,15 +142,15 @@ auto opeu_numdlg_value(Game& game) -> std::int32_t {
   return value;
 }
 
-void opeu_numdlg_show(Game& game, HostService service, std::int32_t value) {
+void opeu_numdlg_show(Game& game, std::int32_t value) {
   opeu_numdlg_split(game, value);
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   for (auto c{ 0 }; c < DIGIT_COUNT; c++) opeu_numdlg_digit(game, c, Data(game).numdlg_digits[c]);
-  opeu_mouse_show(game, service);
+  opeu_mouse_show(game);
 }
 
 // The slider: 0..BAR_WIDTH pixels filled for lo..hi.
-void opeu_numdlg_bar(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, std::int32_t value) {
+void opeu_numdlg_bar(Game& game, std::uint16_t lo, std::uint16_t hi, std::int32_t value) {
   auto const&         data{ Data(game) };
   std::uint16_t const x{ Column(data) };
   std::uint16_t const y{ data.numdlg_y };
@@ -162,10 +162,10 @@ void opeu_numdlg_bar(Game& game, HostService service, std::uint16_t lo, std::uin
     filled = BAR_WIDTH;
   else
     filled = opeu_mul_div(static_cast<std::uint16_t>(value) - lo, BAR_WIDTH, range);
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   if (filled) opeu_ui_fill(x + 0x10, y + 0x14, x + filled + 0xf, y + 0x1b, 2);
   if (filled != BAR_WIDTH) opeu_ui_fill(x + filled + 0x10, y + 0x14, x + 0x7f, y + 0x1b, 0);
-  opeu_mouse_show(game, service);
+  opeu_mouse_show(game);
 }
 
 // What the mouse at (mx, my) is on: TITLE_BAR, CANCEL_BUTTON, OK_BUTTON, a digit (FIRST_DIGIT..LAST_DIGIT) or
@@ -197,7 +197,7 @@ auto opeu_numdlg_hit(Game& game, std::uint16_t mx, std::uint16_t my) -> std::uin
 }
 
 // Inverts the title bar or a digit.
-void opeu_numdlg_highlight(Game& game, HostService service, std::uint8_t n) {
+void opeu_numdlg_highlight(Game& game, std::uint8_t n) {
   if (n == NOTHING || n == CANCEL_BUTTON || n == OK_BUTTON) return;
   std::uint16_t x, y, width;
   if (n == TITLE_BAR) {
@@ -210,26 +210,26 @@ void opeu_numdlg_highlight(Game& game, HostService service, std::uint8_t n) {
     width = 2;
   }
   auto const& data{ Data(game) };
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   opeu_ui_highlight(data.numdlg_x + x, data.numdlg_y + y, width, 0x10, INVERT_MODE);
-  opeu_mouse_show(game, service);
+  opeu_mouse_show(game);
 }
 
 // Moves the dialog with an outline while the left button is held.
 void opeu_numdlg_drag(Game& game, HostService service) {
   auto& data{ Data(game) };
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   opeu_numdlg_close(game);
-  opeu_mouse_show(game, service);
-  auto const grab{ MousePosition(game, service) };
+  opeu_mouse_show(game);
+  auto const grab{ MousePosition(game) };
   // the grab point within the dialog; the mouse stays where the dialog stays on the screen
   std::uint16_t const grab_x = grab.x - Column(data);
   std::uint16_t const grab_y = grab.y - data.numdlg_y;
-  opeu_mouse_window(game, service, grab_x, grab_y, grab_x + 0x1f0, grab_y + 0x130);
+  opeu_mouse_window(game, grab_x, grab_y, grab_x + 0x1f0, grab_y + 0x130);
   std::uint16_t column{ 0xffff };
   std::uint16_t row{ 0xffff };
   do {
-    auto [x, y]{ MousePosition(game, service) };
+    auto [x, y]{ MousePosition(game) };
     if (x > 0x212) x = 0x1f4;
     if (y > 0x154) y = 0x154;
     x  -= grab_x;
@@ -237,52 +237,52 @@ void opeu_numdlg_drag(Game& game, HostService service) {
     x >>= 3;
     if (x != column || y != row) {
       if (column != 0xffff) {
-        opeu_mouse_hide(game, service);
+        opeu_mouse_hide(game);
         Outline(game, service, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
-        opeu_mouse_show(game, service);
+        opeu_mouse_show(game);
       }
-      opeu_mouse_hide(game, service);
+      opeu_mouse_hide(game);
       Outline(game, service, x << 3, y, (x << 3) + 0x8f, y + 0x5f);
-      opeu_mouse_show(game, service);
+      opeu_mouse_show(game);
       column = x;
       row    = y;
     }
-  } while (opeu_mouse_left(game, service));
+  } while (opeu_mouse_left(game));
   data.numdlg_x = column;
   data.numdlg_y = row;
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   Outline(game, service, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
-  opeu_numdlg_open(game, service);
-  opeu_mouse_show(game, service);
-  opeu_mouse_window(game, service, 0, 0, 0x27f, 0x18f);
+  opeu_numdlg_open(game);
+  opeu_mouse_show(game);
+  opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
 }
 
-void opeu_numdlg_refresh(Game& game, HostService service, std::uint8_t n) {
-  opeu_mouse_hide(game, service);
+void opeu_numdlg_refresh(Game& game, std::uint8_t n) {
+  opeu_mouse_hide(game);
   opeu_numdlg_digit(game, n, Data(game).numdlg_digits[n]);
-  opeu_numdlg_highlight(game, service, n + FIRST_DIGIT);
-  opeu_mouse_show(game, service);
+  opeu_numdlg_highlight(game, n + FIRST_DIGIT);
+  opeu_mouse_show(game);
 }
 
 // Digit n goes up, wrapping after 6 (the first) or 9; the value is clamped to lo..hi.
-auto opeu_numdlg_increment(Game& game, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
+auto opeu_numdlg_increment(Game& game, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   opeu_numdlg_split(game, value);
   auto&              digit{ Data(game).numdlg_digits[n] };
   std::uint8_t const top{ static_cast<std::uint8_t>(n == 0 ? 6 : 9) };
   if (++digit > top) digit = 0;
-  value = Clamped(game, service, lo, hi, opeu_numdlg_value(game));
-  opeu_numdlg_refresh(game, service, n);
+  value = Clamped(game, lo, hi, opeu_numdlg_value(game));
+  opeu_numdlg_refresh(game, n);
   return value;
 }
 
 // Digit n goes down, wrapping from 0 to 6 (the first) or 9.
-auto opeu_numdlg_decrement(Game& game, HostService service, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
+auto opeu_numdlg_decrement(Game& game, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t {
   opeu_numdlg_split(game, value);
   auto& digit{ Data(game).numdlg_digits[n] };
   if (digit == 0) digit = n == 0 ? 7 : 10;
   digit--;
-  value = Clamped(game, service, lo, hi, opeu_numdlg_value(game));
-  opeu_numdlg_refresh(game, service, n);
+  value = Clamped(game, lo, hi, opeu_numdlg_value(game));
+  opeu_numdlg_refresh(game, n);
   return value;
 }
 
@@ -301,13 +301,13 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
   std::uint8_t shown{ NOTHING };
   std::int32_t value{ lo };
   bool         running{ true };
-  opeu_input_reset(game, service);
-  opeu_mouse_show(game, service);
-  opeu_numdlg_bar(game, service, lo, hi, lo);
-  opeu_numdlg_show(game, service, lo);
+  opeu_input_reset(game);
+  opeu_mouse_show(game);
+  opeu_numdlg_bar(game, lo, hi, lo);
+  opeu_numdlg_show(game, lo);
   std::uint16_t left{ Column(data) };
   do {
-    auto const mouse{ MousePosition(game, service) };
+    auto const mouse{ MousePosition(game) };
     if (static_cast<std::uint16_t>(data.numdlg_y + 0x20) > mouse.y) {
       // on the slider
       auto const previous{ value };
@@ -319,23 +319,23 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
       else
         value = static_cast<std::uint16_t>(opeu_mul_div(hi - lo + 1, x - left - 0xf, BAR_WIDTH) + lo);
       if (value != previous) {
-        opeu_numdlg_bar(game, service, lo, hi, value);
-        opeu_numdlg_show(game, service, value);
+        opeu_numdlg_bar(game, lo, hi, value);
+        opeu_numdlg_show(game, value);
       }
     } else {
       auto const hit{ opeu_numdlg_hit(game, mouse.x, mouse.y) };
       if (hit != shown) {
-        if (shown == CANCEL_BUTTON || shown == OK_BUTTON) opeu_numdlg_release(game, service, shown);
-        if (hit == CANCEL_BUTTON || hit == OK_BUTTON) opeu_numdlg_press(game, service, hit);
-        opeu_numdlg_highlight(game, service, shown);
-        opeu_numdlg_highlight(game, service, hit);
+        if (shown == CANCEL_BUTTON || shown == OK_BUTTON) opeu_numdlg_release(game, shown);
+        if (hit == CANCEL_BUTTON || hit == OK_BUTTON) opeu_numdlg_press(game, hit);
+        opeu_numdlg_highlight(game, shown);
+        opeu_numdlg_highlight(game, hit);
         shown = hit;
       }
-      if (opeu_mouse_left(game, service)) {
+      if (opeu_mouse_left(game)) {
         if (hit == TITLE_BAR) {
           opeu_numdlg_drag(game, service);
-          opeu_numdlg_bar(game, service, lo, hi, value);
-          opeu_numdlg_show(game, service, value);
+          opeu_numdlg_bar(game, lo, hi, value);
+          opeu_numdlg_show(game, value);
           left = Column(data);
         } else if (hit == CANCEL_BUTTON) {
           if (cancel) {
@@ -345,35 +345,35 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
         } else if (hit == OK_BUTTON) {
           if (lo <= value && hi >= value) running = false;
         } else if (hit <= LAST_DIGIT) {
-          value = opeu_numdlg_increment(game, service, hit - FIRST_DIGIT, lo, hi, value);
-          opeu_numdlg_bar(game, service, lo, hi, value);
-          opeu_input_reset(game, service);
+          value = opeu_numdlg_increment(game, hit - FIRST_DIGIT, lo, hi, value);
+          opeu_numdlg_bar(game, lo, hi, value);
+          opeu_input_reset(game);
         }
       }
-      if (opeu_mouse_right(game, service) && hit >= FIRST_DIGIT && hit <= LAST_DIGIT) {
-        value = opeu_numdlg_decrement(game, service, hit - FIRST_DIGIT, lo, hi, value);
-        opeu_numdlg_bar(game, service, lo, hi, value);
-        opeu_input_reset(game, service);
+      if (opeu_mouse_right(game) && hit >= FIRST_DIGIT && hit <= LAST_DIGIT) {
+        value = opeu_numdlg_decrement(game, hit - FIRST_DIGIT, lo, hi, value);
+        opeu_numdlg_bar(game, lo, hi, value);
+        opeu_input_reset(game);
       }
     }
     if (opeu_numdlg_outside(game, mouse.x, mouse.y)) {
-      if (opeu_mouse_left(game, service)) {
+      if (opeu_mouse_left(game)) {
         if (lo <= value && hi >= value) running = false;
-      } else if (opeu_mouse_right(game, service) && cancel) {
+      } else if (opeu_mouse_right(game) && cancel) {
         value   = MENU_CANCELLED;
         running = false;
       }
     }
   } while (running);
-  opeu_mouse_hide(game, service);
+  opeu_mouse_hide(game);
   return static_cast<std::uint16_t>(value);
 }
 
 auto opeu_numdlg_run(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
-  opeu_numdlg_open(game, service);
+  opeu_numdlg_open(game);
   auto const value{ opeu_numdlg_track(game, service, lo, hi, cancel) };
   opeu_numdlg_close(game);
-  opeu_input_reset(game, service);
+  opeu_input_reset(game);
   return value;
 }
 

@@ -98,7 +98,7 @@ uint16_t opeu_end_can_occupy(Game& game, uint8_t x, uint8_t y, uint16_t unit) {
 
 // The call-back of the occupied objective's show: a sound and a pause.
 void opeu_end_occupy_present(Game& game) {
-  opeu_sound_cue10(game, svc_soundcue);
+  opeu_sound_cue10(game);
   opeu_delay_units(game, static_cast<uint8_t>(30));
 }
 

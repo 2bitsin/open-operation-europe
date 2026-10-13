@@ -130,7 +130,7 @@ void opeu_cargo_drop_present(Game& game) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_SPOTTED,
                          opeu_find_side_record(game, static_cast<std::uint8_t>(enemy), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
   }
-  opeu_sound_cue4(game, svc_soundcue);
+  opeu_sound_cue4(game);
 }
 
 // The airlift flies (see the file comment).
@@ -163,7 +163,7 @@ void opeu_cargo_drop_event(Game& game) {
       opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, static_cast<std::uint8_t>(shown), static_cast<std::uint32_t>(CARGO_SEGMENT) << 16 | CARGO_PRESENTER);
     }
     if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
-      opeu_music_command7(game, svc_sound);
+      opeu_music_command7(game);
       if (auto const near{ opeu_find_unit_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) }; near != 0) {
         opeu_unit_capacities(game, near, port_ds_word_ptr(game, locals.At(AMMO_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FUEL_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FOOD_CAPACITY_AT)));
         auto&               unit{ Record<Unit>(data, near) };

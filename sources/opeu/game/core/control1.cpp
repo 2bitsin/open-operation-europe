@@ -45,7 +45,7 @@ void opeu_turn_control_one(Game& game) {
   data.view_side     = NO_SIDE;
   data.overview_side = NO_SIDE;
   opeu_control_prepare(game);
-  opeu_control_begin(game, svc_soundcue);
+  opeu_control_begin(game);
   while (!data.side_delays[data.current_side]) {
     {
       auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };

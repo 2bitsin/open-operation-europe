@@ -97,12 +97,12 @@ void opeu_text_cursor_draw(Game& game) {
 
 // Polls input (mouse buttons or a pending key) while a 15-tick timer runs; on input reseeds the random sequence with
 // the advanced count and returns 1, else returns 0.
-auto opeu_key_wait_tick(Game& game, HostService service) -> int {
+auto opeu_key_wait_tick(Game& game) -> int {
   std::uint16_t count{ RandomNext(game) };
   opeu_fm_wait_start(15);
   do {
     count++;
-    if (HasMouse(Data(game)) ? opeu_turn_input_a(game, service) : opeu_turn_input_b()) {
+    if (HasMouse(Data(game)) ? opeu_turn_input_a(game) : opeu_turn_input_b()) {
       RandomSeed(game, count);
       return 1;
     }
@@ -111,29 +111,29 @@ auto opeu_key_wait_tick(Game& game, HostService service) -> int {
 }
 
 // Flushes, then calls the idle hook around timed waits until input arrives, and reads the key.
-auto opeu_keyboard_key(Game& game, HostService service) -> std::uint8_t {
+auto opeu_keyboard_key(Game& game) -> std::uint8_t {
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
   do {
     CallHook(game);
-    opeu_key_wait_tick(game, service);
+    opeu_key_wait_tick(game);
     CallHook(game);
-  } while (!opeu_key_wait_tick(game, service));
+  } while (!opeu_key_wait_tick(game));
   return static_cast<std::uint8_t>(opeu_key_read(game, static_cast<TextHost*>(port_textout_host())));
 }
 
 // As opeu_keyboard_key, for the mouse buttons.
-auto opeu_mouse_wait_buttons(Game& game, HostService service) -> std::uint8_t {
-  opeu_input_reset(game, service);
+auto opeu_mouse_wait_buttons(Game& game) -> std::uint8_t {
+  opeu_input_reset(game);
   do {
     CallHook(game);
-    opeu_key_wait_tick(game, service);
+    opeu_key_wait_tick(game);
     CallHook(game);
-  } while (!opeu_key_wait_tick(game, service));
-  return opeu_mouse_buttons(game, service);
+  } while (!opeu_key_wait_tick(game));
+  return opeu_mouse_buttons(game);
 }
 
 // Without human sides just delays; else waits for a button or Enter with the blinking cursor.
-void opeu_wait_confirm(Game& game, HostService service, int pause) {
+void opeu_wait_confirm(Game& game, int pause) {
   auto& data{ Data(game) };
   if (!data.side_control[0] && !data.side_control[1]) {
     opeu_delay_units(game, static_cast<std::uint8_t>(20));
@@ -144,20 +144,20 @@ void opeu_wait_confirm(Game& game, HostService service, int pause) {
     return;
   }
   HookCursor(data);
-  while (!(HasMouse(Data(game)) ? opeu_mouse_wait_buttons(game, service) : opeu_keyboard_key(game, service) == KEY_ENTER));
+  while (!(HasMouse(Data(game)) ? opeu_mouse_wait_buttons(game) : opeu_keyboard_key(game) == KEY_ENTER));
   HookClear(data);
 }
 
 // Reads up to `digits` digits with echo; DEL, BS and left erase, Enter or ESC ends. Returns the value, or -1 when
 // nothing was typed.
-auto opeu_read_decimal(Game& game, HostService service, std::uint16_t digits) -> std::int32_t {
+auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
   auto&                                data{ Data(game) };
   std::array<std::uint8_t, MAX_DIGITS> typed_digits{};
   auto                                 digit{ [&](std::uint8_t n) -> std::uint8_t& { return typed_digits.at(n); } };
   std::uint8_t                         typed{ 0 };
   for (;;) {
     HookCursor(data);
-    std::uint8_t const key{ opeu_keyboard_key(game, service) };
+    std::uint8_t const key{ opeu_keyboard_key(game) };
     HookClear(data);
     if (key >= '0' && key <= '9') {
       if (typed < digits) {
@@ -191,7 +191,7 @@ auto opeu_choose_value(Game& game, HostService service, std::uint16_t min, std::
   std::int32_t value;
   if (max < min) return 0;
   if (HasMouse(Data(game))) {
-    if (items) return opeu_menu_select(game, service, items, cancel);
+    if (items) return opeu_menu_select(game, items, cancel);
     return opeu_numdlg_run(game, service, min, max, cancel);
   }
   if (items && max != 24) {
@@ -245,7 +245,7 @@ auto opeu_choose_value(Game& game, HostService service, std::uint16_t min, std::
       if (!(rest /= 10)) break;
     }
     while (start < TextX(game)) opeu_text_erase_char(game, static_cast<TextHost*>(port_textout_host()));
-    while ((value = opeu_read_decimal(game, service, width)) < min || value > max) {
+    while ((value = opeu_read_decimal(game, width)) < min || value > max) {
       if (value == -1 && cancel) {
         if (items) opeu_menu_restore(game, items);
         return MENU_CANCELLED;
@@ -274,17 +274,17 @@ auto opeu_prompt_value_required(Game& game, HostService service, std::uint16_t t
 
 // The yes/no pointer: limits the mouse, keeps the 5x48 graphics under it saved, draws the pointer when it moves; a
 // left press answers 'Y', a right press 'N'.
-auto opeu_mouse_yes_no(Game& game, HostService service) -> std::uint8_t {
+auto opeu_mouse_yes_no(Game& game) -> std::uint8_t {
   auto&         data{ Data(game) };
   std::uint16_t saved_column{ 0xffff }; // where the saved graphics are, in 8-pixel columns and pixels
   std::uint16_t saved_y{ 0xffff };
   std::uint16_t drawn_x{ 0xffff }; // where the pointer was drawn
   std::uint16_t drawn_y{ 0xffff };
   std::uint8_t  answer;
-  opeu_input_reset(game, service);
-  opeu_mouse_window(game, service, 0, 0, 599, 351);
+  opeu_input_reset(game);
+  opeu_mouse_window(game, 0, 0, 599, 351);
   for (;;) {
-    auto const [x, y]{ MousePosition(game, service) };
+    auto const [x, y]{ MousePosition(game) };
     if (saved_column != 0xffff && (x != drawn_x || y != drawn_y)) {
       SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
       opeu_bitmap_restore(saved_column, saved_y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
@@ -302,7 +302,7 @@ auto opeu_mouse_yes_no(Game& game, HostService service) -> std::uint8_t {
       drawn_y = y;
       opeu_delay_ticks(game, 3);
     }
-    auto const buttons{ opeu_mouse_buttons(game, service) };
+    auto const buttons{ opeu_mouse_buttons(game) };
     if (buttons & 1) {
       answer = 'Y';
       break;
@@ -314,15 +314,15 @@ auto opeu_mouse_yes_no(Game& game, HostService service) -> std::uint8_t {
   }
   SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
   opeu_bitmap_restore(saved_column, saved_y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
-  opeu_mouse_window(game, service, 0, 0, 639, 399);
+  opeu_mouse_window(game, 0, 0, 639, 399);
   return answer;
 }
 
 // y, Y and Enter answer 1; n, N, ESC and 0 answer 0; other keys are ignored.
-auto opeu_yes_no(Game& game, HostService service) -> int {
+auto opeu_yes_no(Game& game) -> int {
   auto& data{ Data(game) };
   HookCursor(data);
-  for (;;) switch (HasMouse(Data(game)) ? opeu_mouse_yes_no(game, service) : opeu_keyboard_key(game, service)) {
+  for (;;) switch (HasMouse(Data(game)) ? opeu_mouse_yes_no(game) : opeu_keyboard_key(game)) {
     case 'y':
     case KEY_ENTER:
     case 'Y':        HookClear(data); return 1;
@@ -333,10 +333,10 @@ auto opeu_yes_no(Game& game, HostService service) -> int {
     }
 }
 
-auto opeu_prompt_yes_no(Game& game, HostService service, std::uint16_t text) -> int {
+auto opeu_prompt_yes_no(Game& game, std::uint16_t text) -> int {
   auto const& data{ Data(game) };
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.question_format)), static_cast<std::uint16_t>(text) });
-  return opeu_yes_no(game, service);
+  return opeu_yes_no(game);
 }
 
 // The shared input service: the mouse, menu and numeric dialog calls go to their modules, the rest are served here.

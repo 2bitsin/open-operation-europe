@@ -106,11 +106,11 @@ void opeu_bomb_animate(Game& game, uint16_t load, uint16_t unit, uint8_t side) {
   auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
   for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
     opeu_bomb_draw_frame(game, load, pixel.x, row);
-    if (static_cast<std::uint16_t>(target_y - row) == WHISTLE_ROW) opeu_sound_cue4(game, svc_soundcue);
+    if (static_cast<std::uint16_t>(target_y - row) == WHISTLE_ROW) opeu_sound_cue4(game);
     opeu_delay_ticks(game, 1);
     opeu_bomb_restore_frame(game, load, pixel.x, row);
   }
-  opeu_music_command7(game, svc_sound);
+  opeu_music_command7(game);
 }
 
 // The daily-show presenter of the raid.

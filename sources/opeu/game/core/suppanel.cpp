@@ -34,12 +34,6 @@ constexpr std::uint8_t KEYS[3][3]{
   { '8', '5', '2' },
   { '9', '6', '6' }
 };
-
-auto MousePosition(Game& game, HostEvent event) -> std::array<std::uint16_t, 2> {
-  std::array<std::uint16_t, 2> position{};
-  event(game, std::to_underlying(MOUSE_POSITION), position.data(), 0);
-  return position;
-}
 } // namespace
 
 // The key under a point of the keypad, NO_KEY off it.
@@ -58,19 +52,19 @@ uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 
 // With the mouse: the right button is Enter and a left click on the keys 8, 5 or 2 selects row 0, 1 or 2 (stored at
 // the near pointer row, NO_KEY returned). With the keyboard: the key.
-uint8_t opeu_supply_input(Game& game, HostEvent event, uint16_t row) {
+uint8_t opeu_supply_input(Game& game, uint16_t row) {
   auto& data{ Data(game) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard));
-  opeu_mouse_show(game, svc_mouse);
+  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game));
+  opeu_mouse_show(game);
   opeu_delay_ticks(game, 3);
   std::uint8_t key;
   for (;;) {
-    auto const [x, y]{ MousePosition(game, event) };
-    if (static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse))) {
+    auto const [x, y]{ MousePosition(game) };
+    if (static_cast<std::uint16_t>(opeu_mouse_right(game))) {
       key = KEY_ENTER;
       break;
     }
-    if (static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse))) {
+    if (static_cast<std::uint16_t>(opeu_mouse_left(game))) {
       key = opeu_supply_keypad_hit(game, x, y);
       for (std::uint8_t selected = 0; selected < 3; ++selected)
         if (key == KEYS[1][selected]) {
@@ -80,7 +74,7 @@ uint8_t opeu_supply_input(Game& game, HostEvent event, uint16_t row) {
       break;
     }
   }
-  opeu_mouse_hide(game, svc_mouse);
+  opeu_mouse_hide(game);
   return key;
 }
 
@@ -114,20 +108,20 @@ void opeu_supply_digits(Game& game, HostEvent event, uint16_t x, uint16_t y, uin
 uint16_t svc_suppanel(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SupplyService>(id)) {
-  case MOUSE_SHOW:     opeu_mouse_show(game, svc_mouse); break;
+  case MOUSE_SHOW:     opeu_mouse_show(game); break;
   case INPUT_DELAY:    opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case MOUSE_POSITION: {
     // x and y go back to the caller's words.
     auto*      out{ const_cast<std::uint16_t*>(args) };
-    auto const position{ MousePosition(game, svc_mouse) };
+    auto const position{ MousePosition(game) };
     out[0] = position.x;
     out[1] = position.y;
     break;
   }
-  case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse)); break;
-  case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse)); break;
-  case MOUSE_HIDE: opeu_mouse_hide(game, svc_mouse); break;
-  case KEY:        r = opeu_keyboard_key(game, svc_keyboard); break;
+  case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(game)); break;
+  case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(game)); break;
+  case MOUSE_HIDE: opeu_mouse_hide(game); break;
+  case KEY:        r = opeu_keyboard_key(game); break;
   case RESTORE: opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
   case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case PRINT:    opeu_cursor_print(game, { args, count }); break;

@@ -106,9 +106,9 @@ void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std:
 // Redraws the arrows with the mouse cursor hidden.
 void opeu_list_arrows_lit(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   if (Data(game).list_mouse) {
-    opeu_mouse_hide(game, svc_mouse);
+    opeu_mouse_hide(game);
     opeu_list_arrows(game, x, top, bottom, lit);
-    opeu_mouse_show(game, svc_mouse);
+    opeu_mouse_show(game);
   }
 }
 
@@ -123,7 +123,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
   std::uint16_t const bottom{ window.bottom };
   std::uint8_t        state{ NONE_LIT };
   std::uint8_t        key;
-  opeu_mouse_show(game, svc_mouse);
+  opeu_mouse_show(game);
   for (;;) {
     std::uint16_t position[2]{};
     event(game, std::to_underlying(ListCall::MOUSE_POSITION), position, 2);
@@ -158,7 +158,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
         state = ON_ROWS;
       }
     }
-    key = static_cast<std::uint8_t>(opeu_mouse_buttons(game, svc_mouse));
+    key = static_cast<std::uint8_t>(opeu_mouse_buttons(game));
     if (key != 0) {
       if (key & 1) {
         switch (state) {
@@ -174,7 +174,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
       }
     }
   }
-  opeu_mouse_hide(game, svc_mouse);
+  opeu_mouse_hide(game);
   return key;
 }
 
@@ -305,18 +305,18 @@ auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16
   switch (static_cast<ListCall>(kind)) {
   case ListCall::DRAW_FAR:       return static_cast<std::uint16_t>(opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
   case ListCall::OUTLINE:        opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), word(0), word(1), word(2), word(3), word(4)); break;
-  case ListCall::MOUSE_SHOW:     opeu_mouse_show(game, svc_mouse); break;
-  case ListCall::MOUSE_HIDE:     opeu_mouse_hide(game, svc_mouse); break;
+  case ListCall::MOUSE_SHOW:     opeu_mouse_show(game); break;
+  case ListCall::MOUSE_HIDE:     opeu_mouse_hide(game); break;
   case ListCall::MOUSE_POSITION: {
-    auto const [x, y]{ MousePosition(game, svc_mouse) };
+    auto const [x, y]{ MousePosition(game) };
     if (count >= 2) {
       args[0] = x;
       args[1] = y;
     }
     break;
   }
-  case ListCall::MOUSE_BUTTONS:  return opeu_mouse_buttons(game, svc_mouse);
-  case ListCall::INPUT_RESET:    opeu_input_reset(game, svc_mouse); break;
+  case ListCall::MOUSE_BUTTONS:  return opeu_mouse_buttons(game);
+  case ListCall::INPUT_RESET:    opeu_input_reset(game); break;
   case ListCall::HIGHLIGHT:      return static_cast<std::uint16_t>(opeu_ui_highlight(word(0), word(1), word(2), word(3), word(4)));
   case ListCall::LINE:           opeu_ui_line(word(0), word(1), word(2), word(3), word(4)); break;
   case ListCall::SCREEN_COPY:    opeu_screen_copy(word(0), word(1), word(2), word(3), word(4), word(5)); break;
@@ -327,8 +327,8 @@ auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16
   case ListCall::TEXT_COLOUR:    opeu_text_color(game, text, word(0)); break;
   case ListCall::TEXT_POSITION:  opeu_army_position(game, text, static_cast<std::int16_t>(word(0)), static_cast<std::int16_t>(word(1))); break;
   case ListCall::PRINT:          opeu_cursor_print(game, { args, count }); break;
-  case ListCall::KEYBOARD_KEY:   return opeu_keyboard_key(game, svc_keyboard);
-  case ListCall::YES_NO:         return static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, word(0)));
+  case ListCall::KEYBOARD_KEY:   return opeu_keyboard_key(game);
+  case ListCall::YES_NO:         return static_cast<std::uint16_t>(opeu_prompt_yes_no(game, word(0)));
   case ListCall::DRAW_ROWS:      port_call(game, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u); break;
   case ListCall::SELECT:         return static_cast<std::uint8_t>(port_call(game, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
   default:                       port_unhandled("listui", kind, count);

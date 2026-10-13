@@ -86,7 +86,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
         panel();
         opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(QUESTION_AT), static_cast<std::uint16_t>(Near(data, data.deploy_ask_auto)),
                                                                 static_cast<std::uint16_t>(off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others)) });
-        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, QUESTION_AT))) {
+        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, QUESTION_AT))) {
           close_question();
           break; // back to the list's first row
         }
@@ -94,7 +94,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
         opeu_deploy_auto(game, unit);
       }
       panel();
-      auto const done{ static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Near(data, data.deploy_ask_done))) };
+      auto const done{ static_cast<std::uint16_t>(opeu_prompt_yes_no(game, Near(data, data.deploy_ask_done))) };
       close_question();
       opeu_battle_panel_side1(game);
       opeu_battle_panel_side0(game);

@@ -541,10 +541,10 @@ uint16_t svc_textout(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   switch (static_cast<TextService>(id)) {
   case KEY_READ:       r = port_key_read(); break;
   case KEY_WAITING:    r = opeu_turn_input_b(); break;
-  case WAIT_CONFIRM:   opeu_wait_confirm(game, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
+  case WAIT_CONFIRM:   opeu_wait_confirm(game, (int16_t)Arg(args, count, 0)); break;
   case BOX:            opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case CLEAR:          opeu_vga_clear(); break;
-  case SOUND_RESET:    opeu_sound_reset(game, svc_sound); break;
+  case SOUND_RESET:    opeu_sound_reset(game); break;
   case PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   default:             port_unhandled("textout", id, count);
   }

@@ -63,7 +63,7 @@ void ShowPending(Game& game) {
 
 // The daily dialog's report that the pending request was accepted.
 void opeu_pending_start_present(Game& game, PendingEvent event) {
-  opeu_pending_prepare(game, svc_soundcue);
+  opeu_pending_prepare(game);
   FormatPending(game, event, ACCEPTED_MESSAGE);
   ShowPending(game);
 }
@@ -87,7 +87,7 @@ void opeu_request_start(Game& game, uint8_t side, uint16_t request) {
 // The daily dialog's report that the pending request was turned down, in one of seven wordings.
 void opeu_pending_fallback_present(Game& game, PendingEvent event) {
   FormatPending(game, event, REFUSED_MESSAGE + RandomBelow(game, REFUSAL_COUNT));
-  opeu_pending_prepare(game, svc_soundcue);
+  opeu_pending_prepare(game);
   ShowPending(game);
 }
 
@@ -112,7 +112,7 @@ uint16_t svc_reqpend(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c
     break;
   }
   case PendingService::MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), a, b); break;
-  case PendingService::PREPARE: opeu_pending_prepare(game, svc_soundcue); break;
+  case PendingService::PREPARE: opeu_pending_prepare(game); break;
   case PendingService::FINISH:  opeu_pending_finish(game, (uint8_t)a); break;
   default:                      port_unhandled("reqpend", id, 4);
   }

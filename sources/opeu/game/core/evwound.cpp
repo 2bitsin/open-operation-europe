@@ -67,8 +67,8 @@ void opeu_commander_death(Game& game, uint16_t person) {
   }
   opeu_initialize_deputy(game, person);
   if (data.side_status[notice.side] == SIDE_PLAYED) {
-    opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(DEATH_CONTEXT));
-    opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+    opeu_set_turn_context(game, static_cast<std::uint8_t>(DEATH_CONTEXT));
+    opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
     port_daily_show(game, DEATH_SHOW, notice.side, PRESENT_OFFSET, PRESENT_SEGMENT);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), at, opeu_find_side_record(game, notice.side, ADVISER));
   }

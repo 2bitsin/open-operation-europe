@@ -65,7 +65,7 @@ void opeu_battle_menu_place(Game& game) {
     ServiceLocals const locals{ MOUSE_RESERVE };
     auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
     auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-    opeu_mouse_position(game, svc_mouse, mouse_x_at, mouse_y_at);
+    opeu_mouse_position(game, mouse_x_at, mouse_y_at);
     auto y{ static_cast<uint16_t>(Word(game, mouse_y_at) + POINTER_DY) };
     auto x{ static_cast<uint16_t>(Word(game, mouse_x_at) + POINTER_DX) };
     x = opeu_max16(opeu_min16(x >> 3, LAST_COLUMN), 1);
