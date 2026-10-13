@@ -72,7 +72,7 @@ auto opeu::game::detail::coords::InspectMap(Game& game, GridCell start) -> Inspe
   auto const   strategic{ [&] { return data.overview_side != NONE; } };
   auto const   pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) {
     opeu_viewport_pan(game, {
-                                .dx = dx, .dy = dy, .cursor = { at_x, at_y },
+                                .step_x = dx, .step_y = dy, .cursor = { at_x, at_y },
                                         .side = side
     });
   } };

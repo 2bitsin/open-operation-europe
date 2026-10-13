@@ -7,10 +7,11 @@
 
 namespace opeu::game::detail::viewpan {
 
-// A pan: the view's origin moves by (dx, dy) cells, the cursor cell is erased first, and the side's view is redrawn.
+// A pan: the view's origin moves by (step_x, step_y) cells, the cursor cell is erased first, and the side's view is
+// redrawn.
 struct ViewPan {
-  std::int16_t dx;
-  std::int16_t dy;
+  std::int16_t step_x;
+  std::int16_t step_y;
   GridCell     cursor;
   std::uint8_t side;
 };

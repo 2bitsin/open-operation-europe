@@ -58,8 +58,8 @@ auto Capacities(Game const& game, uint16_t unit) -> std::array<uint16_t, 3> {
 }
 
 // The landing casualties' roll: `losses` men on a hit, up to `spread` more, the blast where a player sees it.
-auto Landing(unsigned losses, unsigned spread, bool blast) -> CasualtyRoll {
-  return { .chance = LANDING_PERCENT, .base = static_cast<uint16_t>(losses), .spread = static_cast<uint16_t>(spread), .heavy = false, .blast = blast };
+auto Landing(uint16_t losses, uint16_t spread, bool blast) -> CasualtyRoll {
+  return { .chance = LANDING_PERCENT, .base = losses, .spread = spread, .heavy = false, .blast = blast };
 }
 
 // The unit takes landing casualties; the cell's byte is kept across them.

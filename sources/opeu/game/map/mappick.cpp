@@ -80,7 +80,7 @@ auto PickLocation(Game& game, GridCell start) -> std::optional<GridCell> {
   data.control_selection = 0;
   auto const pan{ [&](int16_t dx, int16_t dy) {
     opeu_viewport_pan(game, {
-                                .dx = dx, .dy = dy, .cursor = { shown_x, shown_y },
+                                .step_x = dx, .step_y = dy, .cursor = { shown_x, shown_y },
                                         .side = static_cast<uint8_t>(data.current_side)
     });
   } };

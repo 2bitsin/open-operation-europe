@@ -14,5 +14,5 @@ using namespace opeu::game;
 void opeu_viewport_pan(Game& game, ViewPan const& pan) {
   auto const& data{ Data(game) };
   opeu_map_erase(game, pan.cursor.x, pan.cursor.y);
-  opeu_map_scroll_to(game, static_cast<int16_t>(static_cast<int16_t>(data.viewport_x) + pan.dx), static_cast<int16_t>(static_cast<int16_t>(data.viewport_y) + pan.dy), pan.side);
+  opeu_map_scroll_to(game, static_cast<int16_t>(static_cast<int16_t>(data.viewport_x) + pan.step_x), static_cast<int16_t>(static_cast<int16_t>(data.viewport_y) + pan.step_y), pan.side);
 }
