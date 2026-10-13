@@ -45,31 +45,6 @@
 using namespace opeu::game;
 
 namespace {
-// The calls the engineering handlers make through their event (served by svc_engineer).
-enum Service : std::uint16_t {
-  UNIT_PERSON           = 0,  // (unit) -> the regiment's general
-  RAND_BOUNDED          = 1,  // (bound)
-  UNIT_QUANTITY         = 2,  // (unit, kind, &count) -> strength of the regiment's elements of the kind
-  UNIT_AVERAGE10        = 3,  // (unit)
-  UNIT_AVERAGE11        = 4,  // (unit)
-  ORDER_DESTINATION     = 5,  // (unit, &x, &y)
-  CELL_MARKED           = 6,  // (x, y, side) -> nonzero when the side mined the cell
-  MOVE_ADJACENT         = 7,  // (x, y) -> nonzero when the regiment is next to the cell
-  LEVEL_LOWER           = 8,  // (order, amount) -> nonzero when the progress ran out
-  CELL_SIDE             = 9,  // (x, y) -> the side holding the cell, 0xff for none
-  UNIT_REPORT           = 10, // (unit, text)
-  MARK_CELL             = 11, // (x, y, side): mine the cell
-  MAP_ERASE             = 12, // (x, y)
-  DAILY_SHOW            = 13, // (picture, side, finish offset, finish segment)
-  RESTORE_ORDER         = 14, // (unit)
-  UNMARK_CELL           = 15, // (x, y, side)
-  MAP_CODE              = 16, // (x, y) -> terrain code
-  MAP_MARK_BRIDGE       = 17, // (x, y)
-  MOVE_OBJECTIVE_TARGET = 18, // (&x, &y, side) -> the objective of the order
-  MOVE_UNIT_TARGET      = 19, // (&x, &y) -> the regiment of the order
-  PENDING_FINISH        = 20, // (value)
-  SERVICES              = 21,
-};
 
 // The pictures of the day's show and the link-table addresses of the routines that end it.
 constexpr std::uint16_t ENGINEER_SEGMENT{ 0x319e };
@@ -88,130 +63,134 @@ enum Finish : std::uint16_t {
 
 // The engineering skill roll, computed in 16-bit words of which the low byte is kept. The services are called in the
 // order general, random bound, engineer count, average10, average11.
-auto SkillRoll(Game& game, HostEvent event, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
+auto SkillRoll(Game& game, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(game) };
-  std::uint16_t const random{ Call(game, event, RAND_BOUNDED, bound) };
+  std::uint16_t const random{ port_rand_bounded(game, bound) };
   ServiceLocals const count{ 2 };
-  std::uint16_t const engineers{ Call(game, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), count.At(0)) };
-  std::uint16_t const average10{ Call(game, event, UNIT_AVERAGE10, data.current_unit_ptr) };
-  std::uint16_t const average11{ Call(game, event, UNIT_AVERAGE11, data.current_unit_ptr) };
+  auto const          hoisted0{ static_cast<std::uint16_t>(data.current_unit_ptr) };
+  auto const          hoisted1{ static_cast<std::uint16_t>(Bits(Category::ENGINEERS)) };
+  auto const          hoisted2{ static_cast<std::uint16_t>(count.At(0)) };
+  std::uint16_t const engineers{ opeu_unit_quantity(game, hoisted0, static_cast<uint8_t>(hoisted1), game.State().Bytes(hoisted2, 1).data()) };
+  std::uint16_t const average10{ opeu_unit_average10(game, data.current_unit_ptr) };
+  std::uint16_t const average11{ opeu_unit_average11(game, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random
                                    + bonus);
 }
 
 // Lowers the current order's progress by the roll; nonzero when it runs out. The regiment is read after the roll.
-auto LowerProgress(Game& game, HostEvent event, std::uint8_t roll) -> std::uint16_t {
+auto LowerProgress(Game& game, std::uint8_t roll) -> std::uint16_t {
   auto& data{ Data(game) };
-  return Call(game, event, LEVEL_LOWER, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), roll);
+  return opeu_move_level_lower(game, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), static_cast<uint8_t>(roll));
 }
 
-auto Show(Game& game, HostEvent event, Picture picture, Finish finish) -> void {
-  Call(game, event, DAILY_SHOW, picture, Data(game).current_side, finish, ENGINEER_SEGMENT);
+auto Show(Game& game, Picture picture, Finish finish) -> void {
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(Data(game).current_side),
+                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(finish)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(ENGINEER_SEGMENT)) << 16));
 }
 
-auto Report(Game& game, HostEvent event, auto const& text) -> void {
+auto Report(Game& game, auto const& text) -> void {
   auto& data{ Data(game) };
-  Call(game, event, UNIT_REPORT, data.current_unit_ptr, Near(data, text));
+  opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, text));
 }
 
-auto RestoreOrder(Game& game, HostEvent event) -> void {
-  Call(game, event, RESTORE_ORDER, Data(game).current_unit_ptr);
+auto RestoreOrder(Game& game) -> void {
+  opeu_restore_unit_order(game, Data(game).current_unit_ptr);
 }
 } // namespace
 
-uint8_t opeu_mine_skill(Game& game, HostEvent event) {
-  auto const person{ Call(game, event, UNIT_PERSON, Data(game).current_unit_ptr) };
-  return SkillRoll(game, event, person, RollBound(Data(game)), 45, 96, 8);
+uint8_t opeu_mine_skill(Game& game) {
+  auto const person{ opeu_unit_person(game, Data(game).current_unit_ptr) };
+  return SkillRoll(game, person, RollBound(Data(game)), 45, 96, 8);
 }
 
-void opeu_mines_laid_finish(Game& game, HostEvent event) {
-  Call(game, event, PENDING_FINISH, SHOW_DONE);
+void opeu_mines_laid_finish(Game& game) {
+  opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 
 // Lays mines at the destination cell unless the side has mined it already or the regiment stands on it.
-uint16_t opeu_engineer_lay_mines(Game& game, HostEvent event) {
+uint16_t opeu_engineer_lay_mines(Game& game) {
   auto&             data{ Data(game) };
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Call(game, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
   auto const  x{ Byte(game, at_x) };
   auto const  y{ Byte(game, at_y) };
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
-  if (!Call(game, event, CELL_MARKED, x, y, data.current_side) && (regiment.x != x || regiment.y != y)) {
-    if (!Call(game, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(game, event, opeu_mine_skill(game, event)) && static_cast<std::uint8_t>(Call(game, event, CELL_SIDE, x, y)) == NO_SIDE) {
-      Report(game, event, data.mines_laid_text);
-      Call(game, event, MARK_CELL, x, y, data.current_side);
-      Call(game, event, MAP_ERASE, x, y);
-      Show(game, event, MINES_LAID_PICTURE, MINES_LAID_FINISH);
-      RestoreOrder(game, event);
+  if (!opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side)) && (regiment.x != x || regiment.y != y)) {
+    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
+    if (LowerProgress(game, opeu_mine_skill(game)) && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == NO_SIDE) {
+      Report(game, data.mines_laid_text);
+      opeu_mark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side));
+      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      Show(game, MINES_LAID_PICTURE, MINES_LAID_FINISH);
+      RestoreOrder(game);
     }
     return 1;
   }
-  RestoreOrder(game, event);
+  RestoreOrder(game);
   return 1;
 }
 
-void opeu_mines_removed_finish(Game& game, HostEvent event) {
-  Call(game, event, PENDING_FINISH, SHOW_DONE);
+void opeu_mines_removed_finish(Game& game) {
+  opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 
 // Clears the mines of both sides at the destination cell.
-uint16_t opeu_engineer_remove_mines(Game& game, HostEvent event) {
+uint16_t opeu_engineer_remove_mines(Game& game) {
   auto&             data{ Data(game) };
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Call(game, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
   auto const x{ Byte(game, at_x) };
   auto const y{ Byte(game, at_y) };
-  if (Call(game, event, CELL_MARKED, x, y, data.current_side)) {
-    if (!Call(game, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(game, event, opeu_mine_skill(game, event))) {
-      Report(game, event, data.mines_removed_text);
-      Call(game, event, UNMARK_CELL, x, y, 0);
-      Call(game, event, UNMARK_CELL, x, y, 1);
-      Call(game, event, MAP_ERASE, x, y);
-      Show(game, event, MINES_REMOVED_PICTURE, MINES_REMOVED_FINISH);
-      RestoreOrder(game, event);
+  if (opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side))) {
+    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
+    if (LowerProgress(game, opeu_mine_skill(game))) {
+      Report(game, data.mines_removed_text);
+      opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(0));
+      opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(1));
+      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      Show(game, MINES_REMOVED_PICTURE, MINES_REMOVED_FINISH);
+      RestoreOrder(game);
     }
     return 1;
   }
-  RestoreOrder(game, event);
+  RestoreOrder(game);
   return 1;
 }
 
-uint8_t opeu_bridge_skill(Game& game, HostEvent event) {
-  auto const person{ Call(game, event, UNIT_PERSON, Data(game).current_unit_ptr) };
-  return SkillRoll(game, event, person, RollBound(Data(game)), 35, 80, 10);
+uint8_t opeu_bridge_skill(Game& game) {
+  auto const person{ opeu_unit_person(game, Data(game).current_unit_ptr) };
+  return SkillRoll(game, person, RollBound(Data(game)), 35, 80, 10);
 }
 
-void opeu_bridge_built_finish(Game& game, HostEvent event) {
-  Call(game, event, PENDING_FINISH, SHOW_DONE);
+void opeu_bridge_built_finish(Game& game) {
+  opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 
 // Builds a bridge over the river at the destination cell.
-uint16_t opeu_engineer_build_bridge(Game& game, HostEvent event) {
+uint16_t opeu_engineer_build_bridge(Game& game) {
   auto&             data{ Data(game) };
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Call(game, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
   auto const x{ Byte(game, at_x) };
   auto const y{ Byte(game, at_y) };
-  if (static_cast<Terrain>(static_cast<std::uint8_t>(Call(game, event, MAP_CODE, x, y))) == Terrain::RIVER) {
-    if (!Call(game, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(game, event, opeu_bridge_skill(game, event)) && static_cast<std::uint8_t>(Call(game, event, CELL_SIDE, x, y)) == NO_SIDE) {
-      Report(game, event, data.bridge_built_text);
-      Call(game, event, MAP_MARK_BRIDGE, x, y);
-      Call(game, event, MAP_ERASE, x, y);
-      Show(game, event, BRIDGE_PICTURE, BRIDGE_BUILT_FINISH);
-      RestoreOrder(game, event);
+  if (static_cast<Terrain>(static_cast<std::uint8_t>(opeu_map_code(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)))) == Terrain::RIVER) {
+    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
+    if (LowerProgress(game, opeu_bridge_skill(game)) && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == NO_SIDE) {
+      Report(game, data.bridge_built_text);
+      opeu_map_mark_10(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      Show(game, BRIDGE_PICTURE, BRIDGE_BUILT_FINISH);
+      RestoreOrder(game);
     }
     return 1;
   }
-  RestoreOrder(game, event);
+  RestoreOrder(game);
   return 1;
 }
 
@@ -230,105 +209,64 @@ uint16_t opeu_arms_repair(Game& game, uint16_t& budget, uint16_t body) {
   return 1;
 }
 
-void opeu_arms_repaired_finish(Game& game, HostEvent event) {
-  Call(game, event, PENDING_FINISH, SHOW_DONE);
+void opeu_arms_repaired_finish(Game& game) {
+  opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 
 // Repairs the arms of the own objective at the destination; the order ends when nothing is left to repair.
-uint16_t opeu_engineer_repair_objective(Game& game, HostEvent event) {
+uint16_t opeu_engineer_repair_objective(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const counts{ 2 };
   auto const          crews{ counts.At(0) };
-  if (!Call(game, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
-    RestoreOrder(game, event);
+  if (!opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data())) {
+    RestoreOrder(game);
     return 1;
   }
   ServiceCell const target;
   auto const        at_x{ target.XAt() };
   auto const        at_y{ target.YAt() };
-  auto const        objective{ Call(game, event, MOVE_OBJECTIVE_TARGET, at_x, at_y, data.current_side) };
+  auto const        objective{ opeu_move_objective_target(game, at_x, at_y, static_cast<uint8_t>(data.current_side)) };
   if (!objective) return 1;
-  if (!Call(game, event, MOVE_ADJACENT, Byte(game, at_x), Byte(game, at_y))) return 0;
+  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(Call(game, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data()) / 10 + 1) };
   bool repaired{ false };
   for (auto& item : Record<Objective>(data, objective).items)
     if (item.quantity && opeu_arms_repair(game, budget, Near(data, item))) repaired = true;
   if (!repaired) {
-    Report(game, event, data.arms_repaired_text);
-    Show(game, event, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
-    RestoreOrder(game, event);
+    Report(game, data.arms_repaired_text);
+    Show(game, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
+    RestoreOrder(game);
   }
   return 1;
 }
 
 // Repairs the arms of the friendly regiment the order targets; the order ends when nothing is left to repair.
-uint16_t opeu_engineer_repair_unit(Game& game, HostEvent event) {
+uint16_t opeu_engineer_repair_unit(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const counts{ 2 };
   auto const          crews{ counts.At(0) };
-  if (!Call(game, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
-    RestoreOrder(game, event);
+  if (!opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data())) {
+    RestoreOrder(game);
     return 1;
   }
   ServiceCell const target;
   auto const        at_x{ target.XAt() };
   auto const        at_y{ target.YAt() };
-  auto const        unit{ Call(game, event, MOVE_UNIT_TARGET, at_x, at_y) };
+  auto const        unit{ opeu_move_unit_target(game, at_x, at_y) };
   if (!unit) return 1;
-  if (!Call(game, event, MOVE_ADJACENT, Byte(game, at_x), Byte(game, at_y))) return 0;
+  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(Call(game, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data()) / 10 + 1) };
   bool repaired{ false };
   for (auto element{ Record<Unit>(data, unit).first }; element; element = Record<Element>(data, element).next)
     if (opeu_arms_repair(game, budget, Near(data, Record<Element>(data, element).type))) repaired = true;
   if (!repaired) {
-    Report(game, event, data.unit_arms_repaired_text);
-    Show(game, event, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
-    RestoreOrder(game, event);
+    Report(game, data.unit_arms_repaired_text);
+    Show(game, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
+    RestoreOrder(game);
   }
   return 1;
-}
-
-// The routines behind the engineering handlers' calls. The calls they share with the other order handlers go
-// through svc_order_handler.
-uint16_t svc_engineer(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  // The order handler service of each engineering call; NONE for the calls served here.
-  constexpr auto                                      NONE{ static_cast<OrderService>(0xff) };
-  static constexpr std::array<OrderService, SERVICES> shared{
-    OrderService::UNIT_PERSON,
-    OrderService::RAND_BOUNDED,
-    NONE,
-    OrderService::UNIT_AVERAGE10,
-    OrderService::UNIT_AVERAGE11,
-    OrderService::UNIT_ORDER_DESTINATION,
-    NONE,
-    OrderService::MOVE_ADJACENT,
-    OrderService::MOVE_LEVEL_LOWER,
-    OrderService::CELL_SIDE,
-    OrderService::UNIT_REPORT,
-    NONE,
-    OrderService::MAP_ERASE,
-    OrderService::DAILY_SHOW,
-    OrderService::RESTORE_UNIT_ORDER,
-    NONE,
-    OrderService::MAP_CODE,
-    NONE,
-    OrderService::MOVE_OBJECTIVE_TARGET,
-    OrderService::MOVE_UNIT_TARGET,
-    OrderService::PENDING_FINISH,
-  };
-  uint16_t r = 0;
-  switch (id) {
-  case UNIT_QUANTITY:   r = opeu_unit_quantity(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), game.State().Bytes(Arg(args, count, 2), 1).data()); break;
-  case CELL_MARKED:     r = opeu_cell_marked(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case MARK_CELL:       opeu_mark_cell(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case UNMARK_CELL:     opeu_unmark_cell(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case MAP_MARK_BRIDGE: opeu_map_mark_10(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:
-    if (id >= SERVICES || shared[id] == NONE || !svc_order_handler(game, shared[id], args, count, &r)) port_unhandled("engineer", id, count);
-  }
-  return r;
 }
 
 // The services the order handlers share (OrderService); 0 when the id is not one of them. Pointer arguments are DS
@@ -381,57 +319,57 @@ int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t co
 auto port_routine_opeu_arms_repaired_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_arms_repaired_finish(game, svc_engineer);
+  opeu_arms_repaired_finish(game);
   return 0;
 }
 
 auto port_routine_opeu_bridge_built_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_bridge_built_finish(game, svc_engineer);
+  opeu_bridge_built_finish(game);
   return 0;
 }
 
 auto port_routine_opeu_engineer_build_bridge(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_engineer_build_bridge(game, svc_engineer);
+  return opeu_engineer_build_bridge(game);
 }
 
 auto port_routine_opeu_engineer_lay_mines(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_engineer_lay_mines(game, svc_engineer);
+  return opeu_engineer_lay_mines(game);
 }
 
 auto port_routine_opeu_engineer_remove_mines(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_engineer_remove_mines(game, svc_engineer);
+  return opeu_engineer_remove_mines(game);
 }
 
 auto port_routine_opeu_engineer_repair_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_engineer_repair_objective(game, svc_engineer);
+  return opeu_engineer_repair_objective(game);
 }
 
 auto port_routine_opeu_engineer_repair_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_engineer_repair_unit(game, svc_engineer);
+  return opeu_engineer_repair_unit(game);
 }
 
 auto port_routine_opeu_mines_laid_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_mines_laid_finish(game, svc_engineer);
+  opeu_mines_laid_finish(game);
   return 0;
 }
 
 auto port_routine_opeu_mines_removed_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_mines_removed_finish(game, svc_engineer);
+  opeu_mines_removed_finish(game);
   return 0;
 }

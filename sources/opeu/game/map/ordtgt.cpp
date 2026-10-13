@@ -23,17 +23,11 @@
 #include "common/game.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
+#include <array>
 
 using namespace opeu::game;
 
 namespace {
-enum class TargetService : uint16_t {
-  FORMAT           = 0, // buffer, format, words...
-  CONTROL_MESSAGE  = 1, // text, person
-  CONFIRM          = 2, // text, person
-  ARRIVAL_LOCATION = 3, // x, y, side
-  PICK_LOCATION    = 4, // DS offsets of x and y
-};
 // The DS reserve of the picked cell and the question text the services write, and their offsets in it.
 constexpr uint16_t TARGET_RESERVE{ 0x76 };
 constexpr uint16_t TEXT_AT{ 0 };
@@ -55,7 +49,7 @@ uint8_t opeu_menu_always(void) {
   return 1;
 }
 
-void opeu_group_set_target(Game& game, HostEvent event, uint8_t group) {
+void opeu_group_set_target(Game& game, uint8_t group) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ TARGET_RESERVE };
   auto const          x_at{ locals.At(PICKED_X_AT) };
@@ -72,10 +66,10 @@ void opeu_group_set_target(Game& game, HostEvent event, uint8_t group) {
     Byte(game, x_at) = unit.x;
     Byte(game, y_at) = unit.y;
   }
-  Call(game, event, TargetService::ARRIVAL_LOCATION, Byte(game, x_at), Byte(game, y_at), data.current_side);
-  Call(game, event, TargetService::CONTROL_MESSAGE, Near(data, data.target_text), person);
+  opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x_at)), static_cast<uint8_t>(Byte(game, y_at)), static_cast<uint8_t>(data.current_side));
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.target_text), person);
   bool changed{ false };
-  if (Call(game, event, TargetService::PICK_LOCATION, x_at, y_at)) {
+  if (opeu_map_pick_location(game, x_at, y_at)) {
     auto const x{ Byte(game, x_at) };
     auto const y{ Byte(game, y_at) };
     auto const objective{ opeu_find_objective_at(game, x, y) };
@@ -83,18 +77,20 @@ void opeu_group_set_target(Game& game, HostEvent event, uint8_t group) {
     if (objective) {
       kind = opeu_objective_side(game, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD;
       auto const format{ opeu_string_length(game, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format) : Near(data, data.target_one_line_format) };
-      Call(game, event, TargetService::FORMAT, text, format, data.order_names[Bits(kind)], objective);
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(data.order_names[Bits(kind)]),
+                                                              static_cast<std::uint16_t>(objective) });
     } else {
       kind = TaskKind::MOVE;
-      Call(game, event, TargetService::FORMAT, text, Near(data, data.target_cell_format), data.map_scale * x, y * data.map_scale);
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.target_cell_format)),
+                                                              static_cast<std::uint16_t>(data.map_scale * x), static_cast<std::uint16_t>(y * data.map_scale) });
     }
-    if (Call(game, event, TargetService::CONFIRM, text, person)) {
+    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, person)) {
       task.x    = Byte(game, x_at);
       task.y    = Byte(game, y_at);
       task.kind = Bits(kind);
       changed   = true;
     }
-  } else if (task.kind != Bits(TaskKind::NONE) && Call(game, event, TargetService::CONFIRM, Near(data, data.target_cancel_text), person)) {
+  } else if (task.kind != Bits(TaskKind::NONE) && opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.target_cancel_text), person)) {
     task.kind = Bits(TaskKind::NONE);
     changed   = true;
   }

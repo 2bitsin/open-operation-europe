@@ -64,11 +64,11 @@ uint16_t opeu_element_kind_total(Game& game, uint16_t unit, uint8_t category, ui
 }
 
 // Row check: an own objective that may be listed, or an enemy objective that was reconnoitred.
-uint8_t opeu_view_objective_ok(Game& game, HostEvent event) {
+uint8_t opeu_view_objective_ok(Game& game) {
   auto&      data{ Data(game) };
   auto const near{ data.view_objectives[data.list_row] };
-  auto const side{ static_cast<std::uint8_t>(Call(game, event, ViewService::OBJECTIVE_SIDE, near)) };
-  return (side == data.current_side && Call(game, event, ViewService::OBJECTIVE_ELIGIBLE, near)) || (side != data.current_side && (Record<Objective>(data, near).flags & Bits(ObjectiveFlag::MARKED)));
+  auto const side{ static_cast<std::uint8_t>(opeu_objective_side(game, near)) };
+  return (side == data.current_side && opeu_objective_eligible(game, near)) || (side != data.current_side && (Record<Objective>(data, near).flags & Bits(ObjectiveFlag::MARKED)));
 }
 
 // Row check that rejects every row.
@@ -78,20 +78,20 @@ uint8_t opeu_view_false(Game& game) {
 }
 
 // Row check: an active division whose selected regiment may be selected.
-uint8_t opeu_view_group_ok(Game& game, HostEvent event) {
+uint8_t opeu_view_group_ok(Game& game) {
   auto&       data{ Data(game) };
   auto const& division{ GroupOf(data, data.current_side, data.list_row) };
-  return (division.flags & Bits(GroupFlag::READY)) && Call(game, event, ViewService::UNIT_ELIGIBLE, Call(game, event, ViewService::GROUP_SELECTED_UNIT, Near(data, division)));
+  return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, Near(data, division)));
 }
 
 // Row check: a ready regiment, selectable if it is ours, spotted if it is the enemy's.
-uint8_t opeu_view_unit_ok(Game& game, HostEvent event) {
+uint8_t opeu_view_unit_ok(Game& game) {
   auto&       data{ Data(game) };
   auto const  unit{ data.row_units[data.list_row] };
   auto const& regiment{ Record<Unit>(data, unit) };
-  auto const  side{ static_cast<std::uint8_t>(Call(game, event, ViewService::UNIT_SIDE, unit)) };
+  auto const  side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
   return (regiment.flags & Bits(UnitFlag::READY))
-         && ((side == data.current_side && Call(game, event, ViewService::UNIT_ELIGIBLE, unit)) || (side != data.current_side && (regiment.flags & Bits(UnitFlag::SPOTTED))));
+         && ((side == data.current_side && opeu_unit_selection_eligible(game, unit)) || (side != data.current_side && (regiment.flags & Bits(UnitFlag::SPOTTED))));
 }
 
 // Further row checks that reject every row.
@@ -122,20 +122,6 @@ uint8_t opeu_list_element_types(Game& game, uint16_t list, uint8_t mask, uint8_t
   return static_cast<std::uint8_t>(static_cast<std::int16_t>(static_cast<std::uint16_t>(at - list)) >> 1);
 }
 
-// The views' calls this module makes.
-uint16_t svc_vwlist(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<ViewService>(id)) {
-  case ViewService::OBJECTIVE_SIDE:      r = opeu_objective_side(game, Arg(args, count, 0)); break;
-  case ViewService::OBJECTIVE_ELIGIBLE:  r = opeu_objective_eligible(game, Arg(args, count, 0)); break;
-  case ViewService::GROUP_SELECTED_UNIT: r = opeu_find_group_selected_unit(game, Arg(args, count, 0)); break;
-  case ViewService::UNIT_ELIGIBLE:       r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case ViewService::UNIT_SIDE:           r = opeu_unit_side(Arg(args, count, 0)); break;
-  default:                               port_unhandled("vwlist", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_view_false(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
@@ -157,13 +143,13 @@ auto port_routine_opeu_view_false_3(Game& game, std::uint16_t const* args, unsig
 auto port_routine_opeu_view_group_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_group_ok(game, svc_vwlist);
+  return opeu_view_group_ok(game);
 }
 
 auto port_routine_opeu_view_objective_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_objective_ok(game, svc_vwlist);
+  return opeu_view_objective_ok(game);
 }
 
 auto port_routine_opeu_view_true(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -175,5 +161,5 @@ auto port_routine_opeu_view_true(Game& game, std::uint16_t const* args, unsigned
 auto port_routine_opeu_view_unit_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_unit_ok(game, svc_vwlist);
+  return opeu_view_unit_ok(game);
 }

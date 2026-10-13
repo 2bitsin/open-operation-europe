@@ -86,17 +86,17 @@ uint8_t opeu_transfer_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 // the near pointer row, NO_KEY returned). With the keyboard: the key.
 uint8_t opeu_transfer_input(Game& game, HostWordsEvent event, uint16_t row) {
   auto& data{ Data(game) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(Call(game, event, KEY));
-  Call(game, event, MOUSE_SHOW);
-  Call(game, event, INPUT_DELAY, 3);
+  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard));
+  opeu_mouse_show(game, svc_mouse);
+  opeu_delay_ticks(game, 3);
   std::uint8_t key;
   for (;;) {
     auto const [x, y]{ MousePosition(game, event) };
-    if (Call(game, event, RIGHT_DOWN)) {
+    if (static_cast<uint16_t>(opeu_mouse_right(game, svc_mouse))) {
       key = KEY_ENTER;
       break;
     }
-    if (Call(game, event, LEFT_DOWN)) {
+    if (static_cast<uint16_t>(opeu_mouse_left(game, svc_mouse))) {
       key = opeu_transfer_keypad_hit(game, x, y);
       for (std::uint8_t selected = 0; selected < RESOURCES; ++selected)
         if (key == KEYS[1][selected]) {
@@ -106,7 +106,7 @@ uint8_t opeu_transfer_input(Game& game, HostWordsEvent event, uint16_t row) {
       break;
     }
   }
-  Call(game, event, MOUSE_HIDE);
+  opeu_mouse_hide(game, svc_mouse);
   return key;
 }
 
@@ -120,19 +120,19 @@ uint16_t opeu_transfer_get(Game const& game, uint8_t side, uint8_t row, uint8_t 
 
 // For a player's side: titles the panel, restores its background and centres the two names, at most ten characters
 // each.
-void opeu_transfer_draw(Game& game, HostWordsEvent event, uint16_t first, uint16_t second) {
+void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
-  Call(game, event, TITLE, offsetof(DataSegment, transfer_title));
-  Call(game, event, RESTORE, data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
+  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, transfer_title));
+  opeu_bitmap_restore(data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, port_far(data.numdlg_image_segment, PANEL_IMAGE_AT));
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  Call(game, event, POSITION, indent(first) + data.transfer_panel_x + 2, data.transfer_panel_y + 14);
-  Call(game, event, PRINT, offsetof(DataSegment, transfer_name_format), first);
-  Call(game, event, POSITION, indent(second) + data.transfer_panel_x + 20, data.transfer_panel_y + 14);
-  Call(game, event, PRINT, offsetof(DataSegment, transfer_name_text), second);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(first) + data.transfer_panel_x + 2), static_cast<int16_t>(data.transfer_panel_y + 14));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_name_format)), static_cast<std::uint16_t>(first) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(second) + data.transfer_panel_x + 20), static_cast<int16_t>(data.transfer_panel_y + 14));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_name_text)), static_cast<std::uint16_t>(second) });
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
@@ -155,15 +155,15 @@ void opeu_transfer_draw_row(Game& game, HostWordsEvent event, uint8_t row, uint8
   auto const  x{ data.transfer_panel_x };
   auto const  text_y{ row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x24 };
   auto const  box_y{ static_cast<std::uint16_t>(row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x37) };
-  Call(game, event, POSITION, x + 2, text_y);
-  Call(game, event, PRINT, offsetof(DataSegment, transfer_amount_format), left_amount);
-  Call(game, event, POSITION, x + 0x19, text_y);
-  Call(game, event, PRINT, offsetof(DataSegment, transfer_amount_text), right_amount);
-  Call(game, event, BOX, x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 2), static_cast<int16_t>(text_y));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_amount_format)), static_cast<std::uint16_t>(left_amount) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_amount_text)), static_cast<std::uint16_t>(right_amount) });
+  opeu_ui_box(x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
   opeu_transfer_digits(game, event, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
-  Call(game, event, BOX, x + 0x19, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
+  opeu_ui_box(x + 0x19, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
   opeu_transfer_digits(game, event, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
-  Call(game, event, PRINT, offsetof(DataSegment, transfer_colour));
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_colour)) });
 }
 
 // The computer's key for a resource row. Supplies move to the left side ('7', '4', '1') while its target exceeds its

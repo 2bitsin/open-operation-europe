@@ -195,7 +195,7 @@ uint16_t svc_evbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case MESSAGE:        opeu_control_message(game, (const DialogHost*)port_dialogs_host(), word(0), word(1)); break;
   case DAILY_SHOW:     port_daily_show(game, word(0), word(1), word(2), word(3)); break;
   case CASUALTIES:     {
-    opeu_unit_casualties(game, svc_casualty, word(0), word(1), word(2), word(3), word(4), word(5));
+    opeu_unit_casualties(game, word(0), word(1), word(2), word(3), word(4), word(5));
     break;
   }
   default: port_unhandled("evbomb", id, count);

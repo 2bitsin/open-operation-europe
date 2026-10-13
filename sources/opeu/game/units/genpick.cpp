@@ -27,26 +27,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the callbacks call through their event; pointers are DS offsets.
-enum Service : std::uint16_t {
-  SET_ROLE               = 0,  // (person, value)
-  SET_GROUP              = 1,  // (person, value)
-  PORTRAIT               = 2,  // (x, y, person)
-  TEXT_ATTRIBUTE         = 3,  // (value)
-  TEXT_COLOR             = 4,  // (color)
-  POSITION               = 5,  // (x, y)
-  PRINT                  = 6,  // (format, arguments...)
-  SIDE_COLOR             = 7,  // (side)
-  TABLE_COLUMNS          = 8,  // (column, row) -> the first column byte
-  RESTORE_BOTTOM         = 9,  // ()
-  MARK_OPTION            = 10, // (slot)
-  FRAME_OPTION           = 11, // (slot)
-  SHOW_DIVISION_STRENGTH = 12, // (division)
-  FIND_VACANT_POST       = 13, // () -> post
-  CLEAR_STAFF_ROLE       = 14, // (side, kind)
-  CLEAR_DIVISION_COMMAND = 15, // (side, group)
-};
-
 constexpr std::uint16_t OPS_FORMAT{ offsetof(DataSegment, chief_ops_format) };
 constexpr std::uint16_t OPS_PROMPT{ offsetof(DataSegment, chief_ops_prompt) };
 constexpr std::uint16_t INTEL_FORMAT{ offsetof(DataSegment, chief_intel_format) };
@@ -73,82 +53,84 @@ constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a po
 
 // Restores the bottom panel and prints a prompt with one argument.
 template <typename... _Arguments>
-auto Prompt(Game& game, HostEvent event, std::uint16_t text, _Arguments... arguments) -> void {
-  Call(game, event, RESTORE_BOTTOM);
-  Call(game, event, POSITION, PROMPT_X, PROMPT_Y);
+auto Prompt(Game& game, std::uint16_t text, _Arguments... arguments) -> void {
+  opeu_staff_restore_bottom(game, svc_staffpnl);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(PROMPT_X), static_cast<int16_t>(PROMPT_Y));
   opeu_cursor_print(game, std::array<std::uint16_t, 1 + sizeof...(_Arguments)>{ text, static_cast<std::uint16_t>(arguments)... });
-  Call(game, event, TEXT_ATTRIBUTE, 0);
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
 }
 } // namespace
 
 // Choice callback: 0..2 staff roles, 3..6 division commanders, 11..13 dismiss a staff role, 14.. dismiss a division
 // commander. Returns 1 after a change, 0 when the general is already assigned.
-uint8_t opeu_general_assign_choice(Game& game, HostEvent event, uint8_t choice) {
+uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
   auto&               data{ Data(game) };
   int const           staff_kinds[3]{ 1, 2, 3 };
   std::uint16_t const person{ data.general_list[data.list_row] };
   if (choice <= 10 && HasPost(Record<Person>(data, person))) return 0;
   switch (choice) {
   case 0:
-    Call(game, event, SET_ROLE, person, 1);
-    Call(game, event, PORTRAIT, 0x20, 0x28, person);
-    Call(game, event, TEXT_ATTRIBUTE, HIGHLIGHT);
-    Call(game, event, POSITION, 0x29, 0x58);
-    Call(game, event, PRINT, OPS_FORMAT, SideTextColor(data.current_side), person);
-    Prompt(game, event, OPS_PROMPT);
+    opeu_person_set_role(game, person, static_cast<uint8_t>(1));
+    opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 0x20, 0x28, person);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x29), static_cast<int16_t>(0x58));
+    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(OPS_FORMAT), static_cast<std::uint16_t>(SideTextColor(data.current_side)), static_cast<std::uint16_t>(person) });
+    Prompt(game, OPS_PROMPT);
     return 1;
   case 1:
-    Call(game, event, SET_ROLE, person, 2);
-    Call(game, event, PORTRAIT, 0xc, 0x28, person);
-    Call(game, event, TEXT_ATTRIBUTE, HIGHLIGHT);
-    Call(game, event, POSITION, 0x15, 0x58);
-    Call(game, event, PRINT, INTEL_FORMAT, SideTextColor(data.current_side), person);
-    Prompt(game, event, INTEL_PROMPT);
+    opeu_person_set_role(game, person, static_cast<uint8_t>(2));
+    opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 0xc, 0x28, person);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x15), static_cast<int16_t>(0x58));
+    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(INTEL_FORMAT), static_cast<std::uint16_t>(SideTextColor(data.current_side)), static_cast<std::uint16_t>(person) });
+    Prompt(game, INTEL_PROMPT);
     return 1;
   case 2: {
-    Call(game, event, SET_ROLE, person, 3);
-    Call(game, event, PORTRAIT, 0x34, 0x28, person);
-    Call(game, event, TEXT_ATTRIBUTE, HIGHLIGHT);
-    Call(game, event, POSITION, 0x3d, 0x58);
-    Call(game, event, PRINT, DIVISION_FORMAT, SideTextColor(data.current_side), person);
-    auto const post{ static_cast<std::uint8_t>(Call(game, event, FIND_VACANT_POST)) };
-    Call(game, event, SHOW_DIVISION_STRENGTH, static_cast<std::uint8_t>(post - 3));
-    Prompt(game, event, DIVISION_PROMPT, post - 2);
+    opeu_person_set_role(game, person, static_cast<uint8_t>(3));
+    opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 0x34, 0x28, person);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x3d), static_cast<int16_t>(0x58));
+    opeu_cursor_print(game,
+                      std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(DIVISION_FORMAT), static_cast<std::uint16_t>(SideTextColor(data.current_side)), static_cast<std::uint16_t>(person) });
+    auto const post{ static_cast<std::uint8_t>(opeu_find_vacant_post(game)) };
+    opeu_show_division_strength(game, svc_divstr, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
+    Prompt(game, DIVISION_PROMPT, post - 2);
     return 1;
   }
   case 3:
   case 4:
   case 5:
   case 6: {
-    Call(game, event, SET_GROUP, person, static_cast<std::uint8_t>(choice - 3));
-    Call(game, event, PORTRAIT, static_cast<std::uint16_t>(choice * 20 - 0x3a), 0x88, person);
-    Call(game, event, TEXT_ATTRIBUTE, HIGHLIGHT);
-    Call(game, event, POSITION, static_cast<std::uint16_t>(choice * 20 - 0x31), 0x98);
-    Call(game, event, PRINT, choice == 6 ? DIVISION_SHORT : DIVISION_LONG, SideTextColor(data.current_side), person);
-    auto const post{ static_cast<std::uint8_t>(Call(game, event, FIND_VACANT_POST)) };
+    opeu_person_set_group(game, person, static_cast<uint8_t>(static_cast<std::uint8_t>(choice - 3)));
+    opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), static_cast<std::uint16_t>(choice * 20 - 0x3a), 0x88, person);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(static_cast<std::uint16_t>(choice * 20 - 0x31)), static_cast<int16_t>(0x98));
+    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(choice == 6 ? DIVISION_SHORT : DIVISION_LONG), static_cast<std::uint16_t>(SideTextColor(data.current_side)),
+                                                          static_cast<std::uint16_t>(person) });
+    auto const post{ static_cast<std::uint8_t>(opeu_find_vacant_post(game)) };
     if (post >= 7) {
-      Call(game, event, TEXT_ATTRIBUTE, 0);
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
       return 1;
     }
-    Call(game, event, SHOW_DIVISION_STRENGTH, static_cast<std::uint8_t>(post - 3));
-    Prompt(game, event, DIVISION_PROMPT, post - 2);
+    opeu_show_division_strength(game, svc_divstr, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
+    Prompt(game, DIVISION_PROMPT, post - 2);
     return 1;
   }
   default: {
     if (choice <= 10) return 0;
     int const dismissal{ choice - 10 };
     int const slot{ choice - 11 };
-    Call(game, event, TEXT_ATTRIBUTE, HIGHLIGHT);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
     if (dismissal <= 3)
-      Call(game, event, CLEAR_STAFF_ROLE, data.current_side, static_cast<std::uint8_t>(staff_kinds[slot]));
+      opeu_clear_staff_role(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(staff_kinds[slot])));
     else
-      Call(game, event, CLEAR_DIVISION_COMMAND, data.current_side, static_cast<std::uint8_t>(dismissal - 4));
-    Call(game, event, FRAME_OPTION, slot);
-    Call(game, event, MARK_OPTION, slot);
+      opeu_clear_division_command(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(dismissal - 4)));
+    opeu_staff_frame_option(game, svc_staffpnl, static_cast<int16_t>(slot));
+    opeu_staff_mark_option(game, svc_staffpnl, static_cast<int16_t>(slot));
     if (dismissal <= 3)
-      Prompt(game, event, ROLE_PROMPT, data.role_names[slot]);
+      Prompt(game, ROLE_PROMPT, data.role_names[slot]);
     else
-      Prompt(game, event, DIVISION_PROMPT, dismissal - 3);
+      Prompt(game, DIVISION_PROMPT, dismissal - 3);
     return 1;
   }
   }
@@ -156,15 +138,15 @@ uint8_t opeu_general_assign_choice(Game& game, HostEvent event, uint8_t choice) 
 
 // Row-draw callback for list rows first..last (last below 255). Flags bit 0 or 1 draws the ability header, bit 0 or
 // 2 the names.
-void opeu_general_list_draw_rows(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(game) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
   auto const  row_width{ [&] { return Record<std::uint8_t>(data, window.widths); } };
-  auto const  first_column{ static_cast<std::uint8_t>(Call(game, event, TABLE_COLUMNS, column, row)) };
+  auto const  first_column{ static_cast<std::uint8_t>(TableColumnLayout(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row)).lead) };
   if (flags & 3) {
-    Call(game, event, POSITION, row_width() + first_column + window.x - 0x1f, window.y + 1);
-    Call(game, event, SIDE_COLOR, data.current_side);
-    Call(game, event, PRINT, HEADER);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(row_width() + first_column + window.x - 0x1f), static_cast<int16_t>(window.y + 1));
+    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(HEADER) });
   }
   for (std::uint8_t index{ first }; index <= last; ++index) {
     auto const  person{ data.general_list[index] };
@@ -172,50 +154,27 @@ void opeu_general_list_draw_rows(Game& game, HostEvent event, uint8_t column, ui
     if (general.status == PERSON_VACANT) continue;
     auto const y{ (index - data.list_top) * ROW_HEIGHT + window.y + 0x12 };
     if (flags & 5) {
-      Call(game, event, POSITION, window.x + 3, y);
-      Call(game, event, SIDE_COLOR, data.current_side);
-      Call(game, event, PRINT, NAME_FORMAT, person);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 3), static_cast<int16_t>(y));
+      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(person) });
     }
-    Call(game, event, POSITION, row_width() + first_column + window.x - 0x1e, y);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(row_width() + first_column + window.x - 0x1e), static_cast<int16_t>(y));
     if (HasPost(general))
-      Call(game, event, SIDE_COLOR, data.current_side);
+      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
     else
-      Call(game, event, TEXT_COLOR, GREY);
-    Call(game, event, PRINT, STATS_FORMAT, general.leadership, general.charm, general.bravery, general.health, general.infantry, general.artillery, general.armor);
+      opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), GREY);
+    opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(STATS_FORMAT), static_cast<std::uint16_t>(general.leadership), static_cast<std::uint16_t>(general.charm),
+                                                          static_cast<std::uint16_t>(general.bravery), static_cast<std::uint16_t>(general.health), static_cast<std::uint16_t>(general.infantry),
+                                                          static_cast<std::uint16_t>(general.artillery), static_cast<std::uint16_t>(general.armor) });
   }
-  Call(game, event, TEXT_COLOR, GREY);
-}
-
-// The services of the callbacks; TABLE_COLUMNS answers the column's lead.
-uint16_t svc_genpick(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case SET_ROLE:               opeu_person_set_role(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case SET_GROUP:              opeu_person_set_group(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case PORTRAIT:               opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case TEXT_ATTRIBUTE:         opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case TEXT_COLOR:             opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case POSITION:               opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:                  opeu_cursor_print(game, { args, count }); break;
-  case SIDE_COLOR:             opeu_select_side_color(game, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
-  case TABLE_COLUMNS:          r = TableColumnLayout(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))).lead; break;
-  case RESTORE_BOTTOM:         opeu_staff_restore_bottom(game, svc_staffpnl); break;
-  case MARK_OPTION:            opeu_staff_mark_option(game, svc_staffpnl, (int16_t)Arg(args, count, 0)); break;
-  case FRAME_OPTION:           opeu_staff_frame_option(game, svc_staffpnl, (int16_t)Arg(args, count, 0)); break;
-  case SHOW_DIVISION_STRENGTH: opeu_show_division_strength(game, svc_divstr, (uint8_t)Arg(args, count, 0)); break;
-  case FIND_VACANT_POST:       r = opeu_find_vacant_post(game); break;
-  case CLEAR_STAFF_ROLE:       opeu_clear_staff_role(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CLEAR_DIVISION_COMMAND: opeu_clear_division_command(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:                     port_unhandled("genpick", id, count);
-  }
-  return r;
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), GREY);
 }
 
 auto port_routine_opeu_general_assign_choice(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_general_assign_choice(game, svc_genpick, (uint8_t)Arg(args, count, 0));
+  return opeu_general_assign_choice(game, (uint8_t)Arg(args, count, 0));
 }
 
 auto port_routine_opeu_general_list_draw_rows(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_general_list_draw_rows(game, svc_genpick, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+  opeu_general_list_draw_rows(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   return 0;
 }

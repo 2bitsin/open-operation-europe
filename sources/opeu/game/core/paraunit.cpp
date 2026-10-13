@@ -280,7 +280,7 @@ uint16_t svc_paraunit(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
     break;
   }
   case ParaService::CASUALTIES: {
-    opeu_unit_casualties(game, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case ParaService::CELL_MARKED: r = opeu_cell_marked(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;

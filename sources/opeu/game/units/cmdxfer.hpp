@@ -10,7 +10,5 @@ uint8_t  opeu_transfer_unit_enabled(Game& game);
 uint8_t  opeu_transfer_element_enabled(Game& game);
 uint8_t  opeu_transfer_units_fill(Game& game);
 uint8_t  opeu_transfer_elements_fill(Game& game);
-void     opeu_transfer_present(Game& game, HostEvent event);
-void     opeu_turn_action_3(Game& game, HostEvent event, uint16_t segment);
-
-uint16_t svc_cmdxfer(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+void     opeu_transfer_present(Game& game);
+void     opeu_turn_action_3(Game& game, uint16_t segment);

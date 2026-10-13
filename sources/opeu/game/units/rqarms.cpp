@@ -23,6 +23,7 @@
 #include "units/release.hpp"
 #include "units/value.hpp"
 
+#include <array>
 #include <utility>
 
 using namespace opeu::game;
@@ -36,7 +37,7 @@ constexpr std::uint16_t CONFIRM_BUFFER{ 4 };
 
 // "What kind of battalion would you like sent?": cancels a filed battalion request, or has the player choose one of
 // the side's available equipment types and the own city that receives it, then files the request.
-void opeu_request_arms(Game& game, HostEvent event) {
+void opeu_request_arms(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ REQUEST_SCRATCH };
   auto const          scratch{ buffers.At(0) };
@@ -44,29 +45,29 @@ void opeu_request_arms(Game& game, HostEvent event) {
   auto&               y{ Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)) };
   auto const          buffer{ static_cast<std::uint16_t>(scratch + CONFIRM_BUFFER) };
   auto const          battalion{ std::to_underlying(RequestKind::BATTALION) };
-  if (Call(game, event, RequestService::PENDING, battalion)) {
-    if (!Call(game, event, RequestService::CANCEL_PROMPT, Near(data, data.rq_arms_text))) return;
+  if (opeu_request_pending(game, static_cast<uint8_t>(battalion))) {
+    if (!opeu_request_cancel_prompt(game, svc_rqcommon, Near(data, data.rq_arms_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[battalion].kind = std::to_underlying(RequestKind::NONE);
   }
-  Call(game, event, RequestService::CONTROL_PANEL);
+  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   std::uint8_t count{ 0 };
   for (std::uint8_t category{ 0 }; category < 8; ++category)
-    count += static_cast<std::uint8_t>(Call(game, event, RequestService::ELEMENT_TYPES, data.side_masks[data.current_side], category, Near(data, data.rq_type_list[count])));
+    count += static_cast<std::uint8_t>(opeu_list_due_records(game, Near(data, data.rq_type_list[count]), static_cast<uint8_t>(data.side_masks[data.current_side]), static_cast<uint8_t>(category)));
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
-  Call(game, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_arms_which), data.context_record2);
-  if (!Call(game, event, RequestService::LIST_DIALOG, Near(data, data.rq_type_dialog), LIST_LIMIT, LIST_FLAGS)) return;
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_which), data.context_record2);
+  if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
-  Call(game, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_arms_where), data.context_record2);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_where), data.context_record2);
   std::uint16_t city;
   for (;;) {
-    if (!Call(game, event, RequestService::MAP_PICK_LOCATION, scratch, static_cast<std::uint16_t>(scratch + 1))) return;
+    if (!opeu_map_pick_location(game, scratch, static_cast<std::uint16_t>(scratch + 1))) return;
     city = opeu_find_objective_at(game, x, y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
-  Call(game, event, RequestService::REQUEST_FORMAT, buffer, Near(data, data.rq_arms_confirm), city);
-  if (!Call(game, event, RequestService::CONFIRM_MESSAGE, buffer, data.context_record2)) return;
-  Call(game, event, RequestService::FILE_REQUEST, city, data.rq_type_list[data.list_row], battalion);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.rq_arms_confirm)), static_cast<std::uint16_t>(city) });
+  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) return;
+  FileRequest(game, { city, static_cast<uint8_t>(data.rq_type_list[data.list_row]), static_cast<uint8_t>(battalion) });
   data.side_delays[data.current_side] = 1;
 }
 
@@ -75,60 +76,10 @@ uint8_t opeu_rq_unit_selectable(void) {
   return 1;
 }
 
-// The services of the battalion request.
-uint16_t svc_rqarms(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (static_cast<RequestService>(id)) {
-  case RequestService::PENDING:
-  case RequestService::CANCEL_PROMPT:
-  case RequestService::FILE_REQUEST:
-  case RequestService::CONTROL_PANEL:
-  case RequestService::CONTROL_MESSAGE:
-  case RequestService::LIST_DIALOG:
-  case RequestService::REQUEST_FORMAT:
-  case RequestService::CONFIRM_MESSAGE:
-  case RequestService::MAP_PICK_LOCATION:
-  case RequestService::ELEMENT_TYPES:     return svc_units_request("rqarms", game, id, args, count);
-  default:                                port_unhandled("rqarms", id, count);
-  }
-  return 0;
-}
-
-// The services of the battalion and regiment requests; `module` names the caller in diagnostics.
-uint16_t svc_units_request(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<RequestService>(id)) {
-  case RequestService::RANDOM:          r = opeu_rand_bounded(Arg(args, count, 0)); break;
-  case RequestService::MIN16:           r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAX16:           r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::PENDING:         r = opeu_request_pending(game, (uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CANCEL_PROMPT:   r = opeu_request_cancel_prompt(game, svc_rqcommon, Arg(args, count, 0)); break;
-  case RequestService::NO_MORE:         opeu_request_no_more(game, svc_rqcommon, Arg(args, count, 0)); break;
-  case RequestService::FILE_REQUEST:    FileRequest(game, { Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)) }); break;
-  case RequestService::FREE_UNITS:      r = opeu_release_side_units(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RequestService::FREE_ELEMENTS:   r = opeu_release_side_elements(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RequestService::CONTROL_PANEL:   opeu_title_panel_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case RequestService::CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::LIST_DIALOG:     r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case RequestService::UNIT_INDEX:      r = opeu_unit_index(Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_0_TO_3: r = opeu_category_0_to_3((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_4_OR_5: r = opeu_category_4_or_5((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_6:      r = opeu_category_6((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::ARMY_TITLE:      opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestService::DELAY_DIALOG:    r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case RequestService::CONFIRM_OK:      r = opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestService::REQUEST_FORMAT:  opeu_request_format(game, { args, count }); break;
-  case RequestService::CONFIRM_MESSAGE: r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAP_PICK_LOCATION: r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::ELEMENT_TYPES:     r = opeu_list_due_records(game, Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:                                port_unhandled(module, id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_request_arms(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_request_arms(game, svc_rqarms);
+  opeu_request_arms(game);
   return 0;
 }
 

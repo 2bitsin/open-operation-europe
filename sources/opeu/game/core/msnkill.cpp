@@ -128,9 +128,7 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
   case MISSION_OBJECTIVE_DAMAGE:
     opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     break;
-  case MISSION_CASUALTIES:
-    opeu_unit_casualties(game, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
-    break;
+  case MISSION_CASUALTIES:     opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
   case MISSION_TURN_CONTEXT:   opeu_set_turn_context(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_FINISH_SIDE:    opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_DEPUTY:         opeu_initialize_deputy(game, Arg(args, count, 0)); break;

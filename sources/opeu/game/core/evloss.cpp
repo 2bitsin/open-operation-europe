@@ -194,7 +194,7 @@ uint16_t svc_evloss(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case DAILY_SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case MUSIC:      opeu_music_command7(game, svc_sound); break;
   case CASUALTIES: {
-    opeu_unit_casualties(game, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case CUE:            opeu_sound_cue12(game, svc_soundcue); break;

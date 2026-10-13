@@ -4,8 +4,12 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/order.hpp"
+#include "core/dialogs.hpp"
+#include "core/msglook.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
+#include "core/textout.hpp"
+#include "link/glue.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"
@@ -13,6 +17,7 @@
 #include "units/ordunit.hpp"
 #include "units/stats.hpp"
 #include "units/value.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -38,11 +43,11 @@ enum class Choice {
   REGIMENT,
   NEITHER
 };
-auto ChooseCityOrRegiment(Game& game, HostEvent event, std::uint8_t side, std::uint8_t city_side, std::uint8_t unit_side, std::uint16_t menu, std::uint16_t which, std::uint16_t choices,
-                          std::uint16_t person) -> Choice {
+auto ChooseCityOrRegiment(Game& game, std::uint8_t side, std::uint8_t city_side, std::uint8_t unit_side, std::uint16_t menu, std::uint16_t which, std::uint16_t choices, std::uint16_t person)
+    -> Choice {
   if (side == city_side && side == unit_side) {
     opeu_order_layout_pair(game, menu);
-    switch (Call(game, event, ORDERS_DELAY_DIALOG, which, CHOICE_COUNT, person, choices)) {
+    switch (opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), which, CHOICE_COUNT, person, choices)) {
     case CHOOSE_CITY:     return Choice::CITY;
     case CHOOSE_REGIMENT: return Choice::REGIMENT;
     default:              return Choice::NEITHER;
@@ -66,7 +71,7 @@ auto OrderCount(std::array<std::uint8_t, 8> const& codes) -> std::uint8_t {
   return count;
 }
 
-auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y, std::uint8_t& kind,
+auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y, std::uint8_t& kind,
                       std::uint16_t& target) -> bool {
   auto&      data{ Data(game) };
   auto const side{ data.current_side };
@@ -86,11 +91,12 @@ auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, 
     return true;
   } };
   auto const refuse{ [&](auto const& text) {
-    Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, text));
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, text)) });
     return false;
   } };
   auto const cannot{ [&] {
-    Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3]);
+    opeu_request_format(
+        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, prompts.cannot_order)), static_cast<std::uint16_t>(data.order_names[kind + 3]) });
     return false;
   } };
   auto const terrain{ [&] { return static_cast<Terrain>(opeu_map_code(game, x, y)); } };
@@ -100,7 +106,7 @@ auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, 
   case UnitOrder::REPAIR_CITY:
   case UnitOrder::RESUPPLY:    {
     auto const repair{ kind == Kind(UnitOrder::REPAIR_CITY) };
-    switch (ChooseCityOrRegiment(game, event, side, city_side, unit_side, repair ? REPAIR_MENU : SUPPLY_MENU, repair ? Near(data, prompts.fix_which) : Near(data, prompts.supply_which),
+    switch (ChooseCityOrRegiment(game, side, city_side, unit_side, repair ? REPAIR_MENU : SUPPLY_MENU, repair ? Near(data, prompts.fix_which) : Near(data, prompts.supply_which),
                                  repair ? Near(data, data.repair_choices) : Near(data, data.supply_choices), person)) {
     case Choice::CITY:     return place();
     case Choice::NEITHER:  return cannot();
@@ -119,8 +125,11 @@ auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, 
     case Terrain::CITY:
     case Terrain::RIVER:
     case Terrain::BRIDGE:
-    case Terrain::IMPASSABLE: Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Call(game, event, ORDERS_MESSAGE_LOOKUP, NO_MINES_THERE)); return false;
-    default:                  return place();
+    case Terrain::IMPASSABLE:
+      opeu_request_format(game,
+                          std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(NO_MINES_THERE))) });
+      return false;
+    default: return place();
     }
   }
   case UnitOrder::BUILD_BRIDGE:   return terrain() == Terrain::RIVER ? place() : refuse(prompts.cannot_bridge);
@@ -131,12 +140,15 @@ auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, 
   }
 }
 
-auto AnnounceOrder(Game& game, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
+auto AnnounceOrder(Game& game, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
   auto& data{ Data(game) };
-  Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.understood), data.order_names[kind + 3]);
-  auto const engineering{ [&](OrderMessage message) { Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Call(game, event, ORDERS_MESSAGE_LOOKUP, message)); } };
+  opeu_request_format(
+      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, prompts.understood)), static_cast<std::uint16_t>(data.order_names[kind + 3]) });
+  auto const engineering{ [&](OrderMessage message) {
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(message))) });
+  } };
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);
   if (kind == Kind(UnitOrder::DESTROY_BRIDGE)) engineering(DESTROY_ORDERED);
-  Call(game, event, ORDERS_CONTROL_MESSAGE, buffer, person);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
 }

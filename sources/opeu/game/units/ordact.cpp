@@ -68,7 +68,7 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
   if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, unit)) return;
   auto const person{ opeu_find_group_record(game, data.current_side, opeu_unit_group_index(unit)) };
   data.list_row = opeu_unit_index(unit);
-  Call(game, event, ORDERS_CONTROL_PANEL);
+  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   auto const&  prompts{ data.action_prompts };
   std::uint8_t kind{};
   auto const   done{ [&] {
@@ -76,14 +76,14 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
     data.view_side     = NO_CELL;
   } };
   for (;;) {
-    Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, data.awaiting_orders), person);
-    Call(game, event, ORDERS_SPEAKER_PANEL, person, 1);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.awaiting_orders), person);
+    opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 1);
     auto const menu{ OrderMenuKind(data.list_row) };
     auto const count{ OrderCount(data.action_order_codes[menu]) };
     opeu_order_layout(game, menu);
-    Call(game, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
-    auto const choice{ Call(game, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
-    Call(game, event, ORDERS_SPEAKER_PANEL, person, 0);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(MENU_X), static_cast<int16_t>(MENU_Y));
+    auto const choice{ opeu_prompt_value_cancel(game, svc_keyboard, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
+    opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(game, event, unit, person);
       done();
@@ -91,7 +91,7 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
     }
     kind = data.action_order_codes[menu][choice - 1];
     if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(game, unit, REPAIR_CREWS, &crews)) {
-      Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.no_repair_unit), person);
       continue;
     }
     break;
@@ -100,20 +100,20 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
   for (;;) {
     Byte(game, x_at) = regiment.x;
     Byte(game, y_at) = regiment.y;
-    Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target), person);
-    if (!Call(game, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.select_target), person);
+    if (!opeu_map_pick_location(game, x_at, y_at)) {
       opeu_cancel_unit_orders(game, event, unit, person);
       return;
     }
-    if (CheckOrderTarget(game, event, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
-    Call(game, event, ORDERS_CONTROL_MESSAGE, buffer, person);
-    Call(game, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
-    Call(game, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, data.current_side);
+    if (CheckOrderTarget(game, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+    opeu_control_position(game, regiment.x, regiment.y);
+    opeu_arrival_location(game, static_cast<uint8_t>(regiment.x), static_cast<uint8_t>(regiment.y), static_cast<uint8_t>(data.current_side));
   }
-  AnnounceOrder(game, event, prompts, buffer, person, kind);
+  AnnounceOrder(game, prompts, buffer, person, kind);
   opeu_set_unit_order(game, unit, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
-  Call(game, event, ORDERS_DAILY_CONTEXT, data.current_side);
-  Call(game, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
+  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+  opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   done();
 }
 

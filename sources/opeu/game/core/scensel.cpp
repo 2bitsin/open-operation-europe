@@ -331,7 +331,7 @@ uint16_t svc_scensel(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case LOAD_SCENARIO_GRAPHICS: opeu_load_scenario_graphics(game); break;
   case LOAD_SAVED_GAME:        r = opeu_load_saved_game(game); break;
   case STAFF_RESTORE_BOTTOM:   opeu_staff_restore_bottom(game, svc_staffpnl); break;
-  case CONFIRM_GENERALS:       opeu_confirm_generals(game, svc_genconf); break;
+  case CONFIRM_GENERALS:       opeu_confirm_generals(game); break;
   case SCENARIO_FRAME:         opeu_scenario_frame(game, svc_scenui); break;
   case SCENARIO_MESSAGE:       opeu_scenario_message(game, svc_scenui, Arg(args, count, 0)); break;
   case CLEAR_PANEL:            opeu_scenario_clear_panel(game, svc_scenui); break;

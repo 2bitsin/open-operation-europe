@@ -23,23 +23,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the module calls through its event.
-enum Service : std::uint16_t {
-  PERSON_LACKS_SIDE0_FLAG    = 0, // (person) -> side
-  REQUEST_FORMAT             = 1, // (buffer, format, person, text)
-  INITIALIZE_DEPUTY          = 2, // (person)
-  CONTROL_MESSAGE            = 3, // (text, person)
-  WAIT_CONFIRM               = 4, // (value)
-  SET_TURN_CONTEXT           = 5, // (value)
-  FINISH_SIDE_INITIALIZATION = 6, // (value)
-  DAILY_SHOW                 = 7, // (id, side, presenter offset, presenter segment)
-};
 
 enum class Outcome : std::uint8_t {
   NONE,
@@ -62,7 +51,7 @@ constexpr std::uint16_t CASUALTY_FORMAT{ offsetof(DataSegment, general_casualty_
 constexpr std::uint16_t MESSAGE_BYTES{ 0x88 };
 } // namespace
 
-void opeu_general_casualty(Game& game, HostEvent event, uint16_t person) {
+void opeu_general_casualty(Game& game, uint16_t person) {
   auto&               data{ Data(game) };
   auto&               general{ Record<Person>(data, person) };
   ServiceLocals const message{ MESSAGE_BYTES };
@@ -76,7 +65,7 @@ void opeu_general_casualty(Game& game, HostEvent event, uint16_t person) {
 
   if (general.flags & KILLED_FLAG) return;
   auto       outcome{ Outcome::NONE };
-  auto const side{ static_cast<std::uint8_t>(Call(game, event, PERSON_LACKS_SIDE0_FLAG, person)) };
+  auto const side{ static_cast<std::uint8_t>(opeu_person_lacks_side0_flag(game, person)) };
   if (general.assignment & IN_BATTLE) {
     if (!wounded() && RandomBelow(game, 20) == 2)
       outcome = Outcome::WOUNDED;
@@ -102,40 +91,24 @@ void opeu_general_casualty(Game& game, HostEvent event, uint16_t person) {
   if (outcome == Outcome::WOUNDED) {
     if (data.side_status[side] == SIDE_PLAYED) {
       auto const saved{ general };
-      Call(game, event, REQUEST_FORMAT, buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT);
-      Call(game, event, INITIALIZE_DEPUTY, person);
-      Call(game, event, CONTROL_MESSAGE, buffer, person);
-      Call(game, event, WAIT_CONFIRM, 1);
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(CASUALTY_FORMAT), static_cast<std::uint16_t>(person),
+                                                              static_cast<std::uint16_t>(WOUNDED_TEXT) });
+      opeu_initialize_deputy(game, person);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+      opeu_wait_confirm(game, svc_keyboard, static_cast<int16_t>(1));
       general = saved;
     }
     wound();
   } else if (outcome == Outcome::KILLED) {
-    Call(game, event, REQUEST_FORMAT, buffer, CASUALTY_FORMAT, person, KILLED_TEXT);
-    Call(game, event, INITIALIZE_DEPUTY, person);
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(CASUALTY_FORMAT), static_cast<std::uint16_t>(person),
+                                                            static_cast<std::uint16_t>(KILLED_TEXT) });
+    opeu_initialize_deputy(game, person);
     if (data.side_status[side] == SIDE_PLAYED) {
-      Call(game, event, SET_TURN_CONTEXT, 0x10);
-      Call(game, event, FINISH_SIDE_INITIALIZATION, 0);
-      Call(game, event, DAILY_SHOW, DEATH_SHOW, side, BLAST_PAUSE_OFFSET, BLAST_PAUSE_SEGMENT);
-      Call(game, event, CONTROL_MESSAGE, buffer, person);
-      Call(game, event, WAIT_CONFIRM, 1);
+      opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0x10));
+      opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DEATH_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(BLAST_PAUSE_SEGMENT) << 16 | BLAST_PAUSE_OFFSET);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+      opeu_wait_confirm(game, svc_keyboard, static_cast<int16_t>(1));
     }
   }
-}
-
-// The services of opeu_general_casualty; the daily show reaches the presenter opeu_blast_pause by its far address
-// through the dialogs host.
-uint16_t svc_genwound(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case PERSON_LACKS_SIDE0_FLAG:    r = opeu_person_lacks_side0_flag(game, Arg(args, count, 0)); break;
-  case REQUEST_FORMAT:             opeu_request_format(game, { args, count }); break;
-  case INITIALIZE_DEPUTY:          opeu_initialize_deputy(game, Arg(args, count, 0)); break;
-  case CONTROL_MESSAGE:            opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case WAIT_CONFIRM:               opeu_wait_confirm(game, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
-  case SET_TURN_CONTEXT:           opeu_set_turn_context(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case FINISH_SIDE_INITIALIZATION: opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW: opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
-  default:         port_unhandled("genwound", id, count);
-  }
-  return r;
 }

@@ -5,10 +5,20 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/context.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
+#include "core/recindex.hpp"
+#include "map/movetgt.hpp"
 #include "types.hpp"
+#include "units/aggpct.hpp"
+#include "units/capacity.hpp"
+#include "units/orders.hpp"
+#include "units/resagg.hpp"
+#include "units/stats.hpp"
 #include "units/transfer-service.hpp"
+#include "units/unitname.hpp"
+#include "units/value.hpp"
 #include "units/xferpnl.hpp"
 #include "units/xferstep.hpp"
 
@@ -48,12 +58,12 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 }
 
 // Whether the computer has taken over the regiment's division (it runs that division's transfers).
-auto DivisionHeld(Game& game, HostWordsEvent event, std::uint16_t unit) -> bool {
-  return Record<Group>(Data(game), Call(game, event, UNIT_GROUP, unit)).flags & Bits(GroupFlag::AI_MARK);
+auto DivisionHeld(Game& game, std::uint16_t unit) -> bool {
+  return Record<Group>(Data(game), opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK);
 }
 
-auto UnitName(Game& game, HostWordsEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
-  return Call(game, event, UNIT_NAME, unit, buffer);
+auto UnitName(Game& game, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
+  return opeu_unit_name(game, svc_unitname, unit, buffer);
 }
 
 // Writes the table's amounts back to the regiment.
@@ -68,19 +78,19 @@ auto SupplyOrder(Game& game, HostWordsEvent event, bool objective) -> std::uint1
   auto const          x_at{ cell.At(0) };
   auto const          y_at{ cell.At(1) };
   auto&               data{ Data(game) };
-  auto const          target{ objective ? Call(game, event, OBJECTIVE_TARGET, x_at, y_at, data.current_side) : Call(game, event, UNIT_TARGET, x_at, y_at) };
+  auto const          target{ objective ? opeu_move_objective_target(game, x_at, y_at, static_cast<uint8_t>(data.current_side)) : opeu_move_unit_target(game, x_at, y_at) };
   if (target) {
-    if (!Call(game, event, ADJACENT, Byte(game, x_at), Byte(game, y_at))) return 0;
-    auto const hours{ opeu_transfer_level(game, event) };
+    if (!opeu_move_adjacent(game, static_cast<std::uint8_t>(Byte(game, x_at)), static_cast<std::uint8_t>(Byte(game, y_at)))) return 0;
+    auto const hours{ opeu_transfer_level(game) };
     // The order takes its hours before the supplies move.
-    if (!Call(game, event, ORDER_PROGRESS, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), hours)) return 1;
+    if (!opeu_move_level_lower(game, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), static_cast<uint8_t>(hours))) return 1;
     auto const unit{ data.current_unit_ptr };
     if (objective)
       opeu_transfer_objective(game, event, unit, target);
     else
       opeu_transfer_units(game, event, unit, target);
   }
-  Call(game, event, RESTORE_ORDER, data.current_unit_ptr);
+  opeu_restore_unit_order(game, data.current_unit_ptr);
   return 1;
 }
 } // namespace
@@ -88,7 +98,7 @@ auto SupplyOrder(Game& game, HostWordsEvent event, bool objective) -> std::uint1
 // Loads a regiment into the table's `side`: its amounts, its capacities and the computer's targets in percent of
 // each capacity. The division's eighth regiment fills to 10%, or beside an objective to 100% of a resource the
 // objective holds above its reserve; other regiments fill to their side's percentage plus 30, at most 100.
-void opeu_transfer_load_unit(Game& game, HostWordsEvent event, uint16_t unit, uint8_t side) {
+void opeu_transfer_load_unit(Game& game, uint16_t unit, uint8_t side) {
   ServiceLocals const scratch{ 2 * SCRATCH_WORDS };
   auto&               data{ Data(game) };
   auto const&         regiment{ Record<Unit>(data, unit) };
@@ -96,11 +106,11 @@ void opeu_transfer_load_unit(Game& game, HostWordsEvent event, uint16_t unit, ui
   opeu_transfer_set(game, side, 1, AMOUNT, regiment.resources[1]);
   opeu_transfer_set(game, side, 2, AMOUNT, regiment.resources[2]);
   std::array<std::uint16_t, RESOURCES> const words{ Scratch(scratch, 1), Scratch(scratch, 5), Scratch(scratch, 3) };
-  Call(game, event, UNIT_CAPACITIES, unit, words[0], words[1], words[2]);
+  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, words[0]), port_ds_word_ptr(game, words[1]), port_ds_word_ptr(game, words[2]));
   std::array<std::uint16_t, RESOURCES> const capacity{ Word(game, words[0]), Word(game, words[1]), Word(game, words[2]) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) opeu_transfer_set(game, side, resource, CAPACITY, capacity[resource]);
   std::array<std::uint16_t, RESOURCES> target;
-  if (Call(game, event, LAST_SLOT, static_cast<std::uint8_t>(Call(game, event, UNIT_SLOT, unit)))) {
+  if (opeu_category_7(static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_index(unit))))) {
     if (!data.transfer_objective_ptr) {
       target.fill(LOW_TARGET);
     } else {
@@ -109,16 +119,20 @@ void opeu_transfer_load_unit(Game& game, HostWordsEvent event, uint16_t unit, ui
     }
   } else {
     std::array<std::uint16_t, RESOURCES> const fill{ Scratch(scratch, 0), Scratch(scratch, 4), Scratch(scratch, 2) };
-    Call(game, event, SIDE_PERCENTAGES, data.current_side, fill[0], fill[1], fill[2], 0);
+    opeu_side_resource_percentages(game, static_cast<uint8_t>(data.current_side), port_ds_word_ptr(game, fill[0]), port_ds_word_ptr(game, fill[1]), port_ds_word_ptr(game, fill[2]), 0);
     for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) target[resource] = opeu_min16(static_cast<std::uint16_t>(Word(game, fill[resource]) + FILL_MARGIN), FULL_TARGET);
   }
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) opeu_transfer_set(game, side, resource, TARGET, opeu_percent(capacity[resource], target[resource]));
 }
 
 // Loads an objective into the table's right side: its capacities, its reserves as the targets and its amounts.
-void opeu_transfer_load_objective(Game& game, HostWordsEvent event, uint16_t objective) {
-  auto& data{ Data(game) };
-  Call(game, event, OBJECTIVE_CAPACITIES, objective, TableAt(1, 0, CAPACITY), TableAt(1, 1, CAPACITY), TableAt(1, 2, CAPACITY));
+void opeu_transfer_load_objective(Game& game, uint16_t objective) {
+  auto&      data{ Data(game) };
+  auto const hoisted0{ static_cast<std::uint16_t>(objective) };
+  auto const hoisted1{ static_cast<std::uint16_t>(TableAt(1, 0, CAPACITY)) };
+  auto const hoisted2{ static_cast<std::uint16_t>(TableAt(1, 1, CAPACITY)) };
+  auto const hoisted3{ static_cast<std::uint16_t>(TableAt(1, 2, CAPACITY)) };
+  opeu_objective_capacities(game, hoisted0, port_ds_word_ptr(game, hoisted1), port_ds_word_ptr(game, hoisted2), port_ds_word_ptr(game, hoisted3));
   auto const& city{ Record<Objective>(data, objective) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][TARGET] = city.reserves[resource];
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][AMOUNT] = city.resources[resource];
@@ -131,13 +145,13 @@ void opeu_transfer_units(Game& game, HostWordsEvent event, uint16_t first, uint1
   auto&               data{ Data(game) };
   data.transfer_objective_ptr = 0;
   do {
-    opeu_transfer_load_unit(game, event, first, 0);
-    opeu_transfer_load_unit(game, event, second, 1);
+    opeu_transfer_load_unit(game, first, 0);
+    opeu_transfer_load_unit(game, second, 1);
     // The second name is taken first (the original's right-to-left arguments).
-    auto const second_name{ UnitName(game, event, second, names.At(NAME_BYTES)) };
-    auto const first_name{ UnitName(game, event, first, names.At(0)) };
-    opeu_transfer_draw(game, event, first_name, second_name);
-  } while (!opeu_transfer_run(game, event, data.side_control[data.current_side] == SIDE_PLAYED && (!DivisionHeld(game, event, first) || !DivisionHeld(game, event, second))));
+    auto const second_name{ UnitName(game, second, names.At(NAME_BYTES)) };
+    auto const first_name{ UnitName(game, first, names.At(0)) };
+    opeu_transfer_draw(game, first_name, second_name);
+  } while (!opeu_transfer_run(game, event, data.side_control[data.current_side] == SIDE_PLAYED && (!DivisionHeld(game, first) || !DivisionHeld(game, second))));
   StoreUnit(data, first, 0);
   StoreUnit(data, second, 1);
 }
@@ -148,21 +162,21 @@ void opeu_transfer_objective(Game& game, HostWordsEvent event, uint16_t unit, ui
   auto&               data{ Data(game) };
   data.transfer_objective_ptr = objective;
   do {
-    opeu_transfer_load_unit(game, event, unit, 0);
-    opeu_transfer_load_objective(game, event, objective);
-    opeu_transfer_draw(game, event, UnitName(game, event, unit, name.At(0)), objective);
-  } while (!opeu_transfer_run(game, event, data.side_control[data.current_side] == SIDE_PLAYED && !DivisionHeld(game, event, unit)));
+    opeu_transfer_load_unit(game, unit, 0);
+    opeu_transfer_load_objective(game, objective);
+    opeu_transfer_draw(game, UnitName(game, unit, name.At(0)), objective);
+  } while (!opeu_transfer_run(game, event, data.side_control[data.current_side] == SIDE_PLAYED && !DivisionHeld(game, unit)));
   StoreUnit(data, unit, 0);
   auto& city{ Record<Objective>(data, objective) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) city.resources[resource] = data.transfer_table[1][resource][AMOUNT];
-  Call(game, event, DAILY_CONTEXT, data.current_side);
+  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
 }
 
 // The hours a supply order of the current regiment takes: 4, plus its experience / 24, less its training / 32.
-uint8_t opeu_transfer_level(Game& game, HostWordsEvent event) {
+uint8_t opeu_transfer_level(Game& game) {
   auto const unit{ Data(game).current_unit_ptr };
-  auto const training{ static_cast<std::uint16_t>(Call(game, event, UNIT_TRAINING, unit) >> 5) };
-  return static_cast<std::uint8_t>(Call(game, event, UNIT_EXPERIENCE, unit) / 24 - training + 4);
+  auto const training{ static_cast<std::uint16_t>(opeu_unit_average10(game, unit) >> 5) };
+  return static_cast<std::uint8_t>(opeu_unit_average11(game, unit) / 24 - training + 4);
 }
 
 uint16_t opeu_order_supply_objective(Game& game, HostWordsEvent event) {

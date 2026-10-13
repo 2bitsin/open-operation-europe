@@ -252,7 +252,7 @@ uint16_t svc_airstrk(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case MAP_CODE:        result = opeu_map_code(game, byte(0), byte(1)); break;
   case ISQRT:           result = opeu_isqrt(Arg(args, count, 0)); break;
   case CASUALTIES:      {
-    opeu_unit_casualties(game, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case OBJECTIVE_DAMAGE: {

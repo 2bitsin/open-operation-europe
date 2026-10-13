@@ -8,7 +8,14 @@
 #include "common/exchange-panel.hpp"
 #include "common/keys.hpp"
 #include "common/memory.hpp"
+#include "core/context.hpp"
+#include "core/dialogs.hpp"
 #include "core/limits.hpp"
+#include "io/mouse.hpp"
+#include "io/sound.hpp"
+#include "io/soundcue.hpp"
+#include "io/waitkey.hpp"
+#include "map/support.hpp"
 #include "types.hpp"
 #include "units/transfer-service.hpp"
 #include "units/xferpnl.hpp"
@@ -57,13 +64,13 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
   auto&               data{ Data(game) };
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
-  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) Call(game, event, SOUND_CUE_14);
+  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) opeu_sound_cue14(game, svc_soundcue);
   data.transfer_auto = UNMOVED;
   selected           = 0;
   opeu_transfer_draw_row(game, event, 1, 0);
   opeu_transfer_draw_row(game, event, 0, 0);
   opeu_transfer_draw_row(game, event, 2, 0);
-  Call(game, event, INPUT_RESET);
+  opeu_input_reset(game, svc_mouse);
   for (;;) {
     std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
     auto const   left{ TableAt(0, selected, AMOUNT) };
@@ -105,13 +112,13 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
     case KEY_ENTER:
       opeu_transfer_draw_row(game, event, selected, redraw);
       if (data.transfer_interactive) {
-        data.transfer_interactive = Call(game, event, CONFIRM, data.context_group_record);
+        data.transfer_interactive = opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_group_record);
         return;
       }
-      Call(game, event, SOUND_CUE_16);
-      Call(game, event, MUSIC_COMMAND_7);
-      Call(game, event, PENDING_FINISH, FINISH_VALUE);
-      Call(game, event, DAILY_CONTEXT, data.current_side);
+      opeu_sound_cue16(game, svc_soundcue);
+      opeu_music_command7(game, svc_sound);
+      opeu_pending_finish(game, static_cast<uint8_t>(FINISH_VALUE));
+      opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
       data.transfer_interactive = 1;
       return;
     }
@@ -124,17 +131,18 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
 uint16_t opeu_transfer_run(Game& game, HostWordsEvent event, uint16_t interactive) {
   auto& data{ Data(game) };
   if (interactive)
-    Call(game, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
-  else if (SidePlayed(data, data.current_side) && Call(game, event, UNIT_ELIGIBLE, data.current_unit_ptr))
-    Call(game, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
+    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
+  else if (SidePlayed(data, data.current_side) && opeu_unit_selection_eligible(game, data.current_unit_ptr))
+    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
   data.transfer_interactive = interactive;
   if (SidePlayed(data, data.current_side))
-    Call(game, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, STEP_OFFSET, STEP_SEGMENT);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side),
+                    static_cast<unsigned int>(static_cast<uint32_t>(STEP_SEGMENT) << 16 | STEP_OFFSET));
   else
     opeu_transfer_step(game, event);
-  Call(game, event, MUSIC_COMMAND_7);
+  opeu_music_command7(game, svc_sound);
   data.context_side = NO_CONTEXT;
-  Call(game, event, DAILY_CONTEXT, data.current_side);
+  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
   return data.transfer_interactive;
 }
 

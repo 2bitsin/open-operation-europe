@@ -5,4 +5,4 @@
 
 uint8_t opeu_group_target_enabled(Game& game);
 uint8_t opeu_menu_always(void);
-void    opeu_group_set_target(Game& game, HostEvent event, uint8_t group);
+void    opeu_group_set_target(Game& game, uint8_t group);

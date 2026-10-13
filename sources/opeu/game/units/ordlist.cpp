@@ -6,10 +6,14 @@
 #include "common/events.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
+#include "core/dialogs.hpp"
 #include "core/people.hpp"
+#include "io/listdlg.hpp"
+#include "map/mapunit.hpp"
 #include "map/ordtgt.hpp"
 #include "types.hpp"
 #include "units/order-dialog.hpp"
+#include "units/ordissue.hpp"
 #include "units/ordunit.hpp"
 
 #include "common/game.hpp"
@@ -30,8 +34,8 @@ enum Routine : std::uint16_t {
 // The Orders command's code segment in the routine link table.
 constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
 
-auto RunList(Game& game, HostEvent event, ListWindow& list) -> std::uint16_t {
-  return Call(game, event, ORDERS_LIST_DIALOG, Near(Data(game), list), LIST_LIMIT, LIST_FLAGS);
+auto RunList(Game& game, ListWindow& list) -> std::uint16_t {
+  return opeu_list_dialog(game, svc_listdlg, Near(Data(game), list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS));
 }
 } // namespace
 
@@ -43,66 +47,48 @@ uint8_t opeu_order_units_fill(Game& game, uint8_t group) {
 }
 
 // The Orders command; segment is its code segment.
-void opeu_turn_action_1(Game& game, HostEvent event, uint16_t segment) {
+void opeu_turn_action_1(Game& game, uint16_t segment) {
   auto& data{ Data(game) };
-  Call(game, event, ORDERS_CONTROL_PANEL);
+  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   data.unit_order_active = 0;
   for (;;) {
     SetListPredicate(data.division_dialog, GROUP_TARGET_ENABLED, segment);
-    Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_division), data.context_record2);
-    if (!RunList(game, event, data.division_dialog)) return;
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_division), data.context_record2);
+    if (!RunList(game, data.division_dialog)) return;
     auto const group{ data.list_row };
     auto&      division{ GroupOf(data, data.current_side, group) };
     auto const person{ opeu_find_group_record(game, data.current_side, group) };
-    Call(game, event, ORDERS_GROUP_SHOW, Near(data, division), group);
+    opeu_group_show(game, Near(data, division), static_cast<uint8_t>(group));
     if (division.flags & Bits(GroupFlag::AI_MARK)) {
       // The computer runs the division: edit its objective tasks, with the division current meanwhile.
       auto const saved{ data.current_group };
       data.current_group = group;
       SetListPredicate(data.order_target_list, MENU_ALWAYS, segment);
       for (;;) {
-        Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_order), person);
-        if (!RunList(game, event, data.order_target_list)) break;
-        opeu_group_set_target(game, event, group);
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_order), person);
+        if (!RunList(game, data.order_target_list)) break;
+        opeu_group_set_target(game, group);
       }
       data.current_group = saved;
-    } else if (Call(game, event, ORDERS_CONFIRM_MESSAGE, Near(data, data.order_whole_division), person)) {
+    } else if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.order_whole_division), person)) {
       data.unit_order_active = 1;
-      Call(game, event, ORDERS_UNIT_ORDER_MENU, group);
+      opeu_unit_order_menu(game, svc_ordissue, static_cast<uint8_t>(group));
       data.unit_order_active = 0;
     } else {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(game, group) + 1);
       SetListPredicate(data.organize_list, SUPPLY_UNIT_ENABLED, segment);
       for (;;) {
-        Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_regiment), person);
-        if (!RunList(game, event, data.organize_list)) break;
-        Call(game, event, ORDERS_UNIT_ORDER_MENU, group);
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_regiment), person);
+        if (!RunList(game, data.organize_list)) break;
+        opeu_unit_order_menu(game, svc_ordissue, static_cast<uint8_t>(group));
       }
     }
   }
 }
 
-// The command's calls, and those opeu_group_set_target raises through its event, are order dialog services.
-uint16_t svc_ordlist(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case ORDERS_REQUEST_FORMAT:
-  case ORDERS_CONTROL_MESSAGE:
-  case ORDERS_CONFIRM_MESSAGE:
-  case ORDERS_ARRIVAL_LOCATION:
-  case ORDERS_PICK_LOCATION:
-  case ORDERS_CONTROL_PANEL:
-  case ORDERS_GROUP_SHOW:
-  case ORDERS_LIST_DIALOG:
-  case ORDERS_UNIT_ORDER_MENU:  svc_orders(game, id, args, count, &r); break;
-  default:                      port_unhandled("ordlist", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_turn_action_1(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_turn_action_1(game, svc_ordlist, ORDERS_SEGMENT);
+  opeu_turn_action_1(game, ORDERS_SEGMENT);
   return 0;
 }
