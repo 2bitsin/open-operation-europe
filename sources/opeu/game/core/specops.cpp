@@ -22,7 +22,6 @@
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/cellflag.hpp"
 #include "map/mappick.hpp"
 #include "map/query.hpp"
@@ -40,10 +39,8 @@ namespace {
 
 constexpr std::uint16_t NO_TEXT{ 0 }; // no text: the mission has no such step
 
-// The daily report entry of an accepted mission and its presenter, opeu_special_present, as the far address the
-// routine table resolves.
+// The daily report entry of an accepted mission.
 constexpr std::uint16_t MISSION_REPORT{ 0x10f };
-constexpr FarPointer    MISSION_PRESENTER{ 0x0000, 0x24d5 };
 
 // The message that states a raid's duration.
 constexpr std::uint16_t RAID_DURATION_MESSAGE{ 0x7c };
@@ -231,7 +228,7 @@ void Plan(Game& game, Mission const& mission) {
     order.target   = on_city ? objective : unit;
     order.kind     = Bits(on_city ? mission.city_code : mission.unit_code);
     order.progress = hours;
-    port_daily_show(game, MISSION_REPORT, data.current_side, MISSION_PRESENTER.offset, MISSION_PRESENTER.segment);
+    port_daily_show(game, MISSION_REPORT, data.current_side, Presenter::SPECIAL_FORCES);
     break;
   }
   data.side_delays[data.current_side] = 1;
@@ -261,34 +258,4 @@ void opeu_special_assassinate(Game& game) {
 
 void opeu_special_recon(Game& game) {
   Plan(game, Recon());
-}
-
-auto port_routine_opeu_special_assassinate(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_assassinate(game);
-  return 0;
-}
-
-auto port_routine_opeu_special_cut_comm(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_cut_comm(game);
-  return 0;
-}
-
-auto port_routine_opeu_special_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_special_raid(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_raid(game);
-  return 0;
-}
-
-auto port_routine_opeu_special_recon(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_recon(game);
-  return 0;
-}
-
-auto port_routine_opeu_special_sabotage(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_sabotage(game);
-  return 0;
 }

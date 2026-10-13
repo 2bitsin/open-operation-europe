@@ -40,9 +40,6 @@ constexpr std::uint16_t HURRICANE_ITEM{ 0xe7 }; // the daily item that announces
 constexpr std::uint16_t HURRICANE_MESSAGE{ 0x6d };
 constexpr std::uint16_t CELL_RISING_MESSAGE{ 0x1b };
 constexpr std::uint16_t OBJECTIVE_RISING_MESSAGE{ 0x1c };
-// opeu_hurricane_present as the far routine the daily item's presenter calls.
-constexpr std::uint16_t PRESENTER_OFFSET{ 0x396 };
-constexpr std::uint16_t PRESENTER_SEGMENT{ 0x108c };
 constexpr std::uint8_t  PARTISAN_TERRAIN{ 10 };
 constexpr std::uint8_t  COMMANDER{ 3 }; // opeu_find_side_record's kind for the side's commander
 
@@ -71,7 +68,7 @@ void opeu_partisan_event(Game& game) {
   if (data.weather != HURRICANE_WEATHER) return;
   bool const season{ HurricaneSeason(data) };
   auto const partisans{ season ? data.partisan_words[0] : data.partisan_words[1] };
-  port_daily_show(game, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
+  port_daily_show(game, HURRICANE_ITEM, data.current_side, Presenter::HURRICANE);
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
       if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || RandomBelow(game, season ? 70 : 100) != 8) continue;
@@ -98,14 +95,4 @@ void opeu_partisan_event(Game& game) {
     }
     opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(game, 10) + (season ? 5 : 3)), &objective.strength);
   }
-}
-
-auto port_routine_opeu_hurricane_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_hurricane_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_partisan_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_partisan_event(game);
-  return 0;
 }

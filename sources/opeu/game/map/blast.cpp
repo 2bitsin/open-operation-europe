@@ -78,8 +78,3 @@ void opeu_blast_erase(Game& game, uint8_t x, uint8_t y) {
 void opeu_blast_pause(Game& game) {
   opeu_delay_units(game, static_cast<uint8_t>(PAUSE_WAIT));
 }
-
-auto port_routine_opeu_blast_pause(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_blast_pause(game);
-  return 0;
-}

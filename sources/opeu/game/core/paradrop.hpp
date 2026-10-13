@@ -8,4 +8,4 @@ void     opeu_para_clear(Game& game);
 uint16_t opeu_para_ready(Game& game);
 uint16_t opeu_para_drop_due(Game& game);
 void     opeu_para_drop_present(Game& game);
-void     opeu_para_drop_event(Game& game, uint16_t segment);
+void     opeu_para_drop_event(Game& game);

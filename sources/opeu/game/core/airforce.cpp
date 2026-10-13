@@ -7,14 +7,16 @@
 #include "core/dialogs.hpp"
 #include "core/template.hpp"
 #include "core/textout.hpp"
-#include "link/link.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/airbomb.hpp"
+#include "core/airdrop.hpp"
+#include "core/airlift.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -33,6 +35,13 @@ constexpr std::uint16_t ROW_HEIGHT{ 0x12 };
 auto Average(std::uint8_t a, std::uint8_t b) -> std::uint8_t {
   return static_cast<std::uint8_t>((a + b) / 2);
 }
+
+// The air force menu's missions, by the enumerator air_missions holds for the choice.
+constexpr auto AIR_MISSIONS = DispatchRows<AirMission, auto (*)(Game&)->void>({
+    { AirMission::STRIKE,       opeu_air_bomb_command },
+    { AirMission::PARATROOPERS, opeu_air_drop_command },
+    { AirMission::CARGO_DROP,   opeu_air_lift_command },
+});
 } // namespace
 
 // Picks the air-force officer for the commander's nations; his ratings are the averages of the commander's and the
@@ -89,13 +98,7 @@ void opeu_turn_action_8(Game& game) {
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_mission_question), 3, data.context_record2,
                                          Near(data, data.air_mission_menu)) };
     if (choice == MENU_CANCELLED) break;
-    auto const mission{ data.air_missions[choice - 1] };
-    port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(mission.segment)) * 16u + static_cast<std::uint16_t>(mission.offset), nullptr, 0);
+    Dispatch(AIR_MISSIONS, data.air_missions.at(choice - 1u), game);
     opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   } while (!data.side_delays[data.current_side]);
-}
-
-auto port_routine_opeu_turn_action_8(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_8(game);
-  return 0;
 }

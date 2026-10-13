@@ -80,13 +80,3 @@ void opeu_deploy_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t ro
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), PLAIN_COLOR);
 }
-
-auto port_routine_opeu_deploy_draw_rows(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  opeu_deploy_draw_rows(game, byte(0), byte(1), byte(2), byte(3), byte(4));
-  return 0;
-}
-
-auto port_routine_opeu_deploy_true(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_deploy_true(game);
-}

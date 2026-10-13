@@ -24,6 +24,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/text.hpp"
@@ -45,10 +46,6 @@
 using namespace opeu::game;
 
 namespace {
-
-// The glyph routines glyph_draw holds, by their code offset.
-constexpr uint16_t GLYPH_TRANSPARENT{ 0x28a8 };
-constexpr uint16_t GLYPH_OPAQUE{ 0x28c5 };
 
 // The console's screen: 80 columns, 400 pixel rows, 16-pixel glyphs from code 20h.
 constexpr int16_t  COLUMNS{ 80 };
@@ -191,18 +188,17 @@ struct GlyphCell {
   int16_t attribute;
 };
 
-// Draws a glyph's 16 rows of bits through the routine data.glyph_draw names: transparent or opaque.
-void DrawGlyph(FarPointer const& routine, GlyphCell const& cell, std::span<uint8_t const> bits) {
-  auto const x{ static_cast<uint16_t>(cell.x) };
-  auto const y{ static_cast<uint16_t>(cell.y) };
-  auto const attribute{ static_cast<uint16_t>(cell.attribute) };
-  if (routine.segment == 0 && routine.offset == GLYPH_TRANSPARENT)
-    opeu_draw_near(x, y, 1, GLYPH_BYTES, attribute, bits.data());
-  else if (routine.segment == 0 && routine.offset == GLYPH_OPAQUE)
-    opeu_code_0000_28c5(x, y, 1, GLYPH_BYTES, attribute, bits.data());
-  else
-    port_fatal("textout: glyph routine %04x:%04x is not a known VGALIB entry", routine.segment, routine.offset);
+// Draws a glyph's 16 rows of bits with the drawing routine: transparent (only the ink) or opaque.
+template <auto DRAW>
+void DrawGlyphWith(GlyphCell const& cell, std::span<uint8_t const> bits) {
+  DRAW(static_cast<uint16_t>(cell.x), static_cast<uint16_t>(cell.y), 1, GLYPH_BYTES, static_cast<uint16_t>(cell.attribute), bits.data());
 }
+
+// The glyph routines, by the enumerator glyph_draw holds.
+constexpr auto GLYPH_ROUTINES = DispatchRows<GlyphDraw, void (*)(GlyphCell const&, std::span<uint8_t const>)>({
+    { GlyphDraw::TRANSPARENT, DrawGlyphWith<opeu_draw_near>      },
+    { GlyphDraw::OPAQUE,      DrawGlyphWith<opeu_code_0000_28c5> },
+});
 
 auto State(DataSegment const& data) -> EscapeState {
   return static_cast<EscapeState>(data.text_state);
@@ -387,7 +383,7 @@ void opeu_text_glyph(Game& game, [[maybe_unused]] TextHost* host, int16_t x, int
   auto const& data{ Data(game) };
   if (code < FIRST_GLYPH || code > 0x7f) return;
   auto const bits{ std::span{ data.text_font }.subspan((code - FIRST_GLYPH) * GLYPH_BYTES, GLYPH_BYTES) };
-  DrawGlyph(data.glyph_draw[data.text_background != 0], { x, y, attribute }, bits);
+  Dispatch(GLYPH_ROUTINES, data.glyph_draw[data.text_background != 0], GlyphCell{ x, y, attribute }, bits);
 }
 
 // Moves the cursor to the start of the next line, unless that passes the screen's bottom.

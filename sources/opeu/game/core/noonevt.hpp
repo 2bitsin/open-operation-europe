@@ -19,4 +19,4 @@ void     opeu_code_0e57_0140(Game& game, const uint8_t* far_text);
 uint16_t opeu_noon_portrait(Game& game, const uint8_t* far_text, uint16_t person, uint16_t show);
 void     opeu_noon_speech(Game& game, const uint8_t* far_text, uint16_t speech, uint16_t person);
 void     opeu_noon_leader(Game& game, const uint8_t* far_text, uint8_t code, uint8_t line);
-void     opeu_turn_noon_events(Game& game, const uint8_t* far_text, uint16_t code_segment);
+void     opeu_turn_noon_events(Game& game, const uint8_t* far_text);

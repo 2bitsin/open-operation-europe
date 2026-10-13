@@ -25,15 +25,6 @@
 using namespace opeu::game;
 
 namespace {
-// The link-table addresses of the list predicates in the Orders command's code segment.
-enum Routine : std::uint16_t {
-  GROUP_TARGET_ENABLED = 0x0006,
-  MENU_ALWAYS          = 0x0040,
-  SUPPLY_UNIT_ENABLED  = 0x021c,
-};
-// The Orders command's code segment in the routine link table.
-constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
-
 auto RunList(Game& game, ListWindow& list) -> std::uint16_t {
   return opeu_list_dialog(game, Near(Data(game), list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS));
 }
@@ -46,13 +37,13 @@ uint8_t opeu_order_units_fill(Game& game, uint8_t group) {
   return 8;
 }
 
-// The Orders command; segment is its code segment.
-void opeu_turn_action_1(Game& game, uint16_t segment) {
+// The Orders command.
+void opeu_turn_action_1(Game& game) {
   auto& data{ Data(game) };
   opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   data.unit_order_active = 0;
   for (;;) {
-    SetListPredicate(data.division_dialog, GROUP_TARGET_ENABLED, segment);
+    SetListPredicate(data.division_dialog, ListSelect::GROUP_TARGET);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_division), data.context_record2);
     if (!RunList(game, data.division_dialog)) return;
     auto const group{ data.list_row };
@@ -63,7 +54,7 @@ void opeu_turn_action_1(Game& game, uint16_t segment) {
       // The computer runs the division: edit its objective tasks, with the division current meanwhile.
       auto const saved{ data.current_group };
       data.current_group = group;
-      SetListPredicate(data.order_target_list, MENU_ALWAYS, segment);
+      SetListPredicate(data.order_target_list, ListSelect::ANY_ORDER_TARGET);
       for (;;) {
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_order), person);
         if (!RunList(game, data.order_target_list)) break;
@@ -76,7 +67,7 @@ void opeu_turn_action_1(Game& game, uint16_t segment) {
       data.unit_order_active = 0;
     } else {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(game, group) + 1);
-      SetListPredicate(data.organize_list, SUPPLY_UNIT_ENABLED, segment);
+      SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT);
       for (;;) {
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_regiment), person);
         if (!RunList(game, data.organize_list)) break;
@@ -84,11 +75,4 @@ void opeu_turn_action_1(Game& game, uint16_t segment) {
       }
     }
   }
-}
-
-auto port_routine_opeu_turn_action_1(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_turn_action_1(game, ORDERS_SEGMENT);
-  return 0;
 }

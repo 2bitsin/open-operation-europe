@@ -39,9 +39,6 @@ enum class Outcome : std::uint8_t {
 constexpr std::uint8_t  KILLED_FLAG{ 0x80 }; // Person::flags: the general is dead
 constexpr std::uint8_t  IN_BATTLE{ 0x04 };   // Person::assignment: the general is fighting
 constexpr std::uint16_t DEATH_SHOW{ 300 };   // the daily show that announces a death
-// The far address by which the dialogs service finds the presenter opeu_blast_pause.
-constexpr std::uint16_t BLAST_PAUSE_OFFSET{ 0x0866 };
-constexpr std::uint16_t BLAST_PAUSE_SEGMENT{ 0x17c4 };
 
 constexpr std::uint16_t WOUNDED_TEXT{ offsetof(DataSegment, general_wounded) };
 constexpr std::uint16_t KILLED_TEXT{ offsetof(DataSegment, general_killed) };
@@ -106,7 +103,7 @@ void opeu_general_casualty(Game& game, uint16_t person) {
     if (data.side_status[side] == SIDE_PLAYED) {
       opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
       opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DEATH_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(BLAST_PAUSE_SEGMENT) << 16 | BLAST_PAUSE_OFFSET);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DEATH_SHOW, static_cast<uint8_t>(side), Presenter::BLAST_PAUSE);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
       opeu_wait_confirm(game, static_cast<int16_t>(1));
     }

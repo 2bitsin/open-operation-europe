@@ -151,8 +151,3 @@ void opeu_air_lift_command(Game& game) {
   if (hours && !opeu_air_lift_order(game, cell_x, cell_y, hours, planes, ammo, fuel, food)) return;
   data.side_delays[data.current_side] = 1;
 }
-
-auto port_routine_opeu_air_lift_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_lift_command(game);
-  return 0;
-}

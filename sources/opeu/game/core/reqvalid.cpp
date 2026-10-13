@@ -3,6 +3,7 @@
 #include "core/reqcheck.hpp"
 #include "data-segment.hpp"
 #include "map/arrplace.hpp"
+#include "map/cellpred.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
 
@@ -19,12 +20,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The far address of opeu_request_cell_allowed (map/reqcells), the predicate of the cells a supply drop may use.
-constexpr uint16_t CELL_ALLOWED_OFFSET{ 0x1114 };
-constexpr uint16_t CELL_ALLOWED_SEGMENT{ 0x145c };
-// The far address of opeu_request_error_present (core/reqerror), which SHOW calls back.
-constexpr uint16_t ERROR_PRESENT_OFFSET{ 0x2e4 };
-constexpr uint16_t ERROR_PRESENT_SEGMENT{ 0x1270 };
 // The daily dialog of the request reports.
 constexpr uint16_t REQUEST_SHOW{ 0x73 };
 
@@ -45,10 +40,10 @@ uint16_t opeu_request_valid(Game& game, uint8_t side, uint16_t request) {
   auto const fail{ [&](RequestError reason) {
     data.request_error   = std::to_underlying(reason);
     data.invalid_request = request;
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(ERROR_PRESENT_SEGMENT) << 16 | ERROR_PRESENT_OFFSET);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), Presenter::REQUEST_ERROR);
     return uint16_t{ 0 };
   } };
-  auto const count_cells{ [&] { return opeu_request_cells(game, static_cast<uint8_t>(side), c2_cell_predicate(CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT)); } };
+  auto const count_cells{ [&] { return opeu_request_cells(game, static_cast<uint8_t>(side), opeu_request_cell_allowed); } };
   switch (static_cast<RequestKind>(slot.kind)) {
   case RequestKind::SUPPLIES:
     if (opeu_objective_side(game, slot.target) != side) return fail(RequestError::LOST);

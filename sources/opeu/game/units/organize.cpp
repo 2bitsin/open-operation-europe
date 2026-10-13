@@ -40,10 +40,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The command's code segment and the link-table addresses of its routines that the dialogs call back.
-constexpr std::uint16_t ORGANIZE_SEGMENT{ 0x20b3 };
-constexpr std::uint16_t UNIT_ENABLED{ 0x0d40 }; // the list predicate: a regiment that can be supplied
-constexpr std::uint16_t DAILY_REDRAW{ 0x1f46 }; // the screen the daily report redraws
 constexpr std::uint16_t DAILY_SHOW_MODE{ 0x2a };
 // The list dialog's flags: 7 on the first run, 6 once the screen behind it stands, 11 and 10 likewise in the
 // allocation dialog.
@@ -76,11 +72,6 @@ auto LocalAt(ServiceLocals const& locals, Locals local) -> std::uint16_t {
 
 auto SlotsOf(Game& game, std::uint16_t unit) -> std::uint8_t {
   return opeu_category_0_to_3(static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_index(unit)))) ? ARMOURED_SLOTS : OTHER_SLOTS;
-}
-
-auto SetEnabled(ListWindow& list, std::uint16_t segment) -> void {
-  list.select.offset  = UNIT_ENABLED;
-  list.select.segment = segment;
 }
 
 // The daily context of the side, drawn as the daily report draws it.
@@ -125,7 +116,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
           continue;
         }
         opeu_alloc_distribute(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots), static_cast<uint8_t>(a.spare_slots), static_cast<uint8_t>(a.types));
-        opeu_alloc_choose_hq(game, ORGANIZE_SEGMENT);
+        opeu_alloc_choose_hq(game);
         back_to_map();
         data.side_delays[data.current_side] = 1;
         return;
@@ -165,8 +156,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
 }
 } // namespace
 
-// segment: the command's code segment.
-void opeu_turn_action_6(Game& game, uint16_t segment) {
+void opeu_turn_action_6(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          state{ Near(data, data.list_window) };
@@ -183,7 +173,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_none), person());
       return;
     }
-    SetEnabled(data.organize_list, segment);
+    SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_which), person());
     if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
     opeu_copy_bytes(game, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
@@ -225,7 +215,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
         continue;
       }
       data.organize_list.rows = static_cast<std::uint8_t>(allocation.types + 1);
-      SetEnabled(data.organize_list, segment);
+      SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_with), person());
       if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(LIST_FIRST))) {
         flags = LIST_AGAIN;
@@ -255,12 +245,5 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
     Refresh(game);
   }
   if (data.side_delays[data.current_side])
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DAILY_SHOW_MODE, static_cast<uint8_t>(data.current_side), static_cast<uint32_t>(segment) << 16 | DAILY_REDRAW);
-}
-
-auto port_routine_opeu_turn_action_6(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_turn_action_6(game, ORGANIZE_SEGMENT);
-  return 0;
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DAILY_SHOW_MODE, static_cast<uint8_t>(data.current_side), Presenter::ALLOCATION_FINISH);
 }

@@ -4,6 +4,7 @@
 #include "io/keyboard.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/keys.hpp"
 #include "common/memory.hpp"
@@ -18,7 +19,6 @@
 #include "io/numdlg.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -45,16 +45,17 @@ constexpr std::uint16_t CURSOR_TILE{ 0x3c0 };
 constexpr std::uint16_t POINTER_MASK{ 0x3e0 };
 constexpr std::uint16_t POINTER_SHAPE{ 0x6e0 };
 
-// The idle hook that blinks the cursor: opeu_text_cursor_draw's far address.
-constexpr std::uint16_t CURSOR_HOOK_OFFSET{ 0x002e };
-constexpr std::uint16_t CURSOR_HOOK_SEGMENT{ 0x0541 };
+// The idle hooks, by the enumerator idle_hook holds (NONE never runs).
+constexpr auto IDLE_HOOKS = DispatchRows<IdleHook, auto (*)(Game&)->void>({
+    { IdleHook::TEXT_CURSOR, opeu_text_cursor_draw },
+});
 
 auto HookCursor(DataSegment& data) -> void {
-  data.idle_hook = { CURSOR_HOOK_OFFSET, CURSOR_HOOK_SEGMENT };
+  data.idle_hook = IdleHook::TEXT_CURSOR;
 }
 
 auto HookClear(DataSegment& data) -> void {
-  data.idle_hook = {};
+  data.idle_hook = IdleHook::NONE;
 }
 
 // The value of typed digits, in 32-bit unsigned arithmetic that wraps.
@@ -62,14 +63,10 @@ auto DecimalValue(std::span<std::uint8_t const> digits) -> std::uint32_t {
   return std::ranges::fold_left(digits, std::uint32_t{ 0 }, [](std::uint32_t value, std::uint8_t digit) { return value * 10 + (digit - '0'); });
 }
 
-// The idle hook: the cursor routine, another far routine, or nothing.
+// The idle hook, if one is set.
 auto CallHook(Game& game) -> void {
   auto const hook{ Data(game).idle_hook };
-  if (!hook.offset && !hook.segment) return;
-  if (hook.offset == CURSOR_HOOK_OFFSET && hook.segment == CURSOR_HOOK_SEGMENT)
-    opeu_text_cursor_draw(game);
-  else
-    port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(hook.segment)) * 16u + static_cast<std::uint16_t>(hook.offset), nullptr, 0);
+  if (hook != IdleHook::NONE) Dispatch(IDLE_HOOKS, hook, game);
 }
 
 auto TextX(Game const& game) -> std::uint16_t {

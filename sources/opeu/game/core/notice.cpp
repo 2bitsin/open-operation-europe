@@ -48,10 +48,8 @@ constexpr uint8_t HOLD_ORDER{ 3 };
 // The order kind under which an attacked unit tires most and loses most morale.
 constexpr uint8_t EXPOSED_ORDER{ 13 };
 
-// The daily show of an attack and the far address of the routine it calls back (opeu_notice_view_finish).
+// The daily show of an attack.
 constexpr uint16_t ATTACK_SHOW{ 486 };
-constexpr uint16_t VIEW_FINISH_OFFSET{ 0x05fe };
-constexpr uint16_t VIEW_FINISH_SEGMENT{ 0x33ad };
 
 // The colour codes an attacker's side name is shown in.
 constexpr uint16_t SIDE_COLOUR[]{ '6', '5' };
@@ -278,13 +276,11 @@ void opeu_notice_attack(Game& game) {
   if (unit) {
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, text);
     if (opeu_unit_selection_eligible(game, unit))
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, static_cast<uint8_t>(opeu_opposite_side(side)),
-                      static_cast<uint32_t>(VIEW_FINISH_SEGMENT) << 16 | VIEW_FINISH_OFFSET);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, static_cast<uint8_t>(opeu_opposite_side(side)), Presenter::NOTICE_VIEW);
   } else if (objective) {
     opeu_objective_report(game, static_cast<const DialogHost*>(port_dialogs_host()), objective, text);
     if (opeu_objective_eligible(game, objective))
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, static_cast<uint8_t>(opeu_opposite_side(side)),
-                      static_cast<uint32_t>(VIEW_FINISH_SEGMENT) << 16 | VIEW_FINISH_OFFSET);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, static_cast<uint8_t>(opeu_opposite_side(side)), Presenter::NOTICE_VIEW);
   }
   if (!unit) return;
   auto const& order{ Record<Unit>(data, unit).orders[0] };
@@ -314,11 +310,4 @@ void opeu_notice_begin(Game& game) {
   data.presentation_mode = opeu_notice_view_battle(game);
   opeu_notice_decide(game);
   opeu_notice_records_build(game);
-}
-
-auto port_routine_opeu_notice_view_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_notice_view_finish(game);
-  return 0;
 }

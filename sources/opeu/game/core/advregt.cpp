@@ -208,7 +208,3 @@ uint16_t opeu_advice_regiment_status(Game& game, const uint8_t* far_text) {
     if (auto const result{ check(game, far_text) }) return result;
   return 0;
 }
-
-auto port_routine_opeu_advice_regiment_status(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_advice_regiment_status(game, AdviceTexts());
-}

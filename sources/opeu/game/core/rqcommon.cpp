@@ -10,7 +10,6 @@
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappick.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -23,9 +22,6 @@ using namespace opeu::game;
 namespace {
 
 constexpr uint16_t TEXT_BYTES{ 0x7c }; // the prompt text the format service writes
-// The far address of opeu_request_finish, which SHOW calls back.
-constexpr uint16_t FINISH_PRESENT_OFFSET{ 0x009a };
-constexpr uint16_t FINISH_PRESENT_SEGMENT{ 0x22f9 };
 // The daily dialog of the request reports.
 constexpr uint16_t REQUEST_SHOW{ 0x73 };
 
@@ -81,8 +77,7 @@ void opeu_request_file(Game& game, uint16_t request) {
   slot.argument = filed.argument;
   slot.kind     = filed.kind;
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_filed_text), data.context_record2);
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(data.current_side),
-                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(FINISH_PRESENT_OFFSET)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(FINISH_PRESENT_SEGMENT)) << 16));
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(data.current_side), Presenter::REQUEST_FINISH);
 }
 
 namespace opeu::game::detail::rqcommon {
@@ -99,10 +94,5 @@ uint16_t opeu_side_has_city(Game const& game) {
   auto const& data{ Data(game) };
   for (auto const& objective : data.objectives)
     if (objective.active && opeu_objective_side(game, Near(data, objective)) == data.current_side) return 1;
-  return 0;
-}
-
-auto port_routine_opeu_request_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_request_finish(game);
   return 0;
 }

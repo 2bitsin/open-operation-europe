@@ -9,11 +9,11 @@
 #include "core/dialogs.hpp"
 #include "core/template.hpp"
 #include "core/textout.hpp"
-#include "link/link.hpp"
 #include "types.hpp"
 #include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/specops.hpp"
@@ -41,6 +41,15 @@ template <typename Ability>
 auto Average(Person const& deputy, Person const& commander, Ability ability) -> std::uint8_t {
   return static_cast<std::uint8_t>((static_cast<int>(deputy.*ability) + commander.*ability) / 2);
 }
+
+// The special forces menu's missions, by the enumerator special_missions holds for the choice.
+constexpr auto SPECIAL_MISSIONS = DispatchRows<SpecialForcesAction, auto (*)(Game&)->void>({
+    { SpecialForcesAction::RECON,       opeu_special_recon       },
+    { SpecialForcesAction::CUT_LINES,   opeu_special_cut_comm    },
+    { SpecialForcesAction::SABOTAGE,    opeu_special_sabotage    },
+    { SpecialForcesAction::RAID,        opeu_special_raid        },
+    { SpecialForcesAction::ASSASSINATE, opeu_special_assassinate },
+});
 } // namespace
 
 // Points special_order at the side's order, picks the officer and averages the four abilities the missions test.
@@ -96,13 +105,7 @@ void opeu_turn_action_9(Game& game) {
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2,
                                          offsetof(DataSegment, special_menu)) };
     if (choice == MENU_CANCELLED) return;
-    auto const& mission{ data.special_missions[choice - 1] };
-    port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(mission.segment)) * 16u + static_cast<std::uint16_t>(mission.offset), nullptr, 0);
+    Dispatch(SPECIAL_MISSIONS, data.special_missions.at(choice - 1u), game);
   } while (!data.side_delays[data.current_side]);
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
-}
-
-auto port_routine_opeu_turn_action_9(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_9(game);
-  return 0;
 }

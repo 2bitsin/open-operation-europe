@@ -225,9 +225,9 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.personnel_prompt, "Select an order");
   // clang-format off
   data.personnel_actions = { {
-    { 0x0084, 0x1d82 },
-    { 0x010e, 0x1d82 },
-    { 0x0412, 0x1d82 },
+    PersonnelAction::REASSIGN,
+    PersonnelAction::APPOINT,
+    PersonnelAction::REST,
   } };
   // clang-format on
   // clang-format off
@@ -269,11 +269,11 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.advice_prompt, "What are you interested in");
   // clang-format off
   data.advice_actions = { {
-    { 0x0a60, 0x1dd2 },
-    { 0x1140, 0x1dd2 },
-    { 0x1994, 0x1dd2 },
-    { 0x1e16, 0x1dd2 },
-    { 0x207a, 0x1dd2 },
+    AdviceAction::TACTICAL,
+    AdviceAction::REGIMENT_STATUS,
+    AdviceAction::ENEMY_CONDITIONS,
+    AdviceAction::TIDE_OF_WAR,
+    AdviceAction::OPERATION_HINTS,
   } };
   // clang-format on
   // clang-format off
@@ -291,9 +291,9 @@ auto InitialOrderText(DataSegment& data) -> void {
   SetText(data.staff_prompt, "Which do you w");
   // clang-format off
   data.staff_actions = { {
-    { 0x6e61, 0x0074 },
-    { 0x209a, 0x1dd2 },
-    { 0x0c90, 0x1fe6 },
+    StaffAction::UNUSED,
+    StaffAction::OPERATIONS,
+    StaffAction::INTELLIGENCE,
   } };
   // clang-format on
   // clang-format off

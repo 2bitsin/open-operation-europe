@@ -59,12 +59,9 @@ constexpr std::uint16_t START_BYTES{ START_TEXT };
 constexpr std::uint16_t OCCUPY_BYTES{ OCCUPY_Y };
 constexpr std::uint16_t ATTACK_BYTES{ ATTACK_Y };
 
-// The pictures of the day's show and the link-table addresses of the routines that end it.
-constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
+// The pictures of the day's show.
 constexpr std::uint16_t BATTLE_PICTURE{ 0x1d7 };
-constexpr std::uint16_t ATTACK_PRESENT{ 0x00f6 };
 constexpr std::uint16_t OCCUPIED_PICTURE{ 0xa2 };
-constexpr std::uint16_t OCCUPIED_PRESENT{ 0x0282 };
 // objective_quantity's category for all the objective's arms.
 constexpr std::uint16_t ALL_ARMS{ 0xff };
 // The ticks wait_units waits after an occupation.
@@ -167,9 +164,7 @@ uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_prepared));
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.order_ask_attack)), static_cast<std::uint16_t>(name) });
     auto const confirmed{ opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.context_group_record) };
-    if (confirmed)
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BATTLE_PICTURE, static_cast<uint8_t>(data.current_side),
-                      (static_cast<std::uint32_t>(static_cast<std::uint16_t>(ATTACK_PRESENT)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(ORDER_SEGMENT)) << 16));
+    if (confirmed) opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BATTLE_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::ATTACK);
     return confirmed;
   }
   if (!opeu_order_attack_allowed(game, x, y)) return 0;
@@ -212,8 +207,7 @@ uint16_t opeu_order_occupy_run(Game& game) {
     auto const text{ local(OCCUPY_TEXT) };
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.order_occupied)), static_cast<std::uint16_t>(objective) });
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_PICTURE, static_cast<uint8_t>(data.current_side),
-                    (static_cast<std::uint32_t>(static_cast<std::uint16_t>(OCCUPIED_PRESENT)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(ORDER_SEGMENT)) << 16));
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::OCCUPIED);
     Restore(game);
     opeu_side_groups_retarget(game, static_cast<uint8_t>(0));
     opeu_side_groups_retarget(game, static_cast<uint8_t>(1));
@@ -247,30 +241,4 @@ uint16_t opeu_order_attack_run(Game& game) {
                                                           static_cast<std::uint16_t>(name) });
   if (opeu_order_attack_start(game, text, Byte(game, at_x), Byte(game, at_y))) Engage(data, Byte(game, at_x), Byte(game, at_y));
   return 1;
-}
-
-auto port_routine_opeu_order_attack_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_order_attack_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_order_attack_run(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_attack_run(game);
-}
-
-auto port_routine_opeu_order_occupied_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_order_occupied_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_order_occupy_run(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_occupy_run(game);
 }

@@ -57,7 +57,7 @@ void opeu_process_arrivals(Game& game, uint8_t side) {
         opeu_arrival_view(game, near);
         data.arrival_side = side;
         data.arrival_unit = near;
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), static_cast<uint32_t>(ARRIVAL_PRESENT_SEGMENT) << 16 | ARRIVAL_PRESENT_OFFSET);
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), Presenter::ARRIVAL);
         opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
       }
       arrived = true;

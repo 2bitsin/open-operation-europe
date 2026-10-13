@@ -205,8 +205,3 @@ void opeu_effect_finish(Game& game) {
     opeu_effect_stop(game);
   }
 }
-
-auto port_routine_opeu_music_stop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_music_stop(game);
-  return 0;
-}

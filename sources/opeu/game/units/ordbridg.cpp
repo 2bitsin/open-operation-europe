@@ -26,10 +26,8 @@
 using namespace opeu::game;
 
 namespace {
-// The day's picture of a blown bridge and the link-table address of the routine that ends its show.
+// The day's picture of a blown bridge.
 constexpr std::uint16_t BRIDGE_DESTROYED_PICTURE{ 0x5b };
-constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
-constexpr std::uint16_t DESTROY_PRESENT{ 0x060c };
 } // namespace
 
 uint8_t opeu_order_destroy_loss(Game& game) {
@@ -62,24 +60,10 @@ uint16_t opeu_order_destroy_run(Game& game) {
   if (opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))
       && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) == NO_SIDE) {
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BRIDGE_DESTROYED_PICTURE, static_cast<uint8_t>(data.current_side),
-                    (static_cast<std::uint32_t>(static_cast<std::uint16_t>(DESTROY_PRESENT)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(ORDER_SEGMENT)) << 16));
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BRIDGE_DESTROYED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::BRIDGE_DESTROYED);
     opeu_map_mark_5(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)));
     opeu_map_erase(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)));
     opeu_restore_unit_order(game, data.current_unit_ptr);
   }
   return 1;
-}
-
-auto port_routine_opeu_order_destroy_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_order_destroy_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_order_destroy_run(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_destroy_run(game);
 }

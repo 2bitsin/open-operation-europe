@@ -24,10 +24,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The far addresses of opeu_pending_start_present and opeu_pending_fallback_present, which SHOW calls back.
-constexpr uint16_t PRESENT_SEGMENT{ 0x1270 };
-constexpr uint16_t START_PRESENT_OFFSET{ 0x430 };
-constexpr uint16_t FALLBACK_PRESENT_OFFSET{ 0x4f0 };
 // The daily dialog of the request reports.
 constexpr uint16_t REQUEST_SHOW{ 0x73 };
 // The message that a request was accepted, and the first of the seven that it was turned down.
@@ -66,7 +62,7 @@ void opeu_request_start(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(PRESENT_SEGMENT) << 16 | START_PRESENT_OFFSET);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), Presenter::REQUEST_START);
   auto& config{ data.request_configs[side] };
   config.target   = slot.target;
   config.argument = slot.argument;
@@ -88,17 +84,7 @@ void opeu_request_fallback(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(PRESENT_SEGMENT) << 16 | FALLBACK_PRESENT_OFFSET);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), Presenter::REQUEST_FALLBACK);
   if (slot.kind == std::to_underlying(RequestKind::REGIMENT)) opeu_request_complete(game, side);
   slot.kind = std::to_underlying(RequestKind::NONE);
-}
-
-auto port_routine_opeu_pending_fallback_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_pending_fallback_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_pending_start_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_pending_start_present(game);
-  return 0;
 }

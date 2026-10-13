@@ -31,8 +31,6 @@ namespace {
 constexpr std::uint16_t PROMPT_BYTES{ 0x64 };
 constexpr std::uint16_t NAME_BYTES{ 0x20 };
 
-// The offset of opeu_tally_mark in the callback segment: the choice dialog's select callback.
-constexpr std::uint16_t TALLY_MARK_OFFSET{ 0x10b8 };
 // Stored resources are capped at this amount.
 constexpr std::int32_t RESOURCE_LIMIT{ 60000 };
 
@@ -116,7 +114,7 @@ void opeu_alloc_distribute(Game& game, uint8_t first, uint8_t second, uint8_t th
 // For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters, formatting
 // the prompt (100 bytes) and the unit's name (32 bytes) in the routine's buffers; the dialog's select callback is
 // opeu_tally_mark.
-void opeu_alloc_choose_hq(Game& game, uint16_t callback_segment) {
+void opeu_alloc_choose_hq(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ PROMPT_BYTES + NAME_BYTES };
   auto const          name{ buffers.At(0) };
@@ -126,8 +124,8 @@ void opeu_alloc_choose_hq(Game& game, uint16_t callback_segment) {
     if (unit_near == 0) continue;
     std::uint8_t listed{ 0 };
     for (auto it{ Elements(data, Record<Unit>(data, unit_near)).begin() }; it != std::default_sentinel; ++it) data.alloc_elements[listed++] = it.Near();
-    data.choice_dialog.rows   = static_cast<std::uint8_t>(listed + 1);
-    data.choice_dialog.select = { TALLY_MARK_OFFSET, callback_segment };
+    data.choice_dialog.rows = static_cast<std::uint8_t>(listed + 1);
+    SetListPredicate(data.choice_dialog, ListSelect::TALLY_MARK);
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.regiment_hq_prompt)),
                                                             static_cast<std::uint16_t>(opeu_unit_name(game, unit_near, name)) });
     opeu_ops_chief_text(game, text);
@@ -137,11 +135,4 @@ void opeu_alloc_choose_hq(Game& game, uint16_t callback_segment) {
 
 void opeu_alloc_finish(Game& game) {
   opeu_pending_finish(game, static_cast<uint8_t>(3));
-}
-
-auto port_routine_opeu_alloc_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_alloc_finish(game);
-  return 0;
 }

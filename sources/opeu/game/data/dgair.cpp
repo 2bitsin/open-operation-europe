@@ -32,9 +32,9 @@ auto InitialAirText(DataSegment& data) -> void {
   SetEach(std::to_array<std::uint16_t>({ 0x9e3b, 0x9e44, 0x9e4f, 0x9e55, 0x9e5f, 0x9e68 }), [&](std::size_t index, std::uint16_t value) { data.rq_regiment_kind_names[index] = value; });
   // clang-format off
   data.request_handlers = { {
-    { 0x0136, 0x22f9 },
-    { 0x03b6, 0x22f9 },
-    { 0x0780, 0x22f9 },
+    RequestHandler::SUPPLIES,
+    RequestHandler::BATTALION,
+    RequestHandler::REGIMENT,
   } };
   // clang-format on
   // clang-format off
@@ -127,9 +127,9 @@ auto InitialAirText(DataSegment& data) -> void {
   SetText(data.air_mission_question, "Which air mission, sir");
   // clang-format off
   data.air_missions = { {
-    { 0x05b0, 0x23b2 },
-    { 0x0b28, 0x23b2 },
-    { 0x0e20, 0x23b2 },
+    AirMission::STRIKE,
+    AirMission::PARATROOPERS,
+    AirMission::CARGO_DROP,
   } };
   // clang-format on
   // clang-format off
@@ -212,11 +212,11 @@ auto InitialAirText(DataSegment& data) -> void {
   SetText(data.special_select_question, "Which will you select,\012sir");
   // clang-format off
   data.special_missions = { {
-    { 0x0840, 0x24d5 },
-    { 0x0414, 0x24d5 },
-    { 0x0252, 0x24d5 },
-    { 0x0008, 0x24d5 },
-    { 0x0668, 0x24d5 },
+    SpecialForcesAction::RECON,
+    SpecialForcesAction::CUT_LINES,
+    SpecialForcesAction::SABOTAGE,
+    SpecialForcesAction::RAID,
+    SpecialForcesAction::ASSASSINATE,
   } };
   // clang-format on
   // clang-format off

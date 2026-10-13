@@ -169,12 +169,3 @@ void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), GREY);
 }
-
-auto port_routine_opeu_general_assign_choice(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_general_assign_choice(game, (uint8_t)Arg(args, count, 0));
-}
-
-auto port_routine_opeu_general_list_draw_rows(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_general_list_draw_rows(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
-  return 0;
-}

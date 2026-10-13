@@ -45,7 +45,3 @@ void opeu_tbl_draw_strength(Game& game, uint8_t column, uint8_t first, uint8_t r
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
-
-auto port_routine_opeu_tbl_draw_strength(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, opeu_tbl_draw_strength, args, count);
-}

@@ -139,9 +139,3 @@ uint8_t opeu_tally_units(Game& game, uint16_t unit, uint16_t other) {
   opeu_tally_average(game, count);
   return count;
 }
-
-auto port_routine_opeu_tally_mark(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_tally_mark(game);
-}

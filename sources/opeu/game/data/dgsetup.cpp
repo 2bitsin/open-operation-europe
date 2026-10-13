@@ -11,8 +11,8 @@ namespace opeu::game::detail::dgsetup {
 auto InitialSetupText(DataSegment& data) -> void {
   // clang-format off
   data.glyph_draw = { {
-    { 0x28a8, 0x0000 },
-    { 0x28c5, 0x0000 },
+    GlyphDraw::TRANSPARENT,
+    GlyphDraw::OPAQUE,
   } };
   // clang-format on
   data.text_erase = { 0x08, 0x1b, 0x4d, 0x30, 0x20, 0x08 };
@@ -34,14 +34,8 @@ auto InitialSetupText(DataSegment& data) -> void {
   SetText(data.load_failed_text, "Cannot find that saved game.");
   SetText(data.play_widths, "-&&&&&&");
   SetText(data.reinforce_widths, "-&&&&&&&");
-  data.play_dialog = {
-    0x0012, 0x00e8, 0x004b, 0x015f, 0x45ef, 0x15, { 0x121e, 0x06db },
-          { 0x0f3e, 0x06db }
-  };
-  data.reinforce_dialog = {
-    0x0012, 0x00e8, 0x004b, 0x015f, 0x45f7, 0x15, { 0x121e, 0x06db },
-          { 0x0d28, 0x06db }
-  };
+  data.play_dialog      = { 0x0012, 0x00e8, 0x004b, 0x015f, 0x45ef, 0x15, ListDraw::GENERALS, ListSelect::ASSIGN_GENERAL };
+  data.reinforce_dialog = { 0x0012, 0x00e8, 0x004b, 0x015f, 0x45f7, 0x15, ListDraw::GENERALS, ListSelect::REROLL_STAFF };
   SetText(data.division_reserve_mark, "\033C6(R)\033C7");
   SetText(data.division_strength_format, "Div %d%s\012\012Inf%5d\012Tnk%5d\012Aty%5d");
   SetText(data.chief_ops_format, "\033C%d%-10.10s\033C7");

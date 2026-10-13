@@ -201,7 +201,7 @@ TEST(DataSegment, PointsTheListWindowsAtTheirColumnWidths) {
   EXPECT_EQ(data.save_list.widths, Near(data, data.save_widths));
   EXPECT_EQ(data.play_dialog.widths, Near(data, data.play_widths));
   EXPECT_EQ(data.reinforce_dialog.widths, Near(data, data.reinforce_widths));
-  EXPECT_EQ(data.battle_handlers[9].offset, 0x0050);
+  EXPECT_EQ(data.battle_handlers[9], BattleHandler::EFFECT_9);
   EXPECT_EQ(Text(data, data.supply_arrows[1]), "<-");
   EXPECT_EQ(Text(data, data.transfer_arrows[2]), "->");
 }

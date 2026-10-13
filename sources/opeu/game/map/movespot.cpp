@@ -92,10 +92,3 @@ uint16_t opeu_move_enemy_adjacent(Game& game) {
 void opeu_move_mines_finish(Game& game) {
   opeu_pending_finish(game, static_cast<uint8_t>(MINES_REQUEST));
 }
-
-auto port_routine_opeu_move_mines_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_move_mines_finish(game);
-  return 0;
-}

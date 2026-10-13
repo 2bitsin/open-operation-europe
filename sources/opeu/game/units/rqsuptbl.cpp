@@ -57,7 +57,3 @@ void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, 
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
-
-auto port_routine_opeu_rq_draw_types(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, opeu_rq_draw_types, args, count);
-}

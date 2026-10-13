@@ -28,11 +28,9 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint16_t STOCK_LIMIT{ 60000 };          // the largest stockpile order
-constexpr std::uint16_t CITY_ENABLED_AT{ 0x4e };       // opeu_stock_city_enabled in this module's code segment
-constexpr std::uint16_t STOCK_ORDER_SEGMENT{ 0x1d1e }; // this module's code segment
-constexpr std::uint8_t  FLASH_TICKS{ 4 };              // how long the picked city flashes
-constexpr std::uint8_t  FIRST_HEIGHT{ 7 };             // the list's rows the first time and after a city's orders
+constexpr std::uint16_t STOCK_LIMIT{ 60000 }; // the largest stockpile order
+constexpr std::uint8_t  FLASH_TICKS{ 4 };     // how long the picked city flashes
+constexpr std::uint8_t  FIRST_HEIGHT{ 7 };    // the list's rows the first time and after a city's orders
 constexpr std::uint8_t  LATER_HEIGHT{ 6 };
 
 enum Resource {
@@ -118,9 +116,8 @@ void opeu_stock_edit(Game& game, uint16_t objective) {
   opeu_daily_context(game, static_cast<std::uint8_t>(data.current_side));
 }
 
-// Command action 2: the list of the side's cities until the player leaves it. segment is this module's code segment,
-// for the list's predicate.
-void opeu_turn_action_2(Game& game, uint16_t segment) {
+// Command action 2: the list of the side's cities until the player leaves it.
+void opeu_turn_action_2(Game& game) {
   auto& data{ Data(game) };
   auto& list{ data.city_dialog };
   list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(game) + 1);
@@ -128,7 +125,7 @@ void opeu_turn_action_2(Game& game, uint16_t segment) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_no_cities), data.context_record3);
     return;
   }
-  list.select = { CITY_ENABLED_AT, segment };
+  SetListPredicate(list, ListSelect::STOCK_CITY);
   auto height{ FIRST_HEIGHT };
   for (;;) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_select_city), data.context_record2);
@@ -139,13 +136,4 @@ void opeu_turn_action_2(Game& game, uint16_t segment) {
     opeu_stock_edit(game, objective);
     height = LATER_HEIGHT;
   }
-}
-
-auto port_routine_opeu_stock_city_enabled(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_stock_city_enabled(game);
-}
-
-auto port_routine_opeu_turn_action_2(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_2(game, STOCK_ORDER_SEGMENT);
-  return 0;
 }

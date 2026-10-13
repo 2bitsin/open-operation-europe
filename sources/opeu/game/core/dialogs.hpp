@@ -3,6 +3,7 @@
 
 #include "common/events.hpp"
 #include "common/host.hpp"
+#include "common/presenter.hpp"
 #include "types.hpp"
 
 void     opeu_panel_border(Game& game, const DialogHost* host, uint16_t which);
@@ -16,7 +17,7 @@ void     opeu_title_panel_begin(Game& game, const DialogHost* host);
 void     opeu_message_panel_begin(Game& game, const DialogHost* host);
 void     opeu_screen_reset(Game& game, const DialogHost* host);
 void     opeu_army_title(Game& game, const DialogHost* host, uint16_t name);
-void     opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t side, uint32_t present);
+void     opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t side, opeu::game::Presenter present);
 uint16_t opeu_speaker_panel(Game& game, const DialogHost* host, uint16_t person, uint16_t show);
 void     opeu_text_feed(Game& game, const DialogHost* host, uint16_t text);
 void     opeu_control_message(Game& game, const DialogHost* host, uint16_t text, uint16_t person);

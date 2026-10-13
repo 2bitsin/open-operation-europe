@@ -66,9 +66,3 @@ uint8_t opeu_staff_reroll_selected(Game& game) {
   opeu_staff_reroll_person(game, data.list_row);
   return 0;
 }
-
-auto port_routine_opeu_staff_reroll_selected(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_staff_reroll_selected(game);
-}

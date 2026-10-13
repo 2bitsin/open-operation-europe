@@ -18,6 +18,7 @@
 #include "core/people.hpp"
 #include "core/personfl.hpp"
 #include "core/perssel.hpp"
+#include "core/presenters.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
@@ -28,7 +29,6 @@
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "map/objeleg.hpp"
@@ -199,8 +199,8 @@ void opeu_army_title(Game& game, const DialogHost* host, uint16_t name) {
 }
 
 // A daily event for a side the player watches: picture `id` in a framed box (when event pictures are on), then the
-// far presenter routine; the new-weapon picture plays its fanfare.
-void opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t side, uint32_t present) {
+// presenter; the new-weapon picture plays its fanfare.
+void opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t side, Presenter present) {
   auto const& data{ Data(game) };
   if (data.side_status[side] != SIDE_PLAYED) return;
   if (data.message_pictures == 1) {
@@ -209,7 +209,7 @@ void opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t si
     opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x28, 0x78, 0x137, 0x12f, 7);
     opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 0x30, 0x80, static_cast<int16_t>(data.message_picture_handle), id);
   }
-  if (present) port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(present >> 16)) * 16u + static_cast<std::uint16_t>(present), 0, 0);
+  RunPresenter(game, present);
   if (data.message_pictures == 1 && id == NEW_WEAPON_PICTURE) {
     opeu_delay_units(game, static_cast<uint8_t>(static_cast<std::uint8_t>(data.message_speed * 7)));
     opeu_music_command7(game);

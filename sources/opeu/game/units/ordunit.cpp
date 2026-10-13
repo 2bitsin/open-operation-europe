@@ -65,9 +65,3 @@ void opeu_order_layout_pair(Game& game, uint16_t kind) {
     }
   }
 }
-
-auto port_routine_opeu_supply_unit_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_supply_unit_enabled(game);
-}

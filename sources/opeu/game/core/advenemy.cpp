@@ -228,8 +228,3 @@ void opeu_advice_enemy_conditions(Game& game, const uint8_t* far_text) {
   for (auto const check : CHECKS)
     if (check(game, far_text)) return;
 }
-
-auto port_routine_opeu_advice_enemy_conditions(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_advice_enemy_conditions(game, AdviceTexts());
-  return 0;
-}

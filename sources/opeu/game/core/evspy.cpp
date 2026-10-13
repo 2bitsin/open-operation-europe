@@ -42,9 +42,6 @@ constexpr std::uint16_t HUMPH{ offsetof(DataSegment, spy_humph_text) };
 constexpr std::uint16_t PORTRAIT_LOW{ 0x7500 }; // her portrait's position in the portrait file
 constexpr std::uint16_t PORTRAIT_HIGH{ 3 };
 constexpr std::uint16_t SPY_CONTEXT{ 0x11 };
-constexpr std::uint16_t CODE_SEGMENT{ 0x108c }; // the presenters' code segment
-constexpr std::uint16_t PRESENT_A_OFFSET{ 0x10b8 };
-constexpr std::uint16_t PRESENT_B_OFFSET{ 0x1132 };
 constexpr std::uint16_t GREETING_SHOW{ 0xba };
 constexpr std::uint16_t ENDING_SHOW{ 0xca };
 constexpr Scenario      SPY_SCENARIO{ Scenario::BULGE };
@@ -102,7 +99,7 @@ void opeu_spy_present_a(Game& game) {
 }
 
 void opeu_spy_show_a(Game& game) {
-  port_daily_show(game, GREETING_SHOW, 0, PRESENT_A_OFFSET, CODE_SEGMENT);
+  port_daily_show(game, GREETING_SHOW, 0, Presenter::SPY_GREETING);
 }
 
 // The accepted ending: experience up by 1, the health limit down by 1 and health capped at it.
@@ -129,7 +126,7 @@ void opeu_spy_approach(Game& game) {
     auto const accepted{ static_cast<uint16_t>(opeu_yes_no(game)) };
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), BOLD_OFF);
     if (accepted)
-      port_daily_show(game, ENDING_SHOW, 0, PRESENT_B_OFFSET, CODE_SEGMENT);
+      port_daily_show(game, ENDING_SHOW, 0, Presenter::SPY_ENDING);
     else {
       opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(HUMPH) });
       opeu_spy_portrait_text(game, BUFFER, 1);
@@ -158,19 +155,4 @@ void opeu_spy_event(Game& game) {
     if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Lookup(game, 0x3a), adviser)) opeu_spy_approach(game);
     flags |= Bits(SideFlag::SPY_DONE);
   }
-}
-
-auto port_routine_opeu_spy_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_spy_event(game);
-  return 0;
-}
-
-auto port_routine_opeu_spy_present_a(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_spy_present_a(game);
-  return 0;
-}
-
-auto port_routine_opeu_spy_present_b(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_spy_present_b(game);
-  return 0;
 }

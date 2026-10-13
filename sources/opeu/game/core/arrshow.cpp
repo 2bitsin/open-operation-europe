@@ -43,10 +43,3 @@ void opeu_arrival_present(Game& game) {
                                                           static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(token), static_cast<std::uint16_t>(name) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_BUFFER, data.request_person);
 }
-
-auto port_routine_opeu_arrival_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_arrival_present(game);
-  return 0;
-}

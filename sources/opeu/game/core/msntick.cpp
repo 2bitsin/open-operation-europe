@@ -1,5 +1,6 @@
 // The hourly countdown of the special-forces missions, and the first step of the hourly turn.
 #include "core/msntick.hpp"
+#include "common/dispatch.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/mission.hpp"
@@ -16,12 +17,27 @@
 
 #include "common/game.hpp"
 #include "core/msnkill.hpp"
+#include "core/msnraid.hpp"
+#include "core/msnrecon.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
+
+namespace {
+// The missions' routines, by the enumerator mission_handlers holds for the mission's kind; each is given the side.
+constexpr auto MISSION_HANDLERS = DispatchRows<MissionHandler, auto (*)(Game&, std::uint8_t)->void>({
+    { MissionHandler::RAID_CITY,      opeu_mission_raid_objective  },
+    { MissionHandler::RAID_UNIT,      opeu_mission_raid_unit       },
+    { MissionHandler::SABOTAGE,       opeu_mission_sabotage        },
+    { MissionHandler::CUT_LINES_CITY, opeu_mission_objective_3     },
+    { MissionHandler::CUT_LINES_UNIT, opeu_mission_unit_4          },
+    { MissionHandler::ASSASSINATION,  opeu_mission_assassinate     },
+    { MissionHandler::RECON_CITY,     opeu_mission_recon_objective },
+    { MissionHandler::RECON_UNIT,     opeu_mission_recon_unit      },
+});
+} // namespace
 
 // Whether the mission's target still stands: a city the enemy holds, or a fielded enemy unit that is spotted.
 uint16_t opeu_mission_target_valid(Game& game, uint16_t mission, uint8_t side) {
@@ -47,9 +63,7 @@ void opeu_mission_tick(Game& game) {
     if (mission.kind == Bits(MissionKind::NONE)) continue;
     if (opeu_mission_target_valid(game, Near(Data(game), mission), side)) {
       if (--mission.progress == 0) {
-        auto const&                   handler{ Data(game).mission_handlers[mission.kind] };
-        std::array<uint16_t, 1> const words{ side };
-        port_call(game, static_cast<uint32_t>(handler.segment) * 16u + handler.offset, words.data(), words.size());
+        Dispatch(MISSION_HANDLERS, Data(game).mission_handlers.at(mission.kind), game, side);
         mission.kind = Bits(MissionKind::NONE);
       }
     } else

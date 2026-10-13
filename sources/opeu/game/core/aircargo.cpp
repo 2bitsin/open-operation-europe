@@ -58,8 +58,6 @@ constexpr std::uint16_t STOCK_LIMIT{ 60000 };
 constexpr std::uint16_t LOST_ROW{ 0x114 }; // with no plane left the flight ends here
 constexpr std::uint16_t DROP_LEAD{ 0x20 }; // rows above the target where the load drops
 constexpr std::uint16_t CARGO_PICTURE{ 0x103 };
-constexpr std::uint16_t CARGO_PRESENTER{ 0x1042 }; // opeu_cargo_drop_present, in the code segment below
-constexpr std::uint16_t CARGO_SEGMENT{ 0x0f43 };
 
 // opeu_cargo_drop_event's locals that services fill, as offsets in its reserve: the report, the unit's name and the
 // unit's capacities.
@@ -160,7 +158,7 @@ void opeu_cargo_drop_event(Game& game) {
     opeu_air_sprite_draw(game, 0, pixel.x, row, static_cast<std::uint8_t>(side));
     if (pixel.y == row) {
       auto const shown{ static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side))) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, static_cast<std::uint8_t>(shown), static_cast<std::uint32_t>(CARGO_SEGMENT) << 16 | CARGO_PRESENTER);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, static_cast<std::uint8_t>(shown), Presenter::CARGO_DROP);
     }
     if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
       opeu_music_command7(game);
@@ -212,7 +210,7 @@ void opeu_air_operations(Game& game) {
   for (data.air_side = 0; data.air_side < 2; ++data.air_side) {
     if (opeu_air_strike_due(game)) opeu_air_strike_event(game);
     if (opeu_para_drop_due(game)) {
-      opeu_para_drop_event(game, 0);
+      opeu_para_drop_event(game);
       data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_DROP_READY));
     }
     if (opeu_cargo_drop_due(game)) {
@@ -220,9 +218,4 @@ void opeu_air_operations(Game& game) {
       data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_CARGO_READY));
     }
   }
-}
-
-auto port_routine_opeu_cargo_drop_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_cargo_drop_present(game);
-  return 0;
 }

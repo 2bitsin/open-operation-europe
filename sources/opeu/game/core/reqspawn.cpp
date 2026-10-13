@@ -34,6 +34,6 @@ void opeu_request_action2(Game& game, uint8_t side, uint16_t) {
   opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(side));
   opeu_arrival_view(game, data.arrival_unit);
   data.arrival_side = side;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), static_cast<uint32_t>(ARRIVAL_PRESENT_SEGMENT) << 16 | ARRIVAL_PRESENT_OFFSET);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), Presenter::ARRIVAL);
   opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
 }

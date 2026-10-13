@@ -45,19 +45,12 @@ using namespace opeu::game;
 
 namespace {
 
-// The pictures of the day's show and the link-table addresses of the routines that end it.
-constexpr std::uint16_t ENGINEER_SEGMENT{ 0x319e };
+// The pictures of the day's show.
 enum Picture : std::uint16_t {
   MINES_LAID_PICTURE    = 0x191,
   MINES_REMOVED_PICTURE = 0x68,
   BRIDGE_PICTURE        = 0x1a2,
   ARMS_PICTURE          = 0x1b4,
-};
-enum Finish : std::uint16_t {
-  MINES_LAID_FINISH    = 0x00a0,
-  MINES_REMOVED_FINISH = 0x016a,
-  BRIDGE_BUILT_FINISH  = 0x02b8,
-  ARMS_REPAIRED_FINISH = 0x03ba,
 };
 
 // The engineering skill roll, computed in 16-bit words of which the low byte is kept. The services are called in the
@@ -79,9 +72,8 @@ auto LowerProgress(Game& game, std::uint8_t roll) -> std::uint16_t {
   return opeu_move_level_lower(game, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), static_cast<uint8_t>(roll));
 }
 
-auto Show(Game& game, Picture picture, Finish finish) -> void {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(Data(game).current_side),
-                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(finish)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(ENGINEER_SEGMENT)) << 16));
+auto Show(Game& game, Picture picture, Presenter finish) -> void {
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(Data(game).current_side), finish);
 }
 
 auto Report(Game& game, auto const& text) -> void {
@@ -119,7 +111,7 @@ uint16_t opeu_engineer_lay_mines(Game& game) {
       Report(game, data.mines_laid_text);
       opeu_mark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side));
       opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
-      Show(game, MINES_LAID_PICTURE, MINES_LAID_FINISH);
+      Show(game, MINES_LAID_PICTURE, Presenter::MINES_LAID);
       RestoreOrder(game);
     }
     return 1;
@@ -148,7 +140,7 @@ uint16_t opeu_engineer_remove_mines(Game& game) {
       opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(0));
       opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(1));
       opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
-      Show(game, MINES_REMOVED_PICTURE, MINES_REMOVED_FINISH);
+      Show(game, MINES_REMOVED_PICTURE, Presenter::MINES_REMOVED);
       RestoreOrder(game);
     }
     return 1;
@@ -181,7 +173,7 @@ uint16_t opeu_engineer_build_bridge(Game& game) {
       Report(game, data.bridge_built_text);
       opeu_map_mark_10(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
       opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
-      Show(game, BRIDGE_PICTURE, BRIDGE_BUILT_FINISH);
+      Show(game, BRIDGE_PICTURE, Presenter::BRIDGE_BUILT);
       RestoreOrder(game);
     }
     return 1;
@@ -231,7 +223,7 @@ uint16_t opeu_engineer_repair_objective(Game& game) {
     if (item.quantity && opeu_arms_repair(game, budget, Near(data, item))) repaired = true;
   if (!repaired) {
     Report(game, data.arms_repaired_text);
-    Show(game, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
+    Show(game, ARMS_PICTURE, Presenter::ARMS_REPAIRED);
     RestoreOrder(game);
   }
   return 1;
@@ -259,66 +251,8 @@ uint16_t opeu_engineer_repair_unit(Game& game) {
     if (opeu_arms_repair(game, budget, Near(data, Record<Element>(data, element).type))) repaired = true;
   if (!repaired) {
     Report(game, data.unit_arms_repaired_text);
-    Show(game, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
+    Show(game, ARMS_PICTURE, Presenter::ARMS_REPAIRED);
     RestoreOrder(game);
   }
   return 1;
-}
-
-auto port_routine_opeu_arms_repaired_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_arms_repaired_finish(game);
-  return 0;
-}
-
-auto port_routine_opeu_bridge_built_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_bridge_built_finish(game);
-  return 0;
-}
-
-auto port_routine_opeu_engineer_build_bridge(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_engineer_build_bridge(game);
-}
-
-auto port_routine_opeu_engineer_lay_mines(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_engineer_lay_mines(game);
-}
-
-auto port_routine_opeu_engineer_remove_mines(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_engineer_remove_mines(game);
-}
-
-auto port_routine_opeu_engineer_repair_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_engineer_repair_objective(game);
-}
-
-auto port_routine_opeu_engineer_repair_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_engineer_repair_unit(game);
-}
-
-auto port_routine_opeu_mines_laid_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_mines_laid_finish(game);
-  return 0;
-}
-
-auto port_routine_opeu_mines_removed_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_mines_removed_finish(game);
-  return 0;
 }

@@ -68,12 +68,3 @@ void opeu_request_supplies(Game& game) {
 uint8_t opeu_rq_type_selectable() {
   return 1;
 }
-
-auto port_routine_opeu_request_supplies(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_request_supplies(game);
-  return 0;
-}
-
-auto port_routine_opeu_rq_type_selectable(Game&, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_rq_type_selectable();
-}

@@ -28,7 +28,6 @@
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mapunit.hpp"
 #include "map/objdamag.hpp"
 #include "port.hpp"
@@ -99,8 +98,7 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
         opeu_string_append(game, text, MissionText(game, ASSASSINATED));
         opeu_string_append(game, text, static_cast<uint16_t>(offsetof(DataSegment, mission_bold_off)));
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, static_cast<uint8_t>(commander_side),
-                        (static_cast<std::uint32_t>(static_cast<std::uint16_t>(DELAY_PRESENTER)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(MISSION_CODE_SEGMENT)) << 16));
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, static_cast<uint8_t>(commander_side), Presenter::MISSION_DELAY);
       }
     }
     if (struck) {
@@ -113,9 +111,4 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
     }
   }
   opeu_mission_report_failure(game, side, text);
-}
-
-auto port_routine_opeu_mission_assassinate(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_assassinate(game, (uint8_t)Arg(args, count, 0));
-  return 0;
 }

@@ -4,4 +4,4 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_turn_action_6(Game& game, uint16_t segment);
+void opeu_turn_action_6(Game& game);

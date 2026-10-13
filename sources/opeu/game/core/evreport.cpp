@@ -38,14 +38,7 @@ using namespace opeu::game;
 
 namespace {
 
-// opeu_report_present as the far routine (segment, offset) the daily item's presenter calls.
-struct FarRoutine {
-  std::uint16_t segment;
-  std::uint16_t offset;
-};
-constexpr FarRoutine REPORT_PRESENTER{ 0x108c, 0x1302 };
-// The code segment the angel event's actions are stored with, and the bomb event's load.
-constexpr std::uint16_t ANGEL_CODE_SEGMENT{ 0x108c };
+// The bomb event's load.
 constexpr std::uint16_t BOMB_LOAD{ 0 };
 
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
@@ -64,7 +57,7 @@ void ReportUnits(Game& game, ReportList const& list, std::uint16_t message, std:
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, TEXT);
     if (!seen) {
       auto const side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), item, side, static_cast<std::uint32_t>(REPORT_PRESENTER.segment) << 16 | REPORT_PRESENTER.offset);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), item, side, Presenter::REPORT);
       seen = true;
     }
   }
@@ -127,16 +120,11 @@ void opeu_turn_hourly_b(Game& game) {
   opeu_loss_event_a(game);
   opeu_loss_event_b(game);
   opeu_bomb_event(game, BOMB_LOAD);
-  opeu_angel_event(game, ANGEL_CODE_SEGMENT);
+  opeu_angel_event(game);
   opeu_spy_event(game);
   opeu_visit_event(game);
   opeu_report_event(game);
   opeu_wound_event(game);
   opeu_objective_comms_event(game);
   opeu_unit_hourly_event(game);
-}
-
-auto port_routine_opeu_report_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_report_present(game);
-  return 0;
 }

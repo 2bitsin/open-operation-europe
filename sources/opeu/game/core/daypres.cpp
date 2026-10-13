@@ -51,8 +51,3 @@ void opeu_daily_present(Game& game) {
                                                           static_cast<std::uint16_t>(type.category == Bits(Category::TANKS) ? NEW_WEAPON_TANK : NEW_WEAPON_PERIOD) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, Speaker(game));
 }
-
-auto port_routine_opeu_daily_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_daily_present(game);
-  return 0;
-}

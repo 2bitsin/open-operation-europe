@@ -12,6 +12,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "vgalib.hpp"
 
 #include <cstdint>
 #include <utility>
@@ -20,9 +21,17 @@ using namespace opeu::game;
 
 namespace {
 
-// The decoder's byte readers in this module's code segment: opeu_stream_file_byte and opeu_stream_memory_byte.
-constexpr std::uint16_t FILE_READER{ 0x132 };
-constexpr std::uint16_t MEMORY_READER{ 0x1fc };
+// Where the picture decoder's bytes come from: the open picture file, or a picture in memory.
+enum class StreamSource : std::uint8_t {
+  FILE,
+  MEMORY,
+};
+
+// The decoder's byte reader of a source, bound to this game and host.
+auto ReaderOf(Game& game, UiHost const* host, StreamSource source) -> PictureByteReader {
+  if (source == StreamSource::FILE) return [&game, host] { return opeu_stream_file_byte(game, host); };
+  return [&game, host] { return opeu_stream_memory_byte(game, host); };
+}
 
 // The image buffer segment: pictures are read and decoded below this offset, faces unpacked at FACE_BUFFER.
 constexpr std::uint16_t IMAGE_END{ 0xc800 };
@@ -204,13 +213,13 @@ void opeu_stream_seek_block(Game& game, const UiHost* host, uint16_t x, uint16_t
 void opeu_picture_file(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, host, x, y, block);
-  opeu_picture_decode(x, y, port_picture_reader(FILE_READER, host->code_segment));
+  opeu_picture_decode(x, y, ReaderOf(game, host, StreamSource::FILE));
 }
 
 void opeu_picture_file_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, host, x, y, block);
-  opeu_picture_decode_masked(x, y, port_picture_reader(FILE_READER, host->code_segment));
+  opeu_picture_decode_masked(x, y, ReaderOf(game, host, StreamSource::FILE));
 }
 
 // The decoder's reader for a picture in memory.
@@ -220,12 +229,12 @@ uint8_t opeu_stream_memory_byte(Game& game, const UiHost* host) {
 
 void opeu_picture_memory(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
-  opeu_picture_decode(x, y, port_picture_reader(MEMORY_READER, host->code_segment));
+  opeu_picture_decode(x, y, ReaderOf(game, host, StreamSource::MEMORY));
 }
 
 void opeu_picture_memory_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
-  opeu_picture_decode_masked(x, y, port_picture_reader(MEMORY_READER, host->code_segment));
+  opeu_picture_decode_masked(x, y, ReaderOf(game, host, StreamSource::MEMORY));
 }
 
 void opeu_stream_seek(Game& game, const UiHost* host, int32_t position, int16_t handle) {
@@ -234,7 +243,7 @@ void opeu_stream_seek(Game& game, const UiHost* host, int32_t position, int16_t 
 
 void opeu_picture_file_at(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, int32_t position) {
   opeu_stream_seek(game, host, position, handle);
-  opeu_picture_decode_masked(x, y, port_picture_reader(FILE_READER, host->code_segment));
+  opeu_picture_decode_masked(x, y, ReaderOf(game, host, StreamSource::FILE));
 }
 
 // The frame of the context panel from the tile segment: left end, middle columns, right end; then the cursor inside.

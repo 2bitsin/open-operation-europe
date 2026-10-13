@@ -48,7 +48,7 @@ auto Column(DataSegment const& data) -> std::uint16_t {
 }
 
 auto Outline(Game& game, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2) -> void {
-  UiHost host{ nullptr, 0, 0, 0 };
+  UiHost host{ nullptr, 0, 0 };
   opeu_ui_outline(game, &host, x1, y1, x2, y2, OUTLINE_COLOUR);
 }
 

@@ -72,8 +72,3 @@ void opeu_view_division_contact(Game& game) {
       opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), CONTACT_LOST, static_cast<std::uint16_t>(data.context_record3));
   }
 }
-
-auto port_routine_opeu_view_division_contact(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_division_contact(game);
-  return 0;
-}

@@ -64,8 +64,8 @@ auto InitialSupplyText(DataSegment& data) -> void {
                          0x73, 0x20, 0x77, 0x69, 0x6c, 0x6c, 0x0a, 0x79, 0x6f, 0x75, 0x20, 0x76, 0x69, 0x65, 0x77 };
   // clang-format off
   data.people_actions = { {
-    { 0x0656, 0x1fe6 },
-    { 0x06ae, 0x1fe6 },
+    PeopleAction::OWN,
+    PeopleAction::ENEMY,
   } };
   // clang-format on
   // clang-format off
@@ -85,8 +85,8 @@ auto InitialSupplyText(DataSegment& data) -> void {
           [&](std::size_t index, std::uint16_t value) { data.city_side_prompt[index] = value; });
   // clang-format off
   data.city_actions = { {
-    { 0x082e, 0x1fe6 },
-    { 0x085e, 0x1fe6 },
+    CityAction::OWN,
+    CityAction::ENEMY,
   } };
   // clang-format on
   // clang-format off
@@ -106,8 +106,8 @@ auto InitialSupplyText(DataSegment& data) -> void {
           [&](std::size_t index, std::uint16_t value) { data.info_prompt[index] = value; });
   // clang-format off
   data.info_actions = { {
-    { 0x09d6, 0x1fe6 },
-    { 0x0a7a, 0x1fe6 },
+    InfoAction::OWN,
+    InfoAction::ENEMY,
   } };
   // clang-format on
   // clang-format off
@@ -125,8 +125,8 @@ auto InitialSupplyText(DataSegment& data) -> void {
           [&](std::size_t index, std::uint16_t value) { data.arms_prompt[index] = value; });
   // clang-format off
   data.arms_actions = { {
-    { 0x0ba6, 0x1fe6 },
-    { 0x0be4, 0x1fe6 },
+    ArmsAction::OWN,
+    ArmsAction::ENEMY,
   } };
   // clang-format on
   // clang-format off
@@ -149,12 +149,12 @@ auto InitialSupplyText(DataSegment& data) -> void {
           [&](std::size_t index, std::uint16_t value) { data.view_main_prompt[index] = value; });
   // clang-format off
   data.view_main_actions = { {
-    { 0x04fa, 0x1fe6 },
-    { 0x0724, 0x1fe6 },
-    { 0x0894, 0x1fe6 },
-    { 0x0b02, 0x1fe6 },
-    { 0x0c28, 0x1fe6 },
-    { 0x0c64, 0x1fe6 },
+    ViewMainAction::DIVISIONS,
+    ViewMainAction::OFFICERS,
+    ViewMainAction::CITIES,
+    ViewMainAction::UNITS,
+    ViewMainAction::ARMAMENTS,
+    ViewMainAction::VICTORY,
   } };
   // clang-format on
   // clang-format off
@@ -198,18 +198,12 @@ auto InitialSupplyText(DataSegment& data) -> void {
   // clang-format on
   SetText(data.nation_code_other, "    ");
   SetText(data.supply_type_list_widths, ".%+");
-  data.supply_type_list = {
-    0x0000, 0x001c, 0x0020, 0x00f9, 0x97af, 0x0d, { 0x0dfe, 0x20b3 },
-          { 0x0dfa, 0x20b3 }
-  };
+  data.supply_type_list = { 0x0000, 0x001c, 0x0020, 0x00f9, 0x97af, 0x0d, ListDraw::SUPPLY_TYPES, ListSelect::ANY_SUPPLY_TYPE };
   SetText(data.supply_type_header, " Battalion     NAT  #OK (dmg)");
   SetText(data.supply_type_row, "\033C%c %-12.12s %4s  %4u (%2u)\033C7");
   SetText(data.supply_slot_list_widths, "6%%");
   SetText(data.supply_returned_slot, "\033C%c -- -- -- -- -- -- --           \033C7");
-  data.supply_slot_list = {
-    0x002c, 0x001c, 0x004e, 0x00f9, 0x9805, 0x0d, { 0x0fac, 0x20b3 },
-          { 0x0ed8, 0x20b3 }
-  };
+  data.supply_slot_list = { 0x002c, 0x001c, 0x004e, 0x00f9, 0x9805, 0x0d, ListDraw::SUPPLY_SLOTS, ListSelect::RETURN_SLOT };
   SetText(data.supply_slot_header, " Battalion             NAT  #OK");
   SetText(data.supply_slot_row, "\033C%c %-20s %4s %4d \033C7");
   SetText(data.supply_empty_slot, "\033C%c -- -- -- -- -- -- -- \033C7");
@@ -244,10 +238,7 @@ auto InitialSupplyText(DataSegment& data) -> void {
   SetText(data.rq_supplies_where, "Which city would you\012like to receive\012the supplies?");
   SetText(data.rq_supplies_confirm, "%s.\012Is this correct, sir?");
   SetText(data.rq_type_dialog_widths, ".&'&&&&");
-  data.rq_type_dialog = {
-    0x000e, 0x0080, 0x0043, 0x0119, 0x9c01, 0x9f, { 0x01f6, 0x22f9 },
-          { 0x01f2, 0x22f9 }
-  };
+  data.rq_type_dialog = { 0x000e, 0x0080, 0x0043, 0x0119, 0x9c01, 0x9f, ListDraw::REQUEST_TYPES, ListSelect::REQUEST_TYPE };
   SetText(data.rq_type_header, "  Nat  AP/AT   Def   Spd  M.Rng G.Rng");
   SetText(data.rq_type_name, "%-13.13s");
   SetText(data.rq_type_row, "  %2s  %2d/%2d  %4d  %4d  %4d %4d ");
@@ -256,10 +247,7 @@ auto InitialSupplyText(DataSegment& data) -> void {
   SetText(data.rq_arms_where, "To which city shall we assign the battalion, sir?");
   SetText(data.rq_arms_confirm, "%s.\012Is this correct, sir?");
   SetText(data.rq_regiment_list_widths, ",&&&&");
-  data.rq_regiment_list = {
-    0x0015, 0x0080, 0x003b, 0x0119, 0x9cec, 0x21, { 0x04d2, 0x22f9 },
-          { 0x04ce, 0x22f9 }
-  };
+  data.rq_regiment_list = { 0x0015, 0x0080, 0x003b, 0x0119, 0x9cec, 0x21, ListDraw::REQUEST_UNITS, ListSelect::REQUEST_UNIT };
   SetText(data.rq_unit_header, "  Men  Fuel  Ammo  Food");
   SetText(data.rq_unit_name, "%-12.12s");
   SetText(data.rq_unit_row, "  0/0     0     0     0 ");

@@ -98,16 +98,3 @@ void opeu_group_set_target(Game& game, uint8_t group) {
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
   for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(game, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
 }
-
-auto port_routine_opeu_group_target_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_group_target_enabled(game);
-}
-
-auto port_routine_opeu_menu_always(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  (void)args;
-  (void)count;
-  return opeu_menu_always();
-}

@@ -28,16 +28,16 @@ auto InitialBattleText(DataSegment& data) -> void {
   SetText(data.battle_fmt_end, "\033M0");
   // clang-format off
   data.battle_handlers = { {
-    { 0x0008, 0x0d92 },
-    { 0x0010, 0x0d92 },
-    { 0x0018, 0x0d92 },
-    { 0x0020, 0x0d92 },
-    { 0x0028, 0x0d92 },
-    { 0x0030, 0x0d92 },
-    { 0x0038, 0x0d92 },
-    { 0x0040, 0x0d92 },
-    { 0x0048, 0x0d92 },
-    { 0x0050, 0x0d92 },
+    BattleHandler::EFFECT_0,
+    BattleHandler::EFFECT_1,
+    BattleHandler::EFFECT_2,
+    BattleHandler::EFFECT_3,
+    BattleHandler::EFFECT_4,
+    BattleHandler::EFFECT_5,
+    BattleHandler::EFFECT_6,
+    BattleHandler::EFFECT_7,
+    BattleHandler::EFFECT_8,
+    BattleHandler::EFFECT_9,
   } };
   // clang-format on
   data.battle_info_widths      = { 0x0b, 0x09, 0x08, 0x08 };
@@ -64,10 +64,7 @@ auto InitialBattleText(DataSegment& data) -> void {
   SetText(data.battle_terrain_format, "%-15.15s (%3u-%3u)");
   SetText(data.battle_title_end, "\033M0\033C7");
   data.deploy_widths = { 0x2e, 0x26, 0x26, 0x26, 0x26, 0x26 };
-  data.deploy_window = {
-    0x0011, 0x008c, 0x003f, 0x0103, 0xb538, 0x07, { 0x0006, 0x2af1 },
-          { 0x0002, 0x2af1 }
-  };
+  data.deploy_window = { 0x0011, 0x008c, 0x003f, 0x0103, 0xb538, 0x07, ListDraw::DEPLOYMENT, ListSelect::ANY_DEPLOYMENT };
   SetText(data.deploy_header, " Cord  # OK  Mrle  Trng  Fatg");
   SetText(data.deploy_mark, "\033B8");
   SetText(data.deploy_name, " %-13.13s\033B0");
@@ -379,20 +376,20 @@ auto InitialBattleText(DataSegment& data) -> void {
   SetText(data.arrived_text, "Arrived at destination.\033W2");
   // clang-format off
   data.order_handlers = { {
-    { 0x0002, 0x32ca },
-    { 0x028a, 0x3131 },
-    { 0x044c, 0x3131 },
-    { 0x0550, 0x3131 },
-    { 0x00a8, 0x319e },
-    { 0x0172, 0x319e },
-    { 0x02c0, 0x319e },
-    { 0x061a, 0x3131 },
-    { 0x0ca6, 0x31f4 },
-    { 0x0d06, 0x31f4 },
-    { 0x03c2, 0x319e },
-    { 0x04a0, 0x319e },
-    { 0x004a, 0x32ca },
-    { 0x00ac, 0x32ca },
+    OrderHandler::ARRIVE,
+    OrderHandler::OCCUPY,
+    OrderHandler::ATTACK,
+    OrderHandler::DEFEND,
+    OrderHandler::LAY_MINES,
+    OrderHandler::REMOVE_MINES,
+    OrderHandler::BUILD_BRIDGE,
+    OrderHandler::DESTROY,
+    OrderHandler::SUPPLY_OBJECTIVE,
+    OrderHandler::SUPPLY_UNIT,
+    OrderHandler::REPAIR_OBJECTIVE,
+    OrderHandler::REPAIR_UNIT,
+    OrderHandler::REACH_UNIT,
+    OrderHandler::HOLD,
   } };
   // clang-format on
   data.order_moves[0]   = 0x0001;

@@ -20,6 +20,271 @@ struct FarPointer {
   std::uint16_t segment;
 };
 
+// What a noon event does besides its news (NoonEvent::action; core/noonevt). A code enumerator's value is its routine's
+// original far address, segment << 16 | offset, so the 4-byte slot keeps the bytes it had and the data segment image
+// stays identical through M2; M4 renumbers the enums densely.
+enum class NoonAction : std::uint32_t {
+  NONE                                = 0x00000000, // no action
+  NOTHING                             = 0x0e570004, // an action that does nothing
+  BLOCK_AXIS_REGIMENTS                = 0x0e570006,
+  BLOCK_AXIS_SUPPLIES_AND_BATTALIONS  = 0x0e57000e,
+  BLOCK_AXIS_BATTALIONS_AND_REGIMENTS = 0x0e570018,
+  ALLOW_AXIS_BATTALIONS_AND_REGIMENTS = 0x0e570022,
+  RAISE_AXIS_MORALE                   = 0x0e57002c,
+  LOWER_AXIS_MORALE                   = 0x0e570066,
+  LOWER_ALLIED_MORALE                 = 0x0e57009c,
+  AXIS_MORALE_BLOCKADE                = 0x0e5700d2,
+  AXIS_RESERVES                       = 0x0e5700dc, // the Axis expects its reserves
+  ALLIED_RESERVES                     = 0x0e57010e, // the Allies expect their reserves
+  ALLIED_POOL                         = 0x0e570140, // the Allied pool gains 500
+};
+
+// The row-draw routine of a list window (ListWindow::draw; io/listui).
+enum class ListDraw : std::uint32_t {
+  GENERALS      = 0x06db121e,
+  GROUPS        = 0x0c450002,
+  MISSIONS      = 0x0c4501e6,
+  UNITS         = 0x0c4503a6,
+  ORDERS        = 0x0c450650,
+  ELEMENTS      = 0x0c4507ac,
+  STAFF         = 0x0c45092c,
+  TYPES         = 0x0c450b0c,
+  SUPPLIES      = 0x0c450cc0,
+  STRENGTH      = 0x0c450e74,
+  SAVES         = 0x0c450ff4,
+  SUPPLY_TYPES  = 0x20b30dfe,
+  SUPPLY_SLOTS  = 0x20b30fac,
+  REQUEST_TYPES = 0x22f901f6,
+  REQUEST_UNITS = 0x22f904d2,
+  DEPLOYMENT    = 0x2af10006,
+};
+
+// The select routine of a list window (ListWindow::select; io/listdlg): which rows may be chosen, or what choosing one
+// does.
+enum class ListSelect : std::uint32_t {
+  NONE                 = 0x00000000, // not set: the window is not run as a dialog
+  REROLL_STAFF         = 0x06db0d28,
+  ASSIGN_GENERAL       = 0x06db0f3e,
+  SAVE_ACCEPT          = 0x0c450ff0,
+  GROUP_TARGET         = 0x1c230006,
+  ANY_ORDER_TARGET     = 0x1c230040,
+  SUPPLY_UNIT          = 0x1c23021c,
+  STOCK_CITY           = 0x1d1e004e,
+  TRANSFER_GROUP       = 0x1d42009a,
+  TRANSFER_UNIT        = 0x1d4200d4,
+  TRANSFER_ELEMENT     = 0x1d420110,
+  ANY_GENERAL          = 0x1d82000c,
+  DIVISION_TOGGLE      = 0x1d82003c,
+  VIEW_OBJECTIVE       = 0x1fe60120, // own objectives that may be listed, enemy ones that are marked
+  VIEW_NONE            = 0x1fe6016e, // no row
+  VIEW_DIVISION        = 0x1fe60172, // a present division whose selected regiment may be selected
+  VIEW_REGIMENT        = 0x1fe601ac, // a present regiment that may be selected if ours, sighted if the enemy's
+  VIEW_NONE_2          = 0x1fe60200, // no row
+  VIEW_NONE_3          = 0x1fe60204, // no row
+  VIEW_ANY             = 0x1fe60208, // every row
+  SUPPLY_UNIT_ELIGIBLE = 0x20b30d40,
+  ANY_SUPPLY_TYPE      = 0x20b30dfa,
+  RETURN_SLOT          = 0x20b30ed8,
+  TALLY_MARK           = 0x20b310b8,
+  REQUEST_TYPE         = 0x22f901f2,
+  REQUEST_UNIT         = 0x22f904ce,
+  AIR_MARK_REGIMENT    = 0x23b206ca,
+  AIR_ASSIGN_TROOPS    = 0x23b206de,
+  AIR_MARK_BATTALION   = 0x23b2077a,
+  ANY_DEPLOYMENT       = 0x2af10002,
+};
+
+// What runs while the keyboard is polled (idle_hook; io/keyboard).
+enum class IdleHook : std::uint32_t {
+  NONE        = 0x00000000,
+  TEXT_CURSOR = 0x0541002e, // blinks the text cursor
+};
+
+// What runs while a dialog message shows (message_hook; core/scenbrf sets it, nothing calls it).
+enum class MessageHook : std::uint32_t {
+  NONE           = 0x00000000,
+  BRIEFING_BLINK = 0x0d9b0000, // blinks the briefing's named city
+};
+
+// How a console glyph is drawn (glyph_draw; core/textout).
+enum class GlyphDraw : std::uint32_t {
+  TRANSPARENT = 0x000028a8,
+  OPAQUE      = 0x000028c5,
+};
+
+// The briefing that opens a side's first turn, by scenario (side_initializers; core/sideinit).
+enum class SideInitializer : std::uint32_t {
+  FRANCE   = 0x0d9b0038,
+  AFRICA   = 0x0d9b0180,
+  KURSK    = 0x0d9b0300,
+  NORMANDY = 0x0d9b0480,
+  ARDENNES = 0x0d9b061e,
+  BERLIN   = 0x0d9b0784,
+};
+
+// What a special-forces mission does when it comes due, by MissionKind (mission_handlers; core/msntick).
+enum class MissionHandler : std::uint32_t {
+  RAID_CITY      = 0x0e8e028c,
+  RAID_UNIT      = 0x0e8e036a,
+  SABOTAGE       = 0x0e8e044c,
+  CUT_LINES_CITY = 0x0e8e052c,
+  CUT_LINES_UNIT = 0x0e8e0614,
+  ASSASSINATION  = 0x0e8e06f8,
+  RECON_CITY     = 0x0e8e0910,
+  RECON_UNIT     = 0x0e8e09b8,
+};
+
+// What the angel's remark does to the commander's unit (angel_actions; core/evangel).
+enum class AngelAction : std::uint32_t {
+  DEMORALIZE = 0x108c0db8,
+  INSPIRE    = 0x108c0e0e,
+  JUDGE_SIDE = 0x108c0e4e,
+};
+
+// The command menu's entries (control_actions; core/control1).
+enum class ControlAction : std::uint32_t {
+  DELAY          = 0x1389012c, // wait: the turn's delay
+  ORDERS         = 0x1c230e86,
+  STOCKS         = 0x1d1e01c2,
+  TRANSFER       = 0x1d4201d2,
+  PERSONNEL      = 0x1d8204c8,
+  STAFF          = 0x1dd220fc,
+  ORGANIZE       = 0x20b31f4e,
+  REQUEST        = 0x22f90970,
+  AIR_FORCE      = 0x23b210da,
+  SPECIAL_FORCES = 0x24d50b26,
+  SETTINGS       = 0x25970d72,
+};
+
+// The personnel menu's entries (personnel_actions; core/persmenu).
+enum class PersonnelAction : std::uint32_t {
+  REASSIGN = 0x1d820084,
+  APPOINT  = 0x1d82010e,
+  REST     = 0x1d820412,
+};
+
+// The advice menu's topics (advice_actions; core/advmenu).
+enum class AdviceAction : std::uint32_t {
+  TACTICAL         = 0x1dd20a60,
+  REGIMENT_STATUS  = 0x1dd21140,
+  ENEMY_CONDITIONS = 0x1dd21994,
+  TIDE_OF_WAR      = 0x1dd21e16,
+  OPERATION_HINTS  = 0x1dd2207a,
+};
+
+// The staff menu's officers, from 1 (staff_actions; core/advmenu).
+enum class StaffAction : std::uint32_t {
+  UNUSED       = 0x00746e61, // entry 0, never chosen: the bytes of a text
+  OPERATIONS   = 0x1dd2209a,
+  INTELLIGENCE = 0x1fe60c90,
+};
+
+// The generals view's sides (people_actions; core/vwpeople).
+enum class PeopleAction : std::uint32_t {
+  OWN   = 0x1fe60656,
+  ENEMY = 0x1fe606ae,
+};
+
+// The cities view's sides (city_actions; core/vwcity).
+enum class CityAction : std::uint32_t {
+  OWN   = 0x1fe6082e,
+  ENEMY = 0x1fe6085e,
+};
+
+// The units view's sides (info_actions; core/vwarms).
+enum class InfoAction : std::uint32_t {
+  OWN   = 0x1fe609d6,
+  ENEMY = 0x1fe60a7a,
+};
+
+// The armaments view's sides (arms_actions; core/vwarms).
+enum class ArmsAction : std::uint32_t {
+  OWN   = 0x1fe60ba6,
+  ENEMY = 0x1fe60be4,
+};
+
+// The view menu's entries (view_main_actions; core/vwarms).
+enum class ViewMainAction : std::uint32_t {
+  DIVISIONS = 0x1fe604fa,
+  OFFICERS  = 0x1fe60724,
+  CITIES    = 0x1fe60894,
+  UNITS     = 0x1fe60b02,
+  ARMAMENTS = 0x1fe60c28,
+  VICTORY   = 0x1fe60c64,
+};
+
+// The request menu's entries (request_handlers; core/rqmenu).
+enum class RequestHandler : std::uint32_t {
+  SUPPLIES  = 0x22f90136,
+  BATTALION = 0x22f903b6,
+  REGIMENT  = 0x22f90780,
+};
+
+// The air force menu's missions (air_missions; core/airforce).
+enum class AirMission : std::uint32_t {
+  STRIKE       = 0x23b205b0,
+  PARATROOPERS = 0x23b20b28,
+  CARGO_DROP   = 0x23b20e20,
+};
+
+// The special forces menu's missions (special_missions; core/specfrc).
+enum class SpecialForcesAction : std::uint32_t {
+  RECON       = 0x24d50840,
+  CUT_LINES   = 0x24d50414,
+  SABOTAGE    = 0x24d50252,
+  RAID        = 0x24d50008,
+  ASSASSINATE = 0x24d50668,
+};
+
+// The save/quit menu's entries (save_quit_actions; core/settings).
+enum class SaveQuitAction : std::uint32_t {
+  SAVE_GAME = 0x2597091e,
+  NEW_GAME  = 0x25970cbc,
+  LEAVE     = 0x25970ca6,
+};
+
+// The settings menu's entries (settings_actions; core/settings).
+enum class SettingsAction : std::uint32_t {
+  BATTLES   = 0x25970084,
+  DELAY     = 0x259700ec,
+  MAP       = 0x2597012a,
+  SOUND     = 0x25970176,
+  PICTURES  = 0x259701cc,
+  SAVE_MENU = 0x25970d32,
+};
+
+// The battle's sound effects, by handler (battle_handlers; map/btldraw).
+enum class BattleHandler : std::uint32_t {
+  EFFECT_0 = 0x0d920008,
+  EFFECT_1 = 0x0d920010,
+  EFFECT_2 = 0x0d920018,
+  EFFECT_3 = 0x0d920020,
+  EFFECT_4 = 0x0d920028,
+  EFFECT_5 = 0x0d920030,
+  EFFECT_6 = 0x0d920038,
+  EFFECT_7 = 0x0d920040,
+  EFFECT_8 = 0x0d920048,
+  EFFECT_9 = 0x0d920050,
+};
+
+// What an order does when its unit reaches it, by order kind (order_handlers; units/finalact).
+enum class OrderHandler : std::uint32_t {
+  ARRIVE           = 0x32ca0002,
+  OCCUPY           = 0x3131028a,
+  ATTACK           = 0x3131044c,
+  DEFEND           = 0x31310550,
+  LAY_MINES        = 0x319e00a8,
+  REMOVE_MINES     = 0x319e0172,
+  BUILD_BRIDGE     = 0x319e02c0,
+  DESTROY          = 0x3131061a,
+  SUPPLY_OBJECTIVE = 0x31f40ca6,
+  SUPPLY_UNIT      = 0x31f40d06,
+  REPAIR_OBJECTIVE = 0x319e03c2,
+  REPAIR_UNIT      = 0x319e04a0,
+  REACH_UNIT       = 0x32ca004a,
+  HOLD             = 0x32ca00ac,
+};
+
 // An order slot of a unit or a side: what it targets, which order, how far it has got.
 struct Order {
   // a near pointer to the target record (objective or unit), or the map cell for orders that target a place
@@ -281,13 +546,13 @@ struct NoonEvent {
   std::uint8_t date; // the year in the high nibble (from 1940), the month in the low nibble; 0xff ends the table
   std::uint8_t day;
   FarPointer   news;   // the news text
-  FarPointer   action; // a far routine, or null
+  NoonAction   action; // what the event does, or NONE
   std::uint8_t leader; // the audience in the low two bits, the person template above them; 0xff for no speech
   std::uint8_t line;   // index into noon_speeches
 };
 
 // A list window (io/listui; list_window points to the active one): its frame in 8-pixel columns and pixels, the
-// column widths, the row count and the far row-draw and select callbacks.
+// column widths, the row count and the row-draw and select routines.
 struct ListWindow {
   std::uint16_t x;      // left, in 8-pixel columns
   std::uint16_t y;      // top, in pixels
@@ -295,8 +560,8 @@ struct ListWindow {
   std::uint16_t bottom; // bottom pixel
   std::uint16_t widths; // near pointer to the width bytes: the row width, then one per column, 0-terminated
   std::uint8_t  rows;
-  FarPointer    draw;
-  FarPointer    select;
+  ListDraw      draw;
+  ListSelect    select;
 };
 
 // A node of the portrait or face cache (core/uiprim): the index of the next node, 0xff at the end of the list, and
@@ -1027,10 +1292,10 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 50> text_vars; // DS:3eba..3eec
     struct {
-      FarPointer idle_hook; // DS:3eba
+      IdleHook idle_hook; // DS:3eba
       // unnamed: between the idle and message hooks; never read or written
       std::array<std::uint8_t, 4> unknown_3ebe;
-      FarPointer                  message_hook; // DS:3ec2: called while a dialog message shows (0:0 for none)
+      MessageHook                 message_hook; // DS:3ec2: called while a dialog message shows (0:0 for none)
       // unnamed: after the message hook; never read or written
       std::array<std::uint8_t, 4> unknown_3ec6;
       std::int16_t                text_x;          // DS:3eca
@@ -1060,7 +1325,7 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 3211> setup_text; // DS:44ec..5177
     struct {
-      std::array<FarPointer, 2>   glyph_draw;      // DS:44ec: the glyph routines, transparent and opaque
+      std::array<GlyphDraw, 2>    glyph_draw;      // DS:44ec: the glyph routines, transparent and opaque
       std::array<std::uint8_t, 8> text_erase;      // DS:44f4
       std::array<char, 3>         prompt_format;   // DS:44fc
       std::array<char, 3>         question_format; // DS:44ff
@@ -1533,7 +1798,7 @@ struct DataSegment {
       std::array<char, 76> brief_berlin_allies_11;  // DS:730e
     };
   };
-  std::array<FarPointer, 6> side_initializers; // DS:735a
+  std::array<SideInitializer, 6> side_initializers; // DS:735a
   union {
     std::array<std::uint8_t, 2742> event_tables; // DS:7372..7e28
     struct {
@@ -1565,7 +1830,7 @@ struct DataSegment {
       std::array<char, 2>         recon_newline;        // DS:7a42
       std::array<char, 16>        recon_unit_text;      // DS:7a44
       union {
-        std::array<FarPointer, 8> mission_handlers; // DS:7a54: the special-mission handlers, by mission kind
+        std::array<MissionHandler, 8> mission_handlers; // DS:7a54: the special-mission handlers, by mission kind
         struct {
           std::array<std::uint8_t, 31> mission_handler_bytes;
           // DS:7a73: the climate of each month (1..12); [0] is the last handler's segment high byte
@@ -1602,7 +1867,7 @@ struct DataSegment {
       std::uint16_t                resistance_names[2];   // DS:7cbc
       std::array<std::uint8_t, 29> angel_name;            // DS:7cc0
       std::array<char, 15>         angel_format;          // DS:7cdd
-      std::array<FarPointer, 3>    angel_actions;         // DS:7cec: demoralize, inspire, judge by side (core/evangel)
+      std::array<AngelAction, 3>   angel_actions;         // DS:7cec: demoralize, inspire, judge by side (core/evangel)
       std::array<char, 15>         spy_name_format;       // DS:7cf8
       std::array<char, 19>         spy_laugh_text;        // DS:7d07
       std::array<char, 34>         spy_move_text;         // DS:7d1a
@@ -1618,34 +1883,34 @@ struct DataSegment {
       std::uint16_t quantity_divisors[8];                 // DS:7e18
     };
   };
-  std::array<char, 9>         request_supplies_name;      // DS:7e28
-  std::array<char, 11>        request_battalions_name;    // DS:7e31
-  std::array<char, 10>        request_regiments_name;     // DS:7e3c
-  std::uint16_t               request_kind_names[3];      // DS:7e46
-  std::array<std::uint8_t, 3> request_delay_bases;        // DS:7e4c
-  std::array<char, 13>        equipment_delivery_format;  // DS:7e4f
-  std::array<std::uint8_t, 6> regiment_kind_availability; // DS:7e5c
-  std::array<char, 23>        context_name_format;        // DS:7e62
-  std::array<char, 146>       context_stats_format;       // DS:7e79
-  std::array<char, 16>        context_blank_format;       // DS:7f0b
-  std::uint8_t                context_text_padding;       // DS:7f1b
-  std::array<std::uint8_t, 6> scenario_contexts;          // DS:7f1c
-  std::array<char, 7>         menu_pass_label;            // DS:7f22
-  std::array<char, 7>         menu_tact_label;            // DS:7f29
-  std::array<char, 7>         menu_city_label;            // DS:7f30
-  std::array<char, 6>         menu_tsfr_label;            // DS:7f37
-  std::array<char, 7>         menu_ofcr_label;            // DS:7f3d
-  std::array<char, 7>         menu_info_label;            // DS:7f44
-  std::array<char, 7>         menu_orgz_label;            // DS:7f4b
-  std::array<char, 7>         menu_rqst_label;            // DS:7f52
-  std::array<char, 6>         menu_air_label;             // DS:7f59
-  std::array<char, 7>         menu_spfc_label;            // DS:7f5f
-  std::array<char, 7>         menu_game_label;            // DS:7f66
-  std::array<char, 31>        control_prompt;             // DS:7f6d
-  std::array<char, 39>        control_ready;              // DS:7f8c
-  std::uint8_t                control_text_padding;       // DS:7fb3
-  std::array<FarPointer, 11>  control_actions;            // DS:7fb4: the routine of each command menu entry
-  std::array<MenuItem, 12>    control_menu;               // DS:7fe0: the command menu
+  std::array<char, 9>           request_supplies_name;      // DS:7e28
+  std::array<char, 11>          request_battalions_name;    // DS:7e31
+  std::array<char, 10>          request_regiments_name;     // DS:7e3c
+  std::uint16_t                 request_kind_names[3];      // DS:7e46
+  std::array<std::uint8_t, 3>   request_delay_bases;        // DS:7e4c
+  std::array<char, 13>          equipment_delivery_format;  // DS:7e4f
+  std::array<std::uint8_t, 6>   regiment_kind_availability; // DS:7e5c
+  std::array<char, 23>          context_name_format;        // DS:7e62
+  std::array<char, 146>         context_stats_format;       // DS:7e79
+  std::array<char, 16>          context_blank_format;       // DS:7f0b
+  std::uint8_t                  context_text_padding;       // DS:7f1b
+  std::array<std::uint8_t, 6>   scenario_contexts;          // DS:7f1c
+  std::array<char, 7>           menu_pass_label;            // DS:7f22
+  std::array<char, 7>           menu_tact_label;            // DS:7f29
+  std::array<char, 7>           menu_city_label;            // DS:7f30
+  std::array<char, 6>           menu_tsfr_label;            // DS:7f37
+  std::array<char, 7>           menu_ofcr_label;            // DS:7f3d
+  std::array<char, 7>           menu_info_label;            // DS:7f44
+  std::array<char, 7>           menu_orgz_label;            // DS:7f4b
+  std::array<char, 7>           menu_rqst_label;            // DS:7f52
+  std::array<char, 6>           menu_air_label;             // DS:7f59
+  std::array<char, 7>           menu_spfc_label;            // DS:7f5f
+  std::array<char, 7>           menu_game_label;            // DS:7f66
+  std::array<char, 31>          control_prompt;             // DS:7f6d
+  std::array<char, 39>          control_ready;              // DS:7f8c
+  std::uint8_t                  control_text_padding;       // DS:7fb3
+  std::array<ControlAction, 11> control_actions;            // DS:7fb4: the routine of each command menu entry
+  std::array<MenuItem, 12>      control_menu;               // DS:7fe0: the command menu
   union {
     std::array<std::uint8_t, 798> turn_text; // DS:8070..838e
     struct {
@@ -1821,22 +2086,22 @@ struct DataSegment {
       std::array<char, 5>                        personnel_rest;             // DS:8f56
       std::array<char, 16>                       personnel_prompt;           // DS:8f5b: "Select an order"
       std::uint8_t : 8;                                                      // DS:8f6b: pads the next field to a word
-      std::array<FarPointer, 3>  personnel_actions;                          // DS:8f6c: reassign, appoint, rest
-      std::array<MenuItem, 4>    personnel_menu;                             // DS:8f78: "Reassign", "Appoint", "Rest"
-      std::array<FarPointer, 20> advice_tips;                                // DS:8fa8: the twenty general tips, far pointers to advice texts
-      std::array<char, 16>       advice_tactical_advice;                     // DS:8ff8
-      std::array<char, 16>       advice_regiment_status;                     // DS:9008
-      std::array<char, 17>       advice_enemy_conditions;                    // DS:9018
-      std::array<char, 12>       advice_tide_of_war;                         // DS:9029
-      std::array<char, 16>       advice_operation_hints;                     // DS:9035
-      std::array<char, 27>       advice_prompt;                              // DS:9045
-      std::array<FarPointer, 5>  advice_actions;                             // DS:9060: the action of each advice topic
-      std::array<MenuItem, 6>    advice_menu;                                // DS:9074
-      std::array<char, 11>       staff_operations;                           // DS:90bc
-      std::array<char, 13>       staff_intelligence;                         // DS:90c7
-      std::array<char, 14>       staff_prompt;                               // DS:90d4
-      std::array<FarPointer, 3>  staff_actions;                              // DS:90e2: the action of each staff officer
-      std::array<MenuItem, 3>    staff_menu;                                 // DS:90ee
+      std::array<PersonnelAction, 3> personnel_actions;                      // DS:8f6c: reassign, appoint, rest
+      std::array<MenuItem, 4>        personnel_menu;                         // DS:8f78: "Reassign", "Appoint", "Rest"
+      std::array<FarPointer, 20>     advice_tips;                            // DS:8fa8: the twenty general tips, far pointers to advice texts
+      std::array<char, 16>           advice_tactical_advice;                 // DS:8ff8
+      std::array<char, 16>           advice_regiment_status;                 // DS:9008
+      std::array<char, 17>           advice_enemy_conditions;                // DS:9018
+      std::array<char, 12>           advice_tide_of_war;                     // DS:9029
+      std::array<char, 16>           advice_operation_hints;                 // DS:9035
+      std::array<char, 27>           advice_prompt;                          // DS:9045
+      std::array<AdviceAction, 5>    advice_actions;                         // DS:9060: the action of each advice topic
+      std::array<MenuItem, 6>        advice_menu;                            // DS:9074
+      std::array<char, 11>           staff_operations;                       // DS:90bc
+      std::array<char, 13>           staff_intelligence;                     // DS:90c7
+      std::array<char, 14>           staff_prompt;                           // DS:90d4
+      std::array<StaffAction, 3>     staff_actions;                          // DS:90e2: the action of each staff officer
+      std::array<MenuItem, 3>        staff_menu;                             // DS:90ee
     };
   };
   union {
@@ -1869,7 +2134,7 @@ struct DataSegment {
       std::array<char, 9>          people_friendly;    // DS:93a8
       std::array<char, 6>          people_enemy;       // DS:93b1
       std::array<std::uint8_t, 31> people_prompt;      // DS:93b7
-      std::array<FarPointer, 2>    people_actions;     // DS:93d6: the menu's actions
+      std::array<PeopleAction, 2>  people_actions;     // DS:93d6: the menu's actions
       std::array<MenuItem, 3>      people_menu;        // DS:93de
       std::array<char, 26>         city_prompt;        // DS:9402
       std::array<char, 3>          city_format;        // DS:941c
@@ -1882,7 +2147,7 @@ struct DataSegment {
         std::array<std::uint8_t, 30> city_side_prompt_bytes;
       };
       std::uint8_t : 8;                               // DS:9489: pads the next field to a word
-      std::array<FarPointer, 2> city_actions;         // DS:948a: the menu's actions
+      std::array<CityAction, 2> city_actions;         // DS:948a: the menu's actions
       std::array<MenuItem, 3>   city_side_menu;       // DS:9492
       std::array<char, 35>      regiment_prompt;      // DS:94b6
       std::array<char, 3>       regiment_format;      // DS:94d9
@@ -1891,7 +2156,7 @@ struct DataSegment {
       std::array<char, 9>       info_friendly;        // DS:9515
       std::array<char, 6>       info_enemy;           // DS:951e
       std::uint16_t             info_prompt[15];      // DS:9524
-      std::array<FarPointer, 2> info_actions;         // DS:9542: the menu's actions
+      std::array<InfoAction, 2> info_actions;         // DS:9542: the menu's actions
       std::array<MenuItem, 3>   info_menu;            // DS:954a
       std::array<char, 29>      weapons_prompt;       // DS:956e
       std::array<char, 19>      weapons_here;         // DS:958b
@@ -1902,7 +2167,7 @@ struct DataSegment {
         std::array<std::uint8_t, 20> arms_prompt_bytes;
       };
       std::uint8_t : 8;                                       // DS:95c1: pads the next field to a word
-      std::array<FarPointer, 2> arms_actions;                 // DS:95c2: the menu's actions
+      std::array<ArmsAction, 2> arms_actions;                 // DS:95c2: the menu's actions
       std::array<MenuItem, 3>   arms_menu;                    // DS:95ca
       std::array<char, 19>      victory_title;                // DS:95ee
       std::array<char, 15>      victory_format;               // DS:9601
@@ -1918,21 +2183,21 @@ struct DataSegment {
         std::array<std::uint8_t, 36> view_main_prompt_bytes;
       };
       std::uint8_t : 8;                                           // DS:968d: pads the next field to a word
-      std::array<FarPointer, 6> view_main_actions;                // DS:968e: the menu's actions
-      std::array<MenuItem, 7>   view_main_menu;                   // DS:96a6
-      std::array<char, 29>      ops_chief_format;                 // DS:96fa
-      std::array<char, 9>       number_range_format;              // DS:9717
-      std::uint16_t             supply_unlimited;                 // DS:9720: 60000, the capacity of a city stockpile
-      std::uint16_t             supply_panel_x;                   // DS:9722
-      std::uint16_t             supply_panel_y;                   // DS:9724
-      std::array<char, 15>      supply_name_format;               // DS:9726
-      std::array<char, 12>      supply_name_text;                 // DS:9735
-      std::array<char, 3>       supply_arrow_none;                // DS:9741
-      std::array<char, 3>       supply_arrow_left;                // DS:9744
-      std::array<char, 3>       supply_arrow_right;               // DS:9747
-      std::array<char, 10>      supply_row_left;                  // DS:974a
-      std::array<char, 4>       supply_row_right;                 // DS:9754
-      std::array<char, 7>       supply_row_end;                   // DS:9758
+      std::array<ViewMainAction, 6> view_main_actions;            // DS:968e: the menu's actions
+      std::array<MenuItem, 7>       view_main_menu;               // DS:96a6
+      std::array<char, 29>          ops_chief_format;             // DS:96fa
+      std::array<char, 9>           number_range_format;          // DS:9717
+      std::uint16_t                 supply_unlimited;             // DS:9720: 60000, the capacity of a city stockpile
+      std::uint16_t                 supply_panel_x;               // DS:9722
+      std::uint16_t                 supply_panel_y;               // DS:9724
+      std::array<char, 15>          supply_name_format;           // DS:9726
+      std::array<char, 12>          supply_name_text;             // DS:9735
+      std::array<char, 3>           supply_arrow_none;            // DS:9741
+      std::array<char, 3>           supply_arrow_left;            // DS:9744
+      std::array<char, 3>           supply_arrow_right;           // DS:9747
+      std::array<char, 10>          supply_row_left;              // DS:974a
+      std::array<char, 4>           supply_row_right;             // DS:9754
+      std::array<char, 7>           supply_row_end;               // DS:9758
       std::uint8_t : 8;                                           // DS:975f: pads the next field to a word
       std::uint16_t                      supply_arrows[3];        // DS:9760: near pointers to the none, left and right arrows (not drawn)
       std::array<std::uint8_t, 24>       supply_prompt;           // DS:9766
@@ -2034,151 +2299,151 @@ struct DataSegment {
       std::uint8_t : 8;                                 // DS:a00f: pads the next field to a word
       std::uint16_t rq_regiment_kind_names[6];          // DS:a010: near pointers to the regiment kinds' names
       // unnamed: two zero bytes after the six regiment kind names; never read or written
-      std::array<std::uint8_t, 2> bytes_a01c;
-      std::array<FarPointer, 3>   request_handlers;             // DS:a01e: the request menu's supplies, battalion and regiment handlers
-      std::array<MenuItem, 4>     rq_menu;                      // DS:a02a
-      std::array<char, 3>         air_question_mark;            // DS:a05a: the number prompt's "? " in the mouse input mode
-      std::array<char, 13>        air_range_format;             // DS:a05d: "(%d-%d)? "
-      std::array<char, 4>         air_input_begin;              // DS:a06a
-      std::array<char, 4>         air_input_end;                // DS:a06e
-      std::array<char, 13>        air_hostile_city;             // DS:a072: "hostile city"
-      std::array<char, 25>        air_understood;               // DS:a07f
-      std::array<char, 17>        bombing_carpet_name;          // DS:a098
-      std::array<char, 17>        bombing_sortie_name;          // DS:a0a9
-      std::array<char, 11>        bombing_strafing_name;        // DS:a0ba
-      std::array<char, 6>         air_plane;                    // DS:a0c5
-      std::array<char, 7>         air_planes;                   // DS:a0cb
-      std::array<char, 5>         air_hour;                     // DS:a0d2
-      std::array<char, 6>         air_hours;                    // DS:a0d7
-      std::uint8_t : 8;                                         // DS:a0dd: pads the next field to a word
-      std::array<BombingFlight, 3> bombing_flights;             // DS:a0de: the planes each bombing mission type sends
-      std::uint16_t                bombing_names[3];            // DS:a0e4: near pointers to the mission type names
-      std::array<char, 30>         bombing_carpet_label;        // DS:a0ea
-      std::array<char, 29>         bombing_sortie_label;        // DS:a108
-      std::array<char, 29>         bombing_strafing_label;      // DS:a125
-      std::array<char, 10>         air_null_order;              // DS:a142
-      std::array<char, 15>         bombing_title;               // DS:a14c
-      std::array<char, 22>         bombing_site_prompt;         // DS:a15b
-      std::uint8_t : 8;                                         // DS:a171: pads the next field to a word
-      std::array<MenuItem, 4> bombing_menu;                     // DS:a172
-      std::array<char, 37>    drop_ask_troops;                  // DS:a1a2
-      std::array<char, 26>    drop_troops_assigned;             // DS:a1c7
-      std::array<char, 39>    drop_which_regiment;              // DS:a1e1
-      std::array<char, 26>    drop_assign_soldiers;             // DS:a208
-      std::array<char, 45>    drop_command_post;                // DS:a222
-      std::array<char, 25>    drop_understood;                  // DS:a24f
-      std::array<char, 6>     drop_plane;                       // DS:a268
-      std::array<char, 7>     drop_planes;                      // DS:a26e
-      std::array<char, 34>    drop_no_paratroopers;             // DS:a275
-      std::array<char, 16>    drop_cancel;                      // DS:a297
-      std::array<char, 46>    drop_no_transports;               // DS:a2a7
-      std::array<char, 41>    drop_no_regiments;                // DS:a2d5
-      std::array<char, 42>    drop_no_battalions;               // DS:a2fe
-      std::array<char, 45>    drop_where;                       // DS:a328
-      std::array<char, 13>    drop_paratroopers;                // DS:a355
-      std::array<char, 33>    drop_hours_prompt;                // DS:a362
-      std::array<char, 71>    drop_ask_hq;                      // DS:a383
-      std::array<char, 44>    lift_lead_format;                 // DS:a3ca: the officer needs at least %d hours
-      std::array<char, 25>    lift_understood;                  // DS:a3f6
-      std::array<char, 6>     air_lift_plane;                   // DS:a40f
-      std::array<char, 7>     air_lift_planes;                  // DS:a415
-      std::array<char, 5>     air_lift_hour;                    // DS:a41c
-      std::array<char, 6>     air_lift_hours;                   // DS:a421
-      std::array<char, 47>    lift_start_format;                // DS:a427: In %d %s, %d %s will start their cargo lift
-      std::array<char, 20>    lift_cancel;                      // DS:a456: cancel the pending airlift?
-      std::array<char, 47>    lift_no_planes;                   // DS:a46a
-      std::array<char, 22>    lift_ask_ammo;                    // DS:a499
-      std::array<char, 22>    lift_ask_fuel;                    // DS:a4af
-      std::array<char, 22>    lift_ask_food;                    // DS:a4c5
-      std::array<char, 25>    lift_select_point;                // DS:a4db
-      std::array<char, 6>     lift_cargo_name;                  // DS:a4f4: "cargo"
-      std::array<char, 23>    lift_ask_hours;                   // DS:a4fa
-      std::array<char, 65>    lift_confirm;                     // DS:a511
-      std::array<char, 29>    air_header_format;                // DS:a552: the mission table header
-      std::array<char, 11>    air_mission_air_strike;           // DS:a56f
-      std::array<char, 13>    air_mission_paratroopers;         // DS:a57a
-      std::array<char, 11>    air_mission_cargo_drop;           // DS:a587
-      std::array<char, 10>    air_title;                        // DS:a592
-      std::array<char, 42>    air_strike_format;                // DS:a59c
-      std::array<char, 42>    air_drop_format;                  // DS:a5c6
-      std::array<char, 42>    air_lift_format;                  // DS:a5f0
-      std::array<char, 23>    air_mission_question;             // DS:a61a: which mission to plan
-      std::uint8_t : 8;                                         // DS:a631: pads the next field to a word
-      std::array<FarPointer, 3> air_missions;                   // DS:a632: the routines of the strike, drop and airlift missions
-      std::array<MenuItem, 4>   air_mission_menu;               // DS:a63e
-      std::array<char, 5>       raid_title;                     // DS:a66e
-      std::array<char, 19>      raid_prompt;                    // DS:a673
-      std::array<char, 17>      raid_city_question;             // DS:a686
-      std::array<char, 9>       raid_unit_question;             // DS:a697
-      std::array<char, 39>      raid_refusal_1;                 // DS:a6a0
-      std::array<char, 53>      raid_refusal_2;                 // DS:a6c7
-      std::array<char, 51>      raid_refusal_3;                 // DS:a6fc
-      std::array<char, 36>      raid_refusal_4;                 // DS:a72f
-      std::array<char, 35>      raid_lieutenant;                // DS:a753
-      std::array<char, 9>       sabotage_title;                 // DS:a776
-      std::array<char, 38>      sabotage_prompt;                // DS:a77f
-      std::array<char, 15>      sabotage_city_question;         // DS:a7a5
-      std::array<char, 42>      sabotage_refusal_1;             // DS:a7b4
-      std::array<char, 47>      sabotage_refusal_2;             // DS:a7de
-      std::array<char, 49>      sabotage_refusal_3;             // DS:a80d
-      std::array<char, 34>      sabotage_refusal_4;             // DS:a83e
-      std::array<char, 60>      sabotage_duration;              // DS:a860
-      std::array<char, 40>      sabotage_lieutenant;            // DS:a89c
-      std::array<char, 9>       cut_comm_title;                 // DS:a8c4
-      std::array<char, 34>      cut_comm_prompt;                // DS:a8cd
-      std::array<char, 28>      cut_comm_city_question;         // DS:a8ef
-      std::array<char, 9>       cut_comm_unit_question;         // DS:a90b
-      std::array<char, 35>      cut_comm_refusal_1;             // DS:a914
-      std::array<char, 44>      cut_comm_refusal_2;             // DS:a937
-      std::array<char, 53>      cut_comm_refusal_3;             // DS:a963
-      std::array<char, 53>      cut_comm_refusal_4;             // DS:a998
-      std::array<char, 5>       cut_comm_hour;                  // DS:a9cd
-      std::array<char, 6>       cut_comm_hours;                 // DS:a9d2
-      std::array<char, 48>      cut_comm_duration;              // DS:a9d8
-      std::array<char, 45>      cut_comm_lieutenant;            // DS:aa08
-      std::array<char, 11>      assassinate_title;              // DS:aa35
-      std::array<char, 28>      assassinate_prompt;             // DS:aa40
-      std::array<char, 27>      assassinate_unit_question;      // DS:aa5c
-      std::array<char, 22>      assassinate_refusal_1;          // DS:aa77
-      std::array<char, 47>      assassinate_refusal_2;          // DS:aa8d
-      std::array<char, 19>      assassinate_refusal_3;          // DS:aabc
-      std::array<char, 47>      assassinate_refusal_4;          // DS:aacf
-      std::array<char, 58>      assassinate_duration;           // DS:aafe
-      std::array<char, 35>      assassinate_lieutenant;         // DS:ab38
-      std::array<char, 6>       recon_title;                    // DS:ab5b
-      std::array<char, 23>      recon_prompt;                   // DS:ab61
-      std::array<char, 9>       recon_city_question;            // DS:ab78
-      std::array<char, 15>      recon_unit_question;            // DS:ab81
-      std::array<char, 38>      recon_refusal_1;                // DS:ab90
-      std::array<char, 48>      recon_refusal_2;                // DS:abb6
-      std::array<char, 39>      recon_refusal_3;                // DS:abe6
-      std::array<char, 5>       recon_hour;                     // DS:ac0d
-      std::array<char, 6>       recon_hours;                    // DS:ac12
-      std::array<char, 43>      recon_duration;                 // DS:ac18
-      std::array<char, 37>      recon_lieutenant;               // DS:ac43
-      std::array<char, 6>       special_recon;                  // DS:ac68
-      std::array<char, 10>      special_cut_lines;              // DS:ac6e
-      std::array<char, 9>       special_sabotage;               // DS:ac78
-      std::array<char, 5>       special_raid;                   // DS:ac81
-      std::array<char, 12>      special_assassinate;            // DS:ac86
-      std::array<char, 10>      special_mission_city_raid;      // DS:ac92
-      std::array<char, 10>      special_mission_unit_raid;      // DS:ac9c
-      std::array<char, 12>      special_mission_supply_raid;    // DS:aca6
-      std::array<char, 14>      special_mission_cut_city_comm;  // DS:acb2
-      std::array<char, 14>      special_mission_cut_unit_comm;  // DS:acc0
-      std::array<char, 15>      special_mission_eliminate_cmdr; // DS:acce
-      std::array<char, 11>      special_mission_recon_city;     // DS:acdd
-      std::array<char, 11>      special_mission_recon_unit;     // DS:ace8
-      std::array<char, 15>      special_forces_title;           // DS:acf3
-      std::array<char, 26>      special_orders_line;            // DS:ad02
-      std::array<char, 26>      special_target_line;            // DS:ad1c
-      std::array<char, 26>      special_time_line;              // DS:ad36
-      std::array<char, 74>      special_cancel_question;        // DS:ad50
-      std::array<char, 27>      special_select_question;        // DS:ad9a
-      std::uint8_t : 8;                                         // DS:adb5: pads the next field to a word
-      std::array<FarPointer, 5> special_missions;               // DS:adb6: raid, sabotage, cut comm, assassinate, recon
-      std::array<MenuItem, 6>   special_menu;                   // DS:adca
-      std::uint16_t             special_mission_names[8];       // DS:ae12: near pointers to the names, by mission code
+      std::array<std::uint8_t, 2>   bytes_a01c;
+      std::array<RequestHandler, 3> request_handlers;              // DS:a01e: the request menu's supplies, battalion and regiment handlers
+      std::array<MenuItem, 4>       rq_menu;                       // DS:a02a
+      std::array<char, 3>           air_question_mark;             // DS:a05a: the number prompt's "? " in the mouse input mode
+      std::array<char, 13>          air_range_format;              // DS:a05d: "(%d-%d)? "
+      std::array<char, 4>           air_input_begin;               // DS:a06a
+      std::array<char, 4>           air_input_end;                 // DS:a06e
+      std::array<char, 13>          air_hostile_city;              // DS:a072: "hostile city"
+      std::array<char, 25>          air_understood;                // DS:a07f
+      std::array<char, 17>          bombing_carpet_name;           // DS:a098
+      std::array<char, 17>          bombing_sortie_name;           // DS:a0a9
+      std::array<char, 11>          bombing_strafing_name;         // DS:a0ba
+      std::array<char, 6>           air_plane;                     // DS:a0c5
+      std::array<char, 7>           air_planes;                    // DS:a0cb
+      std::array<char, 5>           air_hour;                      // DS:a0d2
+      std::array<char, 6>           air_hours;                     // DS:a0d7
+      std::uint8_t : 8;                                            // DS:a0dd: pads the next field to a word
+      std::array<BombingFlight, 3> bombing_flights;                // DS:a0de: the planes each bombing mission type sends
+      std::uint16_t                bombing_names[3];               // DS:a0e4: near pointers to the mission type names
+      std::array<char, 30>         bombing_carpet_label;           // DS:a0ea
+      std::array<char, 29>         bombing_sortie_label;           // DS:a108
+      std::array<char, 29>         bombing_strafing_label;         // DS:a125
+      std::array<char, 10>         air_null_order;                 // DS:a142
+      std::array<char, 15>         bombing_title;                  // DS:a14c
+      std::array<char, 22>         bombing_site_prompt;            // DS:a15b
+      std::uint8_t : 8;                                            // DS:a171: pads the next field to a word
+      std::array<MenuItem, 4> bombing_menu;                        // DS:a172
+      std::array<char, 37>    drop_ask_troops;                     // DS:a1a2
+      std::array<char, 26>    drop_troops_assigned;                // DS:a1c7
+      std::array<char, 39>    drop_which_regiment;                 // DS:a1e1
+      std::array<char, 26>    drop_assign_soldiers;                // DS:a208
+      std::array<char, 45>    drop_command_post;                   // DS:a222
+      std::array<char, 25>    drop_understood;                     // DS:a24f
+      std::array<char, 6>     drop_plane;                          // DS:a268
+      std::array<char, 7>     drop_planes;                         // DS:a26e
+      std::array<char, 34>    drop_no_paratroopers;                // DS:a275
+      std::array<char, 16>    drop_cancel;                         // DS:a297
+      std::array<char, 46>    drop_no_transports;                  // DS:a2a7
+      std::array<char, 41>    drop_no_regiments;                   // DS:a2d5
+      std::array<char, 42>    drop_no_battalions;                  // DS:a2fe
+      std::array<char, 45>    drop_where;                          // DS:a328
+      std::array<char, 13>    drop_paratroopers;                   // DS:a355
+      std::array<char, 33>    drop_hours_prompt;                   // DS:a362
+      std::array<char, 71>    drop_ask_hq;                         // DS:a383
+      std::array<char, 44>    lift_lead_format;                    // DS:a3ca: the officer needs at least %d hours
+      std::array<char, 25>    lift_understood;                     // DS:a3f6
+      std::array<char, 6>     air_lift_plane;                      // DS:a40f
+      std::array<char, 7>     air_lift_planes;                     // DS:a415
+      std::array<char, 5>     air_lift_hour;                       // DS:a41c
+      std::array<char, 6>     air_lift_hours;                      // DS:a421
+      std::array<char, 47>    lift_start_format;                   // DS:a427: In %d %s, %d %s will start their cargo lift
+      std::array<char, 20>    lift_cancel;                         // DS:a456: cancel the pending airlift?
+      std::array<char, 47>    lift_no_planes;                      // DS:a46a
+      std::array<char, 22>    lift_ask_ammo;                       // DS:a499
+      std::array<char, 22>    lift_ask_fuel;                       // DS:a4af
+      std::array<char, 22>    lift_ask_food;                       // DS:a4c5
+      std::array<char, 25>    lift_select_point;                   // DS:a4db
+      std::array<char, 6>     lift_cargo_name;                     // DS:a4f4: "cargo"
+      std::array<char, 23>    lift_ask_hours;                      // DS:a4fa
+      std::array<char, 65>    lift_confirm;                        // DS:a511
+      std::array<char, 29>    air_header_format;                   // DS:a552: the mission table header
+      std::array<char, 11>    air_mission_air_strike;              // DS:a56f
+      std::array<char, 13>    air_mission_paratroopers;            // DS:a57a
+      std::array<char, 11>    air_mission_cargo_drop;              // DS:a587
+      std::array<char, 10>    air_title;                           // DS:a592
+      std::array<char, 42>    air_strike_format;                   // DS:a59c
+      std::array<char, 42>    air_drop_format;                     // DS:a5c6
+      std::array<char, 42>    air_lift_format;                     // DS:a5f0
+      std::array<char, 23>    air_mission_question;                // DS:a61a: which mission to plan
+      std::uint8_t : 8;                                            // DS:a631: pads the next field to a word
+      std::array<AirMission, 3> air_missions;                      // DS:a632: the routines of the strike, drop and airlift missions
+      std::array<MenuItem, 4>   air_mission_menu;                  // DS:a63e
+      std::array<char, 5>       raid_title;                        // DS:a66e
+      std::array<char, 19>      raid_prompt;                       // DS:a673
+      std::array<char, 17>      raid_city_question;                // DS:a686
+      std::array<char, 9>       raid_unit_question;                // DS:a697
+      std::array<char, 39>      raid_refusal_1;                    // DS:a6a0
+      std::array<char, 53>      raid_refusal_2;                    // DS:a6c7
+      std::array<char, 51>      raid_refusal_3;                    // DS:a6fc
+      std::array<char, 36>      raid_refusal_4;                    // DS:a72f
+      std::array<char, 35>      raid_lieutenant;                   // DS:a753
+      std::array<char, 9>       sabotage_title;                    // DS:a776
+      std::array<char, 38>      sabotage_prompt;                   // DS:a77f
+      std::array<char, 15>      sabotage_city_question;            // DS:a7a5
+      std::array<char, 42>      sabotage_refusal_1;                // DS:a7b4
+      std::array<char, 47>      sabotage_refusal_2;                // DS:a7de
+      std::array<char, 49>      sabotage_refusal_3;                // DS:a80d
+      std::array<char, 34>      sabotage_refusal_4;                // DS:a83e
+      std::array<char, 60>      sabotage_duration;                 // DS:a860
+      std::array<char, 40>      sabotage_lieutenant;               // DS:a89c
+      std::array<char, 9>       cut_comm_title;                    // DS:a8c4
+      std::array<char, 34>      cut_comm_prompt;                   // DS:a8cd
+      std::array<char, 28>      cut_comm_city_question;            // DS:a8ef
+      std::array<char, 9>       cut_comm_unit_question;            // DS:a90b
+      std::array<char, 35>      cut_comm_refusal_1;                // DS:a914
+      std::array<char, 44>      cut_comm_refusal_2;                // DS:a937
+      std::array<char, 53>      cut_comm_refusal_3;                // DS:a963
+      std::array<char, 53>      cut_comm_refusal_4;                // DS:a998
+      std::array<char, 5>       cut_comm_hour;                     // DS:a9cd
+      std::array<char, 6>       cut_comm_hours;                    // DS:a9d2
+      std::array<char, 48>      cut_comm_duration;                 // DS:a9d8
+      std::array<char, 45>      cut_comm_lieutenant;               // DS:aa08
+      std::array<char, 11>      assassinate_title;                 // DS:aa35
+      std::array<char, 28>      assassinate_prompt;                // DS:aa40
+      std::array<char, 27>      assassinate_unit_question;         // DS:aa5c
+      std::array<char, 22>      assassinate_refusal_1;             // DS:aa77
+      std::array<char, 47>      assassinate_refusal_2;             // DS:aa8d
+      std::array<char, 19>      assassinate_refusal_3;             // DS:aabc
+      std::array<char, 47>      assassinate_refusal_4;             // DS:aacf
+      std::array<char, 58>      assassinate_duration;              // DS:aafe
+      std::array<char, 35>      assassinate_lieutenant;            // DS:ab38
+      std::array<char, 6>       recon_title;                       // DS:ab5b
+      std::array<char, 23>      recon_prompt;                      // DS:ab61
+      std::array<char, 9>       recon_city_question;               // DS:ab78
+      std::array<char, 15>      recon_unit_question;               // DS:ab81
+      std::array<char, 38>      recon_refusal_1;                   // DS:ab90
+      std::array<char, 48>      recon_refusal_2;                   // DS:abb6
+      std::array<char, 39>      recon_refusal_3;                   // DS:abe6
+      std::array<char, 5>       recon_hour;                        // DS:ac0d
+      std::array<char, 6>       recon_hours;                       // DS:ac12
+      std::array<char, 43>      recon_duration;                    // DS:ac18
+      std::array<char, 37>      recon_lieutenant;                  // DS:ac43
+      std::array<char, 6>       special_recon;                     // DS:ac68
+      std::array<char, 10>      special_cut_lines;                 // DS:ac6e
+      std::array<char, 9>       special_sabotage;                  // DS:ac78
+      std::array<char, 5>       special_raid;                      // DS:ac81
+      std::array<char, 12>      special_assassinate;               // DS:ac86
+      std::array<char, 10>      special_mission_city_raid;         // DS:ac92
+      std::array<char, 10>      special_mission_unit_raid;         // DS:ac9c
+      std::array<char, 12>      special_mission_supply_raid;       // DS:aca6
+      std::array<char, 14>      special_mission_cut_city_comm;     // DS:acb2
+      std::array<char, 14>      special_mission_cut_unit_comm;     // DS:acc0
+      std::array<char, 15>      special_mission_eliminate_cmdr;    // DS:acce
+      std::array<char, 11>      special_mission_recon_city;        // DS:acdd
+      std::array<char, 11>      special_mission_recon_unit;        // DS:ace8
+      std::array<char, 15>      special_forces_title;              // DS:acf3
+      std::array<char, 26>      special_orders_line;               // DS:ad02
+      std::array<char, 26>      special_target_line;               // DS:ad1c
+      std::array<char, 26>      special_time_line;                 // DS:ad36
+      std::array<char, 74>      special_cancel_question;           // DS:ad50
+      std::array<char, 27>      special_select_question;           // DS:ad9a
+      std::uint8_t : 8;                                            // DS:adb5: pads the next field to a word
+      std::array<SpecialForcesAction, 5> special_missions;         // DS:adb6: raid, sabotage, cut comm, assassinate, recon
+      std::array<MenuItem, 6>            special_menu;             // DS:adca
+      std::uint16_t                      special_mission_names[8]; // DS:ae12: near pointers to the names, by mission code
       // unnamed: twelve zero bytes after the special mission names; never read or written
       std::array<std::uint8_t, 12> unknown_ae22;
     };
@@ -2186,72 +2451,72 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 1044> settings_data; // DS:ae2e..b242
     struct {
-      std::array<char, 7>   settings_aerial;                 // DS:ae2e
-      std::array<char, 6>   settings_field;                  // DS:ae35
-      std::array<char, 3>   settings_pictures_on;            // DS:ae3b
-      std::array<char, 4>   settings_pictures_off;           // DS:ae3e
-      std::array<char, 5>   settings_battles_view;           // DS:ae42
-      std::array<char, 3>   settings_battles_no;             // DS:ae47
-      std::array<char, 7>   settings_battles_select;         // DS:ae4a
-      std::array<char, 3>   settings_music_on;               // DS:ae51
-      std::array<char, 4>   settings_music_off;              // DS:ae54
-      std::array<char, 115> settings_summary;                // DS:ae58
-      std::array<char, 5>   battles_label_view;              // DS:aecb
-      std::array<char, 8>   battles_label_no_view;           // DS:aed0
-      std::array<char, 7>   battles_label_select;            // DS:aed8
-      std::array<char, 17>  battles_view_all;                // DS:aedf
-      std::array<char, 16>  battles_view_none;               // DS:aef0
-      std::array<char, 23>  battles_view_selected;           // DS:af00
-      std::array<char, 27>  battles_question;                // DS:af17
-      std::array<char, 13>  battles_reply;                   // DS:af32
-      std::uint8_t : 8;                                      // DS:af3f: pads the next field to a word
-      std::array<std::uint8_t, 48> battles_menu;             // DS:af40
-      std::uint16_t                battles_descriptions[3];  // DS:af70
-      std::array<char, 43>         delay_question;           // DS:af76
-      std::array<char, 37>         delay_reply;              // DS:afa1
-      std::array<char, 7>          map_aerial;               // DS:afc6
-      std::array<char, 6>          map_field;                // DS:afcd
-      std::array<char, 28>         map_reply;                // DS:afd3
-      std::array<char, 3>          sound_on;                 // DS:afef
-      std::array<char, 4>          sound_off;                // DS:aff2
-      std::array<char, 30>         sound_reply;              // DS:aff6
-      std::array<char, 5>          pictures_will;            // DS:b014
-      std::array<char, 9>          pictures_will_not;        // DS:b019
-      std::array<char, 41>         pictures_reply;           // DS:b022
-      std::array<char, 10>         create_saving;            // DS:b04b
-      std::array<char, 9>          create_file_name;         // DS:b055
-      std::array<char, 9>          create_check_name;        // DS:b05e
-      std::array<char, 12>         create_saved;             // DS:b067
-      std::array<char, 9>          save_check_name;          // DS:b073
-      std::array<char, 9>          save_recheck_name;        // DS:b07c
-      std::array<char, 21>         save_failed;              // DS:b085
-      std::array<char, 3>          save_failed_format;       // DS:b09a
-      std::array<char, 9>          save_open_name;           // DS:b09d
-      std::array<char, 12>         save_where;               // DS:b0a6
-      std::array<char, 7>          save_confirm;             // DS:b0b2
-      char                         save_answer;              // DS:b0b9
-      std::array<char, 10>         save_saving;              // DS:b0ba
-      std::array<char, 17>         save_finished;            // DS:b0c4
-      std::array<char, 13>         logo_file_name;           // DS:b0d5
-      std::array<char, 12>         leave_question;           // DS:b0e2
-      std::array<char, 18>         new_game_question;        // DS:b0ee
-      std::array<char, 10>         save_quit_label_save;     // DS:b100
-      std::array<char, 14>         save_quit_label_load;     // DS:b10a
-      std::array<char, 9>          save_quit_label_end;      // DS:b118
-      std::array<char, 17>         save_quit_question;       // DS:b121
-      std::array<FarPointer, 3>    save_quit_actions;        // DS:b132
-      std::array<std::uint8_t, 48> save_quit_menu;           // DS:b13e
-      std::array<char, 14>         settings_label_battles;   // DS:b16e
-      std::array<char, 14>         settings_label_delay;     // DS:b17c
-      std::array<char, 12>         settings_label_maps;      // DS:b18a
-      std::array<char, 10>         settings_label_music;     // DS:b196
-      std::array<char, 15>         settings_label_pictures;  // DS:b1a0
-      std::array<char, 12>         settings_label_save_quit; // DS:b1af
-      std::array<char, 9>          settings_title;           // DS:b1bb
-      std::array<char, 17>         settings_question;        // DS:b1c4
-      std::uint8_t : 8;                                      // DS:b1d5: pads the next field to a word
-      std::array<FarPointer, 6>    settings_actions;         // DS:b1d6
-      std::array<std::uint8_t, 84> settings_menu;            // DS:b1ee
+      std::array<char, 7>   settings_aerial;                  // DS:ae2e
+      std::array<char, 6>   settings_field;                   // DS:ae35
+      std::array<char, 3>   settings_pictures_on;             // DS:ae3b
+      std::array<char, 4>   settings_pictures_off;            // DS:ae3e
+      std::array<char, 5>   settings_battles_view;            // DS:ae42
+      std::array<char, 3>   settings_battles_no;              // DS:ae47
+      std::array<char, 7>   settings_battles_select;          // DS:ae4a
+      std::array<char, 3>   settings_music_on;                // DS:ae51
+      std::array<char, 4>   settings_music_off;               // DS:ae54
+      std::array<char, 115> settings_summary;                 // DS:ae58
+      std::array<char, 5>   battles_label_view;               // DS:aecb
+      std::array<char, 8>   battles_label_no_view;            // DS:aed0
+      std::array<char, 7>   battles_label_select;             // DS:aed8
+      std::array<char, 17>  battles_view_all;                 // DS:aedf
+      std::array<char, 16>  battles_view_none;                // DS:aef0
+      std::array<char, 23>  battles_view_selected;            // DS:af00
+      std::array<char, 27>  battles_question;                 // DS:af17
+      std::array<char, 13>  battles_reply;                    // DS:af32
+      std::uint8_t : 8;                                       // DS:af3f: pads the next field to a word
+      std::array<std::uint8_t, 48>  battles_menu;             // DS:af40
+      std::uint16_t                 battles_descriptions[3];  // DS:af70
+      std::array<char, 43>          delay_question;           // DS:af76
+      std::array<char, 37>          delay_reply;              // DS:afa1
+      std::array<char, 7>           map_aerial;               // DS:afc6
+      std::array<char, 6>           map_field;                // DS:afcd
+      std::array<char, 28>          map_reply;                // DS:afd3
+      std::array<char, 3>           sound_on;                 // DS:afef
+      std::array<char, 4>           sound_off;                // DS:aff2
+      std::array<char, 30>          sound_reply;              // DS:aff6
+      std::array<char, 5>           pictures_will;            // DS:b014
+      std::array<char, 9>           pictures_will_not;        // DS:b019
+      std::array<char, 41>          pictures_reply;           // DS:b022
+      std::array<char, 10>          create_saving;            // DS:b04b
+      std::array<char, 9>           create_file_name;         // DS:b055
+      std::array<char, 9>           create_check_name;        // DS:b05e
+      std::array<char, 12>          create_saved;             // DS:b067
+      std::array<char, 9>           save_check_name;          // DS:b073
+      std::array<char, 9>           save_recheck_name;        // DS:b07c
+      std::array<char, 21>          save_failed;              // DS:b085
+      std::array<char, 3>           save_failed_format;       // DS:b09a
+      std::array<char, 9>           save_open_name;           // DS:b09d
+      std::array<char, 12>          save_where;               // DS:b0a6
+      std::array<char, 7>           save_confirm;             // DS:b0b2
+      char                          save_answer;              // DS:b0b9
+      std::array<char, 10>          save_saving;              // DS:b0ba
+      std::array<char, 17>          save_finished;            // DS:b0c4
+      std::array<char, 13>          logo_file_name;           // DS:b0d5
+      std::array<char, 12>          leave_question;           // DS:b0e2
+      std::array<char, 18>          new_game_question;        // DS:b0ee
+      std::array<char, 10>          save_quit_label_save;     // DS:b100
+      std::array<char, 14>          save_quit_label_load;     // DS:b10a
+      std::array<char, 9>           save_quit_label_end;      // DS:b118
+      std::array<char, 17>          save_quit_question;       // DS:b121
+      std::array<SaveQuitAction, 3> save_quit_actions;        // DS:b132
+      std::array<std::uint8_t, 48>  save_quit_menu;           // DS:b13e
+      std::array<char, 14>          settings_label_battles;   // DS:b16e
+      std::array<char, 14>          settings_label_delay;     // DS:b17c
+      std::array<char, 12>          settings_label_maps;      // DS:b18a
+      std::array<char, 10>          settings_label_music;     // DS:b196
+      std::array<char, 15>          settings_label_pictures;  // DS:b1a0
+      std::array<char, 12>          settings_label_save_quit; // DS:b1af
+      std::array<char, 9>           settings_title;           // DS:b1bb
+      std::array<char, 17>          settings_question;        // DS:b1c4
+      std::uint8_t : 8;                                       // DS:b1d5: pads the next field to a word
+      std::array<SettingsAction, 6> settings_actions;         // DS:b1d6
+      std::array<std::uint8_t, 84>  settings_menu;            // DS:b1ee
     };
   };
   union {
@@ -2288,58 +2553,58 @@ struct DataSegment {
   union {
     std::array<std::uint8_t, 3842> battle_text; // DS:b34e..c250
     struct {
-      std::array<char, 22> battle_fmt_garrison;             // DS:b34e
-      std::array<char, 17> battle_fmt_title;                // DS:b364
-      std::array<char, 10> battle_fmt_ok;                   // DS:b375
-      std::array<char, 10> battle_fmt_damage;               // DS:b37f
-      std::array<char, 10> battle_fmt_morale;               // DS:b389
-      std::array<char, 10> battle_fmt_training;             // DS:b393
-      std::array<char, 10> battle_fmt_fatigue;              // DS:b39d
-      std::array<char, 9>  battle_fmt_fuel;                 // DS:b3a7
-      std::array<char, 9>  battle_fmt_ammo;                 // DS:b3b0
-      std::array<char, 13> battle_fmt_no_orders;            // DS:b3b9
-      std::array<char, 13> battle_fmt_orders;               // DS:b3c6
-      std::array<char, 10> battle_fmt_target;               // DS:b3d3
-      std::array<char, 14> battle_fmt_apat;                 // DS:b3dd
-      std::array<char, 10> battle_fmt_defense;              // DS:b3eb
-      std::array<char, 10> battle_fmt_speed;                // DS:b3f5
-      std::array<char, 10> battle_fmt_range;                // DS:b3ff
-      std::array<char, 4>  battle_fmt_end;                  // DS:b409
-      std::uint8_t : 8;                                     // DS:b40d: pads the next field to a word
-      std::array<FarPointer, 10>   battle_handlers;         // DS:b40e: the battle's far routines, by handler
-      std::array<std::uint8_t, 2>  sprite_variant;          // DS:b436
-      std::array<std::uint8_t, 4>  battle_info_widths;      // DS:b438
-      std::array<std::uint8_t, 12> battle_top_widths;       // DS:b43c
-      std::array<std::uint8_t, 6>  battle_mid_left_widths;  // DS:b448
-      std::array<std::uint8_t, 6>  battle_mid_right_widths; // DS:b44e
-      std::array<std::uint8_t, 4>  battle_left_mark;        // DS:b454
-      std::array<std::uint8_t, 5>  battle_low_left_widths;  // DS:b458
-      std::array<std::uint8_t, 5>  battle_right_mark;       // DS:b45d
-      std::array<std::uint8_t, 12> battle_low_right_widths; // DS:b462
-      std::array<char, 6>          battle_commander_format; // DS:b46e
-      std::uint16_t                battle_division_format;  // DS:b474
-      std::array<std::uint8_t, 13> battle_wait_format;      // DS:b476
-      std::array<char, 13>         battle_prompt_format;    // DS:b483
-      std::array<char, 11>         battle_fmt_sighted;      // DS:b490
-      std::array<char, 15>         battle_text_sighted;     // DS:b49b
-      std::uint16_t                hexmap_offsets[6];       // DS:b4aa
-      std::array<std::uint8_t, 43> hex_terrain_codes;       // DS:b4b6
-      std::array<std::uint8_t, 10> battle_hurricane_text;   // DS:b4e1
-      std::array<char, 4>          battle_title_style;      // DS:b4eb
-      std::array<char, 27>         battle_title_format;     // DS:b4ef
-      std::array<char, 19>         battle_place_format;     // DS:b50a
-      std::array<char, 19>         battle_terrain_format;   // DS:b51d
-      std::array<char, 7>          battle_title_end;        // DS:b530
-      std::uint8_t : 8;                                     // DS:b537: pads the next field to a word
-      std::array<std::uint8_t, 8> deploy_widths;            // DS:b538
-      ListWindow                  deploy_window;            // DS:b540: the element list of the battle deployment
-      std::array<char, 30>        deploy_header;            // DS:b553
-      std::array<char, 4>         deploy_mark;              // DS:b571
-      std::array<char, 13>        deploy_name;              // DS:b575
-      std::array<char, 33>        deploy_placed;            // DS:b582
-      std::array<char, 31>        deploy_waiting;           // DS:b5a3
-      std::array<char, 39>        deploy_prompt;            // DS:b5c2
-      std::array<char, 33>        deploy_refused;           // DS:b5e9
+      std::array<char, 22> battle_fmt_garrison;              // DS:b34e
+      std::array<char, 17> battle_fmt_title;                 // DS:b364
+      std::array<char, 10> battle_fmt_ok;                    // DS:b375
+      std::array<char, 10> battle_fmt_damage;                // DS:b37f
+      std::array<char, 10> battle_fmt_morale;                // DS:b389
+      std::array<char, 10> battle_fmt_training;              // DS:b393
+      std::array<char, 10> battle_fmt_fatigue;               // DS:b39d
+      std::array<char, 9>  battle_fmt_fuel;                  // DS:b3a7
+      std::array<char, 9>  battle_fmt_ammo;                  // DS:b3b0
+      std::array<char, 13> battle_fmt_no_orders;             // DS:b3b9
+      std::array<char, 13> battle_fmt_orders;                // DS:b3c6
+      std::array<char, 10> battle_fmt_target;                // DS:b3d3
+      std::array<char, 14> battle_fmt_apat;                  // DS:b3dd
+      std::array<char, 10> battle_fmt_defense;               // DS:b3eb
+      std::array<char, 10> battle_fmt_speed;                 // DS:b3f5
+      std::array<char, 10> battle_fmt_range;                 // DS:b3ff
+      std::array<char, 4>  battle_fmt_end;                   // DS:b409
+      std::uint8_t : 8;                                      // DS:b40d: pads the next field to a word
+      std::array<BattleHandler, 10> battle_handlers;         // DS:b40e: the battle's far routines, by handler
+      std::array<std::uint8_t, 2>   sprite_variant;          // DS:b436
+      std::array<std::uint8_t, 4>   battle_info_widths;      // DS:b438
+      std::array<std::uint8_t, 12>  battle_top_widths;       // DS:b43c
+      std::array<std::uint8_t, 6>   battle_mid_left_widths;  // DS:b448
+      std::array<std::uint8_t, 6>   battle_mid_right_widths; // DS:b44e
+      std::array<std::uint8_t, 4>   battle_left_mark;        // DS:b454
+      std::array<std::uint8_t, 5>   battle_low_left_widths;  // DS:b458
+      std::array<std::uint8_t, 5>   battle_right_mark;       // DS:b45d
+      std::array<std::uint8_t, 12>  battle_low_right_widths; // DS:b462
+      std::array<char, 6>           battle_commander_format; // DS:b46e
+      std::uint16_t                 battle_division_format;  // DS:b474
+      std::array<std::uint8_t, 13>  battle_wait_format;      // DS:b476
+      std::array<char, 13>          battle_prompt_format;    // DS:b483
+      std::array<char, 11>          battle_fmt_sighted;      // DS:b490
+      std::array<char, 15>          battle_text_sighted;     // DS:b49b
+      std::uint16_t                 hexmap_offsets[6];       // DS:b4aa
+      std::array<std::uint8_t, 43>  hex_terrain_codes;       // DS:b4b6
+      std::array<std::uint8_t, 10>  battle_hurricane_text;   // DS:b4e1
+      std::array<char, 4>           battle_title_style;      // DS:b4eb
+      std::array<char, 27>          battle_title_format;     // DS:b4ef
+      std::array<char, 19>          battle_place_format;     // DS:b50a
+      std::array<char, 19>          battle_terrain_format;   // DS:b51d
+      std::array<char, 7>           battle_title_end;        // DS:b530
+      std::uint8_t : 8;                                      // DS:b537: pads the next field to a word
+      std::array<std::uint8_t, 8> deploy_widths;             // DS:b538
+      ListWindow                  deploy_window;             // DS:b540: the element list of the battle deployment
+      std::array<char, 30>        deploy_header;             // DS:b553
+      std::array<char, 4>         deploy_mark;               // DS:b571
+      std::array<char, 13>        deploy_name;               // DS:b575
+      std::array<char, 33>        deploy_placed;             // DS:b582
+      std::array<char, 31>        deploy_waiting;            // DS:b5a3
+      std::array<char, 39>        deploy_prompt;             // DS:b5c2
+      std::array<char, 33>        deploy_refused;            // DS:b5e9
       // unnamed: 0, 1, 2, 3, 4, 3, 1, 1 in the battle data; nothing in the game reads them
       std::array<std::uint8_t, 8>  unknown_b60a;
       std::array<std::uint8_t, 24> deploy_title;          // DS:b612
@@ -2452,7 +2717,7 @@ struct DataSegment {
       std::uint8_t : 8;                                                // DS:c0ab: pads the next field to a word
       std::array<char, 27> arrived_text;                               // DS:c0ac
       std::uint8_t : 8;                                                // DS:c0c7: pads the next field to a word
-      std::array<FarPointer, 14>   order_handlers;                     // DS:c0c8: the handler of each order code
+      std::array<OrderHandler, 14> order_handlers;                     // DS:c0c8: the handler of each order code
       std::uint16_t                order_moves[14];                    // DS:c100: the repeat flag of each order code
       std::array<std::uint8_t, 8>  move_class;                         // DS:c11c
       std::array<std::uint8_t, 6>  sight_ranges;                       // DS:c124
@@ -4858,9 +5123,9 @@ template <typename T>
 inline constexpr std::uint8_t LIST_LIMIT{ 1 };
 inline constexpr std::uint8_t LIST_FLAGS{ 7 };
 
-// Points the list window's row predicate at the far routine segment:routine.
-inline auto SetListPredicate(ListWindow& list, std::uint16_t routine, std::uint16_t segment) noexcept -> void {
-  list.select = { routine, segment };
+// Gives the list window its select routine.
+inline auto SetListPredicate(ListWindow& list, ListSelect select) noexcept -> void {
+  list.select = select;
 }
 
 // Points the picture decoder's read position at segment:offset.
@@ -4901,6 +5166,31 @@ using detail::data_segment::ElementType;
 using detail::data_segment::ElementTypeOf;
 using detail::data_segment::IsOfCategory;
 using detail::data_segment::FarPointer;
+using detail::data_segment::NoonAction;
+using detail::data_segment::ListDraw;
+using detail::data_segment::ListSelect;
+using detail::data_segment::IdleHook;
+using detail::data_segment::MessageHook;
+using detail::data_segment::GlyphDraw;
+using detail::data_segment::SideInitializer;
+using detail::data_segment::MissionHandler;
+using detail::data_segment::AngelAction;
+using detail::data_segment::ControlAction;
+using detail::data_segment::PersonnelAction;
+using detail::data_segment::AdviceAction;
+using detail::data_segment::StaffAction;
+using detail::data_segment::PeopleAction;
+using detail::data_segment::CityAction;
+using detail::data_segment::InfoAction;
+using detail::data_segment::ArmsAction;
+using detail::data_segment::ViewMainAction;
+using detail::data_segment::RequestHandler;
+using detail::data_segment::AirMission;
+using detail::data_segment::SpecialForcesAction;
+using detail::data_segment::SaveQuitAction;
+using detail::data_segment::SettingsAction;
+using detail::data_segment::BattleHandler;
+using detail::data_segment::OrderHandler;
 using detail::data_segment::Group;
 using detail::data_segment::GroupFlag;
 using detail::data_segment::GROUPS_AT;

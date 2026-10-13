@@ -58,10 +58,7 @@ auto InitialLabels(DataSegment& data) -> void {
   SetText(data.tbl_mission_target, "%s       ");
   SetText(data.tbl_mission_row, " %s %s ");
   SetText(data.tbl_mission_blank, " ----------------                    ");
-  data.division_dialog = {
-    0x000f, 0x0080, 0x0044, 0x010e, 0x5697, 0x05, { 0x0002, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
+  data.division_dialog     = { 0x000f, 0x0080, 0x0044, 0x010e, 0x5697, 0x05, ListDraw::GROUPS, ListSelect::NONE };
   data.order_target_widths = { 0x2d, 0x3c };
   SetText(data.tbl_unit_header, "   Pos      Target    Orders  Fuel  Ammo  Food");
   SetText(data.tbl_unit_mark, "\033B8");
@@ -71,27 +68,18 @@ auto InitialLabels(DataSegment& data) -> void {
   SetText(data.tbl_unit_wait, "Wait");
   SetText(data.tbl_unit_row, " %8.8s  %8.8s  %-7s  %3d%%  %3d%%  %3d%% ");
   SetText(data.tbl_unit_hidden, " %8.8s   -------   ------  ----  ----  ---- ");
-  data.order_target_list = {
-    0x0016, 0x0080, 0x0041, 0x0119, 0x5713, 0x05, { 0x01e6, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
-  data.organize_widths = { 0x2c, 0x2a, 0x2a, 0x29, 0x26, 0x26, 0x26 };
+  data.order_target_list = { 0x0016, 0x0080, 0x0041, 0x0119, 0x5713, 0x05, ListDraw::MISSIONS, ListSelect::NONE };
+  data.organize_widths   = { 0x2c, 0x2a, 0x2a, 0x29, 0x26, 0x26, 0x26 };
   SetText(data.tbl_order_header, "     Pos       Target   Orders  Fuel   Ammo   Food");
   SetText(data.tbl_order_label, " %-10s \033B0");
-  data.organize_list = {
-    0x0009, 0x0080, 0x0046, 0x0119, 0x5801, 0x21, { 0x03a6, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
+  data.organize_list   = { 0x0009, 0x0080, 0x0046, 0x0119, 0x5801, 0x21, ListDraw::UNITS, ListSelect::NONE };
   data.regiment_widths = { 0x2c, 0x2c, 0x2c, 0x26, 0x27, 0x27, 0x27 };
   SetText(data.tbl_element_header, " # OK   Dmg  Mrle  Trng  Fatg");
   SetText(data.tbl_element_mark, "\033B8");
   SetText(data.tbl_element_name, " %-19s\033B0");
   SetText(data.tbl_element_row, " %4d %4d    %2d    %2d    %2d ");
-  data.regiment_dialog = {
-    0x0007, 0x0080, 0x0048, 0x0119, 0x585b, 0x21, { 0x0650, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
-  data.choice_widths = { 0x34, 0x26, 0x26, 0x26, 0x26, 0x26 };
+  data.regiment_dialog = { 0x0007, 0x0080, 0x0048, 0x0119, 0x585b, 0x21, ListDraw::ORDERS, ListSelect::NONE };
+  data.choice_widths   = { 0x34, 0x26, 0x26, 0x26, 0x26, 0x26 };
   SetText(data.tbl_post_div1, "Div1");
   SetText(data.tbl_post_div2, "Div2");
   SetText(data.tbl_post_div3, "Div3");
@@ -103,47 +91,29 @@ auto InitialLabels(DataSegment& data) -> void {
   SetText(data.tbl_person_blank, "    ");
   SetText(data.tbl_person_rest, "Rest");
   SetText(data.tbl_person_hurt, "Hurt");
-  data.choice_dialog = {
-    0x000e, 0x0080, 0x0042, 0x0119, 0x58c1, 0x07, { 0x07ac, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
+  data.choice_dialog = { 0x000e, 0x0080, 0x0042, 0x0119, 0x58c1, 0x07, ListDraw::ELEMENTS, ListSelect::NONE };
   SetEach(std::to_array<std::uint16_t>({ 0x58c8, 0x58cd, 0x58d2, 0x58d7, 0x58dc, 0x58e2, 0x58e8 }), [&](std::size_t index, std::uint16_t value) { data.tbl_post_names[index] = value; });
   data.people_widths = { 0x2d, 0x25, 0x25, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x25, 0x26, 0x26 };
   SetText(data.tbl_type_header, "  Nat   AP/AT   Def  Spd  M.Rng  G.Rng");
   SetText(data.tbl_type_name, "%-13.13s");
   SetText(data.tbl_type_row, "  %2s   %2u/%2u  %4u %4u   %4u   %4u");
-  data.people_dialog = {
-    0x0000, 0x0080, 0x004f, 0x0119, 0x5928, 0x15, { 0x092c, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
+  data.people_dialog = { 0x0000, 0x0080, 0x004f, 0x0119, 0x5928, 0x15, ListDraw::STAFF, ListSelect::NONE };
   SetText(data.weapons_widths, ".&)%%''");
   data.tbl_supply_header = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x46, 0x75, 0x65, 0x6c, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x41, 0x6d, 0x6d, 0x6f, 0xee, 0x20, 0x20, 0x20,
                              0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x46, 0x6f, 0x6f, 0x64, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x45, 0x6e, 0x64, 0x72, 0x63, 0x20 };
   SetText(data.tbl_supply_name, "%-11.11s");
   SetText(data.tbl_supply_row, " %5u(%3d%%)  %5u(%3d%%)  %5u(%3d%%)   %2d/%2d ");
   SetText(data.tbl_supply_blank, "     ----         ----         ----     ------ ");
-  data.weapons_dialog = {
-    0x000e, 0x0080, 0x0045, 0x0119, 0x599d, 0x9f, { 0x0b0c, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
-  data.city_widths = { 0x2c, 0x2d, 0x2d, 0x2d, 0x28 };
+  data.weapons_dialog = { 0x000e, 0x0080, 0x0045, 0x0119, 0x599d, 0x9f, ListDraw::TYPES, ListSelect::NONE };
+  data.city_widths    = { 0x2c, 0x2d, 0x2d, 0x2d, 0x28 };
   SetText(data.tbl_str_header, "  Str   Dmg ");
   SetText(data.tbl_str_name, " %-12s ");
   SetText(data.tbl_str_row, " %4d  %4d ");
-  data.city_dialog = {
-    0x0009, 0x0080, 0x0046, 0x0119, 0x5a51, 0x16, { 0x0cc0, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
+  data.city_dialog  = { 0x0009, 0x0080, 0x0046, 0x0119, 0x5a51, 0x16, ListDraw::SUPPLIES, ListSelect::NONE };
   data.stock_widths = { 0x2e, 0x26, 0x26 };
   data.save_widths  = { 0x27, 0x2a, 0x28, 0x2f, 0x2a, 0x2a };
-  data.stock_dialog = {
-    0x001a, 0x0080, 0x0036, 0x0119, 0x5a8b, 0x07, { 0x0e74, 0x0c45 },
-          { 0x0000, 0x0000 }
-  };
-  data.save_list = {
-    0x000a, 0x0018, 0x0048, 0x00d3, 0x5a8f, 0x15, { 0x0ff4, 0x0c45 },
-          { 0x0ff0, 0x0c45 }
-  };
+  data.stock_dialog = { 0x001a, 0x0080, 0x0036, 0x0119, 0x5a8b, 0x07, ListDraw::STRENGTH, ListSelect::NONE };
+  data.save_list    = { 0x000a, 0x0018, 0x0048, 0x00d3, 0x5a8f, 0x15, ListDraw::SAVES, ListSelect::SAVE_ACCEPT };
   SetText(data.tbl_player_computer, "Computer");
   SetText(data.tbl_player_user, "  User  ");
   SetText(data.tbl_save_header, " Scenario  Dfclty  Date(1939-45)    Axis     Allies  ");

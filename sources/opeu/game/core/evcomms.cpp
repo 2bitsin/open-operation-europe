@@ -58,8 +58,3 @@ void opeu_objective_comms_event(Game& game) {
     }
   }
 }
-
-auto port_routine_opeu_objective_comms_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_objective_comms_event(game);
-  return 0;
-}

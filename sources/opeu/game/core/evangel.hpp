@@ -10,5 +10,5 @@ void     opeu_angel_finish(Game& game, uint16_t person, uint16_t unit);
 void     opeu_angel_demoralize(Game& game, uint16_t person, uint16_t unit);
 void     opeu_angel_inspire(Game& game, uint16_t person, uint16_t unit);
 void     opeu_angel_judge_side(Game& game, uint16_t person, uint16_t unit);
-void     opeu_angel_present(Game& game, uint16_t code_segment);
-void     opeu_angel_event(Game& game, uint16_t code_segment);
+void     opeu_angel_present(Game& game);
+void     opeu_angel_event(Game& game);

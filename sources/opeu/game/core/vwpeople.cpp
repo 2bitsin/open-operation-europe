@@ -7,6 +7,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/view-service.hpp"
 #include "core/vwarms.hpp"
@@ -35,13 +36,18 @@ auto ListGenerals(DataSegment& data, std::uint8_t side) -> std::uint8_t {
   return listed;
 }
 
+// The generals view's sides, by the enumerator people_actions holds for the choice.
+constexpr auto PEOPLE_ACTIONS = DispatchRows<PeopleAction, auto (*)(Game&)->void>({
+    { PeopleAction::OWN,   opeu_view_own_generals   },
+    { PeopleAction::ENEMY, opeu_view_enemy_generals },
+});
 } // namespace
 
 // Shows the listed generals.
 void opeu_view_people_list(Game& game, uint8_t count) {
   auto& data{ Data(game) };
   data.people_dialog.rows = static_cast<uint8_t>(count + 1);
-  SetRowCheck(game, data.people_dialog, RowCheck::NONE);
+  SetListPredicate(data.people_dialog, ListSelect::VIEW_NONE);
   opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_HERE, static_cast<std::uint16_t>(data.context_record3));
   opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.people_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
@@ -71,20 +77,5 @@ void opeu_view_generals_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), PEOPLE_MENU)) != MENU_CANCELLED;)
-    RunAction(game, data.people_actions, item);
-}
-
-auto port_routine_opeu_view_enemy_generals(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_enemy_generals(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_generals_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_generals_menu(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_own_generals(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_own_generals(game);
-  return 0;
+    Dispatch(PEOPLE_ACTIONS, data.people_actions.at(item - 1u), game);
 }

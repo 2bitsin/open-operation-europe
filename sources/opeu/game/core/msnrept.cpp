@@ -57,9 +57,8 @@ void FormatReport(Game& game, uint16_t message, uint16_t format, uint8_t side, u
                                                           static_cast<std::uint16_t>(Data(game).side_names[side]), static_cast<std::uint16_t>(text) });
 }
 
-void ShowReport(Game& game, uint16_t picture, uint8_t side, uint16_t presenter) {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(side),
-                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(presenter)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(MISSION_CODE_SEGMENT)) << 16));
+void ShowReport(Game& game, uint16_t picture, uint8_t side, Presenter presenter) {
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(side), presenter);
 }
 
 } // namespace
@@ -90,7 +89,7 @@ void opeu_mission_report_success(Game& game, uint8_t side, uint16_t text, uint8_
   auto const          speaker{ SpecialForcesCommander(game, side) };
   FormatReport(game, message, SUCCESS_FORMAT, side, text);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, speaker);
-  ShowReport(game, MISSION_PICTURE, side, FINISH_PRESENTER);
+  ShowReport(game, MISSION_PICTURE, side, Presenter::MISSION_FINISH);
   opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
 }
 
@@ -101,7 +100,7 @@ void opeu_mission_report_enemy(Game& game, uint8_t side, uint16_t text, uint8_t 
   FormatReport(game, message, ENEMY_FORMAT, side, text);
   auto const enemy{ opeu_opposite_side(side) };
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, opeu_find_side_record(game, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
-  ShowReport(game, MISSION_PICTURE, enemy, FINISH_PRESENTER);
+  ShowReport(game, MISSION_PICTURE, enemy, Presenter::MISSION_FINISH);
   opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(enemy));
 }
 
@@ -138,16 +137,6 @@ void opeu_mission_person_killed(Game& game, uint16_t person) {
   opeu_initialize_deputy(game, person);
   if (played()) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, opeu_find_side_record(game, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
-    ShowReport(game, FALLEN_PICTURE, side, DELAY_PRESENTER);
+    ShowReport(game, FALLEN_PICTURE, side, Presenter::MISSION_DELAY);
   }
-}
-
-auto port_routine_opeu_mission_delay_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mission_delay_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_mission_finish_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mission_finish_present(game);
-  return 0;
 }

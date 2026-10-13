@@ -39,5 +39,5 @@ struct TextHost { };
 // The UI primitives' memory and segment numbers.
 struct UiHost {
   std::uint8_t* memory;
-  std::uint16_t ds_segment, tiles_segment, code_segment;
+  std::uint16_t ds_segment, tiles_segment;
 };

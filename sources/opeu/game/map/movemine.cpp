@@ -26,10 +26,8 @@
 using namespace opeu::game;
 
 namespace {
-// The minefield picture and the routine that ends it (opeu_move_mines_finish), by its far address.
+// The minefield picture.
 constexpr uint16_t MINES_PICTURE{ 0x48 };
-constexpr uint16_t MINES_FINISH_OFFSET{ 0x05a0 };
-constexpr uint16_t MINES_FINISH_SEGMENT{ 0x32e6 };
 } // namespace
 
 void opeu_move_mines(Game& game, uint8_t x, uint8_t y) {
@@ -42,9 +40,9 @@ void opeu_move_mines(Game& game, uint8_t x, uint8_t y) {
     auto const own{ data.current_side };
     auto const enemy{ opeu_opposite_side(data.current_side) };
     if (data.side_status[own] == SIDE_PLAYED && opeu_unit_selection_eligible(game, static_cast<std::uint16_t>(current)))
-      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(own), MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
+      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(own), Presenter::MINES_HIT);
     else if (data.side_status[enemy] == SIDE_PLAYED && opeu_unit_special(game, static_cast<std::uint16_t>(current)))
-      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(enemy), MINES_FINISH_OFFSET, MINES_FINISH_SEGMENT);
+      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(enemy), Presenter::MINES_HIT);
     opeu_unit_casualties(game, static_cast<std::uint16_t>(current), 100, 3, 15, 0, 1);
   }
   auto& unit{ Record<Unit>(data, current) };

@@ -38,16 +38,7 @@ using namespace opeu::game;
 
 namespace {
 
-// The link-table addresses of the list predicates and the show's finish routine in the transfer's code segment.
-enum Routine : std::uint16_t {
-  GROUP_ENABLED   = 0x009a,
-  UNIT_ENABLED    = 0x00d4,
-  ELEMENT_ENABLED = 0x0110,
-  PRESENT         = 0x01ca,
-};
 constexpr std::uint16_t TRANSFER_PICTURE{ 0x166 };
-// The transfer's code segment in the routine link table.
-constexpr std::uint16_t TRANSFER_SEGMENT{ 0x1d42 };
 // pending_finish's value when the show ends.
 constexpr std::uint16_t SHOW_DONE{ 3 };
 // The confirmation message buffer the services format and show.
@@ -117,8 +108,8 @@ void opeu_transfer_present(Game& game) {
   opeu_pending_finish(game, static_cast<uint8_t>(SHOW_DONE));
 }
 
-// The transfer dialog; segment: the transfer's code segment.
-void opeu_turn_action_3(Game& game, uint16_t segment) {
+// The transfer dialog.
+void opeu_turn_action_3(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const message{ MESSAGE_BYTES };
   auto const          buffer{ message.At(0) };
@@ -132,7 +123,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
     case Step::DIVISION:
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_division), data.context_record2);
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-      SetListPredicate(data.division_dialog, GROUP_ENABLED, segment);
+      SetListPredicate(data.division_dialog, ListSelect::TRANSFER_GROUP);
       if (!opeu_list_dialog(game, Near(data, data.division_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
       data.transfer_group = data.list_row;
       opeu_group_show(game, Near(data, GroupOf(data, data.current_side, data.transfer_group)), static_cast<uint8_t>(data.transfer_group));
@@ -141,7 +132,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_regiment), data.context_record2);
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(game) + 1);
-      SetListPredicate(data.organize_list, UNIT_ENABLED, segment);
+      SetListPredicate(data.organize_list, ListSelect::TRANSFER_UNIT);
       if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
         step = Step::DIVISION;
         continue;
@@ -151,7 +142,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       [[fallthrough]];
     case Step::ELEMENT: {
       data.choice_dialog.rows = static_cast<std::uint8_t>(opeu_transfer_elements_fill(game) + 1);
-      SetListPredicate(data.choice_dialog, ELEMENT_ENABLED, segment);
+      SetListPredicate(data.choice_dialog, ListSelect::TRANSFER_ELEMENT);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_group), data.context_record2);
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       if (!opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
@@ -175,43 +166,9 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       Record<Element>(data, opeu_unit_selected_element(game, Near(data, regiment))).flags &= static_cast<std::uint8_t>(~Bits(ElementFlag::SELECTED));
       Record<Element>(data, data.row_elements[data.list_row]).flags                       |= Bits(ElementFlag::SELECTED);
       data.side_delays[side]                                                               = static_cast<std::uint8_t>(hours);
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side),
-                      static_cast<unsigned int>(static_cast<uint32_t>(segment) << 16 | PRESENT));
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER);
       return;
     }
     }
   }
-}
-
-auto port_routine_opeu_transfer_element_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_transfer_element_enabled(game);
-}
-
-auto port_routine_opeu_transfer_group_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_transfer_group_enabled(game);
-}
-
-auto port_routine_opeu_transfer_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_transfer_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_transfer_unit_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_transfer_unit_enabled(game);
-}
-
-// Turn action 3 from the control action table: runs with its own stack and the transfer's code segment.
-auto port_routine_opeu_turn_action_3(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_turn_action_3(game, TRANSFER_SEGMENT);
-  return 0;
 }

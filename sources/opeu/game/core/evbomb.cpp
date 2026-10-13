@@ -52,8 +52,6 @@ constexpr std::uint8_t  RAID_DAY{ 13 };
 constexpr std::uint8_t  RAIDED_SIDE{ 1 };
 constexpr std::uint8_t  NO_VOICE{ 0xff };
 constexpr std::uint16_t RAID_PICTURE{ 0x1c7 };
-constexpr std::uint16_t RAID_PRESENTER{ 0x0aae }; // opeu_bomb_present, in the code segment below
-constexpr std::uint16_t RAID_SEGMENT{ 0x108c };
 
 // The bomb sprite: the background it covers is saved in its own buffer segment; image, sprite and mask in the
 // sprite segment.
@@ -114,7 +112,7 @@ void opeu_bomb_animate(Game& game, uint16_t load, uint16_t unit, uint8_t side) {
 }
 
 // The daily-show presenter of the raid.
-void opeu_bomb_present(Game& game, uint16_t) {
+void opeu_bomb_present(Game& game) {
   opeu_pending_finish(game, static_cast<uint8_t>(3));
 }
 
@@ -150,7 +148,7 @@ void opeu_bomb_event(Game& game, uint16_t load) {
       if (voice != NO_VOICE) {
         auto const person{ opeu_find_side_record(game, voice, AIR_OFFICER_KIND) };
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), static_cast<std::uint16_t>(intro), static_cast<std::uint16_t>(person));
-        port_daily_show(game, RAID_PICTURE, 0, RAID_PRESENTER, static_cast<std::uint16_t>(load + RAID_SEGMENT));
+        port_daily_show(game, RAID_PICTURE, 0, Presenter::BOMBING);
         opeu_bomb_animate(game, load, troop, voice);
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(person));
       }
@@ -158,14 +156,4 @@ void opeu_bomb_event(Game& game, uint16_t load) {
       data.map_mode[0] = saved_mode;
     }
   }
-}
-
-auto port_routine_opeu_bomb_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_bomb_event(game, 0);
-  return 0;
-}
-
-auto port_routine_opeu_bomb_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_bomb_present(game, 0);
-  return 0;
 }

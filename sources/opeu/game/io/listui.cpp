@@ -6,18 +6,31 @@
 #include "io/listui.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/host.hpp"
 #include "core/limits.hpp"
+#include "core/suptable.hpp"
+#include "core/tblgroup.hpp"
+#include "core/tblpers.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/list-keys.hpp"
 #include "io/mouse.hpp"
+#include "io/tblsave.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
+#include "map/dplrows.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "units/genpick.hpp"
+#include "units/rqarmtbl.hpp"
+#include "units/rqsuptbl.hpp"
+#include "units/tblelem.hpp"
+#include "units/tblstr.hpp"
+#include "units/tblsupp.hpp"
+#include "units/tbltype.hpp"
+#include "units/tblunit.hpp"
 
 #include <algorithm>
 #include <array>
@@ -60,9 +73,30 @@ auto WidthByte(Game& game, ListWindow const& window, unsigned i) -> std::uint8_t
   return Byte(game, static_cast<std::uint16_t>(window.widths + i));
 }
 
+// The row-draw routines, by the enumerator a window's draw slot holds: each gets the column, first row, last column, last
+// row and the area flags.
+using RowDraw            = auto (*)(Game&, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t) -> void;
+constexpr auto ROW_DRAWS = DispatchRows<ListDraw, RowDraw>({
+    { ListDraw::GENERALS,      opeu_general_list_draw_rows },
+    { ListDraw::GROUPS,        opeu_tbl_draw_groups        },
+    { ListDraw::MISSIONS,      opeu_tbl_draw_missions      },
+    { ListDraw::UNITS,         opeu_tbl_draw_units         },
+    { ListDraw::ORDERS,        opeu_tbl_draw_orders        },
+    { ListDraw::ELEMENTS,      opeu_tbl_draw_elements      },
+    { ListDraw::STAFF,         opeu_tbl_draw_staff         },
+    { ListDraw::TYPES,         opeu_tbl_draw_types         },
+    { ListDraw::SUPPLIES,      opeu_tbl_draw_supplies      },
+    { ListDraw::STRENGTH,      opeu_tbl_draw_strength      },
+    { ListDraw::SAVES,         opeu_tbl_draw_saves         },
+    { ListDraw::SUPPLY_TYPES,  opeu_supply_draw_types      },
+    { ListDraw::SUPPLY_SLOTS,  opeu_supply_draw_slots      },
+    { ListDraw::REQUEST_TYPES, opeu_rq_draw_types          },
+    { ListDraw::REQUEST_UNITS, opeu_rq_draw_units          },
+    { ListDraw::DEPLOYMENT,    opeu_deploy_draw_rows       },
+});
+
 auto DrawRows(Game& game, ListWindow const& window, std::uint8_t column, std::uint8_t row, std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
-  std::array<std::uint16_t, 5> const words{ column, row, last_column, last_row, area };
-  port_call(game, static_cast<std::uint32_t>(window.draw.segment) * 16u + window.draw.offset, words.data(), words.size());
+  Dispatch(ROW_DRAWS, ListDraw{ window.draw }, game, column, row, last_column, last_row, area);
 }
 } // namespace
 

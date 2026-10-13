@@ -55,10 +55,8 @@ constexpr std::uint16_t BOMBERS_NAME{ offsetof(DataSegment, air_bombers_name) };
 
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
-constexpr std::uint16_t TEXT_BYTES{ 0x64 };         // opeu_air_destroyed_message's text, which the format service writes
-constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target where the bombs fall
-constexpr std::uint16_t STRIKE_PRESENTER{ 0x0406 }; // opeu_air_strike_present, in the code segment below
-constexpr std::uint16_t STRIKE_SEGMENT{ 0x0f43 };
+constexpr std::uint16_t TEXT_BYTES{ 0x64 }; // opeu_air_destroyed_message's text, which the format service writes
+constexpr std::uint16_t BOMB_LEAD{ 0x20 };  // rows above the target where the bombs fall
 
 auto IsNight(Game& game) -> bool {
   return opeu_hour_is_night(static_cast<std::uint8_t>(Data(game).hour)) != 0;
@@ -176,8 +174,7 @@ void opeu_air_strike_event(Game& game) {
     opeu_air_sprite_draw(game, 0, hx, row, static_cast<std::uint8_t>(side));
     if (row == my) {
       auto const shown{ static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side))) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), side == 0 ? 0x1e : 0xf, static_cast<std::uint8_t>(shown),
-                      static_cast<std::uint32_t>(STRIKE_SEGMENT) << 16 | STRIKE_PRESENTER);
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), side == 0 ? 0x1e : 0xf, static_cast<std::uint8_t>(shown), Presenter::AIR_STRIKE);
     }
     if (my - row == BOMB_LEAD) {
       opeu_music_command7(game);
@@ -201,9 +198,4 @@ void opeu_air_strike_event(Game& game) {
   opeu_music_command7(game);
   opeu_music_stop(game);
   opeu_turn_pre_context(game);
-}
-
-auto port_routine_opeu_air_strike_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_strike_present(game);
-  return 0;
 }

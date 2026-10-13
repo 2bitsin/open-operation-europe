@@ -75,17 +75,3 @@ void opeu_request_arms(Game& game) {
 uint8_t opeu_rq_unit_selectable(void) {
   return 1;
 }
-
-auto port_routine_opeu_request_arms(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_request_arms(game);
-  return 0;
-}
-
-auto port_routine_opeu_rq_unit_selectable(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  (void)args;
-  (void)count;
-  return opeu_rq_unit_selectable();
-}

@@ -16,7 +16,6 @@
 #include "io/keyboard.hpp"
 #include "io/loadscen.hpp"
 #include "io/resopen.hpp"
-#include "link/link.hpp"
 #include "map/cellpred.hpp"
 #include "services.hpp"
 
@@ -43,32 +42,9 @@ uint16_t* port_ds_word_ptr(Game& game, uint16_t near) {
   return reinterpret_cast<uint16_t*>(game.State().Bytes(near, sizeof(uint16_t)).data());
 }
 
-/* ---- far code pointers ------------------------------------------------------- *
- * The data and the callers name the two cell predicates by their far code
- * address (segment:offset of the routine in the original layout). */
-
-namespace {
-constexpr std::uint32_t REQUEST_CELL_ALLOWED_AT{ 0x145cu * 16u + 0x1114u };
-constexpr std::uint32_t ARRIVAL_CELL_ALLOWED_AT{ 0x145cu * 16u + 0x1152u };
-} // namespace
-
-PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
-  uint32_t address = (uint32_t)seg * 16u + off;
-  if (address == REQUEST_CELL_ALLOWED_AT) return opeu_request_cell_allowed;
-  if (address == ARRIVAL_CELL_ALLOWED_AT) return opeu_arrival_cell_allowed;
-  port_fatal("request_cells: predicate %04x:%04x is not a cell predicate", seg, off);
-  return 0;
-}
-
-/* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its present service, i.e. by routine identifier. */
-void port_daily_show(Game& game, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
-  opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
-}
-
-uint32_t port_call_named(Game& game, const char* name, const uint16_t* args, unsigned count) {
-  uint32_t address = port_routine_address(name);
-  if (!address) port_fatal("no routine named %s", name);
-  return port_call(game, address, args, count);
+/* Daily presentation: daily_show(id, side, presenter) with the dialogs' host. */
+void port_daily_show(Game& game, uint16_t id, uint16_t side, opeu::game::Presenter presenter) {
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), id, static_cast<uint8_t>(side), presenter);
 }
 
 /* ---- driver register blocks ------------------------------------------------- */

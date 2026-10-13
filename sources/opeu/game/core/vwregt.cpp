@@ -61,7 +61,7 @@ void opeu_view_regiment_list(Game& game) {
     auto const unit{ data.supply_units[data.list_row] };
     opeu_unit_announce(game, static_cast<std::uint16_t>(unit));
     data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(game, unit) + 1);
-    SetRowCheck(game, data.choice_dialog, RowCheck::NONE_2);
+    SetListPredicate(data.choice_dialog, ListSelect::VIEW_NONE_2);
     opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
     auto const unit_name{ opeu_unit_name(game, static_cast<std::uint16_t>(unit), static_cast<std::uint16_t>(name)) };
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(REGIMENT_FORMAT), static_cast<std::uint16_t>(unit_name) });
@@ -86,7 +86,7 @@ void opeu_view_own_divisions(Game& game) {
   ServiceLocals const locals{ DIVISION_LOCALS };
   auto&               data{ Data(game) };
   auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
-  for (std::uint16_t height{ 7 }; SetRowCheck(game, data.division_dialog, RowCheck::DIVISION),
+  for (std::uint16_t height{ 7 }; SetListPredicate(data.division_dialog, ListSelect::VIEW_DIVISION),
                                   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), DIVISION_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
                                   opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.division_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
@@ -94,7 +94,7 @@ void opeu_view_own_divisions(Game& game) {
     auto const& group{ GroupOf(data, data.current_side, division) };
     opeu_group_show(game, static_cast<std::uint16_t>(Near(data, group)), static_cast<std::uint8_t>(division));
     data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(game, division) + 1);
-    SetRowCheck(game, data.organize_list, RowCheck::REGIMENT);
+    SetListPredicate(data.organize_list, ListSelect::VIEW_REGIMENT);
     opeu_copy_bytes(game, LIST_WINDOW, static_cast<std::uint16_t>(saved_window), LIST_WINDOW_STATE);
     opeu_view_regiment_list(game);
     opeu_copy_bytes(game, static_cast<std::uint16_t>(saved_window), LIST_WINDOW, LIST_WINDOW_STATE);
@@ -115,16 +115,6 @@ void opeu_view_enemy_units(Game& game) {
     return;
   }
   data.organize_list.rows = static_cast<uint8_t>(listed + 1);
-  SetRowCheck(game, data.organize_list, RowCheck::REGIMENT);
+  SetListPredicate(data.organize_list, ListSelect::VIEW_REGIMENT);
   opeu_view_regiment_list(game);
-}
-
-auto port_routine_opeu_view_enemy_units(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_enemy_units(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_own_divisions(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_own_divisions(game);
-  return 0;
 }

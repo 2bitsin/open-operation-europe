@@ -76,21 +76,3 @@ uint16_t opeu_order_hold(Game& game) {
       }
   return 1;
 }
-
-auto port_routine_opeu_order_arrive(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_arrive(game);
-}
-
-auto port_routine_opeu_order_hold(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_hold(game);
-}
-
-auto port_routine_opeu_order_reach_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_reach_unit(game);
-}

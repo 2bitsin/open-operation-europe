@@ -6,12 +6,19 @@
 #include "common/menu.hpp"
 #include "types.hpp"
 
+#include "common/advice.hpp"
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
+#include "core/advenemy.hpp"
+#include "core/advhints.hpp"
+#include "core/advregt.hpp"
+#include "core/advtact.hpp"
+#include "core/advtide.hpp"
 #include "core/dialogs.hpp"
+#include "core/vwarms.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -19,9 +26,7 @@
 
 using namespace opeu::game;
 
-// Near pointers are DS offsets. Services leave the module through event:
-// 1 control_message(text, person), 2 delay_dialog(text, last, person, menu), 3 far call(offset, segment) whose AX is
-// returned.
+// Near pointers are DS offsets.
 namespace {
 
 constexpr std::uint16_t ADVICE_PROMPT{ offsetof(DataSegment, advice_prompt) };
@@ -30,10 +35,30 @@ constexpr std::uint16_t STAFF_PROMPT{ offsetof(DataSegment, staff_prompt) };
 constexpr std::uint16_t STAFF_MENU{ offsetof(DataSegment, staff_menu) };
 constexpr std::uint16_t INTELLIGENCE{ 2 }; // the staff menu's second item
 
-// Calls an action through the far pointer the table holds.
-auto CallAction(Game& game, FarPointer const& action) -> std::uint16_t {
-  return static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), 0, 0));
+// The advice topics' routines, by the enumerator advice_actions holds for the topic; each reads the advice texts.
+template <auto ADVISE>
+auto Advise(Game& game) -> void {
+  ADVISE(game, AdviceTexts());
 }
+constexpr auto ADVICE_ACTIONS = DispatchRows<AdviceAction, auto (*)(Game&)->void>({
+    { AdviceAction::TACTICAL,         Advise<opeu_advice_tactical>         },
+    { AdviceAction::REGIMENT_STATUS,  Advise<opeu_advice_regiment_status>  },
+    { AdviceAction::ENEMY_CONDITIONS, Advise<opeu_advice_enemy_conditions> },
+    { AdviceAction::TIDE_OF_WAR,      Advise<opeu_advice_tide_of_war>      },
+    { AdviceAction::OPERATION_HINTS,  Advise<opeu_advice_operation_hints>  },
+});
+
+// Operations' advice menu, which reports nothing.
+auto OperationsAdvice(Game& game) -> std::uint16_t {
+  opeu_staff_advice_menu(game);
+  return 0;
+}
+
+// The staff officers' routines, by the enumerator staff_actions holds for the officer: the result Intelligence reports.
+constexpr auto STAFF_ACTIONS = DispatchRows<StaffAction, auto (*)(Game&)->std::uint16_t>({
+    { StaffAction::OPERATIONS,   OperationsAdvice    },
+    { StaffAction::INTELLIGENCE, opeu_view_menu_loop },
+});
 } // namespace
 
 void opeu_control_prepare(Game& game) {
@@ -50,7 +75,7 @@ void opeu_staff_advice_menu(Game& game) {
     if (data.advice_messages[topic][0])
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.advice_messages[topic]), data.context_record2);
     else
-      CallAction(game, data.advice_actions[topic]);
+      Dispatch(ADVICE_ACTIONS, data.advice_actions.at(topic), game);
   }
 }
 
@@ -61,16 +86,6 @@ void opeu_turn_action_5(Game& game) {
   std::uint16_t result;
   do {
     if ((officer = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == MENU_CANCELLED) return;
-    result = CallAction(game, data.staff_actions[officer]);
+    result = Dispatch(STAFF_ACTIONS, data.staff_actions.at(officer), game);
   } while (officer != INTELLIGENCE || result != 1);
-}
-
-auto port_routine_opeu_staff_advice_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_staff_advice_menu(game);
-  return 0;
-}
-
-auto port_routine_opeu_turn_action_5(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_5(game);
-  return 0;
 }

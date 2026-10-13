@@ -42,8 +42,3 @@ void opeu_request_error_present(Game& game) {
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_template);
   if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, static_cast<uint8_t>(3));
 }
-
-auto port_routine_opeu_request_error_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_request_error_present(game);
-  return 0;
-}

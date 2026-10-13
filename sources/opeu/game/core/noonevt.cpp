@@ -2,6 +2,7 @@
 // Axis requests, raising or lowering a side's morale, readying reserves, adding to the Allied pool) and may have a
 // leader speak.
 #include "core/noonevt.hpp"
+#include "common/dispatch.hpp"
 #include "common/events.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
@@ -26,7 +27,6 @@
 #include "io/keyboard.hpp"
 #include "io/soundcue.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -34,26 +34,22 @@ using namespace opeu::game;
 
 namespace {
 
-// The code segment of the noon actions, and each action's offset in it, as the event records name them.
-using NoonAction = void (*)(Game&, const uint8_t*);
-struct ActionEntry {
-  uint16_t   offset;
-  NoonAction run;
-};
-constexpr ActionEntry NOON_ACTIONS[]{
-  { 0x0004, opeu_noon_no_action            },
-  { 0x0006, opeu_noon_block_axis_regts     },
-  { 0x000e, opeu_noon_block_axis_sup_bns   },
-  { 0x0018, opeu_noon_block_axis_bns_regts },
-  { 0x0022, opeu_noon_allow_axis_bns_regts },
-  { 0x002c, opeu_noon_raise_axis_morale    },
-  { 0x0066, opeu_noon_lower_axis_morale    },
-  { 0x009c, opeu_noon_lower_allied_morale  },
-  { 0x00d2, opeu_noon_axis_morale_blockade },
-  { 0x00dc, opeu_code_0e57_00dc            },
-  { 0x010e, opeu_code_0e57_010e            },
-  { 0x0140, opeu_code_0e57_0140            },
-};
+// The noon actions, by the enumerator the event records hold (NONE never runs).
+using NoonRoutine           = auto (*)(Game&, std::uint8_t const*) -> void;
+constexpr auto NOON_ACTIONS = DispatchRows<NoonAction, NoonRoutine>({
+    { NoonAction::NOTHING,                             opeu_noon_no_action            },
+    { NoonAction::BLOCK_AXIS_REGIMENTS,                opeu_noon_block_axis_regts     },
+    { NoonAction::BLOCK_AXIS_SUPPLIES_AND_BATTALIONS,  opeu_noon_block_axis_sup_bns   },
+    { NoonAction::BLOCK_AXIS_BATTALIONS_AND_REGIMENTS, opeu_noon_block_axis_bns_regts },
+    { NoonAction::ALLOW_AXIS_BATTALIONS_AND_REGIMENTS, opeu_noon_allow_axis_bns_regts },
+    { NoonAction::RAISE_AXIS_MORALE,                   opeu_noon_raise_axis_morale    },
+    { NoonAction::LOWER_AXIS_MORALE,                   opeu_noon_lower_axis_morale    },
+    { NoonAction::LOWER_ALLIED_MORALE,                 opeu_noon_lower_allied_morale  },
+    { NoonAction::AXIS_MORALE_BLOCKADE,                opeu_noon_axis_morale_blockade },
+    { NoonAction::AXIS_RESERVES,                       opeu_code_0e57_00dc            },
+    { NoonAction::ALLIED_RESERVES,                     opeu_code_0e57_010e            },
+    { NoonAction::ALLIED_POOL,                         opeu_code_0e57_0140            },
+});
 
 // NoonEvent::leader & AUDIENCE_MASK: who hears the speech; 0 for no one.
 enum Audience : uint8_t {
@@ -92,17 +88,6 @@ void ExpectReserves(Game& game, uint8_t side) {
       data.side_flags[side] |= Bits(SideFlag::RESERVES_PENDING);
       break;
     }
-}
-
-// Runs the event's action: an action of this module directly, any other through the service.
-void RunAction(Game& game, const uint8_t* far_text, uint16_t code_segment, FarPointer const& action) {
-  if (action.segment == code_segment)
-    for (auto const& entry : NOON_ACTIONS)
-      if (entry.offset == action.offset) {
-        entry.run(game, far_text);
-        return;
-      }
-  port_call(game, static_cast<uint32_t>(action.segment) * 16u + action.offset, nullptr, 0);
 }
 
 constexpr auto At(std::size_t offset) -> uint16_t {
@@ -206,7 +191,7 @@ void opeu_noon_leader(Game& game, const uint8_t* far_text, uint8_t code, uint8_t
 }
 
 // The day's noon events (at 12:00).
-void opeu_turn_noon_events(Game& game, const uint8_t* far_text, uint16_t code_segment) {
+void opeu_turn_noon_events(Game& game, const uint8_t* far_text) {
   ServiceLocals const locals{ NEWS_BYTES };
   auto&               data{ Data(game) };
   auto const          news{ locals.At(0) };
@@ -214,7 +199,7 @@ void opeu_turn_noon_events(Game& game, const uint8_t* far_text, uint16_t code_se
   for (auto const& noon : data.noon_events) {
     if (noon.date == END_OF_EVENTS) break;
     if (noon.date >> 4 != data.year || (noon.date & 0x0f) != data.month || noon.day != data.day) continue;
-    if (noon.action.offset | noon.action.segment) RunAction(game, far_text, code_segment, noon.action);
+    if (noon.action != NoonAction::NONE) Dispatch(NOON_ACTIONS, noon.action, game, far_text);
     opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
     opeu_string_copy_far(game, news, const_cast<uint8_t*>(far_text), noon.news.offset);
     opeu_string_append(game, news, At(offsetof(DataSegment, noon_news_end)));

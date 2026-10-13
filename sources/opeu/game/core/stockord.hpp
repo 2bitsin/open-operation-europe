@@ -10,4 +10,4 @@ void     opeu_stock_show(Game& game, uint16_t objective);
 void     opeu_stock_show_titled(Game& game, uint16_t objective);
 uint16_t opeu_stock_ask(Game& game, uint16_t what);
 void     opeu_stock_edit(Game& game, uint16_t objective);
-void     opeu_turn_action_2(Game& game, uint16_t segment);
+void     opeu_turn_action_2(Game& game);

@@ -57,9 +57,6 @@ constexpr int LANDING_ROWS{ 0x20 };
 // Anti-aircraft fire counts at most this many planes.
 constexpr uint16_t FIRE_PLANES{ 0x59 };
 constexpr uint16_t SHOW_ID{ 0xfa };
-// The far address of opeu_para_drop_present: its offset, and its segment relative to the caller's.
-constexpr uint16_t PRESENTER_OFFSET{ 0xd72 };
-constexpr uint16_t PRESENTER_SEGMENT{ 0xf43 };
 
 // Lands the side's paratroop regiment of the drop (a DS offset) at the drop's cell; returns the regiment.
 auto CreateDropUnit(Game& game, uint8_t side, uint16_t drop) -> uint16_t {
@@ -138,7 +135,7 @@ void opeu_para_drop_present(Game& game) {
 // side's totals, takes the anti-aircraft losses, and moves the formation up the screen. Over the target the drop's
 // report is shown; a little later the paratroop regiment is formed and lands with the losses of the planes shot
 // down. The surviving transports come back to the side, and the drop is cleared.
-void opeu_para_drop_event(Game& game, uint16_t segment) {
+void opeu_para_drop_event(Game& game) {
   auto&      data{ Data(game) };
   auto const side_index{ data.air_side };
   auto&      side{ data.sides[side_index] };
@@ -161,7 +158,7 @@ void opeu_para_drop_event(Game& game, uint16_t segment) {
       break;
     }
     opeu_air_sprite_draw(game, 0, target_x, row, static_cast<uint8_t>(side_index));
-    if (row == target_y) port_daily_show(game, SHOW_ID, static_cast<std::uint16_t>(opeu_side_for_status(game, static_cast<uint8_t>(side_index))), PRESENTER_OFFSET, segment + PRESENTER_SEGMENT);
+    if (row == target_y) port_daily_show(game, SHOW_ID, static_cast<std::uint16_t>(opeu_side_for_status(game, static_cast<uint8_t>(side_index))), Presenter::PARATROOPERS);
     if (target_y - row == LANDING_ROWS) {
       opeu_music_command7(game);
       auto const unit{ CreateDropUnit(game, static_cast<uint8_t>(side_index), Near(data, drop)) };
@@ -177,9 +174,4 @@ void opeu_para_drop_event(Game& game, uint16_t segment) {
   }
   opeu_para_clear(game);
   drop.transports = 0;
-}
-
-auto port_routine_opeu_para_drop_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_para_drop_present(game);
-  return 0;
 }

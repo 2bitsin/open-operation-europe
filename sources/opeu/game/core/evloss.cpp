@@ -46,12 +46,9 @@ enum Message : std::uint16_t {
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t ALL_CATEGORIES{ 255 };
 constexpr std::uint8_t  NORTH_ROWS{ 10 };
-// The presentations and the far callbacks (segment and offset of opeu_loss_present_a/b) the daily display runs.
-constexpr std::uint16_t PRESENT_SEGMENT{ 0x108c };
+// The daily shows of the two presentations.
 constexpr std::uint16_t PRESENT_A_ID{ 0x38 };
-constexpr std::uint16_t PRESENT_A{ 0x06ac };
 constexpr std::uint16_t PRESENT_B_ID{ 0xb2 };
-constexpr std::uint16_t PRESENT_B{ 0x0830 };
 // The reserves of the locals whose address the services receive: the quantity service's count, the names.
 constexpr std::uint16_t WEAK_COUNT{ 0xc };
 constexpr std::uint16_t NAME_A{ 0x14 };
@@ -116,11 +113,11 @@ void opeu_loss_event_a(Game& game) {
         opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
         auto const& unit{ Record<Unit>(data, near) };
         opeu_location_flash(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(1));
-        port_daily_show(game, PRESENT_A_ID, 1, PRESENT_A, PRESENT_SEGMENT);
+        port_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);
       } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
         Format(game, PARTISANS_STRIKE_US, movement);
         opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
-        port_daily_show(game, PRESENT_A_ID, 0, PRESENT_A, PRESENT_SEGMENT);
+        port_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
       }
       opeu_music_command7(game);
       opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
@@ -149,31 +146,11 @@ void opeu_loss_event_b(Game& game) {
       opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
       auto const& unit{ Record<Unit>(data, near) };
       opeu_location_flash(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(1));
-      port_daily_show(game, PRESENT_B_ID, 1, PRESENT_B, PRESENT_SEGMENT);
+      port_daily_show(game, PRESENT_B_ID, 1, Presenter::NORTHERN_LOSSES);
     } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
       opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
-      port_daily_show(game, PRESENT_B_ID, 0, PRESENT_B, PRESENT_SEGMENT);
+      port_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
     }
     opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);
   }
-}
-
-auto port_routine_opeu_loss_event_a(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_event_a(game);
-  return 0;
-}
-
-auto port_routine_opeu_loss_event_b(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_event_b(game);
-  return 0;
-}
-
-auto port_routine_opeu_loss_present_a(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_present_a(game);
-  return 0;
-}
-
-auto port_routine_opeu_loss_present_b(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_present_b(game);
-  return 0;
 }

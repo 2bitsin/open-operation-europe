@@ -1,5 +1,5 @@
 // The row-draw callbacks of the list tables (core/tblgroup, core/tblpers): the column layout they ask for, where a row
-// goes on the screen and how a routine call runs them.
+// goes on the screen.
 #pragma once
 
 #include "common/data-segment.hpp"
@@ -41,22 +41,12 @@ struct TableColumns {
 [[nodiscard]] inline auto RowY(DataSegment const& data, ListWindow const& window, std::uint8_t row) -> std::uint16_t {
   return static_cast<std::uint16_t>((row - data.list_top) * TABLE_ROW_HEIGHT + window.y + TABLE_FIRST_ROW);
 }
-
-// Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
-// argument words.
-template <typename Draw>
-inline auto RunTableRows(Game& game, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  draw(game, byte(0), byte(1), byte(2), byte(3), byte(4));
-  return 0;
-}
 } // namespace opeu::game::detail::table_rows
 
 namespace opeu::game {
 using detail::table_rows::ActiveWindow;
 using detail::table_rows::ColumnX;
 using detail::table_rows::RowY;
-using detail::table_rows::RunTableRows;
 using detail::table_rows::TABLE_FIRST_ROW;
 using detail::table_rows::TABLE_ROW_HEIGHT;
 using detail::table_rows::TABLE_TEXT_COLOR;

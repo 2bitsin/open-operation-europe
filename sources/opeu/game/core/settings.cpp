@@ -8,6 +8,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
@@ -24,7 +25,6 @@
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -37,19 +37,6 @@
 using namespace opeu::game;
 
 namespace {
-
-// The entries of the far action tables (save_quit_actions, settings_actions) by their code offset.
-enum class Action : uint16_t {
-  BATTLES   = 0x0084,
-  DELAY     = 0x00ec,
-  MAP       = 0x012a,
-  SOUND     = 0x0176,
-  PICTURES  = 0x01cc,
-  SAVE_GAME = 0x091e,
-  LEAVE     = 0x0ca6,
-  NEW_GAME  = 0x0cbc,
-  SAVE_MENU = 0x0d32,
-};
 
 // The slot records and saved blocks of the save file.
 constexpr uint16_t SLOT_BYTES{ sizeof(SaveSlot) };
@@ -73,31 +60,30 @@ auto Seek(Game& game, uint16_t handle, int32_t offset, uint16_t whence) -> uint1
                                              static_cast<int16_t>(whence)));
 }
 
-// Runs the save/quit menu's entry `index`.
-void SaveMenuAction(Game& game, uint16_t index) {
-  auto const& entry{ Data(game).save_quit_actions[index] };
-  switch (static_cast<Action>(entry.offset)) {
-  case Action::SAVE_GAME: opeu_save_game(game); break;
-  case Action::NEW_GAME:  opeu_settings_new_game(game); break;
-  case Action::LEAVE:     opeu_settings_leave(game); break;
-  default:                port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(entry.segment)) * 16u + static_cast<std::uint16_t>(entry.offset), 0, 0);
-  }
-}
+// The save/quit menu's routines, by the enumerator save_quit_actions holds for the entry.
+constexpr auto SAVE_QUIT_ACTIONS = DispatchRows<SaveQuitAction, auto (*)(Game&)->void>({
+    { SaveQuitAction::SAVE_GAME, opeu_save_game         },
+    { SaveQuitAction::NEW_GAME,  opeu_settings_new_game },
+    { SaveQuitAction::LEAVE,     opeu_settings_leave    },
+});
 
-// Runs the Settings menu's entry `index`; only the save/quit menu's result is examined.
-auto SettingsAction(Game& game, uint16_t index) -> uint16_t {
-  auto const& entry{ Data(game).settings_actions[index] };
-  switch (static_cast<Action>(entry.offset)) {
-  case Action::BATTLES:   opeu_settings_battles(game); break;
-  case Action::DELAY:     opeu_settings_delay(game); break;
-  case Action::MAP:       opeu_settings_map(game); break;
-  case Action::SOUND:     opeu_settings_sound(game); break;
-  case Action::PICTURES:  opeu_settings_pictures(game); break;
-  case Action::SAVE_MENU: return opeu_settings_save_menu(game);
-  default:                return static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(entry.segment)) * 16u + static_cast<std::uint16_t>(entry.offset), 0, 0));
-  }
+// A settings entry that reports nothing.
+template <auto ROUTINE>
+auto Unreported(Game& game) -> uint16_t {
+  ROUTINE(game);
   return 0;
 }
+
+// The Settings menu's routines, by the enumerator settings_actions holds for the entry: only the save/quit menu's
+// result is examined.
+constexpr auto SETTINGS_ACTIONS = DispatchRows<SettingsAction, auto (*)(Game&)->uint16_t>({
+    { SettingsAction::BATTLES,   Unreported<opeu_settings_battles>  },
+    { SettingsAction::DELAY,     Unreported<opeu_settings_delay>    },
+    { SettingsAction::MAP,       Unreported<opeu_settings_map>      },
+    { SettingsAction::SOUND,     Unreported<opeu_settings_sound>    },
+    { SettingsAction::PICTURES,  Unreported<opeu_settings_pictures> },
+    { SettingsAction::SAVE_MENU, opeu_settings_save_menu            },
+});
 
 // Fills a slot record with the date, scenario and control of the game in progress.
 void FillSlot(DataSegment& data, SaveSlot& slot) {
@@ -375,7 +361,7 @@ uint16_t opeu_settings_save_menu(Game& game) {
   auto const& data{ Data(game) };
   auto const  choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.save_quit_question), 3, data.context_record2, Near(data, data.save_quit_menu)) };
   if (choice == 0xffff) return choice;
-  SaveMenuAction(game, choice - 1);
+  Dispatch(SAVE_QUIT_ACTIONS, data.save_quit_actions.at(choice - 1u), game);
   return choice;
 }
 
@@ -387,14 +373,7 @@ void opeu_turn_action_10(Game& game) {
     opeu_settings_print(game);
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.settings_question), 6, data.context_record2, Near(data, data.settings_menu)) };
     if (choice == 0xffff) return;
-    auto const result{ SettingsAction(game, choice - 1) };
+    auto const result{ Dispatch(SETTINGS_ACTIONS, data.settings_actions.at(choice - 1u), game) };
     if (choice == 6 && result == 1) return;
   }
-}
-
-auto port_routine_opeu_turn_action_10(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_turn_action_10(game);
-  return 0;
 }

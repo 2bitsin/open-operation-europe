@@ -15,8 +15,7 @@
 using namespace opeu::game;
 
 namespace {
-constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 };  // the far text the noon events read
-constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
+constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 }; // the far text the noon events read
 } // namespace
 
 void opeu_turn_half_day(Game& game) {
@@ -26,6 +25,6 @@ void opeu_turn_half_day(Game& game) {
     opeu_apply_daily_side_resources(game);
   else if (data.hour == 12) {
     opeu_decrement_record_counters(game);
-    opeu_turn_noon_events(game, port_far(FAR_TEXT_SEGMENT, 0), NOON_CODE_SEGMENT);
+    opeu_turn_noon_events(game, port_far(FAR_TEXT_SEGMENT, 0));
   }
 }

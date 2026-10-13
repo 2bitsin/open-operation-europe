@@ -133,10 +133,3 @@ void opeu_request_regiment(Game& game) {
   FileRequest(game, { 0, static_cast<uint8_t>(static_cast<std::uint8_t>(kind)), static_cast<uint8_t>(regiment) });
   data.side_delays[data.current_side] = 1;
 }
-
-auto port_routine_opeu_request_regiment(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_request_regiment(game);
-  return 0;
-}

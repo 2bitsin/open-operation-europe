@@ -151,25 +151,3 @@ void opeu_supply_draw_slots(Game& game, uint8_t column, uint8_t first, uint8_t r
     }
   }
 }
-
-auto port_routine_opeu_supply_draw_slots(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_supply_draw_slots(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
-  return 0;
-}
-
-auto port_routine_opeu_supply_draw_types(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_supply_draw_types(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
-  return 0;
-}
-
-auto port_routine_opeu_supply_return_slot(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_supply_return_slot(game);
-}
-
-auto port_routine_opeu_supply_true(Game&, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_supply_true();
-}
-
-auto port_routine_opeu_supply_unit_eligible(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_supply_unit_eligible(game);
-}

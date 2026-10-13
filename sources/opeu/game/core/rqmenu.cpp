@@ -1,14 +1,17 @@
 // The request menu (turn action 7): the table of the side's requests and the choice of supplies, a battalion or a
 // regiment.
 #include "core/rqmenu.hpp"
+#include "common/dispatch.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
 #include "core/dialogs.hpp"
 #include "core/rqcommon.hpp"
+#include "core/rqsupply.hpp"
 #include "core/textout.hpp"
 #include "data-segment.hpp"
-#include "link/link.hpp"
 #include "types.hpp"
+#include "units/rqarms.hpp"
+#include "units/rqreinf.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
@@ -30,6 +33,12 @@ constexpr uint16_t ROW_HEIGHT{ 0x12 };
 constexpr uint16_t CHOICES{ 3 };           // supplies, battalion, regiment
 constexpr uint16_t TYPE_RECORD_WORDS{ 7 }; // the words of an equipment type record a filed battalion row prints
 
+// The request menu's routines, by the enumerator request_handlers holds for the choice.
+constexpr auto REQUEST_HANDLERS = DispatchRows<RequestHandler, auto (*)(Game&)->void>({
+    { RequestHandler::SUPPLIES,  opeu_request_supplies },
+    { RequestHandler::BATTALION, opeu_request_arms     },
+    { RequestHandler::REGIMENT,  opeu_request_regiment },
+});
 } // namespace
 
 // "Request   Dest     Type      Wait" at the top of the request table.
@@ -100,13 +109,7 @@ void opeu_turn_action_7(Game& game) {
     if (choice != std::to_underlying(RequestKind::REGIMENT) && !opeu_side_has_city(game)) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_no_city_text), data.context_record3);
     } else {
-      auto const& handler{ data.request_handlers[choice] };
-      port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(handler.segment)) * 16u + static_cast<std::uint16_t>(handler.offset), 0, 0);
+      Dispatch(REQUEST_HANDLERS, data.request_handlers.at(choice), game);
     }
   } while (data.side_delays[data.current_side] == 0);
-}
-
-auto port_routine_opeu_turn_action_7(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_7(game);
-  return 0;
 }

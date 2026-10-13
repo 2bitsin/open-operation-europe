@@ -180,15 +180,3 @@ uint16_t opeu_order_supply_objective(Game& game) {
 uint16_t opeu_order_supply_unit(Game& game) {
   return SupplyOrder(game, false);
 }
-
-auto port_routine_opeu_order_supply_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_supply_objective(game);
-}
-
-auto port_routine_opeu_order_supply_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_supply_unit(game);
-}

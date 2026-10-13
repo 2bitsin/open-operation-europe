@@ -13,7 +13,10 @@ it with direct calls. Dry runs only; it never writes under sources/ of the check
     rewrite.py b1 [--tree DIR --apply [--check]]
                                          the B1 pass (ds -> Game&, rewriter/b1.py): its counts and review listings;
                                          with --apply it rewrites the scratch export DIR
-    rewrite.py b4                        the model and listing of the B4 (code pointers -> enums) pass, not applied yet
+    rewrite.py b4 [--tree DIR --apply [--check]]
+                                         the B4 pass (code pointers -> enums, rewriter/b4.py): the slot enums and the
+                                         presenters, checked against the link table, and the data initialisers'
+                                         pairs as enumerators; with --apply it rewrites the scratch export DIR
 
 The input is a `git archive` export of --rev (default HEAD) under _local/m2/tree, never the shared working tree;
 --tree reads another tree. docs/port.md "M2 rewriter" describes the rules.
@@ -35,6 +38,7 @@ from rewriter.apply import Apply, CheckScratch, MainCheckout  # noqa: E402
 from rewriter.b1 import B1Pass, WriteB1  # noqa: E402
 from rewriter.b2 import B2Pass  # noqa: E402
 from rewriter.b3 import B3Pass  # noqa: E402
+from rewriter.b4 import B4Pass, WriteB4  # noqa: E402
 from rewriter.check import Check, CompileDatabase  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import ROOT, SOURCES, ExportCommit, SourceTree  # noqa: E402
@@ -50,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
   parser.add_argument("--rev", default="HEAD", help="the commit to export and read (default HEAD)")
   parser.add_argument("--tree", type=Path, help="read (or with --apply rewrite) this tree instead of an export of --rev")
   parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where the listings go (default _local/m2/dry-run)")
-  parser.add_argument("--apply", nargs="?", const="b1", choices=("b1", "b2", "b3", "all"),
+  parser.add_argument("--apply", nargs="?", const="b1", choices=("b1", "b2", "b3", "b4", "all"),
                       help="rewrite --tree with this batch's substitutions (b1: `rewrite.py b1 --tree DIR --apply`)")
   parser.add_argument("--check", action="store_true", help="with --apply: compile every rewritten file (-fsyntax-only)")
   parser.add_argument("--only", default="", help="with --apply b3: comma-separated globs of the dispatchers' files (relative to game/) whose sites to replace")
@@ -65,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
   args.out.mkdir(parents=True, exist_ok=True)
   if args.command == "b1":
     return _B1(tree, args, started)
+  if args.command == "b4" and args.apply:
+    return _B4(tree, args, started)
   model = Model(tree)
   if args.command == "b4":
     return _Stub(args.out / "b4.json", B4Model(model))
@@ -104,6 +110,21 @@ def _B1(tree: Path, args, started: float) -> int:
       summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b1.txt")
   summary["seconds"] = round(time.monotonic() - started, 1)
   (args.out / "b1.json").write_text(json.dumps(summary, indent=1) + "\n")
+  print(json.dumps(summary, indent=1))
+  return 0
+
+
+def _B4(tree: Path, args, started: float) -> int:
+  """The B4 pass over tree: the enums, the rewritten initialisers and what the model cannot account for; --check
+  compiles every game/ file (the data segment header reaches all of them)."""
+  result = B4Pass(SourceTree(tree))
+  WriteB4(tree, result)
+  summary = {**result.Counts(), "replaced": result.replaced}
+  (args.out / "b4-problems.txt").write_text("".join(f"{line}\n" for line in result.problems))
+  if args.check:
+    summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b4.txt")
+  summary["seconds"] = round(time.monotonic() - started, 1)
+  (args.out / "b4-apply.json").write_text(json.dumps(summary, indent=1) + "\n")
   print(json.dumps(summary, indent=1))
   return 0
 

@@ -13,6 +13,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/element-chain.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -41,11 +42,6 @@ constexpr std::uint16_t PORTRAIT_LOW{ 0x7c80 }; // her portrait's position in th
 constexpr std::uint16_t PORTRAIT_HIGH{ 3 };
 constexpr std::uint16_t FIRST_REMARK{ 37 };
 constexpr std::uint16_t ANGEL_SHOW{ 215 };
-constexpr std::uint16_t PRESENT_OFFSET{ 0x0ef6 }; // opeu_angel_present as the presentation's far routine
-// The outcome routines' offsets in this module's code segment, as angel_actions holds them.
-constexpr std::uint16_t DEMORALIZE_OFFSET{ 0x0db8 };
-constexpr std::uint16_t INSPIRE_OFFSET{ 0x0e0e };
-constexpr std::uint16_t JUDGE_OFFSET{ 0x0e4e };
 constexpr std::uint8_t  COMMANDER{ 1 };
 constexpr std::uint8_t  OPEN_GROUND{ 1 };
 constexpr std::uint8_t  VETERAN{ 70 };
@@ -141,25 +137,25 @@ void opeu_angel_judge_side(Game& game, uint16_t person, uint16_t unit) {
   opeu_angel_finish(game, person, unit);
 }
 
-// The presentation's far routine: her portrait and remark, then the outcome the remark chose for the commander's unit.
-void opeu_angel_present(Game& game, uint16_t code_segment) {
+namespace {
+// The remark's outcomes for the commander and the unit, by the enumerator angel_actions holds for the remark.
+constexpr auto ANGEL_ACTIONS = DispatchRows<AngelAction, auto (*)(Game&, uint16_t, uint16_t)->void>({
+    { AngelAction::DEMORALIZE, opeu_angel_demoralize },
+    { AngelAction::INSPIRE,    opeu_angel_inspire    },
+    { AngelAction::JUDGE_SIDE, opeu_angel_judge_side },
+});
+} // namespace
+
+// The presentation: her portrait and remark, then the outcome the remark chose for the commander's unit.
+void opeu_angel_present(Game& game) {
   auto&      data{ Data(game) };
   auto const person{ opeu_find_side_record(game, data.event_side, COMMANDER) };
   auto const unit{ opeu_person_selected_unit(game, person) };
-  auto const action{ data.angel_actions[opeu_angel_portrait(game, data.event_side)] };
-  if (action.segment == code_segment && action.offset == DEMORALIZE_OFFSET)
-    opeu_angel_demoralize(game, person, unit);
-  else if (action.segment == code_segment && action.offset == INSPIRE_OFFSET)
-    opeu_angel_inspire(game, person, unit);
-  else if (action.segment == code_segment && action.offset == JUDGE_OFFSET)
-    opeu_angel_judge_side(game, person, unit);
-  else
-    port_fatal("evangel: an outcome routine outside this module (person %04x "
-               "unit %04x)",
-               static_cast<std::uint16_t>(person), static_cast<std::uint16_t>(unit));
+  auto const action{ data.angel_actions.at(opeu_angel_portrait(game, data.event_side)) };
+  Dispatch(ANGEL_ACTIONS, action, game, person, unit);
 }
 
-void opeu_angel_event(Game& game, uint16_t code_segment) {
+void opeu_angel_event(Game& game) {
   auto& data{ Data(game) };
   for (data.event_side = 0; data.event_side < SIDE_COUNT; ++data.event_side) {
     if (data.side_status[data.event_side] != SIDE_PLAYED) continue;
@@ -170,17 +166,7 @@ void opeu_angel_event(Game& game, uint16_t code_segment) {
     if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && opeu_angel_unit_eligible(game, unit)) {
       opeu_arrival_location(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
       opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
-      port_daily_show(game, ANGEL_SHOW, data.event_side, PRESENT_OFFSET, code_segment);
+      port_daily_show(game, ANGEL_SHOW, data.event_side, Presenter::ANGEL);
     }
   }
-}
-
-auto port_routine_opeu_angel_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_angel_event(game, 0x108c);
-  return 0;
-}
-
-auto port_routine_opeu_angel_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_angel_present(game, 0x108c);
-  return 0;
 }

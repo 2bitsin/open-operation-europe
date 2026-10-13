@@ -44,8 +44,6 @@ constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t VISIT_FORMAT{ offsetof(DataSegment, visit_format) }; // "At ease, Commander %s."
 constexpr std::uint16_t VISIT_SHOW{ 0x88 };
 constexpr std::uint16_t VISIT_CONTEXT{ 15 };
-constexpr std::uint16_t PRESENT_OFFSET{ 0x02ac }; // opeu_visit_present as the presentation's far routine
-constexpr std::uint16_t PRESENT_SEGMENT{ 0x108c };
 constexpr std::uint8_t  COMMANDER{ 1 };   // the side record kind of the commander
 constexpr std::uint8_t  VISITOR{ 4 };     // the person template kind of the visitor
 constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit happens on
@@ -108,7 +106,7 @@ void opeu_visit_conversation(Game& game, uint8_t side) {
   opeu_visit_person_boost(game, commander);
 }
 
-// The presentation's far routine: the conversation, then the commander panel shown afresh.
+// The presentation (Presenter::VISIT): the conversation, then the commander panel shown afresh.
 void opeu_visit_present(Game& game) {
   auto& data{ Data(game) };
   opeu_visit_conversation(game, data.event_side);
@@ -131,19 +129,9 @@ void opeu_visit_event(Game& game) {
       auto const  y{ target.y };
       opeu_set_turn_context(game, static_cast<std::uint8_t>(VISIT_CONTEXT));
       opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
-      port_daily_show(game, VISIT_SHOW, data.event_side, PRESENT_OFFSET, PRESENT_SEGMENT);
+      port_daily_show(game, VISIT_SHOW, data.event_side, Presenter::VISIT);
       data.side_flags[data.event_side] |= Bits(SideFlag::VISITED);
       opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
     }
   }
-}
-
-auto port_routine_opeu_visit_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_visit_event(game);
-  return 0;
-}
-
-auto port_routine_opeu_visit_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_visit_present(game);
-  return 0;
 }

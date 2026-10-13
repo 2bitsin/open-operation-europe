@@ -9,13 +9,29 @@
 #include "link/glue.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
+#include "core/airdrop.hpp"
+#include "core/persmenu.hpp"
+#include "core/rqsupply.hpp"
+#include "core/staffgen.hpp"
+#include "core/stockord.hpp"
+#include "core/suptable.hpp"
 #include "io/list-keys.hpp"
 #include "io/listui.hpp"
-#include "link/link.hpp"
+#include "io/tblsave.hpp"
+#include "map/dplrows.hpp"
+#include "map/ordtgt.hpp"
 #include "port.hpp"
+#include "units/cmdxfer.hpp"
+#include "units/genpick.hpp"
+#include "units/ordunit.hpp"
+#include "units/rqarms.hpp"
+#include "units/tally.hpp"
+#include "units/vwlist.hpp"
 #include "vgalib.hpp"
 #include <array>
+#include <concepts>
 
 using namespace opeu::game;
 
@@ -42,9 +58,53 @@ auto RestoreScreen(Game& game, ListWindow const& window) -> void {
                       static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
 }
 
+// A select routine called with the game and the running choice count, whichever of them it takes.
+template <auto SELECT>
+auto Selecting(Game& game, std::uint8_t count) -> std::uint8_t {
+  if constexpr (std::invocable<decltype(SELECT), Game&, std::uint8_t>)
+    return SELECT(game, count);
+  else if constexpr (std::invocable<decltype(SELECT), Game&>)
+    return SELECT(game);
+  else
+    return SELECT();
+}
+
+// The select routines, by the enumerator a window's select slot holds. NONE is absent: a window without one is never
+// run as a dialog.
+constexpr auto SELECTS = DispatchRows<ListSelect, auto (*)(Game&, std::uint8_t)->std::uint8_t>({
+    { ListSelect::REROLL_STAFF,         Selecting<opeu_staff_reroll_selected>    },
+    { ListSelect::ASSIGN_GENERAL,       Selecting<opeu_general_assign_choice>    },
+    { ListSelect::SAVE_ACCEPT,          Selecting<opeu_tbl_save_accept>          },
+    { ListSelect::GROUP_TARGET,         Selecting<opeu_group_target_enabled>     },
+    { ListSelect::ANY_ORDER_TARGET,     Selecting<opeu_menu_always>              },
+    { ListSelect::SUPPLY_UNIT,          Selecting<opeu_supply_unit_enabled>      },
+    { ListSelect::STOCK_CITY,           Selecting<opeu_stock_city_enabled>       },
+    { ListSelect::TRANSFER_GROUP,       Selecting<opeu_transfer_group_enabled>   },
+    { ListSelect::TRANSFER_UNIT,        Selecting<opeu_transfer_unit_enabled>    },
+    { ListSelect::TRANSFER_ELEMENT,     Selecting<opeu_transfer_element_enabled> },
+    { ListSelect::ANY_GENERAL,          Selecting<opeu_commander_always>         },
+    { ListSelect::DIVISION_TOGGLE,      Selecting<opeu_division_toggle>          },
+    { ListSelect::VIEW_OBJECTIVE,       Selecting<opeu_view_objective_ok>        },
+    { ListSelect::VIEW_NONE,            Selecting<opeu_view_false>               },
+    { ListSelect::VIEW_DIVISION,        Selecting<opeu_view_group_ok>            },
+    { ListSelect::VIEW_REGIMENT,        Selecting<opeu_view_unit_ok>             },
+    { ListSelect::VIEW_NONE_2,          Selecting<opeu_view_false_2>             },
+    { ListSelect::VIEW_NONE_3,          Selecting<opeu_view_false_3>             },
+    { ListSelect::VIEW_ANY,             Selecting<opeu_view_true>                },
+    { ListSelect::SUPPLY_UNIT_ELIGIBLE, Selecting<opeu_supply_unit_eligible>     },
+    { ListSelect::ANY_SUPPLY_TYPE,      Selecting<opeu_supply_true>              },
+    { ListSelect::RETURN_SLOT,          Selecting<opeu_supply_return_slot>       },
+    { ListSelect::TALLY_MARK,           Selecting<opeu_tally_mark>               },
+    { ListSelect::REQUEST_TYPE,         Selecting<opeu_rq_type_selectable>       },
+    { ListSelect::REQUEST_UNIT,         Selecting<opeu_rq_unit_selectable>       },
+    { ListSelect::AIR_MARK_REGIMENT,    Selecting<opeu_air_mark_regiment>        },
+    { ListSelect::AIR_ASSIGN_TROOPS,    Selecting<opeu_air_assign_troops>        },
+    { ListSelect::AIR_MARK_BATTALION,   Selecting<opeu_air_mark_battalion>       },
+    { ListSelect::ANY_DEPLOYMENT,       Selecting<opeu_deploy_true>              },
+});
+
 auto Select(Game& game, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
-  std::array<std::uint16_t, 1> const words{ count };
-  return static_cast<std::uint8_t>(port_call(game, static_cast<std::uint32_t>(window.select.segment) * 16u + window.select.offset, words.data(), words.size()));
+  return Dispatch(SELECTS, ListSelect{ window.select }, game, count);
 }
 
 auto NextKey(Game& game) -> std::uint8_t {

@@ -33,8 +33,6 @@ constexpr std::uint16_t DEATH_PREFIX{ offsetof(DataSegment, death_prefix) };
 constexpr std::uint16_t DEATH_SUFFIX{ offsetof(DataSegment, death_suffix) };
 constexpr std::uint16_t DEATH_SHOW{ 300 };
 constexpr std::uint16_t DEATH_CONTEXT{ 0x10 };
-constexpr std::uint16_t PRESENT_OFFSET{ 0x0004 }; // opeu_death_present as the presentation's far routine
-constexpr std::uint16_t PRESENT_SEGMENT{ 0x11e5 };
 constexpr std::uint8_t  ADVISER{ 3 };      // the side record kind of the adviser
 constexpr std::uint8_t  GENERAL_ROLE{ 1 }; // the role that becomes a deputy instead of dying
 
@@ -48,7 +46,7 @@ struct DeathNotice {
 constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
 } // namespace
 
-// The presentation's far routine: a pause.
+// The presentation (Presenter::DEATH): a pause.
 void opeu_death_present(Game& game) {
   opeu_delay_units(game, static_cast<std::uint8_t>(30));
 }
@@ -69,7 +67,7 @@ void opeu_commander_death(Game& game, uint16_t person) {
   if (data.side_status[notice.side] == SIDE_PLAYED) {
     opeu_set_turn_context(game, static_cast<std::uint8_t>(DEATH_CONTEXT));
     opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
-    port_daily_show(game, DEATH_SHOW, notice.side, PRESENT_OFFSET, PRESENT_SEGMENT);
+    port_daily_show(game, DEATH_SHOW, notice.side, Presenter::DEATH);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), at, opeu_find_side_record(game, notice.side, ADVISER));
   }
 }
@@ -106,14 +104,4 @@ void opeu_wound_event(Game& game) {
       opeu_add_byte(amount, person.max_health, &person.health);
     }
   }
-}
-
-auto port_routine_opeu_death_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_death_present(game);
-  return 0;
-}
-
-auto port_routine_opeu_wound_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_wound_event(game);
-  return 0;
 }

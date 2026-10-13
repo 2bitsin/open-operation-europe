@@ -20,8 +20,6 @@ using namespace opeu::game;
 namespace {
 
 constexpr std::uint16_t EVENT_PICTURE{ 0x73 };
-// The far routine that presents the event (opeu_daily_present), as the segment the link table resolves.
-constexpr std::uint16_t PRESENT_SEGMENT{ 0x0e36 };
 } // namespace
 
 void opeu_scan_daily_events(Game& game) {
@@ -39,7 +37,7 @@ void opeu_scan_daily_events(Game& game) {
         data.daily_active  = 0;
         data.daily_pending = 0;
         opeu_daily_activate(game, data.daily_side);
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), EVENT_PICTURE, data.daily_side, static_cast<uint32_t>(PRESENT_SEGMENT) << 16);
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), EVENT_PICTURE, data.daily_side, Presenter::DAILY_EVENT);
       }
     }
   }

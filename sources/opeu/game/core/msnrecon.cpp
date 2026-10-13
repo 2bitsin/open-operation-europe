@@ -73,13 +73,3 @@ void opeu_mission_recon_unit(Game& game, uint8_t side) {
   unit.flags                          |= Bits(UnitFlag::SPOTTED);
   opeu_officer_gain(game, side, OFFICER);
 }
-
-auto port_routine_opeu_mission_recon_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_recon_objective(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mission_recon_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_recon_unit(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}

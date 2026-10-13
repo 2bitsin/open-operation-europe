@@ -2,6 +2,7 @@
 // number.
 #include "map/btldraw.hpp"
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "map/btlsprt.hpp"
@@ -9,8 +10,8 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
+#include "io/soundcue.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -45,14 +46,26 @@ void BlitHexMask(Game& game, uint16_t mask, uint16_t x, uint16_t y, uint16_t mod
   data.stream_ptr[1] = HEX_MASK_SEGMENT;
   opeu_gfx_blit(x, y, HEX_WIDTH, HEX_HEIGHT, mode, port_far(data.stream_ptr[1], data.stream_ptr[0]));
 }
+
+// The battle's sound effects, by the enumerator battle_handlers holds for the handler.
+constexpr auto BATTLE_HANDLERS = DispatchRows<BattleHandler, auto (*)(Game&)->void>({
+    { BattleHandler::EFFECT_0, opeu_sound_cue0    },
+    { BattleHandler::EFFECT_1, opeu_sound_cue1    },
+    { BattleHandler::EFFECT_2, opeu_sound_cue2    },
+    { BattleHandler::EFFECT_3, opeu_sound_cue3    },
+    { BattleHandler::EFFECT_4, opeu_sound_cue4    },
+    { BattleHandler::EFFECT_5, opeu_sound_cue5    },
+    { BattleHandler::EFFECT_6, opeu_sound_cue6    },
+    { BattleHandler::EFFECT_7, opeu_sound_cue7    },
+    { BattleHandler::EFFECT_8, opeu_control_begin },
+    { BattleHandler::EFFECT_9, opeu_sound_cue9    },
+});
 } // namespace
 
-// The battle handlers are far routines in a table of far pointers.
+// The battle handler `handler` of battle_handlers, unless it is NO_HANDLER.
 void opeu_battle_dispatch(Game& game, uint8_t handler) {
   if (handler == NO_HANDLER) return;
-  auto&       data{ Data(game) };
-  auto const& routine{ Record<FarPointer>(data, static_cast<uint16_t>(Near(data, data.battle_handlers) + handler * sizeof(FarPointer))) };
-  port_call(game, static_cast<uint32_t>(routine.segment) * 16 + routine.offset, nullptr, 0);
+  Dispatch(BATTLE_HANDLERS, Data(game).battle_handlers.at(handler), game);
 }
 
 uint16_t opeu_battle_cell_row(Game&, uint8_t x, uint8_t y) {

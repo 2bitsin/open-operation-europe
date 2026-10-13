@@ -8,18 +8,28 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/advmenu.hpp"
+#include "core/airforce.hpp"
 #include "core/armysum.hpp"
 #include "core/coords.hpp"
+#include "core/delay.hpp"
 #include "core/dialogs.hpp"
+#include "core/persmenu.hpp"
+#include "core/rqmenu.hpp"
+#include "core/settings.hpp"
+#include "core/specfrc.hpp"
+#include "core/stockord.hpp"
 #include "io/soundcue.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "units/cmdxfer.hpp"
+#include "units/ordlist.hpp"
+#include "units/organize.hpp"
 
 #include <array>
 #include <cstddef>
@@ -36,6 +46,21 @@ constexpr std::uint16_t PROMPT_BYTES{ 50 };
 constexpr std::uint16_t CELL_X_AT{ 0 };
 constexpr std::uint16_t CELL_Y_AT{ 2 };
 constexpr std::uint16_t CELL_BYTES{ 4 };
+
+// The command menu's routines, by the enumerator control_actions holds for the choice.
+constexpr auto CONTROL_ACTIONS = DispatchRows<ControlAction, auto (*)(Game&)->void>({
+    { ControlAction::DELAY,          opeu_choose_turn_delay },
+    { ControlAction::ORDERS,         opeu_turn_action_1     },
+    { ControlAction::STOCKS,         opeu_turn_action_2     },
+    { ControlAction::TRANSFER,       opeu_turn_action_3     },
+    { ControlAction::PERSONNEL,      opeu_turn_action_4     },
+    { ControlAction::STAFF,          opeu_turn_action_5     },
+    { ControlAction::ORGANIZE,       opeu_turn_action_6     },
+    { ControlAction::REQUEST,        opeu_turn_action_7     },
+    { ControlAction::AIR_FORCE,      opeu_turn_action_8     },
+    { ControlAction::SPECIAL_FORCES, opeu_turn_action_9     },
+    { ControlAction::SETTINGS,       opeu_turn_action_10    },
+});
 } // namespace
 
 void opeu_turn_control_one(Game& game) {
@@ -64,8 +89,7 @@ void opeu_turn_control_one(Game& game) {
                             std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt.At(0)), static_cast<std::uint16_t>(PROMPT_FORMAT), static_cast<std::uint16_t>(data.context_record1) });
         auto const choice{ opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
-          auto const action{ data.control_actions[choice] };
-          port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), nullptr, 0);
+          Dispatch(CONTROL_ACTIONS, data.control_actions.at(choice), game);
           break;
         }
         inspecting             = true;

@@ -36,8 +36,3 @@ void opeu_choose_turn_delay(Game& game) {
   if (hours != MENU_CANCELLED && opeu_delay_confirm(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_record2, static_cast<std::uint8_t>(hours)))
     data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
 }
-
-auto port_routine_opeu_choose_turn_delay(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_choose_turn_delay(game);
-  return 0;
-}

@@ -51,11 +51,8 @@ constexpr uint8_t NONE{ 255 };
 // The saved order of a unit when it has none.
 constexpr uint8_t NO_ORDER{ 255 };
 
-// The daily show of an occupied objective and the far address of the routine it calls back
-// (opeu_end_occupy_present).
+// The daily show of an occupied objective.
 constexpr uint16_t OCCUPIED_SHOW{ 162 };
-constexpr uint16_t OCCUPY_PRESENT_OFFSET{ 0x0082 };
-constexpr uint16_t OCCUPY_PRESENT_SEGMENT{ 0x3424 };
 
 // The column of move_costs each equipment category moves by (5 columns per terrain); 255 there bars the terrain.
 constexpr std::array<uint8_t, 8> OCCUPY_CLASS{ 0, 1, 2, 3, 4, 3, 1, 1 };
@@ -135,7 +132,7 @@ void opeu_end_occupy(Game& game) {
     opeu_request_format(
         game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), static_cast<std::uint16_t>(objective) });
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(OCCUPY_PRESENT_SEGMENT) << 16 | OCCUPY_PRESENT_OFFSET);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, static_cast<uint8_t>(side), Presenter::END_OCCUPY);
   }
 }
 
@@ -280,11 +277,4 @@ void opeu_notice_end(Game& game) {
     data.context_side = 255;
     show_context(static_cast<uint8_t>(data.side_status[1] == SIDE_PLAYED));
   }
-}
-
-auto port_routine_opeu_end_occupy_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_end_occupy_present(game);
-  return 0;
 }

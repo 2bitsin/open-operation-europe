@@ -70,7 +70,3 @@ uint16_t opeu_advice_operation_hints(Game& game, const uint8_t* far_text) {
   if (auto const given{ opeu_advice_situational_hint(game, far_text) }) return given;
   return opeu_advice_general_tip(game, far_text);
 }
-
-auto port_routine_opeu_advice_operation_hints(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_advice_operation_hints(game, AdviceTexts());
-}

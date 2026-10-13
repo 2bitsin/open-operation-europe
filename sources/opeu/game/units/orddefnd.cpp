@@ -41,9 +41,3 @@ uint16_t opeu_order_defend_run(Game& game) {
   opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss));
   return 1;
 }
-
-auto port_routine_opeu_order_defend_run(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  return opeu_order_defend_run(game);
-}

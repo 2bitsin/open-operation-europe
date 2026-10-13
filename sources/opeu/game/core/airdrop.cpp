@@ -31,15 +31,7 @@
 
 using namespace opeu::game;
 
-// The code segment of the list-dialog callbacks this module stores as far pointers (set by the caller).
-uint16_t opeu_airdrop_code_segment = 0x23b2;
-
 namespace {
-
-// The far offsets of the list-dialog callbacks (the routine handlers below).
-constexpr std::uint16_t MARK_REGIMENT_OFFSET{ 0x06ca };
-constexpr std::uint16_t ASSIGN_TROOPS_OFFSET{ 0x06de };
-constexpr std::uint16_t MARK_BATTALION_OFFSET{ 0x077a };
 
 constexpr std::uint16_t TROOPS_PER_PLANE{ 30 };
 constexpr std::uint8_t  NO_TYPE{ 0xff };
@@ -123,7 +115,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
   constexpr std::uint16_t SUPPLY_UNITS{ offsetof(DataSegment, supply_units) };
   constexpr std::uint16_t ALLOC_ELEMENTS{ offsetof(DataSegment, alloc_elements) };
   data.regiment_dialog.rows = static_cast<std::uint8_t>(ReleaseUnits(game, SUPPLY_UNITS) + 1);
-  SetListPredicate(data.regiment_dialog, MARK_REGIMENT_OFFSET, opeu_airdrop_code_segment);
+  SetListPredicate(data.regiment_dialog, ListSelect::AIR_MARK_REGIMENT);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_which_regiment), data.context_record3);
   if (ListDialog(game, data.regiment_dialog)) {
     // The regiment's battalion quota is read again on every step, as the dialogs run in between.
@@ -131,7 +123,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
     auto const quota{ [&] { return data.ai_unit_element_counts[regiment]; } };
     auto const free{ static_cast<std::uint8_t>(opeu_min16(ReleaseElements(game, ALLOC_ELEMENTS), quota())) };
     data.choice_dialog.rows = static_cast<std::uint8_t>(free + 1);
-    SetListPredicate(data.choice_dialog, ASSIGN_TROOPS_OFFSET, opeu_airdrop_code_segment);
+    SetListPredicate(data.choice_dialog, ListSelect::AIR_ASSIGN_TROOPS);
     auto const type{ opeu_air_paratroop_type(game) };
     for (std::uint8_t i{ 0 }; i < quota() && free > i; ++i) {
       auto& element{ Record<Element>(data, data.alloc_elements[i]) };
@@ -149,7 +141,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
     }
     if (kept) {
       data.choice_dialog.rows = static_cast<std::uint8_t>(kept + 1);
-      SetListPredicate(data.choice_dialog, MARK_BATTALION_OFFSET, opeu_airdrop_code_segment);
+      SetListPredicate(data.choice_dialog, ListSelect::AIR_MARK_BATTALION);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_command_post), data.context_record3);
       if (ListDialog(game, data.choice_dialog)) return 1;
     }
@@ -257,21 +249,4 @@ void opeu_air_drop_command(Game& game) {
   if (!confirm(data.drop_ask_hq)) return;
   auto const delay{ opeu_air_drop_delay(game, static_cast<std::uint8_t>(hours)) };
   if (delay == 0 || opeu_air_drop_order(game, x, y, delay)) data.side_delays[data.current_side] = 1;
-}
-
-auto port_routine_opeu_air_assign_troops(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_air_assign_troops(game);
-}
-
-auto port_routine_opeu_air_mark_battalion(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_air_mark_battalion(game);
-}
-
-auto port_routine_opeu_air_mark_regiment(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_air_mark_regiment(game);
-}
-
-auto port_routine_opeu_air_drop_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_drop_command(game);
-  return 0;
 }

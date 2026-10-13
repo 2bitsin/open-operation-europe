@@ -6,6 +6,7 @@
 #include "units/vwlist.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/game.hpp"
 #include "common/view-service.hpp"
 #include "core/armypanl.hpp"
@@ -20,9 +21,12 @@
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
+#include "core/vwcity.hpp"
+#include "core/vwdiv.hpp"
+#include "core/vwpeople.hpp"
+#include "core/vwregt.hpp"
 #include "io/listdlg.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "map/objeleg.hpp"
@@ -44,6 +48,27 @@
 using namespace opeu::game;
 
 namespace {
+// The units view's sides, by the enumerator info_actions holds for the choice.
+constexpr auto INFO_ACTIONS = DispatchRows<InfoAction, auto (*)(Game&)->void>({
+    { InfoAction::OWN,   opeu_view_own_divisions },
+    { InfoAction::ENEMY, opeu_view_enemy_units   },
+});
+
+// The armaments view's sides, by the enumerator arms_actions holds for the choice.
+constexpr auto ARMS_ACTIONS = DispatchRows<ArmsAction, auto (*)(Game&)->void>({
+    { ArmsAction::OWN,   opeu_view_own_weapons   },
+    { ArmsAction::ENEMY, opeu_view_enemy_weapons },
+});
+
+// The view menu's routines, by the enumerator view_main_actions holds for the choice.
+constexpr auto VIEW_MAIN_ACTIONS = DispatchRows<ViewMainAction, auto (*)(Game&)->void>({
+    { ViewMainAction::DIVISIONS, opeu_view_division_contact },
+    { ViewMainAction::OFFICERS,  opeu_view_generals_menu    },
+    { ViewMainAction::CITIES,    opeu_view_cities_menu      },
+    { ViewMainAction::UNITS,     opeu_view_info_menu        },
+    { ViewMainAction::ARMAMENTS, opeu_view_arms_menu        },
+    { ViewMainAction::VICTORY,   opeu_view_victory          },
+});
 
 constexpr std::uint16_t INFO_PROMPT{ offsetof(DataSegment, info_prompt) };
 constexpr std::uint16_t INFO_MENU{ offsetof(DataSegment, info_menu) };
@@ -75,7 +100,7 @@ void opeu_view_info_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), INFO_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), INFO_MENU)) != MENU_CANCELLED;)
-    RunAction(game, data.info_actions, item);
+    Dispatch(INFO_ACTIONS, data.info_actions.at(item - 1u), game);
 }
 
 // Picks a type from the weapon list, which ends at `end`, and shows its panel.
@@ -83,7 +108,7 @@ void opeu_view_weapon_list(Game& game, uint16_t end) {
   auto&      data{ Data(game) };
   auto const count{ static_cast<std::uint8_t>(static_cast<std::int16_t>(end - WEAPON_LIST) >> 1) };
   data.weapons_dialog.rows = static_cast<std::uint8_t>(count + 1);
-  SetRowCheck(game, data.weapons_dialog, RowCheck::ANY);
+  SetListPredicate(data.weapons_dialog, ListSelect::VIEW_ANY);
   for (std::uint16_t height{ 7 }; opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
                                   opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.weapons_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
@@ -110,7 +135,7 @@ void opeu_view_arms_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), ARMS_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), ARMS_MENU)) != MENU_CANCELLED;)
-    RunAction(game, data.arms_actions, item);
+    Dispatch(ARMS_ACTIONS, data.arms_actions.at(item - 1u), game);
 }
 
 // The current side's victory conditions: side 0's are the scenario brief, side 1's begin the notes.
@@ -129,36 +154,7 @@ uint16_t opeu_view_menu_loop(Game& game) {
   do {
     item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), VIEW_PROMPT, VIEW_MENU_ITEMS, static_cast<std::uint16_t>(data.context_record3), VIEW_MENU);
     if (item == MENU_CANCELLED) return 0;
-    RunAction(game, data.view_main_actions, item);
+    Dispatch(VIEW_MAIN_ACTIONS, data.view_main_actions.at(item - 1u), game);
   } while (item != 1);
   return 1;
-}
-
-auto port_routine_opeu_view_arms_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_arms_menu(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_enemy_weapons(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_enemy_weapons(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_info_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_info_menu(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_menu_loop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_view_menu_loop(game);
-}
-
-auto port_routine_opeu_view_own_weapons(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_own_weapons(game);
-  return 0;
-}
-
-auto port_routine_opeu_view_victory(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_victory(game);
-  return 0;
 }

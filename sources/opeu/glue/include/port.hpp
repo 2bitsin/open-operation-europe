@@ -20,8 +20,6 @@
  *    compute it. It is plain data; nothing executes from it.
  *  - a model of the DGROUP stack pointer for the host branches that take
  *    `sp` and keep their stack buffers at original DS addresses;
- *  - the argument words of the address-keyed service callbacks (the routine
- *    link table that dispatches them is the game's: game/link/link.hpp);
  *  - diagnostics.
  */
 #pragma once
@@ -107,17 +105,6 @@ inline constexpr auto PORT_FRAME{ 0x100u };
 extern uint16_t       port_sp;
 auto                  port_stack_enter(uint16_t bytes) -> uint16_t;
 void                  port_stack_leave(uint16_t bytes);
-
-/* ---- routine argument words ----------------------------------------------- */
-
-/* Argument word i of a routine call with count words (0 past the end). */
-inline auto Arg(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint16_t {
-  return i < count ? args[i] : std::uint16_t{ 0 };
-}
-/* The 32-bit argument in words i (low) and i + 1 (high). */
-inline auto Arg32(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint32_t {
-  return static_cast<std::uint32_t>(Arg(args, count, i)) | static_cast<std::uint32_t>(Arg(args, count, i + 1)) << 16;
-}
 
 /* ---- diagnostics ------------------------------------------------------- */
 

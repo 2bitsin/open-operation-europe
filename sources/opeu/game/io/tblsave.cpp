@@ -85,13 +85,3 @@ void opeu_tbl_draw_saves(Game& game, std::uint8_t column, std::uint8_t first, st
     }
   }
 }
-
-auto port_routine_opeu_tbl_draw_saves(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_tbl_draw_saves(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
-                      static_cast<std::uint8_t>(Arg(args, count, 3)), static_cast<std::uint8_t>(Arg(args, count, 4)));
-  return 0;
-}
-
-auto port_routine_opeu_tbl_save_accept(Game&, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_tbl_save_accept();
-}

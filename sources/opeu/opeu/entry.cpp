@@ -4,7 +4,6 @@
 #include "common/game.hpp"
 #include "core/app.hpp"
 #include "intro.hpp"
-#include "link/entry-game.hpp"
 #include "link/glue.hpp"
 #include "platform.hpp"
 #include "port.hpp"
@@ -109,9 +108,8 @@ auto RunGame() -> void {
   opeu::game::GameState state{
     opeu::game::SegmentBytes{ port_ds, opeu::game::SEGMENT_SIZE }
   };
-  opeu::services::Machine     machine;
-  opeu::game::Game            game{ state, machine };
-  opeu::game::EntryGame const running{ game };
+  opeu::services::Machine machine;
+  opeu::game::Game        game{ state, machine };
   opeu_application_entry(game);
 }
 } // namespace

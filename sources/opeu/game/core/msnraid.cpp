@@ -161,28 +161,3 @@ void opeu_mission_unit_4(Game& game, uint8_t side) {
   unit.flags                          &= ~Bits(UnitFlag::COMMUNICATIONS);
   opeu_officer_gain(game, side, OFFICER);
 }
-
-auto port_routine_opeu_mission_objective_3(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_objective_3(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mission_raid_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_raid_objective(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mission_raid_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_raid_unit(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mission_sabotage(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_sabotage(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mission_unit_4(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_unit_4(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}

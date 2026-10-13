@@ -23,9 +23,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The code segment of the briefings: the message hook points at opeu_brief_blink, offset 0 in it.
-constexpr std::uint16_t BRIEFING_CODE_SEGMENT{ 0x0d9b };
-
 // The buffer that receives the closing text formatted with the player's name.
 constexpr std::uint16_t CLOSING_BYTES{ 100 };
 
@@ -60,10 +57,10 @@ public:
   }
 
   auto HookOn() -> void {
-    Data(_game).message_hook = FarPointer{ 0, BRIEFING_CODE_SEGMENT };
+    Data(_game).message_hook = MessageHook::BRIEFING_BLINK;
   }
   auto HookOff() -> void {
-    Data(_game).message_hook = FarPointer{ 0, 0 };
+    Data(_game).message_hook = MessageHook::NONE;
   }
   auto Mark(std::uint8_t x, std::uint8_t y) -> void {
     opeu_brief_mark(_game, x, y);
@@ -354,53 +351,4 @@ void opeu_brief_berlin(Game& game) {
     briefing.Say(data.brief_berlin_allies_10);
     briefing.Say(data.brief_berlin_allies_11);
   }
-}
-
-auto port_routine_opeu_brief_africa(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_africa(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_ardennes(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_ardennes(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_berlin(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_berlin(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_blink(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_blink(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_france(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_france(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_kursk(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_kursk(game);
-  return 0;
-}
-
-auto port_routine_opeu_brief_normandy(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_brief_normandy(game);
-  return 0;
 }

@@ -33,10 +33,8 @@ namespace {
 
 // The computer's direction latch, cleared for a new transfer (units/xferpnl).
 constexpr std::uint8_t UNMOVED{ '-' };
-// The daily picture the player's transfer runs inside, and the step's own far address it runs as its presenter.
+// The daily picture the player's transfer runs inside.
 constexpr std::uint16_t TRANSFER_PICTURE{ 0x96 };
-constexpr std::uint16_t STEP_OFFSET{ 0x05a8 };
-constexpr std::uint16_t STEP_SEGMENT{ 0x31f4 };
 // What the computer's finished transfer passes to the pending presentation.
 constexpr std::uint16_t FINISH_VALUE{ 3 };
 // The context_side value that has the next daily context redrawn.
@@ -134,19 +132,11 @@ uint16_t opeu_transfer_run(Game& game, uint16_t interactive) {
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
   data.transfer_interactive = interactive;
   if (SidePlayed(data, data.current_side))
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side),
-                    static_cast<unsigned int>(static_cast<uint32_t>(STEP_SEGMENT) << 16 | STEP_OFFSET));
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER_STEP);
   else
     opeu_transfer_step(game);
   opeu_music_command7(game);
   data.context_side = NO_CONTEXT;
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   return data.transfer_interactive;
-}
-
-auto port_routine_opeu_transfer_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)args;
-  (void)count;
-  opeu_transfer_step(game);
-  return 0;
 }

@@ -4,6 +4,7 @@
 // slots of the regiment.
 #include "units/finalact.hpp"
 #include "common/data-segment.hpp"
+#include "common/dispatch.hpp"
 #include "common/events.hpp"
 #include "map/moveunit.hpp"
 #include "types.hpp"
@@ -11,17 +12,39 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/movetgt.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/engineer.hpp"
+#include "units/ordarriv.hpp"
+#include "units/ordattk.hpp"
+#include "units/ordbridg.hpp"
+#include "units/orddefnd.hpp"
 #include "units/order-handler.hpp"
 #include "units/orders.hpp"
+#include "units/xferunit.hpp"
 
 using namespace opeu::game;
 
 namespace {
+// What each order does when its unit reaches it, by the enumerator order_handlers holds for the order's kind: nonzero
+// when the order is done with.
+constexpr auto ORDER_HANDLERS = DispatchRows<OrderHandler, auto (*)(Game&)->std::uint16_t>({
+    { OrderHandler::ARRIVE,           opeu_order_arrive              },
+    { OrderHandler::OCCUPY,           opeu_order_occupy_run          },
+    { OrderHandler::ATTACK,           opeu_order_attack_run          },
+    { OrderHandler::DEFEND,           opeu_order_defend_run          },
+    { OrderHandler::LAY_MINES,        opeu_engineer_lay_mines        },
+    { OrderHandler::REMOVE_MINES,     opeu_engineer_remove_mines     },
+    { OrderHandler::BUILD_BRIDGE,     opeu_engineer_build_bridge     },
+    { OrderHandler::DESTROY,          opeu_order_destroy_run         },
+    { OrderHandler::SUPPLY_OBJECTIVE, opeu_order_supply_objective    },
+    { OrderHandler::SUPPLY_UNIT,      opeu_order_supply_unit         },
+    { OrderHandler::REPAIR_OBJECTIVE, opeu_engineer_repair_objective },
+    { OrderHandler::REPAIR_UNIT,      opeu_engineer_repair_unit      },
+    { OrderHandler::REACH_UNIT,       opeu_order_reach_unit          },
+    { OrderHandler::HOLD,             opeu_order_hold                },
+});
 
 // The progress an order is given when its hold level runs out.
 constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
@@ -39,9 +62,7 @@ void opeu_turn_final_action(Game& game) {
     opeu_clear_unit_orders(game, data.current_unit_ptr, static_cast<std::uint8_t>(3));
     return;
   }
-  if (static_cast<std::uint16_t>(
-          port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(data.order_handlers[code].segment)) * 16u + static_cast<std::uint16_t>(data.order_handlers[code].offset), 0, 0)))
-    return;
+  if (Dispatch(ORDER_HANDLERS, data.order_handlers.at(code), game)) return;
   if (opeu_move_level_lower(game, slot, static_cast<uint8_t>(0))) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
   std::uint16_t const unit[1]{ data.current_unit_ptr };
   std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - opeu_unit_average9(game, unit[0])) / 35 + 1) };

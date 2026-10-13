@@ -1,15 +1,16 @@
-// The game's link glue (game/link/glue.cpp and hosts.cpp): what a service needs beyond "call the routine with
-// converted arguments", a platform difference of the 16-bit original rather than game logic:
+// The game's link glue (game/link/glue.cpp and hosts.cpp): what a service needs beyond a direct call, a platform
+// difference of the 16-bit original rather than game logic:
 //
 //  - the C runtime random state, kept at DS:c6f4 by the saved game and in opeu_random_state by the generator;
 //  - the struct hosts of TEXTOUT, UIPRIM and DIALOGS (the memory and segment bases their routines read) and NUMDLG's
 //    bridge;
-//  - far code pointers read from the data (cell predicates, picture stream readers), mapped to the functions they name;
+//  - the daily show with the dialogs' host (the presenter is a Presenter enumerator, core/presenters runs it);
 //  - the INT 33h / INT 66h register blocks of the mouse and FM drivers;
 //  - LOADSCEN's file contents (it takes the two files' bytes).
 #pragma once
 
 #include "common/events.hpp"
+#include "common/presenter.hpp"
 
 #include "port.hpp"
 
@@ -31,18 +32,10 @@ auto port_textout_host() -> void*; /* TextHost {} */
 auto port_uiprim_host() -> void*;  /* UiHost {memory, segments, event} */
 auto port_dialogs_host() -> void*; /* DialogHost {load, scratch} */
 
-/* ---- far code pointers of the recovered data ------------------------------ */
+/* ---- the daily show ----------------------------------------------------- */
 
-using PortCellPredicate = uint16_t (*)(Game& game, uint8_t x, uint8_t y, uint8_t side);
-/* 145c:1114 / 145c:1152, the two predicates of map/cellpred.c. */
-auto c2_cell_predicate(uint16_t off, uint16_t seg) -> PortCellPredicate;
-using PortByteReader = uint8_t (*)();
-/* 0a04:0132 / 0a04:01fc, UIPRIM's picture stream readers. */
-auto port_picture_reader(uint16_t off, uint16_t seg) -> PortByteReader;
-/* 1707:03e4 daily_show(id, side, far presenter (offset, segment)). */
-void port_daily_show(Game& game, uint16_t id, uint16_t side, uint16_t off, uint16_t seg);
-/* Call a linked routine by its reference name. */
-auto port_call_named(Game& game, const char* name, const uint16_t* args, unsigned count) -> uint32_t;
+/* daily_show(id, side, presenter) with the dialogs' host. */
+void port_daily_show(Game& game, uint16_t id, uint16_t side, opeu::game::Presenter presenter);
 
 /* ---- driver register blocks (int86 REGS words: ax bx cx dx si di cflag) ---- */
 

@@ -21,7 +21,6 @@
 #include "io/keyboard.hpp"
 #include "io/listdlg.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "map/mappick.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -176,9 +175,4 @@ void opeu_air_bomb_command(Game& game) {
   --type;
   if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CONFIRM_MISSION)), data.context_record3)) return;
   if (!opeu_air_bomb_check(game, opeu_map_code(game, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(game, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
-}
-
-auto port_routine_opeu_air_bomb_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_bomb_command(game);
-  return 0;
 }
