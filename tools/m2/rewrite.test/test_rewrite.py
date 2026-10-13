@@ -147,7 +147,7 @@ def test_apply_rewrites_a_scratch_copy(tmp_path):
   assert "Call(ds, event, TWICE);" in alpha
   assert '#include "core/target.hpp"' in (tree / "sources/opeu/game/core/gamma.cpp").read_text()
   assert "#include <array>" in alpha
-  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/io/input.cpp": 7, "game/map/battle.cpp": 5,
+  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/io/input.cpp": 8, "game/map/battle.cpp": 5,
                               "game/map/plan.cpp": 8, "game/units/orders.cpp": 4}
   assert applied.skipped == ["game/common/rows.hpp:19 needs core/rows-panel.hpp, which includes this header (an include cycle); left for a hand edit"]
 
@@ -167,8 +167,8 @@ def test_apply_hoists_before_a_declaration_and_names_each_sites_words_apart(tmp_
 def test_the_dry_run_writes_the_model_plans_and_listings(tmp_path):
   assert rewrite.main(["--tree", str(FIXTURE), "--out", str(tmp_path)]) == 0
   summary = json.loads((tmp_path / "summary.json").read_text())
-  assert summary["plans"] == {"b2": 5, "b3": 31}
-  assert summary["call_sites"] == 43
+  assert summary["plans"] == {"b2": 5, "b3": 32}
+  assert summary["call_sites"] == 44
   assert summary["unresolved_by_reason"] == {"multi-statement case or handler": 2, "id not served": 2, "service id is a parameter": 1,
                                              "callback bound to dispatchers that reach different code": 1, "no link handler at the address": 1}
   plan = json.loads((tmp_path / "plan-b2.json").read_text())
@@ -346,3 +346,7 @@ def test_apply_deletes_the_declaration_of_a_folded_array(tmp_path):
 def test_dispatchers_whose_cases_are_the_same_text_over_their_own_names_reach_the_same_code(model):
   assert Replacement(model, "game/io/input.cpp", 82) == "opeu_fill_words(ds, buffer, 2)"
   assert TargetOf(model, "game/io/input.cpp", 82).callbacks == ["svc_other_words", "svc_words"]
+
+
+def test_a_case_calling_the_link_table_at_an_address_of_its_words_is_inlined_as_that_call(model):
+  assert Replacement(model, "game/io/input.cpp", 99) == "port_call(ds, static_cast<std::uint32_t>(0x20) * 16u + 0x10, nullptr, 0)"

@@ -37,7 +37,7 @@ class Target:
   def resolved(self) -> bool:
     if self.branches:
       return not self.failure and all(branch.resolved for branch in self.branches)
-    return self.case is not None and (self.case.kind == SINGLE or self.case.storage) and not self.failure
+    return self.case is not None and (self.case.kind == SINGLE or self.case.storage or self.case.direct) and not self.failure
 
 
 @dataclass
@@ -162,9 +162,9 @@ class Resolver:
 
   def _Reached(self, dispatcher: Dispatcher, case: Case, words: list[int | None], chain: list[str]) -> Target:
     """The target of a case (or a guard's branch) that does the work itself."""
-    if case.kind == LINKING and case.forward is None:
+    if case.kind == LINKING and case.forward is None and not case.direct:
       return Target(case, dispatcher, words, len(words), chain, failure=f"case {case.labels[0]} calls the link table by itself")
-    single = case.kind == SINGLE or (case.storage and self._storage)
+    single = case.kind == SINGLE or case.direct or (case.storage and self._storage)
     failure = "" if single else f"case {case.labels[0]} of {dispatcher.name} is {case.kind} ({case.reason})"
     return Target(case, dispatcher, words, len(words), chain + [case.labels[0]], failure=failure)
 

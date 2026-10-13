@@ -86,3 +86,19 @@ void opeu_words_both(std::uint8_t* ds) {
   opeu_words_twice(ds, svc_words);
   opeu_words_twice(ds, svc_other_words);
 }
+
+auto svc_hooks(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
+  switch (id) {
+  case 1:  port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0); break;
+  default: break;
+  }
+  return 0;
+}
+
+void opeu_hook_run(std::uint8_t* ds, HostEvent event) {
+  Call(ds, event, 1, 0x10, 0x20);
+}
+
+void opeu_hook_main(std::uint8_t* ds) {
+  opeu_hook_run(ds, svc_hooks);
+}
