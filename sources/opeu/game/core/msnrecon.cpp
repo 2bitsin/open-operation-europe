@@ -8,6 +8,7 @@
 #include "core/strings.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
+#include "units/unitname.hpp"
 
 #include <cstddef>
 #include <utility>
@@ -33,7 +34,7 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 
 } // namespace
 
-void opeu_mission_recon_objective(Game& game, HostEvent event, uint8_t side) {
+void opeu_mission_recon_objective(Game& game, uint8_t side) {
   ServiceLocals const locals{ 0x32 };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
@@ -42,17 +43,17 @@ void opeu_mission_recon_objective(Game& game, HostEvent event, uint8_t side) {
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_objective_text)));
   if (opeu_string_length(game, target) > ONE_LINE_NAME) opeu_string_append(game, text, At(offsetof(DataSegment, recon_newline)));
   opeu_string_append(game, text, target);
-  auto const roll{ Call(game, event, MISSION_RANDOM, 100) };
+  auto const roll{ port_rand_bounded(game, 100) };
   if (opeu_officer_rating(game, side, OFFICER) <= roll) {
-    opeu_mission_report_failure(game, event, side, text);
+    opeu_mission_report_failure(game, side, text);
     return;
   }
-  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, event, side, text, city.x, city.y);
+  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, side, text, city.x, city.y);
   city.flags |= Bits(ObjectiveFlag::MARKED);
   opeu_officer_gain(game, side, OFFICER);
 }
 
-void opeu_mission_recon_unit(Game& game, HostEvent event, uint8_t side) {
+void opeu_mission_recon_unit(Game& game, uint8_t side) {
   ServiceLocals const locals{ 0x50 };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0x1e) };
@@ -60,12 +61,12 @@ void opeu_mission_recon_unit(Game& game, HostEvent event, uint8_t side) {
   auto const          target{ data.sides[side].order.target };
   auto&               unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_unit_text)));
-  opeu_string_append(game, text, Call(game, event, MISSION_UNIT_NAME, target, name));
-  if (opeu_officer_rating(game, side, OFFICER) <= Call(game, event, MISSION_RANDOM, 100)) {
-    opeu_mission_report_failure(game, event, side, text);
+  opeu_string_append(game, text, opeu_unit_name(game, svc_unitname, target, name));
+  if (opeu_officer_rating(game, side, OFFICER) <= port_rand_bounded(game, 100)) {
+    opeu_mission_report_failure(game, side, text);
     return;
   }
-  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, event, side, text, unit.x, unit.y);
+  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, side, text, unit.x, unit.y);
   for (auto& element : Elements(data, unit)) element.flags |= Bits(ElementFlag::SPOTTED);
   // The views redraw.
   data.view_side = data.overview_side  = 0xff;
@@ -73,16 +74,12 @@ void opeu_mission_recon_unit(Game& game, HostEvent event, uint8_t side) {
   opeu_officer_gain(game, side, OFFICER);
 }
 
-uint16_t svc_msnrecon(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_mission("msnrecon", game, id, args, count);
-}
-
 auto port_routine_opeu_mission_recon_objective(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_recon_objective(game, svc_msnrecon, (uint8_t)Arg(args, count, 0));
+  opeu_mission_recon_objective(game, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
 auto port_routine_opeu_mission_recon_unit(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_recon_unit(game, svc_msnrecon, (uint8_t)Arg(args, count, 0));
+  opeu_mission_recon_unit(game, (uint8_t)Arg(args, count, 0));
   return 0;
 }

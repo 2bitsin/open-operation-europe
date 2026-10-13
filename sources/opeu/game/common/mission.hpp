@@ -4,6 +4,7 @@
 
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/msglook.hpp"
 
 #include <cstdint>
 
@@ -52,8 +53,8 @@ inline constexpr std::uint16_t FINISH_PRESENTER{ 0x0042 }; // opeu_mission_finis
 inline constexpr std::uint16_t DELAY_PRESENTER{ 0x004a };  // opeu_mission_delay_present
 
 // The near pointer of a mission message's text.
-[[nodiscard]] inline auto MissionText(Game& game, HostEvent event, std::uint16_t id) -> std::uint16_t {
-  return Call(game, event, MissionService::MISSION_TEXT, id);
+[[nodiscard]] inline auto MissionText(Game& game, std::uint16_t id) -> std::uint16_t {
+  return opeu_message_lookup(game, svc_msglook, static_cast<short>(id));
 }
 
 } // namespace opeu::game::detail::mission

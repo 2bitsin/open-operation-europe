@@ -13,18 +13,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The text services the line calls through its event.
-enum Service : std::uint16_t {
-  SET_LEFT = 0, // (x)
-  POSITION = 1, // (x, y)
-  PRINT    = 2, // (format, division, suffix, infantry, tanks, artillery)
-};
 
 constexpr std::uint16_t STRENGTH_FORMAT{ offsetof(DataSegment, division_strength_format) };
 constexpr std::uint16_t RESERVE_MARK{ offsetof(DataSegment, division_reserve_mark) };
@@ -34,7 +28,7 @@ constexpr std::uint16_t LINE_Y{ 0x88 };
 
 // Prints "Div n" (with the reserve mark for a reserve division) and the infantry (in men: categories x1, x10, x5),
 // tank and artillery totals of the division's ready or arriving units.
-void opeu_show_division_strength(Game& game, HostNotify event, uint8_t div) {
+void opeu_show_division_strength(Game& game, uint8_t div) {
   auto&         data{ Data(game) };
   std::uint16_t troops{ 0 };
   std::uint16_t armour{ 0 };
@@ -55,17 +49,10 @@ void opeu_show_division_strength(Game& game, HostNotify event, uint8_t div) {
     }
   }
   auto const x{ static_cast<std::uint16_t>(div * 20 + 11) };
-  Call(game, event, SET_LEFT, x);
-  Call(game, event, POSITION, x, LINE_Y);
-  Call(game, event, PRINT, STRENGTH_FORMAT, div + 1, in_reserve ? RESERVE_MARK : NO_MARK, troops, armour, artillery);
-  Call(game, event, SET_LEFT, 0);
-}
-
-void svc_divstr(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case SET_LEFT: opeu_text_set_left(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  default:       port_unhandled("divstr", id, count);
-  }
+  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x), static_cast<int16_t>(LINE_Y));
+  opeu_cursor_print(game,
+                    std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(STRENGTH_FORMAT), static_cast<std::uint16_t>(div + 1), static_cast<std::uint16_t>(in_reserve ? RESERVE_MARK : NO_MARK),
+                                                  static_cast<std::uint16_t>(troops), static_cast<std::uint16_t>(armour), static_cast<std::uint16_t>(artillery) });
+  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0));
 }

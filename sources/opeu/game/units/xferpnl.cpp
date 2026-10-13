@@ -227,7 +227,7 @@ uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* arg
   case SOUND_CUE_16:    opeu_sound_cue16(game, svc_soundcue); break;
   case MUSIC_COMMAND_7: opeu_music_command7(game, svc_sound); break;
   case PENDING_FINISH:  opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_CONTEXT:   opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_CONTEXT:   opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case CONFIRM:         r = opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case INPUT_RESET:     opeu_input_reset(game, svc_mouse); break;
   case HIGHLIGHT:       r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;

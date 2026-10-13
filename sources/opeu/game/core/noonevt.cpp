@@ -256,7 +256,7 @@ uint16_t svc_noonevt(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case NOON_POSITION:      opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case NOON_WAIT:          opeu_wait_confirm(game, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
   case NOON_FEED:          opeu_text_feed(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case NOON_DAILY_CONTEXT: opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case NOON_DAILY_CONTEXT: opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case NOON_ACTIVE_BEGIN:  opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
   case NOON_SOUND:         opeu_sound_cue10(game, svc_soundcue); break;
   case NOON_MESSAGE:       opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;

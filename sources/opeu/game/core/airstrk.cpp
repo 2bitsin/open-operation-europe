@@ -40,44 +40,12 @@
 #include "units/casualty.hpp"
 #include "units/value.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the strike calls through its event.
-enum Service : std::uint16_t {
-  OFFICER_RATING   = 0,  // (side, kind)
-  NIGHT            = 1,  // (hour) -> nonzero outside 5..19
-  UNIT_AT          = 2,  // (x, y) -> unit or 0
-  UNIT_SIDE        = 3,  // (unit)
-  OBJECTIVE_AT     = 4,  // (x, y) -> objective or 0
-  OBJECTIVE_SIDE   = 5,  // (objective)
-  REQUEST_FORMAT   = 6,  // (destination, format, words...)
-  SIDE_RECORD      = 7,  // (side, rank) -> person
-  MESSAGE          = 8,  // (text, person)
-  AIR_REPORT       = 9,  // (hours left, mission name) -> 0 fly now, 1 wait an hour, 2 cancel
-  PERSON_TEMPLATE  = 10, // (nation, kind) -> person template
-  OPPOSITE_SIDE    = 11, // (side)
-  SOUND_CUE        = 12, // ()
-  MAP_CODE         = 13, // (x, y) -> terrain code
-  ISQRT            = 14, // (value)
-  CASUALTIES       = 15, // (unit, percent, rate, planes, 0, 1)
-  OBJECTIVE_DAMAGE = 16, // (objective, percent, rate, works, stores, planes, 0)
-  TURN_CONTEXT     = 17, // (context)
-  SIDE_FOR_STATUS  = 18, // (side)
-  MAP_CENTER       = 19, // (x, y, side)
-  SPRITE_DRAW      = 21, // (x, y, side)
-  DAILY_SHOW       = 22, // (picture, side, presenter offset, presenter segment)
-  MUSIC_COMMAND7   = 23, // ()
-  DELAY            = 24, // (ticks)
-  SPRITE_RESTORE   = 25, // (x, y)
-  OFFICER_GAIN     = 26, // (side, kind)
-  FINISH_SIDE      = 27, // (value)
-  MUSIC_STOP       = 28, // ()
-  TURN_PRE_CONTEXT = 29, // ()
-};
 
 constexpr std::uint16_t DESTROYED_FORMAT{ offsetof(DataSegment, air_destroyed_format) };
 constexpr std::uint16_t STRIKE_NAME{ offsetof(DataSegment, air_strike_name) };
@@ -92,42 +60,46 @@ constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target whe
 constexpr std::uint16_t STRIKE_PRESENTER{ 0x0406 }; // opeu_air_strike_present, in the code segment below
 constexpr std::uint16_t STRIKE_SEGMENT{ 0x0f43 };
 
-auto IsNight(Game& game, HostEvent event) -> bool {
-  return Call(game, event, NIGHT, Data(game).hour) != 0;
+auto IsNight(Game& game) -> bool {
+  return opeu_hour_is_night(static_cast<std::uint8_t>(Data(game).hour)) != 0;
 }
 } // namespace
 
 // How many of the strike's `n` attack waves the enemy shoots down: random rolls, more for a computer side at a high
 // delivery level, by day, with a weak air command or low morale, and over an enemy unit or objective.
-uint16_t opeu_air_damage_roll(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t n) {
+uint16_t opeu_air_damage_roll(Game& game, uint8_t x, uint8_t y, uint8_t n) {
   auto&         data{ Data(game) };
   auto const    side{ data.air_side };
   auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == SIDE_PLAYED ? (data.delivery_level >> 1) * n : n) + 1) };
-  std::uint16_t lost{ Call(game, event, OFFICER_RATING, side, AIR_OFFICER_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(game, bound) + 1) };
-  if (!IsNight(game, event)) lost += RandomBelow(game, bound) + 1;
+  std::uint16_t lost{ opeu_officer_rating(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(AIR_OFFICER_KIND)) >= STRONG_AIR_COMMAND
+                          ? std::uint16_t{ 0 }
+                          : static_cast<std::uint16_t>(RandomBelow(game, bound) + 1) };
+  if (!IsNight(game)) lost += RandomBelow(game, bound) + 1;
   if (data.sides[side].strength <= HIGH_MORALE) lost += RandomBelow(game, bound) + 1;
-  if (auto const foe{ Call(game, event, UNIT_AT, x, y) }; foe != 0 && static_cast<std::uint8_t>(Call(game, event, UNIT_SIDE, foe)) != side) lost += RandomBelow(game, bound);
-  if (auto const objective{ Call(game, event, OBJECTIVE_AT, x, y) }; objective != 0 && static_cast<std::uint8_t>(Call(game, event, OBJECTIVE_SIDE, objective)) != side)
+  if (auto const foe{ opeu_find_unit_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) }; foe != 0 && static_cast<std::uint8_t>(opeu_unit_side(foe)) != side)
+    lost += RandomBelow(game, bound);
+  if (auto const objective{ opeu_find_objective_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) };
+      objective != 0 && static_cast<std::uint8_t>(opeu_objective_side(game, objective)) != side)
     lost += RandomBelow(game, bound);
   return lost;
 }
 
 // "All the <what> were destroyed", from the side's air officer.
-void opeu_air_destroyed_message(Game& game, HostEvent event, uint16_t what) {
+void opeu_air_destroyed_message(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto const          text{ locals.At(0) };
-  Call(game, event, REQUEST_FORMAT, text, DESTROYED_FORMAT, what);
-  auto const officer{ Call(game, event, SIDE_RECORD, Data(game).air_side, AIR_OFFICER_KIND) };
-  Call(game, event, MESSAGE, text, officer);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(DESTROYED_FORMAT), static_cast<std::uint16_t>(what) });
+  auto const officer{ opeu_find_side_record(game, static_cast<std::uint8_t>(Data(game).air_side), static_cast<std::uint8_t>(AIR_OFFICER_KIND)) };
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, officer);
 }
 
 // Counts the air side's strike order down an hour; when its delay runs out the air officer decides: 1 when it flies
 // now, else it waits another hour or is cancelled.
-uint16_t opeu_air_strike_due(Game& game, HostEvent event) {
+uint16_t opeu_air_strike_due(Game& game) {
   auto& strike{ AirSide(Data(game)).strike };
   if (!strike.planes) return 0;
   opeu_sub_byte(1, &strike.turns);
-  if (!opeu_sub_byte(1, &strike.hours)) switch (static_cast<std::uint8_t>(Call(game, event, AIR_REPORT, strike.turns, STRIKE_NAME))) {
+  if (!opeu_sub_byte(1, &strike.hours)) switch (static_cast<std::uint8_t>(opeu_air_report(game, STRIKE_NAME, static_cast<std::uint8_t>(strike.turns)))) {
     case 0: return 1;
     case 1: strike.hours = 1; break;
     case 2: strike.planes = 0; break;
@@ -136,153 +108,102 @@ uint16_t opeu_air_strike_due(Game& game, HostEvent event) {
 }
 
 // The daily-show presenter of a strike: the side's air officer announces it, or the enemy's sees it coming.
-void opeu_air_strike_present(Game& game, HostEvent event) {
+void opeu_air_strike_present(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
-    auto const commander{ Call(game, event, SIDE_RECORD, side, FLIGHT_COMMANDER_KIND) };
-    auto const officer{ Call(game, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
-    Call(game, event, MESSAGE, STRIKE_BEGIN, officer);
+    auto const commander{ opeu_find_side_record(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(FLIGHT_COMMANDER_KIND)) };
+    auto const officer{ opeu_find_person_template(game, static_cast<std::uint8_t>(Record<Person>(data, commander).status), static_cast<std::uint8_t>(AIR_OFFICER_TEMPLATE)) };
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), STRIKE_BEGIN, officer);
   } else {
-    auto const enemy{ static_cast<std::uint8_t>(Call(game, event, OPPOSITE_SIDE, side)) };
-    Call(game, event, MESSAGE, STRIKE_SPOTTED, Call(game, event, SIDE_RECORD, enemy, AIR_OFFICER_KIND));
+    auto const enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<std::uint8_t>(side))) };
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), STRIKE_SPOTTED,
+                         opeu_find_side_record(game, static_cast<std::uint8_t>(enemy), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
   }
-  Call(game, event, SOUND_CUE);
+  opeu_sound_cue4(game, svc_soundcue);
 }
 
 // The bombs fall on (x, y) from n planes: casualties to the unit there and damage to the objective there, at a rate
 // from the air command's supply and the planes, lower at night and under cover (the terrain's for a unit, the
 // garrison's for an objective). With neither there the rate is not used.
-void opeu_air_strike_hit(Game& game, HostEvent event, uint8_t x, uint8_t y, uint16_t n) {
+void opeu_air_strike_hit(Game& game, uint8_t x, uint8_t y, uint16_t n) {
   auto&         data{ Data(game) };
   std::uint16_t shield{ 0 };
-  auto const    supply{ Call(game, event, OFFICER_RATING, data.air_side, AIR_OFFICER_KIND) };
-  auto const    unit{ Call(game, event, UNIT_AT, x, y) };
-  if (unit) shield = data.air_cover[static_cast<std::uint8_t>(Call(game, event, MAP_CODE, x, y))] / 6;
-  auto const site{ Call(game, event, OBJECTIVE_AT, x, y) };
+  auto const    supply{ opeu_officer_rating(game, static_cast<std::uint8_t>(data.air_side), static_cast<std::uint8_t>(AIR_OFFICER_KIND)) };
+  auto const    unit{ opeu_find_unit_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) };
+  if (unit) shield = data.air_cover[static_cast<std::uint8_t>(opeu_map_code(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)))] / 6;
+  auto const site{ opeu_find_objective_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) };
   if (site) shield = Record<Objective>(data, site).strength / 15;
-  auto const root{ Call(game, event, ISQRT, n) };
-  auto const night{ IsNight(game, event) };
+  auto const root{ opeu_isqrt(n) };
+  auto const night{ IsNight(game) };
   auto const rate{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(supply / 10 + n) / static_cast<std::uint16_t>(night + shield + 1))
                                               * static_cast<std::uint32_t>(root)) };
   if (unit) {
     auto const percent{ RandomBelow(game, 60) + 40 };
-    Call(game, event, CASUALTIES, unit, percent, rate, n, 0, 1);
+    opeu_unit_casualties(game, unit, percent, rate, n, 0, 1);
   }
   if (site) {
     auto const divisor{ static_cast<std::uint16_t>(RandomBelow(game, 2) + 1) };
-    auto const works_night{ IsNight(game, event) };
-    auto const works_root{ Call(game, event, ISQRT, n) };
+    auto const works_night{ IsNight(game) };
+    auto const works_root{ opeu_isqrt(n) };
     auto const works{ static_cast<std::uint16_t>(
         static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(works_root) * supply) * static_cast<std::uint32_t>(n)) / (works_night + 1))
         / divisor) };
-    auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n) / (IsNight(game, event) + 1)) };
-    Call(game, event, OBJECTIVE_DAMAGE, site, 0x5a, rate, works, stores, n, 0);
+    auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n) / (IsNight(game) + 1)) };
+    opeu_objective_damage(game, site, 0x5a, rate, works, stores, n, 0);
   }
 }
 
 // The strike flies: the planes leave the side's bombers, the air defence takes its toll, and the bomber crosses the
 // screen over the target; the survivors return at midnight and the order is cleared.
-void opeu_air_strike_event(Game& game, HostEvent event) {
+void opeu_air_strike_event(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.air_side };
-  Call(game, event, TURN_CONTEXT, data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe);
+  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe));
   auto&         record{ data.sides[side] };
   auto const    x{ record.strike.x };
   auto const    y{ record.strike.y };
   std::uint16_t planes{ record.strike.planes };
   opeu_sub_word(planes, &record.bombers);
-  opeu_sub_word(opeu_air_damage_roll(game, event, x, y, static_cast<std::uint8_t>(opeu_min16(planes, 20) / 7)), &planes);
+  opeu_sub_word(opeu_air_damage_roll(game, x, y, static_cast<std::uint8_t>(opeu_min16(planes, 20) / 7)), &planes);
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
-  Call(game, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(game, event, SIDE_FOR_STATUS, side)));
+  opeu_map_center(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side)))));
   auto const pixel{ CellViewPixel(game, x, y) };
   auto const hx{ pixel.x };
   auto const my{ pixel.y };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
-    Call(game, event, SPRITE_DRAW, hx, row, side);
+    opeu_air_sprite_draw(game, 0, hx, row, static_cast<std::uint8_t>(side));
     if (row == my) {
-      auto const shown{ static_cast<std::uint8_t>(Call(game, event, SIDE_FOR_STATUS, side)) };
-      Call(game, event, DAILY_SHOW, side == 0 ? 0x1e : 0xf, shown, STRIKE_PRESENTER, STRIKE_SEGMENT);
+      auto const shown{ static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side))) };
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), side == 0 ? 0x1e : 0xf, static_cast<std::uint8_t>(shown),
+                      static_cast<std::uint32_t>(STRIKE_SEGMENT) << 16 | STRIKE_PRESENTER);
     }
     if (my - row == BOMB_LEAD) {
-      Call(game, event, MUSIC_COMMAND7);
+      opeu_music_command7(game, svc_sound);
       if (!planes) {
-        opeu_air_destroyed_message(game, event, BOMBERS_NAME);
-        Call(game, event, SPRITE_RESTORE, hx, row);
+        opeu_air_destroyed_message(game, BOMBERS_NAME);
+        opeu_air_sprite_restore(game, 0, hx, row);
         break;
       }
-      opeu_air_strike_hit(game, event, x, y, planes);
+      opeu_air_strike_hit(game, x, y, planes);
     }
-    Call(game, event, DELAY, 2);
-    Call(game, event, SPRITE_RESTORE, hx, row);
+    opeu_delay_ticks(game, 2);
+    opeu_air_sprite_restore(game, 0, hx, row);
   }
   data.map_mode[0] = view;
   if (planes) {
-    Call(game, event, OFFICER_GAIN, side, AIR_OFFICER_KIND);
+    opeu_officer_gain(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(AIR_OFFICER_KIND));
     record.pending_bombers = static_cast<std::uint16_t>(record.pending_bombers + planes);
   }
   record.strike.planes = 0;
-  Call(game, event, FINISH_SIDE, 0);
-  Call(game, event, MUSIC_COMMAND7);
-  Call(game, event, MUSIC_STOP);
-  Call(game, event, TURN_PRE_CONTEXT);
-}
-
-uint16_t svc_airstrk(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t   result{ 0 };
-  auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  switch (id) {
-  case OFFICER_RATING: result = opeu_officer_rating(game, byte(0), byte(1)); break;
-  case NIGHT:          result = opeu_hour_is_night(byte(0)); break;
-  case UNIT_AT:        result = opeu_find_unit_at(game, byte(0), byte(1)); break;
-  case UNIT_SIDE:      result = opeu_unit_side(Arg(args, count, 0)); break;
-  case OBJECTIVE_AT:   result = opeu_find_objective_at(game, byte(0), byte(1)); break;
-  case OBJECTIVE_SIDE: result = opeu_objective_side(game, Arg(args, count, 0)); break;
-  case REQUEST_FORMAT: opeu_request_format(game, { args, count }); break;
-  case SIDE_RECORD:    result = opeu_find_side_record(game, byte(0), byte(1)); break;
-  case MESSAGE:        opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case AIR_REPORT:     {
-    result = opeu_air_report(game, svc_airshow, Arg(args, count, 1), byte(0));
-    break;
-  }
-  case PERSON_TEMPLATE: result = opeu_find_person_template(game, byte(0), byte(1)); break;
-  case OPPOSITE_SIDE:   result = opeu_opposite_side(byte(0)); break;
-  case SOUND_CUE:       opeu_sound_cue4(game, svc_soundcue); break;
-  case MAP_CODE:        result = opeu_map_code(game, byte(0), byte(1)); break;
-  case ISQRT:           result = opeu_isqrt(Arg(args, count, 0)); break;
-  case CASUALTIES:      {
-    opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
-    break;
-  }
-  case OBJECTIVE_DAMAGE: {
-    opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
-    break;
-  }
-  case TURN_CONTEXT:    opeu_set_turn_context(game, svc_sound, byte(0)); break;
-  case SIDE_FOR_STATUS: result = opeu_side_for_status(game, byte(0)); break;
-  case MAP_CENTER:      {
-    opeu_map_center(game, byte(0), byte(1), byte(2));
-    break;
-  }
-  case SPRITE_DRAW: {
-    opeu_air_sprite_draw(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), byte(2));
-    break;
-  }
-  case DAILY_SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
-  case MUSIC_COMMAND7: opeu_music_command7(game, svc_sound); break;
-  case DELAY:          opeu_delay_ticks(game, Arg(args, count, 0)); break;
-  case SPRITE_RESTORE: opeu_air_sprite_restore(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OFFICER_GAIN:   opeu_officer_gain(game, byte(0), byte(1)); break;
-  case FINISH_SIDE:    opeu_finish_side_initialization(game, svc_sound, byte(0)); break;
-  case MUSIC_STOP:     opeu_music_stop(game, svc_sound); break;
-  case TURN_PRE_CONTEXT: opeu_turn_pre_context(game, svc_context); break;
-  default:               port_unhandled("airstrk", id, count);
-  }
-  return result;
+  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(0));
+  opeu_music_command7(game, svc_sound);
+  opeu_music_stop(game, svc_sound);
+  opeu_turn_pre_context(game);
 }
 
 auto port_routine_opeu_air_strike_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_strike_present(game, svc_airstrk);
+  opeu_air_strike_present(game);
   return 0;
 }

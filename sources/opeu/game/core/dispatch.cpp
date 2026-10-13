@@ -117,9 +117,9 @@ uint16_t svc_dispatch(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_
   case DAILY:           opeu_turn_daily(game, svc_daily); break;
   case HALF_DAY:        opeu_turn_half_day(game, svc_halfday); break;
   case HOURLY_A:        opeu_turn_hourly_a(game, svc_msntick); break;
-  case HOURLY_B:        opeu_turn_hourly_b(game, svc_evreport); break;
+  case HOURLY_B:        opeu_turn_hourly_b(game); break;
   case HOURLY_C:        opeu_turn_hourly_c(game, svc_influenc); break;
-  case PRE_CONTEXT:     opeu_turn_pre_context(game, svc_context); break;
+  case PRE_CONTEXT:     opeu_turn_pre_context(game); break;
   case FIND_SIDE:       result = opeu_find_side_record(game, static_cast<uint8_t>(a0), static_cast<uint8_t>(a1)); break;
   case FIND_GROUP:      result = opeu_find_group_record(game, static_cast<uint8_t>(a0), static_cast<uint8_t>(a1)); break;
   case ACTIVE_BEGIN:    opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
@@ -132,8 +132,8 @@ uint16_t svc_dispatch(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_
   case INPUT_A:         result = static_cast<uint16_t>(opeu_turn_input_a(game, svc_mouse)); break;
   case INPUT_B:         result = opeu_turn_input_b(); break;
   case SELECTED_BEGIN:  opeu_turn_selected_begin(game); break;
-  case CONTROL_ONE:     opeu_turn_control_one(game, svc_control1, svc_context); break;
-  case CONTROL_OTHER:   opeu_turn_control_other(game, svc_control2, svc_context); break;
+  case CONTROL_ONE:     opeu_turn_control_one(game, svc_control1); break;
+  case CONTROL_OTHER:   opeu_turn_control_other(game); break;
   case GROUP_SELECTED:  result = opeu_find_group_selected_unit(game, a0); break;
   case GROUP_ACTION:    opeu_turn_group_action(game, svc_grptask); break;
   case FINAL_PREDICATE: result = opeu_turn_final_predicate(game, svc_grptask); break;

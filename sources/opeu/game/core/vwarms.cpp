@@ -159,12 +159,12 @@ uint16_t svc_view(Game& game, const char* module, uint16_t id, const uint16_t* a
   case ViewService::BACKDROP_COLOR:      opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); break;
   case ViewService::SIDE_RECORD:         r = opeu_find_side_record(game, byte(0), byte(1)); break;
   case ViewService::GROUP_RECORD:        r = opeu_find_group_record(game, byte(0), byte(1)); break;
-  case ViewService::ARMY_HEADING:        opeu_army_heading(game, svc_headings, svc_sideutil, arg(0)); break;
-  case ViewService::DIVISION_HEADING:    opeu_division_heading(game, svc_headings, arg(0)); break;
-  case ViewService::DIVISION_UNITS:      opeu_division_regiments(game, svc_armypanl, arg(0), arg(1)); break;
-  case ViewService::DIVISION_FINISH:     opeu_division_credits(game, svc_credits); break;
+  case ViewService::ARMY_HEADING:        opeu_army_heading(game, svc_sideutil, arg(0)); break;
+  case ViewService::DIVISION_HEADING:    opeu_division_heading(game, arg(0)); break;
+  case ViewService::DIVISION_UNITS:      opeu_division_regiments(game, arg(0), arg(1)); break;
+  case ViewService::DIVISION_FINISH:     opeu_division_credits(game); break;
   case ViewService::CONTROL_RESET:       opeu_screen_reset(game, dialogs); break;
-  case ViewService::DAILY_CONTEXT:       opeu_daily_context(game, svc_context, byte(0)); break;
+  case ViewService::DAILY_CONTEXT:       opeu_daily_context(game, byte(0)); break;
   case ViewService::CONTROL_POSITION:    opeu_control_position(game, arg(0), arg(1)); break;
   case ViewService::ARRIVAL_LOCATION:    opeu_arrival_location(game, byte(0), byte(1), byte(2)); break;
   case ViewService::CONTROL_MESSAGE:     opeu_control_message(game, dialogs, arg(0), arg(1)); break;

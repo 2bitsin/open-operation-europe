@@ -159,5 +159,5 @@ void opeu_notice_one(Game& game) {
   opeu_vga_clear();
   opeu_palette_for_hour(game, static_cast<const UiHost*>(port_uiprim_host()));
   opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_daily_context(game, svc_context, static_cast<std::uint8_t>(Data(game).current_side));
+  opeu_daily_context(game, static_cast<std::uint8_t>(Data(game).current_side));
 }

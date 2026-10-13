@@ -3,7 +3,10 @@
 #include "core/airforce.hpp"
 #include "common/events.hpp"
 #include "common/menu.hpp"
+#include "core/context.hpp"
+#include "core/dialogs.hpp"
 #include "core/template.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
 
@@ -15,6 +18,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -58,9 +62,9 @@ void opeu_air_officer(Game& game) {
 }
 
 // The mission table header.
-void opeu_air_header(Game& game, HostEvent event) {
-  Call(game, event, POSITION, 0x38, 0xa3);
-  Call(game, event, PRINT, Near(Data(game), Data(game).air_header_format));
+void opeu_air_header(Game& game) {
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(0x38), static_cast<short>(0xa3));
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).air_header_format)) });
 }
 
 // The Air Force command loop.
@@ -72,29 +76,36 @@ void opeu_turn_action_8(Game& game, HostEvent event) {
   do {
     auto const&   side{ Record<Side>(data, data.current_side_ptr) };
     std::uint16_t row{ 0 };
-    Call(game, event, TITLE, Near(data, data.air_title));
+    opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_title));
     if (side.strike.planes) {
-      opeu_air_header(game, event);
-      Call(game, event, POSITION, TABLE_X, TABLE_Y);
-      Call(game, event, PRINT, Near(data, data.air_strike_format), Location(game, event, side.strike.x, side.strike.y, buffer), side.strike.planes, side.strike.hours);
+      opeu_air_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(TABLE_Y));
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_strike_format)),
+                                                            static_cast<std::uint16_t>(Location(game, event, side.strike.x, side.strike.y, buffer)), static_cast<std::uint16_t>(side.strike.planes),
+                                                            static_cast<std::uint16_t>(side.strike.hours) });
       row = 1;
     }
     if (side.drop.transports) {
-      opeu_air_header(game, event);
-      Call(game, event, POSITION, TABLE_X, row * ROW_HEIGHT + TABLE_Y);
-      Call(game, event, PRINT, Near(data, data.air_drop_format), Location(game, event, side.drop.x, side.drop.y, buffer), side.drop.transports, side.drop.hours);
+      opeu_air_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
+      opeu_cursor_print(game,
+                        std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_drop_format)), static_cast<std::uint16_t>(Location(game, event, side.drop.x, side.drop.y, buffer)),
+                                                      static_cast<std::uint16_t>(side.drop.transports), static_cast<std::uint16_t>(side.drop.hours) });
       ++row;
     }
     if (side.lift.planes) {
-      opeu_air_header(game, event);
-      Call(game, event, POSITION, TABLE_X, row * ROW_HEIGHT + TABLE_Y);
-      Call(game, event, PRINT, Near(data, data.air_lift_format), Location(game, event, side.lift.x, side.lift.y, buffer), side.lift.planes, side.lift.hours);
+      opeu_air_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
+      opeu_cursor_print(game,
+                        std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_lift_format)), static_cast<std::uint16_t>(Location(game, event, side.lift.x, side.lift.y, buffer)),
+                                                      static_cast<std::uint16_t>(side.lift.planes), static_cast<std::uint16_t>(side.lift.hours) });
     }
-    auto const choice{ Call(game, event, DIALOG, Near(data, data.air_mission_question), 3, data.context_record2, Near(data, data.air_mission_menu)) };
+    auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_mission_question), 3, data.context_record2,
+                                         Near(data, data.air_mission_menu)) };
     if (choice == MENU_CANCELLED) break;
     auto const mission{ data.air_missions[choice - 1] };
     Call(game, event, FAR_ACTION, mission.segment, mission.offset);
-    Call(game, event, CONTEXT, data.current_side);
+    opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   } while (!data.side_delays[data.current_side]);
 }
 

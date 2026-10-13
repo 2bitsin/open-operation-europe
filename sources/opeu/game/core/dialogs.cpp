@@ -521,7 +521,7 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case LACKS_SIDE0:        r = opeu_person_lacks_side0_flag(game, Arg(args, count, 0)); break;
   case SELECTED_UNIT:      r = opeu_person_selected_unit(game, Arg(args, count, 0)); break;
   case SELECTION_ELIGIBLE: r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case DAILY_CONTEXT:      opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_CONTEXT:      opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case STRING_LENGTH:      r = opeu_string_length(game, Arg(args, count, 0)); break;
   case STRING_APPEND:      r = opeu_string_append(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case REQUEST_TEXT:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;

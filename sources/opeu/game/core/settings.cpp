@@ -443,7 +443,7 @@ uint16_t svc_settings(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case ASK:             r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:        opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case MUSIC_STOP:      opeu_music_stop(game, svc_sound); break;
-  case PRE_CONTEXT:     opeu_turn_pre_context(game, svc_context); break;
+  case PRE_CONTEXT:     opeu_turn_pre_context(game); break;
   case SCREEN_RESET:    opeu_screen_reset(game, (const DialogHost*)port_dialogs_host()); break;
   case ATTRIBUTE:       opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
   case DISK_RESET:      opeu_disk_reset(game); break;

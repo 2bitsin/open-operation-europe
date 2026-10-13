@@ -19,6 +19,7 @@
 #include "services.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <utility>
 
@@ -27,19 +28,6 @@ extern uint16_t opeu_string_length(Game& game, uint16_t name);
 using namespace opeu::game;
 
 namespace {
-
-// The services the panel calls through its event.
-enum Service : std::uint16_t {
-  BEGIN    = 0, // ()
-  SAVE     = 1, // () the text state
-  FRAME    = 2, // (x, y, width)
-  PRINT    = 3, // (format, words...)
-  RESTORE  = 4, // () the text state
-  PORTRAIT = 5, // (x, y, person)
-  POSITION = 6, // (x, y)
-  FINISH   = 7, // () the army summary
-  CONTEXT  = 8, // (context)
-};
 
 constexpr std::uint16_t NAME_FORMAT{ offsetof(DataSegment, context_name_format) };
 constexpr std::uint16_t STATS_FORMAT{ offsetof(DataSegment, context_stats_format) };
@@ -51,54 +39,38 @@ constexpr std::uint16_t HEALTH_NORMAL{ 54 }; // and of any other
 
 // Shows the side's general in the panel unless it already shows that side (or the current side's status hides it)
 // and no daily display is active; then blanks the lines below and draws the army summary.
-void opeu_daily_context(Game& game, HostEvent event, uint8_t side) {
+void opeu_daily_context(Game& game, uint8_t side) {
   auto& data{ Data(game) };
   if (!data.daily_active && (side == data.context_side || data.side_status[data.current_side] == SIDE_COMPUTER)) return;
   auto const  general{ opeu_find_side_record(game, side, 1) };
   auto const& person{ Record<Person>(data, general) };
   auto const  width{ std::min(static_cast<std::uint8_t>(opeu_string_length(game, general)), MAX_NAME) };
   data.context_display_word = 0;
-  Call(game, event, BEGIN);
-  Call(game, event, SAVE);
-  Call(game, event, FRAME, 44, 24, width + 13);
-  Call(game, event, PRINT, NAME_FORMAT, general);
-  Call(game, event, RESTORE);
-  Call(game, event, PRINT, STATS_FORMAT, person.leadership, person.infantry, person.charm, person.artillery, person.bravery, person.armor,
-       (person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL, person.health, person.experience);
-  Call(game, event, PORTRAIT, 70, 40, general);
+  opeu_context_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 24, width + 13);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(general) });
+  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_cursor_print(game,
+                    std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(STATS_FORMAT), static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.infantry),
+                                                   static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.bravery),
+                                                   static_cast<std::uint16_t>(person.armor), static_cast<std::uint16_t>((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL),
+                                                   static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.experience) });
+  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 70, 40, general);
   for (std::uint16_t y{ 316 }; y < 382; y += 16) {
-    Call(game, event, POSITION, 45, y);
-    Call(game, event, PRINT, BLANK_FORMAT);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(45), static_cast<int16_t>(y));
+    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(BLANK_FORMAT) });
   }
   data.context_side = side;
-  Call(game, event, FINISH);
+  opeu_army_summary(game, svc_armysum);
 }
 
-void opeu_turn_pre_context(Game& game, HostEvent event) {
+void opeu_turn_pre_context(Game& game) {
   auto const& data{ Data(game) };
-  Call(game, event, CONTEXT, data.scenario_contexts[std::to_underlying(CurrentScenario(data))]);
-}
-
-uint16_t svc_context(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case BEGIN:    opeu_context_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case SAVE:     opeu_context_save(game, (TextHost*)port_textout_host()); break;
-  case FRAME:    opeu_context_frame(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  case RESTORE:  opeu_context_restore(game, (TextHost*)port_textout_host()); break;
-  case PORTRAIT: opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case FINISH:   {
-    opeu_army_summary(game, svc_armysum);
-    break;
-  }
-  case CONTEXT: opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  default:      port_unhandled("context", id, count);
-  }
-  return 0;
+  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.scenario_contexts[std::to_underlying(CurrentScenario(data))]));
 }
 
 auto port_routine_opeu_daily_context(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_daily_context(game, svc_context, static_cast<std::uint8_t>(Arg(args, count, 0)));
+  opeu_daily_context(game, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }

@@ -210,7 +210,7 @@ uint16_t svc_paradrop(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case DropService::UNIT_GROUP: r = opeu_unit_group(Arg(args, count, 0)); break;
   case DropService::CELL_OK:    r = opeu_para_cell_ok(game, svc_paraunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case DropService::AIR_REPORT: {
-    r = opeu_air_report(game, svc_airshow, Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
+    r = opeu_air_report(game, Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
     break;
   }
   case DropService::SIDE_RECORD:     r = opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
@@ -233,13 +233,13 @@ uint16_t svc_paradrop(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   }
   case DropService::DELAY:       opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case DropService::SPRITE_DRAW: {
-    opeu_air_sprite_draw(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
+    opeu_air_sprite_draw(game, 0, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
-  case DropService::SPRITE_RESTORE: opeu_air_sprite_restore(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DropService::DAMAGE_ROLL:    r = opeu_air_damage_roll(game, svc_airstrk, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case DropService::SPRITE_RESTORE: opeu_air_sprite_restore(game, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DropService::DAMAGE_ROLL:    r = opeu_air_damage_roll(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case DropService::DESTROYED:      {
-    opeu_air_destroyed_message(game, svc_airstrk, Arg(args, count, 0));
+    opeu_air_destroyed_message(game, Arg(args, count, 0));
     break;
   }
   case DropService::OFFICER_GAIN: opeu_officer_gain(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

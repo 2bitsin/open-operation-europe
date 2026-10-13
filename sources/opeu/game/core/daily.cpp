@@ -59,7 +59,7 @@ void opeu_turn_daily(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, ui
 uint16_t svc_daily(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
   switch (id) {
   case PREPARE:  opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case CONTEXT:  opeu_daily_context(game, svc_context, (uint8_t)a0); break;
+  case CONTEXT:  opeu_daily_context(game, (uint8_t)a0); break;
   case ACTIVATE: opeu_daily_activate(game, static_cast<std::uint8_t>(a0)); break;
   case SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
   default:       port_unhandled("daily", id, 4);

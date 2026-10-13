@@ -4,9 +4,6 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint8_t  opeu_air_lift_lead(Game& game, HostEvent event, uint8_t hours, uint16_t planes);
-uint16_t opeu_air_lift_order(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food);
-void     opeu_air_lift_command(Game& game, HostEvent event);
-
-// Runs the services the module's routines call through their event.
-uint16_t svc_airlift(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+uint8_t  opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes);
+uint16_t opeu_air_lift_order(Game& game, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food);
+void     opeu_air_lift_command(Game& game);

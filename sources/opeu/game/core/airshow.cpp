@@ -32,16 +32,6 @@ using namespace opeu::game;
 // routine's ServiceLocals reserve.
 namespace {
 
-// Services leave the module through event.
-enum Service : std::uint16_t {
-  BITMAP_SAVE     = 0, // (x, y, w, h, segment, offset)
-  DRAW_FAR        = 1, // (x, y, w, h, mode, segment, offset)
-  SPRITE_COMPOSE  = 2, // (x, y, w, h, image offset, image segment, mask offset, mask segment, mode, segment, offset)
-  BITMAP_RESTORE  = 3, // (x, y, w, h, mode, segment, offset)
-  REQUEST_FORMAT  = 4, // (destination, format, colour, argument)
-  CONTROL_MESSAGE = 5, // (text, person)
-};
-
 using PlaneMask = std::array<std::uint8_t, 216>;
 
 constexpr std::uint8_t  PLANE_MASK{ 8 }; // the plane's entry in opeu_view_type_masks
@@ -60,27 +50,27 @@ void opeu_air_sprite_mirror(Game& game, uint16_t image, uint8_t keep) {
   for (std::size_t i = 0; i < mask.size(); i += 3) std::swap(mask[i], mask[i + 1]);
 }
 
-void opeu_air_sprite_draw(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y, uint8_t keep) {
+void opeu_air_sprite_draw(Game& game, uint16_t load, uint16_t x, uint16_t y, uint8_t keep) {
   ServiceLocals const locals{ sizeof(PlaneMask) }; // the mask the compose service reads
   auto&               data{ Data(game) };
   auto const          mask{ locals.At(0) };
   std::ranges::copy(opeu_view_type_masks[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
   opeu_air_sprite_mirror(game, mask, keep);
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
-  Call(game, event, BITMAP_SAVE, x, y, 4, 32, data.stream_ptr[1], data.stream_ptr[0]);
+  opeu_bitmap_save(x, y, 4, 32, port_far(data.stream_ptr[1], data.stream_ptr[0]));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), SHADOW_OFFSET);
-  Call(game, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream_ptr[1], data.stream_ptr[0]);
+  opeu_draw_far(x + 1, y + 8, 3, 24, SHADOW_MODE, port_far(data.stream_ptr[1], data.stream_ptr[0]));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), PLANE_OFFSET);
-  Call(game, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], mask, load + DATA_SEGMENT, 0, data.bitmap_buffer, 0);
+  opeu_sprite_compose(x, y, 3, 24, port_far(data.stream_ptr[1], data.stream_ptr[0]), port_far(load + DATA_SEGMENT, mask), port_far(data.bitmap_buffer, 0), 0);
 }
 
-void opeu_air_sprite_restore(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
+void opeu_air_sprite_restore(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
-  Call(game, event, BITMAP_RESTORE, x, y, 4, 32, 0, data.stream_ptr[1], data.stream_ptr[0]);
+  opeu_bitmap_restore(x, y, 4, 32, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
 }
 
-uint8_t opeu_air_report(Game& game, HostEvent event, uint16_t what, uint8_t wait) {
+uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {
   ServiceLocals const locals{ REQUEST_BUFFER_SIZE };
   auto&               data{ Data(game) };
   std::uint16_t const buffer{ locals.At(0) };
@@ -89,31 +79,10 @@ uint8_t opeu_air_report(Game& game, HostEvent event, uint16_t what, uint8_t wait
   if (data.weather != 0 && data.weather != 1) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };
-    Call(game, event, REQUEST_FORMAT, buffer, format, SideColorCode(data.air_side), what);
-    Call(game, event, CONTROL_MESSAGE, buffer, person);
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(SideColorCode(data.air_side)),
+                                                            static_cast<std::uint16_t>(what) });
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
     return wait ? 1 : 2;
   }
   return 0;
-}
-
-// The services of the air-operation display as direct calls; far (segment, offset) pairs become host pointers.
-uint16_t svc_airshow(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case BITMAP_SAVE: opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
-  case DRAW_FAR:
-    r = (uint16_t)opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
-  case SPRITE_COMPOSE:
-    opeu_sprite_compose(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 5), Arg(args, count, 4)),
-                        port_far(Arg(args, count, 7), Arg(args, count, 6)), port_far(Arg(args, count, 9), Arg(args, count, 10)), Arg(args, count, 8));
-    break;
-  case BITMAP_RESTORE:
-    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
-  case REQUEST_FORMAT:  opeu_request_format(game, { args, count }); break;
-  case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  default:              port_unhandled("airshow", id, count);
-  }
-  return r;
 }

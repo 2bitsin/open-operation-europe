@@ -2,7 +2,11 @@
 // speaker panel, the planes free for a mission, the target-cell check and the staff confirmation.
 #include "core/airhelp.hpp"
 #include "common/events.hpp"
+#include "core/dialogs.hpp"
+#include "core/msglook.hpp"
 #include "core/numeric.hpp"
+#include "core/textout.hpp"
+#include "io/keyboard.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -15,6 +19,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -36,21 +41,22 @@ constexpr std::uint8_t CITY{ 1 };
 
 // Shows the speaker panel with the question and "(low-high)? " (or "? " in the mouse input mode), then reads a number
 // in low..high; returns it, or 0xffff when cancelled.
-uint16_t opeu_air_ask_count(Game& game, HostEvent event, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
+uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
   ServiceLocals const locals{ LINE_BYTES };
   auto&               data{ Data(game) };
   auto const          line{ locals.At(0) };
-  Call(game, event, SPEAKER, person, 1);
+  opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 1);
   if (data.input_mode)
-    Call(game, event, FORMAT, line, Near(data, data.air_question_mark));
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(line), static_cast<std::uint16_t>(Near(data, data.air_question_mark)) });
   else
-    Call(game, event, FORMAT, line, Near(data, data.air_range_format), low, high);
-  Call(game, event, TEXT_FEED, text);
-  Call(game, event, TEXT_FEED, line);
-  Call(game, event, SPEAKER, person, 0);
-  Call(game, event, PRINT, Near(data, data.air_input_begin));
-  auto const chosen{ Call(game, event, VALUE, low, high, static_cast<std::uint16_t>(cancel), items) };
-  Call(game, event, PRINT, Near(data, data.air_input_end));
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(line), static_cast<std::uint16_t>(Near(data, data.air_range_format)), static_cast<std::uint16_t>(low),
+                                                            static_cast<std::uint16_t>(high) });
+  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), text);
+  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), line);
+  opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_begin)) });
+  auto const chosen{ opeu_choose_value(game, svc_keyboard, low, high, static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), items) };
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_end)) });
   return chosen;
 }
 
@@ -65,7 +71,7 @@ uint16_t opeu_air_free_planes(Game& game) {
 
 // Whether a mission (`what`) may target the cell: not a city of another side ("hostile city") and not terrain of code
 // 5, 6, 8 or 10 (named by its terrain); otherwise the officer says so and 0 is returned.
-uint16_t opeu_air_target_valid(Game& game, HostEvent event, uint8_t x, uint8_t y, uint16_t what) {
+uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) {
   auto&         data{ Data(game) };
   auto const    kind{ static_cast<std::uint8_t>(opeu_map_code(game, x, y)) };
   std::uint16_t name{};
@@ -82,13 +88,14 @@ uint16_t opeu_air_target_valid(Game& game, HostEvent event, uint8_t x, uint8_t y
   }
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  Call(game, event, FORMAT, buffer, Call(game, event, LOOKUP, CANNOT_TARGET), what, name);
-  Call(game, event, MESSAGE, buffer, data.context_record3);
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(CANNOT_TARGET))),
+                                                          static_cast<std::uint16_t>(what), static_cast<std::uint16_t>(name) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
   return 0;
 }
 
 // Asks the staff officer to confirm the mission.
-uint16_t opeu_air_confirm(Game& game, HostEvent event) {
+uint16_t opeu_air_confirm(Game& game) {
   auto const& data{ Data(game) };
-  return Call(game, event, CONFIRM, Call(game, event, LOOKUP, CONFIRM_MISSION), data.context_record3);
+  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CONFIRM_MISSION)), data.context_record3);
 }

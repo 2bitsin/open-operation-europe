@@ -63,7 +63,7 @@ void opeu_general_screen(Game& game) {
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), data.role_names[2]);
   for (std::uint8_t division{ 0 }; division < GROUPS_PER_SIDE; ++division) {
     opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), division * 0xa0 + 0x10, 0x88, division * 0xa0 + 0x4f, 0xd6, 7);
-    opeu_show_division_strength(game, svc_divstr, static_cast<uint8_t>(division));
+    opeu_show_division_strength(game, static_cast<uint8_t>(division));
   }
 }
 

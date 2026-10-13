@@ -112,7 +112,7 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
   }
   AnnounceOrder(game, prompts, buffer, person, kind);
   opeu_set_unit_order(game, unit, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
-  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   done();
 }
@@ -162,7 +162,7 @@ int svc_orders(Game& game, uint16_t id, const uint16_t* args, uint16_t count, ui
   case ORDERS_MESSAGE_LOOKUP:   r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case ORDERS_DELAY_DIALOG:     r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case ORDERS_DELAY_UNITS:      opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case ORDERS_DAILY_CONTEXT:    opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case ORDERS_DAILY_CONTEXT:    opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   default:                      return 0;
   }
   *result = r;

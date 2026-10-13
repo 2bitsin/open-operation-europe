@@ -93,7 +93,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     opeu_cursor_print(game,
                       std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(DIVISION_FORMAT), static_cast<std::uint16_t>(SideTextColor(data.current_side)), static_cast<std::uint16_t>(person) });
     auto const post{ static_cast<std::uint8_t>(opeu_find_vacant_post(game)) };
-    opeu_show_division_strength(game, svc_divstr, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
+    opeu_show_division_strength(game, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
     Prompt(game, DIVISION_PROMPT, post - 2);
     return 1;
   }
@@ -112,7 +112,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
       return 1;
     }
-    opeu_show_division_strength(game, svc_divstr, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
+    opeu_show_division_strength(game, static_cast<uint8_t>(static_cast<std::uint8_t>(post - 3)));
     Prompt(game, DIVISION_PROMPT, post - 2);
     return 1;
   }

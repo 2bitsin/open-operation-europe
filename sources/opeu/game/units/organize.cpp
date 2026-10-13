@@ -87,7 +87,7 @@ auto SetEnabled(ListWindow& list, std::uint16_t segment) -> void {
 auto Refresh(Game& game) -> void {
   auto& data{ Data(game) };
   data.daily_active = 1;
-  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   data.daily_active = 0;
 }
 
@@ -116,11 +116,11 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   } };
   auto flags{ ALLOC_FIRST };
   for (;;) {
-    opeu_ops_chief_text(game, svc_chief, Near(data, data.organize_dispatch));
+    opeu_ops_chief_text(game, Near(data, data.organize_dispatch));
     opeu_copy_bytes(game, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
     if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.supply_slot_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) {
       if (!data.supply_total && opeu_alloc_groups_nonempty(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots)) == 1) {
-        if (!opeu_ops_chief_wait(game, svc_chief, Near(data, data.organize_complete))) {
+        if (!opeu_ops_chief_wait(game, Near(data, data.organize_complete))) {
           flags = ALLOC_FIRST;
           continue;
         }
@@ -130,7 +130,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
         data.side_delays[data.current_side] = 1;
         return;
       }
-      if (!opeu_ops_chief_wait(game, svc_chief, Near(data, data.organize_cancel))) {
+      if (!opeu_ops_chief_wait(game, Near(data, data.organize_cancel))) {
         flags = ALLOC_FIRST;
         continue;
       }
@@ -142,7 +142,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
     auto const         item{ Near(data, data.alloc_slots[slot]) };
     std::uint8_t       next{ ALLOC_FIRST };
     for (;;) {
-      opeu_ops_chief_text(game, svc_chief, Near(data, data.organize_select));
+      opeu_ops_chief_text(game, Near(data, data.organize_select));
       opeu_copy_bytes(game, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
       if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.supply_type_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
       opeu_copy_bytes(game, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
@@ -154,7 +154,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
       std::uint16_t const limit{ static_cast<std::uint16_t>(!a.other_slots && a.slots - 1 < slot ? capacity * 3 : capacity) };
       std::uint16_t const most{ limit < data.supply_amounts[row] ? limit : data.supply_amounts[row] };
       opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.organize_number)) });
-      auto const amount{ opeu_ops_chief_number(game, svc_chief, text, 1, most, 1, 0) };
+      auto const amount{ opeu_ops_chief_number(game, text, 1, most, 1, 0) };
       if (amount == MENU_CANCELLED) continue;
       opeu_alloc_take(game, item, static_cast<uint8_t>(row), amount, static_cast<uint8_t>(a.types));
       next = ALLOC_AGAIN;

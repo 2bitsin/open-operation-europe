@@ -41,7 +41,7 @@ uint16_t opeu_message_lookup(Game& game, HostEvent event, int16_t id) {
 uint16_t svc_msglook(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case SELECT_CONTEXT: opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case SELECT_CONTEXT: opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case COPY_TEXT:      r = opeu_string_copy_far(game, Arg(args, count, 0), port_far(Arg(args, count, 2), 0), Arg(args, count, 1)); break;
   case REPORT_ERROR:   opeu_request_format(game, { args, count }); break;
   default:             port_unhandled("msglook", id, count);

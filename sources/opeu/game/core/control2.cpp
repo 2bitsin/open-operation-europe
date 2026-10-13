@@ -16,33 +16,16 @@
 
 using namespace opeu::game;
 
-namespace {
+namespace { } // namespace
 
-// Services leave the module through event; the context runs through its own context_event.
-enum Service : std::uint16_t {
-  LOCATION = 0, // (x, y, side)
-  FINISH   = 1, // ()
-};
-
-} // namespace
-
-void opeu_turn_control_other(Game& game, HostEvent event, HostEvent context_event) {
+void opeu_turn_control_other(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.current_side };
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-    Call(game, event, LOCATION, unit.x, unit.y, side);
+    opeu_arrival_location(game, static_cast<std::uint8_t>(unit.x), static_cast<std::uint8_t>(unit.y), static_cast<std::uint8_t>(side));
     data.context_side = NO_SIDE;
-    opeu_daily_context(game, context_event, data.current_side);
+    opeu_daily_context(game, data.current_side);
   }
-  Call(game, event, FINISH);
-}
-
-uint16_t svc_control2(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
-  case FINISH:   opeu_control_other_finish(game); break;
-  default:       port_unhandled("control2", id, count);
-  }
-  return 0;
+  opeu_control_other_finish(game);
 }

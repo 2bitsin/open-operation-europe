@@ -169,7 +169,7 @@ void opeu_transfer_objective(Game& game, HostWordsEvent event, uint16_t unit, ui
   StoreUnit(data, unit, 0);
   auto& city{ Record<Objective>(data, objective) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) city.resources[resource] = data.transfer_table[1][resource][AMOUNT];
-  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
 }
 
 // The hours a supply order of the current regiment takes: 4, plus its experience / 24, less its training / 32.

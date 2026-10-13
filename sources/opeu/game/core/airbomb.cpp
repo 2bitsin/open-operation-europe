@@ -28,6 +28,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 #include <optional>
 
@@ -109,26 +110,26 @@ auto Objection(Game& game, Objections const& rules, std::uint8_t fuel, std::uint
 
 // May the mission of the given type (0 carpet bombing, 1 attack sortie, 2 strafing run) against a city (1) or open
 // ground (0) go ahead? The air officer says why not, or "Understood"; 1 when the mission may proceed.
-uint16_t opeu_air_bomb_check(Game& game, HostEvent event, uint8_t city, uint16_t type) {
+uint16_t opeu_air_bomb_check(Game& game, uint8_t city, uint16_t type) {
   auto&         data{ Data(game) };
   auto&         side{ CurrentSide(data) };
   auto const    fuel{ side.strength };
   auto const    bombers{ side.bombers };
   std::uint16_t text{ 0 };
   if (city < 2 && type < 3)
-    if (auto const message{ Objection(game, OBJECTIONS[type][city], fuel, bombers) }) text = Call(game, event, LOOKUP, *message);
+    if (auto const message{ Objection(game, OBJECTIONS[type][city], fuel, bombers) }) text = opeu_message_lookup(game, svc_msglook, static_cast<short>(*message));
   if (text) {
-    Call(game, event, MESSAGE, text, data.air_person);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
     return 0;
   }
-  Call(game, event, MESSAGE, UNDERSTOOD, data.air_person);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), UNDERSTOOD, data.air_person);
   return 1;
 }
 
 // Announces the sortie (hours until the strike, planes sent, mission name) and, once confirmed, stores it as the side's
 // air strike. The delay is random(level + 1), one more at night, more in bad weather, less for the lighter missions;
 // the planes are the type's base plus a random extra, at most the side's bombers. 1 when the strike was ordered.
-uint16_t opeu_air_bomb_order(Game& game, HostEvent event, uint8_t x, uint8_t y, uint16_t type) {
+uint16_t opeu_air_bomb_order(Game& game, uint8_t x, uint8_t y, uint16_t type) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
@@ -136,10 +137,12 @@ uint16_t opeu_air_bomb_order(Game& game, HostEvent event, uint8_t x, uint8_t y, 
                                                 + 2) };
   auto const& flight{ data.bombing_flights[type] };
   auto const  planes{ opeu_min16(CurrentSide(data).bombers, static_cast<std::uint16_t>(flight.base + RandomBelow(game, flight.range))) };
-  auto const  format{ Call(game, event, LOOKUP, ANNOUNCE) };
-  Call(game, event, FORMAT, text, format, hours, hours == 1 ? HOUR_TEXT : HOURS_TEXT, planes, planes == 1 ? PLANE_TEXT : PLANES_TEXT, data.bombing_names[type]);
-  Call(game, event, MESSAGE, text, data.air_person);
-  if (!opeu_air_confirm(game, event)) return 0;
+  auto const  format{ opeu_message_lookup(game, svc_msglook, static_cast<short>(ANNOUNCE)) };
+  opeu_request_format(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(hours),
+                                                          static_cast<std::uint16_t>(hours == 1 ? HOUR_TEXT : HOURS_TEXT), static_cast<std::uint16_t>(planes),
+                                                          static_cast<std::uint16_t>(planes == 1 ? PLANE_TEXT : PLANES_TEXT), static_cast<std::uint16_t>(data.bombing_names[type]) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+  if (!opeu_air_confirm(game)) return 0;
   auto& strike{ CurrentSide(data).strike };
   strike.x      = x;
   strike.y      = y;
@@ -152,17 +155,17 @@ uint16_t opeu_air_bomb_order(Game& game, HostEvent event, uint8_t x, uint8_t y, 
 // The Bombing Attack command. A pending strike may be cancelled first; without bombers the command ends. Otherwise the
 // player picks a site (starting at the view) and a mission type and confirms; a mission the air officer refuses or
 // one that is ordered ends the side's turn.
-void opeu_air_bomb_command(Game& game, HostEvent event) {
+void opeu_air_bomb_command(Game& game) {
   auto& data{ Data(game) };
   if (CurrentSide(data).strike.planes) {
-    if (!Call(game, event, CONFIRM, Call(game, event, LOOKUP, CANCEL_ORDER), data.context_record3)) return;
+    if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CANCEL_ORDER)), data.context_record3)) return;
     CurrentSide(data).strike.planes = 0;
   }
   if (!CurrentSide(data).bombers) {
-    Call(game, event, MESSAGE, Call(game, event, LOOKUP, NO_BOMBERS), data.context_record3);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(NO_BOMBERS)), data.context_record3);
     return;
   }
-  Call(game, event, TITLE, BOMB_TITLE);
+  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), BOMB_TITLE);
   ServiceLocals const locals{ SITE_BYTES };
   auto const          at_x{ locals.At(SITE_X_AT) };
   auto const          at_y{ locals.At(SITE_Y_AT) };
@@ -170,13 +173,14 @@ void opeu_air_bomb_command(Game& game, HostEvent event) {
   auto&               site_y{ Record<std::uint8_t>(data, at_y) };
   site_x = static_cast<std::uint8_t>(data.viewport_x);
   site_y = static_cast<std::uint8_t>(data.viewport_y);
-  Call(game, event, MESSAGE, SITE_PROMPT, data.context_record3);
-  if (!Call(game, event, PICK, at_x, at_y)) return;
-  auto type{ Call(game, event, DIALOG, Call(game, event, LOOKUP, CHOOSE_TYPE), 3, data.context_record3, TYPE_MENU) };
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), SITE_PROMPT, data.context_record3);
+  if (!opeu_map_pick_location(game, at_x, at_y)) return;
+  auto type{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CHOOSE_TYPE)), 3, data.context_record3,
+                               TYPE_MENU) };
   if (type == MENU_CANCELLED) return;
   --type;
-  if (!Call(game, event, CONFIRM, Call(game, event, LOOKUP, CONFIRM_MISSION), data.context_record3)) return;
-  if (!opeu_air_bomb_check(game, event, opeu_map_code(game, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(game, event, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
+  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CONFIRM_MISSION)), data.context_record3)) return;
+  if (!opeu_air_bomb_check(game, opeu_map_code(game, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(game, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
 }
 
 // The services of the air force's commands (core/airbomb, airdrop, airforce, airhelp, airlift).
@@ -199,18 +203,14 @@ uint16_t svc_air(Game& game, const char* module, uint16_t id, const uint16_t* ar
   }
   case LIST_DIALOG: result = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2))); break;
   case POSITION:    opeu_army_position(game, (TextHost*)port_textout_host(), static_cast<short>(Arg(args, count, 0)), static_cast<short>(Arg(args, count, 1))); break;
-  case CONTEXT:     opeu_daily_context(game, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case CONTEXT:     opeu_daily_context(game, static_cast<uint8_t>(Arg(args, count, 0))); break;
   case FAR_ACTION:  result = static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0)); break;
   default:          port_unhandled(module, id, count);
   }
   return result;
 }
 
-uint16_t svc_airbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_air(game, "airbomb", id, args, count);
-}
-
 auto port_routine_opeu_air_bomb_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_bomb_command(game, svc_airbomb);
+  opeu_air_bomb_command(game);
   return 0;
 }

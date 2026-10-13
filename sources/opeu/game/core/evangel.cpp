@@ -27,28 +27,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the visit calls through its event.
-enum Service : std::uint16_t {
-  PANEL      = 0,  // () the message panel
-  FRAME      = 1,  // (x, y, width)
-  PRINT      = 2,  // (format)
-  SEEK       = 3,  // (handle, offset low, offset high, origin) in the portrait file
-  DRAW       = 4,  // (x, y, width, height, mode, handle) the portrait read from the file
-  LOOKUP     = 5,  // (id) -> the message text
-  FORMAT     = 6,  // (buffer, format, text)
-  POSITION   = 7,  // (x, y)
-  TEXT       = 8,  // (buffer)
-  LOCATION   = 9,  // (x, y, side) center the map
-  MARK       = 10, // (x, y, side) flash the cell
-  SHOW       = 11, // (id, side, presenter offset, presenter segment)
-  FAR_ACTION = 12, // (person, unit) an outcome routine outside this module
-};
 
 constexpr std::uint16_t BUFFER{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t NAME{ offsetof(DataSegment, angel_name) };
@@ -98,17 +82,20 @@ uint16_t opeu_angel_unit_eligible(Game& game, uint16_t unit) {
 }
 
 // Shows her portrait and one of six remarks; returns the outcome (remark / 2).
-uint8_t opeu_angel_portrait(Game& game, HostEvent event, uint8_t) {
+uint8_t opeu_angel_portrait(Game& game, uint8_t) {
   auto const& data{ Data(game) };
-  Call(game, event, PANEL);
-  Call(game, event, FRAME, 44, 282, 18);
-  Call(game, event, PRINT, NAME);
-  Call(game, event, SEEK, data.portrait_handle, PORTRAIT_LOW, PORTRAIT_HIGH, 0);
-  Call(game, event, DRAW, 45, 316, 8, 80, 0, data.portrait_handle);
+  opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 282, 18);
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(NAME) });
+  opeu_dos_seek(static_cast<int16_t>(data.portrait_handle),
+                static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_LOW)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_HIGH)) << 16),
+                static_cast<int16_t>(0));
+  opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
   auto const remark{ static_cast<std::uint8_t>(RandomBelow(game, 6)) };
-  Call(game, event, FORMAT, BUFFER, REMARK_FORMAT, Call(game, event, LOOKUP, remark + FIRST_REMARK));
-  Call(game, event, POSITION, 54, 324);
-  Call(game, event, TEXT, BUFFER);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(REMARK_FORMAT),
+                                                          static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(remark + FIRST_REMARK))) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(324));
+  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), BUFFER);
   return static_cast<std::uint8_t>(remark >> 1);
 }
 
@@ -155,11 +142,11 @@ void opeu_angel_judge_side(Game& game, uint16_t person, uint16_t unit) {
 }
 
 // The presentation's far routine: her portrait and remark, then the outcome the remark chose for the commander's unit.
-void opeu_angel_present(Game& game, HostEvent event, uint16_t code_segment) {
+void opeu_angel_present(Game& game, uint16_t code_segment) {
   auto&      data{ Data(game) };
   auto const person{ opeu_find_side_record(game, data.event_side, COMMANDER) };
   auto const unit{ opeu_person_selected_unit(game, person) };
-  auto const action{ data.angel_actions[opeu_angel_portrait(game, event, data.event_side)] };
+  auto const action{ data.angel_actions[opeu_angel_portrait(game, data.event_side)] };
   if (action.segment == code_segment && action.offset == DEMORALIZE_OFFSET)
     opeu_angel_demoralize(game, person, unit);
   else if (action.segment == code_segment && action.offset == INSPIRE_OFFSET)
@@ -167,10 +154,12 @@ void opeu_angel_present(Game& game, HostEvent event, uint16_t code_segment) {
   else if (action.segment == code_segment && action.offset == JUDGE_OFFSET)
     opeu_angel_judge_side(game, person, unit);
   else
-    Call(game, event, FAR_ACTION, person, unit);
+    port_fatal("evangel: an outcome routine outside this module (person %04x "
+               "unit %04x)",
+               static_cast<std::uint16_t>(person), static_cast<std::uint16_t>(unit));
 }
 
-void opeu_angel_event(Game& game, HostEvent event, uint16_t code_segment) {
+void opeu_angel_event(Game& game, uint16_t code_segment) {
   auto& data{ Data(game) };
   for (data.event_side = 0; data.event_side < SIDE_COUNT; ++data.event_side) {
     if (data.side_status[data.event_side] != SIDE_PLAYED) continue;
@@ -179,53 +168,19 @@ void opeu_angel_event(Game& game, HostEvent event, uint16_t code_segment) {
     auto const  x{ record.x };
     auto const  y{ record.y };
     if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && opeu_angel_unit_eligible(game, unit)) {
-      Call(game, event, LOCATION, x, y, data.event_side);
-      Call(game, event, MARK, x, y, data.event_side);
-      Call(game, event, SHOW, ANGEL_SHOW, data.event_side, PRESENT_OFFSET, code_segment);
+      opeu_arrival_location(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
+      opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
+      port_daily_show(game, ANGEL_SHOW, data.event_side, PRESENT_OFFSET, code_segment);
     }
   }
 }
 
-uint16_t svc_evangel(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t result{ 0 };
-  switch (id) {
-  case PANEL: opeu_message_panel_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case FRAME: opeu_context_frame(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case PRINT: opeu_cursor_print(game, { args, count }); break;
-  case SEEK:  result = static_cast<uint16_t>(opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3))); break;
-  case DRAW:
-    opeu_image_read_draw(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
-                         (int16_t)Arg(args, count, 5));
-    break;
-  case LOOKUP:   result = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:   opeu_request_format(game, { args, count }); break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case TEXT:     opeu_text_feed(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case LOCATION: {
-    opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  }
-  case MARK: {
-    opeu_location_flash(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  }
-  case SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case FAR_ACTION:
-    port_fatal("evangel: an outcome routine outside this module (person %04x "
-               "unit %04x)",
-               Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  default: port_unhandled("evangel", id, count);
-  }
-  return result;
-}
-
 auto port_routine_opeu_angel_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_angel_event(game, svc_evangel, 0x108c);
+  opeu_angel_event(game, 0x108c);
   return 0;
 }
 
 auto port_routine_opeu_angel_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_angel_present(game, svc_evangel, 0x108c);
+  opeu_angel_present(game, 0x108c);
   return 0;
 }

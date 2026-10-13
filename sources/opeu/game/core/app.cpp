@@ -135,8 +135,8 @@ void opeu_begin_hour(Game& game) {
 uint16_t svc_app(Game& game, uint16_t id) {
   uint16_t result{ 0 };
   switch (id) {
-  case INITIALIZE:   opeu_app_initialize(game, svc_appinit); break;
-  case STARTUP:      opeu_app_startup(game, svc_appinit); break;
+  case INITIALIZE:   opeu_app_initialize(game); break;
+  case STARTUP:      opeu_app_startup(game); break;
   case TURN:         opeu_process_selected_turn(game, svc_dispatch); break;
   case NOTICE_BEGIN: opeu_notice_begin(game, svc_notice); break;
   case NOTICE_ONE:   opeu_notice_one(game); break;

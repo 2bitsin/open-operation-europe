@@ -115,7 +115,7 @@ void opeu_stock_edit(Game& game, uint16_t objective) {
     }
   }
   for (auto const resource : { AMMUNITION, FUEL, FOOD }) city.reserves[resource] = before[resource];
-  opeu_daily_context(game, svc_context, static_cast<std::uint8_t>(data.current_side));
+  opeu_daily_context(game, static_cast<std::uint8_t>(data.current_side));
 }
 
 // Command action 2: the list of the side's cities until the player leaves it. segment is this module's code segment,

@@ -278,7 +278,7 @@ uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case MAP_PICK_LOCATION:    r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OBJECTIVE_SIDE:       r = opeu_objective_side(game, Arg(args, count, 0)); break;
   case ARMY_POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case DAILY_CONTEXT:        opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_CONTEXT:        opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case FAR_ACTION:           port_call(game, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
   case FIND_UNIT_AT:         r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;

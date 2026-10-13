@@ -27,11 +27,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The service the event calls through its event.
-enum Service : std::uint16_t {
-  UNIT_MESSAGE = 7, // (unit, text)
-};
-
 constexpr std::uint16_t COMMS_TEXT{ offsetof(DataSegment, comms_unit_text) };
 constexpr std::uint16_t SPY_TEXT{ offsetof(DataSegment, spy_unit_text) };
 constexpr std::uint8_t  CATEGORIES{ 8 };
@@ -43,7 +38,7 @@ auto Rand(Game& game, unsigned bound) -> std::uint16_t {
 } // namespace
 
 // The side's level is the delivery level for a player's side, else 2; it sets the odds and the fatigue of resting.
-void opeu_unit_hourly_event(Game& game, HostEvent event) {
+void opeu_unit_hourly_event(Game& game) {
   auto& data{ Data(game) };
   for (std::uint8_t side{ 0 }; side < 2; ++side) {
     std::uint16_t const level{ DeliveryLevel(data, side) };
@@ -55,11 +50,11 @@ void opeu_unit_hourly_event(Game& game, HostEvent event) {
         if (!(unit.flags & Bits(UnitFlag::READY))) continue;
         if (!(unit.flags & Bits(UnitFlag::COMMUNICATIONS)) && Rand(game, level * 10u + 24u) == 6) {
           unit.flags |= Bits(UnitFlag::COMMUNICATIONS);
-          Call(game, event, UNIT_MESSAGE, near, COMMS_TEXT);
+          opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, COMMS_TEXT);
         }
         if ((unit.flags & Bits(UnitFlag::SPOTTED)) && Rand(game, (level + 5u) * 20u) == 8) {
           unit.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SPOTTED));
-          Call(game, event, UNIT_MESSAGE, near, SPY_TEXT);
+          opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, SPY_TEXT);
         }
         for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) {
           std::uint8_t  count{};
@@ -100,15 +95,7 @@ void opeu_unit_hourly_event(Game& game, HostEvent event) {
   }
 }
 
-uint16_t svc_evunits(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case UNIT_MESSAGE: opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  default:           port_unhandled("evunits", id, count);
-  }
-  return 0;
-}
-
 auto port_routine_opeu_unit_hourly_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_unit_hourly_event(game, svc_evunits);
+  opeu_unit_hourly_event(game);
   return 0;
 }

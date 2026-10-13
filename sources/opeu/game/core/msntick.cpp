@@ -3,7 +3,10 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/mission.hpp"
+#include "core/aircargo.hpp"
+#include "core/dialogs.hpp"
 #include "core/sideutil.hpp"
+#include "core/weather.hpp"
 #include "data-segment.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -52,9 +55,9 @@ void opeu_mission_tick(Game& game, HostEvent event) {
 
 // The weather, the turn's preparation, the air operations and the special-forces missions.
 void opeu_turn_hourly_a(Game& game, HostEvent event) {
-  Call(game, event, MISSION_WEATHER);
-  Call(game, event, MISSION_TURN_PREPARE);
-  Call(game, event, MISSION_AIR_OPERATIONS);
+  opeu_weather_update(game);
+  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_air_operations(game);
   opeu_mission_tick(game, event);
 }
 

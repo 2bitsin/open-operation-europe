@@ -118,7 +118,7 @@ void opeu_transfer_step(Game& game, HostWordsEvent event) {
       opeu_sound_cue16(game, svc_soundcue);
       opeu_music_command7(game, svc_sound);
       opeu_pending_finish(game, static_cast<uint8_t>(FINISH_VALUE));
-      opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+      opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
       data.transfer_interactive = 1;
       return;
     }
@@ -142,7 +142,7 @@ uint16_t opeu_transfer_run(Game& game, HostWordsEvent event, uint16_t interactiv
     opeu_transfer_step(game, event);
   opeu_music_command7(game, svc_sound);
   data.context_side = NO_CONTEXT;
-  opeu_daily_context(game, svc_context, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   return data.transfer_interactive;
 }
 

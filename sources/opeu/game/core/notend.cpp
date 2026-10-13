@@ -321,7 +321,7 @@ uint16_t svc_notend(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case REPORT_ITEM:     opeu_element_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case TURN_PREPARE:    opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case DAILY_CONTEXT:   opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_CONTEXT:   opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   default:              port_unhandled("notend", id, count);
   }
   return r;

@@ -27,23 +27,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the events call through their event.
-enum Service : std::uint16_t {
-  CUE        = 0, // () sound cue 15
-  CONTEXT    = 1, // (side) the commander panel
-  LOOKUP     = 2, // (message) -> its text
-  FORMAT     = 3, // (destination, format, words...)
-  MESSAGE    = 4, // (text, person)
-  DAILY_SHOW = 5, // (daily item, side, presenter offset, presenter segment)
-  RISING     = 6, // (x, y, side) flash the cell on the side's map
-  ERASE      = 7, // (x, y) redraw the cell
-};
 
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint8_t  HURRICANE_WEATHER{ 5 };
@@ -64,34 +53,37 @@ auto HurricaneSeason(DataSegment const& data) -> bool {
 } // namespace
 
 // The hurricane's announcement: cue, the current side's panel and the message from the panel's general.
-void opeu_hurricane_present(Game& game, HostEvent event) {
+void opeu_hurricane_present(Game& game) {
   auto const& data{ Data(game) };
   bool const  season{ HurricaneSeason(data) };
-  Call(game, event, CUE);
-  Call(game, event, CONTEXT, data.current_side);
-  Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, HURRICANE_MESSAGE), season ? data.hurricane_words[0] : data.hurricane_words[1]);
-  Call(game, event, MESSAGE, TEXT, data.context_record2);
+  opeu_sound_cue15(game, svc_soundcue);
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(HURRICANE_MESSAGE))),
+                                                          static_cast<std::uint16_t>(season ? data.hurricane_words[0] : data.hurricane_words[1]) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, data.context_record2);
 }
 
 // In the hurricane weather: announces it, then each unheld cell of partisan terrain sees a rising at random (both
 // sides are told and the cell is cleared), and each objective in use may report a rising to a watched side and loses
 // 3..12 (5..14 in the season) of its garrison strength.
-void opeu_partisan_event(Game& game, HostEvent event) {
+void opeu_partisan_event(Game& game) {
   auto& data{ Data(game) };
   if (data.weather != HURRICANE_WEATHER) return;
   bool const season{ HurricaneSeason(data) };
   auto const partisans{ season ? data.partisan_words[0] : data.partisan_words[1] };
-  Call(game, event, DAILY_SHOW, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
+  port_daily_show(game, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
       if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || RandomBelow(game, season ? 70 : 100) != 8) continue;
-      Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, CELL_RISING_MESSAGE), partisans);
+      opeu_request_format(game,
+                          std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(CELL_RISING_MESSAGE))),
+                                                        static_cast<std::uint16_t>(partisans) });
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
-        Call(game, event, MESSAGE, TEXT, opeu_find_side_record(game, side, COMMANDER));
-        Call(game, event, RISING, x, y, side);
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
+        opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
       }
       opeu_map_mark_5(game, x, y);
-      Call(game, event, ERASE, x, y);
+      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
     }
   for (auto& objective : data.objectives) {
     if (!objective.active || RandomBelow(game, season ? 50 : 80)) continue;
@@ -99,43 +91,23 @@ void opeu_partisan_event(Game& game, HostEvent event) {
     if (opeu_objective_eligible(game, near)) {
       auto const side{ opeu_objective_side(game, near) };
       if (data.side_status[side] == SIDE_PLAYED) {
-        Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, OBJECTIVE_RISING_MESSAGE), partisans, near);
-        Call(game, event, MESSAGE, TEXT, opeu_find_side_record(game, side, COMMANDER));
-        Call(game, event, RISING, objective.x, objective.y, side);
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(TEXT),
+                                                                static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(OBJECTIVE_RISING_MESSAGE))),
+                                                                static_cast<std::uint16_t>(partisans), static_cast<std::uint16_t>(near) });
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
+        opeu_location_flash(game, static_cast<uint8_t>(objective.x), static_cast<uint8_t>(objective.y), static_cast<uint8_t>(side));
       }
     }
     opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(game, 10) + (season ? 5 : 3)), &objective.strength);
   }
 }
 
-uint16_t svc_evpartis(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t result{ 0 };
-  switch (id) {
-  case CUE:        opeu_sound_cue15(game, svc_soundcue); break;
-  case CONTEXT:    opeu_daily_context(game, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case LOOKUP:     result = opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
-  case FORMAT:     opeu_request_format(game, { args, count }); break;
-  case MESSAGE:    opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DAILY_SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case RISING:     {
-    opeu_location_flash(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
-    break;
-  }
-  case ERASE: {
-    opeu_map_erase(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-    break;
-  }
-  default: port_unhandled("evpartis", id, count);
-  }
-  return result;
-}
-
 auto port_routine_opeu_hurricane_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_hurricane_present(game, svc_evpartis);
+  opeu_hurricane_present(game);
   return 0;
 }
 
 auto port_routine_opeu_partisan_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_partisan_event(game, svc_evpartis);
+  opeu_partisan_event(game);
   return 0;
 }

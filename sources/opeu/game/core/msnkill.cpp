@@ -46,8 +46,8 @@ constexpr auto OFFICER{ std::to_underlying(StaffRole::OPERATIONS_CHIEF) };
 constexpr uint16_t ASSASSINATED{ 3 };          // " has been assassinated!"
 constexpr uint16_t ASSASSINATION_MISSION{ 6 }; // " assassination mission"
 
-auto Random(Game& game, HostEvent event, uint16_t bound) -> uint16_t {
-  return Call(game, event, MISSION_RANDOM, bound);
+auto Random(Game& game, uint16_t bound) -> uint16_t {
+  return port_rand_bounded(game, bound);
 }
 
 auto General(Game& game, uint8_t side, StaffRole role) -> uint16_t {
@@ -64,54 +64,55 @@ auto IsDeputy(Game& game, uint16_t person) -> bool {
 // the enemy side's selected unit, the intelligence and operations chiefs may fall (1 in 10 each) and the army
 // commander be assassinated, a deputy taking his post (1 in 20). Any of these is a success, and every element of the
 // unit then loses 30..49 morale.
-void opeu_mission_assassinate(Game& game, HostEvent event, uint8_t side) {
+void opeu_mission_assassinate(Game& game, uint8_t side) {
   ServiceLocals const locals{ 0x50 };
   auto const          text{ locals.At(0) };
   auto const          target{ Data(game).sides[side].order.target };
-  auto const          mission_text{ MissionText(game, event, ASSASSINATION_MISSION) };
-  opeu_string_append(game, opeu_mission_target_name(game, event, side, target, text), mission_text);
-  if (opeu_officer_rating(game, side, OFFICER) / 10 > Random(game, event, 100)) {
+  auto const          mission_text{ MissionText(game, ASSASSINATION_MISSION) };
+  opeu_string_append(game, opeu_mission_target_name(game, side, target, text), mission_text);
+  if (opeu_officer_rating(game, side, OFFICER) / 10 > Random(game, 100)) {
     auto       struck{ false };
     auto const enemy{ opeu_opposite_side(side) };
     if (opeu_find_group_selected_unit(game, opeu_unit_group(target)) == target) {
       auto const general{ opeu_find_group_record(game, enemy, opeu_unit_group_index(target)) };
       if (!IsDeputy(game, general)) {
-        opeu_mission_person_killed(game, event, general);
+        opeu_mission_person_killed(game, general);
         struck = true;
       }
     }
     if (opeu_find_side_selected_unit(game, enemy) == target) {
       for (auto const role : { StaffRole::INTELLIGENCE_CHIEF, StaffRole::OPERATIONS_CHIEF }) {
         auto const general{ General(game, enemy, role) };
-        if (Random(game, event, 10) == 4 && !IsDeputy(game, general)) {
-          opeu_mission_person_killed(game, event, general);
+        if (Random(game, 10) == 4 && !IsDeputy(game, general)) {
+          opeu_mission_person_killed(game, general);
           struck = true;
         }
       }
       auto const commander{ General(game, enemy, StaffRole::ARMY_COMMANDER) };
-      if (Random(game, event, 20) == 4) {
+      if (Random(game, 20) == 4) {
         Record<Person>(Data(game), commander).role |= Bits(PersonRole::DEPUTY);
         struck                                      = true;
         auto const commander_side{ opeu_person_lacks_side0_flag(game, commander) };
-        Call(game, event, MISSION_TURN_CONTEXT, 0x10);
-        Call(game, event, MISSION_FINISH_SIDE, 0);
+        opeu_set_turn_context(game, svc_sound, static_cast<uint8_t>(0x10));
+        opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(0));
         opeu_string_copy(game, text, commander);
-        opeu_string_append(game, text, MissionText(game, event, ASSASSINATED));
+        opeu_string_append(game, text, MissionText(game, ASSASSINATED));
         opeu_string_append(game, text, static_cast<uint16_t>(offsetof(DataSegment, mission_bold_off)));
-        Call(game, event, MISSION_MESSAGE, text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
-        Call(game, event, MISSION_DAILY_SHOW, FALLEN_PICTURE, commander_side, DELAY_PRESENTER, MISSION_CODE_SEGMENT);
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, static_cast<uint8_t>(commander_side),
+                        (static_cast<std::uint32_t>(static_cast<std::uint16_t>(DELAY_PRESENTER)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(MISSION_CODE_SEGMENT)) << 16));
       }
     }
     if (struck) {
       auto& data{ Data(game) };
       auto& unit{ Record<Unit>(data, target) };
-      if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, event, side, text, unit.x, unit.y);
+      if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, side, text, unit.x, unit.y);
       opeu_officer_gain(game, side, OFFICER);
-      for (auto& element : Elements(data, unit)) opeu_sub_byte(Random(game, event, 20) + 30, &element.morale);
+      for (auto& element : Elements(data, unit)) opeu_sub_byte(Random(game, 20) + 30, &element.morale);
       return;
     }
   }
-  opeu_mission_report_failure(game, event, side, text);
+  opeu_mission_report_failure(game, side, text);
 }
 
 // The services of the mission routines (MissionService).
@@ -136,7 +137,7 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
   case MISSION_DELAY_UNITS:    opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_WEATHER:        opeu_weather_update(game); break;
   case MISSION_TURN_PREPARE:   opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case MISSION_AIR_OPERATIONS: opeu_air_operations(game, svc_aircargo); break;
+  case MISSION_AIR_OPERATIONS: opeu_air_operations(game); break;
   case MISSION_HANDLER:
     words[0] = Arg(args, count, 2);
     port_call(game, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), words, 1);
@@ -146,11 +147,7 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
   return r;
 }
 
-uint16_t svc_msnkill(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_mission("msnkill", game, id, args, count);
-}
-
 auto port_routine_opeu_mission_assassinate(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mission_assassinate(game, svc_msnkill, (uint8_t)Arg(args, count, 0));
+  opeu_mission_assassinate(game, (uint8_t)Arg(args, count, 0));
   return 0;
 }

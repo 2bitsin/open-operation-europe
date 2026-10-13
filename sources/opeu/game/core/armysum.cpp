@@ -63,9 +63,9 @@ void opeu_army_summary(Game& game, HostEvent event) {
   auto&               data{ Data(game) };
   auto const          side{ data.current_side };
   if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != SIDE_PLAYED) return;
-  Call(game, event, TITLE, data.side_names[side]);
+  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), data.side_names[side]);
   if (!opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, side))) {
-    Call(game, event, TEXT, OUT_OF_SUPPLY);
+    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), OUT_OF_SUPPLY);
     return;
   }
   std::array<std::uint32_t, CATEGORIES> totals{};
@@ -80,22 +80,29 @@ void opeu_army_summary(Game& game, HostEvent event) {
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
       if (opeu_cell_influence_side(game, x, y) == side) ++influence;
   auto const cities{ opeu_count_active_objectives(game, side) };
-  auto const row{ [&](std::uint16_t y) { Call(game, event, POSITION, ROW_X, y); } };
+  auto const row{ [&](std::uint16_t y) { opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ROW_X), static_cast<int16_t>(y)); } };
   row(163);
-  Call(game, event, PRINT, ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(ROW0), static_cast<std::uint16_t>(Low(totals[3])), static_cast<std::uint16_t>(High(totals[3])),
+                                                        static_cast<std::uint16_t>(Low(totals[0])), static_cast<std::uint16_t>(High(totals[0])), static_cast<std::uint16_t>(fuel) });
   row(181);
-  Call(game, event, PRINT, ROW1, Low(totals[2]), High(totals[2]), Low(totals[5]), High(totals[5]), ammunition);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(ROW1), static_cast<std::uint16_t>(Low(totals[2])), static_cast<std::uint16_t>(High(totals[2])),
+                                                        static_cast<std::uint16_t>(Low(totals[5])), static_cast<std::uint16_t>(High(totals[5])), static_cast<std::uint16_t>(ammunition) });
   row(199);
-  Call(game, event, PRINT, ROW2, Low(totals[1]), High(totals[1]), Low(totals[7]), High(totals[7]), food);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(ROW2), static_cast<std::uint16_t>(Low(totals[1])), static_cast<std::uint16_t>(High(totals[1])),
+                                                        static_cast<std::uint16_t>(Low(totals[7])), static_cast<std::uint16_t>(High(totals[7])), static_cast<std::uint16_t>(food) });
   row(217);
-  Call(game, event, PRINT, ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]));
+  opeu_cursor_print(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(ROW3), static_cast<std::uint16_t>(Low(totals[4])), static_cast<std::uint16_t>(High(totals[4])),
+                                                        static_cast<std::uint16_t>(Low(totals[6])), static_cast<std::uint16_t>(High(totals[6])) });
   auto const& own{ Record<Side>(data, data.current_side_ptr) };
   row(245);
-  Call(game, event, PRINT, ROW4, own.bombers, cities, influence);
+  opeu_cursor_print(
+      game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(ROW4), static_cast<std::uint16_t>(own.bombers), static_cast<std::uint16_t>(cities), static_cast<std::uint16_t>(influence) });
   row(263);
-  Call(game, event, PRINT, ROW5, own.planes, own.paratroops, own.strength);
-  Call(game, event, POSITION, 54, 138);
-  Call(game, event, PRINT, HQ_FORMAT, opeu_unit_name(game, event, opeu_find_side_selected_unit(game, side), locals.At(0)));
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(ROW5), static_cast<std::uint16_t>(own.planes), static_cast<std::uint16_t>(own.paratroops),
+                                                        static_cast<std::uint16_t>(own.strength) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(138));
+  opeu_cursor_print(
+      game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(HQ_FORMAT), static_cast<std::uint16_t>(opeu_unit_name(game, event, opeu_find_side_selected_unit(game, side), locals.At(0))) });
 }
 
 uint16_t svc_armysum(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {

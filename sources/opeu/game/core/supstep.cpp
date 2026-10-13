@@ -114,10 +114,10 @@ uint16_t svc_supstep(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case MOUSE_HIDE:
   case KEY:            r = svc_suppanel(game, id, args, count); break;
   case ROW:            opeu_supply_draw_row(game, svc_suprow, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CHIEF_TEXT:     opeu_ops_chief_text(game, svc_chief, Arg(args, count, 0)); break;
+  case CHIEF_TEXT:     opeu_ops_chief_text(game, Arg(args, count, 0)); break;
   case INPUT_RESET:    opeu_input_reset(game, svc_mouse); break;
   case HIGHLIGHT:      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case CHIEF_WAIT:     r = opeu_ops_chief_wait(game, svc_chief, Arg(args, count, 0)); break;
+  case CHIEF_WAIT:     r = opeu_ops_chief_wait(game, Arg(args, count, 0)); break;
   default:             port_unhandled("supstep", id, count);
   }
   return r;
