@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/btldir.hpp"
 #include "map/btlelem.hpp"
 #include "map/btllist.hpp"
@@ -33,8 +34,6 @@ constexpr uint16_t PATH_RESERVE{ 8 };
 constexpr uint16_t PATH_X_AT{ 2 };
 constexpr uint16_t PATH_Y_AT{ 0 };
 constexpr uint8_t  SUPPLY_FUEL{ 1 };
-constexpr uint16_t SIDE_0_COLOR{ 0x36 };
-constexpr uint16_t SIDE_1_COLOR{ 0x35 };
 constexpr uint16_t COMMANDER_REPORT{ 2 };
 constexpr uint8_t  NO_FACING{ 0xff };
 constexpr uint8_t  STEP_DIRECTIONS{ 4 };
@@ -74,7 +73,7 @@ void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element,
   if (!data.side_status[side]) return;
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
   auto const name{ unit == Near(data, data.battle_garrison) ? Near(data, data.text_defenders) : Call(ds, event, BattleRoutine::UNIT_NAME, name_buffer, unit) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, Near(data, data.supply_notice_format), side == 0 ? SIDE_0_COLOR : SIDE_1_COLOR, name, data.supply_names[supply],
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, Near(data, data.supply_notice_format), SideColorCode(side), name, data.supply_names[supply],
        supply == SUPPLY_FUEL ? Near(data, data.text_cannot_move) : Near(data, data.text_cannot_fight));
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, COMMANDER_REPORT, text);
 }

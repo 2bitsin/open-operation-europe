@@ -36,7 +36,6 @@ constexpr uint8_t MOUSE_EVENT{ 0x80 };
 constexpr uint8_t LEFT_BUTTON{ 1 };
 constexpr uint8_t RIGHT_BUTTON{ 2 };
 constexpr uint8_t BRIDGE_TERRAIN{ 10 };
-constexpr uint8_t CONDITION_LIMIT{ 99 };
 
 // Calls body(unit, element) for each element of each unit in the battle's lists.
 template <typename Body>
@@ -159,18 +158,18 @@ void opeu_battle_daily_condition(uint8_t* ds, BattleEvent event) {
   ForBattleElements(data, [&](uint16_t unit, Element& element) {
     if (data.battle_side != NO_WINNER) {
       if (opeu_battle_unit_side(ds, event, unit) == data.battle_side)
-        opeu_add_byte(1, CONDITION_LIMIT, &element.morale);
+        opeu_add_byte(1, RATING_LIMIT, &element.morale);
       else
         opeu_sub_byte(1, &element.morale);
     }
     auto const round{ static_cast<uint16_t>(data.battle_level_limit + 1) };
     if (!opeu_hour_is_night(data.hour)) {
-      opeu_add_byte(1, CONDITION_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(opeu_rand_bounded(round), 5), CONDITION_LIMIT, &element.experience);
+      opeu_add_byte(1, RATING_LIMIT, &element.training);
+      opeu_add_byte(opeu_min16(opeu_rand_bounded(round), 5), RATING_LIMIT, &element.experience);
     } else {
       opeu_sub_byte(1, &element.morale);
-      opeu_add_byte(1, CONDITION_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(static_cast<uint16_t>(opeu_rand_bounded(round) + 5), 10), CONDITION_LIMIT, &element.experience);
+      opeu_add_byte(1, RATING_LIMIT, &element.training);
+      opeu_add_byte(opeu_min16(static_cast<uint16_t>(opeu_rand_bounded(round) + 5), 10), RATING_LIMIT, &element.experience);
     }
   });
 }

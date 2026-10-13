@@ -32,9 +32,8 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t RESTORED_FORMAT{ offsetof(DataSegment, comms_restored_format) };
 constexpr std::uint16_t CAPTURED_FORMAT{ offsetof(DataSegment, spy_captured_format) };
-constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
-constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
-constexpr std::uint16_t NEWS_BYTES{ 0x6c };  // the report text the format service writes
+constexpr std::uint8_t  ADVISER{ 3 };       // the side record kind of the adviser
+constexpr std::uint16_t NEWS_BYTES{ 0x6c }; // the report text the format service writes
 } // namespace
 
 // The level is the delivery level for a side the player commands, else 2: a higher level grows strength more slowly
@@ -47,7 +46,7 @@ void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event) {
     if (!objective.active) continue;
     auto const    camp{ Near(data, objective) };
     auto const    side{ opeu_objective_side(ds, camp) };
-    std::uint16_t level{ data.side_control[side] == SIDE_PLAYED ? data.delivery_level : COMPUTER_LEVEL };
+    std::uint16_t level{ DeliveryLevel(data, side) };
     auto const    speaker{ opeu_find_side_record(ds, side, ADVISER) };
     opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(ds, static_cast<std::uint16_t>(5 - level)) + 1), objective.strength_limit, &objective.strength);
     if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && RandomBelow(ds, static_cast<std::uint16_t>(level * 10 + 24)) == 6) {

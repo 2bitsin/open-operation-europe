@@ -37,8 +37,6 @@ constexpr uint16_t NO_DISTANCE{ 0xffff };
 constexpr uint8_t  NONE{ 0xff };
 constexpr uint8_t  BATTLE_EDGE{ BATTLE_WIDTH - 1 };
 constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
-// ElementType::gun_range above this fires from afar.
-constexpr uint8_t RANGED_MODE{ 1 };
 
 [[nodiscard]] auto CanEnter(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> uint16_t {
   return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element);

@@ -25,7 +25,6 @@ using namespace opeu::game;
 namespace {
 
 constexpr std::uint8_t  ALL_CATEGORIES{ 0xff };
-constexpr std::uint8_t  CITY_LEVEL{ 4 };
 constexpr std::uint16_t CHEAP_UNIT{ 300 };
 constexpr std::uint8_t  SAMPLE_STEP{ 4 }; // the territory sample takes every fourth cell each way
 

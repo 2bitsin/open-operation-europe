@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
 #include "types.hpp"
@@ -22,8 +23,6 @@ namespace {
 constexpr uint8_t  OBJECTIVE_TERRAIN{ 10 };
 constexpr uint16_t PAPER{ 4 };
 constexpr uint16_t PAPER_OFF{ 0 };
-constexpr uint16_t SIDE_1_COLOR{ 5 };
-constexpr uint16_t SIDE_0_COLOR{ 6 };
 constexpr uint16_t LABEL_COLOR{ 7 };
 constexpr uint16_t LINE_X{ 2 };
 constexpr uint16_t CELL_LINE_Y{ 0x50 };
@@ -51,7 +50,7 @@ void opeu_battle_cursor_info(uint8_t* ds, BattleEvent event) {
     }
   auto const element{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y) };
   if (element && (opeu_battle_element_side(ds, event, element) == data.battle_active_side || opeu_battle_element_flag2(ds, event, element))) {
-    Call(ds, event, BattleRoutine::TEXT_COLOR, opeu_battle_element_side(ds, event, element) ? SIDE_1_COLOR : SIDE_0_COLOR);
+    Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(opeu_battle_element_side(ds, event, element)));
     Call(ds, event, BattleRoutine::ARMY_POSITION, LINE_X, TYPE_LINE_Y);
     auto const& record{ Record<Element>(data, element) };
     Call(ds, event, BattleRoutine::UI_TEXT, data.element_types[record.type].name);

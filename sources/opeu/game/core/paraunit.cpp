@@ -3,6 +3,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/memory.hpp"
+#include "common/order.hpp"
 #include "common/random.hpp"
 #include "core/limits.hpp"
 #include "types.hpp"
@@ -64,7 +65,6 @@ constexpr uint8_t ALL_CATEGORIES{ 0xff };
 constexpr uint8_t ANY_SIDE{ 0xff };
 constexpr uint8_t NEIGHBOURS{ 8 };
 constexpr uint8_t LANDING_PERCENT{ 90 };
-constexpr uint8_t ORDER_SLOTS{ 3 };
 constexpr auto    INTELLIGENCE{ std::to_underlying(StaffRole::INTELLIGENCE_CHIEF) };
 constexpr uint8_t STRONG_SIDE{ 50 };
 
@@ -123,7 +123,7 @@ uint16_t opeu_para_unit_create(uint8_t ds[65536], HostWordsEvent event, uint8_t 
     unit.y     = y;
     unit.moved = 0;
     unit.flags = Bits(UnitFlag::READY) | Bits(UnitFlag::COMMUNICATIONS);
-    Call(ds, event, ParaService::CLEAR_ORDERS, near, ORDER_SLOTS, 0);
+    Call(ds, event, ParaService::CLEAR_ORDERS, near, ALL_ORDER_SLOTS, 0);
   }
   auto const kept{ CellAt(data, x, y) };
   for (uint8_t i = 0; i < ELEMENTS_PER_SIDE; ++i) {

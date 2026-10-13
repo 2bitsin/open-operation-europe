@@ -1,6 +1,7 @@
 // Building the regiment a request brings: the side's marked unit slot gets the marked battalions.
 #include "core/requnit.hpp"
 #include "common/forces.hpp"
+#include "common/order.hpp"
 #include "common/random.hpp"
 #include "core/numeric.hpp"
 #include "data-segment.hpp"
@@ -12,8 +13,6 @@
 using namespace opeu::game;
 
 namespace {
-
-constexpr uint8_t ORDER_SLOTS{ 3 }; // the unit's order slots cleared for the new regiment
 
 // A fresh regiment's supplies: 30..79 percent of what it can carry.
 auto InitialSupply(uint8_t* ds, uint16_t capacity) -> uint16_t {
@@ -37,7 +36,7 @@ uint16_t opeu_build_request_unit(uint8_t ds[65536], uint8_t side) {
       unit.flags = Bits(UnitFlag::READY) | Bits(UnitFlag::COMMUNICATIONS);
       if (!(GroupOf(data, side, group).flags & Bits(GroupFlag::READY))) unit.flags |= Bits(UnitFlag::SELECTED);
       unit_at = Near(data, unit);
-      opeu_clear_unit_orders(ds, unit_at, ORDER_SLOTS);
+      opeu_clear_unit_orders(ds, unit_at, ALL_ORDER_SLOTS);
       goto found;
     }
   }

@@ -61,11 +61,9 @@ constexpr std::uint16_t PRESENT_OFFSET{ 0x0ef6 }; // opeu_angel_present as the p
 constexpr std::uint16_t DEMORALIZE_OFFSET{ 0x0db8 };
 constexpr std::uint16_t INSPIRE_OFFSET{ 0x0e0e };
 constexpr std::uint16_t JUDGE_OFFSET{ 0x0e4e };
-constexpr std::uint16_t SHOWN{ 1 }; // DataSegment::side_status of a side the player watches
 constexpr std::uint8_t  COMMANDER{ 1 };
 constexpr std::uint8_t  OPEN_GROUND{ 1 };
 constexpr std::uint8_t  VETERAN{ 70 };
-constexpr std::uint16_t MAX_RATING{ 99 };
 
 // The generals of the unit's side whose selected unit it is.
 template <typename Body>
@@ -82,7 +80,7 @@ auto Lower(std::uint8_t* ds, std::uint8_t& value, std::uint16_t base, std::uint1
   opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(ds, spread) + base), &value);
 }
 auto Raise(std::uint8_t* ds, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(ds, spread) + base), MAX_RATING, &value);
+  opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(ds, spread) + base), RATING_LIMIT, &value);
 }
 } // namespace
 
@@ -174,7 +172,7 @@ void opeu_angel_present(uint8_t ds[65536], HostEvent event, uint16_t code_segmen
 void opeu_angel_event(uint8_t ds[65536], HostEvent event, uint16_t code_segment) {
   auto& data{ Data(ds) };
   for (data.event_side = 0; data.event_side < SIDE_COUNT; ++data.event_side) {
-    if (data.side_status[data.event_side] != SHOWN) continue;
+    if (data.side_status[data.event_side] != SIDE_PLAYED) continue;
     auto const  unit{ opeu_find_side_selected_unit(ds, data.event_side) };
     auto const& record{ Record<Unit>(data, unit) };
     auto const  x{ record.x };

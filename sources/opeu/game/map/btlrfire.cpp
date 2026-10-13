@@ -44,7 +44,6 @@ constexpr uint8_t  SILENT_PAUSE{ 2 };
 // The explosion and the miss animations.
 constexpr uint16_t HIT_ANIMATION{ 0x6fb8 };
 constexpr uint16_t MISS_ANIMATION{ 0x79e0 };
-constexpr uint8_t  CONDITION_LIMIT{ 99 };
 
 // Tanks and artillery fire shells; the other categories fire rifles.
 [[nodiscard]] auto FiresShells(ElementType const& type) -> bool {
@@ -166,8 +165,8 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
       opeu_battle_wiped_notice(ds, event, target);
       data.battle_element_destroyed = 1;
       auto& own{ Record<Element>(data, shooter) };
-      opeu_add_byte(1, CONDITION_LIMIT, &own.training);
-      opeu_add_byte(3, CONDITION_LIMIT, &own.morale);
+      opeu_add_byte(1, RATING_LIMIT, &own.training);
+      opeu_add_byte(3, RATING_LIMIT, &own.morale);
     } else {
       // Vehicles take damage by the crew's skill.
       if (auto const category{ ElementTypeOf(data, target).category }) {

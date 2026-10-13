@@ -56,15 +56,13 @@ constexpr std::uint16_t VISIT_SHOW{ 0x88 };
 constexpr std::uint16_t VISIT_CONTEXT{ 15 };
 constexpr std::uint16_t PRESENT_OFFSET{ 0x02ac }; // opeu_visit_present as the presentation's far routine
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x108c };
-constexpr std::uint16_t SHOWN{ 1 };       // DataSegment::side_status of a side the player watches
 constexpr std::uint8_t  COMMANDER{ 1 };   // the side record kind of the commander
 constexpr std::uint8_t  VISITOR{ 4 };     // the person template kind of the visitor
 constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit happens on
 constexpr std::uint8_t  MIN_HEALTH{ 30 };
-constexpr std::uint16_t MAX_RATING{ 99 };
 
 auto Raise(std::uint8_t* ds, std::uint8_t& rating) -> void {
-  opeu_add_byte(RandomBelow(ds, 10), MAX_RATING, &rating);
+  opeu_add_byte(RandomBelow(ds, 10), RATING_LIMIT, &rating);
 }
 } // namespace
 
@@ -132,7 +130,7 @@ void opeu_visit_present(uint8_t ds[65536], HostEvent event) {
 void opeu_visit_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (data.event_side = 0; data.event_side < SIDE_COUNT; ++data.event_side) {
-    if (data.side_status[data.event_side] != SHOWN || (data.side_flags[data.event_side] & Bits(SideFlag::VISITED))) continue;
+    if (data.side_status[data.event_side] != SIDE_PLAYED || (data.side_flags[data.event_side] & Bits(SideFlag::VISITED))) continue;
     auto const  record{ opeu_find_side_record(ds, data.event_side, COMMANDER) };
     auto const& commander{ Record<Person>(data, record) };
     if (commander.health < MIN_HEALTH || (commander.flags & Bits(PersonRole::POOR_HEALTH))) continue;

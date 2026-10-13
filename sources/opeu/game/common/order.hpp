@@ -15,6 +15,9 @@ inline constexpr std::uint8_t ORDER_KINDS{ 14 };
 // Order::kind and Order::progress of an unused order slot.
 inline constexpr std::uint8_t ORDER_UNUSED{ 0xff };
 
+// The slot mask of opeu_clear_unit_orders that clears both of a regiment's order slots.
+inline constexpr std::uint8_t ALL_ORDER_SLOTS{ 0x03 };
+
 // The order kind as the byte the slot stores.
 [[nodiscard]] constexpr auto Kind(UnitOrder kind) noexcept -> std::uint8_t {
   return static_cast<std::uint8_t>(kind);
@@ -50,4 +53,5 @@ using detail::order::ORDER_KINDS;
 using detail::order::ORDER_UNUSED;
 using detail::order::ShowsUntilStarted;
 using detail::order::TargetsUnit;
+using detail::order::ALL_ORDER_SLOTS;
 } // namespace opeu::game

@@ -7,6 +7,7 @@
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/dplauto.hpp"
 #include "map/dplcell.hpp"
 #include "types.hpp"
@@ -21,8 +22,6 @@ namespace {
 // DS scratch for the unit's name and the question.
 constexpr uint16_t NAME_AT{ 0xeb20 };
 constexpr uint16_t QUESTION_AT{ 0xeb40 };
-constexpr uint16_t OWN_NAME_COLOR{ 0x36 };
-constexpr uint16_t ENEMY_NAME_COLOR{ 0x35 };
 // The list's first row is the header; the list opens on the first row and is redrawn whole only the first time.
 constexpr uint8_t FIRST_DRAW{ 7 };
 constexpr uint8_t REDRAW{ 6 };
@@ -43,7 +42,7 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
   if (unit != Near(data, data.garrison_unit)) {
     auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, unit, NAME_AT) };
     auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, unit)) };
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), side == 0 ? OWN_NAME_COLOR : ENEMY_NAME_COLOR, name);
+    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), SideColorCode(side), name);
   } else {
     Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_garrison_title));
   }

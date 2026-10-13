@@ -39,7 +39,6 @@ constexpr uint8_t NO_ELEMENT_RANGE{ 20 };
 constexpr uint8_t SKILL_CLASS_INFANTRY{ 0 }; // btlcalc_skill_class values
 constexpr uint8_t SKILL_CLASS_ARTILLERY{ 1 };
 constexpr uint8_t SKILL_CLASS_ARMOR{ 2 };
-constexpr uint8_t RANGED_MODE{ 1 }; // ElementType::gun_range above this fires from afar
 
 auto Service(uint8_t* ds, BattleService service, CalcService id, uint16_t arg) -> uint16_t {
   return service(ds, std::to_underlying(id), arg);

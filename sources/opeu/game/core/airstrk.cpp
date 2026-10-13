@@ -6,6 +6,7 @@
 //
 // A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/airstrk.hpp"
+#include "common/air-flight.hpp"
 #include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -84,14 +85,9 @@ constexpr std::uint16_t STRIKE_BEGIN{ offsetof(DataSegment, air_strike_begin) };
 constexpr std::uint16_t STRIKE_SPOTTED{ offsetof(DataSegment, air_strike_spotted) };
 constexpr std::uint16_t BOMBERS_NAME{ offsetof(DataSegment, air_bombers_name) };
 
-constexpr std::uint8_t  AIR_KIND{ 3 }; // the air officer, for ratings and gains and the side's record
-constexpr std::uint8_t  RANK_COMMANDER{ 1 };
-constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
 constexpr std::uint16_t TEXT_BYTES{ 0x64 };         // opeu_air_destroyed_message's text, which the format service writes
-constexpr std::uint16_t SCREEN_TOP{ 0x15c };        // the bomber flies from this row
-constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };      // down to this one
 constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target where the bombs fall
 constexpr std::uint16_t STRIKE_PRESENTER{ 0x0406 }; // opeu_air_strike_present, in the code segment below
 constexpr std::uint16_t STRIKE_SEGMENT{ 0x0f43 };
@@ -111,7 +107,7 @@ uint16_t opeu_air_damage_roll(uint8_t ds[65536], HostEvent event, uint8_t x, uin
   auto&         data{ Data(ds) };
   auto const    side{ data.air_side };
   auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == SIDE_PLAYED ? (data.delivery_level >> 1) * n : n) + 1) };
-  std::uint16_t lost{ Call(ds, event, OFFICER_RATING, side, AIR_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(ds, bound) + 1) };
+  std::uint16_t lost{ Call(ds, event, OFFICER_RATING, side, AIR_OFFICER_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(ds, bound) + 1) };
   if (!IsNight(ds, event)) lost += RandomBelow(ds, bound) + 1;
   if (data.sides[side].strength <= HIGH_MORALE) lost += RandomBelow(ds, bound) + 1;
   if (auto const foe{ Call(ds, event, UNIT_AT, x, y) }; foe != 0 && static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, foe)) != side) lost += RandomBelow(ds, bound);
@@ -124,7 +120,7 @@ void opeu_air_destroyed_message(uint8_t ds[65536], HostEvent event, uint16_t wha
   ServiceLocals const locals{ TEXT_BYTES };
   auto const          text{ locals.At(0) };
   Call(ds, event, REQUEST_FORMAT, text, DESTROYED_FORMAT, what);
-  auto const officer{ Call(ds, event, SIDE_RECORD, Data(ds).air_side, AIR_KIND) };
+  auto const officer{ Call(ds, event, SIDE_RECORD, Data(ds).air_side, AIR_OFFICER_KIND) };
   Call(ds, event, MESSAGE, text, officer);
 }
 
@@ -147,12 +143,12 @@ void opeu_air_strike_present(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
-    auto const commander{ Call(ds, event, SIDE_RECORD, side, RANK_COMMANDER) };
-    auto const officer{ Call(ds, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, TEMPLATE_AIR) };
+    auto const commander{ Call(ds, event, SIDE_RECORD, side, FLIGHT_COMMANDER_KIND) };
+    auto const officer{ Call(ds, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
     Call(ds, event, MESSAGE, STRIKE_BEGIN, officer);
   } else {
     auto const enemy{ static_cast<std::uint8_t>(Call(ds, event, OPPOSITE_SIDE, side)) };
-    Call(ds, event, MESSAGE, STRIKE_SPOTTED, Call(ds, event, SIDE_RECORD, enemy, AIR_KIND));
+    Call(ds, event, MESSAGE, STRIKE_SPOTTED, Call(ds, event, SIDE_RECORD, enemy, AIR_OFFICER_KIND));
   }
   Call(ds, event, SOUND_CUE);
 }
@@ -163,7 +159,7 @@ void opeu_air_strike_present(uint8_t ds[65536], HostEvent event) {
 void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint16_t n) {
   auto&         data{ Data(ds) };
   std::uint16_t shield{ 0 };
-  auto const    supply{ Call(ds, event, OFFICER_RATING, data.air_side, AIR_KIND) };
+  auto const    supply{ Call(ds, event, OFFICER_RATING, data.air_side, AIR_OFFICER_KIND) };
   auto const    unit{ Call(ds, event, UNIT_AT, x, y) };
   if (unit) shield = data.air_cover[static_cast<std::uint8_t>(Call(ds, event, MAP_CODE, x, y))] / 6;
   auto const site{ Call(ds, event, OBJECTIVE_AT, x, y) };
@@ -206,7 +202,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event) {
   auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
   auto const hx{ pixel.x };
   auto const my{ pixel.y };
-  for (std::uint16_t row{ SCREEN_TOP }; row >= SCREEN_BOTTOM; --row) {
+  for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
     Call(ds, event, SPRITE_DRAW, hx, row, side);
     if (row == my) {
       auto const shown{ static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)) };
@@ -226,7 +222,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event) {
   }
   data.map_mode[0] = view;
   if (planes) {
-    Call(ds, event, OFFICER_GAIN, side, AIR_KIND);
+    Call(ds, event, OFFICER_GAIN, side, AIR_OFFICER_KIND);
     record.pending_bombers = static_cast<std::uint16_t>(record.pending_bombers + planes);
   }
   record.strike.planes = 0;

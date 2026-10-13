@@ -5,6 +5,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/limits.hpp"
 #include "types.hpp"
 
@@ -17,8 +18,6 @@ using namespace opeu::game;
 namespace {
 // The report's DS reserve for its message buffer; the hit runs the report below its own stack pointer.
 constexpr uint16_t REPORT_TEXT_BYTES{ 0x68 };
-constexpr uint16_t SIDE_0_COLOR{ '6' };
-constexpr uint16_t SIDE_1_COLOR{ '5' };
 constexpr uint16_t COMMANDER_REPORT{ 2 };
 constexpr uint16_t HIT_PERCENT{ 10 };
 constexpr uint16_t BLAST_ANIMATION{ 0x6fb8 }; // in the icon segment
@@ -38,7 +37,7 @@ void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto const          buffer{ locals.At(0) };
   auto const          side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
   if (data.side_status[side] == SIDE_COMPUTER) return;
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), side ? SIDE_1_COLOR : SIDE_0_COLOR, data.side_names[side], ElementTypeOf(data, element).name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), SideColorCode(side), data.side_names[side], ElementTypeOf(data, element).name);
   Append(ds, buffer, Near(data, data.retreat_mines_text));
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, buffer, side, COMMANDER_REPORT);
 }

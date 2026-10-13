@@ -7,6 +7,7 @@
 #include "common/forces.hpp"
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
+#include "common/order.hpp"
 #include "core/dialogs.hpp"
 #include "core/people.hpp"
 #include "core/selunit.hpp"
@@ -38,7 +39,6 @@ constexpr uint16_t TEXT_AT{ 0 };
 constexpr uint16_t PICKED_X_AT{ 0x6a };
 constexpr uint16_t PICKED_Y_AT{ 0x68 };
 constexpr uint16_t ONE_LINE_NAME{ 13 }; // longer objective names take two lines
-constexpr uint8_t  ORDER_SLOTS{ 3 };    // the order slots cleared per unit
 
 } // namespace
 
@@ -99,7 +99,7 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint8_t group) {
   }
   if (!changed) return;
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(ds, Near(data, data.units[first + i]), ORDER_SLOTS);
+  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(ds, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
 }
 
 uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

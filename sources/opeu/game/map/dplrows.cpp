@@ -7,6 +7,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/dplauto.hpp"
 #include "types.hpp"
 
@@ -23,7 +24,6 @@ constexpr uint16_t TEXT_AT{ 0xeb04 };
 constexpr uint16_t ROW_PIXELS{ 17 };
 constexpr uint16_t HEADER_PIXELS{ 18 };
 constexpr uint8_t  OWN_COLOR{ 6 };
-constexpr uint8_t  ENEMY_COLOR{ 5 };
 constexpr uint8_t  PLAIN_COLOR{ 7 };
 constexpr uint8_t  OFF_FIELD{ 0xff };
 constexpr uint8_t  OFF_FIELD_BIT{ 0x80 };
@@ -55,7 +55,7 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8
     if (flags & DRAW_NAMES) {
       Call(ds, event, BattleRoutine::ARMY_POSITION, window.x + 2, y);
       auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element_at)) };
-      Call(ds, event, BattleRoutine::TEXT_COLOR, side == 0 ? OWN_COLOR : ENEMY_COLOR);
+      Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(side));
       if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_mark));
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_name), data.element_types[element.type].name);
     }

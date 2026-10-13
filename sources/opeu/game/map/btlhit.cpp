@@ -18,9 +18,8 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint16_t CONDITION_LIMIT{ 99 };
-constexpr uint8_t  TRAINING_GAIN{ 1 };
-constexpr uint8_t  MORALE_GAIN{ 3 };
+constexpr uint8_t TRAINING_GAIN{ 1 };
+constexpr uint8_t MORALE_GAIN{ 3 };
 
 [[nodiscard]] auto U16(unsigned v) -> uint16_t {
   return static_cast<uint16_t>(v);
@@ -94,8 +93,8 @@ void opeu_battle_apply_damage(uint8_t* ds, BattleEvent event, uint16_t attacker,
     if (hit.quantity == 0) {
       data.battle_element_destroyed = 1;
       auto& winner{ Record<Element>(data, attacker) };
-      AddByte(winner.training, TRAINING_GAIN, CONDITION_LIMIT);
-      AddByte(winner.morale, MORALE_GAIN, CONDITION_LIMIT);
+      AddByte(winner.training, TRAINING_GAIN, RATING_LIMIT);
+      AddByte(winner.morale, MORALE_GAIN, RATING_LIMIT);
     } else if (auto const category{ data.element_types[hit.type].category }; category != 0) {
       auto const roll{ Call(ds, event, BattleRoutine::RAND_BOUNDED, 300) };
       auto const rate{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TYPE_SKILL, target)) };

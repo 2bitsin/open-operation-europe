@@ -8,6 +8,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/strings.hpp"
 #include "map/btllist.hpp"
 #include "map/query.hpp"
@@ -26,12 +27,8 @@ constexpr uint16_t MESSAGE_BYTES{ 0x66 };
 constexpr uint16_t NAMES_RESERVE{ 0x42 };
 constexpr uint16_t SHOOTER_AT{ 0 };
 constexpr uint16_t TARGET_AT{ 0x22 };
-// Text colours and the colour escape characters of the two sides.
-constexpr uint16_t SIDE_0_COLOR{ 6 };
-constexpr uint16_t SIDE_1_COLOR{ 5 };
+// The panel's white text and its paper colour.
 constexpr uint16_t WHITE{ 7 };
-constexpr uint16_t SIDE_0_ESCAPE{ '6' };
-constexpr uint16_t SIDE_1_ESCAPE{ '5' };
 constexpr uint16_t PANEL_PAPER{ 4 };
 // The panel's text cells: the columns of the names and of "vs", the rows of the lines.
 constexpr uint16_t NAME_COLUMN{ 0x39 };
@@ -47,7 +44,7 @@ void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element) 
   ServiceLocals const locals{ MESSAGE_BYTES };
   auto const          message{ locals.At(0) };
   auto const          side{ opeu_battle_element_side(ds, event, element) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, ElementTypeOf(data, element).name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), SideColorCode(side), ElementTypeOf(data, element).name);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
@@ -60,13 +57,13 @@ void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, 
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   Call(ds, event, BattleRoutine::TEXT_PAPER_SET, PANEL_PAPER);
   Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, SHOOTER_ROW);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, side == 0 ? SIDE_0_COLOR : SIDE_1_COLOR);
+  Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(side));
   Call(ds, event, BattleRoutine::UI_TEXT, opeu_element_name(ds, shooter, shooter_name));
   Call(ds, event, BattleRoutine::ARMY_POSITION, VERSUS_COLUMN, VERSUS_ROW);
   Call(ds, event, BattleRoutine::TEXT_COLOR, WHITE);
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_text_vs));
   Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, TARGET_ROW);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, side == 0 ? SIDE_1_COLOR : SIDE_0_COLOR);
+  Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(side == 0 ? 1 : 0));
   if (target) {
     Call(ds, event, BattleRoutine::UI_TEXT, opeu_element_name(ds, target, target_name));
   } else {

@@ -4817,6 +4817,17 @@ inline constexpr std::uint16_t SAVE_SLOTS_AT{ offsetof(DataSegment, save_slots) 
   return data.side_status[side] == SIDE_PLAYED;
 }
 
+// The ceiling of a person's and an element's ratings (training, morale, experience, charm...).
+inline constexpr std::uint8_t RATING_LIMIT{ 99 };
+
+// The delivery level of a computer side; a played side's is delivery_level.
+inline constexpr std::uint16_t COMPUTER_DELIVERY_LEVEL{ 2 };
+
+// The delivery level of the side's events: the player's choice for a played side, COMPUTER_DELIVERY_LEVEL otherwise.
+[[nodiscard]] inline auto DeliveryLevel(DataSegment const& data, std::uint8_t side) noexcept -> std::uint16_t {
+  return data.side_control[side] == SIDE_PLAYED ? data.delivery_level : COMPUTER_DELIVERY_LEVEL;
+}
+
 // The record a 16-bit near pointer (a DS offset) addresses, and back.
 template <typename T>
 [[nodiscard]] inline auto Record(DataSegment& data, std::uint16_t near) noexcept -> T& {
@@ -4906,6 +4917,9 @@ using detail::data_segment::PERSON_TEMPLATE_COUNT;
 using detail::data_segment::PERSON_TEMPLATES_AT;
 using detail::data_segment::PersonRole;
 using detail::data_segment::StaffRole;
+using detail::data_segment::COMPUTER_DELIVERY_LEVEL;
+using detail::data_segment::DeliveryLevel;
+using detail::data_segment::RATING_LIMIT;
 using detail::data_segment::Record;
 using detail::data_segment::SetListPredicate;
 using detail::data_segment::SetStream;

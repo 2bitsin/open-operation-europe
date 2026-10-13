@@ -9,6 +9,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
+#include "common/order.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "glue.hpp"
@@ -37,7 +38,6 @@ enum Service : std::uint16_t {
 
 using ArrivalEvent = auto (*)(std::uint8_t*, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t) -> std::uint16_t;
 
-constexpr std::uint8_t ORDER_SLOTS{ 3 };
 constexpr std::uint8_t RANK_COMMANDER{ 3 };
 } // namespace
 
@@ -57,7 +57,7 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) 
       group.flags |= Bits(GroupFlag::READY);
       unit.flags  &= ~Bits(UnitFlag::ARRIVING);
       unit.flags  |= Bits(UnitFlag::READY);
-      opeu_clear_unit_orders(ds, near, ORDER_SLOTS);
+      opeu_clear_unit_orders(ds, near, ALL_ORDER_SLOTS);
       for (auto& element : Elements(data, unit)) {
         element.flags &= ~Bits(ElementFlag::ARRIVING);
         element.flags |= Bits(ElementFlag::READY);

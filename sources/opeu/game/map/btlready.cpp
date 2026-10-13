@@ -8,6 +8,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
 #include "types.hpp"
@@ -26,8 +27,6 @@ constexpr uint16_t SIDE_0_COLUMN{ 1 };
 constexpr uint16_t SIDE_1_COLUMN{ 0x38 };
 constexpr uint16_t NAME_ROW{ 0x156 };
 constexpr uint16_t READY_ROW{ 0x168 };
-constexpr uint16_t SIDE_0_COLOR{ '6' };
-constexpr uint16_t SIDE_1_COLOR{ '5' };
 constexpr uint16_t PAUSE{ 3 };
 } // namespace
 
@@ -52,7 +51,7 @@ uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event) {
       }
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, NAME_ROW);
       auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, locals.At(0), unit) };
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), side ? SIDE_1_COLOR : SIDE_0_COLOR, name);
+      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), SideColorCode(side), name);
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, READY_ROW);
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_text));
       announced = true;

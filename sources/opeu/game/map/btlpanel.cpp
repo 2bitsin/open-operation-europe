@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/sideutil.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
@@ -25,9 +26,6 @@ namespace {
 constexpr uint16_t NAMES_RESERVE{ 0x4c };
 constexpr uint16_t ELEMENT_NAME_AT{ 0 };
 constexpr uint16_t UNIT_NAME_AT{ 0x20 };
-// Colour escape characters of the two sides.
-constexpr uint16_t SIDE_0_ESCAPE{ '6' };
-constexpr uint16_t SIDE_1_ESCAPE{ '5' };
 // The panel's text cells.
 constexpr uint16_t TITLE_COLUMN{ 0x2e };
 constexpr uint16_t STATS_COLUMN{ 0x45 };
@@ -69,13 +67,13 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   uint16_t name;
   if (unit == GARRISON_AT) {
     auto const objective{ opeu_find_objective_at(ds, data.battle_x, data.battle_y) };
-    print(data.battle_fmt_garrison, opeu_objective_side(ds, objective) ? SIDE_1_ESCAPE : SIDE_0_ESCAPE, objective);
+    print(data.battle_fmt_garrison, SideColorCode(opeu_objective_side(ds, objective)), objective);
     at(TITLE_COLUMN, LINE);
     name = opeu_type_name(ds, Near(data, data.element_types[record.type]), element_name);
   } else {
     name_event = event;
     name       = opeu_unit_name(ds, NameForward, unit, unit_name);
-    print(data.battle_fmt_title, side ? SIDE_1_ESCAPE : SIDE_0_ESCAPE, data.side_names[side], name);
+    print(data.battle_fmt_title, SideColorCode(side), data.side_names[side], name);
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(ds, element, element_name);
   }

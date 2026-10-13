@@ -4,6 +4,7 @@
 //
 // A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/evbomb.hpp"
+#include "common/air-flight.hpp"
 #include "common/events.hpp"
 #include "core/people.hpp"
 #include "core/sideutil.hpp"
@@ -68,7 +69,6 @@ constexpr std::uint8_t  RAID_MONTH{ 6 };
 constexpr std::uint8_t  RAID_DAY{ 13 };
 constexpr std::uint8_t  RAIDED_SIDE{ 1 };
 constexpr std::uint8_t  NO_VOICE{ 0xff };
-constexpr std::uint8_t  AIR_KIND{ 3 };
 constexpr std::uint16_t RAID_PICTURE{ 0x1c7 };
 constexpr std::uint16_t RAID_PRESENTER{ 0x0aae }; // opeu_bomb_present, in the code segment below
 constexpr std::uint16_t RAID_SEGMENT{ 0x108c };
@@ -161,7 +161,7 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load) {
       }
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {
-        auto const person{ opeu_find_side_record(ds, voice, AIR_KIND) };
+        auto const person{ opeu_find_side_record(ds, voice, AIR_OFFICER_KIND) };
         Call(ds, event, MESSAGE, intro, person);
         Call(ds, event, DAILY_SHOW, RAID_PICTURE, 0, RAID_PRESENTER, load + RAID_SEGMENT);
         opeu_bomb_animate(ds, event, load, troop, voice);

@@ -72,8 +72,6 @@ constexpr std::uint8_t SIDE_PEOPLE{ 3 };
 // REMOVE_ELEMENT's results.
 constexpr std::uint8_t UNIT_EMPTIED{ 1 };
 constexpr std::uint8_t GROUP_EMPTIED{ 3 };
-// The highest experience an element reaches.
-constexpr std::uint16_t EXPERIENCE_LIMIT{ 99 };
 // No side shown in the overview or tactical view: the next view redraws.
 constexpr std::uint8_t NO_VIEW{ 0xff };
 
@@ -169,7 +167,7 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
         }
       }
       if (element.quantity) {
-        opeu_add_byte(static_cast<std::uint16_t>(Call(ds, event, Service::SQUARE_ROOT, kind) * 2), EXPERIENCE_LIMIT, &element.experience);
+        opeu_add_byte(static_cast<std::uint16_t>(Call(ds, event, Service::SQUARE_ROOT, kind) * 2), RATING_LIMIT, &element.experience);
         opeu_sub_byte(MoraleLoss(ds, event, infantry ? losses / 10 : losses, element), &element.morale);
         if (!infantry) {
           std::uint16_t damage{ element.damage };

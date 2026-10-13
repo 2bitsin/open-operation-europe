@@ -11,6 +11,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/memory.hpp"
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
@@ -46,8 +47,6 @@ constexpr uint16_t FLOOD_Y_AT{ 0 };
 constexpr uint16_t SIGHTED_RESERVE{ 0x86 };
 constexpr uint16_t NAME_AT{ 0 };
 constexpr uint16_t MESSAGE_AT{ 0x20 };
-constexpr uint16_t SIDE_0_ESCAPE{ '6' };
-constexpr uint16_t SIDE_1_ESCAPE{ '5' };
 // Spotting: the chance per terrain mode step, the cover of forest, bridge and town cells, and the weather's toll.
 constexpr uint8_t SPOT_STEPS{ 6 };
 constexpr uint8_t SPOT_STEP{ 20 };
@@ -172,7 +171,7 @@ void opeu_battle_report_sighted(uint8_t* ds, BattleEvent event, uint16_t element
   auto const          mode{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_MODE, element)) };
   Call(ds, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, position.x, position.y, element, mode);
   auto const name{ opeu_element_name(ds, element, name_at) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_sighted), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_sighted), SideColorCode(side), name);
   opeu_string_append(ds, message, Near(data, data.battle_text_sighted));
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, opeu_opposite_side(side), 2, message);
 }

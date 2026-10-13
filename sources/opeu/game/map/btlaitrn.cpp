@@ -27,8 +27,6 @@
 using namespace opeu::game;
 
 namespace {
-// ElementType::gun_range above this fires from afar.
-constexpr uint8_t RANGED_MODE{ 1 };
 
 [[nodiscard]] auto UnitAt(DataSegment& data, uint16_t unit, uint8_t x, uint8_t y) -> bool {
   auto const& record{ Record<Unit>(data, unit) };

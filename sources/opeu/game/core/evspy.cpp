@@ -71,7 +71,6 @@ constexpr std::uint8_t  COMMANDER{ 1 };
 constexpr std::uint8_t  ADVISER{ 2 };
 constexpr std::uint8_t  OFFER_HOUR{ 15 };
 constexpr std::uint8_t  APPROACH_HOUR{ 20 };
-constexpr std::uint16_t MAX_RATING{ 99 };
 constexpr std::uint8_t  FIT{ 70 };
 constexpr std::uint8_t  EXPERIENCED{ 50 };
 
@@ -116,7 +115,7 @@ void opeu_spy_present_a(uint8_t ds[65536], HostEvent event) {
     opeu_spy_portrait_text(ds, event, BUFFER, 1);
   }
   Call(ds, event, FINISH, 0);
-  opeu_add_byte(1, MAX_RATING, &Record<Person>(Data(ds), near).charm);
+  opeu_add_byte(1, RATING_LIMIT, &Record<Person>(Data(ds), near).charm);
 }
 
 void opeu_spy_show_a(uint8_t ds[65536], HostEvent event) {
@@ -128,7 +127,7 @@ void opeu_spy_present_b(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, FORMAT, BUFFER, LAUGH);
   opeu_spy_portrait_text(ds, event, BUFFER, 1);
   auto& commander{ Record<Person>(Data(ds), Commander(ds)) };
-  opeu_add_byte(1, MAX_RATING, &commander.experience);
+  opeu_add_byte(1, RATING_LIMIT, &commander.experience);
   opeu_sub_byte(1, &commander.max_health);
   commander.health = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.max_health));
 }

@@ -5,6 +5,7 @@
 // the screen and drops the load into the unit and the objective under it (each up to its capacity) with a report to
 // the owner; what is left and the surviving planes return to the side.
 #include "core/aircargo.hpp"
+#include "common/air-flight.hpp"
 #include "common/events.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -14,6 +15,7 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
+#include "common/side-color.hpp"
 #include "core/airshow.hpp"
 #include "core/airstrk.hpp"
 #include "core/dialogs.hpp"
@@ -81,15 +83,8 @@ constexpr std::uint16_t PLANES_NAME{ offsetof(DataSegment, cargo_planes_name) };
 constexpr std::uint16_t UNIT_REPORT{ offsetof(DataSegment, cargo_unit_report) };
 constexpr std::uint16_t CITY_REPORT{ offsetof(DataSegment, cargo_city_report) };
 
-constexpr std::uint8_t  AIR_KIND{ 3 }; // the air officer
-constexpr std::uint8_t  RANK_COMMANDER{ 1 };
-constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
 constexpr std::uint16_t LOAD_PER_PLANE{ 3000 };
 constexpr std::uint16_t STOCK_LIMIT{ 60000 };
-constexpr std::uint16_t OWN_COLOR{ 0x36 };   // side 0's name color in a report
-constexpr std::uint16_t OTHER_COLOR{ 0x35 }; // side 1's
-constexpr std::uint16_t SCREEN_TOP{ 0x15c };
-constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };
 constexpr std::uint16_t LOST_ROW{ 0x114 }; // with no plane left the flight ends here
 constexpr std::uint16_t DROP_LEAD{ 0x20 }; // rows above the target where the load drops
 constexpr std::uint16_t CARGO_PICTURE{ 0x103 };
@@ -107,10 +102,6 @@ constexpr std::uint16_t DROP_LOCALS{ 0x7c };
 
 auto AirSide(DataSegment& data) -> Side& {
   return data.sides[data.air_side];
-}
-
-auto NameColor(std::uint16_t side) -> std::uint16_t {
-  return side ? OTHER_COLOR : OWN_COLOR;
 }
 
 // Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before.
@@ -164,12 +155,12 @@ void opeu_cargo_drop_present(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
-    auto const commander{ Call(ds, event, SIDE_RECORD, side, RANK_COMMANDER) };
-    auto const officer{ Call(ds, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, TEMPLATE_AIR) };
+    auto const commander{ Call(ds, event, SIDE_RECORD, side, FLIGHT_COMMANDER_KIND) };
+    auto const officer{ Call(ds, event, PERSON_TEMPLATE, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
     Call(ds, event, MESSAGE, CARGO_BEGIN, officer);
   } else {
     auto const enemy{ static_cast<std::uint8_t>(Call(ds, event, OPPOSITE_SIDE, side)) };
-    Call(ds, event, MESSAGE, CARGO_SPOTTED, Call(ds, event, SIDE_RECORD, enemy, AIR_KIND));
+    Call(ds, event, MESSAGE, CARGO_SPOTTED, Call(ds, event, SIDE_RECORD, enemy, AIR_OFFICER_KIND));
   }
   Call(ds, event, SOUND_CUE);
 }
@@ -193,7 +184,7 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
   auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
   auto const text{ locals.At(TEXT_AT) };
-  for (std::uint16_t row{ SCREEN_TOP }; row >= SCREEN_BOTTOM; --row) {
+  for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
     if (row <= LOST_ROW && planes == 0) {
       Call(ds, event, DESTROYED_MESSAGE, PLANES_NAME);
       break;
@@ -214,9 +205,9 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
         if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near)) == side) {
           std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
           auto const          name{ Call(ds, event, UNIT_NAME, near, locals.At(NAME_AT)) };
-          auto const          color{ NameColor(Call(ds, event, UNIT_SIDE, near)) };
+          auto const          color{ SideColorCode(static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near))) };
           Report(ds, event, text, UNIT_REPORT, color, name, now, before);
-          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_KIND));
+          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_OFFICER_KIND));
         }
       }
       if (auto const near{ Call(ds, event, OBJECTIVE_AT, x, y) }; near != 0) {
@@ -226,9 +217,9 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
         Unload(lift, objective.resources, LIMIT);
         if (static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near)) == side) {
           std::uint16_t const now[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-          auto const          color{ NameColor(Call(ds, event, OBJECTIVE_SIDE, near)) };
+          auto const          color{ SideColorCode(static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, near))) };
           Report(ds, event, text, CITY_REPORT, color, near, now, before);
-          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_KIND));
+          Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_OFFICER_KIND));
         }
       }
     }
@@ -238,7 +229,7 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
   data.map_mode[0] = view;
   for (int i{ 0 }; i < 3; ++i) opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);
   if (planes != 0) {
-    Call(ds, event, OFFICER_GAIN, side, AIR_KIND);
+    Call(ds, event, OFFICER_GAIN, side, AIR_OFFICER_KIND);
     record.pending_planes = static_cast<std::uint16_t>(record.pending_planes + planes);
   }
   lift.planes = 0;

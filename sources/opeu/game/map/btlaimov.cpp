@@ -20,8 +20,6 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t NONE{ 0xff };
-// ElementType::gun_range above this fires from afar.
-constexpr uint8_t RANGED_MODE{ 1 };
 // ElementType::speed above this makes fast tanks.
 constexpr uint8_t FAST_SPEED{ 60 };
 

@@ -12,6 +12,7 @@
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/memory.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
@@ -33,17 +34,11 @@ constexpr uint16_t AUTO_LABEL{ 0 };
 constexpr uint16_t AUTO_TEXT{ 0x22 };
 constexpr uint16_t AUTO_NAME{ 0x86 };
 constexpr uint16_t DRAW_TEXT_BYTES{ 0x66 };
-constexpr uint16_t OWN_NAME_COLOR{ 0x36 };
-constexpr uint16_t ENEMY_NAME_COLOR{ 0x35 };
 constexpr uint8_t  FIRST_DRAW{ 7 };
 constexpr uint8_t  REDRAW{ 6 };
 constexpr uint16_t MESSAGE_MODE{ 2 };
 constexpr uint16_t HIT_WAIT{ 20 };
 constexpr uint16_t SHOWN{ 1 }; // presentation_mode while battles are shown
-
-[[nodiscard]] auto NameColor(uint8_t side) -> uint16_t {
-  return side == 0 ? OWN_NAME_COLOR : ENEMY_NAME_COLOR;
-}
 
 // A non-combat element's strength counts a tenth.
 [[nodiscard]] auto Strength(DataSegment const& data, uint16_t element) -> uint16_t {
@@ -75,9 +70,9 @@ void OfficerDraw(uint8_t* ds, BattleEvent event, uint8_t kind, OfficerTexts cons
   auto const fatal{ draw < 5 };
   auto const outcome{ fatal ? texts.killed : texts.injured };
   if (kind)
-    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], record, outcome);
+    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, SideColorCode(side), data.side_names[side], record, outcome);
   else
-    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], data.battle_active_group + 1, record, outcome);
+    Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, SideColorCode(side), data.side_names[side], data.battle_active_group + 1, record, outcome);
   opeu_battle_officer_hit(ds, event, record, text, fatal);
 }
 } // namespace
@@ -93,7 +88,7 @@ void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event) {
     Call(ds, event, BattleRoutine::BATTLE_PANEL_SIDE0);
   } };
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, side, 0);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.hq_fmt_side), NameColor(side));
+  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.hq_fmt_side), SideColorCode(side));
   if (auto const unit{ data.battle_lost_unit }; unit != Near(data, data.garrison_unit)) {
     auto const unit_name{ Call(ds, event, BattleRoutine::UNIT_NAME, name, unit) };
     Call(ds, event, BattleRoutine::UI_TEXT, unit_name);
@@ -137,7 +132,7 @@ void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event) {
   ServiceLocals const locals{ AUTO_RESERVE };
   auto const          label{ Call(ds, event, BattleRoutine::ELEMENT_NAME, locals.At(AUTO_LABEL), best) };
   auto const          name{ Call(ds, event, BattleRoutine::UNIT_NAME, locals.At(AUTO_NAME), data.battle_lost_unit) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, locals.At(AUTO_TEXT), Near(data, data.hq_fmt_moved), NameColor(side), name, label);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, locals.At(AUTO_TEXT), Near(data, data.hq_fmt_moved), SideColorCode(side), name, label);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, MESSAGE_MODE, locals.At(AUTO_TEXT));
 }
 

@@ -5,6 +5,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "map/btlcell.hpp"
 #include "map/btlcmds.hpp"
 #include "map/btldraw.hpp"
@@ -23,10 +24,8 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t  REDRAW_ALL{ 2 };
-constexpr uint8_t  DISPATCH_ORDERS{ 8 };
-constexpr uint16_t SIDE_0_ESCAPE{ '6' };
-constexpr uint16_t SIDE_1_ESCAPE{ '5' };
+constexpr uint8_t REDRAW_ALL{ 2 };
+constexpr uint8_t DISPATCH_ORDERS{ 8 };
 
 void Refresh(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
@@ -46,7 +45,7 @@ void opeu_battle_player_orders(uint8_t* ds, BattleEvent event) {
     Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, prompt);
     prompt = 1;
     auto const side{ data.battle_active_side };
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_fmt_side_orders), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.side_names[side]);
+    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_fmt_side_orders), SideColorCode(side), data.side_names[side]);
     if (!opeu_battle_select_cell(ds, event)) {
       Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
       auto const finished{ Call(ds, event, BattleRoutine::PROMPT_YES_NO, Near(data, data.battle_msg_orders_finished)) };

@@ -43,10 +43,8 @@ constexpr std::uint16_t DEATH_SHOW{ 300 };
 constexpr std::uint16_t DEATH_CONTEXT{ 0x10 };
 constexpr std::uint16_t PRESENT_OFFSET{ 0x0004 }; // opeu_death_present as the presentation's far routine
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x11e5 };
-constexpr std::uint16_t SHOWN{ 1 };          // DataSegment::side_status of a side the player watches
-constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
-constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
-constexpr std::uint8_t  GENERAL_ROLE{ 1 };   // the role that becomes a deputy instead of dying
+constexpr std::uint8_t  ADVISER{ 3 };      // the side record kind of the adviser
+constexpr std::uint8_t  GENERAL_ROLE{ 1 }; // the role that becomes a deputy instead of dying
 
 // The death notice in the dying general's reserve (the message service shows it): "Commander " + name + suffix, and the side right after it.
 // A name of seven or more characters runs the text into the side byte, and the second status test then reads the
@@ -70,13 +68,13 @@ void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t person) {
   auto const          at{ locals.At(0) };
   auto&               notice{ Record<DeathNotice>(data, at) };
   notice.side = opeu_person_lacks_side0_flag(ds, person);
-  if (data.side_status[notice.side] == SHOWN) {
+  if (data.side_status[notice.side] == SIDE_PLAYED) {
     opeu_string_copy(ds, at, DEATH_PREFIX);
     opeu_string_append(ds, at, person);
     opeu_string_append(ds, at, DEATH_SUFFIX);
   }
   opeu_initialize_deputy(ds, person);
-  if (data.side_status[notice.side] == SHOWN) {
+  if (data.side_status[notice.side] == SIDE_PLAYED) {
     Call(ds, event, CONTEXT, DEATH_CONTEXT);
     Call(ds, event, FINISH, 0);
     Call(ds, event, SHOW, DEATH_SHOW, notice.side, PRESENT_OFFSET, PRESENT_SEGMENT);
@@ -90,7 +88,7 @@ void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t person) {
 void opeu_wound_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (std::uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
-    std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED ? data.delivery_level : COMPUTER_LEVEL };
+    std::uint16_t const level{ DeliveryLevel(data, side) };
     for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
       auto& person{ data.people[side * PEOPLE_PER_SIDE + i] };
       if (person.status == PERSON_VACANT) continue;

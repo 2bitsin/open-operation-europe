@@ -7,6 +7,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "glue.hpp"
@@ -43,10 +44,6 @@ constexpr std::uint16_t ICON_BYTES{ 64 };
 constexpr std::uint16_t WHITE{ 7 };
 constexpr std::uint16_t NAME_BUFFER{ 0x2a }; // the element name buffer the name service writes
 
-// The text color of the current side's names: 5 for side 1, 6 for side 0.
-auto NameColor(DataSegment const& data) -> std::uint16_t {
-  return data.current_side ? 5 : 6;
-}
 } // namespace
 
 // The slot grid: two columns of `count` rows below y.
@@ -99,7 +96,7 @@ void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int 
       Call(ds, event, POSITION, x + 27, row_y);
       Call(ds, event, PRINT, NAME_FORMAT, Call(ds, event, NAME, near, buffer));
       Call(ds, event, POSITION, x + 47, row_y);
-      Call(ds, event, PRINT, COUNT_FORMAT, NameColor(data), element.quantity);
+      Call(ds, event, PRINT, COUNT_FORMAT, SideTextColor(data.current_side), element.quantity);
       ++shown;
     }
     if (!element.next) break;
@@ -127,7 +124,7 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units,
     opeu_panel_battle_frame(ds, event, y);
     y += battle ? 10 : 2;
     Call(ds, event, POSITION, 12, battle ? y - 7 : y - 1);
-    Call(ds, event, PRINT, REGIMENT_FORMAT, NameColor(data), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1, i + 1);
+    Call(ds, event, PRINT, REGIMENT_FORMAT, SideTextColor(data.current_side), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1, i + 1);
     if (battle) {
       Call(ds, event, POSITION, 12, y + 9);
       Call(ds, event, PRINT, BATTLE_TEXT);

@@ -148,6 +148,9 @@ inline auto AdviceUnitName(std::uint8_t* ds, HostEvent event, std::uint16_t unit
   return opeu_unit_name(ds, AdviceNameFormat, unit, buffer);
 }
 
+// The objective level (opeu_objective_level) from which the officers count an objective as a city.
+inline constexpr std::uint8_t CITY_LEVEL{ 4 };
+
 // The DS bytes an advice check reserves for an advice text it formats (the longest is 107 bytes) and for a unit name.
 inline constexpr std::uint16_t ADVICE_TEXT_BYTES{ 0x80 };
 inline constexpr std::uint16_t UNIT_NAME_BYTES{ 0x40 };
@@ -221,4 +224,5 @@ using detail::advice::CopyAdvice;
 using detail::advice::FormatAdvice;
 using detail::advice::ShowAdvice;
 using detail::advice::UNIT_NAME_BYTES;
+using detail::advice::CITY_LEVEL;
 } // namespace opeu::game

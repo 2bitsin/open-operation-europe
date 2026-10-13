@@ -73,6 +73,9 @@ inline constexpr std::uint8_t BATTLE_TERRAIN_MASK{ 0x3f };
 // The battle terrain code of the objective's cells; its garrison is shared among them (map/btlmap).
 inline constexpr std::uint8_t BATTLE_CITY{ 1 };
 
+// ElementType::gun_range above this fires from afar.
+inline constexpr std::uint8_t RANGED_MODE{ 1 };
+
 // The battle record of an element.
 [[nodiscard]] inline auto PositionOf(DataSegment& data, std::uint16_t element) noexcept -> BattlePosition& {
   return Record<BattlePosition>(data, Record<Element>(data, element).position);
@@ -132,4 +135,5 @@ using detail::battle_field::BattleState;
 using detail::battle_field::CellFacing;
 using detail::battle_field::BattleTerrainAt;
 using detail::battle_field::PositionOf;
+using detail::battle_field::RANGED_MODE;
 } // namespace opeu::game
