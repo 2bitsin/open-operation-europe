@@ -3,6 +3,7 @@
 #include "io/rebase.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/saved-game.hpp"
 
 #include <iterator>
@@ -10,8 +11,8 @@
 using namespace opeu::game;
 
 // `extended` also rebases the objective and unit link tables, which only saved games store.
-void opeu_rebase_scenario(std::uint8_t* ds, std::uint16_t extended) {
-  auto& data{ Data(ds) };
+void opeu_rebase_scenario(Game& game, std::uint16_t extended) {
+  auto& data{ Data(game) };
   for (auto& side : data.sides) {
     if (auto const target{ SideOrderTarget(side.order) }; target != OrderTarget::NONE) side.order.target = TargetRecord(side.order.target, target);
     for (auto& objective : side.objectives) objective.target = StoredRecord<Objective>(objective.target, OBJECTIVES_AT);

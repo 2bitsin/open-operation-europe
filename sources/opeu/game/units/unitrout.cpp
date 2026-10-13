@@ -10,6 +10,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "common/random.hpp"
 #include "core/random.hpp"
 #include "core/recindex.hpp"
@@ -36,15 +37,15 @@ enum OrderCode : std::uint8_t {
 constexpr std::uint8_t NO_SAVED_ORDER{ 0xff }; // Unit::orders[1].kind when no order is saved
 } // namespace
 
-void opeu_unit_fall_back(uint8_t ds[65536], uint16_t unit, uint8_t x, uint8_t y) {
-  auto& record{ Record<Unit>(Data(ds), unit) };
+void opeu_unit_fall_back(Game& game, uint16_t unit, uint8_t x, uint8_t y) {
+  auto& record{ Record<Unit>(Data(game), unit) };
   if (record.orders[0].kind == FALL_BACK) return;
-  if (record.orders[1].kind != NO_SAVED_ORDER) opeu_restore_unit_order(ds, unit);
-  opeu_set_unit_order(ds, unit, 0, x, 1, FALL_BACK, y);
+  if (record.orders[1].kind != NO_SAVED_ORDER) opeu_restore_unit_order(game, unit);
+  opeu_set_unit_order(game, unit, 0, x, 1, FALL_BACK, y);
 }
 
-void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint8_t index) {
-  auto&         data{ Data(ds) };
+void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t index) {
+  auto&         data{ Data(game) };
   auto&         regiment{ data.units[(side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP + index] };
   auto const    unit{ Near(data, regiment) };
   std::uint8_t  x;
@@ -57,11 +58,11 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
     x = regiment.x;
     y = regiment.y;
     if (opeu_grid_step(&x, &y, dir)) {
-      if ((site = opeu_find_objective_at(ds, x, y)) != 0) {
-        if (opeu_objective_side(ds, site) == side) break;
+      if ((site = opeu_find_objective_at(game, x, y)) != 0) {
+        if (opeu_objective_side(game, site) == side) break;
         calm = false;
       }
-      if (auto const close{ opeu_find_unit_at(ds, x, y) }; close != 0) {
+      if (auto const close{ opeu_find_unit_at(game, x, y) }; close != 0) {
         if (opeu_unit_side(close) == side) break;
         calm = false;
       }
@@ -69,48 +70,48 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
   }
   if (calm) {
     for (auto const& element : Elements(data, regiment))
-      if (static_cast<std::uint8_t>(RandomBelow(ds, 20) + 60) <= element.experience) {
-        opeu_unit_fall_back(ds, unit, regiment.x, regiment.y);
+      if (static_cast<std::uint8_t>(RandomBelow(game, 20) + 60) <= element.experience) {
+        opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
         return;
       }
   } else {
     for (auto const& element : Elements(data, regiment)) {
-      if (static_cast<std::uint8_t>(RandomBelow(ds, 10) + 80) > element.experience) continue;
-      if (opeu_map_code(ds, regiment.x, regiment.y) == 1 || element.experience == 99) {
-        opeu_unit_fall_back(ds, unit, regiment.x, regiment.y);
+      if (static_cast<std::uint8_t>(RandomBelow(game, 10) + 80) > element.experience) continue;
+      if (opeu_map_code(game, regiment.x, regiment.y) == 1 || element.experience == 99) {
+        opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
         return;
       }
       for (dir = 0; dir < 8; dir++) {
         x = regiment.x;
         y = regiment.y;
-        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(ds, x, y) == NO_SIDE && opeu_move_cost(ds, x, y, unit) != IMPASSABLE
-            && ((site = opeu_find_objective_at(ds, x, y)) == 0 || opeu_objective_side(ds, site) == side)) {
-          opeu_unit_fall_back(ds, unit, x, y);
+        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(game, x, y) == NO_SIDE && opeu_move_cost(game, x, y, unit) != IMPASSABLE_COST
+            && ((site = opeu_find_objective_at(game, x, y)) == 0 || opeu_objective_side(game, site) == side)) {
+          opeu_unit_fall_back(game, unit, x, y);
           return;
         }
       }
-      opeu_unit_fall_back(ds, unit, regiment.x, regiment.y);
+      opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
       return;
     }
   }
-  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && RandomBelow(ds, 2) == 0) {
+  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && RandomBelow(game, 2) == 0) {
     for (dir = 0; dir < 8; dir++) {
       x = regiment.x;
       y = regiment.y;
-      if (opeu_grid_step(&x, &y, dir) && (site = opeu_find_objective_at(ds, x, y)) != 0 && opeu_objective_side(ds, site) != side) {
+      if (opeu_grid_step(&x, &y, dir) && (site = opeu_find_objective_at(game, x, y)) != 0 && opeu_objective_side(game, site) != side) {
         auto const& objective{ Record<Objective>(data, site) };
-        opeu_set_unit_order(ds, unit, 0, objective.x, 1, ATTACK_OBJECTIVE, objective.y);
+        opeu_set_unit_order(game, unit, 0, objective.x, 1, ATTACK_OBJECTIVE, objective.y);
         break;
       }
     }
-    if (opeu_map_code(ds, regiment.x, regiment.y) != 1) {
+    if (opeu_map_code(game, regiment.x, regiment.y) != 1) {
       for (dir = 0; dir < 8; dir++) {
         x = regiment.x;
         y = regiment.y;
-        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(ds, x, y) == opeu_opposite_side(side)) {
-          auto const close{ opeu_find_unit_at(ds, x, y) };
-          if (opeu_unit_special(ds, close)) {
-            opeu_set_unit_order(ds, unit, close, 0, 1, ATTACK_UNIT, 0);
+        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(game, x, y) == opeu_opposite_side(side)) {
+          auto const close{ opeu_find_unit_at(game, x, y) };
+          if (opeu_unit_special(game, close)) {
+            opeu_set_unit_order(game, unit, close, 0, 1, ATTACK_UNIT, 0);
             break;
           }
         }

@@ -6,10 +6,11 @@
 #include "core/random.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/uiprim.hpp"
 #include "data-segment.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -36,8 +37,8 @@ uint8_t opeu_staff_jitter_stat(uint8_t v) {
 }
 
 // Gives the person the staff trait with probability 1 / (3 * (delivery level + 1)), else takes it away.
-void opeu_staff_roll_flag(uint8_t ds[65536], uint16_t person) {
-  auto& data{ Data(ds) };
+void opeu_staff_roll_flag(Game& game, uint16_t person) {
+  auto& data{ Data(game) };
   auto& record{ Record<Person>(data, person) };
   if (opeu_rand_bounded((uint16_t)((data.delivery_level + 1) * 3)) == 0)
     record.role |= Bits(PersonRole::STAFF_TRAIT);
@@ -47,8 +48,8 @@ void opeu_staff_roll_flag(uint8_t ds[65536], uint16_t person) {
 
 // Draws the ratings of the current side's candidate `index` again around the candidate's base record; health and its
 // companion max_health get the same value.
-void opeu_staff_reroll_person(uint8_t ds[65536], uint8_t index) {
-  auto&       data{ Data(ds) };
+void opeu_staff_reroll_person(Game& game, uint8_t index) {
+  auto&       data{ Data(game) };
   auto&       person{ data.people[data.current_side * PEOPLE_PER_SIDE + index] };
   auto const& base{ data.people_backup[index] };
   person.leadership = opeu_staff_jitter_stat(base.leadership);
@@ -62,26 +63,26 @@ void opeu_staff_reroll_person(uint8_t ds[65536], uint8_t index) {
 
 // Shows the selected candidate's portrait if another one is on screen, then draws that candidate's ratings again.
 // Returns 0.
-uint8_t opeu_staff_reroll_selected(uint8_t ds[65536], HostNotify event) {
-  auto&          data{ Data(ds) };
+uint8_t opeu_staff_reroll_selected(Game& game, HostNotify event) {
+  auto&          data{ Data(game) };
   uint16_t const person{ data.general_list[data.list_row] };
   if (person != data.shown_portrait) {
-    Call(ds, event, SHOW_PORTRAIT, 8, 0x100, person);
+    Call(game, event, SHOW_PORTRAIT, 8, 0x100, person);
     data.shown_portrait = person;
   }
-  opeu_staff_reroll_person(ds, data.list_row);
+  opeu_staff_reroll_person(game, data.list_row);
   return 0;
 }
 
-void svc_staffgen(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+void svc_staffgen(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case SHOW_PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case SHOW_PORTRAIT: opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   default:            port_unhandled("staffgen", id, count);
   }
 }
 
-auto port_routine_opeu_staff_reroll_selected(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_staff_reroll_selected(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_staff_reroll_selected(ds, svc_staffgen);
+  return opeu_staff_reroll_selected(game, svc_staffgen);
 }

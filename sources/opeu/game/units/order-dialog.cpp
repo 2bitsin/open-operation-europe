@@ -1,6 +1,7 @@
 // The target check and the acknowledgement the two order dialogs share.
 #include "units/order-dialog.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/order.hpp"
 #include "core/recindex.hpp"
@@ -37,11 +38,11 @@ enum class Choice {
   REGIMENT,
   NEITHER
 };
-auto ChooseCityOrRegiment(std::uint8_t* ds, HostEvent event, std::uint8_t side, std::uint8_t city_side, std::uint8_t unit_side, std::uint16_t menu, std::uint16_t which, std::uint16_t choices,
+auto ChooseCityOrRegiment(Game& game, HostEvent event, std::uint8_t side, std::uint8_t city_side, std::uint8_t unit_side, std::uint16_t menu, std::uint16_t which, std::uint16_t choices,
                           std::uint16_t person) -> Choice {
   if (side == city_side && side == unit_side) {
-    opeu_order_layout_pair(ds, menu);
-    switch (Call(ds, event, ORDERS_DELAY_DIALOG, which, CHOICE_COUNT, person, choices)) {
+    opeu_order_layout_pair(game, menu);
+    switch (Call(game, event, ORDERS_DELAY_DIALOG, which, CHOICE_COUNT, person, choices)) {
     case CHOOSE_CITY:     return Choice::CITY;
     case CHOOSE_REGIMENT: return Choice::REGIMENT;
     default:              return Choice::NEITHER;
@@ -65,18 +66,18 @@ auto OrderCount(std::array<std::uint8_t, 8> const& codes) -> std::uint8_t {
   return count;
 }
 
-auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y,
-                      std::uint8_t& kind, std::uint16_t& target) -> bool {
-  auto&      data{ Data(ds) };
+auto CheckOrderTarget(Game& game, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y, std::uint8_t& kind,
+                      std::uint16_t& target) -> bool {
+  auto&      data{ Data(game) };
   auto const side{ data.current_side };
   auto const enemy{ opeu_opposite_side(side) };
-  auto const objective{ opeu_find_objective_at(ds, x, y) };
-  auto const city_side{ objective ? opeu_objective_side(ds, objective) : NO_SIDE };
-  target = opeu_find_unit_at(ds, x, y);
+  auto const objective{ opeu_find_objective_at(game, x, y) };
+  auto const city_side{ objective ? opeu_objective_side(game, objective) : NO_SIDE };
+  target = opeu_find_unit_at(game, x, y);
   std::uint8_t unit_side{ target ? opeu_unit_side(target) : NO_SIDE };
   // The regiment itself (except for a repair), an unsighted enemy and an own regiment that may not be selected do
   // not count as targets.
-  if ((kind != Kind(UnitOrder::REPAIR_CITY) && target == unit) || (enemy == unit_side && !opeu_unit_special(ds, target)) || (side == unit_side && !opeu_unit_selection_eligible(ds, target))) {
+  if ((kind != Kind(UnitOrder::REPAIR_CITY) && target == unit) || (enemy == unit_side && !opeu_unit_special(game, target)) || (side == unit_side && !opeu_unit_selection_eligible(game, target))) {
     target    = 0;
     unit_side = NO_SIDE;
   }
@@ -85,21 +86,21 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
     return true;
   } };
   auto const refuse{ [&](auto const& text) {
-    Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, text));
+    Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, text));
     return false;
   } };
   auto const cannot{ [&] {
-    Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3]);
+    Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3]);
     return false;
   } };
-  auto const terrain{ [&] { return static_cast<Terrain>(opeu_map_code(ds, x, y)); } };
+  auto const terrain{ [&] { return static_cast<Terrain>(opeu_map_code(game, x, y)); } };
   switch (static_cast<UnitOrder>(kind)) {
   case UnitOrder::MOVE:        return terrain() != Terrain::IMPASSABLE ? place() : cannot();
   case UnitOrder::OCCUPY:      return enemy == city_side ? place() : refuse(prompts.not_enemy_city);
   case UnitOrder::REPAIR_CITY:
   case UnitOrder::RESUPPLY:    {
     auto const repair{ kind == Kind(UnitOrder::REPAIR_CITY) };
-    switch (ChooseCityOrRegiment(ds, event, side, city_side, unit_side, repair ? REPAIR_MENU : SUPPLY_MENU, repair ? Near(data, prompts.fix_which) : Near(data, prompts.supply_which),
+    switch (ChooseCityOrRegiment(game, event, side, city_side, unit_side, repair ? REPAIR_MENU : SUPPLY_MENU, repair ? Near(data, prompts.fix_which) : Near(data, prompts.supply_which),
                                  repair ? Near(data, data.repair_choices) : Near(data, data.supply_choices), person)) {
     case Choice::CITY:     return place();
     case Choice::NEITHER:  return cannot();
@@ -110,7 +111,7 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
   case UnitOrder::DEFEND:
   case UnitOrder::REST:      return enemy == city_side ? cannot() : place();
   case UnitOrder::LAY_MINES: {
-    if (opeu_cell_marked(ds, x, y, side)) {
+    if (opeu_cell_marked(game, x, y, side)) {
       kind = Kind(UnitOrder::CLEAR_MINES);
       return place();
     }
@@ -118,7 +119,7 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
     case Terrain::CITY:
     case Terrain::RIVER:
     case Terrain::BRIDGE:
-    case Terrain::IMPASSABLE: Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Call(ds, event, ORDERS_MESSAGE_LOOKUP, NO_MINES_THERE)); return false;
+    case Terrain::IMPASSABLE: Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Call(game, event, ORDERS_MESSAGE_LOOKUP, NO_MINES_THERE)); return false;
     default:                  return place();
     }
   }
@@ -130,12 +131,12 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
   }
 }
 
-auto AnnounceOrder(std::uint8_t* ds, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
-  auto& data{ Data(ds) };
-  Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.understood), data.order_names[kind + 3]);
-  auto const engineering{ [&](OrderMessage message) { Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Call(ds, event, ORDERS_MESSAGE_LOOKUP, message)); } };
+auto AnnounceOrder(Game& game, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
+  auto& data{ Data(game) };
+  Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.understood), data.order_names[kind + 3]);
+  auto const engineering{ [&](OrderMessage message) { Call(game, event, ORDERS_REQUEST_FORMAT, buffer, Call(game, event, ORDERS_MESSAGE_LOOKUP, message)); } };
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);
   if (kind == Kind(UnitOrder::DESTROY_BRIDGE)) engineering(DESTROY_ORDERED);
-  Call(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
+  Call(game, event, ORDERS_CONTROL_MESSAGE, buffer, person);
 }

@@ -3,11 +3,13 @@
 #include "common/scenario.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "core/people.hpp"
 #include "core/template.hpp"
 #include "data-segment.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -30,32 +32,32 @@ enum SideInitService : uint16_t {
 
 // For a side a player commands: picks its first general and the general's templates of kinds 4 and 5, sets the turn
 // context, runs the scenario's initializer and finishes the side's set-up. side_initializing is set meanwhile.
-void opeu_initialize_turn_side(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  auto& data{ Data(ds) };
+void opeu_initialize_turn_side(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+  auto& data{ Data(game) };
   data.side_initializing = 1;
   if (data.side_status[data.current_side] == SIDE_PLAYED) {
-    data.initial_person = event(ds, FIND_SIDE_PERSON, data.current_side, 1, 0, 0);
+    data.initial_person = event(game, FIND_SIDE_PERSON, data.current_side, 1, 0, 0);
     uint8_t const mask{ Record<Person>(data, data.initial_person).status };
-    data.initial_template4 = event(ds, FIND_TEMPLATE, mask, 4, 0, 0);
-    data.initial_template5 = event(ds, FIND_TEMPLATE, mask, 5, 0, 0);
-    event(ds, SET_CONTEXT, 15, 0, 0, 0);
+    data.initial_template4 = event(game, FIND_TEMPLATE, mask, 4, 0, 0);
+    data.initial_template5 = event(game, FIND_TEMPLATE, mask, 5, 0, 0);
+    event(game, SET_CONTEXT, 15, 0, 0, 0);
     auto const& initializer{ data.side_initializers[std::to_underlying(CurrentScenario(data))] };
-    event(ds, RUN_INITIALIZER, initializer.offset, initializer.segment, 0, 0);
-    event(ds, FINISH, 1, 0, 0, 0);
+    event(game, RUN_INITIALIZER, initializer.offset, initializer.segment, 0, 0);
+    event(game, FINISH, 1, 0, 0, 0);
   }
   data.side_initializing = 0;
 }
 
-uint16_t svc_sideinit(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
+uint16_t svc_sideinit(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
   uint16_t r = 0;
   (void)a2;
   (void)a3;
   switch (id) {
-  case FIND_SIDE_PERSON: r = opeu_find_side_record(ds, (uint8_t)a0, (uint8_t)a1); break;
-  case FIND_TEMPLATE:    r = opeu_find_person_template(ds, (uint8_t)a0, (uint8_t)a1); break;
-  case SET_CONTEXT:      opeu_set_turn_context(ds, svc_sound, (uint8_t)a0); break;
-  case RUN_INITIALIZER:  r = (uint16_t)port_call(ds, (uint32_t)a1 * 16u + a0, NULL, 0); break;
-  case FINISH:           opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0); break;
+  case FIND_SIDE_PERSON: r = opeu_find_side_record(game, (uint8_t)a0, (uint8_t)a1); break;
+  case FIND_TEMPLATE:    r = opeu_find_person_template(game, (uint8_t)a0, (uint8_t)a1); break;
+  case SET_CONTEXT:      opeu_set_turn_context(game, svc_sound, (uint8_t)a0); break;
+  case RUN_INITIALIZER:  r = (uint16_t)port_call(game, (uint32_t)a1 * 16u + a0, NULL, 0); break;
+  case FINISH:           opeu_finish_side_initialization(game, svc_sound, (uint8_t)a0); break;
   default:               port_unhandled("sideinit", id, 4);
   }
   return r;

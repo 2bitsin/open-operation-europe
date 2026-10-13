@@ -11,7 +11,9 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -37,91 +39,91 @@ constexpr uint8_t INTO_LOST{ 2 };
   return state == std::to_underlying(kind);
 }
 
-[[nodiscard]] auto Position(uint8_t* ds, uint16_t element) -> BattlePosition& {
-  return PositionOf(Data(ds), element);
+[[nodiscard]] auto Position(Game& game, uint16_t element) -> BattlePosition& {
+  return PositionOf(Data(game), element);
 }
 
 // Vehicles turn to face where they fire or go; infantry does not.
-[[nodiscard]] auto Turns(uint8_t* ds, uint16_t element) -> bool {
-  auto const& data{ Data(ds) };
+[[nodiscard]] auto Turns(Game& game, uint16_t element) -> bool {
+  auto const& data{ Data(game) };
   return ElementTypeOf(data, element).category != 0;
 }
 
-void Face(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t facing) {
-  Call(ds, event, BattleRoutine::BATTLE_ANIMATE_FACING, facing, element);
+void Face(Game& game, BattleEvent event, uint16_t element, uint8_t facing) {
+  Call(game, event, BattleRoutine::BATTLE_ANIMATE_FACING, facing, element);
 }
 
-void FaceTarget(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t target) {
-  Face(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)));
+void FaceTarget(Game& game, BattleEvent event, uint16_t element, uint16_t target) {
+  Face(game, event, element, static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)));
 }
 
-void FaceCell(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
-  auto const& position{ Position(ds, element) };
-  Face(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_FACING, position.x, position.y, x, y)));
+void FaceCell(Game& game, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
+  auto const& position{ Position(game, element) };
+  Face(game, event, element, static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_CELL_FACING, position.x, position.y, x, y)));
 }
 } // namespace
 
 // Moves the element a step toward its goal or its target. order counts the element's waits this round. The cell it
 // heads for is two DS words: the path step services receive their addresses.
-uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t order) {
+uint8_t opeu_battle_execute_order(Game& game, BattleEvent event, uint16_t element, uint8_t order) {
   ServiceLocals const locals{ 4 };
   auto const          x_at{ locals.At(0) };
   auto const          y_at{ locals.At(2) };
-  auto&               x{ Byte(ds, x_at) };
-  auto&               y{ Byte(ds, y_at) };
+  auto&               x{ Byte(game, x_at) };
+  auto&               y{ Byte(game, y_at) };
   auto const          update{ [&] {
-    opeu_battle_update_element(ds, event, element);
+    opeu_battle_update_element(game, event, element);
     return UPDATED;
   } };
   auto const wait{ [&] {
-    opeu_battle_set_order(ds, event, element, ++order);
+    opeu_battle_set_order(game, event, element, ++order);
     return WAITING;
   } };
   auto const head_for_goal{ [&] {
-    auto const& position{ Position(ds, element) };
+    auto const& position{ Position(game, element) };
     x = position.goal_x;
     y = position.goal_y;
   } };
   auto const head_for_target{ [&](uint16_t target) {
-    auto const& position{ Position(ds, target) };
+    auto const& position{ Position(game, target) };
     x = position.x;
     y = position.y;
   } };
   bool retry{ true };
   for (;;) {
-    auto const state{ opeu_battle_state(ds, event, element) };
+    auto const state{ opeu_battle_state(game, event, element) };
     if (Is(state, BattleState::MOVE) || Is(state, BattleState::WITHDRAW)) {
       head_for_goal();
     } else if (Is(state, BattleState::BLITZ)) {
-      if (!opeu_battle_engaged(ds, event, element)) {
+      if (!opeu_battle_engaged(game, event, element)) {
         head_for_goal();
       } else {
-        auto const target{ Position(ds, element).target };
-        if (!opeu_battle_element_active(ds, event, target)) return update();
+        auto const target{ Position(game, element).target };
+        if (!opeu_battle_element_active(game, event, target)) return update();
         head_for_target(target);
       }
     } else if (Is(state, BattleState::ATTACK)) {
-      if (!opeu_battle_engaged(ds, event, element))
+      if (!opeu_battle_engaged(game, event, element))
         head_for_goal();
       else
-        head_for_target(Position(ds, element).target);
+        head_for_target(Position(game, element).target);
     }
-    if (opeu_battle_facing(ds, event, element) == NO_FACING) {
-      switch (static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_NEXT_STEP, x_at, y_at, element))) {
+    if (opeu_battle_facing(game, event, element) == NO_FACING) {
+      switch (static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_NEXT_STEP, x_at, y_at, element))) {
       case STEP_WAIT: return wait();
       case STEP_SEARCH:
-        if (!Call(ds, event, BattleRoutine::BATTLE_ELEMENT_PATH_STEP, x_at, y_at, element)) return WAITING;
+        if (!Call(game, event, BattleRoutine::BATTLE_ELEMENT_PATH_STEP, x_at, y_at, element)) return WAITING;
         break;
       case STEP_STUCK: return update();
       default:         break;
       }
-      opeu_battle_set_strength(ds, event, element, x, y);
-      opeu_battle_set_facing(ds, event, element, static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_MOVE_COST, x, y, element)));
+      opeu_battle_set_strength(game, event, element, x, y);
+      opeu_battle_set_facing(game, event, element, static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_MOVE_COST, x, y, element)));
     }
-    if (opeu_battle_facing(ds, event, element) > order) return wait();
-    x = opeu_battle_strength_low(ds, event, element);
-    y = opeu_battle_strength_high(ds, event, element);
-    auto const into{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_STEP_INTO, x, y, element)) };
+    if (opeu_battle_facing(game, event, element) > order) return wait();
+    x = opeu_battle_strength_low(game, event, element);
+    y = opeu_battle_strength_high(game, event, element);
+    auto const into{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_STEP_INTO, x, y, element)) };
     if (into == INTO_BLOCKED) {
       if (!retry) return WAITING;
       retry = false;
@@ -130,113 +132,113 @@ uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t eleme
     if (into == INTO_LOST) return update();
     break;
   }
-  auto const state{ opeu_battle_state(ds, event, element) };
-  if ((Is(state, BattleState::BLITZ) && !opeu_battle_engaged(ds, event, element)) || Is(state, BattleState::MOVE) || Is(state, BattleState::WITHDRAW)) {
-    auto const& position{ Position(ds, element) };
+  auto const state{ opeu_battle_state(game, event, element) };
+  if ((Is(state, BattleState::BLITZ) && !opeu_battle_engaged(game, event, element)) || Is(state, BattleState::MOVE) || Is(state, BattleState::WITHDRAW)) {
+    auto const& position{ Position(game, element) };
     if (position.goal_x == x && position.goal_y == y) return ARRIVED;
   }
   return STEPPED;
 }
 
 // Without ammunition the element reports it and stops; otherwise it turns toward its target (or its goal) and fights.
-void opeu_battle_attack_or_hold(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t target) {
-  auto& data{ Data(ds) };
-  if (!Record<Unit>(data, opeu_battle_element_unit(ds, event, element)).resources[0]) {
-    Call(ds, event, BattleRoutine::BATTLE_SUPPLY_NOTICE, 0, element);
-    opeu_battle_update_element(ds, event, element);
+void opeu_battle_attack_or_hold(Game& game, BattleEvent event, uint16_t element, uint16_t target) {
+  auto& data{ Data(game) };
+  if (!Record<Unit>(data, opeu_battle_element_unit(game, event, element)).resources[0]) {
+    Call(game, event, BattleRoutine::BATTLE_SUPPLY_NOTICE, 0, element);
+    opeu_battle_update_element(game, event, element);
     return;
   }
-  if (Turns(ds, element)) {
+  if (Turns(game, element)) {
     if (target) {
-      FaceTarget(ds, event, element, target);
+      FaceTarget(game, event, element, target);
     } else {
-      auto const& position{ Position(ds, element) };
-      FaceCell(ds, event, element, position.goal_x, position.goal_y);
+      auto const& position{ Position(game, element) };
+      FaceCell(game, event, element, position.goal_x, position.goal_y);
     }
   }
-  Call(ds, event, BattleRoutine::BATTLE_LOSS_CHECK, target, element);
+  Call(game, event, BattleRoutine::BATTLE_LOSS_CHECK, target, element);
 }
 
 // Carries on the element's current order.
-void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto order{ opeu_battle_order(ds, event, element) };
-  if (opeu_battle_engaged(ds, event, element)) {
-    auto const target{ Position(ds, element).target };
-    if (Call(ds, event, BattleRoutine::BATTLE_TARGET_IN_RANGE, element)) {
-      if (ElementStrength(ds, event, element) > order) {
-        if (Turns(ds, element)) FaceTarget(ds, event, element, target);
-        opeu_battle_set_order(ds, event, element, ++order);
+void opeu_battle_continue_order(Game& game, BattleEvent event, uint16_t element) {
+  auto order{ opeu_battle_order(game, event, element) };
+  if (opeu_battle_engaged(game, event, element)) {
+    auto const target{ Position(game, element).target };
+    if (Call(game, event, BattleRoutine::BATTLE_TARGET_IN_RANGE, element)) {
+      if (ElementStrength(game, event, element) > order) {
+        if (Turns(game, element)) FaceTarget(game, event, element, target);
+        opeu_battle_set_order(game, event, element, ++order);
       } else {
-        opeu_battle_attack_or_hold(ds, event, element, target);
+        opeu_battle_attack_or_hold(game, event, element, target);
       }
-    } else if (Is(opeu_battle_state(ds, event, element), BattleState::ATTACK)) {
-      opeu_battle_execute_order(ds, event, element, order);
+    } else if (Is(opeu_battle_state(game, event, element), BattleState::ATTACK)) {
+      opeu_battle_execute_order(game, event, element, order);
     }
   } else {
-    auto const goal_x{ Position(ds, element).goal_x };
-    auto const goal_y{ Position(ds, element).goal_y };
-    if (Call(ds, event, BattleRoutine::BATTLE_CELL_IN_RANGE, element)) {
-      if (ElementStrength(ds, event, element) > order) {
-        if (Turns(ds, element)) FaceCell(ds, event, element, goal_x, goal_y);
-        opeu_battle_set_order(ds, event, element, ++order);
+    auto const goal_x{ Position(game, element).goal_x };
+    auto const goal_y{ Position(game, element).goal_y };
+    if (Call(game, event, BattleRoutine::BATTLE_CELL_IN_RANGE, element)) {
+      if (ElementStrength(game, event, element) > order) {
+        if (Turns(game, element)) FaceCell(game, event, element, goal_x, goal_y);
+        opeu_battle_set_order(game, event, element, ++order);
       } else {
-        opeu_battle_attack_or_hold(ds, event, element, 0);
+        opeu_battle_attack_or_hold(game, event, element, 0);
       }
     } else {
-      opeu_battle_execute_order(ds, event, element, order);
+      opeu_battle_execute_order(game, event, element, order);
     }
   }
 }
 
 // The element advances on its order; on arrival its state is updated.
-void opeu_battle_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto const order{ opeu_battle_order(ds, event, element) };
-  if (opeu_battle_execute_order(ds, event, element, order) == ARRIVED) opeu_battle_update_element(ds, event, element);
+void opeu_battle_advance(Game& game, BattleEvent event, uint16_t element) {
+  auto const order{ opeu_battle_order(game, event, element) };
+  if (opeu_battle_execute_order(game, event, element, order) == ARRIVED) opeu_battle_update_element(game, event, element);
 }
 
 // frame: the routine's frame on the DS stack; the order runs below it.
-void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto order{ opeu_battle_order(ds, event, element) };
-  if (opeu_battle_engaged(ds, event, element) && !opeu_battle_element_active(ds, event, Position(ds, element).target)) {
-    opeu_battle_update_element(ds, event, element);
+void opeu_battle_seek_target(Game& game, BattleEvent event, uint16_t element) {
+  auto order{ opeu_battle_order(game, event, element) };
+  if (opeu_battle_engaged(game, event, element) && !opeu_battle_element_active(game, event, Position(game, element).target)) {
+    opeu_battle_update_element(game, event, element);
     return;
   }
-  if (auto const target{ opeu_battle_best_target(ds, event, element) }) {
-    if (ElementStrength(ds, event, element) <= order) {
-      opeu_battle_attack_or_hold(ds, event, element, target);
+  if (auto const target{ opeu_battle_best_target(game, event, element) }) {
+    if (ElementStrength(game, event, element) <= order) {
+      opeu_battle_attack_or_hold(game, event, element, target);
     } else {
-      if (Turns(ds, element)) FaceTarget(ds, event, element, target);
-      opeu_battle_set_order(ds, event, element, ++order);
+      if (Turns(game, element)) FaceTarget(game, event, element, target);
+      opeu_battle_set_order(game, event, element, ++order);
     }
-  } else if (opeu_battle_execute_order(ds, event, element, order) == ARRIVED) {
-    opeu_battle_update_element(ds, event, element);
+  } else if (opeu_battle_execute_order(game, event, element, order) == ARRIVED) {
+    opeu_battle_update_element(game, event, element);
   }
 }
 
-uint16_t svc_btlorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlorder(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_advance(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_advance(ds, svc_btlorder, Arg(args, count, 0));
+auto port_routine_opeu_battle_advance(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_advance(game, svc_btlorder, Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_attack_or_hold(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_attack_or_hold(ds, svc_btlorder, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_attack_or_hold(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_attack_or_hold(game, svc_btlorder, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_continue_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_continue_order(ds, svc_btlorder, Arg(args, count, 0));
+auto port_routine_opeu_battle_continue_order(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_continue_order(game, svc_btlorder, Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_battle_execute_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_execute_order(ds, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_battle_execute_order(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_execute_order(game, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
 }
 
-auto port_routine_opeu_battle_seek_target(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_seek_target(ds, svc_btlorder, Arg(args, count, 0));
+auto port_routine_opeu_battle_seek_target(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_seek_target(game, svc_btlorder, Arg(args, count, 0));
   return 0;
 }

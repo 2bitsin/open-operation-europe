@@ -11,7 +11,8 @@
 #include "units/labels.hpp"
 #include "units/table.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -24,36 +25,36 @@ constexpr std::uint16_t NAME_TEXT{ 104 };
 constexpr std::uint16_t NAME_INDENT{ 2 };
 } // namespace
 
-void opeu_tbl_draw_elements(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto&               data{ Data(ds) };
+void opeu_tbl_draw_elements(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+  auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
-  buffers.Clear(ds);
+  buffers.Clear(game);
   auto const  scratch{ buffers.At(0) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(ds, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(ds, event, window, layout, text, Near(data, data.tbl_element_header));
+  auto const  layout{ Columns(game, event, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_element_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const  near{ data.row_elements[entry] };
     auto const& element{ Record<Element>(data, near) };
     auto const  side{ opeu_element_side(near) };
     if (flags & DRAW_NAMES) {
-      StartRowName(ds, event, window, entry, NAME_INDENT, side);
-      if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, TableService::UI_TEXT, Near(data, data.tbl_element_mark));
-      Call(ds, event, TableService::PRINT, Near(data, data.tbl_element_name), opeu_element_name(ds, near, name));
+      StartRowName(game, event, window, entry, NAME_INDENT, side);
+      if (element.flags & Bits(ElementFlag::SELECTED)) Call(game, event, TableService::UI_TEXT, Near(data, data.tbl_element_mark));
+      Call(game, event, TableService::PRINT, Near(data, data.tbl_element_name), opeu_element_name(game, near, name));
     }
-    Call(ds, event, TableService::FORMAT, text, Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience);
-    DrawRowText(ds, event, window, layout, entry, text);
+    Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience);
+    DrawRowText(game, event, window, layout, entry, text);
   }
-  Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
 }
 
 // The table's calls are the row-draw services.
-uint16_t svc_tblelem(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(ds, "tblelem", id, args, count);
+uint16_t svc_tblelem(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  return svc_table(game, "tblelem", id, args, count);
 }
 
-auto port_routine_opeu_tbl_draw_elements(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(ds, svc_tblelem, opeu_tbl_draw_elements, args, count);
+auto port_routine_opeu_tbl_draw_elements(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return RunTableRows(game, svc_tblelem, opeu_tbl_draw_elements, args, count);
 }

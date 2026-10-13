@@ -15,7 +15,8 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "map/btlaiact.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -34,18 +35,18 @@ constexpr uint16_t NO_DISTANCE{ 0xffff };
 constexpr int      SLOT_COUNT{ 2 * BATTLE_LIST_LENGTH };
 
 // The list slot (side * 9 + i) of the element's unit, or -1; unit gets the unit.
-[[nodiscard]] auto FindSlot(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t& unit) -> int {
-  auto& data{ Data(ds) };
-  unit = opeu_battle_element_unit(ds, event, element);
+[[nodiscard]] auto FindSlot(Game& game, BattleEvent event, uint16_t element, uint16_t& unit) -> int {
+  auto& data{ Data(game) };
+  unit = opeu_battle_element_unit(game, event, element);
   for (int k{ 0 }; k < SLOT_COUNT; ++k)
     if (data.battle_lists[k] == unit) return k;
   return -1;
 }
 
 // Floods the path costs from the element toward the target; nonzero when the target is reached.
-[[nodiscard]] auto Flood(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t target) -> uint16_t {
-  auto& data{ Data(ds) };
-  return Call(ds, event, BattleRoutine::BATTLE_PATH_FLOOD, PositionOf(data, target).x, PositionOf(data, target).y, PositionOf(data, element).x, PositionOf(data, element).y, element, 1);
+[[nodiscard]] auto Flood(Game& game, BattleEvent event, uint16_t element, uint16_t target) -> uint16_t {
+  auto& data{ Data(game) };
+  return Call(game, event, BattleRoutine::BATTLE_PATH_FLOOD, PositionOf(data, target).x, PositionOf(data, target).y, PositionOf(data, element).x, PositionOf(data, element).y, element, 1);
 }
 
 // The range and rating opeu_battle_odds weighs for attacker against target.
@@ -53,51 +54,51 @@ struct Matchup {
   uint8_t range;
   uint8_t rating;
 };
-[[nodiscard]] auto MatchupOf(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) -> Matchup {
-  auto const range{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_RANGE, attacker)) };
-  auto const rating{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_RATING, attacker, target)) };
+[[nodiscard]] auto MatchupOf(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) -> Matchup {
+  auto const range{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_RANGE, attacker)) };
+  auto const rating{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_RATING, attacker, target)) };
   return { range, rating };
 }
-[[nodiscard]] auto Odds(uint8_t* ds, BattleEvent event, Matchup matchup) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ODDS, matchup.rating, matchup.range));
+[[nodiscard]] auto Odds(Game& game, BattleEvent event, Matchup matchup) -> uint8_t {
+  return static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ODDS, matchup.rating, matchup.range));
 }
 } // namespace
 
-uint8_t opeu_battle_ai_plan_low(uint8_t* ds, BattleEvent event, uint16_t element) {
+uint8_t opeu_battle_ai_plan_low(Game& game, BattleEvent event, uint16_t element) {
   uint16_t   unit;
-  auto const k{ FindSlot(ds, event, element, unit) };
+  auto const k{ FindSlot(game, event, element, unit) };
   if (k < 0) return static_cast<uint8_t>(unit);
-  return Data(ds).battle_ai_plans[k] & 0x0f;
+  return Data(game).battle_ai_plans[k] & 0x0f;
 }
 
-uint8_t opeu_battle_ai_plan_high(uint8_t* ds, BattleEvent event, uint16_t element) {
+uint8_t opeu_battle_ai_plan_high(Game& game, BattleEvent event, uint16_t element) {
   uint16_t   unit;
-  auto const k{ FindSlot(ds, event, element, unit) };
+  auto const k{ FindSlot(game, event, element, unit) };
   if (k < 0) return static_cast<uint8_t>(unit);
-  return Data(ds).battle_ai_plans[k] >> 4;
+  return Data(game).battle_ai_plans[k] >> 4;
 }
 
-uint16_t opeu_battle_ai_unit_target(uint8_t* ds, BattleEvent event, uint16_t element) {
+uint16_t opeu_battle_ai_unit_target(Game& game, BattleEvent event, uint16_t element) {
   uint16_t   unit;
-  auto const k{ FindSlot(ds, event, element, unit) };
+  auto const k{ FindSlot(game, event, element, unit) };
   if (k < 0) return unit;
-  auto const& data{ Data(ds) };
-  if (!opeu_battle_unit_active(ds, event, data.battle_ai_targets[k])) return 0;
+  auto const& data{ Data(game) };
+  if (!opeu_battle_unit_active(game, event, data.battle_ai_targets[k])) return 0;
   return data.battle_ai_targets[k];
 }
 
-uint16_t opeu_battle_ai_pick_target(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t list, uint8_t mode) {
-  auto&    data{ Data(ds) };
+uint16_t opeu_battle_ai_pick_target(Game& game, BattleEvent event, uint16_t element, uint16_t list, uint8_t mode) {
+  auto&    data{ Data(game) };
   uint16_t best{ NO_DISTANCE };
   uint16_t chosen{ 0 };
   uint16_t value{ 0 };
   for (auto& candidate : Elements(data, Record<Unit>(data, list))) {
     auto const target{ Near(data, candidate) };
-    if (!opeu_battle_element_active(ds, event, target) || !opeu_battle_element_flag2(ds, event, target)) continue;
+    if (!opeu_battle_element_active(game, event, target) || !opeu_battle_element_flag2(game, event, target)) continue;
     switch (static_cast<PickMode>(mode)) {
     case PickMode::NEAREST:
-      if (Flood(ds, event, element, target)) {
-        value = Call(ds, event, BattleRoutine::BATTLE_PATH_STEP, PositionOf(data, element).x, PositionOf(data, element).y);
+      if (Flood(game, event, element, target)) {
+        value = Call(game, event, BattleRoutine::BATTLE_PATH_STEP, PositionOf(data, element).x, PositionOf(data, element).y);
         if (value < best) {
           best   = value;
           chosen = target;
@@ -106,10 +107,10 @@ uint16_t opeu_battle_ai_pick_target(uint8_t* ds, BattleEvent event, uint16_t ele
       break;
     case PickMode::BEST_ODDS: {
       if (best == NO_DISTANCE) value = 0;
-      uint16_t const odds{ Odds(ds, event, MatchupOf(ds, event, element, target)) };
+      uint16_t const odds{ Odds(game, event, MatchupOf(game, event, element, target)) };
       // The target's range and rating are taken in any case, its odds only when ours are better.
-      auto const against{ MatchupOf(ds, event, target, element) };
-      if (value < odds && Odds(ds, event, against) > 1 && Flood(ds, event, element, target)) {
+      auto const against{ MatchupOf(game, event, target, element) };
+      if (value < odds && Odds(game, event, against) > 1 && Flood(game, event, element, target)) {
         value  = odds;
         chosen = target;
         best   = 0;
@@ -118,7 +119,7 @@ uint16_t opeu_battle_ai_pick_target(uint8_t* ds, BattleEvent event, uint16_t ele
     }
     case PickMode::SHORTEST_RANGE:
       value = data.element_types[candidate.type].defense;
-      if (value < best && Flood(ds, event, element, target)) {
+      if (value < best && Flood(game, event, element, target)) {
         best   = value;
         chosen = target;
       }
@@ -131,11 +132,11 @@ uint16_t opeu_battle_ai_pick_target(uint8_t* ds, BattleEvent event, uint16_t ele
 
 // A random cell the element can enter: on the unit's side of the field, or near the middle when the unit is not next
 // to the battle.
-auto opeu_battle_ai_random_cell(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) -> FieldCell {
-  auto&      data{ Data(ds) };
-  auto const direction{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) };
+auto opeu_battle_ai_random_cell(Game& game, BattleEvent event, uint16_t element, uint16_t unit) -> FieldCell {
+  auto&      data{ Data(game) };
+  auto const direction{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) };
   auto const pick{ [&](uint8_t column, uint8_t row, uint16_t percent) {
-    return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, column, row, element) && Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < percent;
+    return Call(game, event, BattleRoutine::BATTLE_CAN_ENTER, column, row, element) && Call(game, event, BattleRoutine::RAND_BOUNDED, 100) < percent;
   } };
   auto const search{ [&](uint8_t& column, uint8_t& row) {
     if (direction != BATTLE_NOT_ADJACENT) {
@@ -156,6 +157,6 @@ auto opeu_battle_ai_random_cell(uint8_t* ds, BattleEvent event, uint16_t element
   return { column, row };
 }
 
-uint16_t svc_btlaiunt(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_ai(ds, service, args, count);
+uint16_t svc_btlaiunt(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_ai(game, service, args, count);
 }

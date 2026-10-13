@@ -9,10 +9,11 @@
 #include "types.hpp"
 #include "units/allocpnl.hpp"
 
+#include "common/game.hpp"
 #include "core/chief.hpp"
-#include "glue.hpp"
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/capacity.hpp"
@@ -51,9 +52,9 @@ constexpr std::uint16_t TALLY_MARK_OFFSET{ 0x10b8 };
 constexpr std::int32_t RESOURCE_LIMIT{ 60000 };
 
 // Asks the event for the three capacities of a unit or an objective.
-auto Capacities(std::uint8_t* ds, HostWordsEvent event, Service service, std::uint16_t owner, std::uint16_t& a, std::uint16_t& b, std::uint16_t& c) -> void {
+auto Capacities(Game& game, HostWordsEvent event, Service service, std::uint16_t owner, std::uint16_t& a, std::uint16_t& b, std::uint16_t& c) -> void {
   std::uint16_t args[4]{ owner, a, b, c };
-  event(ds, service, args, 1);
+  event(game, service, args, 1);
   a = args[1];
   b = args[2];
   c = args[3];
@@ -70,8 +71,8 @@ auto Fill(Item& item, Item const& row) -> void {
 // Rebuilds each unit's element list from its allocation rows (or fills the objective's six items), then splits the
 // summed resources: the first unit up to its capacities, the rest to the second unit or (capped at 60000) to the
 // objective.
-void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
-  auto&         data{ Data(ds) };
+void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
+  auto&         data{ Data(game) };
   std::int32_t  sum_a{ 0 }, sum_b{ 0 }, sum_c{ 0 };
   std::uint16_t capacity_a[2]{}, capacity_b[2]{}, capacity_c[2]{};
   std::uint8_t  start{ 0 };
@@ -79,8 +80,8 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
     auto const unit_near{ data.alloc_units[i] };
     if (unit_near != 0) {
       auto& unit{ Record<Unit>(data, unit_near) };
-      while (unit.first) Call(ds, event, REMOVE_ELEMENT, unit_near, unit.first);
-      Call(ds, event, RELEASE_ELEMENTS, Near(data, data.alloc_elements), 0);
+      while (unit.first) Call(game, event, REMOVE_ELEMENT, unit_near, unit.first);
+      Call(game, event, RELEASE_ELEMENTS, Near(data, data.alloc_elements), 0);
       std::uint8_t used{ 0 };
       for (auto row{ start }; row < first; ++row) {
         auto const& slot{ data.alloc_slots[row] };
@@ -90,13 +91,13 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
         element.type     = slot.type;
         element.quantity = slot.quantity;
         element.damage   = 0;
-        opeu_alloc_element_values(ds, event, element_near, count);
-        Call(ds, event, INSERT_ELEMENT, unit_near, element_near);
+        opeu_alloc_element_values(game, event, element_near, count);
+        Call(game, event, INSERT_ELEMENT, unit_near, element_near);
       }
       sum_a += unit.resources[0];
       sum_b += unit.resources[1];
       sum_c += unit.resources[2];
-      Capacities(ds, event, UNIT_CAPACITIES, unit_near, capacity_a[i], capacity_b[i], capacity_c[i]);
+      Capacities(game, event, UNIT_CAPACITIES, unit_near, capacity_a[i], capacity_b[i], capacity_c[i]);
       start  = first;
       first += second;
     } else {
@@ -110,7 +111,7 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
       sum_a += objective.resources[0];
       sum_b += objective.resources[1];
       sum_c += objective.resources[2];
-      Capacities(ds, event, OBJECTIVE_CAPACITIES, data.alloc_objective, capacity_a[1], capacity_b[1], capacity_c[1]);
+      Capacities(game, event, OBJECTIVE_CAPACITIES, data.alloc_objective, capacity_a[1], capacity_b[1], capacity_c[1]);
     }
   }
   auto& unit{ Record<Unit>(data, data.alloc_units[0]) };
@@ -122,7 +123,7 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
     other.resources[0] = static_cast<std::uint16_t>(sum_a) - unit.resources[0];
     other.resources[1] = static_cast<std::uint16_t>(sum_b) - unit.resources[1];
     other.resources[2] = static_cast<std::uint16_t>(sum_c) - unit.resources[2];
-    Call(ds, event, SHARE_UNITS, data.alloc_units[0], other_near);
+    Call(game, event, SHARE_UNITS, data.alloc_units[0], other_near);
   } else {
     auto&              objective{ Record<Objective>(data, data.alloc_objective) };
     std::int32_t const sums[3]{ sum_a, sum_b, sum_c };
@@ -132,15 +133,15 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
       else
         objective.resources[resource] = static_cast<std::uint16_t>(sums[resource]) - unit.resources[resource];
     }
-    Call(ds, event, SHARE_OBJECTIVE, data.alloc_units[0], data.alloc_objective);
+    Call(game, event, SHARE_OBJECTIVE, data.alloc_units[0], data.alloc_objective);
   }
 }
 
 // For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters, formatting
 // the prompt (100 bytes) and the unit's name (32 bytes) in the routine's buffers; the dialog's select callback is
 // opeu_tally_mark.
-void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t callback_segment) {
-  auto&               data{ Data(ds) };
+void opeu_alloc_choose_hq(Game& game, HostWordsEvent event, uint16_t callback_segment) {
+  auto&               data{ Data(game) };
   ServiceLocals const buffers{ PROMPT_BYTES + NAME_BYTES };
   auto const          name{ buffers.At(0) };
   auto const          text{ buffers.At(NAME_BYTES) };
@@ -151,41 +152,41 @@ void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t call
     for (auto it{ Elements(data, Record<Unit>(data, unit_near)).begin() }; it != std::default_sentinel; ++it) data.alloc_elements[listed++] = it.Near();
     data.choice_dialog.rows   = static_cast<std::uint8_t>(listed + 1);
     data.choice_dialog.select = { TALLY_MARK_OFFSET, callback_segment };
-    Call(ds, event, REQUEST_FORMAT, text, Near(data, data.regiment_hq_prompt), Call(ds, event, UNIT_NAME, unit_near, name));
-    Call(ds, event, CHIEF_TEXT, text);
-    Call(ds, event, LIST_DIALOG, Near(data, data.choice_dialog), 1, 9);
+    Call(game, event, REQUEST_FORMAT, text, Near(data, data.regiment_hq_prompt), Call(game, event, UNIT_NAME, unit_near, name));
+    Call(game, event, CHIEF_TEXT, text);
+    Call(game, event, LIST_DIALOG, Near(data, data.choice_dialog), 1, 9);
   }
 }
 
-void opeu_alloc_finish(uint8_t ds[65536], HostWordsEvent event) {
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_alloc_finish(Game& game, HostWordsEvent event) {
+  Call(game, event, PENDING_FINISH, 3);
 }
 
 // The module's services: element relinking and release, capacities, the supply exchanges, unit names, the prompt, the
 // chief's text, the list dialog and the pending finish.
-uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) {
+uint16_t svc_allocdst(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case 0:  r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 1:  opeu_insert_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 2:  r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case 3:  opeu_unit_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 4:  opeu_objective_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 5:  opeu_supply_exchange_units(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 6:  opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 7:  r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 8:  opeu_request_format(ds, { args, count }); break;
-  case 9:  opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
-  case 10: r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case 11: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case 0:  r = opeu_remove_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 1:  opeu_insert_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 2:  r = opeu_release_side_elements(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case 3:  opeu_unit_capacities(game, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
+  case 4:  opeu_objective_capacities(game, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
+  case 5:  opeu_supply_exchange_units(game, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 6:  opeu_supply_exchange_objective(game, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 7:  r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 8:  opeu_request_format(game, { args, count }); break;
+  case 9:  opeu_ops_chief_text(game, svc_chief, Arg(args, count, 0)); break;
+  case 10: r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case 11: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   default: port_unhandled("allocdst", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_alloc_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_alloc_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_alloc_finish(ds, svc_allocdst);
+  opeu_alloc_finish(game, svc_allocdst);
   return 0;
 }

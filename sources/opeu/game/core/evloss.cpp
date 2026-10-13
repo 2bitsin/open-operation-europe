@@ -9,15 +9,16 @@
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "map/support.hpp"
 #include "port.hpp"
@@ -75,17 +76,17 @@ constexpr std::uint16_t NAME_A{ 0x14 };
 constexpr std::uint16_t NAME_B{ 0x10 };
 
 // The format with one word, the word computed before the format is looked up.
-auto Format(std::uint8_t* ds, HostEvent event, std::uint16_t message, std::uint16_t word) -> void {
-  auto const format{ Call(ds, event, LOOKUP, message) };
-  Call(ds, event, FORMAT, TEXT, format, word);
+auto Format(Game& game, HostEvent event, std::uint16_t message, std::uint16_t word) -> void {
+  auto const format{ Call(game, event, LOOKUP, message) };
+  Call(game, event, FORMAT, TEXT, format, word);
 }
 } // namespace
 
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
 // strength (infantry counting a tenth).
-uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t unit) {
+uint16_t opeu_loss_unit_weak(Game& game, HostEvent event, uint16_t unit) {
   ServiceLocals const locals{ WEAK_COUNT };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   std::uint16_t       morale{ 0 };
   std::uint16_t       experience{ 0 };
   std::uint16_t       strength{ 0 };
@@ -95,21 +96,21 @@ uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t unit) 
     strength   += data.element_types[element.type].category == 0 ? element.quantity / 10 : element.quantity;
   }
   auto const at_count{ locals.At(0) };
-  Call(ds, event, QUANTITY, unit, ALL_CATEGORIES, at_count);
-  auto const count{ static_cast<std::uint8_t>(Word(ds, at_count)) };
+  Call(game, event, QUANTITY, unit, ALL_CATEGORIES, at_count);
+  auto const count{ static_cast<std::uint8_t>(Word(game, at_count)) };
   if (!count) return 0;
-  if ((RandomBelow(ds, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(ds, 20)) || RandomBelow(ds, 20) + 20 > strength) return 1;
+  if ((RandomBelow(game, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(game, 20)) || RandomBelow(game, 20) + 20 > strength) return 1;
   return 0;
 }
 
-void opeu_loss_present_a(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, CUE);
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_loss_present_a(Game& game, HostEvent event) {
+  Call(game, event, CUE);
+  Call(game, event, PENDING_FINISH, 3);
 }
 
-void opeu_loss_event_a(uint8_t ds[65536], HostEvent event) {
+void opeu_loss_event_a(Game& game, HostEvent event) {
   ServiceLocals const locals{ NAME_A };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          name{ locals.At(0) };
   auto const          scenario{ CurrentScenario(data) };
   std::uint16_t       movement{};
@@ -123,102 +124,102 @@ void opeu_loss_event_a(uint8_t ds[65536], HostEvent event) {
     for (unsigned slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
       auto const near{ Near(data, data.units[group * UNITS_PER_GROUP + slot]) };
       if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY))) continue;
-      if (!Call(ds, event, CATEGORY_7, slot) && !opeu_loss_unit_weak(ds, event, near)) continue;
-      if (RandomBelow(ds, 100)) continue;
-      if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
-        auto const unit_name{ Call(ds, event, UNIT_NAME, near, name) };
-        auto const format{ Call(ds, event, LOOKUP, PARTISANS_STRIKE_ENEMY) };
-        Call(ds, event, FORMAT, TEXT, format, movement, unit_name);
-        Call(ds, event, UNIT_REPORT, near, TEXT);
+      if (!Call(game, event, CATEGORY_7, slot) && !opeu_loss_unit_weak(game, event, near)) continue;
+      if (RandomBelow(game, 100)) continue;
+      if (data.side_status[1] == SIDE_PLAYED && Call(game, event, SPECIAL, near)) {
+        auto const unit_name{ Call(game, event, UNIT_NAME, near, name) };
+        auto const format{ Call(game, event, LOOKUP, PARTISANS_STRIKE_ENEMY) };
+        Call(game, event, FORMAT, TEXT, format, movement, unit_name);
+        Call(game, event, UNIT_REPORT, near, TEXT);
         auto const& unit{ Record<Unit>(data, near) };
-        Call(ds, event, FLASH, unit.x, unit.y, 1);
-        Call(ds, event, DAILY_SHOW, PRESENT_A_ID, 1, PRESENT_A, PRESENT_SEGMENT);
-      } else if (data.side_status[0] == SIDE_PLAYED && Call(ds, event, ELIGIBLE, near)) {
-        Format(ds, event, PARTISANS_STRIKE_US, movement);
-        Call(ds, event, UNIT_MESSAGE, near, TEXT);
-        Call(ds, event, DAILY_SHOW, PRESENT_A_ID, 0, PRESENT_A, PRESENT_SEGMENT);
+        Call(game, event, FLASH, unit.x, unit.y, 1);
+        Call(game, event, DAILY_SHOW, PRESENT_A_ID, 1, PRESENT_A, PRESENT_SEGMENT);
+      } else if (data.side_status[0] == SIDE_PLAYED && Call(game, event, ELIGIBLE, near)) {
+        Format(game, event, PARTISANS_STRIKE_US, movement);
+        Call(game, event, UNIT_MESSAGE, near, TEXT);
+        Call(game, event, DAILY_SHOW, PRESENT_A_ID, 0, PRESENT_A, PRESENT_SEGMENT);
       }
-      Call(ds, event, MUSIC);
-      Call(ds, event, CASUALTIES, near, 10, 10, 5, 1, 1);
+      Call(game, event, MUSIC);
+      Call(game, event, CASUALTIES, near, 10, 10, 5, 1, 1);
     }
 }
 
 // Whether the unit stands north of row 10.
-uint16_t opeu_loss_unit_low(uint8_t ds[65536], uint16_t unit) {
-  return Record<Unit>(Data(ds), unit).y < NORTH_ROWS ? 1 : 0;
+uint16_t opeu_loss_unit_low(Game& game, uint16_t unit) {
+  return Record<Unit>(Data(game), unit).y < NORTH_ROWS ? 1 : 0;
 }
 
-void opeu_loss_present_b(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_loss_present_b(Game& game, HostEvent event) {
+  Call(game, event, PENDING_FINISH, 3);
 }
 
-void opeu_loss_event_b(uint8_t ds[65536], HostEvent event) {
+void opeu_loss_event_b(Game& game, HostEvent event) {
   ServiceLocals const locals{ NAME_B };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          name{ locals.At(0) };
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
   for (unsigned i{ 0 }; i < UNITS_PER_SIDE; ++i) {
     auto const near{ Near(data, data.units[i]) };
-    if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(ds, near) || RandomBelow(ds, 50)) continue;
-    if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
-      Format(ds, event, ENEMY_LOSSES_NORTH, Call(ds, event, UNIT_NAME, near, name));
-      Call(ds, event, UNIT_REPORT, near, TEXT);
+    if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(game, near) || RandomBelow(game, 50)) continue;
+    if (data.side_status[1] == SIDE_PLAYED && Call(game, event, SPECIAL, near)) {
+      Format(game, event, ENEMY_LOSSES_NORTH, Call(game, event, UNIT_NAME, near, name));
+      Call(game, event, UNIT_REPORT, near, TEXT);
       auto const& unit{ Record<Unit>(data, near) };
-      Call(ds, event, FLASH, unit.x, unit.y, 1);
-      Call(ds, event, DAILY_SHOW, PRESENT_B_ID, 1, PRESENT_B, PRESENT_SEGMENT);
-    } else if (data.side_status[0] == SIDE_PLAYED && Call(ds, event, ELIGIBLE, near)) {
-      Call(ds, event, UNIT_MESSAGE, near, Call(ds, event, LOOKUP, OUR_LOSSES_NORTH));
-      Call(ds, event, DAILY_SHOW, PRESENT_B_ID, 0, PRESENT_B, PRESENT_SEGMENT);
+      Call(game, event, FLASH, unit.x, unit.y, 1);
+      Call(game, event, DAILY_SHOW, PRESENT_B_ID, 1, PRESENT_B, PRESENT_SEGMENT);
+    } else if (data.side_status[0] == SIDE_PLAYED && Call(game, event, ELIGIBLE, near)) {
+      Call(game, event, UNIT_MESSAGE, near, Call(game, event, LOOKUP, OUR_LOSSES_NORTH));
+      Call(game, event, DAILY_SHOW, PRESENT_B_ID, 0, PRESENT_B, PRESENT_SEGMENT);
     }
-    Call(ds, event, CASUALTIES, near, 20, 20, 5, 0, 1);
+    Call(game, event, CASUALTIES, near, 20, 20, 5, 0, 1);
   }
 }
 
-uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_evloss(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case QUANTITY:     result = opeu_unit_quantity(ds, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), PORT_DS(Arg(args, count, 2))); break;
+  case QUANTITY:     result = opeu_unit_quantity(game, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), game.State().Bytes(Arg(args, count, 2), 1).data()); break;
   case CATEGORY_7:   result = opeu_category_7(static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case ELIGIBLE:     result = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case SPECIAL:      result = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:    result = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOOKUP:       result = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case FORMAT:       opeu_request_format(ds, { args, count }); break;
-  case UNIT_MESSAGE: opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_REPORT:  opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ELIGIBLE:     result = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
+  case SPECIAL:      result = opeu_unit_special(game, Arg(args, count, 0)); break;
+  case UNIT_NAME:    result = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOOKUP:       result = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case FORMAT:       opeu_request_format(game, { args, count }); break;
+  case UNIT_MESSAGE: opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_REPORT:  opeu_unit_side_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case FLASH:        {
-    opeu_location_flash(ds, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(game, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     break;
   }
-  case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case MUSIC:      opeu_music_command7(ds, svc_sound); break;
+  case DAILY_SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MUSIC:      opeu_music_command7(game, svc_sound); break;
   case CASUALTIES: {
-    opeu_unit_casualties(ds, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
+    opeu_unit_casualties(game, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
-  case CUE:            opeu_sound_cue12(ds, svc_soundcue); break;
-  case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case CUE:            opeu_sound_cue12(game, svc_soundcue); break;
+  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<uint8_t>(Arg(args, count, 0))); break;
   default:             port_unhandled("evloss", id, count);
   }
   return result;
 }
 
-auto port_routine_opeu_loss_event_a(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_event_a(ds, svc_evloss);
+auto port_routine_opeu_loss_event_a(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_loss_event_a(game, svc_evloss);
   return 0;
 }
 
-auto port_routine_opeu_loss_event_b(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_event_b(ds, svc_evloss);
+auto port_routine_opeu_loss_event_b(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_loss_event_b(game, svc_evloss);
   return 0;
 }
 
-auto port_routine_opeu_loss_present_a(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_present_a(ds, svc_evloss);
+auto port_routine_opeu_loss_present_a(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_loss_present_a(game, svc_evloss);
   return 0;
 }
 
-auto port_routine_opeu_loss_present_b(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_loss_present_b(ds, svc_evloss);
+auto port_routine_opeu_loss_present_b(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_loss_present_b(game, svc_evloss);
   return 0;
 }

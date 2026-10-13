@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "types.hpp"
 
 #include <cstdint>
@@ -26,10 +27,10 @@ struct ResourceWords {
 [[nodiscard]] auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources;
 
 // Stores the unit's capacities into the words at `at`.
-auto StoreUnitCapacities(std::uint8_t* ds, std::uint16_t unit, ResourceWords at) -> void;
+auto StoreUnitCapacities(Game& game, std::uint16_t unit, ResourceWords at) -> void;
 
 // Stores the three figures into the words at `at`.
-auto StoreResources(std::uint8_t* ds, ResourceWords at, Resources resources) -> void;
+auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void;
 } // namespace opeu::game::detail::capacity
 
 namespace opeu::game {
@@ -40,4 +41,4 @@ using detail::capacity::StoreUnitCapacities;
 using detail::capacity::UnitCapacities;
 } // namespace opeu::game
 
-void opeu_unit_capacities(const uint8_t* ds, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);
+void opeu_unit_capacities(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);

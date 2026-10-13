@@ -4,6 +4,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/order-service.hpp"
 
@@ -41,9 +42,9 @@ private:
 };
 
 // Whether the current regiment stands on the cell whose coordinates are the DS bytes at x and y.
-[[nodiscard]] inline auto StandsOn(std::uint8_t const* ds, std::uint16_t x, std::uint16_t y) noexcept -> bool {
-  auto const& unit{ Record<Unit>(Data(ds), Data(ds).current_unit_ptr) };
-  return unit.x == Record<std::uint8_t>(Data(ds), x) && unit.y == Record<std::uint8_t>(Data(ds), y);
+[[nodiscard]] inline auto StandsOn(Game const& game, std::uint16_t x, std::uint16_t y) noexcept -> bool {
+  auto const& unit{ Record<Unit>(Data(game), Data(game).current_unit_ptr) };
+  return unit.x == Record<std::uint8_t>(Data(game), x) && unit.y == Record<std::uint8_t>(Data(game), y);
 }
 } // namespace opeu::game::detail::order_handler
 

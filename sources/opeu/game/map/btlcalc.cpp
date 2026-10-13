@@ -15,8 +15,9 @@
 #include "map/stepmap.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "map/btllist.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -40,8 +41,8 @@ constexpr uint8_t SKILL_CLASS_INFANTRY{ 0 }; // btlcalc_skill_class values
 constexpr uint8_t SKILL_CLASS_ARTILLERY{ 1 };
 constexpr uint8_t SKILL_CLASS_ARMOR{ 2 };
 
-auto Service(uint8_t* ds, BattleService service, CalcService id, uint16_t arg) -> uint16_t {
-  return service(ds, std::to_underlying(id), arg);
+auto Service(Game& game, BattleService service, CalcService id, uint16_t arg) -> uint16_t {
+  return service(game, std::to_underlying(id), arg);
 }
 
 // The byte at index of a table in the data segment, past its end as well.
@@ -61,14 +62,14 @@ template <typename Table>
 }
 } // namespace
 
-void opeu_battle_pause(uint8_t* ds, BattleService service, uint8_t ticks) {
-  Service(ds, service, CalcService::WAIT, ticks);
+void opeu_battle_pause(Game& game, BattleService service, uint8_t ticks) {
+  Service(game, service, CalcService::WAIT, ticks);
 }
 
 // The grid direction 0..7 whose step from the battle's map cell reaches the unit's cell; BATTLE_NOT_ADJACENT when
 // none does.
-uint8_t opeu_battle_unit_direction(uint8_t* ds, BattleService, uint16_t unit) {
-  auto&       data{ Data(ds) };
+uint8_t opeu_battle_unit_direction(Game& game, BattleService, uint16_t unit) {
+  auto&       data{ Data(game) };
   auto const& record{ Record<Unit>(data, unit) };
   for (uint8_t direction{ 0 }; direction < 8; ++direction) {
     uint8_t x{ data.battle_x };
@@ -80,18 +81,18 @@ uint8_t opeu_battle_unit_direction(uint8_t* ds, BattleService, uint16_t unit) {
 
 // A skill of the commander responsible for an element: the side's commander for the garrison or under a battle
 // command, otherwise the division's. The second garrison test is unreachable in the original as well.
-uint8_t opeu_battle_skill(uint8_t* ds, BattleService service, uint16_t element, uint8_t kind) {
-  auto&      data{ Data(ds) };
-  auto const side{ static_cast<uint8_t>(Service(ds, service, CalcService::ELEMENT_SIDE, element)) };
-  auto const unit{ Service(ds, service, CalcService::ELEMENT_UNIT, element) };
+uint8_t opeu_battle_skill(Game& game, BattleService service, uint16_t element, uint8_t kind) {
+  auto&      data{ Data(game) };
+  auto const side{ static_cast<uint8_t>(Service(game, service, CalcService::ELEMENT_SIDE, element)) };
+  auto const unit{ Service(game, service, CalcService::ELEMENT_UNIT, element) };
   auto const garrison{ Near(data, data.battle_garrison) };
   uint16_t   commander;
   if (data.battle_command[side] || unit == garrison)
-    commander = opeu_find_side_record(ds, side, 1);
+    commander = opeu_find_side_record(game, side, 1);
   else if (unit == garrison)
-    commander = opeu_find_side_record(ds, side, 2);
+    commander = opeu_find_side_record(game, side, 2);
   else
-    commander = opeu_find_group_record(ds, side, opeu_unit_group_index(unit));
+    commander = opeu_find_group_record(game, side, opeu_unit_group_index(unit));
   auto const& person{ Record<Person>(data, commander) };
   switch (static_cast<BattleSkill>(kind)) {
   case BattleSkill::LEADERSHIP: return person.leadership;
@@ -106,13 +107,13 @@ uint8_t opeu_battle_skill(uint8_t* ds, BattleService service, uint16_t element, 
   return 0;
 }
 
-uint8_t opeu_battle_element_strength(uint8_t* ds, BattleService service, uint16_t element) {
-  auto&       data{ Data(ds) };
+uint8_t opeu_battle_element_strength(Game& game, BattleService service, uint16_t element) {
+  auto&       data{ Data(game) };
   auto const& type{ ElementTypeOf(data, element) };
   auto const& record{ Record<Element>(data, element) };
   auto        category{ type.category };
   if (category == Bits(Category::ARTILLERY) && type.gun_range <= RANGED_MODE) category = Bits(Category::TANKS);
-  auto const skill{ [&](BattleSkill kind) { return opeu_battle_skill(ds, service, element, Bits(kind)); } };
+  auto const skill{ [&](BattleSkill kind) { return opeu_battle_skill(game, service, element, Bits(kind)); } };
   auto       bonus{ static_cast<uint8_t>(skill(BattleSkill::EXPERIENCE) / 5) };
   switch (At(data, data.btlcalc_skill_class, category)) {
   case SKILL_CLASS_INFANTRY:  opeu_add_byte(skill(BattleSkill::INFANTRY), 99, &bonus); break;
@@ -126,54 +127,54 @@ uint8_t opeu_battle_element_strength(uint8_t* ds, BattleService service, uint16_
   return static_cast<uint8_t>(strength);
 }
 
-uint8_t opeu_battle_odds(uint8_t*, BattleService, uint8_t rating, uint8_t range) {
+uint8_t opeu_battle_odds(Game&, BattleService, uint8_t rating, uint8_t range) {
   int odds{ rating - range + 30 };
   if (odds <= 0) odds = odds > -15 ? 1 : 0;
   if (odds >= 100) odds = 99;
   return static_cast<uint8_t>(odds);
 }
 
-uint8_t opeu_battle_element_rating(uint8_t* ds, BattleService, uint16_t attacker, uint16_t target) {
-  auto& data{ Data(ds) };
+uint8_t opeu_battle_element_rating(Game& game, BattleService, uint16_t attacker, uint16_t target) {
+  auto& data{ Data(game) };
   if (!target || ElementTypeOf(data, target).category != Bits(Category::TANKS)) return ElementTypeOf(data, attacker).anti_personnel;
   return ElementTypeOf(data, attacker).anti_tank;
 }
 
-uint8_t opeu_battle_element_range(uint8_t* ds, BattleService, uint16_t element) {
+uint8_t opeu_battle_element_range(Game& game, BattleService, uint16_t element) {
   if (!element) return NO_ELEMENT_RANGE;
-  return ElementTypeOf(Data(ds), element).defense;
+  return ElementTypeOf(Data(game), element).defense;
 }
 
-uint8_t opeu_battle_element_shots(uint8_t* ds, BattleService, uint16_t attacker, uint16_t target) {
-  auto&      data{ Data(ds) };
+uint8_t opeu_battle_element_shots(Game& game, BattleService, uint16_t attacker, uint16_t target) {
+  auto&      data{ Data(game) };
   auto const quantity{ Record<Element>(data, attacker).quantity };
   if (ElementTypeOf(data, attacker).category != Bits(Category::INFANTRY)) return static_cast<uint8_t>(quantity);
   auto const shots{ static_cast<uint8_t>(!target || ElementTypeOf(data, target).category == Bits(Category::INFANTRY) ? quantity / 10 : quantity / 50) };
   return shots ? shots : 1;
 }
 
-uint8_t opeu_battle_cell_terrain(uint8_t* ds, BattleService, uint8_t x, uint8_t y) {
-  auto&      data{ Data(ds) };
+uint8_t opeu_battle_cell_terrain(Game& game, BattleService, uint8_t x, uint8_t y) {
+  auto&      data{ Data(game) };
   auto const terrain{ static_cast<uint8_t>(BattleTerrainAt(data, x, y) & BATTLE_TERRAIN_MASK) };
   return At(data, data.btlcalc_terrain_class, terrain);
 }
 
-uint16_t opeu_battle_can_enter(uint8_t* ds, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
-  auto&      data{ Data(ds) };
-  auto const terrain{ opeu_battle_cell_terrain(ds, service, x, y) };
-  return CostOf(data, terrain, ElementTypeOf(data, element).category) != IMPASSABLE;
+uint16_t opeu_battle_can_enter(Game& game, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
+  auto&      data{ Data(game) };
+  auto const terrain{ opeu_battle_cell_terrain(game, service, x, y) };
+  return CostOf(data, terrain, ElementTypeOf(data, element).category) != IMPASSABLE_COST;
 }
 
-// IMPASSABLE for impassable terrain, else a cost clamped to 5..250. The product is the original's 16-bit int
+// IMPASSABLE_COST for impassable terrain, else a cost clamped to 5..250. The product is the original's 16-bit int
 // arithmetic.
-uint8_t opeu_battle_move_cost(uint8_t* ds, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
-  auto&       data{ Data(ds) };
+uint8_t opeu_battle_move_cost(Game& game, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
+  auto&       data{ Data(game) };
   auto const& record{ Record<Element>(data, element) };
   auto const  category{ ElementTypeOf(data, element).category };
-  auto const  cost{ CostOf(data, opeu_battle_cell_terrain(ds, service, x, y), category) };
-  if (cost == IMPASSABLE) return cost;
-  int handling{ opeu_battle_skill(ds, service, element, Bits(BattleSkill::EXPERIENCE)) / 5 };
-  handling += opeu_battle_skill(ds, service, element, Bits(BattleSkill::LEADERSHIP));
+  auto const  cost{ CostOf(data, opeu_battle_cell_terrain(game, service, x, y), category) };
+  if (cost == IMPASSABLE_COST) return cost;
+  int handling{ opeu_battle_skill(game, service, element, Bits(BattleSkill::EXPERIENCE)) / 5 };
+  handling += opeu_battle_skill(game, service, element, Bits(BattleSkill::LEADERSHIP));
   handling  = handling / 20 - 2;
   handling += record.training / 20 - 1;
   handling -= record.experience / 20;
@@ -185,18 +186,18 @@ uint8_t opeu_battle_move_cost(uint8_t* ds, BattleService service, uint8_t x, uin
   return static_cast<uint8_t>(result);
 }
 
-void opeu_battle_step_unchecked(uint8_t* ds, BattleService, uint8_t* x, uint8_t* y, uint8_t direction) {
-  auto& data{ Data(ds) };
+void opeu_battle_step_unchecked(Game& game, BattleService, uint8_t* x, uint8_t* y, uint8_t direction) {
+  auto& data{ Data(game) };
   if (direction < 4) {
     *x += data.btlcalc_step_x[direction] - 1;
     *y += data.btlcalc_step_y[direction] - 1;
   }
 }
 
-uint16_t opeu_battle_step(uint8_t* ds, BattleService service, uint8_t* x, uint8_t* y, uint8_t direction) {
+uint16_t opeu_battle_step(Game& game, BattleService service, uint8_t* x, uint8_t* y, uint8_t direction) {
   uint8_t next_x{ *x };
   uint8_t next_y{ *y };
-  opeu_battle_step_unchecked(ds, service, &next_x, &next_y, direction);
+  opeu_battle_step_unchecked(game, service, &next_x, &next_y, direction);
   if (next_x < BATTLE_WIDTH && next_y < BATTLE_WIDTH) {
     *x = next_x;
     *y = next_y;
@@ -205,14 +206,14 @@ uint16_t opeu_battle_step(uint8_t* ds, BattleService service, uint8_t* x, uint8_
   return 0;
 }
 
-uint16_t opeu_battle_unit_controlled(uint8_t* ds, BattleService service, uint16_t unit) {
-  auto&      data{ Data(ds) };
-  auto const side{ static_cast<uint8_t>(Service(ds, service, CalcService::UNIT_SIDE, unit)) };
+uint16_t opeu_battle_unit_controlled(Game& game, BattleService service, uint16_t unit) {
+  auto&      data{ Data(game) };
+  auto const side{ static_cast<uint8_t>(Service(game, service, CalcService::UNIT_SIDE, unit)) };
   return data.battle_command[side] && data.side_control[side] == SIDE_PLAYED;
 }
 
-uint16_t opeu_battle_element_at(uint8_t* ds, BattleService, uint8_t x, uint8_t y) {
-  auto& data{ Data(ds) };
+uint16_t opeu_battle_element_at(Game& game, BattleService, uint8_t x, uint8_t y) {
+  auto& data{ Data(game) };
   for (uint8_t side{ 0 }; side < 2; ++side)
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
       if (auto const unit{ BattleList(data, side, i) })
@@ -223,69 +224,69 @@ uint16_t opeu_battle_element_at(uint8_t* ds, BattleService, uint8_t x, uint8_t y
   return 0;
 }
 
-uint16_t svc_btlcalc(uint8_t* ds, uint16_t id, uint16_t arg) {
+uint16_t svc_btlcalc(Game& game, uint16_t id, uint16_t arg) {
   switch (static_cast<CalcService>(id)) {
-  case CalcService::WAIT:         opeu_delay_units(ds, svc_waitkey, static_cast<uint8_t>(arg)); return 0;
-  case CalcService::ELEMENT_SIDE: return opeu_battle_element_side(ds, svc_btllist, arg);
-  case CalcService::UNIT_SIDE:    return opeu_battle_unit_side(ds, svc_btllist, arg);
-  case CalcService::ELEMENT_UNIT: return opeu_battle_element_unit(ds, svc_btllist, arg);
+  case CalcService::WAIT:         opeu_delay_units(game, svc_waitkey, static_cast<uint8_t>(arg)); return 0;
+  case CalcService::ELEMENT_SIDE: return opeu_battle_element_side(game, svc_btllist, arg);
+  case CalcService::UNIT_SIDE:    return opeu_battle_unit_side(game, svc_btllist, arg);
+  case CalcService::ELEMENT_UNIT: return opeu_battle_element_unit(game, svc_btllist, arg);
   default:                        port_unhandled("btlcalc", id, 1); return 0;
   }
 }
 
-auto port_routine_opeu_battle_can_enter(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_can_enter(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
+auto port_routine_opeu_battle_can_enter(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
 }
 
-auto port_routine_opeu_battle_cell_terrain(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_cell_terrain(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_cell_terrain(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
-auto port_routine_opeu_battle_element_at(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_at(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_element_at(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
-auto port_routine_opeu_battle_element_range(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_range(ds, svc_btlcalc, Arg(args, count, 0));
+auto port_routine_opeu_battle_element_range(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_element_range(game, svc_btlcalc, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_element_rating(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_rating(ds, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_element_rating(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_element_rating(game, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_element_shots(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_shots(ds, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_element_shots(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_element_shots(game, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_element_strength(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_strength(ds, svc_btlcalc, Arg(args, count, 0));
+auto port_routine_opeu_battle_element_strength(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_element_strength(game, svc_btlcalc, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_move_cost(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_move_cost(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
+auto port_routine_opeu_battle_move_cost(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_move_cost(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
 }
 
-auto port_routine_opeu_battle_odds(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_odds(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_odds(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_odds(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
-auto port_routine_opeu_battle_pause(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_pause(ds, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_battle_pause(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)));
   return 0;
 }
 
-auto port_routine_opeu_battle_skill(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_skill(ds, svc_btlcalc, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_battle_skill(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_skill(game, svc_btlcalc, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
 }
 
-auto port_routine_opeu_battle_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_step(ds, svc_btlcalc, PORT_DS(Arg(args, count, 2)), PORT_DS(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+auto port_routine_opeu_battle_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_step(game, svc_btlcalc, game.State().Bytes(Arg(args, count, 2), 1).data(), game.State().Bytes(Arg(args, count, 0), 1).data(), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
-auto port_routine_opeu_battle_unit_controlled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_unit_controlled(ds, svc_btlcalc, Arg(args, count, 0));
+auto port_routine_opeu_battle_unit_controlled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_unit_controlled(game, svc_btlcalc, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_unit_direction(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_unit_direction(ds, svc_btlcalc, Arg(args, count, 0));
+auto port_routine_opeu_battle_unit_direction(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_unit_direction(game, svc_btlcalc, Arg(args, count, 0));
 }

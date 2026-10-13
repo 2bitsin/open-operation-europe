@@ -3,7 +3,8 @@
 #include "data-segment.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -54,12 +55,12 @@ uint8_t opeu_element_side(uint16_t element) {
   return RecordIndex<Element>(element, ELEMENTS_AT) / SIDE_ELEMENTS;
 }
 
-auto port_routine_opeu_unit_group_index(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_unit_group_index(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_unit_group_index(Arg(args, count, 0));
 }
 
-auto port_routine_opeu_unit_side(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_unit_side(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_unit_side(Arg(args, count, 0));
 }

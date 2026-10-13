@@ -43,8 +43,8 @@ inline constexpr std::uint16_t MENU_CANCEL{ 0xffff };
 // and repair of a cell holding both an own city and an own regiment ask which one is meant (and may switch `kind` to
 // the regiment order). On success `target` is the target regiment (0 for orders on a cell) and the result is true;
 // otherwise the reason is formatted into the text at `buffer`.
-[[nodiscard]] auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, opeu::game::OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x,
+[[nodiscard]] auto CheckOrderTarget(Game& game, HostEvent event, opeu::game::OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x,
                                     std::uint8_t y, std::uint8_t& kind, std::uint16_t& target) -> bool;
 
 // Formats and shows the acknowledgement of an accepted order of `kind`.
-auto AnnounceOrder(std::uint8_t* ds, HostEvent event, opeu::game::OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void;
+auto AnnounceOrder(Game& game, HostEvent event, opeu::game::OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void;

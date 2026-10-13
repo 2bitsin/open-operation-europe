@@ -2,6 +2,7 @@
 #include "units/elemlink.hpp"
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "core/recindex.hpp"
 #include "map/occupy.hpp"
 #include "types.hpp"
@@ -12,8 +13,8 @@ namespace { } // namespace
 
 // Inserts the element after the unit's elements of the same or a lower category, marks it ready, places the unit on
 // the map and readies its division. The link walk treats the unit as a chain head: its first word is the next link.
-void opeu_insert_element(uint8_t ds[65536], uint16_t unit, uint16_t element) {
-  auto&      data{ Data(ds) };
+void opeu_insert_element(Game& game, uint16_t unit, uint16_t element) {
+  auto&      data{ Data(game) };
   auto const category{ ElementTypeOf(data, element).category };
   auto       at{ unit };
   for (auto next{ Record<Element>(data, at).next }; next && ElementTypeOf(data, next).category <= category; next = Record<Element>(data, at).next) at = next;
@@ -21,14 +22,14 @@ void opeu_insert_element(uint8_t ds[65536], uint16_t unit, uint16_t element) {
   inserted.next                   = Record<Element>(data, at).next;
   Record<Element>(data, at).next  = element;
   inserted.flags                 |= Bits(ElementFlag::READY);
-  opeu_place_unit(ds, unit);
+  opeu_place_unit(game, unit);
   Record<Group>(data, opeu_unit_group(unit)).flags |= Bits(GroupFlag::READY);
 }
 
 // Unlinks the element from the unit. Returns 0 if the unit keeps elements (or the element is not in it), 1 if the
 // emptied unit leaves the map but its division keeps a ready unit, 3 if the division has no ready unit left either.
-uint8_t opeu_remove_element(uint8_t ds[65536], uint16_t unit, uint16_t element) {
-  auto&      data{ Data(ds) };
+uint8_t opeu_remove_element(Game& game, uint16_t unit, uint16_t element) {
+  auto&      data{ Data(game) };
   auto const side{ opeu_unit_side(unit) };
   auto const group{ opeu_unit_group_index(unit) };
   for (auto at{ unit }; Record<Element>(data, at).next; at = Record<Element>(data, at).next) {
@@ -37,7 +38,7 @@ uint8_t opeu_remove_element(uint8_t ds[65536], uint16_t unit, uint16_t element) 
     Record<Element>(data, at).next  = removed.next;
     removed.flags                  &= static_cast<std::uint8_t>(~Bits(ElementFlag::READY));
     if (Record<Unit>(data, unit).first) return 0;
-    opeu_remove_unit(ds, unit);
+    opeu_remove_unit(game, unit);
     auto const first{ UNITS_PER_SIDE * side + UNITS_PER_GROUP * group };
     for (std::uint8_t index{ 0 }; index < UNITS_PER_GROUP; ++index)
       if (data.units[first + index].flags & Bits(UnitFlag::READY)) return 1;

@@ -6,9 +6,10 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -33,8 +34,8 @@ constexpr std::uint16_t LINE_Y{ 0x88 };
 
 // Prints "Div n" (with the reserve mark for a reserve division) and the infantry (in men: categories x1, x10, x5),
 // tank and artillery totals of the division's ready or arriving units.
-void opeu_show_division_strength(uint8_t ds[65536], HostNotify event, uint8_t div) {
-  auto&         data{ Data(ds) };
+void opeu_show_division_strength(Game& game, HostNotify event, uint8_t div) {
+  auto&         data{ Data(game) };
   std::uint16_t troops{ 0 };
   std::uint16_t armour{ 0 };
   std::uint16_t artillery{ 0 };
@@ -54,17 +55,17 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event, uint8_t di
     }
   }
   auto const x{ static_cast<std::uint16_t>(div * 20 + 11) };
-  Call(ds, event, SET_LEFT, x);
-  Call(ds, event, POSITION, x, LINE_Y);
-  Call(ds, event, PRINT, STRENGTH_FORMAT, div + 1, in_reserve ? RESERVE_MARK : NO_MARK, troops, armour, artillery);
-  Call(ds, event, SET_LEFT, 0);
+  Call(game, event, SET_LEFT, x);
+  Call(game, event, POSITION, x, LINE_Y);
+  Call(game, event, PRINT, STRENGTH_FORMAT, div + 1, in_reserve ? RESERVE_MARK : NO_MARK, troops, armour, artillery);
+  Call(game, event, SET_LEFT, 0);
 }
 
-void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+void svc_divstr(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case SET_LEFT: opeu_text_set_left(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
-  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
+  case SET_LEFT: opeu_text_set_left(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0)); break;
+  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:    opeu_cursor_print(game, { args, count }); break;
   default:       port_unhandled("divstr", id, count);
   }
 }

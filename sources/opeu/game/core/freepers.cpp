@@ -3,6 +3,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 
 using namespace opeu::game;
 
@@ -13,8 +14,8 @@ constexpr std::uint8_t ASSIGNED{ 0x04 };   // Person::assignment bit of an assig
 constexpr unsigned     COUNTER_SHIFT{ 3 }; // Person::assignment keeps the counter in its high five bits
 } // namespace
 
-uint16_t opeu_find_free_person(const uint8_t ds[65536], uint8_t side) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_find_free_person(Game const& game, uint8_t side) {
+  auto const& data{ Data(game) };
   for (unsigned i = 0; i < PEOPLE_PER_SIDE; ++i) {
     auto const& person{ data.people[side * PEOPLE_PER_SIDE + i] };
     if (person.status != ABSENT && !(person.role & BUSY_ROLES) && !(person.assignment & ASSIGNED) && !(person.assignment >> COUNTER_SHIFT)) return Near(data, person);

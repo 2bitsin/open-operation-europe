@@ -4,6 +4,7 @@
 // its cost returned.
 #include "map/toward.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "map/stepmap.hpp"
@@ -23,15 +24,15 @@ constexpr uint16_t PATH_COSTS{ 0x0c80 }; // the cost words in the far data
 } // namespace
 
 // x and y are the DS offsets of the position's coordinate bytes.
-uint16_t opeu_grid_step_toward(uint8_t* ds, const uint8_t* far_data, uint16_t x, uint16_t y, uint8_t tx, uint8_t ty) {
-  auto const distance_x{ std::abs(Byte(ds, x) - tx) };
-  auto const distance_y{ std::abs(Byte(ds, y) - ty) };
+uint16_t opeu_grid_step_toward(Game& game, const uint8_t* far_data, uint16_t x, uint16_t y, uint8_t tx, uint8_t ty) {
+  auto const distance_x{ std::abs(Byte(game, x) - tx) };
+  auto const distance_y{ std::abs(Byte(game, y) - ty) };
   uint16_t   best_cost{ 0xffff };
-  uint8_t    best_x{ Byte(ds, x) };
-  uint8_t    best_y{ Byte(ds, y) };
+  uint8_t    best_x{ Byte(game, x) };
+  uint8_t    best_y{ Byte(game, y) };
   for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-    uint8_t next_x{ Byte(ds, x) };
-    uint8_t next_y{ Byte(ds, y) };
+    uint8_t next_x{ Byte(game, x) };
+    uint8_t next_y{ Byte(game, y) };
     if (!opeu_grid_step(&next_x, &next_y, direction)) continue;
     auto const cost{ PathCost(far_data, next_x, next_y) };
     if (cost < best_cost || (cost == best_cost && std::abs(next_x - tx) <= distance_x && std::abs(next_y - ty) <= distance_y)) {
@@ -40,7 +41,7 @@ uint16_t opeu_grid_step_toward(uint8_t* ds, const uint8_t* far_data, uint16_t x,
       best_cost = cost;
     }
   }
-  Byte(ds, x) = best_x;
-  Byte(ds, y) = best_y;
+  Byte(game, x) = best_x;
+  Byte(game, y) = best_y;
   return best_cost;
 }

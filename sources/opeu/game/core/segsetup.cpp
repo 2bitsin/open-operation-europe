@@ -6,10 +6,11 @@
 #include "core/textout.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
+#include "common/game.hpp"
 #include "core/settings.hpp"
 #include "core/uiprim.hpp"
 #include "io/resopen.hpp"
@@ -36,34 +37,34 @@ enum class SetupService : uint16_t {
 };
 
 // Allocates a memory block and stores its segment; returns the segment (0 when memory is short).
-auto Allocate(uint8_t* ds, HostEvent event, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
-  return segment = Call(ds, event, SetupService::ALLOCATE, paragraphs);
+auto Allocate(Game& game, HostEvent event, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
+  return segment = Call(game, event, SetupService::ALLOCATE, paragraphs);
 }
 
 // Opens a data file and stores its handle.
 template <typename Name>
-void Open(uint8_t* ds, HostEvent event, uint16_t& handle, Name const& name) {
-  handle = Call(ds, event, SetupService::OPEN_RESOURCE, Near(Data(ds), name));
+void Open(Game& game, HostEvent event, uint16_t& handle, Name const& name) {
+  handle = Call(game, event, SetupService::OPEN_RESOURCE, Near(Data(game), name));
 }
 
 } // namespace
 
 // Prints the three-line out-of-memory notice, waits for a key and quits. `name`, the segment that could not be
 // allocated, is not shown.
-void opeu_memory_fail(uint8_t ds[65536], HostEvent event, uint16_t) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, SetupService::PRINT, Near(data, data.memory_message));
-  Call(ds, event, SetupService::PRINT, Near(data, data.memory_advice));
-  Call(ds, event, SetupService::PRINT, Near(data, data.memory_exit));
-  while (!Call(ds, event, SetupService::WAIT_KEY));
-  Call(ds, event, SetupService::QUIT);
+void opeu_memory_fail(Game& game, HostEvent event, uint16_t) {
+  auto const& data{ Data(game) };
+  Call(game, event, SetupService::PRINT, Near(data, data.memory_message));
+  Call(game, event, SetupService::PRINT, Near(data, data.memory_advice));
+  Call(game, event, SetupService::PRINT, Near(data, data.memory_exit));
+  while (!Call(game, event, SetupService::WAIT_KEY));
+  Call(game, event, SetupService::QUIT);
 }
 
 // Allocates the twelve memory blocks. A block that cannot be had ends the game with the out-of-memory notice.
-void opeu_alloc_segments(uint8_t ds[65536], HostEvent event) {
-  auto&      data{ Data(ds) };
+void opeu_alloc_segments(Game& game, HostEvent event) {
+  auto&      data{ Data(game) };
   auto const need{ [&](uint16_t& segment, uint16_t paragraphs, auto const& name) {
-    if (Allocate(ds, event, segment, paragraphs) == 0) opeu_memory_fail(ds, event, Near(Data(ds), name));
+    if (Allocate(game, event, segment, paragraphs) == 0) opeu_memory_fail(game, event, Near(Data(game), name));
   } };
   need(data.overview_tile_segment, 0xc1, data.setup_name_bmapseg);
   need(data.icon_segment, 0x867, data.setup_name_hunitseg);
@@ -80,39 +81,39 @@ void opeu_alloc_segments(uint8_t ds[65536], HostEvent event) {
 }
 
 // Opens the portrait, arms and event data files.
-void opeu_open_data_files(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
-  Open(ds, event, data.portrait_handle, data.face_file_name);
-  Open(ds, event, data.face_handle, data.arms_file_name);
-  Open(ds, event, data.message_picture_handle, data.event_file_name);
+void opeu_open_data_files(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
+  Open(game, event, data.portrait_handle, data.face_file_name);
+  Open(game, event, data.face_handle, data.arms_file_name);
+  Open(game, event, data.message_picture_handle, data.event_file_name);
 }
 
 // Prepares the machine: system handlers, the screen and title palette, sound, memory, and the data files.
-void opeu_app_prepare(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, SetupService::DOS_HANDLERS);
-  Call(ds, event, SetupService::VGA_SETUP);
-  Call(ds, event, SetupService::IDENTITY_PALETTE);
-  Call(ds, event, SetupService::VGA_CLEAR);
-  Call(ds, event, SetupService::PALETTE_TITLE);
-  Call(ds, event, SetupService::SOUND_INITIALIZE);
-  opeu_alloc_segments(ds, event);
-  Data(ds).startup_mode++;
-  opeu_open_data_files(ds, event);
+void opeu_app_prepare(Game& game, HostEvent event) {
+  Call(game, event, SetupService::DOS_HANDLERS);
+  Call(game, event, SetupService::VGA_SETUP);
+  Call(game, event, SetupService::IDENTITY_PALETTE);
+  Call(game, event, SetupService::VGA_CLEAR);
+  Call(game, event, SetupService::PALETTE_TITLE);
+  Call(game, event, SetupService::SOUND_INITIALIZE);
+  opeu_alloc_segments(game, event);
+  Data(game).startup_mode++;
+  opeu_open_data_files(game, event);
 }
 
-uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_segsetup(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SetupService>(id)) {
-  case SetupService::PRINT:            opeu_cursor_print(ds, { args, 1 }); break;
+  case SetupService::PRINT:            opeu_cursor_print(game, { args, 1 }); break;
   case SetupService::WAIT_KEY:         return opeu_turn_input_b();
-  case SetupService::QUIT:             opeu_quit_to_dos(ds, svc_settings); break;
+  case SetupService::QUIT:             opeu_quit_to_dos(game, svc_settings); break;
   case SetupService::ALLOCATE:         return opeu_dos_alloc(Arg(args, count, 0));
-  case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(ds, svc_resopen, Arg(args, count, 0)));
+  case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(game, svc_resopen, Arg(args, count, 0)));
   case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;
   case SetupService::VGA_SETUP:        koei_2fea(); break;
   case SetupService::IDENTITY_PALETTE: koei_vga_identity_palette(); break;
   case SetupService::VGA_CLEAR:        opeu_vga_clear(); break;
-  case SetupService::PALETTE_TITLE:    opeu_palette_title_screen(ds, (const UiHost*)port_uiprim_host()); break;
-  case SetupService::SOUND_INITIALIZE: opeu_sound_initialize(ds, svc_sound); break;
+  case SetupService::PALETTE_TITLE:    opeu_palette_title_screen(game, (const UiHost*)port_uiprim_host()); break;
+  case SetupService::SOUND_INITIALIZE: opeu_sound_initialize(game, svc_sound); break;
   default:                             port_unhandled("segsetup", id, count);
   }
   return 0;

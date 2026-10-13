@@ -4,11 +4,12 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "glue.hpp"
 #include "io/mouse.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,36 +39,36 @@ constexpr std::uint16_t CREDITS_X{ 17 };
 
 // Waits for the panel's key; on '!' clears the screen to color 1, flags a restart of the display and shows the
 // credits until a key or button is pressed. With the mouse input mode on, the mouse answers the prompt instead.
-void opeu_division_credits(uint8_t* ds, HostEvent event) {
-  auto& data{ Data(ds) };
-  Call(ds, event, INPUT_FLUSH);
+void opeu_division_credits(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
+  Call(game, event, INPUT_FLUSH);
   while (data.input_mode)
-    if (Call(ds, event, INPUT_A)) return;
-  if (static_cast<char>(Call(ds, event, GETCH)) == '!') {
-    Call(ds, event, FILL_COLOR, 1);
+    if (Call(game, event, INPUT_A)) return;
+  if (static_cast<char>(Call(game, event, GETCH)) == '!') {
+    Call(game, event, FILL_COLOR, 1);
     data.restart_flag = 1;
-    Call(ds, event, POSITION, CREDITS_X, 100);
-    Call(ds, event, PRINT, CREDITS_TITLE);
-    Call(ds, event, POSITION, CREDITS_X, 150);
-    Call(ds, event, PRINT, CREDITS_MAIN);
-    Call(ds, event, POSITION, CREDITS_X, 170);
-    Call(ds, event, PRINT, CREDITS_SUPPORT);
-    Call(ds, event, POSITION, CREDITS_X, 190);
-    Call(ds, event, PRINT, CREDITS_TRANSLATION);
-    while (!Call(ds, event, INPUT_B)) {
+    Call(game, event, POSITION, CREDITS_X, 100);
+    Call(game, event, PRINT, CREDITS_TITLE);
+    Call(game, event, POSITION, CREDITS_X, 150);
+    Call(game, event, PRINT, CREDITS_MAIN);
+    Call(game, event, POSITION, CREDITS_X, 170);
+    Call(game, event, PRINT, CREDITS_SUPPORT);
+    Call(game, event, POSITION, CREDITS_X, 190);
+    Call(game, event, PRINT, CREDITS_TRANSLATION);
+    while (!Call(game, event, INPUT_B)) {
     }
   }
 }
 
-uint16_t svc_credits(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_credits(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case INPUT_FLUSH: opeu_input_flush(ds, (TextHost*)port_textout_host()); break;
-  case INPUT_A:     result = static_cast<uint16_t>(opeu_turn_input_a(ds, svc_mouse)); break;
+  case INPUT_FLUSH: opeu_input_flush(game, (TextHost*)port_textout_host()); break;
+  case INPUT_A:     result = static_cast<uint16_t>(opeu_turn_input_a(game, svc_mouse)); break;
   case GETCH:       result = static_cast<uint16_t>(port_getch()); break;
-  case FILL_COLOR:  opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:       opeu_cursor_print(ds, { args, count }); break;
+  case FILL_COLOR:  opeu_backdrop_fill_color(game, (const UiHost*)port_uiprim_host(), static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case POSITION:    opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:       opeu_cursor_print(game, { args, count }); break;
   case INPUT_B:     result = opeu_turn_input_b(); break;
   default:          port_unhandled("credits", id, count);
   }

@@ -13,7 +13,9 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -30,43 +32,43 @@ constexpr uint16_t READY_ROW{ 0x168 };
 constexpr uint16_t PAUSE{ 3 };
 } // namespace
 
-uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event) {
-  auto&               data{ Data(ds) };
+uint16_t opeu_battle_announce_ready(Game& game, BattleEvent event) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ NAME_BYTES };
   bool                announced{ false };
   for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
       auto const unit{ BattleList(data, list, slot) };
       if (!unit) continue;
-      auto const side{ opeu_battle_unit_side(ds, event, unit) };
+      auto const side{ opeu_battle_unit_side(game, event, unit) };
       if (data.side_status[side] != SIDE_PLAYED) continue;
-      if (opeu_battle_level_gap(ds, event, Record<Unit>(data, unit).first) != data.battle_level_limit) continue;
+      if (opeu_battle_level_gap(game, event, Record<Unit>(data, unit).first) != data.battle_level_limit) continue;
       uint16_t column;
       if (!side) {
-        Call(ds, event, BattleRoutine::BATTLE_NAME_CLEAR_LEFT);
+        Call(game, event, BattleRoutine::BATTLE_NAME_CLEAR_LEFT);
         column = SIDE_0_COLUMN;
       } else {
-        Call(ds, event, BattleRoutine::BATTLE_NAME_CLEAR_RIGHT);
+        Call(game, event, BattleRoutine::BATTLE_NAME_CLEAR_RIGHT);
         column = SIDE_1_COLUMN;
       }
-      Call(ds, event, BattleRoutine::ARMY_POSITION, column, NAME_ROW);
-      auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, locals.At(0), unit) };
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), SideColorCode(side), name);
-      Call(ds, event, BattleRoutine::ARMY_POSITION, column, READY_ROW);
-      Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_text));
+      Call(game, event, BattleRoutine::ARMY_POSITION, column, NAME_ROW);
+      auto const name{ Call(game, event, BattleRoutine::UNIT_NAME, locals.At(0), unit) };
+      Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), SideColorCode(side), name);
+      Call(game, event, BattleRoutine::ARMY_POSITION, column, READY_ROW);
+      Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_text));
       announced = true;
     }
   if (announced) {
-    Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
-    Call(ds, event, BattleRoutine::DELAY_UNITS, PAUSE);
+    Call(game, event, BattleRoutine::BATTLE_PLAYER_TURN);
+    Call(game, event, BattleRoutine::DELAY_UNITS, PAUSE);
   }
   return announced;
 }
 
-uint16_t svc_btlready(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlready(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_announce_ready(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_battle_announce_ready(ds, svc_btlready);
+auto port_routine_opeu_battle_announce_ready(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_battle_announce_ready(game, svc_btlready);
 }

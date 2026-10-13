@@ -10,32 +10,33 @@
 #include "map/support.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "port.hpp"
 
 using namespace opeu::game;
 
 namespace {
 
-[[nodiscard]] auto NeighbourInCommunication(const uint8_t* ds, uint16_t objective) -> bool {
-  auto const& data{ Data(ds) };
+[[nodiscard]] auto NeighbourInCommunication(Game const& game, uint16_t objective) -> bool {
+  auto const& data{ Data(game) };
   auto const& record{ Record<Objective>(data, objective) };
   if (record.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) return true;
   for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; ++direction) {
     uint8_t x{ record.x };
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;
-    auto const unit{ opeu_find_unit_at(ds, x, y) };
-    if (unit && opeu_unit_side(unit) == opeu_objective_side(ds, objective) && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS))) return true;
+    auto const unit{ opeu_find_unit_at(game, x, y) };
+    if (unit && opeu_unit_side(unit) == opeu_objective_side(game, objective) && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS))) return true;
   }
   return false;
 }
 } // namespace
 
-uint16_t opeu_objective_eligible(const uint8_t* ds, uint16_t objective) {
-  if (!NeighbourInCommunication(ds, objective)) return 0;
-  return opeu_unit_support_condition(ds, opeu_find_side_selected_unit(ds, opeu_objective_side(ds, objective)));
+uint16_t opeu_objective_eligible(Game const& game, uint16_t objective) {
+  if (!NeighbourInCommunication(game, objective)) return 0;
+  return opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, opeu_objective_side(game, objective)));
 }
 
-auto port_routine_opeu_objective_eligible(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_objective_eligible(ds, Arg(args, count, 0));
+auto port_routine_opeu_objective_eligible(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_objective_eligible(game, Arg(args, count, 0));
 }

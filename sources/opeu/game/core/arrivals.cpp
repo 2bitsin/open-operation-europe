@@ -9,11 +9,12 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "common/order.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
+#include "link/glue.hpp"
 #include "map/arrplace.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
@@ -25,7 +26,7 @@ using namespace opeu::game;
 
 namespace {
 
-// Services leave the module through event(ds, id, a0..a3).
+// Services leave the module through event(game, id, a0..a3).
 enum Service : std::uint16_t {
   LOCATE    = 0, // (&x, &y, side): finds the arrival cell; 0 when there is none
   PREPARE   = 1, // (unit)
@@ -36,14 +37,14 @@ enum Service : std::uint16_t {
   FINISH    = 6, // (value)
 };
 
-using ArrivalEvent = auto (*)(std::uint8_t*, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t) -> std::uint16_t;
+using ArrivalEvent = auto (*)(Game&, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t) -> std::uint16_t;
 
 constexpr std::uint8_t RANK_COMMANDER{ 3 };
 } // namespace
 
-void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) {
-  auto& data{ Data(ds) };
-  data.request_person = opeu_find_side_record(ds, side, RANK_COMMANDER);
+void opeu_process_arrivals(Game& game, ArrivalEvent event, uint8_t side) {
+  auto& data{ Data(game) };
+  data.request_person = opeu_find_side_record(game, side, RANK_COMMANDER);
   bool arrived{ false };
   for (std::uint8_t g = 0; g < GROUPS_PER_SIDE; ++g) {
     auto& group{ GroupOf(data, side, g) };
@@ -51,26 +52,26 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) 
       auto&      unit{ data.units[UNITS_PER_SIDE * side + UNITS_PER_GROUP * g + u] };
       auto const near{ Near(data, unit) };
       if (!(unit.flags & Bits(UnitFlag::ARRIVING))) continue;
-      if (!event(ds, LOCATE, Near(data, unit.x), Near(data, unit.y), side, 0)) return;
+      if (!event(game, LOCATE, Near(data, unit.x), Near(data, unit.y), side, 0)) return;
       for (auto& task : group.tasks) task.kind = Bits(TaskKind::NONE);
       group.flags &= ~Bits(GroupFlag::RESERVE);
       group.flags |= Bits(GroupFlag::READY);
       unit.flags  &= ~Bits(UnitFlag::ARRIVING);
       unit.flags  |= Bits(UnitFlag::READY);
-      opeu_clear_unit_orders(ds, near, ALL_ORDER_SLOTS);
+      opeu_clear_unit_orders(game, near, ALL_ORDER_SLOTS);
       for (auto& element : Elements(data, unit)) {
         element.flags &= ~Bits(ElementFlag::ARRIVING);
         element.flags |= Bits(ElementFlag::READY);
       }
-      event(ds, PREPARE, near, 0, 0, 0);
+      event(game, PREPARE, near, 0, 0, 0);
       if (data.side_status[side] == SIDE_PLAYED) {
-        event(ds, CONTEXT, ARRIVAL_CONTEXT, 0, 0, 0);
-        event(ds, LOCATION, unit.x, unit.y, side, 0);
-        event(ds, UNIT_VIEW, near, 0, 0, 0);
+        event(game, CONTEXT, ARRIVAL_CONTEXT, 0, 0, 0);
+        event(game, LOCATION, unit.x, unit.y, side, 0);
+        event(game, UNIT_VIEW, near, 0, 0, 0);
         data.arrival_side = side;
         data.arrival_unit = near;
-        event(ds, SHOW, 0, side, ARRIVAL_PRESENT_OFFSET, ARRIVAL_PRESENT_SEGMENT);
-        event(ds, FINISH, 0, 0, 0, 0);
+        event(game, SHOW, 0, side, ARRIVAL_PRESENT_OFFSET, ARRIVAL_PRESENT_SEGMENT);
+        event(game, FINISH, 0, 0, 0, 0);
       }
       arrived = true;
     }
@@ -80,26 +81,26 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) 
 }
 
 // The hourly arrivals: in scenario 3 the second side's reserves arrive only in weather 0 or 1.
-void opeu_hourly_c_stage_c(uint8_t ds[65536], ArrivalEvent event) {
-  auto& data{ Data(ds) };
+void opeu_hourly_c_stage_c(Game& game, ArrivalEvent event) {
+  auto& data{ Data(game) };
   for (std::uint8_t side = 0; side < SIDE_COUNT; ++side)
     if (data.side_flags[side] & Bits(SideFlag::RESERVES_PENDING)) {
       if (CurrentScenario(data) == Scenario::D_DAY && side == 1 && data.weather != 0 && data.weather != 1) continue;
-      opeu_process_arrivals(ds, event, side);
+      opeu_process_arrivals(game, event, side);
     }
 }
 
 // The services of the arrivals as direct calls.
-uint16_t svc_arrivals(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
+uint16_t svc_arrivals(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
   uint16_t r = 0;
   switch (id) {
-  case LOCATE:    r = opeu_arrival_locate(ds, svc_arrplace, a0, a1, (uint8_t)a2); break;
-  case PREPARE:   opeu_arrival_prepare(ds, svc_maperase, a0); break;
-  case CONTEXT:   opeu_set_turn_context(ds, svc_sound, (uint8_t)a0); break;
-  case LOCATION:  opeu_arrival_location(ds, svc_mappos, (uint8_t)a0, (uint8_t)a1, (uint8_t)a2); break;
-  case UNIT_VIEW: opeu_arrival_view(ds, svc_mapunit, a0); break;
-  case SHOW:      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
-  case FINISH:    opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0); break;
+  case LOCATE:    r = opeu_arrival_locate(game, svc_arrplace, a0, a1, (uint8_t)a2); break;
+  case PREPARE:   opeu_arrival_prepare(game, svc_maperase, a0); break;
+  case CONTEXT:   opeu_set_turn_context(game, svc_sound, (uint8_t)a0); break;
+  case LOCATION:  opeu_arrival_location(game, svc_mappos, (uint8_t)a0, (uint8_t)a1, (uint8_t)a2); break;
+  case UNIT_VIEW: opeu_arrival_view(game, svc_mapunit, a0); break;
+  case SHOW:      opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
+  case FINISH:    opeu_finish_side_initialization(game, svc_sound, (uint8_t)a0); break;
   default:        port_unhandled("arrivals", id, 4);
   }
   return r;

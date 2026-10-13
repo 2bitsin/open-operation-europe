@@ -4,23 +4,23 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void     opeu_settings_print(uint8_t* ds, HostEvent event);
-void     opeu_settings_battles(uint8_t* ds, HostEvent event);
-void     opeu_settings_delay(uint8_t* ds, HostEvent event);
-void     opeu_settings_map(uint8_t* ds, HostEvent event);
-void     opeu_settings_sound(uint8_t* ds, HostEvent event);
-void     opeu_settings_pictures(uint8_t* ds, HostEvent event);
-void     opeu_save_rebase(uint8_t* ds);
-void     opeu_save_unrebase(uint8_t* ds);
-void     opeu_save_checksum(uint8_t* ds, uint8_t slot);
-void     opeu_save_create(uint8_t* ds, HostEvent event);
-uint16_t opeu_save_prompt_box(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t text);
-void     opeu_save_game(uint8_t* ds, HostEvent event);
-void     opeu_quit_to_dos(uint8_t* ds, HostEvent event);
-void     opeu_settings_leave(uint8_t* ds, HostEvent event);
-void     opeu_settings_new_game(uint8_t* ds, HostEvent event);
-uint16_t opeu_settings_save_menu(uint8_t* ds, HostEvent event);
-void     opeu_turn_action_10(uint8_t* ds, HostEvent event);
+void     opeu_settings_print(Game& game, HostEvent event);
+void     opeu_settings_battles(Game& game, HostEvent event);
+void     opeu_settings_delay(Game& game, HostEvent event);
+void     opeu_settings_map(Game& game, HostEvent event);
+void     opeu_settings_sound(Game& game, HostEvent event);
+void     opeu_settings_pictures(Game& game, HostEvent event);
+void     opeu_save_rebase(Game& game);
+void     opeu_save_unrebase(Game& game);
+void     opeu_save_checksum(Game& game, uint8_t slot);
+void     opeu_save_create(Game& game, HostEvent event);
+uint16_t opeu_save_prompt_box(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t text);
+void     opeu_save_game(Game& game, HostEvent event);
+void     opeu_quit_to_dos(Game& game, HostEvent event);
+void     opeu_settings_leave(Game& game, HostEvent event);
+void     opeu_settings_new_game(Game& game, HostEvent event);
+uint16_t opeu_settings_save_menu(Game& game, HostEvent event);
+void     opeu_turn_action_10(Game& game, HostEvent event);
 
 // The services the Settings routines call.
-uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_settings(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

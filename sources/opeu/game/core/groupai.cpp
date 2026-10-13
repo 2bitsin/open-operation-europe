@@ -14,6 +14,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "common/random.hpp"
 
 #include <array>
@@ -40,13 +41,13 @@ constexpr std::uint8_t ORDER_12{ 12 };        // a unit order a replanned divisi
 }
 } // namespace
 
-uint16_t opeu_objective_tasked(uint8_t* ds, uint16_t objective);
+uint16_t opeu_objective_tasked(Game& game, uint16_t objective);
 uint8_t  opeu_objective_weight(Objective const& objective);
-uint16_t opeu_group_can_cover(uint8_t* ds, uint8_t group, uint16_t objective);
+uint16_t opeu_group_can_cover(Game& game, uint8_t group, uint16_t objective);
 
 // The mean cell of a division's ready units; the map's centre when none is ready.
-void opeu_group_center(uint8_t* ds, uint8_t* x, uint8_t* y, uint8_t group) {
-  auto&         data{ Data(ds) };
+void opeu_group_center(Game& game, uint8_t* x, uint8_t* y, uint8_t group) {
+  auto&         data{ Data(game) };
   std::uint16_t sum_x{ 0 };
   std::uint16_t sum_y{ 0 };
   std::uint16_t ready{ 0 };
@@ -67,11 +68,11 @@ void opeu_group_center(uint8_t* ds, uint8_t* x, uint8_t* y, uint8_t group) {
 }
 
 // Whether a division of the current side already has a task at the objective.
-uint16_t opeu_objective_tasked(uint8_t* ds, uint16_t objective) {
-  auto& data{ Data(ds) };
+uint16_t opeu_objective_tasked(Game& game, uint16_t objective) {
+  auto& data{ Data(game) };
   for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
     for (auto const& task : GroupOf(data, data.current_side, group).tasks)
-      if (!None(task) && opeu_find_objective_at(ds, task.x, task.y) == objective) return 1;
+      if (!None(task) && opeu_find_objective_at(game, task.x, task.y) == objective) return 1;
   return 0;
 }
 
@@ -81,14 +82,14 @@ uint8_t opeu_objective_weight(Objective const& objective) {
 }
 
 // Whether a division's ready combat units suffice for its present tasks and the objective.
-uint16_t opeu_group_can_cover(uint8_t* ds, uint8_t group, uint16_t objective) {
-  auto&        data{ Data(ds) };
+uint16_t opeu_group_can_cover(Game& game, uint8_t group, uint16_t objective) {
+  auto&        data{ Data(game) };
   std::uint8_t units{ 0 };
   for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot)
     if (Ready(SideUnit(data, group, slot)) && slot <= LAST_COMBAT_SLOT) ++units;
   std::uint8_t needed{ opeu_objective_weight(Record<Objective>(data, objective)) };
   for (auto const& task : GroupOf(data, data.current_side, group).tasks)
-    if (!None(task) && (objective = opeu_find_objective_at(ds, task.x, task.y)) != 0) needed += opeu_objective_weight(Record<Objective>(data, objective));
+    if (!None(task) && (objective = opeu_find_objective_at(game, task.x, task.y)) != 0) needed += opeu_objective_weight(Record<Objective>(data, objective));
   return needed <= units;
 }
 
@@ -109,20 +110,20 @@ uint16_t opeu_tasks_retained(Task const* current, Task const* saved) {
 
 // Gives the current division a task for each linked objective it is the nearest able division to; returns the
 // number of task slots now filled.
-uint8_t opeu_assign_objective_tasks(uint8_t* ds, uint8_t count) {
-  auto& data{ Data(ds) };
+uint8_t opeu_assign_objective_tasks(Game& game, uint8_t count) {
+  auto& data{ Data(game) };
   for (std::uint8_t link = 0; link < OBJECTIVE_COUNT && count < 4; ++link) {
     std::uint16_t const objective{ data.objective_links[data.current_side * OBJECTIVE_COUNT + link] };
     if (!objective) continue;
-    if (opeu_objective_tasked(ds, objective)) continue;
+    if (opeu_objective_tasked(game, objective)) continue;
     auto const&  target{ Record<Objective>(data, objective) };
     std::uint8_t nearest_group;
     std::uint8_t nearest{ NO_DISTANCE };
     for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-      if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && opeu_group_can_cover(ds, group, objective)) {
+      if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && opeu_group_can_cover(game, group, objective)) {
         std::uint8_t x;
         std::uint8_t y;
-        opeu_group_center(ds, &x, &y, group);
+        opeu_group_center(game, &x, &y, group);
         auto const distance{ opeu_grid_distance(target.x, target.y, x, y) };
         if (distance < nearest) {
           nearest_group = group;
@@ -134,24 +135,24 @@ uint8_t opeu_assign_objective_tasks(uint8_t* ds, uint8_t count) {
     auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
     task.x    = target.x;
     task.y    = target.y;
-    task.kind = Bits(opeu_objective_side(ds, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD);
+    task.kind = Bits(opeu_objective_side(game, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD);
   }
   return count;
 }
 
 // Sends the current division to a random passable cell of a map quarter beside or across from its own that no other
 // ready division stands in; returns the number of task slots now filled.
-uint8_t opeu_assign_quadrant_task(uint8_t* ds, uint8_t count) {
-  auto&                                       data{ Data(ds) };
+uint8_t opeu_assign_quadrant_task(Game& game, uint8_t count) {
+  auto&                                       data{ Data(game) };
   std::array<std::array<std::uint16_t, 2>, 2> taken{};
   std::uint8_t                                x;
   std::uint8_t                                y;
   for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
     if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && group != data.current_group) {
-      opeu_group_center(ds, &x, &y, group);
+      opeu_group_center(game, &x, &y, group);
       taken[y / QUARTER][x / QUARTER] = 1;
     }
-  opeu_group_center(ds, &x, &y, data.current_group);
+  opeu_group_center(game, &x, &y, data.current_group);
   x /= QUARTER;
   y /= QUARTER;
   x ^= 1;
@@ -163,9 +164,9 @@ uint8_t opeu_assign_quadrant_task(uint8_t* ds, uint8_t count) {
   x = static_cast<std::uint8_t>((x & 1) * QUARTER);
   y = static_cast<std::uint8_t>((y & 1) * QUARTER);
   for (std::uint8_t attempt = 0; attempt < 100; ++attempt) {
-    auto const cell_x{ static_cast<std::uint8_t>(RandomBelow(ds, QUARTER) + x) };
-    auto const cell_y{ static_cast<std::uint8_t>(RandomBelow(ds, QUARTER) + y) };
-    switch (opeu_map_code(ds, cell_x, cell_y)) {
+    auto const cell_x{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + x) };
+    auto const cell_y{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + y) };
+    switch (opeu_map_code(game, cell_x, cell_y)) {
     case 0:
     case 1:
     case 5: continue; // cells a division is not sent to
@@ -180,18 +181,18 @@ uint8_t opeu_assign_quadrant_task(uint8_t* ds, uint8_t count) {
 }
 
 // Replans the current division's tasks; when they change, its combat units drop their orders.
-void opeu_group_task_service(uint8_t* ds) {
-  auto&                     data{ Data(ds) };
+void opeu_group_task_service(Game& game) {
+  auto&                     data{ Data(game) };
   auto&                     current{ Record<Group>(data, data.current_group_ptr) };
   std::array<Task, 4> const saved{ current.tasks };
   for (auto& task : current.tasks) task.kind = Bits(TaskKind::NONE);
-  auto count{ opeu_assign_objective_tasks(ds, 0) };
-  if (count == 0) count = opeu_assign_quadrant_task(ds, count);
+  auto count{ opeu_assign_objective_tasks(game, 0) };
+  if (count == 0) count = opeu_assign_quadrant_task(game, count);
   while (count < 4) GroupOf(data, data.current_side, data.current_group).tasks[count++].kind = Bits(TaskKind::NONE);
   if (!opeu_tasks_retained(current.tasks.data(), saved.data())) {
     for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot) {
       auto& unit{ SideUnit(data, data.current_group, slot) };
-      if (opeu_unit_selection_eligible(ds, Near(data, unit)) && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12)) opeu_clear_unit_orders(ds, Near(data, unit), 3);
+      if (opeu_unit_selection_eligible(game, Near(data, unit)) && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12)) opeu_clear_unit_orders(game, Near(data, unit), 3);
     }
     current.flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::RETARGET));
   }

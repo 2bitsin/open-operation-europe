@@ -11,7 +11,9 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -42,26 +44,26 @@ void SubWord(uint16_t& at, uint16_t amount) {
 }
 
 // After a loss from `old`, the element spends its supplies.
-void SpendSupplies(uint8_t* ds, BattleEvent event, uint16_t old, uint16_t element) {
-  Call(ds, event, BattleRoutine::BATTLE_SPEND_FUEL, old, element);
-  Call(ds, event, BattleRoutine::BATTLE_SPEND_AMMO, old, element);
-  Call(ds, event, BattleRoutine::BATTLE_SPEND_STORES, old, element);
+void SpendSupplies(Game& game, BattleEvent event, uint16_t old, uint16_t element) {
+  Call(game, event, BattleRoutine::BATTLE_SPEND_FUEL, old, element);
+  Call(game, event, BattleRoutine::BATTLE_SPEND_AMMO, old, element);
+  Call(game, event, BattleRoutine::BATTLE_SPEND_STORES, old, element);
 }
 } // namespace
 
-uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
-  auto&      data{ Data(ds) };
-  auto const company{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, attacker) };
-  auto const shots{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, attacker)) };
+uint16_t opeu_battle_attack_damage(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
+  auto&      data{ Data(game) };
+  auto const company{ Call(game, event, BattleRoutine::BATTLE_ELEMENT_UNIT, attacker) };
+  auto const shots{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, attacker)) };
   SubWord(Record<Unit>(data, company).resources[0], U16(shots / 3));
   auto const* model{ &ElementTypeOf(data, attacker) };
   uint16_t    headcount{ Record<Element>(data, attacker).quantity };
   if (IsOfCategory(*model, Category::INFANTRY)) headcount /= 10;
-  if (target == 0) return U16(U16(Call(ds, event, BattleRoutine::ISQRT, model->anti_tank) * static_cast<uint32_t>(headcount)) / 100);
-  if (Call(ds, event, BattleRoutine::BATTLE_FIRE_HITS, target, attacker) == 0) return 0;
-  auto const strength{ Call(ds, event, BattleRoutine::BATTLE_FIRE_POWER, target, attacker) };
-  auto const defense{ Call(ds, event, BattleRoutine::BATTLE_FIRE_DEFENSE, target) };
-  auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) + defense), 1)) };
+  if (target == 0) return U16(U16(Call(game, event, BattleRoutine::ISQRT, model->anti_tank) * static_cast<uint32_t>(headcount)) / 100);
+  if (Call(game, event, BattleRoutine::BATTLE_FIRE_HITS, target, attacker) == 0) return 0;
+  auto const strength{ Call(game, event, BattleRoutine::BATTLE_FIRE_POWER, target, attacker) };
+  auto const defense{ Call(game, event, BattleRoutine::BATTLE_FIRE_DEFENSE, target) };
+  auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(Call(game, event, BattleRoutine::RAND_BOUNDED, 2) + defense), 1)) };
   headcount = U16(headcount / 10 + 1);
   model     = &ElementTypeOf(data, target);
   auto const quantity{ Record<Element>(data, target).quantity };
@@ -70,73 +72,73 @@ uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event, uint16_t atta
   if (Indirect(*model)) {
     uint16_t const night{ U16(opeu_hour_is_night(data.hour) != 0 ? 2 : 1) };
     auto const     loss{ U16(U16(U16(odds / 10 * headcount) / 7) / night / vision) };
-    auto const     bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) };
-    uint16_t const twice{ U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 6) == 0 ? 2 : 1) };
+    auto const     bonus{ Call(game, event, BattleRoutine::RAND_BOUNDED, 2) };
+    uint16_t const twice{ U16(Call(game, event, BattleRoutine::RAND_BOUNDED, 6) == 0 ? 2 : 1) };
     return U16(bonus + twice * loss);
   }
   uint16_t const night{ U16(opeu_hour_is_night(data.hour) != 0 ? 2 : 1) };
   auto const     loss{ U16(U16(odds * static_cast<uint32_t>(headcount)) / night / vision * size) };
-  auto const     bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) };
-  uint16_t const twice{ U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 6) == 0 ? 2 : 1) };
+  auto const     bonus{ Call(game, event, BattleRoutine::RAND_BOUNDED, 2) };
+  uint16_t const twice{ U16(Call(game, event, BattleRoutine::RAND_BOUNDED, 6) == 0 ? 2 : 1) };
   return U16(bonus + U16(loss / (IsOfCategory(*model, Category::INFANTRY) ? 7 : 70) * twice));
 }
 
-void opeu_battle_apply_damage(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
-  auto&      data{ Data(ds) };
-  auto const damage{ opeu_battle_attack_damage(ds, event, attacker, target) };
+void opeu_battle_apply_damage(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
+  auto&      data{ Data(game) };
+  auto const damage{ opeu_battle_attack_damage(game, event, attacker, target) };
   data.battle_element_destroyed = 0;
   if (damage != 0 && target != 0) {
     auto&      hit{ Record<Element>(data, target) };
     auto const old{ hit.quantity };
     SubWord(hit.quantity, damage);
-    SpendSupplies(ds, event, old, target);
+    SpendSupplies(game, event, old, target);
     if (hit.quantity == 0) {
       data.battle_element_destroyed = 1;
       auto& winner{ Record<Element>(data, attacker) };
       AddByte(winner.training, TRAINING_GAIN, RATING_LIMIT);
       AddByte(winner.morale, MORALE_GAIN, RATING_LIMIT);
     } else if (auto const category{ data.element_types[hit.type].category }; category != 0) {
-      auto const roll{ Call(ds, event, BattleRoutine::RAND_BOUNDED, 300) };
-      auto const rate{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TYPE_SKILL, target)) };
+      auto const roll{ Call(game, event, BattleRoutine::RAND_BOUNDED, 300) };
+      auto const rate{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_TYPE_SKILL, target)) };
       AddWord(hit.damage, U16(U16(rate * damage) / U16(700 - roll)), data.request_capacities[category]);
     }
   }
-  Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, 0, attacker);
+  Call(game, event, BattleRoutine::BATTLE_SET_ORDER, 0, attacker);
 }
 
-void opeu_battle_apply_bombard(uint8_t* ds, BattleEvent event, uint16_t target) {
-  auto&      data{ Data(ds) };
-  auto const damage{ Call(ds, event, BattleRoutine::BATTLE_MINE_DAMAGE, target) };
+void opeu_battle_apply_bombard(Game& game, BattleEvent event, uint16_t target) {
+  auto&      data{ Data(game) };
+  auto const damage{ Call(game, event, BattleRoutine::BATTLE_MINE_DAMAGE, target) };
   data.battle_element_destroyed = 0;
   if (damage != 0) {
     auto&      hit{ Record<Element>(data, target) };
     auto const old{ hit.quantity };
     SubWord(hit.quantity, damage);
-    SpendSupplies(ds, event, old, target);
+    SpendSupplies(game, event, old, target);
     if (hit.quantity == 0) {
       hit.damage                    = 0;
       data.battle_element_destroyed = 1;
     } else if (auto const category{ data.element_types[hit.type].category }; category != 0) {
-      auto const amount{ Call(ds, event, BattleRoutine::RAND_BOUNDED, damage >> 1) };
+      auto const amount{ Call(game, event, BattleRoutine::RAND_BOUNDED, damage >> 1) };
       AddWord(hit.damage, amount, data.request_capacities[category]);
     }
   }
-  Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, 0, target);
+  Call(game, event, BattleRoutine::BATTLE_SET_ORDER, 0, target);
 }
 
-void opeu_battle_resolve_attack(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
+void opeu_battle_resolve_attack(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
   if (attacker != 0)
-    opeu_battle_apply_damage(ds, event, attacker, target);
+    opeu_battle_apply_damage(game, event, attacker, target);
   else
-    opeu_battle_apply_bombard(ds, event, target);
-  if (Data(ds).battle_element_destroyed != 0) Call(ds, event, BattleRoutine::BATTLE_ELEMENT_LOST, target);
+    opeu_battle_apply_bombard(game, event, target);
+  if (Data(game).battle_element_destroyed != 0) Call(game, event, BattleRoutine::BATTLE_ELEMENT_LOST, target);
 }
 
-uint16_t svc_btlhit(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlhit(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_resolve_attack(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_resolve_attack(ds, svc_btlhit, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_resolve_attack(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_resolve_attack(game, svc_btlhit, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

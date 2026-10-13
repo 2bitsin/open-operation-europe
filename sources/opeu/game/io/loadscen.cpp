@@ -3,6 +3,7 @@
 #include "io/loadscen.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/scenario.hpp"
 #include "io/rebase.hpp"
 
@@ -21,16 +22,16 @@ constexpr std::size_t MAP_SIZE{ sizeof(DataSegment::map_cells) };
 } // namespace
 
 // Returns -1, leaving the data segment untouched, when a file is shorter than the records it reads.
-auto opeu_load_scenario(std::uint8_t* ds, unsigned scenario, std::uint8_t const* scedata, std::size_t scedata_size, std::uint8_t const* mapinf, std::size_t mapinf_size) -> int {
+auto opeu_load_scenario(Game& game, unsigned scenario, std::uint8_t const* scedata, std::size_t scedata_size, std::uint8_t const* mapinf, std::size_t mapinf_size) -> int {
   if (scenario >= SCENARIO_COUNT) return -1;
   auto const position{ SCENARIOS_AT + scenario * RECORD_SIZE };
   if (position > scedata_size || scedata_size - position < RECORD_SIZE) return -1;
   // the record's second byte is its scenario byte
   auto const map_position{ (scedata[position + 1] & SCENARIO_MASK) * MAP_SIZE };
   if (map_position > mapinf_size || mapinf_size - map_position < MAP_SIZE) return -1;
-  auto& data{ Data(ds) };
-  std::memcpy(ds + offsetof(DataSegment, scenario_first), scedata + position, RECORD_SIZE);
-  opeu_rebase_scenario(ds, 0);
+  auto& data{ Data(game) };
+  std::memcpy(game.State().Bytes(offsetof(DataSegment, scenario_first), RECORD_SIZE).data(), scedata + position, RECORD_SIZE);
+  opeu_rebase_scenario(game, 0);
   std::memcpy(data.map_cells.data(), mapinf + std::to_underlying(CurrentScenario(data)) * MAP_SIZE, MAP_SIZE);
   return 0;
 }

@@ -3,12 +3,14 @@
  * instance; its `event` is the module's service (svc_textout, svc_uiprim,
  * svc_dialogs), the other members are platform state the modules read: the
  * modeled stack pointer, the arena and the segment numbers of the layout. */
-#include "glue.hpp"
+#include "link/glue.hpp"
 
+#include "common/game.hpp"
 #include "core/dialogs.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/numdlg.hpp"
+#include "link/entry-game.hpp"
 
 /* ---- TEXTOUT: TextHost {event} ------------------------------------------------ */
 static TextHost textout_host = { svc_textout };
@@ -34,13 +36,13 @@ void* port_uiprim_host(void) {
 
 /* The decoder's reader is a far code pointer into UIPRIM's own segment:
  * opeu_stream_file_byte or opeu_stream_memory_byte, both called through the
- * same host instance. */
+ * same host instance, for the running game (the decoder has none to hand). */
 static uint8_t read_file_stream(void) {
-  return opeu_stream_file_byte(port_ds, (const UiHost*)port_uiprim_host());
+  return opeu_stream_file_byte(opeu::game::EntryGame::Current(), (const UiHost*)port_uiprim_host());
 }
 
 static uint8_t read_memory_stream(void) {
-  return opeu_stream_memory_byte(port_ds, (const UiHost*)port_uiprim_host());
+  return opeu_stream_memory_byte(opeu::game::EntryGame::Current(), (const UiHost*)port_uiprim_host());
 }
 
 PortByteReader port_picture_reader(uint16_t off, uint16_t seg) {
@@ -67,7 +69,7 @@ void* port_dialogs_host(void) {
  * shape ({ service }) for callers that want the service through a host
  * pointer. */
 namespace {
-using InputService = auto (*)(uint8_t* ds, uint16_t call, uint16_t* words) -> uint16_t;
+using InputService = auto (*)(Game& game, uint16_t call, uint16_t* words) -> uint16_t;
 struct OutlineBridge {
   InputService service;
 };

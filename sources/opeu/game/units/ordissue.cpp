@@ -17,7 +17,8 @@
 #include "units/ordunit.hpp"
 #include "units/stats.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"
@@ -47,8 +48,8 @@ constexpr std::uint8_t NO_CELL{ 0xff };
 } // namespace
 
 // group: the division (of the current side) the order is for.
-void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint8_t group) {
-  auto&               data{ Data(ds) };
+void opeu_unit_order_menu(Game& game, HostEvent event, uint8_t group) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
   auto const          x_at{ local(PICKED_X) };
@@ -65,71 +66,71 @@ void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint8_t group) {
       if (division_units(index).flags & Bits(UnitFlag::SELECTED)) unit = Near(data, division_units(index));
   }
   auto& regiment{ Record<Unit>(data, unit) };
-  if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(ds, unit)) return;
-  Call(ds, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, side);
-  auto const person{ opeu_find_group_record(ds, side, group) };
-  if (!whole) Call(ds, event, ORDERS_UNIT_ANNOUNCE, unit, group);
+  if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, unit)) return;
+  Call(game, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, side);
+  auto const person{ opeu_find_group_record(game, side, group) };
+  if (!whole) Call(game, event, ORDERS_UNIT_ANNOUNCE, unit, group);
   auto const&  prompts{ data.issue_prompts };
   std::uint8_t kind{};
   for (;;) {
-    Call(ds, event, ORDERS_SPEAKER_PANEL, person, 1);
+    Call(game, event, ORDERS_SPEAKER_PANEL, person, 1);
     auto const menu{ whole ? DIVISION_MENU : OrderMenuKind(data.list_row) };
     auto const count{ OrderCount(data.issue_order_codes[menu]) };
-    opeu_order_layout(ds, menu);
-    Call(ds, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
-    auto const choice{ Call(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
-    Call(ds, event, ORDERS_SPEAKER_PANEL, person, 0);
+    opeu_order_layout(game, menu);
+    Call(game, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
+    auto const choice{ Call(game, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
+    Call(game, event, ORDERS_SPEAKER_PANEL, person, 0);
     if (choice == MENU_CANCEL) {
-      opeu_cancel_unit_orders(ds, event, unit, person);
+      opeu_cancel_unit_orders(game, event, unit, person);
       return;
     }
     kind = data.issue_order_codes[menu][choice - 1];
-    if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(ds, unit, REPAIR_CREWS, &crews)) {
-      Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
+    if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(game, unit, REPAIR_CREWS, &crews)) {
+      Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
       continue;
     }
     break;
   }
   std::uint16_t target{};
   for (;;) {
-    Byte(ds, x_at) = regiment.x;
-    Byte(ds, y_at) = regiment.y;
+    Byte(game, x_at) = regiment.x;
+    Byte(game, y_at) = regiment.y;
     if (kind != Kind(UnitOrder::REST) || !whole) {
-      Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target), person);
-      if (!Call(ds, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
-        opeu_cancel_unit_orders(ds, event, unit, person);
+      Call(game, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target), person);
+      if (!Call(game, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
+        opeu_cancel_unit_orders(game, event, unit, person);
         return;
       }
     }
-    if (CheckOrderTarget(ds, event, prompts, buffer, person, unit, Byte(ds, x_at), Byte(ds, y_at), kind, target)) break;
-    Call(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
-    Call(ds, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
-    Call(ds, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, side);
+    if (CheckOrderTarget(game, event, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
+    Call(game, event, ORDERS_CONTROL_MESSAGE, buffer, person);
+    Call(game, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
+    Call(game, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, side);
   }
-  AnnounceOrder(ds, event, prompts, buffer, person, kind);
+  AnnounceOrder(game, event, prompts, buffer, person, kind);
   if (!whole)
-    opeu_set_unit_order(ds, unit, target, Byte(ds, x_at), 0, kind, Byte(ds, y_at));
+    opeu_set_unit_order(game, unit, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
   else
     for (std::uint8_t index{ 0 }; index < 8; ++index) {
       auto&      member{ division_units(index) };
       auto const near{ Near(data, member) };
-      if (!(member.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(ds, near)) continue;
+      if (!(member.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, near)) continue;
       if (kind == Kind(UnitOrder::REST)) {
-        Byte(ds, x_at) = member.x;
-        Byte(ds, y_at) = member.y;
+        Byte(game, x_at) = member.x;
+        Byte(game, y_at) = member.y;
       }
       // A regiment does not pursue or supply itself.
-      auto const own_cell{ member.x == Byte(ds, x_at) && member.y == Byte(ds, y_at) };
-      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell)) opeu_set_unit_order(ds, near, target, Byte(ds, x_at), 0, kind, Byte(ds, y_at));
+      auto const own_cell{ member.x == Byte(game, x_at) && member.y == Byte(game, y_at) };
+      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell)) opeu_set_unit_order(game, near, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
     }
-  Call(ds, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
+  Call(game, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
   data.overview_side = NO_CELL;
   data.view_side     = NO_CELL;
 }
 
 // The menu's calls are order dialog services; confirm_message comes from opeu_cancel_unit_orders, which raises it
 // through this event.
-uint16_t svc_ordissue(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_ordissue(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
   case ORDERS_REQUEST_FORMAT:
@@ -144,7 +145,7 @@ uint16_t svc_ordissue(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case ORDERS_CONTROL_POSITION:
   case ORDERS_MESSAGE_LOOKUP:
   case ORDERS_DELAY_DIALOG:
-  case ORDERS_DELAY_UNITS:      svc_orders(ds, id, args, count, &r); break;
+  case ORDERS_DELAY_UNITS:      svc_orders(game, id, args, count, &r); break;
   default:                      port_unhandled("ordissue", id, count);
   }
   return r;

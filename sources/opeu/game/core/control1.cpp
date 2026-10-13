@@ -8,13 +8,15 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/advmenu.hpp"
 #include "core/armysum.hpp"
 #include "core/coords.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
 #include "io/soundcue.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -50,33 +52,33 @@ constexpr std::uint16_t CELL_Y_AT{ 2 };
 constexpr std::uint16_t CELL_BYTES{ 4 };
 } // namespace
 
-void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context_event) {
-  auto& data{ Data(ds) };
+void opeu_turn_control_one(Game& game, HostEvent event, HostEvent context_event) {
+  auto& data{ Data(game) };
   bool  inspecting{ false };
   data.context_side  = NO_SIDE;
   data.view_side     = NO_SIDE;
   data.overview_side = NO_SIDE;
-  Call(ds, event, PREPARE);
-  Call(ds, event, BEGIN);
+  Call(game, event, PREPARE);
+  Call(game, event, BEGIN);
   while (!data.side_delays[data.current_side]) {
     {
       auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-      Call(ds, event, POSITION, unit.x, unit.y);
-      Call(ds, event, LOCATION, unit.x, unit.y, data.current_side);
+      Call(game, event, POSITION, unit.x, unit.y);
+      Call(game, event, LOCATION, unit.x, unit.y, data.current_side);
     }
-    opeu_daily_context(ds, context_event, data.current_side);
+    opeu_daily_context(game, context_event, data.current_side);
     for (;;) {
-      Call(ds, event, SUMMARY);
+      Call(game, event, SUMMARY);
       data.control_selection = 0;
-      Call(ds, event, ACTIVE);
-      opeu_turn_pre_context(ds, context_event);
+      Call(game, event, ACTIVE);
+      opeu_turn_pre_context(game, context_event);
       if (!inspecting) {
         ServiceLocals const prompt{ PROMPT_BYTES };
-        Call(ds, event, FORMAT, prompt.At(0), PROMPT_FORMAT, data.context_record1);
-        auto const choice{ Call(ds, event, MENU, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
+        Call(game, event, FORMAT, prompt.At(0), PROMPT_FORMAT, data.context_record1);
+        auto const choice{ Call(game, event, MENU, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
           auto const action{ data.control_actions[choice] };
-          Call(ds, event, ACTION, action.offset, action.segment);
+          Call(game, event, ACTION, action.offset, action.segment);
           break;
         }
         inspecting             = true;
@@ -88,35 +90,35 @@ void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context
         ServiceLocals const cell{ CELL_BYTES };
         auto const          at_x{ cell.At(CELL_X_AT) };
         auto const          at_y{ cell.At(CELL_Y_AT) };
-        SetWord(ds, at_x, unit.x);
-        SetWord(ds, at_y, unit.y);
-        do Call(ds, event, MESSAGE, READY_TEXT, data.context_record2);
-        while (Call(ds, event, COORDINATES, at_x, at_y));
+        SetWord(game, at_x, unit.x);
+        SetWord(game, at_y, unit.y);
+        do Call(game, event, MESSAGE, READY_TEXT, data.context_record2);
+        while (Call(game, event, COORDINATES, at_x, at_y));
       }
     }
   }
   data.control_selection = 0;
 }
 
-uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_control1(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case PREPARE:  opeu_control_prepare(ds, svc_advmenu); break;
-  case BEGIN:    opeu_control_begin(ds, svc_soundcue); break;
-  case POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case PREPARE:  opeu_control_prepare(game, svc_advmenu); break;
+  case BEGIN:    opeu_control_begin(game, svc_soundcue); break;
+  case POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:
-    opeu_arrival_location(ds, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_arrival_location(game, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
-  case SUMMARY: opeu_army_summary(ds, svc_armysum); break;
-  case ACTIVE:  opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case FORMAT:  opeu_request_format(ds, { args, count }); break;
+  case SUMMARY: opeu_army_summary(game, svc_armysum); break;
+  case ACTIVE:  opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
+  case FORMAT:  opeu_request_format(game, { args, count }); break;
   case MENU:
-    result = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
+    result = opeu_control_choose(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
                                  Arg(args, count, 5));
     break;
-  case MESSAGE:     opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COORDINATES: result = opeu_control_coordinates(ds, svc_coords, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ACTION:      result = static_cast<uint16_t>(port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
+  case MESSAGE:     opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case COORDINATES: result = opeu_control_coordinates(game, svc_coords, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ACTION:      result = static_cast<uint16_t>(port_call(game, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
   default:          port_unhandled("control1", id, count);
   }
   return result;

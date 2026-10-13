@@ -20,7 +20,8 @@
 #include "types.hpp"
 #include "units/orders.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 
 using namespace opeu::game;
@@ -43,87 +44,87 @@ constexpr uint16_t ONE_LINE_NAME{ 13 }; // longer objective names take two lines
 } // namespace
 
 // The division of the list row can be given a target when it is ready and its selected unit can be selected.
-uint8_t opeu_group_target_enabled(uint8_t* ds) {
-  auto&      data{ Data(ds) };
+uint8_t opeu_group_target_enabled(Game& game) {
+  auto&      data{ Data(game) };
   auto&      division{ GroupOf(data, data.current_side, data.supply_row) };
   auto const group{ Near(data, division) };
-  return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group));
+  return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, group));
 }
 
 uint8_t opeu_menu_always(void) {
   return 1;
 }
 
-void opeu_group_set_target(uint8_t* ds, HostEvent event, uint8_t group) {
-  auto&               data{ Data(ds) };
+void opeu_group_set_target(Game& game, HostEvent event, uint8_t group) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ TARGET_RESERVE };
   auto const          x_at{ locals.At(PICKED_X_AT) };
   auto const          y_at{ locals.At(PICKED_Y_AT) };
   auto const          text{ locals.At(TEXT_AT) };
-  auto const          person{ opeu_find_group_record(ds, data.current_side, group) };
+  auto const          person{ opeu_find_group_record(game, data.current_side, group) };
   auto&               division{ GroupOf(data, data.current_side, group) };
   auto&               task{ division.tasks[data.supply_row] };
   if (task.kind != Bits(TaskKind::NONE)) {
-    Byte(ds, x_at) = task.x;
-    Byte(ds, y_at) = task.y;
+    Byte(game, x_at) = task.x;
+    Byte(game, y_at) = task.y;
   } else {
-    auto const& unit{ Record<Unit>(data, opeu_find_group_selected_unit(ds, Near(data, division))) };
-    Byte(ds, x_at) = unit.x;
-    Byte(ds, y_at) = unit.y;
+    auto const& unit{ Record<Unit>(data, opeu_find_group_selected_unit(game, Near(data, division))) };
+    Byte(game, x_at) = unit.x;
+    Byte(game, y_at) = unit.y;
   }
-  Call(ds, event, TargetService::ARRIVAL_LOCATION, Byte(ds, x_at), Byte(ds, y_at), data.current_side);
-  Call(ds, event, TargetService::CONTROL_MESSAGE, Near(data, data.target_text), person);
+  Call(game, event, TargetService::ARRIVAL_LOCATION, Byte(game, x_at), Byte(game, y_at), data.current_side);
+  Call(game, event, TargetService::CONTROL_MESSAGE, Near(data, data.target_text), person);
   bool changed{ false };
-  if (Call(ds, event, TargetService::PICK_LOCATION, x_at, y_at)) {
-    auto const x{ Byte(ds, x_at) };
-    auto const y{ Byte(ds, y_at) };
-    auto const objective{ opeu_find_objective_at(ds, x, y) };
+  if (Call(game, event, TargetService::PICK_LOCATION, x_at, y_at)) {
+    auto const x{ Byte(game, x_at) };
+    auto const y{ Byte(game, y_at) };
+    auto const objective{ opeu_find_objective_at(game, x, y) };
     TaskKind   kind;
     if (objective) {
-      kind = opeu_objective_side(ds, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD;
-      auto const format{ opeu_string_length(ds, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format) : Near(data, data.target_one_line_format) };
-      Call(ds, event, TargetService::FORMAT, text, format, data.order_names[Bits(kind)], objective);
+      kind = opeu_objective_side(game, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD;
+      auto const format{ opeu_string_length(game, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format) : Near(data, data.target_one_line_format) };
+      Call(game, event, TargetService::FORMAT, text, format, data.order_names[Bits(kind)], objective);
     } else {
       kind = TaskKind::MOVE;
-      Call(ds, event, TargetService::FORMAT, text, Near(data, data.target_cell_format), data.map_scale * x, y * data.map_scale);
+      Call(game, event, TargetService::FORMAT, text, Near(data, data.target_cell_format), data.map_scale * x, y * data.map_scale);
     }
-    if (Call(ds, event, TargetService::CONFIRM, text, person)) {
-      task.x    = Byte(ds, x_at);
-      task.y    = Byte(ds, y_at);
+    if (Call(game, event, TargetService::CONFIRM, text, person)) {
+      task.x    = Byte(game, x_at);
+      task.y    = Byte(game, y_at);
       task.kind = Bits(kind);
       changed   = true;
     }
-  } else if (task.kind != Bits(TaskKind::NONE) && Call(ds, event, TargetService::CONFIRM, Near(data, data.target_cancel_text), person)) {
+  } else if (task.kind != Bits(TaskKind::NONE) && Call(game, event, TargetService::CONFIRM, Near(data, data.target_cancel_text), person)) {
     task.kind = Bits(TaskKind::NONE);
     changed   = true;
   }
   if (!changed) return;
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(ds, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
+  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(game, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
 }
 
-uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_ordtgt(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
   switch (static_cast<TargetService>(id)) {
-  case TargetService::FORMAT:           opeu_request_format(ds, { args, count }); return 0;
-  case TargetService::CONTROL_MESSAGE:  opeu_control_message(ds, host(), arg(0), arg(1)); return 0;
-  case TargetService::CONFIRM:          return opeu_confirm_message(ds, host(), arg(0), arg(1));
-  case TargetService::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); return 0;
-  case TargetService::PICK_LOCATION:    return opeu_map_pick_location(ds, svc_mappick, arg(0), arg(1));
+  case TargetService::FORMAT:           opeu_request_format(game, { args, count }); return 0;
+  case TargetService::CONTROL_MESSAGE:  opeu_control_message(game, host(), arg(0), arg(1)); return 0;
+  case TargetService::CONFIRM:          return opeu_confirm_message(game, host(), arg(0), arg(1));
+  case TargetService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); return 0;
+  case TargetService::PICK_LOCATION:    return opeu_map_pick_location(game, svc_mappick, arg(0), arg(1));
   default:                              port_unhandled("ordtgt", id, count);
   }
   return 0;
 }
 
-auto port_routine_opeu_group_target_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_group_target_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_group_target_enabled(ds);
+  return opeu_group_target_enabled(game);
 }
 
-auto port_routine_opeu_menu_always(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_menu_always(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   (void)args;
   (void)count;
   return opeu_menu_always();

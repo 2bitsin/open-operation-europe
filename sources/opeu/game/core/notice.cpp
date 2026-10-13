@@ -11,6 +11,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/dialogs.hpp"
@@ -18,8 +19,8 @@
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
-#include "glue.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "map/stepmap.hpp"
@@ -91,8 +92,8 @@ auto UnitAt(uint16_t list, uint8_t n) -> uint16_t {
 // Fills the garrison's element for the objective's item `slot`: up to a full element's quantity of the item's
 // equipment (the item keeps the rest), morale by how full it is, training the objective's strength, fatigue by how
 // far the strength is below its limit. Returns 1, or 0 for an empty item.
-uint16_t opeu_notice_slot(uint8_t ds[65536], uint16_t objective, uint8_t slot) {
-  auto& data{ Data(ds) };
+uint16_t opeu_notice_slot(Game& game, uint16_t objective, uint8_t slot) {
+  auto& data{ Data(game) };
   auto& city{ Record<Objective>(data, objective) };
   auto& item{ city.items[slot] };
   if (!item.quantity) return 0;
@@ -116,19 +117,19 @@ uint16_t opeu_notice_slot(uint8_t ds[65536], uint16_t objective, uint8_t slot) {
 
 // Builds the garrison of an objective on the battle cell from its items, with ammunition and fuel from its stocks up
 // to the garrison's capacities, holding the cell; it becomes the first defender. Returns whether it has elements.
-uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event) {
+uint16_t opeu_notice_garrison(Game& game, HostEvent event) {
   ServiceLocals const locals{ 0x12 };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   uint16_t const      capacity_a{ locals.At(0xe) };
   uint16_t const      capacity_c{ locals.At(6) };
   uint16_t const      capacity_b{ locals.At(0) };
-  uint16_t const      objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
+  uint16_t const      objective{ Call(game, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
   if (!objective) return 0;
   auto& garrison{ data.garrison };
   garrison.first = 0;
   uint8_t elements{ 0 };
   for (uint8_t slot = 0; slot < data.battle_elements.size(); slot++)
-    if (opeu_notice_slot(ds, objective, slot)) {
+    if (opeu_notice_slot(game, objective, slot)) {
       auto& element{ data.battle_elements[slot] };
       element.next   = garrison.first;
       garrison.first = Near(data, element);
@@ -138,9 +139,9 @@ uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event) {
   auto& city{ Record<Objective>(data, objective) };
   garrison.x = data.battle_x;
   garrison.y = data.battle_y;
-  Call(ds, event, UNIT_CAPACITIES, GARRISON_AT, capacity_a, capacity_b, capacity_c);
-  garrison.resources[0]  = opeu_min16(Word(ds, capacity_a), city.resources[0]);
-  garrison.resources[1]  = opeu_min16(Word(ds, capacity_b), city.resources[1]);
+  Call(game, event, UNIT_CAPACITIES, GARRISON_AT, capacity_a, capacity_b, capacity_c);
+  garrison.resources[0]  = opeu_min16(Word(game, capacity_a), city.resources[0]);
+  garrison.resources[1]  = opeu_min16(Word(game, capacity_b), city.resources[1]);
   city.resources[0]     -= garrison.resources[0];
   city.resources[1]     -= garrison.resources[1];
   auto& order{ garrison.orders[0] };
@@ -155,27 +156,27 @@ uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event) {
 
 // Gathers the engaged units: the attacker and his side's units around the battle cell, the garrison, the defender
 // and the other side's units around it.
-void opeu_notice_collect(uint8_t ds[65536], HostEvent event) {
+void opeu_notice_collect(Game& game, HostEvent event) {
   ServiceLocals const locals{ 0xe };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   uint16_t const      x_at{ locals.At(4) };
   uint16_t const      y_at{ locals.At(0) };
-  auto&               x{ ds[x_at] };
-  auto&               y{ ds[y_at] };
+  auto&               x{ Byte(game, x_at) };
+  auto&               y{ Byte(game, y_at) };
   for (uint8_t n = 0; n < 2 * UNITS_PER_LIST; n++) data.battle_units[n] = 0;
-  uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(ds, event) ? 1 : 0) };
-  uint16_t unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
+  uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(game, event) ? 1 : 0) };
+  uint16_t unit{ Call(game, event, FIND_UNIT, data.battle_x, data.battle_y) };
   if (unit) data.battle_units[UnitAt(DEFENDERS, defenders++)] = unit;
   uint8_t attackers{ 1 };
-  unit                                    = Call(ds, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y);
+  unit                                    = Call(game, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y);
   data.battle_units[UnitAt(ATTACKERS, 0)] = unit;
-  auto const side{ static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, unit)) };
+  auto const side{ static_cast<uint8_t>(Call(game, event, UNIT_SIDE, unit)) };
   for (uint8_t direction = 0; direction < 8; direction++) {
     x = data.battle_x;
     y = data.battle_y;
-    if (!Call(ds, event, GRID_STEP, x_at, y_at, direction)) continue;
-    if (!(unit = Call(ds, event, FIND_UNIT, x, y))) continue;
-    if (static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, unit)) == side) {
+    if (!Call(game, event, GRID_STEP, x_at, y_at, direction)) continue;
+    if (!(unit = Call(game, event, FIND_UNIT, x, y))) continue;
+    if (static_cast<uint8_t>(Call(game, event, UNIT_SIDE, unit)) == side) {
       if (x != data.battle_attacker_x || y != data.battle_attacker_y) data.battle_units[UnitAt(ATTACKERS, attackers++)] = unit;
     } else
       data.battle_units[UnitAt(DEFENDERS, defenders++)] = unit;
@@ -184,8 +185,8 @@ void opeu_notice_collect(uint8_t ds[65536], HostEvent event) {
 
 // Records every engaged element with its unit and its equipment and quantity now; the rest of the records are
 // cleared.
-void opeu_notice_records_build(uint8_t ds[65536], HostEvent event) {
-  auto&   data{ Data(ds) };
+void opeu_notice_records_build(Game& game, HostEvent event) {
+  auto&   data{ Data(game) };
   uint8_t n{ 0 };
   for (uint8_t list = 0; list < 2; list++)
     for (uint8_t k = 0; k < UNITS_PER_LIST; k++) {
@@ -193,7 +194,7 @@ void opeu_notice_records_build(uint8_t ds[65536], HostEvent event) {
       if (!unit) continue;
       for (uint16_t at = Record<Unit>(data, unit).first; at; at = Record<Element>(data, at).next) {
         auto& loss{ data.battle_losses[n++] };
-        loss.unit    = Call(ds, event, ELEMENT_UNIT, at);
+        loss.unit    = Call(game, event, ELEMENT_UNIT, at);
         loss.element = at;
         auto const& element{ Record<Element>(data, at) };
         loss.item.type     = element.type;
@@ -205,15 +206,15 @@ void opeu_notice_records_build(uint8_t ds[65536], HostEvent event) {
 }
 
 // Whether a player commands the side and one of the list's units (or the garrison's objective) may be commanded.
-uint16_t opeu_notice_can_command(uint8_t ds[65536], HostEvent event, uint8_t list, uint8_t side) {
-  auto& data{ Data(ds) };
+uint16_t opeu_notice_can_command(Game& game, HostEvent event, uint8_t list, uint8_t side) {
+  auto& data{ Data(game) };
   if (data.side_status[side] != SIDE_PLAYED) return 0;
   for (uint8_t k = 0; k < UNITS_PER_LIST; k++) {
     uint16_t const unit{ data.battle_units[UnitAt(list, k)] };
     if (!unit) continue;
     if (unit == GARRISON_AT) {
-      if (Call(ds, event, OBJECTIVE_ELIGIBLE, Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y))) return 1;
-    } else if (Call(ds, event, UNIT_ELIGIBLE, unit))
+      if (Call(game, event, OBJECTIVE_ELIGIBLE, Call(game, event, FIND_OBJECTIVE, data.battle_x, data.battle_y))) return 1;
+    } else if (Call(game, event, UNIT_ELIGIBLE, unit))
       return 1;
   }
   return 0;
@@ -221,9 +222,9 @@ uint16_t opeu_notice_can_command(uint8_t ds[65536], HostEvent event, uint8_t lis
 
 // Each side decides whether a leader takes command of the battle: the computer by a coin toss, a player when asked
 // (only for a unit outside the computer's divisions). The battle is reported when a player's side could command.
-void opeu_notice_decide(uint8_t ds[65536], HostEvent event) {
+void opeu_notice_decide(Game& game, HostEvent event) {
   ServiceLocals const     locals{ 0x72 };
-  auto&                   data{ Data(ds) };
+  auto&                   data{ Data(game) };
   uint16_t const          text{ locals.At(0) };
   std::array<uint16_t, 2> can_command{ 1, 1 };
   data.battle_command[0] = 0;
@@ -233,26 +234,26 @@ void opeu_notice_decide(uint8_t ds[65536], HostEvent event) {
       uint16_t const unit{ data.battle_units[UnitAt(list, k)] };
       uint16_t       objective;
       if (unit && unit != GARRISON_AT) {
-        auto const side{ static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, unit)) };
+        auto const side{ static_cast<uint8_t>(Call(game, event, UNIT_SIDE, unit)) };
         if (!data.side_control[side]) {
-          if (RandomBelow(ds, 100) < 50) data.battle_command[side] = 1;
+          if (RandomBelow(game, 100) < 50) data.battle_command[side] = 1;
           break;
         }
-        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0
-            && !(Record<Group>(data, Call(ds, event, UNIT_GROUP, unit)).flags & Bits(GroupFlag::AI_MARK))) {
-          Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_command_text), data.side_names[side]);
-          data.battle_command[side] = Call(ds, event, CONFIRM, text, Call(ds, event, SIDE_RECORD, side, 2));
+        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, event, list, side)) != 0
+            && !(Record<Group>(data, Call(game, event, UNIT_GROUP, unit)).flags & Bits(GroupFlag::AI_MARK))) {
+          Call(game, event, FORMAT, text, offsetof(DataSegment, notice_command_text), data.side_names[side]);
+          data.battle_command[side] = Call(game, event, CONFIRM, text, Call(game, event, SIDE_RECORD, side, 2));
           break;
         }
-      } else if (unit == GARRISON_AT && (objective = Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y)) != 0) {
-        auto const side{ static_cast<uint8_t>(Call(ds, event, OBJECTIVE_SIDE, objective)) };
+      } else if (unit == GARRISON_AT && (objective = Call(game, event, FIND_OBJECTIVE, data.battle_x, data.battle_y)) != 0) {
+        auto const side{ static_cast<uint8_t>(Call(game, event, OBJECTIVE_SIDE, objective)) };
         if (!data.side_control[side]) {
-          if (RandomBelow(ds, 100) < 50) data.battle_command[side] = 1;
+          if (RandomBelow(game, 100) < 50) data.battle_command[side] = 1;
           break;
         }
-        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(ds, event, list, side)) != 0) {
-          Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_control_text), data.side_names[side]);
-          data.battle_command[side] = Call(ds, event, CONFIRM, text, Call(ds, event, SIDE_RECORD, side, 2));
+        if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, event, list, side)) != 0) {
+          Call(game, event, FORMAT, text, offsetof(DataSegment, notice_control_text), data.side_names[side]);
+          data.battle_command[side] = Call(game, event, CONFIRM, text, Call(game, event, SIDE_RECORD, side, 2));
           break;
         }
       }
@@ -262,40 +263,41 @@ void opeu_notice_decide(uint8_t ds[65536], HostEvent event) {
 
 // How the battle is presented: 0 when it is not reported, else the battle_view setting, asking the player when the
 // setting is to ask (0xff).
-uint16_t opeu_notice_view_battle(uint8_t ds[65536], HostEvent event) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_notice_view_battle(Game& game, HostEvent event) {
+  auto const& data{ Data(game) };
   if (!data.battle_report) return 0;
-  if (data.battle_view == 0xff) return Call(ds, event, CONFIRM, offsetof(DataSegment, notice_battle_text), Call(ds, event, SIDE_RECORD, (uint8_t)(data.side_control[0] == PLAYER_CONTROL ? 0 : 1), 2));
+  if (data.battle_view == 0xff)
+    return Call(game, event, CONFIRM, offsetof(DataSegment, notice_battle_text), Call(game, event, SIDE_RECORD, (uint8_t)(data.side_control[0] == PLAYER_CONTROL ? 0 : 1), 2));
   return data.battle_view;
 }
 
 // The call-back of the attack's show.
-void opeu_notice_view_finish(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_notice_view_finish(Game& game, HostEvent event) {
+  Call(game, event, PENDING_FINISH, 3);
 }
 
 // Tells the attacked unit or objective of the attack (naming a special attacker) and shows it to the attacked side;
 // the attacked unit's elements tire and lose morale by its order: least when holding, most under EXPOSED_ORDER.
-void opeu_notice_attack(uint8_t ds[65536], HostEvent event) {
+void opeu_notice_attack(Game& game, HostEvent event) {
   ServiceLocals const locals{ 0x80 };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   uint16_t const      text{ locals.At(0xc) };
   uint16_t const      name{ locals.At(0) };
-  uint16_t const      attacker{ Call(ds, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y) };
-  auto const          side{ static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, attacker)) };
-  uint16_t const      unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
-  uint16_t const      objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
-  if (Call(ds, event, UNIT_SPECIAL, attacker)) {
+  uint16_t const      attacker{ Call(game, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y) };
+  auto const          side{ static_cast<uint8_t>(Call(game, event, UNIT_SIDE, attacker)) };
+  uint16_t const      unit{ Call(game, event, FIND_UNIT, data.battle_x, data.battle_y) };
+  uint16_t const      objective{ Call(game, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
+  if (Call(game, event, UNIT_SPECIAL, attacker)) {
     uint16_t const side_name{ data.side_names[side] };
-    Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, Call(ds, event, UNIT_NAME, attacker, name));
+    Call(game, event, FORMAT, text, offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, Call(game, event, UNIT_NAME, attacker, name));
   } else
-    Call(ds, event, COPY_STRING, text, offsetof(DataSegment, notice_under_attack_text));
+    Call(game, event, COPY_STRING, text, offsetof(DataSegment, notice_under_attack_text));
   if (unit) {
-    Call(ds, event, UNIT_MESSAGE, unit, text);
-    if (Call(ds, event, UNIT_ELIGIBLE, unit)) Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
+    Call(game, event, UNIT_MESSAGE, unit, text);
+    if (Call(game, event, UNIT_ELIGIBLE, unit)) Call(game, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
   } else if (objective) {
-    Call(ds, event, OBJECTIVE_REPORT, objective, text);
-    if (Call(ds, event, OBJECTIVE_ELIGIBLE, objective)) Call(ds, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
+    Call(game, event, OBJECTIVE_REPORT, objective, text);
+    if (Call(game, event, OBJECTIVE_ELIGIBLE, objective)) Call(game, event, DAILY_SHOW, ATTACK_SHOW, opeu_opposite_side(side), VIEW_FINISH_OFFSET, VIEW_FINISH_SEGMENT);
   }
   if (!unit) return;
   auto const& order{ Record<Unit>(data, unit).orders[0] };
@@ -318,46 +320,46 @@ void opeu_notice_attack(uint8_t ds[65536], HostEvent event) {
 }
 
 // The start of a battle.
-void opeu_notice_begin(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
-  opeu_notice_attack(ds, event);
-  opeu_notice_collect(ds, event);
-  data.presentation_mode = opeu_notice_view_battle(ds, event);
-  opeu_notice_decide(ds, event);
-  opeu_notice_records_build(ds, event);
+void opeu_notice_begin(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
+  opeu_notice_attack(game, event);
+  opeu_notice_collect(game, event);
+  data.presentation_mode = opeu_notice_view_battle(game, event);
+  opeu_notice_decide(game, event);
+  opeu_notice_records_build(game, event);
 }
 
-uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_notice(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case FIND_OBJECTIVE:     r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case FIND_UNIT:          r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case UNIT_CAPACITIES:    StoreUnitCapacities(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
+  case FIND_OBJECTIVE:     r = opeu_find_objective_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case FIND_UNIT:          r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case UNIT_CAPACITIES:    StoreUnitCapacities(game, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
   case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
-  case GRID_STEP:          r = opeu_grid_step(ds + Arg(args, count, 0), ds + Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ELEMENT_UNIT:       r = opeu_find_element_unit(ds, Arg(args, count, 0)); break;
-  case UNIT_ELIGIBLE:      r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
+  case GRID_STEP:          r = opeu_grid_step(game.State().Bytes(Arg(args, count, 0), 1).data(), game.State().Bytes(Arg(args, count, 1), 1).data(), (uint8_t)Arg(args, count, 2)); break;
+  case ELEMENT_UNIT:       r = opeu_find_element_unit(game, Arg(args, count, 0)); break;
+  case UNIT_ELIGIBLE:      r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
+  case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(game, Arg(args, count, 0)); break;
   case UNIT_GROUP:         r = opeu_unit_group(Arg(args, count, 0)); break;
-  case OBJECTIVE_SIDE:     r = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case FORMAT:             opeu_request_format(ds, { args, count }); break;
-  case SIDE_RECORD:        r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CONFIRM:            r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case PENDING_FINISH:     opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:       r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:          r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COPY_STRING:        r = opeu_string_copy(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_MESSAGE:       opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OBJECTIVE_REPORT:   opeu_objective_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DAILY_SHOW: opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
+  case OBJECTIVE_SIDE:     r = opeu_objective_side(game, Arg(args, count, 0)); break;
+  case FORMAT:             opeu_request_format(game, { args, count }); break;
+  case SIDE_RECORD:        r = opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case CONFIRM:            r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case PENDING_FINISH:     opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case UNIT_SPECIAL:       r = opeu_unit_special(game, Arg(args, count, 0)); break;
+  case UNIT_NAME:          r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case COPY_STRING:        r = opeu_string_copy(game, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_MESSAGE:       opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OBJECTIVE_REPORT:   opeu_objective_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW: opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
   default:         port_unhandled("notice", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_notice_view_finish(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_notice_view_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_notice_view_finish(ds, svc_notice);
+  opeu_notice_view_finish(game, svc_notice);
   return 0;
 }

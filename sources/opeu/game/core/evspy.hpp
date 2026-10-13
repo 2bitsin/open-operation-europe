@@ -4,13 +4,13 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_spy_commander_ready(uint8_t* ds, HostEvent event);
-void     opeu_spy_portrait_text(uint8_t* ds, HostEvent event, uint16_t text, uint16_t show);
-void     opeu_spy_present_a(uint8_t* ds, HostEvent event);
-void     opeu_spy_show_a(uint8_t* ds, HostEvent event);
-void     opeu_spy_present_b(uint8_t* ds, HostEvent event);
-void     opeu_spy_approach(uint8_t* ds, HostEvent event);
-void     opeu_spy_event(uint8_t* ds, HostEvent event);
+uint16_t opeu_spy_commander_ready(Game& game, HostEvent event);
+void     opeu_spy_portrait_text(Game& game, HostEvent event, uint16_t text, uint16_t show);
+void     opeu_spy_present_a(Game& game, HostEvent event);
+void     opeu_spy_show_a(Game& game, HostEvent event);
+void     opeu_spy_present_b(Game& game, HostEvent event);
+void     opeu_spy_approach(Game& game, HostEvent event);
+void     opeu_spy_event(Game& game, HostEvent event);
 
 // Runs the services the module's routines call through their event.
-uint16_t svc_evspy(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_evspy(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

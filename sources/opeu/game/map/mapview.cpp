@@ -6,6 +6,7 @@
 #include "map/mapview.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/order.hpp"
 #include "core/recindex.hpp"
@@ -38,76 +39,76 @@ constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 constexpr uint8_t  OBJECTIVE_CODE{ 1 };
 
 // Copies a sprite from the sprite segment into the DS buffer `destination`.
-void ReadSprite(uint8_t* ds, HostEvent event, uint16_t offset, uint16_t destination) {
-  Call(ds, event, MapService::READ_FAR_BYTES, offset, SPRITE_SEGMENT, destination, SPRITE_BYTES);
+void ReadSprite(Game& game, HostEvent event, uint16_t offset, uint16_t destination) {
+  Call(game, event, MapService::READ_FAR_BYTES, offset, SPRITE_SEGMENT, destination, SPRITE_BYTES);
 }
 
 // Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.
-void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], sprite_offset, sprite_segment, 0, data.bitmap_buffer, 0);
+void Compose(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
+  auto const& data{ Data(game) };
+  Call(game, event, MapService::SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], sprite_offset, sprite_segment, 0, data.bitmap_buffer, 0);
 }
 
 } // namespace
 
 // The sprite is read into a DS buffer the far read, the recolouring and the compose service work on.
-void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16_t x, uint16_t y) {
-  auto&               data{ Data(ds) };
+void opeu_view_unit_draw(Game& game, HostEvent event, uint16_t unit, uint16_t x, uint16_t y) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ SPRITE_BYTES };
   auto const          sprite_buffer{ locals.At(0) };
   auto const          side{ opeu_unit_side(unit) };
-  auto const          recolor{ [&] { opeu_sprite_recolor(ds, sprite_buffer, SPRITE_BYTES, side); } };
+  auto const          recolor{ [&] { opeu_sprite_recolor(game, sprite_buffer, SPRITE_BYTES, side); } };
   bool                order_shown{ false };
   uint8_t             destination_x;
   uint8_t             destination_y;
-  if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y) && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
+  if (opeu_unit_order_destination(game, unit, &destination_x, &destination_y) && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown = ShowsUntilStarted(kind) ? !order.progress : order.progress < 100;
     if (order_shown) {
       auto const sprite{ data.order_glyphs[kind] };
-      ReadSprite(ds, event, static_cast<uint16_t>(ORDER_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
+      ReadSprite(game, event, static_cast<uint16_t>(ORDER_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
       recolor();
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(ORDER_MASKS + sprite * SPRITE_BYTES));
-      Compose(ds, event, x, y, sprite_buffer, DATA_SEGMENT);
+      Compose(game, event, x, y, sprite_buffer, DATA_SEGMENT);
       if (kind == 1 || kind == 2 || kind == 3) order_shown = false;
     }
   }
   if (!order_shown) {
-    auto const& element{ Record<Element>(data, opeu_unit_selected_element(ds, unit)) };
+    auto const& element{ Record<Element>(data, opeu_unit_selected_element(game, unit)) };
     auto const  sprite{ data.element_types[element.type].category };
-    ReadSprite(ds, event, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
+    ReadSprite(game, event, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
     recolor();
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
-    Compose(ds, event, x, y, sprite_buffer, DATA_SEGMENT);
+    Compose(game, event, x, y, sprite_buffer, DATA_SEGMENT);
   }
-  opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
+  opeu_view_number(game, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
 
 // Redraws the tactical view's cell (x, y) and the unit on it.
-void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
-  auto&      data{ Data(ds) };
+void opeu_view_cell_draw(Game& game, HostEvent event, uint16_t x, uint16_t y) {
+  auto&      data{ Data(game) };
   auto const cell_x{ static_cast<uint8_t>(x) };
   auto const cell_y{ static_cast<uint8_t>(y) };
   auto const pixel{ ViewPixel(data, { cell_x, cell_y }) };
   auto const pixel_x{ pixel.x };
   auto const pixel_y{ pixel.y };
   auto const tile{ data.map_tiles[MAP_WIDTH * cell_y + cell_x] };
-  Call(ds, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 3, 24, 0, data.tile_segment, tile * TILE_BYTES);
+  Call(game, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 3, 24, 0, data.tile_segment, tile * TILE_BYTES);
   auto const overlay{ [&](uint8_t sprite) {
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
-    Compose(ds, event, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);
+    Compose(game, event, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);
   } };
-  if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(ds, cell_x, cell_y, data.view_side)) overlay(OVERLAY_SPRITE);
-  switch (opeu_map_code(ds, cell_x, cell_y)) {
+  if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(game, cell_x, cell_y, data.view_side)) overlay(OVERLAY_SPRITE);
+  switch (opeu_map_code(game, cell_x, cell_y)) {
   case BRIDGE_CODE:    overlay(BRIDGE_SPRITE); break;
-  case OBJECTIVE_CODE: opeu_view_cell_paint(ds, event, pixel_x, pixel_y, opeu_objective_side(ds, opeu_find_objective_at(ds, cell_x, cell_y)) ? 1 : 2); break;
+  case OBJECTIVE_CODE: opeu_view_cell_paint(game, event, pixel_x, pixel_y, opeu_objective_side(game, opeu_find_objective_at(game, cell_x, cell_y)) ? 1 : 2); break;
   }
-  auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-  if (unit != 0 && opeu_unit_visible(ds, unit)) opeu_view_unit_draw(ds, event, unit, pixel_x, pixel_y);
+  auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
+  if (unit != 0 && opeu_unit_visible(game, unit)) opeu_view_unit_draw(game, event, unit, pixel_x, pixel_y);
 }
 
 // The services this module raises (restore, compose, view prepare, far read) are the map segment's shared ones.
-uint16_t svc_mapview(uint8_t* ds, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(ds, "mapview", kind, args, count);
+uint16_t svc_mapview(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
+  return svc_map_plan(game, "mapview", kind, args, count);
 }

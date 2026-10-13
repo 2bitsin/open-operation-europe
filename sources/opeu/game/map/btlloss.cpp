@@ -7,29 +7,30 @@
 #include "map/btlcmdr.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
 
-void opeu_battle_loss_check(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
+void opeu_battle_loss_check(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
   if (attacker)
-    Call(ds, event, BattleRoutine::BATTLE_RANGED_FIRE, attacker, target);
+    Call(game, event, BattleRoutine::BATTLE_RANGED_FIRE, attacker, target);
   else
-    Call(ds, event, BattleRoutine::BATTLE_MINE_HIT, target);
-  if (Data(ds).battle_element_destroyed) {
-    if (target) opeu_battle_element_destroy(ds, event, target);
-    if (!static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) && attacker) Call(ds, event, BattleRoutine::BATTLE_UPDATE_ELEMENT, attacker);
+    Call(game, event, BattleRoutine::BATTLE_MINE_HIT, target);
+  if (Data(game).battle_element_destroyed) {
+    if (target) opeu_battle_element_destroy(game, event, target);
+    if (!static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_COMPUTER_TURN)) && attacker) Call(game, event, BattleRoutine::BATTLE_UPDATE_ELEMENT, attacker);
   }
 }
 
 // The services of this module: the commander group's (map/btlcmdr).
-uint16_t svc_btlloss(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_commander(ds, service, args, count);
+uint16_t svc_btlloss(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_commander(game, service, args, count);
 }
 
-auto port_routine_opeu_battle_loss_check(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_loss_check(ds, svc_btlloss, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_loss_check(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_loss_check(game, svc_btlloss, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

@@ -3,9 +3,9 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_location_blast(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side);
-void opeu_blast_erase(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y);
-void opeu_blast_pause(uint8_t* ds, HostEvent event);
+void opeu_location_blast(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t side);
+void opeu_blast_erase(Game& game, HostEvent event, uint8_t x, uint8_t y);
+void opeu_blast_pause(Game& game, HostEvent event);
 
 // The map segment's shared service kinds (svc_map_plan): argument words in the order of each callee.
 enum class MapService : uint16_t {
@@ -28,5 +28,5 @@ enum class MapService : uint16_t {
 };
 
 // The services of this module and the map segment's shared ones.
-uint16_t svc_blast(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
-uint16_t svc_map_plan(uint8_t* ds, const char* module, uint16_t kind, const uint16_t* args, uint16_t count);
+uint16_t svc_blast(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_map_plan(Game& game, const char* module, uint16_t kind, const uint16_t* args, uint16_t count);

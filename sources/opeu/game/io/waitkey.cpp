@@ -4,11 +4,12 @@
 #include "io/waitkey.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/settings.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -28,35 +29,35 @@ constexpr std::uint16_t TICKS_PER_UNIT{ 6 };
 constexpr std::uint8_t  UNITS_PER_SPEED_STEP{ 3 };
 } // namespace
 
-void opeu_delay_ticks(std::uint8_t* ds, HostEvent event, std::uint16_t ticks) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, TIMER_START, ticks);
-  while (Call(ds, event, TIMER_BUSY)) {
-    if (Call(ds, event, KEY_READY) && static_cast<std::uint8_t>(Call(ds, event, KEY_READ)) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) Call(ds, event, QUIT);
+void opeu_delay_ticks(Game& game, HostEvent event, std::uint16_t ticks) {
+  auto const& data{ Data(game) };
+  Call(game, event, TIMER_START, ticks);
+  while (Call(game, event, TIMER_BUSY)) {
+    if (Call(game, event, KEY_READY) && static_cast<std::uint8_t>(Call(game, event, KEY_READ)) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) Call(game, event, QUIT);
   }
 }
 
-void opeu_delay_units(std::uint8_t* ds, HostEvent event, std::uint8_t units) {
-  opeu_delay_ticks(ds, event, static_cast<std::uint16_t>(units * TICKS_PER_UNIT));
+void opeu_delay_units(Game& game, HostEvent event, std::uint8_t units) {
+  opeu_delay_ticks(game, event, static_cast<std::uint16_t>(units * TICKS_PER_UNIT));
 }
 
-void opeu_pending_finish(std::uint8_t* ds, HostEvent event, std::uint8_t) {
-  opeu_delay_units(ds, event, static_cast<std::uint8_t>(Data(ds).message_speed * UNITS_PER_SPEED_STEP));
+void opeu_pending_finish(Game& game, HostEvent event, std::uint8_t) {
+  opeu_delay_units(game, event, static_cast<std::uint8_t>(Data(game).message_speed * UNITS_PER_SPEED_STEP));
 }
 
-auto svc_waitkey(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
+auto svc_waitkey(Game& game, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
   switch (kind) {
   case TIMER_START: opeu_fm_wait_start(Arg(args, count, 0)); break;
   case TIMER_BUSY:  return opeu_fm_busy();
   case KEY_READY:   return opeu_turn_input_b();
-  case KEY_READ:    return opeu_key_read(ds, static_cast<TextHost*>(port_textout_host()));
-  case QUIT:        opeu_quit_to_dos(ds, svc_settings); break;
+  case KEY_READ:    return opeu_key_read(game, static_cast<TextHost*>(port_textout_host()));
+  case QUIT:        opeu_quit_to_dos(game, svc_settings); break;
   default:          port_unhandled("waitkey", kind, count);
   }
   return 0;
 }
 
-auto port_routine_opeu_delay_units(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_delay_units(ds, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_delay_units(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }

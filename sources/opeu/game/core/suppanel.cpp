@@ -6,13 +6,14 @@
 
 #include "common/data-segment.hpp"
 #include "common/exchange-panel.hpp"
+#include "common/game.hpp"
 #include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -34,16 +35,16 @@ constexpr std::uint8_t KEYS[3][3]{
   { '9', '6', '6' }
 };
 
-auto MousePosition(std::uint8_t* ds, HostEvent event) -> std::array<std::uint16_t, 2> {
+auto MousePosition(Game& game, HostEvent event) -> std::array<std::uint16_t, 2> {
   std::array<std::uint16_t, 2> position{};
-  event(ds, std::to_underlying(MOUSE_POSITION), position.data(), 0);
+  event(game, std::to_underlying(MOUSE_POSITION), position.data(), 0);
   return position;
 }
 } // namespace
 
 // The key under a point of the keypad, NO_KEY off it.
-uint8_t opeu_supply_keypad_hit(uint8_t ds[65536], uint16_t x, uint16_t y) {
-  auto const&  data{ Data(ds) };
+uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
+  auto const&  data{ Data(game) };
   auto const   left{ static_cast<std::uint16_t>(data.supply_panel_x << 3) };
   auto const   top{ data.supply_panel_y };
   std::uint8_t key{ NO_KEY };
@@ -57,20 +58,20 @@ uint8_t opeu_supply_keypad_hit(uint8_t ds[65536], uint16_t x, uint16_t y) {
 
 // With the mouse: the right button is Enter and a left click on the keys 8, 5 or 2 selects row 0, 1 or 2 (stored at
 // the near pointer row, NO_KEY returned). With the keyboard: the key.
-uint8_t opeu_supply_input(uint8_t ds[65536], HostEvent event, uint16_t row) {
-  auto& data{ Data(ds) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(Call(ds, event, KEY));
-  Call(ds, event, MOUSE_SHOW);
-  Call(ds, event, INPUT_DELAY, 3);
+uint8_t opeu_supply_input(Game& game, HostEvent event, uint16_t row) {
+  auto& data{ Data(game) };
+  if (!data.input_mode) return static_cast<std::uint8_t>(Call(game, event, KEY));
+  Call(game, event, MOUSE_SHOW);
+  Call(game, event, INPUT_DELAY, 3);
   std::uint8_t key;
   for (;;) {
-    auto const [x, y]{ MousePosition(ds, event) };
-    if (Call(ds, event, RIGHT_DOWN)) {
+    auto const [x, y]{ MousePosition(game, event) };
+    if (Call(game, event, RIGHT_DOWN)) {
       key = KEY_ENTER;
       break;
     }
-    if (Call(ds, event, LEFT_DOWN)) {
-      key = opeu_supply_keypad_hit(ds, x, y);
+    if (Call(game, event, LEFT_DOWN)) {
+      key = opeu_supply_keypad_hit(game, x, y);
       for (std::uint8_t selected = 0; selected < 3; ++selected)
         if (key == KEYS[1][selected]) {
           Record<std::uint8_t>(data, row) = selected;
@@ -79,58 +80,58 @@ uint8_t opeu_supply_input(uint8_t ds[65536], HostEvent event, uint16_t row) {
       break;
     }
   }
-  Call(ds, event, MOUSE_HIDE);
+  Call(game, event, MOUSE_HIDE);
   return key;
 }
 
-void opeu_supply_set(uint8_t ds[65536], uint8_t side, uint8_t row, uint8_t column, uint16_t value) {
-  Data(ds).supply_table[side][row][column] = value;
+void opeu_supply_set(Game& game, uint8_t side, uint8_t row, uint8_t column, uint16_t value) {
+  Data(game).supply_table[side][row][column] = value;
 }
 
-uint16_t opeu_supply_get(const uint8_t ds[65536], uint8_t side, uint8_t row, uint8_t column) {
-  return Data(ds).supply_table[side][row][column];
+uint16_t opeu_supply_get(Game const& game, uint8_t side, uint8_t row, uint8_t column) {
+  return Data(game).supply_table[side][row][column];
 }
 
 // Restores the panel's background and centres the two names, at most ten characters each, in its title.
-void opeu_supply_draw(uint8_t ds[65536], HostEvent event, uint16_t first, uint16_t second) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, RESTORE, data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
+void opeu_supply_draw(Game& game, HostEvent event, uint16_t first, uint16_t second) {
+  auto const& data{ Data(game) };
+  Call(game, event, RESTORE, data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
   auto const indent{ [&](std::uint16_t name) {
-    auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(ds, name)), NAME_LIMIT) };
+    auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  Call(ds, event, POSITION, indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
-  Call(ds, event, PRINT, offsetof(DataSegment, supply_name_format), first);
-  Call(ds, event, POSITION, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
-  Call(ds, event, PRINT, offsetof(DataSegment, supply_name_text), second);
+  Call(game, event, POSITION, indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
+  Call(game, event, PRINT, offsetof(DataSegment, supply_name_format), first);
+  Call(game, event, POSITION, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
+  Call(game, event, PRINT, offsetof(DataSegment, supply_name_text), second);
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
-void opeu_supply_digits(uint8_t ds[65536], HostEvent event, uint16_t x, uint16_t y, uint16_t value) {
-  DrawDigits(ds, event, GLYPH, x, y, value);
+void opeu_supply_digits(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t value) {
+  DrawDigits(game, event, GLYPH, x, y, value);
 }
 
-uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_suppanel(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SupplyService>(id)) {
-  case MOUSE_SHOW:     opeu_mouse_show(ds, svc_mouse); break;
-  case INPUT_DELAY:    opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
+  case MOUSE_SHOW:     opeu_mouse_show(game, svc_mouse); break;
+  case INPUT_DELAY:    opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
   case MOUSE_POSITION: {
     // x and y go back to the caller's words.
     auto*      out{ const_cast<std::uint16_t*>(args) };
-    auto const position{ MousePosition(ds, svc_mouse) };
+    auto const position{ MousePosition(game, svc_mouse) };
     out[0] = position.x;
     out[1] = position.y;
     break;
   }
-  case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(ds, svc_mouse)); break;
-  case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(ds, svc_mouse)); break;
-  case MOUSE_HIDE: opeu_mouse_hide(ds, svc_mouse); break;
-  case KEY:        r = opeu_keyboard_key(ds, svc_keyboard); break;
+  case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse)); break;
+  case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse)); break;
+  case MOUSE_HIDE: opeu_mouse_hide(game, svc_mouse); break;
+  case KEY:        r = opeu_keyboard_key(game, svc_keyboard); break;
   case RESTORE: opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
-  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
-  case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
+  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:    opeu_cursor_print(game, { args, count }); break;
+  case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), game.State().Bytes(Arg(args, count, 5)).data()); break;
   default:       port_unhandled("suppanel", id, count);
   }
   return r;

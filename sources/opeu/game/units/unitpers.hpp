@@ -1,6 +1,7 @@
 // The general commanding a unit.
 #pragma once
 
+#include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_unit_person(const uint8_t* ds, uint16_t unit);
+uint16_t opeu_unit_person(Game const& game, uint16_t unit);

@@ -31,17 +31,17 @@ enum class RequestMenuService : uint16_t {
   FAR_CALL      = 30, // calls the far routine (offset, segment)
 };
 
-void     opeu_request_no_more(uint8_t* ds, HostEvent event, uint16_t what);
-uint16_t opeu_request_pending(const uint8_t* ds, uint8_t kind);
-uint16_t opeu_request_mode_is(const uint8_t* ds, uint8_t mode);
-uint16_t opeu_request_cancel_prompt(uint8_t* ds, HostEvent event, uint16_t what);
-void     opeu_request_finish(uint8_t* ds, HostEvent event);
-void     opeu_request_file(uint8_t* ds, HostEvent event, uint16_t request);
-uint16_t opeu_side_has_city(const uint8_t* ds);
+void     opeu_request_no_more(Game& game, HostEvent event, uint16_t what);
+uint16_t opeu_request_pending(Game const& game, uint8_t kind);
+uint16_t opeu_request_mode_is(Game const& game, uint8_t mode);
+uint16_t opeu_request_cancel_prompt(Game& game, HostEvent event, uint16_t what);
+void     opeu_request_finish(Game& game, HostEvent event);
+void     opeu_request_file(Game& game, HostEvent event, uint16_t request);
+uint16_t opeu_side_has_city(Game const& game);
 
 namespace opeu::game::detail::rqcommon {
 // Files the request from a copy in a DS reserve of its own.
-auto FileRequest(std::uint8_t* ds, RequestSlot request) -> void;
+auto FileRequest(Game& game, RequestSlot request) -> void;
 } // namespace opeu::game::detail::rqcommon
 
 namespace opeu::game {
@@ -49,5 +49,5 @@ using detail::rqcommon::FileRequest;
 } // namespace opeu::game
 
 // The request menu's services; module names the caller in diagnostics.
-uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
-uint16_t svc_rqcommon(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_rqcommon(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

@@ -5,9 +5,9 @@
 #include "types.hpp"
 
 uint8_t opeu_opposite_side(uint8_t side);
-uint8_t opeu_side_for_status(const uint8_t* ds, uint8_t side);
-void    opeu_select_side_color(uint8_t* ds, SideColorEvent event, uint8_t side);
-uint8_t opeu_record_side(const uint8_t* ds, uint16_t record);
+uint8_t opeu_side_for_status(Game const& game, uint8_t side);
+void    opeu_select_side_color(Game& game, SideColorEvent event, uint8_t side);
+uint8_t opeu_record_side(Game const& game, uint16_t record);
 
 // The colour service opeu_select_side_color is called with.
-void svc_sideutil(uint8_t* ds, uint16_t color);
+void svc_sideutil(Game& game, uint16_t color);

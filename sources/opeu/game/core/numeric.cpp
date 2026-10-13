@@ -3,7 +3,8 @@
 #include "core/limits.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -44,17 +45,17 @@ uint16_t opeu_sub_word(uint16_t amount, uint16_t* value) {
   return *value;
 }
 
-auto port_routine_opeu_mul_div(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_mul_div(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_mul_div(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
 }
 
-auto port_routine_opeu_sub_byte(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
-  return opeu_sub_byte(Arg(args, count, 0), PORT_DS(Arg(args, count, 1)));
+auto port_routine_opeu_sub_byte(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
+  return opeu_sub_byte(Arg(args, count, 0), game.State().Bytes(Arg(args, count, 1), 1).data());
 }
 
-auto port_routine_opeu_sub_word(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
-  return opeu_sub_word(Arg(args, count, 0), (uint16_t*)(void*)PORT_DS(Arg(args, count, 1)));
+auto port_routine_opeu_sub_word(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
+  return opeu_sub_word(Arg(args, count, 0), port_ds_word_ptr(game, Arg(args, count, 1)));
 }

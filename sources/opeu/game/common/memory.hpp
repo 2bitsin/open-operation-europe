@@ -1,5 +1,7 @@
-// Word access, service locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
+// Service locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
 #pragma once
+
+#include "common/game.hpp"
 
 #include "port.hpp"
 
@@ -11,23 +13,6 @@
 
 namespace opeu::game::detail::memory {
 
-// The word at a DS offset: little-endian, the offset of its high byte wraps at 16 bits.
-[[nodiscard]] inline auto Word(std::uint8_t const* ds, std::uint16_t at) noexcept -> std::uint16_t {
-  return static_cast<std::uint16_t>(ds[at] | ds[static_cast<std::uint16_t>(at + 1)] << 8);
-}
-
-// Stores a word at a DS offset; returns the value stored.
-inline auto SetWord(std::uint8_t* ds, std::uint16_t at, std::uint16_t value) noexcept -> std::uint16_t {
-  ds[at]                                 = static_cast<std::uint8_t>(value);
-  ds[static_cast<std::uint16_t>(at + 1)] = static_cast<std::uint8_t>(value >> 8);
-  return value;
-}
-
-// The byte at a DS offset, as a reference: a byte variable a routine receives by its near address.
-[[nodiscard]] inline auto Byte(std::uint8_t* ds, std::uint16_t at) noexcept -> std::uint8_t& {
-  return ds[at];
-}
-
 // Paragraphs of the far data the game addresses as segment:offset pairs (unrelocated, as the services expect them).
 inline constexpr std::uint16_t DATA_SEGMENT{ 0x4712 };       // DS (= SS): a far pointer into the data segment
 inline constexpr std::uint16_t SPRITE_SEGMENT{ 0x361c };     // unit, order and effect sprites and their masks
@@ -38,21 +23,21 @@ inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen bac
 // (BattleRoutine, MapService) passes its value. For services that write results back into the argument array, build
 // the array at the call site instead.
 template <typename Event, typename Service, typename... Words>
-inline auto Call(std::uint8_t* ds, Event event, Service service, Words... words) {
+inline auto Call(Game& game, Event event, Service service, Words... words) {
   if constexpr (std::is_enum_v<Service>) {
-    return Call(ds, event, std::to_underlying(service), words...);
+    return Call(game, event, std::to_underlying(service), words...);
   } else if constexpr (sizeof...(Words) == 0) {
-    return event(ds, service, nullptr, 0);
+    return event(game, service, nullptr, 0);
   } else {
     std::uint16_t args[]{ static_cast<std::uint16_t>(words)... };
-    return event(ds, service, args, static_cast<std::uint16_t>(sizeof...(Words)));
+    return event(game, service, args, static_cast<std::uint16_t>(sizeof...(Words)));
   }
 }
 
 // Calls a service whose event takes four argument words (PendingEvent); missing words are 0.
 template <typename Event, typename Service>
-inline auto CallWords(std::uint8_t* ds, Event event, Service service, std::uint16_t a = 0, std::uint16_t b = 0, std::uint16_t c = 0, std::uint16_t d = 0) -> std::uint16_t {
-  return event(ds, static_cast<std::uint16_t>(service), a, b, c, d);
+inline auto CallWords(Game& game, Event event, Service service, std::uint16_t a = 0, std::uint16_t b = 0, std::uint16_t c = 0, std::uint16_t d = 0) -> std::uint16_t {
+  return event(game, static_cast<std::uint16_t>(service), a, b, c, d);
 }
 
 // The DS bytes a routine reserves on the DS stack for its locals whose near address it hands to a service: the
@@ -68,8 +53,8 @@ public:
   }
 
   // Zeroes the reserve: for texts a service prints past their terminator.
-  auto Clear(std::uint8_t* ds) const noexcept -> void {
-    std::ranges::fill(std::span{ ds + _base, _bytes }, std::uint8_t{ 0 });
+  auto Clear(Game& game) const -> void {
+    std::ranges::fill(game.State().Bytes(_base, _bytes), std::uint8_t{ 0 });
   }
 
   // The near address of the local `offset` bytes into the reserve.
@@ -85,13 +70,10 @@ private:
 
 namespace opeu::game {
 using detail::memory::BACKGROUND_SEGMENT;
-using detail::memory::Byte;
 using detail::memory::Call;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
 using detail::memory::CallWords;
 using detail::memory::ServiceLocals;
-using detail::memory::SetWord;
 using detail::memory::SPRITE_SEGMENT;
-using detail::memory::Word;
 } // namespace opeu::game

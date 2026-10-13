@@ -4,13 +4,14 @@
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/game.hpp"
 
 using namespace opeu::game;
 
 // The near pointer of the first ready unit whose element chain holds the element, 0 when none does. A chain must
 // end; a cyclic one never returns.
-uint16_t opeu_find_element_unit(const uint8_t ds[65536], uint16_t element) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_find_element_unit(Game const& game, uint16_t element) {
+  auto const& data{ Data(game) };
   for (auto const& unit : data.units) {
     if (!(unit.flags & Bits(UnitFlag::READY))) continue;
     for (auto it{ Elements(data, unit).begin() }; it != std::default_sentinel; ++it)

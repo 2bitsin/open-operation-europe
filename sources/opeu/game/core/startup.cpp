@@ -12,10 +12,11 @@
 #include <span>
 #include <utility>
 
+#include "common/game.hpp"
 #include "core/scensel.hpp"
 #include "core/segsetup.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -44,21 +45,21 @@ constexpr uint8_t NEW_GAME_SCHEDULE{ 7 };
 } // namespace
 
 // The sum of the general's eight ability ratings.
-uint16_t opeu_person_ability_total(const uint8_t ds[65536], uint16_t person) {
-  auto const& general{ Record<Person>(Data(ds), person) };
+uint16_t opeu_person_ability_total(Game const& game, uint16_t person) {
+  auto const& general{ Record<Person>(Data(game), person) };
   return general.leadership + general.charm + general.bravery + general.health + general.infantry + general.artillery + general.armor + general.experience;
 }
 
 // Stores the indices of the side's present generals in order[], ablest first (a stable sort), and returns how many.
-uint8_t opeu_rank_side_people(uint8_t ds[65536], uint8_t side, uint8_t* order) {
-  auto&    data{ Data(ds) };
+uint8_t opeu_rank_side_people(Game& game, uint8_t side, uint8_t* order) {
+  auto&    data{ Data(game) };
   uint16_t totals[PEOPLE_PER_SIDE];
   uint8_t  count{ 0 };
   uint8_t  index{ 0 };
   for (auto const& general : SideGenerals(data, side)) {
     if (general.status != PERSON_VACANT) {
       order[count]  = index;
-      totals[count] = opeu_person_ability_total(ds, Near(data, general));
+      totals[count] = opeu_person_ability_total(game, Near(data, general));
       count++;
     }
     index++;
@@ -74,16 +75,16 @@ uint8_t opeu_rank_side_people(uint8_t ds[65536], uint8_t side, uint8_t* order) {
 
 // Gives each computer side's three ablest generals the staff roles and the next four the divisions; marks every
 // fielded unit's cell with its side; resets the turn order and the objective and unit links; sets the schedule.
-void opeu_assign_side_staff(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_assign_side_staff(Game& game) {
+  auto& data{ Data(game) };
   for (uint8_t side = 0; side < SIDE_COUNT; side++) {
     if (data.side_control[side] != SIDE_COMPUTER) continue;
     uint8_t ranked[PEOPLE_PER_SIDE];
-    opeu_rank_side_people(ds, side, ranked);
+    opeu_rank_side_people(game, side, ranked);
     auto const generals{ SideGenerals(data, side) };
     uint8_t    rank{ 0 };
-    for (auto const role : STAFF_ROLES) opeu_person_set_role(ds, Near(data, generals[ranked[rank++]]), std::to_underlying(role));
-    for (uint8_t group = 0; group < GROUPS_PER_SIDE; group++) opeu_person_set_group(ds, Near(data, generals[ranked[rank++]]), group);
+    for (auto const role : STAFF_ROLES) opeu_person_set_role(game, Near(data, generals[ranked[rank++]]), std::to_underlying(role));
+    for (uint8_t group = 0; group < GROUPS_PER_SIDE; group++) opeu_person_set_group(game, Near(data, generals[ranked[rank++]]), group);
   }
   for (uint8_t i = 0; i < data.units.size(); i++) {
     auto const& unit{ data.units[i] };
@@ -100,26 +101,26 @@ void opeu_assign_side_staff(uint8_t ds[65536]) {
 }
 
 // Seeds the random numbers from the clock, prepares the machine and, when a new game is set up, staffs the sides.
-void opeu_app_startup_service(uint8_t ds[65536], HostEvent event) {
-  opeu_rand_seed(Call(ds, event, StartupService::CLOCK_TICKS));
-  Call(ds, event, StartupService::PREPARE);
-  auto& data{ Data(ds) };
-  if (Call(ds, event, StartupService::NEW_GAME)) {
-    opeu_assign_side_staff(ds);
+void opeu_app_startup_service(Game& game, HostEvent event) {
+  opeu_rand_seed(Call(game, event, StartupService::CLOCK_TICKS));
+  Call(game, event, StartupService::PREPARE);
+  auto& data{ Data(game) };
+  if (Call(game, event, StartupService::NEW_GAME)) {
+    opeu_assign_side_staff(game);
     data.startup_mode += STARTUP_STEP;
   }
   data.startup_mode += STARTUP_STEP;
-  Call(ds, event, StartupService::VGA_CLEAR);
-  Call(ds, event, StartupService::FINISH, 1);
+  Call(game, event, StartupService::VGA_CLEAR);
+  Call(game, event, StartupService::FINISH, 1);
 }
 
-uint16_t svc_startup(uint8_t* ds, uint16_t service, const uint16_t* args, uint16_t count) {
+uint16_t svc_startup(Game& game, uint16_t service, const uint16_t* args, uint16_t count) {
   switch (static_cast<StartupService>(service)) {
   case StartupService::CLOCK_TICKS: return port_clock_ticks_low();
-  case StartupService::PREPARE:     opeu_app_prepare(ds, svc_segsetup); break;
-  case StartupService::NEW_GAME:    return static_cast<uint16_t>(opeu_new_game_setup(ds, svc_scensel));
+  case StartupService::PREPARE:     opeu_app_prepare(game, svc_segsetup); break;
+  case StartupService::NEW_GAME:    return static_cast<uint16_t>(opeu_new_game_setup(game, svc_scensel));
   case StartupService::VGA_CLEAR:   opeu_vga_clear(); break;
-  case StartupService::FINISH:      opeu_finish_side_initialization(ds, svc_sound, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case StartupService::FINISH:      opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(Arg(args, count, 0))); break;
   default:                          port_unhandled("startup", service, count);
   }
   return 0;

@@ -6,11 +6,12 @@
 #include "units/typetext.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
 #include "io/listui.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -43,23 +44,23 @@ auto TypeAt(std::uint8_t type) -> std::uint16_t {
 }
 
 // Works out the list's column layout into a reserve of its own; the table views do not read it.
-auto LayOutColumns(std::uint8_t* ds, std::uint8_t column, std::uint8_t row) -> void {
+auto LayOutColumns(Game& game, std::uint8_t column, std::uint8_t row) -> void {
   ServiceLocals const locals{ 4 };
   auto const          out{ locals.At(0) };
-  opeu_table_columns(ds, svc_listui, column, row, out, static_cast<std::uint16_t>(out + 1), static_cast<std::uint16_t>(out + 2));
+  opeu_table_columns(game, svc_listui, column, row, out, static_cast<std::uint16_t>(out + 1), static_cast<std::uint16_t>(out + 2));
 }
 
 } // namespace
 
 // The list predicate of the units view: whether the unit on the selected row may be picked.
-uint8_t opeu_supply_unit_eligible(uint8_t ds[65536]) {
-  auto const& data{ Data(ds) };
-  return opeu_unit_selection_eligible(ds, data.supply_units[data.list_row]) ? 1 : 0;
+uint8_t opeu_supply_unit_eligible(Game& game) {
+  auto const& data{ Data(game) };
+  return opeu_unit_selection_eligible(game, data.supply_units[data.list_row]) ? 1 : 0;
 }
 
 // Empties the type rows, their sums and averages, the total and every slot.
-void opeu_supply_reset(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_supply_reset(Game& game) {
+  auto& data{ Data(game) };
   for (auto row = 0u; row < data.alloc_slots.size(); ++row) {
     data.supply_morale_sums[row]         = 0;
     data.supply_training_sums[row]       = 0;
@@ -86,29 +87,29 @@ uint8_t opeu_supply_true(void) {
 }
 
 // Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
-void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_types(Game& game, HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
-  auto const&         data{ Data(ds) };
+  auto const&         data{ Data(game) };
   auto const&         window{ ActiveWindow(data) };
-  Call(ds, event, LAYOUT, column, row);
+  Call(game, event, LAYOUT, column, row);
   if (flags & 3) {
-    Call(ds, event, POSITION, window.x + 2, window.y + 1);
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_type_header));
+    Call(game, event, POSITION, window.x + 2, window.y + 1);
+    Call(game, event, PRINT, offsetof(DataSegment, supply_type_header));
   }
   for (std::uint8_t line = first; line <= last; ++line) {
     auto const type{ TypeAt(data.supply_types[line]) };
-    Call(ds, event, POSITION, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
+    Call(game, event, POSITION, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
     auto const amount{ data.supply_amounts[line] };
     auto const other{ data.supply_others[line] };
-    auto const nation{ opeu_nation_code(ds, type, scratch) };
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_type_row), data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR, Record<ElementType>(data, type).name, nation, amount, other);
+    auto const nation{ opeu_nation_code(game, type, scratch) };
+    Call(game, event, PRINT, offsetof(DataSegment, supply_type_row), data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR, Record<ElementType>(data, type).name, nation, amount, other);
   }
 }
 
 // Returns the selected slot's amount to its type row and to the free total, and blanks the slot's row.
-uint8_t opeu_supply_return_slot(uint8_t ds[65536], HostNotify event) {
-  auto& data{ Data(ds) };
+uint8_t opeu_supply_return_slot(Game& game, HostNotify event) {
+  auto& data{ Data(game) };
   auto& slot{ data.alloc_slots[data.list_row] };
   for (auto row = 0u; row < data.supply_types.size(); ++row) {
     if (data.supply_types[row] == slot.type) {
@@ -120,68 +121,68 @@ uint8_t opeu_supply_return_slot(uint8_t ds[65536], HostNotify event) {
   slot.type          = NO_TYPE;
   slot.quantity      = 0;
   auto const y{ data.list_row * LINE_HEIGHT + 0x2e };
-  Call(ds, event, HIGHLIGHT, 0x31, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
-  Call(ds, event, POSITION, 0x2e, y);
-  Call(ds, event, PRINT, offsetof(DataSegment, supply_returned_slot), data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR);
-  Call(ds, event, HIGHLIGHT, 0x2e, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
+  Call(game, event, HIGHLIGHT, 0x31, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
+  Call(game, event, POSITION, 0x2e, y);
+  Call(game, event, PRINT, offsetof(DataSegment, supply_returned_slot), data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR);
+  Call(game, event, HIGHLIGHT, 0x2e, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
   return 1;
 }
 
 // Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
-void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_slots(Game& game, HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
-  auto const&         data{ Data(ds) };
+  auto const&         data{ Data(game) };
   auto const&         window{ ActiveWindow(data) };
-  Call(ds, event, LAYOUT, column, row);
+  Call(game, event, LAYOUT, column, row);
   if (flags & 3) {
-    Call(ds, event, POSITION, window.x + 2, window.y + 1);
-    Call(ds, event, PRINT, offsetof(DataSegment, supply_slot_header));
+    Call(game, event, POSITION, window.x + 2, window.y + 1);
+    Call(game, event, PRINT, offsetof(DataSegment, supply_slot_header));
   }
   for (std::uint16_t line = first; line <= last; ++line) {
-    Call(ds, event, POSITION, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
+    Call(game, event, POSITION, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
     auto const& slot{ data.alloc_slots[line] };
     auto const  colour{ line < data.supply_count ? HELD_COLOUR : OTHER_COLOUR };
     if (slot.quantity) {
       // The name's buffer lies directly below the nation's, so an overlong name runs into it.
       auto const amount{ slot.quantity };
-      auto const nation{ opeu_nation_code(ds, TypeAt(slot.type), static_cast<std::uint16_t>(scratch + NAME_BUFFER)) };
-      auto const name{ opeu_item_type_name(ds, Near(data, slot), scratch) };
-      Call(ds, event, PRINT, offsetof(DataSegment, supply_slot_row), colour, name, nation, amount);
+      auto const nation{ opeu_nation_code(game, TypeAt(slot.type), static_cast<std::uint16_t>(scratch + NAME_BUFFER)) };
+      auto const name{ opeu_item_type_name(game, Near(data, slot), scratch) };
+      Call(game, event, PRINT, offsetof(DataSegment, supply_slot_row), colour, name, nation, amount);
     } else {
-      Call(ds, event, PRINT, offsetof(DataSegment, supply_empty_slot), colour);
+      Call(game, event, PRINT, offsetof(DataSegment, supply_empty_slot), colour);
     }
   }
 }
 
-void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+void svc_suptable(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SupplyTableService>(id)) {
-  case LAYOUT:    LayOutColumns(ds, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case POSITION:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:     opeu_cursor_print(ds, { args, count }); break;
+  case LAYOUT:    LayOutColumns(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case POSITION:  opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:     opeu_cursor_print(game, { args, count }); break;
   case HIGHLIGHT: opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   default:        port_unhandled("suptable", id, count);
   }
 }
 
-auto port_routine_opeu_supply_draw_slots(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_supply_draw_slots(ds, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+auto port_routine_opeu_supply_draw_slots(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_supply_draw_slots(game, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   return 0;
 }
 
-auto port_routine_opeu_supply_draw_types(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_supply_draw_types(ds, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+auto port_routine_opeu_supply_draw_types(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_supply_draw_types(game, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
   return 0;
 }
 
-auto port_routine_opeu_supply_return_slot(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_supply_return_slot(ds, svc_suptable);
+auto port_routine_opeu_supply_return_slot(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_supply_return_slot(game, svc_suptable);
 }
 
-auto port_routine_opeu_supply_true(std::uint8_t*, std::uint16_t const*, unsigned) -> std::uint32_t {
+auto port_routine_opeu_supply_true(Game&, std::uint16_t const*, unsigned) -> std::uint32_t {
   return opeu_supply_true();
 }
 
-auto port_routine_opeu_supply_unit_eligible(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_supply_unit_eligible(ds);
+auto port_routine_opeu_supply_unit_eligible(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_supply_unit_eligible(game);
 }

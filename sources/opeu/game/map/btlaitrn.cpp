@@ -20,7 +20,8 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -34,47 +35,47 @@ namespace {
 }
 } // namespace
 
-void opeu_battle_ai_plan_unit(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto&      data{ Data(ds) };
+void opeu_battle_ai_plan_unit(Game& game, BattleEvent event, uint16_t element) {
+  auto&      data{ Data(game) };
   auto const mode{ ElementTypeOf(data, element).gun_range };
-  auto const target{ opeu_battle_ai_unit_target(ds, event, element) };
-  if (opeu_battle_ai_choose_plan(ds, event, target) < 3 && mode <= RANGED_MODE && target)
-    opeu_battle_ai_attack_near(ds, event, element, target);
+  auto const target{ opeu_battle_ai_unit_target(game, event, element) };
+  if (opeu_battle_ai_choose_plan(game, event, target) < 3 && mode <= RANGED_MODE && target)
+    opeu_battle_ai_attack_near(game, event, element, target);
   else
-    opeu_battle_ai_hold(ds, event, element);
+    opeu_battle_ai_hold(game, event, element);
 }
 
-void opeu_battle_ai_enter_or_hold(uint8_t* ds, BattleEvent event, uint16_t element) {
-  if (!opeu_battle_ai_enter(ds, event, element)) opeu_battle_ai_hold(ds, event, element);
+void opeu_battle_ai_enter_or_hold(Game& game, BattleEvent event, uint16_t element) {
+  if (!opeu_battle_ai_enter(game, event, element)) opeu_battle_ai_hold(game, event, element);
 }
 
-void opeu_battle_ai_element(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto&       data{ Data(ds) };
-  auto const  unit{ opeu_battle_element_unit(ds, event, element) };
+void opeu_battle_ai_element(Game& game, BattleEvent event, uint16_t element) {
+  auto&       data{ Data(game) };
+  auto const  unit{ opeu_battle_element_unit(game, event, element) };
   auto const& record{ Record<Unit>(data, unit) };
   // A heavy element of a unit out of fuel stays; a unit out of ammunition, or set to leave, makes for the edge.
   if (ElementTypeOf(data, element).fuel_capacity && record.resources[1] == 0) {
-    opeu_battle_ai_hold(ds, event, element);
+    opeu_battle_ai_hold(game, event, element);
     return;
   }
-  if (record.resources[0] == 0 || opeu_battle_ai_plan_low(ds, event, element) == 4 || opeu_battle_ai_plan_high(ds, event, element) == 1) {
-    opeu_battle_ai_enter_or_hold(ds, event, element);
+  if (record.resources[0] == 0 || opeu_battle_ai_plan_low(game, event, element) == 4 || opeu_battle_ai_plan_high(game, event, element) == 1) {
+    opeu_battle_ai_enter_or_hold(game, event, element);
     return;
   }
   if (unit == Near(data, data.battle_garrison))
-    opeu_battle_ai_plan_unit(ds, event, element);
+    opeu_battle_ai_plan_unit(game, event, element);
   else
-    opeu_battle_ai_think(ds, event, element);
+    opeu_battle_ai_think(game, event, element);
 }
 
-void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side, uint8_t index) {
-  auto& data{ Data(ds) };
+void opeu_battle_ai_assign_targets(Game& game, BattleEvent event, uint8_t side, uint8_t index) {
+  auto& data{ Data(game) };
   auto& slot{ data.battle_ai_targets[side * BATTLE_LIST_LENGTH + index] };
-  if (slot && opeu_battle_unit_active(ds, event, slot)) return;
+  if (slot && opeu_battle_unit_active(game, event, slot)) return;
   slot = 0;
   auto const unit{ BattleList(data, side, index) };
-  auto const direction{ UnitDirection(ds, event, unit) };
-  (void)opeu_battle_unit_side(ds, event, unit);
+  auto const direction{ UnitDirection(game, event, unit) };
+  (void)opeu_battle_unit_side(game, event, unit);
   if (direction == BATTLE_NOT_ADJACENT) {
     auto const target{ BattleList(data, 0, 0) };
     if (UnitAt(data, target, data.battle_attacker_x, data.battle_attacker_y)) slot = target;
@@ -82,7 +83,7 @@ void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side,
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
       auto const target{ BattleList(data, 0, i) };
       if (!target) continue;
-      auto const other{ UnitDirection(ds, event, target) };
+      auto const other{ UnitDirection(game, event, target) };
       if (data.battle_ai_pairs[direction * 2u] == other || data.battle_ai_pairs[direction * 2u + 1] == other) slot = target;
     }
   } else {
@@ -96,28 +97,28 @@ void opeu_battle_ai_assign_targets(uint8_t* ds, BattleEvent event, uint8_t side,
   if (slot == 0) slot = BattleList(data, side == 0 ? 1 : 0, 0);
 }
 
-void opeu_battle_ai_plan_side(uint8_t* ds, BattleEvent event, uint16_t unit) {
-  auto&      data{ Data(ds) };
-  auto const plan{ Record<Unit>(data, unit).resources[0] == 0 ? uint8_t{ 1 } : opeu_battle_ai_choose_plan(ds, event, unit) };
-  auto const profile{ opeu_battle_ai_profile(ds, event, unit, 1) };
+void opeu_battle_ai_plan_side(Game& game, BattleEvent event, uint16_t unit) {
+  auto&      data{ Data(game) };
+  auto const plan{ Record<Unit>(data, unit).resources[0] == 0 ? uint8_t{ 1 } : opeu_battle_ai_choose_plan(game, event, unit) };
+  auto const profile{ opeu_battle_ai_profile(game, event, unit, 1) };
   data.battle_ai_plans[data.battle_ai_side * BATTLE_LIST_LENGTH + data.battle_ai_index] = static_cast<uint8_t>(profile | plan << 4);
-  opeu_battle_ai_assign_targets(ds, event, data.battle_ai_side, data.battle_ai_index);
+  opeu_battle_ai_assign_targets(game, event, data.battle_ai_side, data.battle_ai_index);
   for (auto& element : Elements(data, Record<Unit>(data, unit)))
-    if (opeu_battle_element_active(ds, event, Near(data, element))) opeu_battle_ai_element(ds, event, Near(data, element));
+    if (opeu_battle_element_active(game, event, Near(data, element))) opeu_battle_ai_element(game, event, Near(data, element));
 }
 
-void opeu_battle_select_service(uint8_t* ds, BattleEvent event) {
-  auto& data{ Data(ds) };
+void opeu_battle_select_service(Game& game, BattleEvent event) {
+  auto& data{ Data(game) };
   if (auto const selected{ data.battle_selected }) {
-    auto const unit{ opeu_battle_element_unit(ds, event, selected) };
-    auto const side{ opeu_battle_unit_side(ds, event, unit) };
-    data.battle_ai_side = static_cast<uint8_t>(opeu_battle_unit_side(ds, event, BattleList(data, 0, 0)) == side ? 0 : 1);
+    auto const unit{ opeu_battle_element_unit(game, event, selected) };
+    auto const side{ opeu_battle_unit_side(game, event, unit) };
+    data.battle_ai_side = static_cast<uint8_t>(opeu_battle_unit_side(game, event, BattleList(data, 0, 0)) == side ? 0 : 1);
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
       if (BattleList(data, data.battle_ai_side, i) == unit) {
         data.battle_ai_index = i;
         break;
       }
-    opeu_battle_ai_element(ds, event, data.battle_selected);
+    opeu_battle_ai_element(game, event, data.battle_selected);
     data.battle_selected = 0;
     return;
   }
@@ -126,16 +127,17 @@ void opeu_battle_select_service(uint8_t* ds, BattleEvent event) {
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
       data.battle_ai_index = i;
       auto const unit{ BattleList(data, side, i) };
-      if (unit && !Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit) && opeu_battle_level_allowed(ds, event, Record<Unit>(data, unit).first)) opeu_battle_ai_plan_side(ds, event, unit);
+      if (unit && !Call(game, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit) && opeu_battle_level_allowed(game, event, Record<Unit>(data, unit).first))
+        opeu_battle_ai_plan_side(game, event, unit);
     }
   }
 }
 
-uint16_t svc_btlaitrn(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_ai(ds, service, args, count);
+uint16_t svc_btlaitrn(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_ai(game, service, args, count);
 }
 
-auto port_routine_opeu_battle_select_service(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_select_service(ds, svc_btlaitrn);
+auto port_routine_opeu_battle_select_service(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_battle_select_service(game, svc_btlaitrn);
   return 0;
 }

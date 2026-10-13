@@ -5,11 +5,12 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,39 +39,39 @@ constexpr std::uint16_t COLOR_WHITE{ 7 };
 
 } // namespace
 
-void opeu_army_heading(uint8_t ds[65536], HostNotify event, SideColorEvent color_event, uint16_t person) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, FILL, 6, 0, 73, 50, 0);
-  Call(ds, event, OUTLINE, 6, 0, 73, 51, COLOR_WHITE);
-  Call(ds, event, CURSOR, 1, 2);
-  Call(ds, event, TEXT, data.side_names[data.current_side]);
-  opeu_select_side_color(ds, color_event, data.current_side);
-  Call(ds, event, CURSOR, 1, 18);
-  Call(ds, event, PRINT, ARMY_PERSON, SideTextColor(data.current_side), person);
-  Call(ds, event, CURSOR, 1, 34);
-  Call(ds, event, PRINT, ARMY_HQ);
-  Call(ds, event, LINE, 40, 51, 40, 186, COLOR_WHITE);
+void opeu_army_heading(Game& game, HostNotify event, SideColorEvent color_event, uint16_t person) {
+  auto const& data{ Data(game) };
+  Call(game, event, FILL, 6, 0, 73, 50, 0);
+  Call(game, event, OUTLINE, 6, 0, 73, 51, COLOR_WHITE);
+  Call(game, event, CURSOR, 1, 2);
+  Call(game, event, TEXT, data.side_names[data.current_side]);
+  opeu_select_side_color(game, color_event, data.current_side);
+  Call(game, event, CURSOR, 1, 18);
+  Call(game, event, PRINT, ARMY_PERSON, SideTextColor(data.current_side), person);
+  Call(game, event, CURSOR, 1, 34);
+  Call(game, event, PRINT, ARMY_HQ);
+  Call(game, event, LINE, 40, 51, 40, 186, COLOR_WHITE);
 }
 
-void opeu_division_heading(uint8_t ds[65536], HostNotify event, uint16_t person) {
-  auto& data{ Data(ds) };
-  Call(ds, event, FILL, 6, 143, 73, 256, 0);
-  Call(ds, event, OUTLINE, 5, 142, 73, 257, COLOR_WHITE);
-  Call(ds, event, CURSOR, 1, 225);
-  Call(ds, event, PRINT, DIVISION_LABEL, SideTextColor(data.current_side), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1);
-  Call(ds, event, CURSOR, 1, 241);
-  Call(ds, event, PRINT, DIVISION_PERSON, SideTextColor(data.current_side), person);
-  Call(ds, event, PORTRAIT, 1, 144, person);
+void opeu_division_heading(Game& game, HostNotify event, uint16_t person) {
+  auto& data{ Data(game) };
+  Call(game, event, FILL, 6, 143, 73, 256, 0);
+  Call(game, event, OUTLINE, 5, 142, 73, 257, COLOR_WHITE);
+  Call(game, event, CURSOR, 1, 225);
+  Call(game, event, PRINT, DIVISION_LABEL, SideTextColor(data.current_side), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1);
+  Call(game, event, CURSOR, 1, 241);
+  Call(game, event, PRINT, DIVISION_PERSON, SideTextColor(data.current_side), person);
+  Call(game, event, PORTRAIT, 1, 144, person);
 }
 
-void svc_headings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+void svc_headings(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
   case FILL:     opeu_ui_fill(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case OUTLINE:  opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case CURSOR:   opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
-  case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case OUTLINE:  opeu_ui_outline(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case CURSOR:   opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TEXT:     opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case PRINT:    opeu_cursor_print(game, { args, count }); break;
+  case PORTRAIT: opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case LINE:     opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   default:       port_unhandled("headings", id, count);
   }

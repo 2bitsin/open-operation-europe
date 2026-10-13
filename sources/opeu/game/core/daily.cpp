@@ -5,10 +5,11 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -29,8 +30,8 @@ constexpr std::uint16_t EVENT_PICTURE{ 0x73 };
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x0e36 };
 } // namespace
 
-void opeu_scan_daily_events(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  auto& data{ Data(ds) };
+void opeu_scan_daily_events(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+  auto& data{ Data(game) };
   for (data.daily_side = 0; data.daily_side < SIDE_COUNT; ++data.daily_side) {
     if (data.side_status[data.daily_side] != SIDE_PLAYED) continue;
     data.daily_record = ELEMENT_TYPES_AT;
@@ -40,27 +41,27 @@ void opeu_scan_daily_events(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint1
       std::uint8_t const month{ static_cast<std::uint8_t>(record.date & 15) };
       if ((data.side_masks[data.daily_side] & record.sides) && year == data.year && month == data.month) {
         data.daily_active = 1;
-        if (data.daily_pending) event(ds, CONTEXT, data.daily_side, 0, 0, 0);
+        if (data.daily_pending) event(game, CONTEXT, data.daily_side, 0, 0, 0);
         data.daily_active  = 0;
         data.daily_pending = 0;
-        event(ds, ACTIVATE, data.daily_side, 0, 0, 0);
-        event(ds, SHOW, EVENT_PICTURE, data.daily_side, 0, PRESENT_SEGMENT);
+        event(game, ACTIVATE, data.daily_side, 0, 0, 0);
+        event(game, SHOW, EVENT_PICTURE, data.daily_side, 0, PRESENT_SEGMENT);
       }
     }
   }
 }
 
-void opeu_turn_daily(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  event(ds, PREPARE, 0, 0, 0, 0);
-  opeu_scan_daily_events(ds, event);
+void opeu_turn_daily(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+  event(game, PREPARE, 0, 0, 0, 0);
+  opeu_scan_daily_events(game, event);
 }
 
-uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
+uint16_t svc_daily(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
   switch (id) {
-  case PREPARE:  opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
-  case CONTEXT:  opeu_daily_context(ds, svc_context, (uint8_t)a0); break;
-  case ACTIVATE: opeu_daily_activate(ds, svc_maperase, static_cast<std::uint8_t>(a0)); break;
-  case SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
+  case PREPARE:  opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
+  case CONTEXT:  opeu_daily_context(game, svc_context, (uint8_t)a0); break;
+  case ACTIVATE: opeu_daily_activate(game, svc_maperase, static_cast<std::uint8_t>(a0)); break;
+  case SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
   default:       port_unhandled("daily", id, 4);
   }
   return 0;

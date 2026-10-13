@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/map-grid.hpp"
 #include "core/aibudget.hpp"
 #include "core/daylist.hpp"
@@ -27,7 +28,7 @@
 
 using namespace opeu::game;
 
-uint16_t (*opeu_ai_unrecovered)(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx);
+uint16_t (*opeu_ai_unrecovered)(Game& game, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx);
 
 namespace {
 
@@ -63,8 +64,8 @@ auto StepAround(std::uint8_t x, std::uint8_t y, std::uint8_t& to_x, std::uint8_t
 } // namespace
 
 // The side's transport planes not committed to the airlift or a pending drop, floored at 0.
-uint16_t opeu_ai_spare_cargo(uint8_t ds[65536]) {
-  auto&         side{ CurrentSide(Data(ds)) };
+uint16_t opeu_ai_spare_cargo(Game& game) {
+  auto&         side{ CurrentSide(Data(game)) };
   std::uint16_t spare{ side.planes };
   opeu_sub_word(static_cast<std::uint16_t>(side.lift.planes + side.drop.transports), &spare);
   return spare;
@@ -73,25 +74,27 @@ uint16_t opeu_ai_spare_cargo(uint8_t ds[65536]) {
 // One time in six, plans an air strike: next to a held objective where an enemy special unit stands, at an enemy
 // objective next to one of the side's units that can act, or next to a ready unit of the side where an enemy special
 // unit stands. Returns 1 when a strike was planned.
-uint16_t opeu_ai_002a(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+uint16_t opeu_ai_002a(Game& game) {
+  auto& data{ Data(game) };
   if (opeu_rand_bounded(6)) return 0;
   auto const side_index{ data.current_side };
   auto&      side{ data.sides[side_index] };
   if (!side.bombers) return 0;
   std::uint8_t x{};
   std::uint8_t y{};
-  auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) { return opeu_cell_side(ds, cx, cy) == opeu_opposite_side(side_index) && opeu_unit_special(ds, opeu_find_unit_at(ds, cx, cy)); } };
-  bool         found{ false };
+  auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) {
+    return opeu_cell_side(game, cx, cy) == opeu_opposite_side(side_index) && opeu_unit_special(game, opeu_find_unit_at(game, cx, cy));
+  } };
+  bool found{ false };
   for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE && !found; ++i) {
     auto const near{ data.objective_links[side_index * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near) continue;
     auto const& objective{ Record<Objective>(data, near) };
     if (!objective.active) continue;
-    if (opeu_objective_side(ds, near) == side_index) {
+    if (opeu_objective_side(game, near) == side_index) {
       found = StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) { return enemy_special(cx, cy) && !opeu_rand_bounded(2); });
     } else if (StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) {
-                 return opeu_cell_side(ds, cx, cy) == side_index && opeu_unit_selection_eligible(ds, opeu_find_unit_at(ds, cx, cy)) && !opeu_rand_bounded(4);
+                 return opeu_cell_side(game, cx, cy) == side_index && opeu_unit_selection_eligible(game, opeu_find_unit_at(game, cx, cy)) && !opeu_rand_bounded(4);
                })) {
       x     = objective.x;
       y     = objective.y;
@@ -113,8 +116,8 @@ uint16_t opeu_ai_002a(uint8_t ds[65536]) {
 }
 
 // The first airborne element type the side's nations field, or 255.
-uint8_t opeu_ai_first_allowed_type(uint8_t ds[65536]) {
-  auto const& data{ Data(ds) };
+uint8_t opeu_ai_first_allowed_type(Game& game) {
+  auto const& data{ Data(game) };
   auto const  nations{ data.side_masks[data.current_side] };
   for (std::uint8_t i{ 0 }; i < data.element_types.size(); ++i) {
     auto const& type{ data.element_types[i] };
@@ -124,28 +127,28 @@ uint8_t opeu_ai_first_allowed_type(uint8_t ds[65536]) {
 }
 
 // The first of the side's linked objectives held by the enemy whose cell is not under the side's influence, or 0.
-uint16_t opeu_ai_exposed_enemy_objective(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+uint16_t opeu_ai_exposed_enemy_objective(Game& game) {
+  auto& data{ Data(game) };
   for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
     auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
-    if (!near || opeu_objective_side(ds, near) == data.current_side) continue;
+    if (!near || opeu_objective_side(game, near) == data.current_side) continue;
     auto const& objective{ Record<Objective>(data, near) };
-    if (opeu_cell_influence_side(ds, objective.x, objective.y) != data.current_side) return near;
+    if (opeu_cell_influence_side(game, objective.x, objective.y) != data.current_side) return near;
   }
   return 0;
 }
 
 // Tries up to five random cells within 3 of the objective; accepts an unmarked, unowned cell of drop terrain.
-uint16_t opeu_ai_free_cell_near(uint8_t ds[65536], uint16_t objective, uint8_t* x, uint8_t* y) {
-  auto& data{ Data(ds) };
+uint16_t opeu_ai_free_cell_near(Game& game, uint16_t objective, uint8_t* x, uint8_t* y) {
+  auto& data{ Data(game) };
   for (std::uint8_t attempt{ 0 }; attempt < 5; ++attempt) {
     auto const& target{ Record<Objective>(data, objective) };
     *x = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.x);
     *y = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.y);
     opeu_sub_byte(3, x);
     opeu_sub_byte(3, y);
-    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(ds, *x, *y))) && !opeu_cell_marked(ds, *x, *y, data.current_side)
-        && opeu_cell_side(ds, *x, *y) == NO_SIDE)
+    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(game, *x, *y))) && !opeu_cell_marked(game, *x, *y, data.current_side)
+        && opeu_cell_side(game, *x, *y) == NO_SIDE)
       return 1;
   }
   return 0;
@@ -154,8 +157,8 @@ uint16_t opeu_ai_free_cell_near(uint8_t ds[65536], uint16_t objective, uint8_t* 
 // Unless the influence map mostly favours the side (and one time in twelve regardless), plans an airborne drop: a
 // random free unit is filled with free elements of the first airborne type, up to the side's paratroops and spare
 // transports, and the drop is aimed at a free cell near an exposed enemy objective. Returns 1 when a drop was planned.
-uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
-  auto&        data{ Data(ds) };
+uint16_t opeu_ai_03e2(Game& game) {
+  auto&        data{ Data(game) };
   std::uint8_t favourable{ 0 };
   for (auto const influence : data.influence_map)
     if (data.current_side ? influence < 0 : influence > 0) ++favourable;
@@ -164,15 +167,15 @@ uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
   drop.transports = 0;
   auto const paratroops{ CurrentSide(data).paratroops };
   if (!paratroops) return 0;
-  auto const type{ opeu_ai_first_allowed_type(ds) };
+  auto const type{ opeu_ai_first_allowed_type(game) };
   if (type == NO_TYPE) return 0;
-  auto const planes{ opeu_ai_spare_cargo(ds) };
+  auto const planes{ opeu_ai_spare_cargo(game) };
   if (!planes) return 0;
-  auto const target{ opeu_ai_exposed_enemy_objective(ds) };
-  if (!target || !opeu_ai_free_cell_near(ds, target, &drop.x, &drop.y)) return 0;
-  auto const units{ AiFreeUnits(ds, UNIT_LIST, Bits(UnitFlag::AIRBORNE)) };
+  auto const target{ opeu_ai_exposed_enemy_objective(game) };
+  if (!target || !opeu_ai_free_cell_near(game, target, &drop.x, &drop.y)) return 0;
+  auto const units{ AiFreeUnits(game, UNIT_LIST, Bits(UnitFlag::AIRBORNE)) };
   if (!units) return 0;
-  auto const elements{ AiFreeElements(ds, ELEMENT_LIST, Bits(ElementFlag::AIRBORNE)) };
+  auto const elements{ AiFreeElements(game, ELEMENT_LIST, Bits(ElementFlag::AIRBORNE)) };
   if (!elements) return 0;
   auto const    unit{ data.ai_unit_list[opeu_rand_bounded(units)] };
   auto const    slot{ opeu_unit_index(unit) };
@@ -196,14 +199,14 @@ uint16_t opeu_ai_03e2(uint8_t ds[65536]) {
   return 1;
 }
 
-uint16_t svc_ai_unrecovered(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx) {
+uint16_t svc_ai_unrecovered(Game& game, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx) {
   switch (static_cast<AiService>(id)) {
-  case AiService::RELEASE_UNITS:      return opeu_release_side_units(ds, *bx, static_cast<uint8_t>(ax));
-  case AiService::RELEASE_ELEMENTS:   return opeu_release_side_elements(ds, *bx, static_cast<uint8_t>(ax));
-  case AiService::DUE_RECORDS:        return opeu_list_due_records(ds, *bx, static_cast<uint8_t>(ax), static_cast<uint8_t>(dx));
-  case AiService::OBJECTIVE_LEVEL:    return opeu_objective_level(ds, *bx);
-  case AiService::OBJECTIVE_ELIGIBLE: return opeu_objective_eligible(ds, *bx);
-  case AiService::SUPPLY_SHARE:       return opeu_ai_supply_share(ds, bx, ax, static_cast<uint8_t>(dx));
+  case AiService::RELEASE_UNITS:      return opeu_release_side_units(game, *bx, static_cast<uint8_t>(ax));
+  case AiService::RELEASE_ELEMENTS:   return opeu_release_side_elements(game, *bx, static_cast<uint8_t>(ax));
+  case AiService::DUE_RECORDS:        return opeu_list_due_records(game, *bx, static_cast<uint8_t>(ax), static_cast<uint8_t>(dx));
+  case AiService::OBJECTIVE_LEVEL:    return opeu_objective_level(game, *bx);
+  case AiService::OBJECTIVE_ELIGIBLE: return opeu_objective_eligible(game, *bx);
+  case AiService::SUPPLY_SHARE:       return opeu_ai_supply_share(game, bx, ax, static_cast<uint8_t>(dx));
   }
   port_unhandled("ai_unrecovered", id, 3);
   return 0;

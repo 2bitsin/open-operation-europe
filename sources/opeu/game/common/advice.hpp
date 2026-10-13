@@ -3,6 +3,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/memory.hpp"
@@ -112,40 +113,40 @@ enum class AdviceText : std::uint16_t {
 }
 
 // The near pointer of a topic's advice buffer.
-[[nodiscard]] inline auto AdviceBuffer(std::uint8_t* ds, AdviceTopic topic) -> std::uint16_t {
-  auto& data{ Data(ds) };
+[[nodiscard]] inline auto AdviceBuffer(Game& game, AdviceTopic topic) -> std::uint16_t {
+  auto& data{ Data(game) };
   return Near(data, data.advice_messages[static_cast<std::uint8_t>(topic)]);
 }
 
 // Copies a far advice text (an offset in the far advice segment) to a DS buffer.
-inline void CopyAdvice(std::uint8_t* ds, std::uint8_t const* far_text, std::uint16_t destination, std::uint16_t text) {
-  opeu_string_copy_far(ds, destination, const_cast<std::uint8_t*>(far_text), text);
+inline void CopyAdvice(Game& game, std::uint8_t const* far_text, std::uint16_t destination, std::uint16_t text) {
+  opeu_string_copy_far(game, destination, const_cast<std::uint8_t*>(far_text), text);
 }
-inline void CopyAdvice(std::uint8_t* ds, std::uint8_t const* far_text, std::uint16_t destination, AdviceText text) {
-  CopyAdvice(ds, far_text, destination, static_cast<std::uint16_t>(text));
+inline void CopyAdvice(Game& game, std::uint8_t const* far_text, std::uint16_t destination, AdviceText text) {
+  CopyAdvice(game, far_text, destination, static_cast<std::uint16_t>(text));
 }
 
 // Formats into `destination` through request_format.
 template <typename... Words>
-inline void FormatAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t destination, std::uint16_t format, Words... words) {
-  Call(ds, event, ADVICE_FORMAT, destination, format, words...);
+inline void FormatAdvice(Game& game, HostEvent event, std::uint16_t destination, std::uint16_t format, Words... words) {
+  Call(game, event, ADVICE_FORMAT, destination, format, words...);
 }
 
 // Shows a text in a control message in the person of the staff officer giving the advice (context_record2).
-inline void ShowAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t text) {
-  Call(ds, event, ADVICE_MESSAGE, text, Data(ds).context_record2);
+inline void ShowAdvice(Game& game, HostEvent event, std::uint16_t text) {
+  Call(game, event, ADVICE_MESSAGE, text, Data(game).context_record2);
 }
 
 // The event an advice check passed on to opeu_unit_name, which formats through its own service 2.
 inline HostEvent advice_name_event{};
-inline auto      AdviceNameFormat(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
-  return advice_name_event(ds, id == 2 ? std::uint16_t{ ADVICE_FORMAT } : id, args, count);
+inline auto      AdviceNameFormat(Game& game, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
+  return advice_name_event(game, id == 2 ? std::uint16_t{ ADVICE_FORMAT } : id, args, count);
 }
 
 // Writes the unit's name to a DS buffer through the advice check's own request_format; returns the buffer.
-inline auto AdviceUnitName(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
+inline auto AdviceUnitName(Game& game, HostEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
   advice_name_event = event;
-  return opeu_unit_name(ds, AdviceNameFormat, unit, buffer);
+  return opeu_unit_name(game, AdviceNameFormat, unit, buffer);
 }
 
 // The objective level (opeu_objective_level) from which the officers count an objective as a city.
@@ -158,30 +159,30 @@ inline constexpr std::uint16_t UNIT_NAME_BYTES{ 0x40 };
 // An advice check's context: the far advice texts, the event its services go through and the topic whose buffer it
 // writes.
 struct Advisor {
-  std::uint8_t*       ds;
+  Game&               game;
   std::uint8_t const* far_text;
   HostEvent           event;
   AdviceTopic         topic;
 
   // The topic's advice buffer.
   [[nodiscard]] auto Buffer() const -> std::uint16_t {
-    return AdviceBuffer(ds, topic);
+    return AdviceBuffer(game, topic);
   }
   [[nodiscard]] auto Random(std::uint16_t bound) const -> std::uint16_t {
-    return RandomBelow(ds, bound);
+    return RandomBelow(game, bound);
   }
   // Copies a far advice text to a DS buffer.
   void Copy(std::uint16_t destination, AdviceText text) const {
-    CopyAdvice(ds, far_text, destination, text);
+    CopyAdvice(game, far_text, destination, text);
   }
   // Formats into the topic's buffer.
   template <typename... Words>
   void Format(std::uint16_t format, Words... words) const {
-    FormatAdvice(ds, event, Buffer(), format, words...);
+    FormatAdvice(game, event, Buffer(), format, words...);
   }
   // Shows the topic's buffer.
   void Show() const {
-    ShowAdvice(ds, event, Buffer());
+    ShowAdvice(game, event, Buffer());
   }
   // Gives the advice text as it stands; returns 1, the check's "advice given".
   auto Say(AdviceText text) const -> std::uint16_t {
@@ -203,7 +204,7 @@ struct Advisor {
   template <typename... Words>
   auto SayAboutUnit(AdviceText text, std::uint16_t unit, Words... words) const -> std::uint16_t {
     ServiceLocals const name{ UNIT_NAME_BYTES };
-    return SayFormatted(text, AdviceUnitName(ds, event, unit, name.At(0)), words...);
+    return SayFormatted(text, AdviceUnitName(game, event, unit, name.At(0)), words...);
   }
 };
 } // namespace opeu::game::detail::advice

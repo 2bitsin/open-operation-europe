@@ -8,6 +8,7 @@
 #include "map/mappixel.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "port.hpp"
 
 using namespace opeu::game;
@@ -18,25 +19,25 @@ constexpr uint16_t IMAGE_MODE{ 0x307 };
 constexpr uint16_t MARKER_MODE{ 7 };
 } // namespace
 
-void opeu_map_highlight_view(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
-  auto&      data{ Data(ds) };
+void opeu_map_highlight_view(Game& game, HostEvent event, uint8_t x, uint8_t y) {
+  auto&      data{ Data(game) };
   auto const pixel{ ViewPixel(data, { x, y }) };
   auto       tile{ StreamFrameTile(data, 3) };
-  Call(ds, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, MASK_MODE, tile.segment, tile.offset);
+  Call(game, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, MASK_MODE, tile.segment, tile.offset);
   tile = StreamFrameTile(data, 2);
-  Call(ds, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, IMAGE_MODE, tile.segment, tile.offset);
+  Call(game, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, IMAGE_MODE, tile.segment, tile.offset);
 }
 
-void opeu_map_highlight_overview(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
+void opeu_map_highlight_overview(Game& game, HostEvent event, uint8_t x, uint8_t y) {
   auto const pixel{ OverviewPixel({ x, y }) };
-  Call(ds, event, MapService::DRAW_NEAR, pixel.x, pixel.y, 1, 8, MARKER_MODE, Near(Data(ds), Data(ds).flash_marker));
+  Call(game, event, MapService::DRAW_NEAR, pixel.x, pixel.y, 1, 8, MARKER_MODE, Near(Data(game), Data(game).flash_marker));
 }
 
 // Only the far and near draws reach this module's service.
-uint16_t svc_highlite(uint8_t* ds, uint16_t kind, const uint16_t* args, uint16_t count) {
+uint16_t svc_highlite(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
   switch (static_cast<MapService>(kind)) {
   case MapService::DRAW_FAR:
-  case MapService::DRAW_NEAR: return svc_map_plan(ds, "highlite", kind, args, count);
+  case MapService::DRAW_NEAR: return svc_map_plan(game, "highlite", kind, args, count);
   default:                    port_unhandled("highlite", kind, count);
   }
   return 0;

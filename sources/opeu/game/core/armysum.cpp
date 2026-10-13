@@ -12,10 +12,11 @@
 #include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -57,53 +58,53 @@ constexpr std::uint16_t NAME_BYTES{ 0x50 }; // the headquarters regiment's name
 
 // Shown on a side the player controls (or when neither side is player-controlled). The headquarters regiment's name
 // is written into the routine's reserve for the print service.
-void opeu_army_summary(uint8_t ds[65537], HostEvent event) {
+void opeu_army_summary(Game& game, HostEvent event) {
   ServiceLocals const locals{ NAME_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          side{ data.current_side };
   if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != SIDE_PLAYED) return;
-  Call(ds, event, TITLE, data.side_names[side]);
-  if (!opeu_unit_support_condition(ds, opeu_find_side_selected_unit(ds, side))) {
-    Call(ds, event, TEXT, OUT_OF_SUPPLY);
+  Call(game, event, TITLE, data.side_names[side]);
+  if (!opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, side))) {
+    Call(game, event, TEXT, OUT_OF_SUPPLY);
     return;
   }
   std::array<std::uint32_t, CATEGORIES> totals{};
   std::uint8_t                          counted{};
-  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) totals[category] = opeu_side_quantity(ds, side, category, &counted);
+  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) totals[category] = opeu_side_quantity(game, side, category, &counted);
   std::uint16_t ammunition{};
   std::uint16_t fuel{};
   std::uint16_t food{};
-  opeu_side_resource_percentages(ds, side, &ammunition, &fuel, &food, 1);
+  opeu_side_resource_percentages(game, side, &ammunition, &fuel, &food, 1);
   std::uint16_t influence{ 0 };
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += 4)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
-      if (opeu_cell_influence_side(ds, x, y) == side) ++influence;
-  auto const cities{ opeu_count_active_objectives(ds, side) };
-  auto const row{ [&](std::uint16_t y) { Call(ds, event, POSITION, ROW_X, y); } };
+      if (opeu_cell_influence_side(game, x, y) == side) ++influence;
+  auto const cities{ opeu_count_active_objectives(game, side) };
+  auto const row{ [&](std::uint16_t y) { Call(game, event, POSITION, ROW_X, y); } };
   row(163);
-  Call(ds, event, PRINT, ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel);
+  Call(game, event, PRINT, ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel);
   row(181);
-  Call(ds, event, PRINT, ROW1, Low(totals[2]), High(totals[2]), Low(totals[5]), High(totals[5]), ammunition);
+  Call(game, event, PRINT, ROW1, Low(totals[2]), High(totals[2]), Low(totals[5]), High(totals[5]), ammunition);
   row(199);
-  Call(ds, event, PRINT, ROW2, Low(totals[1]), High(totals[1]), Low(totals[7]), High(totals[7]), food);
+  Call(game, event, PRINT, ROW2, Low(totals[1]), High(totals[1]), Low(totals[7]), High(totals[7]), food);
   row(217);
-  Call(ds, event, PRINT, ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]));
+  Call(game, event, PRINT, ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]));
   auto const& own{ Record<Side>(data, data.current_side_ptr) };
   row(245);
-  Call(ds, event, PRINT, ROW4, own.bombers, cities, influence);
+  Call(game, event, PRINT, ROW4, own.bombers, cities, influence);
   row(263);
-  Call(ds, event, PRINT, ROW5, own.planes, own.paratroops, own.strength);
-  Call(ds, event, POSITION, 54, 138);
-  Call(ds, event, PRINT, HQ_FORMAT, opeu_unit_name(ds, event, opeu_find_side_selected_unit(ds, side), locals.At(0)));
+  Call(game, event, PRINT, ROW5, own.planes, own.paratroops, own.strength);
+  Call(game, event, POSITION, 54, 138);
+  Call(game, event, PRINT, HQ_FORMAT, opeu_unit_name(game, event, opeu_find_side_selected_unit(game, side), locals.At(0)));
 }
 
-uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_armysum(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case TITLE:    opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case TEXT:     opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case FORMAT:   opeu_request_format(ds, { args, count }); break;
-  case PRINT:    opeu_cursor_print(ds, { args, count }); break;
-  case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case TITLE:    opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case TEXT:     opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case FORMAT:   opeu_request_format(game, { args, count }); break;
+  case PRINT:    opeu_cursor_print(game, { args, count }); break;
+  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   default:       port_unhandled("armysum", id, count);
   }
   return 0;

@@ -3,6 +3,7 @@
 // or progress byte is 0xff.
 #include "units/orders.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/order.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -18,8 +19,8 @@ enum Slots : std::uint8_t {
 } // namespace
 
 // Clears the slots in the mask and the regiment's target and movement state.
-void opeu_clear_unit_orders(uint8_t ds[65536], uint16_t unit, uint8_t slots) {
-  auto& regiment{ Record<Unit>(Data(ds), unit) };
+void opeu_clear_unit_orders(Game& game, uint16_t unit, uint8_t slots) {
+  auto& regiment{ Record<Unit>(Data(game), unit) };
   for (std::uint8_t slot{ 0 }; slot < 2; ++slot)
     if (slots & (1u << slot)) regiment.orders[slot].progress = regiment.orders[slot].kind = ORDER_UNUSED;
   regiment.target_x = ORDER_UNUSED;
@@ -28,14 +29,14 @@ void opeu_clear_unit_orders(uint8_t ds[65536], uint16_t unit, uint8_t slots) {
 
 // Gives the regiment an order of kind `code` at `target` (or, when target is 0, at the cell x, y). With save_current
 // the current order moves to the saved slot first; otherwise the saved slot is cleared.
-void opeu_set_unit_order(uint8_t ds[65536], uint16_t unit, uint16_t target, uint8_t x, uint16_t save_current, uint8_t code, uint8_t y) {
-  auto& regiment{ Record<Unit>(Data(ds), unit) };
+void opeu_set_unit_order(Game& game, uint16_t unit, uint16_t target, uint8_t x, uint16_t save_current, uint8_t code, uint8_t y) {
+  auto& regiment{ Record<Unit>(Data(game), unit) };
   auto& order{ regiment.orders[0] };
   if (save_current) {
     regiment.orders[1] = order;
-    opeu_clear_unit_orders(ds, unit, CURRENT_SLOT);
+    opeu_clear_unit_orders(game, unit, CURRENT_SLOT);
   } else
-    opeu_clear_unit_orders(ds, unit, SAVED_SLOT);
+    opeu_clear_unit_orders(game, unit, SAVED_SLOT);
   if (target)
     order.target = target;
   else {
@@ -47,20 +48,20 @@ void opeu_set_unit_order(uint8_t ds[65536], uint16_t unit, uint16_t target, uint
 }
 
 // Brings the saved order back into the current slot; without one, both slots are cleared.
-void opeu_restore_unit_order(uint8_t ds[65536], uint16_t unit) {
-  auto& regiment{ Record<Unit>(Data(ds), unit) };
+void opeu_restore_unit_order(Game& game, uint16_t unit) {
+  auto& regiment{ Record<Unit>(Data(game), unit) };
   if (regiment.orders[1].kind != ORDER_UNUSED) {
     regiment.orders[0] = regiment.orders[1];
-    opeu_clear_unit_orders(ds, unit, SAVED_SLOT);
+    opeu_clear_unit_orders(game, unit, SAVED_SLOT);
   } else
-    opeu_clear_unit_orders(ds, unit, CURRENT_SLOT | SAVED_SLOT);
+    opeu_clear_unit_orders(game, unit, CURRENT_SLOT | SAVED_SLOT);
 }
 
 // The cell the regiment's current order leads to, in x and y; nonzero when it is on the map and still valid: an
 // objective order needs an objective at the cell, a regiment order a ready target regiment. x and y are written even
 // when the order turns out invalid.
-uint16_t opeu_unit_order_destination(const uint8_t ds[65536], uint16_t unit, uint8_t* x, uint8_t* y) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_unit_order_destination(Game const& game, uint16_t unit, uint8_t* x, uint8_t* y) {
+  auto const& data{ Data(game) };
   auto const& order{ Record<Unit>(data, unit).orders[0] };
   auto const  kind{ order.kind };
   switch (static_cast<UnitOrder>(kind)) {
@@ -76,7 +77,7 @@ uint16_t opeu_unit_order_destination(const uint8_t ds[65536], uint16_t unit, uin
   case UnitOrder::REST:
     *x = order.cell.x;
     *y = order.cell.y;
-    if ((kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY)) && !opeu_find_objective_at(ds, *x, *y)) return 0;
+    if ((kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY)) && !opeu_find_objective_at(game, *x, *y)) return 0;
     break;
   case UnitOrder::ATTACK:
   case UnitOrder::SUPPLY_UNIT:

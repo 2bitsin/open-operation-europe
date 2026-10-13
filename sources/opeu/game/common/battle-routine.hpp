@@ -1,7 +1,7 @@
 // The routines a battle module reaches through its BattleEvent; the link table resolves each key to its routine.
 #pragma once
 
-#include "glue.hpp"
+#include "link/glue.hpp"
 
 #include <cstdint>
 

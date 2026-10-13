@@ -1,9 +1,11 @@
 // Operation Europe: the program entry. The host prepares what the DOS start-up and the launcher provided (the
 // initialised data segment, the memory arena, the display, input and the FM driver), runs the opening, then calls the
 // game's application entry with its service table.
+#include "common/game.hpp"
 #include "core/app.hpp"
-#include "glue.hpp"
 #include "intro.hpp"
+#include "link/entry-game.hpp"
+#include "link/glue.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -101,6 +103,17 @@ auto DumpArena(char const* path) -> void {
   file.write(reinterpret_cast<char const*>(port_arena), PORT_ARENA_SIZE); // NOLINT(*-reinterpret-cast): bytes out
   if (!file) port_fatal("cannot write %s", path);                         // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
+// The game's application entry on the data segment the arena holds and the machine it runs on; it returns after the
+// scenario's end.
+auto RunGame() -> void {
+  opeu::game::GameState state{
+    opeu::game::SegmentBytes{ port_ds, opeu::game::SEGMENT_SIZE }
+  };
+  opeu::services::Machine     machine;
+  opeu::game::Game            game{ state, machine };
+  opeu::game::EntryGame const running{ game };
+  opeu_application_entry(game, svc_app);
+}
 } // namespace
 
 auto Main(int argc, char** argv) -> int {
@@ -146,8 +159,7 @@ auto Main(int argc, char** argv) -> int {
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.
   opeu::intro::open_intro_run();
-  // The game's application entry; it returns after the scenario's end, and the program exits 0.
-  opeu_application_entry(port_ds, svc_app);
+  RunGame();
   port_exit(0);
   return 0;
 }

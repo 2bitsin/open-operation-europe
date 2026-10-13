@@ -405,7 +405,7 @@ inline constexpr std::uint16_t SIDE_COMPUTER{ 0 };
 inline constexpr std::uint8_t NO_SIDE{ 0xff };
 
 // A movement cost (move_costs, battle_terrain_costs, opeu_move_cost) that bars the terrain.
-inline constexpr std::uint8_t IMPASSABLE{ 0xff };
+inline constexpr std::uint8_t IMPASSABLE_COST{ 0xff };
 
 // DataSegment::side_stance: whether the side's scenario has it attack or defend.
 enum class Stance : std::uint8_t {
@@ -4790,12 +4790,13 @@ inline constexpr std::uint16_t PERSON_TEMPLATES_AT{ offsetof(DataSegment, person
 inline constexpr std::uint16_t GARRISON_AT{ offsetof(DataSegment, garrison) };
 inline constexpr std::uint16_t SAVE_SLOTS_AT{ offsetof(DataSegment, save_slots) };
 
-// The segment behind a DS pointer (the build has -fno-strict-aliasing).
-[[nodiscard]] inline auto Data(std::uint8_t* ds) noexcept -> DataSegment& {
-  return *reinterpret_cast<DataSegment*>(ds);
+// The segment as typed records over its 64 KiB of bytes (the build has -fno-strict-aliasing); the game reaches it
+// through GameState (common/game-state.hpp).
+[[nodiscard]] inline auto Data(std::uint8_t* bytes) noexcept -> DataSegment& {
+  return *reinterpret_cast<DataSegment*>(bytes);
 }
-[[nodiscard]] inline auto Data(std::uint8_t const* ds) noexcept -> DataSegment const& {
-  return *reinterpret_cast<DataSegment const*>(ds);
+[[nodiscard]] inline auto Data(std::uint8_t const* bytes) noexcept -> DataSegment const& {
+  return *reinterpret_cast<DataSegment const*>(bytes);
 }
 
 // Whether a player commands the side (side_status).
@@ -4951,7 +4952,7 @@ using detail::data_segment::Side;
 using detail::data_segment::ScheduleFlag;
 using detail::data_segment::SideFlag;
 using detail::data_segment::Stance;
-using detail::data_segment::IMPASSABLE;
+using detail::data_segment::IMPASSABLE_COST;
 using detail::data_segment::NO_SIDE;
 using detail::data_segment::SIDE_COMPUTER;
 using detail::data_segment::SIDE_PLAYED;

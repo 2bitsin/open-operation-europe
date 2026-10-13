@@ -9,9 +9,10 @@
 
 #include "common/air-service.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/airbomb.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -35,27 +36,27 @@ constexpr std::uint8_t CITY{ 1 };
 
 // Shows the speaker panel with the question and "(low-high)? " (or "? " in the mouse input mode), then reads a number
 // in low..high; returns it, or 0xffff when cancelled.
-uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
+uint16_t opeu_air_ask_count(Game& game, HostEvent event, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
   ServiceLocals const locals{ LINE_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          line{ locals.At(0) };
-  Call(ds, event, SPEAKER, person, 1);
+  Call(game, event, SPEAKER, person, 1);
   if (data.input_mode)
-    Call(ds, event, FORMAT, line, Near(data, data.air_question_mark));
+    Call(game, event, FORMAT, line, Near(data, data.air_question_mark));
   else
-    Call(ds, event, FORMAT, line, Near(data, data.air_range_format), low, high);
-  Call(ds, event, TEXT_FEED, text);
-  Call(ds, event, TEXT_FEED, line);
-  Call(ds, event, SPEAKER, person, 0);
-  Call(ds, event, PRINT, Near(data, data.air_input_begin));
-  auto const chosen{ Call(ds, event, VALUE, low, high, static_cast<std::uint16_t>(cancel), items) };
-  Call(ds, event, PRINT, Near(data, data.air_input_end));
+    Call(game, event, FORMAT, line, Near(data, data.air_range_format), low, high);
+  Call(game, event, TEXT_FEED, text);
+  Call(game, event, TEXT_FEED, line);
+  Call(game, event, SPEAKER, person, 0);
+  Call(game, event, PRINT, Near(data, data.air_input_begin));
+  auto const chosen{ Call(game, event, VALUE, low, high, static_cast<std::uint16_t>(cancel), items) };
+  Call(game, event, PRINT, Near(data, data.air_input_end));
   return chosen;
 }
 
 // The current side's transport planes not committed to the airlift or a drop, floored at zero.
-uint16_t opeu_air_free_planes(uint8_t ds[65536], HostEvent) {
-  auto&         data{ Data(ds) };
+uint16_t opeu_air_free_planes(Game& game, HostEvent) {
+  auto&         data{ Data(game) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t planes{ side.planes };
   opeu_sub_word(static_cast<std::uint16_t>(side.lift.planes + side.drop.transports), &planes);
@@ -64,13 +65,13 @@ uint16_t opeu_air_free_planes(uint8_t ds[65536], HostEvent) {
 
 // Whether a mission (`what`) may target the cell: not a city of another side ("hostile city") and not terrain of code
 // 5, 6, 8 or 10 (named by its terrain); otherwise the officer says so and 0 is returned.
-uint16_t opeu_air_target_valid(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint16_t what) {
-  auto&         data{ Data(ds) };
-  auto const    kind{ static_cast<std::uint8_t>(opeu_map_code(ds, x, y)) };
+uint16_t opeu_air_target_valid(Game& game, HostEvent event, uint8_t x, uint8_t y, uint16_t what) {
+  auto&         data{ Data(game) };
+  auto const    kind{ static_cast<std::uint8_t>(opeu_map_code(game, x, y)) };
   std::uint16_t name{};
   switch (kind) {
   case CITY:
-    if (opeu_objective_side(ds, opeu_find_objective_at(ds, x, y)) == data.current_side) return 1;
+    if (opeu_objective_side(game, opeu_find_objective_at(game, x, y)) == data.current_side) return 1;
     name = Near(data, data.air_hostile_city);
     break;
   case 5:
@@ -81,17 +82,17 @@ uint16_t opeu_air_target_valid(uint8_t ds[65536], HostEvent event, uint8_t x, ui
   }
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  Call(ds, event, FORMAT, buffer, Call(ds, event, LOOKUP, CANNOT_TARGET), what, name);
-  Call(ds, event, MESSAGE, buffer, data.context_record3);
+  Call(game, event, FORMAT, buffer, Call(game, event, LOOKUP, CANNOT_TARGET), what, name);
+  Call(game, event, MESSAGE, buffer, data.context_record3);
   return 0;
 }
 
 // Asks the staff officer to confirm the mission.
-uint16_t opeu_air_confirm(uint8_t ds[65536], HostEvent event) {
-  auto const& data{ Data(ds) };
-  return Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CONFIRM_MISSION), data.context_record3);
+uint16_t opeu_air_confirm(Game& game, HostEvent event) {
+  auto const& data{ Data(game) };
+  return Call(game, event, CONFIRM, Call(game, event, LOOKUP, CONFIRM_MISSION), data.context_record3);
 }
 
-uint16_t svc_airhelp(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_air(ds, "airhelp", id, args, count);
+uint16_t svc_airhelp(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  return svc_air(game, "airhelp", id, args, count);
 }

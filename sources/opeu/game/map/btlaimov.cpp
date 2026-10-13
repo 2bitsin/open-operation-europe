@@ -11,7 +11,8 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "map/btlaiact.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -34,11 +35,11 @@ constexpr unsigned ELEMENT_COUNT{ 10 };
 } // namespace
 
 // The profile of the unit's elements (the spotted ones, or all of them), indexing battle_ai_actions.
-uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit, uint16_t all) {
-  auto&                   data{ Data(ds) };
+uint8_t opeu_battle_ai_profile(Game& game, BattleEvent event, uint16_t unit, uint16_t all) {
+  auto&                   data{ Data(game) };
   std::array<uint8_t, 12> counters{};
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
-    if (!opeu_battle_element_active(ds, event, Near(data, element))) continue;
+    if (!opeu_battle_element_active(game, event, Near(data, element))) continue;
     if ((element.flags & Bits(ElementFlag::SPOTTED)) || all) {
       auto const& type{ data.element_types[element.type] };
       if (type.gun_range > RANGED_MODE)
@@ -60,40 +61,40 @@ uint8_t opeu_battle_ai_profile(uint8_t* ds, BattleEvent event, uint16_t unit, ui
   return 3;
 }
 
-void opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
-  auto& position{ PositionOf(Data(ds), element) };
+void opeu_battle_ai_move_to(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
+  auto& position{ PositionOf(Data(game), element) };
   position.goal_x = x;
   position.goal_y = y;
   position.state  = Bits(BattleState::BLITZ);
-  opeu_battle_disengage(ds, event, element);
-  opeu_battle_set_facing(ds, event, element, NONE);
+  opeu_battle_disengage(game, event, element);
+  opeu_battle_set_facing(game, event, element, NONE);
 }
 
-void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target) {
+void opeu_battle_ai_attack(Game& game, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target) {
   if (target) {
-    auto& position{ PositionOf(Data(ds), element) };
+    auto& position{ PositionOf(Data(game), element) };
     position.target = target;
     position.state  = Bits(BattleState::BLITZ);
-    opeu_battle_engage(ds, event, element);
-    opeu_battle_set_facing(ds, event, element, NONE);
+    opeu_battle_engage(game, event, element);
+    opeu_battle_set_facing(game, event, element, NONE);
     return;
   }
-  auto const cell{ opeu_battle_ai_random_cell(ds, event, element, unit) };
-  opeu_battle_ai_move_to(ds, event, cell.x, cell.y, element);
+  auto const cell{ opeu_battle_ai_random_cell(game, event, element, unit) };
+  opeu_battle_ai_move_to(game, event, cell.x, cell.y, element);
 }
 
-void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 0));
+void opeu_battle_ai_attack_near(Game& game, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(game, event, element, unit, opeu_battle_ai_pick_target(game, event, element, unit, 0));
 }
 
-void opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 1));
+void opeu_battle_ai_attack_mid(Game& game, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(game, event, element, unit, opeu_battle_ai_pick_target(game, event, element, unit, 1));
 }
 
-void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 2));
+void opeu_battle_ai_attack_far(Game& game, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(game, event, element, unit, opeu_battle_ai_pick_target(game, event, element, unit, 2));
 }
 
-uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_ai(ds, service, args, count);
+uint16_t svc_btlaimov(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_ai(game, service, args, count);
 }

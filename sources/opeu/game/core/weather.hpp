@@ -1,6 +1,7 @@
 // The hourly weather change.
 #pragma once
 
+#include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_weather_update(uint8_t* ds);
+void opeu_weather_update(Game& game);

@@ -9,14 +9,15 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
-#include "glue.hpp"
 #include "io/soundcue.hpp"
+#include "link/glue.hpp"
 #include "map/grid.hpp"
 #include "map/maperase.hpp"
 #include "map/mapunit.hpp"
@@ -63,65 +64,65 @@ auto HurricaneSeason(DataSegment const& data) -> bool {
 } // namespace
 
 // The hurricane's announcement: cue, the current side's panel and the message from the panel's general.
-void opeu_hurricane_present(uint8_t ds[65536], HostEvent event) {
-  auto const& data{ Data(ds) };
+void opeu_hurricane_present(Game& game, HostEvent event) {
+  auto const& data{ Data(game) };
   bool const  season{ HurricaneSeason(data) };
-  Call(ds, event, CUE);
-  Call(ds, event, CONTEXT, data.current_side);
-  Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, HURRICANE_MESSAGE), season ? data.hurricane_words[0] : data.hurricane_words[1]);
-  Call(ds, event, MESSAGE, TEXT, data.context_record2);
+  Call(game, event, CUE);
+  Call(game, event, CONTEXT, data.current_side);
+  Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, HURRICANE_MESSAGE), season ? data.hurricane_words[0] : data.hurricane_words[1]);
+  Call(game, event, MESSAGE, TEXT, data.context_record2);
 }
 
 // In the hurricane weather: announces it, then each unheld cell of partisan terrain sees a rising at random (both
 // sides are told and the cell is cleared), and each objective in use may report a rising to a watched side and loses
 // 3..12 (5..14 in the season) of its garrison strength.
-void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
+void opeu_partisan_event(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
   if (data.weather != HURRICANE_WEATHER) return;
   bool const season{ HurricaneSeason(data) };
   auto const partisans{ season ? data.partisan_words[0] : data.partisan_words[1] };
-  Call(ds, event, DAILY_SHOW, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
+  Call(game, event, DAILY_SHOW, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
-      if (opeu_map_code(ds, x, y) != PARTISAN_TERRAIN || opeu_cell_side(ds, x, y) != NO_SIDE || RandomBelow(ds, season ? 70 : 100) != 8) continue;
-      Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, CELL_RISING_MESSAGE), partisans);
+      if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || RandomBelow(game, season ? 70 : 100) != 8) continue;
+      Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, CELL_RISING_MESSAGE), partisans);
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
-        Call(ds, event, MESSAGE, TEXT, opeu_find_side_record(ds, side, COMMANDER));
-        Call(ds, event, RISING, x, y, side);
+        Call(game, event, MESSAGE, TEXT, opeu_find_side_record(game, side, COMMANDER));
+        Call(game, event, RISING, x, y, side);
       }
-      opeu_map_mark_5(ds, x, y);
-      Call(ds, event, ERASE, x, y);
+      opeu_map_mark_5(game, x, y);
+      Call(game, event, ERASE, x, y);
     }
   for (auto& objective : data.objectives) {
-    if (!objective.active || RandomBelow(ds, season ? 50 : 80)) continue;
+    if (!objective.active || RandomBelow(game, season ? 50 : 80)) continue;
     auto const near{ Near(data, objective) };
-    if (opeu_objective_eligible(ds, near)) {
-      auto const side{ opeu_objective_side(ds, near) };
+    if (opeu_objective_eligible(game, near)) {
+      auto const side{ opeu_objective_side(game, near) };
       if (data.side_status[side] == SIDE_PLAYED) {
-        Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, OBJECTIVE_RISING_MESSAGE), partisans, near);
-        Call(ds, event, MESSAGE, TEXT, opeu_find_side_record(ds, side, COMMANDER));
-        Call(ds, event, RISING, objective.x, objective.y, side);
+        Call(game, event, FORMAT, TEXT, Call(game, event, LOOKUP, OBJECTIVE_RISING_MESSAGE), partisans, near);
+        Call(game, event, MESSAGE, TEXT, opeu_find_side_record(game, side, COMMANDER));
+        Call(game, event, RISING, objective.x, objective.y, side);
       }
     }
-    opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(ds, 10) + (season ? 5 : 3)), &objective.strength);
+    opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(game, 10) + (season ? 5 : 3)), &objective.strength);
   }
 }
 
-uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_evpartis(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case CUE:        opeu_sound_cue15(ds, svc_soundcue); break;
-  case CONTEXT:    opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case LOOKUP:     result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
-  case FORMAT:     opeu_request_format(ds, { args, count }); break;
-  case MESSAGE:    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case CUE:        opeu_sound_cue15(game, svc_soundcue); break;
+  case CONTEXT:    opeu_daily_context(game, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case LOOKUP:     result = opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
+  case FORMAT:     opeu_request_format(game, { args, count }); break;
+  case MESSAGE:    opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DAILY_SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case RISING:     {
-    opeu_location_flash(ds, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(game, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     break;
   }
   case ERASE: {
-    opeu_map_erase(ds, svc_maperase, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+    opeu_map_erase(game, svc_maperase, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
     break;
   }
   default: port_unhandled("evpartis", id, count);
@@ -129,12 +130,12 @@ uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   return result;
 }
 
-auto port_routine_opeu_hurricane_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_hurricane_present(ds, svc_evpartis);
+auto port_routine_opeu_hurricane_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_hurricane_present(game, svc_evpartis);
   return 0;
 }
 
-auto port_routine_opeu_partisan_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_partisan_event(ds, svc_evpartis);
+auto port_routine_opeu_partisan_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_partisan_event(game, svc_evpartis);
   return 0;
 }

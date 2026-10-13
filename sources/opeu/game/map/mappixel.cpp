@@ -2,6 +2,7 @@
 // map shows.
 #include "map/mappixel.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/recindex.hpp"
 #include "map/support.hpp"
@@ -23,32 +24,32 @@ auto ViewPixel(DataSegment const& data, Pixel cell) -> Pixel {
 }
 
 // The service boundary (#13 removes it): x and y are DS offsets of the cell's coordinate words, converted in place.
-void opeu_overview_pixel(uint8_t* ds, uint16_t x, uint16_t y) {
-  auto const pixel{ OverviewPixel({ Word(ds, x), Word(ds, y) }) };
-  SetWord(ds, x, pixel.x);
-  SetWord(ds, y, pixel.y);
+void opeu_overview_pixel(Game& game, uint16_t x, uint16_t y) {
+  auto const pixel{ OverviewPixel({ Word(game, x), Word(game, y) }) };
+  SetWord(game, x, pixel.x);
+  SetWord(game, y, pixel.y);
 }
 
-void opeu_view_pixel(uint8_t* ds, uint16_t x, uint16_t y) {
-  auto const pixel{ ViewPixel(Data(ds), { Word(ds, x), Word(ds, y) }) };
-  SetWord(ds, x, pixel.x);
-  SetWord(ds, y, pixel.y);
+void opeu_view_pixel(Game& game, uint16_t x, uint16_t y) {
+  auto const pixel{ ViewPixel(Data(game), { Word(game, x), Word(game, y) }) };
+  SetWord(game, x, pixel.x);
+  SetWord(game, y, pixel.y);
 }
 
 // Side 0's sprites swap the first two bytes of every 3-byte group of the DS buffer at sprite.
-void opeu_sprite_recolor(uint8_t* ds, uint16_t sprite, uint16_t size, uint8_t side) {
+void opeu_sprite_recolor(Game& game, uint16_t sprite, uint16_t size, uint8_t side) {
   if (side != 0) return;
   for (uint16_t at{ 0 }; at < size; at += 3) {
     auto const first{ static_cast<uint16_t>(sprite + at) };
     auto const second{ static_cast<uint16_t>(first + 1) };
-    std::swap(Byte(ds, first), Byte(ds, second));
+    std::swap(Byte(game, first), Byte(game, second));
   }
 }
 
 // A unit of the side the map shows is visible when it can be selected, an enemy unit only when it has been spotted.
 // Nothing is visible while the map shows no side.
-uint16_t opeu_unit_visible(uint8_t* ds, uint16_t unit) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_unit_visible(Game& game, uint16_t unit) {
+  auto const& data{ Data(game) };
   uint8_t     side;
   if (data.overview_side != NO_SIDE)
     side = data.overview_side;
@@ -56,6 +57,6 @@ uint16_t opeu_unit_visible(uint8_t* ds, uint16_t unit) {
     side = data.view_side;
   else
     return 0;
-  if (opeu_unit_side(unit) == side) return opeu_unit_selection_eligible(ds, unit);
-  return opeu_unit_special(ds, unit);
+  if (opeu_unit_side(unit) == side) return opeu_unit_selection_eligible(game, unit);
+  return opeu_unit_special(game, unit);
 }

@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "core/aiops1.hpp"
 #include "core/aiops2.hpp"
 #include "core/aiops3.hpp"
@@ -48,8 +49,8 @@ auto SuitsKind(std::uint8_t kind, std::uint8_t side, std::uint8_t category) -> b
 
 // Loads the element with a random quantity of a random element type suiting `kind` for `side`: types are drawn by
 // the side's request weights among those the side's nations field.
-void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind, uint8_t side) {
-  auto& data{ Data(ds) };
+void opeu_ai_equip_element(Game& game, uint16_t element, uint8_t kind, uint8_t side) {
+  auto& data{ Data(game) };
   for (;;) {
     auto const index{ static_cast<std::uint8_t>(opeu_rand_bounded(ELEMENT_TYPE_COUNT)) };
     auto const weight{ data.type_availability[index] };
@@ -69,13 +70,13 @@ void opeu_ai_equip_element(uint8_t ds[65536], uint16_t element, uint8_t kind, ui
 // Unless a regiment request is pending or configured: raises a random free unit as a requested regiment of a random
 // kind (the support kinds 4 and 5 for the regiment slots of those categories) and equips free elements for it, at
 // least two, at most the slot's element count, each with morale and training by the delivery level. 1 when raised.
-uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
-  if (opeu_ai_request_pending(ds, RAISE_REQUEST) || opeu_ai_config_kind_is(ds, RAISE_REQUEST)) return 0;
-  auto const units{ AiFreeUnits(ds, UNIT_LIST, Bits(UnitFlag::REQUESTED)) };
+uint16_t opeu_ai_raise_unit(Game& game) {
+  if (opeu_ai_request_pending(game, RAISE_REQUEST) || opeu_ai_config_kind_is(game, RAISE_REQUEST)) return 0;
+  auto const units{ AiFreeUnits(game, UNIT_LIST, Bits(UnitFlag::REQUESTED)) };
   if (!units) return 0;
-  auto elements{ AiFreeElements(ds, ELEMENT_LIST, Bits(ElementFlag::REQUESTED)) };
+  auto elements{ AiFreeElements(game, ELEMENT_LIST, Bits(ElementFlag::REQUESTED)) };
   if (!elements) return 0;
-  auto&        data{ Data(ds) };
+  auto&        data{ Data(game) };
   auto const   unit{ data.ai_unit_list[opeu_rand_bounded(units)] };
   auto const   slot{ opeu_unit_index(unit) };
   std::uint8_t kind{};
@@ -90,7 +91,7 @@ uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
     if (!opeu_rand_bounded(static_cast<std::uint16_t>(data.ai_unit_element_counts[slot] + data.delivery_level)) && i > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[i] };
-    opeu_ai_equip_element(ds, near, kind, static_cast<std::uint8_t>(opeu_rand_bounded(2)));
+    opeu_ai_equip_element(game, near, kind, static_cast<std::uint8_t>(opeu_rand_bounded(2)));
     auto& element{ Record<Element>(data, near) };
     element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
     element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
@@ -107,19 +108,19 @@ uint16_t opeu_ai_raise_unit(uint8_t ds[65536]) {
 
 // While the side's request configuration is idle or not yet far along: files supply and equipment requests and
 // raises a regiment.
-void opeu_ai_reinforce(uint8_t ds[65536]) {
-  auto const& config{ Data(ds).request_configs[Data(ds).current_side] };
+void opeu_ai_reinforce(Game& game) {
+  auto const& config{ Data(game).request_configs[Data(game).current_side] };
   if (config.kind == NO_REQUEST || config.delay < REINFORCE_DELAY) {
-    opeu_ai_request_resources(ds);
-    opeu_ai_request_equipment(ds);
-    opeu_ai_raise_unit(ds);
+    opeu_ai_request_resources(game);
+    opeu_ai_request_equipment(game);
+    opeu_ai_raise_unit(game);
   }
 }
 
 // Moves the objective's stock of each of the unit's element types into the elements, up to the type's capacity.
 // 1 when anything moved.
-uint16_t opeu_ai_restock_unit(uint8_t ds[65536], uint16_t objective, uint16_t unit) {
-  auto&         data{ Data(ds) };
+uint16_t opeu_ai_restock_unit(Game& game, uint16_t objective, uint16_t unit) {
+  auto&         data{ Data(game) };
   auto&         store{ Record<Objective>(data, objective) };
   std::uint16_t moved{ 0 };
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) {
@@ -135,24 +136,24 @@ uint16_t opeu_ai_restock_unit(uint8_t ds[65536], uint16_t objective, uint16_t un
 }
 
 // Restocks the side's units on and around each of its objectives that may be planned for. 1 when anything moved.
-uint16_t opeu_ai_restock_from_objectives(uint8_t ds[65536]) {
-  auto&         data{ Data(ds) };
+uint16_t opeu_ai_restock_from_objectives(Game& game) {
+  auto&         data{ Data(game) };
   std::uint16_t moved{ 0 };
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (!objective.active || opeu_objective_side(ds, near) != data.current_side || !AiObjectiveEligible(ds, near)) continue;
+    if (!objective.active || opeu_objective_side(game, near) != data.current_side || !AiObjectiveEligible(game, near)) continue;
     for (std::uint8_t direction{ 0 }; direction <= 8; ++direction) {
       std::uint8_t x{ objective.x };
       std::uint8_t y{ objective.y };
-      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(ds, x, y) == data.current_side && opeu_ai_restock_unit(ds, near, opeu_find_unit_at(ds, x, y))) moved = 1;
+      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(game, x, y) == data.current_side && opeu_ai_restock_unit(game, near, opeu_find_unit_at(game, x, y))) moved = 1;
     }
   }
   return moved;
 }
 
 // In each of the side's ready divisions, selects the first ready unit and deselects the others.
-void opeu_ai_mark_group_leaders(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_ai_mark_group_leaders(Game& game) {
+  auto& data{ Data(game) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     if (!(GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY))) continue;
     bool marked{ false };
@@ -167,8 +168,8 @@ void opeu_ai_mark_group_leaders(uint8_t ds[65536]) {
 }
 
 // Marks every ready division of the side as handled by the computer.
-void opeu_ai_15c0(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_ai_15c0(Game& game) {
+  auto& data{ Data(game) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     auto& division{ GroupOf(data, data.current_side, group) };
     if (division.flags & Bits(GroupFlag::READY)) division.flags |= Bits(GroupFlag::AI_MARK);
@@ -176,13 +177,13 @@ void opeu_ai_15c0(uint8_t ds[65536]) {
 }
 
 // The computer side's passes after the other side's turn control.
-void opeu_control_other_finish(uint8_t ds[65536]) {
-  opeu_ai_15c0(ds);
-  opeu_ai_rotate_staff(ds);
-  opeu_ai_mark_group_leaders(ds);
-  opeu_ai_refresh_capacities(ds);
-  opeu_ai_restock_from_objectives(ds);
-  opeu_ai_reinforce(ds);
-  opeu_ai_daytime_plans(ds);
-  opeu_ai_choose_target(ds);
+void opeu_control_other_finish(Game& game) {
+  opeu_ai_15c0(game);
+  opeu_ai_rotate_staff(game);
+  opeu_ai_mark_group_leaders(game);
+  opeu_ai_refresh_capacities(game);
+  opeu_ai_restock_from_objectives(game);
+  opeu_ai_reinforce(game);
+  opeu_ai_daytime_plans(game);
+  opeu_ai_choose_target(game);
 }

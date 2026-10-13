@@ -5,9 +5,10 @@
 #include "io/sound.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/host.hpp"
-#include "glue.hpp"
 #include "io/soundcue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -51,166 +52,166 @@ struct SegRegs {
 
 // Copies `size` bytes between DS offsets: forward when the destination is below the source, else backward; both
 // wrap within the segment.
-auto CopyNear(std::uint8_t* ds, std::uint16_t source, std::uint16_t destination, std::uint16_t size) -> void {
+auto CopyNear(Game& game, std::uint16_t source, std::uint16_t destination, std::uint16_t size) -> void {
   if (destination < source)
-    for (std::uint16_t i{ 0 }; i < size; i++) ds[static_cast<std::uint16_t>(destination + i)] = ds[static_cast<std::uint16_t>(source + i)];
+    for (std::uint16_t i{ 0 }; i < size; i++) Byte(game, static_cast<std::uint16_t>(destination + i)) = Byte(game, static_cast<std::uint16_t>(source + i));
   else
-    for (std::uint16_t i{ size }; i; i--) ds[static_cast<std::uint16_t>(destination + i - 1)] = ds[static_cast<std::uint16_t>(source + i - 1)];
+    for (std::uint16_t i{ size }; i; i--) Byte(game, static_cast<std::uint16_t>(destination + i - 1)) = Byte(game, static_cast<std::uint16_t>(source + i - 1));
 }
 
 // int86x: INT 66h with the registers and the segment registers; both come back updated.
-auto Int86X(std::uint8_t* ds, HostService service, Regs& r, SegRegs* s) -> std::uint16_t {
+auto Int86X(Game& game, HostService service, Regs& r, SegRegs* s) -> std::uint16_t {
   std::uint16_t words[11]{ r.x.ax, r.x.bx, r.x.cx, r.x.dx, r.x.si, r.x.di, r.x.cflag };
   words[7]  = s->es;
   words[8]  = s->cs;
   words[9]  = s->ss;
   words[10] = s->ds;
-  auto const result{ service(ds, INT86X, words) };
+  auto const result{ service(game, INT86X, words) };
   r.x = { words[0], words[1], words[2], words[3], words[4], words[5], words[6] };
   *s  = { words[7], words[8], words[9], words[10] };
   return result;
 }
 
-auto SegRead(std::uint8_t* ds, HostService service) -> SegRegs {
+auto SegRead(Game& game, HostService service) -> SegRegs {
   std::uint16_t words[4]{};
-  service(ds, SEGREAD, words);
+  service(game, SEGREAD, words);
   return { words[0], words[1], words[2], words[3] };
 }
 
 // A command with AL.
-auto Command(std::uint8_t* ds, HostService service, std::uint8_t ah, std::uint8_t al = 0) -> std::uint16_t {
+auto Command(Game& game, HostService service, std::uint8_t ah, std::uint8_t al = 0) -> std::uint16_t {
   Regs r{};
   r.h.ah = ah;
   r.h.al = al;
-  return Int86(ds, service, r);
+  return Int86(game, service, r);
 }
 } // namespace
 
-void opeu_sound_initialize(std::uint8_t* ds, HostService service) {
-  auto&         data{ Data(ds) };
+void opeu_sound_initialize(Game& game, HostService service) {
+  auto&         data{ Data(game) };
   std::uint16_t words[4]{ MUSIC_OFFSET, MUSIC_SEGMENT, EFFECTS_OFFSET, MUSIC_SEGMENT };
-  data.sound_driver  = service(ds, DRIVER_OPEN, words);
+  data.sound_driver  = service(game, DRIVER_OPEN, words);
   data.sound_enabled = data.sound_driver != 0;
 }
 
-void opeu_sound_reset(std::uint8_t* ds, HostService service) {
-  opeu_sound_cue9(ds, service);
-  opeu_effect_finish(ds, service);
+void opeu_sound_reset(Game& game, HostService service) {
+  opeu_sound_cue9(game, service);
+  opeu_effect_finish(game, service);
 }
 
-void opeu_finish_side_initialization(std::uint8_t* ds, HostService service, std::uint8_t value) {
-  auto const& data{ Data(ds) };
-  if (data.sound_driver && data.sound_enabled) Command(ds, service, MUSIC_CONTROL, value);
+void opeu_finish_side_initialization(Game& game, HostService service, std::uint8_t value) {
+  auto const& data{ Data(game) };
+  if (data.sound_driver && data.sound_enabled) Command(game, service, MUSIC_CONTROL, value);
 }
 
-void opeu_music_stop(std::uint8_t* ds, HostService service) {
-  if (Data(ds).sound_driver) Command(ds, service, MUSIC_STOP, STOP_FADE);
+void opeu_music_stop(Game& game, HostService service) {
+  if (Data(game).sound_driver) Command(game, service, MUSIC_STOP, STOP_FADE);
 }
 
-auto opeu_music_playing(std::uint8_t* ds, HostService service) -> int {
-  return (Command(ds, service, MUSIC_STATUS) & 0xff) != 0;
+auto opeu_music_playing(Game& game, HostService service) -> int {
+  return (Command(game, service, MUSIC_STATUS) & 0xff) != 0;
 }
 
-void opeu_music_start(std::uint8_t* ds, HostService service, std::uint8_t track) {
-  auto& data{ Data(ds) };
+void opeu_music_start(Game& game, HostService service, std::uint8_t track) {
+  auto& data{ Data(game) };
   if (!data.sound_driver) return;
-  if (opeu_music_playing(ds, service)) {
+  if (opeu_music_playing(game, service)) {
     if (data.music_current == track) return;
-    opeu_music_stop(ds, service);
-    while (opeu_music_playing(ds, service));
+    opeu_music_stop(game, service);
+    while (opeu_music_playing(game, service));
   }
-  Command(ds, service, MUSIC_START, track);
+  Command(game, service, MUSIC_START, track);
   data.music_current = track;
 }
 
-void opeu_set_turn_context(std::uint8_t* ds, HostService service, std::uint8_t track) {
-  if (Data(ds).sound_enabled) {
-    opeu_music_start(ds, service, track);
-    opeu_finish_side_initialization(ds, service, 1);
+void opeu_set_turn_context(Game& game, HostService service, std::uint8_t track) {
+  if (Data(game).sound_enabled) {
+    opeu_music_start(game, service, track);
+    opeu_finish_side_initialization(game, service, 1);
   }
 }
 
 // Copies the bank name (7 bytes) and the path (13 bytes) to music_bank and music_path and has the driver load them.
-void opeu_music_load(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path) {
-  auto& data{ Data(ds) };
+void opeu_music_load(Game& game, HostService service, std::uint16_t bank, std::uint16_t path) {
+  auto& data{ Data(game) };
   if (!data.sound_driver) return;
-  CopyNear(ds, bank, Near(data, data.music_bank), 7);
-  CopyNear(ds, path, Near(data, data.music_path), 13);
-  auto segs{ SegRead(ds, service) };
+  CopyNear(game, bank, Near(data, data.music_bank), 7);
+  CopyNear(game, path, Near(data, data.music_path), 13);
+  auto segs{ SegRead(game, service) };
   Regs r{};
   r.h.al = 0;
   r.x.dx = Near(data, data.music_bank);
   r.h.ah = MUSIC_LOAD;
-  Int86X(ds, service, r, &segs);
+  Int86X(game, service, r, &segs);
 }
 
-void opeu_music_select(std::uint8_t* ds, HostService service, std::uint8_t value) {
-  if (Data(ds).sound_driver) {
+void opeu_music_select(Game& game, HostService service, std::uint8_t value) {
+  if (Data(game).sound_driver) {
     Regs r{};
     r.h.al = 0;
     r.h.dl = value;
     r.h.ah = MUSIC_SELECT;
-    Int86(ds, service, r);
+    Int86(game, service, r);
   }
 }
 
-void opeu_music_load_select(std::uint8_t* ds, HostService service, std::uint16_t bank, std::uint16_t path, std::uint8_t value) {
-  if (!Data(ds).sound_enabled) return;
-  opeu_music_load(ds, service, bank, path);
-  opeu_music_select(ds, service, value);
+void opeu_music_load_select(Game& game, HostService service, std::uint16_t bank, std::uint16_t path, std::uint8_t value) {
+  if (!Data(game).sound_enabled) return;
+  opeu_music_load(game, service, bank, path);
+  opeu_music_select(game, service, value);
 }
 
-void opeu_music_command7(std::uint8_t* ds, HostService service) {
-  Command(ds, service, MUSIC_7);
+void opeu_music_command7(Game& game, HostService service) {
+  Command(game, service, MUSIC_7);
 }
 
-void opeu_effect_stop(std::uint8_t* ds, HostService service) {
-  if (Data(ds).sound_driver) Command(ds, service, EFFECT_STOP);
+void opeu_effect_stop(Game& game, HostService service) {
+  if (Data(game).sound_driver) Command(game, service, EFFECT_STOP);
 }
 
-auto opeu_effect_playing(std::uint8_t* ds, HostService service) -> int {
-  if (!Data(ds).sound_driver) return 0;
-  return (Command(ds, service, EFFECT_STATUS) & 0xff) != 0;
+auto opeu_effect_playing(Game& game, HostService service) -> int {
+  if (!Data(game).sound_driver) return 0;
+  return (Command(game, service, EFFECT_STATUS) & 0xff) != 0;
 }
 
 // Hands the driver the far effect data.
-void opeu_effect_load(std::uint8_t* ds, HostService service, std::uint32_t data) {
-  if (Data(ds).sound_driver) {
+void opeu_effect_load(Game& game, HostService service, std::uint32_t data) {
+  if (Data(game).sound_driver) {
     Regs    r{};
     SegRegs segs{};
     r.h.ah  = EFFECT_LOAD;
     segs.ds = static_cast<std::uint16_t>(data >> 16);
     r.x.dx  = static_cast<std::uint16_t>(data);
-    Int86X(ds, service, r, &segs);
+    Int86X(game, service, r, &segs);
   }
 }
 
-void opeu_effect_start(std::uint8_t* ds, HostService service, std::uint8_t effect) {
-  auto& data{ Data(ds) };
+void opeu_effect_start(Game& game, HostService service, std::uint8_t effect) {
+  auto& data{ Data(game) };
   if (!data.sound_driver) return;
-  if (opeu_effect_playing(ds, service)) {
+  if (opeu_effect_playing(game, service)) {
     if (data.effect_current == effect) return;
-    opeu_effect_stop(ds, service);
-    while (opeu_effect_playing(ds, service));
+    opeu_effect_stop(game, service);
+    while (opeu_effect_playing(game, service));
   }
-  Command(ds, service, EFFECT_START, static_cast<std::uint8_t>(effect + 1));
+  Command(game, service, EFFECT_START, static_cast<std::uint8_t>(effect + 1));
   data.effect_current = effect;
 }
 
-void opeu_effect_play(std::uint8_t* ds, HostService service, std::uint8_t effect) {
-  if (Data(ds).sound_enabled) opeu_effect_start(ds, service, effect);
+void opeu_effect_play(Game& game, HostService service, std::uint8_t effect) {
+  if (Data(game).sound_enabled) opeu_effect_start(game, service, effect);
 }
 
-void opeu_effect_finish(std::uint8_t* ds, HostService service) {
-  auto const& data{ Data(ds) };
+void opeu_effect_finish(Game& game, HostService service) {
+  auto const& data{ Data(game) };
   if (data.sound_driver && data.sound_enabled) {
-    while (opeu_effect_playing(ds, service));
-    opeu_effect_stop(ds, service);
+    while (opeu_effect_playing(game, service));
+    opeu_effect_stop(game, service);
   }
 }
 
 // Every int86 call goes to the native driver with the registers it reads and returns.
-auto svc_sound(std::uint8_t*, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
+auto svc_sound(Game&, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
   switch (call) {
   case DRIVER_OPEN: return static_cast<std::uint16_t>(opeu_sound_open(words[0], words[1], words[2], words[3]));
   case INT86:       {
@@ -229,27 +230,27 @@ auto svc_sound(std::uint8_t*, std::uint16_t call, std::uint16_t* words) -> std::
   return 0;
 }
 
-auto port_routine_opeu_effect_finish(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_effect_finish(ds, svc_sound);
+auto port_routine_opeu_effect_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_effect_finish(game, svc_sound);
   return 0;
 }
 
-auto port_routine_opeu_finish_side_initialization(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_finish_side_initialization(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }
 
-auto port_routine_opeu_music_command7(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_music_command7(ds, svc_sound);
+auto port_routine_opeu_music_command7(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_music_command7(game, svc_sound);
   return 0;
 }
 
-auto port_routine_opeu_music_stop(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_music_stop(ds, svc_sound);
+auto port_routine_opeu_music_stop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_music_stop(game, svc_sound);
   return 0;
 }
 
-auto port_routine_opeu_set_turn_context(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
+auto port_routine_opeu_set_turn_context(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }

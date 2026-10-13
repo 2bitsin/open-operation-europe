@@ -2,38 +2,39 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "common/host.hpp"
 #include "types.hpp"
 
-void     opeu_image_read_draw(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, int16_t handle);
-void     opeu_rle_expand(uint8_t* ds, const UiHost* host, uint16_t count, opeu::game::FarPointer src, opeu::game::FarPointer dst);
-void     opeu_image_draw_masked(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode);
-uint8_t  opeu_stream_file_byte(uint8_t* ds, const UiHost* host);
-void     opeu_stream_seek_block(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t block);
-void     opeu_picture_file(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block);
-void     opeu_picture_file_masked(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block);
-uint8_t  opeu_stream_memory_byte(uint8_t* ds, const UiHost* host);
-void     opeu_picture_memory(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset);
-void     opeu_picture_memory_masked(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset);
-void     opeu_stream_seek(uint8_t* ds, const UiHost* host, int32_t position, int16_t handle);
-void     opeu_picture_file_at(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, int32_t position);
-void     opeu_context_frame(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t width);
-void     opeu_portrait_unlink(uint8_t* ds, uint16_t node);
-void     opeu_portrait_promote(uint8_t* ds, uint16_t node);
-uint16_t opeu_portrait_load(uint8_t* ds, const UiHost* host, uint8_t key);
-void     opeu_context_portrait(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t person);
-void     opeu_face_unlink(uint8_t* ds, uint16_t node);
-void     opeu_face_promote(uint8_t* ds, uint16_t node);
-int16_t  opeu_face_load(uint8_t* ds, const UiHost* host, uint8_t key);
-void     opeu_far_copy(uint8_t* ds, const UiHost* host, uint16_t count, opeu::game::FarPointer src, opeu::game::FarPointer dst);
-void     opeu_face_draw(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t mode, uint8_t key);
-void     opeu_ui_outline(uint8_t* ds, const UiHost* host, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-void     opeu_backdrop_fill(uint8_t* ds, const UiHost* host);
-void     opeu_backdrop_fill_color(uint8_t* ds, const UiHost* host, uint8_t color);
-uint16_t opeu_title_box(uint8_t* ds, const UiHost* host, uint16_t x, uint16_t y, uint16_t text);
-void     opeu_palette_for_hour(uint8_t* ds, const UiHost* host);
-void     opeu_palette_daylight(uint8_t* ds, const UiHost* host);
-void     opeu_palette_title_screen(uint8_t* ds, const UiHost* host);
-void     opeu_palette_map_screen(uint8_t* ds, const UiHost* host);
+void     opeu_image_read_draw(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, int16_t handle);
+void     opeu_rle_expand(Game& game, const UiHost* host, uint16_t count, opeu::game::FarPointer src, opeu::game::FarPointer dst);
+void     opeu_image_draw_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode);
+uint8_t  opeu_stream_file_byte(Game& game, const UiHost* host);
+void     opeu_stream_seek_block(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t block);
+void     opeu_picture_file(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block);
+void     opeu_picture_file_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block);
+uint8_t  opeu_stream_memory_byte(Game& game, const UiHost* host);
+void     opeu_picture_memory(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset);
+void     opeu_picture_memory_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset);
+void     opeu_stream_seek(Game& game, const UiHost* host, int32_t position, int16_t handle);
+void     opeu_picture_file_at(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, int32_t position);
+void     opeu_context_frame(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t width);
+void     opeu_portrait_unlink(Game& game, uint16_t node);
+void     opeu_portrait_promote(Game& game, uint16_t node);
+uint16_t opeu_portrait_load(Game& game, const UiHost* host, uint8_t key);
+void     opeu_context_portrait(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t person);
+void     opeu_face_unlink(Game& game, uint16_t node);
+void     opeu_face_promote(Game& game, uint16_t node);
+int16_t  opeu_face_load(Game& game, const UiHost* host, uint8_t key);
+void     opeu_far_copy(Game& game, const UiHost* host, uint16_t count, opeu::game::FarPointer src, opeu::game::FarPointer dst);
+void     opeu_face_draw(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t mode, uint8_t key);
+void     opeu_ui_outline(Game& game, const UiHost* host, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
+void     opeu_backdrop_fill(Game& game, const UiHost* host);
+void     opeu_backdrop_fill_color(Game& game, const UiHost* host, uint8_t color);
+uint16_t opeu_title_box(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t text);
+void     opeu_palette_for_hour(Game& game, const UiHost* host);
+void     opeu_palette_daylight(Game& game, const UiHost* host);
+void     opeu_palette_title_screen(Game& game, const UiHost* host);
+void     opeu_palette_map_screen(Game& game, const UiHost* host);
 
-uint32_t svc_uiprim(uint8_t* ds, uint8_t* memory, uint16_t id, const uint16_t* args, uint16_t count);
+uint32_t svc_uiprim(Game& game, uint8_t* memory, uint16_t id, const uint16_t* args, uint16_t count);

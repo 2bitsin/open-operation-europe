@@ -27,12 +27,12 @@ enum class SupplyService : std::uint16_t {
   CHIEF_WAIT     = 24, // (text) -> the Operations chief speaks and waits for the answer
 };
 
-uint8_t  opeu_supply_keypad_hit(uint8_t* ds, uint16_t x, uint16_t y);
-uint8_t  opeu_supply_input(uint8_t* ds, HostEvent event, uint16_t row);
-void     opeu_supply_set(uint8_t* ds, uint8_t side, uint8_t row, uint8_t column, uint16_t value);
-uint16_t opeu_supply_get(const uint8_t* ds, uint8_t side, uint8_t row, uint8_t column);
-void     opeu_supply_draw(uint8_t* ds, HostEvent event, uint16_t first, uint16_t second);
-void     opeu_supply_digits(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t value);
+uint8_t  opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y);
+uint8_t  opeu_supply_input(Game& game, HostEvent event, uint16_t row);
+void     opeu_supply_set(Game& game, uint8_t side, uint8_t row, uint8_t column, uint16_t value);
+uint16_t opeu_supply_get(Game const& game, uint8_t side, uint8_t row, uint8_t column);
+void     opeu_supply_draw(Game& game, HostEvent event, uint16_t first, uint16_t second);
+void     opeu_supply_digits(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t value);
 
 // The input, drawing and text services of the panel as direct calls.
-uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_suppanel(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

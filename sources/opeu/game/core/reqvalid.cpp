@@ -6,8 +6,9 @@
 #include "map/query.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "map/reqcells.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -44,39 +45,39 @@ enum class RequestError : uint8_t {
 
 // Checks a request of the side for supplies, a battalion or a regiment. A failed request
 // is noted (invalid_request, request_error) and reported in the side's daily dialog; returns 1 when it is valid.
-uint16_t opeu_request_valid(uint8_t ds[65536], PendingEvent event, uint8_t side, uint16_t request) {
-  auto&      data{ Data(ds) };
+uint16_t opeu_request_valid(Game& game, PendingEvent event, uint8_t side, uint16_t request) {
+  auto&      data{ Data(game) };
   auto&      slot{ Record<RequestSlot>(data, request) };
   auto const fail{ [&](RequestError reason) {
     data.request_error   = std::to_underlying(reason);
     data.invalid_request = request;
-    event(ds, std::to_underlying(ValidService::SHOW), REQUEST_SHOW, side, ERROR_PRESENT_OFFSET, ERROR_PRESENT_SEGMENT);
+    event(game, std::to_underlying(ValidService::SHOW), REQUEST_SHOW, side, ERROR_PRESENT_OFFSET, ERROR_PRESENT_SEGMENT);
     return uint16_t{ 0 };
   } };
-  auto const count_cells{ [&] { return event(ds, std::to_underlying(ValidService::COUNT_CELLS), side, CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT, 0); } };
+  auto const count_cells{ [&] { return event(game, std::to_underlying(ValidService::COUNT_CELLS), side, CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT, 0); } };
   switch (static_cast<RequestKind>(slot.kind)) {
   case RequestKind::SUPPLIES:
-    if (opeu_objective_side(ds, slot.target) != side) return fail(RequestError::LOST);
+    if (opeu_objective_side(game, slot.target) != side) return fail(RequestError::LOST);
     if (!count_cells()) return fail(RequestError::NO_PLACE);
     return 1;
   case RequestKind::BATTALION:
-    if (opeu_objective_side(ds, slot.target) != side) return fail(RequestError::LOST);
+    if (opeu_objective_side(game, slot.target) != side) return fail(RequestError::LOST);
     if (!count_cells()) return fail(RequestError::NO_PLACE);
-    if (!opeu_request_slot(ds, slot.target, slot.argument)) return fail(RequestError::NO_ROOM);
+    if (!opeu_request_slot(game, slot.target, slot.argument)) return fail(RequestError::NO_ROOM);
     return 1;
   case RequestKind::REGIMENT:
-    if (!opeu_request_group_ready(ds, side)) return fail(RequestError::NO_ROOM);
-    if (!opeu_arrival_locate(ds, event, offsetof(DataSegment, request_x), offsetof(DataSegment, request_y), side)) return fail(RequestError::NO_PLACE);
+    if (!opeu_request_group_ready(game, side)) return fail(RequestError::NO_ROOM);
+    if (!opeu_arrival_locate(game, event, offsetof(DataSegment, request_x), offsetof(DataSegment, request_y), side)) return fail(RequestError::NO_PLACE);
     return 1;
   default: return 0;
   }
 }
 
-uint16_t svc_reqvalid(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
+uint16_t svc_reqvalid(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
   uint16_t r = 0;
   switch (static_cast<ValidService>(id)) {
-  case ValidService::COUNT_CELLS: r = opeu_request_cells(ds, (uint8_t)a, c2_cell_predicate(b, c)); break;
-  case ValidService::SHOW:        opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
+  case ValidService::COUNT_CELLS: r = opeu_request_cells(game, (uint8_t)a, c2_cell_predicate(b, c)); break;
+  case ValidService::SHOW:        opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
   default:                        port_unhandled("reqvalid", id, 4);
   }
   return r;

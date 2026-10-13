@@ -1,6 +1,8 @@
 /* Routine link table lookup: the call by DS address through the generated
  * table (gen/link-table.cpp). The trace and the fatal exit are the glue's
  * (glue/core/trace.cpp). */
+#include "link/link.hpp"
+#include "common/game.hpp"
 #include "port.hpp"
 
 #include <stdio.h>
@@ -34,7 +36,7 @@ uint32_t port_routine_address(const char* name) {
   return 0;
 }
 
-uint32_t port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
+uint32_t port_call(Game& game, uint32_t address, const uint16_t* args, unsigned count) {
   const PortLink* l = find(address);
   uint32_t        r;
   if (!l || !l->routine) port_fatal("call to unlinked routine %s (%05x) with %u args", l ? l->name : "?", (unsigned)address, count);
@@ -46,11 +48,11 @@ uint32_t port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned
     buf[n] = 0;
     port_trace("link", "-> %s%s", l->name, buf);
   }
-  r = l->routine(ds, args, count);
+  r = l->routine(game, args, count);
   port_trace("link", "<- %s = %08x", l->name, (unsigned)r);
   return r;
 }
 
-uint16_t port_service(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
-  return (uint16_t)port_call(ds, address, args, count);
+uint16_t port_service(Game& game, uint32_t address, const uint16_t* args, unsigned count) {
+  return (uint16_t)port_call(game, address, args, count);
 }

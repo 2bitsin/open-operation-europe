@@ -7,7 +7,8 @@
 #include "common/memory.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/rqarms.hpp"
@@ -47,21 +48,21 @@ constexpr std::uint16_t OTHER_KIND{ 5 };
 
 // Picks a random available equipment type that suits the regiment kind (`side` chooses between the two alternatives
 // of a kind) and loads the element with a random quantity of it.
-void opeu_reinf_element(uint8_t ds[65536], HostEvent event, uint16_t element, uint8_t kind, uint8_t side) {
-  auto& data{ Data(ds) };
+void opeu_reinf_element(Game& game, HostEvent event, uint16_t element, uint8_t kind, uint8_t side) {
+  auto& data{ Data(game) };
   auto& loaded{ Record<Element>(data, element) };
   for (;;) {
-    auto const index{ static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, TYPE_DRAW)) };
+    auto const index{ static_cast<std::uint8_t>(Call(game, event, RequestService::RANDOM, TYPE_DRAW)) };
     if (!data.type_availability[index]) continue;
     auto const& type{ data.element_types[index] };
     auto const  category{ type.category };
     if (!Suits(kind, side, category)) continue;
     if (!(data.side_masks[data.current_side] & type.sides)) continue;
-    if (data.type_availability[index] <= Call(ds, event, RequestService::RANDOM, 100)) continue;
+    if (data.type_availability[index] <= Call(game, event, RequestService::RANDOM, 100)) continue;
     loaded.type           = index;
-    std::uint16_t amount  = data.request_capacities[category] / (Call(ds, event, RequestService::MAX16, type.anti_tank, type.anti_personnel) / 20 + 1);
+    std::uint16_t amount  = data.request_capacities[category] / (Call(game, event, RequestService::MAX16, type.anti_tank, type.anti_personnel) / 20 + 1);
     amount               += (5 - data.delivery_level) * 6;
-    loaded.quantity       = Call(ds, event, RequestService::MIN16, Call(ds, event, RequestService::RANDOM, amount / 3) + (amount >> 1), data.request_capacities[category]);
+    loaded.quantity       = Call(game, event, RequestService::MIN16, Call(game, event, RequestService::RANDOM, amount / 3) + (amount >> 1), data.request_capacities[category]);
     loaded.damage         = 0;
     return;
   }
@@ -69,71 +70,71 @@ void opeu_reinf_element(uint8_t ds[65536], HostEvent event, uint16_t element, ui
 
 // "Which regiment should we call in, sir?": cancels a pending regiment request, or files a new one for a free unit
 // the player chooses, filling its free elements with fresh equipment.
-void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
-  auto&      data{ Data(ds) };
+void opeu_request_regiment(Game& game, HostEvent event) {
+  auto&      data{ Data(game) };
   auto const regiment{ std::to_underlying(RequestKind::REGIMENT) };
   auto const requested{ Bits(UnitFlag::REQUESTED) };
-  if (Call(ds, event, RequestService::PENDING, regiment)) {
-    if (!Call(ds, event, RequestService::CANCEL_PROMPT, Near(data, data.rq_reinforcements_text))) return;
-    Call(ds, event, RequestService::FREE_UNITS, 0, requested);
-    Call(ds, event, RequestService::FREE_ELEMENTS, 0, requested);
+  if (Call(game, event, RequestService::PENDING, regiment)) {
+    if (!Call(game, event, RequestService::CANCEL_PROMPT, Near(data, data.rq_reinforcements_text))) return;
+    Call(game, event, RequestService::FREE_UNITS, 0, requested);
+    Call(game, event, RequestService::FREE_ELEMENTS, 0, requested);
     Record<Side>(data, data.current_side_ptr).requests[regiment].kind = std::to_underlying(RequestKind::NONE);
   }
-  auto const units{ static_cast<std::uint8_t>(Call(ds, event, RequestService::FREE_UNITS, Near(data, data.ai_unit_list), requested)) };
+  auto const units{ static_cast<std::uint8_t>(Call(game, event, RequestService::FREE_UNITS, Near(data, data.ai_unit_list), requested)) };
   if (!units) {
-    Call(ds, event, RequestService::NO_MORE, Near(data, data.rq_regiment_text));
+    Call(game, event, RequestService::NO_MORE, Near(data, data.rq_regiment_text));
     return;
   }
-  auto elements{ static_cast<std::uint8_t>(Call(ds, event, RequestService::FREE_ELEMENTS, Near(data, data.ai_element_list), requested)) };
+  auto elements{ static_cast<std::uint8_t>(Call(game, event, RequestService::FREE_ELEMENTS, Near(data, data.ai_element_list), requested)) };
   if (!elements) {
-    Call(ds, event, RequestService::NO_MORE, Near(data, data.rq_battalion_text));
+    Call(game, event, RequestService::NO_MORE, Near(data, data.rq_battalion_text));
     return;
   }
-  Call(ds, event, RequestService::CONTROL_PANEL);
-  Call(ds, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_which_regiment_text), data.context_record2);
+  Call(game, event, RequestService::CONTROL_PANEL);
+  Call(game, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_which_regiment_text), data.context_record2);
   data.rq_regiment_list.rows = static_cast<std::uint8_t>(units + 1);
-  if (!Call(ds, event, RequestService::LIST_DIALOG, Near(data, data.rq_regiment_list), LIST_LIMIT, LIST_FLAGS)) return;
+  if (!Call(game, event, RequestService::LIST_DIALOG, Near(data, data.rq_regiment_list), LIST_LIMIT, LIST_FLAGS)) return;
   auto const    unit{ data.ai_unit_list[data.list_row] };
-  auto const    slot{ static_cast<std::uint8_t>(Call(ds, event, RequestService::UNIT_INDEX, unit)) };
+  auto const    slot{ static_cast<std::uint8_t>(Call(game, event, RequestService::UNIT_INDEX, unit)) };
   std::uint16_t kind;
-  if (Call(ds, event, RequestService::CATEGORY_0_TO_3, slot) || Call(ds, event, RequestService::CATEGORY_4_OR_5, slot)) {
-    Call(ds, event, RequestService::ARMY_TITLE, Near(data, data.rq_regiments_text));
-    kind = Call(ds, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_regiment_kind_menu));
+  if (Call(game, event, RequestService::CATEGORY_0_TO_3, slot) || Call(game, event, RequestService::CATEGORY_4_OR_5, slot)) {
+    Call(game, event, RequestService::ARMY_TITLE, Near(data, data.rq_regiments_text));
+    kind = Call(game, event, RequestService::DELAY_DIALOG, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_regiment_kind_menu));
     if (kind == 0xffff) return;
     kind--;
-  } else if (Call(ds, event, RequestService::CATEGORY_6, slot))
+  } else if (Call(game, event, RequestService::CATEGORY_6, slot))
     kind = SLOT_6_KIND;
   else
     kind = OTHER_KIND;
-  if (!Call(ds, event, RequestService::CONFIRM_OK, data.context_record2)) return;
+  if (!Call(game, event, RequestService::CONFIRM_OK, data.context_record2)) return;
   Record<Unit>(data, unit).flags = requested;
   auto const battalions{ data.ai_unit_element_counts[slot] };
   for (std::uint8_t row{ 0 }; row < battalions; ++row) {
-    if (!Call(ds, event, RequestService::RANDOM, battalions) && row > 1) break;
+    if (!Call(game, event, RequestService::RANDOM, battalions) && row > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[row] };
-    opeu_reinf_element(ds, event, near, static_cast<std::uint8_t>(kind), static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 2)));
+    opeu_reinf_element(game, event, near, static_cast<std::uint8_t>(kind), static_cast<std::uint8_t>(Call(game, event, RequestService::RANDOM, 2)));
     auto& element{ Record<Element>(data, near) };
-    element.morale     = static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 80));
-    element.training   = static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 80));
-    element.experience = static_cast<std::uint8_t>(Call(ds, event, RequestService::RANDOM, 30));
+    element.morale     = static_cast<std::uint8_t>(Call(game, event, RequestService::RANDOM, 80));
+    element.training   = static_cast<std::uint8_t>(Call(game, event, RequestService::RANDOM, 80));
+    element.experience = static_cast<std::uint8_t>(Call(game, event, RequestService::RANDOM, 30));
     element.flags      = Bits(ElementFlag::REQUESTED);
     --elements;
   }
-  Call(ds, event, RequestService::FILE_REQUEST, 0, static_cast<std::uint8_t>(kind), regiment);
+  Call(game, event, RequestService::FILE_REQUEST, 0, static_cast<std::uint8_t>(kind), regiment);
   data.side_delays[data.current_side] = 1;
 }
 
 // The services of the regiment request: the request menu's (svc_units_request).
-uint16_t svc_rqreinf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  if (id <= std::to_underlying(RequestService::CONFIRM_OK)) return svc_units_request("rqreinf", ds, id, args, count);
+uint16_t svc_rqreinf(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  if (id <= std::to_underlying(RequestService::CONFIRM_OK)) return svc_units_request("rqreinf", game, id, args, count);
   port_unhandled("rqreinf", id, count);
   return 0;
 }
 
-auto port_routine_opeu_request_regiment(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_request_regiment(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_request_regiment(ds, svc_rqreinf);
+  opeu_request_regiment(game, svc_rqreinf);
   return 0;
 }

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "core/random.hpp"
 
 #include <cstdint>
@@ -11,8 +12,8 @@
 namespace opeu::game::detail::random {
 
 // A number in [0, bound): loads the state from the segment, draws, stores the state back.
-inline auto RandomBelow(std::uint8_t* ds, std::uint16_t bound) -> std::uint16_t {
-  auto& state{ Data(ds).random_state };
+inline auto RandomBelow(Game& game, std::uint16_t bound) -> std::uint16_t {
+  auto& state{ Data(game).random_state };
   std::memcpy(&opeu_random_state, state.data(), sizeof opeu_random_state);
   auto const result{ opeu_rand_bounded(bound) };
   std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
@@ -20,8 +21,8 @@ inline auto RandomBelow(std::uint8_t* ds, std::uint16_t bound) -> std::uint16_t 
 }
 
 // The next raw number of the sequence.
-inline auto RandomNext(std::uint8_t* ds) -> std::uint16_t {
-  auto& state{ Data(ds).random_state };
+inline auto RandomNext(Game& game) -> std::uint16_t {
+  auto& state{ Data(game).random_state };
   std::memcpy(&opeu_random_state, state.data(), sizeof opeu_random_state);
   auto const result{ opeu_rand_next() };
   std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
@@ -29,9 +30,9 @@ inline auto RandomNext(std::uint8_t* ds) -> std::uint16_t {
 }
 
 // Starts the sequence again from `seed`.
-inline auto RandomSeed(std::uint8_t* ds, std::uint16_t seed) -> void {
+inline auto RandomSeed(Game& game, std::uint16_t seed) -> void {
   opeu_rand_seed(seed);
-  std::memcpy(Data(ds).random_state.data(), &opeu_random_state, sizeof opeu_random_state);
+  std::memcpy(Data(game).random_state.data(), &opeu_random_state, sizeof opeu_random_state);
 }
 } // namespace opeu::game::detail::random
 

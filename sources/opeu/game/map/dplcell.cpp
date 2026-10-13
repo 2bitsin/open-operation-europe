@@ -11,7 +11,8 @@
 #include "map/dplauto.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -31,9 +32,9 @@ constexpr uint8_t DEFENDER_ZONE{ 9 };
 constexpr std::array<uint8_t, 8> TOWARD{ 2, 1, 3, 2, 3, 2, 0, 3 };
 constexpr std::array<uint8_t, 8> AWAY{ 3, 0, 2, 3, 2, 3, 1, 2 };
 
-[[nodiscard]] auto ApproachOf(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
-  auto const unit{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element) };
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
+[[nodiscard]] auto ApproachOf(Game& game, BattleEvent event, uint16_t element) -> uint8_t {
+  auto const unit{ Call(game, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element) };
+  return static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
 }
 
 template <typename Body> void ForEachBattleCell(Body&& body) {
@@ -42,85 +43,85 @@ template <typename Body> void ForEachBattleCell(Body&& body) {
 }
 } // namespace
 
-uint8_t opeu_deploy_facing(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto&      data{ Data(ds) };
-  auto const approach{ ApproachOf(ds, event, element) };
+uint8_t opeu_deploy_facing(Game& game, BattleEvent event, uint16_t element) {
+  auto&      data{ Data(game) };
+  auto const approach{ ApproachOf(game, event, element) };
   if (approach == DEFENDING)
     for (uint8_t direction{ 0 }; direction < TOWARD.size(); ++direction) {
-      Byte(ds, STEP_X_AT) = data.battle_map_x;
-      Byte(ds, STEP_Y_AT) = data.battle_map_y;
-      if (Call(ds, event, BattleRoutine::GRID_STEP, STEP_X_AT, STEP_Y_AT, direction) && data.battle_attacker_x == Byte(ds, STEP_X_AT) && data.battle_attacker_y == Byte(ds, STEP_Y_AT))
+      Byte(game, STEP_X_AT) = data.battle_map_x;
+      Byte(game, STEP_Y_AT) = data.battle_map_y;
+      if (Call(game, event, BattleRoutine::GRID_STEP, STEP_X_AT, STEP_Y_AT, direction) && data.battle_attacker_x == Byte(game, STEP_X_AT) && data.battle_attacker_y == Byte(game, STEP_Y_AT))
         return TOWARD[direction];
     }
   // Outside 0..7 the original falls off its switch with the direction itself.
   return approach < AWAY.size() ? AWAY[approach] : approach;
 }
 
-void opeu_deploy_put(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto& data{ Data(ds) };
-  PositionOf(Data(ds), element).goal_x = data.battle_cursor_x;
-  PositionOf(Data(ds), element).goal_y = data.battle_cursor_y;
-  PositionOf(Data(ds), element).state  = Bits(BattleState::DEFEND);
-  Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
-  auto facing{ opeu_deploy_facing(ds, event, element) };
+void opeu_deploy_put(Game& game, BattleEvent event, uint16_t element) {
+  auto& data{ Data(game) };
+  PositionOf(Data(game), element).goal_x = data.battle_cursor_x;
+  PositionOf(Data(game), element).goal_y = data.battle_cursor_y;
+  PositionOf(Data(game), element).state  = Bits(BattleState::DEFEND);
+  Call(game, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
+  auto facing{ opeu_deploy_facing(game, event, element) };
   if (!ElementTypeOf(data, element).category) facing = 0;
-  Call(ds, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y, element, facing);
+  Call(game, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y, element, facing);
 }
 
-void opeu_deploy_lift(uint8_t* ds, BattleEvent event, uint16_t element) {
-  Call(ds, event, BattleRoutine::BATTLE_CLEAR_CELL, PositionOf(Data(ds), element).x, PositionOf(Data(ds), element).y);
-  Call(ds, event, BattleRoutine::BATTLE_DRAW_CELL, PositionOf(Data(ds), element).x, PositionOf(Data(ds), element).y);
-  PositionOf(Data(ds), element).x = BATTLE_UNPLACED;
-  PositionOf(Data(ds), element).y = BATTLE_UNPLACED;
+void opeu_deploy_lift(Game& game, BattleEvent event, uint16_t element) {
+  Call(game, event, BattleRoutine::BATTLE_CLEAR_CELL, PositionOf(Data(game), element).x, PositionOf(Data(game), element).y);
+  Call(game, event, BattleRoutine::BATTLE_DRAW_CELL, PositionOf(Data(game), element).x, PositionOf(Data(game), element).y);
+  PositionOf(Data(game), element).x = BATTLE_UNPLACED;
+  PositionOf(Data(game), element).y = BATTLE_UNPLACED;
 }
 
-uint16_t opeu_deploy_can_place(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
-  auto&      data{ Data(ds) };
-  auto const approach{ ApproachOf(ds, event, element) };
-  if (Call(ds, event, BattleRoutine::BATTLE_CELL_OCCUPIED, x, y)) return 0;
+uint16_t opeu_deploy_can_place(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
+  auto&      data{ Data(game) };
+  auto const approach{ ApproachOf(game, event, element) };
+  if (Call(game, event, BattleRoutine::BATTLE_CELL_OCCUPIED, x, y)) return 0;
   auto const zone{ static_cast<uint8_t>(data.battle_cells[y][x] >> 4) };
   auto const in_zone{ approach == DEFENDING ? zone == DEFENDER_ZONE : zone - approach == 1 };
-  return in_zone && Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element);
+  return in_zone && Call(game, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element);
 }
 
-void opeu_deploy_show_zone(uint8_t* ds, BattleEvent event, uint16_t element) {
+void opeu_deploy_show_zone(Game& game, BattleEvent event, uint16_t element) {
   ForEachBattleCell([&](uint8_t x, uint8_t y) {
-    if (opeu_deploy_can_place(ds, event, x, y, element)) Call(ds, event, BattleRoutine::BATTLE_HIGHLIGHT_CELL, x, y);
+    if (opeu_deploy_can_place(game, event, x, y, element)) Call(game, event, BattleRoutine::BATTLE_HIGHLIGHT_CELL, x, y);
   });
 }
 
-void opeu_deploy_hide_zone(uint8_t* ds, BattleEvent event, uint16_t element) {
+void opeu_deploy_hide_zone(Game& game, BattleEvent event, uint16_t element) {
   ForEachBattleCell([&](uint8_t x, uint8_t y) {
-    if (opeu_deploy_can_place(ds, event, x, y, element)) Call(ds, event, BattleRoutine::BATTLE_REFRESH_CELL, x, y);
+    if (opeu_deploy_can_place(game, event, x, y, element)) Call(game, event, BattleRoutine::BATTLE_REFRESH_CELL, x, y);
   });
 }
 
-void opeu_deploy_draw_cursor(uint8_t* ds, BattleEvent event) {
-  auto const& data{ Data(ds) };
-  Call(ds, event, BattleRoutine::BATTLE_DRAW_CURSOR, data.battle_cursor_x, data.battle_cursor_y);
+void opeu_deploy_draw_cursor(Game& game, BattleEvent event) {
+  auto const& data{ Data(game) };
+  Call(game, event, BattleRoutine::BATTLE_DRAW_CURSOR, data.battle_cursor_x, data.battle_cursor_y);
 }
 
-uint16_t opeu_deploy_input(uint8_t* ds, BattleEvent event) {
-  if (Data(ds).input_mode) return Call(ds, event, BattleRoutine::BATTLE_MOUSE_SELECT, 1);
-  return Call(ds, event, BattleRoutine::BATTLE_KEY_SELECT, 1);
+uint16_t opeu_deploy_input(Game& game, BattleEvent event) {
+  if (Data(game).input_mode) return Call(game, event, BattleRoutine::BATTLE_MOUSE_SELECT, 1);
+  return Call(game, event, BattleRoutine::BATTLE_KEY_SELECT, 1);
 }
 
-uint16_t opeu_deploy_manual(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto& data{ Data(ds) };
+uint16_t opeu_deploy_manual(Game& game, BattleEvent event, uint16_t element) {
+  auto& data{ Data(game) };
   for (;;) {
-    Call(ds, event, BattleRoutine::INPUT_FLUSH);
-    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
-    Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_prompt));
-    if (auto const chosen{ opeu_deploy_input(ds, event) }; !chosen) return chosen;
-    if (opeu_deploy_can_place(ds, event, data.battle_cursor_x, data.battle_cursor_y, element)) {
-      opeu_deploy_put(ds, event, element);
+    Call(game, event, BattleRoutine::INPUT_FLUSH);
+    Call(game, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
+    Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_prompt));
+    if (auto const chosen{ opeu_deploy_input(game, event) }; !chosen) return chosen;
+    if (opeu_deploy_can_place(game, event, data.battle_cursor_x, data.battle_cursor_y, element)) {
+      opeu_deploy_put(game, event, element);
       return 1;
     }
-    Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, Near(data, data.deploy_refused), data.battle_active_side, 1);
+    Call(game, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, Near(data, data.deploy_refused), data.battle_active_side, 1);
   }
 }
 
 // Services of this module: the deployment group's (map/dplauto).
-uint16_t svc_dplcell(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_deploy(ds, service, args, count);
+uint16_t svc_dplcell(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_deploy(game, service, args, count);
 }

@@ -12,12 +12,13 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -57,43 +58,43 @@ constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
 } // namespace
 
 // The presentation's far routine: a pause.
-void opeu_death_present(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, DELAY, 30);
+void opeu_death_present(Game& game, HostEvent event) {
+  Call(game, event, DELAY, 30);
 }
 
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
-void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t person) {
+void opeu_commander_death(Game& game, HostEvent event, uint16_t person) {
   ServiceLocals const locals{ NOTICE_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          at{ locals.At(0) };
   auto&               notice{ Record<DeathNotice>(data, at) };
-  notice.side = opeu_person_lacks_side0_flag(ds, person);
+  notice.side = opeu_person_lacks_side0_flag(game, person);
   if (data.side_status[notice.side] == SIDE_PLAYED) {
-    opeu_string_copy(ds, at, DEATH_PREFIX);
-    opeu_string_append(ds, at, person);
-    opeu_string_append(ds, at, DEATH_SUFFIX);
+    opeu_string_copy(game, at, DEATH_PREFIX);
+    opeu_string_append(game, at, person);
+    opeu_string_append(game, at, DEATH_SUFFIX);
   }
-  opeu_initialize_deputy(ds, person);
+  opeu_initialize_deputy(game, person);
   if (data.side_status[notice.side] == SIDE_PLAYED) {
-    Call(ds, event, CONTEXT, DEATH_CONTEXT);
-    Call(ds, event, FINISH, 0);
-    Call(ds, event, SHOW, DEATH_SHOW, notice.side, PRESENT_OFFSET, PRESENT_SEGMENT);
-    Call(ds, event, MESSAGE, at, opeu_find_side_record(ds, notice.side, ADVISER));
+    Call(game, event, CONTEXT, DEATH_CONTEXT);
+    Call(game, event, FINISH, 0);
+    Call(game, event, SHOW, DEATH_SHOW, notice.side, PRESENT_OFFSET, PRESENT_SEGMENT);
+    Call(game, event, MESSAGE, at, opeu_find_side_record(game, notice.side, ADVISER));
   }
 }
 
 // A wounded general recovers with chance 1 in (level * 10 + 24), the level being the delivery level for a side the
 // player commands and 2 otherwise; else he loses 10 - limit / 10 health. Healing: 1 for a general assigned to a
 // division, 3 while his record counter runs, else 2.
-void opeu_wound_event(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
+void opeu_wound_event(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
   for (std::uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
     std::uint16_t const level{ DeliveryLevel(data, side) };
     for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
       auto& person{ data.people[side * PEOPLE_PER_SIDE + i] };
       if (person.status == PERSON_VACANT) continue;
       if (person.role & Bits(PersonRole::POOR_HEALTH)) {
-        if (RandomBelow(ds, static_cast<std::uint16_t>(level * 10 + 24)) == 2)
+        if (RandomBelow(game, static_cast<std::uint16_t>(level * 10 + 24)) == 2)
           person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
         else
           opeu_sub_byte(static_cast<std::uint16_t>(10 - person.max_health / 10), &person.health);
@@ -103,37 +104,37 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event) {
           else if ((person.role & Bits(PersonRole::ROLE_MASK)) == GENERAL_ROLE)
             person.role |= Bits(PersonRole::DEPUTY);
           else
-            opeu_commander_death(ds, event, Near(data, person));
+            opeu_commander_death(game, event, Near(data, person));
         }
       }
       std::uint8_t amount{ 2 };
       if (person.assignment & Bits(Assignment::DIVISION))
         amount = 1;
-      else if (opeu_get_record_counter(reinterpret_cast<std::uint8_t*>(&person)))
+      else if (opeu_get_record_counter(person))
         amount = 3;
       opeu_add_byte(amount, person.max_health, &person.health);
     }
   }
 }
 
-uint16_t svc_evwound(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_evwound(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case DELAY:   opeu_delay_units(ds, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case FINISH:  opeu_finish_side_initialization(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
-  case SHOW:    port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case DELAY:   opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case CONTEXT: opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case FINISH:  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case SHOW:    port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   default:      port_unhandled("evwound", id, count);
   }
   return 0;
 }
 
-auto port_routine_opeu_death_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_death_present(ds, svc_evwound);
+auto port_routine_opeu_death_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_death_present(game, svc_evwound);
   return 0;
 }
 
-auto port_routine_opeu_wound_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_wound_event(ds, svc_evwound);
+auto port_routine_opeu_wound_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_wound_event(game, svc_evwound);
   return 0;
 }

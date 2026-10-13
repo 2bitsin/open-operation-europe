@@ -4,10 +4,10 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_pending_start_present(uint8_t* ds, PendingEvent event);
-void opeu_request_start(uint8_t* ds, PendingEvent event, uint8_t side, uint16_t request);
-void opeu_pending_fallback_present(uint8_t* ds, PendingEvent event);
-void opeu_request_fallback(uint8_t* ds, PendingEvent event, uint8_t side, uint16_t request);
+void opeu_pending_start_present(Game& game, PendingEvent event);
+void opeu_request_start(Game& game, PendingEvent event, uint8_t side, uint16_t request);
+void opeu_pending_fallback_present(Game& game, PendingEvent event);
+void opeu_request_fallback(Game& game, PendingEvent event, uint8_t side, uint16_t request);
 
 // The services the pending-request routines call.
-uint16_t svc_reqpend(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d);
+uint16_t svc_reqpend(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d);

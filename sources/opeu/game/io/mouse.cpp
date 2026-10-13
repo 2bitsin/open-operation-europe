@@ -4,9 +4,10 @@
 #include "io/mouse.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/host.hpp"
 #include "common/memory.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -31,106 +32,106 @@ constexpr std::uint8_t  PRESSED{ 0x80 };
 constexpr std::uint8_t  NO_MOUSE_CLICK{ 3 };
 
 // INT 33h with AX = `function`; the registers come back.
-auto Mouse(std::uint8_t* ds, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0) -> Regs {
+auto Mouse(Game& game, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0) -> Regs {
   Regs r{};
   r.x.ax = function;
   r.x.cx = cx;
   r.x.dx = dx;
-  Int86(ds, service, r);
+  Int86(game, service, r);
   return r;
 }
 } // namespace
 
 // Resets the driver and limits the mouse to 640x400; returns the reset AX.
-auto opeu_mouse_reset(std::uint8_t* ds, HostService service) -> std::uint16_t {
-  auto const r{ Mouse(ds, service, RESET) };
-  opeu_mouse_window(ds, service, 0, 0, 640, 400);
+auto opeu_mouse_reset(Game& game, HostService service) -> std::uint16_t {
+  auto const r{ Mouse(game, service, RESET) };
+  opeu_mouse_window(game, service, 0, 0, 640, 400);
   return r.x.ax;
 }
 
-void opeu_mouse_show(std::uint8_t* ds, HostService service) {
-  if (HasMouse(Data(ds))) Mouse(ds, service, SHOW);
+void opeu_mouse_show(Game& game, HostService service) {
+  if (HasMouse(Data(game))) Mouse(game, service, SHOW);
 }
 
-void opeu_mouse_hide(std::uint8_t* ds, HostService service) {
-  if (HasMouse(Data(ds))) Mouse(ds, service, HIDE);
+void opeu_mouse_hide(Game& game, HostService service) {
+  if (HasMouse(Data(game))) Mouse(game, service, HIDE);
 }
 
-auto opeu::game::detail::mouse::MousePosition(std::uint8_t* ds, HostService service) -> MousePoint {
-  if (!HasMouse(Data(ds))) return { 0, 0 };
-  auto const r{ Mouse(ds, service, STATUS) };
+auto opeu::game::detail::mouse::MousePosition(Game& game, HostService service) -> MousePoint {
+  if (!HasMouse(Data(game))) return { 0, 0 };
+  auto const r{ Mouse(game, service, STATUS) };
   return { r.x.cx, static_cast<std::uint16_t>(r.x.dx - ROW_OFFSET) };
 }
 
 // Stores the position at the DS words x and y, for the callers that pass their near addresses through a service.
-void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
-  auto const position{ MousePosition(ds, service) };
-  SetWord(ds, x, position.x);
-  SetWord(ds, y, position.y);
+void opeu_mouse_position(Game& game, HostService service, std::uint16_t x, std::uint16_t y) {
+  auto const position{ MousePosition(game, service) };
+  SetWord(game, x, position.x);
+  SetWord(game, y, position.y);
 }
 
-void opeu_mouse_move(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
-  if (HasMouse(Data(ds))) Mouse(ds, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
+void opeu_mouse_move(Game& game, HostService service, std::uint16_t x, std::uint16_t y) {
+  if (HasMouse(Data(game))) Mouse(game, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
 }
 
 // Queries the driver even without a mouse.
-auto opeu_mouse_left(std::uint8_t* ds, HostService service) -> int {
-  return (Mouse(ds, service, STATUS).x.bx & LEFT) ? -1 : 0;
+auto opeu_mouse_left(Game& game, HostService service) -> int {
+  return (Mouse(game, service, STATUS).x.bx & LEFT) ? -1 : 0;
 }
 
-auto opeu_mouse_right(std::uint8_t* ds, HostService service) -> int {
-  return (Mouse(ds, service, STATUS).x.bx & RIGHT) ? -1 : 0;
+auto opeu_mouse_right(Game& game, HostService service) -> int {
+  return (Mouse(game, service, STATUS).x.bx & RIGHT) ? -1 : 0;
 }
 
-auto opeu_turn_input_a(std::uint8_t* ds, HostService service) -> int {
-  return opeu_mouse_left(ds, service) || opeu_mouse_right(ds, service);
+auto opeu_turn_input_a(Game& game, HostService service) -> int {
+  return opeu_mouse_left(game, service) || opeu_mouse_right(game, service);
 }
 
 // 0 without a mouse or a button; else 0x80 | 1 left | 2 right.
-auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t {
-  if (!HasMouse(Data(ds))) return 0;
+auto opeu_mouse_buttons(Game& game, HostService service) -> std::uint8_t {
+  if (!HasMouse(Data(game))) return 0;
   std::uint8_t buttons{ 0 };
-  if (opeu_turn_input_a(ds, service)) {
+  if (opeu_turn_input_a(game, service)) {
     buttons = PRESSED;
-    if (opeu_mouse_left(ds, service)) buttons = PRESSED | LEFT;
-    if (opeu_mouse_right(ds, service)) buttons |= RIGHT;
+    if (opeu_mouse_left(game, service)) buttons = PRESSED | LEFT;
+    if (opeu_mouse_right(game, service)) buttons |= RIGHT;
   }
   return buttons;
 }
 
 // Waits until every button is released.
-void opeu_input_reset(std::uint8_t* ds, HostService service) {
-  if (HasMouse(Data(ds)))
-    while (opeu_turn_input_a(ds, service));
+void opeu_input_reset(Game& game, HostService service) {
+  if (HasMouse(Data(game)))
+    while (opeu_turn_input_a(game, service));
 }
 
 // Waits for a press and its release; 3 without a mouse.
-auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service) -> std::uint8_t {
-  if (!HasMouse(Data(ds))) return NO_MOUSE_CLICK;
-  while (!opeu_turn_input_a(ds, service));
+auto opeu_mouse_wait_click(Game& game, HostService service) -> std::uint8_t {
+  if (!HasMouse(Data(game))) return NO_MOUSE_CLICK;
+  while (!opeu_turn_input_a(game, service));
   std::uint8_t buttons{ PRESSED };
   for (;;) {
-    if (opeu_mouse_left(ds, service)) {
+    if (opeu_mouse_left(game, service)) {
       buttons |= LEFT;
       break;
     }
-    if (opeu_mouse_right(ds, service)) {
+    if (opeu_mouse_right(game, service)) {
       buttons |= RIGHT;
       break;
     }
   }
-  while (opeu_turn_input_a(ds, service));
+  while (opeu_turn_input_a(game, service));
   return buttons;
 }
 
-void opeu_mouse_window(std::uint8_t* ds, HostService service, std::int16_t x, std::int16_t y, std::int16_t width, std::int16_t height) {
-  Mouse(ds, service, X_RANGE, static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x));
-  Mouse(ds, service, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET), static_cast<std::uint16_t>(y + height + ROW_OFFSET));
+void opeu_mouse_window(Game& game, HostService service, std::int16_t x, std::int16_t y, std::int16_t width, std::int16_t height) {
+  Mouse(game, service, X_RANGE, static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x));
+  Mouse(game, service, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET), static_cast<std::uint16_t>(y + height + ROW_OFFSET));
 }
 
 // The input driver call: int86(0x33) with the seven register words. The keyboard and dialog modules forward their
 // driver calls here.
-auto svc_mouse(std::uint8_t*, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
+auto svc_mouse(Game&, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
   switch (call) {
   case INT86_CALL: return port_mouse_int33(words);
   default:         port_unhandled("mouse", call, 7);
@@ -138,35 +139,35 @@ auto svc_mouse(std::uint8_t*, std::uint16_t call, std::uint16_t* words) -> std::
   return 0;
 }
 
-auto port_routine_opeu_input_reset(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_input_reset(ds, svc_mouse);
+auto port_routine_opeu_input_reset(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_input_reset(game, svc_mouse);
   return 0;
 }
 
-auto port_routine_opeu_mouse_buttons(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_mouse_buttons(ds, svc_mouse);
+auto port_routine_opeu_mouse_buttons(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_mouse_buttons(game, svc_mouse);
 }
 
-auto port_routine_opeu_mouse_hide(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mouse_hide(ds, svc_mouse);
+auto port_routine_opeu_mouse_hide(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_mouse_hide(game, svc_mouse);
   return 0;
 }
 
-auto port_routine_opeu_mouse_left(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return static_cast<std::uint16_t>(opeu_mouse_left(ds, svc_mouse));
+auto port_routine_opeu_mouse_left(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse));
 }
 
 // The game passes y, then x.
-auto port_routine_opeu_mouse_position(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mouse_position(ds, svc_mouse, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_mouse_position(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_mouse_position(game, svc_mouse, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_mouse_right(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return static_cast<std::uint16_t>(opeu_mouse_right(ds, svc_mouse));
+auto port_routine_opeu_mouse_right(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse));
 }
 
-auto port_routine_opeu_mouse_show(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mouse_show(ds, svc_mouse);
+auto port_routine_opeu_mouse_show(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_mouse_show(game, svc_mouse);
   return 0;
 }

@@ -8,6 +8,7 @@
 #include "map/reqcells.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "port.hpp"
 
 using namespace opeu::game;
@@ -22,28 +23,28 @@ constexpr uint8_t  NONE{ 255 };
 } // namespace
 
 // x and y: DS offsets of the bytes that receive the cell; returns 0 when there is no candidate.
-uint16_t opeu_arrival_locate(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t), uint16_t x, uint16_t y, uint8_t side) {
-  auto const count{ event(ds, COUNT_CELLS, side, ARRIVAL_PREDICATE, PREDICATE_SEGMENT, 0) };
+uint16_t opeu_arrival_locate(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t), uint16_t x, uint16_t y, uint8_t side) {
+  auto const count{ event(game, COUNT_CELLS, side, ARRIVAL_PREDICATE, PREDICATE_SEGMENT, 0) };
   if (!count) return 0;
-  auto const& data{ Data(ds) };
-  Byte(ds, x) = NONE;
+  auto const& data{ Data(game) };
+  Byte(game, x) = NONE;
   for (uint8_t cell_y{ 0 }; cell_y < MAP_HEIGHT; ++cell_y)
     for (uint8_t cell_x{ 0 }; cell_x < MAP_WIDTH; ++cell_x)
-      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(ds, x) == NONE || RandomBelow(ds, count) == 0)) {
-        Byte(ds, x) = cell_x;
-        Byte(ds, y) = cell_y;
+      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(game, x) == NONE || RandomBelow(game, count) == 0)) {
+        Byte(game, x) = cell_x;
+        Byte(game, y) = cell_y;
       }
   return 1;
 }
 
-uint16_t svc_arrplace(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg, uint16_t unused) {
+uint16_t svc_arrplace(Game& game, uint16_t id, uint16_t side, uint16_t off, uint16_t seg, uint16_t unused) {
   (void)unused;
   if (id != COUNT_CELLS) {
     port_unhandled("arrplace", id, 0);
     return 0;
   }
-  if (seg == PREDICATE_SEGMENT && off == ARRIVAL_PREDICATE) return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_arrival_cell_allowed);
-  if (seg == PREDICATE_SEGMENT && off == REQUEST_PREDICATE) return opeu_request_cells(ds, static_cast<uint8_t>(side), opeu_request_cell_allowed);
+  if (seg == PREDICATE_SEGMENT && off == ARRIVAL_PREDICATE) return opeu_request_cells(game, static_cast<uint8_t>(side), opeu_arrival_cell_allowed);
+  if (seg == PREDICATE_SEGMENT && off == REQUEST_PREDICATE) return opeu_request_cells(game, static_cast<uint8_t>(side), opeu_request_cell_allowed);
   port_fatal("arrplace: %04x:%04x is not a request-cell predicate", seg, off);
   return 0;
 }

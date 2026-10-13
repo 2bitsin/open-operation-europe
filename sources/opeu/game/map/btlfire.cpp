@@ -11,7 +11,9 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -29,11 +31,11 @@ constexpr uint8_t  SIDE_RECORD_COMMANDER{ 1 };
   return static_cast<uint16_t>(static_cast<uint16_t>(x) * static_cast<uint32_t>(static_cast<uint16_t>(y)));
 }
 
-[[nodiscard]] auto Quality(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TYPE_SKILL, element));
+[[nodiscard]] auto Quality(Game& game, BattleEvent event, uint16_t element) -> uint8_t {
+  return static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_TYPE_SKILL, element));
 }
-[[nodiscard]] auto SideOf(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element));
+[[nodiscard]] auto SideOf(Game& game, BattleEvent event, uint16_t element) -> uint8_t {
+  return static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element));
 }
 
 // Whether the unit's commander rides with the element (its selected element).
@@ -48,43 +50,43 @@ constexpr uint8_t  SIDE_RECORD_COMMANDER{ 1 };
 } // namespace
 
 // 1 when a 0..99 draw falls under the hit chance.
-uint16_t opeu_battle_fire_hits(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
-  auto&       data{ Data(ds) };
+uint16_t opeu_battle_fire_hits(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
+  auto&       data{ Data(game) };
   auto const& a{ Record<Element>(data, attacker) };
   auto const& t{ Record<Element>(data, target) };
   uint16_t    chance;
   uint8_t     x;
   uint8_t     y;
-  x      = ElementSkill(ds, event, attacker, SKILL_0);
-  y      = ElementSkill(ds, event, target, SKILL_0);
+  x      = ElementSkill(game, event, attacker, SKILL_0);
+  y      = ElementSkill(game, event, target, SKILL_0);
   chance = x < y ? 5 : 10;
-  x      = ElementSkill(ds, event, attacker, SKILL_2);
-  y      = ElementSkill(ds, event, target, SKILL_2);
+  x      = ElementSkill(game, event, attacker, SKILL_2);
+  y      = ElementSkill(game, event, target, SKILL_2);
   chance = static_cast<uint16_t>(chance + (x < y ? 5 : 10));
-  x      = ElementSkill(ds, event, attacker, SKILL_7);
-  y      = ElementSkill(ds, event, target, SKILL_7);
+  x      = ElementSkill(game, event, attacker, SKILL_7);
+  y      = ElementSkill(game, event, target, SKILL_7);
   chance = static_cast<uint16_t>(chance + (x < y ? 5 : 10));
-  x      = Quality(ds, event, attacker);
-  y      = Quality(ds, event, target);
+  x      = Quality(game, event, attacker);
+  y      = Quality(game, event, target);
   chance = static_cast<uint16_t>(chance + (x < y ? 10 : 20));
   chance = static_cast<uint16_t>(chance + (a.morale < t.morale ? 5 : 10));
   chance = static_cast<uint16_t>(chance + (a.training < t.training ? 5 : 10));
   chance = static_cast<uint16_t>(chance + (a.experience > t.experience ? 5 : 10));
   chance = static_cast<uint16_t>(chance + ModeFactor(ElementTypeOf(data, attacker)) * 5);
   chance = static_cast<uint16_t>(chance - Mul16(data.weather_obscurity[data.weather] + data.battle_visibility, opeu_hour_is_night(data.hour) ? 25 : 15) / 10);
-  return Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < chance ? 1 : 0;
+  return Call(game, event, BattleRoutine::RAND_BOUNDED, 100) < chance ? 1 : 0;
 }
 
 // The attacker's fire power against the target: the soft rating against infantry, the hard rating otherwise.
-uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
-  auto&          data{ Data(ds) };
+uint16_t opeu_battle_fire_power(Game& game, BattleEvent event, uint16_t attacker, uint16_t target) {
+  auto&          data{ Data(game) };
   auto const&    type{ ElementTypeOf(data, attacker) };
   auto const&    a{ Record<Element>(data, attacker) };
   uint16_t const rating{ ElementTypeOf(data, target).category == std::to_underlying(Category::INFANTRY) ? type.anti_personnel : type.anti_tank };
-  uint16_t const skill_2{ ElementSkill(ds, event, attacker, SKILL_2) };
-  uint16_t const grade{ Quality(ds, event, attacker) };
-  uint16_t const skill_7{ ElementSkill(ds, event, attacker, SKILL_7) };
-  auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, attacker), SIDE_RECORD_COMMANDER) };
+  uint16_t const skill_2{ ElementSkill(game, event, attacker, SKILL_2) };
+  uint16_t const grade{ Quality(game, event, attacker) };
+  uint16_t const skill_7{ ElementSkill(game, event, attacker, SKILL_7) };
+  auto const     record{ opeu_find_side_record(game, SideOf(game, event, attacker), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, attacker) };
   auto           value{ static_cast<uint16_t>(a.training - a.experience + skill_7 + a.morale + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, rating) / 100);
@@ -94,34 +96,34 @@ uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacke
 
 // The element's defense against fire (the type's range byte serves as its armour), with a random bonus that grows
 // with the delivery level while the computer commands the element's side.
-uint16_t opeu_battle_fire_defense(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto&          data{ Data(ds) };
+uint16_t opeu_battle_fire_defense(Game& game, BattleEvent event, uint16_t element) {
+  auto&          data{ Data(game) };
   auto const&    e{ Record<Element>(data, element) };
   uint16_t const armour{ ElementTypeOf(data, element).defense };
-  uint16_t const skill_2{ ElementSkill(ds, event, element, SKILL_2) };
-  uint16_t const grade{ Quality(ds, event, element) };
-  uint16_t const skill_7{ ElementSkill(ds, event, element, SKILL_7) };
-  auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, element), SIDE_RECORD_COMMANDER) };
+  uint16_t const skill_2{ ElementSkill(game, event, element, SKILL_2) };
+  uint16_t const grade{ Quality(game, event, element) };
+  uint16_t const skill_7{ ElementSkill(game, event, element, SKILL_7) };
+  auto const     record{ opeu_find_side_record(game, SideOf(game, event, element), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, element) };
   auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
-  auto const side{ SideOf(ds, event, element) };
-  auto const bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1) };
+  auto const side{ SideOf(game, event, element) };
+  auto const bonus{ Call(game, event, BattleRoutine::RAND_BOUNDED, data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1) };
   return static_cast<uint16_t>(Mul16(Record<Person>(data, record).leadership / 70 * lead + 1, value) + bonus + 1);
 }
 
-uint16_t svc_btlfire(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlfire(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_fire_defense(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_fire_defense(ds, svc_btlfire, Arg(args, count, 0));
+auto port_routine_opeu_battle_fire_defense(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_defense(game, svc_btlfire, Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_fire_hits(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_fire_hits(ds, svc_btlfire, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_fire_hits(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_hits(game, svc_btlfire, Arg(args, count, 1), Arg(args, count, 0));
 }
 
-auto port_routine_opeu_battle_fire_power(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_fire_power(ds, svc_btlfire, Arg(args, count, 1), Arg(args, count, 0));
+auto port_routine_opeu_battle_fire_power(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return opeu_battle_fire_power(game, svc_btlfire, Arg(args, count, 1), Arg(args, count, 0));
 }

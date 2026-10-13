@@ -24,12 +24,13 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/text.hpp"
-#include "glue.hpp"
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -83,15 +84,15 @@ enum class EscapeState : int16_t {
 };
 
 // The byte at a near pointer.
-auto At(uint8_t* ds, uint16_t at) -> uint8_t& {
-  return ds[at];
+auto At(Game& game, uint16_t at) -> uint8_t& {
+  return Byte(game, at);
 }
 
 // The console's word-wrapping printer: buffers a word, wraps it at the window's right column and forwards the escape
 // sequences; it drops DBCS lead bytes 81h..d8h together with the byte that follows the trail byte.
 class WordWrap {
 public:
-  WordWrap(uint8_t* ds, TextHost* host, std::string_view text) noexcept : _ds{ ds }, _host{ host }, _text{ text } { }
+  WordWrap(Game& game, TextHost* host, std::string_view text) noexcept : _game{ game }, _host{ host }, _text{ text } { }
 
   void Print() {
     for (auto b{ Byte(_at) }; b; b = Byte(++_at)) {
@@ -124,17 +125,17 @@ private:
   }
   // Whether the pending word does not fit before the window's right column.
   [[nodiscard]] auto Overflows() const noexcept -> bool {
-    auto const& data{ Data(_ds) };
+    auto const& data{ Data(_game) };
     return static_cast<uint16_t>(data.text_x + _printable) > static_cast<uint16_t>(data.text_right);
   }
   void NewLine() {
-    if (!opeu_text_scroll_check(_ds, _host)) opeu_text_put(_ds, _host, '\n');
+    if (!opeu_text_scroll_check(_game, _host)) opeu_text_put(_game, _host, '\n');
   }
   void WrapWhenOverflowing() {
     if (Overflows()) NewLine();
   }
   void Flush() {
-    for (auto const c : _word) opeu_text_put(_ds, _host, static_cast<uint8_t>(c));
+    for (auto const c : _word) opeu_text_put(_game, _host, static_cast<uint8_t>(c));
     _word.clear();
     _printable = 0;
   }
@@ -180,7 +181,7 @@ private:
     std::ranges::for_each(bytes, [this](uint8_t c) { _word += static_cast<char>(c); });
   }
 
-  uint8_t*         _ds;
+  Game&            _game;
   TextHost*        _host;
   std::string_view _text;
   std::size_t      _at{ 0 };
@@ -225,8 +226,8 @@ void SetState(DataSegment& data, EscapeState state) {
 } // namespace
 
 // Waits for a key; keypad scan codes become digits unless the character is CR or ESC.
-uint8_t opeu_key_read(uint8_t ds[65536], TextHost* host) {
-  auto const key{ Call(ds, host->event, KEY_READ) };
+uint8_t opeu_key_read(Game& game, TextHost* host) {
+  auto const key{ Call(game, host->event, KEY_READ) };
   auto const scan{ static_cast<uint8_t>(key >> 8) };
   auto       code{ static_cast<uint8_t>(key) };
   if (code == '\r' || code == ESCAPE) return code;
@@ -246,24 +247,24 @@ uint8_t opeu_key_read(uint8_t ds[65536], TextHost* host) {
 }
 
 // Reads every waiting key.
-void opeu_input_flush(uint8_t ds[65536], TextHost* host) {
-  while (Call(ds, host->event, KEY_WAITING)) opeu_key_read(ds, host);
+void opeu_input_flush(Game& game, TextHost* host) {
+  while (Call(game, host->event, KEY_WAITING)) opeu_key_read(game, host);
 }
 
 // Word-wrapping text output with embedded escape sequences.
-void opeu_ui_text(uint8_t ds[65536], TextHost* host, uint16_t s) {
-  WordWrap{ ds, host, CString(Data(ds), s) }.Print();
+void opeu_ui_text(Game& game, TextHost* host, uint16_t s) {
+  WordWrap{ game, host, CString(Data(game), s) }.Print();
 }
 
 // Sets the scroll mode when it is 0 or 1; returns the current mode.
-int16_t opeu_text_scroll_mode(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t mode) {
-  auto& data{ Data(ds) };
+int16_t opeu_text_scroll_mode(Game& game, [[maybe_unused]] TextHost* host, int16_t mode) {
+  auto& data{ Data(game) };
   if (mode == 1 || mode == 0) data.text_scroll = mode;
   return data.text_scroll;
 }
 
-void opeu_text_window(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t left, int16_t right, int16_t top, int16_t bottom) {
-  auto& data{ Data(ds) };
+void opeu_text_window(Game& game, [[maybe_unused]] TextHost* host, int16_t left, int16_t right, int16_t top, int16_t bottom) {
+  auto& data{ Data(game) };
   if (right > left && bottom > top) {
     data.text_left   = left;
     data.text_right  = right;
@@ -273,38 +274,38 @@ void opeu_text_window(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_
 }
 
 // In scroll mode, scrolls when the next line would pass the window's bottom; returns whether it did.
-int16_t opeu_text_scroll_check(uint8_t ds[65536], TextHost* host) {
-  auto const& data{ Data(ds) };
+int16_t opeu_text_scroll_check(Game& game, TextHost* host) {
+  auto const& data{ Data(game) };
   if (data.text_scroll && static_cast<uint16_t>(data.text_height + data.text_y) > static_cast<uint16_t>(data.text_bottom)) {
-    opeu_text_scroll_up(ds, host);
+    opeu_text_scroll_up(game, host);
     return 1;
   }
   return 0;
 }
 
 // Clears the window and homes the cursor to its top left.
-void opeu_text_scroll_up(uint8_t ds[65536], TextHost* host) {
-  auto const& data{ Data(ds) };
-  Call(ds, host->event, WAIT_CONFIRM, 0);
-  Call(ds, host->event, BOX, data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
-  opeu_army_position(ds, host, data.text_left, data.text_top);
+void opeu_text_scroll_up(Game& game, TextHost* host) {
+  auto const& data{ Data(game) };
+  Call(game, host->event, WAIT_CONFIRM, 0);
+  Call(game, host->event, BOX, data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
+  opeu_army_position(game, host, data.text_left, data.text_top);
 }
 
-int16_t opeu_text_get_left(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  return Data(ds).text_left;
+int16_t opeu_text_get_left(Game& game, [[maybe_unused]] TextHost* host) {
+  return Data(game).text_left;
 }
-int16_t opeu_text_get_right(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  return Data(ds).text_right;
+int16_t opeu_text_get_right(Game& game, [[maybe_unused]] TextHost* host) {
+  return Data(game).text_right;
 }
-void opeu_text_set_left(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t left) {
-  Data(ds).text_left = left;
+void opeu_text_set_left(Game& game, [[maybe_unused]] TextHost* host, int16_t left) {
+  Data(game).text_left = left;
 }
-void opeu_text_set_right(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t right) {
-  Data(ds).text_right = right;
+void opeu_text_set_right(Game& game, [[maybe_unused]] TextHost* host, int16_t right) {
+  Data(game).text_right = right;
 }
 
-void opeu_text_columns(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t left, int16_t right) {
-  auto& data{ Data(ds) };
+void opeu_text_columns(Game& game, [[maybe_unused]] TextHost* host, int16_t left, int16_t right) {
+  auto& data{ Data(game) };
   if (right > left) {
     data.text_left  = left;
     data.text_right = right;
@@ -312,69 +313,69 @@ void opeu_text_columns(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16
 }
 
 // The window becomes the whole screen.
-void opeu_text_window_reset(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  auto& data{ Data(ds) };
+void opeu_text_window_reset(Game& game, [[maybe_unused]] TextHost* host) {
+  auto& data{ Data(game) };
   data.text_right  = COLUMNS;
   data.text_left   = 0;
   data.text_top    = 0;
   data.text_bottom = ROWS;
 }
 
-int16_t opeu_text_set_height(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t height) {
+int16_t opeu_text_set_height(Game& game, [[maybe_unused]] TextHost* host, int16_t height) {
   if (height > 0) {
-    Data(ds).text_height = height;
+    Data(game).text_height = height;
     return 1;
   }
   return 0;
 }
 
-void opeu_text_height_reset(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  Data(ds).text_height = GLYPH_BYTES;
+void opeu_text_height_reset(Game& game, [[maybe_unused]] TextHost* host) {
+  Data(game).text_height = GLYPH_BYTES;
 }
 
 // Keeps the cursor on the screen.
-void opeu_text_clamp(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  auto& data{ Data(ds) };
+void opeu_text_clamp(Game& game, [[maybe_unused]] TextHost* host) {
+  auto& data{ Data(game) };
   data.text_x = data.text_x < 0 ? 0 : data.text_x > COLUMNS - 1 ? COLUMNS - 1 : data.text_x;
   data.text_y = data.text_y < 0 ? 0 : data.text_y > ROWS - 1 ? ROWS - 1 : data.text_y;
 }
 
 // Moves the cursor; a negative coordinate keeps the current one.
-void opeu_army_position(uint8_t ds[65536], TextHost* host, int16_t x, int16_t y) {
-  auto& data{ Data(ds) };
+void opeu_army_position(Game& game, TextHost* host, int16_t x, int16_t y) {
+  auto& data{ Data(game) };
   if (x >= 0) data.text_x = x;
   if (y >= 0) data.text_y = y;
-  opeu_text_clamp(ds, host);
+  opeu_text_clamp(game, host);
 }
 
-void opeu_text_set_x(uint8_t ds[65536], TextHost* host, int16_t x) {
-  Data(ds).text_x = x;
-  opeu_text_clamp(ds, host);
+void opeu_text_set_x(Game& game, TextHost* host, int16_t x) {
+  Data(game).text_x = x;
+  opeu_text_clamp(game, host);
 }
 
-void opeu_text_set_y(uint8_t ds[65536], TextHost* host, int16_t y) {
-  Data(ds).text_y = y;
-  opeu_text_clamp(ds, host);
+void opeu_text_set_y(Game& game, TextHost* host, int16_t y) {
+  Data(game).text_y = y;
+  opeu_text_clamp(game, host);
 }
 
-void opeu_text_color(uint8_t ds[65536], [[maybe_unused]] TextHost* host, uint16_t color) {
-  if (color <= 7) Data(ds).text_ink = static_cast<uint8_t>(color);
+void opeu_text_color(Game& game, [[maybe_unused]] TextHost* host, uint16_t color) {
+  if (color <= 7) Data(game).text_ink = static_cast<uint8_t>(color);
 }
 
-void opeu_text_paper_set(uint8_t ds[65536], [[maybe_unused]] TextHost* host, uint8_t paper) {
-  Data(ds).text_paper = paper;
+void opeu_text_paper_set(Game& game, [[maybe_unused]] TextHost* host, uint8_t paper) {
+  Data(game).text_paper = paper;
 }
 
-int16_t opeu_text_get_x(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  return Data(ds).text_x;
+int16_t opeu_text_get_x(Game& game, [[maybe_unused]] TextHost* host) {
+  return Data(game).text_x;
 }
-int16_t opeu_text_get_y(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  return Data(ds).text_y;
+int16_t opeu_text_get_y(Game& game, [[maybe_unused]] TextHost* host) {
+  return Data(game).text_y;
 }
 
 // Saves the cursor, left column and colours.
-void opeu_context_save(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  auto& data{ Data(ds) };
+void opeu_context_save(Game& game, [[maybe_unused]] TextHost* host) {
+  auto& data{ Data(game) };
   data.saved_x          = data.text_x;
   data.saved_y          = data.text_y;
   data.saved_left       = data.text_left;
@@ -383,8 +384,8 @@ void opeu_context_save(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
   data.saved_background = data.text_background;
 }
 
-void opeu_context_restore(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  auto& data{ Data(ds) };
+void opeu_context_restore(Game& game, [[maybe_unused]] TextHost* host) {
+  auto& data{ Data(game) };
   data.text_x          = data.saved_x;
   data.text_y          = data.saved_y;
   data.text_left       = data.saved_left;
@@ -394,37 +395,37 @@ void opeu_context_restore(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
 }
 
 // Draws one 8x16 glyph of the codes 20h..7fh, opaque when a background colour is set.
-void opeu_text_glyph(uint8_t ds[65536], [[maybe_unused]] TextHost* host, int16_t x, int16_t y, int16_t attribute, uint16_t code) {
-  auto const& data{ Data(ds) };
+void opeu_text_glyph(Game& game, [[maybe_unused]] TextHost* host, int16_t x, int16_t y, int16_t attribute, uint16_t code) {
+  auto const& data{ Data(game) };
   if (code < FIRST_GLYPH || code > 0x7f) return;
   auto const bits{ std::span{ data.text_font }.subspan((code - FIRST_GLYPH) * GLYPH_BYTES, GLYPH_BYTES) };
   DrawGlyph(data.glyph_draw[data.text_background != 0], { x, y, attribute }, bits);
 }
 
 // Moves the cursor to the start of the next line, unless that passes the screen's bottom.
-void opeu_text_newline(uint8_t ds[65536], [[maybe_unused]] TextHost* host) {
-  auto& data{ Data(ds) };
+void opeu_text_newline(Game& game, [[maybe_unused]] TextHost* host) {
+  auto& data{ Data(game) };
   data.text_x = data.text_left;
   if (static_cast<uint16_t>(data.text_height + data.text_y) <= ROWS - 1) data.text_y += data.text_height;
 }
 
 // Line feed, carriage return, backspace and bell.
-void opeu_text_control(uint8_t ds[65536], TextHost* host, uint8_t c) {
-  auto& data{ Data(ds) };
+void opeu_text_control(Game& game, TextHost* host, uint8_t c) {
+  auto& data{ Data(game) };
   switch (c) {
-  case '\n': opeu_text_newline(ds, host); break;
+  case '\n': opeu_text_newline(game, host); break;
   case '\r': data.text_x = data.text_left; break;
   case '\b':
     if (data.text_x >= 1) data.text_x--;
     break;
-  case '\a': Call(ds, host->event, SOUND_RESET, 6); break;
+  case '\a': Call(game, host->event, SOUND_RESET, 6); break;
   default:   break;
   }
 }
 
 // Console output of one byte through the escape-sequence parser; returns the byte.
-uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
-  auto&    data{ Data(ds) };
+uint8_t opeu_text_put(Game& game, TextHost* host, uint8_t c) {
+  auto&    data{ Data(game) };
   int16_t  margin; // the right margin for this byte
   uint16_t code;   // the character code
   int16_t  attribute;
@@ -437,24 +438,24 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
     case 'M': SetState(data, EscapeState::PAPER); break;
     case 'B': SetState(data, EscapeState::BACKGROUND); break;
     case 'Y': SetState(data, EscapeState::IGNORE); break;
-    case 'E': Call(ds, host->event, SOUND_RESET, 6); [[fallthrough]];
+    case 'E': Call(game, host->event, SOUND_RESET, 6); [[fallthrough]];
     case 'W': SetState(data, EscapeState::FINISH); break;
-    case 'T': Call(ds, host->event, BOX, data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
-    case '*': Call(ds, host->event, CLEAR); goto reset;
+    case 'T': Call(game, host->event, BOX, data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
+    case '*': Call(game, host->event, CLEAR); goto reset;
     case 'S':
       if (data.text_scroll)
-        opeu_text_scroll_up(ds, host);
+        opeu_text_scroll_up(game, host);
       else
-        Call(ds, host->event, WAIT_CONFIRM, 1);
+        Call(game, host->event, WAIT_CONFIRM, 1);
       goto reset;
     default: break;
     }
     break;
   case EscapeState::ROW:
-    opeu_text_set_y(ds, host, static_cast<int16_t>((c - 0x20) << 5));
+    opeu_text_set_y(game, host, static_cast<int16_t>((c - 0x20) << 5));
     SetState(data, EscapeState::COLUMN);
     break;
-  case EscapeState::COLUMN: opeu_text_set_x(ds, host, static_cast<int16_t>(c - 0x20)); [[fallthrough]];
+  case EscapeState::COLUMN: opeu_text_set_x(game, host, static_cast<int16_t>(c - 0x20)); [[fallthrough]];
   case EscapeState::IGNORE:
   reset:
     SetState(data, EscapeState::NONE);
@@ -476,7 +477,7 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
     SetState(data, EscapeState::NONE);
     break;
   case EscapeState::FINISH:
-    Call(ds, host->event, PENDING_FINISH, static_cast<uint8_t>(c - '0'));
+    Call(game, host->event, PENDING_FINISH, static_cast<uint8_t>(c - '0'));
     SetState(data, EscapeState::NONE);
     break;
   default:
@@ -490,16 +491,16 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
       SetState(data, EscapeState::ESCAPE);
       break;
     } else if (c < 0x20) {
-      opeu_text_control(ds, host, c);
+      opeu_text_control(game, host, c);
       break;
     } else
       code = c;
     margin = c < 0x3a ? 79 : 77;
-    if (margin < data.text_x) opeu_text_newline(ds, host);
+    if (margin < data.text_x) opeu_text_newline(game, host);
     attribute = data.text_background;
     if (!attribute) attribute = data.text_paper;
     attribute = static_cast<int16_t>(attribute << 8 | data.text_ink);
-    opeu_text_glyph(ds, host, data.text_x, data.text_y, attribute, code);
+    opeu_text_glyph(game, host, data.text_x, data.text_y, attribute, code);
     data.text_x += code >= 0x200 ? 2 : 1;
     break;
   }
@@ -508,8 +509,8 @@ uint8_t opeu_text_put(uint8_t ds[65536], TextHost* host, uint8_t c) {
 
 // sprintf: the words are the destination, the format and its arguments. The text goes to the destination and
 // format_output is left at its terminator.
-void opeu_request_format(uint8_t ds[65536], std::span<uint16_t const> words) {
-  auto&      data{ Data(ds) };
+void opeu_request_format(Game& game, std::span<uint16_t const> words) {
+  auto&      data{ Data(game) };
   auto const destination{ words.empty() ? uint16_t{ 0 } : words.front() };
   auto const text{ FormatWords(data, words.subspan(std::min<std::size_t>(words.size(), 1))) };
   StoreText(data, destination, text);
@@ -517,34 +518,34 @@ void opeu_request_format(uint8_t ds[65536], std::span<uint16_t const> words) {
 }
 
 // printf to the console: the words are the format and its arguments.
-void opeu_cursor_print(uint8_t ds[65536], std::span<uint16_t const> words) {
-  WordWrap{ ds, static_cast<TextHost*>(port_textout_host()), FormatWords(Data(ds), words) }.Print();
+void opeu_cursor_print(Game& game, std::span<uint16_t const> words) {
+  WordWrap{ game, static_cast<TextHost*>(port_textout_host()), FormatWords(Data(game), words) }.Print();
 }
 
-void opeu_text_put_range(uint8_t ds[65536], TextHost* host, uint16_t s, uint8_t start, uint8_t count) {
+void opeu_text_put_range(Game& game, TextHost* host, uint16_t s, uint8_t start, uint8_t count) {
   auto at{ static_cast<uint16_t>(s + start) };
-  while (count--) opeu_text_put(ds, host, At(ds, at++));
+  while (count--) opeu_text_put(game, host, At(game, at++));
 }
 
 // Erases the previous character cell, keeping the paper.
-void opeu_text_erase_char(uint8_t ds[65536], TextHost* host) {
-  auto&      data{ Data(ds) };
+void opeu_text_erase_char(Game& game, TextHost* host) {
+  auto&      data{ Data(game) };
   auto const paper{ data.text_paper };
-  opeu_ui_text(ds, host, Near(data, data.text_erase));
+  opeu_ui_text(game, host, Near(data, data.text_erase));
   data.text_paper = paper;
 }
 
 // The console's services.
-uint16_t svc_textout(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_textout(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (static_cast<TextService>(id)) {
   case KEY_READ:       r = port_key_read(); break;
   case KEY_WAITING:    r = opeu_turn_input_b(); break;
-  case WAIT_CONFIRM:   opeu_wait_confirm(ds, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
+  case WAIT_CONFIRM:   opeu_wait_confirm(game, svc_keyboard, (int16_t)Arg(args, count, 0)); break;
   case BOX:            opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case CLEAR:          opeu_vga_clear(); break;
-  case SOUND_RESET:    opeu_sound_reset(ds, svc_sound); break;
-  case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case SOUND_RESET:    opeu_sound_reset(game, svc_sound); break;
+  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   default:             port_unhandled("textout", id, count);
   }
   return r;
@@ -557,60 +558,60 @@ void svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2) {
   port_unhandled("textout (no service table)", (unsigned)(a2), 0);
 }
 
-auto port_routine_opeu_army_position(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1));
+auto port_routine_opeu_army_position(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_army_position(game, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1));
   return 0;
 }
 
-auto port_routine_opeu_context_restore(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_context_restore(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_context_restore(ds, (TextHost*)port_textout_host());
+  opeu_context_restore(game, (TextHost*)port_textout_host());
   return 0;
 }
 
-auto port_routine_opeu_context_save(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_context_save(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_context_save(ds, (TextHost*)port_textout_host());
+  opeu_context_save(game, (TextHost*)port_textout_host());
   return 0;
 }
 
 // printf to the text cursor.
-auto port_routine_opeu_cursor_print(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_cursor_print(ds, { args, count });
+auto port_routine_opeu_cursor_print(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_cursor_print(game, { args, count });
   return 0;
 }
 
-auto port_routine_opeu_input_flush(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_input_flush(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_input_flush(ds, (TextHost*)port_textout_host());
+  opeu_input_flush(game, (TextHost*)port_textout_host());
   return 0;
 }
 
 // sprintf(destination, format, ...): every word as pushed.
-auto port_routine_opeu_request_format(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_request_format(ds, { args, count });
+auto port_routine_opeu_request_format(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_request_format(game, { args, count });
   return 0;
 }
 
-auto port_routine_opeu_text_color(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+auto port_routine_opeu_text_color(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_text_paper_set(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0));
+auto port_routine_opeu_text_paper_set(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
-auto port_routine_opeu_text_put_range(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_text_put_range(ds, (TextHost*)port_textout_host(), Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
+auto port_routine_opeu_text_put_range(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_text_put_range(game, (TextHost*)port_textout_host(), Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
   return 0;
 }
 
-auto port_routine_opeu_ui_text(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0));
+auto port_routine_opeu_ui_text(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0));
   return 0;
 }

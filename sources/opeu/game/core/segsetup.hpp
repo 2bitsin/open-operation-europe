@@ -4,10 +4,10 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_memory_fail(uint8_t* ds, HostEvent event, uint16_t name);
-void opeu_alloc_segments(uint8_t* ds, HostEvent event);
-void opeu_open_data_files(uint8_t* ds, HostEvent event);
-void opeu_app_prepare(uint8_t* ds, HostEvent event);
+void opeu_memory_fail(Game& game, HostEvent event, uint16_t name);
+void opeu_alloc_segments(Game& game, HostEvent event);
+void opeu_open_data_files(Game& game, HostEvent event);
+void opeu_app_prepare(Game& game, HostEvent event);
 
 // The services the start-up routines are called with.
-uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_segsetup(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

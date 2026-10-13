@@ -8,7 +8,8 @@
 #include "types.hpp"
 #include "units/orders.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"
@@ -26,24 +27,24 @@ constexpr std::uint8_t BOTH_SLOTS{ 3 };
 } // namespace
 
 // Asks to cancel a regiment's pending order and clears its order slots when confirmed.
-void opeu_cancel_unit_orders(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t person) {
-  auto& data{ Data(ds) };
+void opeu_cancel_unit_orders(Game& game, HostEvent event, uint16_t unit, uint16_t person) {
+  auto& data{ Data(game) };
   if (Record<Unit>(data, unit).orders[0].kind != ORDER_UNUSED) {
     std::uint16_t const args[]{ Near(data, data.cancel_orders_prompt), person };
-    if (event(ds, CONFIRM_MESSAGE, args, 2)) opeu_clear_unit_orders(ds, unit, BOTH_SLOTS);
+    if (event(game, CONFIRM_MESSAGE, args, 2)) opeu_clear_unit_orders(game, unit, BOTH_SLOTS);
   }
 }
 
 // Regiment row predicate: a ready regiment that may be selected.
-uint8_t opeu_supply_unit_enabled(uint8_t ds[65536]) {
-  auto&      data{ Data(ds) };
+uint8_t opeu_supply_unit_enabled(Game& game) {
+  auto&      data{ Data(game) };
   auto const unit{ data.row_units[data.list_row] };
-  return (Record<Unit>(data, unit).flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(ds, unit);
+  return (Record<Unit>(data, unit).flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(game, unit);
 }
 
 // Places the eight items of order menu `kind` at the order spots.
-void opeu_order_layout(uint8_t ds[65536], uint8_t kind) {
-  auto& data{ Data(ds) };
+void opeu_order_layout(Game& game, uint8_t kind) {
+  auto& data{ Data(game) };
   for (std::uint16_t index{ 0 }; index < 8; ++index) {
     auto& item{ data.order_menus[kind][index] };
     item.x = data.order_spots[index].x;
@@ -52,8 +53,8 @@ void opeu_order_layout(uint8_t ds[65536], uint8_t kind) {
 }
 
 // Places the two items of the two-choice menu `kind` (supply or repair) at the choice spots.
-void opeu_order_layout_pair(uint8_t ds[65536], uint16_t kind) {
-  auto& data{ Data(ds) };
+void opeu_order_layout_pair(Game& game, uint16_t kind) {
+  auto& data{ Data(game) };
   for (std::uint16_t index{ 0 }; index < 2; ++index) {
     auto const& spot{ data.choice_spots[index] };
     if (kind == SUPPLY_MENU) {
@@ -68,17 +69,17 @@ void opeu_order_layout_pair(uint8_t ds[65536], uint16_t kind) {
 }
 
 // The helpers' only call, confirm_message, is an order service; the callers (ordissue, ordact) pass their own event.
-uint16_t svc_ordunit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_ordunit(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case CONFIRM_MESSAGE: svc_orders(ds, id, args, count, &r); break;
+  case CONFIRM_MESSAGE: svc_orders(game, id, args, count, &r); break;
   default:              port_unhandled("ordunit", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_supply_unit_enabled(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_supply_unit_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_supply_unit_enabled(ds);
+  return opeu_supply_unit_enabled(game);
 }

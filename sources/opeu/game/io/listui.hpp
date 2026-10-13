@@ -40,12 +40,12 @@ inline constexpr std::uint8_t REDRAW_HERE{ 0xfe };
 
 // A call with its argument words.
 template <typename... Words>
-inline auto List(std::uint8_t* ds, HostWordsEvent event, ListCall call, Words... words) -> std::uint16_t {
+inline auto List(Game& game, HostWordsEvent event, ListCall call, Words... words) -> std::uint16_t {
   if constexpr (sizeof...(Words) == 0) {
-    return event(ds, std::to_underlying(call), nullptr, 0);
+    return event(game, std::to_underlying(call), nullptr, 0);
   } else {
     std::uint16_t args[]{ static_cast<std::uint16_t>(words)... };
-    return event(ds, std::to_underlying(call), args, sizeof...(Words));
+    return event(game, std::to_underlying(call), args, sizeof...(Words));
   }
 }
 
@@ -58,15 +58,15 @@ using detail::list_call::REDRAW_HERE;
 using detail::list_call::REDRAW_ORIGIN;
 } // namespace opeu::game
 
-void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
-void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
-auto TableColumnLayout(std::uint8_t* ds, std::uint8_t column, std::uint8_t rows) -> opeu::game::TableColumns;
-void opeu_table_columns(std::uint8_t* ds, HostWordsEvent event, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
-void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
-auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t;
-void opeu_list_invert(std::uint8_t* ds, HostWordsEvent event);
-auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t first_column) -> std::uint8_t;
-void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t window, std::uint8_t column, std::uint8_t row);
+void opeu_list_arrows(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
+void opeu_list_scrollbar(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
+auto TableColumnLayout(Game& game, std::uint8_t column, std::uint8_t rows) -> opeu::game::TableColumns;
+void opeu_table_columns(Game& game, HostWordsEvent event, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
+void opeu_list_arrows_lit(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
+auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t;
+void opeu_list_invert(Game& game, HostWordsEvent event);
+auto opeu_list_frame(Game& game, HostWordsEvent event, std::uint16_t window, std::uint8_t first_column) -> std::uint8_t;
+void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t window, std::uint8_t column, std::uint8_t row);
 
 // The module's services: the list calls.
-auto svc_listui(std::uint8_t* ds, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t;
+auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t;

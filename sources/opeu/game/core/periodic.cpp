@@ -1,6 +1,7 @@
 // The state changes of the day's turn points: the generals' counters run down, the sides' pools take in what is
 // pending and their income.
 #include "core/periodic.hpp"
+#include "common/game.hpp"
 #include "core/counter.hpp"
 #include "core/numeric.hpp"
 #include "data-segment.hpp"
@@ -9,16 +10,15 @@
 using namespace opeu::game;
 
 // Counts down every general's counter that is not yet zero.
-void opeu_decrement_record_counters(uint8_t ds[65536]) {
-  for (auto& person : Data(ds).people) {
-    auto* const bytes{ reinterpret_cast<uint8_t*>(&person) };
-    if (auto count{ opeu_get_record_counter(bytes) }) opeu_set_record_counter(bytes, --count);
+void opeu_decrement_record_counters(Game& game) {
+  for (auto& person : Data(game).people) {
+    if (auto count{ opeu_get_record_counter(person) }) opeu_set_record_counter(person, --count);
   }
 }
 
 // Readies each side's air cargo flight and airborne drop for the day and books its pending reserves and planes and ten times its income into its pools, each capped.
-void opeu_apply_daily_side_resources(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_apply_daily_side_resources(Game& game) {
+  auto& data{ Data(game) };
   for (uint8_t a = 0; a < SIDE_COUNT; ++a) {
     auto& side{ data.sides[a] };
     data.side_flags[a] |= Bits(SideFlag::AIR_CARGO_READY) | Bits(SideFlag::AIR_DROP_READY);

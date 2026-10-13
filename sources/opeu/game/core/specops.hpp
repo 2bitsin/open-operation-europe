@@ -44,12 +44,12 @@ enum class SpecialMission : std::uint8_t {
   NONE          = 0xff, // no mission under way
 };
 
-void opeu_special_present(uint8_t* ds, HostEvent event);
-void opeu_special_raid(uint8_t* ds, HostEvent event);
-void opeu_special_sabotage(uint8_t* ds, HostEvent event);
-void opeu_special_cut_comm(uint8_t* ds, HostEvent event);
-void opeu_special_assassinate(uint8_t* ds, HostEvent event);
-void opeu_special_recon(uint8_t* ds, HostEvent event);
+void opeu_special_present(Game& game, HostEvent event);
+void opeu_special_raid(Game& game, HostEvent event);
+void opeu_special_sabotage(Game& game, HostEvent event);
+void opeu_special_cut_comm(Game& game, HostEvent event);
+void opeu_special_assassinate(Game& game, HostEvent event);
+void opeu_special_recon(Game& game, HostEvent event);
 
 // The services of the Special Forces command and its missions as direct calls.
-uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

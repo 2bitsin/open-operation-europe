@@ -12,9 +12,10 @@
 
 #include "common/air-service.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/airbomb.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -49,40 +50,40 @@ constexpr auto PlanesFor(std::uint16_t amount) -> std::uint16_t {
 // The officer's preparation lead: min(planes - leadership / 30 + 3, 24) hours, never 1. A shorter delay is answered
 // with "at least %d hours" (returning the lead) when 90 - rand(30) beats the officer's skill, else accepted. A delay
 // that lands in daytime is refused outright (0) when 60 - rand(20) beats the skill. Returns the delay.
-uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint8_t hours, uint16_t planes) {
+uint8_t opeu_air_lift_lead(Game& game, HostEvent event, uint8_t hours, uint16_t planes) {
   ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
   auto                lead{ static_cast<std::uint8_t>(opeu_min16(static_cast<std::uint16_t>(planes - data.air_leadership / 30 + 3), MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
     if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_charm) {
-      Call(ds, event, FORMAT, text, Near(data, data.lift_lead_format), lead);
-      Call(ds, event, MESSAGE, text, data.air_person);
+      Call(game, event, FORMAT, text, Near(data, data.lift_lead_format), lead);
+      Call(game, event, MESSAGE, text, data.air_person);
       return lead;
     }
-    Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, LEAD_ACCEPTED), lead + 1);
-    Call(ds, event, MESSAGE, text, data.air_person);
+    Call(game, event, FORMAT, text, Call(game, event, LOOKUP, LEAD_ACCEPTED), lead + 1);
+    Call(game, event, MESSAGE, text, data.air_person);
     return hours;
   }
   if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24)) && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_charm) {
-    Call(ds, event, MESSAGE, Call(ds, event, LOOKUP, LIFT_REFUSED), data.air_person);
+    Call(game, event, MESSAGE, Call(game, event, LOOKUP, LIFT_REFUSED), data.air_person);
     return 0;
   }
-  Call(ds, event, MESSAGE, Near(data, data.lift_understood), data.air_person);
+  Call(game, event, MESSAGE, Near(data, data.lift_understood), data.air_person);
   return hours;
 }
 
 // Announces "In %d hour(s), %d plane(s) will start their cargo lift" and, if the staff confirms, records the order.
 // Returns 1 if recorded.
-uint16_t opeu_air_lift_order(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
+uint16_t opeu_air_lift_order(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
   ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  Call(ds, event, FORMAT, text, Near(data, data.lift_start_format), hours, hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours), planes,
+  Call(game, event, FORMAT, text, Near(data, data.lift_start_format), hours, hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours), planes,
        planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes));
-  Call(ds, event, MESSAGE, text, data.air_person);
-  if (!opeu_air_confirm(ds, event)) return 0;
+  Call(game, event, MESSAGE, text, data.air_person);
+  if (!opeu_air_confirm(game, event)) return 0;
   auto& lift{ Record<Side>(data, data.current_side_ptr).lift };
   lift.x           = x;
   lift.y           = y;
@@ -97,17 +98,17 @@ uint16_t opeu_air_lift_order(uint8_t ds[65536], HostEvent event, uint8_t x, uint
 
 // The Airlift command. Cancels a pending airlift on request, then asks the cargo amounts, the drop point and the
 // delay; uses up the side's turn unless cancelled or refused.
-void opeu_air_lift_command(uint8_t ds[65536], HostEvent event) {
-  auto&      data{ Data(ds) };
-  auto const ask{ [&](std::uint16_t text, std::uint16_t low, std::uint16_t high) { return opeu_air_ask_count(ds, event, text, low, high, 1, data.context_record3, 0); } };
+void opeu_air_lift_command(Game& game, HostEvent event) {
+  auto&      data{ Data(game) };
+  auto const ask{ [&](std::uint16_t text, std::uint16_t low, std::uint16_t high) { return opeu_air_ask_count(game, event, text, low, high, 1, data.context_record3, 0); } };
   auto&      side{ Record<Side>(data, data.current_side_ptr) };
   if (side.lift.planes != 0) {
-    if (!Call(ds, event, CONFIRM, Near(data, data.lift_cancel), data.context_record3)) return;
+    if (!Call(game, event, CONFIRM, Near(data, data.lift_cancel), data.context_record3)) return;
     side.lift.planes = 0;
   }
-  std::uint16_t remaining{ opeu_air_free_planes(ds, event) };
+  std::uint16_t remaining{ opeu_air_free_planes(game, event) };
   if (remaining == 0) {
-    Call(ds, event, MESSAGE, Near(data, data.lift_no_planes), data.context_record3);
+    Call(game, event, MESSAGE, Near(data, data.lift_no_planes), data.context_record3);
     return;
   }
   remaining = opeu_min16(remaining, TOTAL_PLANES);
@@ -129,29 +130,29 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ CELL_BYTES };
   auto const          at_x{ locals.At(CELL_X_AT) };
   auto const          at_y{ locals.At(CELL_Y_AT) };
-  auto&               cell_x{ Byte(ds, at_x) };
-  auto&               cell_y{ Byte(ds, at_y) };
+  auto&               cell_x{ Byte(game, at_x) };
+  auto&               cell_y{ Byte(game, at_y) };
   cell_x = static_cast<std::uint8_t>(data.viewport_x);
   cell_y = static_cast<std::uint8_t>(data.viewport_y);
   do {
-    Call(ds, event, MESSAGE, Near(data, data.lift_select_point), data.context_record3);
-    if (!Call(ds, event, PICK, at_x, at_y)) return;
-  } while (!opeu_air_target_valid(ds, event, cell_x, cell_y, Near(data, data.lift_cargo_name)));
+    Call(game, event, MESSAGE, Near(data, data.lift_select_point), data.context_record3);
+    if (!Call(game, event, PICK, at_x, at_y)) return;
+  } while (!opeu_air_target_valid(game, event, cell_x, cell_y, Near(data, data.lift_cargo_name)));
   auto const delay{ ask(Near(data, data.lift_ask_hours), 1, 24) };
   if (delay == MENU_CANCELLED) return;
   auto       hours{ static_cast<std::uint8_t>(delay) };
   auto const planes{ static_cast<std::uint16_t>(initial - remaining) };
-  if (!Call(ds, event, CONFIRM, Near(data, data.lift_confirm), data.context_record3)) return;
-  hours = opeu_air_lift_lead(ds, event, hours, planes);
-  if (hours && !opeu_air_lift_order(ds, event, cell_x, cell_y, hours, planes, ammo, fuel, food)) return;
+  if (!Call(game, event, CONFIRM, Near(data, data.lift_confirm), data.context_record3)) return;
+  hours = opeu_air_lift_lead(game, event, hours, planes);
+  if (hours && !opeu_air_lift_order(game, event, cell_x, cell_y, hours, planes, ammo, fuel, food)) return;
   data.side_delays[data.current_side] = 1;
 }
 
-uint16_t svc_airlift(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_air(ds, "airlift", id, args, count);
+uint16_t svc_airlift(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  return svc_air(game, "airlift", id, args, count);
 }
 
-auto port_routine_opeu_air_lift_command(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_air_lift_command(ds, svc_airlift);
+auto port_routine_opeu_air_lift_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_air_lift_command(game, svc_airlift);
   return 0;
 }

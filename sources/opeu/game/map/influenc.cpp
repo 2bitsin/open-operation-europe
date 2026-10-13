@@ -10,6 +10,7 @@
 #include "map/query.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "port.hpp"
 
 #include <array>
@@ -28,18 +29,18 @@ constexpr unsigned UNIT_COUNT{ 2 * UNITS_PER_SIDE };
 constexpr uint8_t  BLOCK{ 4 }; // cells per influence square
 } // namespace
 
-void opeu_update_influence_map(uint8_t* ds) {
-  auto&                                data{ Data(ds) };
+void opeu_update_influence_map(Game& game) {
+  auto&                                data{ Data(game) };
   std::array<int16_t, UNIT_COUNT>      unit_strength{};
   std::array<int16_t, OBJECTIVE_COUNT> objective_strength{};
   for (unsigned i{ 0 }; i < UNIT_COUNT; ++i) {
-    auto const strength{ opeu_unit_strength(ds, Near(data, data.units[i])) };
+    auto const strength{ opeu_unit_strength(game, Near(data, data.units[i])) };
     unit_strength[i] = i >= UNITS_PER_SIDE ? static_cast<int16_t>(-strength) : strength;
   }
   for (unsigned i{ 0 }; i < OBJECTIVE_COUNT; ++i) {
     auto const objective{ Near(data, data.objectives[i]) };
-    auto const strength{ opeu_objective_strength(ds, objective) };
-    objective_strength[i] = opeu_objective_side(ds, objective) == 1 ? static_cast<int16_t>(-strength) : strength;
+    auto const strength{ opeu_objective_strength(game, objective) };
+    objective_strength[i] = opeu_objective_side(game, objective) == 1 ? static_cast<int16_t>(-strength) : strength;
   }
   for (uint8_t y{ 0 }; y < INFLUENCE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < INFLUENCE_WIDTH; ++x) {
@@ -64,13 +65,13 @@ void opeu_update_influence_map(uint8_t* ds) {
     }
 }
 
-void opeu_turn_hourly_c(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  opeu_update_influence_map(ds);
-  event(ds, std::to_underlying(HourlyService::REQUESTS), 0, 0, 0, 0);
-  event(ds, std::to_underlying(HourlyService::ARRIVALS), 0, 0, 0, 0);
+void opeu_turn_hourly_c(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+  opeu_update_influence_map(game);
+  event(game, std::to_underlying(HourlyService::REQUESTS), 0, 0, 0, 0);
+  event(game, std::to_underlying(HourlyService::ARRIVALS), 0, 0, 0, 0);
 }
 
-uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
+uint16_t svc_influenc(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
   (void)a;
   (void)b;
   (void)c;
@@ -78,10 +79,10 @@ uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t
   switch (static_cast<HourlyService>(id)) {
   case HourlyService::REQUESTS: {
     ServiceLocals const locals{ STALE_THRESHOLD_RESERVE };
-    opeu_hourly_c_stage_b(ds, svc_requests, Word(ds, locals.At(0)));
+    opeu_hourly_c_stage_b(game, svc_requests, Word(game, locals.At(0)));
     break;
   }
-  case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(ds, svc_arrivals); break;
+  case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(game, svc_arrivals); break;
   default:                      port_unhandled("influenc", id, 0);
   }
   return 0;

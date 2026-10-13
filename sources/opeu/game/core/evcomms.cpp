@@ -9,10 +9,11 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/dialogs.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -38,38 +39,38 @@ constexpr std::uint16_t NEWS_BYTES{ 0x6c }; // the report text the format servic
 
 // The level is the delivery level for a side the player commands, else 2: a higher level grows strength more slowly
 // and makes both events rarer.
-void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event) {
+void opeu_objective_comms_event(Game& game, HostEvent event) {
   ServiceLocals const locals{ NEWS_BYTES };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          news{ locals.At(0) };
   for (auto& objective : data.objectives) {
     if (!objective.active) continue;
     auto const    camp{ Near(data, objective) };
-    auto const    side{ opeu_objective_side(ds, camp) };
+    auto const    side{ opeu_objective_side(game, camp) };
     std::uint16_t level{ DeliveryLevel(data, side) };
-    auto const    speaker{ opeu_find_side_record(ds, side, ADVISER) };
-    opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(ds, static_cast<std::uint16_t>(5 - level)) + 1), objective.strength_limit, &objective.strength);
-    if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && RandomBelow(ds, static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
+    auto const    speaker{ opeu_find_side_record(game, side, ADVISER) };
+    opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(game, static_cast<std::uint16_t>(5 - level)) + 1), objective.strength_limit, &objective.strength);
+    if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && RandomBelow(game, static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
       objective.flags |= Bits(ObjectiveFlag::COMMUNICATIONS);
-      Call(ds, event, FORMAT, news, RESTORED_FORMAT, camp);
-      Call(ds, event, MESSAGE, news, speaker);
-      Call(ds, event, FLASH, objective.x, objective.y, side);
+      Call(game, event, FORMAT, news, RESTORED_FORMAT, camp);
+      Call(game, event, MESSAGE, news, speaker);
+      Call(game, event, FLASH, objective.x, objective.y, side);
     }
-    if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && RandomBelow(ds, static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
+    if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && RandomBelow(game, static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
       objective.flags &= static_cast<std::uint8_t>(~Bits(ObjectiveFlag::MARKED));
-      Call(ds, event, FORMAT, news, CAPTURED_FORMAT, camp);
-      Call(ds, event, MESSAGE, news, speaker);
-      Call(ds, event, FLASH, objective.x, objective.y, side);
+      Call(game, event, FORMAT, news, CAPTURED_FORMAT, camp);
+      Call(game, event, MESSAGE, news, speaker);
+      Call(game, event, FLASH, objective.x, objective.y, side);
     }
   }
 }
 
-uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_evcomms(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case FORMAT:  opeu_request_format(ds, { args, count }); break;
+  case MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case FORMAT:  opeu_request_format(game, { args, count }); break;
   case FLASH:   {
-    opeu_location_flash(ds, svc_mapunit, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(game, svc_mapunit, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   }
   default: port_unhandled("evcomms", id, count);
@@ -77,7 +78,7 @@ uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return 0;
 }
 
-auto port_routine_opeu_objective_comms_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_objective_comms_event(ds, svc_evcomms);
+auto port_routine_opeu_objective_comms_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_objective_comms_event(game, svc_evcomms);
   return 0;
 }

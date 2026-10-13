@@ -4,11 +4,11 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_bomb_draw_frame(uint8_t* ds, HostEvent event, uint16_t load, uint16_t x, uint16_t y);
-void opeu_bomb_restore_frame(uint8_t* ds, HostEvent event, uint16_t load, uint16_t x, uint16_t y);
-void opeu_bomb_animate(uint8_t* ds, HostEvent event, uint16_t load, uint16_t unit, uint8_t side);
-void opeu_bomb_present(uint8_t* ds, HostEvent event, uint16_t load);
-void opeu_bomb_event(uint8_t* ds, HostEvent event, uint16_t load);
+void opeu_bomb_draw_frame(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y);
+void opeu_bomb_restore_frame(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y);
+void opeu_bomb_animate(Game& game, HostEvent event, uint16_t load, uint16_t unit, uint8_t side);
+void opeu_bomb_present(Game& game, HostEvent event, uint16_t load);
+void opeu_bomb_event(Game& game, HostEvent event, uint16_t load);
 
 // Runs the services the air raid calls through its event.
-uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_evbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

@@ -14,12 +14,13 @@
 #include "core/textout.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "core/counter.hpp"
 #include "core/dialogs.hpp"
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "map/blast.hpp"
 #include "map/mappos.hpp"
 #include "map/support.hpp"
@@ -93,17 +94,17 @@ enum Locals : std::uint16_t {
 
 // The morale an element loses: the square root of its losses, times one more than a twentieth of its experience, plus
 // up to four. The random draw comes before the root, as in the game.
-auto MoraleLoss(std::uint8_t* ds, HostEvent event, std::uint16_t losses, Element const& element) -> std::uint16_t {
-  auto const extra{ Call(ds, event, Service::RANDOM, 5) };
-  auto const root{ Call(ds, event, Service::SQUARE_ROOT, losses) };
+auto MoraleLoss(Game& game, HostEvent event, std::uint16_t losses, Element const& element) -> std::uint16_t {
+  auto const extra{ Call(game, event, Service::RANDOM, 5) };
+  auto const root{ Call(game, event, Service::SQUARE_ROOT, losses) };
   return static_cast<std::uint16_t>(root * (element.experience / 20 + 1) + extra);
 }
 } // namespace
 
 // unit suffers casualties: each element loses up to c men plus kind (percent% of the time, otherwise up to c/2);
 // infantry (category 0) loses six to fifteen times that when d is set. e shows the blast animation.
-void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
-  auto&               data{ Data(ds) };
+void opeu_unit_casualties(Game& game, HostEvent event, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
+  auto&               data{ Data(game) };
   auto&               regiment{ Record<Unit>(data, unit) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](Locals offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
@@ -119,132 +120,132 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
   };
   std::uint8_t const x{ regiment.x };
   std::uint8_t const y{ regiment.y };
-  auto const         side{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_SIDE, unit)) };
-  auto const         group{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_GROUP_INDEX, unit)) };
+  auto const         side{ static_cast<std::uint8_t>(Call(game, event, Service::UNIT_SIDE, unit)) };
+  auto const         group{ static_cast<std::uint8_t>(Call(game, event, Service::UNIT_GROUP_INDEX, unit)) };
   auto const         division{ Near(data, GroupOf(data, side, group)) };
-  bool const         side_selected{ Call(ds, event, Service::SIDE_SELECTED_UNIT, side) == unit };
-  bool const         group_selected{ Call(ds, event, Service::GROUP_SELECTED_UNIT, division) == unit };
-  Call(ds, event, Service::UNIT_NAME, unit, name);
+  bool const         side_selected{ Call(game, event, Service::SIDE_SELECTED_UNIT, side) == unit };
+  bool const         group_selected{ Call(game, event, Service::GROUP_SELECTED_UNIT, division) == unit };
+  Call(game, event, Service::UNIT_NAME, unit, name);
   // The side that watches: the enemy when a player commands it and may see the regiment, else its own side when a
   // player commands it and the regiment may be selected.
   std::uint8_t viewer{ opeu_opposite_side(side) };
-  bool         visible{ data.side_status[viewer] == SIDE_PLAYED && Call(ds, event, Service::UNIT_SPECIAL, unit) };
+  bool         visible{ data.side_status[viewer] == SIDE_PLAYED && Call(game, event, Service::UNIT_SPECIAL, unit) };
   if (!visible) {
     viewer  = side;
-    visible = data.side_status[viewer] == SIDE_PLAYED && Call(ds, event, Service::UNIT_ELIGIBLE, unit);
+    visible = data.side_status[viewer] == SIDE_PLAYED && Call(game, event, Service::UNIT_ELIGIBLE, unit);
   }
-  if (visible && e) Call(ds, event, Service::LOCATION_BLAST, x, y, viewer);
-  Call(ds, event, Service::RESOURCE_PERCENTAGES, unit, percents[0], percents[1], percents[2]);
+  if (visible && e) Call(game, event, Service::LOCATION_BLAST, x, y, viewer);
+  Call(game, event, Service::RESOURCE_PERCENTAGES, unit, percents[0], percents[1], percents[2]);
   bool report{ true };
   for (auto near{ regiment.first }; near; near = Record<Element>(data, near).next) {
     auto& element{ Record<Element>(data, near) };
-    Call(ds, event, Service::ELEMENT_NAME, near, element_name);
+    Call(game, event, Service::ELEMENT_NAME, near, element_name);
     auto const    category{ data.element_types[element.type].category };
     bool const    infantry{ category == 0 };
-    std::uint16_t losses{ Call(ds, event, Service::RANDOM, 100) >= percent ? Call(ds, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Call(ds, event, Service::RANDOM, c) + kind) };
-    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Call(ds, event, Service::RANDOM, 10) + 6));
+    std::uint16_t losses{ Call(game, event, Service::RANDOM, 100) >= percent ? Call(game, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Call(game, event, Service::RANDOM, c) + kind) };
+    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Call(game, event, Service::RANDOM, 10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name);
+    Call(game, event, Service::FORMAT, text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name);
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;
       if (element.flags & Bits(ElementFlag::SELECTED)) {
         if (side_selected)
-          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) Call(ds, event, Service::GENERAL_CASUALTY, Call(ds, event, Service::SIDE_RECORD, side, person));
-        if (group_selected) Call(ds, event, Service::GENERAL_CASUALTY, Call(ds, event, Service::GROUP_RECORD, side, group));
+          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) Call(game, event, Service::GENERAL_CASUALTY, Call(game, event, Service::SIDE_RECORD, side, person));
+        if (group_selected) Call(game, event, Service::GENERAL_CASUALTY, Call(game, event, Service::GROUP_RECORD, side, group));
         // One time in a hundred the regiment's communications are cut.
-        if (Call(ds, event, Service::RANDOM, 100) == 0 && Call(ds, event, Service::UNIT_ELIGIBLE, unit)) {
+        if (Call(game, event, Service::RANDOM, 100) == 0 && Call(game, event, Service::UNIT_ELIGIBLE, unit)) {
           if (data.side_status[side] == SIDE_PLAYED) {
             if (group_selected)
-              opeu_string_copy(ds, text, Near(data, data.casualty_cut_selected));
+              opeu_string_copy(game, text, Near(data, data.casualty_cut_selected));
             else if (!side_selected)
-              Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_cut), name);
-            Call(ds, event, Service::SIDE_REPORT, unit, text);
+              Call(game, event, Service::FORMAT, text, Near(data, data.casualty_cut), name);
+            Call(game, event, Service::SIDE_REPORT, unit, text);
             report = false;
           }
           regiment.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::COMMUNICATIONS));
           data.view_side = data.overview_side = NO_VIEW;
-          Call(ds, event, Service::ARRIVAL_LOCATION, x, y, side);
+          Call(game, event, Service::ARRIVAL_LOCATION, x, y, side);
         }
       }
       if (element.quantity) {
-        opeu_add_byte(static_cast<std::uint16_t>(Call(ds, event, Service::SQUARE_ROOT, kind) * 2), RATING_LIMIT, &element.experience);
-        opeu_sub_byte(MoraleLoss(ds, event, infantry ? losses / 10 : losses, element), &element.morale);
+        opeu_add_byte(static_cast<std::uint16_t>(Call(game, event, Service::SQUARE_ROOT, kind) * 2), RATING_LIMIT, &element.experience);
+        opeu_sub_byte(MoraleLoss(game, event, infantry ? losses / 10 : losses, element), &element.morale);
         if (!infantry) {
           std::uint16_t damage{ element.damage };
-          opeu_add_word(Call(ds, event, Service::RANDOM, losses / 3), data.request_capacities[category], &damage);
+          opeu_add_word(Call(game, event, Service::RANDOM, losses / 3), data.request_capacities[category], &damage);
           element.damage = damage;
         }
-        Call(ds, event, Service::FORMAT, loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
-        opeu_string_append(ds, text, loss_text);
+        Call(game, event, Service::FORMAT, loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
+        opeu_string_append(game, text, loss_text);
       } else {
-        switch (static_cast<std::uint8_t>(Call(ds, event, Service::REMOVE_ELEMENT, unit, near))) {
+        switch (static_cast<std::uint8_t>(Call(game, event, Service::REMOVE_ELEMENT, unit, near))) {
         case UNIT_EMPTIED:
-          if (group_selected) Call(ds, event, Service::SELECT_UNIT, division);
+          if (group_selected) Call(game, event, Service::SELECT_UNIT, division);
           wiped = true;
           break;
         case GROUP_EMPTIED:
-          Call(ds, event, Service::SET_COUNTER, Call(ds, event, Service::GROUP_RECORD, side, group), 0);
-          if (side_selected) Call(ds, event, Service::SELECT_GROUP, side);
+          Call(game, event, Service::SET_COUNTER, Call(game, event, Service::GROUP_RECORD, side, group), 0);
+          if (side_selected) Call(game, event, Service::SELECT_GROUP, side);
           wiped = true;
           break;
         default:
-          if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, Service::SELECT_ELEMENT, unit);
+          if (element.flags & Bits(ElementFlag::SELECTED)) Call(game, event, Service::SELECT_ELEMENT, unit);
           break;
         }
-        opeu_string_append(ds, text, Near(data, data.casualty_wiped));
+        opeu_string_append(game, text, Near(data, data.casualty_wiped));
       }
     } else
-      opeu_string_append(ds, text, Near(data, data.casualty_no_damage));
+      opeu_string_append(game, text, Near(data, data.casualty_no_damage));
     if (report) {
-      if (visible) Call(ds, event, Service::REPORT_ELEMENT, near);
+      if (visible) Call(game, event, Service::REPORT_ELEMENT, near);
       if (wiped) {
         if (visible) {
-          auto const person{ side == viewer ? Call(ds, event, Service::GROUP_RECORD, viewer, group) : Call(ds, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
-          Call(ds, event, Service::ARRIVAL_LOCATION, regiment.x, regiment.y, viewer);
-          Call(ds, event, Service::CONTROL_MESSAGE, text, person);
+          auto const person{ side == viewer ? Call(game, event, Service::GROUP_RECORD, viewer, group) : Call(game, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
+          Call(game, event, Service::ARRIVAL_LOCATION, regiment.x, regiment.y, viewer);
+          Call(game, event, Service::CONTROL_MESSAGE, text, person);
         }
       } else
-        Call(ds, event, Service::SIDE_REPORT, unit, text);
+        Call(game, event, Service::SIDE_REPORT, unit, text);
     }
   }
   regiment.moved = 0;
-  Call(ds, event, Service::CAPACITIES, unit, capacities[0], capacities[1], capacities[2]);
-  for (std::size_t resource{ 0 }; resource < 3; ++resource) regiment.resources[resource] = opeu_percent(Word(ds, capacities[resource]), Word(ds, percents[resource]));
-  if (visible && e) Call(ds, event, Service::BLAST_ERASE, x, y);
+  Call(game, event, Service::CAPACITIES, unit, capacities[0], capacities[1], capacities[2]);
+  for (std::size_t resource{ 0 }; resource < 3; ++resource) regiment.resources[resource] = opeu_percent(Word(game, capacities[resource]), Word(game, percents[resource]));
+  if (visible && e) Call(game, event, Service::BLAST_ERASE, x, y);
 }
 
 // The casualty routine's services.
-uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_casualty(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (static_cast<Service>(id)) {
   case Service::UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
   case Service::UNIT_GROUP_INDEX:     r = opeu_unit_group_index(Arg(args, count, 0)); break;
-  case Service::SIDE_SELECTED_UNIT:   r = opeu_find_side_selected_unit(ds, (uint8_t)Arg(args, count, 0)); break;
-  case Service::GROUP_SELECTED_UNIT:  r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_NAME:            r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::UNIT_SPECIAL:         r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_ELIGIBLE:        r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case Service::LOCATION_BLAST:       opeu_location_blast(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case Service::RESOURCE_PERCENTAGES: StoreUnitResourcePercentages(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
-  case Service::ELEMENT_NAME:         r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::RANDOM:               r = port_rand_bounded(ds, Arg(args, count, 0)); break;
-  case Service::FORMAT:               opeu_request_format(ds, { args, count }); break;
-  case Service::SIDE_RECORD:          r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case Service::GENERAL_CASUALTY:     opeu_general_casualty(ds, svc_genwound, Arg(args, count, 0)); break;
-  case Service::GROUP_RECORD:         r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case Service::SIDE_REPORT:          opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ARRIVAL_LOCATION:     opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::SIDE_SELECTED_UNIT:   r = opeu_find_side_selected_unit(game, (uint8_t)Arg(args, count, 0)); break;
+  case Service::GROUP_SELECTED_UNIT:  r = opeu_find_group_selected_unit(game, Arg(args, count, 0)); break;
+  case Service::UNIT_NAME:            r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::UNIT_SPECIAL:         r = opeu_unit_special(game, Arg(args, count, 0)); break;
+  case Service::UNIT_ELIGIBLE:        r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
+  case Service::LOCATION_BLAST:       opeu_location_blast(game, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::RESOURCE_PERCENTAGES: StoreUnitResourcePercentages(game, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
+  case Service::ELEMENT_NAME:         r = opeu_element_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::RANDOM:               r = port_rand_bounded(game, Arg(args, count, 0)); break;
+  case Service::FORMAT:               opeu_request_format(game, { args, count }); break;
+  case Service::SIDE_RECORD:          r = opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::GENERAL_CASUALTY:     opeu_general_casualty(game, svc_genwound, Arg(args, count, 0)); break;
+  case Service::GROUP_RECORD:         r = opeu_find_group_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SIDE_REPORT:          opeu_unit_side_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::ARRIVAL_LOCATION:     opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::SQUARE_ROOT:          r = opeu_isqrt(Arg(args, count, 0)); break;
-  case Service::REMOVE_ELEMENT:       r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::SELECT_ELEMENT:       opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
-  case Service::SELECT_UNIT:          opeu_select_first_unit(ds, Arg(args, count, 0)); break;
-  case Service::SET_COUNTER:          opeu_set_record_counter(PORT_DS(Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
-  case Service::SELECT_GROUP:         opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
-  case Service::REPORT_ELEMENT:       opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case Service::CONTROL_MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::CAPACITIES:           StoreUnitCapacities(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
-  case Service::BLAST_ERASE:          opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::REMOVE_ELEMENT:       r = opeu_remove_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::SELECT_ELEMENT:       opeu_select_preferred_element(game, Arg(args, count, 0)); break;
+  case Service::SELECT_UNIT:          opeu_select_first_unit(game, Arg(args, count, 0)); break;
+  case Service::SET_COUNTER:          opeu_set_record_counter(Record<Person>(Data(game), Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SELECT_GROUP:         opeu_select_first_group(game, (uint8_t)Arg(args, count, 0)); break;
+  case Service::REPORT_ELEMENT:       opeu_group_element_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case Service::CONTROL_MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::CAPACITIES:           StoreUnitCapacities(game, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
+  case Service::BLAST_ERASE:          opeu_blast_erase(game, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:                            port_unhandled("casualty", id, count);
   }
   return r;

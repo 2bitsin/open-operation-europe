@@ -20,8 +20,8 @@
  *    compute it. It is plain data; nothing executes from it.
  *  - a model of the DGROUP stack pointer for the host branches that take
  *    `sp` and keep their stack buffers at original DS addresses;
- *  - the routine link table: identifier (original routine address) ->
- *    native C function, for the address-keyed service callbacks;
+ *  - the argument words of the address-keyed service callbacks (the routine
+ *    link table that dispatches them is the game's: game/link/link.hpp);
  *  - diagnostics.
  */
 #pragma once
@@ -108,25 +108,7 @@ extern uint16_t       port_sp;
 auto                  port_stack_enter(uint16_t bytes) -> uint16_t;
 void                  port_stack_leave(uint16_t bytes);
 
-/* ---- routine link table ------------------------------------------------ */
-
-/* A linked routine. Arguments are 16-bit words in the address-keyed
- * convention: register arguments in AX, DX, BX order (bytes zero-extended),
- * then stack arguments in prototype order; far pointers are (offset,
- * segment), 32-bit values (low, high). Near pointers are DS offsets. The
- * result is DX:AX (AX in the low half). */
-using PortRoutine = uint32_t (*)(uint8_t* ds, const uint16_t* args, unsigned count);
-
-struct PortLink {
-  uint32_t    address; /* original linear routine address (identifier only) */
-  const char* name;
-  PortRoutine routine; /* NULL: not linked yet */
-};
-
-/* The signature of a linked routine handler port_routine_<name>;
- * game/link/gen/link-table.cpp declares every one with it and lists it
- * under its routine address. */
-using PortHandler = auto(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t;
+/* ---- routine argument words ----------------------------------------------- */
 
 /* Argument word i of a routine call with count words (0 past the end). */
 inline auto Arg(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint16_t {
@@ -136,15 +118,6 @@ inline auto Arg(std::uint16_t const* args, unsigned count, unsigned i) -> std::u
 inline auto Arg32(std::uint16_t const* args, unsigned count, unsigned i) -> std::uint32_t {
   return static_cast<std::uint32_t>(Arg(args, count, i)) | static_cast<std::uint32_t>(Arg(args, count, i + 1)) << 16;
 }
-
-/* Call a routine by its identifier; fatal (with its name) when unlinked. */
-auto port_call(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) -> uint32_t;
-/* The address-keyed service callback signature used by the battle modules. */
-auto port_service(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) -> uint16_t;
-/* Name of a routine identifier (for diagnostics), or NULL. */
-auto port_routine_name(uint32_t address) -> const char*;
-/* Identifier of a routine by name (the DOS symbol without _ / @ prefix), 0 if unknown. */
-auto port_routine_address(const char* name) -> uint32_t;
 
 /* ---- diagnostics ------------------------------------------------------- */
 

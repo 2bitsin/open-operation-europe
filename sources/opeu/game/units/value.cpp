@@ -4,7 +4,8 @@
 #include "common/element-chain.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -27,8 +28,8 @@ uint16_t opeu_category_0_to_5(uint8_t code) {
 }
 
 // The combat value of one item of an equipment type.
-uint16_t opeu_type_value(const uint8_t ds[65536], uint16_t type) {
-  auto const& record{ Record<ElementType>(Data(ds), type) };
+uint16_t opeu_type_value(Game const& game, uint16_t type) {
+  auto const& record{ Record<ElementType>(Data(game), type) };
   auto const  heavy{ (record.flags & Bits(TypeFlag::HEAVY)) != 0 };
   switch (record.category) {
   case 0: return 1;
@@ -46,17 +47,17 @@ uint16_t opeu_type_value(const uint8_t ds[65536], uint16_t type) {
 }
 
 // The value of an element: its type's value per started ten items.
-uint16_t opeu_element_value(const uint8_t ds[65536], uint16_t element) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_element_value(Game const& game, uint16_t element) {
+  auto const& data{ Data(game) };
   auto const& record{ Record<Element>(data, element) };
-  return opeu_type_value(ds, Near(data, data.element_types[record.type])) * (record.quantity / 10 + 1);
+  return opeu_type_value(game, Near(data, data.element_types[record.type])) * (record.quantity / 10 + 1);
 }
 
 // The value of a unit: the sum over its elements.
-uint16_t opeu_unit_value(const uint8_t ds[65536], uint16_t unit) {
-  auto const&   data{ Data(ds) };
+uint16_t opeu_unit_value(Game const& game, uint16_t unit) {
+  auto const&   data{ Data(game) };
   std::uint16_t value{ 0 };
-  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) value += opeu_element_value(ds, it.Near());
+  for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) value += opeu_element_value(game, it.Near());
   return value;
 }
 
@@ -73,17 +74,17 @@ uint16_t opeu_hour_is_night(uint8_t code) {
   return code >= 20 || code <= 4;
 }
 
-auto port_routine_opeu_category_6(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_category_6(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_category_6((uint8_t)Arg(args, count, 0));
 }
 
-auto port_routine_opeu_category_7(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_category_7(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_category_7((uint8_t)Arg(args, count, 0));
 }
 
-auto port_routine_opeu_hour_is_night(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)ds;
+auto port_routine_opeu_hour_is_night(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  (void)game;
   return opeu_hour_is_night((uint8_t)Arg(args, count, 0));
 }

@@ -52,8 +52,8 @@ inline constexpr std::uint16_t FINISH_PRESENTER{ 0x0042 }; // opeu_mission_finis
 inline constexpr std::uint16_t DELAY_PRESENTER{ 0x004a };  // opeu_mission_delay_present
 
 // The near pointer of a mission message's text.
-[[nodiscard]] inline auto MissionText(std::uint8_t* ds, HostEvent event, std::uint16_t id) -> std::uint16_t {
-  return Call(ds, event, MissionService::MISSION_TEXT, id);
+[[nodiscard]] inline auto MissionText(Game& game, HostEvent event, std::uint16_t id) -> std::uint16_t {
+  return Call(game, event, MissionService::MISSION_TEXT, id);
 }
 
 } // namespace opeu::game::detail::mission

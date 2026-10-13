@@ -5,6 +5,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/game.hpp"
 #include "map/grid.hpp"
 
 using namespace opeu::game;
@@ -13,9 +14,9 @@ namespace {
 constexpr auto RATING_COLUMNS{ 5u };
 }
 
-uint8_t opeu_best_terrain(const uint8_t ds[65536], uint8_t x, uint8_t y, uint16_t unit) {
-  auto const&  data{ Data(ds) };
-  std::uint8_t code{ opeu_map_code(ds, x, y) };
+uint8_t opeu_best_terrain(Game const& game, uint8_t x, uint8_t y, uint16_t unit) {
+  auto const&  data{ Data(game) };
+  std::uint8_t code{ opeu_map_code(game, x, y) };
   if (code == 5) code = 10;
   std::uint8_t best{ 0 };
   for (auto const& element : Elements(data, Record<Unit>(data, unit))) {

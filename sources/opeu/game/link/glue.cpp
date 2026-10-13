@@ -1,12 +1,13 @@
-// Platform glue of the game's services (declarations and rationale: glue/include/glue.hpp): the random state, argument
+// Platform glue of the game's services (declarations and rationale: link/glue.hpp): the random state, argument
 // word placement, driver register blocks and file loading. No game logic.
-#include "glue.hpp"
+#include "link/glue.hpp"
 
 #include <cstdlib>
 #include <cstring>
 
 #include "data-segment.hpp"
 
+#include "common/game.hpp"
 #include "core/aiops1.hpp"
 #include "core/dialogs.hpp"
 #include "core/random.hpp"
@@ -15,6 +16,7 @@
 #include "io/keyboard.hpp"
 #include "io/loadscen.hpp"
 #include "io/resopen.hpp"
+#include "link/link.hpp"
 #include "map/cellpred.hpp"
 #include "services.hpp"
 
@@ -26,8 +28,8 @@ using opeu::game::Near;
 /* ---- C runtime random state ------------------------------------------------ *
  * rand_bounded: the generator keeps its state in a global; the saved game
  * keeps it in the data segment's random_state. */
-uint16_t port_rand_bounded(uint8_t* ds, uint16_t bound) {
-  auto& state{ Data(ds).random_state };
+uint16_t port_rand_bounded(Game& game, uint16_t bound) {
+  auto& state{ Data(game).random_state };
   std::memcpy(&opeu_random_state, state.data(), 4);
   auto const r{ opeu_rand_bounded(bound) };
   std::memcpy(state.data(), &opeu_random_state, 4);
@@ -36,14 +38,9 @@ uint16_t port_rand_bounded(uint8_t* ds, uint16_t bound) {
 
 /* ---- DS words ---------------------------------------------------------------- */
 
-void port_set_word(uint8_t* ds, uint16_t at, uint16_t value) {
-  ds[at]                 = (uint8_t)value;
-  ds[(uint16_t)(at + 1)] = (uint8_t)(value >> 8);
-}
-
 /* Host pointer of a DS word the callee writes (output arguments). */
-uint16_t* port_ds_word_ptr(uint16_t off) {
-  return (uint16_t*)(void*)PORT_DS(off);
+uint16_t* port_ds_word_ptr(Game& game, uint16_t near) {
+  return reinterpret_cast<uint16_t*>(game.State().Bytes(near, sizeof(uint16_t)).data());
 }
 
 /* ---- far code pointers ------------------------------------------------------- *
@@ -64,21 +61,21 @@ PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
 }
 
 /* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its present service, i.e. by routine identifier. */
-void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
-  opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
+void port_daily_show(Game& game, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
+  opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
 }
 
-uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) {
+uint16_t btl_reorder(Game& game, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) {
   uint16_t out[8];
   unsigned i;
   for (i = 0; i < n && i < 8; ++i) out[i] = order[i] < count ? args[order[i]] : 0;
-  return (uint16_t)port_call(ds, address, out, n);
+  return (uint16_t)port_call(game, address, out, n);
 }
 
-uint32_t port_call_named(uint8_t* ds, const char* name, const uint16_t* args, unsigned count) {
+uint32_t port_call_named(Game& game, const char* name, const uint16_t* args, unsigned count) {
   uint32_t address = port_routine_address(name);
   if (!address) port_fatal("no routine named %s", name);
-  return port_call(ds, address, args, count);
+  return port_call(game, address, args, count);
 }
 
 /* ---- driver register blocks ------------------------------------------------- */
@@ -112,16 +109,16 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
 
 /* ---- keyboard prompts ----------------------------------------------------------- */
 
-uint16_t port_prompt_cancel(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_cancel(ds, svc_keyboard, text, max, items);
+uint16_t port_prompt_cancel(Game& game, uint16_t text, uint16_t max, uint16_t items) {
+  return opeu_prompt_value_cancel(game, svc_keyboard, text, max, items);
 }
 
-uint16_t port_prompt_required(uint8_t* ds, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_required(ds, svc_keyboard, text, max, items);
+uint16_t port_prompt_required(Game& game, uint16_t text, uint16_t max, uint16_t items) {
+  return opeu_prompt_value_required(game, svc_keyboard, text, max, items);
 }
 
-uint16_t port_prompt_yes_no(uint8_t* ds, uint16_t text) {
-  return (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, text);
+uint16_t port_prompt_yes_no(Game& game, uint16_t text) {
+  return (uint16_t)opeu_prompt_yes_no(game, svc_keyboard, text);
 }
 
 /* ---- LOADSCEN ------------------------------------------------------------------- *
@@ -129,8 +126,8 @@ uint16_t port_prompt_yes_no(uint8_t* ds, uint16_t text) {
  * data segment names (scenario_filename, map_filename): open them as
  * resources and hand over their whole contents. */
 
-static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
-  int16_t  h   = opeu_open_resource(ds, svc_resopen, name);
+static uint8_t* read_resource(Game& game, uint16_t name, size_t* size) {
+  int16_t  h   = opeu_open_resource(game, svc_resopen, name);
   int32_t  end = h < 0 ? 0 : opeu_dos_seek(h, 0, 2);
   uint8_t* data;
   size_t   done = 0;
@@ -153,15 +150,15 @@ static uint8_t* read_resource(uint8_t* ds, uint16_t name, size_t* size) {
   return data;
 }
 
-void port_load_scenario(uint8_t* ds, uint16_t scenario) {
+void port_load_scenario(Game& game, uint16_t scenario) {
   size_t   scedata_size, mapinf_size;
-  auto&    data{ Data(ds) };
-  uint8_t* scedata = read_resource(ds, Near(data, data.scenario_filename), &scedata_size);
-  uint8_t* mapinf  = read_resource(ds, Near(data, data.map_filename), &mapinf_size);
+  auto&    data{ Data(game) };
+  uint8_t* scedata = read_resource(game, Near(data, data.scenario_filename), &scedata_size);
+  uint8_t* mapinf  = read_resource(game, Near(data, data.map_filename), &mapinf_size);
   /* The loader returns -1 (and leaves DS untouched) when a file is shorter
    * than the records it reads; the game has no result for that, so nothing
    * is reported beyond a trace. */
-  if (opeu_load_scenario(ds, (uint8_t)scenario, scedata, scedata_size, mapinf, mapinf_size) != 0)
+  if (opeu_load_scenario(game, (uint8_t)scenario, scedata, scedata_size, mapinf, mapinf_size) != 0)
     port_trace("link",
                "scensel: scenario %u: SCENARIO/MAP files shorter than the "
                "records read",

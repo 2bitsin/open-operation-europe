@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_show_division_strength(uint8_t* ds, HostNotify event, uint8_t div);
+void opeu_show_division_strength(Game& game, HostNotify event, uint8_t div);
 
 // Runs the services the module's routines call through their event.
-void svc_divstr(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+void svc_divstr(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

@@ -1,6 +1,7 @@
 // The first free person of a side.
 #pragma once
 
+#include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_find_free_person(const uint8_t* ds, uint8_t side);
+uint16_t opeu_find_free_person(Game const& game, uint8_t side);

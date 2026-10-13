@@ -4,6 +4,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
 
@@ -26,27 +27,27 @@ inline constexpr std::uint16_t ROW_TEXT{ 4 };
 }
 
 // Formats the heading `format` into `text` and prints the column's part of it above the rows.
-inline auto DrawHeading(std::uint8_t* ds, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
-  auto const& data{ Data(ds) };
-  Call(ds, event, TableService::FORMAT, text, format);
-  Call(ds, event, TableService::POSITION, BodyX(data, window, layout), window.y + 1);
-  Call(ds, event, TableService::SIDE_COLOR, data.current_side);
-  Call(ds, event, TableService::PUT_RANGE, text, layout.start, layout.count);
+inline auto DrawHeading(Game& game, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
+  auto const& data{ Data(game) };
+  Call(game, event, TableService::FORMAT, text, format);
+  Call(game, event, TableService::POSITION, BodyX(data, window, layout), window.y + 1);
+  Call(game, event, TableService::SIDE_COLOR, data.current_side);
+  Call(game, event, TableService::PUT_RANGE, text, layout.start, layout.count);
 }
 
 // Prints the column's part of the row text at row `entry`.
-inline auto DrawRowText(std::uint8_t* ds, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, std::uint16_t text) -> void {
-  auto const& data{ Data(ds) };
-  Call(ds, event, TableService::POSITION, BodyX(data, window, layout), RowY(data, window, entry));
-  Call(ds, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
-  Call(ds, event, TableService::PUT_RANGE, text, layout.start, layout.count);
+inline auto DrawRowText(Game& game, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, std::uint16_t text) -> void {
+  auto const& data{ Data(game) };
+  Call(game, event, TableService::POSITION, BodyX(data, window, layout), RowY(data, window, entry));
+  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  Call(game, event, TableService::PUT_RANGE, text, layout.start, layout.count);
 }
 
 // Moves the text cursor to the name of row `entry`, `indent` columns into the window, in the colour of `side`.
-inline auto StartRowName(std::uint8_t* ds, HostEvent event, ListWindow const& window, std::uint8_t entry, std::uint16_t indent, std::uint8_t side) -> void {
-  auto const& data{ Data(ds) };
-  Call(ds, event, TableService::POSITION, window.x + indent, RowY(data, window, entry));
-  Call(ds, event, TableService::SIDE_COLOR, side);
+inline auto StartRowName(Game& game, HostEvent event, ListWindow const& window, std::uint8_t entry, std::uint16_t indent, std::uint8_t side) -> void {
+  auto const& data{ Data(game) };
+  Call(game, event, TableService::POSITION, window.x + indent, RowY(data, window, entry));
+  Call(game, event, TableService::SIDE_COLOR, side);
 }
 
 } // namespace opeu::game::detail::unit_table

@@ -17,16 +17,17 @@
 
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "core/pixel-service.hpp"
-#include "glue.hpp"
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
@@ -91,49 +92,49 @@ constexpr std::uint16_t EVENT_LOCALS{ 0xce };
 } // namespace
 
 // Saves the background under the bomb at (x, y) and draws the bomb and its shadow there.
-void opeu_bomb_draw_frame(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
-  auto& data{ Data(ds) };
+void opeu_bomb_draw_frame(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
+  auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  Call(ds, event, BITMAP_SAVE, x, y, 4, 32, data.stream.segment, data.stream.offset);
+  Call(game, event, BITMAP_SAVE, x, y, 4, 32, data.stream.segment, data.stream.offset);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_IMAGE);
-  Call(ds, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream.segment, data.stream.offset);
+  Call(game, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream.segment, data.stream.offset);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_SPRITE);
-  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream.offset, data.stream.segment, BOMB_MASK, load + SPRITE_SEGMENT, 0, data.image_segment, 0);
+  Call(game, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream.offset, data.stream.segment, BOMB_MASK, load + SPRITE_SEGMENT, 0, data.image_segment, 0);
 }
 
 // Puts the background under the bomb at (x, y) back.
-void opeu_bomb_restore_frame(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
-  auto& data{ Data(ds) };
+void opeu_bomb_restore_frame(Game& game, HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
+  auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  Call(ds, event, BITMAP_RESTORE, x, y, 4, 32, 0, data.stream.segment, data.stream.offset);
+  Call(game, event, BITMAP_RESTORE, x, y, 4, 32, 0, data.stream.segment, data.stream.offset);
 }
 
 // Centres the map on the regiment and drops the bomb from the top of the screen onto it.
-void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t unit, uint8_t side) {
-  auto&       data{ Data(ds) };
+void opeu_bomb_animate(Game& game, HostEvent event, uint16_t load, uint16_t unit, uint8_t side) {
+  auto&       data{ Data(game) };
   auto const& target{ Record<Unit>(data, unit) };
   auto const  ux{ static_cast<std::uint16_t>(target.x) };
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
-  Call(ds, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy), opeu_side_for_status(ds, side));
-  auto const pixel{ CellViewPixel(ds, ux, uy) };
+  Call(game, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy), opeu_side_for_status(game, side));
+  auto const pixel{ CellViewPixel(game, ux, uy) };
   auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
   for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
-    opeu_bomb_draw_frame(ds, event, load, pixel.x, row);
-    if (static_cast<std::uint16_t>(target_y - row) == WHISTLE_ROW) Call(ds, event, SOUND_CUE);
-    Call(ds, event, DELAY, 1);
-    opeu_bomb_restore_frame(ds, event, load, pixel.x, row);
+    opeu_bomb_draw_frame(game, event, load, pixel.x, row);
+    if (static_cast<std::uint16_t>(target_y - row) == WHISTLE_ROW) Call(game, event, SOUND_CUE);
+    Call(game, event, DELAY, 1);
+    opeu_bomb_restore_frame(game, event, load, pixel.x, row);
   }
-  Call(ds, event, MUSIC_COMMAND7);
+  Call(game, event, MUSIC_COMMAND7);
 }
 
 // The daily-show presenter of the raid.
-void opeu_bomb_present(uint8_t ds[65536], HostEvent event, uint16_t) {
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_bomb_present(Game& game, HostEvent event, uint16_t) {
+  Call(game, event, PENDING_FINISH, 3);
 }
 
-void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load) {
-  auto& data{ Data(ds) };
+void opeu_bomb_event(Game& game, HostEvent event, uint16_t load) {
+  auto& data{ Data(game) };
   if (CurrentScenario(data) != RAID_SCENARIO) return;
   if (data.month < RAID_MONTH || (data.month == RAID_MONTH && data.day < RAID_DAY)) return;
   if (!opeu_hour_is_day(data.hour)) return;
@@ -146,33 +147,33 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load) {
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
-      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(ds, troop) || RandomBelow(ds, static_cast<std::uint16_t>(150 - level * 20))) continue;
-      Call(ds, event, UNIT_NAME, troop, name);
+      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(game, troop) || RandomBelow(game, static_cast<std::uint16_t>(150 - level * 20))) continue;
+      Call(game, event, UNIT_NAME, troop, name);
       std::uint8_t voice{ NO_VOICE };
       if (data.side_status[0] == SIDE_PLAYED) {
         voice = 0;
-        opeu_string_copy(ds, intro, Call(ds, event, LOOKUP, RAID_NOTICE_0));
-        Call(ds, event, REQUEST_FORMAT, report, Call(ds, event, LOOKUP, RAID_RESULT_0), name);
-      } else if (data.side_status[1] == SIDE_PLAYED && opeu_unit_selection_eligible(ds, troop)) {
+        opeu_string_copy(game, intro, Call(game, event, LOOKUP, RAID_NOTICE_0));
+        Call(game, event, REQUEST_FORMAT, report, Call(game, event, LOOKUP, RAID_RESULT_0), name);
+      } else if (data.side_status[1] == SIDE_PLAYED && opeu_unit_selection_eligible(game, troop)) {
         voice = 1;
-        opeu_string_copy(ds, intro, Call(ds, event, LOOKUP, RAID_NOTICE_1));
-        Call(ds, event, REQUEST_FORMAT, report, Call(ds, event, LOOKUP, RAID_RESULT_1), name);
+        opeu_string_copy(game, intro, Call(game, event, LOOKUP, RAID_NOTICE_1));
+        Call(game, event, REQUEST_FORMAT, report, Call(game, event, LOOKUP, RAID_RESULT_1), name);
       }
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {
-        auto const person{ opeu_find_side_record(ds, voice, AIR_OFFICER_KIND) };
-        Call(ds, event, MESSAGE, intro, person);
-        Call(ds, event, DAILY_SHOW, RAID_PICTURE, 0, RAID_PRESENTER, load + RAID_SEGMENT);
-        opeu_bomb_animate(ds, event, load, troop, voice);
-        Call(ds, event, MESSAGE, report, person);
+        auto const person{ opeu_find_side_record(game, voice, AIR_OFFICER_KIND) };
+        Call(game, event, MESSAGE, intro, person);
+        Call(game, event, DAILY_SHOW, RAID_PICTURE, 0, RAID_PRESENTER, load + RAID_SEGMENT);
+        opeu_bomb_animate(game, event, load, troop, voice);
+        Call(game, event, MESSAGE, report, person);
       }
-      Call(ds, event, CASUALTIES, troop, 15, 30, 10, 0, 1);
+      Call(game, event, CASUALTIES, troop, 15, 30, 10, 0, 1);
       data.map_mode[0] = saved_mode;
     }
   }
 }
 
-uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_evbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t   result{ 0 };
   auto const word{ [&](unsigned i) { return Arg(args, count, i); } };
   switch (id) {
@@ -181,20 +182,20 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case SPRITE_COMPOSE: opeu_sprite_compose(word(0), word(1), word(2), word(3), port_far(word(5), word(4)), port_far(word(7), word(6)), port_far(word(9), word(8)), word(10)); break;
   case BITMAP_RESTORE: result = static_cast<uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6)))); break;
   case MAP_CENTER:     {
-    opeu_map_center(ds, svc_mappos, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
+    opeu_map_center(game, svc_mappos, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
     break;
   }
-  case SOUND_CUE:      opeu_sound_cue4(ds, svc_soundcue); break;
-  case DELAY:          opeu_delay_ticks(ds, svc_waitkey, word(0)); break;
-  case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;
-  case PENDING_FINISH: opeu_pending_finish(ds, svc_waitkey, static_cast<uint8_t>(word(0))); break;
-  case UNIT_NAME:      result = opeu_unit_name(ds, svc_unitname, word(0), word(1)); break;
-  case LOOKUP:         result = opeu_message_lookup(ds, svc_msglook, static_cast<int16_t>(word(0))); break;
-  case REQUEST_FORMAT: opeu_request_format(ds, { args, count }); break;
-  case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), word(0), word(1)); break;
-  case DAILY_SHOW:     port_daily_show(ds, word(0), word(1), word(2), word(3)); break;
+  case SOUND_CUE:      opeu_sound_cue4(game, svc_soundcue); break;
+  case DELAY:          opeu_delay_ticks(game, svc_waitkey, word(0)); break;
+  case MUSIC_COMMAND7: opeu_music_command7(game, svc_sound); break;
+  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<uint8_t>(word(0))); break;
+  case UNIT_NAME:      result = opeu_unit_name(game, svc_unitname, word(0), word(1)); break;
+  case LOOKUP:         result = opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(word(0))); break;
+  case REQUEST_FORMAT: opeu_request_format(game, { args, count }); break;
+  case MESSAGE:        opeu_control_message(game, (const DialogHost*)port_dialogs_host(), word(0), word(1)); break;
+  case DAILY_SHOW:     port_daily_show(game, word(0), word(1), word(2), word(3)); break;
   case CASUALTIES:     {
-    opeu_unit_casualties(ds, svc_casualty, word(0), word(1), word(2), word(3), word(4), word(5));
+    opeu_unit_casualties(game, svc_casualty, word(0), word(1), word(2), word(3), word(4), word(5));
     break;
   }
   default: port_unhandled("evbomb", id, count);
@@ -202,12 +203,12 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   return result;
 }
 
-auto port_routine_opeu_bomb_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_bomb_event(ds, svc_evbomb, 0);
+auto port_routine_opeu_bomb_event(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_bomb_event(game, svc_evbomb, 0);
   return 0;
 }
 
-auto port_routine_opeu_bomb_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_bomb_present(ds, svc_evbomb, 0);
+auto port_routine_opeu_bomb_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_bomb_present(game, svc_evbomb, 0);
   return 0;
 }

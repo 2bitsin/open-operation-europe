@@ -6,6 +6,7 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 
+#include "common/game.hpp"
 #include "port.hpp"
 
 #include <cstdint>
@@ -40,10 +41,10 @@ struct TableColumns {
 };
 
 // Asks the layout service for a column of the active list window; the service writes the three bytes into DS locals.
-inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint8_t column, std::uint8_t row) -> TableColumns {
+inline auto Columns(Game& game, HostEvent event, std::uint8_t column, std::uint8_t row) -> TableColumns {
   ServiceLocals const bytes{ 4 };
-  Call(ds, event, COLUMNS, column, row, bytes.At(0), bytes.At(1), bytes.At(2));
-  auto const& data{ Data(ds) };
+  Call(game, event, COLUMNS, column, row, bytes.At(0), bytes.At(1), bytes.At(2));
+  auto const& data{ Data(game) };
   return { Record<std::uint8_t>(data, bytes.At(0)), Record<std::uint8_t>(data, bytes.At(1)), Record<std::uint8_t>(data, bytes.At(2)) };
 }
 
@@ -65,9 +66,9 @@ inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint8_t column, std:
 // Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
 // argument words.
 template <typename Draw>
-inline auto RunTableRows(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+inline auto RunTableRows(Game& game, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  draw(ds, event, byte(0), byte(1), byte(2), byte(3), byte(4));
+  draw(game, event, byte(0), byte(1), byte(2), byte(3), byte(4));
   return 0;
 }
 } // namespace opeu::game::detail::table_rows

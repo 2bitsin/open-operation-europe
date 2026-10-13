@@ -74,16 +74,16 @@ enum class RowCheck : std::uint16_t {
 inline constexpr std::uint16_t LIST_WINDOW_STATE{ 7 };
 
 // Gives a list dialog its row check.
-inline auto SetRowCheck(std::uint8_t* ds, HostEvent event, ListWindow& dialog, RowCheck check) -> void {
+inline auto SetRowCheck(Game& game, HostEvent event, ListWindow& dialog, RowCheck check) -> void {
   dialog.select.offset  = std::to_underlying(check);
-  dialog.select.segment = Call(ds, event, ViewService::CODE_SEGMENT);
+  dialog.select.segment = Call(game, event, ViewService::CODE_SEGMENT);
 }
 
 // Runs the menu action `item` (1 first) of a far pointer table.
 template <std::size_t N>
-inline auto RunAction(std::uint8_t* ds, HostEvent event, std::array<FarPointer, N> const& actions, std::uint16_t item) -> std::uint16_t {
+inline auto RunAction(Game& game, HostEvent event, std::array<FarPointer, N> const& actions, std::uint16_t item) -> std::uint16_t {
   auto const& action{ actions[item - 1u] };
-  return Call(ds, event, ViewService::FAR_CALL, action.offset, action.segment);
+  return Call(game, event, ViewService::FAR_CALL, action.offset, action.segment);
 }
 
 } // namespace opeu::game::detail::view_service

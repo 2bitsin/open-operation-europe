@@ -4,9 +4,10 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "data-segment.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,26 +39,26 @@ void PointSource(DataSegment& data, uint16_t offset) {
 
 } // namespace
 
-void opeu_setup_marker_show(uint8_t ds[65536], HostEvent event, uint8_t index) {
-  auto&          data{ Data(ds) };
+void opeu_setup_marker_show(Game& game, HostEvent event, uint8_t index) {
+  auto&          data{ Data(game) };
   uint16_t const x{ data.setup_marker_points[index * 2] };
   uint16_t const y{ data.setup_marker_points[index * 2 + 1] };
   PointSource(data, SAVED_AREA);
-  Call(ds, event, SAVE_AREA, x, y, MARKER_WIDTH, MARKER_HEIGHT, data.gfx_source[1], data.gfx_source[0]);
+  Call(game, event, SAVE_AREA, x, y, MARKER_WIDTH, MARKER_HEIGHT, data.gfx_source[1], data.gfx_source[0]);
   PointSource(data, MARKER_IMAGE);
-  Call(ds, event, DRAW_IMAGE, x, y, MARKER_WIDTH, MARKER_HEIGHT, 4, data.gfx_source[1], data.gfx_source[0]);
+  Call(game, event, DRAW_IMAGE, x, y, MARKER_WIDTH, MARKER_HEIGHT, 4, data.gfx_source[1], data.gfx_source[0]);
 }
 
-void opeu_setup_marker_hide(uint8_t ds[65536], HostEvent event, uint8_t index) {
-  auto&          data{ Data(ds) };
+void opeu_setup_marker_hide(Game& game, HostEvent event, uint8_t index) {
+  auto&          data{ Data(game) };
   uint16_t const x{ data.setup_marker_points[index * 2] };
   uint16_t const y{ data.setup_marker_points[index * 2 + 1] };
   PointSource(data, SAVED_AREA);
-  Call(ds, event, RESTORE_AREA, x, y, MARKER_WIDTH, MARKER_HEIGHT, 0, data.gfx_source[1], data.gfx_source[0]);
+  Call(game, event, RESTORE_AREA, x, y, MARKER_WIDTH, MARKER_HEIGHT, 0, data.gfx_source[1], data.gfx_source[0]);
 }
 
-uint16_t svc_setmark(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  (void)ds;
+uint16_t svc_setmark(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  (void)game;
   switch (id) {
   case SAVE_AREA:  opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
   case DRAW_IMAGE: opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;

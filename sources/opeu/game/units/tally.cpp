@@ -14,7 +14,8 @@
 #include "units/unitname.hpp"
 #include "units/value.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -51,25 +52,25 @@ auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::u
 }
 
 // Records the compared records and names the unit in the first heading.
-auto StartTally(std::uint8_t* ds, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
-  auto& data{ Data(ds) };
+auto StartTally(Game& game, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
+  auto& data{ Data(game) };
   data.tally_unit       = unit;
   data.tally_other_unit = other;
   data.tally_source     = source;
-  opeu_unit_name(ds, event, unit, Near(data, data.tally_first_name));
+  opeu_unit_name(game, event, unit, Near(data, data.tally_first_name));
 }
 } // namespace
 
 // Selects the element of the list row the cursor is on.
-uint8_t opeu_tally_mark(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+uint8_t opeu_tally_mark(Game& game) {
+  auto& data{ Data(game) };
   Record<Element>(data, data.tally_records[data.list_row]).flags |= Bits(ElementFlag::SELECTED);
   return 1;
 }
 
 // Merges every element of the unit into the tallies; returns the new row count.
-uint8_t opeu_tally_elements(uint8_t ds[65536], uint16_t unit, uint8_t count) {
-  auto& data{ Data(ds) };
+uint8_t opeu_tally_elements(Game& game, uint16_t unit, uint8_t count) {
+  auto& data{ Data(game) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const quantity{ element.quantity };
     TallyInto(data, count, element.type, quantity, element.damage, std::uint32_t{ element.morale } * quantity, std::uint32_t{ element.training } * quantity,
@@ -80,8 +81,8 @@ uint8_t opeu_tally_elements(uint8_t ds[65536], uint16_t unit, uint8_t count) {
 
 // Tallies the objective's stock items of the requested class: kind 0-4 accepts categories 0-4, kind 5 only 5, kind 6+
 // only 6+. The other items go to the reject list.
-uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset, uint8_t count, uint8_t kind) {
-  auto& data{ Data(ds) };
+uint8_t opeu_tally_stock(Game& game, uint16_t source_offset, uint8_t count, uint8_t kind) {
+  auto& data{ Data(game) };
   auto& source{ Record<Objective>(data, source_offset) };
   data.tally_reject_count = 0;
   for (auto const& item : source.items) {
@@ -104,8 +105,8 @@ uint8_t opeu_tally_stock(uint8_t ds[65536], uint16_t source_offset, uint8_t coun
 }
 
 // Per-type averages, dividing each sum by max(quantity, 1). See opeu_supply_count.
-void opeu_tally_average(uint8_t ds[65536], uint8_t count) {
-  auto& data{ Data(ds) };
+void opeu_tally_average(Game& game, uint8_t count) {
+  auto& data{ Data(game) };
   for (std::uint8_t row{ 0 }; row < count; ++row) {
     auto const divisor{ static_cast<std::int32_t>(opeu_max16(data.supply_amounts[row], 1)) };
     data.supply_morale_averages[row]     = static_cast<std::int32_t>(data.supply_morale_sums[row]) / divisor;
@@ -115,9 +116,9 @@ void opeu_tally_average(uint8_t ds[65536], uint8_t count) {
 }
 
 // A unit against an objective's stock; the unit's slot selects the stock kind.
-uint8_t opeu_tally_unit_stock(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t source_offset) {
-  StartTally(ds, event, unit, 0, source_offset);
-  opeu_string_copy(ds, Near(Data(ds), Data(ds).tally_second_name), source_offset);
+uint8_t opeu_tally_unit_stock(Game& game, HostEvent event, uint16_t unit, uint16_t source_offset) {
+  StartTally(game, event, unit, 0, source_offset);
+  opeu_string_copy(game, Near(Data(game), Data(game).tally_second_name), source_offset);
   uint8_t kind;
   if (opeu_category_6(opeu_unit_index(unit)))
     kind = 5;
@@ -125,32 +126,32 @@ uint8_t opeu_tally_unit_stock(uint8_t ds[65536], HostEvent event, uint16_t unit,
     kind = 6;
   else
     kind = 4;
-  auto const count{ opeu_tally_stock(ds, source_offset, opeu_tally_elements(ds, unit, 0), kind) };
-  opeu_tally_average(ds, count);
+  auto const count{ opeu_tally_stock(game, source_offset, opeu_tally_elements(game, unit, 0), kind) };
+  opeu_tally_average(game, count);
   return count;
 }
 
 // Two units' elements merged into one tally.
-uint8_t opeu_tally_units(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t other) {
-  StartTally(ds, event, unit, other, 0);
-  opeu_unit_name(ds, event, other, Near(Data(ds), Data(ds).tally_second_name));
-  auto const count{ opeu_tally_elements(ds, other, opeu_tally_elements(ds, unit, 0)) };
-  opeu_tally_average(ds, count);
+uint8_t opeu_tally_units(Game& game, HostEvent event, uint16_t unit, uint16_t other) {
+  StartTally(game, event, unit, other, 0);
+  opeu_unit_name(game, event, other, Near(Data(game), Data(game).tally_second_name));
+  auto const count{ opeu_tally_elements(game, other, opeu_tally_elements(game, unit, 0)) };
+  opeu_tally_average(game, count);
   return count;
 }
 
 // The services the module calls out to: opeu_unit_name formats the unit's name through request_format (id 2).
-uint16_t svc_tally(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_tally(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case 2:  opeu_request_format(ds, { args, count }); break;
+  case 2:  opeu_request_format(game, { args, count }); break;
   default: port_unhandled("tally", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_tally_mark(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_tally_mark(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_tally_mark(ds);
+  return opeu_tally_mark(game);
 }

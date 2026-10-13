@@ -1,4 +1,5 @@
 /* Every linked routine handler, listed under its routine address. */
+#include "link/link.hpp"
 #include "port.hpp"
 
 PortHandler port_routine_opeu_gfx_blit;

@@ -3,6 +3,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/random.hpp"
 #include "core/personfl.hpp"
 #include "core/strings.hpp"
@@ -29,8 +30,8 @@ auto Range(DataSegment const& data, std::uint8_t side) -> IdentityRange {
 } // namespace
 
 // The next free portrait above the side's deputies, or a random one of the side's range when the range is used up.
-uint8_t opeu_choose_deputy_identity(uint8_t ds[65536], uint8_t side) {
-  auto&        data{ Data(ds) };
+uint8_t opeu_choose_deputy_identity(Game& game, uint8_t side) {
+  auto&        data{ Data(game) };
   auto const   range{ Range(data, side) };
   std::uint8_t identity{ range.first };
   for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
@@ -38,18 +39,18 @@ uint8_t opeu_choose_deputy_identity(uint8_t ds[65536], uint8_t side) {
     if (person.status != PERSON_VACANT && (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity) identity = person.portrait;
   }
   if (range.last <= identity)
-    identity = static_cast<std::uint8_t>(RandomBelow(ds, static_cast<std::uint16_t>(range.last - range.first + 1)) + range.first);
+    identity = static_cast<std::uint8_t>(RandomBelow(game, static_cast<std::uint16_t>(range.last - range.first + 1)) + range.first);
   else
     ++identity;
   return identity;
 }
 
 // Makes the general a deputy: the deputy's name, every rating 30, no experience, a portrait of the general's side.
-void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
-  auto& data{ Data(ds) };
+void opeu_initialize_deputy(Game& game, uint16_t person) {
+  auto& data{ Data(game) };
   auto& deputy{ Record<Person>(data, person) };
   deputy.role |= Bits(PersonRole::DEPUTY);
-  opeu_string_copy(ds, person, DEPUTY_NAME);
+  opeu_string_copy(game, person, DEPUTY_NAME);
   deputy.leadership = DEPUTY_RATING;
   deputy.charm      = DEPUTY_RATING;
   deputy.bravery    = DEPUTY_RATING;
@@ -59,10 +60,10 @@ void opeu_initialize_deputy(uint8_t ds[65536], uint16_t person) {
   deputy.artillery  = DEPUTY_RATING;
   deputy.armor      = DEPUTY_RATING;
   deputy.experience = 0;
-  deputy.portrait   = opeu_choose_deputy_identity(ds, opeu_person_lacks_side0_flag(ds, person));
+  deputy.portrait   = opeu_choose_deputy_identity(game, opeu_person_lacks_side0_flag(game, person));
 }
 
-auto port_routine_opeu_initialize_deputy(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_initialize_deputy(ds, Arg(args, count, 0));
+auto port_routine_opeu_initialize_deputy(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_initialize_deputy(game, Arg(args, count, 0));
   return 0;
 }

@@ -2,7 +2,8 @@
 #include "core/random.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -24,6 +25,6 @@ uint16_t opeu_rand_bounded(uint16_t bound) {
   return opeu_rand_next() % bound;
 }
 
-auto port_routine_opeu_rand_bounded(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return port_rand_bounded(ds, Arg(args, count, 0));
+auto port_routine_opeu_rand_bounded(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  return port_rand_bounded(game, Arg(args, count, 0));
 }

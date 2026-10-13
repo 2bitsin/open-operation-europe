@@ -11,6 +11,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/context.hpp"
@@ -19,8 +20,9 @@
 #include "core/recindex.hpp"
 #include "core/template.hpp"
 #include "core/textout.hpp"
-#include "glue.hpp"
 #include "io/waitkey.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "map/cellflag.hpp"
 #include "map/mappick.hpp"
 #include "map/query.hpp"
@@ -164,26 +166,26 @@ auto Recon() -> Mission {
 
 // Which refusal the officer gives, or -1 when he takes the mission. The rolls are drawn in this order and only as far
 // as needed.
-auto Refusal(std::uint8_t* ds, Mission const& mission) -> int {
-  auto const& data{ Data(ds) };
-  if (RandomBelow(ds, 31) + 50 > data.special_leadership) return 0;
-  if (RandomBelow(ds, 21) + 30 > data.special_charm && RandomBelow(ds, 21) + 20 > data.special_experience) return 1;
-  if (RandomBelow(ds, 21) + 40 > data.special_bravery) return 2;
-  if (mission.refusals[3] != NO_TEXT && !RandomBelow(ds, 5)) return 3;
+auto Refusal(Game& game, Mission const& mission) -> int {
+  auto const& data{ Data(game) };
+  if (RandomBelow(game, 31) + 50 > data.special_leadership) return 0;
+  if (RandomBelow(game, 21) + 30 > data.special_charm && RandomBelow(game, 21) + 20 > data.special_experience) return 1;
+  if (RandomBelow(game, 21) + 40 > data.special_bravery) return 2;
+  if (mission.refusals[3] != NO_TEXT && !RandomBelow(game, 5)) return 3;
   return -1;
 }
 
 // Plans one mission; the side's command phase ends unless the player abandons the map pick.
-void Plan(std::uint8_t* ds, HostEvent event, Mission const& mission) {
+void Plan(Game& game, HostEvent event, Mission const& mission) {
   ServiceLocals const locals{ PLAN_LOCALS };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto const          cell_x{ locals.At(CELL_X_AT) };
   auto const          cell_y{ locals.At(CELL_Y_AT) };
   auto const          text{ locals.At(TEXT_AT) };
   auto const          name{ locals.At(NAME_AT) };
   auto&               x{ Record<std::uint8_t>(data, cell_x) };
   auto&               y{ Record<std::uint8_t>(data, cell_y) };
-  Call(ds, event, ARMY_TITLE, mission.title);
+  Call(game, event, ARMY_TITLE, mission.title);
   for (;;) {
     x = static_cast<std::uint8_t>(data.viewport_x);
     y = static_cast<std::uint8_t>(data.viewport_y);
@@ -191,44 +193,44 @@ void Plan(std::uint8_t* ds, HostEvent event, Mission const& mission) {
     std::uint16_t unit{ 0 };
     bool          on_city{ false };
     for (;;) {
-      Call(ds, event, CONTROL_MESSAGE, mission.prompt, data.special_person);
-      if (!Call(ds, event, MAP_PICK_LOCATION, cell_x, cell_y)) return;
-      if (mission.city_question != NO_TEXT && (objective = Call(ds, event, FIND_OBJECTIVE_AT, x, y)) != 0
-          && static_cast<std::uint8_t>(Call(ds, event, OBJECTIVE_SIDE, objective)) != data.current_side) {
-        Call(ds, event, REQUEST_FORMAT, text, mission.city_question, objective);
-        if (Call(ds, event, CONFIRM_MESSAGE, text, data.special_person)) {
+      Call(game, event, CONTROL_MESSAGE, mission.prompt, data.special_person);
+      if (!Call(game, event, MAP_PICK_LOCATION, cell_x, cell_y)) return;
+      if (mission.city_question != NO_TEXT && (objective = Call(game, event, FIND_OBJECTIVE_AT, x, y)) != 0
+          && static_cast<std::uint8_t>(Call(game, event, OBJECTIVE_SIDE, objective)) != data.current_side) {
+        Call(game, event, REQUEST_FORMAT, text, mission.city_question, objective);
+        if (Call(game, event, CONFIRM_MESSAGE, text, data.special_person)) {
           on_city = true;
           break;
         }
       }
       if (mission.unit_question == NO_TEXT) continue;
-      if ((unit = Call(ds, event, FIND_UNIT_AT, x, y)) == 0) continue;
-      if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, unit)) == data.current_side) continue;
-      if (!Call(ds, event, UNIT_SPECIAL, unit)) continue;
-      Call(ds, event, REQUEST_FORMAT, text, mission.unit_question, Call(ds, event, UNIT_NAME, unit, name));
-      if (!Call(ds, event, CONFIRM_MESSAGE, text, data.special_person)) continue;
+      if ((unit = Call(game, event, FIND_UNIT_AT, x, y)) == 0) continue;
+      if (static_cast<std::uint8_t>(Call(game, event, UNIT_SIDE, unit)) == data.current_side) continue;
+      if (!Call(game, event, UNIT_SPECIAL, unit)) continue;
+      Call(game, event, REQUEST_FORMAT, text, mission.unit_question, Call(game, event, UNIT_NAME, unit, name));
+      if (!Call(game, event, CONFIRM_MESSAGE, text, data.special_person)) continue;
       break;
     }
-    if (auto const refusal{ Refusal(ds, mission) }; refusal >= 0) {
-      Call(ds, event, CONTROL_MESSAGE, mission.refusals[refusal], data.special_person);
+    if (auto const refusal{ Refusal(game, mission) }; refusal >= 0) {
+      Call(game, event, CONTROL_MESSAGE, mission.refusals[refusal], data.special_person);
       break;
     }
     auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
-    hours += static_cast<std::uint8_t>(Call(ds, event, CELL_INFLUENCE_SIDE, x, y)) == data.current_side ? 0 : 1;
+    hours += static_cast<std::uint8_t>(Call(game, event, CELL_INFLUENCE_SIDE, x, y)) == data.current_side ? 0 : 1;
     if (mission.duration == NO_TEXT)
-      Call(ds, event, REQUEST_FORMAT, text, Call(ds, event, MESSAGE_LOOKUP, RAID_DURATION_MESSAGE), hours);
+      Call(game, event, REQUEST_FORMAT, text, Call(game, event, MESSAGE_LOOKUP, RAID_DURATION_MESSAGE), hours);
     else if (mission.hour == NO_TEXT)
-      Call(ds, event, REQUEST_FORMAT, text, mission.duration, hours);
+      Call(game, event, REQUEST_FORMAT, text, mission.duration, hours);
     else
-      Call(ds, event, REQUEST_FORMAT, text, mission.duration, hours, hours == 1 ? mission.hour : mission.hours);
-    Call(ds, event, CONTROL_MESSAGE, text, data.special_person);
-    Call(ds, event, REQUEST_FORMAT, text, mission.lieutenant, data.special_person);
-    if (!Call(ds, event, CONFIRM_MESSAGE, text, data.context_record2)) continue;
+      Call(game, event, REQUEST_FORMAT, text, mission.duration, hours, hours == 1 ? mission.hour : mission.hours);
+    Call(game, event, CONTROL_MESSAGE, text, data.special_person);
+    Call(game, event, REQUEST_FORMAT, text, mission.lieutenant, data.special_person);
+    if (!Call(game, event, CONFIRM_MESSAGE, text, data.context_record2)) continue;
     auto& order{ Record<Order>(data, data.special_order) };
     order.target   = on_city ? objective : unit;
     order.kind     = Bits(on_city ? mission.city_code : mission.unit_code);
     order.progress = hours;
-    Call(ds, event, DAILY_SHOW, MISSION_REPORT, data.current_side, MISSION_PRESENTER.offset, MISSION_PRESENTER.segment);
+    Call(game, event, DAILY_SHOW, MISSION_REPORT, data.current_side, MISSION_PRESENTER.offset, MISSION_PRESENTER.segment);
     break;
   }
   data.side_delays[data.current_side] = 1;
@@ -236,85 +238,85 @@ void Plan(std::uint8_t* ds, HostEvent event, Mission const& mission) {
 } // namespace
 
 // The daily report's presenter of an accepted mission.
-void opeu_special_present(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, PENDING_FINISH, 3);
+void opeu_special_present(Game& game, HostEvent event) {
+  Call(game, event, PENDING_FINISH, 3);
 }
 
-void opeu_special_raid(uint8_t ds[65536], HostEvent event) {
-  Plan(ds, event, Raid());
+void opeu_special_raid(Game& game, HostEvent event) {
+  Plan(game, event, Raid());
 }
 
-void opeu_special_sabotage(uint8_t ds[65536], HostEvent event) {
-  Plan(ds, event, Sabotage());
+void opeu_special_sabotage(Game& game, HostEvent event) {
+  Plan(game, event, Sabotage());
 }
 
-void opeu_special_cut_comm(uint8_t ds[65536], HostEvent event) {
-  Plan(ds, event, CutComm());
+void opeu_special_cut_comm(Game& game, HostEvent event) {
+  Plan(game, event, CutComm());
 }
 
-void opeu_special_assassinate(uint8_t ds[65536], HostEvent event) {
-  Plan(ds, event, Assassinate());
+void opeu_special_assassinate(Game& game, HostEvent event) {
+  Plan(game, event, Assassinate());
 }
 
-void opeu_special_recon(uint8_t ds[65536], HostEvent event) {
-  Plan(ds, event, Recon());
+void opeu_special_recon(Game& game, HostEvent event) {
+  Plan(game, event, Recon());
 }
 
-uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SpecialService>(id)) {
-  case REQUEST_FORMAT:       opeu_request_format(ds, { args, count }); break;
-  case CONTROL_MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CONFIRM_MESSAGE:      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MESSAGE_LOOKUP:       r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case ARMY_PRINT:           opeu_cursor_print(ds, { args, count }); break;
-  case PENDING_FINISH:       opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW:           port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case DELAY_DIALOG:         r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case ARMY_TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OBJECTIVE_SIDE:       r = opeu_objective_side(ds, Arg(args, count, 0)); break;
-  case ARMY_POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case DAILY_CONTEXT:        opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
-  case FAR_ACTION:           port_call(ds, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
-  case FIND_UNIT_AT:         r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case REQUEST_FORMAT:       opeu_request_format(game, { args, count }); break;
+  case CONTROL_MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONFIRM_MESSAGE:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MESSAGE_LOOKUP:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case ARMY_PRINT:           opeu_cursor_print(game, { args, count }); break;
+  case PENDING_FINISH:       opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_SHOW:           port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case DELAY_DIALOG:         r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case ARMY_TITLE:           opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OBJECTIVE_SIDE:       r = opeu_objective_side(game, Arg(args, count, 0)); break;
+  case ARMY_POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case DAILY_CONTEXT:        opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
+  case FAR_ACTION:           port_call(game, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
+  case FIND_UNIT_AT:         r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:         r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case UNIT_NAME:            r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CELL_INFLUENCE_SIDE:  r = opeu_cell_influence_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case FIND_PERSON_TEMPLATE: r = opeu_find_person_template(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case UNIT_SPECIAL:         r = opeu_unit_special(game, Arg(args, count, 0)); break;
+  case UNIT_NAME:            r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CELL_INFLUENCE_SIDE:  r = opeu_cell_influence_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case FIND_PERSON_TEMPLATE: r = opeu_find_person_template(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:                   port_unhandled("specops", id, count);
   }
   return r;
 }
 
-auto port_routine_opeu_special_assassinate(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_assassinate(ds, svc_specops);
+auto port_routine_opeu_special_assassinate(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_assassinate(game, svc_specops);
   return 0;
 }
 
-auto port_routine_opeu_special_cut_comm(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_cut_comm(ds, svc_specops);
+auto port_routine_opeu_special_cut_comm(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_cut_comm(game, svc_specops);
   return 0;
 }
 
-auto port_routine_opeu_special_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_present(ds, svc_specops);
+auto port_routine_opeu_special_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_present(game, svc_specops);
   return 0;
 }
 
-auto port_routine_opeu_special_raid(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_raid(ds, svc_specops);
+auto port_routine_opeu_special_raid(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_raid(game, svc_specops);
   return 0;
 }
 
-auto port_routine_opeu_special_recon(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_recon(ds, svc_specops);
+auto port_routine_opeu_special_recon(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_recon(game, svc_specops);
   return 0;
 }
 
-auto port_routine_opeu_special_sabotage(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_special_sabotage(ds, svc_specops);
+auto port_routine_opeu_special_sabotage(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_special_sabotage(game, svc_specops);
   return 0;
 }

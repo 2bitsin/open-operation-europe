@@ -1,4 +1,5 @@
 #include "opeu/game/common/data-segment.hpp"
+#include "opeu/game/common/game-state.hpp"
 
 #include "port.hpp"
 
@@ -17,10 +18,13 @@ static_assert(UNITS_AT == 0x14fc && GROUPS_AT == 0x0774 && ELEMENTS_AT == 0x07fc
 static_assert(sizeof(Unit) * UNITS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::units));
 static_assert(sizeof(Element) * ELEMENTS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::elements));
 
-// The data image the game starts from: MAIN's data objects and module data copied into a fresh arena.
-auto Initial() -> DataSegment const& {
+// The state the game starts from: MAIN's data objects and module data copied into a fresh arena, viewed as the entry
+// views it (B6 builds it without the arena).
+auto Initial() -> GameState {
   port_memory_init();
-  return Data(port_ds);
+  return GameState{
+    SegmentBytes{ port_ds, SEGMENT_SIZE }
+  };
 }
 
 auto IsElement(std::uint16_t near) -> bool {
@@ -42,7 +46,8 @@ TEST(DataSegment, CoversTheWholeSegmentAtTheOriginalOffsets) {
 }
 
 TEST(DataSegment, DecodesTheScenarioHeaderOfTheImage) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   EXPECT_EQ(data.scenario_first, 0x45);
   EXPECT_EQ(data.scenario, 0x80);
   EXPECT_EQ(data.month, 5);
@@ -55,7 +60,8 @@ TEST(DataSegment, DecodesTheScenarioHeaderOfTheImage) {
 }
 
 TEST(DataSegment, LinksUnitsToTheirElements) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   auto        linked{ 0 };
   for (auto const& unit : data.units) {
     EXPECT_TRUE(unit.first == 0 || IsElement(unit.first)) << unit.first;
@@ -68,7 +74,8 @@ TEST(DataSegment, LinksUnitsToTheirElements) {
 }
 
 TEST(DataSegment, NamesEveryElementTypeWithADataSegmentString) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   auto        named{ 0 };
   for (auto const& type : data.element_types) {
     if (type.name == 0) continue;
@@ -79,7 +86,8 @@ TEST(DataSegment, NamesEveryElementTypeWithADataSegmentString) {
 }
 
 TEST(DataSegment, HoldsTheModuleTablesAndFileNames) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   EXPECT_EQ(std::string_view(data.scenario_filename.data()), "SCEDATA");
   auto const days{
     std::array<std::uint8_t, 13>{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
@@ -88,7 +96,8 @@ TEST(DataSegment, HoldsTheModuleTablesAndFileNames) {
 }
 
 TEST(DataSegment, TurnsNearPointersIntoRecordsAndBack) {
-  auto& data{ Data(port_ds) };
+  auto  state{ Initial() };
+  auto& data{ state.Data() };
   EXPECT_EQ(Near(data, data.units[5]), UNITS_AT + 5 * sizeof(Unit));
   EXPECT_EQ(&Record<Unit>(data, Near(data, data.units[5])), &data.units[5]);
   EXPECT_EQ(Near(data, data.groups[GROUPS_PER_SIDE + 1].flags), GROUPS_AT + 5 * sizeof(Group) + 16);
@@ -119,7 +128,8 @@ TEST(DataSegment, KeepsTheStoredFlagBits) {
 }
 
 TEST(DataSegment, FlagsTheSelfPropelledGunsAmongTheTanksAndTheParatroopsAsInfantry) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   auto const  self_propelled{ std::ranges::count_if(data.element_types, [](auto const& type) { return (type.flags & Bits(TypeFlag::SELF_PROPELLED)) != 0; }) };
   auto const  airborne{ std::ranges::count_if(data.element_types, [](auto const& type) { return (type.flags & Bits(TypeFlag::AIRBORNE)) != 0; }) };
   EXPECT_GT(self_propelled, 20);
@@ -135,7 +145,8 @@ TEST(DataSegment, FlagsTheSelfPropelledGunsAmongTheTanksAndTheParatroopsAsInfant
 }
 
 TEST(DataSegment, GivesTheFuelUsersAFuelCapacity) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   for (auto const& type : data.element_types) {
     if (type.name != 0 && type.fuel_economy != 0) {
       EXPECT_NE(type.fuel_capacity, 0) << Text(data, type.name);
@@ -144,7 +155,8 @@ TEST(DataSegment, GivesTheFuelUsersAFuelCapacity) {
 }
 
 TEST(DataSegment, LabelsEveryButtonAndEndsEveryMenuWithAnEmptyRecord) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   auto const  menus{ std::to_array({
       std::span<MenuItem const>{ data.scensel_start_menu },
       std::span<MenuItem const>{ data.scensel_players_menu },
@@ -175,7 +187,8 @@ TEST(DataSegment, LabelsEveryButtonAndEndsEveryMenuWithAnEmptyRecord) {
 }
 
 TEST(DataSegment, PointsTheListWindowsAtTheirColumnWidths) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   EXPECT_EQ(data.division_dialog.widths, Near(data, data.division_widths));
   EXPECT_EQ(data.order_target_list.widths, Near(data, data.order_target_widths));
   EXPECT_EQ(data.organize_list.widths, Near(data, data.organize_widths));
@@ -194,7 +207,8 @@ TEST(DataSegment, PointsTheListWindowsAtTheirColumnWidths) {
 }
 
 TEST(DataSegment, PointsTheNameTablesAtTheNamedStrings) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   EXPECT_EQ(data.weather_names[0], Near(data, data.weather_clear));
   EXPECT_EQ(data.order_names[Bits(TaskKind::HOLD)], Near(data, data.task_hold));
   EXPECT_EQ(data.order_names[Bits(UnitOrder::LAY_MINES) + 3], Near(data, data.order_lay_mines));
@@ -208,7 +222,8 @@ TEST(DataSegment, PointsTheNameTablesAtTheNamedStrings) {
 }
 
 TEST(DataSegment, ReadsTheVisibilityFromTheCoverTableAndNamesTheExplainedGaps) {
-  auto const& data{ Initial() };
+  auto const  state{ Initial() };
+  auto const& data{ state.Data() };
   EXPECT_EQ(&data.battle_terrain_cover[1], &data.battle_visibility);
   EXPECT_EQ(data.battle_visibility, 1);
   EXPECT_EQ(data.deploy_window.widths, Near(data, data.deploy_widths));

@@ -14,7 +14,9 @@
 #include "map/btllist.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -41,75 +43,75 @@ constexpr uint16_t STALEMATE_PAUSE{ 0x1e };
 constexpr uint16_t VICTORY_PAUSE{ 0x28 };
 
 // The word index `i` of a word table, read where the original reads it for any index.
-[[nodiscard]] auto WordOf(uint8_t const* ds, uint16_t table, unsigned i) -> uint16_t {
-  return Word(ds, static_cast<uint16_t>(table + i * 2));
+[[nodiscard]] auto WordOf(Game const& game, uint16_t table, unsigned i) -> uint16_t {
+  return Word(game, static_cast<uint16_t>(table + i * 2));
 }
 
-void Stalemate(uint8_t* ds, BattleEvent event, uint16_t text) {
-  Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
-  Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
-  Call(ds, event, BattleRoutine::CONTEXT_FRAME, STALEMATE_X, BANNER_Y, STALEMATE_COLOR);
-  Call(ds, event, BattleRoutine::UI_TEXT, text);
-  Call(ds, event, BattleRoutine::DELAY_UNITS, STALEMATE_PAUSE);
-  Call(ds, event, BattleRoutine::MUSIC_STOP);
+void Stalemate(Game& game, BattleEvent event, uint16_t text) {
+  Call(game, event, BattleRoutine::BATTLE_DAILY_CONDITION);
+  Call(game, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
+  Call(game, event, BattleRoutine::CONTEXT_FRAME, STALEMATE_X, BANNER_Y, STALEMATE_COLOR);
+  Call(game, event, BattleRoutine::UI_TEXT, text);
+  Call(game, event, BattleRoutine::DELAY_UNITS, STALEMATE_PAUSE);
+  Call(game, event, BattleRoutine::MUSIC_STOP);
 }
 } // namespace
 
 // side: the winning list (0 or 1).
-void opeu_battle_closing_music(uint8_t* ds, BattleEvent event, uint8_t side) {
-  auto& data{ Data(ds) };
-  Call(ds, event, BattleRoutine::MUSIC_STOP);
+void opeu_battle_closing_music(Game& game, BattleEvent event, uint8_t side) {
+  auto& data{ Data(game) };
+  Call(game, event, BattleRoutine::MUSIC_STOP);
   uint16_t track;
   if ((data.side_status[0] == SIDE_PLAYED && data.battle_side_routed[0]) || (data.side_status[1] == SIDE_PLAYED && data.battle_side_routed[1])) {
     track = MUSIC_ROUTED;
   } else {
-    auto const lead{ WordOf(ds, Near(data, data.battle_lists), side * BATTLE_LIST_LENGTH) };
-    auto const winner{ opeu_battle_unit_side(ds, event, lead) };
-    track = WordOf(ds, Near(data, data.side_status), winner) == SIDE_PLAYED ? MUSIC_WON : MUSIC_LOST;
+    auto const lead{ WordOf(game, Near(data, data.battle_lists), side * BATTLE_LIST_LENGTH) };
+    auto const winner{ opeu_battle_unit_side(game, event, lead) };
+    track = WordOf(game, Near(data, data.side_status), winner) == SIDE_PLAYED ? MUSIC_WON : MUSIC_LOST;
   }
-  Call(ds, event, BattleRoutine::SET_TURN_CONTEXT, track);
-  Call(ds, event, BattleRoutine::FINISH_SIDE_INITIALIZATION, 0);
+  Call(game, event, BattleRoutine::SET_TURN_CONTEXT, track);
+  Call(game, event, BattleRoutine::FINISH_SIDE_INITIALIZATION, 0);
 }
 
-void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
-  auto&      data{ Data(ds) };
-  auto const result{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) };
+void opeu_battle_report_outcome(Game& game, BattleEvent event) {
+  auto&      data{ Data(game) };
+  auto const result{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_COMPUTER_TURN)) };
   if (result == SIDE_0_DECIDES) {
-    data.battle_side = opeu_battle_unit_side(ds, event, data.battle_lists[0]);
+    data.battle_side = opeu_battle_unit_side(game, event, data.battle_lists[0]);
     if (BattleOnCity(data)) {
-      auto const near{ static_cast<uint16_t>(Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
+      auto const near{ static_cast<uint16_t>(Call(game, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
       auto&      objective{ Record<Objective>(data, near) };
       for (auto const& item : objective.items)
         if (item.quantity) {
           data.battle_side = NO_WINNER;
-          Stalemate(ds, event, Near(data, data.battle_siege_stalemate_text));
+          Stalemate(game, event, Near(data, data.battle_siege_stalemate_text));
           return;
         }
       objective.flags ^= Bits(ObjectiveFlag::SIDE_1);
-      Call(ds, event, BattleRoutine::SIDE_GROUPS_RETARGET, 0);
-      Call(ds, event, BattleRoutine::SIDE_GROUPS_RETARGET, 1);
+      Call(game, event, BattleRoutine::SIDE_GROUPS_RETARGET, 0);
+      Call(game, event, BattleRoutine::SIDE_GROUPS_RETARGET, 1);
     }
   }
   if (result == SIDE_1_WINS) {
     auto const unit{ BattleList(data, 1, 0) ? BattleList(data, 1, 0) : BattleList(data, 1, 1) };
-    data.battle_side = opeu_battle_unit_side(ds, event, unit);
-    if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+    data.battle_side = opeu_battle_unit_side(game, event, unit);
+    if (BattleOnCity(data)) Call(game, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   }
-  Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
-  Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
-  Call(ds, event, BattleRoutine::CONTEXT_FRAME, VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_victory_format), WordOf(ds, Near(data, data.side_names), data.battle_side));
-  opeu_battle_closing_music(ds, event, static_cast<uint8_t>(result - 1));
-  Call(ds, event, BattleRoutine::DELAY_UNITS, VICTORY_PAUSE);
+  Call(game, event, BattleRoutine::BATTLE_DAILY_CONDITION);
+  Call(game, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
+  Call(game, event, BattleRoutine::CONTEXT_FRAME, VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
+  Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_victory_format), WordOf(game, Near(data, data.side_names), data.battle_side));
+  opeu_battle_closing_music(game, event, static_cast<uint8_t>(result - 1));
+  Call(game, event, BattleRoutine::DELAY_UNITS, VICTORY_PAUSE);
 }
 
-void opeu_battle_report_stalemate(uint8_t* ds, BattleEvent event) {
-  auto& data{ Data(ds) };
+void opeu_battle_report_stalemate(Game& game, BattleEvent event) {
+  auto& data{ Data(game) };
   data.battle_side = NO_WINNER;
-  if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
-  Stalemate(ds, event, Near(data, data.battle_stalemate_text));
+  if (BattleOnCity(data)) Call(game, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+  Stalemate(game, event, Near(data, data.battle_stalemate_text));
 }
 
-uint16_t svc_btlround(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlround(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }

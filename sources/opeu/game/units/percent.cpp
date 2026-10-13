@@ -1,6 +1,7 @@
 // A unit's ammunition, fuel and food as percentages of what its elements can carry.
 #include "units/percent.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "types.hpp"
 #include "units/capacity.hpp"
 #include "units/ratio.hpp"
@@ -17,15 +18,15 @@ auto UnitResourcePercentages(DataSegment const& data, std::uint16_t unit) -> Res
   };
 }
 
-auto StoreUnitResourcePercentages(std::uint8_t* ds, std::uint16_t unit, ResourceWords at) -> void {
-  StoreResources(ds, at, UnitResourcePercentages(Data(ds), unit));
+auto StoreUnitResourcePercentages(Game& game, std::uint16_t unit, ResourceWords at) -> void {
+  StoreResources(game, at, UnitResourcePercentages(Data(game), unit));
 }
 } // namespace opeu::game::detail::percent
 
 using namespace opeu::game;
 
-void opeu_unit_resource_percentages(const uint8_t ds[65536], uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const percentages{ UnitResourcePercentages(Data(ds), unit) };
+void opeu_unit_resource_percentages(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
+  auto const percentages{ UnitResourcePercentages(Data(game), unit) };
   *result_a = percentages.ammunition;
   *result_b = percentages.fuel;
   *result_c = percentages.food;

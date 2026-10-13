@@ -1,6 +1,7 @@
 // The sides' marks on strategic map cells and the influence the sides hold over them.
 #include "map/cellflag.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/map-grid.hpp"
 #include "types.hpp"
 
@@ -17,26 +18,26 @@ namespace {
 }
 } // namespace
 
-void opeu_mark_cell(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side) {
-  MapCellAt(Data(ds), x, y) |= side == 0 ? Bits(MapCell::MARK_0) : Bits(MapCell::MARK_1);
+void opeu_mark_cell(Game& game, uint8_t x, uint8_t y, uint8_t side) {
+  MapCellAt(Data(game), x, y) |= side == 0 ? Bits(MapCell::MARK_0) : Bits(MapCell::MARK_1);
 }
 
-void opeu_unmark_cell(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side) {
-  MapCellAt(Data(ds), x, y) &= side == 0 ? ~Bits(MapCell::MARK_0) : ~Bits(MapCell::MARK_1);
+void opeu_unmark_cell(Game& game, uint8_t x, uint8_t y, uint8_t side) {
+  MapCellAt(Data(game), x, y) &= side == 0 ? ~Bits(MapCell::MARK_0) : ~Bits(MapCell::MARK_1);
 }
 
 // Side 255 asks whether either side marked the cell.
-uint16_t opeu_cell_marked(uint8_t* ds, uint8_t x, uint8_t y, uint8_t side) {
-  return (MapCellAt(Data(ds), x, y) & MarkOf(side)) != 0;
+uint16_t opeu_cell_marked(Game& game, uint8_t x, uint8_t y, uint8_t side) {
+  return (MapCellAt(Data(game), x, y) & MarkOf(side)) != 0;
 }
 
-int16_t opeu_cell_influence(uint8_t* ds, uint8_t x, uint8_t y) {
-  return InfluenceAt(Data(ds), x, y);
+int16_t opeu_cell_influence(Game& game, uint8_t x, uint8_t y) {
+  return InfluenceAt(Data(game), x, y);
 }
 
 // The side whose influence holds the cell, 255 where neither does.
-uint8_t opeu_cell_influence_side(uint8_t* ds, uint8_t x, uint8_t y) {
-  auto const influence{ opeu_cell_influence(ds, x, y) };
+uint8_t opeu_cell_influence_side(Game& game, uint8_t x, uint8_t y) {
+  auto const influence{ opeu_cell_influence(game, x, y) };
   if (influence > 0) return 0;
   if (influence < 0) return 1;
   return 255;

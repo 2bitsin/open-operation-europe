@@ -15,7 +15,9 @@
 #include "types.hpp"
 #include "units/labels.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -39,51 +41,51 @@ constexpr uint16_t TARGET_ROW{ 0x30 };
 constexpr uint16_t BUNKER_ROW{ 0x40 };
 } // namespace
 
-void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto&               data{ Data(ds) };
+void opeu_battle_wiped_notice(Game& game, BattleEvent event, uint16_t element) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ MESSAGE_BYTES };
   auto const          message{ locals.At(0) };
-  auto const          side{ opeu_battle_element_side(ds, event, element) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), SideColorCode(side), ElementTypeOf(data, element).name);
-  Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
+  auto const          side{ opeu_battle_element_side(game, event, element) };
+  Call(game, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), SideColorCode(side), ElementTypeOf(data, element).name);
+  Call(game, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
-void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target) {
-  auto&               data{ Data(ds) };
+void opeu_battle_ranged_panel(Game& game, BattleEvent event, uint16_t shooter, uint16_t target) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ NAMES_RESERVE };
   auto const          target_name{ locals.At(TARGET_AT) };
   auto const          shooter_name{ locals.At(SHOOTER_AT) };
-  auto const          side{ opeu_battle_element_side(ds, event, shooter) };
-  Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
-  Call(ds, event, BattleRoutine::TEXT_PAPER_SET, PANEL_PAPER);
-  Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, SHOOTER_ROW);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(side));
-  Call(ds, event, BattleRoutine::UI_TEXT, opeu_element_name(ds, shooter, shooter_name));
-  Call(ds, event, BattleRoutine::ARMY_POSITION, VERSUS_COLUMN, VERSUS_ROW);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, WHITE);
-  Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_text_vs));
-  Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, TARGET_ROW);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, SideTextColor(side == 0 ? 1 : 0));
+  auto const          side{ opeu_battle_element_side(game, event, shooter) };
+  Call(game, event, BattleRoutine::BATTLE_PANEL_BEGIN);
+  Call(game, event, BattleRoutine::TEXT_PAPER_SET, PANEL_PAPER);
+  Call(game, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, SHOOTER_ROW);
+  Call(game, event, BattleRoutine::TEXT_COLOR, SideTextColor(side));
+  Call(game, event, BattleRoutine::UI_TEXT, opeu_element_name(game, shooter, shooter_name));
+  Call(game, event, BattleRoutine::ARMY_POSITION, VERSUS_COLUMN, VERSUS_ROW);
+  Call(game, event, BattleRoutine::TEXT_COLOR, WHITE);
+  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.battle_text_vs));
+  Call(game, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, TARGET_ROW);
+  Call(game, event, BattleRoutine::TEXT_COLOR, SideTextColor(side == 0 ? 1 : 0));
   if (target) {
-    Call(ds, event, BattleRoutine::UI_TEXT, opeu_element_name(ds, target, target_name));
+    Call(game, event, BattleRoutine::UI_TEXT, opeu_element_name(game, target, target_name));
   } else {
-    auto const objective{ opeu_find_objective_at(ds, data.battle_x, data.battle_y) };
-    auto const copied{ opeu_string_copy(ds, target_name, objective) };
-    Call(ds, event, BattleRoutine::UI_TEXT, opeu_string_append(ds, copied, Near(data, data.battle_text_s)));
-    Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, BUNKER_ROW);
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_text_bunker));
+    auto const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
+    auto const copied{ opeu_string_copy(game, target_name, objective) };
+    Call(game, event, BattleRoutine::UI_TEXT, opeu_string_append(game, copied, Near(data, data.battle_text_s)));
+    Call(game, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, BUNKER_ROW);
+    Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_text_bunker));
   }
-  Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, side, 1);
-  Call(ds, event, BattleRoutine::CURSOR_PRINT, side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1), shooter_name);
-  Call(ds, event, BattleRoutine::TEXT_COLOR, WHITE);
-  Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
+  Call(game, event, BattleRoutine::BATTLE_COMMANDER_PANEL, side, 1);
+  Call(game, event, BattleRoutine::CURSOR_PRINT, side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1), shooter_name);
+  Call(game, event, BattleRoutine::TEXT_COLOR, WHITE);
+  Call(game, event, BattleRoutine::TEXT_PAPER_SET, 0);
 }
 
-uint16_t svc_btlrpanl(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlrpanl(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_wiped_notice(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_wiped_notice(ds, svc_btlrpanl, Arg(args, count, 0));
+auto port_routine_opeu_battle_wiped_notice(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+  opeu_battle_wiped_notice(game, svc_btlrpanl, Arg(args, count, 0));
   return 0;
 }

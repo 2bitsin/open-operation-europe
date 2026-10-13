@@ -13,7 +13,8 @@
 #include "map/dplcell.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -28,25 +29,25 @@ constexpr uint8_t FIRST_DRAW{ 7 };
 constexpr uint8_t REDRAW{ 6 };
 
 // The x byte of the element's placement (its position word points at it).
-[[nodiscard]] auto PlacedX(uint8_t* ds, Element const& element) -> uint8_t {
-  return Byte(ds, element.position);
+[[nodiscard]] auto PlacedX(Game& game, Element const& element) -> uint8_t {
+  return Byte(game, element.position);
 }
 } // namespace
 
-void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
-  auto&      data{ Data(ds) };
-  auto const panel{ [&] { Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0); } };
-  auto const close_question{ [&] { Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0); } };
+void opeu_deploy_unit(Game& game, BattleEvent event, uint16_t unit) {
+  auto&      data{ Data(game) };
+  auto const panel{ [&] { Call(game, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0); } };
+  auto const close_question{ [&] { Call(game, event, BattleRoutine::TEXT_PAPER_SET, 0); } };
   panel();
-  Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_title));
+  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_title));
   if (unit != Near(data, data.garrison_unit)) {
-    auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, unit, NAME_AT) };
-    auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, unit)) };
-    Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), SideColorCode(side), name);
+    auto const name{ Call(game, event, BattleRoutine::UNIT_NAME, unit, NAME_AT) };
+    auto const side{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_SIDE, unit)) };
+    Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), SideColorCode(side), name);
   } else {
-    Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_garrison_title));
+    Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_garrison_title));
   }
-  data.deploy_window.rows = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_COUNT, unit) + 1);
+  data.deploy_window.rows = static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_COUNT, unit) + 1);
   {
     uint8_t row{ 0 };
     for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it, ++row) data.ai_element_list[row] = it.Near();
@@ -56,39 +57,39 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
     auto draw{ FIRST_DRAW };
     for (;;) {
       data.list_row = data.deploy_row;
-      if (Call(ds, event, BattleRoutine::LIST_DIALOG, Near(data, data.deploy_window), 1, draw)) {
+      if (Call(game, event, BattleRoutine::LIST_DIALOG, Near(data, data.deploy_window), 1, draw)) {
         // An element row: lift the element, show its zone and place it by hand.
         data.deploy_row = data.list_row;
         auto element{ Record<Unit>(data, unit).first };
         for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
-        if (PlacedX(ds, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(ds, event, element);
-        opeu_deploy_show_zone(ds, event, element);
-        opeu_deploy_manual(ds, event, element);
-        opeu_deploy_hide_zone(ds, event, element);
+        if (PlacedX(game, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(game, event, element);
+        opeu_deploy_show_zone(game, event, element);
+        opeu_deploy_manual(game, event, element);
+        opeu_deploy_hide_zone(game, event, element);
         draw = REDRAW;
         continue;
       }
       uint8_t all{ 0 };
       uint8_t off_field{ 0 };
       for (auto const& element : Elements(data, Record<Unit>(data, unit))) {
-        if (PlacedX(ds, element) == BATTLE_UNPLACED) ++off_field;
+        if (PlacedX(game, element) == BATTLE_UNPLACED) ++off_field;
         ++all;
       }
       if (off_field) {
         panel();
-        Call(ds, event, BattleRoutine::REQUEST_FORMAT, QUESTION_AT, Near(data, data.deploy_ask_auto), off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others));
-        if (!Call(ds, event, BattleRoutine::PROMPT_YES_NO, QUESTION_AT)) {
+        Call(game, event, BattleRoutine::REQUEST_FORMAT, QUESTION_AT, Near(data, data.deploy_ask_auto), off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others));
+        if (!Call(game, event, BattleRoutine::PROMPT_YES_NO, QUESTION_AT)) {
           close_question();
           break; // back to the list's first row
         }
         close_question();
-        opeu_deploy_auto(ds, event, unit);
+        opeu_deploy_auto(game, event, unit);
       }
       panel();
-      auto const done{ Call(ds, event, BattleRoutine::PROMPT_YES_NO, Near(data, data.deploy_ask_done)) };
+      auto const done{ Call(game, event, BattleRoutine::PROMPT_YES_NO, Near(data, data.deploy_ask_done)) };
       close_question();
-      Call(ds, event, BattleRoutine::BATTLE_PANEL_SIDE1);
-      Call(ds, event, BattleRoutine::BATTLE_PANEL_SIDE0);
+      Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE1);
+      Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE0);
       if (done) return;
       draw = REDRAW;
     }
@@ -96,6 +97,6 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
 }
 
 // Services of this module: the deployment group's (map/dplauto).
-uint16_t svc_dplunit(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_deploy(ds, service, args, count);
+uint16_t svc_dplunit(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_deploy(game, service, args, count);
 }

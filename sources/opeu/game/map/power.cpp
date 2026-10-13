@@ -2,6 +2,7 @@
 #include "map/power.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/game.hpp"
 #include "core/limits.hpp"
 #include "map/distance.hpp"
 #include "types.hpp"
@@ -21,15 +22,15 @@ constexpr int16_t INFLUENCE_REACH{ 5 }; // cells; the weight falls by a fifth pe
 } // namespace
 
 // item: the near pointer to an Item (or to the type and quantity of an Element, which have the same layout).
-uint16_t opeu_item_strength(const uint8_t* ds, uint16_t item) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_item_strength(Game const& game, uint16_t item) {
+  auto const& data{ Data(game) };
   auto const& record{ Record<Item>(data, item) };
   return Strength(data, record.type, record.quantity);
 }
 
 // The summed strength of a ready unit's elements; 0 for a unit not on the map.
-int16_t opeu_unit_strength(const uint8_t* ds, uint16_t unit) {
-  auto const& data{ Data(ds) };
+int16_t opeu_unit_strength(Game const& game, uint16_t unit) {
+  auto const& data{ Data(game) };
   auto const& record{ Record<Unit>(data, unit) };
   int16_t     strength{ 0 };
   if (record.flags & Bits(UnitFlag::READY))
@@ -38,8 +39,8 @@ int16_t opeu_unit_strength(const uint8_t* ds, uint16_t unit) {
 }
 
 // The summed strength of an objective's stock.
-int16_t opeu_objective_strength(const uint8_t* ds, uint16_t objective) {
-  auto const& data{ Data(ds) };
+int16_t opeu_objective_strength(Game const& game, uint16_t objective) {
+  auto const& data{ Data(game) };
   auto const& record{ Record<Objective>(data, objective) };
   int16_t     strength{ 0 };
   if (record.active)

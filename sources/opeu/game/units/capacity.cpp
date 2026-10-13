@@ -3,6 +3,7 @@
 #include "units/capacity.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "types.hpp"
 
@@ -21,21 +22,21 @@ auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources {
   return capacities;
 }
 
-auto StoreUnitCapacities(std::uint8_t* ds, std::uint16_t unit, ResourceWords at) -> void {
-  StoreResources(ds, at, UnitCapacities(Data(ds), unit));
+auto StoreUnitCapacities(Game& game, std::uint16_t unit, ResourceWords at) -> void {
+  StoreResources(game, at, UnitCapacities(Data(game), unit));
 }
 
-auto StoreResources(std::uint8_t* ds, ResourceWords at, Resources resources) -> void {
-  SetWord(ds, at.ammunition, resources.ammunition);
-  SetWord(ds, at.fuel, resources.fuel);
-  SetWord(ds, at.food, resources.food);
+auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void {
+  SetWord(game, at.ammunition, resources.ammunition);
+  SetWord(game, at.fuel, resources.fuel);
+  SetWord(game, at.food, resources.food);
 }
 } // namespace opeu::game::detail::capacity
 
 using namespace opeu::game;
 
-void opeu_unit_capacities(const uint8_t ds[65536], uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const capacities{ UnitCapacities(Data(ds), unit) };
+void opeu_unit_capacities(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
+  auto const capacities{ UnitCapacities(Data(game), unit) };
   *result_a = capacities.ammunition;
   *result_b = capacities.fuel;
   *result_c = capacities.food;

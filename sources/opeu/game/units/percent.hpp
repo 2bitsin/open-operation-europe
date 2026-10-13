@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "types.hpp"
 #include "units/capacity.hpp"
 
@@ -13,7 +14,7 @@ namespace opeu::game::detail::percent {
 [[nodiscard]] auto UnitResourcePercentages(DataSegment const& data, std::uint16_t unit) -> Resources;
 
 // Stores the unit's resource percentages into the words at `at`.
-auto StoreUnitResourcePercentages(std::uint8_t* ds, std::uint16_t unit, ResourceWords at) -> void;
+auto StoreUnitResourcePercentages(Game& game, std::uint16_t unit, ResourceWords at) -> void;
 } // namespace opeu::game::detail::percent
 
 namespace opeu::game {
@@ -21,4 +22,4 @@ using detail::percent::StoreUnitResourcePercentages;
 using detail::percent::UnitResourcePercentages;
 } // namespace opeu::game
 
-void opeu_unit_resource_percentages(const uint8_t* ds, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);
+void opeu_unit_resource_percentages(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);

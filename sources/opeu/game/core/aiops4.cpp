@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/aiops1.hpp"
 #include "core/random.hpp"
@@ -32,33 +33,33 @@ auto IsSupport(std::uint8_t category) -> bool {
 
 // A random one of the element types of `category` the nations in `mask` field: the service lists them in the
 // routine's reserve.
-auto RandomAvailableType(std::uint8_t* ds, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
+auto RandomAvailableType(Game& game, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
   ServiceLocals const types{ ELEMENT_TYPE_COUNT };
   std::uint16_t       list{ types.At(0) };
-  auto const          count{ static_cast<std::uint8_t>(AiCall(ds, AiService::DUE_RECORDS, mask, category, &list)) };
-  return Record<TypeList>(Data(ds), types.At(0))[opeu_rand_bounded(count)];
+  auto const          count{ static_cast<std::uint8_t>(AiCall(game, AiService::DUE_RECORDS, mask, category, &list)) };
+  return Record<TypeList>(Data(game), types.At(0))[opeu_rand_bounded(count)];
 }
 } // namespace
 
 // Whether the side's request slot is taken.
-uint16_t opeu_ai_request_pending(uint8_t ds[65536], uint8_t slot) {
-  return CurrentSide(Data(ds)).requests[slot].kind != FREE_SLOT ? 1 : 0;
+uint16_t opeu_ai_request_pending(Game& game, uint8_t slot) {
+  return CurrentSide(Data(game)).requests[slot].kind != FREE_SLOT ? 1 : 0;
 }
 
 // Whether the side's request configuration has this kind.
-uint16_t opeu_ai_config_kind_is(uint8_t ds[65536], uint8_t kind) {
-  auto const& data{ Data(ds) };
+uint16_t opeu_ai_config_kind_is(Game& game, uint8_t kind) {
+  auto const& data{ Data(game) };
   return data.request_configs[data.current_side].kind == kind ? 1 : 0;
 }
 
 // A random objective of the side that is short (below 50000) of any supply, or 0.
-uint16_t opeu_ai_short_objective(uint8_t ds[65536]) {
-  auto&         data{ Data(ds) };
+uint16_t opeu_ai_short_objective(Game& game) {
+  auto&         data{ Data(game) };
   std::uint16_t short_of[OBJECTIVE_COUNT];
   std::uint8_t  count{ 0 };
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (objective.active && opeu_objective_side(ds, near) == data.current_side
+    if (objective.active && opeu_objective_side(game, near) == data.current_side
         && (objective.resources[0] < SHORT_STOCK || objective.resources[1] < SHORT_STOCK || objective.resources[2] < SHORT_STOCK))
       short_of[count++] = near;
   }
@@ -67,11 +68,11 @@ uint16_t opeu_ai_short_objective(uint8_t ds[65536]) {
 
 // Files a supply request for a short objective in slot 0, unless the slot is taken or the side's configuration is
 // of the supply kind. 1 when filed.
-uint16_t opeu_ai_request_resources(uint8_t ds[65536]) {
-  if (opeu_ai_request_pending(ds, 0) || opeu_ai_config_kind_is(ds, RESOURCE_REQUEST)) return 0;
-  auto const objective{ opeu_ai_short_objective(ds) };
+uint16_t opeu_ai_request_resources(Game& game) {
+  if (opeu_ai_request_pending(game, 0) || opeu_ai_config_kind_is(game, RESOURCE_REQUEST)) return 0;
+  auto const objective{ opeu_ai_short_objective(game) };
   if (!objective) return 0;
-  auto& request{ CurrentSide(Data(ds)).requests[0] };
+  auto& request{ CurrentSide(Data(game)).requests[0] };
   request.target   = objective;
   request.argument = NO_ITEM;
   request.kind     = RESOURCE_REQUEST;
@@ -80,13 +81,13 @@ uint16_t opeu_ai_request_resources(uint8_t ds[65536]) {
 
 // One of the side's linked objectives with an empty item slot or one holding `type`, drawn with a weight that rises
 // with the objective's level (and falls with it for the support categories); 0 when none is drawn.
-uint16_t opeu_ai_destination_for_type(uint8_t ds[65536], uint8_t type) {
-  auto&         data{ Data(ds) };
+uint16_t opeu_ai_destination_for_type(Game& game, uint8_t type) {
+  auto&         data{ Data(game) };
   std::uint16_t room[OBJECTIVE_LINKS_PER_SIDE];
   std::uint8_t  count{ 0 };
   for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
     auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
-    if (!near || !Record<Objective>(data, near).active || opeu_objective_side(ds, near) != data.current_side) continue;
+    if (!near || !Record<Objective>(data, near).active || opeu_objective_side(game, near) != data.current_side) continue;
     for (auto const& item : Record<Objective>(data, near).items)
       if (!item.quantity || item.type == type) {
         room[count++] = near;
@@ -96,7 +97,7 @@ uint16_t opeu_ai_destination_for_type(uint8_t ds[65536], uint8_t type) {
   auto const    category{ data.element_types[type].category };
   std::uint16_t destination{ 0 };
   for (std::uint8_t i{ 0 }; i < count; ++i) {
-    auto weight{ static_cast<std::uint8_t>((static_cast<std::uint8_t>(AiObjectiveLevel(ds, room[i])) + 1) * 18) };
+    auto weight{ static_cast<std::uint8_t>((static_cast<std::uint8_t>(AiObjectiveLevel(game, room[i])) + 1) * 18) };
     if (IsSupport(category)) weight = static_cast<std::uint8_t>(100 - weight);
     if (opeu_rand_bounded(100) < weight) destination = room[i];
   }
@@ -105,8 +106,8 @@ uint16_t opeu_ai_destination_for_type(uint8_t ds[65536], uint8_t type) {
 
 // The support category (7, then 5, then 6) whose average stock over the side's ready elements of it (counting the
 // objectives' items too) is below its request capacity, or 255.
-uint8_t opeu_ai_short_category(uint8_t ds[65536]) {
-  auto&         data{ Data(ds) };
+uint8_t opeu_ai_short_category(Game& game) {
+  auto&         data{ Data(game) };
   std::uint8_t  elements[3]{};
   std::uint16_t totals[3]{};
   auto const    support_index{ [](std::uint8_t category) { return category - SUPPORT_CATEGORIES[0]; } };
@@ -135,21 +136,21 @@ uint8_t opeu_ai_short_category(uint8_t ds[65536]) {
 }
 
 // One of the five categories the computer side requests, at random.
-uint8_t opeu_ai_random_category(uint8_t ds[65536]) {
-  return Data(ds).ai_categories[opeu_rand_bounded(5)];
+uint8_t opeu_ai_random_category(Game& game) {
+  return Data(game).ai_categories[opeu_rand_bounded(5)];
 }
 
 // Files an equipment request in slot 1, unless the slot is taken or the side's configuration is of the equipment
 // kind: a random type of a short support category (one time in three) or of a random category, sent to an objective
 // with room for it. 1 when filed.
-uint16_t opeu_ai_request_equipment(uint8_t ds[65536]) {
-  if (opeu_ai_request_pending(ds, 1) || opeu_ai_config_kind_is(ds, EQUIPMENT_REQUEST)) return 0;
-  auto&        data{ Data(ds) };
+uint16_t opeu_ai_request_equipment(Game& game) {
+  if (opeu_ai_request_pending(game, 1) || opeu_ai_config_kind_is(game, EQUIPMENT_REQUEST)) return 0;
+  auto&        data{ Data(game) };
   std::uint8_t category{ NO_CATEGORY };
-  if (!opeu_rand_bounded(3)) category = opeu_ai_short_category(ds);
-  if (category == NO_CATEGORY) category = opeu_ai_random_category(ds);
-  auto const type{ RandomAvailableType(ds, data.side_masks[data.current_side], category) };
-  auto const destination{ opeu_ai_destination_for_type(ds, type) };
+  if (!opeu_rand_bounded(3)) category = opeu_ai_short_category(game);
+  if (category == NO_CATEGORY) category = opeu_ai_random_category(game);
+  auto const type{ RandomAvailableType(game, data.side_masks[data.current_side], category) };
+  auto const destination{ opeu_ai_destination_for_type(game, type) };
   if (!destination) return 0;
   auto& request{ CurrentSide(data).requests[1] };
   request.target   = destination;

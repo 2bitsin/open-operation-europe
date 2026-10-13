@@ -4,18 +4,18 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint8_t  opeu_image_byte(const uint8_t* ds, const uint8_t* image, uint16_t p);
-uint16_t opeu_image_word(const uint8_t* ds, const uint8_t* image, uint16_t p);
-uint32_t opeu_image_pointer(const uint8_t* ds, uint16_t p);
-uint16_t opeu_end_unit_strength(uint8_t* ds, HostEvent event);
-uint16_t opeu_end_objective_points(uint8_t* ds, HostEvent event);
-void     opeu_end_palette_dark(uint8_t* ds, HostEvent event);
-void     opeu_end_palette_show(uint8_t* ds, HostEvent event);
-void     opeu_scenario_end(uint8_t* ds, HostEvent event);
-void     opeu_free_error(uint8_t* ds, HostEvent event, uint16_t name);
-void     opeu_free_segments(uint8_t* ds, HostEvent event);
-void     opeu_close_data_files(uint8_t* ds, HostEvent event);
-void     opeu_app_finish(uint8_t* ds, HostEvent event);
+uint8_t  opeu_image_byte(Game const& game, const uint8_t* image, uint16_t p);
+uint16_t opeu_image_word(Game const& game, const uint8_t* image, uint16_t p);
+uint32_t opeu_image_pointer(Game const& game, uint16_t p);
+uint16_t opeu_end_unit_strength(Game& game, HostEvent event);
+uint16_t opeu_end_objective_points(Game& game, HostEvent event);
+void     opeu_end_palette_dark(Game& game, HostEvent event);
+void     opeu_end_palette_show(Game& game, HostEvent event);
+void     opeu_scenario_end(Game& game, HostEvent event);
+void     opeu_free_error(Game& game, HostEvent event, uint16_t name);
+void     opeu_free_segments(Game& game, HostEvent event);
+void     opeu_close_data_files(Game& game, HostEvent event);
+void     opeu_app_finish(Game& game, HostEvent event);
 
 // The services of this module in the native build.
-uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t svc_scenend(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

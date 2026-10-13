@@ -18,7 +18,9 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -47,8 +49,8 @@ void ForBattleElements(DataSegment& data, Body&& body) {
 }
 } // namespace
 
-uint8_t opeu_battle_computer_turn(uint8_t* ds, BattleEvent) {
-  auto&   data{ Data(ds) };
+uint8_t opeu_battle_computer_turn(Game& game, BattleEvent) {
+  auto&   data{ Data(game) };
   uint8_t present{ 0 };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
     if (auto const unit{ BattleList(data, 1, slot) }) {
@@ -60,54 +62,55 @@ uint8_t opeu_battle_computer_turn(uint8_t* ds, BattleEvent) {
   return BATTLE_GOES_ON;
 }
 
-uint16_t opeu_battle_unit_turn(uint8_t* ds, BattleEvent event, uint16_t unit) {
-  auto& data{ Data(ds) };
+uint16_t opeu_battle_unit_turn(Game& game, BattleEvent event, uint16_t unit) {
+  auto& data{ Data(game) };
   for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-    if (opeu_battle_element_active(ds, event, it.Near())) {
-      Call(ds, event, BattleRoutine::BATTLE_ELEMENT_STEP, it.Near());
-      if (opeu_battle_computer_turn(ds, event)) return 0;
+    if (opeu_battle_element_active(game, event, it.Near())) {
+      Call(game, event, BattleRoutine::BATTLE_ELEMENT_STEP, it.Near());
+      if (opeu_battle_computer_turn(game, event)) return 0;
     }
   return 1;
 }
 
-uint16_t opeu_battle_all_turns(uint8_t* ds, BattleEvent event) {
-  auto& data{ Data(ds) };
+uint16_t opeu_battle_all_turns(Game& game, BattleEvent event) {
+  auto& data{ Data(game) };
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-      if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_turn(ds, event, unit)) return 0;
+      if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_turn(game, event, unit)) return 0;
   return 1;
 }
 
-uint16_t opeu_battle_side_controlled(uint8_t* ds, BattleEvent event, uint8_t side) {
-  auto& data{ Data(ds) };
+uint16_t opeu_battle_side_controlled(Game& game, BattleEvent event, uint8_t side) {
+  auto& data{ Data(game) };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, side, slot) }; unit && Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) return 1;
+    if (auto const unit{ BattleList(data, side, slot) }; unit && Call(game, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) return 1;
   return 0;
 }
 
 // Shows or hides the element numbers and redraws the cells.
-void opeu_battle_toggle_numbers(uint8_t* ds, BattleEvent event) {
-  auto& data{ Data(ds) };
+void opeu_battle_toggle_numbers(Game& game, BattleEvent event) {
+  auto& data{ Data(game) };
   data.battle_numbers_shown = data.battle_numbers_shown == 1 ? 0 : 1;
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
-      if (opeu_battle_cell_occupied(ds, event, x, y) || static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN) opeu_battle_refresh_cell(ds, event, x, y);
+      if (opeu_battle_cell_occupied(game, event, x, y) || static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN)
+        opeu_battle_refresh_cell(game, event, x, y);
 }
 
 // frame: the routine's frame; its callees run below it. One path (a mouse event with the keyboard in use) reads the
 // key before any key is stored: it starts as 0.
-uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event) {
-  auto&   data{ Data(ds) };
+uint16_t opeu_battle_turn_loop(Game& game, BattleEvent event) {
+  auto&   data{ Data(game) };
   uint8_t key{ 0 };
   for (uint8_t step{ 0 }; step < TURN_STEPS; ++step) {
     if (!data.battle_level_limit && !step) {
-      Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
+      Call(game, event, BattleRoutine::BATTLE_PLAYER_TURN);
     } else {
-      auto       buttons{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::MOUSE_BUTTONS)) };
+      auto       buttons{ static_cast<uint8_t>(Call(game, event, BattleRoutine::MOUSE_BUTTONS)) };
       auto const input{ [&] {
         if (buttons & MOUSE_EVENT) return true;
-        if (!Call(ds, event, BattleRoutine::TURN_INPUT_B)) return false;
-        key = static_cast<uint8_t>(Call(ds, event, BattleRoutine::GETCH));
+        if (!Call(game, event, BattleRoutine::TURN_INPUT_B)) return false;
+        key = static_cast<uint8_t>(Call(game, event, BattleRoutine::GETCH));
         return key != 0;
       } };
       if (input()) {
@@ -116,20 +119,20 @@ uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event) {
         else
           buttons = 0;
         if ((buttons & LEFT_BUTTON) || key == KEY_ENTER)
-          if (opeu_battle_side_controlled(ds, event, 0) || opeu_battle_side_controlled(ds, event, 1)) Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
-        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(ds, event);
+          if (opeu_battle_side_controlled(game, event, 0) || opeu_battle_side_controlled(game, event, 1)) Call(game, event, BattleRoutine::BATTLE_PLAYER_TURN);
+        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(game, event);
       }
     }
-    Call(ds, event, BattleRoutine::INPUT_RESET);
-    if (!opeu_battle_all_turns(ds, event)) return 0;
+    Call(game, event, BattleRoutine::INPUT_RESET);
+    if (!opeu_battle_all_turns(game, event)) return 0;
   }
   return 1;
 }
 
 // The garrison's supplies and surviving equipment go back to the objective, up to three times each type's capacity.
-void opeu_battle_return_garrison(uint8_t* ds, BattleEvent) {
-  auto&      data{ Data(ds) };
-  auto const objective_at{ opeu_find_objective_at(ds, data.battle_x, data.battle_y) };
+void opeu_battle_return_garrison(Game& game, BattleEvent) {
+  auto&      data{ Data(game) };
+  auto const objective_at{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   auto const unit{ BattleList(data, 1, 0) };
   if (!unit || unit != GARRISON_AT) return;
   auto& objective{ Record<Objective>(data, objective_at) };
@@ -153,11 +156,11 @@ void opeu_battle_return_garrison(uint8_t* ds, BattleEvent) {
 }
 
 // Morale follows the battle's winner; fatigue and experience grow, more at night.
-void opeu_battle_daily_condition(uint8_t* ds, BattleEvent event) {
-  auto& data{ Data(ds) };
+void opeu_battle_daily_condition(Game& game, BattleEvent event) {
+  auto& data{ Data(game) };
   ForBattleElements(data, [&](uint16_t unit, Element& element) {
     if (data.battle_side != NO_WINNER) {
-      if (opeu_battle_unit_side(ds, event, unit) == data.battle_side)
+      if (opeu_battle_unit_side(game, event, unit) == data.battle_side)
         opeu_add_byte(1, RATING_LIMIT, &element.morale);
       else
         opeu_sub_byte(1, &element.morale);
@@ -174,33 +177,33 @@ void opeu_battle_daily_condition(uint8_t* ds, BattleEvent event) {
   });
 }
 
-void opeu_battle_clear_positions(uint8_t* ds, BattleEvent) {
-  ForBattleElements(Data(ds), [](uint16_t, Element& element) { element.position = 0; });
+void opeu_battle_clear_positions(Game& game, BattleEvent) {
+  ForBattleElements(Data(game), [](uint16_t, Element& element) { element.position = 0; });
 }
 
-uint16_t svc_btlturn(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlturn(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }
 
-auto port_routine_opeu_battle_clear_positions(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_clear_positions(ds, svc_btlturn);
+auto port_routine_opeu_battle_clear_positions(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_battle_clear_positions(game, svc_btlturn);
   return 0;
 }
 
-auto port_routine_opeu_battle_computer_turn(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_battle_computer_turn(ds, svc_btlturn);
+auto port_routine_opeu_battle_computer_turn(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_battle_computer_turn(game, svc_btlturn);
 }
 
-auto port_routine_opeu_battle_daily_condition(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_daily_condition(ds, svc_btlturn);
+auto port_routine_opeu_battle_daily_condition(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_battle_daily_condition(game, svc_btlturn);
   return 0;
 }
 
-auto port_routine_opeu_battle_return_garrison(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_return_garrison(ds, svc_btlturn);
+auto port_routine_opeu_battle_return_garrison(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_battle_return_garrison(game, svc_btlturn);
   return 0;
 }
 
-auto port_routine_opeu_battle_turn_loop(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_battle_turn_loop(ds, svc_btlturn);
+auto port_routine_opeu_battle_turn_loop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  return opeu_battle_turn_loop(game, svc_btlturn);
 }

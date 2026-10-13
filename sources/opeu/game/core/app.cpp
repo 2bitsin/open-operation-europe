@@ -9,6 +9,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/appinit.hpp"
 #include "core/dispatch.hpp"
@@ -16,7 +17,7 @@
 #include "core/notice.hpp"
 #include "core/scenend.hpp"
 #include "core/victory.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "map/btlend.hpp"
 #include "map/btlsetup.hpp"
 #include "port.hpp"
@@ -65,11 +66,11 @@ auto ShuffleTurnOrder(DataSegment& data) -> void {
 }
 } // namespace
 
-void opeu_application_entry(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t)) {
-  auto& data{ Data(ds) };
-  if (static_cast<std::uint8_t>(data.startup_mode) == FIRST_START) event(ds, INITIALIZE);
+void opeu_application_entry(Game& game, uint16_t (*event)(Game&, uint16_t)) {
+  auto& data{ Data(game) };
+  if (static_cast<std::uint8_t>(data.startup_mode) == FIRST_START) event(game, INITIALIZE);
   data.startup_mode = 0;
-  event(ds, STARTUP);
+  event(game, STARTUP);
   auto const mode{ static_cast<std::uint8_t>(data.startup_mode) };
   if (mode != RESUME_TURN && mode != NEW_GAME) Stop();
   // Resuming a turn enters the innermost loop as it stands: no loop condition, day start, hour start or turn
@@ -80,19 +81,19 @@ void opeu_application_entry(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint1
       for (; resume || data.day <= opeu_days_in_month(data.year, data.month); ++data.day) {
         if (!resume && data.day == 1) data.schedule_flags[0] |= Bits(ScheduleFlag::MONTHLY);
         for (; resume || data.hour < 24; ++data.hour) {
-          if (!resume) opeu_begin_hour(ds);
+          if (!resume) opeu_begin_hour(game);
           for (; resume || data.turn_cursor < TURN_SLOTS; ++data.turn_cursor) {
-            if (!resume) opeu_select_turn_context(ds);
+            if (!resume) opeu_select_turn_context(game);
             resume = false;
-            if (event(ds, VICTORY)) {
-              event(ds, FINISH);
+            if (event(game, VICTORY)) {
+              event(game, FINISH);
               return;
             }
-            event(ds, TURN);
+            event(game, TURN);
             if (data.turn_notification) {
-              event(ds, NOTICE_BEGIN);
-              event(ds, data.presentation_mode == PRESENT_ONE ? NOTICE_ONE : NOTICE_OTHER);
-              event(ds, NOTICE_END);
+              event(game, NOTICE_BEGIN);
+              event(game, data.presentation_mode == PRESENT_ONE ? NOTICE_ONE : NOTICE_OTHER);
+              event(game, NOTICE_END);
             }
           }
         }
@@ -107,8 +108,8 @@ void opeu_application_entry(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint1
 
 // Makes the regiment at the turn cursor current: the slot's byte holds the side (bits 5-7), the division (bits 3-4)
 // and the regiment (bits 0-2).
-void opeu_select_turn_context(uint8_t ds[65536]) {
-  auto&      data{ Data(ds) };
+void opeu_select_turn_context(Game& game) {
+  auto&      data{ Data(game) };
   auto const slot{ data.turn_order[data.turn_cursor] };
   data.current_side  = static_cast<std::uint8_t>(slot >> 5);
   data.current_group = static_cast<std::uint8_t>((slot & 0x18) >> 3);
@@ -121,8 +122,8 @@ void opeu_select_turn_context(uint8_t ds[65536]) {
 
 // Starts an hour: schedules the half-day round at 0:00 and 12:00 and the hourly round, counts the sides' delays down,
 // shuffles the turn order and puts the cursor at its first slot.
-void opeu_begin_hour(uint8_t ds[65536]) {
-  auto& data{ Data(ds) };
+void opeu_begin_hour(Game& game) {
+  auto& data{ Data(game) };
   if (data.hour == 0 || data.hour == 12) data.schedule_flags[0] |= Bits(ScheduleFlag::HALF_DAY);
   data.schedule_flags[0] |= Bits(ScheduleFlag::HOURLY);
   opeu_sub_byte(1, &data.side_delays[0]);
@@ -131,18 +132,18 @@ void opeu_begin_hour(uint8_t ds[65536]) {
   data.turn_cursor = 0;
 }
 
-uint16_t svc_app(uint8_t* ds, uint16_t id) {
+uint16_t svc_app(Game& game, uint16_t id) {
   uint16_t result{ 0 };
   switch (id) {
-  case INITIALIZE:   opeu_app_initialize(ds, svc_appinit); break;
-  case STARTUP:      opeu_app_startup(ds, svc_appinit); break;
-  case TURN:         opeu_process_selected_turn(ds, svc_dispatch); break;
-  case NOTICE_BEGIN: opeu_notice_begin(ds, svc_notice); break;
-  case NOTICE_ONE:   opeu_notice_one(ds, svc_btlsetup); break;
-  case NOTICE_OTHER: opeu_notice_other(ds, svc_btlend); break;
-  case NOTICE_END:   opeu_notice_end(ds, svc_notend); break;
-  case VICTORY:      result = opeu_check_victory(ds); break;
-  case FINISH:       opeu_app_finish(ds, svc_scenend); break;
+  case INITIALIZE:   opeu_app_initialize(game, svc_appinit); break;
+  case STARTUP:      opeu_app_startup(game, svc_appinit); break;
+  case TURN:         opeu_process_selected_turn(game, svc_dispatch); break;
+  case NOTICE_BEGIN: opeu_notice_begin(game, svc_notice); break;
+  case NOTICE_ONE:   opeu_notice_one(game, svc_btlsetup); break;
+  case NOTICE_OTHER: opeu_notice_other(game, svc_btlend); break;
+  case NOTICE_END:   opeu_notice_end(game, svc_notend); break;
+  case VICTORY:      result = opeu_check_victory(game); break;
+  case FINISH:       opeu_app_finish(game, svc_scenend); break;
   default:           port_unhandled("app", id, 0);
   }
   return result;

@@ -9,39 +9,40 @@
 #include "types.hpp"
 #include "units/stats.hpp"
 
+#include "common/game.hpp"
 #include "core/msnkill.hpp"
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
 using namespace opeu::game;
 
 // Whether the mission's target still stands: a city the enemy holds, or a fielded enemy unit that is spotted.
-uint16_t opeu_mission_target_valid(uint8_t ds[65536], uint16_t mission, uint8_t side) {
-  auto const& order{ Record<Order>(Data(ds), mission) };
+uint16_t opeu_mission_target_valid(Game& game, uint16_t mission, uint8_t side) {
+  auto const& order{ Record<Order>(Data(game), mission) };
   switch (static_cast<MissionKind>(order.kind)) {
   case MissionKind::RAID_CITY:
   case MissionKind::SABOTAGE:
   case MissionKind::CUT_LINES_CITY:
-  case MissionKind::RECON_CITY:     return opeu_objective_side(ds, order.target) == opeu_opposite_side(side);
+  case MissionKind::RECON_CITY:     return opeu_objective_side(game, order.target) == opeu_opposite_side(side);
   case MissionKind::RAID_UNIT:
   case MissionKind::CUT_LINES_UNIT:
   case MissionKind::ASSASSINATION:
-  case MissionKind::RECON_UNIT:     return (Record<Unit>(Data(ds), order.target).flags & Bits(UnitFlag::READY)) && opeu_unit_special(ds, order.target);
+  case MissionKind::RECON_UNIT:     return (Record<Unit>(Data(game), order.target).flags & Bits(UnitFlag::READY)) && opeu_unit_special(game, order.target);
   default:                          return 0;
   }
 }
 
 // Each side's mission under way counts down an hour while its target stands and, at zero, runs; a mission whose
 // target is gone is called off.
-void opeu_mission_tick(uint8_t ds[65536], HostEvent event) {
+void opeu_mission_tick(Game& game, HostEvent event) {
   for (uint8_t side = 0; side < SIDE_COUNT; side++) {
-    auto& mission{ Data(ds).sides[side].order };
+    auto& mission{ Data(game).sides[side].order };
     if (mission.kind == Bits(MissionKind::NONE)) continue;
-    if (opeu_mission_target_valid(ds, Near(Data(ds), mission), side)) {
+    if (opeu_mission_target_valid(game, Near(Data(game), mission), side)) {
       if (--mission.progress == 0) {
-        auto const& handler{ Data(ds).mission_handlers[mission.kind] };
-        Call(ds, event, MISSION_HANDLER, handler.offset, handler.segment, side);
+        auto const& handler{ Data(game).mission_handlers[mission.kind] };
+        Call(game, event, MISSION_HANDLER, handler.offset, handler.segment, side);
         mission.kind = Bits(MissionKind::NONE);
       }
     } else
@@ -50,13 +51,13 @@ void opeu_mission_tick(uint8_t ds[65536], HostEvent event) {
 }
 
 // The weather, the turn's preparation, the air operations and the special-forces missions.
-void opeu_turn_hourly_a(uint8_t ds[65536], HostEvent event) {
-  Call(ds, event, MISSION_WEATHER);
-  Call(ds, event, MISSION_TURN_PREPARE);
-  Call(ds, event, MISSION_AIR_OPERATIONS);
-  opeu_mission_tick(ds, event);
+void opeu_turn_hourly_a(Game& game, HostEvent event) {
+  Call(game, event, MISSION_WEATHER);
+  Call(game, event, MISSION_TURN_PREPARE);
+  Call(game, event, MISSION_AIR_OPERATIONS);
+  opeu_mission_tick(game, event);
 }
 
-uint16_t svc_msntick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_mission("msntick", ds, id, args, count);
+uint16_t svc_msntick(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
+  return svc_mission("msntick", game, id, args, count);
 }

@@ -5,12 +5,13 @@
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
+#include "common/game.hpp"
 #include "map/btlcalc.hpp"
 #include "map/btlpath.hpp"
 #include "map/btlreach.hpp"
 #include "services.bench/calibration.hpp"
 
-#include "glue.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 
 #include <benchmark/benchmark.h>
@@ -53,7 +54,7 @@ struct Cell {
 // impassable rocks and a diagonal of occupied cells with a gap, so the flood has to go round. The data segment is the game's initial image, which holds the terrain and type tables.
 class BattleField {
 public:
-  BattleField() : _data{ InitialSegment() } {
+  BattleField() : _state{ InitialSegment() }, _game{ _state, _machine }, _data{ Data(_game) } {
     std::ranges::for_each(Cells(), [this](Cell const cell) { LayCell(cell); });
     PlaceElement();
   }
@@ -79,8 +80,8 @@ public:
   // The move cost of every cell plus the number it can enter.
   auto MoveCosts() -> unsigned {
     return std::ranges::fold_left(Cells() | std::views::transform([this](auto const cell) {
-                                    return opeu_battle_move_cost(port_ds, svc_btlcalc, Byte(cell.x), Byte(cell.y), Element())
-                                           + opeu_battle_can_enter(port_ds, svc_btlcalc, Byte(cell.x), Byte(cell.y), Element());
+                                    return opeu_battle_move_cost(_game, svc_btlcalc, Byte(cell.x), Byte(cell.y), Element())
+                                           + opeu_battle_can_enter(_game, svc_btlcalc, Byte(cell.x), Byte(cell.y), Element());
                                   }),
                                   0u, std::plus{});
   }
@@ -88,13 +89,13 @@ public:
   // Strength, rating against itself and shots of the element.
   auto Ratings() -> unsigned {
     auto const element{ Element() };
-    return unsigned{ opeu_battle_element_strength(port_ds, svc_btlcalc, element) } + opeu_battle_element_rating(port_ds, svc_btlcalc, element, element)
-           + opeu_battle_element_shots(port_ds, svc_btlcalc, element, element);
+    return unsigned{ opeu_battle_element_strength(_game, svc_btlcalc, element) } + opeu_battle_element_rating(_game, svc_btlcalc, element, element)
+           + opeu_battle_element_shots(_game, svc_btlcalc, element, element);
   }
 
   // The element at every cell (the battle lists' walk).
   auto ElementsAt() -> unsigned {
-    return static_cast<unsigned>(std::ranges::count_if(Cells(), [](auto const cell) { return opeu_battle_element_at(port_ds, svc_btlcalc, Byte(cell.x), Byte(cell.y)) != 0; }));
+    return static_cast<unsigned>(std::ranges::count_if(Cells(), [this](auto const cell) { return opeu_battle_element_at(_game, svc_btlcalc, Byte(cell.x), Byte(cell.y)) != 0; }));
   }
 
   // The cells the last flood reached.
@@ -104,14 +105,14 @@ public:
 
   // Frames the cells the element can leave the battle from; returns whether there is one.
   auto MarkExits() -> unsigned {
-    return opeu_battle_mark_exits(port_ds, svc_btlreach, Element());
+    return opeu_battle_mark_exits(_game, svc_btlreach, Element());
   }
 
 private:
-  // The game's initial data segment, freshly composed.
-  [[nodiscard]] static auto InitialSegment() -> DataSegment& {
+  // The game's initial data segment, freshly composed in the arena.
+  [[nodiscard]] static auto InitialSegment() -> SegmentBytes {
     port_memory_init();
-    return Data(port_ds);
+    return SegmentBytes{ port_ds, SEGMENT_SIZE };
   }
 
   auto LayCell(Cell const cell) -> void {
@@ -148,20 +149,23 @@ private:
 
   // Fills the path costs from one cell toward another.
   auto Flood(Cell const from, Cell const to, int const mode) -> unsigned {
-    return opeu_battle_path_flood(port_ds, svc_btlpath, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode));
+    return opeu_battle_path_flood(_game, svc_btlpath, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode));
   }
 
   // Moves the element one step down the flooded costs; x_at addresses its position's x byte, the y byte follows.
-  static auto Step(std::integral auto const x_at) -> unsigned {
+  auto Step(std::integral auto const x_at) -> unsigned {
     auto const y_at{ static_cast<decltype(x_at)>(x_at + 1) };
-    return opeu_battle_path_step(port_ds, svc_btlpath, x_at, y_at);
+    return opeu_battle_path_step(_game, svc_btlpath, x_at, y_at);
   }
 
   [[nodiscard]] static constexpr auto Byte(std::integral auto const value) -> std::uint8_t {
     return static_cast<std::uint8_t>(value);
   }
 
-  DataSegment& _data;
+  GameState         _state;
+  services::Machine _machine;
+  Game              _game;
+  DataSegment&      _data;
 };
 
 auto PathFloodToCell(benchmark::State& state) -> void {

@@ -8,14 +8,15 @@
 #include "core/counter.hpp"
 #include "types.hpp"
 
+#include "common/game.hpp"
 #include "core/divstr.hpp"
 #include "core/staffgen.hpp"
 #include "core/staffpnl.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "glue.hpp"
 #include "io/keyboard.hpp"
 #include "io/listdlg.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -51,108 +52,108 @@ enum Service : std::uint16_t {
 
 // Lists the side's generals (up to the first empty record), clears their roles and draws the staff and division
 // frames.
-void opeu_general_screen(uint8_t ds[65536], HostEvent event) {
-  auto&        data{ Data(ds) };
+void opeu_general_screen(Game& game, HostEvent event) {
+  auto&        data{ Data(game) };
   auto*        person{ SidePeople(data) };
   std::uint8_t listed{ 0 };
   for (std::uint8_t slot{ 0 }; slot < PEOPLE_PER_SIDE && person->status != PERSON_VACANT; ++person, ++slot) {
     data.general_list[listed++] = Near(data, *person);
-    opeu_set_record_counter(reinterpret_cast<std::uint8_t*>(person), 0);
+    opeu_set_record_counter(*person, 0);
     person->role &= static_cast<std::uint8_t>(~Bits(PersonRole::ROLE_MASK));
   }
   ++listed;
   data.play_dialog.rows      = listed;
   data.reinforce_dialog.rows = listed;
-  Call(ds, event, BACKDROP, static_cast<std::uint8_t>(data.current_side == 0 ? 2 : 1));
-  Call(ds, event, POSITION, 0x23, 8);
-  Call(ds, event, TEXT_COLOR, SideTextColor(data.current_side));
-  Call(ds, event, PRINT, Near(data, data.side_title_format), data.side_titles[data.current_side]);
-  Call(ds, event, TEXT_COLOR, 7);
-  Call(ds, event, OUTLINE, 0x100, 0x28, 0x13f, 0x76, 7);
-  Call(ds, event, POSITION, 0x29, 0x38);
-  Call(ds, event, UI_TEXT, data.role_names[0]);
-  Call(ds, event, OUTLINE, 0x60, 0x28, 0x9f, 0x76, 7);
-  Call(ds, event, POSITION, 0x15, 0x38);
-  Call(ds, event, UI_TEXT, data.role_names[1]);
-  Call(ds, event, OUTLINE, 0x1a0, 0x28, 0x1df, 0x76, 7);
-  Call(ds, event, POSITION, 0x3d, 0x38);
-  Call(ds, event, UI_TEXT, data.role_names[2]);
+  Call(game, event, BACKDROP, static_cast<std::uint8_t>(data.current_side == 0 ? 2 : 1));
+  Call(game, event, POSITION, 0x23, 8);
+  Call(game, event, TEXT_COLOR, SideTextColor(data.current_side));
+  Call(game, event, PRINT, Near(data, data.side_title_format), data.side_titles[data.current_side]);
+  Call(game, event, TEXT_COLOR, 7);
+  Call(game, event, OUTLINE, 0x100, 0x28, 0x13f, 0x76, 7);
+  Call(game, event, POSITION, 0x29, 0x38);
+  Call(game, event, UI_TEXT, data.role_names[0]);
+  Call(game, event, OUTLINE, 0x60, 0x28, 0x9f, 0x76, 7);
+  Call(game, event, POSITION, 0x15, 0x38);
+  Call(game, event, UI_TEXT, data.role_names[1]);
+  Call(game, event, OUTLINE, 0x1a0, 0x28, 0x1df, 0x76, 7);
+  Call(game, event, POSITION, 0x3d, 0x38);
+  Call(game, event, UI_TEXT, data.role_names[2]);
   for (std::uint8_t division{ 0 }; division < GROUPS_PER_SIDE; ++division) {
-    Call(ds, event, OUTLINE, division * 0xa0 + 0x10, 0x88, division * 0xa0 + 0x4f, 0xd6, 7);
-    Call(ds, event, DIVISION_STRENGTH, division);
+    Call(game, event, OUTLINE, division * 0xa0 + 0x10, 0x88, division * 0xa0 + 0x4f, 0xd6, 7);
+    Call(game, event, DIVISION_STRENGTH, division);
   }
 }
 
 // The reinforcement list with its mouse or keyboard help.
-void opeu_reinforce_screen(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
+void opeu_reinforce_screen(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
   data.shown_portrait = 0;
-  Call(ds, event, ATTRIBUTE, 4);
-  Call(ds, event, POSITION, 1, 0xe8);
-  Call(ds, event, UI_TEXT, Near(data, data.reinforce_title));
-  Call(ds, event, POSITION, 1, 0x170);
-  Call(ds, event, UI_TEXT, data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
-  Call(ds, event, ATTRIBUTE, 0);
-  Call(ds, event, LIST_DIALOG, Near(data, data.reinforce_dialog), 1, 3);
-  Call(ds, event, RESTORE_BOTTOM);
-  Call(ds, event, RESTORE_LEFT);
+  Call(game, event, ATTRIBUTE, 4);
+  Call(game, event, POSITION, 1, 0xe8);
+  Call(game, event, UI_TEXT, Near(data, data.reinforce_title));
+  Call(game, event, POSITION, 1, 0x170);
+  Call(game, event, UI_TEXT, data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
+  Call(game, event, ATTRIBUTE, 0);
+  Call(game, event, LIST_DIALOG, Near(data, data.reinforce_dialog), 1, 3);
+  Call(game, event, RESTORE_BOTTOM);
+  Call(game, event, RESTORE_LEFT);
 }
 
 // The list of the generals who take the field.
-void opeu_play_screen(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
-  Call(ds, event, ATTRIBUTE, 4);
-  Call(ds, event, POSITION, 0x15, 0x170);
-  Call(ds, event, UI_TEXT, Near(data, data.play_prompt));
-  Call(ds, event, ATTRIBUTE, 0);
-  Call(ds, event, COMMANDER_DIALOG, Near(data, data.play_dialog), 7, 1);
-  Call(ds, event, RESTORE_BOTTOM);
+void opeu_play_screen(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
+  Call(game, event, ATTRIBUTE, 4);
+  Call(game, event, POSITION, 0x15, 0x170);
+  Call(game, event, UI_TEXT, Near(data, data.play_prompt));
+  Call(game, event, ATTRIBUTE, 0);
+  Call(game, event, COMMANDER_DIALOG, Near(data, data.play_dialog), 7, 1);
+  Call(game, event, RESTORE_BOTTOM);
 }
 
 // For each side: backs up its records, registers every listed general and, for a human side, repeats the screens
 // until the player accepts the generals.
-void opeu_confirm_generals(uint8_t ds[65536], HostEvent event) {
-  auto& data{ Data(ds) };
+void opeu_confirm_generals(Game& game, HostEvent event) {
+  auto& data{ Data(game) };
   for (data.current_side = 0; data.current_side < 2; ++data.current_side) {
     std::copy_n(SidePeople(data), PEOPLE_PER_SIDE, data.people_backup.begin());
     auto* person{ SidePeople(data) };
     for (std::uint8_t slot{ 0 }; slot < PEOPLE_PER_SIDE && person->status != PERSON_VACANT; ++slot, ++person) {
-      Call(ds, event, REROLL_PERSON, slot);
-      Call(ds, event, ROLL_FLAG, Near(data, *person));
+      Call(game, event, REROLL_PERSON, slot);
+      Call(game, event, ROLL_FLAG, Near(data, *person));
     }
     if (data.side_control[data.current_side] == SIDE_PLAYED) {
-      Call(ds, event, ATTRIBUTE, 4);
+      Call(game, event, ATTRIBUTE, 4);
       do {
-        opeu_general_screen(ds, event);
-        opeu_reinforce_screen(ds, event);
-        opeu_play_screen(ds, event);
-        Call(ds, event, ATTRIBUTE, 4);
-        Call(ds, event, POSITION, 0x14, 0x170);
-      } while (!Call(ds, event, ASK_YES_NO, Near(data, data.use_generals_prompt)));
-      Call(ds, event, ATTRIBUTE, 0);
+        opeu_general_screen(game, event);
+        opeu_reinforce_screen(game, event);
+        opeu_play_screen(game, event);
+        Call(game, event, ATTRIBUTE, 4);
+        Call(game, event, POSITION, 0x14, 0x170);
+      } while (!Call(game, event, ASK_YES_NO, Near(data, data.use_generals_prompt)));
+      Call(game, event, ATTRIBUTE, 0);
     }
   }
 }
 
 // The services of the screens.
-uint16_t svc_genconf(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_genconf(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case BACKDROP:          opeu_backdrop_fill_color(ds, (const UiHost*)port_uiprim_host(), (uint8_t)Arg(args, count, 0)); break;
-  case POSITION:          opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:             opeu_cursor_print(ds, { args, count }); break;
-  case TEXT_COLOR:        opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case ATTRIBUTE:         opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case OUTLINE:           opeu_ui_outline(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case UI_TEXT:           opeu_ui_text(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case LIST_DIALOG:       r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case COMMANDER_DIALOG:  r = opeu_commander_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ASK_YES_NO:        r = (uint16_t)opeu_prompt_yes_no(ds, svc_keyboard, Arg(args, count, 0)); break;
-  case RESTORE_BOTTOM:    opeu_staff_restore_bottom(ds, svc_staffpnl); break;
-  case RESTORE_LEFT:      opeu_staff_restore_left(ds, svc_staffpnl); break;
-  case ROLL_FLAG:         opeu_staff_roll_flag(ds, Arg(args, count, 0)); break;
-  case REROLL_PERSON:     opeu_staff_reroll_person(ds, (uint8_t)Arg(args, count, 0)); break;
-  case DIVISION_STRENGTH: opeu_show_division_strength(ds, svc_divstr, (uint8_t)Arg(args, count, 0)); break;
+  case BACKDROP:          opeu_backdrop_fill_color(game, (const UiHost*)port_uiprim_host(), (uint8_t)Arg(args, count, 0)); break;
+  case POSITION:          opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:             opeu_cursor_print(game, { args, count }); break;
+  case TEXT_COLOR:        opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case ATTRIBUTE:         opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case OUTLINE:           opeu_ui_outline(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case UI_TEXT:           opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case LIST_DIALOG:       r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case COMMANDER_DIALOG:  r = opeu_commander_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ASK_YES_NO:        r = (uint16_t)opeu_prompt_yes_no(game, svc_keyboard, Arg(args, count, 0)); break;
+  case RESTORE_BOTTOM:    opeu_staff_restore_bottom(game, svc_staffpnl); break;
+  case RESTORE_LEFT:      opeu_staff_restore_left(game, svc_staffpnl); break;
+  case ROLL_FLAG:         opeu_staff_roll_flag(game, Arg(args, count, 0)); break;
+  case REROLL_PERSON:     opeu_staff_reroll_person(game, (uint8_t)Arg(args, count, 0)); break;
+  case DIVISION_STRENGTH: opeu_show_division_strength(game, svc_divstr, (uint8_t)Arg(args, count, 0)); break;
   default:                port_unhandled("genconf", id, count);
   }
   return r;

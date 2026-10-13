@@ -9,7 +9,8 @@
 #include "map/dplunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -19,31 +20,31 @@ namespace {
 constexpr uint8_t BATTLE_UNITS_PER_SIDE{ 9 };
 } // namespace
 
-void opeu_deploy_side(uint8_t* ds, BattleEvent event, uint8_t side) {
-  auto& data{ Data(ds) };
+void opeu_deploy_side(Game& game, BattleEvent event, uint8_t side) {
+  auto& data{ Data(game) };
   data.battle_ai_side     = side;
-  data.battle_active_side = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_units[side * BATTLE_UNITS_PER_SIDE]));
+  data.battle_active_side = static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_units[side * BATTLE_UNITS_PER_SIDE]));
   for (uint8_t index{ 0 }; index < BATTLE_UNITS_PER_SIDE; ++index)
     if (auto const unit{ data.battle_units[side * BATTLE_UNITS_PER_SIDE + index] }) {
       data.battle_ai_index = index;
-      if (Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit))
-        opeu_deploy_unit(ds, event, unit);
+      if (Call(game, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit))
+        opeu_deploy_unit(game, event, unit);
       else
-        opeu_deploy_auto(ds, event, unit);
+        opeu_deploy_auto(game, event, unit);
     }
 }
 
-void opeu_deploy_battle(uint8_t* ds, BattleEvent event) {
-  opeu_deploy_side(ds, event, 0);
-  opeu_deploy_side(ds, event, 1);
+void opeu_deploy_battle(Game& game, BattleEvent event) {
+  opeu_deploy_side(game, event, 0);
+  opeu_deploy_side(game, event, 1);
 }
 
 // Services of this module: the deployment group's (map/dplauto).
-uint16_t svc_dplside(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_deploy(ds, service, args, count);
+uint16_t svc_dplside(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
+  return svc_battle_deploy(game, service, args, count);
 }
 
-auto port_routine_opeu_deploy_battle(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_deploy_battle(ds, svc_dplside);
+auto port_routine_opeu_deploy_battle(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
+  opeu_deploy_battle(game, svc_dplside);
   return 0;
 }

@@ -13,7 +13,8 @@
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 
 using namespace opeu::game;
@@ -29,32 +30,32 @@ constexpr uint16_t NAME_BUFFER_BYTES{ 38 }; // the DS reserve the unit's name is
 } // namespace
 
 // x and y: the cell (their low bytes).
-void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
-  auto const& data{ Data(ds) };
+void opeu_map_cursor(Game& game, HostEvent event, uint16_t x, uint16_t y) {
+  auto const& data{ Data(game) };
   auto const  cell_x{ static_cast<uint8_t>(x) };
   auto const  cell_y{ static_cast<uint8_t>(y) };
-  auto const  terrain{ opeu_map_code(ds, cell_x, cell_y) };
-  Call(ds, event, CursorService::BEGIN);
-  Call(ds, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x, data.map_scale * cell_y);
-  Call(ds, event, CursorService::TEXT, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(ds, cell_x, cell_y) : data.terrain_names[terrain]);
-  auto const side{ opeu_cell_side(ds, cell_x, cell_y) };
+  auto const  terrain{ opeu_map_code(game, cell_x, cell_y) };
+  Call(game, event, CursorService::BEGIN);
+  Call(game, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x, data.map_scale * cell_y);
+  Call(game, event, CursorService::TEXT, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
+  auto const side{ opeu_cell_side(game, cell_x, cell_y) };
   if (side != NO_SIDE) {
-    auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-    if ((side == data.current_side && opeu_unit_selection_eligible(ds, unit)) || (side != data.current_side && opeu_unit_special(ds, unit))) {
+    auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
+    if ((side == data.current_side && opeu_unit_selection_eligible(game, unit)) || (side != data.current_side && opeu_unit_special(game, unit))) {
       ServiceLocals const locals{ NAME_BUFFER_BYTES };
-      auto const          name{ opeu_unit_name(ds, event, unit, locals.At(0)) };
-      Call(ds, event, CursorService::PRINT, Near(data, data.cursor_unit_format), data.side_names[side], name);
+      auto const          name{ opeu_unit_name(game, event, unit, locals.At(0)) };
+      Call(game, event, CursorService::PRINT, Near(data, data.cursor_unit_format), data.side_names[side], name);
     }
   }
-  Call(ds, event, CursorService::TEXT, Near(data, data.cursor_end));
+  Call(game, event, CursorService::TEXT, Near(data, data.cursor_end));
 }
 
-uint16_t svc_cursor(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
+uint16_t svc_cursor(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<CursorService>(id)) {
-  case CursorService::BEGIN:  opeu_turn_active_begin(ds, static_cast<DialogHost const*>(port_dialogs_host())); break;
-  case CursorService::TEXT:   opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
-  case CursorService::FORMAT: opeu_request_format(ds, { args, count }); break;
-  case CursorService::PRINT:  opeu_cursor_print(ds, { args, count }); break;
+  case CursorService::BEGIN:  opeu_turn_active_begin(game, static_cast<DialogHost const*>(port_dialogs_host())); break;
+  case CursorService::TEXT:   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0)); break;
+  case CursorService::FORMAT: opeu_request_format(game, { args, count }); break;
+  case CursorService::PRINT:  opeu_cursor_print(game, { args, count }); break;
   default:                    port_unhandled("cursor", id, count);
   }
   return 0;

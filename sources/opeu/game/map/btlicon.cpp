@@ -9,7 +9,9 @@
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -50,8 +52,8 @@ constexpr uint16_t COUNT_ROW{ 14 };
 constexpr uint8_t LAST_PLAIN_CODE{ 14 };
 } // namespace
 
-uint8_t opeu_battle_element_icon(uint8_t* ds, BattleEvent, uint16_t element) {
-  auto&       data{ Data(ds) };
+uint8_t opeu_battle_element_icon(Game& game, BattleEvent, uint16_t element) {
+  auto&       data{ Data(game) };
   auto const& type{ ElementTypeOf(data, element) };
   auto const  flags{ type.flags };
   Icon        icon{ Icon::NONE };
@@ -68,50 +70,50 @@ uint8_t opeu_battle_element_icon(uint8_t* ds, BattleEvent, uint16_t element) {
   return std::to_underlying(icon);
 }
 
-uint16_t opeu_battle_element_visible(uint8_t* ds, BattleEvent event, uint16_t element) {
-  auto const side{ opeu_battle_element_side(ds, event, element) };
-  return Data(ds).side_status[side] == SIDE_PLAYED || opeu_battle_element_flag2(ds, event, element);
+uint16_t opeu_battle_element_visible(Game& game, BattleEvent event, uint16_t element) {
+  auto const side{ opeu_battle_element_side(game, event, element) };
+  return Data(game).side_status[side] == SIDE_PLAYED || opeu_battle_element_flag2(game, event, element);
 }
 
-void opeu_battle_draw_count(uint8_t* ds, BattleEvent event, uint16_t count, uint8_t, uint16_t side) {
-  auto& data{ Data(ds) };
+void opeu_battle_draw_count(Game& game, BattleEvent event, uint16_t count, uint8_t, uint16_t side) {
+  auto& data{ Data(game) };
   if (data.battle_numbers_shown != 1) return;
   auto const vram{ Near(data, data.vram) };
   for (uint16_t x{ COUNT_RIGHT };; x = static_cast<uint16_t>(x - DIGIT_WIDTH)) {
     auto const glyph{ static_cast<uint16_t>(Near(data, data.battle_digits) + count % 10 * DIGIT_WIDTH) };
-    Call(ds, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x - 1, COUNT_TOP);
-    Call(ds, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x + 1, COUNT_BOTTOM);
-    Call(ds, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x - 1, COUNT_BOTTOM);
-    Call(ds, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x + 1, COUNT_TOP);
-    Call(ds, event, BattleRoutine::VRAM_GLYPH_COLOR, vram, glyph, x, COUNT_ROW, side);
+    Call(game, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x - 1, COUNT_TOP);
+    Call(game, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x + 1, COUNT_BOTTOM);
+    Call(game, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x - 1, COUNT_BOTTOM);
+    Call(game, event, BattleRoutine::VRAM_GLYPH, vram, glyph, x + 1, COUNT_TOP);
+    Call(game, event, BattleRoutine::VRAM_GLYPH_COLOR, vram, glyph, x, COUNT_ROW, side);
     if ((count /= 10) == 0) break;
   }
 }
 
-uint16_t opeu_battle_code_low(uint8_t*, BattleEvent, uint8_t code) {
+uint16_t opeu_battle_code_low(Game&, BattleEvent, uint8_t code) {
   return (code & BATTLE_TERRAIN_MASK) <= LAST_PLAIN_CODE;
 }
 
 // Side 0's icons face the other way: each row's two halves are swapped.
-void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode) {
-  auto&               data{ Data(ds) };
+void opeu_battle_draw_icon(Game& game, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode) {
+  auto&               data{ Data(game) };
   ServiceLocals const locals{ ICON_BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  auto const          icon{ opeu_battle_element_icon(ds, event, element) };
+  auto const          icon{ opeu_battle_element_icon(game, event, element) };
   auto const          offset{ static_cast<uint16_t>((icon * MODES_PER_ICON + mode) * ICON_STRIDE) };
   auto const          segment{ data.icon_segment };
   data.stream_ptr[1] = segment;
   data.stream_ptr[0] = offset;
-  Call(ds, event, BattleRoutine::READ_FAR_BYTES, ICON_BYTES, buffer, offset, segment);
+  Call(game, event, BattleRoutine::READ_FAR_BYTES, ICON_BYTES, buffer, offset, segment);
   if (side != 1)
     for (uint16_t row{ 0 }; row < ICON_BYTES; row += ICON_ROW) {
-      auto* const left{ ds + static_cast<uint16_t>(buffer + row) };
-      std::swap_ranges(left, left + HALF_ROW, left + HALF_ROW);
+      auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row), 2 * HALF_ROW) };
+      std::ranges::swap_ranges(bytes.first(HALF_ROW), bytes.subspan(HALF_ROW));
     }
-  Call(ds, event, BattleRoutine::VRAM_LOAD, Near(data, data.vram), data.icon_segment, offset + ICON_BYTES);
-  Call(ds, event, BattleRoutine::VRAM_DRAW_NEAR, Near(data, data.vram), buffer);
+  Call(game, event, BattleRoutine::VRAM_LOAD, Near(data, data.vram), data.icon_segment, offset + ICON_BYTES);
+  Call(game, event, BattleRoutine::VRAM_DRAW_NEAR, Near(data, data.vram), buffer);
 }
 
-uint16_t svc_btlicon(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(ds, address, args, count);
+uint16_t svc_btlicon(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
+  return port_service(game, address, args, count);
 }

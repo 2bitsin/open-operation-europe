@@ -13,7 +13,8 @@
 #include "units/transfer-service.hpp"
 #include "units/xferpnl.hpp"
 
-#include "glue.hpp"
+#include "common/game.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -42,27 +43,27 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 }
 
 // Toggles the highlight of a row's name.
-void Highlight(std::uint8_t* ds, HostWordsEvent event, std::uint8_t row) {
-  auto const& data{ Data(ds) };
-  HighlightRow(ds, event, HIGHLIGHT, { data.transfer_panel_x, data.transfer_panel_y }, row);
+void Highlight(Game& game, HostWordsEvent event, std::uint8_t row) {
+  auto const& data{ Data(game) };
+  HighlightRow(game, event, HIGHLIGHT, { data.transfer_panel_x, data.transfer_panel_y }, row);
 }
 } // namespace
 
 // Runs the transfer until Enter. A player's transfer asks for confirmation; the computer's finishes its presentation.
 // The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
-void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
+void opeu_transfer_step(Game& game, HostWordsEvent event) {
   ServiceLocals const locals{ 2 };
   auto const          selection{ locals.At(0) };
-  auto&               data{ Data(ds) };
+  auto&               data{ Data(game) };
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
-  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) Call(ds, event, SOUND_CUE_14);
+  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) Call(game, event, SOUND_CUE_14);
   data.transfer_auto = UNMOVED;
   selected           = 0;
-  opeu_transfer_draw_row(ds, event, 1, 0);
-  opeu_transfer_draw_row(ds, event, 0, 0);
-  opeu_transfer_draw_row(ds, event, 2, 0);
-  Call(ds, event, INPUT_RESET);
+  opeu_transfer_draw_row(game, event, 1, 0);
+  opeu_transfer_draw_row(game, event, 0, 0);
+  opeu_transfer_draw_row(game, event, 2, 0);
+  Call(game, event, INPUT_RESET);
   for (;;) {
     std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
     auto const   left{ TableAt(0, selected, AMOUNT) };
@@ -70,11 +71,11 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
     auto const   right_capacity{ data.transfer_objective_ptr ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited)) : TableAt(1, selected, CAPACITY) };
     if (SidePlayed(data, data.current_side) && selected != highlighted) {
-      if (highlighted != NO_ROW) Highlight(ds, event, highlighted);
-      Highlight(ds, event, selected);
+      if (highlighted != NO_ROW) Highlight(game, event, highlighted);
+      Highlight(game, event, selected);
       highlighted = selected;
     }
-    auto const key{ data.transfer_interactive ? opeu_transfer_input(ds, event, selection) : opeu_transfer_auto_key(ds, selected) };
+    auto const key{ data.transfer_interactive ? opeu_transfer_input(game, event, selection) : opeu_transfer_auto_key(game, selected) };
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;
@@ -86,64 +87,64 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     case '1':
     case '4':
     case '7': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left_capacity) - Word(ds, left), KeyAmount(key)), Word(ds, right)) };
-      SetWord(ds, left, Word(ds, left) + moved);
-      SetWord(ds, right, Word(ds, right) - moved);
+      auto const moved{ opeu_min16(opeu_min16(Word(game, left_capacity) - Word(game, left), KeyAmount(key)), Word(game, right)) };
+      SetWord(game, left, Word(game, left) + moved);
+      SetWord(game, right, Word(game, right) - moved);
       redraw = 1;
       break;
     }
     case '3':
     case '6':
     case '9': {
-      auto const moved{ opeu_min16(opeu_min16(Word(ds, left), KeyAmount(key)), Word(ds, right_capacity) - Word(ds, right)) };
-      SetWord(ds, left, Word(ds, left) - moved);
-      SetWord(ds, right, Word(ds, right) + moved);
+      auto const moved{ opeu_min16(opeu_min16(Word(game, left), KeyAmount(key)), Word(game, right_capacity) - Word(game, right)) };
+      SetWord(game, left, Word(game, left) - moved);
+      SetWord(game, right, Word(game, right) + moved);
       redraw = 2;
       break;
     }
     case KEY_ENTER:
-      opeu_transfer_draw_row(ds, event, selected, redraw);
+      opeu_transfer_draw_row(game, event, selected, redraw);
       if (data.transfer_interactive) {
-        data.transfer_interactive = Call(ds, event, CONFIRM, data.context_group_record);
+        data.transfer_interactive = Call(game, event, CONFIRM, data.context_group_record);
         return;
       }
-      Call(ds, event, SOUND_CUE_16);
-      Call(ds, event, MUSIC_COMMAND_7);
-      Call(ds, event, PENDING_FINISH, FINISH_VALUE);
-      Call(ds, event, DAILY_CONTEXT, data.current_side);
+      Call(game, event, SOUND_CUE_16);
+      Call(game, event, MUSIC_COMMAND_7);
+      Call(game, event, PENDING_FINISH, FINISH_VALUE);
+      Call(game, event, DAILY_CONTEXT, data.current_side);
       data.transfer_interactive = 1;
       return;
     }
-    opeu_transfer_draw_row(ds, event, selected, redraw);
+    opeu_transfer_draw_row(game, event, selected, redraw);
   }
 }
 
 // Announces the transfer, runs the step (inside the daily picture for a player's side) and returns whether the
 // transfer was confirmed.
-uint16_t opeu_transfer_run(uint8_t ds[65536], HostWordsEvent event, uint16_t interactive) {
-  auto& data{ Data(ds) };
+uint16_t opeu_transfer_run(Game& game, HostWordsEvent event, uint16_t interactive) {
+  auto& data{ Data(game) };
   if (interactive)
-    Call(ds, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
-  else if (SidePlayed(data, data.current_side) && Call(ds, event, UNIT_ELIGIBLE, data.current_unit_ptr))
-    Call(ds, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
+    Call(game, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
+  else if (SidePlayed(data, data.current_side) && Call(game, event, UNIT_ELIGIBLE, data.current_unit_ptr))
+    Call(game, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
   data.transfer_interactive = interactive;
   if (SidePlayed(data, data.current_side))
-    Call(ds, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, STEP_OFFSET, STEP_SEGMENT);
+    Call(game, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, STEP_OFFSET, STEP_SEGMENT);
   else
-    opeu_transfer_step(ds, event);
-  Call(ds, event, MUSIC_COMMAND_7);
+    opeu_transfer_step(game, event);
+  Call(game, event, MUSIC_COMMAND_7);
   data.context_side = NO_CONTEXT;
-  Call(ds, event, DAILY_CONTEXT, data.current_side);
+  Call(game, event, DAILY_CONTEXT, data.current_side);
   return data.transfer_interactive;
 }
 
-uint16_t svc_xferstep(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) {
-  return svc_transfer(ds, "xferstep", id, args, count);
+uint16_t svc_xferstep(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
+  return svc_transfer(game, "xferstep", id, args, count);
 }
 
-auto port_routine_opeu_transfer_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+auto port_routine_opeu_transfer_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_transfer_step(ds, svc_xferstep);
+  opeu_transfer_step(game, svc_xferstep);
   return 0;
 }
