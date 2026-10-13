@@ -44,7 +44,7 @@ constexpr std::uint8_t  END_OF_LIST{ 0xff };
 constexpr std::int32_t  SEEK_FAILED{ -1 };
 
 auto Seek(Game& game, UiHost const* host, std::int16_t handle, std::int32_t position, std::uint16_t origin) -> std::int32_t {
-  return opeu_dos_seek(handle, position, static_cast<std::int16_t>(origin));
+  return opeu_dos_seek(handle, position, origin);
 }
 
 auto ReadFar(Game& game, UiHost const* host, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> std::uint16_t {
@@ -227,11 +227,6 @@ uint8_t opeu_stream_memory_byte(Game& game, const UiHost* host) {
   return StreamNext(game, host);
 }
 
-void opeu_picture_memory(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
-  SetStream(Data(game), segment, offset);
-  opeu_picture_decode(x, y, ReaderOf(game, host, StreamSource::MEMORY));
-}
-
 void opeu_picture_memory_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
   opeu_picture_decode_masked(x, y, ReaderOf(game, host, StreamSource::MEMORY));
@@ -256,17 +251,7 @@ void opeu_context_frame(Game& game, const UiHost* host, uint16_t x, uint16_t y, 
   for (i = x + 1; i < static_cast<std::uint16_t>(x + width - 1); i++) BlitStream(game, host, i, y);
   SetStream(data, host->tiles_segment, 0xc0);
   BlitStream(game, host, i, y);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(x + 1), static_cast<std::int16_t>(y + 8));
-}
-
-void opeu_portrait_unlink(Game& game, uint16_t node) {
-  auto& data{ Data(game) };
-  Unlink(data, PortraitCache(data), node);
-}
-
-void opeu_portrait_promote(Game& game, uint16_t node) {
-  auto& data{ Data(game) };
-  Promote(data, PortraitCache(data), node);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x + 1, y + 8);
 }
 
 // The offset of the general's portrait in the portrait segment, read from the portrait file when not cached.
@@ -286,16 +271,6 @@ uint16_t opeu_portrait_load(Game& game, const UiHost* host, uint8_t key) {
 void opeu_context_portrait(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t person) {
   auto const offset{ opeu_portrait_load(game, host, Record<Person>(Data(game), person).portrait) };
   opeu_blit_far(x, y, 8, 80, 0, port_far(Data(game).portrait_segment, offset));
-}
-
-void opeu_face_unlink(Game& game, uint16_t node) {
-  auto& data{ Data(game) };
-  Unlink(data, FaceCache(data), node);
-}
-
-void opeu_face_promote(Game& game, uint16_t node) {
-  auto& data{ Data(game) };
-  Promote(data, FaceCache(data), node);
 }
 
 // The offset of a face in the face segment; a face not cached is read packed from the face file into the image
@@ -337,13 +312,6 @@ void opeu_ui_outline(Game& game, const UiHost* host, uint16_t x1, uint16_t y1, u
   opeu_ui_line(x1, y1, x1, y2, color);
 }
 
-// Fills the screen with a backdrop pattern: one 16-pixel band drawn, then copied down the screen.
-void opeu_backdrop_fill(Game& game, const UiHost* host) {
-  auto const pattern{ Near(Data(game), Data(game).backdrop_pattern) };
-  for (std::uint16_t x = 0; x < 80; x += 2) opeu_draw_near(x, 0, 2, 16, 1, game.State().Bytes(pattern).data());
-  for (std::uint16_t y = 16; y < 400; y += 16) opeu_screen_copy(0, y - 16, 80, 16, 0, y);
-}
-
 void opeu_backdrop_fill_color(Game& game, const UiHost* host, uint8_t color) {
   auto const pattern{ Near(Data(game), Data(game).backdrop_color_pattern) };
   for (std::uint16_t x = 0; x < 80; x += 2) opeu_draw_near(x, 0, 2, 16, color, game.State().Bytes(pattern).data());
@@ -356,7 +324,7 @@ uint16_t opeu_title_box(Game& game, const UiHost* host, uint16_t x, uint16_t y, 
   opeu_backdrop_fill_color(game, host, 1);
   opeu_ui_box(x - 1, y - 4, length, 24, 1);
   opeu_ui_outline(game, host, (x - 1) * 8, y - 4, (length + x) * 8 - 9, y + 19, 7);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(x), static_cast<std::int16_t>(y));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x, y);
   return text;
 }
 

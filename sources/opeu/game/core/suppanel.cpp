@@ -52,7 +52,7 @@ uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 // the near pointer row, NO_KEY returned). With the keyboard: the key.
 uint8_t opeu_supply_input(Game& game, uint16_t row) {
   auto& data{ Data(game) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game));
+  if (!data.input_mode) return opeu_keyboard_key(game);
   opeu_mouse_show(game);
   opeu_delay_ticks(game, 3);
   std::uint8_t key;
@@ -92,10 +92,10 @@ void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(first) + data.supply_panel_x + 2), static_cast<int16_t>(data.supply_panel_y + 14));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_format)), static_cast<std::uint16_t>(first) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(second) + data.supply_panel_x + 20), static_cast<int16_t>(data.supply_panel_y + 14));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), static_cast<std::uint16_t>(second) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_format)), first });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), second });
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.

@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "common/game.hpp"
 #include "core/aiops1.hpp"
 #include "core/counter.hpp"
@@ -14,7 +15,11 @@
 #include "units/resagg.hpp"
 #include "units/stats.hpp"
 
+#include <algorithm>
+#include <functional>
+#include <ranges>
 #include <utility>
+#include <vector>
 
 using namespace opeu::game;
 
@@ -28,6 +33,42 @@ constexpr std::uint8_t REST_TURNS{ 3 };     // the countdown an unfit general re
 // A general holding a post: a role, or a division.
 auto HasPost(Person const& person) -> bool {
   return (person.role & Bits(PersonRole::ROLE_MASK)) || (person.assignment & Bits(Assignment::DIVISION));
+}
+
+auto Present(Person const& person) -> bool {
+  return person.status != PERSON_VACANT;
+}
+
+// A general's merit: twice the experience plus leadership, charm, bravery, health and the three arms ratings.
+auto Merit(Person const& person) -> std::uint16_t {
+  return static_cast<std::uint16_t>(person.experience * 2 + person.leadership + person.charm + person.bravery + person.health + person.infantry + person.artillery + person.armor);
+}
+
+// The current side's present generals by descending merit (equal merits keep their order).
+auto RankedGenerals(DataSegment& data) -> std::vector<std::reference_wrapper<Person>> {
+  auto ranked{ SideGenerals(data, data.current_side) | std::views::filter(Present) | std::ranges::to<std::vector<std::reference_wrapper<Person>>>() };
+  std::ranges::stable_sort(ranked, std::ranges::greater{}, [](Person const& person) { return Merit(person); });
+  return ranked;
+}
+
+// A general who can take a post: none held, no rest countdown, no poor-health or deputy mark, health at least 30.
+auto CanTakePost(Person const& person) -> bool {
+  return !HasPost(person) && !opeu_get_record_counter(person) && !(person.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY))) && person.health >= FIT_HEALTH;
+}
+
+// Hands the post of `leaving` to the best general who can take it; `leaving` loses role and countdown. Whether
+// someone took the post.
+auto ReplacePerson(Game& game, Person& leaving) -> bool {
+  auto&      data{ Data(game) };
+  auto const ranked{ RankedGenerals(data) };
+  auto const successor{ std::ranges::find_if(ranked, CanTakePost) };
+  if (successor == ranked.end()) return false;
+  auto& candidate{ successor->get() };
+  candidate.assignment |= leaving.assignment & (Bits(Assignment::DIVISION) | Bits(Assignment::DIVISION_MASK));
+  candidate.role       |= leaving.role & Bits(PersonRole::ROLE_MASK);
+  opeu_person_set_role(game, Near(data, leaving), 0);
+  opeu_set_record_counter(leaving, 0);
+  return true;
 }
 } // namespace
 
@@ -90,65 +131,15 @@ uint16_t opeu_ai_choose_target(Game& game) {
   return 1;
 }
 
-// A general's merit: twice the experience plus leadership, charm, bravery, health and the three arms ratings.
-uint16_t opeu_ai_person_merit(Game& game, uint16_t a) {
-  auto const& person{ Record<Person>(Data(game), a) };
-  return static_cast<uint16_t>(person.experience * 2 + person.leadership + person.charm + person.bravery + person.health + person.infantry + person.artillery + person.armor);
-}
-
-// Lists the side's generals into `list` by descending merit; returns their count.
-uint8_t opeu_ai_rank_people(Game& game, uint16_t* list) {
-  auto&         data{ Data(game) };
-  std::uint16_t merit[PEOPLE_PER_SIDE];
-  std::uint8_t  count{ 0 };
-  for (unsigned i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
-    auto& person{ data.people[data.current_side * PEOPLE_PER_SIDE + i] };
-    if (person.status == PERSON_VACANT) continue;
-    list[count]  = Near(data, person);
-    merit[count] = opeu_ai_person_merit(game, list[count]);
-    ++count;
-  }
-  for (std::uint8_t i{ 0 }; i < count; ++i)
-    for (std::uint8_t j{ static_cast<std::uint8_t>(count - 1) }; j > i; --j)
-      if (merit[j] > merit[j - 1]) {
-        std::swap(merit[j], merit[j - 1]);
-        std::swap(list[j], list[j - 1]);
-      }
-  return count;
-}
-
-// Hands the post of `person` to the best general without a post, rest countdown or health mark and with health of
-// at least 30; `person` loses role and countdown. 1 when someone took the post.
-uint16_t opeu_ai_replace_person(Game& game, uint16_t person) {
-  auto&         data{ Data(game) };
-  std::uint16_t ranked[PEOPLE_PER_SIDE];
-  auto const    count{ opeu_ai_rank_people(game, ranked) };
-  auto&         leaving{ Record<Person>(data, person) };
-  for (std::uint8_t i{ 0 }; i < count; ++i) {
-    auto& candidate{ Record<Person>(data, ranked[i]) };
-    if (candidate.status != PERSON_VACANT && !HasPost(candidate) && !opeu_get_record_counter(candidate) && !(candidate.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY)))
-        && candidate.health >= FIT_HEALTH) {
-      candidate.assignment |= leaving.assignment & (Bits(Assignment::DIVISION) | Bits(Assignment::DIVISION_MASK));
-      candidate.role       |= leaving.role & Bits(PersonRole::ROLE_MASK);
-      opeu_person_set_role(game, person, 0);
-      opeu_set_record_counter(leaving, 0);
-      return 1;
-    }
-  }
-  return 0;
-}
-
 // Replaces the side's generals holding a post whose health is poor (marked, or below 30); a general without a post
 // (or just replaced) whose health is poor and who is no deputy rests for three turns. 1 when anything changed.
 uint16_t opeu_ai_rotate_staff(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t changed{ 0 };
-  for (unsigned i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
-    auto& person{ data.people[data.current_side * PEOPLE_PER_SIDE + i] };
-    if (person.status == PERSON_VACANT) continue;
+  for (auto& person : SideGenerals(data, data.current_side) | std::views::filter(Present)) {
     if (HasPost(person)) {
       if (!(person.role & (Bits(PersonRole::POOR_HEALTH) | Bits(PersonRole::DEPUTY))) && person.health >= FIT_HEALTH) continue;
-      if (!opeu_ai_replace_person(game, Near(data, person))) continue;
+      if (!ReplacePerson(game, person)) continue;
       changed = 1;
     }
     if (!(person.role & Bits(PersonRole::DEPUTY)) && ((person.role & Bits(PersonRole::POOR_HEALTH)) || person.health < FIT_HEALTH)) {

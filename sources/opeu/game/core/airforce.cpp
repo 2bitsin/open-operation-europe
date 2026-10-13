@@ -58,8 +58,8 @@ void opeu_air_officer(Game& game) {
 
 // The mission table header.
 void opeu_air_header(Game& game) {
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(0x38), static_cast<short>(0xa3));
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).air_header_format)) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x38, 0xa3);
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(Data(game), Data(game).air_header_format) });
 }
 
 // The Air Force command loop.
@@ -74,31 +74,28 @@ void opeu_turn_action_8(Game& game) {
     opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_title));
     if (side.strike.planes) {
       opeu_air_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(TABLE_Y));
-      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_strike_format)),
-                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.strike.x, side.strike.y, buffer)), static_cast<std::uint16_t>(side.strike.planes),
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, TABLE_Y);
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.air_strike_format), opeu_location_name(game, side.strike.x, side.strike.y, buffer), side.strike.planes,
                                                             static_cast<std::uint16_t>(side.strike.hours) });
       row = 1;
     }
     if (side.drop.transports) {
       opeu_air_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
-      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_drop_format)),
-                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.drop.x, side.drop.y, buffer)), static_cast<std::uint16_t>(side.drop.transports),
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, row * ROW_HEIGHT + TABLE_Y);
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.air_drop_format), opeu_location_name(game, side.drop.x, side.drop.y, buffer), side.drop.transports,
                                                             static_cast<std::uint16_t>(side.drop.hours) });
       ++row;
     }
     if (side.lift.planes) {
       opeu_air_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
-      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_lift_format)),
-                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.lift.x, side.lift.y, buffer)), static_cast<std::uint16_t>(side.lift.planes),
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, row * ROW_HEIGHT + TABLE_Y);
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.air_lift_format), opeu_location_name(game, side.lift.x, side.lift.y, buffer), side.lift.planes,
                                                             static_cast<std::uint16_t>(side.lift.hours) });
     }
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_mission_question), 3, data.context_record2,
                                          Near(data, data.air_mission_menu)) };
     if (choice == MENU_CANCELLED) break;
     Dispatch(AIR_MISSIONS, data.air_missions.at(choice - 1u), game);
-    opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
+    opeu_daily_context(game, data.current_side);
   } while (!data.side_delays[data.current_side]);
 }

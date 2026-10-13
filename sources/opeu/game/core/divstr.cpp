@@ -49,10 +49,8 @@ void opeu_show_division_strength(Game& game, uint8_t div) {
     }
   }
   auto const x{ static_cast<std::uint16_t>(div * 20 + 11) };
-  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x), static_cast<int16_t>(LINE_Y));
-  opeu_cursor_print(game,
-                    std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(STRENGTH_FORMAT), static_cast<std::uint16_t>(div + 1), static_cast<std::uint16_t>(in_reserve ? RESERVE_MARK : NO_MARK),
-                                                  static_cast<std::uint16_t>(troops), static_cast<std::uint16_t>(armour), static_cast<std::uint16_t>(artillery) });
-  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0));
+  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), x);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x, LINE_Y);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ STRENGTH_FORMAT, static_cast<std::uint16_t>(div + 1), (in_reserve ? RESERVE_MARK : NO_MARK), troops, armour, artillery });
+  opeu_text_set_left(game, static_cast<TextHost*>(port_textout_host()), 0);
 }

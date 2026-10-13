@@ -54,9 +54,8 @@ void opeu_hurricane_present(Game& game) {
   auto const& data{ Data(game) };
   bool const  season{ HurricaneSeason(data) };
   opeu_sound_cue15(game);
-  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(HURRICANE_MESSAGE))),
-                                                          static_cast<std::uint16_t>(season ? data.hurricane_words[0] : data.hurricane_words[1]) });
+  opeu_daily_context(game, data.current_side);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, HURRICANE_MESSAGE), (season ? data.hurricane_words[0] : data.hurricane_words[1]) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, data.context_record2);
 }
 
@@ -72,14 +71,13 @@ void opeu_partisan_event(Game& game) {
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
       if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || RandomBelow(game, season ? 70 : 100) != 8) continue;
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(CELL_RISING_MESSAGE))),
-                                                              static_cast<std::uint16_t>(partisans) });
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, CELL_RISING_MESSAGE), partisans });
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
-        opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
+        opeu_location_flash(game, x, y, side);
       }
       opeu_map_mark_5(game, x, y);
-      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      opeu_map_erase(game, x, y);
     }
   for (auto& objective : data.objectives) {
     if (!objective.active || RandomBelow(game, season ? 50 : 80)) continue;
@@ -87,12 +85,11 @@ void opeu_partisan_event(Game& game) {
     if (opeu_objective_eligible(game, near)) {
       auto const side{ opeu_objective_side(game, near) };
       if (data.side_status[side] == SIDE_PLAYED) {
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(OBJECTIVE_RISING_MESSAGE))),
-                                                                static_cast<std::uint16_t>(partisans), static_cast<std::uint16_t>(near) });
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, opeu_message_lookup(game, OBJECTIVE_RISING_MESSAGE), partisans, near });
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
-        opeu_location_flash(game, static_cast<uint8_t>(objective.x), static_cast<uint8_t>(objective.y), static_cast<uint8_t>(side));
+        opeu_location_flash(game, objective.x, objective.y, side);
       }
     }
-    opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(game, 10) + (season ? 5 : 3)), &objective.strength);
+    opeu_sub_byte(RandomBelow(game, 10) + (season ? 5 : 3), &objective.strength);
   }
 }

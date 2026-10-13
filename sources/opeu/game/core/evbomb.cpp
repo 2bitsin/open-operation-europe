@@ -75,20 +75,18 @@ constexpr std::uint16_t EVENT_LOCALS{ 0xce };
 void opeu_bomb_draw_frame(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  opeu_bitmap_save(x, y, 4, 32, port_far(static_cast<std::uint16_t>(data.stream.segment), static_cast<std::uint16_t>(data.stream.offset)));
+  opeu_bitmap_save(x, y, 4, 32, port_far(data.stream.segment, data.stream.offset));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_IMAGE);
-  opeu_draw_far(static_cast<std::uint16_t>(x + 1), static_cast<std::uint16_t>(y + 8), 3, 24, SHADOW_MODE,
-                port_far(static_cast<std::uint16_t>(data.stream.segment), static_cast<std::uint16_t>(data.stream.offset)));
+  opeu_draw_far(x + 1, y + 8, 3, 24, SHADOW_MODE, port_far(data.stream.segment, data.stream.offset));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_SPRITE);
-  opeu_sprite_compose(x, y, 3, 24, port_far(static_cast<std::uint16_t>(data.stream.segment), static_cast<std::uint16_t>(data.stream.offset)),
-                      port_far(static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_MASK), port_far(static_cast<std::uint16_t>(data.image_segment), 0), 0);
+  opeu_sprite_compose(x, y, 3, 24, port_far(data.stream.segment, data.stream.offset), port_far(load + SPRITE_SEGMENT, BOMB_MASK), port_far(data.image_segment, 0), 0);
 }
 
 // Puts the background under the bomb at (x, y) back.
 void opeu_bomb_restore_frame(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  opeu_bitmap_restore(x, y, 4, 32, 0, port_far(static_cast<std::uint16_t>(data.stream.segment), static_cast<std::uint16_t>(data.stream.offset)));
+  opeu_bitmap_restore(x, y, 4, 32, 0, port_far(data.stream.segment, data.stream.offset));
 }
 
 // Centres the map on the regiment and drops the bomb from the top of the screen onto it.
@@ -98,8 +96,7 @@ void opeu_bomb_animate(Game& game, uint16_t load, uint16_t unit, uint8_t side) {
   auto const  ux{ static_cast<std::uint16_t>(target.x) };
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
-  opeu_map_center(game, static_cast<uint8_t>(static_cast<std::uint8_t>(ux)), static_cast<uint8_t>(static_cast<std::uint8_t>(uy)),
-                  static_cast<uint8_t>(static_cast<std::uint16_t>(opeu_side_for_status(game, side))));
+  opeu_map_center(game, ux, uy, static_cast<std::uint16_t>(opeu_side_for_status(game, side)));
   auto const pixel{ CellViewPixel(game, ux, uy) };
   auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
   for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
@@ -113,7 +110,7 @@ void opeu_bomb_animate(Game& game, uint16_t load, uint16_t unit, uint8_t side) {
 
 // The daily-show presenter of the raid.
 void opeu_bomb_present(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }
 
 void opeu_bomb_event(Game& game, uint16_t load) {
@@ -131,28 +128,26 @@ void opeu_bomb_event(Game& game, uint16_t load) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
       if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(game, troop) || RandomBelow(game, static_cast<std::uint16_t>(150 - level * 20))) continue;
-      opeu_unit_name(game, static_cast<std::uint16_t>(troop), static_cast<std::uint16_t>(name));
+      opeu_unit_name(game, troop, name);
       std::uint8_t voice{ NO_VOICE };
       if (data.side_status[0] == SIDE_PLAYED) {
         voice = 0;
-        opeu_string_copy(game, intro, opeu_message_lookup(game, static_cast<int16_t>(RAID_NOTICE_0)));
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(RAID_RESULT_0))),
-                                                                static_cast<std::uint16_t>(name) });
+        opeu_string_copy(game, intro, opeu_message_lookup(game, RAID_NOTICE_0));
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ report, opeu_message_lookup(game, RAID_RESULT_0), name });
       } else if (data.side_status[1] == SIDE_PLAYED && opeu_unit_selection_eligible(game, troop)) {
         voice = 1;
-        opeu_string_copy(game, intro, opeu_message_lookup(game, static_cast<int16_t>(RAID_NOTICE_1)));
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(RAID_RESULT_1))),
-                                                                static_cast<std::uint16_t>(name) });
+        opeu_string_copy(game, intro, opeu_message_lookup(game, RAID_NOTICE_1));
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ report, opeu_message_lookup(game, RAID_RESULT_1), name });
       }
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {
         auto const person{ opeu_find_side_record(game, voice, AIR_OFFICER_KIND) };
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), static_cast<std::uint16_t>(intro), static_cast<std::uint16_t>(person));
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), intro, person);
         port_daily_show(game, RAID_PICTURE, 0, Presenter::BOMBING);
         opeu_bomb_animate(game, load, troop, voice);
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(person));
+        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), report, person);
       }
-      opeu_unit_casualties(game, static_cast<std::uint16_t>(troop), 15, 30, 10, 0, 1);
+      opeu_unit_casualties(game, troop, 15, 30, 10, 0, 1);
       data.map_mode[0] = saved_mode;
     }
   }

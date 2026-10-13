@@ -30,6 +30,10 @@
 
 #include <array>
 #include <cstddef>
+#include <ranges>
+#include <span>
+#include <tuple>
+#include <utility>
 
 using namespace opeu::game;
 
@@ -56,35 +60,81 @@ constexpr std::uint16_t NAME_B{ 0x10 };
 
 // The format with one word, the word computed before the format is looked up.
 auto Format(Game& game, std::uint16_t message, std::uint16_t word) -> void {
-  auto const format{ opeu_message_lookup(game, static_cast<int16_t>(message)) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(word) });
+  auto const format{ opeu_message_lookup(game, message) };
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, format, word });
 }
-} // namespace
 
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
 // strength (infantry counting a tenth).
-uint16_t opeu_loss_unit_weak(Game& game, uint16_t unit) {
+auto Weak(Game& game, Unit const& unit) -> bool {
   ServiceLocals const locals{ WEAK_COUNT };
   auto&               data{ Data(game) };
   std::uint16_t       morale{ 0 };
   std::uint16_t       experience{ 0 };
   std::uint16_t       strength{ 0 };
-  for (auto const& element : Elements(data, Record<Unit>(data, unit).first)) {
+  for (auto const& element : Elements(data, unit)) {
     morale     += element.morale;
     experience += element.experience;
     strength   += data.element_types[element.type].category == 0 ? element.quantity / 10 : element.quantity;
   }
   auto const at_count{ locals.At(0) };
-  opeu_unit_quantity(game, unit, static_cast<uint8_t>(ALL_CATEGORIES), game.State().Bytes(at_count, 1).data());
+  opeu_unit_quantity(game, Near(data, unit), ALL_CATEGORIES, game.State().Bytes(at_count, 1).data());
   auto const count{ static_cast<std::uint8_t>(Word(game, at_count)) };
-  if (!count) return 0;
-  if ((RandomBelow(game, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(game, 20)) || RandomBelow(game, 20) + 20 > strength) return 1;
-  return 0;
+  if (!count) return false;
+  return (RandomBelow(game, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(game, 20)) || RandomBelow(game, 20) + 20 > strength;
 }
+
+// Whether the unit stands north of row 10.
+auto North(Unit const& unit) -> bool {
+  return unit.y < NORTH_ROWS;
+}
+
+// The first side's regiments with their slot in their division.
+auto FirstSideUnits(DataSegment& data) {
+  return std::views::zip(std::views::iota(0U), std::span{ data.units }.first(GROUPS_PER_SIDE * UNITS_PER_GROUP))
+         | std::views::transform([](auto const& indexed) { return std::pair<std::uint8_t, Unit&>{ static_cast<std::uint8_t>(std::get<0>(indexed) % UNITS_PER_GROUP), std::get<1>(indexed) }; });
+}
+
+// The partisans or the resistance (movement) strike the regiment.
+void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t name) {
+  auto&      data{ Data(game) };
+  auto const near{ Near(data, unit) };
+  if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
+    auto const unit_name{ opeu_unit_name(game, near, name) };
+    auto const format{ opeu_message_lookup(game, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, format, movement, unit_name });
+    opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
+    opeu_location_flash(game, unit.x, unit.y, 1);
+    port_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);
+  } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
+    Format(game, PARTISANS_STRIKE_US, movement);
+    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
+    port_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
+  }
+  opeu_music_command7(game);
+  opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
+}
+
+// The regiment north of row 10 takes losses.
+void NorthernLosses(Game& game, Unit const& unit, std::uint16_t name) {
+  auto&      data{ Data(game) };
+  auto const near{ Near(data, unit) };
+  if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
+    Format(game, ENEMY_LOSSES_NORTH, opeu_unit_name(game, near, name));
+    opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
+    opeu_location_flash(game, unit.x, unit.y, 1);
+    port_daily_show(game, PRESENT_B_ID, 1, Presenter::NORTHERN_LOSSES);
+  } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
+    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
+    port_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
+  }
+  opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);
+}
+} // namespace
 
 void opeu_loss_present_a(Game& game) {
   opeu_sound_cue12(game);
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }
 
 void opeu_loss_event_a(Game& game) {
@@ -99,38 +149,16 @@ void opeu_loss_event_a(Game& game) {
     movement = data.resistance_names[1];
   else
     return;
-  for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group)
-    for (unsigned slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
-      auto const near{ Near(data, data.units[group * UNITS_PER_GROUP + slot]) };
-      if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY))) continue;
-      if (!opeu_category_7(static_cast<uint8_t>(slot)) && !opeu_loss_unit_weak(game, near)) continue;
-      if (RandomBelow(game, 100)) continue;
-      if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
-        auto const unit_name{ opeu_unit_name(game, near, name) };
-        auto const format{ opeu_message_lookup(game, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
-        opeu_request_format(
-            game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(movement), static_cast<std::uint16_t>(unit_name) });
-        opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
-        auto const& unit{ Record<Unit>(data, near) };
-        opeu_location_flash(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(1));
-        port_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);
-      } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
-        Format(game, PARTISANS_STRIKE_US, movement);
-        opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
-        port_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
-      }
-      opeu_music_command7(game);
-      opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
-    }
-}
-
-// Whether the unit stands north of row 10.
-uint16_t opeu_loss_unit_low(Game& game, uint16_t unit) {
-  return Record<Unit>(Data(game), unit).y < NORTH_ROWS ? 1 : 0;
+  for (auto const [slot, unit] : FirstSideUnits(data)) {
+    if (!(unit.flags & Bits(UnitFlag::READY))) continue;
+    if (!opeu_category_7(slot) && !Weak(game, unit)) continue;
+    if (RandomBelow(game, 100)) continue;
+    Strike(game, unit, movement, name);
+  }
 }
 
 void opeu_loss_present_b(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }
 
 void opeu_loss_event_b(Game& game) {
@@ -138,19 +166,6 @@ void opeu_loss_event_b(Game& game) {
   auto&               data{ Data(game) };
   auto const          name{ locals.At(0) };
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
-  for (unsigned i{ 0 }; i < UNITS_PER_SIDE; ++i) {
-    auto const near{ Near(data, data.units[i]) };
-    if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(game, near) || RandomBelow(game, 50)) continue;
-    if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
-      Format(game, ENEMY_LOSSES_NORTH, opeu_unit_name(game, near, name));
-      opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
-      auto const& unit{ Record<Unit>(data, near) };
-      opeu_location_flash(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(1));
-      port_daily_show(game, PRESENT_B_ID, 1, Presenter::NORTHERN_LOSSES);
-    } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
-      opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
-      port_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
-    }
-    opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);
-  }
+  for (auto const& unit : std::span{ data.units }.first(UNITS_PER_SIDE))
+    if ((unit.flags & Bits(UnitFlag::READY)) && North(unit) && !RandomBelow(game, 50)) NorthernLosses(game, unit, name);
 }

@@ -97,7 +97,7 @@ uint16_t opeu_para_unit_create(Game& game, uint8_t side, uint8_t x, uint8_t y) {
     unit.y     = y;
     unit.moved = 0;
     unit.flags = Bits(UnitFlag::READY) | Bits(UnitFlag::COMMUNICATIONS);
-    opeu_clear_unit_orders(game, near, static_cast<uint8_t>(ALL_ORDER_SLOTS));
+    opeu_clear_unit_orders(game, near, ALL_ORDER_SLOTS);
   }
   auto const kept{ CellAt(data, x, y) };
   for (uint8_t i = 0; i < ELEMENTS_PER_SIDE; ++i) {
@@ -124,10 +124,10 @@ uint16_t opeu_para_unit_create(Game& game, uint8_t side, uint8_t x, uint8_t y) {
 // 1 when paratroops may land on (x, y): not on the excluded terrain, and on an objective only when the dropping side
 // holds it.
 uint16_t opeu_para_cell_ok(Game& game, uint8_t x, uint8_t y) {
-  auto const code{ static_cast<uint8_t>(opeu_map_code(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
+  auto const code{ opeu_map_code(game, x, y) };
   if (code == OBJECTIVE_CODE) {
-    auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
-    return static_cast<uint8_t>(opeu_objective_side(game, objective)) == Data(game).air_side;
+    auto const objective{ opeu_find_objective_at(game, x, y) };
+    return opeu_objective_side(game, objective) == Data(game).air_side;
   }
   for (auto const excluded : NO_LANDING_CODES)
     if (code == excluded) return 0;
@@ -138,9 +138,9 @@ uint16_t opeu_para_cell_ok(Game& game, uint8_t x, uint8_t y) {
 // side's strength, but it is never used and the drop never scatters.
 uint16_t opeu_para_scatter_check(Game& game) {
   auto const& data{ Data(game) };
-  auto        value{ opeu_officer_rating(game, static_cast<uint8_t>(data.air_side), static_cast<uint8_t>(INTELLIGENCE)) };
+  auto        value{ opeu_officer_rating(game, data.air_side, INTELLIGENCE) };
   value /= data.weather ? 2 : 1;
-  value /= opeu_hour_is_night(static_cast<uint8_t>(data.hour)) ? 2 : 1;
+  value /= opeu_hour_is_night(data.hour) ? 2 : 1;
   value /= data.sides[data.air_side].strength > STRONG_SIDE ? 1 : 2;
   (void)value;
   return 0;
@@ -154,7 +154,7 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
   auto&      data{ Data(game) };
   auto&      unit{ Record<Unit>(data, near) };
   auto const ready{ Bits(UnitFlag::READY) };
-  auto const side{ static_cast<uint8_t>(opeu_unit_side(near)) };
+  auto const side{ opeu_unit_side(near) };
   uint8_t    x{ unit.x };
   uint8_t    y{ unit.y };
   if (opeu_para_scatter_check(game)) {
@@ -170,12 +170,12 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
   // Looked for with the regiment itself stood down, so that it does not find itself.
   auto flags{ unit.flags };
   unit.flags &= ~ready;
-  auto const other{ opeu_find_unit_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+  auto const other{ opeu_find_unit_at(game, x, y) };
   unit.flags = flags;
   auto const troops{ Troops(game, near) };
   if (other) {
     auto& enemy{ Record<Unit>(data, other) };
-    if (static_cast<uint8_t>(opeu_unit_side(other)) != side) {
+    if (opeu_unit_side(other) != side) {
       Casualties(game, unit, troops / 3 + losses, troops / 40, 1);
       if (unit.first) {
         Record<Element>(data, unit.first).flags  |= Bits(ElementFlag::SPOTTED);
@@ -186,10 +186,10 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
     unit.flags &= ~ready;
     opeu_arrival_prepare(game, other);
     unit.flags = flags;
-  } else if (opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(ANY_SIDE))) {
+  } else if (opeu_cell_marked(game, x, y, ANY_SIDE)) {
     Casualties(game, unit, troops / 10 + losses, troops / 40, 1);
-    opeu_mark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
-    opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+    opeu_mark_cell(game, x, y, side);
+    opeu_map_erase(game, x, y);
   } else {
     Casualties(game, unit, losses >> 1, troops / 100, 0);
     return unit.flags & ready;
@@ -199,8 +199,8 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
     uint8_t to_x{ x };
     uint8_t to_y{ y };
     if (!GridStep(to_x, to_y, direction)) continue;
-    if (static_cast<uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(to_x), static_cast<uint8_t>(to_y))) != NO_SIDE) continue;
-    if (opeu_cell_marked(game, static_cast<uint8_t>(to_x), static_cast<uint8_t>(to_y), static_cast<uint8_t>(ANY_SIDE))) continue;
+    if (opeu_cell_side(game, to_x, to_y) != NO_SIDE) continue;
+    if (opeu_cell_marked(game, to_x, to_y, ANY_SIDE)) continue;
     if (!opeu_para_cell_ok(game, to_x, to_y)) continue;
     unit.x = to_x;
     unit.y = to_y;

@@ -49,17 +49,16 @@ void opeu_daily_context(Game& game, uint8_t side) {
   opeu_context_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
   opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 24, width + 13);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(general) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, general });
   opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_cursor_print(game,
-                    std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(STATS_FORMAT), static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.infantry),
-                                                   static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.bravery),
-                                                   static_cast<std::uint16_t>(person.armor), static_cast<std::uint16_t>((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL),
-                                                   static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.experience) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 10>{ STATS_FORMAT, static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.infantry),
+                                                         static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.bravery),
+                                                         static_cast<std::uint16_t>(person.armor), ((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL),
+                                                         static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.experience) });
   opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 70, 40, general);
   for (std::uint16_t y{ 316 }; y < 382; y += 16) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(45), static_cast<int16_t>(y));
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(BLANK_FORMAT) });
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 45, y);
+    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ BLANK_FORMAT });
   }
   data.context_side = side;
   opeu_army_summary(game);
@@ -67,5 +66,5 @@ void opeu_daily_context(Game& game, uint8_t side) {
 
 void opeu_turn_pre_context(Game& game) {
   auto const& data{ Data(game) };
-  opeu_set_turn_context(game, static_cast<std::uint8_t>(data.scenario_contexts[std::to_underlying(CurrentScenario(data))]));
+  opeu_set_turn_context(game, data.scenario_contexts[std::to_underlying(CurrentScenario(data))]);
 }

@@ -103,10 +103,10 @@ uint16_t opeu_para_drop_due(Game& game) {
   auto& drop{ data.sides[data.air_side].drop };
   if (!drop.transports) return 0;
   opeu_sub_byte(1, &drop.due);
-  if (!opeu_para_ready(game) || !opeu_para_cell_ok(game, static_cast<uint8_t>(drop.x), static_cast<uint8_t>(drop.y)))
+  if (!opeu_para_ready(game) || !opeu_para_cell_ok(game, drop.x, drop.y))
     opeu_para_clear(game);
   else if (!opeu_sub_byte(1, &drop.hours))
-    switch (static_cast<AirAnswer>(static_cast<std::uint16_t>(opeu_air_report(game, Near(data, data.paratroop_drop_name), static_cast<uint8_t>(drop.due))) & 0xff)) {
+    switch (static_cast<AirAnswer>(static_cast<std::uint16_t>(opeu_air_report(game, Near(data, data.paratroop_drop_name), drop.due)) & 0xff)) {
     case AirAnswer::FLY:      return 1;
     case AirAnswer::WAIT:     drop.hours = 1; break;
     case AirAnswer::CALL_OFF: opeu_para_clear(game); break;
@@ -120,13 +120,12 @@ void opeu_para_drop_present(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
-    auto const commander{ opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(COMMANDER)) };
-    auto const person{ opeu_find_person_template(game, static_cast<uint8_t>(Record<Person>(data, commander).status), static_cast<uint8_t>(AIR_COMMANDER)) };
+    auto const commander{ opeu_find_side_record(game, side, COMMANDER) };
+    auto const person{ opeu_find_person_template(game, Record<Person>(data, commander).status, AIR_COMMANDER) };
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_begin), person);
   } else {
-    auto const other{ static_cast<uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side))) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_spotted),
-                         opeu_find_side_record(game, static_cast<uint8_t>(other), static_cast<uint8_t>(INTELLIGENCE)));
+    auto const other{ opeu_opposite_side(side) };
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_spotted), opeu_find_side_record(game, other, INTELLIGENCE));
   }
   opeu_sound_cue4(game);
 }
@@ -144,11 +143,11 @@ void opeu_para_drop_event(Game& game) {
   auto const y{ drop.y };
   auto const was{ data.map_mode[0] };
   data.map_mode[0] = 1;
-  opeu_map_center(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(static_cast<std::uint16_t>(opeu_side_for_status(game, static_cast<uint8_t>(side_index)))));
+  opeu_map_center(game, x, y, static_cast<std::uint16_t>(opeu_side_for_status(game, side_index)));
   uint16_t left{ drop.transports };
   opeu_sub_word(left, &side.planes);
   opeu_sub_word(drop.paratroops, &side.paratroops);
-  opeu_sub_word(opeu_air_damage_roll(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(opeu_min16(left, FIRE_PLANES) / 30)), &left);
+  opeu_sub_word(opeu_air_damage_roll(game, x, y, opeu_min16(left, FIRE_PLANES) / 30), &left);
   auto const     pixel{ CellViewPixel(game, x, y) };
   uint16_t const target_x{ pixel.x };
   uint16_t const target_y{ pixel.y };
@@ -157,11 +156,11 @@ void opeu_para_drop_event(Game& game) {
       opeu_air_destroyed_message(game, Near(data, data.paratroop_planes_name));
       break;
     }
-    opeu_air_sprite_draw(game, 0, target_x, row, static_cast<uint8_t>(side_index));
-    if (row == target_y) port_daily_show(game, SHOW_ID, static_cast<std::uint16_t>(opeu_side_for_status(game, static_cast<uint8_t>(side_index))), Presenter::PARATROOPERS);
+    opeu_air_sprite_draw(game, 0, target_x, row, side_index);
+    if (row == target_y) port_daily_show(game, SHOW_ID, opeu_side_for_status(game, side_index), Presenter::PARATROOPERS);
     if (target_y - row == LANDING_ROWS) {
       opeu_music_command7(game);
-      auto const unit{ CreateDropUnit(game, static_cast<uint8_t>(side_index), Near(data, drop)) };
+      auto const unit{ CreateDropUnit(game, side_index, Near(data, drop)) };
       if (opeu_para_land(game, unit, (drop.transports - left) * 10)) opeu_arrival_prepare(game, unit);
     }
     opeu_delay_ticks(game, 1);
@@ -169,7 +168,7 @@ void opeu_para_drop_event(Game& game) {
   }
   data.map_mode[0] = was;
   if (left) {
-    opeu_officer_gain(game, static_cast<uint8_t>(side_index), static_cast<uint8_t>(INTELLIGENCE));
+    opeu_officer_gain(game, side_index, INTELLIGENCE);
     side.pending_planes += left;
   }
   opeu_para_clear(game);

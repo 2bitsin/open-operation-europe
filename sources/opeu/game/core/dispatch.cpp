@@ -57,21 +57,21 @@ void opeu_process_selected_turn(Game& game) {
   opeu_turn_pre_context(game);
   schedule                  = 0;
   data.turn_notification    = 0;
-  data.context_record1      = opeu_find_side_record(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(1));
-  data.context_record2      = opeu_find_side_record(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(2));
-  data.context_record3      = opeu_find_side_record(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(3));
-  data.context_group_record = opeu_find_group_record(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(data.current_group));
+  data.context_record1      = opeu_find_side_record(game, data.current_side, 1);
+  data.context_record2      = opeu_find_side_record(game, data.current_side, 2);
+  data.context_record3      = opeu_find_side_record(game, data.current_side, 3);
+  data.context_group_record = opeu_find_group_record(game, data.current_side, data.current_group);
   if (!(Record<Unit>(data, data.current_unit_ptr).flags & Bits(UnitFlag::READY))) return;
   if (data.side_status[data.current_side] == SIDE_PLAYED) {
     opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
     std::uint16_t const label[]{ LABEL_FORMAT, data.side_names[data.current_side], static_cast<std::uint16_t>(data.current_group * 10 + data.current_entry + 11),
                                  data.entry_names[data.current_entry] };
     opeu_cursor_print(game, label);
-    if (opeu_find_side_selected_unit(game, static_cast<uint8_t>(data.current_side)) == data.current_unit_ptr && data.side_control[data.current_side] == SIDE_PLAYED) {
+    if (opeu_find_side_selected_unit(game, data.current_side) == data.current_unit_ptr && data.side_control[data.current_side] == SIDE_PLAYED) {
       if (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b()) data.side_delays[data.current_side] = 0;
     }
   }
-  if (opeu_find_side_selected_unit(game, static_cast<uint8_t>(data.current_side)) == data.current_unit_ptr) {
+  if (opeu_find_side_selected_unit(game, data.current_side) == data.current_unit_ptr) {
     opeu_turn_selected_begin(game);
     if (data.side_control[data.current_side] == SIDE_PLAYED) {
       if (data.side_delays[data.current_side] == 0) opeu_turn_control_one(game);

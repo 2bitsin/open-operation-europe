@@ -33,12 +33,11 @@ void opeu_request_error_present(Game& game) {
   auto const& request{ Record<RequestSlot>(data, data.invalid_request) };
   auto const  buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   auto const  name{ data.request_kind_names[request.kind] };
-  auto const  format{ opeu_message_lookup(game, static_cast<short>(FIRST_REASON_MESSAGE + data.request_error)) };
+  auto const  format{ opeu_message_lookup(game, FIRST_REASON_MESSAGE + data.request_error) };
   if (data.request_error == 0)
-    opeu_request_format(
-        game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(request.target), static_cast<std::uint16_t>(name) });
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, format, request.target, name });
   else
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(name) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, format, name });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_template);
-  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, static_cast<uint8_t>(3));
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, 3);
 }

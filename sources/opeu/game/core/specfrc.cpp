@@ -56,7 +56,7 @@ constexpr auto SPECIAL_MISSIONS = DispatchRows<SpecialForcesAction, auto (*)(Gam
 void opeu_special_officer(Game& game) {
   auto& data{ Data(game) };
   data.special_order  = Near(data, Record<Side>(data, data.current_side_ptr).order);
-  data.special_person = opeu_find_person_template(game, static_cast<uint8_t>(Record<Person>(data, data.context_record1).status), static_cast<uint8_t>(OFFICER_KIND));
+  data.special_person = opeu_find_person_template(game, Record<Person>(data, data.context_record1).status, OFFICER_KIND);
   auto const& deputy{ Record<Person>(data, data.context_record2) };
   auto const& commander{ Record<Person>(data, data.context_record1) };
   data.special_leadership = Average(deputy, commander, &Person::leadership);
@@ -91,13 +91,12 @@ void opeu_turn_action_9(Game& game) {
     auto& order{ Record<Order>(data, data.special_order) };
     if (order.kind != Bits(SpecialMission::NONE)) {
       opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_forces_title));
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(ORDERS_Y));
-      opeu_cursor_print(game,
-                        std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), static_cast<std::uint16_t>(data.special_mission_names[order.kind]) });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TARGET_Y));
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, ORDERS_Y);
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), data.special_mission_names[order.kind] });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, TARGET_Y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_target_line)),
-                                                            static_cast<std::uint16_t>(opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TIME_Y));
+                                                            (opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, TIME_Y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_time_line)), static_cast<std::uint16_t>(order.progress) });
       if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
       order.kind = Bits(SpecialMission::NONE);
@@ -107,5 +106,5 @@ void opeu_turn_action_9(Game& game) {
     if (choice == MENU_CANCELLED) return;
     Dispatch(SPECIAL_MISSIONS, data.special_missions.at(choice - 1u), game);
   } while (!data.side_delays[data.current_side]);
-  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, data.current_side);
 }

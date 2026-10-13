@@ -21,6 +21,6 @@ uint16_t opeu_ai_supply_share(Game& game, uint16_t* budget, uint16_t amount, uin
   auto&         data{ Data(game) };
   std::uint16_t stock{ which < 3 ? Record<Side>(data, data.current_side_ptr).stock[which] : std::uint16_t{ 0 } };
   stock   /= LOAD;
-  *budget -= opeu_min16(static_cast<std::uint16_t>(amount / LOAD), opeu_min16(stock, opeu_min16(*budget, MAX_LOADS)));
+  *budget -= opeu_min16(amount / LOAD, opeu_min16(stock, opeu_min16(*budget, MAX_LOADS)));
   return static_cast<std::uint16_t>(stock * LOAD);
 }

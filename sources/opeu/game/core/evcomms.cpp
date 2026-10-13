@@ -43,18 +43,18 @@ void opeu_objective_comms_event(Game& game) {
     auto const    side{ opeu_objective_side(game, camp) };
     std::uint16_t level{ DeliveryLevel(data, side) };
     auto const    speaker{ opeu_find_side_record(game, side, ADVISER) };
-    opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(game, static_cast<std::uint16_t>(5 - level)) + 1), objective.strength_limit, &objective.strength);
+    opeu_add_byte(RandomBelow(game, static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit, &objective.strength);
     if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && RandomBelow(game, static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
       objective.flags |= Bits(ObjectiveFlag::COMMUNICATIONS);
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(news), static_cast<std::uint16_t>(RESTORED_FORMAT), static_cast<std::uint16_t>(camp) });
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ news, RESTORED_FORMAT, camp });
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), news, speaker);
-      opeu_location_flash(game, static_cast<std::uint8_t>(objective.x), static_cast<std::uint8_t>(objective.y), static_cast<std::uint8_t>(side));
+      opeu_location_flash(game, objective.x, objective.y, side);
     }
     if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && RandomBelow(game, static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
       objective.flags &= static_cast<std::uint8_t>(~Bits(ObjectiveFlag::MARKED));
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(news), static_cast<std::uint16_t>(CAPTURED_FORMAT), static_cast<std::uint16_t>(camp) });
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ news, CAPTURED_FORMAT, camp });
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), news, speaker);
-      opeu_location_flash(game, static_cast<std::uint8_t>(objective.x), static_cast<std::uint8_t>(objective.y), static_cast<std::uint8_t>(side));
+      opeu_location_flash(game, objective.x, objective.y, side);
     }
   }
 }

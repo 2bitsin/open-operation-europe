@@ -39,7 +39,7 @@ void opeu_process_arrivals(Game& game, uint8_t side) {
       auto&      unit{ data.units[UNITS_PER_SIDE * side + UNITS_PER_GROUP * g + u] };
       auto const near{ Near(data, unit) };
       if (!(unit.flags & Bits(UnitFlag::ARRIVING))) continue;
-      if (!opeu_arrival_locate(game, Near(data, unit.x), Near(data, unit.y), static_cast<uint8_t>(side))) return;
+      if (!opeu_arrival_locate(game, Near(data, unit.x), Near(data, unit.y), side)) return;
       for (auto& task : group.tasks) task.kind = Bits(TaskKind::NONE);
       group.flags &= ~Bits(GroupFlag::RESERVE);
       group.flags |= Bits(GroupFlag::READY);
@@ -52,13 +52,13 @@ void opeu_process_arrivals(Game& game, uint8_t side) {
       }
       opeu_arrival_prepare(game, near);
       if (data.side_status[side] == SIDE_PLAYED) {
-        opeu_set_turn_context(game, static_cast<uint8_t>(ARRIVAL_CONTEXT));
-        opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(side));
+        opeu_set_turn_context(game, ARRIVAL_CONTEXT);
+        opeu_arrival_location(game, unit.x, unit.y, side);
         opeu_arrival_view(game, near);
         data.arrival_side = side;
         data.arrival_unit = near;
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), Presenter::ARRIVAL);
-        opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, side, Presenter::ARRIVAL);
+        opeu_finish_side_initialization(game, 0);
       }
       arrived = true;
     }

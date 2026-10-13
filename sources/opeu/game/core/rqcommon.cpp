@@ -39,7 +39,7 @@ void opeu_request_no_more(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_no_more_text)), static_cast<std::uint16_t>(what) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_no_more_text)), what });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
 }
 
@@ -59,13 +59,13 @@ uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_cancel_text)), static_cast<std::uint16_t>(what) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_cancel_text)), what });
   return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2);
 }
 
 // The daily dialog's closing of a filed request.
 void opeu_request_finish(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }
 
 // Files the request in the current side's slot for its kind: "I will file the request immediately."
@@ -77,7 +77,7 @@ void opeu_request_file(Game& game, uint16_t request) {
   slot.argument = filed.argument;
   slot.kind     = filed.kind;
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_filed_text), data.context_record2);
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(data.current_side), Presenter::REQUEST_FINISH);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, data.current_side, Presenter::REQUEST_FINISH);
 }
 
 namespace opeu::game::detail::rqcommon {

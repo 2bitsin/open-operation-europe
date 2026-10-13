@@ -97,9 +97,9 @@ void opeu_turn_prepare(Game& game, const DialogHost* host) {
     weather = data.weather_names[data.weather];
   opeu_picture_memory_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 0x18, data.frame_segment, 0x1c00);
   opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x12), static_cast<int16_t>(0x20));
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(Near(data, data.turn_date_format)), static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day),
-                                                        static_cast<std::uint16_t>(data.year), static_cast<std::uint16_t>(data.hour), static_cast<std::uint16_t>(weather) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x12, 0x20);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.turn_date_format), static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day),
+                                                        static_cast<std::uint16_t>(data.year), static_cast<std::uint16_t>(data.hour), weather });
   opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
   opeu_palette_for_hour(game, static_cast<const UiHost*>(port_uiprim_host()));
 }
@@ -129,7 +129,7 @@ void opeu_turn_active_begin(Game& game, const DialogHost* host) {
     data.control_selection = 1;
   }
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.turn_panel_text));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(2), static_cast<int16_t>(4));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 2, 4);
 }
 
 void opeu_context_begin(Game& game, const DialogHost* host) {
@@ -139,7 +139,7 @@ void opeu_context_begin(Game& game, const DialogHost* host) {
     opeu_ui_box(0x2d, 0x38, 0x14, 0x42, 1);
   }
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.context_panel_text));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x2d), static_cast<int16_t>(0x39));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x2d, 0x39);
   data.context_side = NO_SIDE;
 }
 
@@ -150,7 +150,7 @@ void opeu_info_panel_begin(Game& game, const DialogHost* host) {
   else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.info_panel_text));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x2d), static_cast<int16_t>(0xa3));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x2d, 0xa3);
 }
 
 void opeu_title_panel_begin(Game& game, const DialogHost* host) {
@@ -162,7 +162,7 @@ void opeu_title_panel_begin(Game& game, const DialogHost* host) {
   } else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.title_panel_text));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x2d), static_cast<int16_t>(0xa3));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x2d, 0xa3);
 }
 
 void opeu_message_panel_begin(Game& game, const DialogHost* host) {
@@ -173,7 +173,7 @@ void opeu_message_panel_begin(Game& game, const DialogHost* host) {
   } else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.message_panel_text));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x36), static_cast<int16_t>(0x144));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x36, 0x144);
 }
 
 // Clears the screen and forgets every panel, frame and view drawn on it.
@@ -194,7 +194,7 @@ void opeu_army_title(Game& game, const DialogHost* host, uint16_t name) {
   opeu_title_panel_begin(game, host);
   opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
   opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2c, 0x7a, static_cast<std::uint8_t>(opeu_string_length(game, name)) + 3);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.title_format)), static_cast<std::uint16_t>(name) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.title_format), name });
   opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
 }
 
@@ -207,11 +207,11 @@ void opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t si
     opeu_bitmap_save(5, 0x78, 0x22, 0xb8, port_far(data.bitmap_buffer, 0));
     opeu_ui_box(5, 0x78, 0x22, 0xb8, SideTextColor(side));
     opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x28, 0x78, 0x137, 0x12f, 7);
-    opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 0x30, 0x80, static_cast<int16_t>(data.message_picture_handle), id);
+    opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 0x30, 0x80, data.message_picture_handle, id);
   }
   RunPresenter(game, present);
   if (data.message_pictures == 1 && id == NEW_WEAPON_PICTURE) {
-    opeu_delay_units(game, static_cast<uint8_t>(static_cast<std::uint8_t>(data.message_speed * 7)));
+    opeu_delay_units(game, data.message_speed * 7);
     opeu_music_command7(game);
     opeu_sound_cue16(game);
   }
@@ -222,10 +222,10 @@ void opeu_daily_show(Game& game, const DialogHost* host, uint16_t id, uint8_t si
 // closes it. 0 when the speaker's side is not watched or the speaker's unit is hidden from the player.
 uint16_t opeu_speaker_panel(Game& game, const DialogHost* host, uint16_t person, uint16_t show) {
   auto const& data{ Data(game) };
-  auto const  side{ static_cast<std::uint8_t>(opeu_person_lacks_side0_flag(game, person)) };
+  auto const  side{ opeu_person_lacks_side0_flag(game, person) };
   if (data.side_status[side] == SIDE_COMPUTER) return 0;
   auto const unit{ opeu_person_selected_unit(game, person) };
-  if (data.side_initializing) opeu_daily_context(game, static_cast<uint8_t>(side));
+  if (data.side_initializing) opeu_daily_context(game, side);
   if (unit && !opeu_unit_selection_eligible(game, opeu_person_selected_unit(game, person))) return 0;
   if (show == 1) {
     auto const& speaker{ Record<Person>(data, person) };
@@ -239,20 +239,20 @@ uint16_t opeu_speaker_panel(Game& game, const DialogHost* host, uint16_t person,
       auto const division{ (speaker.assignment & Bits(Assignment::DIVISION_MASK)) + 1 };
       if (speaker.assignment & Bits(Assignment::DIVISION)) {
         opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2c, 0x11a, opeu_string_length(game, person) + 0xe);
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.division_title)), static_cast<std::uint16_t>(division) });
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.division_title), static_cast<std::uint16_t>(division) });
       } else {
         opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2c, 0x11a, opeu_string_length(game, person) + 0xd);
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.commander_title)), static_cast<std::uint16_t>(division) });
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.commander_title), static_cast<std::uint16_t>(division) });
       }
     }
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.speaker_name_format)), static_cast<std::uint16_t>(person) });
+    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.speaker_name_format), person });
     opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2d, 0x13c, person);
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.speaker_body_text));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x36), static_cast<int16_t>(0x144));
-    opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(1));
-    opeu_text_window(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x36), static_cast<int16_t>(0x4e), static_cast<int16_t>(0x142), static_cast<int16_t>(0x192));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x36, 0x144);
+    opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), 1);
+    opeu_text_window(game, static_cast<TextHost*>(port_textout_host()), 0x36, 0x4e, 0x142, 0x192);
   } else {
-    opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0));
+    opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), 0);
     opeu_text_window_reset(game, static_cast<TextHost*>(port_textout_host()));
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.speaker_end_text));
   }
@@ -261,7 +261,7 @@ uint16_t opeu_speaker_panel(Game& game, const DialogHost* host, uint16_t person,
 
 // Puts the zero-terminated text at DS:text out character by character.
 void opeu_text_feed(Game& game, const DialogHost* host, uint16_t text) {
-  for (char c; (c = Record<char>(Data(game), text)) != 0; ++text) opeu_text_put(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(static_cast<std::uint8_t>(c)));
+  for (char c; (c = Record<char>(Data(game), text)) != 0; ++text) opeu_text_put(game, static_cast<TextHost*>(port_textout_host()), c);
 }
 
 // The message spoken by the person, if the player sees the person.
@@ -276,8 +276,7 @@ void opeu_control_message(Game& game, const DialogHost* host, uint16_t text, uin
 uint16_t opeu_menu_prompt(Game& game, const DialogHost* host, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t menu) {
   auto const& data{ Data(game) };
   auto const  range{ host->scratch };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(range), static_cast<std::uint16_t>(Near(data, data.menu_prompt_format)), static_cast<std::uint16_t>(first),
-                                                          static_cast<std::uint16_t>(last) });
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ range, Near(data, data.menu_prompt_format), first, last });
   opeu_text_feed(game, host, text);
   opeu_text_feed(game, host, range);
   return opeu_choose_value(game, first, last, static_cast<int16_t>(flag), menu);
@@ -321,8 +320,8 @@ uint16_t opeu_confirm_ok(Game& game, const DialogHost* host, uint16_t person) {
 uint16_t opeu_delay_confirm(Game& game, const DialogHost* host, uint16_t person, uint8_t hours) {
   auto const& data{ Data(game) };
   auto const  text{ host->scratch };
-  if (hours == 1) return opeu_confirm_message(game, host, opeu_message_lookup(game, static_cast<int16_t>(ONE_HOUR_TEXT)), person);
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.delay_hours_format)), static_cast<std::uint16_t>(hours) });
+  if (hours == 1) return opeu_confirm_message(game, host, opeu_message_lookup(game, ONE_HOUR_TEXT), person);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.delay_hours_format), static_cast<std::uint16_t>(hours) });
   return opeu_confirm_message(game, host, text, person);
 }
 
@@ -331,15 +330,14 @@ void opeu_unit_report(Game& game, const DialogHost* host, uint16_t unit, uint16_
   auto const& data{ Data(game) };
   auto const  text{ host->scratch };
   auto const  name{ static_cast<std::uint16_t>(host->scratch + 100) };
-  auto const  side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
+  auto const  side{ opeu_unit_side(unit) };
   if (data.side_status[side] == SIDE_PLAYED && opeu_unit_selection_eligible(game, unit)) {
     auto const& record{ Record<Unit>(data, unit) };
-    opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.unit_report_format)),
-                                                            static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(data.side_names[side]),
-                                                            static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
+    opeu_request_format(
+        game, std::array<std::uint16_t, 5>{ text, Near(data, data.unit_report_format), static_cast<std::uint16_t>(SideColorCode(side)), data.side_names[side], opeu_unit_name(game, unit, name) });
     opeu_string_append(game, text, message);
-    opeu_arrival_location(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(side));
-    opeu_control_message(game, host, text, opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_group_index(unit)))));
+    opeu_arrival_location(game, record.x, record.y, side);
+    opeu_control_message(game, host, text, opeu_find_group_record(game, side, opeu_unit_group_index(unit)));
     opeu_arrival_view(game, unit);
   }
 }
@@ -348,15 +346,14 @@ void opeu_unit_report(Game& game, const DialogHost* host, uint16_t unit, uint16_
 void opeu_objective_report(Game& game, const DialogHost* host, uint16_t objective, uint16_t message) {
   auto const& data{ Data(game) };
   auto const  text{ host->scratch };
-  auto const  side{ static_cast<std::uint8_t>(opeu_objective_side(game, objective)) };
+  auto const  side{ opeu_objective_side(game, objective) };
   if (data.side_status[side] == SIDE_PLAYED && opeu_objective_eligible(game, objective)) {
     auto const& record{ Record<Objective>(data, objective) };
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.objective_report_format)),
-                                                            static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective) });
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ text, Near(data, data.objective_report_format), static_cast<std::uint16_t>(SideColorCode(side)), objective });
     opeu_string_append(game, text, message);
-    opeu_arrival_location(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(side));
-    opeu_control_message(game, host, text, opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(INTELLIGENCE_CHIEF_KIND)));
-    opeu_side_cell_flash(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(side));
+    opeu_arrival_location(game, record.x, record.y, side);
+    opeu_control_message(game, host, text, opeu_find_side_record(game, side, INTELLIGENCE_CHIEF_KIND));
+    opeu_side_cell_flash(game, record.x, record.y, side);
   }
 }
 
@@ -365,32 +362,32 @@ void opeu_objective_report(Game& game, const DialogHost* host, uint16_t objectiv
 void opeu_unit_side_report(Game& game, const DialogHost* host, uint16_t unit, uint16_t message) {
   auto const&   data{ Data(game) };
   std::uint16_t speaker;
-  auto          side{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_side(unit))))) };
+  auto          side{ (opeu_opposite_side(opeu_unit_side(unit))) };
   if (data.side_status[side] == SIDE_PLAYED && opeu_unit_special(game, unit))
-    speaker = opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(INTELLIGENCE_CHIEF_KIND));
+    speaker = opeu_find_side_record(game, side, INTELLIGENCE_CHIEF_KIND);
   else {
-    side = static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side)));
+    side = opeu_opposite_side(side);
     if (data.side_status[side] == SIDE_PLAYED && opeu_unit_selection_eligible(game, unit))
-      speaker = opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_group_index(unit))));
+      speaker = opeu_find_group_record(game, side, opeu_unit_group_index(unit));
     else
       return;
   }
   auto const& record{ Record<Unit>(data, unit) };
-  opeu_arrival_location(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(side));
+  opeu_arrival_location(game, record.x, record.y, side);
   opeu_control_message(game, host, message, speaker);
 }
 
 // A message about the objective to the enemy's intelligence chief, else to its own side's when the player sees it.
 void opeu_objective_side_report(Game& game, const DialogHost* host, uint16_t objective, uint16_t message) {
   auto const& data{ Data(game) };
-  auto        side{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_objective_side(game, objective))))) };
+  auto        side{ (opeu_opposite_side(opeu_objective_side(game, objective))) };
   if (data.side_status[side] != SIDE_PLAYED) {
-    side = static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side)));
+    side = opeu_opposite_side(side);
     if (data.side_status[side] != SIDE_PLAYED || !opeu_objective_eligible(game, objective)) return;
   }
   auto const& record{ Record<Objective>(data, objective) };
-  opeu_arrival_location(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(side));
-  opeu_control_message(game, host, message, opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(INTELLIGENCE_CHIEF_KIND)));
+  opeu_arrival_location(game, record.x, record.y, side);
+  opeu_control_message(game, host, message, opeu_find_side_record(game, side, INTELLIGENCE_CHIEF_KIND));
 }
 
 // The element type's panel: name, face and ratings (attack soft/hard, defense, speed, move range, gun range).
@@ -399,19 +396,18 @@ void opeu_element_type_panel(Game& game, const DialogHost* host, uint16_t type) 
   auto const& record{ Record<ElementType>(data, type) };
   auto const  index{ static_cast<std::int16_t>(static_cast<std::uint16_t>(type - Near(data, data.element_types))) / static_cast<int>(sizeof(ElementType)) };
   opeu_army_title(game, host, record.name);
-  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2d, 0xb4, 0, static_cast<uint8_t>(static_cast<std::uint8_t>(index)));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x44), static_cast<int16_t>(0xb4));
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.attack_format)), static_cast<std::uint16_t>(record.anti_personnel),
-                                                        static_cast<std::uint16_t>(record.anti_tank) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x45), static_cast<int16_t>(0xc4));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.defense_format)), static_cast<std::uint16_t>(record.defense) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x45), static_cast<int16_t>(0xd4));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.speed_format)), static_cast<std::uint16_t>(record.speed) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x45), static_cast<int16_t>(0xe4));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.move_range_format)),
+  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2d, 0xb4, 0, index);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x44, 0xb4);
+  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ Near(data, data.attack_format), static_cast<std::uint16_t>(record.anti_personnel), static_cast<std::uint16_t>(record.anti_tank) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x45, 0xc4);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.defense_format), static_cast<std::uint16_t>(record.defense) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x45, 0xd4);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.speed_format), static_cast<std::uint16_t>(record.speed) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x45, 0xe4);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.move_range_format),
                                                         static_cast<std::uint16_t>(!record.category ? 0 : static_cast<std::uint16_t>(record.fuel_economy * record.fuel_capacity) / 10) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x45), static_cast<int16_t>(0xf4));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.gun_range_format)), static_cast<std::uint16_t>(record.gun_range) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x45, 0xf4);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.gun_range_format), static_cast<std::uint16_t>(record.gun_range) });
 }
 
 // A battalion's panel: its type's name and face, quantity, morale, damage, training and experience.
@@ -420,11 +416,10 @@ void opeu_group_element_panel(Game& game, const DialogHost* host, uint16_t eleme
   auto const& record{ Record<Element>(data, element) };
   auto const  name{ host->scratch };
   opeu_army_title(game, host, opeu_type_name(game, Near(data, data.element_types[record.type]), name));
-  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x32, 0x9a, 0, static_cast<uint8_t>(record.type));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x2e), static_cast<int16_t>(0xea));
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(Near(data, data.group_element_format)), static_cast<std::uint16_t>(record.quantity),
-                                                        static_cast<std::uint16_t>(record.morale), static_cast<std::uint16_t>(record.damage), static_cast<std::uint16_t>(record.training),
-                                                        static_cast<std::uint16_t>(record.experience) });
+  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x32, 0x9a, 0, record.type);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x2e, 0xea);
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.group_element_format), record.quantity, static_cast<std::uint16_t>(record.morale), record.damage,
+                                                        static_cast<std::uint16_t>(record.training), static_cast<std::uint16_t>(record.experience) });
 }
 
 // An equipment item's panel: its type's name and face, quantity and extra word.
@@ -433,8 +428,7 @@ void opeu_element_panel(Game& game, const DialogHost* host, uint16_t item) {
   auto const& record{ Record<Item>(data, item) };
   auto const  name{ host->scratch };
   opeu_army_title(game, host, opeu_type_name(game, Near(data, data.element_types[record.type]), name));
-  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x32, 0x9a, 0, static_cast<uint8_t>(record.type));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x30), static_cast<int16_t>(0xea));
-  opeu_cursor_print(game,
-                    std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.element_format)), static_cast<std::uint16_t>(record.quantity), static_cast<std::uint16_t>(record.extra) });
+  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 0x32, 0x9a, 0, record.type);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x30, 0xea);
+  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ Near(data, data.element_format), record.quantity, record.extra });
 }

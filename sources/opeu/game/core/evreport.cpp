@@ -53,10 +53,10 @@ void ReportUnits(Game& game, ReportList const& list, std::uint16_t message, std:
   bool seen{ false };
   for (auto const unit : list) {
     if (!unit) continue;
-    opeu_string_copy(game, TEXT, opeu_message_lookup(game, static_cast<int16_t>(message)));
+    opeu_string_copy(game, TEXT, opeu_message_lookup(game, message));
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, TEXT);
     if (!seen) {
-      auto const side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
+      auto const side{ opeu_unit_side(unit) };
       opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), item, side, Presenter::REPORT);
       seen = true;
     }
@@ -65,7 +65,7 @@ void ReportUnits(Game& game, ReportList const& list, std::uint16_t message, std:
 } // namespace
 
 void opeu_report_present(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(4));
+  opeu_pending_finish(game, 4);
 }
 
 void opeu_report_units_a(Game& game, ReportList const& list) {
@@ -115,7 +115,7 @@ void opeu_report_event(Game& game) {
 
 // The second round of hourly events, with the unit reports between the visit and the wound events.
 void opeu_turn_hourly_b(Game& game) {
-  opeu_daily_context(game, static_cast<uint8_t>(Data(game).current_side));
+  opeu_daily_context(game, Data(game).current_side);
   opeu_partisan_event(game);
   opeu_loss_event_a(game);
   opeu_loss_event_b(game);

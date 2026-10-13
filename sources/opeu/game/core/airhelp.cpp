@@ -44,16 +44,15 @@ uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t hi
   auto const          line{ locals.At(0) };
   opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 1);
   if (data.input_mode)
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(line), static_cast<std::uint16_t>(Near(data, data.air_question_mark)) });
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ line, Near(data, data.air_question_mark) });
   else
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(line), static_cast<std::uint16_t>(Near(data, data.air_range_format)), static_cast<std::uint16_t>(low),
-                                                            static_cast<std::uint16_t>(high) });
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ line, Near(data, data.air_range_format), low, high });
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), text);
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), line);
   opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_begin)) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_begin) });
   auto const chosen{ opeu_choose_value(game, low, high, static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), items) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_end)) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_end) });
   return chosen;
 }
 
@@ -62,7 +61,7 @@ uint16_t opeu_air_free_planes(Game& game) {
   auto&         data{ Data(game) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t planes{ side.planes };
-  opeu_sub_word(static_cast<std::uint16_t>(side.lift.planes + side.drop.transports), &planes);
+  opeu_sub_word(side.lift.planes + side.drop.transports, &planes);
   return planes;
 }
 
@@ -70,7 +69,7 @@ uint16_t opeu_air_free_planes(Game& game) {
 // 5, 6, 8 or 10 (named by its terrain); otherwise the officer says so and 0 is returned.
 uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) {
   auto&         data{ Data(game) };
-  auto const    kind{ static_cast<std::uint8_t>(opeu_map_code(game, x, y)) };
+  auto const    kind{ opeu_map_code(game, x, y) };
   std::uint16_t name{};
   switch (kind) {
   case CITY:
@@ -85,8 +84,7 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
   }
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(CANNOT_TARGET))),
-                                                          static_cast<std::uint16_t>(what), static_cast<std::uint16_t>(name) });
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, opeu_message_lookup(game, CANNOT_TARGET), what, name });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
   return 0;
 }
@@ -94,5 +92,5 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
 // Asks the staff officer to confirm the mission.
 uint16_t opeu_air_confirm(Game& game) {
   auto const& data{ Data(game) };
-  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CONFIRM_MISSION)), data.context_record3);
+  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, CONFIRM_MISSION), data.context_record3);
 }

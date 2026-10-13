@@ -82,13 +82,11 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
   auto const          side{ data.current_side };
   auto const          tactical{ [&] { return data.view_side != NONE; } };
   auto const          strategic{ [&] { return data.overview_side != NONE; } };
-  auto const          pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) {
-    opeu_viewport_pan(game, static_cast<std::int16_t>(dx), static_cast<std::int16_t>(dy), static_cast<std::uint8_t>(at_x), static_cast<std::uint8_t>(at_y), static_cast<std::uint8_t>(side));
-  } };
-  std::uint16_t result{ 0 };
-  std::uint8_t  display_x{ NONE };
-  std::uint8_t  display_y{ 0 };
-  std::uint16_t previous_panel{ 0 };
+  auto const          pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) { opeu_viewport_pan(game, dx, dy, at_x, at_y, side); } };
+  std::uint16_t       result{ 0 };
+  std::uint8_t        display_x{ NONE };
+  std::uint8_t        display_y{ 0 };
+  std::uint16_t       previous_panel{ 0 };
 
   // Picks the shown cell: the result is 1. On a regiment the side can order, orders it (or reports that its division
   // is the computer's) and answers true; on a cell of no side or of another regiment, answers false.
@@ -101,25 +99,25 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     auto const group{ opeu_unit_group_index(unit) };
     auto const person{ opeu_find_group_record(game, side, group) };
     if (GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<std::int16_t>(DIVISION_BUSY)), person);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, DIVISION_BUSY), person);
     else {
       opeu_unit_action(game, unit, group);
-      opeu_map_erase(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
+      opeu_map_erase(game, display_x, display_y);
     }
     return true;
   } };
 
   cell_x %= MAP_WIDTH;
   cell_y %= MAP_HEIGHT;
-  opeu_arrival_location(game, static_cast<std::uint8_t>(cell_x), static_cast<std::uint8_t>(cell_y), static_cast<std::uint8_t>(side));
+  opeu_arrival_location(game, cell_x, cell_y, side);
   opeu_input_reset(game);
   opeu_bitmap_save(0, 0, 80, 24, port_far(data.bitmap_buffer, SAVE_OFFSET));
   data.control_selection = 0;
   for (bool done{ false }; !done;) {
-    if (display_x != NONE) opeu_map_erase(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
+    if (display_x != NONE) opeu_map_erase(game, display_x, display_y);
     display_x = cell_x;
     display_y = cell_y;
-    opeu_map_inspect(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
+    opeu_map_inspect(game, display_x, display_y);
     opeu_map_cursor(game, display_x, display_y);
     std::uint16_t panel{ 0 };
     auto          objective{ opeu_find_objective_at(game, display_x, display_y) };
@@ -150,7 +148,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     if (data.input_mode) {
       for (;;) {
         opeu_mouse_show(game);
-        auto const buttons{ static_cast<std::uint8_t>(opeu_mouse_buttons(game)) };
+        auto const buttons{ opeu_mouse_buttons(game) };
         opeu_mouse_position(game, mouse_x_at, mouse_y_at);
         auto const mouse_x{ Word(game, mouse_x_at) };
         auto const mouse_y{ Word(game, mouse_y_at) };
@@ -213,7 +211,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
       if (done) break;
     } else {
       std::uint8_t direction{ NONE };
-      auto const   key{ static_cast<std::uint8_t>(opeu_keyboard_key(game)) };
+      auto const   key{ opeu_keyboard_key(game) };
       switch (key) {
       case '6':
         if (tactical()) {
@@ -272,7 +270,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     }
     previous_x = display_x;
   }
-  opeu_map_erase(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
+  opeu_map_erase(game, display_x, display_y);
   opeu_bitmap_restore(0, 0, 80, 24, 0, port_far(data.bitmap_buffer, SAVE_OFFSET));
   return result;
 }

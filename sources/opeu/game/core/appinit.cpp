@@ -27,17 +27,12 @@ void opeu_app_startup(Game& game) {
   opeu_app_startup_service(game);
 }
 
-// Two empty routines nothing calls.
-void opeu_empty_routine_a(void) { }
-
-void opeu_empty_routine_b(void) { }
-
 void opeu_app_initialize(Game& game) {
   auto& data{ Data(game) };
   opeu_vga_clear();
-  opeu_mouse_window(game, static_cast<int16_t>(0), static_cast<int16_t>(0), static_cast<int16_t>(0x27f), static_cast<int16_t>(0x18f));
+  opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(14), static_cast<int16_t>(100));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 14, 100);
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), INPUT_PROMPT);
   do {
     if (static_cast<uint16_t>(opeu_turn_input_a(game))) {

@@ -48,19 +48,19 @@ void opeu_tbl_draw_staff(Game& game, uint8_t column, uint8_t first, uint8_t row,
   auto const& window{ ActiveWindow(data) };
   auto const  columns{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADER) {
-    auto const header{ opeu_message_lookup(game, static_cast<int16_t>(HEADER_MESSAGE)) };
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(header) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x1f)), static_cast<int16_t>(window.y + 1));
-    opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<uint8_t>(columns.start), static_cast<uint8_t>(columns.count));
+    auto const header{ opeu_message_lookup(game, HEADER_MESSAGE) };
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, header });
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ColumnX(data, window, columns, -0x1f), window.y + 1);
+    opeu_select_side_color(game, data.current_side);
+    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, columns.start, columns.count);
   }
   for (std::uint8_t e = first; e <= last; ++e) {
     auto const  near{ data.general_list[e] };
     auto const& person{ Record<Person>(data, near) };
     if (flags & DRAW_LABELS) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 3), static_cast<int16_t>(RowY(data, window, e)));
-      opeu_select_side_color(game, static_cast<uint8_t>(opeu_person_lacks_side0_flag(game, near)));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_person_name)), static_cast<std::uint16_t>(near) });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 3, RowY(data, window, e));
+      opeu_select_side_color(game, opeu_person_lacks_side0_flag(game, near));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_person_name), near });
     }
     auto post{ Near(data, data.tbl_person_blank) };
     auto status{ post };
@@ -72,16 +72,15 @@ void opeu_tbl_draw_staff(Game& game, uint8_t column, uint8_t first, uint8_t row,
       status = Near(data, data.tbl_person_rest);
     else if (person.role & Bits(PersonRole::POOR_HEALTH))
       status = Near(data, data.tbl_person_hurt);
-    auto const format{ opeu_message_lookup(game, static_cast<int16_t>(ROW_MESSAGE)) };
+    auto const format{ opeu_message_lookup(game, ROW_MESSAGE) };
     auto const nation{ opeu_first_mask_name(game, person.status) };
-    opeu_request_format(game, std::array<std::uint16_t, 13>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(nation),
-                                                             static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery),
-                                                             static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.infantry), static_cast<std::uint16_t>(person.artillery),
-                                                             static_cast<std::uint16_t>(person.armor), static_cast<std::uint16_t>(person.experience), static_cast<std::uint16_t>(post),
-                                                             static_cast<std::uint16_t>(status) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x1f)), static_cast<int16_t>(RowY(data, window, e)));
+    opeu_request_format(game, std::array<std::uint16_t, 13>{ buffer, format, nation, static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.charm),
+                                                             static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.infantry),
+                                                             static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor), static_cast<std::uint16_t>(person.experience),
+                                                             post, status });
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ColumnX(data, window, columns, -0x1f), RowY(data, window, e));
     opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(columns.start), static_cast<std::uint16_t>(columns.count) });
+    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(columns.start), static_cast<std::uint16_t>(columns.count) });
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }

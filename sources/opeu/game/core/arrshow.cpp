@@ -34,12 +34,11 @@ void opeu_arrival_present(Game& game) {
   ServiceLocals const locals{ 0x20 };
   auto&               data{ Data(game) };
   opeu_request_wait(game);
-  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, data.current_side);
   auto const          name{ opeu_unit_name(game, data.arrival_unit, locals.At(0)) };
   auto const          side{ data.arrival_side };
   std::uint16_t const token{ side == 0 ? FIRST_SIDE_TOKEN : SECOND_SIDE_TOKEN };
-  auto const          format{ opeu_message_lookup(game, static_cast<int16_t>(ARRIVAL_FORMAT)) };
-  opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(REQUEST_BUFFER), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(token),
-                                                          static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(token), static_cast<std::uint16_t>(name) });
+  auto const          format{ opeu_message_lookup(game, ARRIVAL_FORMAT) };
+  opeu_request_format(game, std::array<std::uint16_t, 6>{ REQUEST_BUFFER, format, token, data.side_names[side], token, name });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_BUFFER, data.request_person);
 }

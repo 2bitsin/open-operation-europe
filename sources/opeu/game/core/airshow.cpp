@@ -79,8 +79,7 @@ uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {
   if (data.weather != 0 && data.weather != 1) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(SideColorCode(data.air_side)),
-                                                            static_cast<std::uint16_t>(what) });
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, format, static_cast<std::uint16_t>(SideColorCode(data.air_side)), what });
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
     return wait ? 1 : 2;
   }

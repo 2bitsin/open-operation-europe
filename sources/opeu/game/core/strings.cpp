@@ -1,4 +1,4 @@
-// Strings in the data segment, addressed by near pointer (offsets wrap at 16 bits), and ASCII case conversion.
+// Strings in the data segment, addressed by near pointer (offsets wrap at 16 bits).
 #include "core/strings.hpp"
 #include "types.hpp"
 
@@ -29,14 +29,4 @@ uint16_t opeu_string_length(Game& game, uint16_t string) {
   uint16_t const start{ string };
   while (Byte(game, string)) ++string;
   return string - start;
-}
-
-uint8_t opeu_ascii_upper(uint8_t code) {
-  if (code >= 'a' && code <= 'z') return code - 32;
-  return code;
-}
-
-uint8_t opeu_ascii_lower(uint8_t code) {
-  if (code >= 'A' && code <= 'Z') return code + 32;
-  return code;
 }

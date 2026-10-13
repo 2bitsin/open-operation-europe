@@ -98,14 +98,14 @@ uint16_t opeu_ai_plan_supply(Game& game) {
     auto const& objective{ Record<Objective>(data, objective_near) };
     lift.x = objective.x;
     lift.y = objective.y;
-    for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(static_cast<std::uint16_t>(OBJECTIVE_FULL - objective.resources[i])), i);
+    for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(OBJECTIVE_FULL - objective.resources[i]), i);
   } else if (auto const unit_near{ opeu_ai_neediest_unit(game) }) {
     auto const&   unit{ Record<Unit>(data, unit_near) };
     std::uint16_t capacity[3];
     opeu_unit_capacities(game, unit_near, &capacity[0], &capacity[1], &capacity[2]);
     lift.x = unit.x;
     lift.y = unit.y;
-    for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(static_cast<std::uint16_t>(capacity[i] - unit.resources[i])), i);
+    for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(capacity[i] - unit.resources[i]), i);
     opeu_set_unit_order(game, unit_near, 0, unit.x, 0, 0xff, unit.y);
   } else
     return 0;

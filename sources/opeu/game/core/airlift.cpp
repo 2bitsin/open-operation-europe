@@ -56,21 +56,20 @@ uint8_t opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  auto                lead{ static_cast<std::uint8_t>(opeu_min16(static_cast<std::uint16_t>(planes - data.air_leadership / 30 + 3), MAX_LEAD)) };
+  auto                lead{ static_cast<std::uint8_t>(opeu_min16(planes - data.air_leadership / 30 + 3, MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
     if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_charm) {
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.lift_lead_format)), static_cast<std::uint16_t>(lead) });
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.lift_lead_format), static_cast<std::uint16_t>(lead) });
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
       return lead;
     }
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(LEAD_ACCEPTED))),
-                                                            static_cast<std::uint16_t>(lead + 1) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, LEAD_ACCEPTED), static_cast<std::uint16_t>(lead + 1) });
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
     return hours;
   }
-  if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24)) && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_charm) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(LIFT_REFUSED)), data.air_person);
+  if (opeu_hour_is_day((hours + data.hour) % 24) && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_charm) {
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, LIFT_REFUSED), data.air_person);
     return 0;
   }
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_understood), data.air_person);
@@ -83,9 +82,9 @@ uint16_t opeu_air_lift_order(Game& game, uint8_t x, uint8_t y, uint8_t hours, ui
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.lift_start_format)), static_cast<std::uint16_t>(hours),
-                                                          static_cast<std::uint16_t>(hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), static_cast<std::uint16_t>(planes),
-                                                          static_cast<std::uint16_t>(planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });
+  opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.lift_start_format), static_cast<std::uint16_t>(hours),
+                                                          (hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), planes,
+                                                          (planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
   if (!opeu_air_confirm(game)) return 0;
   auto& lift{ Record<Side>(data, data.current_side_ptr).lift };
@@ -119,7 +118,7 @@ void opeu_air_lift_command(Game& game) {
   auto const initial{ remaining };
   // Asks the amount of one supply kind, bounded by the side's stock and the planes left; 0xffff when cancelled.
   auto const ask_kind{ [&](std::uint16_t text, std::uint16_t stock) {
-    auto const most{ opeu_min16(stock, static_cast<std::uint16_t>(opeu_min16(remaining, KIND_PLANES) * LOAD)) };
+    auto const most{ opeu_min16(stock, opeu_min16(remaining, KIND_PLANES) * LOAD) };
     auto const amount{ ask(text, 0, most) };
     if (amount != MENU_CANCELLED) remaining -= PlanesFor(amount);
     return amount;

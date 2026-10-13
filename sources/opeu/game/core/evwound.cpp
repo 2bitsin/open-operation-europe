@@ -48,7 +48,7 @@ constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
 
 // The presentation (Presenter::DEATH): a pause.
 void opeu_death_present(Game& game) {
-  opeu_delay_units(game, static_cast<std::uint8_t>(30));
+  opeu_delay_units(game, 30);
 }
 
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
@@ -65,8 +65,8 @@ void opeu_commander_death(Game& game, uint16_t person) {
   }
   opeu_initialize_deputy(game, person);
   if (data.side_status[notice.side] == SIDE_PLAYED) {
-    opeu_set_turn_context(game, static_cast<std::uint8_t>(DEATH_CONTEXT));
-    opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
+    opeu_set_turn_context(game, DEATH_CONTEXT);
+    opeu_finish_side_initialization(game, 0);
     port_daily_show(game, DEATH_SHOW, notice.side, Presenter::DEATH);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), at, opeu_find_side_record(game, notice.side, ADVISER));
   }
@@ -86,7 +86,7 @@ void opeu_wound_event(Game& game) {
         if (RandomBelow(game, static_cast<std::uint16_t>(level * 10 + 24)) == 2)
           person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
         else
-          opeu_sub_byte(static_cast<std::uint16_t>(10 - person.max_health / 10), &person.health);
+          opeu_sub_byte(10 - person.max_health / 10, &person.health);
         if (person.health == 0) {
           if (person.role & Bits(PersonRole::DEPUTY))
             person.health = 1;

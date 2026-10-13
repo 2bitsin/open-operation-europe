@@ -48,7 +48,7 @@ constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
 // Shows the list window; 0 when it is cancelled.
 auto ShowList(Game& game, ListWindow const& list) -> uint16_t {
-  return opeu_list_dialog(game, Near(Data(game), list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS));
+  return opeu_list_dialog(game, Near(Data(game), list), LIST_LIMIT, LIST_FLAGS);
 }
 
 // Lists the side's free generals and sizes the generals' list to them (one row more for the title).
@@ -62,7 +62,7 @@ auto FillGenerals(Game& game) -> uint8_t {
 
 // The picture callback of the assignment's confirmation.
 void opeu_personnel_finish(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(ASSIGN_FINISH));
+  opeu_pending_finish(game, ASSIGN_FINISH);
 }
 
 // The select callback of the generals' list: every row may be chosen.
@@ -79,7 +79,7 @@ void opeu_rest_thanks(Game& game, uint16_t person) {
 void opeu_assign_confirm(Game& game, uint16_t person) {
   auto const& data{ Data(game) };
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.assign_thanks_text), person);
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ASSIGN_SHOW, static_cast<uint8_t>(data.current_side), Presenter::PERSONNEL_FINISH);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ASSIGN_SHOW, data.current_side, Presenter::PERSONNEL_FINISH);
 }
 
 // The select callback of the divisions' list: marks or unmarks the listed division for its commander to be put in
@@ -138,19 +138,16 @@ void opeu_commander_assign(Game& game) {
       auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
       if (post < GROUPS_PER_SIDE) {
         auto const fielded{ GroupOf(data, data.current_side, post).flags & Bits(GroupFlag::READY) };
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(formats[post]),
-                                                                static_cast<std::uint16_t>(fielded ? data.post_labels[post] : Near(data, data.inactive_division_label)),
-                                                                static_cast<std::uint16_t>(holders[post] ? holders[post] : no_holder[post]) });
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ text, formats[post], (fielded ? data.post_labels[post] : Near(data, data.inactive_division_label)),
+                                                                (holders[post] ? holders[post] : no_holder[post]) });
       } else {
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(formats[post]), static_cast<std::uint16_t>(data.post_labels[post]),
-                                                                static_cast<std::uint16_t>(holders[post]) });
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ text, formats[post], data.post_labels[post], holders[post] });
       }
       data.assign_menu[post].label = text;
     }
     opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
     auto const prompt{ texts.At(POSTS * POST_TEXT_BYTES) };
-    opeu_request_format(game,
-                        std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt), static_cast<std::uint16_t>(Near(data, data.assign_where_prompt)), static_cast<std::uint16_t>(general) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt, Near(data, data.assign_where_prompt), general });
     for (;;) {
       uint16_t choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
       if (choice == MENU_CANCELLED) break;
@@ -159,9 +156,9 @@ void opeu_commander_assign(Game& game) {
         // The division by its index from the side's first, as the menu's choice gives it.
         auto const& group{ Record<Group>(data, static_cast<uint16_t>(GROUPS_AT + static_cast<uint16_t>(data.current_side * GROUPS_PER_SIDE + choice) * sizeof(Group))) };
         if (!(group.flags & Bits(GroupFlag::READY))) continue;
-        auto const old{ opeu_find_group_record(game, data.current_side, static_cast<uint8_t>(choice)) };
+        auto const old{ opeu_find_group_record(game, data.current_side, choice) };
         if (old) opeu_set_record_counter(Record<Person>(Data(game), old), 0);
-        opeu_person_set_group(game, general, static_cast<uint8_t>(choice));
+        opeu_person_set_group(game, general, choice);
         data.context_group_record = opeu_find_group_record(game, data.current_side, data.current_group);
       } else {
         auto const role{ choice == 5 ? StaffRole::OPERATIONS_CHIEF : StaffRole::INTELLIGENCE_CHIEF };
@@ -193,11 +190,11 @@ void opeu_commander_rest(Game& game) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rest_who_prompt), data.context_record2);
     if (!ShowList(game, data.people_dialog)) return;
     auto const general{ data.general_list[data.list_row] };
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt), static_cast<std::uint16_t>(Near(data, data.rest_days_prompt)), static_cast<std::uint16_t>(general) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt, Near(data, data.rest_days_prompt), general });
     auto const days{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt, REST_LAST, data.context_record2, 0) };
     if (days != MENU_CANCELLED) {
       opeu_rest_thanks(game, general);
-      opeu_set_record_counter(Record<Person>(Data(game), general), static_cast<uint8_t>(days + 1));
+      opeu_set_record_counter(Record<Person>(Data(game), general), days + 1);
     }
   }
   if (!rested) opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.none_to_rest_text), data.context_record3);

@@ -22,7 +22,7 @@ uint16_t opeu_percent(uint16_t a, uint16_t b) {
 // Adds amount to the byte, capped at limit; the sum wraps at 16 bits before the cap and the result is truncated to
 // the byte.
 uint8_t opeu_add_byte(uint16_t amount, uint16_t limit, uint8_t* value) {
-  *value = (uint8_t)opeu_min16((uint16_t)(amount + *value), limit);
+  *value = (uint8_t)opeu_min16(amount + *value, limit);
   return *value;
 }
 

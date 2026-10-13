@@ -23,6 +23,6 @@ uint16_t opeu_is_leap_year(uint16_t year) {
 uint8_t opeu_days_in_month(uint8_t year_since_1940, uint8_t month) {
   std::uint8_t result{ DAYS[month] };
   if (month == FEBRUARY)
-    if (opeu_is_leap_year(static_cast<std::uint16_t>(year_since_1940 + FIRST_YEAR))) ++result;
+    if (opeu_is_leap_year(year_since_1940 + FIRST_YEAR)) ++result;
   return result;
 }

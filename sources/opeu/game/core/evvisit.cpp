@@ -33,8 +33,10 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -52,23 +54,19 @@ constexpr std::uint8_t  MIN_HEALTH{ 30 };
 auto Raise(Game& game, std::uint8_t& rating) -> void {
   opeu_add_byte(RandomBelow(game, 10), RATING_LIMIT, &rating);
 }
-} // namespace
 
-// Whether no enemy special unit stands next to the unit and its cell is open ground outside the enemy's influence.
-uint16_t opeu_visit_unit_safe(Game& game, uint16_t unit) {
-  auto const& record{ Record<Unit>(Data(game), unit) };
-  auto const  enemy{ opeu_opposite_side(opeu_unit_side(unit)) };
-  for (std::uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-    std::uint8_t x{ record.x };
-    std::uint8_t y{ record.y };
-    if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(game, x, y) == enemy && opeu_unit_special(game, opeu_find_unit_at(game, x, y))) return 0;
-  }
-  return opeu_map_code(game, record.x, record.y) == OPEN_GROUND && opeu_cell_influence_side(game, record.x, record.y) != enemy ? 1 : 0;
+// Whether an enemy special unit stands next to the unit.
+auto Threatened(Game& game, Unit const& unit, std::uint8_t enemy) -> bool {
+  auto const special_enemy_beside{ [&game, &unit, enemy](std::uint8_t direction) {
+    std::uint8_t x{ unit.x };
+    std::uint8_t y{ unit.y };
+    return opeu_grid_step(&x, &y, direction) && opeu_cell_side(game, x, y) == enemy && opeu_unit_special(game, opeu_find_unit_at(game, x, y));
+  } };
+  return std::ranges::any_of(std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS), special_enemy_beside);
 }
 
 // Raises leadership, charm, bravery, infantry, artillery and armor by 0..9 each, up to 99.
-void opeu_visit_person_boost(Game& game, uint16_t person) {
-  auto& general{ Record<Person>(Data(game), person) };
+void Boost(Game& game, Person& general) {
   Raise(game, general.leadership);
   Raise(game, general.charm);
   Raise(game, general.bravery);
@@ -78,40 +76,47 @@ void opeu_visit_person_boost(Game& game, uint16_t person) {
 }
 
 // One of three conversations with the visitor of the commander's nation, then the commander's ratings rise.
-void opeu_visit_conversation(Game& game, uint8_t side) {
+void Converse(Game& game, uint8_t side) {
   auto const commander{ opeu_find_side_record(game, side, COMMANDER) };
   auto const speaker{ opeu_find_person_template(game, Record<Person>(Data(game), opeu_find_side_record(game, side, COMMANDER)).status, VISITOR) };
   auto const say{ [&](std::uint16_t text) { opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, speaker); } };
-  auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, static_cast<int16_t>(id)); } };
+  auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, id); } };
   switch (RandomBelow(game, 3)) {
   case 0:
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(VISIT_FORMAT), static_cast<std::uint16_t>(commander) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, VISIT_FORMAT, commander });
     say(TEXT);
-    for (std::uint16_t id{ 12 }; id <= 16; ++id) say(lookup(id));
+    std::ranges::for_each(std::views::iota(std::uint16_t{ 12 }, std::uint16_t{ 17 }), [&](std::uint16_t id) { say(lookup(id)); });
     break;
   case 1:
     say(lookup(17));
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(lookup(18)), static_cast<std::uint16_t>(commander) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, lookup(18), commander });
     say(TEXT);
     say(lookup(19));
     say(lookup(20));
     say(lookup(22));
     break;
   case 2:
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(lookup(23)), static_cast<std::uint16_t>(commander) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, lookup(23), commander });
     say(TEXT);
-    for (std::uint16_t id{ 24 }; id <= 26; ++id) say(lookup(id));
+    std::ranges::for_each(std::views::iota(std::uint16_t{ 24 }, std::uint16_t{ 27 }), [&](std::uint16_t id) { say(lookup(id)); });
     break;
   }
-  opeu_visit_person_boost(game, commander);
+  Boost(game, Record<Person>(Data(game), commander));
+}
+} // namespace
+
+// Whether no enemy special unit stands next to the unit and its cell is open ground outside the enemy's influence.
+auto opeu_visit_unit_safe(Game& game, Unit const& unit) -> bool {
+  auto const enemy{ opeu_opposite_side(opeu_unit_side(Near(Data(game), unit))) };
+  return !Threatened(game, unit, enemy) && opeu_map_code(game, unit.x, unit.y) == OPEN_GROUND && opeu_cell_influence_side(game, unit.x, unit.y) != enemy;
 }
 
 // The presentation (Presenter::VISIT): the conversation, then the commander panel shown afresh.
 void opeu_visit_present(Game& game) {
   auto& data{ Data(game) };
-  opeu_visit_conversation(game, data.event_side);
+  Converse(game, data.event_side);
   data.context_side = NO_SIDE;
-  opeu_daily_context(game, static_cast<std::uint8_t>(data.event_side));
+  opeu_daily_context(game, data.event_side);
 }
 
 // Once a day per side (SideFlag::VISITED).
@@ -123,15 +128,15 @@ void opeu_visit_event(Game& game) {
     auto const& commander{ Record<Person>(data, record) };
     if (commander.health < MIN_HEALTH || (commander.flags & Bits(PersonRole::POOR_HEALTH))) continue;
     auto const unit{ opeu_person_selected_unit(game, record) };
-    if (!data.weather && opeu_unit_support_condition(game, unit) && opeu_visit_unit_safe(game, unit) && RandomBelow(game, 70) == 1) {
+    if (!data.weather && opeu_unit_support_condition(game, unit) && opeu_visit_unit_safe(game, Record<Unit>(data, unit)) && RandomBelow(game, 70) == 1) {
       auto const& target{ Record<Unit>(data, unit) };
       auto const  x{ target.x };
       auto const  y{ target.y };
-      opeu_set_turn_context(game, static_cast<std::uint8_t>(VISIT_CONTEXT));
-      opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
+      opeu_set_turn_context(game, VISIT_CONTEXT);
+      opeu_location_flash(game, x, y, data.event_side);
       port_daily_show(game, VISIT_SHOW, data.event_side, Presenter::VISIT);
       data.side_flags[data.event_side] |= Bits(SideFlag::VISITED);
-      opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
+      opeu_finish_side_initialization(game, 0);
     }
   }
 }

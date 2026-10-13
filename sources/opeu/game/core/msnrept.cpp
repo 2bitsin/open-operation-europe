@@ -53,12 +53,11 @@ auto SpecialForcesCommander(Game& game, uint8_t side) -> uint16_t {
 // Formats a report into message: format, the side's colour and name, then text.
 void FormatReport(Game& game, uint16_t message, uint16_t format, uint8_t side, uint16_t text) {
   auto const format_text{ MissionText(game, format) };
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(format_text), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                          static_cast<std::uint16_t>(Data(game).side_names[side]), static_cast<std::uint16_t>(text) });
+  opeu_request_format(game, std::array<std::uint16_t, 5>{ message, format_text, static_cast<std::uint16_t>(SideColorCode(side)), Data(game).side_names[side], text });
 }
 
 void ShowReport(Game& game, uint16_t picture, uint8_t side, Presenter presenter) {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(side), presenter);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, side, presenter);
 }
 
 } // namespace
@@ -75,11 +74,11 @@ void opeu_officer_gain(Game& game, uint8_t side, uint8_t kind) {
 }
 
 void opeu_mission_finish_present(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }
 
 void opeu_mission_delay_present(Game& game) {
-  opeu_delay_units(game, static_cast<uint8_t>(30));
+  opeu_delay_units(game, 30);
 }
 
 // The special-forces commander tells his own side of the success and the map flashes the target's cell.
@@ -90,7 +89,7 @@ void opeu_mission_report_success(Game& game, uint8_t side, uint16_t text, uint8_
   FormatReport(game, message, SUCCESS_FORMAT, side, text);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, speaker);
   ShowReport(game, MISSION_PICTURE, side, Presenter::MISSION_FINISH);
-  opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
+  opeu_location_flash(game, x, y, side);
 }
 
 // The attacked side's intelligence chief reports the enemy mission.
@@ -101,7 +100,7 @@ void opeu_mission_report_enemy(Game& game, uint8_t side, uint16_t text, uint8_t 
   auto const enemy{ opeu_opposite_side(side) };
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, opeu_find_side_record(game, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
   ShowReport(game, MISSION_PICTURE, enemy, Presenter::MISSION_FINISH);
-  opeu_location_flash(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(enemy));
+  opeu_location_flash(game, x, y, enemy);
 }
 
 // The special-forces commander reports the failure.
@@ -118,7 +117,7 @@ uint16_t opeu_mission_target_name(Game& game, uint8_t side, uint16_t unit, uint1
   ServiceLocals const locals{ 32 }; // the name the unit-name service writes
   auto const          name{ opeu_unit_name(game, unit, locals.At(0)) };
   auto const          prefix{ Data(game).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
-  opeu_string_append(game, opeu_string_copy(game, destination, static_cast<uint16_t>(prefix)), name);
+  opeu_string_append(game, opeu_string_copy(game, destination, prefix), name);
   return destination;
 }
 
@@ -129,8 +128,8 @@ void opeu_mission_person_killed(Game& game, uint16_t person) {
   auto const          side{ opeu_person_lacks_side0_flag(game, person) };
   auto const          played{ [game, side] { return Data(game).side_status[side] == SIDE_PLAYED; } };
   if (played()) {
-    opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
-    opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+    opeu_set_turn_context(game, 0x10);
+    opeu_finish_side_initialization(game, 0);
     opeu_string_copy(game, message, person);
     opeu_string_append(game, message, MissionText(game, ASSASSINATED));
   }

@@ -52,7 +52,7 @@ std::array<std::uint16_t, MAP_WIDTH * MAP_HEIGHT> path_queue;
 std::array<std::uint16_t, MAP_WIDTH * MAP_HEIGHT> path_cost;
 
 auto Distance1D(int difference) -> int {
-  return static_cast<int16_t>(opeu_abs16_bits(static_cast<std::uint16_t>(difference)));
+  return static_cast<int16_t>(opeu_abs16_bits(difference));
 }
 
 // The near pointer of a record, 0 for none.

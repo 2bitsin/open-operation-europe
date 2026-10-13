@@ -50,7 +50,7 @@ constexpr ScreenPoint GARRISON_ROW{ 0x32, 0xcc };
 constexpr ScreenPoint NO_STOCK_ROW{ 0x2d, 0xdd };
 
 void Position(Game& game, ScreenPoint at) {
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(static_cast<std::uint16_t>(at.x)), static_cast<int16_t>(static_cast<std::uint16_t>(at.y)));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), at.x, at.y);
 }
 
 // Prints the format with its words at the text cursor.
@@ -70,8 +70,7 @@ void opeu_objective_panel(Game& game, uint16_t objective) {
   auto const          food{ locals.At(2) };
   auto const          fuel{ locals.At(0) };
   opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), objective);
-  opeu_objective_resource_percentages(game, objective, port_ds_word_ptr(game, static_cast<std::uint16_t>(ammunition)), port_ds_word_ptr(game, static_cast<std::uint16_t>(fuel)),
-                                      port_ds_word_ptr(game, static_cast<std::uint16_t>(food)));
+  opeu_objective_resource_percentages(game, objective, port_ds_word_ptr(game, ammunition), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
   Position(game, FIRST_ROW);
   Print(game, FUEL_AMMO, city.resources[1], Word(game, fuel), city.resources[0], Word(game, ammunition));
   Position(game, SECOND_ROW);
@@ -103,25 +102,22 @@ void opeu_unit_panel(Game& game, uint16_t unit) {
   auto const          destination_x{ locals.At(0x1a) };
   auto const          destination_y{ locals.At(0) };
   auto const          location_name{ locals.At(2) };
-  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(opeu_unit_name(game, unit, static_cast<std::uint16_t>(locals.At(0xe)))));
-  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, static_cast<std::uint16_t>(ammunition)), port_ds_word_ptr(game, static_cast<std::uint16_t>(fuel)),
-                       port_ds_word_ptr(game, static_cast<std::uint16_t>(food)));
+  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), opeu_unit_name(game, unit, locals.At(0xe)));
+  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, ammunition), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
   // each capacity becomes the percentage of it the regiment holds
   for (auto const& [kind, local] : {
            std::pair{ 0, ammunition },
            std::pair{ 1, fuel       },
            std::pair{ 2, food       }
   })
-    SetWord(game, local, opeu_resource_percent(static_cast<std::uint16_t>(regiment.resources[kind]), static_cast<std::uint16_t>(Word(game, local))));
-  auto const has_destination{ opeu_unit_order_destination(game, unit, &Record<std::uint8_t>(Data(game), static_cast<std::uint16_t>(destination_x)),
-                                                          &Record<std::uint8_t>(Data(game), static_cast<std::uint16_t>(destination_y))) };
+    SetWord(game, local, opeu_resource_percent(regiment.resources[kind], Word(game, local)));
+  auto const has_destination{ opeu_unit_order_destination(game, unit, &Record<std::uint8_t>(Data(game), destination_x), &Record<std::uint8_t>(Data(game), destination_y)) };
   Position(game, FIRST_ROW);
   auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + ORDER_NAME_BASE] : WAITING };
   Print(game, ORDERS, order, regiment.resources[1], Word(game, fuel));
   Position(game, SECOND_ROW);
-  auto const target{ has_destination ? opeu_location_name(game, static_cast<std::uint8_t>(Record<std::uint8_t>(data, destination_x)),
-                                                          static_cast<std::uint8_t>(Record<std::uint8_t>(data, destination_y)), static_cast<std::uint16_t>(location_name))
-                                     : opeu_location_name(game, static_cast<std::uint8_t>(regiment.x), static_cast<std::uint8_t>(regiment.y), static_cast<std::uint16_t>(location_name)) };
+  auto const target{ has_destination ? opeu_location_name(game, Record<std::uint8_t>(data, destination_x), Record<std::uint8_t>(data, destination_y), location_name)
+                                     : opeu_location_name(game, regiment.x, regiment.y, location_name) };
   Print(game, TARGET, target, regiment.resources[0], Word(game, ammunition));
   Position(game, THIRD_ROW);
   Print(game, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(game, food));

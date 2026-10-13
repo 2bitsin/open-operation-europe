@@ -23,7 +23,7 @@ void opeu_turn_control_other(Game& game) {
   auto const side{ data.current_side };
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-    opeu_arrival_location(game, static_cast<std::uint8_t>(unit.x), static_cast<std::uint8_t>(unit.y), static_cast<std::uint8_t>(side));
+    opeu_arrival_location(game, unit.x, unit.y, side);
     data.context_side = NO_SIDE;
     opeu_daily_context(game, data.current_side);
   }

@@ -47,7 +47,7 @@ uint8_t opeu_stock_cities_fill(Game& game) {
   uint8_t count{ 0 };
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (objective.active != 0 && static_cast<std::uint8_t>(opeu_objective_side(game, near)) == data.current_side) data.view_objectives[count++] = near;
+    if (objective.active != 0 && opeu_objective_side(game, near) == data.current_side) data.view_objectives[count++] = near;
   }
   return count;
 }
@@ -70,12 +70,9 @@ void opeu_stock_show(Game& game, uint16_t objective) {
   opeu_objective_capacities(game, objective, port_ds_word_ptr(game, ammo), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
   opeu_info_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), offsetof(DataSegment, stock_header));
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), static_cast<std::uint16_t>(Word(game, fuel)),
-                                                        static_cast<std::uint16_t>(city.resources[FUEL]), static_cast<std::uint16_t>(city.reserves[FUEL]) });
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), static_cast<std::uint16_t>(Word(game, ammo)),
-                                                        static_cast<std::uint16_t>(city.resources[AMMUNITION]), static_cast<std::uint16_t>(city.reserves[AMMUNITION]) });
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), static_cast<std::uint16_t>(Word(game, food)),
-                                                        static_cast<std::uint16_t>(city.resources[FOOD]), static_cast<std::uint16_t>(city.reserves[FOOD]) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), Word(game, fuel), city.resources[FUEL], city.reserves[FUEL] });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), Word(game, ammo), city.resources[AMMUNITION], city.reserves[AMMUNITION] });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), Word(game, food), city.resources[FOOD], city.reserves[FOOD] });
 }
 
 // The panel under the city's name.
@@ -89,9 +86,8 @@ uint16_t opeu_stock_ask(Game& game, uint16_t what) {
   ServiceLocals const locals{ 0x64 }; // the question the format service writes
   auto const&         data{ Data(game) };
   auto const          question{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(question),
-                                                          static_cast<std::uint16_t>(data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question)),
-                                                          static_cast<std::uint16_t>(what) });
+  opeu_request_format(
+      game, std::array<std::uint16_t, 3>{ question, static_cast<std::uint16_t>(data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question)), what });
   return opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }
 
@@ -113,7 +109,7 @@ void opeu_stock_edit(Game& game, uint16_t objective) {
     }
   }
   for (auto const resource : { AMMUNITION, FUEL, FOOD }) city.reserves[resource] = before[resource];
-  opeu_daily_context(game, static_cast<std::uint8_t>(data.current_side));
+  opeu_daily_context(game, data.current_side);
 }
 
 // Command action 2: the list of the side's cities until the player leaves it.
@@ -130,9 +126,9 @@ void opeu_turn_action_2(Game& game) {
   for (;;) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_select_city), data.context_record2);
     opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-    if (!opeu_list_dialog(game, offsetof(DataSegment, city_dialog), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height))) break;
+    if (!opeu_list_dialog(game, offsetof(DataSegment, city_dialog), 1, height)) break;
     auto const objective{ data.view_objectives[data.list_row] };
-    opeu_unit_flash(game, objective, static_cast<uint8_t>(FLASH_TICKS));
+    opeu_unit_flash(game, objective, FLASH_TICKS);
     opeu_stock_edit(game, objective);
     height = LATER_HEIGHT;
   }

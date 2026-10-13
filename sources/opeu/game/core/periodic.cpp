@@ -27,6 +27,6 @@ void opeu_apply_daily_side_resources(Game& game) {
     opeu_add_word(side.pending_planes, 999, &side.planes);
     side.pending_planes = 0;
     // The income times ten wraps to a word before the saturating addition.
-    for (auto i = 0; i < 3; ++i) opeu_add_word(static_cast<uint16_t>(side.income[i] * 10u), 60000, &side.stock[i]);
+    for (auto i = 0; i < 3; ++i) opeu_add_word(side.income[i] * 10u, 60000, &side.stock[i]);
   }
 }

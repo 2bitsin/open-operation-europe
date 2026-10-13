@@ -120,7 +120,7 @@ private:
     if (Overflows()) NewLine();
   }
   void Flush() {
-    for (auto const c : _word) opeu_text_put(_game, _host, static_cast<uint8_t>(c));
+    for (auto const c : _word) opeu_text_put(_game, _host, c);
     _word.clear();
     _printable = 0;
   }
@@ -275,25 +275,8 @@ void opeu_text_scroll_up(Game& game, TextHost* host) {
   opeu_army_position(game, host, data.text_left, data.text_top);
 }
 
-int16_t opeu_text_get_left(Game& game, [[maybe_unused]] TextHost* host) {
-  return Data(game).text_left;
-}
-int16_t opeu_text_get_right(Game& game, [[maybe_unused]] TextHost* host) {
-  return Data(game).text_right;
-}
 void opeu_text_set_left(Game& game, [[maybe_unused]] TextHost* host, int16_t left) {
   Data(game).text_left = left;
-}
-void opeu_text_set_right(Game& game, [[maybe_unused]] TextHost* host, int16_t right) {
-  Data(game).text_right = right;
-}
-
-void opeu_text_columns(Game& game, [[maybe_unused]] TextHost* host, int16_t left, int16_t right) {
-  auto& data{ Data(game) };
-  if (right > left) {
-    data.text_left  = left;
-    data.text_right = right;
-  }
 }
 
 // The window becomes the whole screen.
@@ -303,18 +286,6 @@ void opeu_text_window_reset(Game& game, [[maybe_unused]] TextHost* host) {
   data.text_left   = 0;
   data.text_top    = 0;
   data.text_bottom = ROWS;
-}
-
-int16_t opeu_text_set_height(Game& game, [[maybe_unused]] TextHost* host, int16_t height) {
-  if (height > 0) {
-    Data(game).text_height = height;
-    return 1;
-  }
-  return 0;
-}
-
-void opeu_text_height_reset(Game& game, [[maybe_unused]] TextHost* host) {
-  Data(game).text_height = GLYPH_BYTES;
 }
 
 // Keeps the cursor on the screen.
@@ -348,13 +319,6 @@ void opeu_text_color(Game& game, [[maybe_unused]] TextHost* host, uint16_t color
 
 void opeu_text_paper_set(Game& game, [[maybe_unused]] TextHost* host, uint8_t paper) {
   Data(game).text_paper = paper;
-}
-
-int16_t opeu_text_get_x(Game& game, [[maybe_unused]] TextHost* host) {
-  return Data(game).text_x;
-}
-int16_t opeu_text_get_y(Game& game, [[maybe_unused]] TextHost* host) {
-  return Data(game).text_y;
 }
 
 // Saves the cursor, left column and colours.
@@ -436,10 +400,10 @@ uint8_t opeu_text_put(Game& game, TextHost* host, uint8_t c) {
     }
     break;
   case EscapeState::ROW:
-    opeu_text_set_y(game, host, static_cast<int16_t>((c - 0x20) << 5));
+    opeu_text_set_y(game, host, (c - 0x20) << 5);
     SetState(data, EscapeState::COLUMN);
     break;
-  case EscapeState::COLUMN: opeu_text_set_x(game, host, static_cast<int16_t>(c - 0x20)); [[fallthrough]];
+  case EscapeState::COLUMN: opeu_text_set_x(game, host, c - 0x20); [[fallthrough]];
   case EscapeState::IGNORE:
   reset:
     SetState(data, EscapeState::NONE);
@@ -461,7 +425,7 @@ uint8_t opeu_text_put(Game& game, TextHost* host, uint8_t c) {
     SetState(data, EscapeState::NONE);
     break;
   case EscapeState::FINISH:
-    opeu_pending_finish(game, static_cast<uint8_t>(static_cast<uint8_t>(c - '0')));
+    opeu_pending_finish(game, c - '0');
     SetState(data, EscapeState::NONE);
     break;
   default:

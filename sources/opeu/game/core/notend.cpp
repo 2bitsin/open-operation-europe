@@ -96,7 +96,7 @@ uint16_t opeu_end_can_occupy(Game& game, uint8_t x, uint8_t y, uint16_t unit) {
 // The call-back of the occupied objective's show: a sound and a pause.
 void opeu_end_occupy_present(Game& game) {
   opeu_sound_cue10(game);
-  opeu_delay_units(game, static_cast<uint8_t>(30));
+  opeu_delay_units(game, 30);
 }
 
 // The defender retreats in battle_direction; when the battle cell is then empty and the attacker may enter it (an
@@ -107,7 +107,7 @@ void opeu_end_occupy(Game& game) {
   uint16_t const      text{ locals.At(0) };
   data.view_side     = 255;
   data.overview_side = 255;
-  opeu_arrival_location(game, static_cast<uint8_t>(data.battle_x), static_cast<uint8_t>(data.battle_y), (uint8_t)(uint8_t)(data.side_status[0] == SIDE_PLAYED ? 0 : 1));
+  opeu_arrival_location(game, data.battle_x, data.battle_y, data.side_status[0] == SIDE_PLAYED ? 0 : 1);
   uint16_t const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   uint16_t       unit;
   if (data.battle_direction != NONE && (unit = opeu_find_unit_at(game, data.battle_x, data.battle_y)) != 0) {
@@ -129,10 +129,9 @@ void opeu_end_occupy(Game& game) {
   opeu_arrival_prepare(game, unit);
   attacker.moved = 0;
   if (objective) {
-    opeu_request_format(
-        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), static_cast<std::uint16_t>(objective) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), objective });
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, static_cast<uint8_t>(side), Presenter::END_OCCUPY);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, side, Presenter::END_OCCUPY);
   }
 }
 
@@ -220,7 +219,7 @@ void opeu_end_losses(Game& game) {
   for (auto const& loss : data.battle_losses) {
     uint16_t const element{ loss.element };
     if (!element) continue;
-    auto const side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
+    auto const side{ opeu_battle_element_side(game, element) };
     uint16_t   unit;
     if (!loss.unit) {
       unit = GARRISON_AT;
@@ -235,17 +234,15 @@ void opeu_end_losses(Game& game) {
     }
     uint16_t const remaining{ Record<Element>(data, element).quantity };
     uint16_t const lost{ static_cast<uint16_t>(loss.item.quantity - remaining) };
-    opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(offsetof(DataSegment, end_loss_format)),
-                                                            static_cast<std::uint16_t>(SIDE_COLOUR[side == 0 ? 0 : 1]), static_cast<std::uint16_t>(data.side_names[side]),
-                                                            static_cast<std::uint16_t>(unit_name), static_cast<std::uint16_t>(item_name) });
+    opeu_request_format(
+        game, std::array<std::uint16_t, 6>{ report, static_cast<std::uint16_t>(offsetof(DataSegment, end_loss_format)), SIDE_COLOUR[side == 0 ? 0 : 1], data.side_names[side], unit_name, item_name });
     if (!unit || !Record<Element>(data, element).quantity)
       opeu_string_append(game, report, offsetof(DataSegment, end_wiped_out_text));
     else if (!lost)
       opeu_string_append(game, report, offsetof(DataSegment, end_undamaged_text));
     else {
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(loss_text),
-                                                              static_cast<std::uint16_t>(lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format)),
-                                                              static_cast<std::uint16_t>(lost) });
+      opeu_request_format(
+          game, std::array<std::uint16_t, 3>{ loss_text, static_cast<std::uint16_t>(lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format)), lost });
       opeu_string_append(game, report, loss_text);
     }
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));
@@ -268,7 +265,7 @@ void opeu_notice_end(Game& game) {
   opeu_end_nothing();
   auto const show_context{ [&](uint8_t side) {
     data.daily_active = 1;
-    opeu_daily_context(game, static_cast<uint8_t>(side));
+    opeu_daily_context(game, side);
     data.daily_active = 0;
   } };
   if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_PLAYED) show_context(0);

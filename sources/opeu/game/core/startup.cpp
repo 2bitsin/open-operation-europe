@@ -9,6 +9,11 @@
 #include "core/random.hpp"
 #include "types.hpp"
 
+#include <algorithm>
+#include <array>
+#include <functional>
+#include <numeric>
+#include <ranges>
 #include <span>
 #include <utility>
 
@@ -33,61 +38,49 @@ constexpr uint8_t STARTUP_STEP{ 10 };
 // The schedule flags a new game starts with.
 constexpr uint8_t NEW_GAME_SCHEDULE{ 7 };
 
-} // namespace
-
 // The sum of the general's eight ability ratings.
-uint16_t opeu_person_ability_total(Game const& game, uint16_t person) {
-  auto const& general{ Record<Person>(Data(game), person) };
-  return general.leadership + general.charm + general.bravery + general.health + general.infantry + general.artillery + general.armor + general.experience;
+auto AbilityTotal(Person const& general) -> uint16_t {
+  return static_cast<uint16_t>(general.leadership + general.charm + general.bravery + general.health + general.infantry + general.artillery + general.armor + general.experience);
 }
 
-// Stores the indices of the side's present generals in order[], ablest first (a stable sort), and returns how many.
-uint8_t opeu_rank_side_people(Game& game, uint8_t side, uint8_t* order) {
-  auto&    data{ Data(game) };
-  uint16_t totals[PEOPLE_PER_SIDE];
-  uint8_t  count{ 0 };
-  uint8_t  index{ 0 };
-  for (auto const& general : SideGenerals(data, side)) {
-    if (general.status != PERSON_VACANT) {
-      order[count]  = index;
-      totals[count] = opeu_person_ability_total(game, Near(data, general));
-      count++;
-    }
-    index++;
-  }
-  for (uint8_t d = 0; d < count; d++)
-    for (uint8_t f = count - 1; f > d; f--)
-      if (totals[f - 1] < totals[f]) {
-        std::swap(totals[f - 1], totals[f]);
-        std::swap(order[f - 1], order[f]);
-      }
-  return count;
+// The indices of the side's present generals, ablest first (equal totals keep their order); the slots after them hold 0.
+auto RankedGenerals(DataSegment const& data, uint8_t side) -> std::array<uint8_t, PEOPLE_PER_SIDE> {
+  auto const                           generals{ SideGenerals(data, side) };
+  std::array<uint8_t, PEOPLE_PER_SIDE> order{};
+  auto       present{ std::views::iota(uint8_t{ 0 }, static_cast<uint8_t>(PEOPLE_PER_SIDE)) | std::views::filter([&generals](uint8_t index) { return generals[index].status != PERSON_VACANT; }) };
+  auto const end{ std::ranges::copy(present, order.begin()).out };
+  std::ranges::stable_sort(order.begin(), end, std::ranges::greater{}, [&generals](uint8_t index) { return AbilityTotal(generals[index]); });
+  return order;
 }
+
+// Marks the cell of every fielded unit with its side.
+void MarkFieldedUnits(DataSegment& data) {
+  for (auto const [index, unit] : std::views::zip(std::views::iota(0U), data.units)) {
+    if (!(unit.flags & Bits(UnitFlag::READY))) continue;
+    auto& cell{ data.map_cells[unit.y * MAP_WIDTH + unit.x] };
+    cell &= ~Bits(MapCell::OCCUPANT_MASK);
+    cell |= Bits(index < UNITS_PER_SIDE ? MapCell::SIDE_0 : MapCell::SIDE_1);
+  }
+}
+
+} // namespace
 
 // Gives each computer side's three ablest generals the staff roles and the next four the divisions; marks every
 // fielded unit's cell with its side; resets the turn order and the objective and unit links; sets the schedule.
 void opeu_assign_side_staff(Game& game) {
   auto& data{ Data(game) };
-  for (uint8_t side = 0; side < SIDE_COUNT; side++) {
+  for (auto const side : std::views::iota(uint8_t{ 0 }, uint8_t{ SIDE_COUNT })) {
     if (data.side_control[side] != SIDE_COMPUTER) continue;
-    uint8_t ranked[PEOPLE_PER_SIDE];
-    opeu_rank_side_people(game, side, ranked);
+    auto const ranked{ RankedGenerals(data, side) };
     auto const generals{ SideGenerals(data, side) };
-    uint8_t    rank{ 0 };
-    for (auto const role : STAFF_ROLES) opeu_person_set_role(game, Near(data, generals[ranked[rank++]]), std::to_underlying(role));
-    for (uint8_t group = 0; group < GROUPS_PER_SIDE; group++) opeu_person_set_group(game, Near(data, generals[ranked[rank++]]), group);
+    auto       next{ ranked.begin() };
+    for (auto const role : STAFF_ROLES) opeu_person_set_role(game, Near(data, generals[*next++]), std::to_underlying(role));
+    for (auto const group : std::views::iota(0U, GROUPS_PER_SIDE)) opeu_person_set_group(game, Near(data, generals[*next++]), static_cast<uint8_t>(group));
   }
-  for (uint8_t i = 0; i < data.units.size(); i++) {
-    auto const& unit{ data.units[i] };
-    if (unit.flags & Bits(UnitFlag::READY)) {
-      auto& cell{ data.map_cells[unit.y * MAP_WIDTH + unit.x] };
-      cell &= ~Bits(MapCell::OCCUPANT_MASK);
-      cell |= Bits(i < UNITS_PER_SIDE ? MapCell::SIDE_0 : MapCell::SIDE_1);
-    }
-  }
-  for (uint8_t g = 0; g < data.turn_order.size(); g++) data.turn_order[g] = g;
-  for (auto& link : data.objective_links) link = 0;
-  for (auto& link : data.unit_links) link = 0;
+  MarkFieldedUnits(data);
+  std::iota(data.turn_order.begin(), data.turn_order.end(), uint8_t{ 0 });
+  std::ranges::fill(data.objective_links, 0);
+  std::ranges::fill(data.unit_links, 0);
   data.schedule_flags[0] = NEW_GAME_SCHEDULE;
 }
 
@@ -102,5 +95,5 @@ void opeu_app_startup_service(Game& game) {
   }
   data.startup_mode += STARTUP_STEP;
   opeu_vga_clear();
-  opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
+  opeu_finish_side_initialization(game, 1);
 }

@@ -29,11 +29,11 @@ void opeu_request_action2(Game& game, uint8_t side, uint16_t) {
   data.arrival_unit = opeu_build_request_unit(game, side);
   opeu_arrival_prepare(game, data.arrival_unit);
   if (data.side_status[side] != SIDE_PLAYED) return;
-  opeu_set_turn_context(game, static_cast<uint8_t>(ARRIVAL_CONTEXT));
+  opeu_set_turn_context(game, ARRIVAL_CONTEXT);
   auto const& unit{ Record<Unit>(data, data.arrival_unit) };
-  opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(side));
+  opeu_arrival_location(game, unit.x, unit.y, side);
   opeu_arrival_view(game, data.arrival_unit);
   data.arrival_side = side;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, static_cast<uint8_t>(side), Presenter::ARRIVAL);
-  opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), 0, side, Presenter::ARRIVAL);
+  opeu_finish_side_initialization(game, 0);
 }

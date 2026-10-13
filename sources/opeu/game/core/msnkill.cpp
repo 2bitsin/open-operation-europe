@@ -92,13 +92,13 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
         Record<Person>(Data(game), commander).role |= Bits(PersonRole::DEPUTY);
         struck                                      = true;
         auto const commander_side{ opeu_person_lacks_side0_flag(game, commander) };
-        opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
-        opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+        opeu_set_turn_context(game, 0x10);
+        opeu_finish_side_initialization(game, 0);
         opeu_string_copy(game, text, commander);
         opeu_string_append(game, text, MissionText(game, ASSASSINATED));
-        opeu_string_append(game, text, static_cast<uint16_t>(offsetof(DataSegment, mission_bold_off)));
+        opeu_string_append(game, text, offsetof(DataSegment, mission_bold_off));
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, static_cast<uint8_t>(commander_side), Presenter::MISSION_DELAY);
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, commander_side, Presenter::MISSION_DELAY);
       }
     }
     if (struck) {

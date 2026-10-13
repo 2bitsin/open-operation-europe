@@ -33,7 +33,7 @@ uint8_t opeu_staff_jitter_stat(uint8_t v) {
 void opeu_staff_roll_flag(Game& game, uint16_t person) {
   auto& data{ Data(game) };
   auto& record{ Record<Person>(data, person) };
-  if (opeu_rand_bounded((uint16_t)((data.delivery_level + 1) * 3)) == 0)
+  if (opeu_rand_bounded((data.delivery_level + 1) * 3) == 0)
     record.role |= Bits(PersonRole::STAFF_TRAIT);
   else
     record.role &= ~Bits(PersonRole::STAFF_TRAIT);

@@ -80,10 +80,8 @@ auto Unload(AirLift& lift, std::uint16_t (&stock)[3], std::uint16_t const (&limi
 // The report on what a unit or objective received: color, name, then each supply's new and old amount (fuel,
 // ammunition, food).
 auto Report(Game& game, std::uint16_t text, std::uint16_t format, std::uint16_t color, std::uint16_t name, std::uint16_t const (&now)[3], std::uint16_t const (&before)[3]) -> void {
-  opeu_request_format(game, std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(color), static_cast<std::uint16_t>(name),
-                                                           static_cast<std::uint16_t>(now[1]), static_cast<std::uint16_t>(static_cast<std::uint16_t>(now[1] - before[1])),
-                                                           static_cast<std::uint16_t>(now[0]), static_cast<std::uint16_t>(static_cast<std::uint16_t>(now[0] - before[0])),
-                                                           static_cast<std::uint16_t>(now[2]), static_cast<std::uint16_t>(static_cast<std::uint16_t>(now[2] - before[2])) });
+  opeu_request_format(game, std::array<std::uint16_t, 10>{ text, format, color, name, now[1], (static_cast<std::uint16_t>(now[1] - before[1])), now[0],
+                                                           (static_cast<std::uint16_t>(now[0] - before[0])), now[2], (static_cast<std::uint16_t>(now[2] - before[2])) });
 }
 } // namespace
 
@@ -93,7 +91,7 @@ uint16_t opeu_cargo_drop_due(Game& game) {
   auto& lift{ AirSide(Data(game)).lift };
   if (!lift.planes) return 0;
   opeu_sub_byte(1, &lift.turns);
-  if (!opeu_sub_byte(1, &lift.hours)) switch (static_cast<std::uint8_t>(opeu_air_report(game, CARGO_NAME, static_cast<std::uint8_t>(lift.turns)))) {
+  if (!opeu_sub_byte(1, &lift.hours)) switch (opeu_air_report(game, CARGO_NAME, lift.turns)) {
     case 0: return 1;
     case 1: lift.hours = 1; break;
     case 2: lift.planes = 0; break;
@@ -120,13 +118,12 @@ void opeu_cargo_drop_present(Game& game) {
   auto&      data{ Data(game) };
   auto const side{ data.air_side };
   if (data.side_status[side] == SIDE_PLAYED) {
-    auto const commander{ opeu_find_side_record(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(FLIGHT_COMMANDER_KIND)) };
-    auto const officer{ opeu_find_person_template(game, static_cast<std::uint8_t>(Record<Person>(data, commander).status), static_cast<std::uint8_t>(AIR_OFFICER_TEMPLATE)) };
+    auto const commander{ opeu_find_side_record(game, side, FLIGHT_COMMANDER_KIND) };
+    auto const officer{ opeu_find_person_template(game, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_BEGIN, officer);
   } else {
-    auto const enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<std::uint8_t>(side))) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_SPOTTED,
-                         opeu_find_side_record(game, static_cast<std::uint8_t>(enemy), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
+    auto const enemy{ opeu_opposite_side(side) };
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_SPOTTED, opeu_find_side_record(game, enemy, AIR_OFFICER_KIND));
   }
   opeu_sound_cue4(game);
 }
@@ -143,11 +140,11 @@ void opeu_cargo_drop_event(Game& game) {
   auto                planes{ lift.planes };
   opeu_sub_word(planes, &record.planes);
   for (int i{ 0 }; i < 3; ++i) opeu_sub_word(lift.supplies[i], &record.stock[i]);
-  opeu_sub_word(opeu_air_damage_roll(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(opeu_min16(planes, 0x1d) / 10)), &planes);
-  opeu_cargo_distribute(game, Near(data, lift), static_cast<std::uint16_t>((lift.planes - planes) * LOAD_PER_PLANE));
+  opeu_sub_word(opeu_air_damage_roll(game, x, y, opeu_min16(planes, 0x1d) / 10), &planes);
+  opeu_cargo_distribute(game, Near(data, lift), (lift.planes - planes) * LOAD_PER_PLANE);
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
-  opeu_map_center(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side)))));
+  opeu_map_center(game, x, y, opeu_side_for_status(game, side));
   auto const pixel{ CellViewPixel(game, x, y) };
   auto const text{ locals.At(TEXT_AT) };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
@@ -155,39 +152,37 @@ void opeu_cargo_drop_event(Game& game) {
       opeu_air_destroyed_message(game, PLANES_NAME);
       break;
     }
-    opeu_air_sprite_draw(game, 0, pixel.x, row, static_cast<std::uint8_t>(side));
+    opeu_air_sprite_draw(game, 0, pixel.x, row, side);
     if (pixel.y == row) {
-      auto const shown{ static_cast<std::uint8_t>(opeu_side_for_status(game, static_cast<std::uint8_t>(side))) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, static_cast<std::uint8_t>(shown), Presenter::CARGO_DROP);
+      auto const shown{ opeu_side_for_status(game, side) };
+      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, shown, Presenter::CARGO_DROP);
     }
     if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
       opeu_music_command7(game);
-      if (auto const near{ opeu_find_unit_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) }; near != 0) {
+      if (auto const near{ opeu_find_unit_at(game, x, y) }; near != 0) {
         opeu_unit_capacities(game, near, port_ds_word_ptr(game, locals.At(AMMO_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FUEL_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FOOD_CAPACITY_AT)));
         auto&               unit{ Record<Unit>(data, near) };
         std::uint16_t const before[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
         std::uint16_t const limit[3]{ Word(game, locals.At(AMMO_CAPACITY_AT)), Word(game, locals.At(FUEL_CAPACITY_AT)), Word(game, locals.At(FOOD_CAPACITY_AT)) };
         Unload(lift, unit.resources, limit);
-        if (static_cast<std::uint8_t>(opeu_unit_side(near)) == side) {
+        if (opeu_unit_side(near) == side) {
           std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
           auto const          name{ opeu_unit_name(game, near, locals.At(NAME_AT)) };
-          auto const          color{ SideColorCode(static_cast<std::uint8_t>(opeu_unit_side(near))) };
+          auto const          color{ SideColorCode(opeu_unit_side(near)) };
           Report(game, text, UNIT_REPORT, color, name, now, before);
-          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text,
-                               opeu_find_side_record(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
+          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }
-      if (auto const near{ opeu_find_objective_at(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)) }; near != 0) {
+      if (auto const near{ opeu_find_objective_at(game, x, y) }; near != 0) {
         auto&                   objective{ Record<Objective>(data, near) };
         std::uint16_t const     before[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
         constexpr std::uint16_t LIMIT[3]{ STOCK_LIMIT, STOCK_LIMIT, STOCK_LIMIT };
         Unload(lift, objective.resources, LIMIT);
-        if (static_cast<std::uint8_t>(opeu_objective_side(game, near)) == side) {
+        if (opeu_objective_side(game, near) == side) {
           std::uint16_t const now[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-          auto const          color{ SideColorCode(static_cast<std::uint8_t>(opeu_objective_side(game, near))) };
+          auto const          color{ SideColorCode(opeu_objective_side(game, near)) };
           Report(game, text, CITY_REPORT, color, near, now, before);
-          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text,
-                               opeu_find_side_record(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(AIR_OFFICER_KIND)));
+          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }
     }
@@ -197,7 +192,7 @@ void opeu_cargo_drop_event(Game& game) {
   data.map_mode[0] = view;
   for (int i{ 0 }; i < 3; ++i) opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);
   if (planes != 0) {
-    opeu_officer_gain(game, static_cast<std::uint8_t>(side), static_cast<std::uint8_t>(AIR_OFFICER_KIND));
+    opeu_officer_gain(game, side, AIR_OFFICER_KIND);
     record.pending_planes = static_cast<std::uint16_t>(record.pending_planes + planes);
   }
   lift.planes = 0;

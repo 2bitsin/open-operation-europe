@@ -35,7 +35,7 @@ constexpr uint16_t REFUSAL_COUNT{ 7 };
 void FormatPending(Game& game, uint16_t id) {
   auto&                         data{ Data(game) };
   auto const                    name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const                    text{ opeu_message_lookup(game, static_cast<short>(id)) };
+  auto const                    text{ opeu_message_lookup(game, id) };
   std::array<uint16_t, 3> const words{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)), text, name };
   opeu_request_format(game, words);
 }
@@ -44,7 +44,7 @@ void FormatPending(Game& game, uint16_t id) {
 void ShowPending(Game& game) {
   auto& data{ Data(game) };
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, request_buffer), data.request_template);
-  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, static_cast<uint8_t>(3));
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, 3);
 }
 
 } // namespace
@@ -62,7 +62,7 @@ void opeu_request_start(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), Presenter::REQUEST_START);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, side, Presenter::REQUEST_START);
   auto& config{ data.request_configs[side] };
   config.target   = slot.target;
   config.argument = slot.argument;
@@ -84,7 +84,7 @@ void opeu_request_fallback(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), Presenter::REQUEST_FALLBACK);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, side, Presenter::REQUEST_FALLBACK);
   if (slot.kind == std::to_underlying(RequestKind::REGIMENT)) opeu_request_complete(game, side);
   slot.kind = std::to_underlying(RequestKind::NONE);
 }

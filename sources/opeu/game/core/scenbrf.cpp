@@ -78,18 +78,12 @@ private:
 
 } // namespace
 
-// The message hook: inverts a 1x8 marker at the marked overview cell.
-void opeu_brief_blink(Game& game) {
-  auto const& data{ Data(game) };
-  opeu_ui_highlight(data.brief_mark_x, data.brief_mark_y, 1, 8, 0x107);
-}
-
 // Marks an overview-map cell for the blinking hook.
 void opeu_brief_mark(Game& game, uint8_t x, uint8_t y) {
   auto& data{ Data(game) };
   data.brief_mark_x = x;
   data.brief_mark_y = y;
-  opeu_overview_pixel(game, static_cast<std::uint16_t>(offsetof(DataSegment, brief_mark_x)), static_cast<std::uint16_t>(offsetof(DataSegment, brief_mark_y)));
+  opeu_overview_pixel(game, offsetof(DataSegment, brief_mark_x), offsetof(DataSegment, brief_mark_y));
 }
 
 // France 1940.

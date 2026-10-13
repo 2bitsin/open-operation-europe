@@ -75,7 +75,7 @@ void opeu_turn_control_one(Game& game) {
     {
       auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
       opeu_control_position(game, unit.x, unit.y);
-      opeu_arrival_location(game, static_cast<std::uint8_t>(unit.x), static_cast<std::uint8_t>(unit.y), static_cast<std::uint8_t>(data.current_side));
+      opeu_arrival_location(game, unit.x, unit.y, data.current_side);
     }
     opeu_daily_context(game, data.current_side);
     for (;;) {
@@ -85,8 +85,7 @@ void opeu_turn_control_one(Game& game) {
       opeu_turn_pre_context(game);
       if (!inspecting) {
         ServiceLocals const prompt{ PROMPT_BYTES };
-        opeu_request_format(game,
-                            std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt.At(0)), static_cast<std::uint16_t>(PROMPT_FORMAT), static_cast<std::uint16_t>(data.context_record1) });
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt.At(0), PROMPT_FORMAT, data.context_record1 });
         auto const choice{ opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
           Dispatch(CONTROL_ACTIONS, data.control_actions.at(choice), game);

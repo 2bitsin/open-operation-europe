@@ -61,7 +61,7 @@ void opeu_ai_equip_element(Game& game, uint16_t element, uint8_t kind, uint8_t s
     auto const capacity{ data.request_capacities[type.category] };
     auto const typical{ static_cast<std::uint16_t>(capacity / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1) + 18) };
     load.type     = index;
-    load.quantity = opeu_min16(static_cast<std::uint16_t>(opeu_rand_bounded(typical / 3) + (typical >> 1)), capacity);
+    load.quantity = opeu_min16(opeu_rand_bounded(typical / 3) + (typical >> 1), capacity);
     load.damage   = 0;
     return;
   }
@@ -88,10 +88,10 @@ uint16_t opeu_ai_raise_unit(Game& game) {
     kind = static_cast<std::uint8_t>(opeu_rand_bounded(4));
   Record<Unit>(data, unit).flags = Bits(UnitFlag::REQUESTED);
   for (std::uint8_t i{ 0 }; i < data.ai_unit_element_counts[slot]; ++i) {
-    if (!opeu_rand_bounded(static_cast<std::uint16_t>(data.ai_unit_element_counts[slot] + data.delivery_level)) && i > 1) break;
+    if (!opeu_rand_bounded(data.ai_unit_element_counts[slot] + data.delivery_level) && i > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[i] };
-    opeu_ai_equip_element(game, near, kind, static_cast<std::uint8_t>(opeu_rand_bounded(2)));
+    opeu_ai_equip_element(game, near, kind, opeu_rand_bounded(2));
     auto& element{ Record<Element>(data, near) };
     element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
     element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
@@ -126,7 +126,7 @@ uint16_t opeu_ai_restock_unit(Game& game, uint16_t objective, uint16_t unit) {
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) {
     for (auto& item : store.items) {
       if (!item.quantity || item.type != element.type) continue;
-      auto const amount{ opeu_min16(static_cast<std::uint16_t>(data.request_capacities[data.element_types[element.type].category] - element.quantity), item.quantity) };
+      auto const amount{ opeu_min16(data.request_capacities[data.element_types[element.type].category] - element.quantity, item.quantity) };
       element.quantity += amount;
       item.quantity    -= amount;
       moved             = 1;

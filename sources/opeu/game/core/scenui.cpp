@@ -33,8 +33,8 @@ void opeu_scenario_frame(Game& game) {
 }
 
 void opeu_scenario_message(Game& game, uint16_t text) {
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(4), static_cast<int16_t>(0x19));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(MESSAGE_FORMAT), static_cast<std::uint16_t>(text) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x19);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ MESSAGE_FORMAT, text });
 }
 
 void opeu_scenario_clear_panel(Game& game) {
@@ -43,15 +43,15 @@ void opeu_scenario_clear_panel(Game& game) {
 
 void opeu_scenario_clear_text(Game& game) {
   opeu_ui_box(2, 0x86, 0x22, 0xb8, 7);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(4), static_cast<int16_t>(0xe0));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xe0);
 }
 
 // The scenario description, scrolled inside its window.
 void opeu_scenario_description(Game& game, uint16_t text) {
-  opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(1));
-  opeu_text_window(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(4), static_cast<int16_t>(0x25), static_cast<int16_t>(0x1a), static_cast<int16_t>(0x164));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(4), static_cast<int16_t>(0x1e));
+  opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), 1);
+  opeu_text_window(game, static_cast<TextHost*>(port_textout_host()), 4, 0x25, 0x1a, 0x164);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x1e);
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), text);
   opeu_text_window_reset(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0));
+  opeu_text_scroll_mode(game, static_cast<TextHost*>(port_textout_host()), 0);
 }

@@ -1,5 +1,5 @@
-// The end of a scenario: the outcome screen and the epilogue, the far-image accessors of the scenario copy, and the
-// shutdown helpers that free the memory segments and close the data files.
+// The end of a scenario: the outcome screen and the epilogue, and the shutdown helpers that free the memory segments
+// and close the data files.
 #include "core/scenend.hpp"
 #include "common/events.hpp"
 #include "types.hpp"
@@ -50,39 +50,22 @@ constexpr std::uint16_t EPILOGUE_PAGE_2[]{ 0x34, 0x35, 0x36 };
 constexpr std::uint16_t EPILOGUE_PAGE_3[]{ 0x4c, 0x4d, 0x4e, 0x4f };
 constexpr std::uint16_t EPILOGUE_PAGE_4[]{ 4, 7, 0x37, 0x63 };
 
-// The scenario copy in the image segment starts with the scenario header.
-constexpr std::uint16_t SCENARIO_HEADER{ offsetof(DataSegment, scenario_header) };
-
 constexpr std::uint16_t MAX_SCORE{ 1000 };
 
 // Prints the given message texts, one per line.
 template <std::size_t N>
 auto PrintMessages(Game& game, std::uint16_t const (&ids)[N]) -> void {
-  for (auto const id : ids) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(id))) });
+  for (auto const id : ids) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ opeu_message_lookup(game, static_cast<int16_t>(id)) });
 }
 
 // Lets an epilogue page stand, then clears the screen to the dark palette for the next one.
 auto NextPage(Game& game) -> void {
-  opeu_delay_units(game, static_cast<uint8_t>(0x68));
-  opeu_delay_units(game, static_cast<uint8_t>(0xb4));
+  opeu_delay_units(game, 0x68);
+  opeu_delay_units(game, 0xb4);
   opeu_vga_clear();
 }
 
 } // namespace
-
-// The byte, word and far pointer of a scenario object (a DS offset in the scenario) in the copy at the image segment.
-uint8_t opeu_image_byte(Game const& game, const uint8_t image[65536], uint16_t p) {
-  (void)game;
-  return image[static_cast<uint16_t>(p - SCENARIO_HEADER)];
-}
-
-uint16_t opeu_image_word(Game const& game, const uint8_t image[65536], uint16_t p) {
-  return static_cast<uint16_t>(opeu_image_byte(game, image, p) | opeu_image_byte(game, image, static_cast<uint16_t>(p + 1)) << 8);
-}
-
-uint32_t opeu_image_pointer(Game const& game, uint16_t p) {
-  return static_cast<uint32_t>(Data(game).image_segment) << 16 | static_cast<uint16_t>(p - SCENARIO_HEADER);
-}
 
 // The strength of the outcome side: the value of its ready units in its ready divisions, in hundreds.
 uint16_t opeu_end_unit_strength(Game& game) {
@@ -110,12 +93,12 @@ uint16_t opeu_end_objective_points(Game& game) {
 
 // The dark palette of the epilogue pages.
 void opeu_end_palette_dark(Game& game) {
-  opeu_set_palette(static_cast<uint8_t>(0), static_cast<uint8_t>(16), game.State().Bytes(offsetof(DataSegment, end_palette)).data());
+  opeu_set_palette(0, 16, game.State().Bytes(offsetof(DataSegment, end_palette)).data());
 }
 
 // The palette of the epilogue's last pictures.
 void opeu_end_palette_show(Game& game) {
-  opeu_set_palette(static_cast<uint8_t>(0), static_cast<uint8_t>(16), game.State().Bytes(offsetof(DataSegment, end_palette_final)).data());
+  opeu_set_palette(0, 16, game.State().Bytes(offsetof(DataSegment, end_palette_final)).data());
 }
 
 // The outcome screen, the epilogue of a human winner, and the wait for the music to stop or a key; then the game
@@ -133,14 +116,13 @@ void opeu_scenario_end(Game& game) {
 
   auto const copy_text{ [&](FarPointer const& text) { opeu_string_copy_far(game, pattern, port_far(text.segment, 0), text.offset); } };
   auto const format_caption{ [&](uint8_t record_side) {
-    opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(caption), static_cast<std::uint16_t>(pattern), static_cast<std::uint16_t>(data.month),
-                                                            static_cast<std::uint16_t>(data.day),
-                                                            static_cast<std::uint16_t>(opeu_find_side_record(game, static_cast<uint8_t>(record_side), static_cast<uint8_t>(COMMANDER))) });
+    opeu_request_format(
+        game, std::array<std::uint16_t, 5>{ caption, pattern, static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day), opeu_find_side_record(game, record_side, COMMANDER) });
   } };
-  auto const opposite{ [&] { return static_cast<uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side))); } };
+  auto const opposite{ [&] { return opeu_opposite_side(side); } };
 
   if (data.side_status[side] == SIDE_PLAYED) {
-    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_VICTORY));
+    opeu_set_turn_context(game, CONTEXT_VICTORY);
     picture = VICTORY_PICTURE[side ? 1 : 0];
     if (reason == 0) {
       copy_text(data.end_victory_texts[0]);
@@ -158,7 +140,7 @@ void opeu_scenario_end(Game& game) {
       format_caption(side);
     }
   } else {
-    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_DEFEAT));
+    opeu_set_turn_context(game, CONTEXT_DEFEAT);
     picture = DEFEAT_PICTURE[side ? 1 : 0];
     copy_text(data.end_defeat_texts[reason]);
     format_caption(opposite());
@@ -166,53 +148,51 @@ void opeu_scenario_end(Game& game) {
   opeu_vga_clear();
   opeu_palette_map_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
   auto handle{ static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_data_name)))) };
-  opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 80, 64, static_cast<int16_t>(handle), picture);
-  opeu_dos_close(static_cast<int16_t>(handle));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(9), static_cast<int16_t>(336));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), static_cast<std::uint16_t>(caption) });
-  opeu_finish_side_initialization(game, static_cast<uint8_t>(1));
-  opeu_delay_units(game, static_cast<uint8_t>(0x93));
+  opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 80, 64, handle, picture);
+  opeu_dos_close(handle);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 9, 336);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), caption });
+  opeu_finish_side_initialization(game, 1);
+  opeu_delay_units(game, 0x93);
   if (data.side_control[side] == SIDE_PLAYED) {
     // The epilogue of endgrp.npk for a human winner: four pages of text over pictures, then the last two pictures.
     auto const picture_at{ [&](uint16_t x, uint16_t y, uint32_t at) {
-      opeu_picture_file_at(game, static_cast<const UiHost*>(port_uiprim_host()), x, y, static_cast<int16_t>(handle),
-                           static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(at)))
-                                                | static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(at >> 16))) << 16));
+      opeu_picture_file_at(game, static_cast<const UiHost*>(port_uiprim_host()), x, y, handle,
+                           static_cast<std::uint32_t>((static_cast<uint16_t>(at))) | static_cast<std::uint32_t>((static_cast<uint16_t>(at >> 16))) << 16);
     } };
-    opeu_set_turn_context(game, static_cast<uint8_t>(CONTEXT_EPILOGUE));
-    opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+    opeu_set_turn_context(game, CONTEXT_EPILOGUE);
+    opeu_finish_side_initialization(game, 0);
     handle = static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_picture_name))));
     opeu_vga_clear();
     opeu_end_palette_dark(game);
-    opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 55, static_cast<int16_t>(handle), 0);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(12), static_cast<int16_t>(300));
+    opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 55, handle, 0);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 300);
     PrintMessages(game, EPILOGUE_PAGE_1);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(0, 85, 0x3d20);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(12), static_cast<int16_t>(350));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 350);
     PrintMessages(game, EPILOGUE_PAGE_2);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(160, 35, 0xb4b1);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(12), static_cast<int16_t>(300));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 300);
     PrintMessages(game, EPILOGUE_PAGE_3);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(160, 35, 0xd03b);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(12), static_cast<int16_t>(280));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 280);
     PrintMessages(game, EPILOGUE_PAGE_4);
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_salute)),
-                                                          static_cast<std::uint16_t>(opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(COMMANDER))) });
+    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_salute)), opeu_find_side_record(game, side, COMMANDER) });
     NextPage(game);
     opeu_end_palette_show(game);
     picture_at(0, 0, 0x10c78);
-    opeu_delay_units(game, static_cast<uint8_t>(0x1e));
+    opeu_delay_units(game, 0x1e);
     picture_at(128, 112, 0x13829);
-    opeu_dos_close(static_cast<int16_t>(handle));
+    opeu_dos_close(handle);
   }
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_delay_units(game, static_cast<uint8_t>(0x1e));
+  opeu_delay_units(game, 0x1e);
   for (;;) {
     if (!static_cast<uint16_t>(opeu_music_playing(game)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b())) {
       opeu_quit_to_dos(game);
@@ -225,7 +205,7 @@ void opeu_scenario_end(Game& game) {
 void opeu_free_error(Game& game, uint16_t name) {
   (void)name;
   opeu_vga_clear();
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0), static_cast<int16_t>(0));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0, 0);
 }
 
 // Frees the memory segments.
@@ -251,9 +231,9 @@ void opeu_free_segments(Game& game) {
 // Closes the portrait, face and message-picture files.
 void opeu_close_data_files(Game& game) {
   auto const& data{ Data(game) };
-  opeu_dos_close(static_cast<int16_t>(data.portrait_handle));
-  opeu_dos_close(static_cast<int16_t>(data.face_handle));
-  opeu_dos_close(static_cast<int16_t>(data.message_picture_handle));
+  opeu_dos_close(data.portrait_handle);
+  opeu_dos_close(data.face_handle);
+  opeu_dos_close(data.message_picture_handle);
 }
 
 // The application's end of the game.

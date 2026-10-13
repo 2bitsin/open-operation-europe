@@ -66,7 +66,9 @@ uint16_t opeu_spy_commander_ready(Game& game) {
   auto const  near{ Commander(game) };
   auto const  unit{ opeu_person_selected_unit(game, near) };
   auto const& commander{ Record<Person>(data, near) };
-  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT && commander.health >= FIT && commander.experience >= EXPERIENCED && opeu_visit_unit_safe(game, unit) ? 1 : 0;
+  return (data.weather == 0 || data.weather == 1) && commander.charm >= FIT && commander.health >= FIT && commander.experience >= EXPERIENCED && opeu_visit_unit_safe(game, Record<Unit>(data, unit))
+             ? 1
+             : 0;
 }
 
 // The message panel with her name and, when `show`, her portrait; then the text.

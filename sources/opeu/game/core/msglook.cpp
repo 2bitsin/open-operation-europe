@@ -21,7 +21,7 @@ namespace { } // namespace
 // value of 0 < id with 135 and so always passes, and the dispatch error is never reported.
 uint16_t opeu_message_lookup(Game& game, int16_t id) {
   auto const& data{ Data(game) };
-  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
+  opeu_daily_context(game, data.current_side);
   auto const& text{ data.message_table[static_cast<uint16_t>(id)] };
   opeu_string_copy_far(game, offsetof(DataSegment, message_buffer), port_far(text.segment, 0), text.offset);
   return offsetof(DataSegment, message_buffer);

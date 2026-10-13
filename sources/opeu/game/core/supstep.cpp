@@ -49,9 +49,9 @@ uint16_t opeu_supply_step(Game& game) {
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
   selected = 0;
-  opeu_supply_draw_row(game, static_cast<uint8_t>(1), static_cast<uint8_t>(0));
-  opeu_supply_draw_row(game, static_cast<uint8_t>(0), static_cast<uint8_t>(0));
-  opeu_supply_draw_row(game, static_cast<uint8_t>(2), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, 1, 0);
+  opeu_supply_draw_row(game, 0, 0);
+  opeu_supply_draw_row(game, 2, 0);
   opeu_ops_chief_text(game, offsetof(DataSegment, supply_prompt));
   opeu_input_reset(game);
   for (;;) {
@@ -93,10 +93,10 @@ uint16_t opeu_supply_step(Game& game) {
       break;
     }
     case KEY_ENTER:
-      opeu_supply_draw_row(game, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
+      opeu_supply_draw_row(game, selected, redraw);
       Highlight(game, highlighted);
       return opeu_ops_chief_wait(game, offsetof(DataSegment, supply_continue));
     }
-    opeu_supply_draw_row(game, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
+    opeu_supply_draw_row(game, selected, redraw);
   }
 }

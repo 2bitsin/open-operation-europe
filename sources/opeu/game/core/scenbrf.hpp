@@ -4,7 +4,6 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_brief_blink(Game& game);
 void opeu_brief_mark(Game& game, uint8_t x, uint8_t y);
 void opeu_brief_france(Game& game);
 void opeu_brief_africa(Game& game);

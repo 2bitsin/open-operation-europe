@@ -34,8 +34,8 @@ constexpr std::uint16_t NEW_WEAPON_FORMAT{ offsetof(DataSegment, new_weapon_form
 // The speaker: the person template matching the side commander's nation. The commander is found first.
 auto Speaker(Game& game) -> std::uint16_t {
   auto&      data{ Data(game) };
-  auto const commander{ opeu_find_side_record(game, static_cast<std::uint8_t>(data.daily_side), static_cast<std::uint8_t>(COMMANDER_KIND)) };
-  return opeu_find_person_template(game, static_cast<std::uint8_t>(Record<Person>(data, commander).status), static_cast<std::uint8_t>(ANNOUNCER_KIND));
+  auto const commander{ opeu_find_side_record(game, data.daily_side, COMMANDER_KIND) };
+  return opeu_find_person_template(game, Record<Person>(data, commander).status, ANNOUNCER_KIND);
 }
 } // namespace
 
@@ -47,7 +47,6 @@ void opeu_daily_present(Game& game) {
   opeu_request_wait(game);
   opeu_element_type_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), data.daily_record);
   auto const& type{ Record<ElementType>(data, data.daily_record) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(NEW_WEAPON_FORMAT), static_cast<std::uint16_t>(type.name),
-                                                          static_cast<std::uint16_t>(type.category == Bits(Category::TANKS) ? NEW_WEAPON_TANK : NEW_WEAPON_PERIOD) });
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ text, NEW_WEAPON_FORMAT, type.name, (type.category == Bits(Category::TANKS) ? NEW_WEAPON_TANK : NEW_WEAPON_PERIOD) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, Speaker(game));
 }

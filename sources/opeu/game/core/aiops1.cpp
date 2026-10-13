@@ -65,7 +65,7 @@ auto StepAround(std::uint8_t x, std::uint8_t y, std::uint8_t& to_x, std::uint8_t
 uint16_t opeu_ai_spare_cargo(Game& game) {
   auto&         side{ CurrentSide(Data(game)) };
   std::uint16_t spare{ side.planes };
-  opeu_sub_word(static_cast<std::uint16_t>(side.lift.planes + side.drop.transports), &spare);
+  opeu_sub_word(side.lift.planes + side.drop.transports, &spare);
   return spare;
 }
 
@@ -107,7 +107,7 @@ uint16_t opeu_ai_002a(Game& game) {
   auto& strike{ side.strike };
   strike.x      = x;
   strike.y      = y;
-  strike.planes = opeu_min16(side.bombers, static_cast<std::uint16_t>(opeu_rand_bounded(11) + 10));
+  strike.planes = opeu_min16(side.bombers, opeu_rand_bounded(11) + 10);
   strike.hours  = 1;
   strike.turns  = 7;
   return 1;
@@ -145,9 +145,7 @@ uint16_t opeu_ai_free_cell_near(Game& game, uint16_t objective, uint8_t* x, uint
     *y = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.y);
     opeu_sub_byte(3, x);
     opeu_sub_byte(3, y);
-    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(game, *x, *y))) && !opeu_cell_marked(game, *x, *y, data.current_side)
-        && opeu_cell_side(game, *x, *y) == NO_SIDE)
-      return 1;
+    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(opeu_map_code(game, *x, *y)) && !opeu_cell_marked(game, *x, *y, data.current_side) && opeu_cell_side(game, *x, *y) == NO_SIDE) return 1;
   }
   return 0;
 }
@@ -183,7 +181,7 @@ uint16_t opeu_ai_03e2(Game& game) {
     auto& element{ Record<Element>(data, data.ai_element_list[i]) };
     element.flags     = Bits(ElementFlag::AIRBORNE);
     element.type      = type;
-    element.quantity  = opeu_min16(static_cast<std::uint16_t>(opeu_min16(planes_left, MAX_PLANES) * TROOPS_PER_PLANE), CurrentSide(data).paratroops);
+    element.quantity  = opeu_min16(opeu_min16(planes_left, MAX_PLANES) * TROOPS_PER_PLANE, CurrentSide(data).paratroops);
     troops_left      -= element.quantity;
     planes_left      -= element.quantity / TROOPS_PER_PLANE;
     element.damage    = 0;

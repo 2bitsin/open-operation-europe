@@ -98,8 +98,7 @@ void ViewWeapons(Game& game, std::uint8_t mask) {
 // The information menu until cancelled.
 void opeu_view_info_menu(Game& game) {
   auto& data{ Data(game) };
-  for (std::uint16_t item;
-       (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), INFO_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), INFO_MENU)) != MENU_CANCELLED;)
+  for (std::uint16_t item; (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), INFO_PROMPT, 2, data.context_record2, INFO_MENU)) != MENU_CANCELLED;)
     Dispatch(INFO_ACTIONS, data.info_actions.at(item - 1u), game);
 }
 
@@ -109,11 +108,11 @@ void opeu_view_weapon_list(Game& game, uint16_t end) {
   auto const count{ static_cast<std::uint8_t>(static_cast<std::int16_t>(end - WEAPON_LIST) >> 1) };
   data.weapons_dialog.rows = static_cast<std::uint8_t>(count + 1);
   SetListPredicate(data.weapons_dialog, ListSelect::VIEW_ANY);
-  for (std::uint16_t height{ 7 }; opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
-                                  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.weapons_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
+  for (std::uint16_t height{ 7 };
+       opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.weapons_dialog), 1, height);
        height = 6) {
-    opeu_element_type_panel(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(data.weapon_list[data.list_row]));
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_HERE, static_cast<std::uint16_t>(data.context_record3));
+    opeu_element_type_panel(game, static_cast<DialogHost const*>(port_dialogs_host()), data.weapon_list[data.list_row]);
+    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_HERE, data.context_record3);
   }
 }
 
@@ -126,15 +125,14 @@ void opeu_view_own_weapons(Game& game) {
 // The equipment types the enemy side fields.
 void opeu_view_enemy_weapons(Game& game) {
   auto&      data{ Data(game) };
-  auto const enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<std::uint8_t>(data.current_side))) };
+  auto const enemy{ opeu_opposite_side(data.current_side) };
   ViewWeapons(game, data.side_masks[enemy]);
 }
 
 // The weapons menu (own, enemy) until cancelled.
 void opeu_view_arms_menu(Game& game) {
   auto& data{ Data(game) };
-  for (std::uint16_t item;
-       (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), ARMS_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), ARMS_MENU)) != MENU_CANCELLED;)
+  for (std::uint16_t item; (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), ARMS_PROMPT, 2, data.context_record2, ARMS_MENU)) != MENU_CANCELLED;)
     Dispatch(ARMS_ACTIONS, data.arms_actions.at(item - 1u), game);
 }
 
@@ -143,8 +141,8 @@ void opeu_view_victory(Game& game) {
   auto&      data{ Data(game) };
   auto const conditions{ data.current_side ? Near(data, data.scenario_notes) : Near(data, data.scenario_brief) };
   opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), VICTORY_TITLE);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(VICTORY_FORMAT), static_cast<std::uint16_t>(conditions) });
-  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), VICTORY_ORDERS, static_cast<std::uint16_t>(data.context_record3));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ VICTORY_FORMAT, conditions });
+  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), VICTORY_ORDERS, data.context_record3);
 }
 
 // The view menu: runs the picked action until action 1 has run (returns 1) or the menu is cancelled (returns 0).
@@ -152,7 +150,7 @@ uint16_t opeu_view_menu_loop(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t item;
   do {
-    item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), VIEW_PROMPT, VIEW_MENU_ITEMS, static_cast<std::uint16_t>(data.context_record3), VIEW_MENU);
+    item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), VIEW_PROMPT, VIEW_MENU_ITEMS, data.context_record3, VIEW_MENU);
     if (item == MENU_CANCELLED) return 0;
     Dispatch(VIEW_MAIN_ACTIONS, data.view_main_actions.at(item - 1u), game);
   } while (item != 1);

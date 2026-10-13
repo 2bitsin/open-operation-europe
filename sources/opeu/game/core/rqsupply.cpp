@@ -43,7 +43,7 @@ void opeu_request_supplies(Game& game) {
   auto&               cell{ Record<PickedCell>(data, scratch) };
   auto const          buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
   auto const          kind{ std::to_underlying(RequestKind::SUPPLIES) };
-  if (opeu_request_pending(game, static_cast<uint8_t>(kind))) {
+  if (opeu_request_pending(game, kind)) {
     if (!opeu_request_cancel_prompt(game, offsetof(DataSegment, rq_supplies_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[kind].kind = std::to_underlying(RequestKind::NONE);
   }
@@ -57,10 +57,9 @@ void opeu_request_supplies(Game& game) {
     city = opeu_find_objective_at(game, cell.x, cell.y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
-  opeu_request_format(game,
-                      std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_supplies_confirm)), static_cast<std::uint16_t>(city) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_supplies_confirm)), city });
   if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) return;
-  FileRequest(game, { city, static_cast<uint8_t>(0xff), static_cast<uint8_t>(kind) });
+  FileRequest(game, { city, static_cast<uint8_t>(0xff), kind });
   data.side_delays[data.current_side] = 1;
 }
 

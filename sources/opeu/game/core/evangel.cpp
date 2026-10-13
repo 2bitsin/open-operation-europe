@@ -15,6 +15,7 @@
 #include "common/data-segment.hpp"
 #include "common/dispatch.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
@@ -28,8 +29,10 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -48,101 +51,80 @@ constexpr std::uint8_t  VETERAN{ 70 };
 
 // The generals of the unit's side whose selected unit it is.
 template <typename Body>
-auto ForEachGeneralOf(Game& game, std::uint16_t unit, Body&& body) -> void {
+auto ForEachGeneralOf(Game& game, Unit const& unit, Body&& body) -> void {
   auto&      data{ Data(game) };
-  auto const side{ opeu_unit_side(unit) };
-  for (unsigned i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
-    auto& person{ data.people[side * PEOPLE_PER_SIDE + i] };
-    if (person.status != PERSON_VACANT && opeu_person_selected_unit(game, Near(data, person)) == unit) body(person);
-  }
+  auto const near{ Near(data, unit) };
+  auto const selects{ [&game, &data, near](Person const& person) { return person.status != PERSON_VACANT && opeu_person_selected_unit(game, Near(data, person)) == near; } };
+  std::ranges::for_each(SideGenerals(data, opeu_unit_side(near)) | std::views::filter(selects), body);
 }
 
 auto Lower(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_sub_byte(static_cast<std::uint16_t>(RandomBelow(game, spread) + base), &value);
+  opeu_sub_byte(RandomBelow(game, spread) + base, &value);
 }
 auto Raise(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_add_byte(static_cast<std::uint16_t>(RandomBelow(game, spread) + base), RATING_LIMIT, &value);
+  opeu_add_byte(RandomBelow(game, spread) + base, RATING_LIMIT, &value);
 }
-} // namespace
 
-uint16_t opeu_angel_unit_eligible(Game& game, uint16_t unit) {
-  bool marked{ false };
-  ForEachGeneralOf(game, unit, [&](Person& person) {
-    if (person.flags & Bits(PersonRole::POOR_HEALTH)) marked = true;
-  });
-  if (marked) return 1;
-  auto& data{ Data(game) };
-  for (auto const& element : Elements(data, Record<Unit>(data, unit).first))
-    if (element.experience >= VETERAN) return 1;
-  return 0;
+// Whether she visits the unit: one of its generals is in poor health or one of its battalions is a veteran.
+auto Eligible(Game& game, Unit const& unit) -> bool {
+  bool poor_health{ false };
+  ForEachGeneralOf(game, unit, [&poor_health](Person const& person) { poor_health = poor_health || (person.flags & Bits(PersonRole::POOR_HEALTH)) != 0; });
+  if (poor_health) return true;
+  return std::ranges::any_of(Elements(Data(game), unit), [](Element const& element) { return element.experience >= VETERAN; });
 }
 
 // Shows her portrait and one of six remarks; returns the outcome (remark / 2).
-uint8_t opeu_angel_portrait(Game& game, uint8_t) {
+auto Remark(Game& game) -> std::uint8_t {
   auto const& data{ Data(game) };
   opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 282, 18);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(NAME) });
-  opeu_dos_seek(static_cast<int16_t>(data.portrait_handle),
-                static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_LOW)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_HIGH)) << 16),
-                static_cast<int16_t>(0));
-  opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ NAME });
+  opeu_dos_seek(data.portrait_handle, std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16, 0);
+  opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, data.portrait_handle);
   auto const remark{ static_cast<std::uint8_t>(RandomBelow(game, 6)) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(REMARK_FORMAT),
-                                                          static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(remark + FIRST_REMARK))) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(324));
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ BUFFER, REMARK_FORMAT, opeu_message_lookup(game, remark + FIRST_REMARK) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 54, 324);
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), BUFFER);
   return static_cast<std::uint8_t>(remark >> 1);
 }
 
 // Heals the unit's generals (health back to their limit, poor health cleared) and clears its battalions' experience.
-void opeu_angel_finish(Game& game, uint16_t, uint16_t unit) {
+void Finish(Game& game, Unit const& unit) {
   ForEachGeneralOf(game, unit, [](Person& person) {
     person.flags  &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
     person.health  = person.max_health;
   });
-  auto& data{ Data(game) };
-  for (auto& element : Elements(data, Record<Unit>(data, unit).first)) element.experience = 0;
+  std::ranges::for_each(Elements(Data(game), unit), [](Element& element) { element.experience = 0; });
 }
 
 // Lowers the general's charm by 1..10 and each battalion's morale by 20..49.
-void opeu_angel_demoralize(Game& game, uint16_t person, uint16_t unit) {
-  auto& data{ Data(game) };
-  Lower(game, Record<Person>(data, person).charm, 1, 10);
-  for (auto& element : Elements(data, Record<Unit>(data, unit).first)) Lower(game, element.morale, 20, 30);
-  opeu_angel_finish(game, person, unit);
+void Demoralize(Game& game, Person& person, Unit const& unit) {
+  Lower(game, person.charm, 1, 10);
+  std::ranges::for_each(Elements(Data(game), unit), [&game](Element& element) { Lower(game, element.morale, 20, 30); });
+  Finish(game, unit);
 }
 
 // Raises each battalion's morale by 20..49.
-void opeu_angel_inspire(Game& game, uint16_t person, uint16_t unit) {
-  auto& data{ Data(game) };
-  for (auto& element : Elements(data, Record<Unit>(data, unit).first)) Raise(game, element.morale, 20, 30);
-  opeu_angel_finish(game, person, unit);
+void Inspire(Game& game, Person&, Unit const& unit) {
+  std::ranges::for_each(Elements(Data(game), unit), [&game](Element& element) { Raise(game, element.morale, 20, 30); });
+  Finish(game, unit);
 }
 
 // Demoralizes a unit of side 0; raises the general's charm and the battalions' morale on side 1.
-void opeu_angel_judge_side(Game& game, uint16_t person, uint16_t unit) {
-  auto&      data{ Data(game) };
-  auto&      charm{ Record<Person>(data, person).charm };
-  auto const side_1{ opeu_unit_side(unit) != 0 };
-  if (side_1)
-    Raise(game, charm, 1, 10);
-  else
-    Lower(game, charm, 1, 10);
-  for (auto& element : Elements(data, Record<Unit>(data, unit).first))
-    if (side_1)
-      Raise(game, element.morale, 20, 30);
-    else
-      Lower(game, element.morale, 20, 30);
-  opeu_angel_finish(game, person, unit);
+void JudgeSide(Game& game, Person& person, Unit const& unit) {
+  if (opeu_unit_side(Near(Data(game), unit)) == 0) {
+    Demoralize(game, person, unit);
+    return;
+  }
+  Raise(game, person.charm, 1, 10);
+  Inspire(game, person, unit);
 }
 
-namespace {
 // The remark's outcomes for the commander and the unit, by the enumerator angel_actions holds for the remark.
-constexpr auto ANGEL_ACTIONS = DispatchRows<AngelAction, auto (*)(Game&, uint16_t, uint16_t)->void>({
-    { AngelAction::DEMORALIZE, opeu_angel_demoralize },
-    { AngelAction::INSPIRE,    opeu_angel_inspire    },
-    { AngelAction::JUDGE_SIDE, opeu_angel_judge_side },
+constexpr auto ANGEL_ACTIONS = DispatchRows<AngelAction, auto (*)(Game&, Person&, Unit const&)->void>({
+    { AngelAction::DEMORALIZE, Demoralize },
+    { AngelAction::INSPIRE,    Inspire    },
+    { AngelAction::JUDGE_SIDE, JudgeSide  },
 });
 } // namespace
 
@@ -151,8 +133,8 @@ void opeu_angel_present(Game& game) {
   auto&      data{ Data(game) };
   auto const person{ opeu_find_side_record(game, data.event_side, COMMANDER) };
   auto const unit{ opeu_person_selected_unit(game, person) };
-  auto const action{ data.angel_actions.at(opeu_angel_portrait(game, data.event_side)) };
-  Dispatch(ANGEL_ACTIONS, action, game, person, unit);
+  auto const action{ data.angel_actions.at(Remark(game)) };
+  Dispatch(ANGEL_ACTIONS, action, game, Record<Person>(data, person), Record<Unit>(data, unit));
 }
 
 void opeu_angel_event(Game& game) {
@@ -163,9 +145,9 @@ void opeu_angel_event(Game& game) {
     auto const& record{ Record<Unit>(data, unit) };
     auto const  x{ record.x };
     auto const  y{ record.y };
-    if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && opeu_angel_unit_eligible(game, unit)) {
-      opeu_arrival_location(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
-      opeu_location_flash(game, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(data.event_side));
+    if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && Eligible(game, record)) {
+      opeu_arrival_location(game, x, y, data.event_side);
+      opeu_location_flash(game, x, y, data.event_side);
       port_daily_show(game, ANGEL_SHOW, data.event_side, Presenter::ANGEL);
     }
   }

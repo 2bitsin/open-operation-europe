@@ -54,10 +54,8 @@ constexpr uint16_t QUIT_EXIT_CODE{ 100 };
 
 // SEEK with a 32-bit file offset.
 auto Seek(Game& game, uint16_t handle, int32_t offset, uint16_t whence) -> uint16_t {
-  return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(handle),
-                                             static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(offset)))
-                                                                  | static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16))) << 16),
-                                             static_cast<int16_t>(whence)));
+  return static_cast<uint16_t>(
+      opeu_dos_seek(handle, static_cast<std::uint32_t>((static_cast<uint16_t>(offset))) | static_cast<std::uint32_t>((static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16))) << 16, whence));
 }
 
 // The save/quit menu's routines, by the enumerator save_quit_actions holds for the entry.
@@ -103,14 +101,13 @@ void FillSlot(DataSegment& data, SaveSlot& slot) {
 void opeu_settings_print(Game& game) {
   auto const& data{ Data(game) };
   auto const  battles{ static_cast<BattleView>(data.battle_view) };
-  opeu_cursor_print(game,
-                    std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(Near(data, data.settings_summary)), static_cast<std::uint16_t>(data.message_delay),
-                                                  static_cast<std::uint16_t>(data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on) : Near(data, data.settings_music_off)),
-                                                  static_cast<std::uint16_t>(battles == BattleView::ALL    ? Near(data, data.settings_battles_view)
-                                                                             : battles == BattleView::NONE ? Near(data, data.settings_battles_no)
-                                                                                                           : Near(data, data.settings_battles_select)),
-                                                  static_cast<std::uint16_t>(data.event_pictures == 1 ? Near(data, data.settings_pictures_on) : Near(data, data.settings_pictures_off)),
-                                                  static_cast<std::uint16_t>(!data.map_mode[0] ? Near(data, data.settings_aerial) : Near(data, data.settings_field)) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.settings_summary), static_cast<std::uint16_t>(data.message_delay),
+                                                        (data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on) : Near(data, data.settings_music_off)),
+                                                        (battles == BattleView::ALL    ? Near(data, data.settings_battles_view)
+                                                         : battles == BattleView::NONE ? Near(data, data.settings_battles_no)
+                                                                                       : Near(data, data.settings_battles_select)),
+                                                        (data.event_pictures == 1 ? Near(data, data.settings_pictures_on) : Near(data, data.settings_pictures_off)),
+                                                        (!data.map_mode[0] ? Near(data, data.settings_aerial) : Near(data, data.settings_field)) });
 }
 
 // Which battles to watch: all, none or a choice before each.
@@ -125,8 +122,7 @@ void opeu_settings_battles(Game& game) {
   case 3:  data.battle_view = std::to_underlying(BattleView::SELECT); break;
   default: return;
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.battles_reply)),
-                                                          static_cast<std::uint16_t>(data.battles_descriptions[choice - 1]) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.battles_reply), data.battles_descriptions[choice - 1] });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, data.context_record2);
 }
 
@@ -135,10 +131,8 @@ void opeu_settings_delay(Game& game) {
   ServiceLocals const locals{ 100 }; // the message the format service writes
   auto&               data{ Data(game) };
   uint16_t const      message{ locals.At(0) };
-  data.message_delay = static_cast<uint8_t>(
-      static_cast<uint8_t>(opeu_choose_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.delay_question), 10, data.context_record2, 0)));
-  opeu_request_format(game,
-                      std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.delay_reply)), static_cast<std::uint16_t>(data.message_delay) });
+  data.message_delay = (static_cast<uint8_t>(opeu_choose_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.delay_question), 10, data.context_record2, 0)));
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.delay_reply), static_cast<std::uint16_t>(data.message_delay) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, data.context_record2);
 }
 
@@ -149,11 +143,10 @@ void opeu_settings_map(Game& game) {
   uint16_t const      message{ locals.At(0) };
   data.map_mode[0]++;
   data.map_mode[0] &= 1;
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.map_reply)),
-                                                          static_cast<std::uint16_t>(!data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field)) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.map_reply), (!data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, data.context_record2);
   auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-  opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(data.current_side));
+  opeu_arrival_location(game, unit.x, unit.y, data.current_side);
 }
 
 // Turns the music off or on.
@@ -168,8 +161,7 @@ void opeu_settings_sound(Game& game) {
     data.sound_enabled = 1;
     opeu_turn_pre_context(game);
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.sound_reply)),
-                                                          static_cast<std::uint16_t>(data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off)) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.sound_reply), (data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, data.context_record2);
 }
 
@@ -179,8 +171,7 @@ void opeu_settings_pictures(Game& game) {
   auto&               data{ Data(game) };
   uint16_t const      message{ locals.At(0) };
   data.event_pictures = data.event_pictures == 1 ? 0 : 1;
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.pictures_reply)),
-                                                          static_cast<std::uint16_t>(data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not)) });
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.pictures_reply), (data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, data.context_record2);
 }
 
@@ -218,7 +209,7 @@ void opeu_save_checksum(Game& game, uint8_t slot) {
 void opeu_save_create(Game& game) {
   auto& data{ Data(game) };
   opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 4);
   opeu_disk_reset(game);
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 32, 188, Near(data, data.create_saving)));
   opeu_disk_reset(game);
@@ -228,16 +219,16 @@ void opeu_save_create(Game& game) {
   auto const file{ static_cast<uint16_t>(opeu_dos_create(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.create_file_name)).data()))) };
   for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) {
     first.scenario = slot == 0 ? data.scenario : SLOT_EMPTY;
-    opeu_dos_write(static_cast<int16_t>(file), game.State().Bytes(SAVE_SLOTS_AT, SLOT_BYTES).data(), SLOT_BYTES);
+    opeu_dos_write(file, game.State().Bytes(SAVE_SLOTS_AT, SLOT_BYTES).data(), SLOT_BYTES);
   }
   opeu_save_unrebase(game);
-  for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_write(static_cast<int16_t>(file), game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
+  for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_write(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
   opeu_save_rebase(game);
-  opeu_dos_close(static_cast<int16_t>(file));
+  opeu_dos_close(file);
   if (static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.create_check_name)).data())))) {
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 31, 188, Near(data, data.create_saved)));
-    opeu_delay_units(game, static_cast<uint8_t>(15));
-    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+    opeu_delay_units(game, 15);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 0);
   }
 }
 
@@ -246,7 +237,7 @@ uint16_t opeu_save_prompt_box(Game& game, uint16_t x, uint16_t y, uint16_t text)
   auto const width{ static_cast<uint16_t>(opeu_string_length(game, text) + 2) };
   opeu_ui_box(x - 1, y - 4, width, 24, 1);
   opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), (x - 1) * 8, y - 4, (x + width) * 8 - 9, y + 19, 7);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x), static_cast<int16_t>(y));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x, y);
   return text;
 }
 
@@ -254,52 +245,52 @@ uint16_t opeu_save_prompt_box(Game& game, uint16_t x, uint16_t y, uint16_t text)
 void opeu_save_game(Game& game) {
   auto& data{ Data(game) };
   opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 4);
   if (!static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.save_check_name)).data())))) {
     opeu_save_create(game);
     if (!static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.save_recheck_name)).data())))) {
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.save_failed_format)),
-                                                            static_cast<std::uint16_t>(opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 30, 188, Near(data, data.save_failed))) });
-      opeu_delay_units(game, static_cast<uint8_t>(20));
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+      opeu_cursor_print(
+          game, std::array<std::uint16_t, 2>{ Near(data, data.save_failed_format), (opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 30, 188, Near(data, data.save_failed))) });
+      opeu_delay_units(game, 20);
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 0);
     }
   } else {
-    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 0);
     auto const file{ static_cast<uint16_t>(opeu_open_resource(game, Near(data, data.save_open_name))) };
-    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_read(static_cast<int16_t>(file), game.State().Bytes(Near(data, data.save_slots[slot]), SLOT_BYTES).data(), SLOT_BYTES);
+    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_read(file, game.State().Bytes(Near(data, data.save_slots[slot]), SLOT_BYTES).data(), SLOT_BYTES);
     for (;;) {
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 4);
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 36, 336, Near(data, data.save_where)));
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
-      if (!opeu_list_dialog(game, Near(data, data.save_list), static_cast<uint8_t>(1), static_cast<uint8_t>(3))) {
-        opeu_dos_close(static_cast<int16_t>(file));
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 0);
+      if (!opeu_list_dialog(game, Near(data, data.save_list), 1, 3)) {
+        opeu_dos_close(file);
         break;
       }
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 4);
       opeu_screen_copy(0, 240, 80, 48, 0, 320);
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_save_prompt_box(game, 35, 336, Near(data, data.save_confirm)));
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(39), static_cast<int16_t>(336));
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 39, 336);
       if (!static_cast<uint16_t>(opeu_prompt_yes_no(game, Near(data, data.save_answer)))) continue;
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 35, 188, Near(data, data.save_saving)));
       auto& slot{ data.save_slots[data.save_slot] };
       FillSlot(data, slot);
       opeu_save_checksum(game, data.save_slot);
       Seek(game, file, static_cast<int32_t>(data.save_slot) * SLOT_BYTES, SEEK_FROM_START);
-      opeu_dos_write(static_cast<int16_t>(file), game.State().Bytes(Near(data, slot), SLOT_BYTES).data(), SLOT_BYTES);
+      opeu_dos_write(file, game.State().Bytes(Near(data, slot), SLOT_BYTES).data(), SLOT_BYTES);
       Seek(game, file, static_cast<int32_t>(SAVED_BYTES) * data.save_slot + SAVED_BLOCKS_AT, SEEK_FROM_START);
       opeu_save_unrebase(game);
-      opeu_dos_write(static_cast<int16_t>(file), game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
+      opeu_dos_write(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
       opeu_save_rebase(game);
-      opeu_dos_close(static_cast<int16_t>(file));
+      opeu_dos_close(file);
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 35, 188, Near(data, data.save_finished)));
-      opeu_delay_units(game, static_cast<uint8_t>(20));
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+      opeu_delay_units(game, 20);
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 0);
       break;
     }
   }
   opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
   auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-  opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(data.current_side));
+  opeu_arrival_location(game, unit.x, unit.y, data.current_side);
   opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
 }
 
@@ -308,16 +299,16 @@ void opeu_quit_to_dos(Game& game) {
   auto const& data{ Data(game) };
   auto const  file{ static_cast<uint16_t>(opeu_open_resource(game, Near(data, data.logo_file_name))) };
   Seek(game, file, 0, SEEK_FROM_START);
-  opeu_dos_read_far(static_cast<int16_t>(file), data.bitmap_buffer, LOGO_AT, LOGO_BYTES);
+  opeu_dos_read_far(file, data.bitmap_buffer, LOGO_AT, LOGO_BYTES);
   Seek(game, file, CAPTION_IN_FILE, SEEK_FROM_START);
-  opeu_dos_read_far(static_cast<int16_t>(file), data.bitmap_buffer, CAPTION_AT, CAPTION_BYTES);
-  opeu_dos_close(static_cast<int16_t>(file));
+  opeu_dos_read_far(file, data.bitmap_buffer, CAPTION_AT, CAPTION_BYTES);
+  opeu_dos_close(file);
   opeu_vga_clear();
   opeu_palette_title_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
-  opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+  opeu_finish_side_initialization(game, 0);
   opeu_gfx_blit(216, 120, 208, 112, 2, port_far(data.bitmap_buffer, LOGO_AT));
   opeu_gfx_blit(160, 232, 320, 40, 7, port_far(data.bitmap_buffer, CAPTION_AT));
-  opeu_set_turn_context(game, static_cast<uint8_t>(0));
+  opeu_set_turn_context(game, 0);
   opeu_music_stop(game);
   opeu_fm_wait_start(200);
   while (opeu_fm_busy());
@@ -339,7 +330,7 @@ void opeu_settings_new_game(Game& game) {
   auto& data{ Data(game) };
   if ((data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_COMPUTER)
       || opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.new_game_question), data.context_record2)) {
-    opeu_set_turn_context(game, static_cast<uint8_t>(0));
+    opeu_set_turn_context(game, 0);
     opeu_music_stop(game);
     opeu_sound_open(0, 0, 0, 0);
     opeu_close_data_files(game);
