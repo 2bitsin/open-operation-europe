@@ -10,4 +10,4 @@
  * 1 when found, else 0. */
 typedef int (*OpeuAssetFind)(const char* dos_name, const unsigned char** data, size_t* size);
 
-void opeu_files_use_assets(OpeuAssetFind find);
+void FilesUseAssets(OpeuAssetFind find);

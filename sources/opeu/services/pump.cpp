@@ -49,7 +49,7 @@
 static uint64_t virtual_us;
 
 uint64_t port_time_us(void) {
-  return port_options.headless ? virtual_us : plat_ticks_us();
+  return port_options.headless ? virtual_us : TicksUs();
 }
 
 /* ---- presentation -------------------------------------------------------- */
@@ -60,10 +60,10 @@ static uint64_t last_present_us;
 static int      presented_once;
 
 static void present(int force) {
-  int changed = vgalib_render(frame, palette);
-  int pointer = port_input_pointer_dirty();
+  int changed = VgalibRender(frame, palette);
+  int pointer = PortInputPointerDirty();
   if (!force && !changed && !pointer && presented_once) return;
-  port_input_draw_pointer(frame, palette);
+  PortInputDrawPointer(frame, palette);
   plat_present(frame, 640, 480, palette);
   presented_once = 1;
 }
@@ -81,7 +81,7 @@ static ScriptEvent* script;
 static unsigned     script_count, script_next, script_cap;
 static int          script_loaded;
 
-static void script_add(ScriptEvent e) {
+static void ScriptAdd(ScriptEvent e) {
   if (script_count == script_cap) {
     script_cap = script_cap ? script_cap * 2 : 64;
     script     = (ScriptEvent*)realloc(script, script_cap * sizeof *script);
@@ -93,7 +93,7 @@ static void script_add(ScriptEvent e) {
 static const struct {
   const char* name;
   uint8_t     scan, ascii;
-} key_names[] = {
+} KEY_NAMES[] = {
   { "enter", 0x1c, 0x0d },
   { "esc",   0x01, 0x1b },
   { "space", 0x39, 0x20 },
@@ -132,39 +132,39 @@ static const struct {
 };
 
 /* US layout: scan codes of the printable characters (unshifted, shifted). */
-static const char    row_chars[] = "1234567890-=qwertyuiop[]asdfghjkl;'`\\zxcvbnm,./";
-static const char    row_shift[] = "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"~|ZXCVBNM<>?";
-static const uint8_t row_scan[]  = {
+static const char    ROW_CHARS[] = "1234567890-=qwertyuiop[]asdfghjkl;'`\\zxcvbnm,./";
+static const char    ROW_SHIFT[] = "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"~|ZXCVBNM<>?";
+static const uint8_t ROW_SCAN[]  = {
   0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
   0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
 };
 
-static int char_key(char c, uint8_t* scan, uint8_t* ascii) {
+static int CharKey(char c, uint8_t* scan, uint8_t* ascii) {
   const char* p;
   if (c == ' ') {
     *scan  = 0x39;
     *ascii = ' ';
     return 1;
   }
-  if ((p = strchr(row_chars, c)) != NULL && c) {
-    *scan  = row_scan[p - row_chars];
+  if ((p = strchr(ROW_CHARS, c)) != NULL && c) {
+    *scan  = ROW_SCAN[p - ROW_CHARS];
     *ascii = (uint8_t)c;
     return 1;
   }
-  if ((p = strchr(row_shift, c)) != NULL && c) {
-    *scan  = row_scan[p - row_shift];
+  if ((p = strchr(ROW_SHIFT, c)) != NULL && c) {
+    *scan  = ROW_SCAN[p - ROW_SHIFT];
     *ascii = (uint8_t)c;
     return 1;
   }
   return 0;
 }
 
-static int parse_key(const char* word, uint8_t* scan, uint8_t* ascii) {
+static int ParseKey(const char* word, uint8_t* scan, uint8_t* ascii) {
   unsigned i, s, a;
-  for (i = 0; i < sizeof key_names / sizeof key_names[0]; i++)
-    if (!strcmp(word, key_names[i].name)) {
-      *scan  = key_names[i].scan;
-      *ascii = key_names[i].ascii;
+  for (i = 0; i < sizeof KEY_NAMES / sizeof KEY_NAMES[0]; i++)
+    if (!strcmp(word, KEY_NAMES[i].name)) {
+      *scan  = KEY_NAMES[i].scan;
+      *ascii = KEY_NAMES[i].ascii;
       return 1;
     }
   if (sscanf(word, "%x:%x", &s, &a) == 2) {
@@ -172,17 +172,17 @@ static int parse_key(const char* word, uint8_t* scan, uint8_t* ascii) {
     *ascii = (uint8_t)a;
     return 1;
   }
-  if (strlen(word) == 1) return char_key(word[0], scan, ascii);
+  if (strlen(word) == 1) return CharKey(word[0], scan, ascii);
   return 0;
 }
 
-static int cmp_events(const void* a, const void* b) {
+static int CmpEvents(const void* a, const void* b) {
   const ScriptEvent *x = (const ScriptEvent*)a, *y = (const ScriptEvent*)b;
   if (x->ms != y->ms) return x->ms < y->ms ? -1 : 1;
   return 0;
 }
 
-static void script_load(const char* path) {
+static void ScriptLoad(const char* path) {
   FILE* f = fopen(path, "r");
   char  line[512];
   int   number = 0;
@@ -200,16 +200,16 @@ static void script_load(const char* path) {
     if (sscanf(line, "%lu %31s%n", &ms, verb, &n) < 2) continue;
     e.ms = (uint32_t)ms;
     if (!strcmp(verb, "key")) {
-      if (sscanf(line + n, "%399s", arg) != 1 || !parse_key(arg, &e.scan, &e.ascii)) port_fatal("%s:%d: unknown key", path, number);
+      if (sscanf(line + n, "%399s", arg) != 1 || !ParseKey(arg, &e.scan, &e.ascii)) port_fatal("%s:%d: unknown key", path, number);
       e.kind = 0;
-      script_add(e);
+      ScriptAdd(e);
     } else if (!strcmp(verb, "text")) {
       char* p = line + n;
       while (*p == ' ' || *p == '\t') p++;
       for (; *p && *p != '\n' && *p != '\r'; p++) {
-        if (!char_key(*p, &e.scan, &e.ascii)) port_fatal("%s:%d: no key for '%c'", path, number, *p);
+        if (!CharKey(*p, &e.scan, &e.ascii)) port_fatal("%s:%d: no key for '%c'", path, number, *p);
         e.kind = 0;
-        script_add(e);
+        ScriptAdd(e);
       }
     } else if (!strcmp(verb, "move") || !strcmp(verb, "click") || !strcmp(verb, "press") || !strcmp(verb, "release")) {
       if (sscanf(line + n, "%d %d %15s", &x, &y, button) < 2) port_fatal("%s:%d: expected <x> <y>", path, number);
@@ -218,19 +218,19 @@ static void script_load(const char* path) {
       e.button = !strcmp(button, "right") ? 1 : 0;
       if (!strcmp(verb, "move")) {
         e.kind = 1;
-        script_add(e);
+        ScriptAdd(e);
       } else if (!strcmp(verb, "press")) {
         e.kind = 2;
-        script_add(e);
+        ScriptAdd(e);
       } else if (!strcmp(verb, "release")) {
         e.kind = 3;
-        script_add(e);
+        ScriptAdd(e);
       } else {
         e.kind = 2;
-        script_add(e);
+        ScriptAdd(e);
         e.kind  = 3;
         e.ms   += 100;
-        script_add(e);
+        ScriptAdd(e);
       }
     } else {
       port_fatal("%s:%d: unknown event '%s'", path, number, verb);
@@ -241,7 +241,7 @@ static void script_load(const char* path) {
   {
     unsigned i, j;
     for (i = 1; i < script_count; i++)
-      for (j = i; j > 0 && cmp_events(&script[j - 1], &script[j]) > 0; j--) {
+      for (j = i; j > 0 && CmpEvents(&script[j - 1], &script[j]) > 0; j--) {
         ScriptEvent t = script[j - 1];
         script[j - 1] = script[j];
         script[j]     = t;
@@ -249,31 +249,31 @@ static void script_load(const char* path) {
   }
 }
 
-static void script_run(uint32_t now_ms) {
+static void ScriptRun(uint32_t now_ms) {
   while (script_next < script_count && script[script_next].ms <= now_ms) {
     const ScriptEvent* e = &script[script_next++];
     port_trace("input", "%u ms: script event %d", (unsigned)now_ms, e->kind);
     switch (e->kind) {
-    case 0: port_input_key(e->scan, e->ascii); break;
-    case 1: port_input_mouse_move(e->x, e->y); break;
-    case 2: port_input_mouse_button(e->button, 1, e->x, e->y); break;
-    case 3: port_input_mouse_button(e->button, 0, e->x, e->y); break;
+    case 0: PortInputKey(e->scan, e->ascii); break;
+    case 1: PortInputMouseMove(e->x, e->y); break;
+    case 2: PortInputMouseButton(e->button, 1, e->x, e->y); break;
+    case 3: PortInputMouseButton(e->button, 0, e->x, e->y); break;
     }
   }
 }
 
 /* ---- the pump ------------------------------------------------------------ */
 
-static void headless_pump(void) {
+static void HeadlessPump(void) {
   uint32_t now_ms;
   if (!script_loaded) {
     script_loaded = 1;
-    if (port_options.input_path) script_load(port_options.input_path);
+    if (port_options.input_path) ScriptLoad(port_options.input_path);
   }
   virtual_us += 1000;
   port_fm_clock();
   now_ms = (uint32_t)(virtual_us / 1000);
-  script_run(now_ms);
+  ScriptRun(now_ms);
   if (port_options.shot_dir && port_options.shot_every_ms && now_ms % port_options.shot_every_ms == 0) {
     char path[1024];
     present(1);
@@ -304,24 +304,24 @@ void port_pump(void) {
   uint64_t        now;
 
   if (port_options.headless) {
-    headless_pump();
+    HeadlessPump();
     return;
   }
-  now = plat_ticks_us();
+  now = TicksUs();
   if (now - last_poll_us < 500u) {
-    if (++idle % 64u == 0) plat_sleep_ms(1);
+    if (++idle % 64u == 0) SleepMs(1);
     return;
   }
   last_poll_us = now;
   port_fm_clock();
-  while (plat_poll_event(&ev)) {
+  while (PollEvent(&ev)) {
     any = 1;
     switch (ev.type) {
     case PLAT_EV_QUIT:       port_exit(0); break;
-    case PLAT_EV_KEY_DOWN:   port_input_key(ev.scancode, ev.ascii); break;
-    case PLAT_EV_MOUSE_MOVE: port_input_mouse_move(ev.x, ev.y); break;
+    case PLAT_EV_KEY_DOWN:   PortInputKey(ev.scancode, ev.ascii); break;
+    case PLAT_EV_MOUSE_MOVE: PortInputMouseMove(ev.x, ev.y); break;
     case PLAT_EV_MOUSE_DOWN:
-    case PLAT_EV_MOUSE_UP:   port_input_mouse_button(ev.button, ev.type == PLAT_EV_MOUSE_DOWN, ev.x, ev.y); break;
+    case PLAT_EV_MOUSE_UP:   PortInputMouseButton(ev.button, ev.type == PLAT_EV_MOUSE_DOWN, ev.x, ev.y); break;
     default:                 break;
     }
   }
@@ -330,11 +330,11 @@ void port_pump(void) {
   if (port_options.input_path) {
     if (!script_loaded) {
       script_loaded = 1;
-      script_load(port_options.input_path);
+      ScriptLoad(port_options.input_path);
     }
-    script_run((uint32_t)(plat_ticks_us() / 1000));
+    ScriptRun((uint32_t)(TicksUs() / 1000));
   }
-  now = plat_ticks_us();
+  now = TicksUs();
   if (now - last_present_us >= 16667u) {
     last_present_us = now;
     present(0);
@@ -342,5 +342,5 @@ void port_pump(void) {
   if (any)
     idle = 0;
   else if (++idle % 64u == 0)
-    plat_sleep_ms(1);
+    SleepMs(1);
 }

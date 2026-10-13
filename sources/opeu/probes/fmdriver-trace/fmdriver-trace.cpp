@@ -39,7 +39,7 @@ static int      opl_present;
 static uint8_t  status;
 static unsigned callbacks;
 
-static void write_register(void* user, uint8_t reg, uint8_t value) {
+static void WriteRegister(void* user, uint8_t reg, uint8_t value) {
   (void)user;
   printf("opl %02x %02x\n", reg, value);
   /* The validator's chip model: timer 1 overflows during the detection
@@ -52,12 +52,12 @@ static void write_register(void* user, uint8_t reg, uint8_t value) {
   }
 }
 
-static uint8_t read_status(void* user) {
+static uint8_t ReadStatus(void* user) {
   (void)user;
   return status;
 }
 
-static uint8_t peek(void* user, uint16_t seg, uint16_t off) {
+static uint8_t Peek(void* user, uint16_t seg, uint16_t off) {
   uint32_t    at   = (uint32_t)seg * 16 + off;
   const Bank* best = NULL;
   int         i;
@@ -71,7 +71,7 @@ static uint8_t peek(void* user, uint16_t seg, uint16_t off) {
   return best ? best->bytes[at - (uint32_t)best->seg * 16] : 0;
 }
 
-static Bank* bank_of(uint16_t seg) {
+static Bank* BankOf(uint16_t seg) {
   int i;
   for (i = 0; i < 4; i++)
     if (banks[i].used && banks[i].seg == seg) return &banks[i];
@@ -84,7 +84,7 @@ static Bank* bank_of(uint16_t seg) {
   return NULL;
 }
 
-static void callback(void* user, uint16_t seg, uint16_t off, FmdCallbackRegs* regs) {
+static void Callback(void* user, uint16_t seg, uint16_t off, FmdCallbackRegs* regs) {
   (void)user;
   (void)seg;
   (void)off;
@@ -92,7 +92,7 @@ static void callback(void* user, uint16_t seg, uint16_t off, FmdCallbackRegs* re
   callbacks++;
 }
 
-static int hex(const char* s, unsigned* out) {
+static int Hex(const char* s, unsigned* out) {
   char*         end;
   unsigned long v = strtoul(s, &end, 16);
   if (end == s) return 0;
@@ -101,14 +101,14 @@ static int hex(const char* s, unsigned* out) {
 }
 
 /* main.cpp calls this. */
-int opeu_fmdriver_trace(void) {
+int FmdriverTrace(void) {
   char    line[1 << 16];
   FmdHost host;
   host.user           = NULL;
-  host.write_register = write_register;
-  host.read_status    = read_status;
-  host.peek           = peek;
-  host.callback       = callback;
+  host.write_register = WriteRegister;
+  host.read_status    = ReadStatus;
+  host.peek           = Peek;
+  host.callback       = Callback;
   while (fgets(line, sizeof line, stdin)) {
     char     verb[32];
     unsigned a = 0, b = 0, c = 0, e = 0;
@@ -127,18 +127,18 @@ int opeu_fmdriver_trace(void) {
       Bank*       bank;
       size_t      i;
       if (sscanf(line + n, "%x %x %65535s", &a, &b, bytes) != 3) return 2;
-      bank = bank_of((uint16_t)a);
+      bank = BankOf((uint16_t)a);
       if (!bank) return 2;
       for (i = 0; bytes[i] && bytes[i + 1]; i += 2) {
         char     pair[3] = { bytes[i], bytes[i + 1], 0 };
         unsigned v;
-        if (!hex(pair, &v)) return 2;
+        if (!Hex(pair, &v)) return 2;
         bank->bytes[(uint16_t)(b + i / 2)] = (uint8_t)v;
       }
     } else if (!strcmp(verb, "install")) {
-      fmd_install(&driver, &host, 1);
+      FmdInstall(&driver, &host, 1);
     } else if (!strcmp(verb, "uninstall")) {
-      fmd_uninstall(&driver);
+      FmdUninstall(&driver);
     } else if (!strcmp(verb, "int") || !strcmp(verb, "far")) {
       FmdRegs r;
       if (sscanf(line + n, "%x %x %x %x", &a, &b, &c, &e) != 4) return 2;
@@ -147,16 +147,16 @@ int opeu_fmdriver_trace(void) {
       r.dx = (uint16_t)c;
       r.ds = (uint16_t)e;
       if (verb[0] == 'i')
-        fmd_interrupt(&driver, &r);
+        FmdInterrupt(&driver, &r);
       else
-        fmd_far_call(&driver, &r);
+        FmdFarCall(&driver, &r);
       printf("ret %04x %04x %04x %04x\n", r.ax, r.bx, r.dx, r.ds);
     } else if (!strcmp(verb, "tick")) {
       unsigned i;
       sscanf(line + n, "%x", &a);
       for (i = 0; i < a; i++) {
         printf("> tick\n");
-        fmd_timer_tick(&driver);
+        FmdTimerTick(&driver);
       }
     } else if (!strcmp(verb, "none")) {
     } else if (!strcmp(verb, "callbacks")) {

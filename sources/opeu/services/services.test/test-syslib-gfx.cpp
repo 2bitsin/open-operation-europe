@@ -33,7 +33,7 @@ static void clear(void) {
   opeu::services::Screen().Clear();
 }
 
-static void test_restore_odd(void) /* 354F */
+static void TestRestoreOdd(void) /* 354F */
 {
   uint8_t  buf[520];
   uint16_t di = 40 * 80 + 2;
@@ -58,13 +58,13 @@ static void test_restore_odd(void) /* 354F */
   Check(Plane(1, di + 6) == 0x00);
 }
 
-static void test_save_odd_and_roundtrip(void) /* 3882, 37E4, 34B8 */
+static void TestSaveOddAndRoundtrip(void) /* 3882, 37E4, 34B8 */
 {
-  static const uint8_t row[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
+  static const uint8_t SAVED_ROW[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
   uint8_t              buf[520], buf2[520];
   unsigned             i;
   clear();
-  for (i = 0; i < 6; i++) SetPlane(0, 3200 + i, row[i]);
+  for (i = 0; i < 6; i++) SetPlane(0, 3200 + i, SAVED_ROW[i]);
   opeu_vram_save_odd(0, 0, buf);
   Check(buf[0] == 0x23 && buf[1] == 0x45 && buf[2] == 0x67 && buf[3] == 0x89 && buf[4] == 0xAB);
   Check(buf[5] == 0);
@@ -78,7 +78,7 @@ static void test_save_odd_and_roundtrip(void) /* 3882, 37E4, 34B8 */
   Check(memcmp(buf, buf2, 520) == 0);
 }
 
-static void test_glyph_color_spill(void) /* 3A4D: word ops cross plane blocks */
+static void TestGlyphColorSpill(void) /* 3A4D: word ops cross plane blocks */
 {
   uint8_t v[540], exp[540];
   uint8_t g[6] = { 0x81, 0, 0, 0, 0, 0 };
@@ -97,10 +97,10 @@ static void test_glyph_color_spill(void) /* 3A4D: word ops cross plane blocks */
   Check(v[20] == 0x81 && v[25] == 0x81 && v[30] == 0x81 && v[35] == 0 && v[21] == 0);
 }
 
-static void test_sprite_compose(void) /* 3E0A */
+static void TestSpriteCompose(void) /* 3E0A */
 {
-  static const uint8_t mask[2] = { 0xF0, 0x0F };
-  static const uint8_t img[6]  = { 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
+  static const uint8_t SPRITE_MASK[2] = { 0xF0, 0x0F };
+  static const uint8_t IMG[6]         = { 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
   uint8_t              buf[16];
   clear();
   SetPlane(0, 3200, 0xFF);
@@ -111,7 +111,7 @@ static void test_sprite_compose(void) /* 3E0A */
   SetPlane(2, 3201, 0xFF);
   SetPlane(3, 3200, 0x0F);
   SetPlane(3, 3201, 0xF0);
-  opeu_sprite_compose(0, 0, 2, 1, mask, img, buf, 0);
+  opeu_sprite_compose(0, 0, 2, 1, SPRITE_MASK, IMG, buf, 0);
   Check(Plane(0, 3200) == 0xF1 && Plane(0, 3201) == 0x1F);
   Check(Plane(1, 3200) == 0xF2 && Plane(1, 3201) == 0x20);
   Check(Plane(2, 3200) == 0x04 && Plane(2, 3201) == 0x4F);
@@ -119,26 +119,26 @@ static void test_sprite_compose(void) /* 3E0A */
   Check(buf[0] == 0xF1 && buf[3] == 0x20 && buf[6] == 0x00);
 }
 
-static void test_3f26(void) /* 3F26 with a 4-pixel shift */
+static void Test3f26(void) /* 3F26 with a 4-pixel shift */
 {
-  static const uint8_t mask[1] = { 0x00 };
-  static const uint8_t img[4]  = { 0x0F, 0xF0, 0x3C, 0xC3 };
+  static const uint8_t SHIFTED_MASK[1] = { 0x00 };
+  static const uint8_t IMG[4]          = { 0x0F, 0xF0, 0x3C, 0xC3 };
   uint8_t              buf[8];
   int                  p;
   clear();
   for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
-  koei_3f26(4, 0, 8, 1, mask, img, buf, 1);
+  koei_3f26(4, 0, 8, 1, SHIFTED_MASK, IMG, buf, 1);
   Check(Plane(0, 3200) == 0xF0 && Plane(0, 3201) == 0xFF);
   Check(Plane(1, 3200) == 0xFF && Plane(1, 3201) == 0x0F);
   Check(Plane(2, 3200) == 0xF3 && Plane(2, 3201) == 0xCF);
   Check(Plane(3, 3200) == 0xFC && Plane(3, 3201) == 0x3F);
   /* flags bit 0 clear: the original never returns; the port leaves VRAM alone */
   for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
-  koei_3f26(4, 0, 8, 1, mask, img, buf, 0);
+  koei_3f26(4, 0, 8, 1, SHIFTED_MASK, IMG, buf, 0);
   Check(Plane(0, 3200) == 0xFF && Plane(3, 3201) == 0xFF);
 }
 
-static void test_copy_and_fill(void) /* 3BC5 overlap, 3B77 */
+static void TestCopyAndFill(void) /* 3BC5 overlap, 3B77 */
 {
   clear();
   SetPlane(0, 3200, 1);
@@ -148,13 +148,13 @@ static void test_copy_and_fill(void) /* 3BC5 overlap, 3B77 */
   koei_3bc5(0, 0, 1, 0);
   Check(Plane(0, 3201) == 1 && Plane(0, 3202) == 2 && Plane(0, 3203) == 2);
   clear();
-  koei_3b77(5, 2, 3, 2, 0x1A5);
+  Koei3b77(5, 2, 3, 2, 0x1A5);
   Check(Plane(3, 42 * 80 + 5) == 0xA5 && Plane(3, 43 * 80 + 7) == 0xA5);
   Check(Plane(3, 43 * 80 + 8) == 0 && Plane(3, 44 * 80 + 5) == 0);
   Check(Plane(0, 42 * 80 + 5) == 0);
 }
 
-static void test_load_draw(void) /* 3B1E, 3A04 */
+static void TestLoadDraw(void) /* 3B1E, 3A04 */
 {
   uint8_t  v[520], m[130], s[520];
   unsigned i;
@@ -168,14 +168,14 @@ static void test_load_draw(void) /* 3B1E, 3A04 */
 }
 
 /* Run by services.test/c-suites.cpp; returns non-zero on a failure. */
-int opeu_test_syslib_gfx(void) {
-  test_restore_odd();
-  test_save_odd_and_roundtrip();
-  test_glyph_color_spill();
-  test_sprite_compose();
-  test_3f26();
-  test_copy_and_fill();
-  test_load_draw();
+int TestSyslibGfx(void) {
+  TestRestoreOdd();
+  TestSaveOddAndRoundtrip();
+  TestGlyphColorSpill();
+  TestSpriteCompose();
+  Test3f26();
+  TestCopyAndFill();
+  TestLoadDraw();
   if (failures) {
     printf("%d failure(s)\n", failures);
     return 1;

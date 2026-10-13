@@ -46,15 +46,15 @@ auto Contents(std::filesystem::path const& path) -> std::string {
 class FileLayer : public ::testing::Test {
 protected:
   void SetUp() override {
-    saves_ = std::filesystem::temp_directory_path() / ("opeu-file-layer-" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() });
-    std::filesystem::remove_all(saves_);
-    plat_set_save_dir(saves_.string().c_str());
-    opeu_files_use_assets(&Find);
+    _saves = std::filesystem::temp_directory_path() / ("opeu-file-layer-" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() });
+    std::filesystem::remove_all(_saves);
+    plat_set_save_dir(_saves.string().c_str());
+    FilesUseAssets(&Find);
   }
   void TearDown() override {
-    std::filesystem::remove_all(saves_);
+    std::filesystem::remove_all(_saves);
   }
-  std::filesystem::path saves_;
+  std::filesystem::path _saves;
 };
 
 TEST_F(FileLayer, ReadsAShippedFileFromMemory) {
@@ -66,7 +66,7 @@ TEST_F(FileLayer, ReadsAShippedFileFromMemory) {
   EXPECT_EQ(std::string(buffer.begin(), buffer.begin() + 4), "IPPD");
   EXPECT_EQ(opeu_dos_seek(h, -1, 2), 5);
   EXPECT_EQ(opeu_dos_close(h), 0);
-  EXPECT_FALSE(std::filesystem::exists(saves_ / "SCEDATA"));
+  EXPECT_FALSE(std::filesystem::exists(_saves / "SCEDATA"));
   EXPECT_EQ(opeu_dos_exists("SCEDATA"), 1);
   EXPECT_EQ(opeu_dos_open("MISSING", 0), -1);
 }
@@ -78,7 +78,7 @@ TEST_F(FileLayer, CopiesAShippedFileOnItsFirstWrite) {
   std::array<std::uint8_t, 2> const two{ 'E', 'D' };
   EXPECT_EQ(opeu_dos_write(h, two.data(), 2), 2);
   opeu_dos_close(h);
-  EXPECT_EQ(Contents(saves_ / "SCEDATA"), "SHIPED");
+  EXPECT_EQ(Contents(_saves / "SCEDATA"), "SHIPED");
   auto const                  again{ opeu_dos_open("SCEDATA", 0) }; // the save directory shadows the table
   std::array<std::uint8_t, 6> buffer{};
   EXPECT_EQ(opeu_dos_read(again, buffer.data(), 6), 6);
@@ -92,7 +92,7 @@ TEST_F(FileLayer, CreatesSavedGamesInTheSaveDirectory) {
   std::array<std::uint8_t, 3> const bytes{ 1, 2, 3 };
   EXPECT_EQ(opeu_dos_write(h, bytes.data(), 3), 3);
   opeu_dos_close(h);
-  EXPECT_EQ(Contents(saves_ / "SAVEDATA").size(), 3U);
+  EXPECT_EQ(Contents(_saves / "SAVEDATA").size(), 3U);
   EXPECT_EQ(opeu_dos_exists("SAVEDATA"), 1);
 }
 

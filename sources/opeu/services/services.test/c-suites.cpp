@@ -2,13 +2,13 @@
 // non-zero after printing every failed check.
 #include <gtest/gtest.h>
 
-auto opeu_test_vgalib() -> int;
-auto opeu_test_syslib_gfx() -> int;
+auto TestVgalib() -> int;
+auto TestSyslibGfx() -> int;
 
 TEST(Vgalib, DrawsAsTheOriginalLibrary) {
-  EXPECT_EQ(opeu_test_vgalib(), 0);
+  EXPECT_EQ(TestVgalib(), 0);
 }
 
 TEST(SyslibGfx, ComposesAsTheOriginalLibrary) {
-  EXPECT_EQ(opeu_test_syslib_gfx(), 0);
+  EXPECT_EQ(TestSyslibGfx(), 0);
 }

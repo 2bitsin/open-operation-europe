@@ -13,7 +13,7 @@
  * ASYNCIFY (or JSPI) and this backend hands control back to the browser at
  * exactly two places, both marked __EMSCRIPTEN__: after each presented
  * frame (so the canvas is shown and input events are delivered) and in
- * plat_sleep_ms() (the pump's idle sleep).  SDL's own automatic
+ * SleepMs() (the pump's idle sleep).  SDL's own automatic
  * emscripten_sleep() calls are switched off so that these are the only
  * yields.  The page's CSS sizes the canvas to an integer multiple of the
  * frame in device pixels (shell.html); SDL follows that size on window
@@ -700,19 +700,19 @@ auto plat_write_png(char const* path) -> int {
   return TheBackend().WritePng(path);
 }
 
-auto plat_poll_event(PlatEvent* ev) -> int {
+auto PollEvent(PlatEvent* ev) -> int {
   return ev == nullptr ? 0 : TheBackend().PollEvent(*ev);
 }
 
-auto plat_shift_flags() -> std::uint8_t {
+auto ShiftFlags() -> std::uint8_t {
   return TheBackend().ShiftFlags();
 }
 
-auto plat_ticks_us() -> std::uint64_t {
+auto TicksUs() -> std::uint64_t {
   return TheBackend().TicksUs();
 }
 
-auto plat_sleep_ms(int ms) -> void {
+auto SleepMs(int ms) -> void {
 #ifdef __EMSCRIPTEN__
   // Yield to the browser event loop (ASYNCIFY/JSPI unwinds the stack and resumes here from a timer).
   if (ms >= 0 && !TheBackend().Headless()) emscripten_sleep(static_cast<unsigned>(ms));
@@ -725,42 +725,42 @@ auto plat_set_save_dir(char const* dir) -> void {
   TheBackend().SetSaveDir(dir != nullptr ? dir : "");
 }
 
-auto plat_save_dir() -> char const* {
+auto SaveDir() -> char const* {
   return TheBackend().SaveDir().c_str();
 }
 
-auto plat_fopen(char const* dos_name, char const* mode) -> void* {
+auto Fopen(char const* dos_name, char const* mode) -> void* {
   if (dos_name == nullptr || mode == nullptr) return nullptr;
   std::string_view const how{ mode };
   bool const             creating{ how.contains('w') || how.contains('a') };
   auto const [found, path]{ TheBackend().Resolve(dos_name, creating) };
   if (found < 0 || (found == 0 && !creating)) return nullptr;
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the handle crosses the contract as void*; plat_fclose frees it
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the handle crosses the contract as void*; Fclose frees it
   return std::fopen(path.c_str(), mode);
 }
 
-auto plat_fclose(void* f) -> int {
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): releases the handle plat_fopen returned
+auto Fclose(void* f) -> int {
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): releases the handle Fopen returned
   return f != nullptr ? std::fclose(AsFile(f)) : -1;
 }
 
-auto plat_fread(void* buf, std::size_t n, void* f) -> std::size_t {
+auto Fread(void* buf, std::size_t n, void* f) -> std::size_t {
   if (f == nullptr || buf == nullptr || n == 0) return 0;
   return std::fread(buf, 1, n, AsFile(f));
 }
 
-auto plat_fwrite(void const* buf, std::size_t n, void* f) -> std::size_t {
+auto Fwrite(void const* buf, std::size_t n, void* f) -> std::size_t {
   if (f == nullptr || buf == nullptr || n == 0) return 0;
   return std::fwrite(buf, 1, n, AsFile(f));
 }
 
-auto plat_fseek(void* f, long off, int whence) -> long {
+auto Fseek(void* f, long off, int whence) -> long {
   if (f == nullptr) return -1;
   if (std::fseek(AsFile(f), off, whence) != 0) return -1;
   return std::ftell(AsFile(f));
 }
 
-auto plat_fsize(void* f) -> long {
+auto Fsize(void* f) -> long {
   if (f == nullptr) return -1;
   long const at{ std::ftell(AsFile(f)) };
   if (at < 0 || std::fseek(AsFile(f), 0, SEEK_END) != 0) return -1;
@@ -769,11 +769,11 @@ auto plat_fsize(void* f) -> long {
   return end;
 }
 
-auto plat_fexists(char const* dos_name) -> int {
+auto Fexists(char const* dos_name) -> int {
   return dos_name != nullptr && TheBackend().Resolve(dos_name, false).first == 1 ? 1 : 0;
 }
 
-auto plat_fdelete(char const* dos_name) -> int {
+auto Fdelete(char const* dos_name) -> int {
   if (dos_name == nullptr) return -1;
   auto const [found, path]{ TheBackend().Resolve(dos_name, false) };
   if (found != 1) return -1;
@@ -781,7 +781,7 @@ auto plat_fdelete(char const* dos_name) -> int {
 }
 
 // DOS semantics: fails if the source is missing or the target exists.
-auto plat_frename(char const* from, char const* to) -> int {
+auto Frename(char const* from, char const* to) -> int {
   if (from == nullptr || to == nullptr) return -1;
   auto const [source_found, source]{ TheBackend().Resolve(from, false) };
   if (source_found != 1) return -1;
@@ -790,18 +790,18 @@ auto plat_frename(char const* from, char const* to) -> int {
   return std::rename(source.c_str(), target.c_str()) == 0 ? 0 : -1;
 }
 
-auto plat_audio_open(int rate, PlatAudioFn fn, void* user) -> int {
+auto AudioOpen(int rate, PlatAudioFn fn, void* user) -> int {
   return TheBackend().OpenAudio(rate, fn, user);
 }
 
-auto plat_audio_active() -> int {
+auto AudioActive() -> int {
   return TheBackend().AudioActive() ? 1 : 0;
 }
 
-auto plat_audio_lock() -> void {
+auto AudioLock() -> void {
   TheBackend().LockAudio();
 }
 
-auto plat_audio_unlock() -> void {
+auto AudioUnlock() -> void {
   TheBackend().UnlockAudio();
 }

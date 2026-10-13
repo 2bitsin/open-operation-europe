@@ -65,14 +65,14 @@ template <std::size_t PLANES>
 }
 
 // Consecutive pieces of `size` elements (the standard library here has no views::chunk).
-template <typename T>
-[[nodiscard]] constexpr auto Chunks(std::span<T> elements, std::size_t size) noexcept {
+template <typename _T>
+[[nodiscard]] constexpr auto Chunks(std::span<_T> elements, std::size_t size) noexcept {
   return std::views::iota(0uz, elements.size() / size) | std::views::transform([elements, size](std::size_t i) { return elements.subspan(i * size, size); });
 }
 
 // Consecutive pieces of N elements.
-template <std::size_t N, typename T>
-[[nodiscard]] constexpr auto FixedChunks(std::span<T> elements) noexcept {
+template <std::size_t N, typename _T>
+[[nodiscard]] constexpr auto FixedChunks(std::span<_T> elements) noexcept {
   return std::views::iota(0uz, elements.size() / N) | std::views::transform([elements](std::size_t i) { return elements.subspan(i * N).template first<N>(); });
 }
 
@@ -90,8 +90,8 @@ auto Set(Octet octet, std::uint64_t pixels) noexcept -> void {
 }
 
 // The whole octets of a run of pixels.
-template <typename T>
-[[nodiscard]] auto Octets(std::span<T> run) noexcept {
+template <typename _T>
+[[nodiscard]] auto Octets(std::span<_T> run) noexcept {
   return std::views::iota(0uz, run.size() / 8) | std::views::transform([run](std::size_t i) { return run.subspan(i * 8).template first<8>(); });
 }
 
@@ -189,8 +189,8 @@ auto Canvas::Load(Offset at) const noexcept -> std::uint64_t {
   return std::bit_cast<std::uint64_t>(group);
 }
 
-template <typename Next>
-auto Canvas::EachOctet(Offset at, std::size_t count, Next next) noexcept -> void {
+template <typename _Next>
+auto Canvas::EachOctet(Offset at, std::size_t count, _Next next) noexcept -> void {
   if (auto const run{ Run(at, static_cast<std::int64_t>(count * 8)) }; run.size() == count * 8)
     for (auto const [i, octet] : std::views::zip(std::views::iota(0uz), Octets(run))) Set(octet, next(i, Get(octet)));
   else

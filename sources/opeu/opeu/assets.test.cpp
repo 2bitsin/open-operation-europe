@@ -11,16 +11,16 @@ namespace {
 auto Size(char const* const name) -> std::size_t {
   unsigned char const* data{ nullptr };
   std::size_t          size{ 0 };
-  return opeu_asset_find(name, &data, &size) == 1 && data != nullptr ? size : 0;
+  return AssetFind(name, &data, &size) == 1 && data != nullptr ? size : 0;
 }
 
 TEST(Assets, HoldEveryShippedDataFile) {
-  constexpr auto names{
+  constexpr auto NAMES{
     std::array{ "ARMS.SIL",     "BIGMAP.DAT", "EMSG",        "EMSG.16P",     "ENDGRP.NPK",  "EVENT.DAT",  "FACE.DAT",    "HEXDISP.DAT", "HEXFONT.DAT",
                "HEXFONTS.DAT", "HEXMAP.DAT", "HEXUNIT.DAT", "KOEILOGO.FNT", "MAPINF.DAT",  "MAPPNO.DAT", "MENDGRP.DAT", "MGAMEN.DAT",  "MIDMAP.DAT",
                "MOPENGRP.DAT", "MSG",        "MSG.16P",     "MSGRP.DAT",    "OPENGRP.NPK", "SCEDATA",    "SCEEND.DAT",  "SCESEL.DAT" }
   };
-  for (auto const* const name : names) {
+  for (auto const* const name : NAMES) {
     EXPECT_GT(Size(name), 0U) << name;
   }
 }

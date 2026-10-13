@@ -98,7 +98,7 @@ void opeu_vram_draw_near(uint8_t* vram, const uint8_t* src) {
 }
 
 // A glyph byte shifted right by c pixels across a byte pair: lo = g >> c, hi = g << (8 - c).
-static void glyph_pair(uint8_t g, unsigned c, uint8_t* lo, uint8_t* hi) {
+static void GlyphPair(uint8_t g, unsigned c, uint8_t* lo, uint8_t* hi) {
   uint16_t ax = (uint16_t)(((unsigned)g >> c) | ((unsigned)g << (16 - c)));
   *lo         = (uint8_t)ax;
   *hi         = (uint8_t)(ax >> 8);
@@ -106,11 +106,11 @@ static void glyph_pair(uint8_t g, unsigned c, uint8_t* lo, uint8_t* hi) {
 
 // OR / AND of a byte pair of the cell buffer. A glyph in column 4 spills its second byte into column 0 of the next
 // colour bit's block (or of the next line); the game's cell glyphs rely on nothing else.
-static void or16(uint8_t* p, uint8_t lo, uint8_t hi) {
+static void Or16(uint8_t* p, uint8_t lo, uint8_t hi) {
   p[0] |= lo;
   p[1] |= hi;
 }
-static void and16(uint8_t* p, uint8_t lo, uint8_t hi) {
+static void And16(uint8_t* p, uint8_t lo, uint8_t hi) {
   p[0] &= lo;
   p[1] &= hi;
 }
@@ -122,16 +122,16 @@ void opeu_vram_glyph_color(uint8_t* vram, const uint8_t* glyph, uint16_t x, uint
   int      row;
   for (row = 0; row < 6; row++, di += 20) {
     uint8_t lo, hi;
-    glyph_pair(*glyph++, c, &lo, &hi);
+    GlyphPair(*glyph++, c, &lo, &hi);
     if ((uint8_t)color == 0) {
-      and16(di, (uint8_t)~lo, (uint8_t)~hi);
-      or16(di + 5, lo, hi);
+      And16(di, (uint8_t)~lo, (uint8_t)~hi);
+      Or16(di + 5, lo, hi);
     } else {
-      or16(di, lo, hi);
-      and16(di + 5, (uint8_t)~lo, (uint8_t)~hi);
+      Or16(di, lo, hi);
+      And16(di + 5, (uint8_t)~lo, (uint8_t)~hi);
     }
-    and16(di + 10, (uint8_t)~lo, (uint8_t)~hi);
-    and16(di + 15, (uint8_t)~lo, (uint8_t)~hi);
+    And16(di + 10, (uint8_t)~lo, (uint8_t)~hi);
+    And16(di + 15, (uint8_t)~lo, (uint8_t)~hi);
   }
 }
 
@@ -142,11 +142,11 @@ void opeu_vram_glyph(uint8_t* vram, const uint8_t* glyph, uint16_t x, uint16_t y
   int      row;
   for (row = 0; row < 6; row++, di += 20) {
     uint8_t lo, hi;
-    glyph_pair(*glyph++, c, &lo, &hi);
-    or16(di, lo, hi);
-    or16(di + 5, lo, hi);
-    or16(di + 10, lo, hi);
-    and16(di + 15, (uint8_t)~lo, (uint8_t)~hi);
+    GlyphPair(*glyph++, c, &lo, &hi);
+    Or16(di, lo, hi);
+    Or16(di + 5, lo, hi);
+    Or16(di + 10, lo, hi);
+    And16(di + 15, (uint8_t)~lo, (uint8_t)~hi);
   }
 }
 
@@ -166,7 +166,7 @@ void opeu_vram_load(uint8_t* vram, const uint8_t* mask) {
 
 // Bit 3 of the colours of a w-column x h-line rectangle from the bits of the low byte of `color` (h = 0: 65536 lines);
 // bits 0-2 keep. Unclipped.
-void koei_3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
+void Koei3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
   for (auto const row : std::views::iota(0u, LoopCount(h)))
     for (auto const column : std::views::iota(int{ x }, x + w)) Screen().SetPlaneBits(ColumnAt(static_cast<uint16_t>(column), y) + Offset{ row } * 640, 3, static_cast<uint8_t>(color));
 }
@@ -203,10 +203,10 @@ void opeu_sprite_compose(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 
 // ANDs one colour-bit block of the buffer (W bytes x h lines) with the mask (W - 1 bytes per line) shifted right by c
 // pixels, ones shifted in; W = 1 runs the middle 65535 times.
-static uint8_t* and_shifted(uint8_t* d, const uint8_t* m, unsigned c, uint16_t W, uint16_t h) {
+static uint8_t* AndShifted(uint8_t* d, const uint8_t* m, unsigned c, uint16_t w, uint16_t h) {
   uint32_t rows = LoopCount(h), r;
   for (r = 0; r < rows; r++) {
-    uint16_t dx  = (uint16_t)(W - 2);
+    uint16_t dx  = (uint16_t)(w - 2);
     *d++        &= (uint8_t)((0xFF00u | *m) >> c);
     for (; dx; dx--, m++) *d++ &= (uint8_t)((((unsigned)m[0] << 8) | m[1]) >> c);
     if (c) *d &= (uint8_t)((((unsigned)m[0] << 8) | 0xFFu) >> c);
@@ -218,10 +218,10 @@ static uint8_t* and_shifted(uint8_t* d, const uint8_t* m, unsigned c, uint16_t W
 
 // ORs one colour bit of the interleaved image (stride 3 + flags) into the next block, shifted right by c pixels, zeros
 // shifted in.
-static uint8_t* or_shifted(uint8_t* d, const uint8_t* s, unsigned c, uint16_t W, uint16_t h, uint16_t stride) {
+static uint8_t* OrShifted(uint8_t* d, const uint8_t* s, unsigned c, uint16_t w, uint16_t h, uint16_t stride) {
   uint32_t rows = LoopCount(h), r;
   for (r = 0; r < rows; r++) {
-    uint16_t dx  = (uint16_t)(W - 2);
+    uint16_t dx  = (uint16_t)(w - 2);
     *d++        |= (uint8_t)(*s >> c);
     for (; dx; dx--) {
       unsigned hi  = *s;
@@ -240,16 +240,16 @@ static uint8_t* or_shifted(uint8_t* d, const uint8_t* s, unsigned c, uint16_t W,
 // the routine composes the buffer and leaves the screen alone (the game never asks for that).
 void koei_3f26(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* and_mask, const uint8_t* or_image, uint8_t* buffer, uint16_t flags) {
   auto const at{ ColumnAt(static_cast<uint16_t>(x >> 3), y) };
-  uint16_t   W      = (uint16_t)((w >> 3) + 1);
-  uint16_t   stride = (uint16_t)(3 + flags);
-  unsigned   c      = x & 7;
-  uint8_t*   d      = buffer;
+  uint16_t   columns = (uint16_t)((w >> 3) + 1);
+  uint16_t   stride  = (uint16_t)(3 + flags);
+  unsigned   c       = x & 7;
+  uint8_t*   d       = buffer;
   int        p;
-  SaveRect(at, W, h, buffer);
-  for (p = 0; p < 4; p++) d = and_shifted(d, and_mask, c, W, h);
+  SaveRect(at, columns, h, buffer);
+  for (p = 0; p < 4; p++) d = AndShifted(d, and_mask, c, columns, h);
   d = buffer;
-  for (p = 0; p < 3; p++) d = or_shifted(d, or_image + p, c, W, h, stride);
+  for (p = 0; p < 3; p++) d = OrShifted(d, or_image + p, c, columns, h, stride);
   if (!(flags & 1)) return;
-  or_shifted(d, or_image + 3, c, W, h, stride);
-  RestoreRect(at, W, h, buffer);
+  OrShifted(d, or_image + 3, c, columns, h, stride);
+  RestoreRect(at, columns, h, buffer);
 }

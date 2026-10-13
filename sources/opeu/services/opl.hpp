@@ -9,9 +9,9 @@
 inline constexpr auto OPL_CLOCK{ 3579545u };
 inline constexpr auto OPL_SAMPLE_RATE{ 49716 }; /* OPL_CLOCK / 72, rounded */
 
-void opl_reset(void);
+void OplReset(void);
 /* One register write (address port 388h, then data port 389h). */
-void opl_write(uint8_t reg, uint8_t value);
+void OplWrite(uint8_t reg, uint8_t value);
 /* Render `frames` samples as interleaved stereo int16 (both channels carry
  * the chip's mono output). */
-void opl_render(int16_t* stereo, int frames);
+void OplRender(int16_t* stereo, int frames);

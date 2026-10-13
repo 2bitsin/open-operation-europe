@@ -20,7 +20,7 @@
  * changes are asynchronous on DOS; a host frame can contain both events).
  * The driver draws its pointer itself on the real hardware, never through
  * the game's VRAM; here the pointer is drawn into the presented frame
- * (port_input_draw_pointer) while it is shown.
+ * (PortInputDrawPointer) while it is shown.
  */
 #include "hostinput.hpp"
 #include "platform.hpp"
@@ -38,7 +38,7 @@ constexpr auto KEY_BUFFER{ 16 }; /* 15 usable entries, as the BIOS */
 static uint16_t keys[KEY_BUFFER];
 static unsigned key_head, key_tail;
 
-void port_input_key(uint8_t scan, uint8_t ascii) {
+void PortInputKey(uint8_t scan, uint8_t ascii) {
   unsigned next = (key_tail + 1) % KEY_BUFFER;
   if (next == key_head) {
     port_trace("svc", "key %02x:%02x dropped (buffer full)", scan, ascii);
@@ -74,27 +74,27 @@ static struct {
   int      drawn_x, drawn_y, drawn_visible;
 } mouse = { 320, 240, 0, 639, 0, 479, -1, 0, 0, 320, 240, -1, -1, 0 };
 
-static int clampi(int v, int lo, int hi) {
+static int Clampi(int v, int lo, int hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-static void mouse_clamp(void) {
-  mouse.x = clampi(mouse.x, mouse.xmin, mouse.xmax);
-  mouse.y = clampi(mouse.y, mouse.ymin, mouse.ymax);
+static void MouseClamp(void) {
+  mouse.x = Clampi(mouse.x, mouse.xmin, mouse.xmax);
+  mouse.y = Clampi(mouse.y, mouse.ymin, mouse.ymax);
 }
 
-void port_input_mouse_move(int x, int y) {
+void PortInputMouseMove(int x, int y) {
   mouse.host_x = x;
   mouse.host_y = y;
   mouse.x      = x;
   mouse.y      = y;
-  mouse_clamp();
+  MouseClamp();
 }
 
-void port_input_mouse_button(int button, int down, int x, int y) {
+void PortInputMouseButton(int button, int down, int x, int y) {
   unsigned bit;
   if (button < 0 || button > 1) return; /* two-button driver */
-  port_input_mouse_move(x, y);
+  PortInputMouseMove(x, y);
   bit = 1u << button;
   if (down) {
     mouse.buttons |= bit;
@@ -136,28 +136,28 @@ void port_mouse_state(uint16_t* buttons, uint16_t* x, uint16_t* y) {
 void port_mouse_set_position(uint16_t x, uint16_t y) {
   mouse.x = (int16_t)x;
   mouse.y = (int16_t)y;
-  mouse_clamp();
+  MouseClamp();
 }
 
 void port_mouse_x_range(uint16_t min, uint16_t max) {
   int a = (int16_t)min, b = (int16_t)max;
   mouse.xmin = a < b ? a : b;
   mouse.xmax = a < b ? b : a;
-  mouse_clamp();
+  MouseClamp();
 }
 
 void port_mouse_y_range(uint16_t min, uint16_t max) {
   int a = (int16_t)min, b = (int16_t)max;
   mouse.ymin = a < b ? a : b;
   mouse.ymax = a < b ? b : a;
-  mouse_clamp();
+  MouseClamp();
 }
 
 /* ---- pointer overlay ----------------------------------------------------- */
 
 /* The default arrow of the Microsoft driver: '#' outline (black), '.' body
  * (white), hot spot at the tip. */
-static const char* const arrow[16] = {
+static const char* const ARROW[16] = {
   "#", "##", "#.#", "#..#", "#...#", "#....#", "#.....#", "#......#", "#.......#", "#........#", "#.....#####", "#..#..#", "#.# #..#", "##  #..#", "     #..#", "     ####",
 };
 
@@ -168,12 +168,12 @@ enum PointerColor : std::uint8_t {
 };
 }
 
-int port_input_pointer_dirty(void) {
+int PortInputPointerDirty(void) {
   int visible = mouse.counter >= 0;
   return visible != mouse.drawn_visible || (visible && (mouse.x != mouse.drawn_x || mouse.y != mouse.drawn_y));
 }
 
-int port_input_draw_pointer(uint8_t* frame, uint8_t pal_rgb8[768]) {
+int PortInputDrawPointer(uint8_t* frame, uint8_t pal_rgb8[768]) {
   int r, c;
   mouse.drawn_visible = mouse.counter >= 0;
   mouse.drawn_x       = mouse.x;
@@ -188,10 +188,10 @@ int port_input_draw_pointer(uint8_t* frame, uint8_t pal_rgb8[768]) {
   for (r = 0; r < 16; r++) {
     int y = mouse.y + r;
     if (y < 0 || y >= 480) continue;
-    for (c = 0; arrow[r][c]; c++) {
+    for (c = 0; ARROW[r][c]; c++) {
       int x = mouse.x + c;
-      if (x < 0 || x >= 640 || arrow[r][c] == ' ') continue;
-      frame[y * 640 + x] = arrow[r][c] == '#' ? POINTER_BLACK : POINTER_WHITE;
+      if (x < 0 || x >= 640 || ARROW[r][c] == ' ') continue;
+      frame[y * 640 + x] = ARROW[r][c] == '#' ? POINTER_BLACK : POINTER_WHITE;
     }
   }
   return 1;

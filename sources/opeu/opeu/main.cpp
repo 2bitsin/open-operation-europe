@@ -9,6 +9,6 @@
 auto opeu_main(int argc, char** argv) -> int;
 
 auto main(int argc, char** argv) -> int {
-  opeu_files_use_assets(&opeu_asset_find);
+  FilesUseAssets(&AssetFind);
   return opeu_main(argc, argv);
 }

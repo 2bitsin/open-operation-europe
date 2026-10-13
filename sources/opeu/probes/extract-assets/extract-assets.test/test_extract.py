@@ -11,8 +11,9 @@ extract = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(extract)
 
 ASSETS = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
-COUNTS = {'battle': 244, 'dialogs': 6, 'glyphs': 1298, 'logos': 4, 'masks': 20, 'pictures': 95, 'portraits': 120,
-          'silhouettes': 159, 'tiles': 1152}
+PROGRAM_GLYPHS = 96 + 11 + 11 + 2  # the program's text font, digits, sideways digits and markers
+COUNTS = {'battle': 244, 'dialogs': 6, 'glyphs': 1298 + PROGRAM_GLYPHS, 'logos': 4, 'masks': 20, 'pictures': 95,
+          'portraits': 120, 'silhouettes': 159, 'tiles': 1152}
 
 
 def tree(root):

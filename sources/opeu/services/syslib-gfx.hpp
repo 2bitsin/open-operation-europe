@@ -32,7 +32,7 @@ void opeu_vram_glyph(uint8_t* vram, const uint8_t* glyph, uint16_t x, uint16_t y
 void opeu_vram_load(uint8_t* vram, const uint8_t* mask);
 /* Set colour bit 3 over a w-byte x h-line rectangle with the byte `color`
  * (bits 0-2 untouched). */
-void koei_3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+void Koei3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 /* copy the 3-byte x 24-line screen block at (x1, y1) to (x2, y2). */
 void koei_3bc5(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 /* save the w-byte x h-line screen rectangle at (x, y) into `buffer`

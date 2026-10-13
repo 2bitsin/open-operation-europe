@@ -13,9 +13,9 @@ namespace opeu::probes::extract_assets::detail::json {
 [[nodiscard]] auto Quoted(std::string_view text) -> std::string;
 
 // A range of numbers or of already-encoded values as a JSON array.
-template <std::ranges::input_range Values>
-[[nodiscard]] auto Array(Values&& values) -> std::string {
-  auto items{ std::forward<Values>(values) | std::views::transform([](auto const& value) {
+template <std::ranges::input_range _Values>
+[[nodiscard]] auto Array(_Values&& values) -> std::string {
+  auto items{ std::forward<_Values>(values) | std::views::transform([](auto const& value) {
                 if constexpr (std::convertible_to<decltype(value), std::string_view>) {
                   return std::string{ value };
                 } else {

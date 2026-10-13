@@ -11,13 +11,13 @@
  * records, functions per track opcode, and three host hooks instead of
  * ports and segment registers:
  *
- *   write_register(reg, value)  one OPL2 register write (port 388h/389h pair)
- *   read_status()               OPL2 status port, only for chip detection
+ *   WriteRegister(reg, value)  one OPL2 register write (port 388h/389h pair)
+ *   ReadStatus()               OPL2 status port, only for chip detection
  *   peek(seg, off)              one byte of the caller's memory (banks and
  *                               instruments are addressed segment:offset)
  *   callback(regs)              the client's end-of-song far callback
  *
- * Time: fmd_timer_tick() is one PIT interrupt of the original (the driver
+ * Time: FmdTimerTick() is one PIT interrupt of the original (the driver
  * programs PIT channel 0 to 1000h counts: 1193182/4096 = 291.304 Hz). The
  * host calls it at that rate (port/services/fm.c does so sample-accurately
  * from the audio clock). Calls into the driver must not overlap a tick; the
@@ -158,15 +158,15 @@ typedef struct FmDriver {
 } FmDriver;
 
 /* Install: reset the state; with detect != 0 run the original timer-overflow
- * chip test through read_status (an emulated chip may skip it). Returns 1
+ * chip test through ReadStatus (an emulated chip may skip it). Returns 1
  * when the driver is enabled (chip found), 0 otherwise; then only the
  * countdowns and the version query work and other calls return AX=FFFFh. */
-int fmd_install(FmDriver* d, const FmdHost* host, int detect);
+int FmdInstall(FmDriver* d, const FmdHost* host, int detect);
 /* INT 66h AH=FFh / the far uninstall entry: silence the chip. */
-void fmd_uninstall(FmDriver* d);
+void FmdUninstall(FmDriver* d);
 /* INT 66h (full interface incl. FFh/FEh/F0h/F1h). */
-void fmd_interrupt(FmDriver* d, FmdRegs* r);
+void FmdInterrupt(FmDriver* d, FmdRegs* r);
 /* The far-call entry (CS:010Ah): the API of functions 00-09h, 10-13h, 80-83h. */
-void fmd_far_call(FmDriver* d, FmdRegs* r);
+void FmdFarCall(FmDriver* d, FmdRegs* r);
 /* One PIT interrupt (291.3 Hz). */
-void fmd_timer_tick(FmDriver* d);
+void FmdTimerTick(FmDriver* d);

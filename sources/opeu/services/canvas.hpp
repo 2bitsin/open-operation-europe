@@ -154,8 +154,8 @@ private:
     return std::span{ _pixels }.subspan(start, static_cast<std::size_t>(std::min<Offset>(count, STORED - Offset(start))));
   }
   // Calls `next(i, pixels)` for the `count` octets from `at` and stores what it returns.
-  template <typename Next>
-  auto EachOctet(Offset at, std::size_t count, Next next) noexcept -> void;
+  template <typename _Next>
+  auto EachOctet(Offset at, std::size_t count, _Next next) noexcept -> void;
   // The 8 pixels from `at` as the bytes of a word, the leftmost lowest (pixels outside the screen read 0 and are
   // not written).
   [[nodiscard]] auto Load(Offset at) const noexcept -> std::uint64_t;

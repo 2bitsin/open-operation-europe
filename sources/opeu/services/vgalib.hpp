@@ -8,7 +8,7 @@
 // Start-up: the graphics screen shown, cleared, with the start colour map and palette.
 void vgalib_init(void);
 // The frame as palette entries and the palette in 8-bit levels; 1 when anything changed since the previous call.
-int vgalib_render(uint8_t* out640x480, uint8_t pal_rgb8[768]);
+int VgalibRender(uint8_t* out640x480, uint8_t pal_rgb8[768]);
 
 // Reader callback of the picture decoders: returns the next stream byte.
 using PictureByteReader = uint8_t (*)(void);
@@ -31,7 +31,7 @@ int16_t opeu_blit_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t m
 // 1-bit image of w bytes per row. Low byte of mode: the colour; (mode & 7FFF) >> 8: 0 opaque (0 bits draw colour 0),
 // 4 set, 1 XOR, 2 AND (0 bits clear the colour's bits), 3 OR; 5-7F repeat the previous pen. Bit 15 doubles rows.
 int16_t                opeu_draw_near(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
-inline constexpr auto& opeu_code_0000_28a8{ opeu_draw_near };
+inline constexpr auto& CODE_0000_28A8{ opeu_draw_near };
 int16_t                opeu_draw_far(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 // 1-bit glyph on paper: 1 bits colour (mode & 15), 0 bits colour ((mode >> 8) & 15).
 void opeu_code_0000_28c5(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
@@ -40,7 +40,7 @@ void opeu_code_0000_28c5(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_
 // get a 0 bit (a 1 bit for AND). Returns 0 or -1.
 int16_t                opeu_vga_glyph(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
 int16_t                opeu_gfx_blit(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, const uint8_t* data);
-inline constexpr auto& opeu_bitmap_draw{ opeu_gfx_blit };
+inline constexpr auto& BITMAP_DRAW{ opeu_gfx_blit };
 // Clears the screen to colour 0. Returns 0.
 int16_t opeu_vga_clear(void);
 // Solid box in colour (color & 15). Returns 0 or -1.
@@ -49,12 +49,12 @@ inline constexpr auto& opeu_vga_fill_rect{ opeu_ui_box };
 // XOR (high byte 1), AND (2: no change) or OR (3) the colour over a box; selects that pen. Returns 0 or -1.
 int16_t opeu_ui_highlight(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 // One pixel in colour (low byte, as ui_line without a pattern).
-void koei_2ce4(uint16_t x, uint16_t y, uint16_t color);
+void Koei2ce4(uint16_t x, uint16_t y, uint16_t color);
 // Line; colour word: low nibble colour, bits 4-7 operation (0 set, 1 XOR, 2 AND, 3 OR, 4 OR on pattern bits only),
 // high byte a dash pattern.
 void opeu_ui_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 // Transparent 4-byte-column image at any pixel x, unclipped (see Canvas::DrawShiftedColumns for its quirk).
-void koei_2e49(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* data);
+void Koei2e49(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* data);
 void koei_2e57(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* data);
 // Saves a w x h column rectangle in the 4-byte-column format, unclipped.
 void koei_2e72(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t* dest);

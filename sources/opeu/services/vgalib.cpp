@@ -83,7 +83,7 @@ int16_t opeu_ui_highlight(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16
   return Status(Screen().Highlight(x, y, w, h, color));
 }
 
-void koei_2ce4(uint16_t x, uint16_t y, uint16_t color) {
+void Koei2ce4(uint16_t x, uint16_t y, uint16_t color) {
   Screen().Plot(x, y, color);
 }
 
@@ -91,7 +91,7 @@ void opeu_ui_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t c
   Screen().Line(x1, y1, x2, y2, color);
 }
 
-void koei_2e49(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* data) {
+void Koei2e49(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t* data) {
   Screen().DrawShiftedColumns(x, y, w, h, Image(data, (static_cast<uint16_t>(w - 1) + 1uz) * 4, h ? h : 0x10000uz));
 }
 
@@ -135,7 +135,7 @@ void vgalib_init(void) {
   Screen().Start();
 }
 
-int vgalib_render(uint8_t* out, uint8_t pal[768]) {
+int VgalibRender(uint8_t* out, uint8_t pal[768]) {
   auto&      screen{ Screen() };
   auto const changed{ screen.TakeChanged() };
   screen.Render(std::span<uint8_t, opeu::services::detail::canvas::PIXELS>{ out, opeu::services::detail::canvas::PIXELS }, std::span<uint8_t, 768>{ pal, 768 });

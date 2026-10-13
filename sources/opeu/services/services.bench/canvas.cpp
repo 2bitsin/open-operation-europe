@@ -20,9 +20,9 @@ inline constexpr auto LINES{ 100 };
 inline constexpr auto GLYPH_BYTES{ 32 }; // 16 x 16 pixels, 1 bit each
 
 // Bytes counting up through every value, so every colour and every bit pattern occurs.
-template <std::size_t Size>
-[[nodiscard]] constexpr auto Counting(std::uint8_t first) -> std::array<std::uint8_t, Size> {
-  std::array<std::uint8_t, Size> bytes{};
+template <std::size_t SIZE>
+[[nodiscard]] constexpr auto Counting(std::uint8_t first) -> std::array<std::uint8_t, SIZE> {
+  std::array<std::uint8_t, SIZE> bytes{};
   std::iota(bytes.begin(), bytes.end(), first);
   return bytes;
 }

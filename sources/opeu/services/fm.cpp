@@ -57,25 +57,25 @@ static FILE*    opl_log;
 
 /* ---- driver host hooks ---------------------------------------------------- */
 
-static void host_write_register(void* user, uint8_t reg, uint8_t value) {
+static void HostWriteRegister(void* user, uint8_t reg, uint8_t value) {
   (void)user;
-  opl_write(reg, value);
+  OplWrite(reg, value);
   if (opl_log) fprintf(opl_log, "%llu %02x %02x\n", (unsigned long long)clock_frames, reg, value);
 }
 
-static uint8_t host_read_status(void* user) {
+static uint8_t HostReadStatus(void* user) {
   (void)user;
   return 0;
 }
 
 /* The banks are in the data arena (MAIN's FMUSIC at 3D91:0000/7BBA). */
-static uint8_t host_peek(void* user, uint16_t seg, uint16_t off) {
+static uint8_t HostPeek(void* user, uint16_t seg, uint16_t off) {
   uint32_t linear = (uint32_t)seg * 16u + off;
   (void)user;
   return linear < PORT_ARENA_SIZE ? port_arena[linear] : 0xff;
 }
 
-static void host_callback(void* user, uint16_t seg, uint16_t off, FmdCallbackRegs* regs) {
+static void HostCallback(void* user, uint16_t seg, uint16_t off, FmdCallbackRegs* regs) {
   (void)user;
   (void)regs;
   port_trace("fm", "client callback %04x:%04x ignored (MAIN installs none)", seg, off);
@@ -83,7 +83,7 @@ static void host_callback(void* user, uint16_t seg, uint16_t off, FmdCallbackReg
 
 /* ---- the clock -------------------------------------------------------------- */
 
-static void wav_header(FILE* f, uint64_t frames) {
+static void WavHeader(FILE* f, uint64_t frames) {
   uint32_t data = (uint32_t)(frames * 4u), rate = OPL_SAMPLE_RATE;
   uint8_t  h[44];
   memcpy(h, "RIFF", 4);
@@ -121,7 +121,7 @@ static void wav_header(FILE* f, uint64_t frames) {
 /* Advance the driver clock by `frames` output frames. PIT ticks run at their
  * exact frame positions; chip samples go to `out` (NULL: not rendered, the
  * chip only receives the register writes) and to the WAV file. */
-static void clock_frames_advance(int16_t* out, int frames) {
+static void ClockFramesAdvance(int16_t* out, int frames) {
   static int16_t scratch[2 * 512];
   while (frames > 0) {
     uint32_t need  = PIT_UNITS_PER_TICK - tick_phase;
@@ -131,7 +131,7 @@ static void clock_frames_advance(int16_t* out, int frames) {
     if (n > 512) n = 512;
     if (n > 0) {
       int16_t* dst = out ? out : (wav ? scratch : NULL);
-      if (dst) opl_render(dst, n);
+      if (dst) OplRender(dst, n);
       if (wav) {
         fwrite(dst, 4, (size_t)n, wav);
         wav_frames += (uint64_t)n;
@@ -143,17 +143,17 @@ static void clock_frames_advance(int16_t* out, int frames) {
     }
     if (tick_phase >= PIT_UNITS_PER_TICK) {
       tick_phase -= PIT_UNITS_PER_TICK;
-      if (installed) fmd_timer_tick(&driver);
+      if (installed) FmdTimerTick(&driver);
     }
   }
 }
 
 /* SDL audio callback (the stream lock is held). */
-static void audio_callback(void* user, int16_t* out, int frames, int rate) {
+static void AudioCallback(void* user, int16_t* out, int frames, int rate) {
   (void)user;
   (void)rate;
-  clock_frames_advance(out, frames);
-  last_clock_us = plat_ticks_us();
+  ClockFramesAdvance(out, frames);
+  last_clock_us = TicksUs();
 }
 
 /* Called by every event pump. */
@@ -161,15 +161,15 @@ void port_fm_clock(void) {
   uint64_t now;
   if (!installed) return;
   if (audio_device) {
-    plat_audio_lock();
-    now = plat_ticks_us(); /* after the lock: the callback may just have run */
+    AudioLock();
+    now = TicksUs(); /* after the lock: the callback may just have run */
     if (now > last_clock_us && now - last_clock_us > STALL_US) {
       /* the device stopped pulling samples: keep the driver's time */
       uint64_t frames = (now - last_clock_us) * OPL_SAMPLE_RATE / 1000000u;
-      clock_frames_advance(NULL, (int)(frames > OPL_SAMPLE_RATE ? OPL_SAMPLE_RATE : frames)); /* at most 1 s per poll */
+      ClockFramesAdvance(NULL, (int)(frames > OPL_SAMPLE_RATE ? OPL_SAMPLE_RATE : frames)); /* at most 1 s per poll */
       last_clock_us = now;
     }
-    plat_audio_unlock();
+    AudioUnlock();
     return;
   }
   now = port_time_us();
@@ -177,16 +177,16 @@ void port_fm_clock(void) {
     uint64_t target = now * OPL_SAMPLE_RATE / 1000000u;
     while (clock_frames < target) {
       uint64_t n = target - clock_frames;
-      clock_frames_advance(NULL, (int)(n > 4096 ? 4096 : n));
+      ClockFramesAdvance(NULL, (int)(n > 4096 ? 4096 : n));
     }
   }
 }
 
-static void fm_shutdown(void) {
-  plat_audio_lock();
+static void FmShutdown(void) {
+  AudioLock();
   if (wav) {
     fseek(wav, 0, SEEK_SET);
-    wav_header(wav, wav_frames);
+    WavHeader(wav, wav_frames);
     fclose(wav);
     wav = NULL;
   }
@@ -194,36 +194,36 @@ static void fm_shutdown(void) {
     fclose(opl_log);
     opl_log = NULL;
   }
-  plat_audio_unlock();
+  AudioUnlock();
 }
 
 /* Install the driver (FMDRV ran from OPEU.BAT before MAIN) and the audio. */
 void port_fm_init(void) {
   FmdHost host;
   host.user           = NULL;
-  host.write_register = host_write_register;
-  host.read_status    = host_read_status;
-  host.peek           = host_peek;
-  host.callback       = host_callback;
+  host.write_register = HostWriteRegister;
+  host.read_status    = HostReadStatus;
+  host.peek           = HostPeek;
+  host.callback       = HostCallback;
   if (port_options.wav_path) {
     wav = fopen(port_options.wav_path, "wb");
     if (!wav) port_fatal("cannot write %s", port_options.wav_path);
-    wav_header(wav, 0);
+    WavHeader(wav, 0);
   }
   if (port_options.opl_log_path) {
     opl_log = fopen(port_options.opl_log_path, "w");
     if (!opl_log) port_fatal("cannot write %s", port_options.opl_log_path);
     fprintf(opl_log, "# frame (at %d Hz) register value\n", OPL_SAMPLE_RATE);
   }
-  opl_reset();
+  OplReset();
   /* The emulated chip is always there; the timer-overflow detection of
      * the original installer is not run. */
-  fmd_install(&driver, &host, 0);
+  FmdInstall(&driver, &host, 0);
   installed = 1;
-  atexit(fm_shutdown);
-  if (!port_options.headless && !port_options.mute && plat_audio_open(OPL_SAMPLE_RATE, audio_callback, NULL) == 0) {
-    audio_device  = plat_audio_active();
-    last_clock_us = plat_ticks_us();
+  atexit(FmShutdown);
+  if (!port_options.headless && !port_options.mute && AudioOpen(OPL_SAMPLE_RATE, AudioCallback, NULL) == 0) {
+    audio_device  = AudioActive();
+    last_clock_us = TicksUs();
   }
   port_trace("fm", "driver installed; clock: %s", audio_device ? "audio device" : "event pump");
   if (!port_options.headless && !port_options.mute && !audio_device) fprintf(stderr, "opeu: no audio output; the music is silent\n");
@@ -231,14 +231,14 @@ void port_fm_init(void) {
 
 /* ---- INT 66h ------------------------------------------------------------------ */
 
-static void driver_call(FmdRegs* r) {
+static void DriverCall(FmdRegs* r) {
   if (!installed) {
     r->ax = 0xffff; /* no driver resident */
     return;
   }
-  plat_audio_lock();
-  fmd_interrupt(&driver, r);
-  plat_audio_unlock();
+  AudioLock();
+  FmdInterrupt(&driver, r);
+  AudioUnlock();
 }
 
 /* Full-register INT 66h (port_sound_int66, port/core/glue.c). */
@@ -249,7 +249,7 @@ void port_fm_int66(uint16_t* ax, uint16_t* bx, uint16_t* dx, uint16_t* ds) {
   r.bx       = *bx;
   r.dx       = *dx;
   r.ds       = *ds;
-  driver_call(&r);
+  DriverCall(&r);
   port_trace("fm", "frame %llu int66 ax=%04x bx=%04x dx=%04x ds=%04x -> ax=%04x bx=%04x", (unsigned long long)clock_frames, *ax, *bx, *dx, *ds, r.ax, r.bx);
   *ax = r.ax;
   *bx = r.bx;

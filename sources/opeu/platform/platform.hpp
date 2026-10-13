@@ -7,7 +7,7 @@
  * OPL emulator will feed).  The SDL3 implementation lives in
  * port/platform/sdl3/; a future Emscripten build uses the same backend.
  *
- * Rules: plain C99, no blocking calls except plat_sleep_ms(), no global
+ * Rules: plain C99, no blocking calls except SleepMs(), no global
  * state visible outside the backend, every function callable when the
  * backend runs headless (no window, no audio device).
  */
@@ -66,16 +66,16 @@ struct PlatEvent {
 };
 
 /* Pump the OS event queue and return the next event; 0 when empty. */
-auto plat_poll_event(PlatEvent* ev) -> int;
+auto PollEvent(PlatEvent* ev) -> int;
 
 /* Current modifier state as BIOS shift flags (0040:0017 layout):
  * bit0 right shift, bit1 left shift, bit2 ctrl, bit3 alt. */
-auto plat_shift_flags() -> uint8_t;
+auto ShiftFlags() -> uint8_t;
 
 /* ---- time --------------------------------------------------------------- */
 
-auto plat_ticks_us() -> uint64_t; /* monotonic microseconds since plat_init */
-void plat_sleep_ms(int ms);       /* yields; never called on Emscripten frames */
+auto TicksUs() -> uint64_t; /* monotonic microseconds since plat_init */
+void SleepMs(int ms);       /* yields; never called on Emscripten frames */
 
 /* ---- files -------------------------------------------------------------- */
 
@@ -83,20 +83,20 @@ void plat_sleep_ms(int ms);       /* yields; never called on Emscripten frames *
  * system (the shipped data files are compiled into the executable and
  * served by services/fileio.c).  Default: SDL's per-user pref path
  * natively, /saves (the page's IDBFS mount) in the browser.  Paths given to
- * plat_fopen are DOS names relative to it ("SAVEDATA"); lookup is
+ * Fopen are DOS names relative to it ("SAVEDATA"); lookup is
  * case-insensitive.  mode is a C stdio mode string.  Returns NULL if
  * missing.  The handle is a stdio FILE* on every current backend. */
 void plat_set_save_dir(const char* dir);
-auto plat_save_dir() -> const char*;
-auto plat_fopen(const char* dos_name, const char* mode) -> void*;
-auto plat_fclose(void* f) -> int;
-auto plat_fread(void* buf, size_t n, void* f) -> size_t;
-auto plat_fwrite(const void* buf, size_t n, void* f) -> size_t;
-auto plat_fseek(void* f, long off, int whence) -> long; /* returns new position or -1 */
-auto plat_fsize(void* f) -> long;
-auto plat_fexists(const char* dos_name) -> int;
-auto plat_fdelete(const char* dos_name) -> int;
-auto plat_frename(const char* from, const char* to) -> int;
+auto SaveDir() -> const char*;
+auto Fopen(const char* dos_name, const char* mode) -> void*;
+auto Fclose(void* f) -> int;
+auto Fread(void* buf, size_t n, void* f) -> size_t;
+auto Fwrite(const void* buf, size_t n, void* f) -> size_t;
+auto Fseek(void* f, long off, int whence) -> long; /* returns new position or -1 */
+auto Fsize(void* f) -> long;
+auto Fexists(const char* dos_name) -> int;
+auto Fdelete(const char* dos_name) -> int;
+auto Frename(const char* from, const char* to) -> int;
 
 /* ---- audio -------------------------------------------------------------- */
 
@@ -104,7 +104,7 @@ auto plat_frename(const char* from, const char* to) -> int;
  * It runs on the audio thread; it must never block.  A NULL callback (or
  * headless mode) means silence. */
 using PlatAudioFn = void (*)(void* user, int16_t* out, int frames, int rate);
-auto plat_audio_open(int rate, PlatAudioFn fn, void* user) -> int;
-auto plat_audio_active() -> int; /* 1 when a device stream is open */
-void plat_audio_lock();
-void plat_audio_unlock();
+auto AudioOpen(int rate, PlatAudioFn fn, void* user) -> int;
+auto AudioActive() -> int; /* 1 when a device stream is open */
+void AudioLock();
+void AudioUnlock();
