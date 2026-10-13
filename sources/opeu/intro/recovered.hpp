@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dgroup.hpp"
+#include "open.hpp"
 
 #include <cstdint>
 
@@ -117,53 +118,51 @@ enum class SoundServiceId : uint16_t {
 inline constexpr uint16_t BANK_FRAME{ 0x0710 };
 inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
 
-using OpenEvent    = uint16_t (*)(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count);
-using UtilService  = uint32_t (*)(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count);
-using TextEvent    = uint16_t (*)(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count);
-using SoundService = uint16_t (*)(uint8_t* ds, SoundServiceId call, uint16_t* words);
+using OpenEvent    = uint16_t (*)(Open& open, OpenEventId id, uint16_t const* args, uint16_t count);
+using UtilService  = uint32_t (*)(Open& open, UtilServiceId id, uint16_t* words, uint16_t count);
+using TextEvent    = uint16_t (*)(Open& open, TextEventId id, uint16_t const* args, uint16_t count);
+using SoundService = uint16_t (*)(Open& open, SoundServiceId call, uint16_t* words);
 
-/* OTEXT's host: its event and the modeled stack pointer below which it
- * places its conversion buffer. */
+/* OTEXT's host: its event. */
 struct TextHost {
   TextEvent event;
-  uint16_t  sp;
 };
 
 namespace detail::openmain {
-void opeu_open_main(uint8_t* ds, OpenEvent event);
-void opeu_open_delay(uint8_t* ds, OpenEvent event, uint16_t ticks);
+void opeu_open_main(Open& open, OpenEvent event);
+void opeu_open_delay(Open& open, OpenEvent event, uint16_t ticks);
 }
 
 namespace detail::outil {
-auto opeu_mouse_reset(uint8_t* ds, UtilService event) -> uint16_t;
-auto opeu_stream_file_byte(uint8_t* ds, UtilService event) -> uint8_t;
-void opeu_picture_file_at(uint8_t* ds, UtilService event, uint16_t x, uint16_t y, int32_t position);
-void opeu_open_palette_set(uint8_t* ds, UtilService event, uint8_t* palette);
-auto opeu_open_palette_step(uint8_t* ds, UtilService event, uint8_t* target) -> int16_t;
-auto opeu_open_palette_fade(uint8_t* ds, UtilService event, uint8_t* target, uint16_t mode) -> int16_t;
-auto opeu_open_fade_in(uint8_t* ds, UtilService event) -> int16_t;
-auto opeu_open_fade_in_wait(uint8_t* ds, UtilService event) -> int16_t;
-auto opeu_open_fade_alt(uint8_t* ds, UtilService event) -> int16_t;
-void opeu_open_identity_palette(uint8_t* ds, UtilService event);
-auto opeu_open_input_poll(uint8_t* ds, UtilService event) -> int16_t;
-auto opeu_open_file_or_die(uint8_t* ds, UtilService event, uint16_t name) -> int16_t;
-void opeu_open_stub_a(uint8_t* ds, UtilService event);
-void opeu_open_stub_b(uint8_t* ds, UtilService event);
-void opeu_open_stub_c(uint8_t* ds, UtilService event);
+auto opeu_mouse_reset(Open& open, UtilService event) -> uint16_t;
+auto opeu_stream_file_byte(Open& open, UtilService event) -> uint8_t;
+void opeu_picture_file_at(Open& open, UtilService event, uint16_t x, uint16_t y, int32_t position);
+void opeu_open_palette_set(Open& open, UtilService event, uint8_t* palette);
+auto opeu_open_palette_step(Open& open, UtilService event, uint8_t* target) -> int16_t;
+auto opeu_open_palette_fade(Open& open, UtilService event, uint8_t* target, uint16_t mode) -> int16_t;
+auto opeu_open_fade_in(Open& open, UtilService event) -> int16_t;
+auto opeu_open_fade_in_wait(Open& open, UtilService event) -> int16_t;
+auto opeu_open_fade_alt(Open& open, UtilService event) -> int16_t;
+void opeu_open_identity_palette(Open& open, UtilService event);
+auto opeu_open_input_poll(Open& open, UtilService event) -> int16_t;
+auto opeu_open_file_or_die(Open& open, UtilService event, uint16_t name) -> int16_t;
+void opeu_open_stub_a(Open& open, UtilService event);
+void opeu_open_stub_b(Open& open, UtilService event);
+void opeu_open_stub_c(Open& open, UtilService event);
 }
 
 namespace detail::otext {
-void opeu_input_flush(uint8_t* ds, TextHost* host);
-auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t;
-void opeu_ui_text(uint8_t* ds, TextHost* host, uint16_t s);
-void opeu_cursor_print(uint8_t* ds, TextHost* host, uint16_t frame);
+void opeu_input_flush(Open& open, TextHost* host);
+auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t;
+void opeu_ui_text(Open& open, TextHost* host, uint16_t s);
+void opeu_cursor_print(Open& open, TextHost* host, uint16_t frame);
 }
 
 namespace detail::osound {
-void opeu_sound_initialize(uint8_t* ds, SoundService service);
-void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t value);
-auto opeu_music_playing(uint8_t* ds, SoundService service) -> int;
-void opeu_music_start(uint8_t* ds, SoundService service, uint8_t track);
+void opeu_sound_initialize(Open& open, SoundService service);
+void opeu_finish_side_initialization(Open& open, SoundService service, uint8_t value);
+auto opeu_music_playing(Open& open, SoundService service) -> int;
+void opeu_music_start(Open& open, SoundService service, uint8_t track);
 }
 
 /* The initialized data of the five DGROUP modules and of the song bank,

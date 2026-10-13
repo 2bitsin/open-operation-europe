@@ -59,23 +59,23 @@ auto openmain_int86(uint16_t number, uint16_t ax) -> uint16_t {
 }
 }
 
-auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t {
+auto link_openmain(Open& open, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t {
   using enum OpenEventId;
   auto const arg{ [&](int i) -> uint16_t { return Arg(args, count, i); } };
   switch (id) {
   case SFX_PLAY:             opeu_open_sfx_play(arg(0)); return 0;
   case SFX_BUSY:             return opeu_open_sfx_busy();
   case FM_BUSY:              return opeu_fm_busy();
-  case INPUT_POLL:           return static_cast<uint16_t>(opeu_open_input_poll(ds, link_outil));
+  case INPUT_POLL:           return static_cast<uint16_t>(opeu_open_input_poll(open, link_outil));
   case VGA_CLEAR:            return static_cast<uint16_t>(opeu_vga_clear());
-  case PALETTE_FADE:         return static_cast<uint16_t>(opeu_open_palette_fade(ds, link_outil, ds + arg(1), arg(0)));
-  case PALETTE_STEP:         return static_cast<uint16_t>(opeu_open_palette_step(ds, link_outil, ds + arg(0)));
-  case PALETTE_SET:          opeu_open_palette_set(ds, link_outil, ds + arg(0)); return 0;
-  case FADE_OUT:             return static_cast<uint16_t>(opeu_open_fade_in(ds, link_outil));
-  case FADE_OUT_WAIT:        return static_cast<uint16_t>(opeu_open_fade_in_wait(ds, link_outil));
-  case PICTURE_AT:           opeu_picture_file_at(ds, link_outil, arg(0), arg(1), static_cast<int32_t>(Arg32(args, count, 2))); return 0;
-  case MUSIC_START:          opeu_music_start(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
-  case MUSIC_COMMAND4:       opeu_finish_side_initialization(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
+  case PALETTE_FADE:         return static_cast<uint16_t>(opeu_open_palette_fade(open, link_outil, &Byte(open, arg(1)), arg(0)));
+  case PALETTE_STEP:         return static_cast<uint16_t>(opeu_open_palette_step(open, link_outil, &Byte(open, arg(0))));
+  case PALETTE_SET:          opeu_open_palette_set(open, link_outil, &Byte(open, arg(0))); return 0;
+  case FADE_OUT:             return static_cast<uint16_t>(opeu_open_fade_in(open, link_outil));
+  case FADE_OUT_WAIT:        return static_cast<uint16_t>(opeu_open_fade_in_wait(open, link_outil));
+  case PICTURE_AT:           opeu_picture_file_at(open, link_outil, arg(0), arg(1), static_cast<int32_t>(Arg32(args, count, 2))); return 0;
+  case MUSIC_START:          opeu_music_start(open, link_osound, static_cast<uint8_t>(arg(0))); return 0;
+  case MUSIC_COMMAND4:       opeu_finish_side_initialization(open, link_osound, static_cast<uint8_t>(arg(0))); return 0;
   case DOS_SEEK:             return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(arg(3))));
   case DOS_READ_FAR:         return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
   case DRAW_FAR:             return static_cast<uint16_t>(opeu_draw_far(arg(0), arg(1), arg(2), arg(3), arg(4), source_bytes(arg(5), arg(6), blit_size(arg(2), arg(3), 1))));
@@ -94,7 +94,7 @@ auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t c
   case DOS_FREE:             return open_dos_free(arg(0)) == 0 ? 1 : 0;
   case DOS_CLOSE:            return static_cast<uint16_t>(opeu_dos_close(static_cast<int16_t>(arg(0))));
   case DOS_EXISTS:           {
-    int16_t found = opeu_dos_exists(reinterpret_cast<const char*>(ds) + arg(0));
+    int16_t found = opeu_dos_exists(reinterpret_cast<const char*>(&Byte(open, arg(0))));
     /* The shutdown busy-waits for SCESEL.DAT with this call; keep the
          * host responsive while it is missing (no effect on the result). */
     if (found == 0) port_pump();
@@ -102,14 +102,14 @@ auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t c
   }
   case STUB_09B7:        koei_09b7(arg(0), arg(1)); return 0;
   case INT86:            return openmain_int86(arg(0), arg(1));
-  case UI_TEXT:          opeu_ui_text(ds, link_otext_host(), arg(0)); return 0;
-  case CURSOR_PRINT:     link_otext_print(ds, args, 1); return 0;
-  case SOUND_INITIALIZE: opeu_sound_initialize(ds, link_osound); return 0;
-  case MUSIC_PLAYING:    return static_cast<uint16_t>(opeu_music_playing(ds, link_osound));
-  case MOUSE_RESET:      return opeu_mouse_reset(ds, link_outil);
-  case FADE_ALT:         return static_cast<uint16_t>(opeu_open_fade_alt(ds, link_outil));
-  case IDENTITY_PALETTE: opeu_open_identity_palette(ds, link_outil); return 0;
-  case FILE_OR_DIE:      return static_cast<uint16_t>(opeu_open_file_or_die(ds, link_outil, arg(0)));
+  case UI_TEXT:          opeu_ui_text(open, link_otext_host(), arg(0)); return 0;
+  case CURSOR_PRINT:     link_otext_print(open, std::span{ args, 1 }); return 0;
+  case SOUND_INITIALIZE: opeu_sound_initialize(open, link_osound); return 0;
+  case MUSIC_PLAYING:    return static_cast<uint16_t>(opeu_music_playing(open, link_osound));
+  case MOUSE_RESET:      return opeu_mouse_reset(open, link_outil);
+  case FADE_ALT:         return static_cast<uint16_t>(opeu_open_fade_alt(open, link_outil));
+  case IDENTITY_PALETTE: opeu_open_identity_palette(open, link_outil); return 0;
+  case FILE_OR_DIE:      return static_cast<uint16_t>(opeu_open_file_or_die(open, link_outil, arg(0)));
   case HANG:             port_pump(); return 0; /* the stop after an allocation failure */
   default:               port_unhandled("openmain", static_cast<unsigned>(id), count);
   }

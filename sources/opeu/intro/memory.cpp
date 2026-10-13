@@ -11,9 +11,6 @@ namespace {
 constexpr int MAX_BLOCKS{ 16 };
 }
 
-uint8_t* open_ds;
-uint16_t open_sp = OPEN_STACK_TOP;
-
 /* DOS memory blocks of the OPEN process: [segment, paragraphs), first fit
  * from OPEN_HEAP_SEGMENT, one arena paragraph (the MCB) before each. */
 static struct {
@@ -24,7 +21,6 @@ static int block_count;
 void open_memory_init() {
   unsigned i = 0;
   port_arena_prepare();
-  open_ds = port_arena + (static_cast<uint32_t>(OPEN_DS_SEGMENT) * 16u);
   for (i = 0; i < open_image_object_count; i++) {
     const OpenImageObject* o      = &open_image_objects[i];
     uint32_t               seg    = (o->seg != 0u) ? OPEN_LOAD_SEGMENT + o->seg : OPEN_DS_SEGMENT;
@@ -33,7 +29,6 @@ void open_memory_init() {
     memcpy(port_arena + linear, o->object, o->size);
   }
   block_count = 0;
-  open_sp     = OPEN_STACK_TOP;
 }
 
 auto open_dos_alloc(uint16_t paragraphs) -> uint16_t {
@@ -74,17 +69,6 @@ auto open_dos_free(uint16_t segment) -> int {
       return 0;
     }
   return 9; /* DOS: invalid memory block address */
-}
-
-auto open_stack_enter(uint16_t bytes) -> uint16_t {
-  auto sp = static_cast<uint16_t>(open_sp - 4);
-  if (static_cast<uint32_t>(open_sp) < static_cast<uint32_t>(OPEN_DS_END) + 4u + bytes) port_fatal("OPEN: modeled stack overflow (sp=%04x, %u bytes)", open_sp, bytes);
-  open_sp = static_cast<uint16_t>(open_sp - 4 - bytes);
-  return sp;
-}
-
-void open_stack_leave(uint16_t bytes) {
-  open_sp = static_cast<uint16_t>(open_sp + 4 + bytes);
 }
 
 }

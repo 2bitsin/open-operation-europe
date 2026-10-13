@@ -20,7 +20,7 @@ auto osound_int66(uint16_t* w, uint16_t* ds_seg) -> uint16_t {
 }
 }
 
-auto link_osound([[maybe_unused]] uint8_t* ds, SoundServiceId call, uint16_t* words) -> uint16_t {
+auto link_osound([[maybe_unused]] Open& open, SoundServiceId call, uint16_t* words) -> uint16_t {
   using enum SoundServiceId;
   switch (call) {
   case DRIVER_OPEN:

@@ -224,19 +224,4 @@ static_assert(offsetof(OpenDataSegment, library_bss_1c34) == 0x1c34);
 static_assert(sizeof(TextSaved) == 12);
 static_assert(sizeof(OpenDataSegment) == 0x1c40); /* _end */
 
-/* DGROUP at ds. */
-// The segment is written through the result.
-// NOLINTNEXTLINE(readability-non-const-parameter)
-[[nodiscard]] inline auto Data(uint8_t* ds) -> OpenDataSegment& {
-  return *reinterpret_cast<OpenDataSegment*>(ds);
-}
-
-/* The near pointer (DS offset) of a byte array in DGROUP (a string, a
- * palette); offsetof gives the others'. */
-template <class T, std::size_t N>
-  requires(alignof(T) == 1)
-[[nodiscard]] inline auto Near(uint8_t const* ds, T const (&object)[N]) -> uint16_t {
-  return static_cast<uint16_t>(reinterpret_cast<uint8_t const*>(object) - ds);
-}
-
 }

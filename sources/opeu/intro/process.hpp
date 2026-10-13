@@ -21,13 +21,14 @@
  * segment 0AFE:1400 of the EXE header: 0AFE - 093A = 1C4h paragraphs). The
  * routines that keep stack buffers at DS addresses (the text engine's
  * conversion buffer, the variadic print
- * arguments) get them below open_sp, like MAIN's port_sp.
+ * arguments) reserve them on OpenState's stack.
  */
 #pragma once
 
 #include "recovered.hpp"
 
 #include <cstdint>
+#include <span>
 #include <utility>
 
 namespace opeu::intro {
@@ -36,21 +37,13 @@ inline constexpr uint16_t OPEN_LOAD_SEGMENT{ 0x0000 };
 inline constexpr uint16_t OPEN_BANK_SEGMENT{ OPEN_LOAD_SEGMENT + BANK_FRAME };
 inline constexpr uint16_t OPEN_DS_SEGMENT{ OPEN_LOAD_SEGMENT + 0x093a };
 inline constexpr uint16_t OPEN_CODE_0349{ OPEN_LOAD_SEGMENT + 0x0349 }; /* OSOUND's CS (segread) */
-inline constexpr uint16_t OPEN_DS_END{ sizeof(OpenDataSegment) };       /* _end: past DGROUP data + BSS */
-inline constexpr uint16_t OPEN_STACK_TOP{ 0x3040 };                     /* SS = DS, SP after crt0 */
 inline constexpr uint16_t OPEN_HEAP_SEGMENT{ OPEN_DS_SEGMENT + (OPEN_STACK_TOP >> 4) + 1 };
-
-extern uint8_t* open_ds; /* port_arena + OPEN_DS_SEGMENT * 16 */
-extern uint16_t open_sp;
 
 /* Clear the arena and place OPEN's initial DGROUP and far data. */
 void open_memory_init();
 /* INT 21h AH=48h/49h in OPEN's process (first fit, one MCB paragraph per block). */
 auto open_dos_alloc(uint16_t paragraphs) -> uint16_t;
 auto open_dos_free(uint16_t segment) -> int;
-/* Modeled stack (see port_stack_enter in port.hpp). */
-auto open_stack_enter(uint16_t bytes) -> uint16_t;
-void open_stack_leave(uint16_t bytes);
 
 /* The placement of the recovered OPEN data objects (image.cpp). */
 struct OpenImageObject {
@@ -72,13 +65,13 @@ inline auto Arg32(uint16_t const* args, uint16_t count, int i) -> uint32_t {
 }
 
 /* Service callbacks of the recovered OPEN modules (link/). */
-auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
-auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t;
-auto link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
-auto link_osound(uint8_t* ds, SoundServiceId call, uint16_t* words) -> uint16_t;
+auto link_openmain(Open& open, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
+auto link_outil(Open& open, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t;
+auto link_otext(Open& open, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
+auto link_osound(Open& open, SoundServiceId call, uint16_t* words) -> uint16_t;
 /* OTEXT's host structure (its event and the modeled stack pointer). */
 auto link_otext_host() -> TextHost*;
 /* cursor_print with the given argument words pushed on the modeled stack. */
-void link_otext_print(uint8_t* ds, uint16_t const* words, unsigned count);
+void link_otext_print(Open& open, std::span<uint16_t const> words);
 
 }

@@ -18,11 +18,11 @@
 
 namespace opeu::intro {
 namespace {
-uint8_t* reader_ds;
+Open* reader_open;
 
 /* The picture decoder's reader (a far call to 062d:0132 in the original). */
 auto stream_reader() -> uint8_t {
-  return opeu_stream_file_byte(reader_ds, link_outil);
+  return opeu_stream_file_byte(*reader_open, link_outil);
 }
 
 /* OVGALIB 01AC (= MAIN 23D5) polls 3DAh bit 3 until the display is out of
@@ -58,7 +58,7 @@ void mouse_int33(uint16_t* w) {
 }
 }
 
-auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t {
+auto link_outil(Open& open, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t {
   using enum UtilServiceId;
   auto const arg{ [&](int i) -> uint16_t { return Arg(words, count, i); } };
   switch (id) {
@@ -70,27 +70,27 @@ auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) 
     return 0;
   case DOS_READ_FAR:          return static_cast<uint16_t>(opeu_dos_read_far(static_cast<int16_t>(arg(0)), arg(1), arg(2), arg(3)));
   case DOS_SEEK:              return static_cast<uint32_t>(opeu_dos_seek(static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(words, count, 1)), static_cast<int16_t>(arg(3))));
-  case SET_PALETTE:           vga_retrace_wait(); return static_cast<uint16_t>(opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), ds + arg(2)));
+  case SET_PALETTE:           vga_retrace_wait(); return static_cast<uint16_t>(opeu_set_palette(static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), &Byte(open, arg(2))));
   case IDENTITY_PALETTE:      koei_vga_identity_palette(); return 0;
   case UI_LINE:               opeu_ui_fill(arg(0), arg(1), arg(2), arg(3), arg(4)); return 0;
   case PICTURE_DECODE_MASKED: {
-    uint8_t* saved = reader_ds;
-    int16_t  r     = 0;
+    Open*   saved = reader_open;
+    int16_t r     = 0;
     if (arg(2) != STREAM_READER_OFFSET || arg(3) != STREAM_READER_SEGMENT) port_fatal("OPEN: picture reader %04x:%04x is not OUTIL's stream reader", arg(3), arg(2));
-    reader_ds = ds;
-    r         = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
-    reader_ds = saved;
+    reader_open = &open;
+    r           = opeu_picture_decode_masked(arg(0), arg(1), stream_reader);
+    reader_open = saved;
     return static_cast<uint16_t>(r);
   }
   case VGA_CLEAR:       return static_cast<uint16_t>(opeu_vga_clear());
   case TURN_INPUT_B:    return opeu_turn_input_b();
-  case INPUT_FLUSH:     opeu_input_flush(ds, link_otext_host()); return 0;
-  case CURSOR_PRINT:    link_otext_print(ds, words, 2); return 0;
+  case INPUT_FLUSH:     opeu_input_flush(open, link_otext_host()); return 0;
+  case CURSOR_PRINT:    link_otext_print(open, std::span{ words, 2 }); return 0;
   case OPEN_ERROR_SPIN: port_pump(); return 0;
-  case TEXT_PUT:        return opeu_text_put(ds, link_otext_host(), static_cast<uint8_t>(arg(0)));
-  case OPEN_DELAY:      opeu_open_delay(ds, link_openmain, arg(0)); return 0;
+  case TEXT_PUT:        return opeu_text_put(open, link_otext_host(), static_cast<uint8_t>(arg(0)));
+  case OPEN_DELAY:      opeu_open_delay(open, link_openmain, arg(0)); return 0;
   case FAR_BYTE:        return *port_far(arg(0), arg(1));
-  case DOS_OPEN:        return static_cast<uint16_t>(opeu_dos_open(reinterpret_cast<const char*>(ds) + arg(0), arg(1)));
+  case DOS_OPEN:        return static_cast<uint16_t>(opeu_dos_open(reinterpret_cast<const char*>(&Byte(open, arg(0))), arg(1)));
   default:              port_unhandled("outil", static_cast<unsigned>(id), count);
   }
   return 0;
