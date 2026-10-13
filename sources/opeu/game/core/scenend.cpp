@@ -150,16 +150,16 @@ void opeu_end_palette_show(uint8_t ds[65536], HostEvent event) {
 
 // The outcome screen, the epilogue of a human winner, and the wait for the music to stop or a key; then the game
 // quits. A victory by elimination (reason 0) or a defeat names the opposite side's commander; other victories rank
-// the side by its score, min(strength + points, 1000), 100 more for reason 1. The routine's two text buffers lie on
-// the DS stack below sp.
-void opeu_scenario_end(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  auto const     frame{ static_cast<uint16_t>(sp - 2) };
-  uint16_t const pattern{ Local(frame, 0x1fc) };
-  uint16_t const caption{ Local(frame, 0x102) };
-  auto const     side{ data.outcome_side };
-  auto const     reason{ data.outcome_reason };
-  int16_t        picture;
+// the side by its score, min(strength + points, 1000), 100 more for reason 1. The routine's two text buffers, which services
+// write, lie in its reserve.
+void opeu_scenario_end(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 0x1fc };
+  auto&               data{ Data(ds) };
+  uint16_t const      pattern{ locals.At(0) };
+  uint16_t const      caption{ locals.At(0xfa) };
+  auto const          side{ data.outcome_side };
+  auto const          reason{ data.outcome_reason };
+  int16_t             picture;
 
   auto const copy_text{ [&](FarPointer const& text) { Call(ds, event, COPY_FAR, pattern, text.offset, text.segment); } };
   auto const format_caption{ [&](uint8_t record_side) { Call(ds, event, FORMAT, caption, pattern, data.month, data.day, Call(ds, event, SIDE_RECORD, record_side, COMMANDER)); } };

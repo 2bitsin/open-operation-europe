@@ -33,7 +33,7 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t COMMANDER_KIND{ 1 }; // the side's army commander (find_side_record)
 constexpr std::uint16_t ANNOUNCER_KIND{ 5 }; // the template that announces a new weapon
-constexpr std::uint16_t TEXT_LOCAL{ 0x66 };  // the 100-byte announcement text below the entry SP
+constexpr std::uint16_t TEXT_BYTES{ 0x66 };  // the announcement text the format service writes
 
 constexpr std::uint16_t NEW_WEAPON_TANK{ offsetof(DataSegment, new_weapon_tank) };
 constexpr std::uint16_t NEW_WEAPON_PERIOD{ offsetof(DataSegment, new_weapon_period) };
@@ -47,10 +47,11 @@ auto Speaker(std::uint8_t* ds, HostEvent event) -> std::uint16_t {
 }
 } // namespace
 
-// sp is the entry SP; the announcement text lives in the routine's DS frame.
-void opeu_daily_present(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(sp, TEXT_LOCAL) };
+// Announces a new weapon type.
+void opeu_daily_present(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
   Call(ds, event, WAIT);
   Call(ds, event, TYPE_PANEL, data.daily_record);
   auto const& type{ Record<ElementType>(data, data.daily_record) };

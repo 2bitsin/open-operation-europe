@@ -72,10 +72,12 @@ constexpr std::uint8_t LEFT{ 3 };
 constexpr std::uint8_t UP{ 6 };
 constexpr std::uint8_t DOWN{ 1 };
 
-// The frame below scratch: the mouse position words (their addresses go to the mouse service), and the cell shown
-// before, which the first comparison reads before the loop sets it.
-constexpr std::uint16_t MOUSE_X_LOCAL{ 30 };
-constexpr std::uint16_t MOUSE_Y_LOCAL{ 34 };
+// The mouse position words, whose addresses go to the mouse service: offsets in the routine's reserve.
+constexpr std::uint16_t MOUSE_Y_AT{ 0 };
+constexpr std::uint16_t MOUSE_X_AT{ 4 };
+constexpr std::uint16_t MOUSE_BYTES{ 6 };
+// The cell shown before, in the frame below scratch: the first comparison reads it before the loop sets it, so it
+// keeps what its DS stack slot holds.
 constexpr std::uint16_t PREVIOUS_X_LOCAL{ 36 };
 constexpr std::uint16_t PREVIOUS_Y_LOCAL{ 138 };
 
@@ -97,21 +99,22 @@ auto Inside(Area const& area, std::uint16_t x, std::uint16_t y) -> bool {
 // Runs the inspection from the cell at the near addresses x and y; returns 1 when the player picked a cell (or
 // ordered a regiment), 0 when he left.
 uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t scratch, uint16_t x, uint16_t y) {
-  auto&         data{ Data(ds) };
-  auto&         cell_x{ Byte(ds, x) };
-  auto&         cell_y{ Byte(ds, y) };
-  auto const    mouse_x_at{ Local(scratch, MOUSE_X_LOCAL) };
-  auto const    mouse_y_at{ Local(scratch, MOUSE_Y_LOCAL) };
-  auto&         previous_x{ Byte(ds, Local(scratch, PREVIOUS_X_LOCAL)) };
-  auto&         previous_y{ Byte(ds, Local(scratch, PREVIOUS_Y_LOCAL)) };
-  auto const    side{ data.current_side };
-  auto const    tactical{ [&] { return data.view_side != NONE; } };
-  auto const    strategic{ [&] { return data.overview_side != NONE; } };
-  auto const    pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) { Call(ds, event, PAN, dx, dy, at_x, side, at_y); } };
-  std::uint16_t result{ 0 };
-  std::uint8_t  display_x{ NONE };
-  std::uint8_t  display_y{ 0 };
-  std::uint16_t previous_panel{ 0 };
+  ServiceLocals const locals{ MOUSE_BYTES };
+  auto&               data{ Data(ds) };
+  auto&               cell_x{ Byte(ds, x) };
+  auto&               cell_y{ Byte(ds, y) };
+  auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
+  auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
+  auto&               previous_x{ Byte(ds, Local(scratch, PREVIOUS_X_LOCAL)) };
+  auto&               previous_y{ Byte(ds, Local(scratch, PREVIOUS_Y_LOCAL)) };
+  auto const          side{ data.current_side };
+  auto const          tactical{ [&] { return data.view_side != NONE; } };
+  auto const          strategic{ [&] { return data.overview_side != NONE; } };
+  auto const          pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) { Call(ds, event, PAN, dx, dy, at_x, side, at_y); } };
+  std::uint16_t       result{ 0 };
+  std::uint8_t        display_x{ NONE };
+  std::uint8_t        display_y{ 0 };
+  std::uint16_t       previous_panel{ 0 };
 
   // Picks the shown cell: the result is 1. On a regiment the side can order, orders it (or reports that its division
   // is the computer's) and answers true; on a cell of no side or of another regiment, answers false.

@@ -20,13 +20,13 @@ using namespace opeu::game;
 namespace {
 
 // The services the table views call through their event.
-enum class TableService : std::uint16_t {
+enum class SupplyTableService : std::uint16_t {
   LAYOUT    = 0, // (column, row): the list's column layout
   POSITION  = 1, // (x, y): the text cursor
   PRINT     = 2, // (format, arguments...)
   HIGHLIGHT = 3, // (x, y, width, height, colour)
 };
-using enum TableService;
+using enum SupplyTableService;
 
 constexpr std::uint8_t  NO_TYPE{ 0xff };   // Item::type of an empty slot
 constexpr std::uint16_t LINE_HEIGHT{ 17 }; // pixels per list row
@@ -147,7 +147,7 @@ void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratc
 }
 
 void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (static_cast<TableService>(id)) {
+  switch (static_cast<SupplyTableService>(id)) {
   case LAYOUT: {
     // The layout's three byte outputs go to the DS stack and are not used.
     auto const out{ static_cast<std::uint16_t>(port_stack_enter(4) - 4) };

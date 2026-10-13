@@ -67,9 +67,10 @@ auto IsDeputy(uint8_t* ds, uint16_t person) -> bool {
 // commander be assassinated, a deputy taking his post (1 in 20). Any of these is a success, and every element of the
 // unit then loses 30..49 morale.
 void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side) {
-  auto const text{ Local(frame, 80) };
-  auto const target{ Data(ds).sides[side].order.target };
-  auto const mission_text{ Text(ds, event, ASSASSINATION_MISSION) };
+  ServiceLocals const locals{ 0x50 };
+  auto const          text{ locals.At(0) };
+  auto const          target{ Data(ds).sides[side].order.target };
+  auto const          mission_text{ Text(ds, event, ASSASSINATION_MISSION) };
   opeu_string_append(ds, opeu_mission_target_name(ds, event, frame, side, target, text), mission_text);
   if (opeu_officer_rating(ds, side, OFFICER) / 10 > Random(ds, event, 100)) {
     auto       struck{ false };

@@ -39,18 +39,6 @@ constexpr ScreenPoint THIRD_ROW{ 0x2d, 0xc5 };
 constexpr ScreenPoint GARRISON_ROW{ 0x32, 0xcc };
 constexpr ScreenPoint NO_STOCK_ROW{ 0x2d, 0xdd };
 
-// Frame locals whose addresses the services receive: the three supply percentages, the order's destination cell and
-// two name buffers.
-constexpr std::uint16_t AMMUNITION_LOCAL{ 2 };
-constexpr std::uint16_t OBJECTIVE_FOOD_LOCAL{ 8 };
-constexpr std::uint16_t OBJECTIVE_FUEL_LOCAL{ 0xa };
-constexpr std::uint16_t UNIT_FOOD_LOCAL{ 0xa };
-constexpr std::uint16_t UNIT_FUEL_LOCAL{ 0xc };
-constexpr std::uint16_t DESTINATION_X_LOCAL{ 0xe };
-constexpr std::uint16_t UNIT_NAME_LOCAL{ 0x1a };
-constexpr std::uint16_t LOCATION_NAME_LOCAL{ 0x26 };
-constexpr std::uint16_t DESTINATION_Y_LOCAL{ 0x28 };
-
 void Position(std::uint8_t* ds, HostEvent event, ScreenPoint at) {
   Call(ds, event, ViewService::ARMY_POSITION, at.x, at.y);
 }
@@ -63,12 +51,13 @@ void Print(std::uint8_t* ds, HostEvent event, std::uint16_t format, Words... wor
 } // namespace
 
 // The objective's name, supplies with their percentages, endurance and the stocks of its garrison.
-void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t objective) {
-  auto&       data{ Data(ds) };
-  auto const& city{ Record<Objective>(data, objective) };
-  auto const  ammunition{ FrameLocal(sp, AMMUNITION_LOCAL) };
-  auto const  food{ FrameLocal(sp, OBJECTIVE_FOOD_LOCAL) };
-  auto const  fuel{ FrameLocal(sp, OBJECTIVE_FUEL_LOCAL) };
+void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t objective) {
+  ServiceLocals const locals{ 0xa }; // the supply percentages the service writes
+  auto&               data{ Data(ds) };
+  auto const&         city{ Record<Objective>(data, objective) };
+  auto const          ammunition{ locals.At(8) };
+  auto const          food{ locals.At(2) };
+  auto const          fuel{ locals.At(0) };
   Call(ds, event, ViewService::ARMY_TITLE, objective);
   Call(ds, event, ViewService::OBJECTIVE_PERCENTS, objective, ammunition, fuel, food);
   Position(ds, event, FIRST_ROW);
@@ -92,16 +81,17 @@ void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t sp, uint1
 
 // The regiment's name, its order and target (or "waiting" and its own place), supplies with their percentages, the
 // fatigue of its first battalion and its battalions.
-void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t unit) {
-  auto&       data{ Data(ds) };
-  auto const& regiment{ Record<Unit>(data, unit) };
-  auto const  ammunition{ FrameLocal(sp, AMMUNITION_LOCAL) };
-  auto const  fuel{ FrameLocal(sp, UNIT_FUEL_LOCAL) };
-  auto const  food{ FrameLocal(sp, UNIT_FOOD_LOCAL) };
-  auto const  destination_x{ FrameLocal(sp, DESTINATION_X_LOCAL) };
-  auto const  destination_y{ FrameLocal(sp, DESTINATION_Y_LOCAL) };
-  auto const  location_name{ FrameLocal(sp, LOCATION_NAME_LOCAL) };
-  Call(ds, event, ViewService::ARMY_TITLE, Call(ds, event, ViewService::UNIT_NAME, unit, FrameLocal(sp, UNIT_NAME_LOCAL)));
+void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t unit) {
+  ServiceLocals const locals{ 0x28 }; // the supply percentages, the destination cell and two names services write
+  auto&               data{ Data(ds) };
+  auto const&         regiment{ Record<Unit>(data, unit) };
+  auto const          ammunition{ locals.At(0x26) };
+  auto const          fuel{ locals.At(0x1c) };
+  auto const          food{ locals.At(0x1e) };
+  auto const          destination_x{ locals.At(0x1a) };
+  auto const          destination_y{ locals.At(0) };
+  auto const          location_name{ locals.At(2) };
+  Call(ds, event, ViewService::ARMY_TITLE, Call(ds, event, ViewService::UNIT_NAME, unit, locals.At(0xe)));
   Call(ds, event, ViewService::UNIT_CAPACITIES, unit, ammunition, fuel, food);
   // each capacity becomes the percentage of it the regiment holds
   for (auto const [kind, local] : {

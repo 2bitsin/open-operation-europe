@@ -4,8 +4,8 @@
 // bomber flies down the screen; at the target row it bombs the unit (casualties) and the objective (damage) there,
 // or reports that every bomber was lost. The survivors come back to the side at midnight.
 //
-// Routine frames live on the DS stack: bp is the routine's frame pointer, and a local whose address reaches a
-// service, or that a routine reads before it sets it, sits at Local(bp, n).
+// A local whose address reaches a service lives in the routine's ServiceLocals reserve. The strike's cover divisor
+// is read before it is set and keeps the word its DS stack slot holds: it stays at Local(bp, n).
 #include "core/airstrk.hpp"
 #include "common/events.hpp"
 #include "core/limits.hpp"
@@ -21,6 +21,7 @@
 #include "core/dialogs.hpp"
 #include "core/msnrept.hpp"
 #include "core/people.hpp"
+#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -89,10 +90,8 @@ constexpr std::uint8_t  RANK_COMMANDER{ 1 };
 constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
-constexpr std::uint16_t TEXT_LOCAL{ 0x64 };   // opeu_air_destroyed_message's text
-constexpr std::uint16_t SHIELD_LOCAL{ 0x0a }; // opeu_air_strike_hit's cover divisor
-constexpr std::uint16_t PIXEL_X_LOCAL{ 2 };   // opeu_air_strike_event's target pixel
-constexpr std::uint16_t PIXEL_Y_LOCAL{ 6 };
+constexpr std::uint16_t TEXT_BYTES{ 0x64 };         // opeu_air_destroyed_message's text, which the format service writes
+constexpr std::uint16_t SHIELD_LOCAL{ 0x0a };       // opeu_air_strike_hit's cover divisor
 constexpr std::uint16_t CALLEE_FRAME{ 0x1c };       // the frame pointer opeu_air_strike_event's callees run with
 constexpr std::uint16_t SCREEN_TOP{ 0x15c };        // the bomber flies from this row
 constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };      // down to this one
@@ -124,8 +123,9 @@ uint16_t opeu_air_damage_roll(uint8_t ds[65536], HostEvent event, uint8_t x, uin
 }
 
 // "All the <what> were destroyed", from the side's air officer.
-void opeu_air_destroyed_message(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_t what) {
-  auto const text{ Local(bp, TEXT_LOCAL) };
+void opeu_air_destroyed_message(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t what) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto const          text{ locals.At(0) };
   Call(ds, event, REQUEST_FORMAT, text, DESTROYED_FORMAT, what);
   auto const officer{ Call(ds, event, SIDE_RECORD, Data(ds).air_side, AIR_KIND) };
   Call(ds, event, MESSAGE, text, officer);
@@ -208,13 +208,9 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
-  auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
-  auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
-  SetWord(ds, pixel_x, x);
-  SetWord(ds, pixel_y, y);
-  Call(ds, event, VIEW_PIXEL, pixel_x, pixel_y);
-  auto const hx{ Word(ds, pixel_x) };
-  auto const my{ Word(ds, pixel_y) };
+  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
+  auto const hx{ pixel.x };
+  auto const my{ pixel.y };
   auto const callee{ Local(bp, CALLEE_FRAME) };
   for (std::uint16_t row{ SCREEN_TOP }; row >= SCREEN_BOTTOM; --row) {
     Call(ds, event, SPRITE_DRAW, hx, row, side);

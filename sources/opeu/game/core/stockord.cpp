@@ -49,21 +49,20 @@ uint8_t opeu_stock_cities_fill(uint8_t* ds, BattleEvent event, uint16_t sp) {
 }
 
 // The list's predicate: whether the city on the selected row may take orders.
-uint8_t opeu_stock_city_enabled(uint8_t* ds, BattleEvent event, uint16_t sp) {
-  (void)sp;
+uint8_t opeu_stock_city_enabled(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
   auto const& data{ Data(ds) };
   return Call(ds, event, OBJECTIVE_ELIGIBLE, data.view_objectives[data.list_row]) != 0;
 }
 
 // The stockpile panel: per resource the garrison's capacity, the city's stock and the ordered stockpile. The
-// capacities land in frame locals.
-void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objective) {
-  auto&       data{ Data(ds) };
-  auto const  frame{ static_cast<std::uint16_t>(sp - 2) };
-  auto const  ammo{ Local(frame, 2) };
-  auto const  food{ Local(frame, 4) };
-  auto const  fuel{ Local(frame, 6) };
-  auto const& city{ Record<Objective>(data, objective) };
+// capacities service writes the capacities into the routine's reserve.
+void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t objective) {
+  ServiceLocals const locals{ 6 };
+  auto&               data{ Data(ds) };
+  auto const          fuel{ locals.At(0) };
+  auto const          food{ locals.At(2) };
+  auto const          ammo{ locals.At(4) };
+  auto const&         city{ Record<Objective>(data, objective) };
   Call(ds, event, OBJECTIVE_CAPACITIES, objective, ammo, fuel, food);
   Call(ds, event, INFO_PANEL_BEGIN);
   Call(ds, event, UI_TEXT, offsetof(DataSegment, stock_header));
@@ -79,9 +78,10 @@ void opeu_stock_show_titled(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_
 }
 
 // Asks how much of one resource to store (0..60000); CANCELLED when refused.
-uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t what) {
-  auto const& data{ Data(ds) };
-  auto const  question{ Local(static_cast<std::uint16_t>(sp - 2), 0x64) };
+uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t what) {
+  ServiceLocals const locals{ 0x64 }; // the question the format service writes
+  auto const&         data{ Data(ds) };
+  auto const          question{ locals.At(0) };
   Call(ds, event, REQUEST_FORMAT, question, data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what);
   return Call(ds, event, CONTROL_CHOOSE, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }

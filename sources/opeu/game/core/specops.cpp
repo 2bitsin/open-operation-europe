@@ -63,8 +63,14 @@ struct Mission {
   std::uint16_t                hour;     // NO_TEXT: the duration takes the hour count only
   std::uint16_t                hours;
   std::uint16_t                lieutenant;
-  std::uint16_t                cell_slot; // the frame slot of the picked cell's x; y lies two bytes above it
 };
+
+// The locals of a mission's planning that services write: offsets in its reserve.
+constexpr std::uint16_t NAME_AT{ 0x00 }; // 32 bytes: the target unit's name
+constexpr std::uint16_t TEXT_AT{ 0x20 }; // 100 bytes: the officer's question
+constexpr std::uint16_t CELL_Y_AT{ 0x84 };
+constexpr std::uint16_t CELL_X_AT{ 0x86 };
+constexpr std::uint16_t PLAN_LOCALS{ 0x88 };
 
 auto Raid() -> Mission {
   return {
@@ -80,8 +86,7 @@ auto Raid() -> Mission {
     NO_TEXT,
     NO_TEXT,
     NO_TEXT,
-    offsetof(DataSegment, raid_lieutenant),
-    8
+    offsetof(DataSegment, raid_lieutenant)
   };
 }
 
@@ -99,8 +104,7 @@ auto Sabotage() -> Mission {
     offsetof(DataSegment, sabotage_duration),
     NO_TEXT,
     NO_TEXT,
-    offsetof(DataSegment, sabotage_lieutenant),
-    8
+    offsetof(DataSegment, sabotage_lieutenant)
   };
 }
 
@@ -118,8 +122,7 @@ auto CutComm() -> Mission {
     offsetof(DataSegment, cut_comm_duration),
     offsetof(DataSegment, cut_comm_hour),
     offsetof(DataSegment, cut_comm_hours),
-    offsetof(DataSegment, cut_comm_lieutenant),
-    8
+    offsetof(DataSegment, cut_comm_lieutenant)
   };
 }
 
@@ -137,8 +140,7 @@ auto Assassinate() -> Mission {
     offsetof(DataSegment, assassinate_duration),
     NO_TEXT,
     NO_TEXT,
-    offsetof(DataSegment, assassinate_lieutenant),
-    6
+    offsetof(DataSegment, assassinate_lieutenant)
   };
 }
 
@@ -156,8 +158,7 @@ auto Recon() -> Mission {
     offsetof(DataSegment, recon_duration),
     offsetof(DataSegment, recon_hour),
     offsetof(DataSegment, recon_hours),
-    offsetof(DataSegment, recon_lieutenant),
-    8
+    offsetof(DataSegment, recon_lieutenant)
   };
 }
 
@@ -173,15 +174,15 @@ auto Refusal(std::uint8_t* ds, Mission const& mission) -> int {
 }
 
 // Plans one mission; the side's command phase ends unless the player abandons the map pick.
-void Plan(std::uint8_t* ds, HostEvent event, std::uint16_t sp, Mission const& mission) {
-  auto&      data{ Data(ds) };
-  auto const frame{ static_cast<std::uint16_t>(sp - 2) };
-  auto const cell_x{ Local(frame, mission.cell_slot) };
-  auto const cell_y{ Local(frame, mission.cell_slot + 2) };
-  auto const text{ Local(frame, mission.cell_slot + 0x66) }; // 100 bytes
-  auto const name{ Local(frame, mission.cell_slot + 0x86) }; // 32 bytes
-  auto&      x{ Record<std::uint8_t>(data, cell_x) };
-  auto&      y{ Record<std::uint8_t>(data, cell_y) };
+void Plan(std::uint8_t* ds, HostEvent event, Mission const& mission) {
+  ServiceLocals const locals{ PLAN_LOCALS };
+  auto&               data{ Data(ds) };
+  auto const          cell_x{ locals.At(CELL_X_AT) };
+  auto const          cell_y{ locals.At(CELL_Y_AT) };
+  auto const          text{ locals.At(TEXT_AT) };
+  auto const          name{ locals.At(NAME_AT) };
+  auto&               x{ Record<std::uint8_t>(data, cell_x) };
+  auto&               y{ Record<std::uint8_t>(data, cell_y) };
   Call(ds, event, ARMY_TITLE, mission.title);
   for (;;) {
     x = static_cast<std::uint8_t>(data.viewport_x);
@@ -235,29 +236,28 @@ void Plan(std::uint8_t* ds, HostEvent event, std::uint16_t sp, Mission const& mi
 } // namespace
 
 // The daily report's presenter of an accepted mission.
-void opeu_special_present(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  (void)sp;
+void opeu_special_present(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_special_raid(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  Plan(ds, event, sp, Raid());
+void opeu_special_raid(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  Plan(ds, event, Raid());
 }
 
-void opeu_special_sabotage(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  Plan(ds, event, sp, Sabotage());
+void opeu_special_sabotage(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  Plan(ds, event, Sabotage());
 }
 
-void opeu_special_cut_comm(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  Plan(ds, event, sp, CutComm());
+void opeu_special_cut_comm(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  Plan(ds, event, CutComm());
 }
 
-void opeu_special_assassinate(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  Plan(ds, event, sp, Assassinate());
+void opeu_special_assassinate(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  Plan(ds, event, Assassinate());
 }
 
-void opeu_special_recon(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  Plan(ds, event, sp, Recon());
+void opeu_special_recon(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  Plan(ds, event, Recon());
 }
 
 uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

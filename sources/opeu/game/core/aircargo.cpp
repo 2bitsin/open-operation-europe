@@ -4,9 +4,6 @@
 // the side's stock, the air defence shoots planes down (their share of the load is lost), the transport flies down
 // the screen and drops the load into the unit and the objective under it (each up to its capacity) with a report to
 // the owner; what is left and the surviving planes return to the side.
-//
-// Routine frames live on the DS stack: bp is the routine's frame pointer, and a local whose address reaches a
-// service sits at Local(bp, n).
 #include "core/aircargo.hpp"
 #include "common/events.hpp"
 #include "core/limits.hpp"
@@ -23,6 +20,7 @@
 #include "core/msnrept.hpp"
 #include "core/paradrop.hpp"
 #include "core/people.hpp"
+#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -99,14 +97,14 @@ constexpr std::uint16_t CARGO_PRESENTER{ 0x1042 }; // opeu_cargo_drop_present, i
 constexpr std::uint16_t CARGO_SEGMENT{ 0x0f43 };
 constexpr std::uint16_t EVENT_DEPTH{ 6 }; // opeu_cargo_drop_event's frame below opeu_air_operations' entry SP
 
-// opeu_cargo_drop_event's frame: the target's pixel, the unit's capacities, the report and the unit's name.
-constexpr std::uint16_t PIXEL_X_LOCAL{ 2 };
-constexpr std::uint16_t PIXEL_Y_LOCAL{ 6 };
-constexpr std::uint16_t FOOD_CAPACITY_LOCAL{ 0x12 };
-constexpr std::uint16_t FUEL_CAPACITY_LOCAL{ 0x14 };
-constexpr std::uint16_t AMMO_CAPACITY_LOCAL{ 0x16 };
-constexpr std::uint16_t NAME_LOCAL{ 0x28 };
-constexpr std::uint16_t TEXT_LOCAL{ 0x8c };
+// opeu_cargo_drop_event's locals that services fill, as offsets in its reserve: the report, the unit's name and the
+// unit's capacities.
+constexpr std::uint16_t TEXT_AT{ 0x00 }; // 100 bytes
+constexpr std::uint16_t NAME_AT{ 0x64 }; // 18 bytes
+constexpr std::uint16_t AMMO_CAPACITY_AT{ 0x76 };
+constexpr std::uint16_t FUEL_CAPACITY_AT{ 0x78 };
+constexpr std::uint16_t FOOD_CAPACITY_AT{ 0x7a };
+constexpr std::uint16_t DROP_LOCALS{ 0x7c };
 
 auto AirSide(DataSegment& data) -> Side& {
   return data.sides[data.air_side];
@@ -178,14 +176,15 @@ void opeu_cargo_drop_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // The airlift flies (see the file comment).
-void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&      data{ Data(ds) };
-  auto const side{ data.air_side };
-  auto&      record{ data.sides[side] };
-  auto&      lift{ record.lift };
-  auto const x{ lift.x };
-  auto const y{ lift.y };
-  auto       planes{ lift.planes };
+void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+  ServiceLocals const locals{ DROP_LOCALS };
+  auto&               data{ Data(ds) };
+  auto const          side{ data.air_side };
+  auto&               record{ data.sides[side] };
+  auto&               lift{ record.lift };
+  auto const          x{ lift.x };
+  auto const          y{ lift.y };
+  auto                planes{ lift.planes };
   opeu_sub_word(planes, &record.planes);
   for (int i{ 0 }; i < 3; ++i) opeu_sub_word(lift.supplies[i], &record.stock[i]);
   opeu_sub_word(Call(ds, event, DAMAGE_ROLL, x, y, opeu_min16(planes, 0x1d) / 10), &planes);
@@ -193,33 +192,29 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
-  auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
-  auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
-  SetWord(ds, pixel_x, x);
-  SetWord(ds, pixel_y, y);
-  Call(ds, event, VIEW_PIXEL, pixel_x, pixel_y);
-  auto const text{ Local(bp, TEXT_LOCAL) };
+  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
+  auto const text{ locals.At(TEXT_AT) };
   for (std::uint16_t row{ SCREEN_TOP }; row >= SCREEN_BOTTOM; --row) {
     if (row <= LOST_ROW && planes == 0) {
       Call(ds, event, DESTROYED_MESSAGE, PLANES_NAME);
       break;
     }
-    Call(ds, event, SPRITE_DRAW, Word(ds, pixel_x), row, side);
-    if (Word(ds, pixel_y) == row) {
+    Call(ds, event, SPRITE_DRAW, pixel.x, row, side);
+    if (pixel.y == row) {
       auto const shown{ static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)) };
       Call(ds, event, DAILY_SHOW, CARGO_PICTURE, shown, CARGO_PRESENTER, CARGO_SEGMENT);
     }
-    if (static_cast<std::uint16_t>(Word(ds, pixel_y) - row) == DROP_LEAD) {
+    if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
       Call(ds, event, MUSIC_COMMAND7);
       if (auto const near{ Call(ds, event, UNIT_AT, x, y) }; near != 0) {
-        Call(ds, event, CAPACITIES, near, Local(bp, AMMO_CAPACITY_LOCAL), Local(bp, FUEL_CAPACITY_LOCAL), Local(bp, FOOD_CAPACITY_LOCAL));
+        Call(ds, event, CAPACITIES, near, locals.At(AMMO_CAPACITY_AT), locals.At(FUEL_CAPACITY_AT), locals.At(FOOD_CAPACITY_AT));
         auto&               unit{ Record<Unit>(data, near) };
         std::uint16_t const before[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-        std::uint16_t const limit[3]{ Word(ds, Local(bp, AMMO_CAPACITY_LOCAL)), Word(ds, Local(bp, FUEL_CAPACITY_LOCAL)), Word(ds, Local(bp, FOOD_CAPACITY_LOCAL)) };
+        std::uint16_t const limit[3]{ Word(ds, locals.At(AMMO_CAPACITY_AT)), Word(ds, locals.At(FUEL_CAPACITY_AT)), Word(ds, locals.At(FOOD_CAPACITY_AT)) };
         Unload(lift, unit.resources, limit);
         if (static_cast<std::uint8_t>(Call(ds, event, UNIT_SIDE, near)) == side) {
           std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-          auto const          name{ Call(ds, event, UNIT_NAME, near, Local(bp, NAME_LOCAL)) };
+          auto const          name{ Call(ds, event, UNIT_NAME, near, locals.At(NAME_AT)) };
           auto const          color{ NameColor(Call(ds, event, UNIT_SIDE, near)) };
           Report(ds, event, text, UNIT_REPORT, color, name, now, before);
           Call(ds, event, MESSAGE, text, Call(ds, event, SIDE_RECORD, side, AIR_KIND));
@@ -239,7 +234,7 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
       }
     }
     Call(ds, event, DELAY, 1);
-    Call(ds, event, SPRITE_RESTORE, Word(ds, pixel_x), row);
+    Call(ds, event, SPRITE_RESTORE, pixel.x, row);
   }
   data.map_mode[0] = view;
   for (int i{ 0 }; i < 3; ++i) opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);

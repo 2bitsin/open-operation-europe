@@ -48,14 +48,14 @@ constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
 constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
 constexpr std::uint8_t  GENERAL_ROLE{ 1 };   // the role that becomes a deputy instead of dying
 
-// The death notice in the dying general's routine frame: "Commander " + name + suffix, and the side right after it.
+// The death notice in the dying general's reserve (the message service shows it): "Commander " + name + suffix, and the side right after it.
 // A name of seven or more characters runs the text into the side byte, and the second status test then reads the
 // overwritten side.
 struct DeathNotice {
   std::array<char, 50> text;
   std::uint8_t         side;
 };
-constexpr std::uint16_t NOTICE_BELOW_BP{ 0x34 };
+constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
 constexpr std::uint16_t DEATH_BP_BELOW_SP{ 0x12 }; // the frame pointer opeu_commander_death gets from the event
 } // namespace
 
@@ -65,10 +65,11 @@ void opeu_death_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
-void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_t person) {
-  auto&      data{ Data(ds) };
-  auto const at{ Local(bp, NOTICE_BELOW_BP) };
-  auto&      notice{ Record<DeathNotice>(data, at) };
+void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t person) {
+  ServiceLocals const locals{ NOTICE_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          at{ locals.At(0) };
+  auto&               notice{ Record<DeathNotice>(data, at) };
   notice.side = opeu_person_lacks_side0_flag(ds, person);
   if (data.side_status[notice.side] == SHOWN) {
     opeu_string_copy(ds, at, DEATH_PREFIX);

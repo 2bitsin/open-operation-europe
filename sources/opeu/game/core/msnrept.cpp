@@ -77,9 +77,10 @@ void opeu_mission_delay_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // The special-forces commander tells his own side of the success and the map flashes the target's cell.
-void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
-  auto const message{ Local(frame, 100) };
-  auto const speaker{ SpecialForcesCommander(ds, side) };
+void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
+  ServiceLocals const locals{ 0x64 };
+  auto const          message{ locals.At(0) };
+  auto const          speaker{ SpecialForcesCommander(ds, side) };
   FormatReport(ds, event, message, SUCCESS_FORMAT, side, text);
   Call(ds, event, MISSION_MESSAGE, message, speaker);
   ShowReport(ds, event, MISSION_PICTURE, side, FINISH_PRESENTER);
@@ -87,8 +88,9 @@ void opeu_mission_report_success(uint8_t ds[65536], HostEvent event, uint16_t fr
 }
 
 // The attacked side's intelligence chief reports the enemy mission.
-void opeu_mission_report_enemy(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
-  auto const message{ Local(frame, 100) };
+void opeu_mission_report_enemy(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
+  ServiceLocals const locals{ 0x64 };
+  auto const          message{ locals.At(0) };
   FormatReport(ds, event, message, ENEMY_FORMAT, side, text);
   auto const enemy{ opeu_opposite_side(side) };
   Call(ds, event, MISSION_MESSAGE, message, opeu_find_side_record(ds, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
@@ -97,26 +99,29 @@ void opeu_mission_report_enemy(uint8_t ds[65536], HostEvent event, uint16_t fram
 }
 
 // The special-forces commander reports the failure.
-void opeu_mission_report_failure(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t text) {
-  auto const message{ Local(frame, 100) };
-  auto const speaker{ SpecialForcesCommander(ds, side) };
+void opeu_mission_report_failure(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t side, uint16_t text) {
+  ServiceLocals const locals{ 0x64 };
+  auto const          message{ locals.At(0) };
+  auto const          speaker{ SpecialForcesCommander(ds, side) };
   FormatReport(ds, event, message, FAILURE_FORMAT, side, text);
   Call(ds, event, MISSION_MESSAGE, message, speaker);
 }
 
 // Writes the unit's name into destination, after "Enemy " when a player commands the side; returns destination.
-uint16_t opeu_mission_target_name(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side, uint16_t unit, uint16_t destination) {
-  auto const name{ Call(ds, event, MISSION_UNIT_NAME, unit, Local(frame, 32)) };
-  auto const prefix{ Data(ds).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
+uint16_t opeu_mission_target_name(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t side, uint16_t unit, uint16_t destination) {
+  ServiceLocals const locals{ 32 }; // the name the unit-name service writes
+  auto const          name{ Call(ds, event, MISSION_UNIT_NAME, unit, locals.At(0)) };
+  auto const          prefix{ Data(ds).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
   opeu_string_append(ds, opeu_string_copy(ds, destination, static_cast<uint16_t>(prefix)), name);
   return destination;
 }
 
 // A general was assassinated: a deputy takes his post, and a player's side hears of it from its intelligence chief.
-void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t person) {
-  auto const message{ Local(frame, 50) };
-  auto const side{ opeu_person_lacks_side0_flag(ds, person) };
-  auto const played{ [ds, side] { return Data(ds).side_status[side] == SIDE_PLAYED; } };
+void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint16_t person) {
+  ServiceLocals const locals{ 0x32 };
+  auto const          message{ locals.At(0) };
+  auto const          side{ opeu_person_lacks_side0_flag(ds, person) };
+  auto const          played{ [ds, side] { return Data(ds).side_status[side] == SIDE_PLAYED; } };
   if (played()) {
     Call(ds, event, MISSION_TURN_CONTEXT, 0x10);
     Call(ds, event, MISSION_FINISH_SIDE, 0);

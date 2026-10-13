@@ -22,8 +22,8 @@ using enum AirService;
 
 constexpr std::uint8_t  OFFICER_KIND{ 6 }; // the person template of the air-force officer
 constexpr std::uint16_t CANCELLED{ 0xffff };
-constexpr std::uint16_t LOCATION_LOCAL{ 2 + 0x28 }; // the location name buffer of the command
-constexpr std::uint16_t COMMAND_FRAME{ 0x34 };      // the SP the command's near calls enter with, below sp
+constexpr std::uint16_t LOCATION_BYTES{ 0x28 }; // the location name buffer of the command, which a format service writes
+constexpr std::uint16_t COMMAND_FRAME{ 0x34 };  // the SP the command's near calls enter with, below sp
 constexpr std::uint16_t TABLE_X{ 0x2d };
 constexpr std::uint16_t TABLE_Y{ 0xb5 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x12 };
@@ -65,9 +65,10 @@ void opeu_air_header(uint8_t ds[65536], HostEvent event, uint16_t) {
 
 // The Air Force command loop.
 void opeu_turn_action_8(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ Local(sp, LOCATION_LOCAL) };
-  auto const callee_sp{ static_cast<std::uint16_t>(sp - COMMAND_FRAME) };
+  ServiceLocals const locals{ LOCATION_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          buffer{ locals.At(0) };
+  auto const          callee_sp{ static_cast<std::uint16_t>(sp - COMMAND_FRAME) };
   opeu_air_officer(ds, event, callee_sp);
   do {
     auto const&   side{ Record<Side>(data, data.current_side_ptr) };

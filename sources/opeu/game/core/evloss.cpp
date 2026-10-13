@@ -69,8 +69,8 @@ constexpr std::uint16_t PRESENT_A_ID{ 0x38 };
 constexpr std::uint16_t PRESENT_A{ 0x06ac };
 constexpr std::uint16_t PRESENT_B_ID{ 0xb2 };
 constexpr std::uint16_t PRESENT_B{ 0x0830 };
-// Frame locals whose address the services receive, below the event routine's frame pointer.
 constexpr std::uint16_t WEAK_FRAME{ 0x1a }; // opeu_loss_unit_weak's frame below event a's
+// The reserves of the locals whose address the services receive: the quantity service's count, the names.
 constexpr std::uint16_t WEAK_COUNT{ 0xc };
 constexpr std::uint16_t NAME_A{ 0x14 };
 constexpr std::uint16_t NAME_B{ 0x10 };
@@ -84,17 +84,18 @@ auto Format(std::uint8_t* ds, HostEvent event, std::uint16_t message, std::uint1
 
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
 // strength (infantry counting a tenth).
-uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_t unit) {
-  auto&         data{ Data(ds) };
-  std::uint16_t morale{ 0 };
-  std::uint16_t experience{ 0 };
-  std::uint16_t strength{ 0 };
+uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t unit) {
+  ServiceLocals const locals{ WEAK_COUNT };
+  auto&               data{ Data(ds) };
+  std::uint16_t       morale{ 0 };
+  std::uint16_t       experience{ 0 };
+  std::uint16_t       strength{ 0 };
   for (auto const& element : Elements(data, Record<Unit>(data, unit).first)) {
     morale     += element.morale;
     experience += element.experience;
     strength   += data.element_types[element.type].category == 0 ? element.quantity / 10 : element.quantity;
   }
-  auto const at_count{ Local(bp, WEAK_COUNT) };
+  auto const at_count{ locals.At(0) };
   Call(ds, event, QUANTITY, unit, ALL_CATEGORIES, at_count);
   auto const count{ static_cast<std::uint8_t>(Word(ds, at_count)) };
   if (!count) return 0;
@@ -108,10 +109,11 @@ void opeu_loss_present_a(uint8_t ds[65536], HostEvent event) {
 }
 
 void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&         data{ Data(ds) };
-  auto const    name{ Local(bp, NAME_A) };
-  auto const    scenario{ CurrentScenario(data) };
-  std::uint16_t movement{};
+  ServiceLocals const locals{ NAME_A };
+  auto&               data{ Data(ds) };
+  auto const          name{ locals.At(0) };
+  auto const          scenario{ CurrentScenario(data) };
+  std::uint16_t       movement{};
   if (scenario == Scenario::KURSK)
     movement = data.resistance_names[0];
   else if (scenario == Scenario::D_DAY || scenario == Scenario::BULGE)
@@ -151,9 +153,10 @@ void opeu_loss_present_b(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&      data{ Data(ds) };
-  auto const name{ Local(bp, NAME_B) };
+void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const locals{ NAME_B };
+  auto&               data{ Data(ds) };
+  auto const          name{ locals.At(0) };
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
   for (unsigned i{ 0 }; i < UNITS_PER_SIDE; ++i) {
     auto const near{ Near(data, data.units[i]) };

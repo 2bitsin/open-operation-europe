@@ -10,6 +10,7 @@
 #include "core/textout.hpp"
 #include "types.hpp"
 
+#include <array>
 #include <span>
 #include <utility>
 
@@ -59,15 +60,13 @@ constexpr uint8_t  REST_LAST{ 10 };  // the most days of leave less one
 constexpr uint8_t  ORDERS_LAST{ 3 }; // reassign, appoint, rest
 constexpr uint8_t  BUSY_ROLES{ Bits(PersonRole::ROLE_MASK) | Bits(PersonRole::DEPUTY) };
 
-// The text buffers of the assignment and the leave prompts: offsets below the routine's frame pointer.
-constexpr uint16_t POST_TEXT_LOCALS[]{ 0x10e, 0x12c, 0x1e, 0x3c, 0x5a, 0x78 };
-constexpr uint16_t ASSIGN_PROMPT_LOCAL{ 0xe4 };
-constexpr uint16_t REST_PROMPT_LOCAL{ 0x6a };
-
-// The frame pointer of a routine entered with sp.
-constexpr auto FramePointer(uint16_t sp) -> uint16_t {
-  return static_cast<uint16_t>(sp - 2);
-}
+// The texts the format service writes for the assignment menu (one 30-byte line per post) and its prompt: offsets
+// below the routine's frame pointer. The menu keeps the labels' near addresses after the routine returns and a later
+// list draw reads what is left there, so they stay at their DS stack slots.
+constexpr std::array<uint16_t, 6> POST_TEXT_LOCALS{ 0x10e, 0x12c, 0x1e, 0x3c, 0x5a, 0x78 };
+constexpr uint16_t                ASSIGN_PROMPT_LOCAL{ 0xe4 };
+// The leave prompt, which the format service writes.
+constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
 // Points the list's select callback at the personnel routine at offset.
 void SetSelect(ListWindow& list, uint16_t offset, uint16_t segment) {
@@ -145,7 +144,7 @@ uint8_t opeu_idle_commanders_fill(uint8_t ds[65536], HostEvent, uint16_t, uint16
 // intelligence posts. A division's old commander leaves it; a staff post's old holder steps down.
 void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
   auto&      data{ Data(ds) };
-  auto const bp{ FramePointer(sp) };
+  auto const bp{ static_cast<uint16_t>(sp - 2) };
   bool       assigned{ false };
   while (FillGenerals(ds, event, sp, segment) != 1) {
     SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
@@ -208,9 +207,10 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
 // Sends free generals on leave while there are any: one is chosen from the list and asked for how many days (the
 // answer plus one).
 void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
-  auto&      data{ Data(ds) };
-  auto const prompt{ Local(FramePointer(sp), REST_PROMPT_LOCAL) };
-  bool       rested{ false };
+  ServiceLocals const locals{ REST_PROMPT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          prompt{ locals.At(0) };
+  bool                rested{ false };
   for (; FillGenerals(ds, event, sp, segment) != 1; rested = true) {
     SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(ds, event, PersonnelService::PANEL);

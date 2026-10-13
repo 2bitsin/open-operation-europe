@@ -16,6 +16,7 @@
 #include "core/msnrept.hpp"
 #include "core/paraunit.hpp"
 #include "core/people.hpp"
+#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -84,9 +85,6 @@ constexpr uint16_t SHOW_ID{ 0xfa };
 // The far address of opeu_para_drop_present: its offset, and its segment relative to the caller's.
 constexpr uint16_t PRESENTER_OFFSET{ 0xd72 };
 constexpr uint16_t PRESENTER_SEGMENT{ 0xf43 };
-// The pixel words view_pixel converts in place: frame locals of the drop event.
-constexpr uint16_t PIXEL_X_LOCAL{ 2 };
-constexpr uint16_t PIXEL_Y_LOCAL{ 6 };
 
 } // namespace
 
@@ -157,9 +155,8 @@ void opeu_para_drop_present(uint8_t ds[65536], HostEvent event) {
 // Flies the air side's drop: centres the map on the target, books the transports and the paratroops out of the
 // side's totals, takes the anti-aircraft losses, and moves the formation up the screen. Over the target the drop's
 // report is shown; a little later the paratroop regiment is formed and lands with the losses of the planes shot
-// down. The surviving transports come back to the side, and the drop is cleared. bp is the caller's frame, where the
-// target's pixel position is converted.
-void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, uint16_t bp) {
+// down. The surviving transports come back to the side, and the drop is cleared.
+void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, uint16_t /*bp*/) {
   auto&      data{ Data(ds) };
   auto const side_index{ data.air_side };
   auto&      side{ data.sides[side_index] };
@@ -173,13 +170,9 @@ void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, 
   opeu_sub_word(left, &side.planes);
   opeu_sub_word(drop.paratroops, &side.paratroops);
   opeu_sub_word(Call(ds, event, DropService::DAMAGE_ROLL, x, y, opeu_min16(left, FIRE_PLANES) / 30), &left);
-  auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
-  auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
-  SetWord(ds, pixel_x, x);
-  SetWord(ds, pixel_y, y);
-  Call(ds, event, DropService::VIEW_PIXEL, pixel_x, pixel_y);
-  uint16_t const target_x{ Word(ds, pixel_x) };
-  uint16_t const target_y{ Word(ds, pixel_y) };
+  auto const     pixel{ ServicePixel(ds, event, DropService::VIEW_PIXEL, x, y) };
+  uint16_t const target_x{ pixel.x };
+  uint16_t const target_y{ pixel.y };
   for (uint16_t row = FLIGHT_START; row >= FLIGHT_END; row--) {
     if (row <= ALL_LOST_ROW && left == 0) {
       Call(ds, event, DropService::DESTROYED, Near(data, data.paratroop_planes_name));

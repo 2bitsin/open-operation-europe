@@ -25,9 +25,10 @@ constexpr std::uint16_t CITY_SIDE_PROMPT{ offsetof(DataSegment, city_side_prompt
 constexpr std::uint16_t CITY_SIDE_MENU{ offsetof(DataSegment, city_side_menu) };
 constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
 
-// Frame locals of the city list whose addresses the services receive.
-constexpr std::uint16_t SAVED_WINDOW_LOCAL{ 0xa }; // the list window state saved around the stock list
-constexpr std::uint16_t TITLE_LOCAL{ 0x6e };       // the stock list's title
+// The city list's locals whose addresses the services receive, as offsets in its reserve.
+constexpr std::uint16_t TITLE_AT{ 0x00 };        // the stock list's title
+constexpr std::uint16_t SAVED_WINDOW_AT{ 0x64 }; // the list window state saved around the stock list
+constexpr std::uint16_t CITY_LIST_LOCALS{ 0x6e };
 
 // Lists the side's cities and shows them; tells when the side holds none.
 void ViewSideCities(std::uint8_t* ds, HostEvent event, std::uint16_t sp, std::uint8_t side, std::uint16_t none) {
@@ -45,9 +46,10 @@ void ViewSideCities(std::uint8_t* ds, HostEvent event, std::uint16_t sp, std::ui
 // Picks a listed city and flashes it; a city that holds stocks has them listed, the city list's window state kept
 // aside meanwhile.
 void opeu_view_city_list(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t count) {
-  auto&      data{ Data(ds) };
-  auto const saved_window{ FrameLocal(sp, SAVED_WINDOW_LOCAL) };
-  auto const title{ FrameLocal(sp, TITLE_LOCAL) };
+  ServiceLocals const locals{ CITY_LIST_LOCALS };
+  auto&               data{ Data(ds) };
+  auto const          saved_window{ locals.At(SAVED_WINDOW_AT) };
+  auto const          title{ locals.At(TITLE_AT) };
   data.city_dialog.rows = static_cast<uint8_t>(count + 1);
   SetRowCheck(ds, event, data.city_dialog, RowCheck::OBJECTIVE);
   for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL), Call(ds, event, ViewService::CONTROL_MESSAGE, CITY_PROMPT, data.context_record3),

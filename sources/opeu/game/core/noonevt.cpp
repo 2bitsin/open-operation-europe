@@ -78,10 +78,10 @@ constexpr uint8_t AUDIENCE_MASK{ 0x03 };
 constexpr uint8_t NO_SPEECH{ 0xff };
 constexpr uint8_t END_OF_EVENTS{ 0xff };
 
-// The DS stack the speech and the news use below the caller's SP.
-constexpr uint16_t SPEECH_BUFFER_AT{ 0x76 }; // 110 bytes
+// The texts the noon events hand to services, and the SP their callees enter with below the caller's.
+constexpr uint16_t SPEECH_BYTES{ 110 }; // the speech the feed service shows
 constexpr uint16_t SPEECH_SP{ 0x7e };
-constexpr uint16_t NEWS_BUFFER_AT{ 0x64 }; // 90 bytes
+constexpr uint16_t NEWS_BYTES{ 90 }; // the news the message service shows
 constexpr uint16_t LEADER_SP{ 0x6c };
 constexpr uint16_t FAR_CALL{ 4 }; // a far call pushes CS:IP
 
@@ -221,14 +221,16 @@ void opeu_noon_leader(uint8_t ds[65536], const uint8_t* far_text, HostEvent even
   auto const  axis_solo{ data.side_control[0] == SIDE_PLAYED && data.side_control[1] == 0 };
   if ((audience == NOT_ALLIED_SOLO && !allied_solo) || (audience == NOT_AXIS_SOLO && !axis_solo)) audience = EVERYONE;
   if (audience != EVERYONE) return;
-  auto const speech{ opeu_string_copy_far(ds, Local(sp, SPEECH_BUFFER_AT), const_cast<uint8_t*>(far_text), data.noon_speeches[line].offset) };
+  ServiceLocals const locals{ SPEECH_BYTES };
+  auto const          speech{ opeu_string_copy_far(ds, locals.At(0), const_cast<uint8_t*>(far_text), data.noon_speeches[line].offset) };
   opeu_noon_speech(ds, far_text, event, Local(sp, SPEECH_SP), speech, At(PERSON_TEMPLATES_AT + sizeof(Person) * (code >> 2)));
 }
 
 // The day's noon events (at 12:00).
 void opeu_turn_noon_events(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp, uint16_t code_segment) {
-  auto&      data{ Data(ds) };
-  auto const news{ Local(sp, NEWS_BUFFER_AT) };
+  ServiceLocals const locals{ NEWS_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          news{ locals.At(0) };
   Event(ds, event, NOON_DAILY_CONTEXT, 1, data.current_side);
   for (auto const& noon : data.noon_events) {
     if (noon.date == END_OF_EVENTS) break;

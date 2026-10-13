@@ -72,7 +72,7 @@ enum Service : std::uint16_t {
 } // namespace
 
 // The 1600-byte text buffer lies on the DS stack: a caller passes an entry SP with at least 0x64c bytes reserved below
-// it.
+// it. It stays at that slot: the officers' list draws a glyph from what the buffer leaves there (officers-advice).
 int opeu_new_game_setup(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto&          data{ Data(ds) };
   uint16_t const buf{ Local(static_cast<uint16_t>(sp - 2), 0x648) };

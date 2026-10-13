@@ -116,12 +116,13 @@ uint16_t opeu_notice_slot(uint8_t ds[65536], uint16_t objective, uint8_t slot) {
 
 // Builds the garrison of an objective on the battle cell from its items, with ammunition and fuel from its stocks up
 // to the garrison's capacities, holding the cell; it becomes the first defender. Returns whether it has elements.
-uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&          data{ Data(ds) };
-  uint16_t const capacity_a{ Local(bp, 0x4) };
-  uint16_t const capacity_c{ Local(bp, 0xc) };
-  uint16_t const capacity_b{ Local(bp, 0x12) };
-  uint16_t const objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
+uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const locals{ 0x12 };
+  auto&               data{ Data(ds) };
+  uint16_t const      capacity_a{ locals.At(0xe) };
+  uint16_t const      capacity_c{ locals.At(6) };
+  uint16_t const      capacity_b{ locals.At(0) };
+  uint16_t const      objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
   if (!objective) return 0;
   auto& garrison{ data.garrison };
   garrison.first = 0;
@@ -155,11 +156,12 @@ uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event, uint16_t bp) {
 // Gathers the engaged units: the attacker and his side's units around the battle cell, the garrison, the defender
 // and the other side's units around it.
 void opeu_notice_collect(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&          data{ Data(ds) };
-  uint16_t const x_at{ Local(bp, 0xa) };
-  uint16_t const y_at{ Local(bp, 0xe) };
-  auto&          x{ ds[x_at] };
-  auto&          y{ ds[y_at] };
+  ServiceLocals const locals{ 0xe };
+  auto&               data{ Data(ds) };
+  uint16_t const      x_at{ locals.At(4) };
+  uint16_t const      y_at{ locals.At(0) };
+  auto&               x{ ds[x_at] };
+  auto&               y{ ds[y_at] };
   for (uint8_t n = 0; n < 2 * UNITS_PER_LIST; n++) data.battle_units[n] = 0;
   uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(ds, event, bp - 0x16) ? 1 : 0) };
   uint16_t unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
@@ -219,9 +221,10 @@ uint16_t opeu_notice_can_command(uint8_t ds[65536], HostEvent event, uint8_t lis
 
 // Each side decides whether a leader takes command of the battle: the computer by a coin toss, a player when asked
 // (only for a unit outside the computer's divisions). The battle is reported when a player's side could command.
-void opeu_notice_decide(uint8_t ds[65536], HostEvent event, uint16_t bp) {
+void opeu_notice_decide(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const     locals{ 0x72 };
   auto&                   data{ Data(ds) };
-  uint16_t const          text{ Local(bp, 0x72) };
+  uint16_t const          text{ locals.At(0) };
   std::array<uint16_t, 2> can_command{ 1, 1 };
   data.battle_command[0] = 0;
   data.battle_command[1] = 0;
@@ -273,14 +276,15 @@ void opeu_notice_view_finish(uint8_t ds[65536], HostEvent event) {
 
 // Tells the attacked unit or objective of the attack (naming a special attacker) and shows it to the attacked side;
 // the attacked unit's elements tire and lose morale by its order: least when holding, most under EXPOSED_ORDER.
-void opeu_notice_attack(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&          data{ Data(ds) };
-  uint16_t const text{ Local(bp, 0x74) };
-  uint16_t const name{ Local(bp, 0x80) };
-  uint16_t const attacker{ Call(ds, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y) };
-  auto const     side{ static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, attacker)) };
-  uint16_t const unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
-  uint16_t const objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
+void opeu_notice_attack(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const locals{ 0x80 };
+  auto&               data{ Data(ds) };
+  uint16_t const      text{ locals.At(0xc) };
+  uint16_t const      name{ locals.At(0) };
+  uint16_t const      attacker{ Call(ds, event, FIND_UNIT, data.battle_attacker_x, data.battle_attacker_y) };
+  auto const          side{ static_cast<uint8_t>(Call(ds, event, UNIT_SIDE, attacker)) };
+  uint16_t const      unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
+  uint16_t const      objective{ Call(ds, event, FIND_OBJECTIVE, data.battle_x, data.battle_y) };
   if (Call(ds, event, UNIT_SPECIAL, attacker)) {
     uint16_t const side_name{ data.side_names[side] };
     Call(ds, event, FORMAT, text, offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, Call(ds, event, UNIT_NAME, attacker, name));

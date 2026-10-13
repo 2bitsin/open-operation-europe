@@ -1,9 +1,6 @@
 // The Paratroops command: the player picks a regiment and its paratroop battalions in the list dialogs, assigns
 // troops to each, picks a drop site and a delay; the air force may delay or refuse the drop, else the order is
 // stored as the current side's pending airborne drop.
-//
-// Routine frames live on the DS stack: sp is the entry SP, a local whose address reaches a callee sits at
-// Local(sp, 2 + n), and a call to another air routine passes that routine's entry SP the same way.
 #include "core/airdrop.hpp"
 #include "common/events.hpp"
 #include "core/airhelp.hpp"
@@ -50,9 +47,11 @@ constexpr std::uint16_t REQUEST_STANDS{ 5 };     // "... %d hours": the requeste
 constexpr std::uint16_t AIR_FORCE_DELAY{ 0x72 }; // the air force needs %d hours
 constexpr std::uint16_t PLANES_NEEDED{ 0x79 };   // hours, planes, "plane"/"planes"
 
-constexpr std::uint16_t TEXT_LOCAL{ 0x68 }; // the 100-byte message text of drop_delay and drop_order
-constexpr std::uint16_t SITE_X_LOCAL{ 10 };
-constexpr std::uint16_t SITE_Y_LOCAL{ 12 };
+constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the message text of drop_delay and drop_order, which the format service writes
+// The drop site, which the map pick writes: offsets in the command's reserve.
+constexpr std::uint16_t SITE_Y_AT{ 0 };
+constexpr std::uint16_t SITE_X_AT{ 2 };
+constexpr std::uint16_t SITE_BYTES{ 4 };
 
 // The entry SP of a callee whose return address the caller pushes `depth` bytes below its own frame.
 constexpr auto CalleeSp(std::uint16_t sp, std::uint16_t depth) -> std::uint16_t {
@@ -169,10 +168,11 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event, uint16_t sp)
 // Hours until the drop. The air force's own estimate (6..24 from the troops, the delivery level and its staff's
 // ratings) beats a shorter requested delay: it is announced, or on a rating roll the request stands. A requested
 // landing by daylight may be refused outright (0 returned).
-uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t hours) {
-  auto&              data{ Data(ds) };
-  auto const         text{ Local(sp, TEXT_LOCAL) };
-  std::uint8_t const estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(RandomBelow(ds, data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
+uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint8_t hours) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
+  std::uint8_t const  estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(RandomBelow(ds, data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
   if (estimate > hours) {
     if (95 - static_cast<std::uint8_t>(RandomBelow(ds, 20)) > data.air_charm) {
       Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, AIR_FORCE_DELAY), estimate);
@@ -193,10 +193,11 @@ uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t sp, uin
 
 // Reports the planes needed (30 troops each), asks the air force to confirm and records the drop order.
 uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(sp, TEXT_LOCAL) };
-  auto const troops{ data.air_troops };
-  auto const planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
+  auto const          troops{ data.air_troops };
+  auto const          planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
   Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, PLANES_NEEDED), hours, planes, planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes));
   Call(ds, event, MESSAGE, text, data.air_person);
   if (opeu_air_confirm(ds, event, CalleeSp(sp, 0x7a))) {
@@ -243,11 +244,11 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     return;
   }
   if (!opeu_air_choose_forces(ds, event, callee)) return;
-  // The site is picked into two frame locals whose addresses the map pick fills.
-  auto const site_x{ Local(sp, SITE_X_LOCAL) };
-  auto const site_y{ Local(sp, SITE_Y_LOCAL) };
-  auto&      x{ Record<std::uint8_t>(data, site_x) };
-  auto&      y{ Record<std::uint8_t>(data, site_y) };
+  ServiceLocals const locals{ SITE_BYTES };
+  auto const          site_x{ locals.At(SITE_X_AT) };
+  auto const          site_y{ locals.At(SITE_Y_AT) };
+  auto&               x{ Record<std::uint8_t>(data, site_x) };
+  auto&               y{ Record<std::uint8_t>(data, site_y) };
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
   do {

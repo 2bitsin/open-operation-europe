@@ -2,9 +2,6 @@
 // strafing run); the air officer may object (low fuel, too few bombers, poor crews, or by chance), otherwise the
 // sortie is announced and, once confirmed, stored as the current side's air strike. Also svc_air, the services of
 // all the air force's commands.
-//
-// Routine frames live on the DS stack: sp is the entry SP, a local whose address reaches a callee sits at
-// Local(sp, 2 + n).
 #include "core/airbomb.hpp"
 #include "common/events.hpp"
 #include "core/airhelp.hpp"
@@ -58,9 +55,11 @@ constexpr std::uint16_t TYPE_MENU{ offsetof(DataSegment, bombing_menu) };
 
 constexpr std::uint16_t CANCELED{ 0xffff };
 constexpr std::uint8_t  CITY_TERRAIN{ 1 };
-constexpr std::uint16_t TEXT_LOCAL{ 0x66 }; // the announcement's text in opeu_air_bomb_order's frame
-constexpr std::uint16_t SITE_X_LOCAL{ 6 };  // the site picked, in opeu_air_bomb_command's frame
-constexpr std::uint16_t SITE_Y_LOCAL{ 8 };
+constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the announcement's text, which the format service writes
+// The site picked, which the pick service writes: offsets in opeu_air_bomb_command's reserve.
+constexpr std::uint16_t SITE_Y_AT{ 0 };
+constexpr std::uint16_t SITE_X_AT{ 2 };
+constexpr std::uint16_t SITE_BYTES{ 4 };
 constexpr std::uint16_t ORDER_DEPTH{ 0x6e + 10 + 4 }; // opeu_air_bomb_order's frame, saved registers, far return
 constexpr std::uint16_t COMMAND_DEPTH{ 0x0a + 4 };    // opeu_air_bomb_command's frame, far return
 
@@ -134,8 +133,9 @@ uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint16_t, uint8
 // air strike. The delay is random(level + 1), one more at night, more in bad weather, less for the lighter missions;
 // the planes are the type's base plus a random extra, at most the side's bombers. 1 when the strike was ordered.
 uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint16_t type) {
-  auto&       data{ Data(ds) };
-  auto const  text{ Local(sp, 2 + TEXT_LOCAL) };
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
   auto const  hours{ static_cast<std::uint16_t>(RandomBelow(ds, data.delivery_level + 1) + (opeu_hour_is_night(data.hour) != 0) + static_cast<std::uint16_t>(0x81 - data.air_leadership) / 30 - type
                                                 + 2) };
   auto const& flight{ data.bombing_flights[type] };
@@ -167,10 +167,11 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     return;
   }
   Call(ds, event, TITLE, BOMB_TITLE);
-  auto const at_x{ Local(sp, 2 + SITE_X_LOCAL) };
-  auto const at_y{ Local(sp, 2 + SITE_Y_LOCAL) };
-  auto&      site_x{ Record<std::uint8_t>(data, at_x) };
-  auto&      site_y{ Record<std::uint8_t>(data, at_y) };
+  ServiceLocals const locals{ SITE_BYTES };
+  auto const          at_x{ locals.At(SITE_X_AT) };
+  auto const          at_y{ locals.At(SITE_Y_AT) };
+  auto&               site_x{ Record<std::uint8_t>(data, at_x) };
+  auto&               site_y{ Record<std::uint8_t>(data, at_y) };
   site_x = static_cast<std::uint8_t>(data.viewport_x);
   site_y = static_cast<std::uint8_t>(data.viewport_y);
   Call(ds, event, MESSAGE, SITE_PROMPT, data.context_record3);

@@ -25,8 +25,8 @@
 
 using namespace opeu::game;
 
-// Far segments are the unrelocated segments plus the load segment. Locals whose addresses reach services live at
-// their frame offsets below bp (the routine's own frame pointer).
+// Far segments are the unrelocated segments plus the load segment. Locals whose addresses reach services live in the
+// routine's ServiceLocals reserve.
 namespace {
 
 // Services leave the module through event.
@@ -65,19 +65,18 @@ void opeu_air_sprite_mirror(uint8_t ds[65536], uint16_t image, uint8_t keep) {
   for (std::size_t i = 0; i < mask.size(); i += 3) std::swap(mask[i], mask[i + 1]);
 }
 
-void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t bp, uint16_t x, uint16_t y, uint8_t keep) {
-  auto&         data{ Data(ds) };
-  std::uint16_t mask{ Local(bp, 0xdc) };
+void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t /*bp*/, uint16_t x, uint16_t y, uint8_t keep) {
+  ServiceLocals const locals{ sizeof(PlaneMask) }; // the mask the compose service reads
+  auto&               data{ Data(ds) };
+  auto const          mask{ locals.At(0) };
   std::ranges::copy(opeu_view_type_masks[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
-  Record<std::uint8_t>(data, Local(bp, 0xde)) = keep;
   opeu_air_sprite_mirror(ds, mask, keep);
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
   Call(ds, event, BITMAP_SAVE, x, y, 4, 32, data.stream_ptr[1], data.stream_ptr[0]);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), SHADOW_OFFSET);
   Call(ds, event, DRAW_FAR, x + 1, y + 8, 3, 24, SHADOW_MODE, data.stream_ptr[1], data.stream_ptr[0]);
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), PLANE_OFFSET);
-  SetWord(ds, Local(bp, 4), mask);
-  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], Word(ds, Local(bp, 4)), load + DATA_SEGMENT, 0, data.bitmap_buffer, 0);
+  Call(ds, event, SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], mask, load + DATA_SEGMENT, 0, data.bitmap_buffer, 0);
 }
 
 void opeu_air_sprite_restore(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t x, uint16_t y) {
@@ -86,9 +85,10 @@ void opeu_air_sprite_restore(uint8_t ds[65536], HostEvent event, uint16_t load, 
   Call(ds, event, BITMAP_RESTORE, x, y, 4, 32, 0, data.stream_ptr[1], data.stream_ptr[0]);
 }
 
-uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t bp, uint16_t what, uint8_t wait) {
+uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t what, uint8_t wait) {
+  ServiceLocals const locals{ REQUEST_BUFFER_SIZE };
   auto&               data{ Data(ds) };
-  std::uint16_t const buffer{ Local(bp, REQUEST_BUFFER_SIZE) };
+  std::uint16_t const buffer{ locals.At(0) };
   auto const&         commander{ Record<Person>(data, opeu_find_side_record(ds, data.air_side, RANK_AIR)) };
   std::uint16_t const person{ opeu_find_person_template(ds, commander.status, TEMPLATE_AIR) };
   if (data.weather != 0 && data.weather != 1) {

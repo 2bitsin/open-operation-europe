@@ -24,20 +24,25 @@ constexpr std::uint16_t DIVISION_PROMPT{ offsetof(DataSegment, view_division_pro
 constexpr std::uint16_t NONE_ENEMY{ offsetof(DataSegment, units_none_enemy) };
 constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
 
-// Frame locals whose addresses the services receive.
-constexpr std::uint16_t REGIMENT_SAVED_WINDOW{ 0xa }; // the regiment list's window state, kept around the battalions
-constexpr std::uint16_t REGIMENT_NAME{ 0x16 };        // the regiment's name
-constexpr std::uint16_t REGIMENT_TITLE{ 0x7a };       // the battalion list's title
-constexpr std::uint16_t DIVISION_SAVED_WINDOW{ 0xc }; // the division list's window state, kept around the regiments
+// The locals whose addresses the services receive, as offsets in the routines' reserves: the regiment list's title,
+// its regiment's name and its window state kept around the battalions; the division list's window state kept around
+// the regiments.
+constexpr std::uint16_t REGIMENT_TITLE_AT{ 0x00 };
+constexpr std::uint16_t REGIMENT_NAME_AT{ 0x64 };
+constexpr std::uint16_t REGIMENT_SAVED_WINDOW_AT{ 0x70 };
+constexpr std::uint16_t REGIMENT_LOCALS{ 0x7a };
+constexpr std::uint16_t DIVISION_SAVED_WINDOW_AT{ 0 };
+constexpr std::uint16_t DIVISION_LOCALS{ 0xc };
 
 } // namespace
 
 // Picks a listed regiment, announces it and lists its battalions, the regiment list's window state kept aside.
 void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const saved_window{ FrameLocal(sp, REGIMENT_SAVED_WINDOW) };
-  auto const name{ FrameLocal(sp, REGIMENT_NAME) };
-  auto const title{ FrameLocal(sp, REGIMENT_TITLE) };
+  ServiceLocals const locals{ REGIMENT_LOCALS };
+  auto&               data{ Data(ds) };
+  auto const          saved_window{ locals.At(REGIMENT_SAVED_WINDOW_AT) };
+  auto const          name{ locals.At(REGIMENT_NAME_AT) };
+  auto const          title{ locals.At(REGIMENT_TITLE_AT) };
   for (std::uint16_t height{ 7 }; Call(ds, event, ViewService::CONTROL_PANEL), Call(ds, event, ViewService::CONTROL_MESSAGE, REGIMENT_PROMPT, data.context_record3),
                                   Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.organize_list), 1, height);
        height = 6) {
@@ -66,8 +71,9 @@ uint8_t opeu_list_group_units(uint8_t ds[65536], HostEvent, uint16_t, uint8_t gr
 // Picks one of the own side's divisions, shows it, then lists its regiments, the division list's window state kept
 // aside.
 void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const saved_window{ FrameLocal(sp, DIVISION_SAVED_WINDOW) };
+  ServiceLocals const locals{ DIVISION_LOCALS };
+  auto&               data{ Data(ds) };
+  auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
   for (std::uint16_t height{ 7 }; SetRowCheck(ds, event, data.division_dialog, RowCheck::DIVISION), Call(ds, event, ViewService::CONTROL_MESSAGE, DIVISION_PROMPT, data.context_record3),
                                   Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.division_dialog), 1, height);
        height = 6) {

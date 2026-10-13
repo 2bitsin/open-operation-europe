@@ -129,9 +129,10 @@ void opeu_end_occupy_present(uint8_t ds[65536], HostEvent event) {
 
 // The defender retreats in battle_direction; when the battle cell is then empty and the attacker may enter it (an
 // objective there must be his own side's), the attacker moves in, and an objective taken is reported and shown.
-void opeu_end_occupy(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&          data{ Data(ds) };
-  uint16_t const text{ Local(bp, 0x6c) };
+void opeu_end_occupy(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const locals{ 0x6c };
+  auto&               data{ Data(ds) };
+  uint16_t const      text{ locals.At(0) };
   data.view_side     = 255;
   data.overview_side = 255;
   Call(ds, event, SHOW_LOCATION, data.battle_x, data.battle_y, (uint8_t)(data.side_status[0] == SIDE_PLAYED ? 0 : 1));
@@ -234,12 +235,13 @@ void opeu_end_nothing(void) { }
 
 // Reports, when the battle is reported and not only presented, every engaged element's losses to its side's
 // commander: wiped out, not damaged, or how many it lost.
-void opeu_end_losses(uint8_t ds[65536], HostEvent event, uint16_t bp) {
-  auto&          data{ Data(ds) };
-  uint16_t const report{ Local(bp, 0x70) };
-  uint16_t const unit_name{ Local(bp, 0x7c) };
-  uint16_t const loss_text{ Local(bp, 0x9c) };
-  uint16_t const item_name{ Local(bp, 0xb2) };
+void opeu_end_losses(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+  ServiceLocals const locals{ 0xb2 };
+  auto&               data{ Data(ds) };
+  uint16_t const      report{ locals.At(0x42) };
+  uint16_t const      unit_name{ locals.At(0x36) };
+  uint16_t const      loss_text{ locals.At(0x16) };
+  uint16_t const      item_name{ locals.At(0) };
   if (data.presentation_mode == 1) return;
   if (!data.battle_report) return;
   for (auto const& loss : data.battle_losses) {

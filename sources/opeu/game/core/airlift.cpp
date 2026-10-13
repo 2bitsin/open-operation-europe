@@ -1,9 +1,6 @@
 // The Airlift command: asks how much ammunition, fuel and food to fly (3000 units a cargo plane, at most 20 planes
 // a kind and 60 in all), the drop point and the delay; the air-force officer may stretch or refuse the delay, and
 // the staff's confirmation records the order as the current side's pending airlift.
-//
-// Routine frames live on the DS stack: sp is the entry SP, a local whose address reaches a callee sits at
-// Local(sp, 2 + n), and a call to another air routine passes the SP that call leaves.
 #include "core/airlift.hpp"
 #include "common/events.hpp"
 #include "core/airhelp.hpp"
@@ -37,9 +34,11 @@ constexpr std::uint8_t  DUE_AFTER{ 6 }; // the order's countdown runs this many 
 constexpr std::uint16_t LEAD_ACCEPTED{ 0x73 }; // the officer accepts the shorter delay (%d)
 constexpr std::uint16_t LIFT_REFUSED{ 0x74 };  // the officer refuses a daytime airlift
 
-constexpr std::uint16_t TEXT_LOCAL{ 2 + 0x66 }; // the 100-byte message text of the lead and the order
-constexpr std::uint16_t CELL_X_LOCAL{ 2 + 0x0c };
-constexpr std::uint16_t CELL_Y_LOCAL{ 2 + 0x10 };
+constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the message text of the lead and the order, which the format service writes
+// The drop point, which the pick service writes: offsets in the command's reserve.
+constexpr std::uint16_t CELL_Y_AT{ 0 };
+constexpr std::uint16_t CELL_X_AT{ 4 };
+constexpr std::uint16_t CELL_BYTES{ 6 };
 constexpr std::uint16_t COMMAND_FRAME{ 0x18 }; // the command's frame: callees enter below it
 
 // The planes `amount` units of one supply kind take: whole loads, a part load counting as one.
@@ -51,10 +50,11 @@ constexpr auto PlanesFor(std::uint16_t amount) -> std::uint16_t {
 // The officer's preparation lead: min(planes - leadership / 30 + 3, 24) hours, never 1. A shorter delay is answered
 // with "at least %d hours" (returning the lead) when 90 - rand(30) beats the officer's skill, else accepted. A delay
 // that lands in daytime is refused outright (0) when 60 - rand(20) beats the skill. Returns the delay.
-uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t hours, uint16_t planes) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(sp, TEXT_LOCAL) };
-  auto       lead{ static_cast<std::uint8_t>(opeu_min16(static_cast<std::uint16_t>(planes - data.air_leadership / 30 + 3), MAX_LEAD)) };
+uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint8_t hours, uint16_t planes) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
+  auto                lead{ static_cast<std::uint8_t>(opeu_min16(static_cast<std::uint16_t>(planes - data.air_leadership / 30 + 3), MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
     if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_charm) {
@@ -77,8 +77,9 @@ uint8_t opeu_air_lift_lead(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
 // Announces "In %d hour(s), %d plane(s) will start their cargo lift" and, if the staff confirms, records the order.
 // Returns 1 if recorded.
 uint16_t opeu_air_lift_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(sp, TEXT_LOCAL) };
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
   Call(ds, event, FORMAT, text, Near(data, data.lift_start_format), hours, hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours), planes,
        planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes));
   Call(ds, event, MESSAGE, text, data.air_person);
@@ -129,10 +130,11 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   auto const food{ ask_kind(Near(data, data.lift_ask_food), side.stock[2]) };
   if (food == CANCELLED) return;
   if (food + fuel + ammo == 0) return;
-  auto const at_x{ Local(sp, CELL_X_LOCAL) };
-  auto const at_y{ Local(sp, CELL_Y_LOCAL) };
-  auto&      cell_x{ Byte(ds, at_x) };
-  auto&      cell_y{ Byte(ds, at_y) };
+  ServiceLocals const locals{ CELL_BYTES };
+  auto const          at_x{ locals.At(CELL_X_AT) };
+  auto const          at_y{ locals.At(CELL_Y_AT) };
+  auto&               cell_x{ Byte(ds, at_x) };
+  auto&               cell_y{ Byte(ds, at_y) };
   cell_x = static_cast<std::uint8_t>(data.viewport_x);
   cell_y = static_cast<std::uint8_t>(data.viewport_y);
   do {

@@ -101,15 +101,8 @@ enum class Action : uint16_t {
   SAVE_MENU = 0x0d32,
 };
 
-// An option routine's message buffer: `size` bytes below its frame on the DS stack (sp is its entry SP).
-constexpr auto MessageBuffer(uint16_t sp, uint16_t size) -> uint16_t {
-  return Local(static_cast<uint16_t>(sp - 2), size);
-}
-
 // The entry SP of an option called from the Settings command: below its frame and the call.
 constexpr uint16_t OPTION_SP_DEPTH{ 14 };
-
-// The caller scratch area the yes/no prompt reads keys into.
 
 // The slot records and saved blocks of the save file.
 constexpr uint16_t SLOT_BYTES{ sizeof(SaveSlot) };
@@ -195,10 +188,11 @@ void opeu_settings_print(uint8_t ds[65536], HostEvent event) {
 }
 
 // Which battles to watch: all, none or a choice before each.
-void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const message{ MessageBuffer(sp, 102) };
-  auto const     choice{ Call(ds, event, DIALOG, Near(data, data.battles_question), 3, data.context_record2, Near(data, data.battles_menu)) };
+void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 102 }; // the message the format service writes
+  auto&               data{ Data(ds) };
+  uint16_t const      message{ locals.At(0) };
+  auto const          choice{ Call(ds, event, DIALOG, Near(data, data.battles_question), 3, data.context_record2, Near(data, data.battles_menu)) };
   switch (choice) {
   case 1:  data.battle_view = std::to_underlying(BattleView::ALL); break;
   case 2:  data.battle_view = std::to_underlying(BattleView::NONE); break;
@@ -210,18 +204,20 @@ void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // How long messages stay on screen.
-void opeu_settings_delay(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const message{ MessageBuffer(sp, 100) };
+void opeu_settings_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 100 }; // the message the format service writes
+  auto&               data{ Data(ds) };
+  uint16_t const      message{ locals.At(0) };
   data.message_delay = static_cast<uint8_t>(Call(ds, event, NUMBER, Near(data, data.delay_question), 10, data.context_record2, 0));
   Call(ds, event, FORMAT, message, Near(data, data.delay_reply), data.message_delay);
   Call(ds, event, MESSAGE, message, data.context_record2);
 }
 
 // Switches between the aerial and the field map and shows the current unit's place on it.
-void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const message{ MessageBuffer(sp, 100) };
+void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 100 }; // the message the format service writes
+  auto&               data{ Data(ds) };
+  uint16_t const      message{ locals.At(0) };
   data.map_mode[0]++;
   data.map_mode[0] &= 1;
   Call(ds, event, FORMAT, message, Near(data, data.map_reply), !data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field));
@@ -231,9 +227,10 @@ void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // Turns the music off or on.
-void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const message{ MessageBuffer(sp, 100) };
+void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 100 }; // the message the format service writes
+  auto&               data{ Data(ds) };
+  uint16_t const      message{ locals.At(0) };
   if (data.sound_enabled == 1) {
     Call(ds, event, MUSIC_STOP);
     data.sound_enabled = 0;
@@ -246,9 +243,10 @@ void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // Turns the event pictures off or on.
-void opeu_settings_pictures(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const message{ MessageBuffer(sp, 100) };
+void opeu_settings_pictures(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 100 }; // the message the format service writes
+  auto&               data{ Data(ds) };
+  uint16_t const      message{ locals.At(0) };
   data.event_pictures = data.event_pictures == 1 ? 0 : 1;
   Call(ds, event, FORMAT, message, Near(data, data.pictures_reply), data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not));
   Call(ds, event, MESSAGE, message, data.context_record2);

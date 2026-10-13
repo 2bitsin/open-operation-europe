@@ -21,7 +21,6 @@ namespace {
 
 using enum SpecialService;
 
-constexpr std::uint8_t  NO_MISSION{ 0xff };  // Order::kind of a side with no mission under way
 constexpr std::uint8_t  OFFICER_KIND{ 7 };   // the person template kind of the Special Forces officer
 constexpr std::uint16_t MISSION_COUNT{ 5 };  // the entries of the mission menu
 constexpr std::uint16_t CANCELLED{ 0xffff }; // the mission menu was left
@@ -29,7 +28,7 @@ constexpr std::uint16_t INFO_X{ 0x2d };      // the column of the pending missio
 constexpr std::uint16_t ORDERS_Y{ 0xa3 };    // and their rows
 constexpr std::uint16_t TARGET_Y{ 0xb5 };
 constexpr std::uint16_t TIME_Y{ 0xc7 };
-constexpr std::uint16_t NAME_SLOT{ 0x22 };     // the frame slot of the target unit's name
+constexpr std::uint16_t NAME_BYTES{ 0x22 };    // the target unit's name, which the unit-name service writes
 constexpr std::uint16_t OFFICER_STACK{ 0x2c }; // the stack depth the officer and target routines enter at
 
 // The average of the deputy's and the commander's ability.
@@ -72,9 +71,10 @@ uint16_t opeu_special_unit_target(uint8_t ds[65536], HostEvent event, uint16_t s
 }
 
 void opeu_turn_action_9(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const name{ Local(static_cast<std::uint16_t>(sp - 2), NAME_SLOT) };
-  auto const inner{ static_cast<std::uint16_t>(sp - OFFICER_STACK) };
+  ServiceLocals const locals{ NAME_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          name{ locals.At(0) };
+  auto const          inner{ static_cast<std::uint16_t>(sp - OFFICER_STACK) };
   opeu_special_officer(ds, event, inner);
   do {
     auto& order{ Record<Order>(data, data.special_order) };

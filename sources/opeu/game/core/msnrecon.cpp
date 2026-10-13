@@ -33,10 +33,11 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 } // namespace
 
 void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(frame, 50) };
-  auto const target{ data.sides[side].order.target };
-  auto&      city{ Record<Objective>(data, target) };
+  ServiceLocals const locals{ 0x32 };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0) };
+  auto const          target{ data.sides[side].order.target };
+  auto&               city{ Record<Objective>(data, target) };
   opeu_string_copy(ds, text, At(offsetof(DataSegment, recon_objective_text)));
   if (opeu_string_length(ds, target) > ONE_LINE_NAME) opeu_string_append(ds, text, At(offsetof(DataSegment, recon_newline)));
   opeu_string_append(ds, text, target);
@@ -51,11 +52,12 @@ void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint16_t f
 }
 
 void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(frame, 50) };
-  auto const name{ Local(frame, 80) };
-  auto const target{ data.sides[side].order.target };
-  auto&      unit{ Record<Unit>(data, target) };
+  ServiceLocals const locals{ 0x50 };
+  auto&               data{ Data(ds) };
+  auto const          text{ locals.At(0x1e) };
+  auto const          name{ locals.At(0) };
+  auto const          target{ data.sides[side].order.target };
+  auto&               unit{ Record<Unit>(data, target) };
   opeu_string_copy(ds, text, At(offsetof(DataSegment, recon_unit_text)));
   opeu_string_append(ds, text, Call(ds, event, MISSION_UNIT_NAME, target, name));
   if (opeu_officer_rating(ds, side, OFFICER) <= Call(ds, event, MISSION_RANDOM, 100)) {

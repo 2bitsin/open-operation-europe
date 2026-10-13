@@ -2,8 +2,7 @@
 // bombed (1 in 150 - 20 x level, level the delivery level when side 1 is the computer's, else 2). The side the player
 // watches gets a notice, a falling bomb over the regiment and the result; the regiment then takes casualties.
 //
-// Routine frames live on the DS stack: bp is the routine's frame pointer, and a local whose address reaches a
-// service sits at Local(bp, n).
+// A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/evbomb.hpp"
 #include "common/events.hpp"
 #include "core/people.hpp"
@@ -22,6 +21,7 @@
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
+#include "core/pixel-service.hpp"
 #include "glue.hpp"
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
@@ -83,14 +83,13 @@ constexpr std::uint16_t SHADOW_MODE{ 0x20f };
 constexpr std::uint16_t FALL_TOP{ 348 };
 constexpr std::uint16_t WHISTLE_ROW{ static_cast<std::uint16_t>(-32) }; // the cue sounds 32 rows below the target
 
-// opeu_bomb_event's frame: the report, the notice, the regiment's name, and the animation's frame pointer.
-constexpr std::uint16_t REPORT_LOCAL{ 0xce };
-constexpr std::uint16_t INTRO_LOCAL{ 0x72 };
-constexpr std::uint16_t NAME_LOCAL{ 0x18 };
+// opeu_bomb_event's texts, which services write and show: offsets in its reserve.
+constexpr std::uint16_t REPORT_AT{ 0x00 }; // 92 bytes
+constexpr std::uint16_t INTRO_AT{ 0x5c };  // 90 bytes
+constexpr std::uint16_t NAME_AT{ 0xb6 };   // 24 bytes
+constexpr std::uint16_t EVENT_LOCALS{ 0xce };
+// The frame pointer opeu_bomb_animate runs with, below opeu_bomb_event's.
 constexpr std::uint16_t ANIMATION_FRAME{ 0xd4 };
-// opeu_bomb_animate's frame: the regiment's pixel.
-constexpr std::uint16_t PIXEL_X_LOCAL{ 2 };
-constexpr std::uint16_t PIXEL_Y_LOCAL{ 4 };
 
 constexpr std::uint16_t BOMB_RESERVE{ 0x140 };
 
@@ -118,24 +117,20 @@ void opeu_bomb_restore_frame(uint8_t ds[65536], HostEvent event, uint16_t load, 
 }
 
 // Centres the map on the regiment and drops the bomb from the top of the screen onto it.
-void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t bp, uint16_t unit, uint8_t side) {
+void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t /*bp*/, uint16_t unit, uint8_t side) {
   auto&       data{ Data(ds) };
   auto const& target{ Record<Unit>(data, unit) };
   auto const  ux{ static_cast<std::uint16_t>(target.x) };
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy), opeu_side_for_status(ds, side));
-  auto const pixel_x{ Local(bp, PIXEL_X_LOCAL) };
-  auto const pixel_y{ Local(bp, PIXEL_Y_LOCAL) };
-  SetWord(ds, pixel_x, ux);
-  SetWord(ds, pixel_y, uy);
-  Call(ds, event, VIEW_PIXEL, pixel_x, pixel_y);
-  SetWord(ds, pixel_y, static_cast<std::uint16_t>(Word(ds, pixel_y) + 8));
-  for (std::uint16_t row{ FALL_TOP }; row >= Word(ds, pixel_y); --row) {
-    opeu_bomb_draw_frame(ds, event, load, Word(ds, pixel_x), row);
-    if (static_cast<std::uint16_t>(Word(ds, pixel_y) - row) == WHISTLE_ROW) Call(ds, event, SOUND_CUE);
+  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, ux, uy) };
+  auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
+  for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
+    opeu_bomb_draw_frame(ds, event, load, pixel.x, row);
+    if (static_cast<std::uint16_t>(target_y - row) == WHISTLE_ROW) Call(ds, event, SOUND_CUE);
     Call(ds, event, DELAY, 1);
-    opeu_bomb_restore_frame(ds, event, load, Word(ds, pixel_x), row);
+    opeu_bomb_restore_frame(ds, event, load, pixel.x, row);
   }
   Call(ds, event, MUSIC_COMMAND7);
 }
@@ -151,10 +146,11 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t
   if (data.month < RAID_MONTH || (data.month == RAID_MONTH && data.day < RAID_DAY)) return;
   if (!opeu_hour_is_day(data.hour)) return;
   if (data.weather != 0 && data.weather != 1) return;
-  auto const report{ Local(bp, REPORT_LOCAL) };
-  auto const intro{ Local(bp, INTRO_LOCAL) };
-  auto const name{ Local(bp, NAME_LOCAL) };
-  auto const level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == 1 ? data.delivery_level : 2) };
+  ServiceLocals const locals{ EVENT_LOCALS };
+  auto const          report{ locals.At(REPORT_AT) };
+  auto const          intro{ locals.At(INTRO_AT) };
+  auto const          name{ locals.At(NAME_AT) };
+  auto const          level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == 1 ? data.delivery_level : 2) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
