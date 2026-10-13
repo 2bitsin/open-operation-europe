@@ -59,7 +59,3 @@ auto port_prompt_yes_no(Game& game, uint16_t text) -> uint16_t;
 /* ---- LOADSCEN: read SCENARIO and MAP by name, hand over their bytes -------- */
 
 void port_load_scenario(Game& game, uint16_t scenario);
-
-/* ---- boundary pointers of the recovered code ------------------------------ */
-
-void port_install_hooks();

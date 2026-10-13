@@ -112,7 +112,7 @@ auto RunGame() -> void {
   opeu::services::Machine     machine;
   opeu::game::Game            game{ state, machine };
   opeu::game::EntryGame const running{ game };
-  opeu_application_entry(game, svc_app);
+  opeu_application_entry(game);
 }
 } // namespace
 
@@ -153,8 +153,6 @@ auto Main(int argc, char** argv) -> int {
     return 0;
   }
 
-  // The boundary pointer the AI's host branches expect the driver to install.
-  port_install_hooks();
   // The FM driver was resident before the game started.
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.

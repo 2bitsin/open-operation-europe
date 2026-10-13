@@ -35,8 +35,7 @@ auto IsSupport(std::uint8_t category) -> bool {
 // routine's reserve.
 auto RandomAvailableType(Game& game, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
   ServiceLocals const types{ ELEMENT_TYPE_COUNT };
-  std::uint16_t       list{ types.At(0) };
-  auto const          count{ static_cast<std::uint8_t>(AiCall(game, AiService::DUE_RECORDS, mask, category, &list)) };
+  auto const          count{ opeu_list_due_records(game, types.At(0), mask, category) };
   return Record<TypeList>(Data(game), types.At(0))[opeu_rand_bounded(count)];
 }
 } // namespace

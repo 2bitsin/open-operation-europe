@@ -159,11 +159,3 @@ void port_load_scenario(Game& game, uint16_t scenario) {
   std::free(scedata);
   std::free(mapinf);
 }
-
-/* ---- boundary pointers ------------------------------------------------------- *
- * aiops1..aiops5 call six routines through the global opeu_ai_unrecovered
- * (core/aiops1); svc_ai_unrecovered maps its ids to those routines.
- * Installed by main() before the entry. */
-void port_install_hooks(void) {
-  opeu_ai_unrecovered = svc_ai_unrecovered;
-}

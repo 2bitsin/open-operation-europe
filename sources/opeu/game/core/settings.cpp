@@ -418,7 +418,7 @@ void opeu_settings_new_game(Game& game) {
     data.startup_mode  = 0;
     data.daily_pending = 1;
     data.restart_flag  = 0;
-    opeu_application_entry(game, svc_app);
+    opeu_application_entry(game);
   }
 }
 

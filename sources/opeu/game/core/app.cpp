@@ -29,19 +29,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the loop calls through its event.
-enum Service : std::uint16_t {
-  INITIALIZE   = 0, // ()
-  STARTUP      = 1, // ()
-  TURN         = 2, // () the current regiment's turn
-  NOTICE_BEGIN = 3, // ()
-  NOTICE_ONE   = 4, // () the notice of the player's presentation
-  NOTICE_OTHER = 5, // () any other presentation
-  NOTICE_END   = 6, // ()
-  VICTORY      = 7, // () -> nonzero when the scenario is decided
-  FINISH       = 8, // ()
-};
-
 // DataSegment::startup_mode: what start-up asks of the loop.
 constexpr std::uint8_t  FIRST_START{ 100 }; // initialise before start-up
 constexpr std::uint8_t  RESUME_TURN{ 11 };  // resume at the current regiment's turn
@@ -66,11 +53,11 @@ auto ShuffleTurnOrder(DataSegment& data) -> void {
 }
 } // namespace
 
-void opeu_application_entry(Game& game, uint16_t (*event)(Game&, uint16_t)) {
+void opeu_application_entry(Game& game) {
   auto& data{ Data(game) };
-  if (static_cast<std::uint8_t>(data.startup_mode) == FIRST_START) event(game, INITIALIZE);
+  if (static_cast<std::uint8_t>(data.startup_mode) == FIRST_START) opeu_app_initialize(game);
   data.startup_mode = 0;
-  event(game, STARTUP);
+  opeu_app_startup(game);
   auto const mode{ static_cast<std::uint8_t>(data.startup_mode) };
   if (mode != RESUME_TURN && mode != NEW_GAME) Stop();
   // Resuming a turn enters the innermost loop as it stands: no loop condition, day start, hour start or turn
@@ -85,15 +72,18 @@ void opeu_application_entry(Game& game, uint16_t (*event)(Game&, uint16_t)) {
           for (; resume || data.turn_cursor < TURN_SLOTS; ++data.turn_cursor) {
             if (!resume) opeu_select_turn_context(game);
             resume = false;
-            if (event(game, VICTORY)) {
-              event(game, FINISH);
+            if (opeu_check_victory(game)) {
+              opeu_app_finish(game);
               return;
             }
-            event(game, TURN);
+            opeu_process_selected_turn(game);
             if (data.turn_notification) {
-              event(game, NOTICE_BEGIN);
-              event(game, data.presentation_mode == PRESENT_ONE ? NOTICE_ONE : NOTICE_OTHER);
-              event(game, NOTICE_END);
+              opeu_notice_begin(game);
+              if (data.presentation_mode == PRESENT_ONE)
+                opeu_notice_one(game);
+              else
+                opeu_notice_other(game);
+              opeu_notice_end(game);
             }
           }
         }
@@ -130,21 +120,4 @@ void opeu_begin_hour(Game& game) {
   opeu_sub_byte(1, &data.side_delays[1]);
   ShuffleTurnOrder(data);
   data.turn_cursor = 0;
-}
-
-uint16_t svc_app(Game& game, uint16_t id) {
-  uint16_t result{ 0 };
-  switch (id) {
-  case INITIALIZE:   opeu_app_initialize(game); break;
-  case STARTUP:      opeu_app_startup(game); break;
-  case TURN:         opeu_process_selected_turn(game); break;
-  case NOTICE_BEGIN: opeu_notice_begin(game); break;
-  case NOTICE_ONE:   opeu_notice_one(game); break;
-  case NOTICE_OTHER: opeu_notice_other(game); break;
-  case NOTICE_END:   opeu_notice_end(game); break;
-  case VICTORY:      result = opeu_check_victory(game); break;
-  case FINISH:       opeu_app_finish(game); break;
-  default:           port_unhandled("app", id, 0);
-  }
-  return result;
 }

@@ -28,8 +28,6 @@
 
 using namespace opeu::game;
 
-uint16_t (*opeu_ai_unrecovered)(Game& game, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx);
-
 namespace {
 
 constexpr std::uint8_t  NO_TYPE{ 0xff };
@@ -197,17 +195,4 @@ uint16_t opeu_ai_03e2(Game& game) {
   drop.hours                                            = static_cast<std::uint8_t>(opeu_rand_bounded(5) + 1);
   drop.due                                              = static_cast<std::uint8_t>(drop.hours + 6);
   return 1;
-}
-
-uint16_t svc_ai_unrecovered(Game& game, uint16_t id, uint16_t ax, uint16_t dx, uint16_t* bx) {
-  switch (static_cast<AiService>(id)) {
-  case AiService::RELEASE_UNITS:      return opeu_release_side_units(game, *bx, static_cast<uint8_t>(ax));
-  case AiService::RELEASE_ELEMENTS:   return opeu_release_side_elements(game, *bx, static_cast<uint8_t>(ax));
-  case AiService::DUE_RECORDS:        return opeu_list_due_records(game, *bx, static_cast<uint8_t>(ax), static_cast<uint8_t>(dx));
-  case AiService::OBJECTIVE_LEVEL:    return opeu_objective_level(game, *bx);
-  case AiService::OBJECTIVE_ELIGIBLE: return opeu_objective_eligible(game, *bx);
-  case AiService::SUPPLY_SHARE:       return opeu_ai_supply_share(game, bx, ax, static_cast<uint8_t>(dx));
-  }
-  port_unhandled("ai_unrecovered", id, 3);
-  return 0;
 }
