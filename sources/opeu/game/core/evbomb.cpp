@@ -45,7 +45,6 @@ enum Service : std::uint16_t {
   SPRITE_COMPOSE = 2,  // (x, y, w, h, image offset, segment, mask offset, segment, target offset, segment, mode)
   BITMAP_RESTORE = 3,  // (x, y, w, h, mode, segment, offset)
   MAP_CENTER     = 4,  // (x, y, side)
-  VIEW_PIXEL     = 5,  // (&x, &y): a cell to its screen pixel
   SOUND_CUE      = 6,  // ()
   DELAY          = 7,  // (ticks)
   MUSIC_COMMAND7 = 8,  // ()
@@ -117,7 +116,7 @@ void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy), opeu_side_for_status(ds, side));
-  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, ux, uy) };
+  auto const pixel{ CellViewPixel(ds, ux, uy) };
   auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
   for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
     opeu_bomb_draw_frame(ds, event, load, pixel.x, row);
@@ -185,7 +184,6 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
     opeu_map_center(ds, svc_mappos, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
     break;
   }
-  case VIEW_PIXEL:     opeu_view_pixel(ds, word(0), word(1)); break;
   case SOUND_CUE:      opeu_sound_cue4(ds, svc_soundcue); break;
   case DELAY:          opeu_delay_ticks(ds, svc_waitkey, word(0)); break;
   case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;

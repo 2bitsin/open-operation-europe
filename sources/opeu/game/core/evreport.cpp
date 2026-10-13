@@ -44,26 +44,17 @@ enum Service : std::uint16_t {
   UNIT_MESSAGE   = 2, // (unit, text)
   DAILY_SHOW     = 3, // (daily item, side, presenter offset, presenter segment)
   CONTEXT        = 4, // (side) the commander panel
-  EVENT          = 5, // (segment, offset) a far event routine
 };
 
-// The far routines of the round, as (segment, offset).
+// opeu_report_present as the far routine (segment, offset) the daily item's presenter calls.
 struct FarRoutine {
   std::uint16_t segment;
   std::uint16_t offset;
 };
-constexpr FarRoutine PARTISAN_EVENT{ 0x108c, 0x0402 };
-constexpr FarRoutine LOSS_EVENT_A{ 0x108c, 0x06ba };
-constexpr FarRoutine LOSS_EVENT_B{ 0x108c, 0x0838 };
-constexpr FarRoutine BOMB_EVENT{ 0x108c, 0x0ab6 };
-constexpr FarRoutine ANGEL_EVENT{ 0x108c, 0x0f3e };
-constexpr FarRoutine SPY_EVENT{ 0x108c, 0x1250 };
-constexpr FarRoutine VISIT_EVENT{ 0x108c, 0x02c2 };
-constexpr FarRoutine WOUND_EVENT{ 0x11e5, 0x009c };
-constexpr FarRoutine COMMS_EVENT{ 0x11e5, 0x01a4 };
-constexpr FarRoutine UNIT_HOURLY_EVENT{ 0x11e5, 0x0606 };
-// opeu_report_present as the far routine the daily item's presenter calls.
 constexpr FarRoutine REPORT_PRESENTER{ 0x108c, 0x1302 };
+// The code segment the angel event's actions are stored with, and the bomb event's load.
+constexpr std::uint16_t ANGEL_CODE_SEGMENT{ 0x108c };
+constexpr std::uint16_t BOMB_LOAD{ 0 };
 
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
 constexpr std::uint16_t RESTED_MESSAGE{ 0x3b };
@@ -84,10 +75,6 @@ void ReportUnits(std::uint8_t* ds, HostEvent event, ReportList const& list, std:
       seen = true;
     }
   }
-}
-
-void RunEvent(std::uint8_t* ds, HostEvent event, FarRoutine routine) {
-  Call(ds, event, EVENT, routine.segment, routine.offset);
 }
 } // namespace
 
@@ -143,17 +130,17 @@ void opeu_report_event(uint8_t ds[65536], HostEvent event) {
 // The second round of hourly events, with the unit reports between the visit and the wound events.
 void opeu_turn_hourly_b(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, CONTEXT, Data(ds).current_side);
-  RunEvent(ds, event, PARTISAN_EVENT);
-  RunEvent(ds, event, LOSS_EVENT_A);
-  RunEvent(ds, event, LOSS_EVENT_B);
-  RunEvent(ds, event, BOMB_EVENT);
-  RunEvent(ds, event, ANGEL_EVENT);
-  RunEvent(ds, event, SPY_EVENT);
-  RunEvent(ds, event, VISIT_EVENT);
+  opeu_partisan_event(ds, svc_evpartis);
+  opeu_loss_event_a(ds, svc_evloss);
+  opeu_loss_event_b(ds, svc_evloss);
+  opeu_bomb_event(ds, svc_evbomb, BOMB_LOAD);
+  opeu_angel_event(ds, svc_evangel, ANGEL_CODE_SEGMENT);
+  opeu_spy_event(ds, svc_evspy);
+  opeu_visit_event(ds, svc_evvisit);
   opeu_report_event(ds, event);
-  RunEvent(ds, event, WOUND_EVENT);
-  RunEvent(ds, event, COMMS_EVENT);
-  RunEvent(ds, event, UNIT_HOURLY_EVENT);
+  opeu_wound_event(ds, svc_evwound);
+  opeu_objective_comms_event(ds, svc_evcomms);
+  opeu_unit_hourly_event(ds, svc_evunits);
 }
 
 uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
@@ -166,7 +153,6 @@ uint16_t svc_evreport(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2));
     break;
   case CONTEXT: opeu_daily_context(ds, svc_context, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case EVENT:   port_call(ds, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0); break;
   default:      port_unhandled("evreport", id, count);
   }
   return result;

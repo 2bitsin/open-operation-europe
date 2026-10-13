@@ -79,7 +79,6 @@ int opeu_new_game_setup(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   uint16_t const      buf{ locals.At(0) };
-  auto const          call{ [&](Service service, auto... words) -> uint16_t { return Call(ds, event, service, words...); } };
   auto const          at{ [&](auto const& field) -> uint16_t { return Near(data, field); } };
   auto&               side_control{ data.side_control };
   auto&               side_status{ data.side_status };
@@ -88,72 +87,72 @@ int opeu_new_game_setup(uint8_t ds[65536], HostEvent event) {
   uint8_t             scenario;
   int                 new_game;
 
-  call(LOAD_MESSAGE_GRAPHICS);
-  handle = call(OPEN, at(data.scensel_file));
+  Call(ds, event, LOAD_MESSAGE_GRAPHICS);
+  handle = Call(ds, event, OPEN, at(data.scensel_file));
 restart:
-  call(TURN_CONTEXT, 0);
-  call(MUSIC_STOP);
-  call(TURN_CONTEXT, 7);
-  call(FINISH_INIT, 1);
+  Call(ds, event, TURN_CONTEXT, 0);
+  Call(ds, event, MUSIC_STOP);
+  Call(ds, event, TURN_CONTEXT, 7);
+  Call(ds, event, FINISH_INIT, 1);
 title:
-  call(VGA_CLEAR);
-  call(PICTURE_MASKED, 0, 0, handle, 0);
-  call(TITLE_PALETTE);
-  call(UI_TEXT, at(data.scensel_colors));
-  call(POSITION, 4, 0xf4);
-  selection = call(PROMPT_REQUIRED, at(data.scensel_start_prompt), 2, at(data.scensel_start_menu));
+  Call(ds, event, VGA_CLEAR);
+  Call(ds, event, PICTURE_MASKED, 0, 0, handle, 0);
+  Call(ds, event, TITLE_PALETTE);
+  Call(ds, event, UI_TEXT, at(data.scensel_colors));
+  Call(ds, event, POSITION, 4, 0xf4);
+  selection = Call(ds, event, PROMPT_REQUIRED, at(data.scensel_start_prompt), 2, at(data.scensel_start_menu));
   if (selection == 1) {
     new_game = 1;
   scenario_menu:
-    call(CLEAR_PANEL);
-    call(POSITION, 4, 0x12c);
-    selection = call(PROMPT_CANCEL, at(data.scensel_scenario_prompt), 6, at(data.scensel_scenario_menu));
+    Call(ds, event, CLEAR_PANEL);
+    Call(ds, event, POSITION, 4, 0x12c);
+    selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_scenario_prompt), 6, at(data.scensel_scenario_menu));
     if (selection == 0xff) goto title;
     scenario = selection;
-    call(LOAD_SCENARIO_TEXT, scenario, buf);
-    call(PICTURE_MASKED, 0x15c, 0x10, handle, data.scensel_pictures[scenario]);
-    call(POSITION, 4, 0x18);
-    call(CLEAR_PANEL);
-    call(SCENARIO_DESCRIPTION, buf);
-    call(MARKER_SHOW, scenario);
-    if (!call(YES_NO, at(data.scensel_empty))) goto rejected;
-    call(LOAD_SCENARIO, scenario);
-    call(TURN_CONTEXT, 0);
-    call(MUSIC_STOP);
-    call(TURN_CONTEXT, static_cast<uint8_t>(data.scenario + 1));
+    Call(ds, event, LOAD_SCENARIO_TEXT, scenario, buf);
+    Call(ds, event, PICTURE_MASKED, 0x15c, 0x10, handle, data.scensel_pictures[scenario]);
+    Call(ds, event, POSITION, 4, 0x18);
+    Call(ds, event, CLEAR_PANEL);
+    Call(ds, event, SCENARIO_DESCRIPTION, buf);
+    Call(ds, event, MARKER_SHOW, scenario);
+    if (!Call(ds, event, YES_NO, at(data.scensel_empty))) goto rejected;
+    Call(ds, event, LOAD_SCENARIO, scenario);
+    Call(ds, event, TURN_CONTEXT, 0);
+    Call(ds, event, MUSIC_STOP);
+    Call(ds, event, TURN_CONTEXT, static_cast<uint8_t>(data.scenario + 1));
   players:
-    call(CLEAR_PANEL);
-    call(SCENARIO_FRAME);
-    call(CLEAR_TEXT);
-    call(POSITION, 6, 7);
+    Call(ds, event, CLEAR_PANEL);
+    Call(ds, event, SCENARIO_FRAME);
+    Call(ds, event, CLEAR_TEXT);
+    Call(ds, event, POSITION, 6, 7);
     switch (data.scenario + 1) {
-    case 1:  call(PRINT, at(data.scensel_france)); break;
-    case 2:  call(PRINT, at(data.scensel_africa)); break;
-    case 3:  call(PRINT, at(data.scensel_kursk)); break;
-    case 4:  call(PRINT, at(data.scensel_dday)); break;
-    case 5:  call(PRINT, at(data.scensel_bulge)); break;
-    default: call(PRINT, at(data.scensel_berlin)); break;
+    case 1:  Call(ds, event, PRINT, at(data.scensel_france)); break;
+    case 2:  Call(ds, event, PRINT, at(data.scensel_africa)); break;
+    case 3:  Call(ds, event, PRINT, at(data.scensel_kursk)); break;
+    case 4:  Call(ds, event, PRINT, at(data.scensel_dday)); break;
+    case 5:  Call(ds, event, PRINT, at(data.scensel_bulge)); break;
+    default: Call(ds, event, PRINT, at(data.scensel_berlin)); break;
     }
-    call(POSITION, 4, 0xf4);
-    selection = call(PROMPT_CANCEL, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
+    Call(ds, event, POSITION, 4, 0xf4);
+    selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
     if (selection == 0xff) {
-      call(TURN_CONTEXT, 0);
-      call(MUSIC_STOP);
-      call(TURN_CONTEXT, 7);
-      call(FINISH_INIT, 1);
+      Call(ds, event, TURN_CONTEXT, 0);
+      Call(ds, event, MUSIC_STOP);
+      Call(ds, event, TURN_CONTEXT, 7);
+      Call(ds, event, FINISH_INIT, 1);
     rejected:
-      call(MARKER_HIDE, scenario);
+      Call(ds, event, MARKER_HIDE, scenario);
       goto scenario_menu;
     }
     switch (selection) {
     case 1:
-      call(POSITION, 4, 0x19);
-      call(SCENARIO_MESSAGE, at(data.scensel_demo));
+      Call(ds, event, POSITION, 4, 0x19);
+      Call(ds, event, SCENARIO_MESSAGE, at(data.scensel_demo));
       side_control[1] = side_control[0] = 0;
     view_side:
-      call(CLEAR_TEXT);
-      call(POSITION, 4, 0xdc);
-      selection = call(PROMPT_CANCEL, at(data.scensel_view_prompt), 2, at(data.scensel_side_menu));
+      Call(ds, event, CLEAR_TEXT);
+      Call(ds, event, POSITION, 4, 0xdc);
+      selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_view_prompt), 2, at(data.scensel_side_menu));
       if (selection == 0xff) goto players;
       if (!data.input_mode) selection = selection == 1 ? 2 : 1;
       if (selection == 1) {
@@ -163,18 +162,18 @@ title:
         side_status[0] = 0;
         side_status[1] = 1;
       }
-      call(FORMAT, buf, at(data.scensel_view_format), data.ui_side_names[selection - 1]);
-      call(POSITION, 4, 0x28);
-      call(PRINT, at(data.scensel_view_line), buf);
+      Call(ds, event, FORMAT, buf, at(data.scensel_view_format), data.ui_side_names[selection - 1]);
+      Call(ds, event, POSITION, 4, 0x28);
+      Call(ds, event, PRINT, at(data.scensel_view_line), buf);
       data.message_delay = 7;
       break;
     case 2:
-      call(POSITION, 4, 0x19);
-      call(PRINT, at(data.scensel_one_player), buf);
+      Call(ds, event, POSITION, 4, 0x19);
+      Call(ds, event, PRINT, at(data.scensel_one_player), buf);
     command_side:
-      call(CLEAR_TEXT);
-      call(POSITION, 4, 0xdc);
-      selection = call(PROMPT_CANCEL, at(data.scensel_command_prompt), 2, at(data.scensel_side_menu));
+      Call(ds, event, CLEAR_TEXT);
+      Call(ds, event, POSITION, 4, 0xdc);
+      selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_command_prompt), 2, at(data.scensel_side_menu));
       if (selection == 0xff) goto players;
       if (!data.input_mode) selection--;
       if (selection == 1) {
@@ -185,21 +184,21 @@ title:
         side_status[0] = side_control[0] = 0;
         side_status[1] = side_control[1] = 1;
       }
-      call(FORMAT, buf, at(data.scensel_command_format), data.ui_side_names[selection - 1]);
-      call(POSITION, 4, 0x28);
-      call(PRINT, at(data.scensel_command_line), buf);
+      Call(ds, event, FORMAT, buf, at(data.scensel_command_format), data.ui_side_names[selection - 1]);
+      Call(ds, event, POSITION, 4, 0x28);
+      Call(ds, event, PRINT, at(data.scensel_command_line), buf);
       break;
     case 3:
-      call(POSITION, 4, 0x19);
-      call(PRINT, at(data.scensel_two_players), buf);
+      Call(ds, event, POSITION, 4, 0x19);
+      Call(ds, event, PRINT, at(data.scensel_two_players), buf);
       side_status[1] = side_status[0] = side_control[1] = side_control[0] = 1;
       break;
     default: goto title;
     }
   map:
-    call(CLEAR_TEXT);
-    call(POSITION, 4, 0xdc);
-    data.map_mode[0] = call(PROMPT_CANCEL, at(data.scensel_map_prompt), 2, at(data.scensel_map_menu));
+    Call(ds, event, CLEAR_TEXT);
+    Call(ds, event, POSITION, 4, 0xdc);
+    data.map_mode[0] = Call(ds, event, PROMPT_CANCEL, at(data.scensel_map_prompt), 2, at(data.scensel_map_menu));
     if (data.map_mode[0] == 0xff) {
       if (side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_PLAYED) goto players;
       if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) goto view_side;
@@ -212,89 +211,89 @@ title:
       else
         data.map_mode[0] = 0;
     }
-    call(FORMAT, buf, at(data.scensel_map_format), !data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field));
-    call(POSITION, 4, 0x37);
-    call(PRINT, at(data.scensel_map_line), buf);
+    Call(ds, event, FORMAT, buf, at(data.scensel_map_format), !data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field));
+    Call(ds, event, POSITION, 4, 0x37);
+    Call(ds, event, PRINT, at(data.scensel_map_line), buf);
   battles:
-    call(CLEAR_TEXT);
+    Call(ds, event, CLEAR_TEXT);
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
-      call(POSITION, 4, 0xdc);
-      selection = call(PROMPT_CANCEL, at(data.scensel_battles_prompt), 2, at(data.scensel_battles_menu));
+      Call(ds, event, POSITION, 4, 0xdc);
+      selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_battles_prompt), 2, at(data.scensel_battles_menu));
     } else {
-      call(POSITION, 4, 0xf4);
-      selection = call(PROMPT_CANCEL, at(data.scensel_battles_prompt2), 3, at(data.scensel_battles_menu2));
+      Call(ds, event, POSITION, 4, 0xf4);
+      selection = Call(ds, event, PROMPT_CANCEL, at(data.scensel_battles_prompt2), 3, at(data.scensel_battles_menu2));
     }
     if (selection == 0xff) goto map;
     switch (selection) {
     case 1:
       data.battle_view = 1;
-      call(STRING_COPY, buf, at(data.scensel_view_all));
+      Call(ds, event, STRING_COPY, buf, at(data.scensel_view_all));
       break;
     case 2:
       data.battle_view = 0;
-      call(STRING_COPY, buf, at(data.scensel_view_none));
+      Call(ds, event, STRING_COPY, buf, at(data.scensel_view_none));
       break;
     default:
       data.battle_view = 0xff;
-      call(STRING_COPY, buf, at(data.scensel_view_selected));
+      Call(ds, event, STRING_COPY, buf, at(data.scensel_view_selected));
       break;
     }
-    call(POSITION, 4, 0x46);
-    call(PRINT, at(data.scensel_battles_line), buf);
+    Call(ds, event, POSITION, 4, 0x46);
+    Call(ds, event, PRINT, at(data.scensel_battles_line), buf);
   difficulty:
     if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) {
-      call(CLEAR_TEXT);
-      call(POSITION, 4, 0x124);
-      data.delivery_level = call(PROMPT_CANCEL, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
+      Call(ds, event, CLEAR_TEXT);
+      Call(ds, event, POSITION, 4, 0x124);
+      data.delivery_level = Call(ds, event, PROMPT_CANCEL, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
       if (data.delivery_level == 0xff) goto battles;
       data.delivery_level--;
-      call(STRING_COPY, buf, at(data.scensel_difficulty));
+      Call(ds, event, STRING_COPY, buf, at(data.scensel_difficulty));
       switch (data.delivery_level) {
-      case 0: call(STRING_APPEND, buf, at(data.scensel_very_easy)); break;
-      case 1: call(STRING_APPEND, buf, at(data.scensel_easy)); break;
-      case 2: call(STRING_APPEND, buf, at(data.scensel_average)); break;
-      case 3: call(STRING_APPEND, buf, at(data.scensel_hard)); break;
-      case 4: call(STRING_APPEND, buf, at(data.scensel_very_hard)); break;
+      case 0: Call(ds, event, STRING_APPEND, buf, at(data.scensel_very_easy)); break;
+      case 1: Call(ds, event, STRING_APPEND, buf, at(data.scensel_easy)); break;
+      case 2: Call(ds, event, STRING_APPEND, buf, at(data.scensel_average)); break;
+      case 3: Call(ds, event, STRING_APPEND, buf, at(data.scensel_hard)); break;
+      case 4: Call(ds, event, STRING_APPEND, buf, at(data.scensel_very_hard)); break;
       }
-      call(POSITION, 4, 0x55);
-      call(PRINT, at(data.scensel_difficulty_line), buf);
+      Call(ds, event, POSITION, 4, 0x55);
+      Call(ds, event, PRINT, at(data.scensel_difficulty_line), buf);
     }
-    call(UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
-    call(POSITION, 4, 0x154);
-    if (!call(YES_NO, at(data.scensel_settings_ok))) {
-      call(POSITION, 4, 0x154);
-      call(PRINT, at(data.scensel_reselect));
-      call(UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
+    Call(ds, event, UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
+    Call(ds, event, POSITION, 4, 0x154);
+    if (!Call(ds, event, YES_NO, at(data.scensel_settings_ok))) {
+      Call(ds, event, POSITION, 4, 0x154);
+      Call(ds, event, PRINT, at(data.scensel_reselect));
+      Call(ds, event, UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
       if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) goto difficulty;
       goto battles;
     }
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
-      call(CONFIRM_GENERALS);
-      call(UI_BOX, 2, 0x86, 0x22, 0x154, 7);
-      call(POSITION, 4, 0x154);
-      if (call(YES_NO, at(data.scensel_ready_demo))) goto start;
+      Call(ds, event, CONFIRM_GENERALS);
+      Call(ds, event, UI_BOX, 2, 0x86, 0x22, 0x154, 7);
+      Call(ds, event, POSITION, 4, 0x154);
+      if (Call(ds, event, YES_NO, at(data.scensel_ready_demo))) goto start;
       goto restart;
     }
-    call(DELAY, 15);
-    call(UI_TEXT, at(data.scensel_ready_colors));
-    call(CONFIRM_GENERALS);
-    call(POSITION, 0x14, 0x170);
+    Call(ds, event, DELAY, 15);
+    Call(ds, event, UI_TEXT, at(data.scensel_ready_colors));
+    Call(ds, event, CONFIRM_GENERALS);
+    Call(ds, event, POSITION, 0x14, 0x170);
   } else if (selection == 2) {
     new_game = 0;
-    call(UI_TEXT, at(data.scensel_load_colors));
-    if (!call(LOAD_SAVED_GAME)) goto restart;
-    call(POSITION, 0x1c, 0xbc);
+    Call(ds, event, UI_TEXT, at(data.scensel_load_colors));
+    if (!Call(ds, event, LOAD_SAVED_GAME)) goto restart;
+    Call(ds, event, POSITION, 0x1c, 0xbc);
   } else
     goto title;
-  call(STAFF_RESTORE_BOTTOM);
-  call(TEXT_ATTRIBUTE, 4);
-  call(UI_TEXT, call(FRAMED_TEXT, 0x1c, 0xbc, at(data.scensel_ready_blank)));
-  call(POSITION, 0x1c, 0xbc);
-  if (!call(YES_NO, at(data.scensel_ready))) goto restart;
+  Call(ds, event, STAFF_RESTORE_BOTTOM);
+  Call(ds, event, TEXT_ATTRIBUTE, 4);
+  Call(ds, event, UI_TEXT, Call(ds, event, FRAMED_TEXT, 0x1c, 0xbc, at(data.scensel_ready_blank)));
+  Call(ds, event, POSITION, 0x1c, 0xbc);
+  if (!Call(ds, event, YES_NO, at(data.scensel_ready))) goto restart;
 start:
-  call(LOAD_SCENARIO_GRAPHICS);
-  call(UI_TEXT, at(data.scensel_done_colors));
-  call(CLOSE, handle);
+  Call(ds, event, LOAD_SCENARIO_GRAPHICS);
+  Call(ds, event, UI_TEXT, at(data.scensel_done_colors));
+  Call(ds, event, CLOSE, handle);
   return new_game;
 }
 

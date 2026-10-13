@@ -42,6 +42,13 @@ auto TypeAt(std::uint8_t type) -> std::uint16_t {
   return static_cast<std::uint16_t>(ELEMENT_TYPES_AT + type * sizeof(ElementType));
 }
 
+// Works out the list's column layout into a reserve of its own; the table views do not read it.
+auto LayOutColumns(std::uint8_t* ds, std::uint8_t column, std::uint8_t row) -> void {
+  ServiceLocals const locals{ 4 };
+  auto const          out{ locals.At(0) };
+  opeu_table_columns(ds, svc_listui, column, row, out, static_cast<std::uint16_t>(out + 1), static_cast<std::uint16_t>(out + 2));
+}
+
 } // namespace
 
 // The list predicate of the units view: whether the unit on the selected row may be picked.
@@ -149,13 +156,7 @@ void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint8_t column,
 
 void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SupplyTableService>(id)) {
-  case LAYOUT: {
-    // The layout's three byte outputs go to a reserve and are not used.
-    ServiceLocals const locals{ 4 };
-    auto const          out{ locals.At(0) };
-    opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), out, (uint16_t)(out + 1), (uint16_t)(out + 2));
-    break;
-  }
+  case LAYOUT:    LayOutColumns(ds, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
   case POSITION:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case PRINT:     opeu_cursor_print(ds, { args, count }); break;
   case HIGHLIGHT: opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;

@@ -7,11 +7,13 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "common/view-service.hpp"
+#include "core/textout.hpp"
 #include "core/vwarms.hpp"
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
@@ -43,9 +45,10 @@ void Position(std::uint8_t* ds, HostEvent event, ScreenPoint at) {
   Call(ds, event, ViewService::ARMY_POSITION, at.x, at.y);
 }
 
-template <typename... Words>
-void Print(std::uint8_t* ds, HostEvent event, std::uint16_t format, Words... words) {
-  Call(ds, event, ViewService::ARMY_PRINT, format, words...);
+// Prints the format with its words at the text cursor.
+template <typename... _Words>
+void Print(std::uint8_t* ds, std::uint16_t format, _Words... words) {
+  opeu_cursor_print(ds, std::array<std::uint16_t, 1 + sizeof...(_Words)>{ format, static_cast<std::uint16_t>(words)... });
 }
 
 } // namespace
@@ -61,21 +64,21 @@ void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t objective
   Call(ds, event, ViewService::ARMY_TITLE, objective);
   Call(ds, event, ViewService::OBJECTIVE_PERCENTS, objective, ammunition, fuel, food);
   Position(ds, event, FIRST_ROW);
-  Print(ds, event, FUEL_AMMO, city.resources[1], Word(ds, fuel), city.resources[0], Word(ds, ammunition));
+  Print(ds, FUEL_AMMO, city.resources[1], Word(ds, fuel), city.resources[0], Word(ds, ammunition));
   Position(ds, event, SECOND_ROW);
-  Print(ds, event, FOOD_END, city.resources[2], Word(ds, food), city.strength, city.strength_limit);
+  Print(ds, FOOD_END, city.resources[2], Word(ds, food), city.strength, city.strength_limit);
   Position(ds, event, GARRISON_ROW);
-  Print(ds, event, GARRISON);
+  Print(ds, GARRISON);
   std::uint8_t shown{ 0 };
   for (auto const& item : city.items)
     if (item.quantity) {
       Position(ds, event, data.stock_rows[shown]);
-      Print(ds, event, STOCK_ROW, data.element_types[item.type].name, item.quantity);
+      Print(ds, STOCK_ROW, data.element_types[item.type].name, item.quantity);
       shown++;
     }
   if (shown == 0) {
     Position(ds, event, NO_STOCK_ROW);
-    Print(ds, event, NO_STOCK);
+    Print(ds, NO_STOCK);
   }
 }
 
@@ -103,18 +106,18 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t unit) {
   auto const has_destination{ Call(ds, event, ViewService::ORDER_DESTINATION, unit, destination_x, destination_y) };
   Position(ds, event, FIRST_ROW);
   auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + ORDER_NAME_BASE] : WAITING };
-  Print(ds, event, ORDERS, order, regiment.resources[1], Word(ds, fuel));
+  Print(ds, ORDERS, order, regiment.resources[1], Word(ds, fuel));
   Position(ds, event, SECOND_ROW);
   auto const target{ has_destination ? Call(ds, event, ViewService::LOCATION_NAME, Record<std::uint8_t>(data, destination_x), Record<std::uint8_t>(data, destination_y), location_name)
                                      : Call(ds, event, ViewService::LOCATION_NAME, regiment.x, regiment.y, location_name) };
-  Print(ds, event, TARGET, target, regiment.resources[0], Word(ds, ammunition));
+  Print(ds, TARGET, target, regiment.resources[0], Word(ds, ammunition));
   Position(ds, event, THIRD_ROW);
-  Print(ds, event, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(ds, food));
+  Print(ds, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(ds, food));
   std::uint8_t row{ 0 };
   for (auto element{ regiment.first }; element; element = Record<Element>(data, element).next, row++) {
     auto const& battalion{ Record<Element>(data, element) };
     Position(ds, event, data.element_rows[row]);
-    Print(ds, event, ELEMENT_ROW, data.element_types[battalion.type].name, battalion.quantity);
+    Print(ds, ELEMENT_ROW, data.element_types[battalion.type].name, battalion.quantity);
   }
 }
 

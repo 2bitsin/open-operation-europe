@@ -46,7 +46,6 @@ enum class DropService : uint16_t {
   CUE             = 7,
   SIDE_FOR_STATUS = 8,  // (side): the colour side of a side's report
   MAP_CENTER      = 9,  // (x, y, side)
-  VIEW_PIXEL      = 10, // (&x, &y): a map cell to its screen pixel, in place
   DAILY_SHOW      = 11, // (id, side, presenter offset, presenter segment)
   MUSIC           = 12,
   UNIT_CREATE     = 13, // (side, drop) -> the paratroop regiment
@@ -85,6 +84,12 @@ constexpr uint16_t SHOW_ID{ 0xfa };
 // The far address of opeu_para_drop_present: its offset, and its segment relative to the caller's.
 constexpr uint16_t PRESENTER_OFFSET{ 0xd72 };
 constexpr uint16_t PRESENTER_SEGMENT{ 0xf43 };
+
+// Lands the side's paratroop regiment of the drop (a DS offset) at the drop's cell; returns the regiment.
+auto CreateDropUnit(uint8_t* ds, uint8_t side, uint16_t drop) -> uint16_t {
+  auto const& planned{ Record<AirDrop>(Data(ds), drop) };
+  return opeu_para_unit_create(ds, svc_paraunit, side, planned.x, planned.y);
+}
 
 } // namespace
 
@@ -170,7 +175,7 @@ void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment) 
   opeu_sub_word(left, &side.planes);
   opeu_sub_word(drop.paratroops, &side.paratroops);
   opeu_sub_word(Call(ds, event, DropService::DAMAGE_ROLL, x, y, opeu_min16(left, FIRE_PLANES) / 30), &left);
-  auto const     pixel{ ServicePixel(ds, event, DropService::VIEW_PIXEL, x, y) };
+  auto const     pixel{ CellViewPixel(ds, x, y) };
   uint16_t const target_x{ pixel.x };
   uint16_t const target_y{ pixel.y };
   for (uint16_t row = FLIGHT_START; row >= FLIGHT_END; row--) {
@@ -217,14 +222,9 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     opeu_map_center(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
-  case DropService::VIEW_PIXEL:  opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DropService::DAILY_SHOW:  port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case DropService::MUSIC:       opeu_music_command7(ds, svc_sound); break;
-  case DropService::UNIT_CREATE: {
-    auto const& drop{ Record<AirDrop>(Data(ds), Arg(args, count, 1)) };
-    r = opeu_para_unit_create(ds, svc_paraunit, (uint8_t)Arg(args, count, 0), drop.x, drop.y);
-    break;
-  }
+  case DropService::DAILY_SHOW:      port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case DropService::MUSIC:           opeu_music_command7(ds, svc_sound); break;
+  case DropService::UNIT_CREATE:     r = CreateDropUnit(ds, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1)); break;
   case DropService::LAND:            r = opeu_para_land(ds, svc_paraunit, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::ARRIVAL_PREPARE: {
     opeu_arrival_prepare(ds, svc_maperase, Arg(args, count, 0));

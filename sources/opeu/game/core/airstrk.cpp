@@ -67,7 +67,6 @@ enum Service : std::uint16_t {
   TURN_CONTEXT     = 17, // (context)
   SIDE_FOR_STATUS  = 18, // (side)
   MAP_CENTER       = 19, // (x, y, side)
-  VIEW_PIXEL       = 20, // (&x, &y): a cell to its screen pixel
   SPRITE_DRAW      = 21, // (x, y, side)
   DAILY_SHOW       = 22, // (picture, side, presenter offset, presenter segment)
   MUSIC_COMMAND7   = 23, // ()
@@ -195,7 +194,7 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
-  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
+  auto const pixel{ CellViewPixel(ds, x, y) };
   auto const hx{ pixel.x };
   auto const my{ pixel.y };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
@@ -264,7 +263,6 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
     opeu_map_center(ds, svc_mappos, byte(0), byte(1), byte(2));
     break;
   }
-  case VIEW_PIXEL:  opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case SPRITE_DRAW: {
     opeu_air_sprite_draw(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), byte(2));
     break;

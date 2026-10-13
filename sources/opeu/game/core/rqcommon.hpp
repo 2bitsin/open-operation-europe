@@ -1,8 +1,11 @@
 // The request menu's shared pieces: its service table and the helpers its choices use.
 #pragma once
 
+#include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "types.hpp"
+
+#include <cstdint>
 
 // The services of the request menu (core/rqmenu, core/rqsupply, units/rqarms, units/rqreinf), called through their
 // event. svc_request serves the ones core/rqcommon, core/rqmenu and core/rqsupply raise.
@@ -35,6 +38,15 @@ uint16_t opeu_request_cancel_prompt(uint8_t* ds, HostEvent event, uint16_t what)
 void     opeu_request_finish(uint8_t* ds, HostEvent event);
 void     opeu_request_file(uint8_t* ds, HostEvent event, uint16_t request);
 uint16_t opeu_side_has_city(const uint8_t* ds);
+
+namespace opeu::game::detail::rqcommon {
+// Files the request from a copy in a DS reserve of its own.
+auto FileRequest(std::uint8_t* ds, RequestSlot request) -> void;
+} // namespace opeu::game::detail::rqcommon
+
+namespace opeu::game {
+using detail::rqcommon::FileRequest;
+} // namespace opeu::game
 
 // The request menu's services; module names the caller in diagnostics.
 uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

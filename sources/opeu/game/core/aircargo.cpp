@@ -63,7 +63,6 @@ enum Service : std::uint16_t {
   SOUND_CUE         = 14, // ()
   REQUEST_FORMAT    = 15, // (destination, format, words...)
   MAP_CENTER        = 16, // (x, y, side)
-  VIEW_PIXEL        = 17, // (&x, &y): a cell to its screen pixel
   DAILY_SHOW        = 18, // (picture, side, presenter offset, presenter segment)
   MUSIC_COMMAND7    = 19, // ()
   DELAY             = 20, // (ticks)
@@ -178,7 +177,7 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   Call(ds, event, MAP_CENTER, x, y, static_cast<std::uint8_t>(Call(ds, event, SIDE_FOR_STATUS, side)));
-  auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
+  auto const pixel{ CellViewPixel(ds, x, y) };
   auto const text{ locals.At(TEXT_AT) };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
     if (row <= LOST_ROW && planes == 0) {
@@ -287,7 +286,6 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
     opeu_map_center(ds, svc_mappos, byte(0), byte(1), byte(2));
     break;
   }
-  case VIEW_PIXEL:     opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
   case MUSIC_COMMAND7: opeu_music_command7(ds, svc_sound); break;
   case DELAY:          opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;

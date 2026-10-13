@@ -330,16 +330,9 @@ void opeu_notice_begin(uint8_t ds[65536], HostEvent event) {
 uint16_t svc_notice(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case FIND_OBJECTIVE:  r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case FIND_UNIT:       r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case UNIT_CAPACITIES: {
-    uint16_t a, b, c;
-    opeu_unit_capacities(ds, Arg(args, count, 0), &a, &b, &c);
-    port_set_word(ds, Arg(args, count, 1), a);
-    port_set_word(ds, Arg(args, count, 2), b);
-    port_set_word(ds, Arg(args, count, 3), c);
-    break;
-  }
+  case FIND_OBJECTIVE:     r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case FIND_UNIT:          r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case UNIT_CAPACITIES:    StoreUnitCapacities(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
   case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
   case GRID_STEP:          r = opeu_grid_step(ds + Arg(args, count, 0), ds + Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ELEMENT_UNIT:       r = opeu_find_element_unit(ds, Arg(args, count, 0)); break;
