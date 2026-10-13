@@ -39,7 +39,7 @@ constexpr std::uint16_t NAME_INDENT{ 2 };
 
 // The regiment table: name, position, order target and order, and fuel, ammunition and food percentages. Own
 // regiments need to be selectable; enemy regiments show the full row only when spotted, otherwise just the position.
-void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -90,7 +90,7 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
 }
 
 // The regiment orders table: the regiment's name and a fixed request text.
-void opeu_tbl_draw_orders(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_orders(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -113,15 +113,10 @@ void opeu_tbl_draw_orders(Game& game, HostEvent event, uint8_t column, uint8_t f
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
-// The tables' calls are the row-draw services; unit_name and location_name format through this event as well.
-uint16_t svc_tblunit(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(game, "tblunit", id, args, count);
-}
-
 auto port_routine_opeu_tbl_draw_orders(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblunit, opeu_tbl_draw_orders, args, count);
+  return RunTableRows(game, opeu_tbl_draw_orders, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_units(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblunit, opeu_tbl_draw_units, args, count);
+  return RunTableRows(game, opeu_tbl_draw_units, args, count);
 }

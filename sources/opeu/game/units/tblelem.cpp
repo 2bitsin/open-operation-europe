@@ -27,7 +27,7 @@ constexpr std::uint16_t NAME_TEXT{ 104 };
 constexpr std::uint16_t NAME_INDENT{ 2 };
 } // namespace
 
-void opeu_tbl_draw_elements(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_elements(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -54,11 +54,6 @@ void opeu_tbl_draw_elements(Game& game, HostEvent event, uint8_t column, uint8_t
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
-// The table's calls are the row-draw services.
-uint16_t svc_tblelem(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(game, "tblelem", id, args, count);
-}
-
 auto port_routine_opeu_tbl_draw_elements(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblelem, opeu_tbl_draw_elements, args, count);
+  return RunTableRows(game, opeu_tbl_draw_elements, args, count);
 }

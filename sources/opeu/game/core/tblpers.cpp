@@ -22,8 +22,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum TableService;
-
 constexpr std::uint8_t DRAW_HEADER{ 3 }; // flags that draw the header line
 constexpr std::uint8_t DRAW_LABELS{ 5 }; // flags that draw the general names
 
@@ -42,7 +40,7 @@ constexpr unsigned STAFF_POSTS_AT{ 3 };
 // The general table. A general's post is his staff role when he has one, else his division when assigned to one; the
 // status column shows Rest while his counter runs, else Hurt when his health is poor. The formatted row is printed
 // as a format string with the visible start and count as its arguments.
-void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_staff(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
@@ -88,10 +86,6 @@ void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t fi
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
-uint16_t svc_tblpers(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(game, "tblpers", id, args, count);
-}
-
 auto port_routine_opeu_tbl_draw_staff(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblpers, opeu_tbl_draw_staff, args, count);
+  return RunTableRows(game, opeu_tbl_draw_staff, args, count);
 }

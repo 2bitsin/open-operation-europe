@@ -1,5 +1,5 @@
-// The row-draw callbacks of the list tables (core/tblgroup, core/tblpers): the services they call, the column layout
-// they ask for, where a row goes on the screen and how a routine call runs them.
+// The row-draw callbacks of the list tables (core/tblgroup, core/tblpers): the column layout they ask for, where a row
+// goes on the screen and how a routine call runs them.
 #pragma once
 
 #include "common/data-segment.hpp"
@@ -12,19 +12,6 @@
 #include <cstdint>
 
 namespace opeu::game::detail::table_rows {
-
-// The services a row-draw callback calls through its event (svc_table, core/tblgroup).
-enum TableService : std::uint16_t {
-  COLUMNS      = 0, // (column, row, &lead, &start, &count): writes three DS bytes
-  POSITION     = 1, // (x, y): the text cursor, x in columns
-  FORMAT       = 2, // (destination, format, ...): formats into a DS buffer
-  TEXT_COLOR   = 3, // (color)
-  SIDE_COLOR   = 4, // (side): the side's text color
-  UI_TEXT      = 5, // (text)
-  PRINT        = 6, // (format, ...): prints at the cursor
-  PUT_RANGE    = 7, // (text, start, count): prints the visible part of a row
-  REQUEST_TEXT = 8, // (message id): the message's text, a DS offset
-};
 
 // The color the rows are printed in and restored to.
 inline constexpr std::uint16_t TABLE_TEXT_COLOR{ 7 };
@@ -58,9 +45,9 @@ struct TableColumns {
 // Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
 // argument words.
 template <typename Draw>
-inline auto RunTableRows(Game& game, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
+inline auto RunTableRows(Game& game, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  draw(game, event, byte(0), byte(1), byte(2), byte(3), byte(4));
+  draw(game, byte(0), byte(1), byte(2), byte(3), byte(4));
   return 0;
 }
 } // namespace opeu::game::detail::table_rows
@@ -74,7 +61,6 @@ using detail::table_rows::TABLE_FIRST_ROW;
 using detail::table_rows::TABLE_ROW_HEIGHT;
 using detail::table_rows::TABLE_TEXT_COLOR;
 using detail::table_rows::TableColumns;
-using detail::table_rows::TableService;
 } // namespace opeu::game
 
 // The layout of table column `column` of the active list window (io/listui.cpp).

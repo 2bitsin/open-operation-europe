@@ -28,8 +28,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum TableService;
-
 constexpr std::uint8_t DRAW_HEADER{ 3 }; // flags that draw the header line
 constexpr std::uint8_t DRAW_LABELS{ 5 }; // flags that draw the row labels
 
@@ -40,7 +38,7 @@ constexpr std::uint16_t PLACE_AT{ 60 };
 
 // The division table: each division's label and, for a division with an eligible selected unit, its commander and
 // its fuel, ammunition and food percentages.
-void opeu_tbl_draw_groups(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
@@ -87,7 +85,7 @@ void opeu_tbl_draw_groups(Game& game, HostEvent event, uint8_t column, uint8_t f
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
 // cell, or the cell in map coordinates.
-void opeu_tbl_draw_missions(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_missions(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
@@ -129,33 +127,10 @@ void opeu_tbl_draw_missions(Game& game, HostEvent event, uint8_t column, uint8_t
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
-// The services of the row-draw callbacks: the column layout of the active list window, the text output and the
-// message lookup.
-uint16_t svc_table(Game& game, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case COLUMNS:      opeu_table_columns(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case POSITION:     opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case FORMAT:       opeu_request_format(game, { args, count }); break;
-  case TEXT_COLOR:   opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case SIDE_COLOR:   opeu_select_side_color(game, (uint8_t)Arg(args, count, 0)); break;
-  case UI_TEXT:      opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case PRINT:        opeu_cursor_print(game, { args, count }); break;
-  case PUT_RANGE:    opeu_text_put_range(game, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case REQUEST_TEXT: r = opeu_message_lookup(game, (int16_t)Arg(args, count, 0)); break;
-  default:           port_unhandled(module, id, count);
-  }
-  return r;
-}
-
-uint16_t svc_tblgroup(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(game, "tblgroup", id, args, count);
-}
-
 auto port_routine_opeu_tbl_draw_groups(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblgroup, opeu_tbl_draw_groups, args, count);
+  return RunTableRows(game, opeu_tbl_draw_groups, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_missions(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_tblgroup, opeu_tbl_draw_missions, args, count);
+  return RunTableRows(game, opeu_tbl_draw_missions, args, count);
 }

@@ -24,7 +24,7 @@ namespace { } // namespace
 
 // Draws rows first..last of the type table's `column`, with the heading and the type names as `flags` ask. The
 // nation shown is the general's (context_record1) when the type is fielded by it, else the type's first nation.
-void opeu_rq_draw_types(Game& game, HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -58,11 +58,6 @@ void opeu_rq_draw_types(Game& game, HostEvent event, uint8_t column, uint8_t fir
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
-// The services of the type table: the row-draw services.
-uint16_t svc_rqsuptbl(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_table(game, "rqsuptbl", id, args, count);
-}
-
 auto port_routine_opeu_rq_draw_types(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunTableRows(game, svc_rqsuptbl, opeu_rq_draw_types, args, count);
+  return RunTableRows(game, opeu_rq_draw_types, args, count);
 }
