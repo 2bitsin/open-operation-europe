@@ -84,6 +84,8 @@ def _Edits(source: SourceFile, substitution: Substitution, done: FileEdits) -> l
   if substitution.cycle:
     return f"needs {', '.join(substitution.cycle)}, which includes this header (an include cycle); left for a hand edit"
   edits = [(tokens[site.span.first].start, tokens[site.span.last - 1].end, substitution.text)]
+  if substitution.removed is not None:
+    edits.append(_Removal(source, substitution.removed))
   if not substitution.hoisted:
     return edits
   start = _StatementStart(source, site.span.first)
@@ -99,6 +101,17 @@ def _Edits(source: SourceFile, substitution: Substitution, done: FileEdits) -> l
   declarations = "".join(f"auto const hoisted{index}{suffix}{{ static_cast<std::uint16_t>({text}) }}; " for index, text in substitution.hoisted)
   text = re.sub(r"\bhoisted(\d+)\b", rf"hoisted\g<1>{suffix}", substitution.text)
   return [(edits[0][0], edits[0][1], text), (position, position, declarations)]
+
+
+def _Removal(source: SourceFile, span) -> tuple[int, int, str]:
+  """The edit deleting a statement: its whole lines when nothing else stands on them."""
+  text = source.text
+  start, end = source.tokens[span.first].start, source.tokens[span.last - 1].end
+  line_start = text.rfind("\n", 0, start) + 1
+  line_end = text.find("\n", end)
+  if not text[line_start:start].strip() and line_end != -1 and not text[end:line_end].strip():
+    return line_start, line_end + 1, ""
+  return start, end, ""
 
 
 def _Includes(text: str, includes: list[str]) -> list[tuple[int, int, str]]:

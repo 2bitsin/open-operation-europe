@@ -42,6 +42,7 @@ class Substitution:
   local:       list[str] = field(default_factory=list)  # of those, names only the target's own .cpp defines
   cycle:       list[str] = field(default_factory=list)  # of those, headers that include the site's own header
   near:        list[str] = field(default_factory=list)  # near pointers made of a word (typed references in B5)
+  removed:     Span | None = None                    # a lent array's declaration whose words folded into the call
   callee:      str = ""
 
 
@@ -66,11 +67,11 @@ class Substituter:
     """The substitution of a site reaching one case; hoisted: the words already evaluated first, by name."""
     owner_source = self.program.Source(target.owner.function.file)
     case = target.case
-    words = hoisted or [self._WordText(site, span) for span in site.words]
     spans = [case.expression, *case.locals.values()]
     reads = [read for read in case.words.reads if any(span.Contains(read.span.first) for span in spans)]
     substitution = Substitution(site, target, "", callee=CalleeOf(owner_source, case.expression))
-    effects = [index for index, span in enumerate(site.words) if _SideEffects(self.program.Source(site.file), span)]
+    words = hoisted or self._Folded(site, target, substitution) or self._Words(site)
+    effects = self._Effects(site)
     substitution.order = "" if hoisted else _OrderHazard(owner_source, case.expression, reads, target, effects, words)
     if substitution.order:
       substitution.hoisted, words = _Hoisted(words)
@@ -99,8 +100,8 @@ class Substituter:
     when both give the same type (or the value is used: both give AX then), else as an if statement."""
     source = self.program.Source(site.file)
     condition, *alternatives = TernaryParts(source.tokens, site.service)
-    words = [self._WordText(site, span) for span in site.words]
-    effects = [index for index, span in enumerate(site.words) if _SideEffects(source, span)]
+    words = self._Words(site)
+    effects = self._Effects(site)
     hoisted, named = _Hoisted(words) if effects else ([], None)
     branches = [self._One(replace(site, service=part), branch, named) for part, branch in zip(alternatives, target.branches)]
     substitution = _Merged(site, target, branches)
@@ -129,6 +130,28 @@ class Substituter:
   def _Inner(self, site: CallSite) -> list["Substitution"]:
     return [done for done in self._done.get(site.file, []) if site.span.first < done.site.span.first and done.site.span.last <= site.span.last]
 
+  def _Words(self, site: CallSite) -> list[str]:
+    """The texts of the site's words: its arguments, or the elements of the array it lends."""
+    if site.array:
+      return [f"{site.array}[{index}]" for index in range(len(site.words))]
+    return [self._WordText(site, span) for span in site.words]
+
+  def _Folded(self, site: CallSite, target: Target, substitution: Substitution) -> list[str] | None:
+    """The words of an array declared for the site alone, as its elements (0 past them), when the case reads them one
+    by one at constant positions (a span of them passes the array itself) and no element has a side effect; the
+    declaration goes."""
+    source = self.program.Source(site.file)
+    if site.elements is None or target.case.words.raw or target.case.words.Spans() or any(_SideEffects(source, element) for element in site.elements):
+      return None
+    elements = [Text(source.tokens, element, source.text) for element in site.elements]
+    substitution.removed = site.declaration
+    return [elements[index] if index < len(elements) else "0" for index in range(len(site.words))]
+
+  def _Effects(self, site: CallSite) -> list[int]:
+    """The words with side effects (none of a lent array: its elements are read where the case reads them)."""
+    source = self.program.Source(site.file)
+    return [] if site.array else [index for index, span in enumerate(site.words) if _SideEffects(source, span)]
+
   def _WordText(self, site: CallSite, span: Span) -> str:
     """A word's source text, with the replacements of the sites nested in it already made."""
     source = self.program.Source(site.file)
@@ -139,6 +162,9 @@ class Substituter:
     return _Outermost(found)
 
   def _ReadText(self, site: CallSite, target: Target, read: WordRead, words: list[str], substitution: Substitution) -> str:
+    if read.kind == SPAN and site.array and substitution.removed is None:
+      length = target.count if read.length is None else read.length
+      return site.array if length == site.size else f"{{ {site.pointer}, {length} }}"
     if read.kind == SPAN:
       length = target.count if read.length is None else read.length
       items = [self._Word(target, position, words, substitution) for position in range(length)]
@@ -198,6 +224,11 @@ class Substituter:
     for name, local in target.owner.Inlined(owner).items():
       text = Text(tokens, local, owner.text)
       names[name] = f"({text})" if _Operators(text) else text
+    context = target.owner.context
+    if site.array and context is not None:
+      names[context.args] = site.pointer
+      if context.count:
+        names[context.count] = str(len(site.words))
     reads = target.case.words.reads
     return [(Span(index, index + 1), names[tokens[index].text]) for index in range(span.first, span.last)
             if tokens[index].kind == IDENTIFIER and tokens[index].text in names and names[tokens[index].text] != tokens[index].text

@@ -6,10 +6,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
+from .constants import IsIntegerLiteral
 from .functions import Function
 from .program import Program
 from .source import SourceFile
-from .syntax import Arguments, Compact, Span, Text
+from .syntax import Arguments, Compact, Span, SplitTopLevel, Text
 from .tokens import IDENTIFIER
 
 CALLBACK_TYPES = ("HostEvent", "HostWordsEvent", "HostService", "HostNotify", "BattleEvent", "BattleService", "PendingEvent",
@@ -20,6 +21,10 @@ CALL_TEMPLATE = PurePosixPath("game/common/memory.hpp")
 CALL_LIKE = {"Call", "CallWords", "List", "Input"}
 # The event types whose words are scalars: a raw `event(game, ID, words...)` is a site like Call's.
 SCALAR_EVENTS = {"PendingEvent", "SideColorEvent", "BattleService", "ArrivalEvent"}
+# The event types whose words are an array (with a count, but HostService's): a raw `event(game, ID, NAME, N)` over a
+# local array NAME of 16-bit words is a site whose words are NAME's, read where the case reads them.
+ARRAY_EVENTS = {"HostEvent", "HostWordsEvent", "HostNotify", "HostService"}
+COUNTLESS_EVENTS = {"HostService"}
 STATEMENT_STARTS = {";", "{", "}", "else", "do"}
 CONTROL_WORDS = {"if", "while", "for", "switch"}
 UNBOUND = "<unbound>"
@@ -37,6 +42,11 @@ class CallSite:
   service:   Span
   words:     list[Span]
   used:      bool        # the call's value is used
+  array:     str = ""    # a raw call over a local array: its name (the words are NAME[0], NAME[1], ...)
+  pointer:   str = ""    # the array as a pointer to its words (NAME, or NAME.data() of a std::array)
+  size:      int = 0     # the array's length
+  elements:  list[Span] | None = None  # a const array declared just before the site's statement for it alone: its
+  declaration: Span | None = None      # initializer's elements and its declaration (the words may fold into the call)
 
   def Text(self, source: SourceFile) -> str:
     return Text(source.tokens, self.span, source.text)
@@ -87,17 +97,102 @@ def _RawSite(program: Program, source: SourceFile, index: int) -> CallSite | Non
   """`event(game, ID, words...)` through a callback parameter of a scalar-word event type."""
   tokens, partners = source.tokens, source.partners
   function = program.Enclosing(source.path, index)
-  if function is None or tokens[index - 1].text == "::":
+  if function is None or tokens[index - 1].text == "::" or function.name in CALL_LIKE:
     return None
   position = function.ParameterIndex(tokens[index].text)
-  if position is None or not set(re.findall(r"\w+", function.parameters[position].type)) & SCALAR_EVENTS:
-    return None
+  types = set(re.findall(r"\w+", function.parameters[position].type)) if position is not None else set()
   arguments = Arguments(tokens, partners, index + 1)
-  if len(arguments) < 2:
+  if not types & (SCALAR_EVENTS | ARRAY_EVENTS) or len(arguments) < 2:
     return None
   span = Span(index, partners[index + 1] + 1)
+  if types & ARRAY_EVENTS:
+    return _ArraySite(source, function, Span(index, index + 1), span, arguments, bool(types & COUNTLESS_EVENTS))
   return CallSite(source.path, tokens[index].line, Span(index, index + 1), span, function, arguments[0], Span(index, index + 1),
                   arguments[1], arguments[2:], ValueUsed(source, span))
+
+
+def _ArraySite(source: SourceFile, function: Function, name: Span, span: Span, arguments: list[Span], countless: bool) -> CallSite | None:
+  """`event(game, ID, NAME, N)` (`service(game, ID, NAME)` for a count-less event) over a local array of 16-bit words
+  `std::uint16_t [const] NAME[S]{ ... }` or `std::array<std::uint16_t, S> NAME{ ... }` (passed as `NAME.data()`), N a
+  literal or `std::size(NAME)`."""
+  tokens = source.tokens
+  if len(arguments) != (3 if countless else 4):
+    return None
+  given = [token.text for token in tokens[arguments[2].first:arguments[2].last]]
+  array = given[0] if len(given) in (1, 5) and tokens[arguments[2].first].kind == IDENTIFIER else ""
+  if not array or (len(given) == 5 and given[1:] != [".", "data", "(", ")"]):
+    return None
+  size = LocalArraySize(source, function, array, arguments[2].first, std_array=len(given) == 5)
+  if size is None:
+    return None
+  count = size if countless else _Count(source, arguments[3], array, size)
+  if count is None or count > size:
+    return None
+  site = CallSite(source.path, tokens[name.first].line, name, span, function, arguments[0], name, arguments[1], [arguments[2]] * count,
+                  ValueUsed(source, span), array, "".join(given), size)
+  site.declaration, site.elements = _OnlyFor(source, function, array, span.first) or (None, None)
+  return site
+
+
+FOLD_BETWEEN = {"if", "(", "!", "return"}
+
+
+def _OnlyFor(source: SourceFile, function: Function, array: str, site: int) -> tuple[Span, list[Span]] | None:
+  """`std::uint16_t const NAME[...]{ e0, e1, ... };` as the statement just before the one of the site (only `if (`,
+  `!` or `return` between), NAME named nowhere else: the declaration and its elements."""
+  tokens, partners = source.tokens, source.partners
+  uses = [i for i in range(function.body.first, function.body.last) if tokens[i].text == array and tokens[i - 1].text not in (".", "->", "::")]
+  if len(uses) != 2 or tokens[uses[0] + 1].text != "[" or tokens[uses[0] - 1].text != "const":
+    return None
+  close = partners.get(uses[0] + 1)
+  if close is None or tokens[close + 1].text != "{" or close + 1 not in partners:
+    return None
+  end = partners[close + 1] + 1
+  if tokens[end].text != ";" or any(token.text not in FOLD_BETWEEN for token in tokens[end + 1:site]):
+    return None
+  start = uses[0] - 1
+  while start > function.body.first and tokens[start - 1].text not in (";", "{", "}"):
+    start -= 1
+  return Span(start, end + 1), SplitTopLevel(tokens, Span(close + 2, end - 1), ",")
+
+
+def _Count(source: SourceFile, span: Span, array: str, size: int) -> int | None:
+  texts = [token.text for token in source.tokens[span.first:span.last]]
+  if len(texts) == 1 and IsIntegerLiteral(source.tokens[span.first]):
+    return int(texts[0].rstrip("uUlL"), 0)
+  if "".join(texts) in (f"std::size({array})", f"static_cast<uint16_t>(std::size({array}))", f"static_cast<std::uint16_t>(std::size({array}))"):
+    return size
+  return None
+
+
+def LocalArraySize(source: SourceFile, function: Function, name: str, before: int, std_array: bool = False) -> int | None:
+  """The length of the local array of 16-bit words NAME declared in function before the token index, None when there
+  is no such declaration (or its length is not a literal)."""
+  tokens, partners = source.tokens, source.partners
+  for index in range(before - 1, function.body.first, -1):
+    if tokens[index].text != name or tokens[index - 1].text in (".", "->", "::"):
+      continue
+    if std_array:
+      opener = next((i for i in range(index - 1, max(index - 12, 0), -1) if tokens[i].text in ("array", ";", "{", "}")), None)
+      if opener is None or tokens[opener].text != "array" or tokens[index - 1].text != ">" or tokens[index + 1].text != "{":
+        continue
+      inside = [token for token in tokens[opener + 2:index - 1]]
+      if len(inside) < 3 or inside[-3].text != "uint16_t" or inside[-2].text != "," or not IsIntegerLiteral(inside[-1]):
+        return None
+      return int(inside[-1].text.rstrip("uUlL"), 0)
+    if tokens[index + 1].text != "[" or index + 1 not in partners:
+      continue
+    declared = [token.text for token in tokens[max(index - 3, 0):index]]
+    if "uint16_t" not in declared or tokens[index - 1].text not in ("uint16_t", "const"):
+      continue
+    close = partners[index + 1]
+    length = tokens[index + 2:close]
+    if len(length) == 1 and IsIntegerLiteral(length[0]):
+      return int(length[0].text.rstrip("uUlL"), 0)
+    if not length and tokens[close + 1].text == "{" and close + 1 in partners:
+      return len(SplitTopLevel(tokens, Span(close + 2, partners[close + 1]), ","))
+    return None
+  return None
 
 
 def ValueUsed(source: SourceFile, span: Span) -> bool:

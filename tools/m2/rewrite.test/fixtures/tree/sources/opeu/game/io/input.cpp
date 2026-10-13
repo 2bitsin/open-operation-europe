@@ -48,3 +48,41 @@ void opeu_input_main(std::uint8_t* ds, HostService service, PendingEvent event) 
 void opeu_input_run(std::uint8_t* ds) {
   opeu_input_main(ds, svc_input, svc_pending);
 }
+
+auto svc_words(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
+  switch (id) {
+  case 1:  return opeu_sum(ds, Arg(args, count, 0), Arg(args, count, 1));
+  case 2:  return opeu_fill_words(ds, args, count);
+  default: return 0;
+  }
+}
+
+void opeu_words_main(std::uint8_t* ds, HostEvent event, HostService service) {
+  std::uint16_t const pair[]{ 3, 4 };
+  if (event(ds, 1, pair, 2)) opeu_keep(ds);
+  std::uint16_t buffer[4]{};
+  event(ds, 2, buffer, 4);
+  std::uint16_t words[2]{ 5, 6 };
+  service(ds, 3, words);
+}
+
+void opeu_words_run(std::uint8_t* ds) {
+  opeu_words_main(ds, svc_words, svc_input);
+}
+
+auto svc_other_words(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* words, std::uint16_t n) -> std::uint16_t {
+  switch (kind) {
+  case 2:  return opeu_fill_words(ds, words, n);
+  default: return 0;
+  }
+}
+
+void opeu_words_twice(std::uint8_t* ds, HostEvent event) {
+  std::uint16_t buffer[2]{};
+  event(ds, 2, buffer, 2);
+}
+
+void opeu_words_both(std::uint8_t* ds) {
+  opeu_words_twice(ds, svc_words);
+  opeu_words_twice(ds, svc_other_words);
+}

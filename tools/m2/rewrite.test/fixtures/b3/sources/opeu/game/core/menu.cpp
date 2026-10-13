@@ -48,11 +48,17 @@ std::uint16_t svc_menu(Game& game, std::uint16_t id, std::uint16_t const* args, 
   return 0;
 }
 
+// An event written as a function: only the argument the pass drops names it.
+std::uint16_t MenuEvent(Game& game, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) {
+  return 0;
+}
+
 std::uint16_t svc_hold(Game& game, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) {
   return 0;
 }
 
 void opeu_menu_entry(Game& game) {
   opeu_menu_run(game, svc_menu);
+  opeu_menu_run(game, MenuEvent);
   opeu_menu_hold(game, svc_hold);
 }

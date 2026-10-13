@@ -37,10 +37,10 @@ def test_a_callback_unused_or_only_handed_on_is_dropped_everywhere(passed):
   menu = Read(tree, "core/menu.cpp")
   assert "void opeu_menu_show(Game& game, std::uint16_t row) {" in menu
   assert "void opeu_menu_run(Game& game) {\n  opeu_menu_show(game, 1);\n  opeu_menu_silent(game);\n}" in menu
-  assert "opeu_menu_run(game);" in menu
+  assert "opeu_menu_run(game);\n  opeu_menu_run(game);" in menu
   assert "void          opeu_menu_show(Game& game, std::uint16_t row);" in Read(tree, "core/menu.hpp")
   assert result.dropped == ["game/core/menu.cpp opeu_menu_run(event)", "game/core/menu.cpp opeu_menu_show(event)", "game/core/menu.cpp opeu_menu_silent(event)"]
-  assert result.sites == 4
+  assert result.sites == 5
 
 
 def test_a_void_statement_that_only_silenced_the_callback_goes_with_it(passed):
@@ -57,10 +57,11 @@ def test_a_callback_still_called_or_of_a_routine_whose_address_is_taken_stays(pa
   assert any(line.startswith("game/core/menu.cpp opeu_menu_hooked parameter 1: the routine's address is taken") for line in result.kept)
 
 
-def test_a_dispatcher_nothing_names_goes_and_one_still_handed_on_stays(passed):
+def test_a_dispatcher_or_an_event_routine_nothing_names_goes_and_one_still_handed_on_stays(passed):
   tree, result = passed
-  assert result.deleted == ["svc_menu"]
+  assert result.deleted == ["MenuEvent", "svc_menu"]
   assert "svc_menu" not in Read(tree, "core/menu.cpp") and "svc_menu" not in Read(tree, "core/menu.hpp")
+  assert "MenuEvent" not in Read(tree, "core/menu.cpp") and "An event written as a function" not in Read(tree, "core/menu.cpp")
   assert "std::uint16_t svc_hold(" in Read(tree, "core/menu.cpp")
 
 

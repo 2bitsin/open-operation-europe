@@ -9,7 +9,8 @@ applies, to the rewritten tree:
               callback parameters, is dropped from the definition, from every declaration and from every call (a
               fixed point: one used for anything else, or of a routine whose address is taken, stays); a `(void)name;`
               that only silenced it goes with it
-  dispatcher  a `svc_*` nothing names any more is deleted, then every function only deleted functions named
+  dispatcher  a `svc_*` nothing names any more is deleted, and a routine only the dropped arguments named (an event
+              written as a function, `LabelEvent`), then every function only deleted functions named
   enum        an enumeration whose enumerators were service ids (case labels of a dispatcher) is deleted when neither
               it nor any enumerator is named outside it any more
   include     `common/events.hpp` goes from files that no longer name what it declares (the game's own name included)
@@ -41,6 +42,7 @@ class B3Result:
   enums:    list[str] = field(default_factory=list)  # service enumerations deleted
   includes: list[str] = field(default_factory=list)  # file: include removed
   kept:     list[str] = field(default_factory=list)  # what stays, and why
+  unpassed: set[str] = field(default_factory=set)    # the routines dropped arguments named (deleted when unnamed now)
 
   def Counts(self) -> dict[str, int]:
     return {"dropped": len(self.dropped), "arguments": self.sites, "deleted": len(self.deleted), "enums": len(self.enums),
@@ -90,7 +92,7 @@ def DropCallbacks(program: Program, result: B3Result) -> dict:
       _RemoveListItem(program.Source(declaration.file), declaration.name_index + 1, slot.index, edits)
     for statement in graph.silenced.get(slot, []):
       _RemoveStatement(program.Source(slot.file), statement, edits)
-  result.sites += _DropArguments(program, dropped, edits)
+  result.sites += _DropArguments(program, dropped, edits, result.unpassed)
   return edits
 
 
@@ -174,8 +176,9 @@ def _Definition(program: Program, slot: Slot) -> Function:
   return next(f for f in program.definitions[slot.name] if f.file == slot.file)
 
 
-def _DropArguments(program: Program, dropped: set[Slot], edits: dict) -> int:
-  """Removes the dropped parameters' arguments from every call by name; returns how many."""
+def _DropArguments(program: Program, dropped: set[Slot], edits: dict, unpassed: set[str]) -> int:
+  """Removes the dropped parameters' arguments from every call by name, adding the names they were to unpassed;
+  returns how many."""
   by_name: dict[str, set[Slot]] = {}
   for slot in dropped:
     by_name.setdefault(slot.name, set()).add(slot)
@@ -189,19 +192,22 @@ def _DropArguments(program: Program, dropped: set[Slot], edits: dict) -> int:
       callee = program.Resolve(token.text, path)
       for slot in sorted(by_name[token.text], key=lambda s: -s.index):
         if callee is not None and callee.file == slot.file:
-          _CheckDroppable(source, index + 1, slot.index)
+          unpassed.add(_CheckDroppable(source, index + 1, slot.index))
           _RemoveListItem(source, index + 1, slot.index, edits)
           removed += 1
   return removed
 
 
-def _CheckDroppable(source: SourceFile, paren: int, position: int) -> None:
-  """A dropped argument is a name (a dispatcher or a callback handed on): dropping it loses no side effect."""
+def _CheckDroppable(source: SourceFile, paren: int, position: int) -> str:
+  """A dropped argument is a name (a dispatcher or a callback handed on): dropping it loses no side effect. Returns
+  the name."""
   parts = Arguments(source.tokens, source.partners, paren)
-  if position < len(parts):
-    text = Text(source.tokens, parts[position], source.text)
-    if not re.fullmatch(r"[A-Za-z_]\w*", text):
-      raise ValueError(f"{source.path}:{source.tokens[paren].line}: the dropped argument `{text}` is not a name")
+  if position >= len(parts):
+    return ""
+  text = Text(source.tokens, parts[position], source.text)
+  if not re.fullmatch(r"[A-Za-z_]\w*", text):
+    raise ValueError(f"{source.path}:{source.tokens[paren].line}: the dropped argument `{text}` is not a name")
+  return text
 
 
 def _RemoveStatement(source: SourceFile, statement: Span, edits: dict) -> None:
@@ -218,7 +224,8 @@ def _RemoveStatement(source: SourceFile, statement: Span, edits: dict) -> None:
 # ---- dispatcher ----------------------------------------------------------------------------------------------------------
 
 def DeleteDispatchers(program: Program, result: B3Result) -> dict:
-  """`svc_*` functions of game/ nothing names, then (to a fixed point) every function only deleted functions name."""
+  """`svc_*` functions of game/ nothing names, and the routines only the dropped arguments named, then (to a fixed
+  point) every function only deleted functions name."""
   references = _References(program)
   dead: set[str] = set()
   changed = True
@@ -228,7 +235,7 @@ def DeleteDispatchers(program: Program, result: B3Result) -> dict:
       if name in dead or not all(str(f.file).startswith("game/") for f in definitions):
         continue
       outside = [where for where, inside in references.get(name, []) if inside not in dead]
-      if not outside and (name.startswith("svc_") or references.get(name)):
+      if not outside and (name.startswith("svc_") or name in result.unpassed or references.get(name)):
         dead.add(name)
         changed = True
   edits: dict = {}

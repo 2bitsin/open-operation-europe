@@ -48,6 +48,7 @@ class Case:
   reason:     str = ""
   forward:    "Forward | None" = None  # a case handing the words on to another dispatcher or to the link table
   locals:     dict[str, Span] = field(default_factory=dict)  # a local the statement uses once: NAME -> its expression
+  storage:    bool = False  # a raw-word case of one statement: a site over a local array can lend it its array
 
   def Summary(self, source: SourceFile) -> dict:
     return {"labels": self.labels, "values": self.values, "kind": self.kind, "form": self.form, "line": self.line,
@@ -456,6 +457,7 @@ def Classify(source: SourceFile, dispatcher: Dispatcher, case: Case) -> None:
     case.forward = ForwardOf(source, dispatcher, statements[0]) if len(statements) == 1 else None
     case.kind, case.reason = FORWARDING, ", ".join(sorted(name for name in called if name.startswith("svc_")))
   elif case.words.raw:
+    _Storage(source, dispatcher, case, statements)
     case.kind, case.reason = RAW, f"{len(case.words.raw)} raw uses"
   elif len(statements) == 2 and _LocalUsedOnce(source, statements, case):
     _Single(source, dispatcher, case, statements[1])
@@ -463,6 +465,16 @@ def Classify(source: SourceFile, dispatcher: Dispatcher, case: Case) -> None:
     case.kind, case.reason = MULTI, f"{len(statements)} statements"
   else:
     _Single(source, dispatcher, case, statements[0])
+
+
+def _Storage(source: SourceFile, dispatcher: Dispatcher, case: Case, statements: list[Span]) -> None:
+  """A raw-word case that is one statement (or a local and its use) is single for a site that lends its own array:
+  the words array is the site's, so passing it on, writing it or reading it by a computed index stay exact."""
+  if len(statements) == 2 and _LocalUsedOnce(source, statements, case):
+    _Single(source, dispatcher, case, statements[1])
+  elif len(statements) == 1:
+    _Single(source, dispatcher, case, statements[0])
+  case.storage = case.kind == SINGLE
 
 
 def _LocalUsedOnce(source: SourceFile, statements: list[Span], case: Case) -> bool:

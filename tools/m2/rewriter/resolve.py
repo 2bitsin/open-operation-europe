@@ -5,10 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .calls import Bindings, CallSite
-from .dispatch import LINKING, SINGLE, Case, Dispatcher, Forward
+from .dispatch import LINKING, SEGMENT_NAMES, SINGLE, Case, Dispatcher, Forward
 from .links import LinkTable
 from .program import Program
 from .syntax import Compact, Span, SplitTopLevel
+from .tokens import IDENTIFIER
 
 MAX_HOPS = 8
 
@@ -36,7 +37,7 @@ class Target:
   def resolved(self) -> bool:
     if self.branches:
       return not self.failure and all(branch.resolved for branch in self.branches)
-    return self.case is not None and self.case.kind == SINGLE and not self.failure
+    return self.case is not None and (self.case.kind == SINGLE or self.case.storage) and not self.failure
 
 
 @dataclass
@@ -45,8 +46,10 @@ class Resolver:
   dispatchers: dict[str, Dispatcher]
   links:       LinkTable
   bindings:    Bindings
+  _storage:    bool = field(default=False, init=False)  # the site being resolved lends its own words array
 
   def Resolve(self, site: CallSite) -> Target:
+    self._storage = bool(site.array)
     source = self.program.Source(site.file)
     event = Compact(source.tokens, site.event)
     callbacks = self._Callbacks(site, event)
@@ -75,10 +78,38 @@ class Resolver:
     """The target of an id through every dispatcher the callback may be (a failure when they reach different code)."""
     targets = [self._FromDispatcher(name, value, words, []) for name in bound]
     target = targets[0]
-    if not all(target.Same(other) and not other.failure for other in targets[1:]):
+    if not all((target.Same(other) or self._Equivalent(target, other)) and not other.failure for other in targets[1:]):
       target.failure = target.failure or "callback bound to dispatchers that reach different code: " + "; ".join(
         " > ".join(other.chain) for other in targets)
     return target
+
+  def _Equivalent(self, one: Target, other: Target) -> bool:
+    """Cases of different dispatchers that are the same text over their own names for the game, the id, the words and
+    their count, every routine they call being the same one seen from both files (none of the dispatchers' locals)."""
+    if one.case is None or other.case is None or one.case.expression is None or other.case.expression is None:
+      return False
+    if (one.words, one.count, one.case.form, one.case.locals, other.case.locals) != (other.words, other.count, other.case.form, {}, {}):
+      return False
+    return self._Shape(one) is not None and self._Shape(one) == self._Shape(other)
+
+  def _Shape(self, target: Target) -> tuple | None:
+    owner, case = target.owner, target.case
+    source = self.program.Source(owner.function.file)
+    tokens = source.tokens
+    context = owner.context
+    roles = {name: role for name, role in ((owner.id_name, "<id>"), (context.args if context else "", "<words>"), (context.count if context else "", "<count>")) if name}
+    roles.update(dict.fromkeys(SEGMENT_NAMES, "<game>"))
+    shape = []
+    for index in range(case.expression.first, case.expression.last):
+      token = tokens[index]
+      if token.kind == IDENTIFIER and token.text in owner.declared:
+        return None
+      if token.kind == IDENTIFIER and index + 1 < len(tokens) and tokens[index + 1].text == "(" and tokens[index - 1].text not in (".", "->", "::"):
+        callee = self.program.Resolve(token.text, owner.function.file)
+        shape.append((str(callee.file), callee.name) if callee is not None else token.text)
+      else:
+        shape.append(roles.get(token.text, token.text) if token.kind == IDENTIFIER else token.text)
+    return tuple(shape)
 
   def _Ternary(self, site: CallSite, parts: tuple[Span, Span, Span], bound: list[str], words: list[int | None]) -> Target:
     """A site whose id is `condition ? A : B` with A and B constants: both targets, resolved only when both are."""
@@ -133,7 +164,8 @@ class Resolver:
     """The target of a case (or a guard's branch) that does the work itself."""
     if case.kind == LINKING and case.forward is None:
       return Target(case, dispatcher, words, len(words), chain, failure=f"case {case.labels[0]} calls the link table by itself")
-    failure = "" if case.kind == SINGLE else f"case {case.labels[0]} of {dispatcher.name} is {case.kind} ({case.reason})"
+    single = case.kind == SINGLE or (case.storage and self._storage)
+    failure = "" if single else f"case {case.labels[0]} of {dispatcher.name} is {case.kind} ({case.reason})"
     return Target(case, dispatcher, words, len(words), chain + [case.labels[0]], failure=failure)
 
   def _Guard(self, dispatcher: Dispatcher, value: int) -> Forward | Case | str | None:

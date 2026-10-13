@@ -147,7 +147,7 @@ def test_apply_rewrites_a_scratch_copy(tmp_path):
   assert "Call(ds, event, TWICE);" in alpha
   assert '#include "core/target.hpp"' in (tree / "sources/opeu/game/core/gamma.cpp").read_text()
   assert "#include <array>" in alpha
-  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/io/input.cpp": 3, "game/map/battle.cpp": 5,
+  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/io/input.cpp": 7, "game/map/battle.cpp": 5,
                               "game/map/plan.cpp": 8, "game/units/orders.cpp": 4}
   assert applied.skipped == ["game/common/rows.hpp:19 needs core/rows-panel.hpp, which includes this header (an include cycle); left for a hand edit"]
 
@@ -167,8 +167,8 @@ def test_apply_hoists_before_a_declaration_and_names_each_sites_words_apart(tmp_
 def test_the_dry_run_writes_the_model_plans_and_listings(tmp_path):
   assert rewrite.main(["--tree", str(FIXTURE), "--out", str(tmp_path)]) == 0
   summary = json.loads((tmp_path / "summary.json").read_text())
-  assert summary["plans"] == {"b2": 5, "b3": 27}
-  assert summary["call_sites"] == 39
+  assert summary["plans"] == {"b2": 5, "b3": 31}
+  assert summary["call_sites"] == 43
   assert summary["unresolved_by_reason"] == {"multi-statement case or handler": 2, "id not served": 2, "service id is a parameter": 1,
                                              "callback bound to dispatchers that reach different code": 1, "no link handler at the address": 1}
   plan = json.loads((tmp_path / "plan-b2.json").read_text())
@@ -319,3 +319,30 @@ def test_a_pointer_local_of_the_dispatcher_from_a_pure_call_is_inlined(model):
 
 def test_a_raw_call_of_a_scalar_event_is_a_site_whose_words_are_named(model):
   assert Replacement(model, "game/io/input.cpp", 45) == "opeu_pending(ds, 6, 5)"
+
+
+def test_a_const_array_declared_for_the_raw_call_alone_folds_into_it(model):
+  substitution = next(s for s in model.substitutions.values() if str(s.site.file) == "game/io/input.cpp" and s.site.line == 62)
+  assert substitution.text == "static_cast<std::uint16_t>(opeu_sum(ds, 3, 4))" and substitution.removed is not None
+
+
+def test_a_raw_call_lends_its_array_to_a_case_that_hands_the_words_on(model):
+  assert Replacement(model, "game/io/input.cpp", 64) == "opeu_fill_words(ds, buffer, 4)"
+
+
+def test_a_countless_service_reads_the_elements_of_the_array_it_is_lent(model):
+  assert Replacement(model, "game/io/input.cpp", 66) == "opeu_put(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(words[0]))"
+
+
+def test_apply_deletes_the_declaration_of_a_folded_array(tmp_path):
+  tree = tmp_path / "tree"
+  shutil.copytree(FIXTURE, tree)
+  Apply(Model(tree), "b3")
+  text = (tree / "sources/opeu/game/io/input.cpp").read_text()
+  assert "pair" not in text and "  if (static_cast<std::uint16_t>(opeu_sum(ds, 3, 4))) opeu_keep(ds);\n" in text
+  assert "  std::uint16_t buffer[4]{};\n  opeu_fill_words(ds, buffer, 4);\n" in text
+
+
+def test_dispatchers_whose_cases_are_the_same_text_over_their_own_names_reach_the_same_code(model):
+  assert Replacement(model, "game/io/input.cpp", 82) == "opeu_fill_words(ds, buffer, 2)"
+  assert TargetOf(model, "game/io/input.cpp", 82).callbacks == ["svc_other_words", "svc_words"]
