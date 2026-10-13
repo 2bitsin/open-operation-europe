@@ -16,20 +16,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the briefings call through their event.
-enum Service : std::uint16_t {
-  ACTIVATE        = 0, // daily activate(side)
-  CONTROL_MESSAGE = 1, // control message(text, speaker)
-  OVERVIEW_PIXEL  = 2, // overview pixel(x pointer, y pointer)
-  INVERT          = 3, // invert(x, y, width, height, mode)
-  FORMAT          = 4, // format(destination, format, person)
-};
 
 // The code segment of the briefings: the message hook points at opeu_brief_blink, offset 0 in it.
 constexpr std::uint16_t BRIEFING_CODE_SEGMENT{ 0x0d9b };
@@ -40,10 +32,10 @@ constexpr std::uint16_t CLOSING_BYTES{ 100 };
 // One side's briefing in progress: who speaks, and the closing-text buffer in the briefing's reserve.
 class Briefing {
 public:
-  Briefing(Game& game, HostEvent event) : _game{ game }, _event{ event } { }
+  explicit Briefing(Game& game) : _game{ game } { }
 
   auto Activate(std::uint8_t side) -> void {
-    Call(_game, _event, ACTIVATE, side);
+    opeu_daily_activate(_game, side);
   }
   auto Commander() -> void {
     _speaker = Data(_game).initial_template4;
@@ -62,8 +54,9 @@ public:
   // Formats the text with the player's name into the closing buffer.
   template <std::size_t N>
   auto Format(std::array<char, N> const& text) -> void {
-    auto const& data{ Data(_game) };
-    Call(_game, _event, FORMAT, _closing.At(0), Near(data, text), data.initial_person);
+    auto const&                        data{ Data(_game) };
+    std::array<std::uint16_t, 3> const words{ _closing.At(0), Near(data, text), data.initial_person };
+    opeu_request_format(_game, words);
   }
 
   auto HookOn() -> void {
@@ -73,16 +66,15 @@ public:
     Data(_game).message_hook = FarPointer{ 0, 0 };
   }
   auto Mark(std::uint8_t x, std::uint8_t y) -> void {
-    opeu_brief_mark(_game, _event, x, y);
+    opeu_brief_mark(_game, x, y);
   }
 
 private:
   auto SayAt(std::uint16_t text) -> void {
-    Call(_game, _event, CONTROL_MESSAGE, text, _speaker);
+    opeu_control_message(_game, static_cast<const DialogHost*>(port_dialogs_host()), text, _speaker);
   }
 
   Game&               _game;
-  HostEvent           _event;
   ServiceLocals const _closing{ CLOSING_BYTES };
   std::uint16_t       _speaker{};
 };
@@ -96,16 +88,16 @@ void opeu_brief_blink(Game& game) {
 }
 
 // Marks an overview-map cell for the blinking hook.
-void opeu_brief_mark(Game& game, HostEvent event, uint8_t x, uint8_t y) {
+void opeu_brief_mark(Game& game, uint8_t x, uint8_t y) {
   auto& data{ Data(game) };
   data.brief_mark_x = x;
   data.brief_mark_y = y;
-  Call(game, event, OVERVIEW_PIXEL, offsetof(DataSegment, brief_mark_x), offsetof(DataSegment, brief_mark_y));
+  opeu_overview_pixel(game, static_cast<std::uint16_t>(offsetof(DataSegment, brief_mark_x)), static_cast<std::uint16_t>(offsetof(DataSegment, brief_mark_y)));
 }
 
 // France 1940.
-void opeu_brief_france(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_france(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -144,8 +136,8 @@ void opeu_brief_france(Game& game, HostEvent event) {
 }
 
 // North Africa.
-void opeu_brief_africa(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_africa(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -189,8 +181,8 @@ void opeu_brief_africa(Game& game, HostEvent event) {
 }
 
 // Kursk (Operation Citadel).
-void opeu_brief_kursk(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_kursk(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -231,8 +223,8 @@ void opeu_brief_kursk(Game& game, HostEvent event) {
 }
 
 // Normandy.
-void opeu_brief_normandy(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_normandy(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -277,8 +269,8 @@ void opeu_brief_normandy(Game& game, HostEvent event) {
 }
 
 // The Ardennes (Operation Autumn Mist).
-void opeu_brief_ardennes(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_ardennes(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -318,8 +310,8 @@ void opeu_brief_ardennes(Game& game, HostEvent event) {
 }
 
 // Berlin.
-void opeu_brief_berlin(Game& game, HostEvent event) {
-  Briefing    briefing{ game, event };
+void opeu_brief_berlin(Game& game) {
+  Briefing    briefing{ game };
   auto const& data{ Data(game) };
   if (data.current_side == 0) {
     briefing.Activate(0);
@@ -364,38 +356,24 @@ void opeu_brief_berlin(Game& game, HostEvent event) {
   }
 }
 
-// The services in the native build.
-uint16_t svc_scenbrf(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case ACTIVATE:        opeu_daily_activate(game, (uint8_t)Arg(args, count, 0)); break;
-  case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OVERVIEW_PIXEL:  opeu_overview_pixel(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case INVERT:          r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case FORMAT:          opeu_request_format(game, { args, count }); break;
-  default:              port_unhandled("scenbrf", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_brief_africa(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_africa(game, svc_scenbrf);
+  opeu_brief_africa(game);
   return 0;
 }
 
 auto port_routine_opeu_brief_ardennes(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_ardennes(game, svc_scenbrf);
+  opeu_brief_ardennes(game);
   return 0;
 }
 
 auto port_routine_opeu_brief_berlin(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_berlin(game, svc_scenbrf);
+  opeu_brief_berlin(game);
   return 0;
 }
 
@@ -409,20 +387,20 @@ auto port_routine_opeu_brief_blink(Game& game, std::uint16_t const* args, unsign
 auto port_routine_opeu_brief_france(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_france(game, svc_scenbrf);
+  opeu_brief_france(game);
   return 0;
 }
 
 auto port_routine_opeu_brief_kursk(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_kursk(game, svc_scenbrf);
+  opeu_brief_kursk(game);
   return 0;
 }
 
 auto port_routine_opeu_brief_normandy(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_normandy(game, svc_scenbrf);
+  opeu_brief_normandy(game);
   return 0;
 }
