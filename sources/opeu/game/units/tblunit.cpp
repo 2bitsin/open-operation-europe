@@ -5,9 +5,11 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
+#include "core/msglook.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
 #include "core/tblgroup.hpp"
+#include "core/textout.hpp"
 #include "map/support.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
@@ -20,6 +22,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -45,8 +48,8 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };
   auto const  second{ static_cast<std::uint16_t>(scratch + LOCATION_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_unit_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_unit_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const  unit{ data.row_units[entry] };
     auto const& regiment{ Record<Unit>(data, unit) };
@@ -55,12 +58,12 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
     auto const  ready{ (regiment.flags & Bits(UnitFlag::READY)) != 0 };
     auto const  spotted{ (regiment.flags & Bits(UnitFlag::SPOTTED)) != 0 };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, NAME_INDENT, side);
+      StartRowName(game, window, entry, NAME_INDENT, side);
       if (ready) {
-        if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) Call(game, event, TableService::UI_TEXT, Near(data, data.tbl_unit_mark));
-        Call(game, event, TableService::PRINT, Near(data, data.tbl_unit_label), opeu_unit_name(game, event, unit, name));
+        if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_mark));
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_unit_label)), static_cast<std::uint16_t>(opeu_unit_name(game, event, unit, name)) });
       } else
-        Call(game, event, TableService::UI_TEXT, Near(data, data.tbl_unit_empty));
+        opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_empty));
     }
     if (!ready || (own && !opeu_unit_selection_eligible(game, unit)))
       opeu_string_copy(game, text, Near(data, data.tbl_unit_blank));
@@ -75,12 +78,15 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
       auto const target{ has_destination ? opeu_location_name(game, event, x, y, name) : opeu_location_name(game, event, regiment.x, regiment.y, second) };
       auto const here{ opeu_location_name(game, event, regiment.x, regiment.y, second) };
       auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + 3] : Near(data, data.tbl_unit_wait) };
-      Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_unit_row), here, target, order, fuel, ammunition, food);
+      opeu_request_format(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_unit_row)), static_cast<std::uint16_t>(here),
+                                                              static_cast<std::uint16_t>(target), static_cast<std::uint16_t>(order), static_cast<std::uint16_t>(fuel),
+                                                              static_cast<std::uint16_t>(ammunition), static_cast<std::uint16_t>(food) });
     } else if (!own && !spotted)
-      Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_unit_hidden), opeu_location_name(game, event, regiment.x, regiment.y, name));
-    DrawRowText(game, event, window, layout, entry, text);
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_unit_hidden)),
+                                                              static_cast<std::uint16_t>(opeu_location_name(game, event, regiment.x, regiment.y, name)) });
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The regiment orders table: the regiment's name and a fixed request text.
@@ -92,19 +98,19 @@ void opeu_tbl_draw_orders(Game& game, HostEvent event, uint8_t column, uint8_t f
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_order_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_order_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const unit{ data.row_units[entry] };
     auto const side{ opeu_unit_side(unit) };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, NAME_INDENT, side);
-      Call(game, event, TableService::PRINT, Near(data, data.tbl_order_label), opeu_unit_name(game, event, unit, name));
+      StartRowName(game, window, entry, NAME_INDENT, side);
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_order_label)), static_cast<std::uint16_t>(opeu_unit_name(game, event, unit, name)) });
     }
-    opeu_string_copy(game, text, Call(game, event, TableService::REQUEST_TEXT, ORDERS_ROW_TEXT));
-    DrawRowText(game, event, window, layout, entry, text);
+    opeu_string_copy(game, text, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(ORDERS_ROW_TEXT)));
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The tables' calls are the row-draw services; unit_name and location_name format through this event as well.

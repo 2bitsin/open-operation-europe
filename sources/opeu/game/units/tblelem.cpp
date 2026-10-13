@@ -7,6 +7,7 @@
 #include "common/table-rows.hpp"
 #include "core/recindex.hpp"
 #include "core/tblgroup.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
 #include "units/table.hpp"
@@ -15,6 +16,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -33,21 +35,23 @@ void opeu_tbl_draw_elements(Game& game, HostEvent event, uint8_t column, uint8_t
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_element_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_element_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const  near{ data.row_elements[entry] };
     auto const& element{ Record<Element>(data, near) };
     auto const  side{ opeu_element_side(near) };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, NAME_INDENT, side);
-      if (element.flags & Bits(ElementFlag::SELECTED)) Call(game, event, TableService::UI_TEXT, Near(data, data.tbl_element_mark));
-      Call(game, event, TableService::PRINT, Near(data, data.tbl_element_name), opeu_element_name(game, near, name));
+      StartRowName(game, window, entry, NAME_INDENT, side);
+      if (element.flags & Bits(ElementFlag::SELECTED)) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_element_mark));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_element_name)), static_cast<std::uint16_t>(opeu_element_name(game, near, name)) });
     }
-    Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience);
-    DrawRowText(game, event, window, layout, entry, text);
+    opeu_request_format(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_element_row)),
+                                                            static_cast<std::uint16_t>(element.quantity), static_cast<std::uint16_t>(element.damage), static_cast<std::uint16_t>(element.morale),
+                                                            static_cast<std::uint16_t>(element.training), static_cast<std::uint16_t>(element.experience) });
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The table's calls are the row-draw services.

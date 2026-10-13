@@ -22,6 +22,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -45,24 +46,24 @@ void opeu_tbl_draw_groups(Game& game, HostEvent event, uint8_t column, uint8_t f
   locals.Clear(game);
   auto const  buffer{ locals.At(0) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ Columns(game, event, column, row) };
+  auto const  columns{ TableColumnLayout(game, column, row) };
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
-    Call(game, event, FORMAT, buffer, Near(data, data.tbl_group_header));
-    Call(game, event, POSITION, ColumnX(data, window, columns, -0x20), window.y + 1);
-    Call(game, event, SIDE_COLOR, side);
-    Call(game, event, PRINT, Near(data, data.tbl_group_title), buffer);
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_group_header)) });
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x20)), static_cast<int16_t>(window.y + 1));
+    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_title)), static_cast<std::uint16_t>(buffer) });
   }
   for (std::uint8_t g = first; g <= last; ++g) {
     auto const& group{ GroupOf(data, side, g) };
     if (flags & DRAW_LABELS) {
-      Call(game, event, POSITION, window.x + 2, RowY(data, window, g));
-      Call(game, event, SIDE_COLOR, side);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 2), static_cast<int16_t>(RowY(data, window, g)));
+      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
       if (group.flags & Bits(GroupFlag::READY)) {
-        if (group.flags & Bits(GroupFlag::SELECTED)) Call(game, event, PRINT, Near(data, data.tbl_group_mark));
-        Call(game, event, PRINT, Near(data, data.tbl_group_division), g + 1);
+        if (group.flags & Bits(GroupFlag::SELECTED)) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_mark)) });
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_division)), static_cast<std::uint16_t>(g + 1) });
       } else
-        Call(game, event, UI_TEXT, Near(data, data.tbl_group_empty));
+        opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_group_empty));
     }
     auto const group_near{ Near(data, group) };
     if ((group.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, group_near))) {
@@ -72,14 +73,16 @@ void opeu_tbl_draw_groups(Game& game, HostEvent event, uint8_t column, uint8_t f
       std::uint16_t food;
       opeu_group_resource_percentages(game, group_near, &ammo, &fuel, &food);
       auto const kind{ (group.flags & Bits(GroupFlag::AI_MARK)) ? Near(data, data.tbl_group_div) : Near(data, data.tbl_group_army) };
-      Call(game, event, FORMAT, buffer, Near(data, data.tbl_group_row), kind, commander, fuel, ammo, food);
+      opeu_request_format(game,
+                          std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_group_row)), static_cast<std::uint16_t>(kind),
+                                                        static_cast<std::uint16_t>(commander), static_cast<std::uint16_t>(fuel), static_cast<std::uint16_t>(ammo), static_cast<std::uint16_t>(food) });
     } else
       opeu_string_copy(game, buffer, Near(data, data.tbl_group_blank));
-    Call(game, event, POSITION, ColumnX(data, window, columns, -0x20), RowY(data, window, g));
-    Call(game, event, TEXT_COLOR, TABLE_TEXT_COLOR);
-    Call(game, event, PUT_RANGE, buffer, columns.start, columns.count);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x20)), static_cast<int16_t>(RowY(data, window, g)));
+    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<uint8_t>(columns.start), static_cast<uint8_t>(columns.count));
   }
-  Call(game, event, TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
@@ -91,36 +94,39 @@ void opeu_tbl_draw_missions(Game& game, HostEvent event, uint8_t column, uint8_t
   auto const  buffer{ locals.At(0) };
   auto const  place{ locals.At(PLACE_AT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ Columns(game, event, column, row) };
+  auto const  columns{ TableColumnLayout(game, column, row) };
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
-    Call(game, event, POSITION, 0x26, 0x81);
-    Call(game, event, SIDE_COLOR, side);
-    Call(game, event, PRINT, Near(data, data.tbl_mission_header));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x26), static_cast<int16_t>(0x81));
+    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.tbl_mission_header)) });
   }
   auto const& tasks{ GroupOf(data, side, data.current_group).tasks };
   for (std::uint8_t m = first; m <= last; ++m) {
     auto const& task{ tasks[m] };
     if (flags & DRAW_LABELS) {
-      Call(game, event, SIDE_COLOR, side);
-      Call(game, event, POSITION, window.x + 2, RowY(data, window, m));
-      Call(game, event, PRINT, Near(data, data.tbl_mission_label), m + 1);
+      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 2), static_cast<int16_t>(RowY(data, window, m)));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_mission_label)), static_cast<std::uint16_t>(m + 1) });
     }
     if (task.kind != Bits(TaskKind::NONE)) {
       auto const x{ task.x };
       auto const y{ task.y };
       if (auto const objective{ opeu_find_objective_at(game, x, y) })
-        Call(game, event, FORMAT, place, Near(data, data.tbl_mission_target), objective);
+        opeu_request_format(game,
+                            std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(place), static_cast<std::uint16_t>(Near(data, data.tbl_mission_target)), static_cast<std::uint16_t>(objective) });
       else
-        Call(game, event, FORMAT, place, Near(data, data.tbl_mission_place), x * data.map_scale, y * data.map_scale);
-      Call(game, event, FORMAT, buffer, Near(data, data.tbl_mission_row), data.order_names[task.kind], place);
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(place), static_cast<std::uint16_t>(Near(data, data.tbl_mission_place)),
+                                                                static_cast<std::uint16_t>(x * data.map_scale), static_cast<std::uint16_t>(y * data.map_scale) });
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_mission_row)),
+                                                              static_cast<std::uint16_t>(data.order_names[task.kind]), static_cast<std::uint16_t>(place) });
     } else
       opeu_string_copy(game, buffer, Near(data, data.tbl_mission_blank));
-    Call(game, event, POSITION, ColumnX(data, window, columns, -0x20), RowY(data, window, m));
-    Call(game, event, TEXT_COLOR, TABLE_TEXT_COLOR);
-    Call(game, event, PUT_RANGE, buffer, columns.start, columns.count);
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x20)), static_cast<int16_t>(RowY(data, window, m)));
+    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<uint8_t>(columns.start), static_cast<uint8_t>(columns.count));
   }
-  Call(game, event, TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The services of the row-draw callbacks: the column layout of the active list window, the text output and the

@@ -40,14 +40,6 @@ struct TableColumns {
   std::uint8_t count;
 };
 
-// Asks the layout service for a column of the active list window; the service writes the three bytes into DS locals.
-inline auto Columns(Game& game, HostEvent event, std::uint8_t column, std::uint8_t row) -> TableColumns {
-  ServiceLocals const bytes{ 4 };
-  Call(game, event, COLUMNS, column, row, bytes.At(0), bytes.At(1), bytes.At(2));
-  auto const& data{ Data(game) };
-  return { Record<std::uint8_t>(data, bytes.At(0)), Record<std::uint8_t>(data, bytes.At(1)), Record<std::uint8_t>(data, bytes.At(2)) };
-}
-
 // The active list window.
 [[nodiscard]] inline auto ActiveWindow(DataSegment const& data) -> ListWindow const& {
   return Record<ListWindow>(data, data.list_window);
@@ -75,7 +67,6 @@ inline auto RunTableRows(Game& game, HostEvent event, Draw draw, std::uint16_t c
 
 namespace opeu::game {
 using detail::table_rows::ActiveWindow;
-using detail::table_rows::Columns;
 using detail::table_rows::ColumnX;
 using detail::table_rows::RowY;
 using detail::table_rows::RunTableRows;
@@ -85,3 +76,6 @@ using detail::table_rows::TABLE_TEXT_COLOR;
 using detail::table_rows::TableColumns;
 using detail::table_rows::TableService;
 } // namespace opeu::game
+
+// The layout of table column `column` of the active list window (io/listui.cpp).
+auto TableColumnLayout(Game& game, std::uint8_t column, std::uint8_t rows) -> opeu::game::TableColumns;

@@ -7,6 +7,7 @@
 #include "common/table-rows.hpp"
 #include "core/strings.hpp"
 #include "core/tblgroup.hpp"
+#include "core/textout.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -17,6 +18,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -32,28 +34,30 @@ void opeu_tbl_draw_supplies(Game& game, HostEvent event, uint8_t column, uint8_t
   auto const  scratch{ buffers.At(0) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_supply_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_supply_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const  near{ data.tbl_objective_list[entry] };
     auto const& city{ Record<Objective>(data, near) };
     auto const  side{ opeu_objective_side(game, near) };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, NAME_INDENT, side);
-      Call(game, event, TableService::PRINT, Near(data, data.tbl_supply_name), near);
+      StartRowName(game, window, entry, NAME_INDENT, side);
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_supply_name)), static_cast<std::uint16_t>(near) });
     }
     if ((side == data.current_side && opeu_objective_eligible(game, near)) || (side != data.current_side && (city.flags & Bits(ObjectiveFlag::MARKED)))) {
       std::uint16_t ammunition{};
       std::uint16_t fuel{};
       std::uint16_t food{};
       opeu_objective_resource_percentages(game, near, &ammunition, &fuel, &food);
-      Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_supply_row), city.resources[1], fuel, city.resources[0], ammunition, city.resources[2], food, city.strength,
-           city.strength_limit);
+      opeu_request_format(game, std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_supply_row)),
+                                                               static_cast<std::uint16_t>(city.resources[1]), static_cast<std::uint16_t>(fuel), static_cast<std::uint16_t>(city.resources[0]),
+                                                               static_cast<std::uint16_t>(ammunition), static_cast<std::uint16_t>(city.resources[2]), static_cast<std::uint16_t>(food),
+                                                               static_cast<std::uint16_t>(city.strength), static_cast<std::uint16_t>(city.strength_limit) });
     } else
       opeu_string_copy(game, text, Near(data, data.tbl_supply_blank));
-    DrawRowText(game, event, window, layout, entry, text);
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The table's calls are the row-draw services.

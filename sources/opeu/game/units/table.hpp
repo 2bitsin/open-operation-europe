@@ -7,7 +7,11 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
+#include "core/sideutil.hpp"
+#include "core/textout.hpp"
+#include "link/glue.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace opeu::game::detail::unit_table {
@@ -27,27 +31,27 @@ inline constexpr std::uint16_t ROW_TEXT{ 4 };
 }
 
 // Formats the heading `format` into `text` and prints the column's part of it above the rows.
-inline auto DrawHeading(Game& game, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
+inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
   auto const& data{ Data(game) };
-  Call(game, event, TableService::FORMAT, text, format);
-  Call(game, event, TableService::POSITION, BodyX(data, window, layout), window.y + 1);
-  Call(game, event, TableService::SIDE_COLOR, data.current_side);
-  Call(game, event, TableService::PUT_RANGE, text, layout.start, layout.count);
+  opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(window.y + 1));
+  opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+  opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));
 }
 
 // Prints the column's part of the row text at row `entry`.
-inline auto DrawRowText(Game& game, HostEvent event, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, std::uint16_t text) -> void {
+inline auto DrawRowText(Game& game, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, std::uint16_t text) -> void {
   auto const& data{ Data(game) };
-  Call(game, event, TableService::POSITION, BodyX(data, window, layout), RowY(data, window, entry));
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
-  Call(game, event, TableService::PUT_RANGE, text, layout.start, layout.count);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(RowY(data, window, entry)));
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));
 }
 
 // Moves the text cursor to the name of row `entry`, `indent` columns into the window, in the colour of `side`.
-inline auto StartRowName(Game& game, HostEvent event, ListWindow const& window, std::uint8_t entry, std::uint16_t indent, std::uint8_t side) -> void {
+inline auto StartRowName(Game& game, ListWindow const& window, std::uint8_t entry, std::uint16_t indent, std::uint8_t side) -> void {
   auto const& data{ Data(game) };
-  Call(game, event, TableService::POSITION, window.x + indent, RowY(data, window, entry));
-  Call(game, event, TableService::SIDE_COLOR, side);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + indent), static_cast<int16_t>(RowY(data, window, entry)));
+  opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
 }
 
 } // namespace opeu::game::detail::unit_table

@@ -6,6 +6,7 @@
 #include "common/table-rows.hpp"
 #include "core/sideutil.hpp"
 #include "core/tblgroup.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
 #include "units/table.hpp"
 
@@ -13,6 +14,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -28,19 +30,20 @@ void opeu_tbl_draw_strength(Game& game, HostEvent event, uint8_t column, uint8_t
   auto const  scratch{ buffers.At(0) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.tbl_str_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_str_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const& item{ Record<Item>(data, data.strength_items[entry]) };
     auto const& type{ data.element_types[item.type] };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, NAME_INDENT, opeu_record_side(game, Near(data, type)));
-      Call(game, event, TableService::PRINT, Near(data, data.tbl_str_name), type.name);
+      StartRowName(game, window, entry, NAME_INDENT, opeu_record_side(game, Near(data, type)));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_str_name)), static_cast<std::uint16_t>(type.name) });
     }
-    Call(game, event, TableService::FORMAT, text, Near(data, data.tbl_str_row), item.quantity, item.extra);
-    DrawRowText(game, event, window, layout, entry, text);
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_str_row)), static_cast<std::uint16_t>(item.quantity),
+                                                            static_cast<std::uint16_t>(item.extra) });
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The table's calls are the row-draw services.

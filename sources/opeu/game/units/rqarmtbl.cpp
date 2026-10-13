@@ -20,6 +20,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -37,18 +38,18 @@ void opeu_rq_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fir
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ Columns(game, event, column, row) };
-  if (flags & DRAW_HEADING) DrawHeading(game, event, window, layout, text, Near(data, data.rq_unit_header));
+  auto const  layout{ TableColumnLayout(game, column, row) };
+  if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.rq_unit_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const unit{ data.ai_unit_list[entry] };
     if (flags & DRAW_NAMES) {
-      StartRowName(game, event, window, entry, 3, data.current_side);
-      Call(game, event, TableService::PRINT, Near(data, data.rq_unit_name), opeu_unit_name(game, event, unit, name));
+      StartRowName(game, window, entry, 3, data.current_side);
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.rq_unit_name)), static_cast<std::uint16_t>(opeu_unit_name(game, event, unit, name)) });
     }
     opeu_string_copy(game, text, Near(data, data.rq_unit_row));
-    DrawRowText(game, event, window, layout, entry, text);
+    DrawRowText(game, window, layout, entry, text);
   }
-  Call(game, event, TableService::TEXT_COLOR, TABLE_TEXT_COLOR);
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
 }
 
 // The services of the regiment table: the row-draw services.
