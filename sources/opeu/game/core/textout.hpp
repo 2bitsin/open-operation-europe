@@ -41,6 +41,3 @@ void    opeu_request_format(Game& game, std::span<std::uint16_t const> words);
 void    opeu_cursor_print(Game& game, std::span<std::uint16_t const> words);
 void    opeu_text_put_range(Game& game, TextHost* host, uint16_t s, uint8_t start, uint8_t count);
 void    opeu_text_erase_char(Game& game, TextHost* host);
-
-// The services the console calls.
-uint16_t svc_textout(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

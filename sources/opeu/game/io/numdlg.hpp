@@ -24,6 +24,3 @@ auto opeu_numdlg_decrement(Game& game, std::uint8_t n, std::uint16_t lo, std::ui
 auto opeu_numdlg_outside(Game& game, std::uint16_t mx, std::uint16_t my) -> std::uint16_t;
 auto opeu_numdlg_track(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t;
 auto opeu_numdlg_run(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t;
-
-// The module's services: the shared input calls it raises.
-auto svc_numdlg(Game& game, std::uint16_t call, std::uint16_t* words) -> std::uint16_t;

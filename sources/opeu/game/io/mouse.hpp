@@ -33,6 +33,3 @@ namespace opeu::game {
 using detail::mouse::MousePoint;
 using detail::mouse::MousePosition;
 } // namespace opeu::game
-
-// The module's services: the input driver call the mouse, keyboard and dialog modules share.
-auto svc_mouse(Game& game, std::uint16_t call, std::uint16_t* words) -> std::uint16_t;

@@ -27,10 +27,9 @@ auto port_ds_word_ptr(Game& game, uint16_t near) -> uint16_t*;
 
 /* ---- struct hosts (port/core/hosts.c) ------------------------------------- */
 
-auto port_textout_host() -> void*; /* TextHost {event} */
+auto port_textout_host() -> void*; /* TextHost {} */
 auto port_uiprim_host() -> void*;  /* UiHost {memory, segments, event} */
-auto port_dialogs_host() -> void*; /* DialogHost {event, load, scratch} */
-auto port_numdlg_host() -> void*;  /* numdlg's bridge {service} */
+auto port_dialogs_host() -> void*; /* DialogHost {load, scratch} */
 
 /* ---- far code pointers of the recovered data ------------------------------ */
 

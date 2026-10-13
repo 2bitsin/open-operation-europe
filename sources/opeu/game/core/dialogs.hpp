@@ -35,5 +35,3 @@ void     opeu_objective_side_report(Game& game, const DialogHost* host, uint16_t
 void     opeu_element_type_panel(Game& game, const DialogHost* host, uint16_t type);
 void     opeu_group_element_panel(Game& game, const DialogHost* host, uint16_t group);
 void     opeu_element_panel(Game& game, const DialogHost* host, uint16_t element);
-
-uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

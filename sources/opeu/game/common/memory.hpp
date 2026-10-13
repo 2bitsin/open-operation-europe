@@ -20,21 +20,6 @@ inline constexpr std::uint16_t FRAME_SEGMENT{ 0x349b };      // map tiles, cell 
 inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen backgrounds (plane sprites, the weather)
 inline constexpr std::uint16_t PATH_SEGMENT{ 0x4582 };       // the movement path-cost grid and its queue
 
-// Calls a service with its argument words (a count of 0 passes no array); a service given as a scoped enum
-// (MapService, ViewService) passes its value. For services that write results back into the argument array, build
-// the array at the call site instead.
-template <typename Event, typename Service, typename... Words>
-inline auto Call(Game& game, Event event, Service service, Words... words) {
-  if constexpr (std::is_enum_v<Service>) {
-    return Call(game, event, std::to_underlying(service), words...);
-  } else if constexpr (sizeof...(Words) == 0) {
-    return event(game, service, nullptr, 0);
-  } else {
-    std::uint16_t args[]{ static_cast<std::uint16_t>(words)... };
-    return event(game, service, args, static_cast<std::uint16_t>(sizeof...(Words)));
-  }
-}
-
 // The DS bytes a routine reserves on the DS stack for its locals whose near address it hands to a service: the
 // service reads and writes them in the data segment. Only those locals live here (#13 gives the services typed
 // parameters and removes it); every other local is a C++ local.
@@ -65,7 +50,6 @@ private:
 
 namespace opeu::game {
 using detail::memory::BACKGROUND_SEGMENT;
-using detail::memory::Call;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
 using detail::memory::PATH_SEGMENT;

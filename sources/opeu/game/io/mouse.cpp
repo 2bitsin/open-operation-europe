@@ -128,13 +128,3 @@ void opeu_mouse_window(Game& game, std::int16_t x, std::int16_t y, std::int16_t 
   Mouse(game, X_RANGE, static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x));
   Mouse(game, Y_RANGE, static_cast<std::uint16_t>(y + ROW_OFFSET), static_cast<std::uint16_t>(y + height + ROW_OFFSET));
 }
-
-// The input driver call: int86(0x33) with the seven register words. The keyboard and dialog modules forward their
-// driver calls here.
-auto svc_mouse(Game&, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
-  switch (call) {
-  case INT86_CALL: return port_mouse_int33(words);
-  default:         port_unhandled("mouse", call, 7);
-  }
-  return 0;
-}

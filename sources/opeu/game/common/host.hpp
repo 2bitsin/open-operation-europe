@@ -31,17 +31,14 @@ inline auto Int86(Regs& r, Driver driver) -> std::uint16_t {
   return result;
 }
 
-// The dialogs' service, load segment and the DS area of their stack buffers.
+// The dialogs' load segment and the DS area of their stack buffers.
 struct DialogHost {
-  HostEvent     event;
   std::uint16_t load;
   std::uint16_t scratch;
 };
 
-// The text output's service.
-struct TextHost {
-  HostEvent event;
-};
+// The text output's host: no state of its own since its services became direct calls (B5 retires the hosts).
+struct TextHost { };
 
 // The UI primitives' memory, segment numbers and service.
 struct UiHost {

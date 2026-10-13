@@ -1,8 +1,7 @@
-/* Struct hosts of the four modules whose entries take a host structure
- * instead of a bare service callback. Each getter returns the single
- * instance; its `event` is the module's service (svc_textout, svc_uiprim,
- * svc_dialogs), the other members are platform state the modules read: the
- * modeled stack pointer, the arena and the segment numbers of the layout. */
+/* Struct hosts of the three modules whose entries take a host structure.
+ * Each getter returns the single instance; uiprim's `event` is its service
+ * (svc_uiprim), the other members are platform state the modules read: the
+ * arena, the DS scratch area and the segment numbers of the layout. */
 #include "link/glue.hpp"
 
 #include "common/game.hpp"
@@ -12,8 +11,8 @@
 #include "io/numdlg.hpp"
 #include "link/entry-game.hpp"
 
-/* ---- TEXTOUT: TextHost {event} ------------------------------------------------ */
-static TextHost textout_host = { svc_textout };
+/* ---- TEXTOUT: TextHost {} ----------------------------------------------------- */
+static TextHost textout_host{};
 
 void* port_textout_host(void) {
   return &textout_host;
@@ -52,30 +51,13 @@ PortByteReader port_picture_reader(uint16_t off, uint16_t seg) {
   return 0;
 }
 
-/* ---- DIALOGS: DialogHost {event, load, scratch} ------------------------------ *
+/* ---- DIALOGS: DialogHost {load, scratch} ------------------------------------- *
  * The dialogs' stack buffers (at most 132 bytes, one owner active at a time)
  * take one fixed DS area: the bottom of the 5120-byte stack (PORT_DS_END),
  * which the modeled stack (top PORT_STACK_TOP) never reaches in practice.
  * The load segment is 0. */
-static const DialogHost dialogs_host = { svc_dialogs, 0u, PORT_DS_END };
+static const DialogHost dialogs_host = { 0u, PORT_DS_END };
 
 void* port_dialogs_host(void) {
   return (void*)&dialogs_host;
-}
-
-/* ---- NUMDLG ------------------------------------------------------------------ *
- * numdlg's routines take a bare service; the module builds its UiHost for
- * opeu_ui_outline internally (io/numdlg). The getter returns that bridge
- * shape ({ service }) for callers that want the service through a host
- * pointer. */
-namespace {
-using InputService = auto (*)(Game& game, uint16_t call, uint16_t* words) -> uint16_t;
-struct OutlineBridge {
-  InputService service;
-};
-} // namespace
-static const OutlineBridge numdlg_bridge = { svc_numdlg };
-
-void* port_numdlg_host(void) {
-  return (void*)&numdlg_bridge;
 }

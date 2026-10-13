@@ -369,22 +369,3 @@ auto opeu_numdlg_run(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel)
   opeu_input_reset(game);
   return value;
 }
-
-// In the game the dialog runs from the keyboard module, which passes its own service down; this one serves direct
-// callers.
-auto svc_numdlg(Game& game, std::uint16_t call, std::uint16_t* words) -> std::uint16_t {
-  switch (static_cast<InputCall>(call)) {
-  case InputCall::MOUSE_INT86:
-  case InputCall::TEXT_SAVE:
-  case InputCall::TEXT_POSITION:
-  case InputCall::TEXT_PRINT:
-  case InputCall::TEXT_RESTORE:
-  case InputCall::BITMAP_SAVE:
-  case InputCall::BITMAP_RESTORE: return svc_menudraw(game, call, words);
-  case InputCall::UI_FILL:        opeu_ui_fill(words[0], words[1], words[2], words[3], words[4]); break;
-  case InputCall::UI_INVERT:      opeu_ui_highlight(words[0], words[1], words[2], words[3], words[4]); break;
-  case InputCall::UI_LINE:        opeu_ui_line(words[0], words[1], words[2], words[3], words[4]); break;
-  default:                        port_unhandled("numdlg", call, 7);
-  }
-  return 0;
-}

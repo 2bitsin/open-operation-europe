@@ -227,7 +227,7 @@ void SetState(DataSegment& data, EscapeState state) {
 
 // Waits for a key; keypad scan codes become digits unless the character is CR or ESC.
 uint8_t opeu_key_read(Game& game, TextHost* host) {
-  auto const key{ Call(game, host->event, KEY_READ) };
+  auto const key{ port_key_read() };
   auto const scan{ static_cast<uint8_t>(key >> 8) };
   auto       code{ static_cast<uint8_t>(key) };
   if (code == '\r' || code == ESCAPE) return code;
@@ -248,7 +248,7 @@ uint8_t opeu_key_read(Game& game, TextHost* host) {
 
 // Reads every waiting key.
 void opeu_input_flush(Game& game, TextHost* host) {
-  while (Call(game, host->event, KEY_WAITING)) opeu_key_read(game, host);
+  while (opeu_turn_input_b()) opeu_key_read(game, host);
 }
 
 // Word-wrapping text output with embedded escape sequences.
@@ -286,8 +286,8 @@ int16_t opeu_text_scroll_check(Game& game, TextHost* host) {
 // Clears the window and homes the cursor to its top left.
 void opeu_text_scroll_up(Game& game, TextHost* host) {
   auto const& data{ Data(game) };
-  Call(game, host->event, WAIT_CONFIRM, 0);
-  Call(game, host->event, BOX, data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
+  opeu_wait_confirm(game, static_cast<int16_t>(0));
+  opeu_ui_box(data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
   opeu_army_position(game, host, data.text_left, data.text_top);
 }
 
@@ -418,7 +418,7 @@ void opeu_text_control(Game& game, TextHost* host, uint8_t c) {
   case '\b':
     if (data.text_x >= 1) data.text_x--;
     break;
-  case '\a': Call(game, host->event, SOUND_RESET, 6); break;
+  case '\a': opeu_sound_reset(game); break;
   default:   break;
   }
 }
@@ -438,15 +438,15 @@ uint8_t opeu_text_put(Game& game, TextHost* host, uint8_t c) {
     case 'M': SetState(data, EscapeState::PAPER); break;
     case 'B': SetState(data, EscapeState::BACKGROUND); break;
     case 'Y': SetState(data, EscapeState::IGNORE); break;
-    case 'E': Call(game, host->event, SOUND_RESET, 6); [[fallthrough]];
+    case 'E': opeu_sound_reset(game); [[fallthrough]];
     case 'W': SetState(data, EscapeState::FINISH); break;
-    case 'T': Call(game, host->event, BOX, data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
-    case '*': Call(game, host->event, CLEAR); goto reset;
+    case 'T': opeu_ui_box(data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
+    case '*': opeu_vga_clear(); goto reset;
     case 'S':
       if (data.text_scroll)
         opeu_text_scroll_up(game, host);
       else
-        Call(game, host->event, WAIT_CONFIRM, 1);
+        opeu_wait_confirm(game, static_cast<int16_t>(1));
       goto reset;
     default: break;
     }
@@ -477,7 +477,7 @@ uint8_t opeu_text_put(Game& game, TextHost* host, uint8_t c) {
     SetState(data, EscapeState::NONE);
     break;
   case EscapeState::FINISH:
-    Call(game, host->event, PENDING_FINISH, static_cast<uint8_t>(c - '0'));
+    opeu_pending_finish(game, static_cast<uint8_t>(static_cast<uint8_t>(c - '0')));
     SetState(data, EscapeState::NONE);
     break;
   default:
@@ -533,20 +533,4 @@ void opeu_text_erase_char(Game& game, TextHost* host) {
   auto const paper{ data.text_paper };
   opeu_ui_text(game, host, Near(data, data.text_erase));
   data.text_paper = paper;
-}
-
-// The console's services.
-uint16_t svc_textout(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<TextService>(id)) {
-  case KEY_READ:       r = port_key_read(); break;
-  case KEY_WAITING:    r = opeu_turn_input_b(); break;
-  case WAIT_CONFIRM:   opeu_wait_confirm(game, (int16_t)Arg(args, count, 0)); break;
-  case BOX:            opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case CLEAR:          opeu_vga_clear(); break;
-  case SOUND_RESET:    opeu_sound_reset(game); break;
-  case PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  default:             port_unhandled("textout", id, count);
-  }
-  return r;
 }
