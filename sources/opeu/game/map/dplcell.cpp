@@ -96,11 +96,6 @@ void opeu_deploy_hide_zone(Game& game, BattleEvent event, uint16_t element) {
   });
 }
 
-void opeu_deploy_draw_cursor(Game& game, BattleEvent event) {
-  auto const& data{ Data(game) };
-  Call(game, event, BattleRoutine::BATTLE_DRAW_CURSOR, data.battle_cursor_x, data.battle_cursor_y);
-}
-
 uint16_t opeu_deploy_input(Game& game, BattleEvent event) {
   if (Data(game).input_mode) return Call(game, event, BattleRoutine::BATTLE_MOUSE_SELECT, 1);
   return Call(game, event, BattleRoutine::BATTLE_KEY_SELECT, 1);

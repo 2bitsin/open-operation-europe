@@ -31,9 +31,11 @@ constexpr int16_t HEX_WIDTH{ 20 };
 constexpr int16_t HEX_HEIGHT{ 26 };
 constexpr int16_t MASK_ROW_BYTES{ 5 };
 
+constexpr uint16_t HEX_MASK_SEGMENT{ 0x352d }; // the far segment of the hex-shape masks
+
 // A byte of the hex-shape mask.
-[[nodiscard]] auto HexMask(Game& game, BattleEvent event, int16_t row, int16_t column) -> uint8_t {
-  return static_cast<uint8_t>(event(game, std::to_underlying(BattleRoutine::BATTLE_HEX_MASKS) + static_cast<uint16_t>(row * MASK_ROW_BYTES + column), nullptr, 0));
+[[nodiscard]] auto HexMask(int16_t row, int16_t column) -> uint8_t {
+  return *port_far(HEX_MASK_SEGMENT, static_cast<uint16_t>(row * MASK_ROW_BYTES + column));
 }
 } // namespace
 
@@ -71,7 +73,7 @@ void opeu_battle_mouse_cell(Game& game, BattleEvent event, uint16_t x_at, uint16
     column = static_cast<int16_t>(column + row);
     auto const mask_row{ static_cast<int16_t>(x % 40 < HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
     auto const mask_byte{ static_cast<int16_t>((x % HEX_WIDTH + 20) / 8) };
-    if (!(HexMask(game, event, mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> (x % HEX_WIDTH + 20) % 8))) {
+    if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> (x % HEX_WIDTH + 20) % 8))) {
       if (mask_row < 13)
         --row;
       else
@@ -86,7 +88,7 @@ void opeu_battle_mouse_cell(Game& game, BattleEvent event, uint16_t x_at, uint16
     row    = static_cast<int16_t>(row + column);
     auto const mask_row{ static_cast<int16_t>(x % 40 >= HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
     auto const mask_byte{ static_cast<int16_t>(x % HEX_WIDTH / 8) };
-    if (!(HexMask(game, event, mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> x % HEX_WIDTH % 8))) {
+    if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> x % HEX_WIDTH % 8))) {
       if (mask_row < 13)
         --column;
       else

@@ -49,10 +49,10 @@ constexpr uint16_t PICTURE_X_0{ 0x38 };
 constexpr uint16_t PICTURE_X_1{ 0 };
 constexpr uint16_t PICTURE_Y{ 0x140 };
 
-// opeu_unit_name reports its formatter as its service 2; this forwards it to the battle's request formatter.
-BattleEvent name_event;
-uint16_t    NameForward(Game& game, uint16_t, const uint16_t* args, uint16_t count) {
-  return name_event(game, std::to_underlying(BattleRoutine::REQUEST_FORMAT), args, count);
+// opeu_unit_name reports its formatter as its service 2; this hands it to the request formatter.
+uint16_t NameForward(Game& game, uint16_t, const uint16_t* args, uint16_t count) {
+  opeu_request_format(game, { args, count });
+  return 0;
 }
 } // namespace
 
@@ -76,8 +76,7 @@ void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, 
     at(TITLE_COLUMN, LINE);
     name = opeu_type_name(game, Near(data, data.element_types[record.type]), element_name);
   } else {
-    name_event = event;
-    name       = opeu_unit_name(game, NameForward, unit, unit_name);
+    name = opeu_unit_name(game, NameForward, unit, unit_name);
     print(data.battle_fmt_title, SideColorCode(side), data.side_names[side], name);
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(game, element, element_name);

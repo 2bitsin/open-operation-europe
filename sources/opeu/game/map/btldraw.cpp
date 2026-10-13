@@ -53,7 +53,7 @@ void opeu_battle_dispatch(Game& game, BattleEvent event, uint8_t handler) {
   if (handler == NO_HANDLER) return;
   auto&       data{ Data(game) };
   auto const& routine{ Record<FarPointer>(data, static_cast<uint16_t>(Near(data, data.battle_handlers) + handler * sizeof(FarPointer))) };
-  event(game, static_cast<uint32_t>(routine.segment) * 16 + routine.offset, nullptr, 0);
+  port_call(game, static_cast<uint32_t>(routine.segment) * 16 + routine.offset, nullptr, 0);
 }
 
 uint16_t opeu_battle_cell_row(Game&, BattleEvent, uint8_t x, uint8_t y) {

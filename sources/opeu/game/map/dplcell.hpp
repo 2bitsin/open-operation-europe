@@ -9,7 +9,6 @@ void     opeu_deploy_lift(Game& game, BattleEvent event, uint16_t element);
 uint16_t opeu_deploy_can_place(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element);
 void     opeu_deploy_show_zone(Game& game, BattleEvent event, uint16_t element);
 void     opeu_deploy_hide_zone(Game& game, BattleEvent event, uint16_t element);
-void     opeu_deploy_draw_cursor(Game& game, BattleEvent event);
 uint16_t opeu_deploy_input(Game& game, BattleEvent event);
 uint16_t opeu_deploy_manual(Game& game, BattleEvent event, uint16_t element);
 
