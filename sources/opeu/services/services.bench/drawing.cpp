@@ -1,5 +1,6 @@
 // The cost of the game's hottest drawing calls on the screen: column-image blits by mode, glyphs, battle cells,
 // sprite composition, picture decoding and the frame handed to the platform.
+#include "canvas.hpp"
 #include "syslib-gfx.hpp"
 #include "vgalib.hpp"
 
@@ -7,9 +8,11 @@
 
 #include <array>
 #include <cstdint>
+#include <format>
 #include <numeric>
 #include <ranges>
 #include <span>
+#include <string>
 
 namespace opeu::services::bench {
 
@@ -80,9 +83,22 @@ auto BattleCell(benchmark::State& state) -> void {
 }
 BENCHMARK(BattleCell);
 
+// The block the benchmark copies: from game column 10, line 100 to column 20, line 140.
+constexpr auto CELL_BLOCK_FROM{ static_cast<std::uintptr_t>(GameAt(10 * 8, 100)) };
+constexpr auto CELL_BLOCK_TO{ static_cast<std::uintptr_t>(GameAt(20 * 8, 140)) };
+
+// Where the copy's data and code landed in this process, for the perf gate's failure message: the pixel store's page
+// offset, the source's and destination's, and the routine's offset in its 64-byte fetch block and in its page.
+[[nodiscard]] auto CellBlockLayout() -> std::string {
+  auto const store{ reinterpret_cast<std::uintptr_t>(Screen().Row(0).data()) }; // NOLINT(*-reinterpret-cast): the address itself is reported
+  auto const code{ reinterpret_cast<std::uintptr_t>(&koei_3bc5) };              // NOLINT(*-reinterpret-cast): the address itself is reported
+  return std::format("store%4096={} from%4096={} to%4096={} code%64={} code%4096={}", store % 4096, (store + CELL_BLOCK_FROM) % 4096, (store + CELL_BLOCK_TO) % 4096, code % 64, code % 4096);
+}
+
 auto CellBlockCopy(benchmark::State& state) -> void {
   Ready();
   for (auto _ : state) koei_3bc5(10, 100, 20, 140);
+  state.SetLabel(CellBlockLayout());
 }
 BENCHMARK(CellBlockCopy);
 

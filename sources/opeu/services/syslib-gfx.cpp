@@ -292,8 +292,9 @@ auto Koei3b77(std::uint16_t const x, std::uint16_t const y, std::uint16_t const 
 }
 
 // Copies the 3-column x 24-line block at (x1, y1) to (x2, y2), line by line from the top; within a line the first two
-// columns are read before either is written.
-auto koei_3bc5(std::uint16_t const x1, std::uint16_t const y1, std::uint16_t const x2, std::uint16_t const y2) -> void {
+// columns are read before either is written. Its code starts on a cache line, so its copy loop sits at the same
+// place relative to the fetch blocks in every build (services.bench's CellBlockCopy reports where it landed).
+[[gnu::aligned(64)]] auto koei_3bc5(std::uint16_t const x1, std::uint16_t const y1, std::uint16_t const x2, std::uint16_t const y2) -> void {
   auto&      screen{ Screen() };
   auto const from{ ColumnAt(x1, y1) };
   auto const to{ ColumnAt(x2, y2) };
