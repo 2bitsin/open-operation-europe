@@ -37,6 +37,7 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t CHIEF_FORMAT{ offsetof(DataSegment, ops_chief_format) };
 constexpr std::uint16_t RANGE_FORMAT{ offsetof(DataSegment, number_range_format) };
+constexpr std::uint16_t RANGE_TEXT_BYTES{ 0x1e }; // the "(low-high)" text
 constexpr std::uint16_t PANEL_X{ 0x35 };
 constexpr std::uint16_t PANEL_Y{ 0x130 };
 
@@ -68,9 +69,11 @@ uint16_t opeu_number_prompt(uint8_t ds[65536], HostEvent event, uint16_t text, u
   return Call(ds, event, INPUT, low, high, value, d);
 }
 
-uint16_t opeu_ops_chief_number(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d, uint16_t buffer) {
+// The operations chief asks for a number in low..high; the range text is formatted in the routine's reserve.
+uint16_t opeu_ops_chief_number(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
+  ServiceLocals const range{ RANGE_TEXT_BYTES };
   opeu_ops_chief_show(ds, event);
-  return opeu_number_prompt(ds, event, text, low, high, value, d, buffer);
+  return opeu_number_prompt(ds, event, text, low, high, value, d, range.At(0));
 }
 
 uint16_t opeu_ops_chief_wait(uint8_t ds[65536], HostEvent event, uint16_t text) {

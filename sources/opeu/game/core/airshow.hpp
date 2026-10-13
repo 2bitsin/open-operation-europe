@@ -5,9 +5,9 @@
 #include "types.hpp"
 
 void    opeu_air_sprite_mirror(uint8_t* ds, uint16_t image, uint8_t keep);
-void    opeu_air_sprite_draw(uint8_t* ds, HostEvent event, uint16_t load, uint16_t bp, uint16_t x, uint16_t y, uint8_t keep);
+void    opeu_air_sprite_draw(uint8_t* ds, HostEvent event, uint16_t load, uint16_t x, uint16_t y, uint8_t keep);
 void    opeu_air_sprite_restore(uint8_t* ds, HostEvent event, uint16_t load, uint16_t x, uint16_t y);
-uint8_t opeu_air_report(uint8_t* ds, HostEvent event, uint16_t bp, uint16_t what, uint8_t wait);
+uint8_t opeu_air_report(uint8_t* ds, HostEvent event, uint16_t what, uint8_t wait);
 
 // The services of this module as direct calls.
 uint16_t svc_airshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

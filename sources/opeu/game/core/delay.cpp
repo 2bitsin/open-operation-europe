@@ -28,14 +28,12 @@ constexpr std::uint16_t MOUSE_PROMPT{ 118 };    // the delay prompt for mouse in
 constexpr std::uint16_t DIALOG_X{ 24 };
 constexpr std::uint16_t CANCELLED{ 0xffff };
 
-// The DS stack the routine's caller reserves: the 36-byte prompt text and the result word.
-constexpr std::uint16_t DELAY_FRAME{ 38 };
 constexpr std::uint16_t PROMPT_BYTES{ 36 }; // the prompt the dialog service shows
 } // namespace
 
 // Copies the prompt into the routine's reserve, asks the context person for the hours and stores them as the current
 // side's delay once confirmed.
-void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ PROMPT_BYTES };
   auto const          scratch{ locals.At(0) };
   auto&               data{ Data(ds) };
@@ -57,8 +55,6 @@ uint16_t svc_delay(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
 }
 
 auto port_routine_opeu_choose_turn_delay(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  auto const scratch{ b1_stack_alloc(DELAY_FRAME) };
-  opeu_choose_turn_delay(ds, svc_delay, scratch);
-  port_scratch_leave(DELAY_FRAME);
+  opeu_choose_turn_delay(ds, svc_delay);
   return 0;
 }

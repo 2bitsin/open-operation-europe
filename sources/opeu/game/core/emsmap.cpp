@@ -50,11 +50,6 @@ auto Result(std::uint16_t& segment, std::uint16_t& mapped, std::uint16_t page_se
   mapped = static_cast<std::uint16_t>(ok);
   return ok;
 }
-
-// The SP an allocation passes to opeu_ems_reserve: its own frame and return address below its entry SP.
-constexpr auto ReserveSp(std::uint16_t sp) -> std::uint16_t {
-  return static_cast<std::uint16_t>(sp - 8);
-}
 } // namespace
 
 // Maps `count` logical pages of the handle into consecutive physical pages starting at `first`.
@@ -100,41 +95,41 @@ int16_t opeu_memory_release(uint8_t ds[65536], HostEvent event) {
 
 // Allocates `pages` pages into the handle variable at `handle` if the EMM has that many unallocated; 1 on success.
 // The EMM writes the free-page counts into two words of the routine's reserve.
-int16_t opeu_ems_reserve(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t handle, int16_t pages) {
+int16_t opeu_ems_reserve(uint8_t ds[65536], HostEvent event, uint16_t handle, int16_t pages) {
   ServiceLocals const locals{ 4 };
   auto const          unallocated{ locals.At(0) };
   auto const          total{ locals.At(2) };
   return Call(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(Word(ds, unallocated)) >= pages && Call(ds, event, ALLOCATE, pages, handle) == 0 ? 1 : 0;
 }
 
-int16_t opeu_ems_alloc_sprite(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+int16_t opeu_ems_alloc_sprite(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const ok{ opeu_ems_reserve(ds, event, ReserveSp(sp), offsetof(DataSegment, sprite_ems_handle), 4) };
+  auto const ok{ opeu_ems_reserve(ds, event, offsetof(DataSegment, sprite_ems_handle), 4) };
   return Result(data.sprite_segment, data.sprite_mapped, PageSegment(data, 0), ok);
 }
 
-int16_t opeu_ems_alloc_numdlg(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+int16_t opeu_ems_alloc_numdlg(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const ok{ opeu_ems_reserve(ds, event, ReserveSp(sp), offsetof(DataSegment, numdlg_ems_handle), 2) };
+  auto const ok{ opeu_ems_reserve(ds, event, offsetof(DataSegment, numdlg_ems_handle), 2) };
   return Result(data.numdlg_image_segment, data.numdlg_image_mapped, PageSegment(data, 0), ok);
 }
 
-int16_t opeu_ems_alloc_tile(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+int16_t opeu_ems_alloc_tile(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const ok{ opeu_ems_reserve(ds, event, ReserveSp(sp), offsetof(DataSegment, tile_ems_handle), 2) };
+  auto const ok{ opeu_ems_reserve(ds, event, offsetof(DataSegment, tile_ems_handle), 2) };
   return Result(data.tile_segment, data.tile_mapped, PageSegment(data, 0), ok);
 }
 
-int16_t opeu_ems_alloc_frame(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+int16_t opeu_ems_alloc_frame(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const ok{ opeu_ems_reserve(ds, event, ReserveSp(sp), offsetof(DataSegment, frame_ems_handle), 1) };
+  auto const ok{ opeu_ems_reserve(ds, event, offsetof(DataSegment, frame_ems_handle), 1) };
   return Result(data.frame_segment, data.frame_mapped, PageSegment(data, 3), ok);
 }
 
 // Detects an EMM whose page frame (at or above A000) is four consecutive 16 KiB pages and records those pages in
 // ems_pages; 1 on success. The EMM writes its answers into the routine's reserve: the page frame, the page count and
 // the page array.
-int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x106 };
   auto const          frame_at{ locals.At(0) };
   auto const          count_at{ locals.At(2) };

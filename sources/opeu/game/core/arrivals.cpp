@@ -90,28 +90,16 @@ void opeu_hourly_c_stage_c(uint8_t ds[65536], ArrivalEvent event) {
 
 // The services of the arrivals as direct calls.
 uint16_t svc_arrivals(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
-  uint16_t sp, r = 0;
+  uint16_t r = 0;
   switch (id) {
-  case LOCATE:  r = opeu_arrival_locate(ds, svc_arrplace, a0, a1, (uint8_t)a2); break;
-  case PREPARE: // the map routines take the callee's frame pointer (entry SP - 2)
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_prepare(ds, svc_maperase, (uint16_t)(sp - 2), a0);
-    port_stack_leave(PORT_FRAME);
-    break;
-  case CONTEXT: opeu_set_turn_context(ds, svc_sound, (uint8_t)a0); break;
-  case LOCATION:
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2), (uint8_t)a0, (uint8_t)a1, (uint8_t)a2);
-    port_stack_leave(PORT_FRAME);
-    break;
-  case UNIT_VIEW:
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_view(ds, svc_mapunit, (uint16_t)(sp - 2), a0);
-    port_stack_leave(PORT_FRAME);
-    break;
-  case SHOW:   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
-  case FINISH: opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0); break;
-  default:     port_unhandled("arrivals", id, 4);
+  case LOCATE:    r = opeu_arrival_locate(ds, svc_arrplace, a0, a1, (uint8_t)a2); break;
+  case PREPARE:   opeu_arrival_prepare(ds, svc_maperase, a0); break;
+  case CONTEXT:   opeu_set_turn_context(ds, svc_sound, (uint8_t)a0); break;
+  case LOCATION:  opeu_arrival_location(ds, svc_mappos, (uint8_t)a0, (uint8_t)a1, (uint8_t)a2); break;
+  case UNIT_VIEW: opeu_arrival_view(ds, svc_mapunit, a0); break;
+  case SHOW:      opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
+  case FINISH:    opeu_finish_side_initialization(ds, svc_sound, (uint8_t)a0); break;
+  default:        port_unhandled("arrivals", id, 4);
   }
   return r;
 }

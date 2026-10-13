@@ -40,9 +40,8 @@ auto CallAction(std::uint8_t* ds, HostEvent event, FarPointer const& action) -> 
 }
 } // namespace
 
-void opeu_control_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_control_prepare(uint8_t ds[65536], HostEvent event) {
   (void)event;
-  (void)sp;
   for (auto& message : Data(ds).advice_messages) message[0] = 0;
 }
 

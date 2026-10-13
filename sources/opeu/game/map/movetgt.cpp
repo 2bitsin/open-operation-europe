@@ -53,7 +53,7 @@ constexpr uint8_t PROGRESS_UNSET{ 255 };
 } // namespace
 
 // Whether (x, y) is the current unit's cell or one next to it.
-uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
+uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
   auto const&         data{ Data(ds) };
   auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
   ServiceLocals const locals{ STEP_RESERVE };
@@ -82,7 +82,7 @@ uint16_t opeu_move_objective_target(uint8_t* ds, HostEvent event, uint16_t x, ui
 // The unit at the current unit's order destination. A player's side (or a computer side below delivery level 2) must
 // still see it: a friendly unit must be selectable, an enemy one spotted; otherwise the loss of sight is reported, the
 // order restored and 0 returned.
-uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t x, uint16_t y) {
+uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto const& data{ Data(ds) };
   auto const  current{ data.current_unit_ptr };
   if (Call(ds, event, MoveService::DESTINATION, current, x, y)) {
@@ -120,7 +120,6 @@ uint16_t opeu_move_level_lower(uint8_t* ds, uint16_t record, uint8_t value) {
 uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  auto const in_map_frame{ [](auto&& body) { return WithMapFrame([&](uint16_t frame) { return body(frame); }); } };
   switch (static_cast<MoveService>(id)) {
   case MoveService::RATING:           return opeu_move_rating(ds, svc_movemine);
   case MoveService::GRID_STEP:        return opeu_grid_step(PORT_DS(arg(0)), PORT_DS(arg(1)), byte(2));
@@ -137,16 +136,16 @@ uint16_t svc_map_move(uint8_t* ds, const char* module, uint16_t id, const uint16
   case MoveService::UNIT_SIDE:        return opeu_unit_side(arg(0));
   case MoveService::CELL_SIDE:        return opeu_cell_side(ds, byte(0), byte(1));
   case MoveService::SUPPLIED:         return opeu_move_supplied(ds);
-  case MoveService::ARRIVAL_LOCATION: in_map_frame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); }); return 0;
-  case MoveService::ARRIVAL_VIEW:     in_map_frame([&](uint16_t frame) { opeu_arrival_view(ds, svc_mapunit, frame, arg(0)); }); return 0;
-  case MoveService::UNIT_ERASE:       in_map_frame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); }); return 0;
-  case MoveService::ARRIVAL_PREPARE:  in_map_frame([&](uint16_t frame) { opeu_arrival_prepare(ds, svc_maperase, frame, arg(0)); }); return 0;
+  case MoveService::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, byte(0), byte(1), byte(2)); return 0;
+  case MoveService::ARRIVAL_VIEW:     opeu_arrival_view(ds, svc_mapunit, arg(0)); return 0;
+  case MoveService::UNIT_ERASE:       opeu_unit_remove_draw(ds, svc_maperase, arg(0)); return 0;
+  case MoveService::ARRIVAL_PREPARE:  opeu_arrival_prepare(ds, svc_maperase, arg(0)); return 0;
   case MoveService::CLAMP:            opeu_move_clamp(ds); return 0;
   case MoveService::CELL_MARKED:      return opeu_cell_marked(ds, byte(0), byte(1), byte(2));
   case MoveService::MINES:            opeu_move_mines(ds, svc_movemine, byte(0), byte(1)); return 0;
   case MoveService::SPOT:             opeu_move_spot(ds, svc_movespot); return 0;
   case MoveService::CONSUME:          opeu_move_consume(ds); return 0;
-  case MoveService::ENEMY_ADJACENT:   return in_map_frame([&](uint16_t frame) { return opeu_move_enemy_adjacent(ds, svc_movespot, frame); });
+  case MoveService::ENEMY_ADJACENT:   return opeu_move_enemy_adjacent(ds, svc_movespot);
   case MoveService::RESTORE_ORDER:    opeu_restore_unit_order(ds, arg(0)); return 0;
   case MoveService::UNIT_ELIGIBLE:    return opeu_unit_selection_eligible(ds, arg(0));
   case MoveService::UNIT_SPOTTED:     return opeu_unit_special(ds, arg(0));

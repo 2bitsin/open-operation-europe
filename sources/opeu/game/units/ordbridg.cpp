@@ -35,7 +35,7 @@ void opeu_order_destroy_present(uint8_t ds[65536], HostEvent event) {
   Serve(ds, event, OrderService::PENDING_FINISH, SHOW_DONE);
 }
 
-uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event) {
   auto&             data{ Data(ds) };
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
@@ -92,5 +92,5 @@ auto port_routine_opeu_order_destroy_present(std::uint8_t* ds, std::uint16_t con
 auto port_routine_opeu_order_destroy_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_order_destroy_run(ds, svc_ordbridg, static_cast<std::uint16_t>(sp - 2)); });
+  return opeu_order_destroy_run(ds, svc_ordbridg);
 }

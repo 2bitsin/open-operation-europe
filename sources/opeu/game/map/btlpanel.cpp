@@ -54,7 +54,7 @@ uint16_t    NameForward(uint8_t* ds, uint16_t, const uint16_t* args, uint16_t co
 } // namespace
 
 // orders_hidden: the enemy's element, whose order the panel does not show.
-void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden, uint16_t /*frame*/) {
+void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden) {
   auto&               data{ Data(ds) };
   auto const&         record{ Record<Element>(data, element) };
   ServiceLocals const locals{ NAMES_RESERVE };
@@ -136,6 +136,6 @@ uint16_t svc_btlpanel(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_element_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_element_panel(ds, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

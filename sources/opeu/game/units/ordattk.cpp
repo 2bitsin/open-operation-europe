@@ -37,10 +37,6 @@ constexpr std::uint16_t ALLOWED_BYTES{ STEP_Y };
 constexpr std::uint16_t START_BYTES{ START_TEXT };
 constexpr std::uint16_t OCCUPY_BYTES{ OCCUPY_Y };
 constexpr std::uint16_t ATTACK_BYTES{ ATTACK_Y };
-// The frames the handlers pass on, below their own.
-constexpr std::uint16_t START_FRAME{ 0x72 };        // occupy: attack_start's
-constexpr std::uint16_t ALLOWED_FRAME{ 0x72 };      // attack_start: attack_allowed's
-constexpr std::uint16_t ATTACK_START_FRAME{ 0x36 }; // attack: attack_start's
 
 // The pictures of the day's show and the link-table addresses of the routines that end it.
 constexpr std::uint16_t ORDER_SEGMENT{ 0x3131 };
@@ -91,7 +87,7 @@ auto Loss(std::uint8_t* ds, HostEvent event, std::uint16_t divisor) -> std::uint
 // Whether the current regiment may attack the cell x, y. A regiment whose average value11 reaches 70 + rand(30)
 // gives up its order; no attack starts while a friendly neighbour's occupy or attack is under way, nor against a
 // defending regiment worth more than three times as much.
-uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
+uint16_t opeu_order_attack_allowed(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const average{ Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) };
   if (average >= static_cast<std::uint16_t>(Serve(ds, event, OrderService::RAND_BOUNDED, 30) + 70)) {
@@ -130,7 +126,7 @@ void opeu_order_attack_present(uint8_t ds[65536], HostEvent event) {
 
 // Starts the battle against `name` at x, y: needs supplies and ammunition; a player's division the computer does not
 // run asks for confirmation; otherwise the attack must be allowed and is reported.
-uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t frame, uint16_t name, uint8_t x, uint8_t y) {
+uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t name, uint8_t x, uint8_t y) {
   auto& data{ Data(ds) };
   if (!Serve(ds, event, OrderService::MOVE_SUPPLIED)) {
     Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_no_fuel));
@@ -153,7 +149,7 @@ uint16_t opeu_order_attack_start(uint8_t ds[65536], HostEvent event, uint16_t fr
     if (confirmed) Serve(ds, event, OrderService::DAILY_SHOW, BATTLE_PICTURE, data.current_side, ATTACK_PRESENT, ORDER_SEGMENT);
     return confirmed;
   }
-  if (!opeu_order_attack_allowed(ds, event, Local(frame, ALLOWED_FRAME), x, y)) return 0;
+  if (!opeu_order_attack_allowed(ds, event, x, y)) return 0;
   Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_begin_attack), name);
   Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, text);
   return 1;
@@ -169,7 +165,7 @@ void opeu_order_occupied_present(uint8_t ds[65536], HostEvent event) {
 
 // The occupy order against the enemy objective of the order. An objective without arms changes hands when the regiment
 // moves in (its owner bit is flipped for the move and flipped back when the cell did not become the side's).
-uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
+uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   auto const          enemy{ static_cast<std::uint8_t>(Serve(ds, event, OrderService::OPPOSITE_SIDE, data.current_side)) };
   ServiceLocals const locals{ OCCUPY_BYTES };
@@ -199,7 +195,7 @@ uint16_t opeu_order_occupy_run(uint8_t ds[65536], HostEvent event, uint16_t fram
     Serve(ds, event, OrderService::SIDE_GROUPS_RETARGET, 1);
     return 1;
   }
-  if (opeu_order_attack_start(ds, event, Local(frame, START_FRAME), objective, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
+  if (opeu_order_attack_start(ds, event, objective, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 
@@ -208,7 +204,7 @@ uint8_t opeu_order_attack_loss(uint8_t ds[65536], HostEvent event) {
 }
 
 // The attack order against the enemy regiment of the order, labelled with its side and name.
-uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event, uint16_t frame) {
+uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ ATTACK_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ATTACK_BYTES - offset)); } };
@@ -223,7 +219,7 @@ uint16_t opeu_order_attack_run(uint8_t ds[65536], HostEvent event, uint16_t fram
   auto const side_name{ data.side_names[Serve(ds, event, OrderService::ABS16_BITS, static_cast<std::uint16_t>(data.current_side - 1))] };
   auto const text{ local(ATTACK_TEXT) };
   Serve(ds, event, OrderService::REQUEST_FORMAT, text, Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name);
-  if (opeu_order_attack_start(ds, event, Local(frame, ATTACK_START_FRAME), text, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
+  if (opeu_order_attack_start(ds, event, text, Byte(ds, at_x), Byte(ds, at_y))) Engage(data, Byte(ds, at_x), Byte(ds, at_y));
   return 1;
 }
 
@@ -244,7 +240,7 @@ auto port_routine_opeu_order_attack_present(std::uint8_t* ds, std::uint16_t cons
 auto port_routine_opeu_order_attack_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_order_attack_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2)); });
+  return opeu_order_attack_run(ds, svc_ordattk);
 }
 
 auto port_routine_opeu_order_occupied_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -257,5 +253,5 @@ auto port_routine_opeu_order_occupied_present(std::uint8_t* ds, std::uint16_t co
 auto port_routine_opeu_order_occupy_run(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_order_occupy_run(ds, svc_ordattk, static_cast<std::uint16_t>(sp - 2)); });
+  return opeu_order_occupy_run(ds, svc_ordattk);
 }

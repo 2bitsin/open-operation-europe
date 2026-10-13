@@ -18,8 +18,6 @@ enum Service : std::uint16_t {
   PREPARE     = 0,
   NOON_EVENTS = 1,
 };
-
-constexpr std::uint16_t NOON_RESERVE{ 0x200 };       // DS stack the noon events use
 constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 };  // the far text the noon events read
 constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
 } // namespace
@@ -44,9 +42,7 @@ uint16_t svc_halfday(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_
   switch (id) {
   case PREPARE:     opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
   case NOON_EVENTS: {
-    auto const sp{ port_stack_enter(NOON_RESERVE) };
-    opeu_turn_noon_events(ds, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, sp, NOON_CODE_SEGMENT);
-    port_stack_leave(NOON_RESERVE);
+    opeu_turn_noon_events(ds, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, NOON_CODE_SEGMENT);
     break;
   }
   default: port_unhandled("halfday", id, 4);

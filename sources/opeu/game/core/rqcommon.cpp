@@ -19,8 +19,7 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr uint16_t SCRATCH_BYTES{ 0x80 }; // the DS scratch the prompts format their text in
-constexpr uint16_t TEXT_BYTES{ 0x7c };    // the prompt text the format service writes
+constexpr uint16_t TEXT_BYTES{ 0x7c }; // the prompt text the format service writes
 // The far address of opeu_request_finish, which SHOW calls back.
 constexpr uint16_t FINISH_PRESENT_OFFSET{ 0x009a };
 constexpr uint16_t FINISH_PRESENT_SEGMENT{ 0x22f9 };
@@ -37,7 +36,7 @@ auto FiledRequests(DataSegment const& data) -> auto const& {
 } // namespace
 
 // "You cannot increase your %s any more.", spoken by the context's third person.
-void opeu_request_no_more(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/, uint16_t what) {
+void opeu_request_no_more(uint8_t ds[65536], HostEvent event, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          buffer{ locals.At(0) };
@@ -57,7 +56,7 @@ uint16_t opeu_request_mode_is(const uint8_t ds[65536], uint8_t mode) {
 }
 
 // "Your %s request has been sent. Cancel the request?"; returns the context's second person's answer.
-uint16_t opeu_request_cancel_prompt(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/, uint16_t what) {
+uint16_t opeu_request_cancel_prompt(uint8_t ds[65536], HostEvent event, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          buffer{ locals.At(0) };
@@ -93,12 +92,9 @@ uint16_t opeu_side_has_city(const uint8_t ds[65536]) {
 uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (static_cast<RequestMenuService>(id)) {
-  case RequestMenuService::PENDING: r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::CANCEL_PROMPT:
-    r = opeu_request_cancel_prompt(ds, svc_rqcommon, port_scratch_enter(SCRATCH_BYTES), Arg(args, count, 0));
-    port_scratch_leave(SCRATCH_BYTES);
-    break;
-  case RequestMenuService::FILE: {
+  case RequestMenuService::PENDING:       r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
+  case RequestMenuService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(ds, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestMenuService::FILE:          {
     // The request is handed over as a 4-byte local: target word, argument byte, kind byte.
     ServiceLocals const locals{ sizeof(RequestSlot) };
     auto const          at{ locals.At(0) };
@@ -116,18 +112,13 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_
   case RequestMenuService::CONFIRM:      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::FINISH:       opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
   case RequestMenuService::SHOW:         opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
-  case RequestMenuService::PICK:         {
-    auto const frame{ port_frame_enter() };
-    r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
-    port_frame_leave();
-    break;
-  }
-  case RequestMenuService::POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
-  case RequestMenuService::PRINT:    opeu_cursor_print(ds, { args, count }); break;
-  case RequestMenuService::MODE_IS:  r = opeu_request_mode_is(ds, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::HAS_CITY: r = opeu_side_has_city(ds); break;
-  case RequestMenuService::FAR_CALL: r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:                           port_unhandled(module, id, count);
+  case RequestMenuService::PICK:         r = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestMenuService::POSITION:     opeu_army_position(ds, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
+  case RequestMenuService::PRINT:        opeu_cursor_print(ds, { args, count }); break;
+  case RequestMenuService::MODE_IS:      r = opeu_request_mode_is(ds, (uint8_t)Arg(args, count, 0)); break;
+  case RequestMenuService::HAS_CITY:     r = opeu_side_has_city(ds); break;
+  case RequestMenuService::FAR_CALL:     r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
+  default:                               port_unhandled(module, id, count);
   }
   return r;
 }

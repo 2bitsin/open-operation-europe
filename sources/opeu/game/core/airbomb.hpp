@@ -4,9 +4,9 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_air_bomb_check(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t city, uint16_t type);
-uint16_t opeu_air_bomb_order(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint16_t type);
-void     opeu_air_bomb_command(uint8_t* ds, HostEvent event, uint16_t sp);
+uint16_t opeu_air_bomb_check(uint8_t* ds, HostEvent event, uint8_t city, uint16_t type);
+uint16_t opeu_air_bomb_order(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint16_t type);
+void     opeu_air_bomb_command(uint8_t* ds, HostEvent event);
 
 // Runs the services the air force's commands call through their event (common/air-service.hpp); module names the
 // caller in the report of an unknown service.

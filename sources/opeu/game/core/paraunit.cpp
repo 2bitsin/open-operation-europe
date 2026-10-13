@@ -276,23 +276,17 @@ uint16_t svc_paraunit(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) 
   }
   case ParaService::UNIT_AT:         r = opeu_find_unit_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ParaService::ARRIVAL_PREPARE: {
-    auto const frame{ port_frame_enter() };
-    opeu_arrival_prepare(ds, svc_maperase, frame, Arg(args, count, 0));
-    port_frame_leave();
+    opeu_arrival_prepare(ds, svc_maperase, Arg(args, count, 0));
     break;
   }
   case ParaService::CASUALTIES: {
-    auto const frame{ port_frame_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
-    port_frame_leave();
+    opeu_unit_casualties(ds, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case ParaService::CELL_MARKED: r = opeu_cell_marked(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ParaService::MARK_CELL:   opeu_mark_cell(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ParaService::MAP_ERASE:   {
-    auto const frame{ port_frame_enter() };
-    opeu_map_erase(ds, svc_maperase, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-    port_frame_leave();
+    opeu_map_erase(ds, svc_maperase, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
     break;
   }
   case ParaService::CELL_SIDE: r = opeu_cell_side(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

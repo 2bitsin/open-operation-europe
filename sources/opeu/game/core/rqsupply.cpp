@@ -31,7 +31,7 @@ struct PickedCell {
 
 // "Which city would you like to receive the supplies?": a filed supplies request may be cancelled first; then the
 // player picks one of the side's own cities on the map, confirms, and the request is filed and the side's turn ends.
-void opeu_request_supplies(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+void opeu_request_supplies(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ SCRATCH_BYTES };
   auto const          scratch{ locals.At(CELL_AT) };
   auto&               data{ Data(ds) };
@@ -68,9 +68,7 @@ uint16_t svc_rqsupply(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_request_supplies(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  auto const scratch{ port_scratch_enter(SCRATCH_BYTES) };
-  opeu_request_supplies(ds, svc_rqsupply, scratch);
-  port_scratch_leave(SCRATCH_BYTES);
+  opeu_request_supplies(ds, svc_rqsupply);
   return 0;
 }
 

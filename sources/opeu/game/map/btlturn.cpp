@@ -30,9 +30,6 @@ constexpr uint8_t SIDE_0_DECIDES{ 1 };
 constexpr uint8_t SIDE_1_WINS{ 2 };
 constexpr uint8_t TURN_STEPS{ 50 };
 constexpr uint8_t NO_WINNER{ 0xff };
-// Below the input loop's frame: the frames it passes on.
-constexpr uint16_t NUMBERS_FRAME{ 0x0c };
-constexpr uint16_t REFRESH_FRAME{ 0x0a };
 // MOUSE_BUTTONS: a pending event, the left and the right button.
 constexpr uint8_t MOUSE_EVENT{ 0x80 };
 constexpr uint8_t LEFT_BUTTON{ 1 };
@@ -90,19 +87,18 @@ uint16_t opeu_battle_side_controlled(uint8_t* ds, BattleEvent event, uint8_t sid
   return 0;
 }
 
-// frame: the routine's frame on the DS stack; the cell redraws run below it.
-void opeu_battle_toggle_numbers(uint8_t* ds, BattleEvent event, uint16_t frame) {
+// Shows or hides the element numbers and redraws the cells.
+void opeu_battle_toggle_numbers(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   data.battle_numbers_shown = data.battle_numbers_shown == 1 ? 0 : 1;
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
-      if (opeu_battle_cell_occupied(ds, event, x, y) || static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN)
-        opeu_battle_refresh_cell(ds, event, x, y, Local(frame, REFRESH_FRAME));
+      if (opeu_battle_cell_occupied(ds, event, x, y) || static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) == BRIDGE_TERRAIN) opeu_battle_refresh_cell(ds, event, x, y);
 }
 
 // frame: the routine's frame; its callees run below it. One path (a mouse event with the keyboard in use) reads the
 // key before any key is stored: it starts as 0.
-uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event, uint16_t frame) {
+uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event) {
   auto&   data{ Data(ds) };
   uint8_t key{ 0 };
   for (uint8_t step{ 0 }; step < TURN_STEPS; ++step) {
@@ -123,7 +119,7 @@ uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event, uint16_t frame) {
           buttons = 0;
         if ((buttons & LEFT_BUTTON) || key == KEY_ENTER)
           if (opeu_battle_side_controlled(ds, event, 0) || opeu_battle_side_controlled(ds, event, 1)) Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);
-        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(ds, event, Local(frame, NUMBERS_FRAME));
+        if ((buttons & RIGHT_BUTTON) || key == '0' || key == KEY_ESCAPE) opeu_battle_toggle_numbers(ds, event);
       }
     }
     Call(ds, event, BattleRoutine::INPUT_RESET);
@@ -208,5 +204,5 @@ auto port_routine_opeu_battle_return_garrison(std::uint8_t* ds, std::uint16_t co
 }
 
 auto port_routine_opeu_battle_turn_loop(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) { return opeu_battle_turn_loop(ds, svc_btlturn, BattleFrame(sp)); });
+  return opeu_battle_turn_loop(ds, svc_btlturn);
 }

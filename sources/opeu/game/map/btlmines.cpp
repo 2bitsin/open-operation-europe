@@ -17,7 +17,6 @@ using namespace opeu::game;
 namespace {
 // The report's DS reserve for its message buffer; the hit runs the report below its own stack pointer.
 constexpr uint16_t REPORT_TEXT_BYTES{ 0x68 };
-constexpr uint16_t HIT_REPORT_STACK{ 22 };
 constexpr uint16_t SIDE_0_COLOR{ '6' };
 constexpr uint16_t SIDE_1_COLOR{ '5' };
 constexpr uint16_t COMMANDER_REPORT{ 2 };
@@ -33,7 +32,7 @@ void Append(uint8_t* ds, uint16_t destination, uint16_t source) {
 } // namespace
 
 // "<side> <type>: We discovered mines when we retreated!" for a side a player commands.
-void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t element) {
+void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ REPORT_TEXT_BYTES };
   auto const          buffer{ locals.At(0) };
@@ -57,13 +56,13 @@ uint16_t opeu_battle_mine_damage(uint8_t* ds, BattleEvent event, uint16_t elemen
 
 // The element is revealed, reported and blasted; its losses spend its supplies, and a destroyed element leaves the
 // field.
-void opeu_battle_mine_hit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t element) {
+void opeu_battle_mine_hit(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto& data{ Data(ds) };
   auto& hit{ Record<Element>(data, element) };
   hit.flags |= Bits(ElementFlag::SPOTTED);
   auto const x{ PositionOf(data, element).x };
   auto const y{ PositionOf(data, element).y };
-  opeu_battle_mine_report(ds, event, Local(sp, HIT_REPORT_STACK), element);
+  opeu_battle_mine_report(ds, event, element);
   Call(ds, event, BattleRoutine::BATTLE_ANIMATE_ELEMENT, x, y, 0, 1, BLAST_ANIMATION, element);
   auto const damage{ static_cast<int16_t>(opeu_battle_mine_damage(ds, event, element)) };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
@@ -115,6 +114,6 @@ auto port_routine_opeu_battle_mine_damage(std::uint8_t* ds, std::uint16_t const*
 }
 
 auto port_routine_opeu_battle_mine_hit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_mine_hit(ds, svc_btlmines, sp, Arg(args, count, 0)); });
+  opeu_battle_mine_hit(ds, svc_btlmines, Arg(args, count, 0));
   return 0;
 }

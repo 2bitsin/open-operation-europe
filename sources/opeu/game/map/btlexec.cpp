@@ -38,8 +38,6 @@ constexpr uint8_t REFUSED_FRIEND{ 2 };
 constexpr uint8_t IMPASSABLE{ 0xff }; // a battle_terrain_costs entry
 // Added to a command for every element of the unit.
 constexpr uint8_t WHOLE_UNIT{ 6 };
-// Below the frame: the stack the cell selection is entered with.
-constexpr uint16_t SELECT_STACK{ 0x18 };
 
 void Message(uint8_t* ds, BattleEvent event, uint16_t text) {
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, Data(ds).battle_active_side, 1, text);
@@ -75,7 +73,7 @@ void OrderAll(uint8_t* ds, BattleEvent event, Kind kind, bool whole, uint16_t el
 }
 } // namespace
 
-uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t command, uint16_t frame) {
+uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t command) {
   auto&      data{ Data(ds) };
   auto const whole{ command >= WHOLE_UNIT };
   auto const side{ [&](uint16_t e) { return opeu_battle_element_side(ds, event, e); } };
@@ -85,7 +83,7 @@ uint16_t opeu_battle_order_command(uint8_t* ds, BattleEvent event, uint16_t elem
     Call(ds, event, BattleRoutine::INPUT_FLUSH);
     Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
     Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_msg_set_target));
-    if (!opeu_battle_select_cell(ds, event, Local(frame, SELECT_STACK))) return 0;
+    if (!opeu_battle_select_cell(ds, event)) return 0;
     switch (command) {
     case 1:
     case 7: {

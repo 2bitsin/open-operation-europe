@@ -37,8 +37,7 @@ enum Resource {
 } // namespace
 
 // Lists the side's cities in view_objectives; returns their count.
-uint8_t opeu_stock_cities_fill(uint8_t* ds, BattleEvent event, uint16_t sp) {
-  (void)sp;
+uint8_t opeu_stock_cities_fill(uint8_t* ds, BattleEvent event) {
   auto&   data{ Data(ds) };
   uint8_t count{ 0 };
   for (auto const& objective : data.objectives) {
@@ -49,14 +48,14 @@ uint8_t opeu_stock_cities_fill(uint8_t* ds, BattleEvent event, uint16_t sp) {
 }
 
 // The list's predicate: whether the city on the selected row may take orders.
-uint8_t opeu_stock_city_enabled(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
+uint8_t opeu_stock_city_enabled(uint8_t* ds, BattleEvent event) {
   auto const& data{ Data(ds) };
   return Call(ds, event, OBJECTIVE_ELIGIBLE, data.view_objectives[data.list_row]) != 0;
 }
 
 // The stockpile panel: per resource the garrison's capacity, the city's stock and the ordered stockpile. The
 // capacities service writes the capacities into the routine's reserve.
-void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t objective) {
+void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t objective) {
   ServiceLocals const locals{ 6 };
   auto&               data{ Data(ds) };
   auto const          fuel{ locals.At(0) };
@@ -72,13 +71,13 @@ void opeu_stock_show(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t o
 }
 
 // The panel under the city's name.
-void opeu_stock_show_titled(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objective) {
+void opeu_stock_show_titled(uint8_t* ds, BattleEvent event, uint16_t objective) {
   Call(ds, event, ARMY_TITLE, objective);
-  opeu_stock_show(ds, event, static_cast<std::uint16_t>(sp - 6), objective);
+  opeu_stock_show(ds, event, objective);
 }
 
 // Asks how much of one resource to store (0..60000); CANCELLED when refused.
-uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t what) {
+uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t what) {
   ServiceLocals const locals{ 0x64 }; // the question the format service writes
   auto const&         data{ Data(ds) };
   auto const          question{ locals.At(0) };
@@ -87,19 +86,18 @@ uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_
 }
 
 // Edits the city's three stockpile orders: fuel, ammunition, food, then the confirmation.
-void opeu_stock_edit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objective) {
+void opeu_stock_edit(uint8_t* ds, BattleEvent event, uint16_t objective) {
   auto&               data{ Data(ds) };
   auto&               city{ Record<Objective>(data, objective) };
   std::uint16_t const before[]{ city.reserves[AMMUNITION], city.reserves[FUEL], city.reserves[FOOD] };
-  auto const          inner{ static_cast<std::uint16_t>(sp - 16) };
-  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(ds, event, inner, what)) != CANCELLED; } };
-  opeu_stock_show(ds, event, inner, objective);
+  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(ds, event, what)) != CANCELLED; } };
+  opeu_stock_show(ds, event, objective);
   if (ask(FUEL, offsetof(DataSegment, stock_fuel))) {
-    opeu_stock_show_titled(ds, event, inner, objective);
+    opeu_stock_show_titled(ds, event, objective);
     if (ask(AMMUNITION, offsetof(DataSegment, stock_ammo))) {
-      opeu_stock_show(ds, event, inner, objective);
+      opeu_stock_show(ds, event, objective);
       if (ask(FOOD, offsetof(DataSegment, stock_food))) {
-        opeu_stock_show(ds, event, inner, objective);
+        opeu_stock_show(ds, event, objective);
         if (Call(ds, event, CONFIRM_OK, data.context_record2)) return;
       }
     }
@@ -110,11 +108,10 @@ void opeu_stock_edit(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t objec
 
 // Command action 2: the list of the side's cities until the player leaves it. segment is this module's code segment,
 // for the list's predicate.
-void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t segment) {
-  auto&      data{ Data(ds) };
-  auto&      list{ data.city_dialog };
-  auto const inner{ static_cast<std::uint16_t>(sp - 10) };
-  list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(ds, event, inner) + 1);
+void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t segment) {
+  auto& data{ Data(ds) };
+  auto& list{ data.city_dialog };
+  list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(ds, event) + 1);
   if (list.rows == 1) {
     Call(ds, event, CONTROL_MESSAGE, offsetof(DataSegment, stock_no_cities), data.context_record3);
     return;
@@ -127,7 +124,7 @@ void opeu_turn_action_2(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t se
     if (!Call(ds, event, LIST_DIALOG, offsetof(DataSegment, city_dialog), 1, height)) break;
     auto const objective{ data.view_objectives[data.list_row] };
     Call(ds, event, UNIT_FLASH, objective, FLASH_TICKS);
-    opeu_stock_edit(ds, event, inner, objective);
+    opeu_stock_edit(ds, event, objective);
     height = LATER_HEIGHT;
   }
 }
@@ -150,12 +147,10 @@ uint16_t svc_stockord(uint8_t* ds, uint32_t service, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_stock_city_enabled(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithBattleStack([ds](std::uint16_t sp) -> std::uint32_t { return opeu_stock_city_enabled(ds, svc_stockord, sp); });
+  return opeu_stock_city_enabled(ds, svc_stockord);
 }
 
 auto port_routine_opeu_turn_action_2(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithBattleStack([ds](std::uint16_t sp) -> std::uint32_t {
-    opeu_turn_action_2(ds, svc_stockord, sp, STOCK_ORDER_SEGMENT);
-    return 0;
-  });
+  opeu_turn_action_2(ds, svc_stockord, STOCK_ORDER_SEGMENT);
+  return 0;
 }

@@ -63,7 +63,7 @@ void opeu_alloc_take(uint8_t ds[65536], HostWordsEvent event, uint16_t entry, ui
 
 // Draws both unit columns (an empty second column takes `third` rows), the names capped at ten characters, and the
 // type list; each type's nation code is written to the routine's 22-byte text buffer for printing.
-void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count, uint16_t /*buffer*/) {
+void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
   auto&               data{ Data(ds) };
   ServiceLocals const nation{ NATION_BYTES };
   auto const          buffer{ nation.At(0) };

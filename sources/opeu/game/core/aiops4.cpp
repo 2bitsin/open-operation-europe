@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/memory.hpp"
 #include "core/aiops1.hpp"
 #include "core/random.hpp"
 #include "map/query.hpp"
@@ -23,8 +24,6 @@ constexpr std::uint8_t  RESOURCE_REQUEST{ 0 };  // RequestSlot::kind of a supply
 constexpr std::uint8_t  EQUIPMENT_REQUEST{ 1 }; // and of an equipment request (slot 1)
 // The three support categories whose stock the side tops up first, in the order of their totals below.
 constexpr std::array<std::uint8_t, 3> SUPPORT_CATEGORIES{ 5, 6, 7 };
-// Where the equipment-type service lists the types of a category (inside the DS stack, above the frames in use).
-constexpr std::uint16_t TYPE_SCRATCH{ 0xfe00 };
 
 using TypeList = std::array<std::uint8_t, ELEMENT_TYPE_COUNT>;
 
@@ -36,15 +35,13 @@ auto IsSupport(std::uint8_t category) -> bool {
   return category == 5 || category == 6 || category == 7;
 }
 
-// The element types of `category` the nations in `mask` field, listed by the service; returns their count.
-auto AvailableTypes(std::uint8_t* ds, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
-  std::uint16_t list{ TYPE_SCRATCH };
-  return static_cast<std::uint8_t>(AiCall(ds, AiService::DUE_RECORDS, mask, category, &list));
-}
-
-// A random one of the listed types (the list holds `count` of them).
-auto RandomType(std::uint8_t* ds, std::uint8_t count) -> std::uint8_t {
-  return Record<TypeList>(Data(ds), TYPE_SCRATCH)[opeu_rand_bounded(count)];
+// A random one of the element types of `category` the nations in `mask` field: the service lists them in the
+// routine's reserve.
+auto RandomAvailableType(std::uint8_t* ds, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
+  ServiceLocals const types{ ELEMENT_TYPE_COUNT };
+  std::uint16_t       list{ types.At(0) };
+  auto const          count{ static_cast<std::uint8_t>(AiCall(ds, AiService::DUE_RECORDS, mask, category, &list)) };
+  return Record<TypeList>(Data(ds), types.At(0))[opeu_rand_bounded(count)];
 }
 } // namespace
 
@@ -156,7 +153,7 @@ uint16_t opeu_ai_request_equipment(uint8_t ds[65536]) {
   std::uint8_t category{ NO_CATEGORY };
   if (!opeu_rand_bounded(3)) category = opeu_ai_short_category(ds);
   if (category == NO_CATEGORY) category = opeu_ai_random_category(ds);
-  auto const type{ RandomType(ds, AvailableTypes(ds, data.side_masks[data.current_side], category)) };
+  auto const type{ RandomAvailableType(ds, data.side_masks[data.current_side], category) };
   auto const destination{ opeu_ai_destination_for_type(ds, type) };
   if (!destination) return 0;
   auto& request{ CurrentSide(data).requests[1] };

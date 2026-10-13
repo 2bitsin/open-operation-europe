@@ -1,9 +1,11 @@
-// Word access, frame locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
+// Word access, service locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
 #pragma once
 
 #include "port.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -24,12 +26,6 @@ inline auto SetWord(std::uint8_t* ds, std::uint16_t at, std::uint16_t value) noe
 // The byte at a DS offset, as a reference: a byte variable a routine receives by its near address.
 [[nodiscard]] inline auto Byte(std::uint8_t* ds, std::uint16_t at) noexcept -> std::uint8_t& {
   return ds[at];
-}
-
-// The DS offset of a routine's local that lives `offset` bytes below its frame pointer on the DS stack. Locals stay
-// there only where their near address is handed to another routine or service.
-[[nodiscard]] constexpr auto Local(std::uint16_t frame, std::uint16_t offset) noexcept -> std::uint16_t {
-  return static_cast<std::uint16_t>(frame - offset);
 }
 
 // Paragraphs of the far data the game addresses as segment:offset pairs (unrelocated, as the services expect them).
@@ -53,22 +49,6 @@ inline auto Call(std::uint8_t* ds, Event event, Service service, Words... words)
   }
 }
 
-// The DS stack a service reserves for the routine it calls when it needs frame locals of its own.
-inline constexpr std::uint16_t SERVICE_STACK{ 0x200 };
-
-// Runs call(sp) with `bytes` reserved on the DS stack (sp is the entry SP) and returns what call returns.
-template <typename Body>
-inline auto WithStack(std::uint16_t bytes, Body&& call) -> decltype(call(std::uint16_t{})) {
-  struct Frame {
-    std::uint16_t bytes;
-    std::uint16_t sp;
-    ~Frame() {
-      port_stack_leave(bytes);
-    }
-  } const frame{ bytes, port_stack_enter(bytes) };
-  return call(frame.sp);
-}
-
 // The DS bytes a routine reserves on the DS stack for its locals whose near address it hands to a service: the
 // service reads and writes them in the data segment. Only those locals live here (#13 gives the services typed
 // parameters and removes it); every other local is a C++ local.
@@ -79,6 +59,11 @@ public:
   auto operator=(ServiceLocals const&) -> ServiceLocals& = delete;
   ~ServiceLocals() {
     port_stack_leave(_bytes);
+  }
+
+  // Zeroes the reserve: for texts a service prints past their terminator.
+  auto Clear(std::uint8_t* ds) const noexcept -> void {
+    std::ranges::fill(std::span{ ds + _base, _bytes }, std::uint8_t{ 0 });
   }
 
   // The near address of the local `offset` bytes into the reserve.
@@ -98,11 +83,8 @@ using detail::memory::Byte;
 using detail::memory::Call;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
-using detail::memory::Local;
-using detail::memory::SERVICE_STACK;
 using detail::memory::ServiceLocals;
 using detail::memory::SetWord;
 using detail::memory::SPRITE_SEGMENT;
-using detail::memory::WithStack;
 using detail::memory::Word;
 } // namespace opeu::game

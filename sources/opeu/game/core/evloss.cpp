@@ -69,7 +69,6 @@ constexpr std::uint16_t PRESENT_A_ID{ 0x38 };
 constexpr std::uint16_t PRESENT_A{ 0x06ac };
 constexpr std::uint16_t PRESENT_B_ID{ 0xb2 };
 constexpr std::uint16_t PRESENT_B{ 0x0830 };
-constexpr std::uint16_t WEAK_FRAME{ 0x1a }; // opeu_loss_unit_weak's frame below event a's
 // The reserves of the locals whose address the services receive: the quantity service's count, the names.
 constexpr std::uint16_t WEAK_COUNT{ 0xc };
 constexpr std::uint16_t NAME_A{ 0x14 };
@@ -84,7 +83,7 @@ auto Format(std::uint8_t* ds, HostEvent event, std::uint16_t message, std::uint1
 
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
 // strength (infantry counting a tenth).
-uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t unit) {
+uint16_t opeu_loss_unit_weak(uint8_t ds[65536], HostEvent event, uint16_t unit) {
   ServiceLocals const locals{ WEAK_COUNT };
   auto&               data{ Data(ds) };
   std::uint16_t       morale{ 0 };
@@ -108,7 +107,7 @@ void opeu_loss_present_a(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
+void opeu_loss_event_a(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ NAME_A };
   auto&               data{ Data(ds) };
   auto const          name{ locals.At(0) };
@@ -124,7 +123,7 @@ void opeu_loss_event_a(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     for (unsigned slot{ 0 }; slot < UNITS_PER_GROUP; ++slot) {
       auto const near{ Near(data, data.units[group * UNITS_PER_GROUP + slot]) };
       if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY))) continue;
-      if (!Call(ds, event, CATEGORY_7, slot) && !opeu_loss_unit_weak(ds, event, static_cast<std::uint16_t>(bp - WEAK_FRAME), near)) continue;
+      if (!Call(ds, event, CATEGORY_7, slot) && !opeu_loss_unit_weak(ds, event, near)) continue;
       if (RandomBelow(ds, 100)) continue;
       if (data.side_status[1] == SIDE_PLAYED && Call(ds, event, SPECIAL, near)) {
         auto const unit_name{ Call(ds, event, UNIT_NAME, near, name) };
@@ -153,7 +152,7 @@ void opeu_loss_present_b(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_loss_event_b(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+void opeu_loss_event_b(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ NAME_B };
   auto&               data{ Data(ds) };
   auto const          name{ locals.At(0) };
@@ -188,17 +187,13 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case UNIT_MESSAGE: opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case UNIT_REPORT:  opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case FLASH:        {
-    auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
-    port_frame_leave();
+    opeu_location_flash(ds, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     break;
   }
   case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case MUSIC:      opeu_music_command7(ds, svc_sound); break;
   case CASUALTIES: {
-    auto const frame{ port_frame_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
-    port_frame_leave();
+    opeu_unit_casualties(ds, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case CUE:            opeu_sound_cue12(ds, svc_soundcue); break;
@@ -209,12 +204,12 @@ uint16_t svc_evloss(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 }
 
 auto port_routine_opeu_loss_event_a(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_loss_event_a(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
+  opeu_loss_event_a(ds, svc_evloss);
   return 0;
 }
 
 auto port_routine_opeu_loss_event_b(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_loss_event_b(ds, svc_evloss, static_cast<std::uint16_t>(sp - 2)); });
+  opeu_loss_event_b(ds, svc_evloss);
   return 0;
 }
 

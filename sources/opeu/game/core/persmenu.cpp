@@ -47,9 +47,8 @@ constexpr uint16_t NO_CHOICE{ 0xffff };
 constexpr uint16_t FINISH_OFFSET{ 0x0004 };
 constexpr uint16_t ALWAYS_OFFSET{ 0x000c };
 constexpr uint16_t TOGGLE_OFFSET{ 0x003c };
-// The code segment the personnel routines run in, and the DS stack the menu's commands get.
+// The code segment the personnel routines run in.
 constexpr uint16_t PERSONNEL_SEGMENT{ 0x1d82 };
-constexpr uint16_t PERSONNEL_STACK{ 0x200 };
 
 constexpr uint16_t ASSIGN_SHOW{ 0x17b };
 constexpr uint8_t  ASSIGN_FINISH{ 3 };
@@ -60,11 +59,11 @@ constexpr uint8_t  REST_LAST{ 10 };  // the most days of leave less one
 constexpr uint8_t  ORDERS_LAST{ 3 }; // reassign, appoint, rest
 constexpr uint8_t  BUSY_ROLES{ Bits(PersonRole::ROLE_MASK) | Bits(PersonRole::DEPUTY) };
 
-// The texts the format service writes for the assignment menu (one 30-byte line per post) and its prompt: offsets
-// below the routine's frame pointer. The menu keeps the labels' near addresses after the routine returns and a later
-// list draw reads what is left there, so they stay at their DS stack slots.
-constexpr std::array<uint16_t, 6> POST_TEXT_LOCALS{ 0x10e, 0x12c, 0x1e, 0x3c, 0x5a, 0x78 };
-constexpr uint16_t                ASSIGN_PROMPT_LOCAL{ 0xe4 };
+// The texts the format service writes for the assignment menu (one 30-byte line per post) and its prompt, in the
+// routine's reserve. The menu keeps the labels' near addresses after the routine returns; a later list draw reads
+// what is left there (#13 gives the labels a home of their own).
+constexpr uint16_t POST_TEXT_BYTES{ 0x1e };
+constexpr uint16_t ASSIGN_PROMPT_BYTES{ 0x6c };
 // The leave prompt, which the format service writes.
 constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
@@ -80,31 +79,31 @@ auto ShowList(uint8_t* ds, HostEvent event, ListWindow const& list) -> uint16_t 
 }
 
 // Lists the side's free generals and sizes the generals' list to them (one row more for the title).
-auto FillGenerals(uint8_t* ds, HostEvent event, uint16_t sp, uint16_t segment) -> uint8_t {
+auto FillGenerals(uint8_t* ds, HostEvent event, uint16_t segment) -> uint8_t {
   auto& list{ Data(ds).people_dialog };
-  list.rows = opeu_idle_commanders_fill(ds, event, sp, segment) + 1;
+  list.rows = opeu_idle_commanders_fill(ds, event, segment) + 1;
   return list.rows;
 }
 
 } // namespace
 
 // The picture callback of the assignment's confirmation.
-void opeu_personnel_finish(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t) {
+void opeu_personnel_finish(uint8_t ds[65536], HostEvent event, uint16_t) {
   Call(ds, event, PersonnelService::PENDING_FINISH, ASSIGN_FINISH);
 }
 
 // The select callback of the generals' list: every row may be chosen.
-uint8_t opeu_commander_always(uint8_t*, HostEvent, uint16_t, uint16_t, uint8_t) {
+uint8_t opeu_commander_always(uint8_t*, HostEvent, uint16_t, uint8_t) {
   return 1;
 }
 
 // The general sent on leave thanks the commander.
-void opeu_rest_thanks(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t, uint16_t person) {
+void opeu_rest_thanks(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t person) {
   Call(ds, event, PersonnelService::MESSAGE, Near(Data(ds), Data(ds).rest_thanks_text), person);
 }
 
 // The appointed general accepts, and the appointment is shown.
-void opeu_assign_confirm(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t segment, uint16_t person) {
+void opeu_assign_confirm(uint8_t ds[65536], HostEvent event, uint16_t segment, uint16_t person) {
   auto const& data{ Data(ds) };
   Call(ds, event, PersonnelService::MESSAGE, Near(data, data.assign_thanks_text), person);
   Call(ds, event, PersonnelService::DAILY_SHOW, ASSIGN_SHOW, data.current_side, FINISH_OFFSET, segment);
@@ -112,7 +111,7 @@ void opeu_assign_confirm(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t 
 
 // The select callback of the divisions' list: marks or unmarks the listed division for its commander to be put in
 // charge, when it is in the field and its selected regiment may be selected.
-uint8_t opeu_division_toggle(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t, uint8_t) {
+uint8_t opeu_division_toggle(uint8_t ds[65536], HostEvent event, uint16_t, uint8_t) {
   auto& data{ Data(ds) };
   auto& group{ data.groups[data.current_side * GROUPS_PER_SIDE + data.list_row] };
   if (group.flags & Bits(GroupFlag::READY))
@@ -121,7 +120,7 @@ uint8_t opeu_division_toggle(uint8_t ds[65536], HostEvent event, uint16_t, uint1
 }
 
 // Asks which division commander to put in charge.
-void opeu_division_commander_menu(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t segment) {
+void opeu_division_commander_menu(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto& data{ Data(ds) };
   SetSelect(data.division_dialog, TOGGLE_OFFSET, segment);
   Call(ds, event, PersonnelService::MESSAGE, Near(data, data.division_charge_prompt), data.context_record2);
@@ -130,7 +129,7 @@ void opeu_division_commander_menu(uint8_t ds[65536], HostEvent event, uint16_t, 
 
 // Fills general_list with the side's generals who are present, hold no staff post, lead no division and are not on
 // leave; returns how many.
-uint8_t opeu_idle_commanders_fill(uint8_t ds[65536], HostEvent, uint16_t, uint16_t) {
+uint8_t opeu_idle_commanders_fill(uint8_t ds[65536], HostEvent, uint16_t) {
   auto&   data{ Data(ds) };
   uint8_t count{ 0 };
   for (auto& general : std::span{ data.people }.subspan(data.current_side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE))
@@ -142,11 +141,10 @@ uint8_t opeu_idle_commanders_fill(uint8_t ds[65536], HostEvent, uint16_t, uint16
 // Assigns free generals while there are any: one is chosen from the list, then the post, from a menu of the four
 // divisions (with their commanders; a division not in the field cannot be chosen) and the operations and
 // intelligence posts. A division's old commander leaves it; a staff post's old holder steps down.
-void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
-  auto&      data{ Data(ds) };
-  auto const bp{ static_cast<uint16_t>(sp - 2) };
-  bool       assigned{ false };
-  while (FillGenerals(ds, event, sp, segment) != 1) {
+void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t segment) {
+  auto& data{ Data(ds) };
+  bool  assigned{ false };
+  while (FillGenerals(ds, event, segment) != 1) {
     SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(ds, event, PersonnelService::MESSAGE, Near(data, data.assign_who_prompt), data.context_record2);
     if (!ShowList(ds, event, data.people_dialog)) {
@@ -159,11 +157,12 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
     holders[4] = opeu_find_side_record(ds, data.current_side, std::to_underlying(StaffRole::OPERATIONS_CHIEF));
     holders[5] = opeu_find_side_record(ds, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
     // A division's line: its label, or a dash when it is not in the field, and its commander's name if any.
-    uint16_t const no_holder[GROUPS_PER_SIDE]{ Near(data, data.no_holder_1), Near(data, data.no_holder_2), Near(data, data.no_holder_3), Near(data, data.no_holder_4) };
-    uint16_t const formats[POSTS]{ Near(data, data.post_format_1), Near(data, data.post_format_2), Near(data, data.post_format_3),
-                                   Near(data, data.post_format_4), Near(data, data.post_format_5), Near(data, data.post_format_6) };
+    uint16_t const      no_holder[GROUPS_PER_SIDE]{ Near(data, data.no_holder_1), Near(data, data.no_holder_2), Near(data, data.no_holder_3), Near(data, data.no_holder_4) };
+    uint16_t const      formats[POSTS]{ Near(data, data.post_format_1), Near(data, data.post_format_2), Near(data, data.post_format_3),
+                                        Near(data, data.post_format_4), Near(data, data.post_format_5), Near(data, data.post_format_6) };
+    ServiceLocals const texts{ POSTS * POST_TEXT_BYTES + ASSIGN_PROMPT_BYTES };
     for (uint8_t post = 0; post < POSTS; post++) {
-      auto const text{ Local(bp, POST_TEXT_LOCALS[post]) };
+      auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
       if (post < GROUPS_PER_SIDE) {
         auto const fielded{ data.groups[data.current_side * GROUPS_PER_SIDE + post].flags & Bits(GroupFlag::READY) };
         Call(ds, event, PersonnelService::FORMAT, text, formats[post], fielded ? data.post_labels[post] : Near(data, data.inactive_division_label), holders[post] ? holders[post] : no_holder[post]);
@@ -173,7 +172,7 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
       data.assign_menu[post].label = text;
     }
     Call(ds, event, PersonnelService::PANEL);
-    auto const prompt{ Local(bp, ASSIGN_PROMPT_LOCAL) };
+    auto const prompt{ texts.At(POSTS * POST_TEXT_BYTES) };
     Call(ds, event, PersonnelService::FORMAT, prompt, Near(data, data.assign_where_prompt), general);
     for (;;) {
       uint16_t choice{ Call(ds, event, PersonnelService::ASK, prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
@@ -195,7 +194,7 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
         data.context_record2 = opeu_find_side_record(ds, data.current_side, std::to_underlying(StaffRole::OPERATIONS_CHIEF));
         data.context_record3 = opeu_find_side_record(ds, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
       }
-      opeu_assign_confirm(ds, event, sp, segment, general);
+      opeu_assign_confirm(ds, event, segment, general);
       break;
     }
     assigned = true;
@@ -206,12 +205,12 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t sp, uint
 
 // Sends free generals on leave while there are any: one is chosen from the list and asked for how many days (the
 // answer plus one).
-void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
+void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   ServiceLocals const locals{ REST_PROMPT_BYTES };
   auto&               data{ Data(ds) };
   auto const          prompt{ locals.At(0) };
   bool                rested{ false };
-  for (; FillGenerals(ds, event, sp, segment) != 1; rested = true) {
+  for (; FillGenerals(ds, event, segment) != 1; rested = true) {
     SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(ds, event, PersonnelService::PANEL);
     Call(ds, event, PersonnelService::MESSAGE, Near(data, data.rest_who_prompt), data.context_record2);
@@ -220,7 +219,7 @@ void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16
     Call(ds, event, PersonnelService::FORMAT, prompt, Near(data, data.rest_days_prompt), general);
     auto const days{ Call(ds, event, PersonnelService::ASK, prompt, REST_LAST, data.context_record2, 0) };
     if (days != NO_CHOICE) {
-      opeu_rest_thanks(ds, event, sp, segment, general);
+      opeu_rest_thanks(ds, event, segment, general);
       opeu_set_record_counter(ds + general, static_cast<uint8_t>(days + 1));
     }
   }
@@ -228,7 +227,7 @@ void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16
 }
 
 // Turn action 4: the personnel orders menu, until it is cancelled.
-void opeu_turn_action_4(uint8_t ds[65536], HostEvent event, uint16_t, uint16_t) {
+void opeu_turn_action_4(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
   for (uint16_t choice; (choice = Call(ds, event, PersonnelService::ASK, Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu))) != NO_CHOICE;) {
     auto const& action{ data.personnel_actions[choice - 1] };
@@ -257,34 +256,34 @@ uint16_t svc_persmenu(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_commander_always(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithStack(PORT_FRAME, [&](uint16_t sp) { return opeu_commander_always(ds, svc_persmenu, sp, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0)); });
+  return opeu_commander_always(ds, svc_persmenu, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
 }
 
 auto port_routine_opeu_commander_assign(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PERSONNEL_STACK, [&](uint16_t sp) { opeu_commander_assign(ds, svc_persmenu, sp, PERSONNEL_SEGMENT); });
+  opeu_commander_assign(ds, svc_persmenu, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_commander_rest(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](uint16_t sp) { opeu_commander_rest(ds, svc_persmenu, sp, PERSONNEL_SEGMENT); });
+  opeu_commander_rest(ds, svc_persmenu, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_division_commander_menu(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](uint16_t sp) { opeu_division_commander_menu(ds, svc_persmenu, sp, PERSONNEL_SEGMENT); });
+  opeu_division_commander_menu(ds, svc_persmenu, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_division_toggle(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithStack(PORT_FRAME, [&](uint16_t sp) { return opeu_division_toggle(ds, svc_persmenu, sp, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0)); });
+  return opeu_division_toggle(ds, svc_persmenu, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
 }
 
 auto port_routine_opeu_personnel_finish(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](uint16_t sp) { opeu_personnel_finish(ds, svc_persmenu, sp, PERSONNEL_SEGMENT); });
+  opeu_personnel_finish(ds, svc_persmenu, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_turn_action_4(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](uint16_t sp) { opeu_turn_action_4(ds, svc_persmenu, sp, PERSONNEL_SEGMENT); });
+  opeu_turn_action_4(ds, svc_persmenu, PERSONNEL_SEGMENT);
   return 0;
 }

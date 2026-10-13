@@ -23,12 +23,6 @@
 using namespace opeu::game;
 
 namespace {
-// The frames below the orders loop's that its callees run on: the cell selection (given as its entry SP), the
-// panels and the menu; the element drawing below the redraw's frame; the player turn's frame below its entry SP.
-constexpr uint16_t SELECT_SP{ 6 };
-constexpr uint16_t PANEL_FRAME{ 8 };
-constexpr uint16_t DRAW_FRAME{ 0x12 };
-constexpr uint16_t TURN_FRAME{ 6 };
 constexpr uint8_t  REDRAW_ALL{ 2 };
 constexpr uint8_t  DISPATCH_ORDERS{ 8 };
 constexpr uint16_t SIDE_0_ESCAPE{ '6' };
@@ -42,9 +36,8 @@ void Refresh(uint8_t* ds, BattleEvent event) {
 } // namespace
 
 // The active side picks cells until it declares its orders finished: its own elements open the orders menu (or,
-// before their group joins the battle, the panel and "preparing"); a spotted enemy shows its panel. frame: the
-// routine's frame on the DS stack; the selection, the panels and the menu run below it.
-void opeu_battle_player_orders(uint8_t* ds, BattleEvent event, uint16_t frame) {
+// before their group joins the battle, the panel and "preparing"); a spotted enemy shows its panel.
+void opeu_battle_player_orders(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   opeu_battle_dispatch(ds, event, DISPATCH_ORDERS);
   // After a panel the original re-enters its loop past its own prompt with the flag set.
@@ -54,7 +47,7 @@ void opeu_battle_player_orders(uint8_t* ds, BattleEvent event, uint16_t frame) {
     prompt = 1;
     auto const side{ data.battle_active_side };
     Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_fmt_side_orders), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.side_names[side]);
-    if (!opeu_battle_select_cell(ds, event, Local(frame, SELECT_SP))) {
+    if (!opeu_battle_select_cell(ds, event)) {
       Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
       auto const finished{ Call(ds, event, BattleRoutine::PROMPT_YES_NO, Near(data, data.battle_msg_orders_finished)) };
       Refresh(ds, event);
@@ -65,15 +58,15 @@ void opeu_battle_player_orders(uint8_t* ds, BattleEvent event, uint16_t frame) {
     if (element) {
       if (opeu_battle_element_side(ds, event, element) == data.battle_active_side) {
         if (opeu_battle_level_allowed(ds, event, element)) {
-          if (opeu_battle_orders_menu(ds, event, element, Local(frame, PANEL_FRAME))) return;
+          if (opeu_battle_orders_menu(ds, event, element)) return;
         } else {
-          opeu_battle_element_panel(ds, event, element, 0, Local(frame, PANEL_FRAME));
+          opeu_battle_element_panel(ds, event, element, 0);
           Call(ds, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1, Near(data, data.battle_msg_preparing));
           prompt = 0;
           continue;
         }
       } else if (opeu_battle_element_flag2(ds, event, element)) {
-        opeu_battle_element_panel(ds, event, element, 1, Local(frame, PANEL_FRAME));
+        opeu_battle_element_panel(ds, event, element, 1);
         prompt = 0;
         continue;
       }
@@ -92,8 +85,8 @@ uint16_t opeu_battle_side_human(uint8_t* ds, BattleEvent event, uint8_t index) {
 }
 
 // Redraws the field as list `index`'s side sees it (unspotted enemies hidden), or with REDRAW_ALL as the players
-// see it. frame: the routine's frame on the DS stack; the drawing runs below it.
-void opeu_battle_redraw_side(uint8_t* ds, BattleEvent event, uint8_t index, uint16_t frame) {
+// see it.
+void opeu_battle_redraw_side(uint8_t* ds, BattleEvent event, uint8_t index) {
   auto& data{ Data(ds) };
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x) {
@@ -107,19 +100,18 @@ void opeu_battle_redraw_side(uint8_t* ds, BattleEvent event, uint8_t index, uint
       } else if (data.side_status[opeu_battle_element_side(ds, event, element)] != SIDE_PLAYED && !opeu_battle_element_flag2(ds, event, element)) {
         continue;
       }
-      opeu_battle_draw_element_at(ds, event, x, y, element, opeu_battle_mode(ds, event, element), Local(frame, DRAW_FRAME));
+      opeu_battle_draw_element_at(ds, event, x, y, element, opeu_battle_mode(ds, event, element));
     }
 }
 
-// sp: the entry SP on the DS stack.
-void opeu_battle_player_turn(uint8_t* ds, BattleEvent event, uint16_t sp) {
-  auto const frame{ Local(sp, TURN_FRAME) };
+// The players take their turns, each side a player commands in order, then the whole field is redrawn.
+void opeu_battle_player_turn(uint8_t* ds, BattleEvent event) {
   for (uint8_t index{ 0 }; index < SIDE_COUNT; ++index)
     if (opeu_battle_side_human(ds, event, index)) {
-      opeu_battle_redraw_side(ds, event, index, frame);
-      opeu_battle_player_orders(ds, event, frame);
+      opeu_battle_redraw_side(ds, event, index);
+      opeu_battle_player_orders(ds, event);
     }
-  opeu_battle_redraw_side(ds, event, REDRAW_ALL, frame);
+  opeu_battle_redraw_side(ds, event, REDRAW_ALL);
 }
 
 // The player orders segment's services (map/btlcmds).
@@ -128,6 +120,6 @@ uint16_t svc_btlplay(uint8_t* ds, uint32_t service, const uint16_t* args, unsign
 }
 
 auto port_routine_opeu_battle_player_turn(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_player_turn(ds, svc_btlplay, sp); });
+  opeu_battle_player_turn(ds, svc_btlplay);
   return 0;
 }

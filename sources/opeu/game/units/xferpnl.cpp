@@ -273,17 +273,11 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* ar
   case UNIT_TRAINING:    r = opeu_unit_average10(ds, Arg(args, count, 0)); break;
   case UNIT_EXPERIENCE:  r = opeu_unit_average11(ds, Arg(args, count, 0)); break;
   case OBJECTIVE_TARGET: r = opeu_move_objective_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case UNIT_TARGET:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_move_unit_target(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1)); });
-    break;
-  case ADJACENT:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      return opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
-    });
-    break;
-  case ORDER_PROGRESS: r = opeu_move_level_lower(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RESTORE_ORDER:  opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
-  default:             port_unhandled(module, id, count);
+  case UNIT_TARGET:      r = opeu_move_unit_target(ds, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ADJACENT:         r = opeu_move_adjacent(ds, svc_movetgt, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case ORDER_PROGRESS:   r = opeu_move_level_lower(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case RESTORE_ORDER:    opeu_restore_unit_order(ds, Arg(args, count, 0)); break;
+  default:               port_unhandled(module, id, count);
   }
   return r;
 }

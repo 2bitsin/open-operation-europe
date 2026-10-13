@@ -41,7 +41,6 @@ constexpr uint16_t STALE_SLOT_AT{ 0x66 };
 constexpr uint16_t REPORT_RESERVE{ 0x8e };
 constexpr uint16_t LOSS_TEXT_AT{ 0 };
 constexpr uint16_t REPORT_AT{ 0x20 };
-constexpr uint16_t LOSS_LINE_FRAME{ 0x9e }; // the loss line's frame below this one's
 
 // The side letter of the report's colour code: '5' for side 1, '6' for side 0.
 [[nodiscard]] constexpr auto SideColour(uint8_t side) -> uint16_t {
@@ -50,7 +49,7 @@ constexpr uint16_t LOSS_LINE_FRAME{ 0x9e }; // the loss line's frame below this 
 } // namespace
 
 // Removes amount..2 * amount - 1 of one of the objective's supply stocks (kind 0..2) and reports it.
-void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t /*bp*/, uint16_t objective, uint8_t kind, uint16_t amount) {
+void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t objective, uint8_t kind, uint16_t amount) {
   auto&               data{ Data(ds) };
   auto&               record{ Record<Objective>(data, objective) };
   ServiceLocals const locals{ LINE_RESERVE };
@@ -71,7 +70,7 @@ void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t /*bp*/, uin
 // bp: this routine's frame. chance: the percent chance of a hit; base: the damage of a hit (none: no equipment loss);
 // spread: the random part of it; heavy: infantry loses 6 to 15 times as much; supply and endurance: the supply and
 // strength losses.
-void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t bp, uint16_t objective, uint16_t chance, uint16_t base, uint16_t supply, uint16_t endurance, uint16_t spread, uint16_t heavy) {
+void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t objective, uint16_t chance, uint16_t base, uint16_t supply, uint16_t endurance, uint16_t spread, uint16_t heavy) {
   auto&               data{ Data(ds) };
   auto&               record{ Record<Objective>(data, objective) };
   ServiceLocals const locals{ REPORT_RESERVE };
@@ -110,10 +109,9 @@ void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t bp, uint16_t o
     }
   }
   if (supply) {
-    auto const line_frame{ Local(bp, LOSS_LINE_FRAME) };
-    opeu_objective_loss_line(ds, event, line_frame, objective, 1, supply);
-    opeu_objective_loss_line(ds, event, line_frame, objective, 0, supply);
-    opeu_objective_loss_line(ds, event, line_frame, objective, 2, supply);
+    opeu_objective_loss_line(ds, event, objective, 1, supply);
+    opeu_objective_loss_line(ds, event, objective, 0, supply);
+    opeu_objective_loss_line(ds, event, objective, 2, supply);
   }
   if (endurance) {
     auto const before{ record.strength };
@@ -130,7 +128,7 @@ uint16_t svc_objdamag(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
   switch (static_cast<DamageService>(id)) {
-  case DamageService::LOCATION_BLAST: WithMapFrame([&](uint16_t frame) { opeu_location_blast(ds, svc_blast, frame, byte(0), byte(1), byte(2)); }); return 0;
+  case DamageService::LOCATION_BLAST: opeu_location_blast(ds, svc_blast, byte(0), byte(1), byte(2)); return 0;
   case DamageService::FORMAT:         opeu_request_format(ds, { args, count }); return 0;
   case DamageService::SIDE_REPORT:    opeu_objective_side_report(ds, host(), arg(0), arg(1)); return 0;
   case DamageService::ELEMENT_PANEL:  opeu_element_panel(ds, host(), arg(0)); return 0;

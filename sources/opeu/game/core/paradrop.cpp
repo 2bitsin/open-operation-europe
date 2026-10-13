@@ -156,7 +156,7 @@ void opeu_para_drop_present(uint8_t ds[65536], HostEvent event) {
 // side's totals, takes the anti-aircraft losses, and moves the formation up the screen. Over the target the drop's
 // report is shown; a little later the paratroop regiment is formed and lands with the losses of the planes shot
 // down. The surviving transports come back to the side, and the drop is cleared.
-void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, uint16_t /*bp*/) {
+void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto&      data{ Data(ds) };
   auto const side_index{ data.air_side };
   auto&      side{ data.sides[side_index] };
@@ -197,16 +197,14 @@ void opeu_para_drop_event(uint8_t ds[65536], HostEvent event, uint16_t segment, 
   drop.transports = 0;
 }
 
-// The AIRSHOW and AIRSTRK routines are called with load 0; their bp is the callee's frame.
+// The AIRSHOW and AIRSTRK routines are called with load 0.
 uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<DropService>(id)) {
   case DropService::UNIT_GROUP: r = opeu_unit_group(Arg(args, count, 0)); break;
   case DropService::CELL_OK:    r = opeu_para_cell_ok(ds, svc_paraunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case DropService::AIR_REPORT: {
-    auto const frame{ port_frame_enter() };
-    r = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
-    port_frame_leave();
+    r = opeu_air_report(ds, svc_airshow, Arg(args, count, 1), (uint8_t)Arg(args, count, 0));
     break;
   }
   case DropService::SIDE_RECORD:     r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
@@ -216,9 +214,7 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case DropService::CUE:             opeu_sound_cue4(ds, svc_soundcue); break;
   case DropService::SIDE_FOR_STATUS: r = opeu_side_for_status(ds, (uint8_t)Arg(args, count, 0)); break;
   case DropService::MAP_CENTER:      {
-    auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_frame_leave();
+    opeu_map_center(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
   case DropService::VIEW_PIXEL:  opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
@@ -231,24 +227,18 @@ uint16_t svc_paradrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   }
   case DropService::LAND:            r = opeu_para_land(ds, svc_paraunit, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::ARRIVAL_PREPARE: {
-    auto const frame{ port_frame_enter() };
-    opeu_arrival_prepare(ds, svc_maperase, frame, Arg(args, count, 0));
-    port_frame_leave();
+    opeu_arrival_prepare(ds, svc_maperase, Arg(args, count, 0));
     break;
   }
   case DropService::DELAY:       opeu_delay_ticks(ds, svc_waitkey, Arg(args, count, 0)); break;
   case DropService::SPRITE_DRAW: {
-    auto const frame{ port_frame_enter() };
-    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_frame_leave();
+    opeu_air_sprite_draw(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
   case DropService::SPRITE_RESTORE: opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::DAMAGE_ROLL:    r = opeu_air_damage_roll(ds, svc_airstrk, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case DropService::DESTROYED:      {
-    auto const frame{ port_frame_enter() };
-    opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
-    port_frame_leave();
+    opeu_air_destroyed_message(ds, svc_airstrk, Arg(args, count, 0));
     break;
   }
   case DropService::OFFICER_GAIN: opeu_officer_gain(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

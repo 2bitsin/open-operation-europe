@@ -48,7 +48,7 @@ auto Speaker(std::uint8_t* ds, HostEvent event) -> std::uint16_t {
 } // namespace
 
 // Announces a new weapon type.
-void opeu_daily_present(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_daily_present(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0) };
@@ -74,6 +74,6 @@ uint16_t svc_daypres(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_daily_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_daily_present(ds, svc_daypres, sp); });
+  opeu_daily_present(ds, svc_daypres);
   return 0;
 }

@@ -22,8 +22,6 @@
 using namespace opeu::game;
 
 namespace {
-// The frame below opeu_battle_move_element's that the element's drawing runs on.
-constexpr uint16_t DRAW_FRAME{ 0x12 };
 // opeu_battle_attack_rating: the rating of an element already engaged with the target, the odds below which the
 // target's own odds stand, and the bonus of a target in the open.
 constexpr uint8_t ENGAGED_RATING{ 200 };
@@ -48,10 +46,10 @@ void Settle(uint8_t* ds, BattleEvent event, uint16_t element, BattleState state)
 }
 } // namespace
 
-// frame: the routine's frame on the DS stack; the drawing runs below it.
-void opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode, uint16_t frame) {
+// Moves the element from (x, y) to (to_x, to_y) on the field: redraws the cell it leaves and draws it at the new one.
+void opeu_battle_move_element(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode) {
   if (opeu_battle_element_visible(ds, event, element)) opeu_battle_draw_cell(ds, event, x, y);
-  opeu_battle_draw_element_at(ds, event, to_x, to_y, element, mode, Local(frame, DRAW_FRAME));
+  opeu_battle_draw_element_at(ds, event, to_x, to_y, element, mode);
   opeu_battle_clear_cell(ds, event, x, y);
 }
 

@@ -30,9 +30,6 @@ constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
 // The flags list_dialog runs the lists with.
 constexpr std::uint16_t LIST_LIMIT{ 1 };
 constexpr std::uint16_t LIST_FLAGS{ 7 };
-// The size of the command's frame (locals below the frame pointer and the frame pointer itself) the target editor
-// is entered below.
-constexpr std::uint16_t EDITOR_STACK{ 0x10 };
 
 auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... words) -> std::uint16_t {
   return Call(ds, event, static_cast<std::uint16_t>(service), words...);
@@ -55,8 +52,8 @@ uint8_t opeu_order_units_fill(uint8_t ds[65536], uint8_t group) {
   return 8;
 }
 
-// sp is the entry stack pointer; segment the Orders command's code segment.
-void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t segment) {
+// The Orders command; segment is its code segment.
+void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto& data{ Data(ds) };
   Send(ds, event, ORDERS_CONTROL_PANEL);
   data.unit_order_active = 0;
@@ -76,7 +73,7 @@ void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_
       for (;;) {
         Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_order), person);
         if (!RunList(ds, event, data.order_target_list)) break;
-        opeu_group_set_target(ds, event, static_cast<std::uint16_t>(sp - EDITOR_STACK), group);
+        opeu_group_set_target(ds, event, group);
       }
       data.current_group = saved;
     } else if (Send(ds, event, ORDERS_CONFIRM_MESSAGE, Near(data, data.order_whole_division), person)) {
@@ -116,6 +113,6 @@ uint16_t svc_ordlist(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 auto port_routine_opeu_turn_action_1(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_turn_action_1(ds, svc_ordlist, sp, ORDERS_SEGMENT); });
+  opeu_turn_action_1(ds, svc_ordlist, ORDERS_SEGMENT);
   return 0;
 }

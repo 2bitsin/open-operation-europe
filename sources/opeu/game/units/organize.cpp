@@ -76,8 +76,6 @@ enum class Service : std::uint16_t {
 constexpr std::uint16_t ORGANIZE_SEGMENT{ 0x20b3 };
 constexpr std::uint16_t UNIT_ENABLED{ 0x0d40 }; // the list predicate: a regiment that can be supplied
 constexpr std::uint16_t DAILY_REDRAW{ 0x1f46 }; // the screen the daily report redraws
-// The DS stack the command's frame takes.
-constexpr std::uint16_t ORGANIZE_STACK{ 0x300 };
 constexpr std::uint16_t DAILY_SHOW_MODE{ 0x2a };
 // The list dialog's flags: 7 on the first run, 6 once the screen behind it stands, 11 and 10 likewise in the
 // allocation dialog.
@@ -207,7 +205,7 @@ auto Allocate(std::uint8_t* ds, HostEvent event, ServiceLocals const& locals, Al
 } // namespace
 
 // segment: the command's code segment.
-void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, uint16_t segment) {
+void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          state{ Near(data, data.list_window) };
@@ -299,7 +297,7 @@ void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, 
 
 // The command's services.
 uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t sp, r = 0;
+  uint16_t r = 0;
   switch (static_cast<Service>(id)) {
   case Service::CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case Service::CONTROL_RESET:   opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
@@ -308,9 +306,7 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case Service::CONTROL_CONFIRM: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::GROUP_NOTICE:    // The game passes (flags, unit) to the announcement, whose one parameter receives the flags word.
-    sp = port_stack_enter(SERVICE_STACK);
-    opeu_unit_announce(ds, svc_mapunit, (uint16_t)(sp - 2u), Arg(args, count, 0));
-    port_stack_leave(SERVICE_STACK);
+    opeu_unit_announce(ds, svc_mapunit, Arg(args, count, 0));
     break;
   case Service::COPY_BYTES:    opeu_copy_bytes(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case Service::DAILY_CONTEXT: opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
@@ -324,41 +320,25 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case Service::OBJECTIVE_SIDE:   r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case Service::RELEASE_ELEMENTS: r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::CONTROL_POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ARRIVAL_LOCATION:
-    sp = port_stack_enter(SERVICE_STACK);
-    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_stack_leave(SERVICE_STACK);
-    break;
-  case Service::LIST_LENGTH:     r = opeu_list_length(ds, Arg(args, count, 0)); break;
-  case Service::SUPPORTED_UNITS: r = opeu_side_supported_units(ds, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::NEIGHBOR_UNITS:  r = opeu_neighbor_units(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::CHIEF_TEXT:      opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
-  case Service::CHIEF_WAIT:      r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
-  case Service::CHIEF_NUMBER:    // the callee's 30-byte prompt text lies in its frame
-    sp = port_stack_enter(SERVICE_STACK);
-    r  = opeu_ops_chief_number(ds, svc_chief, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), (uint16_t)(sp - 2u - 0x1eu));
-    port_stack_leave(SERVICE_STACK);
-    break;
-  case Service::SUPPLY_RESET: opeu_supply_reset(ds); break;
-  case Service::TALLY_STOCK:  r = opeu_tally_unit_stock(ds, svc_tally, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::TALLY_UNITS:  r = opeu_tally_units(ds, svc_tally, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ALLOC_SCREEN: // the callee's 22-byte nation text lies in its frame
-    sp = port_stack_enter(SERVICE_STACK);
-    opeu_alloc_screen(ds, svc_allocscr, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint16_t)(sp - 2u - 0x1au));
-    port_stack_leave(SERVICE_STACK);
-    break;
+  case Service::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::LIST_LENGTH:      r = opeu_list_length(ds, Arg(args, count, 0)); break;
+  case Service::SUPPORTED_UNITS:  r = opeu_side_supported_units(ds, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::NEIGHBOR_UNITS:   r = opeu_neighbor_units(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::CHIEF_TEXT:       opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;
+  case Service::CHIEF_WAIT:       r = opeu_ops_chief_wait(ds, svc_chief, Arg(args, count, 0)); break;
+  case Service::CHIEF_NUMBER:     r = opeu_ops_chief_number(ds, svc_chief, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case Service::SUPPLY_RESET:     opeu_supply_reset(ds); break;
+  case Service::TALLY_STOCK:      r = opeu_tally_unit_stock(ds, svc_tally, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::TALLY_UNITS:      r = opeu_tally_units(ds, svc_tally, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::ALLOC_SCREEN:     opeu_alloc_screen(ds, svc_allocscr, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
   case Service::ALLOC_TAKE:       opeu_alloc_take(ds, svc_allocscr, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
   case Service::ALLOC_NONEMPTY:   r = opeu_alloc_groups_nonempty(ds, svc_allocpnl, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::ALLOC_TYPE_PANEL: opeu_alloc_type_panel(ds, svc_allocpnl, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::ALLOC_DISTRIBUTE:
     opeu_alloc_distribute(ds, svc_allocdst, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3));
     break;
-  case Service::ALLOC_CHOOSE_HQ: // the callee's 100- and 32-byte texts lie in its frame
-    sp = port_stack_enter(SERVICE_STACK);
-    opeu_alloc_choose_hq(ds, svc_allocdst, (uint16_t)(sp - 2u - 0x64u), (uint16_t)(sp - 2u - 0x84u), ORGANIZE_SEGMENT);
-    port_stack_leave(SERVICE_STACK);
-    break;
-  default: port_unhandled("organize", id, count);
+  case Service::ALLOC_CHOOSE_HQ: opeu_alloc_choose_hq(ds, svc_allocdst, ORGANIZE_SEGMENT); break;
+  default:                       port_unhandled("organize", id, count);
   }
   return r;
 }
@@ -366,6 +346,6 @@ uint16_t svc_organize(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 auto port_routine_opeu_turn_action_6(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  WithStack(ORGANIZE_STACK, [&](std::uint16_t sp) { opeu_turn_action_6(ds, svc_organize, static_cast<std::uint16_t>(sp - 2), ORGANIZE_SEGMENT); });
+  opeu_turn_action_6(ds, svc_organize, ORGANIZE_SEGMENT);
   return 0;
 }

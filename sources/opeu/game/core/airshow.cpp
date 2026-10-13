@@ -65,7 +65,7 @@ void opeu_air_sprite_mirror(uint8_t ds[65536], uint16_t image, uint8_t keep) {
   for (std::size_t i = 0; i < mask.size(); i += 3) std::swap(mask[i], mask[i + 1]);
 }
 
-void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t /*bp*/, uint16_t x, uint16_t y, uint8_t keep) {
+void opeu_air_sprite_draw(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t x, uint16_t y, uint8_t keep) {
   ServiceLocals const locals{ sizeof(PlaneMask) }; // the mask the compose service reads
   auto&               data{ Data(ds) };
   auto const          mask{ locals.At(0) };
@@ -85,7 +85,7 @@ void opeu_air_sprite_restore(uint8_t ds[65536], HostEvent event, uint16_t load, 
   Call(ds, event, BITMAP_RESTORE, x, y, 4, 32, 0, data.stream_ptr[1], data.stream_ptr[0]);
 }
 
-uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t what, uint8_t wait) {
+uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t what, uint8_t wait) {
   ServiceLocals const locals{ REQUEST_BUFFER_SIZE };
   auto&               data{ Data(ds) };
   std::uint16_t const buffer{ locals.At(0) };

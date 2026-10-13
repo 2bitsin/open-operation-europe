@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_control_prepare(uint8_t* ds, HostEvent event, uint16_t sp);
+void opeu_control_prepare(uint8_t* ds, HostEvent event);
 void opeu_staff_advice_menu(uint8_t* ds, HostEvent event);
 void opeu_turn_action_5(uint8_t* ds, HostEvent event);
 

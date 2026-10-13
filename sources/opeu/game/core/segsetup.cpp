@@ -38,10 +38,6 @@ enum class SetupService : uint16_t {
   SOUND_INITIALIZE = 19,
 };
 
-// The stack a near or far call leaves below the caller's entry SP: return address and frame.
-constexpr uint16_t EMS_CALL_DEPTH{ 8 };
-constexpr uint16_t SETUP_CALL_DEPTH{ 0x16 };
-
 // Allocates a memory block and stores its segment; returns the segment (0 when memory is short).
 auto Allocate(uint8_t* ds, HostEvent event, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
   return segment = Call(ds, event, SetupService::ALLOCATE, paragraphs);
@@ -68,9 +64,8 @@ void opeu_memory_fail(uint8_t ds[65536], HostEvent event, uint16_t) {
 
 // Allocates the twelve memory blocks; the last four fall back to an EMS buffer when memory is short and an EMS
 // manager is present. A block that cannot be had ends the game with the out-of-memory notice.
-void opeu_alloc_segments(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_alloc_segments(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const ems_sp{ static_cast<uint16_t>(sp - EMS_CALL_DEPTH) };
   auto const need{ [&](uint16_t& segment, uint16_t paragraphs, auto const& name) {
     if (Allocate(ds, event, segment, paragraphs) == 0) opeu_memory_fail(ds, event, Near(Data(ds), name));
   } };
@@ -82,11 +77,11 @@ void opeu_alloc_segments(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   need(data.hex_display_segment, 0x65, data.setup_name_hdispseg);
   need(data.face_segment, 0x4b0, data.setup_name_armsseg);
   need(data.portrait_segment, 0x4b0, data.setup_name_kaoseg);
-  int16_t const ems = opeu_ems_detect(ds, event, ems_sp);
-  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
-  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0 && (ems == 0 || opeu_ems_alloc_numdlg(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
-  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0 && (ems == 0 || opeu_ems_alloc_sprite(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
-  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event, ems_sp) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
+  int16_t const ems = opeu_ems_detect(ds, event);
+  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
+  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0 && (ems == 0 || opeu_ems_alloc_numdlg(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
+  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0 && (ems == 0 || opeu_ems_alloc_sprite(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
+  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
 }
 
 // Opens the portrait, arms and event data files.
@@ -98,14 +93,14 @@ void opeu_open_data_files(uint8_t ds[65536], HostEvent event) {
 }
 
 // Prepares the machine: system handlers, the screen and title palette, sound, memory, and the data files.
-void opeu_app_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_app_prepare(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, SetupService::DOS_HANDLERS);
   Call(ds, event, SetupService::VGA_SETUP);
   Call(ds, event, SetupService::IDENTITY_PALETTE);
   Call(ds, event, SetupService::VGA_CLEAR);
   Call(ds, event, SetupService::PALETTE_TITLE);
   Call(ds, event, SetupService::SOUND_INITIALIZE);
-  opeu_alloc_segments(ds, event, static_cast<uint16_t>(sp - SETUP_CALL_DEPTH));
+  opeu_alloc_segments(ds, event);
   Data(ds).startup_mode++;
   opeu_open_data_files(ds, event);
 }

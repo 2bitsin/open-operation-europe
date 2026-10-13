@@ -41,10 +41,7 @@ void opeu_turn_control_other(uint8_t ds[65536], HostEvent event, HostEvent conte
 uint16_t svc_control2(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
   case LOCATION:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_arrival_location(ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)),
-                            static_cast<std::uint8_t>(Arg(args, count, 2)));
-    });
+    opeu_arrival_location(ds, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   case FINISH: opeu_control_other_finish(ds); break;
   default:     port_unhandled("control2", id, count);

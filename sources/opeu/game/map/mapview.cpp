@@ -60,7 +60,7 @@ void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t spri
 } // namespace
 
 // The sprite is read into a DS buffer the far read, the recolouring and the compose service work on.
-void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t unit, uint16_t x, uint16_t y) {
+void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16_t x, uint16_t y) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ SPRITE_BYTES };
   auto const          sprite_buffer{ locals.At(0) };
@@ -93,8 +93,8 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint1
   opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
 
-// frame: the routine's frame; the unit drawing runs on the frame below.
-void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y) {
+// Redraws the tactical view's cell (x, y) and the unit on it.
+void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto&      data{ Data(ds) };
   auto const cell_x{ static_cast<uint8_t>(x) };
   auto const cell_y{ static_cast<uint8_t>(y) };
@@ -114,7 +114,7 @@ void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t 
   case OBJECTIVE_CODE: opeu_view_cell_paint(ds, event, pixel_x, pixel_y, opeu_objective_side(ds, opeu_find_objective_at(ds, cell_x, cell_y)) ? 1 : 2); break;
   }
   auto const unit{ opeu_find_unit_at(ds, cell_x, cell_y) };
-  if (unit != 0 && opeu_unit_visible(ds, unit)) opeu_view_unit_draw(ds, event, Local(frame, 0x1c), unit, pixel_x, pixel_y);
+  if (unit != 0 && opeu_unit_visible(ds, unit)) opeu_view_unit_draw(ds, event, unit, pixel_x, pixel_y);
 }
 
 // The services this module raises (restore, compose, view prepare, far read) are the map segment's shared ones.

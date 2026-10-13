@@ -1,5 +1,5 @@
 // The row-draw callbacks of the list tables (core/tblgroup, core/tblpers): the services they call, the column layout
-// they ask for, where a row goes on the screen and how a routine call reserves their frame on the DS stack.
+// they ask for, where a row goes on the screen and how a routine call runs them.
 #pragma once
 
 #include "common/data-segment.hpp"
@@ -39,12 +39,12 @@ struct TableColumns {
   std::uint8_t count;
 };
 
-// Asks the layout service for a column of the active list window; the service writes the three bytes into the frame
-// buffer at scratch.
-inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column, std::uint8_t row) -> TableColumns {
-  Call(ds, event, COLUMNS, column, row, scratch, static_cast<std::uint16_t>(scratch + 1), static_cast<std::uint16_t>(scratch + 2));
+// Asks the layout service for a column of the active list window; the service writes the three bytes into DS locals.
+inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint8_t column, std::uint8_t row) -> TableColumns {
+  ServiceLocals const bytes{ 4 };
+  Call(ds, event, COLUMNS, column, row, bytes.At(0), bytes.At(1), bytes.At(2));
   auto const& data{ Data(ds) };
-  return { Record<std::uint8_t>(data, scratch), Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)), Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 2)) };
+  return { Record<std::uint8_t>(data, bytes.At(0)), Record<std::uint8_t>(data, bytes.At(1)), Record<std::uint8_t>(data, bytes.At(2)) };
 }
 
 // The active list window.
@@ -62,17 +62,12 @@ inline auto Columns(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, st
   return static_cast<std::uint16_t>((row - data.list_top) * TABLE_ROW_HEIGHT + window.y + TABLE_FIRST_ROW);
 }
 
-// The frame buffers of a row-draw callback: they start below its saved frame pointer and 0x70 bytes of locals.
-[[nodiscard]] constexpr auto TableScratch(std::uint16_t sp) -> std::uint16_t {
-  return static_cast<std::uint16_t>(sp - 2 - 0x70);
-}
-
 // Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
-// argument words, its frame buffers on the DS stack.
+// argument words.
 template <typename Draw>
 inline auto RunTableRows(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { draw(ds, event, TableScratch(sp), byte(0), byte(1), byte(2), byte(3), byte(4)); });
+  draw(ds, event, byte(0), byte(1), byte(2), byte(3), byte(4));
   return 0;
 }
 } // namespace opeu::game::detail::table_rows
@@ -87,6 +82,5 @@ using detail::table_rows::TABLE_FIRST_ROW;
 using detail::table_rows::TABLE_ROW_HEIGHT;
 using detail::table_rows::TABLE_TEXT_COLOR;
 using detail::table_rows::TableColumns;
-using detail::table_rows::TableScratch;
 using detail::table_rows::TableService;
 } // namespace opeu::game

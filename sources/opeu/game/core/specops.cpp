@@ -236,50 +236,44 @@ void Plan(std::uint8_t* ds, HostEvent event, Mission const& mission) {
 } // namespace
 
 // The daily report's presenter of an accepted mission.
-void opeu_special_present(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_present(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_special_raid(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_raid(uint8_t ds[65536], HostEvent event) {
   Plan(ds, event, Raid());
 }
 
-void opeu_special_sabotage(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_sabotage(uint8_t ds[65536], HostEvent event) {
   Plan(ds, event, Sabotage());
 }
 
-void opeu_special_cut_comm(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_cut_comm(uint8_t ds[65536], HostEvent event) {
   Plan(ds, event, CutComm());
 }
 
-void opeu_special_assassinate(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_assassinate(uint8_t ds[65536], HostEvent event) {
   Plan(ds, event, Assassinate());
 }
 
-void opeu_special_recon(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_special_recon(uint8_t ds[65536], HostEvent event) {
   Plan(ds, event, Recon());
 }
 
 uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r{ 0 };
   switch (static_cast<SpecialService>(id)) {
-  case REQUEST_FORMAT:    opeu_request_format(ds, { args, count }); break;
-  case CONTROL_MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CONFIRM_MESSAGE:   r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MESSAGE_LOOKUP:    r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case ARMY_PRINT:        opeu_cursor_print(ds, { args, count }); break;
-  case PENDING_FINISH:    opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW:        port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case FIND_OBJECTIVE_AT: r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case DELAY_DIALOG:      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case ARMY_TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_PICK_LOCATION: {
-    // The map pick keeps a 20-byte workspace below its own frame.
-    auto const frame{ port_frame_enter() };
-    r = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
-    port_frame_leave();
-    break;
-  }
+  case REQUEST_FORMAT:       opeu_request_format(ds, { args, count }); break;
+  case CONTROL_MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case CONFIRM_MESSAGE:      r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MESSAGE_LOOKUP:       r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case ARMY_PRINT:           opeu_cursor_print(ds, { args, count }); break;
+  case PENDING_FINISH:       opeu_pending_finish(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case DAILY_SHOW:           port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case DELAY_DIALOG:         r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case ARMY_TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OBJECTIVE_SIDE:       r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case ARMY_POSITION:        opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case DAILY_CONTEXT:        opeu_daily_context(ds, svc_context, (uint8_t)Arg(args, count, 0)); break;
@@ -295,38 +289,32 @@ uint16_t svc_specops(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   return r;
 }
 
-namespace {
-
-// Runs a mission with the DS stack its frame needs.
-template <void (*Body)(std::uint8_t*, HostEvent, std::uint16_t)>
-auto RunMission(std::uint8_t* ds) -> std::uint32_t {
-  return WithStack(PORT_FRAME, [ds](std::uint16_t sp) {
-    Body(ds, svc_specops, sp);
-    return std::uint32_t{ 0 };
-  });
-}
-} // namespace
-
 auto port_routine_opeu_special_assassinate(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_assassinate>(ds);
+  opeu_special_assassinate(ds, svc_specops);
+  return 0;
 }
 
 auto port_routine_opeu_special_cut_comm(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_cut_comm>(ds);
+  opeu_special_cut_comm(ds, svc_specops);
+  return 0;
 }
 
 auto port_routine_opeu_special_present(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_present>(ds);
+  opeu_special_present(ds, svc_specops);
+  return 0;
 }
 
 auto port_routine_opeu_special_raid(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_raid>(ds);
+  opeu_special_raid(ds, svc_specops);
+  return 0;
 }
 
 auto port_routine_opeu_special_recon(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_recon>(ds);
+  opeu_special_recon(ds, svc_specops);
+  return 0;
 }
 
 auto port_routine_opeu_special_sabotage(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return RunMission<opeu_special_sabotage>(ds);
+  opeu_special_sabotage(ds, svc_specops);
+  return 0;
 }

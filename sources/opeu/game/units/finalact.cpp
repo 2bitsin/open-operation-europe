@@ -35,7 +35,7 @@ constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
 } // namespace
 
 // The order slot and its code are taken before the destination.
-void opeu_turn_final_action(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_turn_final_action(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   ServiceCell const   destination_cell;
   auto const          x{ destination_cell.XAt() };

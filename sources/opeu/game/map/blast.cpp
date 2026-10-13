@@ -58,7 +58,7 @@ void SetStream(DataSegment& data, uint16_t offset) {
 }
 } // namespace
 
-void opeu_location_blast(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y, uint8_t side) {
+void opeu_location_blast(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
   auto&      data{ Data(ds) };
   auto const shown{ static_cast<uint8_t>(Call(ds, event, BlastService::SIDE_FOR_STATUS, side)) };
   Call(ds, event, BlastService::ARRIVAL_LOCATION, x, y, shown);
@@ -95,13 +95,13 @@ uint16_t svc_blast(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   switch (static_cast<BlastService>(id)) {
   case BlastService::SIDE_FOR_STATUS:  return opeu_side_for_status(ds, byte(0));
-  case BlastService::ARRIVAL_LOCATION: WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); }); return 0;
+  case BlastService::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, byte(0), byte(1), byte(2)); return 0;
   case BlastService::SOUND:            opeu_sound_cue5(ds, svc_soundcue); return 0;
   case BlastService::WAIT:             opeu_delay_units(ds, svc_waitkey, byte(0)); return 0;
   case BlastService::BLIT_FAR:         return svc_map_plan(ds, "blast", std::to_underlying(MapService::BLIT_FAR), args, count);
   case BlastService::SPRITE_COMPOSE:   return svc_map_plan(ds, "blast", std::to_underlying(MapService::SPRITE_COMPOSE), args, count);
   case BlastService::EFFECT_FINISH:    opeu_effect_finish(ds, svc_sound); return 0;
-  case BlastService::MAP_ERASE:        WithMapFrame([&](uint16_t frame) { opeu_map_erase(ds, svc_maperase, frame, byte(0), byte(1)); }); return 0;
+  case BlastService::MAP_ERASE:        opeu_map_erase(ds, svc_maperase, byte(0), byte(1)); return 0;
   default:                             port_unhandled("blast", id, count);
   }
   return 0;

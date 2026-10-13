@@ -17,11 +17,7 @@
 using namespace opeu::game;
 
 namespace {
-// The frames below its callers' that opeu_battle_execute_order runs on.
-constexpr uint16_t CONTINUE_FRAME{ 0x12 };
-constexpr uint16_t ADVANCE_FRAME{ 0x0c };
-constexpr uint16_t SEEK_FRAME{ 0x0e };
-constexpr uint8_t  NO_FACING{ 0xff };
+constexpr uint8_t NO_FACING{ 0xff };
 
 // opeu_battle_execute_order's results.
 constexpr uint8_t STEPPED{ 0 };
@@ -70,7 +66,7 @@ void FaceCell(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8
 
 // Moves the element a step toward its goal or its target. order counts the element's waits this round. The cell it
 // heads for is two DS words: the path step services receive their addresses.
-uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t order, uint16_t /*frame*/) {
+uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t order) {
   ServiceLocals const locals{ 4 };
   auto const          x_at{ locals.At(0) };
   auto const          y_at{ locals.At(2) };
@@ -164,8 +160,8 @@ void opeu_battle_attack_or_hold(uint8_t* ds, BattleEvent event, uint16_t element
   Call(ds, event, BattleRoutine::BATTLE_LOSS_CHECK, target, element);
 }
 
-// frame: the routine's frame on the DS stack; the order runs below it.
-void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
+// Carries on the element's current order.
+void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto order{ opeu_battle_order(ds, event, element) };
   if (opeu_battle_engaged(ds, event, element)) {
     auto const target{ Position(ds, element).target };
@@ -177,7 +173,7 @@ void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element
         opeu_battle_attack_or_hold(ds, event, element, target);
       }
     } else if (Is(opeu_battle_state(ds, event, element), BattleState::ATTACK)) {
-      opeu_battle_execute_order(ds, event, element, order, Local(frame, CONTINUE_FRAME));
+      opeu_battle_execute_order(ds, event, element, order);
     }
   } else {
     auto const goal_x{ Position(ds, element).goal_x };
@@ -190,19 +186,19 @@ void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element
         opeu_battle_attack_or_hold(ds, event, element, 0);
       }
     } else {
-      opeu_battle_execute_order(ds, event, element, order, Local(frame, CONTINUE_FRAME));
+      opeu_battle_execute_order(ds, event, element, order);
     }
   }
 }
 
-// frame: the routine's frame on the DS stack; the order runs below it.
-void opeu_battle_advance(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
+// The element advances on its order; on arrival its state is updated.
+void opeu_battle_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto const order{ opeu_battle_order(ds, event, element) };
-  if (opeu_battle_execute_order(ds, event, element, order, Local(frame, ADVANCE_FRAME)) == ARRIVED) opeu_battle_update_element(ds, event, element);
+  if (opeu_battle_execute_order(ds, event, element, order) == ARRIVED) opeu_battle_update_element(ds, event, element);
 }
 
 // frame: the routine's frame on the DS stack; the order runs below it.
-void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
+void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto order{ opeu_battle_order(ds, event, element) };
   if (opeu_battle_engaged(ds, event, element) && !opeu_battle_element_active(ds, event, Position(ds, element).target)) {
     opeu_battle_update_element(ds, event, element);
@@ -215,7 +211,7 @@ void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element, u
       if (Turns(ds, element)) FaceTarget(ds, event, element, target);
       opeu_battle_set_order(ds, event, element, ++order);
     }
-  } else if (opeu_battle_execute_order(ds, event, element, order, Local(frame, SEEK_FRAME)) == ARRIVED) {
+  } else if (opeu_battle_execute_order(ds, event, element, order) == ARRIVED) {
     opeu_battle_update_element(ds, event, element);
   }
 }
@@ -225,7 +221,7 @@ uint16_t svc_btlorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_advance(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_advance(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_advance(ds, svc_btlorder, Arg(args, count, 0));
   return 0;
 }
 
@@ -235,15 +231,15 @@ auto port_routine_opeu_battle_attack_or_hold(std::uint8_t* ds, std::uint16_t con
 }
 
 auto port_routine_opeu_battle_continue_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_continue_order(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_continue_order(ds, svc_btlorder, Arg(args, count, 0));
   return 0;
 }
 
 auto port_routine_opeu_battle_execute_order(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) { return opeu_battle_execute_order(ds, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)), BattleFrame(sp)); });
+  return opeu_battle_execute_order(ds, svc_btlorder, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
 }
 
 auto port_routine_opeu_battle_seek_target(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_seek_target(ds, svc_btlorder, Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_seek_target(ds, svc_btlorder, Arg(args, count, 0));
   return 0;
 }

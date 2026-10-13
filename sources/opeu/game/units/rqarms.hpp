@@ -34,7 +34,7 @@ enum class RequestService : std::uint16_t {
   ELEMENT_TYPES     = 25, // (nation mask, category, list) -> count of the due types written to the list
 };
 
-void    opeu_request_arms(uint8_t* ds, HostEvent event, uint16_t scratch);
+void    opeu_request_arms(uint8_t* ds, HostEvent event);
 uint8_t opeu_rq_unit_selectable(void);
 
 uint16_t svc_rqarms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

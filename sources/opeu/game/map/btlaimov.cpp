@@ -1,7 +1,6 @@
 // The computer's battle unit profile and its elements' move and attack orders.
 //
-// The attack keeps its two coordinate bytes on the DS stack, where the random cell choice writes them; the near, mid
-// and far attacks take sp, the modeled SP at their entry, and run the attack on the frame below.
+// The attack keeps its two coordinate bytes in its reserve, where the random cell choice writes them.
 #include "map/btlaimov.hpp"
 #include "common/battle-field.hpp"
 #include "common/data-segment.hpp"
@@ -25,8 +24,6 @@ constexpr uint8_t NONE{ 0xff };
 constexpr uint8_t RANGED_MODE{ 1 };
 // ElementType::speed above this makes fast tanks.
 constexpr uint8_t FAST_SPEED{ 60 };
-// The attack's frame below the callers' sp.
-constexpr uint16_t ATTACK_FRAME{ 10 };
 
 // The original's counters frame: the six kind counters, then the loop index, the element cursor and, at 10, the
 // element count, which battle_ai_kind reaches for category 6.
@@ -74,7 +71,7 @@ void opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y
   opeu_battle_set_facing(ds, event, element, NONE);
 }
 
-void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target, uint16_t /*frame*/) {
+void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target) {
   if (target) {
     auto& position{ PositionOf(Data(ds), element) };
     position.target = target;
@@ -87,16 +84,16 @@ void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uin
   opeu_battle_ai_move_to(ds, event, cell.x, cell.y, element);
 }
 
-void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 0), Local(sp, ATTACK_FRAME));
+void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 0));
 }
 
-void opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 1), Local(sp, ATTACK_FRAME));
+void opeu_battle_ai_attack_mid(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 1));
 }
 
-void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
-  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 2), Local(sp, ATTACK_FRAME));
+void opeu_battle_ai_attack_far(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
+  opeu_battle_ai_attack(ds, event, element, unit, opeu_battle_ai_pick_target(ds, event, element, unit, 2));
 }
 
 uint16_t svc_btlaimov(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {

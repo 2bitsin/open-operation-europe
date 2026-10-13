@@ -16,42 +16,42 @@ namespace {
 constexpr uint8_t NO_SIDE{ 255 };
 constexpr int16_t VIEW_LAST{ 11 }; // the view shows 12 x 12 cells
 
-void EraseUnitCell(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t unit) {
+void EraseUnitCell(uint8_t* ds, HostEvent event, uint16_t unit) {
   auto const& record{ Record<Unit>(Data(ds), unit) };
-  opeu_map_erase(ds, event, Local(frame, 6), record.x, record.y);
+  opeu_map_erase(ds, event, record.x, record.y);
 }
 } // namespace
 
 // Repaints the cell in the overview, or in the tactical view when the cell lies inside it. frame: this routine's frame.
-void opeu_map_erase(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
+void opeu_map_erase(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
   auto const& data{ Data(ds) };
   auto const  view_x{ static_cast<int16_t>(data.viewport_x) };
   auto const  view_y{ static_cast<int16_t>(data.viewport_y) };
   if (data.overview_side != NO_SIDE)
-    opeu_overview_cell_draw(ds, event, Local(frame, 10), x, y);
+    opeu_overview_cell_draw(ds, event, x, y);
   else if (data.view_side != NO_SIDE && x >= view_x && x <= static_cast<int16_t>(view_x + VIEW_LAST) && y >= view_y && y <= static_cast<int16_t>(view_y + VIEW_LAST))
-    opeu_view_cell_draw(ds, event, Local(frame, 10), x, y);
+    opeu_view_cell_draw(ds, event, x, y);
 }
 
-void opeu_arrival_prepare(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t unit) {
+void opeu_arrival_prepare(uint8_t* ds, HostEvent event, uint16_t unit) {
   opeu_place_unit(ds, unit);
-  EraseUnitCell(ds, event, frame, unit);
+  EraseUnitCell(ds, event, unit);
 }
 
-void opeu_unit_remove_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t unit) {
+void opeu_unit_remove_draw(uint8_t* ds, HostEvent event, uint16_t unit) {
   opeu_remove_unit(ds, unit);
-  EraseUnitCell(ds, event, frame, unit);
+  EraseUnitCell(ds, event, unit);
 }
 
 // Switches the overview to a player's side not shown yet and repaints every cell and the rulers.
-void opeu_daily_activate(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t side) {
+void opeu_daily_activate(uint8_t* ds, HostEvent event, uint8_t side) {
   auto& data{ Data(ds) };
   if (data.side_status[side] != SIDE_PLAYED || data.overview_side == side) return;
   data.view_side     = NO_SIDE;
   data.overview_side = side;
   Call(ds, event, MapService::STATUS_MODE, 0);
   for (uint8_t y{ 0 }; y < MAP_HEIGHT; y++)
-    for (uint8_t x{ 0 }; x < MAP_WIDTH; x++) opeu_map_erase(ds, event, Local(frame, 10), x, y);
+    for (uint8_t x{ 0 }; x < MAP_WIDTH; x++) opeu_map_erase(ds, event, x, y);
   opeu_overview_frame(ds, event);
 }
 

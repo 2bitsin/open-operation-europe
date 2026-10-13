@@ -37,8 +37,6 @@ constexpr uint16_t GLYPH_BYTES{ 24 };
 constexpr uint16_t MASK_BYTES{ 8 };
 constexpr uint16_t TILE_BYTES{ 32 };  // an overview tile in the overview tile segment
 constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
-// The frame below a cell drawing that its unit drawing runs on.
-constexpr uint16_t UNIT_FRAME{ 0x20 };
 // Draw modes of the objective marker, by its side: in the Ardennes, and elsewhere.
 constexpr uint16_t BULGE_MARKER[2]{ 2, 4 };
 constexpr uint16_t MARKER[2]{ 0x702, 0x701 };
@@ -66,7 +64,7 @@ void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t offs
 } // namespace
 
 // The glyph is read into a DS buffer the far read, the recolouring and the compose service work on.
-void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t unit, uint16_t x, uint16_t y) {
+void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16_t x, uint16_t y) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ GLYPH_BYTES };
   auto const          buffer{ locals.At(0) };
@@ -96,8 +94,8 @@ void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, u
   draw(static_cast<uint16_t>(TYPE_GLYPHS + glyph * GLYPH_BYTES), static_cast<uint16_t>(TYPE_MASKS + glyph * MASK_BYTES));
 }
 
-// frame: the routine's frame; the unit drawing runs on the frame below.
-void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
+// Redraws the overview's cell (x, y) and the unit on it.
+void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const pixel{ OverviewPixel({ x, y }) };
   auto const pixel_x{ pixel.x };
@@ -117,7 +115,7 @@ void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint8
     SetStream(data, BRIDGE_GLYPH);
     Call(ds, event, MapService::BLIT_FAR, pixel_x, pixel_y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
   }
-  if (auto const unit{ opeu_find_unit_at(ds, x, y) }; unit && opeu_unit_visible(ds, unit)) opeu_overview_unit_draw(ds, event, Local(frame, UNIT_FRAME), unit, pixel_x, pixel_y);
+  if (auto const unit{ opeu_find_unit_at(ds, x, y) }; unit && opeu_unit_visible(ds, unit)) opeu_overview_unit_draw(ds, event, unit, pixel_x, pixel_y);
 }
 
 // Services of this module: the 15c4 segment's shared map services (map/blast).

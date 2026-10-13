@@ -5,13 +5,13 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void     opeu_view_info_menu(uint8_t* ds, HostEvent event, uint16_t sp);
-void     opeu_view_weapon_list(uint8_t* ds, HostEvent event, uint16_t sp, uint16_t end);
-void     opeu_view_own_weapons(uint8_t* ds, HostEvent event, uint16_t sp);
-void     opeu_view_enemy_weapons(uint8_t* ds, HostEvent event, uint16_t sp);
-void     opeu_view_arms_menu(uint8_t* ds, HostEvent event, uint16_t sp);
-void     opeu_view_victory(uint8_t* ds, HostEvent event, uint16_t sp);
-uint16_t opeu_view_menu_loop(uint8_t* ds, HostEvent event, uint16_t sp);
+void     opeu_view_info_menu(uint8_t* ds, HostEvent event);
+void     opeu_view_weapon_list(uint8_t* ds, HostEvent event, uint16_t end);
+void     opeu_view_own_weapons(uint8_t* ds, HostEvent event);
+void     opeu_view_enemy_weapons(uint8_t* ds, HostEvent event);
+void     opeu_view_arms_menu(uint8_t* ds, HostEvent event);
+void     opeu_view_victory(uint8_t* ds, HostEvent event);
+uint16_t opeu_view_menu_loop(uint8_t* ds, HostEvent event);
 
 // The services every information view calls (common/view-service.hpp), as direct calls; module names the caller in
 // the report of an unknown service.

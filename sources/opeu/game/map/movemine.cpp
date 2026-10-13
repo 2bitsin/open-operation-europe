@@ -96,9 +96,9 @@ uint16_t svc_movemine(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case MineService::UNIT_ELIGIBLE: return opeu_unit_selection_eligible(ds, arg(0));
   case MineService::UNIT_SPOTTED:  return opeu_unit_special(ds, arg(0));
   case MineService::DAILY_SHOW:    port_daily_show(ds, arg(0), arg(1), arg(2), arg(3)); return 0;
-  case MineService::CASUALTIES:    WithMapFrame([&](uint16_t frame) { opeu_unit_casualties(ds, svc_casualty, frame, arg(0), arg(1), arg(2), arg(3), arg(4), arg(5)); }); return 0;
+  case MineService::CASUALTIES:    opeu_unit_casualties(ds, svc_casualty, arg(0), arg(1), arg(2), arg(3), arg(4), arg(5)); return 0;
   case MineService::MARK_CELL:     opeu_mark_cell(ds, byte(0), byte(1), byte(2)); return 0;
-  case MineService::UNIT_ERASE:    WithMapFrame([&](uint16_t frame) { opeu_unit_remove_draw(ds, svc_maperase, frame, arg(0)); }); return 0;
+  case MineService::UNIT_ERASE:    opeu_unit_remove_draw(ds, svc_maperase, arg(0)); return 0;
   case MineService::MORALE:        return opeu_unit_average9(ds, arg(0));
   case MineService::TRAINING:      return opeu_unit_average10(ds, arg(0));
   case MineService::EXPERIENCE:    return opeu_unit_average11(ds, arg(0));

@@ -38,10 +38,13 @@ auto opeu_tbl_save_accept() -> std::uint8_t {
   return 1;
 }
 
-// Draws the saved-game table: slot number, scenario, difficulty, date and players. `scratch` is a DS area of
-// SCRATCH_SIZE bytes: the column layout's three bytes, then the text buffer.
-void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint16_t scratch, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
+// Draws the saved-game table: slot number, scenario, difficulty, date and players. Its reserve holds the column
+// layout's three bytes, then the text buffer.
+void opeu_tbl_draw_saves(std::uint8_t* ds, HostEvent event, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
+  ServiceLocals const locals{ SCRATCH_SIZE };
+  locals.Clear(ds);
   auto&              data{ Data(ds) };
+  auto const         scratch{ locals.At(0) };
   auto const         buffer{ static_cast<std::uint16_t>(scratch + BUFFER_OFFSET) };
   auto const&        window{ Record<ListWindow>(data, data.list_window) };
   std::uint8_t const row_width{ ds[window.widths] };
@@ -103,10 +106,8 @@ auto svc_tblsave(std::uint8_t* ds, std::uint16_t kind, std::uint16_t const* args
 }
 
 auto port_routine_opeu_tbl_draw_saves(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const scratch{ b1_stack_alloc(SCRATCH_SIZE) };
-  opeu_tbl_draw_saves(ds, svc_tblsave, scratch, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
+  opeu_tbl_draw_saves(ds, svc_tblsave, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
                       static_cast<std::uint8_t>(Arg(args, count, 3)), static_cast<std::uint8_t>(Arg(args, count, 4)));
-  port_scratch_leave(SCRATCH_SIZE);
   return 0;
 }
 

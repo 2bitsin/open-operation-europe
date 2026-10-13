@@ -23,15 +23,15 @@ void opeu_control_position(uint8_t* ds, uint16_t x, uint16_t y) {
 }
 
 // Scrolls so that the block holding (x, y) is one block inside the view. frame: this routine's frame.
-void opeu_map_center(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side) {
-  opeu_map_scroll_to(ds, event, Local(frame, 4), static_cast<int16_t>((x & BLOCK_MASK) - BLOCK), static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
+void opeu_map_center(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
+  opeu_map_scroll_to(ds, event, static_cast<int16_t>((x & BLOCK_MASK) - BLOCK), static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
 }
 
-void opeu_arrival_location(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side) {
+void opeu_arrival_location(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
   if (!Data(ds).map_mode[0])
-    opeu_daily_activate(ds, event, Local(frame, 12), side);
+    opeu_daily_activate(ds, event, side);
   else
-    opeu_map_center(ds, event, Local(frame, 12), x, y, side);
+    opeu_map_center(ds, event, x, y, side);
 }
 
 // This module raises nothing itself; the routines it runs use the map segment's shared services.

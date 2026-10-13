@@ -95,7 +95,6 @@ constexpr std::uint16_t DROP_LEAD{ 0x20 }; // rows above the target where the lo
 constexpr std::uint16_t CARGO_PICTURE{ 0x103 };
 constexpr std::uint16_t CARGO_PRESENTER{ 0x1042 }; // opeu_cargo_drop_present, in the code segment below
 constexpr std::uint16_t CARGO_SEGMENT{ 0x0f43 };
-constexpr std::uint16_t EVENT_DEPTH{ 6 }; // opeu_cargo_drop_event's frame below opeu_air_operations' entry SP
 
 // opeu_cargo_drop_event's locals that services fill, as offsets in its reserve: the report, the unit's name and the
 // unit's capacities.
@@ -176,7 +175,7 @@ void opeu_cargo_drop_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // The airlift flies (see the file comment).
-void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/) {
+void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ DROP_LOCALS };
   auto&               data{ Data(ds) };
   auto const          side{ data.air_side };
@@ -247,7 +246,7 @@ void opeu_cargo_drop_event(uint8_t ds[65536], HostEvent event, uint16_t /*frame*
 
 // The hourly air operations of both sides: each side's strike, airborne drop and airlift that are due fly; a flown
 // drop or airlift clears the side's ready flag for it.
-void opeu_air_operations(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_air_operations(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (data.air_side = 0; data.air_side < 2; ++data.air_side) {
     if (Call(ds, event, STRIKE_DUE)) Call(ds, event, STRIKE_EVENT);
@@ -256,7 +255,7 @@ void opeu_air_operations(uint8_t ds[65536], HostEvent event, uint16_t sp) {
       data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_DROP_READY));
     }
     if (opeu_cargo_drop_due(ds, event)) {
-      opeu_cargo_drop_event(ds, event, static_cast<std::uint16_t>(sp - EVENT_DEPTH));
+      opeu_cargo_drop_event(ds, event);
       data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_CARGO_READY));
     }
   }
@@ -267,37 +266,27 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
   switch (id) {
   case AIR_REPORT: {
-    auto const frame{ c2_air_bp_enter() };
-    result = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 0), byte(1));
-    c2_air_leave();
+    result = opeu_air_report(ds, svc_airshow, Arg(args, count, 0), byte(1));
     break;
   }
   case DAMAGE_ROLL:       result = opeu_air_damage_roll(ds, svc_airstrk, byte(0), byte(1), byte(2)); break;
   case DESTROYED_MESSAGE: {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_air_destroyed_message(ds, svc_airstrk, frame, Arg(args, count, 0));
-    c2_air_leave();
+    opeu_air_destroyed_message(ds, svc_airstrk, Arg(args, count, 0));
     break;
   }
   case SPRITE_DRAW: {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1), byte(2));
-    c2_air_leave();
+    opeu_air_sprite_draw(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), byte(2));
     break;
   }
   case SPRITE_RESTORE: opeu_air_sprite_restore(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
   case STRIKE_DUE:     result = opeu_air_strike_due(ds, svc_airstrk); break;
   case STRIKE_EVENT:   {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_air_strike_event(ds, svc_airstrk, frame);
-    c2_air_leave();
+    opeu_air_strike_event(ds, svc_airstrk);
     break;
   }
   case PARA_DUE:   result = opeu_para_drop_due(ds, svc_paradrop); break;
   case PARA_EVENT: {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_para_drop_event(ds, svc_paradrop, 0, frame);
-    c2_air_leave();
+    opeu_para_drop_event(ds, svc_paradrop, 0);
     break;
   }
   case SIDE_RECORD:     result = opeu_find_side_record(ds, byte(0), byte(1)); break;
@@ -308,9 +297,7 @@ uint16_t svc_aircargo(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case SOUND_CUE:       opeu_sound_cue4(ds, svc_soundcue); break;
   case REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
   case MAP_CENTER:      {
-    auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));
-    port_frame_leave();
+    opeu_map_center(ds, svc_mappos, byte(0), byte(1), byte(2));
     break;
   }
   case VIEW_PIXEL:     opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;

@@ -62,7 +62,7 @@ constexpr std::uint16_t CASUALTY_FORMAT{ offsetof(DataSegment, general_casualty_
 constexpr std::uint16_t MESSAGE_BYTES{ 0x88 };
 } // namespace
 
-void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t person) {
+void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t person) {
   auto&               data{ Data(ds) };
   auto&               general{ Record<Person>(data, person) };
   ServiceLocals const message{ MESSAGE_BYTES };

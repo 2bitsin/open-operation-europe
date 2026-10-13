@@ -32,7 +32,7 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 
 } // namespace
 
-void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side) {
+void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint8_t side) {
   ServiceLocals const locals{ 0x32 };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0) };
@@ -43,15 +43,15 @@ void opeu_mission_recon_objective(uint8_t ds[65536], HostEvent event, uint16_t f
   opeu_string_append(ds, text, target);
   auto const roll{ Call(ds, event, MISSION_RANDOM, 100) };
   if (opeu_officer_rating(ds, side, OFFICER) <= roll) {
-    opeu_mission_report_failure(ds, event, frame, side, text);
+    opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(ds, event, frame, side, text, city.x, city.y);
+  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(ds, event, side, text, city.x, city.y);
   city.flags |= Bits(ObjectiveFlag::MARKED);
   opeu_officer_gain(ds, side, OFFICER);
 }
 
-void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint16_t frame, uint8_t side) {
+void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint8_t side) {
   ServiceLocals const locals{ 0x50 };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0x1e) };
@@ -61,10 +61,10 @@ void opeu_mission_recon_unit(uint8_t ds[65536], HostEvent event, uint16_t frame,
   opeu_string_copy(ds, text, At(offsetof(DataSegment, recon_unit_text)));
   opeu_string_append(ds, text, Call(ds, event, MISSION_UNIT_NAME, target, name));
   if (opeu_officer_rating(ds, side, OFFICER) <= Call(ds, event, MISSION_RANDOM, 100)) {
-    opeu_mission_report_failure(ds, event, frame, side, text);
+    opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(ds, event, frame, side, text, unit.x, unit.y);
+  if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(ds, event, side, text, unit.x, unit.y);
   for (auto& element : Elements(data, unit)) element.flags |= Bits(ElementFlag::SPOTTED);
   // The views redraw.
   data.view_side = data.overview_side  = 0xff;
@@ -77,15 +77,11 @@ uint16_t svc_msnrecon(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_mission_recon_objective(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  uint16_t frame = port_frame_enter();
-  opeu_mission_recon_objective(ds, svc_msnrecon, frame, (uint8_t)Arg(args, count, 0));
-  port_frame_leave();
+  opeu_mission_recon_objective(ds, svc_msnrecon, (uint8_t)Arg(args, count, 0));
   return 0;
 }
 
 auto port_routine_opeu_mission_recon_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  uint16_t frame = port_frame_enter();
-  opeu_mission_recon_unit(ds, svc_msnrecon, frame, (uint8_t)Arg(args, count, 0));
-  port_frame_leave();
+  opeu_mission_recon_unit(ds, svc_msnrecon, (uint8_t)Arg(args, count, 0));
   return 0;
 }

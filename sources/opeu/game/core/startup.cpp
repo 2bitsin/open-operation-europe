@@ -31,10 +31,6 @@ enum class StartupService : uint16_t {
   FINISH      = 4, // finish the sides' initialisation (value)
 };
 
-// The DS stack the services reserve for the routines they call.
-constexpr uint16_t NEW_GAME_FRAME{ 0x900 };
-constexpr uint16_t PREPARE_FRAME{ 0x200 };
-
 // The staff roles of a computer side's three ablest generals, best first; the next four lead the divisions.
 constexpr StaffRole STAFF_ROLES[]{ StaffRole::ARMY_COMMANDER, StaffRole::OPERATIONS_CHIEF, StaffRole::INTELLIGENCE_CHIEF };
 
@@ -124,8 +120,8 @@ void opeu_app_startup_service(uint8_t ds[65536], HostEvent event) {
 uint16_t svc_startup(uint8_t* ds, uint16_t service, const uint16_t* args, uint16_t count) {
   switch (static_cast<StartupService>(service)) {
   case StartupService::CLOCK_TICKS: return port_clock_ticks_low();
-  case StartupService::PREPARE:     WithStack(PREPARE_FRAME, [&](uint16_t sp) { opeu_app_prepare(ds, svc_segsetup, sp); }); break;
-  case StartupService::NEW_GAME:    return WithStack(NEW_GAME_FRAME, [&](uint16_t sp) { return static_cast<uint16_t>(opeu_new_game_setup(ds, svc_scensel, sp)); });
+  case StartupService::PREPARE:     opeu_app_prepare(ds, svc_segsetup); break;
+  case StartupService::NEW_GAME:    return static_cast<uint16_t>(opeu_new_game_setup(ds, svc_scensel));
   case StartupService::VGA_CLEAR:   opeu_vga_clear(); break;
   case StartupService::FINISH:      opeu_finish_side_initialization(ds, svc_sound, static_cast<uint8_t>(Arg(args, count, 0))); break;
   default:                          port_unhandled("startup", service, count);

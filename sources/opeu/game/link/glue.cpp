@@ -1,5 +1,5 @@
-// Platform glue of the game's services (declarations and rationale: glue/include/glue.hpp): stack bookkeeping,
-// argument word placement, driver register blocks and file loading. No game logic.
+// Platform glue of the game's services (declarations and rationale: glue/include/glue.hpp): the random state, argument
+// word placement, driver register blocks and file loading. No game logic.
 #include "glue.hpp"
 
 #include <cstdlib>
@@ -18,76 +18,10 @@
 #include "map/cellpred.hpp"
 #include "services.hpp"
 
-/* ---- modeled DGROUP stack ------------------------------------------------ */
-
 namespace {
 using opeu::game::Data;
 using opeu::game::Near;
-
-// Stack reserves of the module families: the deepest buffers a routine keeps on the modeled stack plus the frames of
-// the routines it calls.
-constexpr std::uint16_t AIR_FRAME{ 0x200 };      // air modules: objective_damage's buffers and its callees
-constexpr std::uint16_t BATTLE_RESERVE{ 0x200 }; // battle: deepest buffers and nested frames stay below 0x180
-constexpr std::uint16_t MAP_FRAME{ 0x300 };      // map: scroll_to -> scroll -> cell_draw -> unit_draw, about 0x150
-constexpr std::uint16_t CLOSING_BUFFER{ 100 };   // briefings: the closing-text buffer
 } // namespace
-
-uint16_t b1_stack_alloc(uint16_t n) {
-  return (uint16_t)(port_stack_enter(n) - n);
-}
-
-uint16_t port_scratch_enter(uint16_t bytes) {
-  port_stack_enter(bytes);
-  return (uint16_t)(port_sp + 4u);
-}
-
-void port_scratch_leave(uint16_t n) {
-  port_stack_leave(n);
-}
-
-uint16_t b1_frame_enter(void) {
-  return (uint16_t)(port_stack_enter(PORT_FRAME) - 2);
-}
-
-uint16_t port_frame_enter(void) {
-  return (uint16_t)(port_stack_enter(PORT_FRAME) - 2u);
-}
-
-void port_frame_leave(void) {
-  port_stack_leave(PORT_FRAME);
-}
-
-uint16_t b1_sp_enter(void) {
-  return port_stack_enter(PORT_FRAME);
-}
-
-uint16_t c2_air_sp_enter(void) {
-  return port_stack_enter(AIR_FRAME);
-}
-
-uint16_t c2_air_bp_enter(void) {
-  return (uint16_t)(port_stack_enter(AIR_FRAME) - 2u);
-}
-
-void c2_air_leave(void) {
-  port_stack_leave(AIR_FRAME);
-}
-
-uint16_t btl_sp_enter(void) {
-  return port_stack_enter(BATTLE_RESERVE);
-}
-
-void btl_sp_leave(void) {
-  port_stack_leave(BATTLE_RESERVE);
-}
-
-uint16_t map_frame_enter(void) {
-  return (uint16_t)(port_stack_enter(MAP_FRAME) - 2u);
-}
-
-void map_frame_leave(void) {
-  port_stack_leave(MAP_FRAME);
-}
 
 /* ---- C runtime random state ------------------------------------------------ *
  * rand_bounded: the generator keeps its state in a global; the saved game
@@ -132,15 +66,6 @@ PortCellPredicate c2_cell_predicate(uint16_t off, uint16_t seg) {
 /* Daily presentation: daily_show(id, side, far presenter). The presenter is a (offset, segment) pair; DIALOGS calls it back through its present service, i.e. by routine identifier. */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg) {
   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
-}
-
-/* The briefings (core/scenbrf) keep their 100-byte closing-text buffer on
- * the modeled stack; it is reserved here and its DS offset passed in. */
-uint32_t port_run_briefing(uint8_t* ds, PortBriefing briefing) {
-  uint16_t closing = b1_stack_alloc(CLOSING_BUFFER);
-  briefing(ds, svc_scenbrf, closing);
-  port_scratch_leave(CLOSING_BUFFER);
-  return 0;
 }
 
 uint16_t btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) {

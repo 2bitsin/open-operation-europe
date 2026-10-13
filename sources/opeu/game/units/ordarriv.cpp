@@ -22,7 +22,7 @@ constexpr std::uint16_t RESUME_DRAW{ 15 };
 } // namespace
 
 // The move order: at the destination, the regiment reports its arrival and its saved order resumes.
-uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event) {
   auto&             data{ Data(ds) };
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
@@ -35,7 +35,7 @@ uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) 
 }
 
 // The pursue order: finished beside a valid target regiment; a lost target restores the saved order.
-uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
   auto const        y{ destination.YAt() };
@@ -53,7 +53,7 @@ uint8_t opeu_order_hold_delay(uint8_t ds[65536], HostEvent event) {
 
 // The rest order: hold at the destination. Once the hold runs out and an order is saved, the first element whose
 // experience is below a draw of 0..14 resumes that order.
-uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event) {
   auto&             data{ Data(ds) };
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
@@ -92,17 +92,17 @@ uint16_t svc_ordarriv(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 auto port_routine_opeu_order_arrive(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_order_arrive(ds, svc_ordarriv, sp); });
+  return opeu_order_arrive(ds, svc_ordarriv);
 }
 
 auto port_routine_opeu_order_hold(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_order_hold(ds, svc_ordarriv, sp); });
+  return opeu_order_hold(ds, svc_ordarriv);
 }
 
 auto port_routine_opeu_order_reach_unit(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_order_reach_unit(ds, svc_ordarriv, sp); });
+  return opeu_order_reach_unit(ds, svc_ordarriv);
 }

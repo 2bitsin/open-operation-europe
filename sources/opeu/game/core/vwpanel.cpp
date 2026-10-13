@@ -51,7 +51,7 @@ void Print(std::uint8_t* ds, HostEvent event, std::uint16_t format, Words... wor
 } // namespace
 
 // The objective's name, supplies with their percentages, endurance and the stocks of its garrison.
-void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t objective) {
+void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t objective) {
   ServiceLocals const locals{ 0xa }; // the supply percentages the service writes
   auto&               data{ Data(ds) };
   auto const&         city{ Record<Objective>(data, objective) };
@@ -81,7 +81,7 @@ void opeu_objective_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, u
 
 // The regiment's name, its order and target (or "waiting" and its own place), supplies with their percentages, the
 // fatigue of its first battalion and its battalions.
-void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t unit) {
+void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t unit) {
   ServiceLocals const locals{ 0x28 }; // the supply percentages, the destination cell and two names services write
   auto&               data{ Data(ds) };
   auto const&         regiment{ Record<Unit>(data, unit) };

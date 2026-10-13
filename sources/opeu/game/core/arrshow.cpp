@@ -37,7 +37,7 @@ constexpr std::uint16_t SECOND_SIDE_TOKEN{ 53 };
 } // namespace
 
 // The arriving unit's name goes into a 32-byte buffer of the routine's reserve for the format service.
-void opeu_arrival_present(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+void opeu_arrival_present(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x20 };
   auto&               data{ Data(ds) };
   Call(ds, event, REQUEST_WAIT);
@@ -65,12 +65,8 @@ uint16_t svc_arrshow(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_arrival_present(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  uint16_t sp;
   (void)args;
   (void)count;
-  // scratch is the 32-byte name buffer below the frame pointer.
-  sp = port_stack_enter(PORT_FRAME);
-  opeu_arrival_present(ds, svc_arrshow, (uint16_t)(sp - 2 - 0x20));
-  port_stack_leave(PORT_FRAME);
+  opeu_arrival_present(ds, svc_arrshow);
   return 0;
 }

@@ -32,11 +32,11 @@ constexpr int16_t ORIGIN_MAX{ 32 };
 }
 
 // Clears a cell off the map or draws one on it. frame: the drawing routine's frame.
-void PaintCell(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, int16_t y) {
+void PaintCell(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
   if (OffMap(x, y))
     opeu_view_cell_clear(ds, event, x, y);
   else
-    opeu_view_cell_draw(ds, event, frame, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+    opeu_view_cell_draw(ds, event, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
 }
 } // namespace
 
@@ -49,17 +49,17 @@ void opeu_view_cell_clear(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
 }
 
 // frame: this routine's frame.
-void opeu_view_redraw(uint8_t* ds, HostEvent event, uint16_t frame) {
+void opeu_view_redraw(uint8_t* ds, HostEvent event) {
   auto const& data{ Data(ds) };
   auto const  end_x{ static_cast<int16_t>(ViewX(data) + 12) };
   auto const  end_y{ static_cast<int16_t>(ViewY(data) + 12) };
   for (int16_t y{ ViewY(data) }; end_y > y; y++)
-    for (int16_t x{ ViewX(data) }; x < end_x; x++) PaintCell(ds, event, Local(frame, 14), x, y);
+    for (int16_t x{ ViewX(data) }; x < end_x; x++) PaintCell(ds, event, x, y);
 }
 
 // Moves the view origin to (x, y), at most one cell on each axis. The cells still on screen move with the screen
 // shift, walking from the side that is exposed; the exposed column and row are repainted.
-void opeu_view_scroll(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, int16_t y) {
+void opeu_view_scroll(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
   auto& data{ Data(ds) };
   if (x == ViewX(data) && y == ViewY(data)) return;
   auto step_x{ static_cast<int16_t>(x - ViewX(data)) };
@@ -88,7 +88,7 @@ void opeu_view_scroll(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, i
   for (int16_t cell_y{ first_y };; cell_y += step_y) {
     for (int16_t cell_x{ first_x };; cell_x += step_x) {
       if (cell_x == exposed_x || cell_y == exposed_y) {
-        PaintCell(ds, event, Local(frame, 0x22), cell_x, cell_y);
+        PaintCell(ds, event, cell_x, cell_y);
       } else {
         auto const pixel_x{ static_cast<uint16_t>(static_cast<uint16_t>(cell_x - data.viewport_x) * 3u + 4u) };
         auto const pixel_y{ static_cast<uint16_t>(static_cast<uint16_t>(cell_y - data.viewport_y) * 24u + 84u) };
@@ -101,7 +101,7 @@ void opeu_view_scroll(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, i
 }
 
 // Steps the view origin to (x, y) one cell at a time along a Bresenham line.
-void opeu_view_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, int16_t y) {
+void opeu_view_scroll_to(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
   auto const& data{ Data(ds) };
   auto const  delta_x{ static_cast<int16_t>(x - ViewX(data)) };
   auto const  delta_y{ static_cast<int16_t>(y - ViewY(data)) };
@@ -109,12 +109,11 @@ void opeu_view_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x
   auto const  sign_y{ static_cast<int16_t>(delta_y < 0 ? -1 : 1) };
   auto const  span_x{ static_cast<int16_t>(opeu_abs16_bits(static_cast<uint16_t>(delta_x))) };
   auto const  span_y{ static_cast<int16_t>(opeu_abs16_bits(static_cast<uint16_t>(delta_y))) };
-  auto const  callee{ Local(frame, 0x1c) };
   if (span_y < span_x) {
     auto error{ static_cast<int16_t>(span_x / 2) };
     auto other{ ViewY(data) };
     for (int16_t along{ ViewX(data) };; along += sign_x) {
-      opeu_view_scroll(ds, event, callee, along, other);
+      opeu_view_scroll(ds, event, along, other);
       if ((error -= span_y) < 0) {
         error += span_x;
         other += sign_y;
@@ -125,7 +124,7 @@ void opeu_view_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x
     auto error{ static_cast<int16_t>(span_y / 2) };
     auto other{ ViewX(data) };
     for (int16_t along{ ViewY(data) };; along += sign_y) {
-      opeu_view_scroll(ds, event, callee, other, along);
+      opeu_view_scroll(ds, event, other, along);
       if ((error -= span_x) < 0) {
         error += span_y;
         other += sign_x;
@@ -137,7 +136,7 @@ void opeu_view_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x
 
 // For a side in play and an origin within -4..32: switches the tactical view to that side (repainting it all) or
 // scrolls it to the origin, then draws the rulers.
-void opeu_map_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x, int16_t y, uint8_t side) {
+void opeu_map_scroll_to(uint8_t* ds, HostEvent event, int16_t x, int16_t y, uint8_t side) {
   auto& data{ Data(ds) };
   if (data.side_status[side] == 0 || x < ORIGIN_MIN || x > ORIGIN_MAX || y < ORIGIN_MIN || y > ORIGIN_MAX) return;
   data.overview_side = NO_SIDE;
@@ -146,9 +145,9 @@ void opeu_map_scroll_to(uint8_t* ds, HostEvent event, uint16_t frame, int16_t x,
     data.view_side  = side;
     data.viewport_x = static_cast<uint16_t>(x);
     data.viewport_y = static_cast<uint16_t>(y);
-    opeu_view_redraw(ds, event, Local(frame, 12));
+    opeu_view_redraw(ds, event);
   } else if (ViewX(data) != x || ViewY(data) != y) {
-    opeu_view_scroll_to(ds, event, Local(frame, 12), x, y);
+    opeu_view_scroll_to(ds, event, x, y);
   }
   opeu_view_frame(ds, event, x, y);
 }

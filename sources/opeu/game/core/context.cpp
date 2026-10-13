@@ -46,7 +46,6 @@ constexpr std::uint16_t BLANK_FORMAT{ offsetof(DataSegment, context_blank_format
 constexpr std::uint8_t  MAX_NAME{ 13 };
 constexpr std::uint16_t HEALTH_RED{ 50 };    // the text color of a poor health rating
 constexpr std::uint16_t HEALTH_NORMAL{ 54 }; // and of any other
-constexpr std::uint16_t ARMY_WORKSPACE{ 82 };
 } // namespace
 
 // Shows the side's general in the panel unless it already shows that side (or the current side's status hides it)
@@ -89,9 +88,7 @@ uint16_t svc_context(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case PORTRAIT: opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case POSITION: opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case FINISH:   {
-    auto const workspace{ b1_stack_alloc(ARMY_WORKSPACE) };
-    opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(workspace + 2));
-    port_scratch_leave(ARMY_WORKSPACE);
+    opeu_army_summary(ds, svc_armysum);
     break;
   }
   case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;

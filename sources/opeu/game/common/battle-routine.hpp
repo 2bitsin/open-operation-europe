@@ -192,26 +192,8 @@ enum class BattleRoutine : std::uint32_t {
   BATTLE_HEX_MASKS           = 0x352d0,
 };
 
-// Runs body(sp) with the battle modules' reserve taken on the DS stack (sp is the entry SP) and returns its result.
-template <typename Body>
-inline auto WithBattleStack(Body&& body) -> decltype(body(std::uint16_t{})) {
-  struct Reserve {
-    std::uint16_t sp{ btl_sp_enter() };
-    ~Reserve() {
-      btl_sp_leave();
-    }
-  } const reserve;
-  return body(reserve.sp);
-}
-
-// The frame pointer of a battle routine entered with stack pointer sp: its locals lie below it.
-[[nodiscard]] constexpr auto BattleFrame(std::uint16_t sp) noexcept -> std::uint16_t {
-  return static_cast<std::uint16_t>(sp - 2);
-}
 } // namespace opeu::game::detail::battle_routine
 
 namespace opeu::game {
-using detail::battle_routine::BattleFrame;
 using detail::battle_routine::BattleRoutine;
-using detail::battle_routine::WithBattleStack;
 } // namespace opeu::game

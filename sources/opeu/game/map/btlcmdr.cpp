@@ -18,7 +18,6 @@ using namespace opeu::game;
 namespace {
 constexpr uint8_t  LAST_COLUMN{ 39 };
 constexpr uint16_t NAME_BYTES{ 0x0c }; // the panel's DS reserve for the 10-byte name buffer the services write
-constexpr uint16_t CALLER_FRAME{ 10 }; // the panel's frame below its callers' frames
 constexpr uint8_t  NAME_COLOR[2]{ 6, 5 };
 constexpr uint8_t  TEXT_WHITE{ 7 };
 
@@ -81,7 +80,7 @@ void opeu_battle_name_clear_right(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_right_mark));
 }
 
-void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh, uint16_t /*frame*/) {
+void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ NAME_BYTES };
   auto const          name{ locals.At(0) };
@@ -128,14 +127,14 @@ void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, u
   data.battle_panel_shown[side] = 1;
 }
 
-// frame: the caller's frame; the panel runs on the frame below it.
-void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame) {
-  opeu_battle_commander_panel(ds, event, side, 1, Local(frame, CALLER_FRAME));
+// Shows the side's commander panel with the wait text and its value.
+void opeu_battle_commander_wait(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value) {
+  opeu_battle_commander_panel(ds, event, side, 1);
   Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(Data(ds), Data(ds).battle_wait_format), text, value + '0');
 }
 
-void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value, uint16_t frame) {
-  opeu_battle_commander_panel(ds, event, side, 0, Local(frame, CALLER_FRAME));
+void opeu_battle_commander_message(uint8_t* ds, BattleEvent event, uint16_t text, uint8_t side, uint8_t value) {
+  opeu_battle_commander_panel(ds, event, side, 0);
   Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(Data(ds), Data(ds).battle_prompt_format), text, value + '0');
 }
 
@@ -195,19 +194,17 @@ uint16_t svc_btlcmdr(uint8_t* ds, uint32_t service, const uint16_t* args, unsign
 }
 
 auto port_routine_opeu_battle_commander_message(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack(
-      [&](uint16_t sp) { opeu_battle_commander_message(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp)); });
+  opeu_battle_commander_message(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return 0;
 }
 
 auto port_routine_opeu_battle_commander_panel(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_commander_panel(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1), BattleFrame(sp)); });
+  opeu_battle_commander_panel(ds, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1));
   return 0;
 }
 
 auto port_routine_opeu_battle_commander_wait(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack(
-      [&](uint16_t sp) { opeu_battle_commander_wait(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp)); });
+  opeu_battle_commander_wait(ds, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return 0;
 }
 

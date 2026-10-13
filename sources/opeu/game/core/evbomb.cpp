@@ -88,10 +88,6 @@ constexpr std::uint16_t REPORT_AT{ 0x00 }; // 92 bytes
 constexpr std::uint16_t INTRO_AT{ 0x5c };  // 90 bytes
 constexpr std::uint16_t NAME_AT{ 0xb6 };   // 24 bytes
 constexpr std::uint16_t EVENT_LOCALS{ 0xce };
-// The frame pointer opeu_bomb_animate runs with, below opeu_bomb_event's.
-constexpr std::uint16_t ANIMATION_FRAME{ 0xd4 };
-
-constexpr std::uint16_t BOMB_RESERVE{ 0x140 };
 
 auto SetStream(DataSegment& data, std::uint16_t segment, std::uint16_t offset) -> void {
   data.stream = { offset, segment };
@@ -117,7 +113,7 @@ void opeu_bomb_restore_frame(uint8_t ds[65536], HostEvent event, uint16_t load, 
 }
 
 // Centres the map on the regiment and drops the bomb from the top of the screen onto it.
-void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t /*bp*/, uint16_t unit, uint8_t side) {
+void opeu_bomb_animate(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t unit, uint8_t side) {
   auto&       data{ Data(ds) };
   auto const& target{ Record<Unit>(data, unit) };
   auto const  ux{ static_cast<std::uint16_t>(target.x) };
@@ -140,7 +136,7 @@ void opeu_bomb_present(uint8_t ds[65536], HostEvent event, uint16_t) {
   Call(ds, event, PENDING_FINISH, 3);
 }
 
-void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t bp) {
+void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load) {
   auto& data{ Data(ds) };
   if (CurrentScenario(data) != RAID_SCENARIO) return;
   if (data.month < RAID_MONTH || (data.month == RAID_MONTH && data.day < RAID_DAY)) return;
@@ -171,7 +167,7 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load, uint16_t
         auto const person{ opeu_find_side_record(ds, voice, AIR_KIND) };
         Call(ds, event, MESSAGE, intro, person);
         Call(ds, event, DAILY_SHOW, RAID_PICTURE, 0, RAID_PRESENTER, load + RAID_SEGMENT);
-        opeu_bomb_animate(ds, event, load, Local(bp, ANIMATION_FRAME), troop, voice);
+        opeu_bomb_animate(ds, event, load, troop, voice);
         Call(ds, event, MESSAGE, report, person);
       }
       Call(ds, event, CASUALTIES, troop, 15, 30, 10, 0, 1);
@@ -189,9 +185,7 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case SPRITE_COMPOSE: opeu_sprite_compose(word(0), word(1), word(2), word(3), port_far(word(5), word(4)), port_far(word(7), word(6)), port_far(word(9), word(8)), word(10)); break;
   case BITMAP_RESTORE: result = static_cast<uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6)))); break;
   case MAP_CENTER:     {
-    auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
-    port_frame_leave();
+    opeu_map_center(ds, svc_mappos, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
     break;
   }
   case VIEW_PIXEL:     opeu_view_pixel(ds, word(0), word(1)); break;
@@ -205,9 +199,7 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), word(0), word(1)); break;
   case DAILY_SHOW:     port_daily_show(ds, word(0), word(1), word(2), word(3)); break;
   case CASUALTIES:     {
-    auto const frame{ port_frame_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, word(0), word(1), word(2), word(3), word(4), word(5));
-    port_frame_leave();
+    opeu_unit_casualties(ds, svc_casualty, word(0), word(1), word(2), word(3), word(4), word(5));
     break;
   }
   default: port_unhandled("evbomb", id, count);
@@ -216,9 +208,7 @@ uint16_t svc_evbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 }
 
 auto port_routine_opeu_bomb_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  auto const sp{ port_stack_enter(BOMB_RESERVE) };
-  opeu_bomb_event(ds, svc_evbomb, 0, static_cast<std::uint16_t>(sp - 2));
-  port_stack_leave(BOMB_RESERVE);
+  opeu_bomb_event(ds, svc_evbomb, 0);
   return 0;
 }
 

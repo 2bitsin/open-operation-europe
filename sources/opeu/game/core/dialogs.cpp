@@ -494,7 +494,7 @@ void opeu_element_panel(uint8_t ds[65536], const DialogHost* host, uint16_t item
 }
 
 uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0, f;
+  uint16_t r = 0;
   switch (id) {
   case BITMAP_RESTORE:
     r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
@@ -534,31 +534,19 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case REQUEST_TEXT:       r = opeu_message_lookup(ds, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
   case UNIT_NAME:          r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ARRIVAL_LOCATION:
-    f = b1_frame_enter();
-    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_frame_leave();
-    break;
-  case GROUP_INDEX:       r = opeu_unit_group_index(Arg(args, count, 0)); break;
-  case FIND_GROUP_RECORD: r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case ARRIVAL_VIEW:
-    f = b1_frame_enter();
-    opeu_arrival_view(ds, svc_mapunit, f, Arg(args, count, 0));
-    port_frame_leave();
-    break;
+  case ARRIVAL_LOCATION:   opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case GROUP_INDEX:        r = opeu_unit_group_index(Arg(args, count, 0)); break;
+  case FIND_GROUP_RECORD:  r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case ARRIVAL_VIEW:       opeu_arrival_view(ds, svc_mapunit, Arg(args, count, 0)); break;
   case OBJECTIVE_SIDE:     r = opeu_objective_side(ds, Arg(args, count, 0)); break;
   case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(ds, Arg(args, count, 0)); break;
   case FIND_SIDE_RECORD:   r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case ARRIVAL_FLASH:
-    f = b1_frame_enter();
-    opeu_side_cell_flash(ds, svc_mapunit, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_frame_leave();
-    break;
-  case OPPOSITE_SIDE:  r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:   r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case TYPE_NAME_TEXT: r = opeu_type_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case PRESENT:        r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:             port_unhandled("dialogs", id, count);
+  case ARRIVAL_FLASH:      opeu_side_cell_flash(ds, svc_mapunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case OPPOSITE_SIDE:      r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
+  case UNIT_SPECIAL:       r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case TYPE_NAME_TEXT:     r = opeu_type_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case PRESENT:            r = (uint16_t)port_call(ds, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
+  default:                 port_unhandled("dialogs", id, count);
   }
   return r;
 }

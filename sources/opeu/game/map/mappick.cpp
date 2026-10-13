@@ -82,7 +82,7 @@ constexpr uint8_t STEP_UP{ 6 };
 } // namespace
 
 // x and y: DS offsets of the cell bytes.
-uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t x, uint16_t y) {
+uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ MOUSE_RESERVE };
   auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
@@ -241,12 +241,12 @@ uint16_t svc_mappick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
   switch (static_cast<PickService>(id)) {
-  case PickService::ARRIVAL_LOCATION: WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, byte(0), byte(1), byte(2)); }); return 0;
+  case PickService::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, byte(0), byte(1), byte(2)); return 0;
   case PickService::INPUT_RESET:      opeu_input_reset(ds, svc_mouse); return 0;
   case PickService::BITMAP_SAVE:      opeu_bitmap_save(arg(0), arg(1), arg(2), arg(3), port_far(arg(4), arg(5))); return 0;
-  case PickService::MAP_ERASE:        WithMapFrame([&](uint16_t frame) { opeu_map_erase(ds, svc_maperase, frame, byte(0), byte(1)); }); return 0;
+  case PickService::MAP_ERASE:        opeu_map_erase(ds, svc_maperase, byte(0), byte(1)); return 0;
   case PickService::INSPECT:          opeu_map_inspect(ds, svc_inspect, byte(0), byte(1)); return 0;
-  case PickService::CURSOR:           WithMapFrame([&](uint16_t frame) { opeu_map_cursor(ds, svc_cursor, frame, arg(0), arg(1)); }); return 0;
+  case PickService::CURSOR:           opeu_map_cursor(ds, svc_cursor, arg(0), arg(1)); return 0;
   case PickService::MOUSE_SHOW:       opeu_mouse_show(ds, svc_mouse); return 0;
   case PickService::MOUSE_BUTTONS:    return opeu_mouse_buttons(ds, svc_mouse);
   case PickService::MOUSE_POSITION:   opeu_mouse_position(ds, svc_mouse, arg(0), arg(1)); return 0;

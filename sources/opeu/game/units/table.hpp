@@ -1,5 +1,5 @@
 // What the regiment, element, type, supply and strength tables (units/tbl*) share: the heading, the printed part of a
-// row, and running a row-draw callback as a linked routine with its frame buffers on the DS stack.
+// row, and running a row-draw callback as a linked routine.
 #pragma once
 
 #include "common/data-segment.hpp"
@@ -56,7 +56,7 @@ inline auto StartRowName(std::uint8_t* ds, HostEvent event, ListWindow const& wi
 template <typename Draw>
 inline auto RunUnitTable(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { draw(ds, event, static_cast<std::uint16_t>(sp - TABLE_SCRATCH), byte(0), byte(1), byte(2), byte(3), byte(4)); });
+  draw(ds, event, byte(0), byte(1), byte(2), byte(3), byte(4));
   return 0;
 }
 } // namespace opeu::game::detail::unit_table

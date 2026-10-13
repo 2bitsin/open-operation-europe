@@ -33,8 +33,6 @@ constexpr uint16_t LAST_COLUMN{ 0x44 };
 constexpr uint16_t LAST_ROW{ 0x118 };
 // Side 1's keyboard menu sits further right.
 constexpr uint16_t SIDE_1_SHIFT{ 49 };
-// Below the menu's frame: the frame its placement and the command run on.
-constexpr uint16_t MENU_FRAME{ 0x16 };
 constexpr uint16_t CANCELLED{ 0xffff };
 constexpr uint8_t  NO_SIDE{ 0xff };
 // The menu's choices; the fifth button is the withdrawal.
@@ -55,7 +53,7 @@ void Panels(uint8_t* ds, BattleEvent event) {
 } // namespace
 
 // With the mouse the buttons stack at the pointer; with the keyboard they take their places on the active side.
-void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t /*frame*/) {
+void opeu_battle_menu_place(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   if (data.input_mode) {
     ServiceLocals const locals{ MOUSE_RESERVE };
@@ -80,12 +78,12 @@ void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t /*frame*/) 
 
 // The cursor starts on the element's goal (its target's cell when engaged); a withdrawal marks the exits first. After
 // the order, a unit not next to the battle's cell takes the exit direction of its first withdrawing element.
-uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
+uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&      data{ Data(ds) };
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
   Call(ds, event, BattleRoutine::BATTLE_ELEMENT_PANEL, 0, element);
   for (;;) {
-    opeu_battle_menu_place(ds, event, Local(frame, MENU_FRAME));
+    opeu_battle_menu_place(ds, event);
     Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
     auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1, Near(data, data.battle_menu_items)) };
     if (choice == CANCELLED) {
@@ -117,7 +115,7 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t elemen
           continue;
         }
       }
-      if (!opeu_battle_order_command(ds, event, element, static_cast<uint8_t>(choice - 1), Local(frame, MENU_FRAME))) data.battle_cursor_x = data.battle_cursor_y = 0;
+      if (!opeu_battle_order_command(ds, event, element, static_cast<uint8_t>(choice - 1))) data.battle_cursor_x = data.battle_cursor_y = 0;
       if (withdraw) opeu_battle_unmark_exits(ds, event, element);
       break;
     }

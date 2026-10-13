@@ -31,7 +31,7 @@ constexpr uint16_t SIDE_1_COLOR{ '5' };
 constexpr uint16_t PAUSE{ 3 };
 } // namespace
 
-uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event, uint16_t /*frame*/) {
+uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ NAME_BYTES };
   bool                announced{ false };
@@ -69,5 +69,5 @@ uint16_t svc_btlready(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_announce_ready(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) { return opeu_battle_announce_ready(ds, svc_btlready, BattleFrame(sp)); });
+  return opeu_battle_announce_ready(ds, svc_btlready);
 }

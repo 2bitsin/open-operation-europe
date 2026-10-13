@@ -28,10 +28,10 @@ enum class RequestMenuService : uint16_t {
   FAR_CALL      = 30, // calls the far routine (offset, segment)
 };
 
-void     opeu_request_no_more(uint8_t* ds, HostEvent event, uint16_t scratch, uint16_t what);
+void     opeu_request_no_more(uint8_t* ds, HostEvent event, uint16_t what);
 uint16_t opeu_request_pending(const uint8_t* ds, uint8_t kind);
 uint16_t opeu_request_mode_is(const uint8_t* ds, uint8_t mode);
-uint16_t opeu_request_cancel_prompt(uint8_t* ds, HostEvent event, uint16_t scratch, uint16_t what);
+uint16_t opeu_request_cancel_prompt(uint8_t* ds, HostEvent event, uint16_t what);
 void     opeu_request_finish(uint8_t* ds, HostEvent event);
 void     opeu_request_file(uint8_t* ds, HostEvent event, uint16_t request);
 uint16_t opeu_side_has_city(const uint8_t* ds);

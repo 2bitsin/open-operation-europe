@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint16_t opeu_control_coordinates(uint8_t* ds, HostEvent event, uint16_t scratch, uint16_t x, uint16_t y);
+uint16_t opeu_control_coordinates(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y);
 
 // Runs the services the module's routines call through their event.
 uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

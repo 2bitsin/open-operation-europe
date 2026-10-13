@@ -27,7 +27,7 @@ void opeu_view_cell_paint(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, 
 
 // Overview: alternately draws the cursor marker over the saved 1 x 8 background and restores the background. Tactical
 // view: repaints the cell highlighted.
-void opeu_map_cell_flash(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
+void opeu_map_cell_flash(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const buffer{ Near(data, data.flash_buffers) };
   if (data.overview_side != NO_SIDE) {

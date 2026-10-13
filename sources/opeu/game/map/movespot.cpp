@@ -81,7 +81,7 @@ void opeu_move_spot(uint8_t* ds, HostEvent event) {
   if (!was_spotted && Call(ds, event, SpotService::UNIT_SPOTTED, current) != was_spotted && data.side_status[enemy] == SIDE_PLAYED) opeu_move_sighted(ds, spotter, current);
 }
 
-uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t /*bp*/) {
+uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event) {
   auto const&         data{ Data(ds) };
   auto const&         mover{ Record<Unit>(data, data.current_unit_ptr) };
   ServiceLocals const locals{ STEP_RESERVE };

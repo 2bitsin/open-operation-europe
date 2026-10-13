@@ -116,7 +116,7 @@ uint16_t opeu_notice_slot(uint8_t ds[65536], uint16_t objective, uint8_t slot) {
 
 // Builds the garrison of an objective on the battle cell from its items, with ammunition and fuel from its stocks up
 // to the garrison's capacities, holding the cell; it becomes the first defender. Returns whether it has elements.
-uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x12 };
   auto&               data{ Data(ds) };
   uint16_t const      capacity_a{ locals.At(0xe) };
@@ -155,7 +155,7 @@ uint16_t opeu_notice_garrison(uint8_t ds[65536], HostEvent event, uint16_t /*bp*
 
 // Gathers the engaged units: the attacker and his side's units around the battle cell, the garrison, the defender
 // and the other side's units around it.
-void opeu_notice_collect(uint8_t ds[65536], HostEvent event, uint16_t bp) {
+void opeu_notice_collect(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0xe };
   auto&               data{ Data(ds) };
   uint16_t const      x_at{ locals.At(4) };
@@ -163,7 +163,7 @@ void opeu_notice_collect(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto&               x{ ds[x_at] };
   auto&               y{ ds[y_at] };
   for (uint8_t n = 0; n < 2 * UNITS_PER_LIST; n++) data.battle_units[n] = 0;
-  uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(ds, event, bp - 0x16) ? 1 : 0) };
+  uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(ds, event) ? 1 : 0) };
   uint16_t unit{ Call(ds, event, FIND_UNIT, data.battle_x, data.battle_y) };
   if (unit) data.battle_units[UnitAt(DEFENDERS, defenders++)] = unit;
   uint8_t attackers{ 1 };
@@ -221,7 +221,7 @@ uint16_t opeu_notice_can_command(uint8_t ds[65536], HostEvent event, uint8_t lis
 
 // Each side decides whether a leader takes command of the battle: the computer by a coin toss, a player when asked
 // (only for a unit outside the computer's divisions). The battle is reported when a player's side could command.
-void opeu_notice_decide(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+void opeu_notice_decide(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const     locals{ 0x72 };
   auto&                   data{ Data(ds) };
   uint16_t const          text{ locals.At(0) };
@@ -276,7 +276,7 @@ void opeu_notice_view_finish(uint8_t ds[65536], HostEvent event) {
 
 // Tells the attacked unit or objective of the attack (naming a special attacker) and shows it to the attacked side;
 // the attacked unit's elements tire and lose morale by its order: least when holding, most under EXPOSED_ORDER.
-void opeu_notice_attack(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+void opeu_notice_attack(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x80 };
   auto&               data{ Data(ds) };
   uint16_t const      text{ locals.At(0xc) };
@@ -317,14 +317,13 @@ void opeu_notice_attack(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
   }
 }
 
-// The start of a battle; sp is the DS stack pointer at entry.
-void opeu_notice_begin(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const bp{ static_cast<uint16_t>(sp - 6) };
-  opeu_notice_attack(ds, event, bp);
-  opeu_notice_collect(ds, event, bp);
+// The start of a battle.
+void opeu_notice_begin(uint8_t ds[65536], HostEvent event) {
+  auto& data{ Data(ds) };
+  opeu_notice_attack(ds, event);
+  opeu_notice_collect(ds, event);
   data.presentation_mode = opeu_notice_view_battle(ds, event);
-  opeu_notice_decide(ds, event, bp);
+  opeu_notice_decide(ds, event);
   opeu_notice_records_build(ds, event);
 }
 

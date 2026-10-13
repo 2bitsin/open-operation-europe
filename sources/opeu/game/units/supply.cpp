@@ -78,7 +78,7 @@ void opeu_supply_load_objective(uint8_t ds[65536], uint16_t objective) {
 }
 
 // Exchanges supplies between two units; the units' names are formatted into the routine's two 32-byte buffers.
-void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second, uint16_t /*a*/, uint16_t /*b*/) {
+void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t first, uint16_t second) {
   auto&               data{ Data(ds) };
   ServiceLocals const names{ 2 * NAME_BYTES };
   data.supply_objective = NO_OBJECTIVE;
@@ -91,7 +91,7 @@ void opeu_supply_exchange_units(uint8_t ds[65536], SupplyEvent event, uint16_t f
 }
 
 // Exchanges supplies between a unit and an objective; the unit's name is formatted into the routine's 32-byte buffer.
-void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective, uint16_t /*a*/) {
+void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16_t unit, uint16_t objective) {
   auto&               data{ Data(ds) };
   ServiceLocals const name{ NAME_BYTES };
   data.supply_objective = objective;
@@ -103,24 +103,15 @@ void opeu_supply_exchange_objective(uint8_t ds[65536], SupplyEvent event, uint16
   StoreBack(data, 1, Record<Objective>(data, objective));
 }
 
-namespace {
-// The stack frame the transfer step runs in.
-constexpr std::uint16_t STEP_FRAME{ 0x200u };
-} // namespace
-
 // The services the module calls out to: the transfer dialog's draw and step, and request_format (id 2), which
 // opeu_unit_name raises through the event it receives.
 uint16_t svc_supply(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t sp, r = 0;
+  uint16_t r = 0;
   switch (id) {
   case 2:           opeu_request_format(ds, { args, count }); break;
   case SUPPLY_DRAW: opeu_supply_draw(ds, svc_suppanel, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case SUPPLY_STEP: // selection: the selected-row byte of the step's frame (BP-8)
-    sp = port_stack_enter(STEP_FRAME);
-    r  = opeu_supply_step(ds, svc_supstep, (uint16_t)(sp - 2u - 8u));
-    port_stack_leave(STEP_FRAME);
-    break;
-  default: port_unhandled("supply", id, count);
+  case SUPPLY_STEP: r = opeu_supply_step(ds, svc_supstep); break;
+  default:          port_unhandled("supply", id, count);
   }
   return r;
 }

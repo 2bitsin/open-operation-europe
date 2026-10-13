@@ -60,8 +60,6 @@ constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the announcement's text, which th
 constexpr std::uint16_t SITE_Y_AT{ 0 };
 constexpr std::uint16_t SITE_X_AT{ 2 };
 constexpr std::uint16_t SITE_BYTES{ 4 };
-constexpr std::uint16_t ORDER_DEPTH{ 0x6e + 10 + 4 }; // opeu_air_bomb_order's frame, saved registers, far return
-constexpr std::uint16_t COMMAND_DEPTH{ 0x0a + 4 };    // opeu_air_bomb_command's frame, far return
 
 // A test that objects when `value` is below `limit` and, if the test has a roll, when a random number below 10 plus
 // `roll` beats the air force's skill too.
@@ -113,7 +111,7 @@ auto Objection(std::uint8_t* ds, Objections const& rules, std::uint8_t fuel, std
 
 // May the mission of the given type (0 carpet bombing, 1 attack sortie, 2 strafing run) against a city (1) or open
 // ground (0) go ahead? The air officer says why not, or "Understood"; 1 when the mission may proceed.
-uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint16_t, uint8_t city, uint16_t type) {
+uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint8_t city, uint16_t type) {
   auto&         data{ Data(ds) };
   auto&         side{ CurrentSide(data) };
   auto const    fuel{ side.strength };
@@ -132,7 +130,7 @@ uint16_t opeu_air_bomb_check(uint8_t ds[65536], HostEvent event, uint16_t, uint8
 // Announces the sortie (hours until the strike, planes sent, mission name) and, once confirmed, stores it as the side's
 // air strike. The delay is random(level + 1), one more at night, more in bad weather, less for the lighter missions;
 // the planes are the type's base plus a random extra, at most the side's bombers. 1 when the strike was ordered.
-uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint16_t type) {
+uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint16_t type) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0) };
@@ -143,7 +141,7 @@ uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint16_t sp, ui
   auto const  format{ Call(ds, event, LOOKUP, ANNOUNCE) };
   Call(ds, event, FORMAT, text, format, hours, hours == 1 ? HOUR_TEXT : HOURS_TEXT, planes, planes == 1 ? PLANE_TEXT : PLANES_TEXT, data.bombing_names[type]);
   Call(ds, event, MESSAGE, text, data.air_person);
-  if (!opeu_air_confirm(ds, event, Local(sp, 2 + ORDER_DEPTH))) return 0;
+  if (!opeu_air_confirm(ds, event)) return 0;
   auto& strike{ CurrentSide(data).strike };
   strike.x      = x;
   strike.y      = y;
@@ -156,7 +154,7 @@ uint16_t opeu_air_bomb_order(uint8_t ds[65536], HostEvent event, uint16_t sp, ui
 // The Bombing Attack command. A pending strike may be cancelled first; without bombers the command ends. Otherwise the
 // player picks a site (starting at the view) and a mission type and confirms; a mission the air officer refuses or
 // one that is ordered ends the side's turn.
-void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   if (CurrentSide(data).strike.planes) {
     if (!Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CANCEL_ORDER), data.context_record3)) return;
@@ -180,9 +178,7 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   if (type == CANCELED) return;
   --type;
   if (!Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CONFIRM_MISSION), data.context_record3)) return;
-  auto const callee{ Local(sp, 2 + COMMAND_DEPTH) };
-  if (!opeu_air_bomb_check(ds, event, callee, opeu_map_code(ds, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(ds, event, callee, site_x, site_y, type))
-    data.side_delays[data.current_side] = 1;
+  if (!opeu_air_bomb_check(ds, event, opeu_map_code(ds, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(ds, event, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
 }
 
 // The services of the air force's commands (core/airbomb, airdrop, airforce, airhelp, airlift).
@@ -200,9 +196,7 @@ uint16_t svc_air(uint8_t* ds, const char* module, uint16_t id, const uint16_t* a
   case DIALOG:    result = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case TITLE:     opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case PICK:      {
-    auto const frame{ port_frame_enter() };
-    result = opeu_map_pick_location(ds, svc_mappick, frame, Arg(args, count, 0), Arg(args, count, 1));
-    port_frame_leave();
+    result = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1));
     break;
   }
   case LIST_DIALOG: result = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2))); break;
@@ -219,8 +213,6 @@ uint16_t svc_airbomb(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_air_bomb_command(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  auto const sp{ c2_air_sp_enter() };
-  opeu_air_bomb_command(ds, svc_airbomb, sp);
-  c2_air_leave();
+  opeu_air_bomb_command(ds, svc_airbomb);
   return 0;
 }

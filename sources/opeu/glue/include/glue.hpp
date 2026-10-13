@@ -6,9 +6,6 @@
  * game logic but a platform difference of the 16-bit original, and lives
  * here (port/core/glue.c, port/core/hosts.c):
  *
- *  - the modeled DGROUP stack: the host branches keep the original's stack
- *    buffers at DS addresses, so a caller reserves room below the modeled SP
- *    for a callee's `sp`/`frame`/`scratch` parameter (port.h port_sp);
  *  - the C runtime random state, kept at DS:c6f4 by the original and in
  *    opeu_random_state by the recovered generator;
  *  - the struct hosts of TEXTOUT, UIPRIM and DIALOGS (stack pointer, memory
@@ -18,12 +15,6 @@
  *  - the INT 33h / INT 66h register blocks of the mouse and FM drivers;
  *  - LOADSCEN's file contents (it takes the two files' bytes, the original
  *    read them by name).
- *
- * Several helpers differ only in where they place the argument words or how
- * much stack they reserve (b1_/b2_/c1_/c2_/btl_/map_/lf_ prefixes: the
- * conventions of the port/link files they come from). They are kept apart
- * on purpose: the placement decides which DGROUP bytes are written, and the
- * native build must stay byte-identical to the one it replaces.
  */
 #pragma once
 
@@ -32,28 +23,6 @@
 
 #include "port.hpp"
 
-/* ---- modeled DGROUP stack ------------------------------------------------ */
-
-/* Reserve n bytes; their DS offset is the base (b1) or SP+4 (scratch). */
-auto b1_stack_alloc(uint16_t n) -> uint16_t;
-auto port_scratch_enter(uint16_t bytes) -> uint16_t;
-void port_scratch_leave(uint16_t bytes);
-/* `frame` (entry SP - 2) and `sp` (entry SP) with PORT_FRAME reserved. */
-auto b1_frame_enter() -> uint16_t;
-auto port_frame_enter() -> uint16_t;
-void port_frame_leave();
-auto b1_sp_enter() -> uint16_t;
-/* Air modules: C2_AIR_FRAME (0x200) reserved. */
-auto c2_air_sp_enter() -> uint16_t;
-auto c2_air_bp_enter() -> uint16_t;
-void c2_air_leave();
-/* Battle modules: BTL_RESERVE (0x200) reserved. */
-auto btl_sp_enter() -> uint16_t;
-void btl_sp_leave();
-/* Map modules: MAP_FRAME_BYTES (0x300) reserved. */
-auto map_frame_enter() -> uint16_t;
-void map_frame_leave();
-/* Push/pop cdecl argument words on the modeled stack. */
 /* ---- C runtime random state (DS:c6f4) ------------------------------------- */
 
 auto port_rand_bounded(uint8_t* ds, uint16_t bound) -> uint16_t;
@@ -80,9 +49,6 @@ using PortByteReader = uint8_t (*)();
 auto port_picture_reader(uint16_t off, uint16_t seg) -> PortByteReader;
 /* 1707:03e4 daily_show(id, side, far presenter (offset, segment)). */
 void port_daily_show(uint8_t* ds, uint16_t id, uint16_t side, uint16_t off, uint16_t seg);
-/* A briefing of core/scenbrf.c with its 100-byte closing buffer reserved. */
-using PortBriefing = void (*)(uint8_t* ds, uint16_t (*event)(uint8_t*, uint16_t, const uint16_t*, uint16_t), uint16_t closing);
-auto port_run_briefing(uint8_t* ds, PortBriefing briefing) -> uint32_t;
 /* Address-keyed forward with reordered words: out[i] = in[order[i]]. */
 auto btl_reorder(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) -> uint16_t;
 /* Call a linked routine by its reference name. */

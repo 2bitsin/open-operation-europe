@@ -152,7 +152,7 @@ void opeu_end_palette_show(uint8_t ds[65536], HostEvent event) {
 // quits. A victory by elimination (reason 0) or a defeat names the opposite side's commander; other victories rank
 // the side by its score, min(strength + points, 1000), 100 more for reason 1. The routine's two text buffers, which services
 // write, lie in its reserve.
-void opeu_scenario_end(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_scenario_end(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x1fc };
   auto&               data{ Data(ds) };
   uint16_t const      pattern{ locals.At(0) };
@@ -277,9 +277,9 @@ void opeu_close_data_files(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, CLOSE, data.message_picture_handle);
 }
 
-// The application's end of the game. A caller must reserve at least 0x210 bytes of DS stack below sp.
-void opeu_app_finish(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  opeu_scenario_end(ds, event, static_cast<uint16_t>(sp - 4));
+// The application's end of the game.
+void opeu_app_finish(uint8_t ds[65536], HostEvent event) {
+  opeu_scenario_end(ds, event);
 }
 
 // The services in the native build.

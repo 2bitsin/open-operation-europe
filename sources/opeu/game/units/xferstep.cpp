@@ -29,8 +29,6 @@ constexpr std::uint16_t ROW_HEIGHT{ 28 };
 constexpr std::uint16_t HIGHLIGHT_COLOUR{ 0x107 };
 // The computer's direction latch, cleared for a new transfer (units/xferpnl).
 constexpr std::uint8_t UNMOVED{ '-' };
-// The selected row's byte, which the mouse input sets through its near address: a fixed spot in the DS stack window.
-constexpr std::uint16_t SELECTION_AT{ 0xee80 };
 // The daily picture the player's transfer runs inside, and the step's own far address it runs as its presenter.
 constexpr std::uint16_t TRANSFER_PICTURE{ 0x96 };
 constexpr std::uint16_t STEP_OFFSET{ 0x05a8 };
@@ -68,10 +66,13 @@ auto KeyAmount(std::uint8_t key) -> std::uint16_t {
 } // namespace
 
 // Runs the transfer until Enter. A player's transfer asks for confirmation; the computer's finishes its presentation.
+// The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
 void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
-  auto&        data{ Data(ds) };
-  auto&        selected{ Record<std::uint8_t>(data, SELECTION_AT) };
-  std::uint8_t highlighted{ NO_ROW };
+  ServiceLocals const locals{ 2 };
+  auto const          selection{ locals.At(0) };
+  auto&               data{ Data(ds) };
+  auto&               selected{ Record<std::uint8_t>(data, selection) };
+  std::uint8_t        highlighted{ NO_ROW };
   if (!data.transfer_interactive && Played(data)) Call(ds, event, SOUND_CUE_14);
   data.transfer_auto = UNMOVED;
   selected           = 0;
@@ -90,7 +91,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
       Highlight(ds, event, selected);
       highlighted = selected;
     }
-    auto const key{ data.transfer_interactive ? opeu_transfer_input(ds, event, SELECTION_AT) : opeu_transfer_auto_key(ds, selected) };
+    auto const key{ data.transfer_interactive ? opeu_transfer_input(ds, event, selection) : opeu_transfer_auto_key(ds, selected) };
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;

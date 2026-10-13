@@ -33,10 +33,6 @@ constexpr uint16_t AUTO_LABEL{ 0 };
 constexpr uint16_t AUTO_TEXT{ 0x22 };
 constexpr uint16_t AUTO_NAME{ 0x86 };
 constexpr uint16_t DRAW_TEXT_BYTES{ 0x66 };
-// The officer hit runs on the frame below the draw's locals.
-constexpr uint16_t HIT_FRAME{ 0x68 + 4 };
-// The routines below hq_lost run on its frame.
-constexpr uint16_t INNER{ 4 };
 constexpr uint16_t OWN_NAME_COLOR{ 0x36 };
 constexpr uint16_t ENEMY_NAME_COLOR{ 0x35 };
 constexpr uint8_t  FIRST_DRAW{ 7 };
@@ -66,7 +62,7 @@ struct OfficerTexts {
 
 // One officer draw: under 10 in 100 the officer (if any, and not already lost) is hit unless the staff trait saves
 // him half the time; under 5 the hit is fatal. kind 0 is the division's general, otherwise the side's staff post.
-void OfficerDraw(uint8_t* ds, BattleEvent event, uint16_t frame, uint8_t kind, OfficerTexts const& texts) {
+void OfficerDraw(uint8_t* ds, BattleEvent event, uint8_t kind, OfficerTexts const& texts) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ DRAW_TEXT_BYTES };
   auto const          text{ locals.At(0) };
@@ -82,11 +78,11 @@ void OfficerDraw(uint8_t* ds, BattleEvent event, uint16_t frame, uint8_t kind, O
     Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], record, outcome);
   else
     Call(ds, event, BattleRoutine::REQUEST_FORMAT, text, texts.format, NameColor(side), data.side_names[side], data.battle_active_group + 1, record, outcome);
-  opeu_battle_officer_hit(ds, event, Local(frame, HIT_FRAME), record, text, fatal);
+  opeu_battle_officer_hit(ds, event, record, text, fatal);
 }
 } // namespace
 
-void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
+void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ PICK_NAME_BYTES };
   auto const          name{ locals.At(0) };
@@ -128,7 +124,7 @@ void opeu_battle_pick_hq(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
   }
 }
 
-void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
+void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event) {
   auto&    data{ Data(ds) };
   uint16_t best{ 0 };
   for (auto it{ Elements(data, Record<Unit>(data, data.battle_lost_unit)).begin() }; it != std::default_sentinel; ++it)
@@ -145,7 +141,7 @@ void opeu_battle_auto_hq(uint8_t* ds, BattleEvent event, uint16_t /*sp*/) {
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, MESSAGE_MODE, locals.At(AUTO_TEXT));
 }
 
-void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t record, uint16_t text, uint16_t killed) {
+void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t record, uint16_t text, uint16_t killed) {
   auto&      data{ Data(ds) };
   auto const side{ data.battle_active_side };
   data.battle_hq_intact[side] = 0;
@@ -167,14 +163,13 @@ void opeu_battle_officer_hit(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, ui
   Call(ds, event, BattleRoutine::DELAY_UNITS, HIT_WAIT);
 }
 
-void opeu_battle_officer_losses(uint8_t* ds, BattleEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const frame{ BattleFrame(sp) };
-  OfficerDraw(ds, event, frame, 0, { Near(data, data.hq_fmt_division), Near(data, data.hq_div_killed), Near(data, data.hq_div_injured) });
+void opeu_battle_officer_losses(uint8_t* ds, BattleEvent event) {
+  auto& data{ Data(ds) };
+  OfficerDraw(ds, event, 0, { Near(data, data.hq_fmt_division), Near(data, data.hq_div_killed), Near(data, data.hq_div_injured) });
   if (opeu_unit_group_index(opeu_find_side_selected_unit(ds, data.battle_active_side)) != data.battle_active_group) return;
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::ARMY_COMMANDER), { Near(data, data.hq_fmt_army), Near(data, data.hq_army_killed), Near(data, data.hq_army_injured) });
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF), { Near(data, data.hq_fmt_intel), Near(data, data.hq_intel_killed), Near(data, data.hq_intel_injured) });
-  OfficerDraw(ds, event, frame, std::to_underlying(StaffRole::OPERATIONS_CHIEF), { Near(data, data.hq_fmt_ops), Near(data, data.hq_ops_killed), Near(data, data.hq_ops_injured) });
+  OfficerDraw(ds, event, std::to_underlying(StaffRole::ARMY_COMMANDER), { Near(data, data.hq_fmt_army), Near(data, data.hq_army_killed), Near(data, data.hq_army_injured) });
+  OfficerDraw(ds, event, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF), { Near(data, data.hq_fmt_intel), Near(data, data.hq_intel_killed), Near(data, data.hq_intel_injured) });
+  OfficerDraw(ds, event, std::to_underlying(StaffRole::OPERATIONS_CHIEF), { Near(data, data.hq_fmt_ops), Near(data, data.hq_ops_killed), Near(data, data.hq_ops_injured) });
 }
 
 uint16_t opeu_battle_side_commands(const uint8_t* ds) {
@@ -191,19 +186,18 @@ void opeu_battle_hq_shaken(uint8_t* ds, BattleEvent event, uint16_t unit) {
   }
 }
 
-void opeu_battle_hq_lost(uint8_t* ds, BattleEvent event, uint16_t sp) {
+void opeu_battle_hq_lost(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   data.battle_active_side  = static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, data.battle_lost_unit));
   data.battle_active_group = opeu_unit_group_index(data.battle_lost_unit);
-  auto const inner{ static_cast<uint16_t>(sp - INNER) };
   if (data.battle_lost_element) {
     if (opeu_battle_side_commands(ds))
-      opeu_battle_pick_hq(ds, event, inner);
+      opeu_battle_pick_hq(ds, event);
     else
-      opeu_battle_auto_hq(ds, event, inner);
+      opeu_battle_auto_hq(ds, event);
     opeu_battle_hq_shaken(ds, event, data.battle_lost_unit);
   }
-  if (Record<Unit>(data, data.battle_lost_unit).flags & Bits(UnitFlag::SELECTED)) opeu_battle_officer_losses(ds, event, inner);
+  if (Record<Unit>(data, data.battle_lost_unit).flags & Bits(UnitFlag::SELECTED)) opeu_battle_officer_losses(ds, event);
 }
 
 uint16_t svc_hqloss(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {
@@ -211,11 +205,11 @@ uint16_t svc_hqloss(uint8_t* ds, uint32_t address, const uint16_t* args, unsigne
 }
 
 auto port_routine_opeu_battle_auto_hq(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_auto_hq(ds, svc_hqloss, sp); });
+  opeu_battle_auto_hq(ds, svc_hqloss);
   return 0;
 }
 
 auto port_routine_opeu_battle_hq_lost(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_hq_lost(ds, svc_hqloss, sp); });
+  opeu_battle_hq_lost(ds, svc_hqloss);
   return 0;
 }

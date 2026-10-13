@@ -119,15 +119,11 @@ uint16_t svc_evpartis(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case MESSAGE:    opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW: port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case RISING:     {
-    auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
-    port_frame_leave();
+    opeu_location_flash(ds, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     break;
   }
   case ERASE: {
-    auto const frame{ port_frame_enter() };
-    opeu_map_erase(ds, svc_maperase, frame, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-    port_frame_leave();
+    opeu_map_erase(ds, svc_maperase, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
     break;
   }
   default: port_unhandled("evpartis", id, count);

@@ -25,8 +25,7 @@ auto Send(std::uint8_t* ds, HostEvent event, ViewService service, auto... words)
 } // namespace
 
 // Lists the named objectives `side` holds in view_objectives; returns their count.
-uint8_t opeu_list_side_objectives(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t side) {
-  (void)sp;
+uint8_t opeu_list_side_objectives(uint8_t ds[65536], HostEvent event, uint8_t side) {
   auto&        data{ Data(ds) };
   std::uint8_t count{ 0 };
   for (auto const& objective : data.objectives)
@@ -35,9 +34,8 @@ uint8_t opeu_list_side_objectives(uint8_t ds[65536], HostEvent event, uint16_t s
 }
 
 // Lists a regiment's elements in the element rows; returns their count.
-uint8_t opeu_list_unit_elements(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t unit) {
+uint8_t opeu_list_unit_elements(uint8_t ds[65536], HostEvent event, uint16_t unit) {
   (void)event;
-  (void)sp;
   auto&        data{ Data(ds) };
   std::uint8_t count{ 0 };
   auto const   chain{ Elements(data, Record<Unit>(data, unit)) };
@@ -46,9 +44,8 @@ uint8_t opeu_list_unit_elements(uint8_t ds[65536], HostEvent event, uint16_t sp,
 }
 
 // Lists an objective's stock items that hold an amount in view_stocks; returns their count.
-uint8_t opeu_list_objective_stocks(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t objective) {
+uint8_t opeu_list_objective_stocks(uint8_t ds[65536], HostEvent event, uint16_t objective) {
   (void)event;
-  (void)sp;
   auto&        data{ Data(ds) };
   std::uint8_t count{ 0 };
   for (auto const& item : Record<Objective>(data, objective).items)
@@ -58,9 +55,8 @@ uint8_t opeu_list_objective_stocks(uint8_t ds[65536], HostEvent event, uint16_t 
 
 // The total quantity of a regiment's spotted elements whose type is of `category`; their number goes to the byte at
 // `count`.
-uint16_t opeu_element_kind_total(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t unit, uint8_t category, uint16_t count) {
+uint16_t opeu_element_kind_total(uint8_t ds[65536], HostEvent event, uint16_t unit, uint8_t category, uint16_t count) {
   (void)event;
-  (void)sp;
   auto&         data{ Data(ds) };
   std::uint16_t total{ 0 };
   Byte(ds, count) = 0;
@@ -73,8 +69,7 @@ uint16_t opeu_element_kind_total(uint8_t ds[65536], HostEvent event, uint16_t sp
 }
 
 // Row check: an own objective that may be listed, or an enemy objective that was reconnoitred.
-uint8_t opeu_view_objective_ok(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  (void)sp;
+uint8_t opeu_view_objective_ok(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const near{ data.view_objectives[data.list_row] };
   auto const side{ static_cast<std::uint8_t>(Send(ds, event, ViewService::OBJECTIVE_SIDE, near)) };
@@ -82,24 +77,21 @@ uint8_t opeu_view_objective_ok(uint8_t ds[65536], HostEvent event, uint16_t sp) 
 }
 
 // Row check that rejects every row.
-uint8_t opeu_view_false(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+uint8_t opeu_view_false(uint8_t ds[65536], HostEvent event) {
   (void)ds;
   (void)event;
-  (void)sp;
   return 0;
 }
 
 // Row check: an active division whose selected regiment may be selected.
-uint8_t opeu_view_group_ok(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  (void)sp;
+uint8_t opeu_view_group_ok(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
   auto const& division{ data.groups[data.current_side * GROUPS_PER_SIDE + data.list_row] };
   return (division.flags & Bits(GroupFlag::READY)) && Send(ds, event, ViewService::UNIT_ELIGIBLE, Send(ds, event, ViewService::GROUP_SELECTED_UNIT, Near(data, division)));
 }
 
 // Row check: a ready regiment, selectable if it is ours, spotted if it is the enemy's.
-uint8_t opeu_view_unit_ok(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  (void)sp;
+uint8_t opeu_view_unit_ok(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
   auto const  unit{ data.row_units[data.list_row] };
   auto const& regiment{ Record<Unit>(data, unit) };
@@ -109,27 +101,25 @@ uint8_t opeu_view_unit_ok(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // Further row checks that reject every row.
-uint8_t opeu_view_false_2(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  return opeu_view_false(ds, event, sp);
+uint8_t opeu_view_false_2(uint8_t ds[65536], HostEvent event) {
+  return opeu_view_false(ds, event);
 }
 
-uint8_t opeu_view_false_3(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  return opeu_view_false(ds, event, sp);
+uint8_t opeu_view_false_3(uint8_t ds[65536], HostEvent event) {
+  return opeu_view_false(ds, event);
 }
 
 // Row check that accepts every row.
-uint8_t opeu_view_true(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+uint8_t opeu_view_true(uint8_t ds[65536], HostEvent event) {
   (void)ds;
   (void)event;
-  (void)sp;
   return 1;
 }
 
 // Appends to the word list at `list` the equipment types of `category` that a nation in `mask` fields and that are in
 // service by the current month (the type's date is year * 16 + month); returns how many were appended.
-uint8_t opeu_list_element_types(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t list, uint8_t mask, uint8_t category) {
+uint8_t opeu_list_element_types(uint8_t ds[65536], HostEvent event, uint16_t list, uint8_t mask, uint8_t category) {
   (void)event;
-  (void)sp;
   auto& data{ Data(ds) };
   auto  at{ list };
   for (auto const& type : data.element_types)
@@ -157,41 +147,41 @@ uint16_t svc_vwlist(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 auto port_routine_opeu_view_false(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_false(ds, svc_vwlist, sp); });
+  return opeu_view_false(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_false_2(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_false_2(ds, svc_vwlist, sp); });
+  return opeu_view_false_2(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_false_3(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_false_3(ds, svc_vwlist, sp); });
+  return opeu_view_false_3(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_group_ok(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_group_ok(ds, svc_vwlist, sp); });
+  return opeu_view_group_ok(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_objective_ok(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_objective_ok(ds, svc_vwlist, sp); });
+  return opeu_view_objective_ok(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_true(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_true(ds, svc_vwlist, sp); });
+  return opeu_view_true(ds, svc_vwlist);
 }
 
 auto port_routine_opeu_view_unit_ok(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_view_unit_ok(ds, svc_vwlist, sp); });
+  return opeu_view_unit_ok(ds, svc_vwlist);
 }

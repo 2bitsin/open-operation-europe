@@ -26,6 +26,9 @@ constexpr std::uint8_t DRAW_LABELS{ 5 }; // flags that draw the general names
 constexpr std::uint16_t HEADER_MESSAGE{ 0x7a };
 constexpr std::uint16_t ROW_MESSAGE{ 0x78 };
 
+// The row text the format service writes.
+constexpr std::uint16_t ROW_TEXT_BYTES{ 0x6c };
+
 // tbl_post_names: the four divisions, then the staff posts by role.
 constexpr unsigned STAFF_POSTS_AT{ 3 };
 
@@ -34,11 +37,13 @@ constexpr unsigned STAFF_POSTS_AT{ 3 };
 // The general table. A general's post is his staff role when he has one, else his division when assigned to one; the
 // status column shows Rest while his counter runs, else Hurt when his health is poor. The formatted row is printed
 // as a format string with the visible start and count as its arguments.
-void opeu_tbl_draw_staff(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto&       data{ Data(ds) };
-  auto const  buffer{ static_cast<std::uint16_t>(scratch + 4) };
+void opeu_tbl_draw_staff(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ ROW_TEXT_BYTES };
+  locals.Clear(ds);
+  auto const  buffer{ locals.At(0) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ Columns(ds, event, scratch, column, row) };
+  auto const  columns{ Columns(ds, event, column, row) };
   if (flags & DRAW_HEADER) {
     auto const header{ Call(ds, event, REQUEST_TEXT, HEADER_MESSAGE) };
     Call(ds, event, FORMAT, buffer, header);

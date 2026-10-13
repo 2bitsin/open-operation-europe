@@ -42,7 +42,7 @@ constexpr uint16_t TARGET_ROW{ 0x30 };
 constexpr uint16_t BUNKER_ROW{ 0x40 };
 } // namespace
 
-void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t /*frame*/) {
+void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ MESSAGE_BYTES };
   auto const          message{ locals.At(0) };
@@ -51,7 +51,7 @@ void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element, 
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
-void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t /*frame*/) {
+void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ NAMES_RESERVE };
   auto const          target_name{ locals.At(TARGET_AT) };
@@ -87,6 +87,6 @@ uint16_t svc_btlrpanl(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_wiped_notice(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_wiped_notice(ds, svc_btlrpanl, Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_wiped_notice(ds, svc_btlrpanl, Arg(args, count, 0));
   return 0;
 }

@@ -50,7 +50,7 @@ auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... word
 } // namespace
 
 // group: the division (of the current side) the order is for.
-void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint8_t group) {
+void opeu_unit_order_menu(uint8_t ds[65536], HostEvent event, uint8_t group) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };

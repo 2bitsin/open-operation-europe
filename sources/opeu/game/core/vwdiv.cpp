@@ -28,7 +28,7 @@ constexpr std::uint16_t ARMY_RECORD_KIND{ 1 }; // the side record that names the
 // The contact menu, until cancelled: picks one of the current side's four divisions. A present division whose
 // selected regiment may be selected is shown with its army and division commanders over its eight regiments, and
 // the daily view moves to the current regiment; otherwise the contact fails.
-void opeu_view_division_contact(uint8_t ds[65536], HostEvent event, uint16_t) {
+void opeu_view_division_contact(uint8_t ds[65536], HostEvent event) {
   auto&   data{ Data(ds) };
   uint8_t answer;
   for (;;) {
@@ -64,6 +64,6 @@ uint16_t svc_vwdiv(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
 }
 
 auto port_routine_opeu_view_division_contact(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_view_division_contact(ds, svc_vwdiv, sp); });
+  opeu_view_division_contact(ds, svc_vwdiv);
   return 0;
 }

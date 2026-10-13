@@ -11,11 +11,11 @@ uint16_t opeu_end_unit_strength(uint8_t* ds, HostEvent event);
 uint16_t opeu_end_objective_points(uint8_t* ds, HostEvent event);
 void     opeu_end_palette_dark(uint8_t* ds, HostEvent event);
 void     opeu_end_palette_show(uint8_t* ds, HostEvent event);
-void     opeu_scenario_end(uint8_t* ds, HostEvent event, uint16_t sp);
+void     opeu_scenario_end(uint8_t* ds, HostEvent event);
 void     opeu_free_error(uint8_t* ds, HostEvent event, uint16_t name);
 void     opeu_free_segments(uint8_t* ds, HostEvent event);
 void     opeu_close_data_files(uint8_t* ds, HostEvent event);
-void     opeu_app_finish(uint8_t* ds, HostEvent event, uint16_t sp);
+void     opeu_app_finish(uint8_t* ds, HostEvent event);
 
 // The services of this module in the native build.
 uint16_t svc_scenend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

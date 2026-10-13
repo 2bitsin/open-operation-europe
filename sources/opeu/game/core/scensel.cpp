@@ -69,21 +69,24 @@ enum Service : std::uint16_t {
   SCENARIO_DESCRIPTION   = 34, // scenario description(buffer)
 };
 
+// The scenario text buffer (1600 bytes and the bytes the routine keeps below it).
+constexpr uint16_t TEXT_BYTES{ 0x648 };
+
 } // namespace
 
-// The 1600-byte text buffer lies on the DS stack: a caller passes an entry SP with at least 0x64c bytes reserved below
-// it. It stays at that slot: the officers' list draws a glyph from what the buffer leaves there (officers-advice).
-int opeu_new_game_setup(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const buf{ Local(static_cast<uint16_t>(sp - 2), 0x648) };
-  auto const     call{ [&](Service service, auto... words) -> uint16_t { return Call(ds, event, service, words...); } };
-  auto const     at{ [&](auto const& field) -> uint16_t { return Near(data, field); } };
-  auto&          side_control{ data.side_control };
-  auto&          side_status{ data.side_status };
-  int16_t        handle;
-  uint8_t        selection;
-  uint8_t        scenario;
-  int            new_game;
+// The text buffer the scenario text and the setting lines are loaded and formatted into, in the routine's reserve.
+int opeu_new_game_setup(uint8_t ds[65536], HostEvent event) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  uint16_t const      buf{ locals.At(0) };
+  auto const          call{ [&](Service service, auto... words) -> uint16_t { return Call(ds, event, service, words...); } };
+  auto const          at{ [&](auto const& field) -> uint16_t { return Near(data, field); } };
+  auto&               side_control{ data.side_control };
+  auto&               side_status{ data.side_status };
+  int16_t             handle;
+  uint8_t             selection;
+  uint8_t             scenario;
+  int                 new_game;
 
   call(LOAD_MESSAGE_GRAPHICS);
   handle = call(OPEN, at(data.scensel_file));

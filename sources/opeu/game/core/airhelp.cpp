@@ -35,7 +35,7 @@ constexpr std::uint8_t CITY{ 1 };
 
 // Shows the speaker panel with the question and "(low-high)? " (or "? " in the mouse input mode), then reads a number
 // in low..high; returns it, or 0xffff when cancelled.
-uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
+uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
   ServiceLocals const locals{ LINE_BYTES };
   auto&               data{ Data(ds) };
   auto const          line{ locals.At(0) };
@@ -54,7 +54,7 @@ uint16_t opeu_air_ask_count(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/,
 }
 
 // The current side's transport planes not committed to the airlift or a drop, floored at zero.
-uint16_t opeu_air_free_planes(uint8_t ds[65536], HostEvent, uint16_t) {
+uint16_t opeu_air_free_planes(uint8_t ds[65536], HostEvent) {
   auto&         data{ Data(ds) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t planes{ side.planes };
@@ -64,7 +64,7 @@ uint16_t opeu_air_free_planes(uint8_t ds[65536], HostEvent, uint16_t) {
 
 // Whether a mission (`what`) may target the cell: not a city of another side ("hostile city") and not terrain of code
 // 5, 6, 8 or 10 (named by its terrain); otherwise the officer says so and 0 is returned.
-uint16_t opeu_air_target_valid(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint8_t x, uint8_t y, uint16_t what) {
+uint16_t opeu_air_target_valid(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint16_t what) {
   auto&         data{ Data(ds) };
   auto const    kind{ static_cast<std::uint8_t>(opeu_map_code(ds, x, y)) };
   std::uint16_t name{};
@@ -87,7 +87,7 @@ uint16_t opeu_air_target_valid(uint8_t ds[65536], HostEvent event, uint16_t /*sp
 }
 
 // Asks the staff officer to confirm the mission.
-uint16_t opeu_air_confirm(uint8_t ds[65536], HostEvent event, uint16_t) {
+uint16_t opeu_air_confirm(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
   return Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CONFIRM_MISSION), data.context_record3);
 }

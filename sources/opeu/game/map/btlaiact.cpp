@@ -1,7 +1,5 @@
 // The computer's battle element actions: withdrawal to a map edge, ranged fire, the advance behind the unit's
 // ranged elements, and the dispatch on the element's plan.
-//
-// Callees that keep coordinates on the original stack (SS = DS) take sp, the modeled SP at their entry.
 #include "map/btlaiact.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
@@ -40,10 +38,6 @@ constexpr uint8_t  BATTLE_EDGE{ BATTLE_WIDTH - 1 };
 constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
 // ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
-// Below the callers' sp: the frames of the callees.
-constexpr uint16_t ATTACK_FRAME{ 12 };
-constexpr uint16_t ACT_FRAME{ 4 };
-constexpr uint16_t THINK_FRAME{ 16 };
 
 [[nodiscard]] auto TypeOf(DataSegment& data, uint16_t element) -> ElementType& {
   return data.element_types[Record<Element>(data, element).type];
@@ -115,13 +109,13 @@ uint16_t opeu_battle_ai_try_fire(uint8_t* ds, BattleEvent event, uint16_t elemen
   return 1;
 }
 
-void opeu_battle_ai_fire_or_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {
+void opeu_battle_ai_fire_or_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
   auto& data{ Data(ds) };
   for (auto& other : Elements(data, Record<Unit>(data, unit))) {
     auto const near{ Near(data, other) };
     if (opeu_battle_element_active(ds, event, near) && TypeOf(data, near).gun_range > RANGED_MODE && opeu_battle_ai_try_fire(ds, event, element, near)) return;
   }
-  opeu_battle_ai_attack_near(ds, event, element, unit, Local(sp, ATTACK_FRAME));
+  opeu_battle_ai_attack_near(ds, event, element, unit);
 }
 
 uint16_t opeu_battle_ai_try_move(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
@@ -178,7 +172,7 @@ void opeu_battle_ai_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
   opeu_battle_ai_hold(ds, event, element);
 }
 
-void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t /*sp*/) {
+void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element) {
   if (opeu_battle_best_target(ds, event, element)) {
     opeu_battle_ai_hold(ds, event, element);
     return;
@@ -191,49 +185,47 @@ void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element
   opeu_battle_ai_hold(ds, event, element);
 }
 
-void opeu_battle_ai_act(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp) {
+void opeu_battle_ai_act(uint8_t* ds, BattleEvent event, uint16_t element) {
   if (TypeOf(Data(ds), element).gun_range > RANGED_MODE)
-    opeu_battle_ai_engage_best(ds, event, element, Local(sp, ACT_FRAME));
+    opeu_battle_ai_engage_best(ds, event, element);
   else
     opeu_battle_ai_advance(ds, event, element);
 }
 
-void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp) {
+void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&      data{ Data(ds) };
   auto const unit{ opeu_battle_ai_unit_target(ds, event, element) };
   if (!unit) {
     opeu_battle_ai_hold(ds, event, element);
     return;
   }
-  auto const inner{ Local(sp, THINK_FRAME) };
   auto const plan{ opeu_battle_ai_plan_low(ds, event, element) };
   auto const profile{ opeu_battle_ai_profile(ds, event, unit, 0) };
   auto const action{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_ai_actions) + plan * 5u + profile)) };
   switch (static_cast<AiAction>(action)) {
   case AiAction::WITHDRAW:
     if (opeu_battle_ai_withdraw(ds, event, element, unit)) break;
-    opeu_battle_ai_attack_near(ds, event, element, unit, inner);
+    opeu_battle_ai_attack_near(ds, event, element, unit);
     break;
-  case AiAction::ATTACK_NEAR:    opeu_battle_ai_attack_near(ds, event, element, unit, inner); break;
-  case AiAction::ATTACK_MID:     opeu_battle_ai_attack_mid(ds, event, element, unit, inner); break;
-  case AiAction::ATTACK_FAR:     opeu_battle_ai_attack_far(ds, event, element, unit, inner); break;
-  case AiAction::FIRE_OR_ATTACK: opeu_battle_ai_fire_or_attack(ds, event, element, unit, inner); break;
-  case AiAction::ACT:            opeu_battle_ai_act(ds, event, element, inner); break;
+  case AiAction::ATTACK_NEAR:    opeu_battle_ai_attack_near(ds, event, element, unit); break;
+  case AiAction::ATTACK_MID:     opeu_battle_ai_attack_mid(ds, event, element, unit); break;
+  case AiAction::ATTACK_FAR:     opeu_battle_ai_attack_far(ds, event, element, unit); break;
+  case AiAction::FIRE_OR_ATTACK: opeu_battle_ai_fire_or_attack(ds, event, element, unit); break;
+  case AiAction::ACT:            opeu_battle_ai_act(ds, event, element); break;
   default:                       break;
   }
 }
 
 // The services of the battle AI modules. The path step takes the addresses of two frame bytes it never reads back;
-// the caller passes their values, which go to two modeled stack bytes.
+// the caller passes their values, which go to two bytes in a reserve of their own.
 uint16_t svc_battle_ai(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
   if (address == std::to_underlying(BattleRoutine::BATTLE_PATH_STEP)) {
-    auto const cell{ port_scratch_enter(2) };
+    ServiceLocals const locals{ 2 };
+    auto const          cell{ locals.At(0) };
     Byte(ds, cell)                             = static_cast<uint8_t>(count > 0 ? args[0] : 0);
     Byte(ds, static_cast<uint16_t>(cell + 1u)) = static_cast<uint8_t>(count > 1 ? args[1] : 0);
     uint16_t const words[]{ static_cast<uint16_t>(cell + 1u), cell };
-    auto const     result{ static_cast<uint16_t>(port_call(ds, address, words, 2)) };
-    port_scratch_leave(2);
-    return result;
+    return static_cast<uint16_t>(port_call(ds, address, words, 2));
   }
   return port_service(ds, address, args, count);
 }

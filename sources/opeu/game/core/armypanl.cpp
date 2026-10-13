@@ -41,8 +41,7 @@ constexpr std::uint16_t STRING_FORMAT{ offsetof(DataSegment, panel_string_format
 constexpr std::uint16_t ICONS{ 0x660 }; // eleven 64-byte element icons in the frame segment
 constexpr std::uint16_t ICON_BYTES{ 64 };
 constexpr std::uint16_t WHITE{ 7 };
-constexpr std::uint16_t NAME_BUFFER{ 0x2a };    // the element name buffer the name service writes
-constexpr std::uint16_t ELEMENTS_CALL_SP{ 16 }; // the entry SP of the element rows, below the regiments' own
+constexpr std::uint16_t NAME_BUFFER{ 0x2a }; // the element name buffer the name service writes
 
 // The text color of the current side's names: 5 for side 1, 6 for side 0.
 auto NameColor(DataSegment const& data) -> std::uint16_t {
@@ -82,7 +81,7 @@ uint32_t opeu_element_icon(const uint8_t ds[65536], uint16_t element) {
 }
 
 // Icon, name and count of each element of the unit with a nonzero count, two per row from y.
-void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int y, uint16_t /*sp*/) {
+void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int y) {
   ServiceLocals const locals{ NAME_BUFFER };
   auto&               data{ Data(ds) };
   auto const          buffer{ locals.At(0) };
@@ -119,7 +118,7 @@ void opeu_panel_battle_frame(uint8_t ds[65536], HostEvent event, int y) {
 
 // The eight regiments of a division from `units` (the view menu's division entry): regiments 1-4 are the battle
 // regiments, 5-8 carry their own names.
-void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units, uint16_t person, uint16_t sp) {
+void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units, uint16_t person) {
   auto& data{ Data(ds) };
   for (int i{ 0 }; i < 8; ++i, units = static_cast<std::uint16_t>(units + sizeof(Unit))) {
     if (!(Record<Unit>(data, units).flags & Bits(UnitFlag::READY))) continue;
@@ -139,7 +138,7 @@ void opeu_division_regiments(uint8_t ds[65536], HostEvent event, uint16_t units,
       Call(ds, event, PRINT, STRING_FORMAT, data.panel_regiment_names[i - 4]);
       if (Call(ds, event, ELIGIBLE, units)) opeu_panel_slots(ds, event, y, 2);
     }
-    if (Call(ds, event, ELIGIBLE, units)) opeu_panel_elements(ds, event, units, y, static_cast<std::uint16_t>(sp - ELEMENTS_CALL_SP));
+    if (Call(ds, event, ELIGIBLE, units)) opeu_panel_elements(ds, event, units, y);
   }
 }
 

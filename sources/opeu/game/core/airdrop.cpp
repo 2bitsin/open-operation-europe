@@ -53,11 +53,6 @@ constexpr std::uint16_t SITE_Y_AT{ 0 };
 constexpr std::uint16_t SITE_X_AT{ 2 };
 constexpr std::uint16_t SITE_BYTES{ 4 };
 
-// The entry SP of a callee whose return address the caller pushes `depth` bytes below its own frame.
-constexpr auto CalleeSp(std::uint16_t sp, std::uint16_t depth) -> std::uint16_t {
-  return Local(sp, static_cast<std::uint16_t>(2 + depth));
-}
-
 auto CurrentDrop(DataSegment& data) -> AirDrop& {
   return Record<Side>(data, data.current_side_ptr).drop;
 }
@@ -79,7 +74,7 @@ auto ReleaseElements(std::uint8_t* ds, std::uint16_t list) -> std::uint8_t {
 } // namespace
 
 // Regiment list callback: marks the highlighted free unit chosen.
-uint8_t opeu_air_mark_regiment(uint8_t ds[65536], HostEvent, uint16_t) {
+uint8_t opeu_air_mark_regiment(uint8_t ds[65536], HostEvent) {
   auto& data{ Data(ds) };
   Record<Unit>(data, data.supply_units[data.list_row]).flags = Bits(UnitFlag::AIRBORNE);
   return 1;
@@ -87,13 +82,12 @@ uint8_t opeu_air_mark_regiment(uint8_t ds[65536], HostEvent, uint16_t) {
 
 // Battalion list callback: asks how many troops the highlighted element takes (bounded by the transport capacity,
 // the paratroopers available and the type-0 request capacity) and keeps the side's assigned total.
-uint8_t opeu_air_assign_troops(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+uint8_t opeu_air_assign_troops(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto&      element{ Record<Element>(data, data.alloc_elements[data.list_row]) };
-  auto const most{ opeu_min16(
-      opeu_min16(opeu_air_free_planes(ds, event, CalleeSp(sp, 0x0e)) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
-      data.request_capacities[0]) };
-  auto const troops{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x14), Near(data, data.drop_ask_troops), 0, most, 1, data.context_record3, 0) };
+  auto const most{ opeu_min16(opeu_min16(opeu_air_free_planes(ds, event) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
+                              data.request_capacities[0]) };
+  auto const troops{ opeu_air_ask_count(ds, event, Near(data, data.drop_ask_troops), 0, most, 1, data.context_record3, 0) };
   if (troops != CANCELLED) {
     data.air_troops  = static_cast<std::uint16_t>(data.air_troops + (troops - element.quantity));
     element.quantity = troops;
@@ -104,14 +98,14 @@ uint8_t opeu_air_assign_troops(uint8_t ds[65536], HostEvent event, uint16_t sp) 
 }
 
 // Command-post list callback: marks the highlighted battalion as the drop's command post.
-uint8_t opeu_air_mark_battalion(uint8_t ds[65536], HostEvent, uint16_t) {
+uint8_t opeu_air_mark_battalion(uint8_t ds[65536], HostEvent) {
   auto& data{ Data(ds) };
   Record<Element>(data, data.alloc_elements[data.list_row]).flags |= Bits(ElementFlag::SELECTED);
   return 1;
 }
 
 // The first airborne element type the current side fields, or 0xff.
-uint8_t opeu_air_paratroop_type(uint8_t ds[65536], HostEvent, uint16_t) {
+uint8_t opeu_air_paratroop_type(uint8_t ds[65536], HostEvent) {
   auto const& data{ Data(ds) };
   auto const  mask{ data.side_masks[data.current_side] };
   for (std::uint8_t n{ 0 }; n < ELEMENT_TYPE_COUNT; ++n) {
@@ -124,7 +118,7 @@ uint8_t opeu_air_paratroop_type(uint8_t ds[65536], HostEvent, uint16_t) {
 // Chooses the regiment, its paratroop battalions (each element of the regiment's quota becomes the airborne type with
 // no troops until the callback assigns some) and the command post; nonzero when all were chosen, otherwise every
 // selection is released.
-uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event) {
   auto&                   data{ Data(ds) };
   constexpr std::uint16_t SUPPLY_UNITS{ offsetof(DataSegment, supply_units) };
   constexpr std::uint16_t ALLOC_ELEMENTS{ offsetof(DataSegment, alloc_elements) };
@@ -138,7 +132,7 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event, uint16_t sp)
     auto const free{ static_cast<std::uint8_t>(opeu_min16(ReleaseElements(ds, ALLOC_ELEMENTS), quota())) };
     data.choice_dialog.rows = static_cast<std::uint8_t>(free + 1);
     SetSelect(data.choice_dialog, ASSIGN_TROOPS_OFFSET);
-    auto const type{ opeu_air_paratroop_type(ds, event, CalleeSp(sp, 0x14)) };
+    auto const type{ opeu_air_paratroop_type(ds, event) };
     for (std::uint8_t i{ 0 }; i < quota() && free > i; ++i) {
       auto& element{ Record<Element>(data, data.alloc_elements[i]) };
       element.type     = type;
@@ -168,7 +162,7 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event, uint16_t sp)
 // Hours until the drop. The air force's own estimate (6..24 from the troops, the delivery level and its staff's
 // ratings) beats a shorter requested delay: it is announced, or on a rating roll the request stands. A requested
 // landing by daylight may be refused outright (0 returned).
-uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint8_t hours) {
+uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint8_t hours) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0) };
@@ -192,7 +186,7 @@ uint8_t opeu_air_drop_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/,
 }
 
 // Reports the planes needed (30 troops each), asks the air force to confirm and records the drop order.
-uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours) {
+uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint8_t hours) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(ds) };
   auto const          text{ locals.At(0) };
@@ -200,7 +194,7 @@ uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint16_t sp, ui
   auto const          planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
   Call(ds, event, FORMAT, text, Call(ds, event, LOOKUP, PLANES_NEEDED), hours, planes, planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes));
   Call(ds, event, MESSAGE, text, data.air_person);
-  if (opeu_air_confirm(ds, event, CalleeSp(sp, 0x7a))) {
+  if (opeu_air_confirm(ds, event)) {
     auto& drop{ CurrentDrop(data) };
     drop.x          = x;
     drop.y          = y;
@@ -216,12 +210,11 @@ uint16_t opeu_air_drop_order(uint8_t ds[65536], HostEvent event, uint16_t sp, ui
 // The Paratroops command: cancels a pending drop if asked, checks paratroopers, transports, free regiments and
 // battalions, chooses the forces and a valid drop site, asks the delay (6..24 hours) and confirms with Air Force HQ;
 // the side's turn ends once the drop is refused (delay 0) or ordered.
-void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_air_drop_command(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const callee{ CalleeSp(sp, 0x10) };
   auto const message{ [&](auto const& text) { Call(ds, event, MESSAGE, Near(data, text), data.context_record3); } };
   auto const confirm{ [&](auto const& text) { return Call(ds, event, CONFIRM, Near(data, text), data.context_record3); } };
-  if (opeu_air_paratroop_type(ds, event, callee) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
+  if (opeu_air_paratroop_type(ds, event) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
     message(data.drop_no_paratroopers);
     return;
   }
@@ -231,7 +224,7 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     ReleaseElements(ds, 0);
     CurrentDrop(data).transports = 0;
   }
-  if (!opeu_air_free_planes(ds, event, callee)) {
+  if (!opeu_air_free_planes(ds, event)) {
     message(data.drop_no_transports);
     return;
   }
@@ -243,7 +236,7 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     message(data.drop_no_battalions);
     return;
   }
-  if (!opeu_air_choose_forces(ds, event, callee)) return;
+  if (!opeu_air_choose_forces(ds, event)) return;
   ServiceLocals const locals{ SITE_BYTES };
   auto const          site_x{ locals.At(SITE_X_AT) };
   auto const          site_y{ locals.At(SITE_Y_AT) };
@@ -254,45 +247,31 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   do {
     message(data.drop_where);
     if (!Call(ds, event, PICK, site_x, site_y)) return;
-  } while (!opeu_air_target_valid(ds, event, callee, x, y, Near(data, data.drop_paratroopers)));
-  auto const hours{ opeu_air_ask_count(ds, event, CalleeSp(sp, 0x16), Near(data, data.drop_hours_prompt), 6, 24, 1, data.context_record3, 0) };
+  } while (!opeu_air_target_valid(ds, event, x, y, Near(data, data.drop_paratroopers)));
+  auto const hours{ opeu_air_ask_count(ds, event, Near(data, data.drop_hours_prompt), 6, 24, 1, data.context_record3, 0) };
   if (hours == CANCELLED) return;
   if (!confirm(data.drop_ask_hq)) return;
-  auto const delay{ opeu_air_drop_delay(ds, event, callee, static_cast<std::uint8_t>(hours)) };
-  if (delay == 0 || opeu_air_drop_order(ds, event, callee, x, y, delay)) data.side_delays[data.current_side] = 1;
+  auto const delay{ opeu_air_drop_delay(ds, event, static_cast<std::uint8_t>(hours)) };
+  if (delay == 0 || opeu_air_drop_order(ds, event, x, y, delay)) data.side_delays[data.current_side] = 1;
 }
 
 uint16_t svc_airdrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   return svc_air(ds, "airdrop", id, args, count);
 }
 
-namespace {
-
-// Runs a routine on the air force's DS stack frame.
-template <typename Routine>
-auto OnAirStack(std::uint8_t* ds, Routine routine) -> std::uint32_t {
-  auto const sp{ c2_air_sp_enter() };
-  auto const result{ routine(ds, svc_airdrop, sp) };
-  c2_air_leave();
-  return result;
-}
-} // namespace
-
 auto port_routine_opeu_air_assign_troops(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return OnAirStack(ds, opeu_air_assign_troops);
+  return opeu_air_assign_troops(ds, svc_airdrop);
 }
 
 auto port_routine_opeu_air_mark_battalion(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return OnAirStack(ds, opeu_air_mark_battalion);
+  return opeu_air_mark_battalion(ds, svc_airdrop);
 }
 
 auto port_routine_opeu_air_mark_regiment(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return OnAirStack(ds, opeu_air_mark_regiment);
+  return opeu_air_mark_regiment(ds, svc_airdrop);
 }
 
 auto port_routine_opeu_air_drop_command(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  auto const sp{ c2_air_sp_enter() };
-  opeu_air_drop_command(ds, svc_airdrop, sp);
-  c2_air_leave();
+  opeu_air_drop_command(ds, svc_airdrop);
   return 0;
 }

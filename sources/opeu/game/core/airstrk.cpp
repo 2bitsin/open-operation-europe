@@ -4,8 +4,7 @@
 // bomber flies down the screen; at the target row it bombs the unit (casualties) and the objective (damage) there,
 // or reports that every bomber was lost. The survivors come back to the side at midnight.
 //
-// A local whose address reaches a service lives in the routine's ServiceLocals reserve. The strike's cover divisor
-// is read before it is set and keeps the word its DS stack slot holds: it stays at Local(bp, n).
+// A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/airstrk.hpp"
 #include "common/events.hpp"
 #include "core/limits.hpp"
@@ -91,8 +90,6 @@ constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
 constexpr std::uint16_t STRONG_AIR_COMMAND{ 0x46 };
 constexpr std::uint8_t  HIGH_MORALE{ 0x3c };
 constexpr std::uint16_t TEXT_BYTES{ 0x64 };         // opeu_air_destroyed_message's text, which the format service writes
-constexpr std::uint16_t SHIELD_LOCAL{ 0x0a };       // opeu_air_strike_hit's cover divisor
-constexpr std::uint16_t CALLEE_FRAME{ 0x1c };       // the frame pointer opeu_air_strike_event's callees run with
 constexpr std::uint16_t SCREEN_TOP{ 0x15c };        // the bomber flies from this row
 constexpr std::uint16_t SCREEN_BOTTOM{ 0x54 };      // down to this one
 constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target where the bombs fall
@@ -123,7 +120,7 @@ uint16_t opeu_air_damage_roll(uint8_t ds[65536], HostEvent event, uint8_t x, uin
 }
 
 // "All the <what> were destroyed", from the side's air officer.
-void opeu_air_destroyed_message(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t what) {
+void opeu_air_destroyed_message(uint8_t ds[65536], HostEvent event, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto const          text{ locals.At(0) };
   Call(ds, event, REQUEST_FORMAT, text, DESTROYED_FORMAT, what);
@@ -162,11 +159,10 @@ void opeu_air_strike_present(uint8_t ds[65536], HostEvent event) {
 
 // The bombs fall on (x, y) from n planes: casualties to the unit there and damage to the objective there, at a rate
 // from the air command's supply and the planes, lower at night and under cover (the terrain's for a unit, the
-// garrison's for an objective). The cover divisor keeps its last value when neither is there.
-void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint16_t bp, uint8_t x, uint8_t y, uint16_t n) {
+// garrison's for an objective). With neither there the rate is not used.
+void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint16_t n) {
   auto&         data{ Data(ds) };
-  auto const    shield_at{ Local(bp, SHIELD_LOCAL) };
-  std::uint16_t shield{ Word(ds, shield_at) };
+  std::uint16_t shield{ 0 };
   auto const    supply{ Call(ds, event, OFFICER_RATING, data.air_side, AIR_KIND) };
   auto const    unit{ Call(ds, event, UNIT_AT, x, y) };
   if (unit) shield = data.air_cover[static_cast<std::uint8_t>(Call(ds, event, MAP_CODE, x, y))] / 6;
@@ -190,12 +186,11 @@ void opeu_air_strike_hit(uint8_t ds[65536], HostEvent event, uint16_t bp, uint8_
     auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n) / (IsNight(ds, event) + 1)) };
     Call(ds, event, OBJECTIVE_DAMAGE, site, 0x5a, rate, works, stores, n, 0);
   }
-  SetWord(ds, shield_at, shield);
 }
 
 // The strike flies: the planes leave the side's bombers, the air defence takes its toll, and the bomber crosses the
 // screen over the target; the survivors return at midnight and the order is cleared.
-void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
+void opeu_air_strike_event(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const side{ data.air_side };
   Call(ds, event, TURN_CONTEXT, data.side_status[side] == SIDE_PLAYED ? 0xd : 0xe);
@@ -211,7 +206,6 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
   auto const pixel{ ServicePixel(ds, event, VIEW_PIXEL, x, y) };
   auto const hx{ pixel.x };
   auto const my{ pixel.y };
-  auto const callee{ Local(bp, CALLEE_FRAME) };
   for (std::uint16_t row{ SCREEN_TOP }; row >= SCREEN_BOTTOM; --row) {
     Call(ds, event, SPRITE_DRAW, hx, row, side);
     if (row == my) {
@@ -221,11 +215,11 @@ void opeu_air_strike_event(uint8_t ds[65536], HostEvent event, uint16_t bp) {
     if (my - row == BOMB_LEAD) {
       Call(ds, event, MUSIC_COMMAND7);
       if (!planes) {
-        opeu_air_destroyed_message(ds, event, callee, BOMBERS_NAME);
+        opeu_air_destroyed_message(ds, event, BOMBERS_NAME);
         Call(ds, event, SPRITE_RESTORE, hx, row);
         break;
       }
-      opeu_air_strike_hit(ds, event, callee, x, y, planes);
+      opeu_air_strike_hit(ds, event, x, y, planes);
     }
     Call(ds, event, DELAY, 2);
     Call(ds, event, SPRITE_RESTORE, hx, row);
@@ -256,9 +250,7 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case SIDE_RECORD:    result = opeu_find_side_record(ds, byte(0), byte(1)); break;
   case MESSAGE:        opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case AIR_REPORT:     {
-    auto const frame{ c2_air_bp_enter() };
-    result = opeu_air_report(ds, svc_airshow, frame, Arg(args, count, 1), byte(0));
-    c2_air_leave();
+    result = opeu_air_report(ds, svc_airshow, Arg(args, count, 1), byte(0));
     break;
   }
   case PERSON_TEMPLATE: result = opeu_find_person_template(ds, byte(0), byte(1)); break;
@@ -267,30 +259,22 @@ uint16_t svc_airstrk(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case MAP_CODE:        result = opeu_map_code(ds, byte(0), byte(1)); break;
   case ISQRT:           result = opeu_isqrt(Arg(args, count, 0)); break;
   case CASUALTIES:      {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_unit_casualties(ds, svc_casualty, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
-    c2_air_leave();
+    opeu_unit_casualties(ds, svc_casualty, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5));
     break;
   }
   case OBJECTIVE_DAMAGE: {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_objective_damage(ds, svc_objdamag, frame, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
-    c2_air_leave();
+    opeu_objective_damage(ds, svc_objdamag, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     break;
   }
   case TURN_CONTEXT:    opeu_set_turn_context(ds, svc_sound, byte(0)); break;
   case SIDE_FOR_STATUS: result = opeu_side_for_status(ds, byte(0)); break;
   case MAP_CENTER:      {
-    auto const frame{ port_frame_enter() };
-    opeu_map_center(ds, svc_mappos, frame, byte(0), byte(1), byte(2));
-    port_frame_leave();
+    opeu_map_center(ds, svc_mappos, byte(0), byte(1), byte(2));
     break;
   }
   case VIEW_PIXEL:  opeu_view_pixel(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case SPRITE_DRAW: {
-    auto const frame{ c2_air_bp_enter() };
-    opeu_air_sprite_draw(ds, svc_airshow, 0, frame, Arg(args, count, 0), Arg(args, count, 1), byte(2));
-    c2_air_leave();
+    opeu_air_sprite_draw(ds, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), byte(2));
     break;
   }
   case DAILY_SHOW:       opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;

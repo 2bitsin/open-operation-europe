@@ -26,8 +26,8 @@ uint16_t svc_inspect(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   auto const x{ static_cast<uint8_t>(Arg(args, count, 0)) };
   auto const y{ static_cast<uint8_t>(Arg(args, count, 1)) };
   switch (static_cast<InspectService>(id)) {
-  case InspectService::HIGHLIGHT_VIEW:     WithMapFrame([&](uint16_t frame) { opeu_map_highlight_view(ds, svc_highlite, frame, x, y); }); break;
-  case InspectService::HIGHLIGHT_OVERVIEW: WithMapFrame([&](uint16_t frame) { opeu_map_highlight_overview(ds, svc_highlite, frame, x, y); }); break;
+  case InspectService::HIGHLIGHT_VIEW:     opeu_map_highlight_view(ds, svc_highlite, x, y); break;
+  case InspectService::HIGHLIGHT_OVERVIEW: opeu_map_highlight_overview(ds, svc_highlite, x, y); break;
   default:                                 port_unhandled("inspect", id, count);
   }
   return 0;

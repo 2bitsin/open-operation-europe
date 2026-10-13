@@ -58,7 +58,7 @@ constexpr std::uint16_t NAME_BYTES{ 0x50 }; // the headquarters regiment's name
 
 // Shown on a side the player controls (or when neither side is player-controlled). The headquarters regiment's name
 // is written into the routine's reserve for the print service.
-void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t /*scratch*/) {
+void opeu_army_summary(uint8_t ds[65537], HostEvent event) {
   ServiceLocals const locals{ NAME_BYTES };
   auto&               data{ Data(ds) };
   auto const          side{ data.current_side };

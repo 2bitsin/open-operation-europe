@@ -44,16 +44,16 @@ constexpr std::uint16_t READY_TEXT{ offsetof(DataSegment, control_ready) };
 constexpr std::uint16_t COMMAND_MENU{ offsetof(DataSegment, control_menu) };
 constexpr std::uint16_t CANCELED{ 0xffff };
 constexpr std::uint8_t  NO_SIDE{ 0xff };
-// The scratch buffer the caller reserves: the prompt text, then the inspected cell's y and x words.
-constexpr std::uint16_t SCRATCH_Y{ 50 };
-constexpr std::uint16_t SCRATCH_X{ 52 };
+// The command prompt the format service writes, and the inspected cell's x and y words the coordinates dialog moves.
+constexpr std::uint16_t PROMPT_BYTES{ 50 };
+constexpr std::uint16_t CELL_X_AT{ 0 };
+constexpr std::uint16_t CELL_Y_AT{ 2 };
+constexpr std::uint16_t CELL_BYTES{ 4 };
 } // namespace
 
-void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context_event, uint16_t scratch) {
-  auto&      data{ Data(ds) };
-  auto const at_x{ static_cast<std::uint16_t>(scratch + SCRATCH_X) };
-  auto const at_y{ static_cast<std::uint16_t>(scratch + SCRATCH_Y) };
-  bool       inspecting{ false };
+void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context_event) {
+  auto& data{ Data(ds) };
+  bool  inspecting{ false };
   data.context_side  = NO_SIDE;
   data.view_side     = NO_SIDE;
   data.overview_side = NO_SIDE;
@@ -72,8 +72,9 @@ void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context
       Call(ds, event, ACTIVE);
       opeu_turn_pre_context(ds, context_event);
       if (!inspecting) {
-        Call(ds, event, FORMAT, scratch, PROMPT_FORMAT, data.context_record1);
-        auto const choice{ Call(ds, event, MENU, scratch, 0, 10, 1, data.context_record2, COMMAND_MENU) };
+        ServiceLocals const prompt{ PROMPT_BYTES };
+        Call(ds, event, FORMAT, prompt.At(0), PROMPT_FORMAT, data.context_record1);
+        auto const choice{ Call(ds, event, MENU, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != CANCELED) {
           auto const action{ data.control_actions[choice] };
           Call(ds, event, ACTION, action.offset, action.segment);
@@ -84,7 +85,10 @@ void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context
       } else {
         inspecting             = false;
         data.control_selection = 0;
-        auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
+        auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
+        ServiceLocals const cell{ CELL_BYTES };
+        auto const          at_x{ cell.At(CELL_X_AT) };
+        auto const          at_y{ cell.At(CELL_Y_AT) };
         SetWord(ds, at_x, unit.x);
         SetWord(ds, at_y, unit.y);
         do Call(ds, event, MESSAGE, READY_TEXT, data.context_record2);
@@ -98,28 +102,23 @@ void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context
 uint16_t svc_control1(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case PREPARE:  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_control_prepare(ds, svc_advmenu, sp); }); break;
+  case PREPARE:  opeu_control_prepare(ds, svc_advmenu); break;
   case BEGIN:    opeu_control_begin(ds, svc_soundcue); break;
   case POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_arrival_location(ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)),
-                            static_cast<std::uint8_t>(Arg(args, count, 2)));
-    });
+    opeu_arrival_location(ds, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
-  case SUMMARY: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); }); break;
+  case SUMMARY: opeu_army_summary(ds, svc_armysum); break;
   case ACTIVE:  opeu_turn_active_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case MENU:
     result = opeu_control_choose(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
                                  Arg(args, count, 5));
     break;
-  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COORDINATES:
-    result = WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_control_coordinates(ds, svc_coords, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1)); });
-    break;
-  case ACTION: result = static_cast<uint16_t>(port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
-  default:     port_unhandled("control1", id, count);
+  case MESSAGE:     opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case COORDINATES: result = opeu_control_coordinates(ds, svc_coords, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ACTION:      result = static_cast<uint16_t>(port_call(ds, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
+  default:          port_unhandled("control1", id, count);
   }
   return result;
 }

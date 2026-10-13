@@ -101,9 +101,6 @@ enum class Action : uint16_t {
   SAVE_MENU = 0x0d32,
 };
 
-// The entry SP of an option called from the Settings command: below its frame and the call.
-constexpr uint16_t OPTION_SP_DEPTH{ 14 };
-
 // The slot records and saved blocks of the save file.
 constexpr uint16_t SLOT_BYTES{ sizeof(SaveSlot) };
 constexpr auto     SAVE_FILE_SLOTS{ SAVE_SLOT_COUNT };
@@ -146,15 +143,15 @@ void SaveMenuAction(uint8_t* ds, HostEvent event, uint16_t index) {
   }
 }
 
-// Runs the Settings menu's entry `index` with its entry SP; only the save/quit menu's result is examined.
-auto SettingsAction(uint8_t* ds, HostEvent event, uint16_t entry_sp, uint16_t index) -> uint16_t {
+// Runs the Settings menu's entry `index`; only the save/quit menu's result is examined.
+auto SettingsAction(uint8_t* ds, HostEvent event, uint16_t index) -> uint16_t {
   auto const& entry{ Data(ds).settings_actions[index] };
   switch (static_cast<Action>(entry.offset)) {
-  case Action::BATTLES:   opeu_settings_battles(ds, event, entry_sp); break;
-  case Action::DELAY:     opeu_settings_delay(ds, event, entry_sp); break;
-  case Action::MAP:       opeu_settings_map(ds, event, entry_sp); break;
-  case Action::SOUND:     opeu_settings_sound(ds, event, entry_sp); break;
-  case Action::PICTURES:  opeu_settings_pictures(ds, event, entry_sp); break;
+  case Action::BATTLES:   opeu_settings_battles(ds, event); break;
+  case Action::DELAY:     opeu_settings_delay(ds, event); break;
+  case Action::MAP:       opeu_settings_map(ds, event); break;
+  case Action::SOUND:     opeu_settings_sound(ds, event); break;
+  case Action::PICTURES:  opeu_settings_pictures(ds, event); break;
   case Action::SAVE_MENU: return opeu_settings_save_menu(ds, event);
   default:                return Call(ds, event, FAR_ACTION, entry.offset, entry.segment);
   }
@@ -188,7 +185,7 @@ void opeu_settings_print(uint8_t ds[65536], HostEvent event) {
 }
 
 // Which battles to watch: all, none or a choice before each.
-void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_settings_battles(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 102 }; // the message the format service writes
   auto&               data{ Data(ds) };
   uint16_t const      message{ locals.At(0) };
@@ -204,7 +201,7 @@ void opeu_settings_battles(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) 
 }
 
 // How long messages stay on screen.
-void opeu_settings_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_settings_delay(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 100 }; // the message the format service writes
   auto&               data{ Data(ds) };
   uint16_t const      message{ locals.At(0) };
@@ -214,7 +211,7 @@ void opeu_settings_delay(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
 }
 
 // Switches between the aerial and the field map and shows the current unit's place on it.
-void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_settings_map(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 100 }; // the message the format service writes
   auto&               data{ Data(ds) };
   uint16_t const      message{ locals.At(0) };
@@ -227,7 +224,7 @@ void opeu_settings_map(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
 }
 
 // Turns the music off or on.
-void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_settings_sound(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 100 }; // the message the format service writes
   auto&               data{ Data(ds) };
   uint16_t const      message{ locals.At(0) };
@@ -243,7 +240,7 @@ void opeu_settings_sound(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
 }
 
 // Turns the event pictures off or on.
-void opeu_settings_pictures(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_settings_pictures(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 100 }; // the message the format service writes
   auto&               data{ Data(ds) };
   uint16_t const      message{ locals.At(0) };
@@ -434,33 +431,29 @@ uint16_t opeu_settings_save_menu(uint8_t ds[65536], HostEvent event) {
 }
 
 // The Settings command: the options menu until it is cancelled or the save/quit entry returns 1.
-void opeu_turn_action_10(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_turn_action_10(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
   for (;;) {
     Call(ds, event, TITLE, Near(data, data.settings_title));
     opeu_settings_print(ds, event);
     auto const choice{ Call(ds, event, DIALOG, Near(data, data.settings_question), 6, data.context_record2, Near(data, data.settings_menu)) };
     if (choice == 0xffff) return;
-    auto const result{ SettingsAction(ds, event, static_cast<uint16_t>(sp - OPTION_SP_DEPTH), choice - 1) };
+    auto const result{ SettingsAction(ds, event, choice - 1) };
     if (choice == 6 && result == 1) return;
   }
 }
 
 // Each service of the Settings routines is the direct call of the routine that provides it.
 uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0, f;
+  uint16_t r = 0;
   switch (static_cast<SettingsService>(id)) {
-  case PRINT:   opeu_cursor_print(ds, { args, count }); break;
-  case FORMAT:  opeu_request_format(ds, { args, count }); break;
-  case DIALOG:  r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case NUMBER:  r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ASK:     r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOCATION:
-    f = b1_frame_enter();
-    opeu_arrival_location(ds, svc_mappos, f, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_frame_leave();
-    break;
+  case PRINT:           opeu_cursor_print(ds, { args, count }); break;
+  case FORMAT:          opeu_request_format(ds, { args, count }); break;
+  case DIALOG:          r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case NUMBER:          r = (uint8_t)opeu_choose_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MESSAGE:         opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ASK:             r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOCATION:        opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case MUSIC_STOP:      opeu_music_stop(ds, svc_sound); break;
   case PRE_CONTEXT:     opeu_turn_pre_context(ds, svc_context); break;
   case SCREEN_RESET:    opeu_screen_reset(ds, (const DialogHost*)port_dialogs_host()); break;
@@ -511,10 +504,8 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_turn_action_10(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  uint16_t sp = b1_sp_enter();
   (void)args;
   (void)count;
-  opeu_turn_action_10(ds, svc_settings, sp);
-  port_stack_leave(PORT_FRAME);
+  opeu_turn_action_10(ds, svc_settings);
   return 0;
 }

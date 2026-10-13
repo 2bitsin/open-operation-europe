@@ -37,7 +37,7 @@ constexpr std::uint16_t DIVISION_LOCALS{ 0xc };
 } // namespace
 
 // Picks a listed regiment, announces it and lists its battalions, the regiment list's window state kept aside.
-void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ REGIMENT_LOCALS };
   auto&               data{ Data(ds) };
   auto const          saved_window{ locals.At(REGIMENT_SAVED_WINDOW_AT) };
@@ -48,7 +48,7 @@ void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event, uint16_t sp) {
        height = 6) {
     auto const unit{ data.supply_units[data.list_row] };
     Call(ds, event, ViewService::UNIT_ANNOUNCE, unit, height);
-    data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(ds, event, CalleeStack(sp, 0x7c), unit) + 1);
+    data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(ds, event, unit) + 1);
     SetRowCheck(ds, event, data.choice_dialog, RowCheck::NONE_2);
     Call(ds, event, ViewService::CONTROL_PANEL);
     auto const unit_name{ Call(ds, event, ViewService::UNIT_NAME, unit, name) };
@@ -61,7 +61,7 @@ void opeu_view_regiment_list(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // Lists the eight regiments of one of the own side's divisions; returns 8.
-uint8_t opeu_list_group_units(uint8_t ds[65536], HostEvent, uint16_t, uint8_t group) {
+uint8_t opeu_list_group_units(uint8_t ds[65536], HostEvent, uint8_t group) {
   auto&      data{ Data(ds) };
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
   for (std::uint8_t n = 0; n < UNITS_PER_GROUP; n++) data.supply_units[n] = Near(data, data.units[first + n]);
@@ -70,7 +70,7 @@ uint8_t opeu_list_group_units(uint8_t ds[65536], HostEvent, uint16_t, uint8_t gr
 
 // Picks one of the own side's divisions, shows it, then lists its regiments, the division list's window state kept
 // aside.
-void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ DIVISION_LOCALS };
   auto&               data{ Data(ds) };
   auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
@@ -80,16 +80,16 @@ void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     auto const  division{ data.list_row };
     auto const& group{ data.groups[data.current_side * GROUPS_PER_SIDE + division] };
     Call(ds, event, ViewService::GROUP_SHOW, Near(data, group), division);
-    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(ds, event, CalleeStack(sp, 0xe), division) + 1);
+    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(ds, event, division) + 1);
     SetRowCheck(ds, event, data.organize_list, RowCheck::REGIMENT);
     Call(ds, event, ViewService::COPY_BYTES, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
-    opeu_view_regiment_list(ds, event, CalleeStack(sp, 0xe));
+    opeu_view_regiment_list(ds, event);
     Call(ds, event, ViewService::COPY_BYTES, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
   }
 }
 
 // The sighted enemy regiments.
-void opeu_view_enemy_units(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_view_enemy_units(uint8_t ds[65536], HostEvent event) {
   auto&        data{ Data(ds) };
   auto const   enemy{ static_cast<std::uint8_t>(Call(ds, event, ViewService::OPPOSITE_SIDE, data.current_side)) };
   std::uint8_t listed{ 0 };
@@ -103,7 +103,7 @@ void opeu_view_enemy_units(uint8_t ds[65536], HostEvent event, uint16_t sp) {
   }
   data.organize_list.rows = static_cast<uint8_t>(listed + 1);
   SetRowCheck(ds, event, data.organize_list, RowCheck::REGIMENT);
-  opeu_view_regiment_list(ds, event, CalleeStack(sp, 6));
+  opeu_view_regiment_list(ds, event);
 }
 
 uint16_t svc_vwregt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
@@ -111,11 +111,11 @@ uint16_t svc_vwregt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 }
 
 auto port_routine_opeu_view_enemy_units(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_view_enemy_units(ds, svc_vwregt, sp); });
+  opeu_view_enemy_units(ds, svc_vwregt);
   return 0;
 }
 
 auto port_routine_opeu_view_own_divisions(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_view_own_divisions(ds, svc_vwregt, sp); });
+  opeu_view_own_divisions(ds, svc_vwregt);
   return 0;
 }

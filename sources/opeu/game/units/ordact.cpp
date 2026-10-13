@@ -58,7 +58,7 @@ auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... word
 } // namespace
 
 // unit: the regiment under the cursor.
-void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t unit, uint16_t /*unused*/) {
+void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_t /*unused*/) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
@@ -147,25 +147,17 @@ uint16_t svc_ordact(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 int svc_orders(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result) {
   uint16_t r = 0;
   switch (id) {
-  case ORDERS_REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
-  case ORDERS_CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_ARRIVAL_LOCATION:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      opeu_arrival_location(ds, svc_mappos, static_cast<std::uint16_t>(sp - 2u), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    });
-    break;
-  case ORDERS_PICK_LOCATION:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) { return opeu_map_pick_location(ds, svc_mappick, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), Arg(args, count, 1)); });
-    break;
-  case ORDERS_CONTROL_PANEL: opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case ORDERS_GROUP_SHOW:
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_group_show(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); });
-    break;
+  case ORDERS_REQUEST_FORMAT:   opeu_request_format(ds, { args, count }); break;
+  case ORDERS_CONTROL_MESSAGE:  opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ORDERS_CONFIRM_MESSAGE:  r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ORDERS_ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ORDERS_PICK_LOCATION:    r = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ORDERS_CONTROL_PANEL:    opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case ORDERS_GROUP_SHOW:       opeu_group_show(ds, svc_mapunit, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ORDERS_LIST_DIALOG:      r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ORDERS_UNIT_ORDER_MENU:  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_order_menu(ds, svc_ordissue, sp, (uint8_t)Arg(args, count, 0)); }); break;
+  case ORDERS_UNIT_ORDER_MENU:  opeu_unit_order_menu(ds, svc_ordissue, (uint8_t)Arg(args, count, 0)); break;
   case ORDERS_SPEAKER_PANEL:    r = opeu_speaker_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_UNIT_ANNOUNCE:    WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0)); }); break;
+  case ORDERS_UNIT_ANNOUNCE:    opeu_unit_announce(ds, svc_mapunit, Arg(args, count, 0)); break;
   case ORDERS_ARMY_POSITION:    opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case ORDERS_PROMPT:           r = opeu_prompt_value_cancel(ds, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case ORDERS_CONTROL_POSITION: opeu_control_position(ds, Arg(args, count, 0), Arg(args, count, 1)); break;

@@ -27,10 +27,6 @@
 using namespace opeu::game;
 
 namespace {
-// Below opeu_battle_ranged_fire's frame: the frames its callees run on.
-constexpr uint16_t PANEL_FRAME{ 0x20 };
-constexpr uint16_t REDRAW_FRAME{ 0x22 };
-constexpr uint16_t ANIMATE_FRAME{ 0x26 };
 // The battle dispatch's firing sounds.
 constexpr uint8_t SOUND_HEAVY_GUN{ 0 };
 constexpr uint8_t SOUND_LONG_GUN{ 1 };
@@ -141,12 +137,12 @@ void opeu_battle_ranged_tracers(uint8_t* ds, BattleEvent event, uint16_t shooter
 }
 
 // frame: the routine's frame; the callees run below it.
-void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t frame) {
+void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target) {
   auto&   data{ Data(ds) };
   uint8_t x;
   uint8_t y;
   TargetCell(data, shooter, target, x, y);
-  opeu_battle_ranged_panel(ds, event, shooter, target, Local(frame, PANEL_FRAME));
+  opeu_battle_ranged_panel(ds, event, shooter, target);
   opeu_battle_ranged_tracers(ds, event, shooter, target);
   auto const  shot{ opeu_battle_ranged_damage(ds, event, shooter, target) };
   auto const  losses{ shot.losses };
@@ -155,14 +151,14 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
   if (FiresShells(type)) {
     uint8_t heavy{ 0 };
     if (target) heavy = Is(TypeOf(data, target), Category::INFANTRY) ? losses >= 30 : losses >= 10;
-    opeu_battle_animate_element(ds, event, x, y, heavy, 1, animation, target, Local(frame, ANIMATE_FRAME));
+    opeu_battle_animate_element(ds, event, x, y, heavy, 1, animation, target);
   } else if (type.category <= Bits(Category::SUPPLY)) {
-    opeu_battle_animate_element(ds, event, x, y, 0, 0, animation, target, Local(frame, ANIMATE_FRAME));
+    opeu_battle_animate_element(ds, event, x, y, 0, 0, animation, target);
   }
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   data.battle_element_destroyed = 0;
   if (!losses) {
-    opeu_battle_refresh_cell(ds, event, x, y, Local(frame, PANEL_FRAME));
+    opeu_battle_refresh_cell(ds, event, x, y);
   } else if (!shot.into_bunker) {
     auto&      hit{ Record<Element>(data, target) };
     auto const before{ hit.quantity };
@@ -175,7 +171,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
     if (!hit.quantity) {
       hit.damage = 0;
       opeu_battle_draw_cell(ds, event, x, y);
-      opeu_battle_wiped_notice(ds, event, target, Local(frame, PANEL_FRAME));
+      opeu_battle_wiped_notice(ds, event, target);
       data.battle_element_destroyed = 1;
       auto& own{ Record<Element>(data, shooter) };
       opeu_add_byte(1, CONDITION_LIMIT, &own.training);
@@ -189,7 +185,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
         opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category], &damage);
         hit.damage = damage;
       }
-      opeu_battle_redraw_cell(ds, event, x, y, target, opeu_battle_mode(ds, event, target), Local(frame, REDRAW_FRAME));
+      opeu_battle_redraw_cell(ds, event, x, y, target, opeu_battle_mode(ds, event, target));
     }
   } else {
     // A shot into a bunker: the garrison share there and the objective's strength take the losses.
@@ -200,7 +196,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
       if (extra.x == x && extra.y == y) {
         opeu_sub_byte(losses, &extra.count);
         opeu_sub_byte(losses, &objective.strength);
-        opeu_battle_refresh_cell(ds, event, x, y, Local(frame, PANEL_FRAME));
+        opeu_battle_refresh_cell(ds, event, x, y);
         break;
       }
     }
@@ -213,6 +209,6 @@ uint16_t svc_btlrfire(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_ranged_fire(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_ranged_fire(ds, svc_btlrfire, Arg(args, count, 1), Arg(args, count, 0), BattleFrame(sp)); });
+  opeu_battle_ranged_fire(ds, svc_btlrfire, Arg(args, count, 1), Arg(args, count, 0));
   return 0;
 }

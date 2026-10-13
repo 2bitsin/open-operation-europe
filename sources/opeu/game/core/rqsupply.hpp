@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void    opeu_request_supplies(uint8_t* ds, HostEvent event, uint16_t scratch);
+void    opeu_request_supplies(uint8_t* ds, HostEvent event);
 uint8_t opeu_rq_type_selectable();
 
 // The services of opeu_request_supplies (the request menu's, core/rqcommon).

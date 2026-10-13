@@ -137,12 +137,12 @@ uint16_t svc_app(uint8_t* ds, uint16_t id) {
   case INITIALIZE:   opeu_app_initialize(ds, svc_appinit); break;
   case STARTUP:      opeu_app_startup(ds, svc_appinit); break;
   case TURN:         opeu_process_selected_turn(ds, svc_dispatch); break;
-  case NOTICE_BEGIN: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_notice_begin(ds, svc_notice, sp); }); break;
+  case NOTICE_BEGIN: opeu_notice_begin(ds, svc_notice); break;
   case NOTICE_ONE:   opeu_notice_one(ds, svc_btlsetup); break;
   case NOTICE_OTHER: opeu_notice_other(ds, svc_btlend); break;
-  case NOTICE_END:   WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_notice_end(ds, svc_notend, sp); }); break;
+  case NOTICE_END:   opeu_notice_end(ds, svc_notend); break;
   case VICTORY:      result = opeu_check_victory(ds); break;
-  case FINISH:       WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_app_finish(ds, svc_scenend, sp); }); break;
+  case FINISH:       opeu_app_finish(ds, svc_scenend); break;
   default:           port_unhandled("app", id, 0);
   }
   return result;

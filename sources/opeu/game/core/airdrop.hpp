@@ -5,13 +5,13 @@
 #include "types.hpp"
 
 extern uint16_t opeu_airdrop_code_segment;
-uint8_t         opeu_air_mark_regiment(uint8_t* ds, HostEvent event, uint16_t sp);
-uint8_t         opeu_air_assign_troops(uint8_t* ds, HostEvent event, uint16_t sp);
-uint8_t         opeu_air_mark_battalion(uint8_t* ds, HostEvent event, uint16_t sp);
-uint8_t         opeu_air_paratroop_type(uint8_t* ds, HostEvent event, uint16_t sp);
-uint16_t        opeu_air_choose_forces(uint8_t* ds, HostEvent event, uint16_t sp);
-uint8_t         opeu_air_drop_delay(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t hours);
-uint16_t        opeu_air_drop_order(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t x, uint8_t y, uint8_t hours);
-void            opeu_air_drop_command(uint8_t* ds, HostEvent event, uint16_t sp);
+uint8_t         opeu_air_mark_regiment(uint8_t* ds, HostEvent event);
+uint8_t         opeu_air_assign_troops(uint8_t* ds, HostEvent event);
+uint8_t         opeu_air_mark_battalion(uint8_t* ds, HostEvent event);
+uint8_t         opeu_air_paratroop_type(uint8_t* ds, HostEvent event);
+uint16_t        opeu_air_choose_forces(uint8_t* ds, HostEvent event);
+uint8_t         opeu_air_drop_delay(uint8_t* ds, HostEvent event, uint8_t hours);
+uint16_t        opeu_air_drop_order(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t hours);
+void            opeu_air_drop_command(uint8_t* ds, HostEvent event);
 
 uint16_t svc_airdrop(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count);

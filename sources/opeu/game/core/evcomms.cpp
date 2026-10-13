@@ -39,7 +39,7 @@ constexpr std::uint16_t NEWS_BYTES{ 0x6c };  // the report text the format servi
 
 // The level is the delivery level for a side the player commands, else 2: a higher level grows strength more slowly
 // and makes both events rarer.
-void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ NEWS_BYTES };
   auto&               data{ Data(ds) };
   auto const          news{ locals.At(0) };
@@ -70,9 +70,7 @@ uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case FORMAT:  opeu_request_format(ds, { args, count }); break;
   case FLASH:   {
-    auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    port_frame_leave();
+    opeu_location_flash(ds, svc_mapunit, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   }
   default: port_unhandled("evcomms", id, count);
@@ -81,6 +79,6 @@ uint16_t svc_evcomms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_objective_comms_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_objective_comms_event(ds, svc_evcomms, sp); });
+  opeu_objective_comms_event(ds, svc_evcomms);
   return 0;
 }

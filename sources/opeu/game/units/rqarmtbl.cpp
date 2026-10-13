@@ -27,14 +27,15 @@ constexpr std::uint16_t NAME_TEXT{ 0x70 };
 } // namespace
 
 // Draws rows first..last of the regiment table's `column`, with the heading and the unit names as `flags` ask.
-void opeu_rq_draw_units(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_rq_draw_units(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(ds) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
-  auto const          scratch{ buffers.At(0) };
-  auto const          name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
-  auto const          text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
-  auto const&         window{ ActiveWindow(data) };
-  auto const          layout{ Columns(ds, event, scratch, column, row) };
+  buffers.Clear(ds);
+  auto const  scratch{ buffers.At(0) };
+  auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
+  auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
+  auto const& window{ ActiveWindow(data) };
+  auto const  layout{ Columns(ds, event, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(ds, event, window, layout, text, Near(data, data.rq_unit_header));
   for (auto entry{ first }; entry <= last; ++entry) {
     auto const unit{ data.ai_unit_list[entry] };

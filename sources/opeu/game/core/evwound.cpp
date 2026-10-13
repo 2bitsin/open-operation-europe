@@ -56,7 +56,6 @@ struct DeathNotice {
   std::uint8_t         side;
 };
 constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
-constexpr std::uint16_t DEATH_BP_BELOW_SP{ 0x12 }; // the frame pointer opeu_commander_death gets from the event
 } // namespace
 
 // The presentation's far routine: a pause.
@@ -65,7 +64,7 @@ void opeu_death_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
-void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, uint16_t person) {
+void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t person) {
   ServiceLocals const locals{ NOTICE_BYTES };
   auto&               data{ Data(ds) };
   auto const          at{ locals.At(0) };
@@ -88,7 +87,7 @@ void opeu_commander_death(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/, u
 // A wounded general recovers with chance 1 in (level * 10 + 24), the level being the delivery level for a side the
 // player commands and 2 otherwise; else he loses 10 - limit / 10 health. Healing: 1 for a general assigned to a
 // division, 3 while his record counter runs, else 2.
-void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_wound_event(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (std::uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
     std::uint16_t const level{ data.side_control[side] == SIDE_PLAYED ? data.delivery_level : COMPUTER_LEVEL };
@@ -106,7 +105,7 @@ void opeu_wound_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
           else if ((person.role & Bits(PersonRole::ROLE_MASK)) == GENERAL_ROLE)
             person.role |= Bits(PersonRole::DEPUTY);
           else
-            opeu_commander_death(ds, event, static_cast<std::uint16_t>(sp - DEATH_BP_BELOW_SP), Near(data, person));
+            opeu_commander_death(ds, event, Near(data, person));
         }
       }
       std::uint8_t amount{ 2 };
@@ -137,6 +136,6 @@ auto port_routine_opeu_death_present(std::uint8_t* ds, std::uint16_t const*, uns
 }
 
 auto port_routine_opeu_wound_event(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_wound_event(ds, svc_evwound, sp); });
+  opeu_wound_event(ds, svc_evwound);
   return 0;
 }

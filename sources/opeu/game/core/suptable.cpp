@@ -82,7 +82,7 @@ uint8_t opeu_supply_true(void) {
 }
 
 // Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
-void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t /*scratch*/, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(ds) };
@@ -124,7 +124,7 @@ uint8_t opeu_supply_return_slot(uint8_t ds[65536], HostNotify event) {
 }
 
 // Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
-void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t /*scratch*/, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(ds) };
@@ -166,29 +166,14 @@ void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count
   }
 }
 
-namespace {
-
-// Runs a view with the frame its buffers need; scratch lies 0x40 bytes below the frame.
-template <typename View> auto WithScratch(View&& view) -> std::uint32_t {
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-    view(static_cast<std::uint16_t>(sp - 2 - 0x40));
-    return std::uint32_t{ 0 };
-  });
-}
-} // namespace
-
 auto port_routine_opeu_supply_draw_slots(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithScratch([&](std::uint16_t scratch) {
-    opeu_supply_draw_slots(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
-                           (uint8_t)Arg(args, count, 4));
-  });
+  opeu_supply_draw_slots(ds, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+  return 0;
 }
 
 auto port_routine_opeu_supply_draw_types(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithScratch([&](std::uint16_t scratch) {
-    opeu_supply_draw_types(ds, svc_suptable, scratch, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3),
-                           (uint8_t)Arg(args, count, 4));
-  });
+  opeu_supply_draw_types(ds, svc_suptable, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3), (uint8_t)Arg(args, count, 4));
+  return 0;
 }
 
 auto port_routine_opeu_supply_return_slot(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {

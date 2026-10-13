@@ -55,11 +55,13 @@ auto KeyAmount(std::uint8_t key) -> std::uint16_t {
 }
 } // namespace
 
-// selection is the near pointer of the selected row's byte, which the mouse input may set.
-uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event, uint16_t selection) {
-  auto&        data{ Data(ds) };
-  auto&        selected{ Record<std::uint8_t>(data, selection) };
-  std::uint8_t highlighted{ NO_ROW };
+// The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
+uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event) {
+  ServiceLocals const locals{ 2 };
+  auto const          selection{ locals.At(0) };
+  auto&               data{ Data(ds) };
+  auto&               selected{ Record<std::uint8_t>(data, selection) };
+  std::uint8_t        highlighted{ NO_ROW };
   selected = 0;
   Call(ds, event, ROW, 1, 0);
   Call(ds, event, ROW, 0, 0);

@@ -129,7 +129,7 @@ void opeu_end_occupy_present(uint8_t ds[65536], HostEvent event) {
 
 // The defender retreats in battle_direction; when the battle cell is then empty and the attacker may enter it (an
 // objective there must be his own side's), the attacker moves in, and an objective taken is reported and shown.
-void opeu_end_occupy(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+void opeu_end_occupy(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0x6c };
   auto&               data{ Data(ds) };
   uint16_t const      text{ locals.At(0) };
@@ -235,7 +235,7 @@ void opeu_end_nothing(void) { }
 
 // Reports, when the battle is reported and not only presented, every engaged element's losses to its side's
 // commander: wiped out, not damaged, or how many it lost.
-void opeu_end_losses(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
+void opeu_end_losses(uint8_t ds[65536], HostEvent event) {
   ServiceLocals const locals{ 0xb2 };
   auto&               data{ Data(ds) };
   uint16_t const      report{ locals.At(0x42) };
@@ -275,17 +275,16 @@ void opeu_end_losses(uint8_t ds[65536], HostEvent event, uint16_t /*bp*/) {
   }
 }
 
-// The end of a battle; sp is the DS stack pointer at entry. Afterwards the daily context of the side a player
+// The end of a battle. Afterwards the daily context of the side a player
 // commands is shown again (side_control 1: a player; 0: the computer); with two computer sides, side 1's when a
 // player plays it, else side 0's.
-void opeu_notice_end(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&          data{ Data(ds) };
-  uint16_t const bp{ static_cast<uint16_t>(sp - 6) };
+void opeu_notice_end(uint8_t ds[65536], HostEvent event) {
+  auto& data{ Data(ds) };
   Call(ds, event, TURN_PREPARE);
-  opeu_end_losses(ds, event, bp);
+  opeu_end_losses(ds, event);
   opeu_end_select(ds, 0);
   opeu_end_select(ds, 1);
-  opeu_end_occupy(ds, event, bp);
+  opeu_end_occupy(ds, event);
   opeu_end_leaders(ds);
   opeu_end_morale(ds);
   opeu_end_orders(ds);
@@ -304,25 +303,13 @@ void opeu_notice_end(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 uint16_t svc_notend(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t sp, r = 0;
+  uint16_t r = 0;
   switch (id) {
-  case SOUND_CUE: opeu_sound_cue10(ds, svc_soundcue); break;
-  case WAIT:      opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case SHOW_LOCATION:
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_location(ds, svc_mappos, (uint16_t)(sp - 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    port_stack_leave(PORT_FRAME);
-    break;
-  case ERASE_UNIT:
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_unit_remove_draw(ds, svc_maperase, (uint16_t)(sp - 2), Arg(args, count, 0));
-    port_stack_leave(PORT_FRAME);
-    break;
-  case PREPARE_UNIT:
-    sp = port_stack_enter(PORT_FRAME);
-    opeu_arrival_prepare(ds, svc_maperase, (uint16_t)(sp - 2), Arg(args, count, 0));
-    port_stack_leave(PORT_FRAME);
-    break;
+  case SOUND_CUE:      opeu_sound_cue10(ds, svc_soundcue); break;
+  case WAIT:           opeu_delay_units(ds, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case SHOW_LOCATION:  opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ERASE_UNIT:     opeu_unit_remove_draw(ds, svc_maperase, Arg(args, count, 0)); break;
+  case PREPARE_UNIT:   opeu_arrival_prepare(ds, svc_maperase, Arg(args, count, 0)); break;
   case FORMAT:         opeu_request_format(ds, { args, count }); break;
   case UNIT_MESSAGE:   opeu_unit_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;

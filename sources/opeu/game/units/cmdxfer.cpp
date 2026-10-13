@@ -137,7 +137,7 @@ void opeu_transfer_present(uint8_t ds[65536], HostEvent event) {
 }
 
 // The transfer dialog; segment: the transfer's code segment.
-void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t segment) {
+void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto&               data{ Data(ds) };
   ServiceLocals const message{ MESSAGE_BYTES };
   auto const          buffer{ message.At(0) };
@@ -209,8 +209,8 @@ uint16_t svc_cmdxfer(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
   case LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case GROUP_SHOW: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_group_show(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); }); break;
-  case UNIT_ANNOUNCE: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_unit_announce(ds, svc_mapunit, static_cast<std::uint16_t>(sp - 2u), Arg(args, count, 1)); }); break;
+  case GROUP_SHOW:      opeu_group_show(ds, svc_mapunit, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case UNIT_ANNOUNCE:   opeu_unit_announce(ds, svc_mapunit, Arg(args, count, 1)); break;
   case DAILY_SHOW:
     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
     break;
@@ -249,6 +249,6 @@ auto port_routine_opeu_transfer_unit_enabled(std::uint8_t* ds, std::uint16_t con
 auto port_routine_opeu_turn_action_3(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_turn_action_3(ds, svc_cmdxfer, sp, TRANSFER_SEGMENT); });
+  opeu_turn_action_3(ds, svc_cmdxfer, TRANSFER_SEGMENT);
   return 0;
 }

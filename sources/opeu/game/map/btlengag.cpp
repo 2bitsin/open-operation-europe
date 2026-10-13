@@ -25,10 +25,6 @@ namespace {
 constexpr uint16_t NOTICE_RESERVE{ 0x88 };
 constexpr uint16_t NOTICE_NAME{ 0 };
 constexpr uint16_t NOTICE_TEXT{ 0x20 };
-// Below the step routines' frames: their callees' frames.
-constexpr uint16_t FACING_REDRAW_FRAME{ 0x14 };
-constexpr uint16_t STEP_NOTICE_FRAME{ 0x1a };
-constexpr uint16_t STEP_MOVE_FRAME{ 0x20 };
 // The DS reserves of the cell bytes the step and path services write, and their offsets in them.
 constexpr uint16_t NEXT_RESERVE{ 0x10 };
 constexpr uint16_t NEXT_X_AT{ 6 };
@@ -78,7 +74,7 @@ void Pause(uint8_t* ds, BattleEvent event) {
 } // namespace
 
 // "<unit> is out of <supply>! They cannot move/fight!", for a side a player commands.
-void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t supply, uint16_t /*frame*/) {
+void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t supply) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ NOTICE_RESERVE };
   auto const          text{ locals.At(NOTICE_TEXT) };
@@ -111,14 +107,13 @@ uint16_t opeu_battle_cell_in_range(uint8_t* ds, BattleEvent, uint16_t element) {
 }
 
 // Infantry flash once; other elements turn through the in-between facing to the new one.
-void opeu_battle_animate_facing(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t mode, uint16_t frame) {
+void opeu_battle_animate_facing(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t mode) {
   auto&      data{ Data(ds) };
-  auto const redraw_frame{ Local(frame, FACING_REDRAW_FRAME) };
   auto const x{ PositionOf(data, element).x };
   auto const y{ PositionOf(data, element).y };
   auto const current{ opeu_battle_mode(ds, event, element) };
   auto const draw{ [&](uint8_t facing) {
-    opeu_battle_redraw_cell(ds, event, x, y, element, facing, redraw_frame);
+    opeu_battle_redraw_cell(ds, event, x, y, element, facing);
     Pause(ds, event);
   } };
   auto const facing{ [](CellFacing f) { return std::to_underlying(f); } };
@@ -139,19 +134,19 @@ void opeu_battle_animate_facing(uint8_t* ds, BattleEvent event, uint16_t element
 
 // An element short of fuel cannot move; into a free cell it turns and moves, otherwise it stops facing nowhere and
 // reports whether it stands at its goal (its target's cell when engaged).
-uint8_t opeu_battle_step_into(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y, uint16_t frame) {
+uint8_t opeu_battle_step_into(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
   if (TypeOf(data, element).fuel_capacity && Record<Unit>(data, unit).resources[1] == 0) {
-    opeu_battle_supply_notice(ds, event, element, SUPPLY_FUEL, Local(frame, STEP_NOTICE_FRAME));
+    opeu_battle_supply_notice(ds, event, element, SUPPLY_FUEL);
     return std::to_underlying(StepResult::ARRIVED);
   }
   if (!opeu_battle_cell_occupied(ds, event, x, y)) {
     uint8_t const facing{ IsInfantry(data, element) ? uint8_t{ 0 } : opeu_battle_cell_facing(ds, event, PositionOf(data, element).x, PositionOf(data, element).y, x, y) };
-    opeu_battle_animate_facing(ds, event, element, facing, Local(frame, STEP_NOTICE_FRAME));
+    opeu_battle_animate_facing(ds, event, element, facing);
     auto const from_x{ PositionOf(data, element).x };
     auto const from_y{ PositionOf(data, element).y };
-    opeu_battle_move_element(ds, event, from_x, from_y, x, y, element, facing, Local(frame, STEP_MOVE_FRAME));
+    opeu_battle_move_element(ds, event, from_x, from_y, x, y, element, facing);
     Call(ds, event, BattleRoutine::BATTLE_SPOT_ENEMIES, element);
     opeu_battle_set_order(ds, event, element, 0);
     return std::to_underlying(StepResult::MOVED);
@@ -173,7 +168,7 @@ uint8_t opeu_battle_step_into(uint8_t* ds, BattleEvent event, uint16_t element, 
 
 // x, y: DS offsets of the destination cell bytes; on a path found they receive its next step. The element waits
 // while its order counter is below the cheapest free neighbour's cost.
-uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t /*frame*/) {
+uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ NEXT_RESERVE };
   auto const          next_x{ locals.At(NEXT_X_AT) };
@@ -203,7 +198,7 @@ uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, 
 }
 
 // x, y: DS offsets of the goal cell bytes; on a path found they receive its next step.
-uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t /*frame*/) {
+uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ PATH_RESERVE };
   auto const          step_x{ locals.At(PATH_X_AT) };
@@ -224,7 +219,7 @@ uint16_t svc_btlengag(uint8_t* ds, uint32_t address, const uint16_t* args, unsig
 }
 
 auto port_routine_opeu_battle_animate_facing(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_animate_facing(ds, svc_btlengag, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)), BattleFrame(sp)); });
+  opeu_battle_animate_facing(ds, svc_btlengag, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
   return 0;
 }
 
@@ -233,21 +228,19 @@ auto port_routine_opeu_battle_cell_in_range(std::uint8_t* ds, std::uint16_t cons
 }
 
 auto port_routine_opeu_battle_element_path_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) -> std::uint32_t { return opeu_battle_element_path_step(ds, svc_btlengag, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), BattleFrame(sp)); });
+  return opeu_battle_element_path_step(ds, svc_btlengag, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1));
 }
 
 auto port_routine_opeu_battle_next_step(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) -> std::uint32_t { return opeu_battle_next_step(ds, svc_btlengag, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), BattleFrame(sp)); });
+  return opeu_battle_next_step(ds, svc_btlengag, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1));
 }
 
 auto port_routine_opeu_battle_step_into(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) -> std::uint32_t {
-    return opeu_battle_step_into(ds, svc_btlengag, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), BattleFrame(sp));
-  });
+  return opeu_battle_step_into(ds, svc_btlengag, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
 }
 
 auto port_routine_opeu_battle_supply_notice(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  WithBattleStack([&](uint16_t sp) { opeu_battle_supply_notice(ds, svc_btlengag, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)), BattleFrame(sp)); });
+  opeu_battle_supply_notice(ds, svc_btlengag, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
   return 0;
 }
 

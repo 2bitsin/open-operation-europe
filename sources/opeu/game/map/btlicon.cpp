@@ -93,7 +93,7 @@ uint16_t opeu_battle_code_low(uint8_t*, BattleEvent, uint8_t code) {
 }
 
 // Side 0's icons face the other way: each row's two halves are swapped.
-void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode, uint16_t /*frame*/) {
+void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ ICON_BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };

@@ -56,7 +56,7 @@ uint8_t opeu_menu_always(void) {
   return 1;
 }
 
-void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t /*sp*/, uint8_t group) {
+void opeu_group_set_target(uint8_t* ds, HostEvent event, uint8_t group) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ TARGET_RESERVE };
   auto const          x_at{ locals.At(PICKED_X_AT) };
@@ -108,14 +108,12 @@ uint16_t svc_ordtgt(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
   switch (static_cast<TargetService>(id)) {
-  case TargetService::FORMAT:          opeu_request_format(ds, { args, count }); return 0;
-  case TargetService::CONTROL_MESSAGE: opeu_control_message(ds, host(), arg(0), arg(1)); return 0;
-  case TargetService::CONFIRM:         return opeu_confirm_message(ds, host(), arg(0), arg(1));
-  case TargetService::ARRIVAL_LOCATION:
-    WithMapFrame([&](uint16_t frame) { opeu_arrival_location(ds, svc_mappos, frame, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); });
-    return 0;
-  case TargetService::PICK_LOCATION: return WithMapFrame([&](uint16_t frame) { return opeu_map_pick_location(ds, svc_mappick, frame, arg(0), arg(1)); });
-  default:                           port_unhandled("ordtgt", id, count);
+  case TargetService::FORMAT:           opeu_request_format(ds, { args, count }); return 0;
+  case TargetService::CONTROL_MESSAGE:  opeu_control_message(ds, host(), arg(0), arg(1)); return 0;
+  case TargetService::CONFIRM:          return opeu_confirm_message(ds, host(), arg(0), arg(1));
+  case TargetService::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); return 0;
+  case TargetService::PICK_LOCATION:    return opeu_map_pick_location(ds, svc_mappick, arg(0), arg(1));
+  default:                              port_unhandled("ordtgt", id, count);
   }
   return 0;
 }

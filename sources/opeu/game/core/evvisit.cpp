@@ -160,9 +160,7 @@ uint16_t svc_evvisit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case DAILY:   opeu_daily_context(ds, svc_context, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case CONTEXT: opeu_set_turn_context(ds, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case MARK:    {
-    auto const frame{ port_frame_enter() };
-    opeu_location_flash(ds, svc_mapunit, frame, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    port_frame_leave();
+    opeu_location_flash(ds, svc_mapunit, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   }
   case SHOW:   port_daily_show(ds, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;

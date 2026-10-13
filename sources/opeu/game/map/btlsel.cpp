@@ -24,15 +24,13 @@ namespace {
 constexpr uint16_t MOUSE_RESERVE{ 8 };
 constexpr uint16_t MOUSE_X_AT{ 2 };
 constexpr uint16_t MOUSE_Y_AT{ 0 };
-// The mouse loop's frame below select_cell's entry SP.
-constexpr uint16_t MOUSE_FRAME{ 6 };
 // The column of a pointer outside the battle map.
 constexpr int16_t OFF_MAP{ 14 };
 constexpr uint8_t KEY_ENTER{ 0x0d };
 constexpr uint8_t KEY_ESCAPE{ 0x1b };
 } // namespace
 
-uint16_t opeu_battle_mouse_select(uint8_t* ds, BattleEvent event, uint16_t show_info, uint16_t /*frame*/) {
+uint16_t opeu_battle_mouse_select(uint8_t* ds, BattleEvent event, uint16_t show_info) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ MOUSE_RESERVE };
   auto const          x_at{ locals.At(MOUSE_X_AT) };
@@ -104,9 +102,9 @@ uint16_t opeu_battle_key_select(uint8_t* ds, BattleEvent event, uint16_t show_in
   return choice == Choice::CHOSEN;
 }
 
-// sp: the entry SP on the DS stack.
-uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event, uint16_t sp) {
-  if (Data(ds).input_mode) return opeu_battle_mouse_select(ds, event, 1, Local(sp, MOUSE_FRAME));
+// Selects a battle cell with the mouse or the keyboard, as the input mode says.
+uint16_t opeu_battle_select_cell(uint8_t* ds, BattleEvent event) {
+  if (Data(ds).input_mode) return opeu_battle_mouse_select(ds, event, 1);
   return opeu_battle_key_select(ds, event, 1);
 }
 
@@ -120,5 +118,5 @@ auto port_routine_opeu_battle_key_select(std::uint8_t* ds, std::uint16_t const* 
 }
 
 auto port_routine_opeu_battle_mouse_select(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return WithBattleStack([&](uint16_t sp) { return opeu_battle_mouse_select(ds, svc_btlsel, Arg(args, count, 0), BattleFrame(sp)); });
+  return opeu_battle_mouse_select(ds, svc_btlsel, Arg(args, count, 0));
 }

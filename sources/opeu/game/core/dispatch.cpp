@@ -63,8 +63,6 @@ enum Service : std::uint16_t {
 };
 
 constexpr std::uint16_t LABEL_FORMAT{ offsetof(DataSegment, turn_label_format) };
-// The scratch string of opeu_turn_control_one and the words around it: 56 bytes below its frame.
-constexpr std::uint16_t CONTROL_SCRATCH{ 2 + 56 };
 
 auto Send(std::uint8_t* ds, Event event, Service service, std::uint16_t a0 = 0, std::uint16_t a1 = 0, std::uint16_t a2 = 0, std::uint16_t a3 = 0) -> std::uint16_t {
   return event(ds, service, a0, a1, a2, a3);
@@ -120,7 +118,7 @@ uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16
   case DAILY:           opeu_turn_daily(ds, svc_daily); break;
   case HALF_DAY:        opeu_turn_half_day(ds, svc_halfday); break;
   case HOURLY_A:        opeu_turn_hourly_a(ds, svc_msntick); break;
-  case HOURLY_B:        WithStack(PORT_FRAME, [&](std::uint16_t) { opeu_turn_hourly_b(ds, svc_evreport); }); break;
+  case HOURLY_B:        opeu_turn_hourly_b(ds, svc_evreport); break;
   case HOURLY_C:        opeu_turn_hourly_c(ds, svc_influenc); break;
   case PRE_CONTEXT:     opeu_turn_pre_context(ds, svc_context); break;
   case FIND_SIDE:       result = opeu_find_side_record(ds, static_cast<uint8_t>(a0), static_cast<uint8_t>(a1)); break;
@@ -135,12 +133,12 @@ uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16
   case INPUT_A:         result = static_cast<uint16_t>(opeu_turn_input_a(ds, svc_mouse)); break;
   case INPUT_B:         result = opeu_turn_input_b(); break;
   case SELECTED_BEGIN:  opeu_turn_selected_begin(ds); break;
-  case CONTROL_ONE:     WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_turn_control_one(ds, svc_control1, svc_context, static_cast<std::uint16_t>(sp - CONTROL_SCRATCH)); }); break;
+  case CONTROL_ONE:     opeu_turn_control_one(ds, svc_control1, svc_context); break;
   case CONTROL_OTHER:   opeu_turn_control_other(ds, svc_control2, svc_context); break;
   case GROUP_SELECTED:  result = opeu_find_group_selected_unit(ds, a0); break;
   case GROUP_ACTION:    opeu_turn_group_action(ds, svc_grptask); break;
   case FINAL_PREDICATE: result = opeu_turn_final_predicate(ds, svc_grptask); break;
-  case FINAL_ACTION:    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_turn_final_action(ds, svc_finalact, sp); }); break;
+  case FINAL_ACTION:    opeu_turn_final_action(ds, svc_finalact); break;
   default:              port_unhandled("dispatch", id, 4);
   }
   return result;

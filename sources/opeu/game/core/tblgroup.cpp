@@ -38,13 +38,14 @@ constexpr std::uint16_t PLACE_AT{ 60 };
 
 // The division table: each division's label and, for a division with an eligible selected unit, its commander and
 // its fuel, ammunition and food percentages.
-void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
-  auto const          buffer{ locals.At(0) };
-  auto const&         window{ ActiveWindow(data) };
-  auto const          columns{ Columns(ds, event, scratch, column, row) };
-  auto const          side{ data.current_side };
+  locals.Clear(ds);
+  auto const  buffer{ locals.At(0) };
+  auto const& window{ ActiveWindow(data) };
+  auto const  columns{ Columns(ds, event, column, row) };
+  auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     Call(ds, event, FORMAT, buffer, Near(data, data.tbl_group_header));
     Call(ds, event, POSITION, ColumnX(data, window, columns, -0x20), window.y + 1);
@@ -82,14 +83,15 @@ void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, 
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
 // cell, or the cell in map coordinates.
-void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&               data{ Data(ds) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
-  auto const          buffer{ locals.At(0) };
-  auto const          place{ locals.At(PLACE_AT) };
-  auto const&         window{ ActiveWindow(data) };
-  auto const          columns{ Columns(ds, event, scratch, column, row) };
-  auto const          side{ data.current_side };
+  locals.Clear(ds);
+  auto const  buffer{ locals.At(0) };
+  auto const  place{ locals.At(PLACE_AT) };
+  auto const& window{ ActiveWindow(data) };
+  auto const  columns{ Columns(ds, event, column, row) };
+  auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     Call(ds, event, POSITION, 0x26, 0x81);
     Call(ds, event, SIDE_COLOR, side);

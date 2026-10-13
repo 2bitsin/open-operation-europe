@@ -4,7 +4,7 @@
 #include "types.hpp"
 
 void     opeu_move_spot(uint8_t* ds, HostEvent event);
-uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t bp);
+uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event);
 void     opeu_move_mines_finish(uint8_t* ds, HostEvent event);
 
 // The services of this module.

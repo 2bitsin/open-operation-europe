@@ -48,7 +48,7 @@ enum NoonService : uint16_t {
 };
 
 // The code segment of the noon actions, and each action's offset in it, as the event records name them.
-using NoonAction = void (*)(uint8_t*, const uint8_t*, HostEvent, uint16_t);
+using NoonAction = void (*)(uint8_t*, const uint8_t*, HostEvent);
 struct ActionEntry {
   uint16_t   offset;
   NoonAction run;
@@ -78,12 +78,9 @@ constexpr uint8_t AUDIENCE_MASK{ 0x03 };
 constexpr uint8_t NO_SPEECH{ 0xff };
 constexpr uint8_t END_OF_EVENTS{ 0xff };
 
-// The texts the noon events hand to services, and the SP their callees enter with below the caller's.
+// The texts the noon events hand to services.
 constexpr uint16_t SPEECH_BYTES{ 110 }; // the speech the feed service shows
-constexpr uint16_t SPEECH_SP{ 0x7e };
-constexpr uint16_t NEWS_BYTES{ 90 }; // the news the message service shows
-constexpr uint16_t LEADER_SP{ 0x6c };
-constexpr uint16_t FAR_CALL{ 4 }; // a far call pushes CS:IP
+constexpr uint16_t NEWS_BYTES{ 90 };    // the news the message service shows
 
 auto Event(uint8_t* ds, HostEvent event, NoonService service, uint16_t count, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0) -> uint16_t {
   uint16_t args[]{ a, b, c };
@@ -116,11 +113,11 @@ void ExpectReserves(uint8_t* ds, uint8_t side) {
 }
 
 // Runs the event's action: an action of this module directly, any other through the service.
-void RunAction(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t sp, uint16_t code_segment, FarPointer const& action) {
+void RunAction(uint8_t* ds, const uint8_t* far_text, HostEvent event, uint16_t code_segment, FarPointer const& action) {
   if (action.segment == code_segment)
     for (auto const& entry : NOON_ACTIONS)
       if (entry.offset == action.offset) {
-        entry.run(ds, far_text, event, static_cast<uint16_t>(sp - FAR_CALL));
+        entry.run(ds, far_text, event);
         return;
       }
   Event(ds, event, NOON_FAR_ACTION, 2, action.offset, action.segment);
@@ -132,61 +129,61 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 
 } // namespace
 
-void opeu_noon_no_action(uint8_t*, const uint8_t*, HostEvent, uint16_t) { }
+void opeu_noon_no_action(uint8_t*, const uint8_t*, HostEvent) { }
 
-void opeu_noon_block_axis_regts(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_block_axis_regts(uint8_t ds[65536], const uint8_t*, HostEvent) {
   SetRequests(ds, RequestKind::REGIMENT, 0);
 }
 
-void opeu_noon_block_axis_sup_bns(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_block_axis_sup_bns(uint8_t ds[65536], const uint8_t*, HostEvent) {
   SetRequests(ds, RequestKind::SUPPLIES, 0);
   SetRequests(ds, RequestKind::BATTALION, 0);
 }
 
-void opeu_noon_block_axis_bns_regts(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_block_axis_bns_regts(uint8_t ds[65536], const uint8_t*, HostEvent) {
   SetRequests(ds, RequestKind::BATTALION, 0);
   SetRequests(ds, RequestKind::REGIMENT, 0);
 }
 
-void opeu_noon_allow_axis_bns_regts(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_allow_axis_bns_regts(uint8_t ds[65536], const uint8_t*, HostEvent) {
   SetRequests(ds, RequestKind::BATTALION, 1);
   SetRequests(ds, RequestKind::REGIMENT, 1);
 }
 
-void opeu_noon_raise_axis_morale(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_raise_axis_morale(uint8_t ds[65536], const uint8_t*, HostEvent) {
   ShiftMorale(ds, 0, true);
 }
 
-void opeu_noon_lower_axis_morale(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_lower_axis_morale(uint8_t ds[65536], const uint8_t*, HostEvent) {
   ShiftMorale(ds, 0, false);
 }
 
-void opeu_noon_lower_allied_morale(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_noon_lower_allied_morale(uint8_t ds[65536], const uint8_t*, HostEvent) {
   ShiftMorale(ds, 1, false);
 }
 
-void opeu_noon_axis_morale_blockade(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
-  opeu_noon_lower_axis_morale(ds, far_text, event, sp);
-  opeu_noon_block_axis_sup_bns(ds, far_text, event, sp);
+void opeu_noon_axis_morale_blockade(uint8_t ds[65536], const uint8_t* far_text, HostEvent event) {
+  opeu_noon_lower_axis_morale(ds, far_text, event);
+  opeu_noon_block_axis_sup_bns(ds, far_text, event);
 }
 
 // The Axis expects reserves when it has a reserve division.
-void opeu_code_0e57_00dc(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_code_0e57_00dc(uint8_t ds[65536], const uint8_t*, HostEvent) {
   ExpectReserves(ds, 0);
 }
 
 // The Allies expect reserves when they have a reserve division.
-void opeu_code_0e57_010e(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_code_0e57_010e(uint8_t ds[65536], const uint8_t*, HostEvent) {
   ExpectReserves(ds, 1);
 }
 
 // The Allied pool gains 500, up to 3000.
-void opeu_code_0e57_0140(uint8_t ds[65536], const uint8_t*, HostEvent, uint16_t) {
+void opeu_code_0e57_0140(uint8_t ds[65536], const uint8_t*, HostEvent) {
   opeu_add_word(500, 3000, &Data(ds).sides[1].bombers);
 }
 
 // Opens (show 1) the panel with the person's post, name and portrait, or closes it and waits for a key.
-uint16_t opeu_noon_portrait(uint8_t ds[65536], const uint8_t*, HostEvent event, uint16_t, uint16_t person, uint16_t show) {
+uint16_t opeu_noon_portrait(uint8_t ds[65536], const uint8_t*, HostEvent event, uint16_t person, uint16_t show) {
   auto& data{ Data(ds) };
   if (show == 1) {
     Event(ds, event, NOON_PANEL, 0);
@@ -206,15 +203,15 @@ uint16_t opeu_noon_portrait(uint8_t ds[65536], const uint8_t*, HostEvent event, 
 }
 
 // The person speaks the text in the portrait panel.
-void opeu_noon_speech(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp, uint16_t speech, uint16_t person) {
-  if (opeu_noon_portrait(ds, far_text, event, sp, person, 1)) {
+void opeu_noon_speech(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t speech, uint16_t person) {
+  if (opeu_noon_portrait(ds, far_text, event, person, 1)) {
     Event(ds, event, NOON_FEED, 1, speech);
-    opeu_noon_portrait(ds, far_text, event, sp, person, 0);
+    opeu_noon_portrait(ds, far_text, event, person, 0);
   }
 }
 
 // The person template the code names speaks noon_speeches[line] when the audience hears it.
-void opeu_noon_leader(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp, uint8_t code, uint8_t line) {
+void opeu_noon_leader(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint8_t code, uint8_t line) {
   auto const& data{ Data(ds) };
   auto        audience{ static_cast<uint8_t>(code & AUDIENCE_MASK) };
   auto const  allied_solo{ data.side_control[0] == 0 && data.side_control[1] == SIDE_PLAYED };
@@ -223,11 +220,11 @@ void opeu_noon_leader(uint8_t ds[65536], const uint8_t* far_text, HostEvent even
   if (audience != EVERYONE) return;
   ServiceLocals const locals{ SPEECH_BYTES };
   auto const          speech{ opeu_string_copy_far(ds, locals.At(0), const_cast<uint8_t*>(far_text), data.noon_speeches[line].offset) };
-  opeu_noon_speech(ds, far_text, event, Local(sp, SPEECH_SP), speech, At(PERSON_TEMPLATES_AT + sizeof(Person) * (code >> 2)));
+  opeu_noon_speech(ds, far_text, event, speech, At(PERSON_TEMPLATES_AT + sizeof(Person) * (code >> 2)));
 }
 
 // The day's noon events (at 12:00).
-void opeu_turn_noon_events(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp, uint16_t code_segment) {
+void opeu_turn_noon_events(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t code_segment) {
   ServiceLocals const locals{ NEWS_BYTES };
   auto&               data{ Data(ds) };
   auto const          news{ locals.At(0) };
@@ -235,13 +232,13 @@ void opeu_turn_noon_events(uint8_t ds[65536], const uint8_t* far_text, HostEvent
   for (auto const& noon : data.noon_events) {
     if (noon.date == END_OF_EVENTS) break;
     if (noon.date >> 4 != data.year || (noon.date & 0x0f) != data.month || noon.day != data.day) continue;
-    if (noon.action.offset | noon.action.segment) RunAction(ds, far_text, event, sp, code_segment, noon.action);
+    if (noon.action.offset | noon.action.segment) RunAction(ds, far_text, event, code_segment, noon.action);
     Event(ds, event, NOON_ACTIVE_BEGIN, 0);
     opeu_string_copy_far(ds, news, const_cast<uint8_t*>(far_text), noon.news.offset);
     opeu_string_append(ds, news, At(offsetof(DataSegment, noon_news_end)));
     if (far_text[noon.news.offset]) Event(ds, event, NOON_SOUND, 0);
     Event(ds, event, NOON_MESSAGE, 2, news, opeu_find_side_record(ds, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
-    if (noon.leader != NO_SPEECH) opeu_noon_leader(ds, far_text, event, Local(sp, LEADER_SP), noon.leader, noon.line);
+    if (noon.leader != NO_SPEECH) opeu_noon_leader(ds, far_text, event, noon.leader, noon.line);
   }
 }
 

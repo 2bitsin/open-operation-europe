@@ -3,7 +3,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_location_blast(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side);
+void opeu_location_blast(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side);
 void opeu_blast_erase(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y);
 void opeu_blast_pause(uint8_t* ds, HostEvent event);
 

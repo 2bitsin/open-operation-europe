@@ -45,8 +45,6 @@ enum Service : std::uint16_t {
   PENDING_FINISH       = 11, // (code)
 };
 
-// The DS stack frame of the supply exchange services.
-constexpr std::uint16_t SUPPLY_FRAME{ 0x200u };
 // The offset of opeu_tally_mark in the callback segment: the choice dialog's select callback.
 constexpr std::uint16_t TALLY_MARK_OFFSET{ 0x10b8 };
 // Stored resources are capped at this amount.
@@ -141,7 +139,7 @@ void opeu_alloc_distribute(uint8_t ds[65536], HostWordsEvent event, uint8_t firs
 // For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters, formatting
 // the prompt (100 bytes) and the unit's name (32 bytes) in the routine's buffers; the dialog's select callback is
 // opeu_tally_mark.
-void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t /*text*/, uint16_t /*name*/, uint16_t callback_segment) {
+void opeu_alloc_choose_hq(uint8_t ds[65536], HostWordsEvent event, uint16_t callback_segment) {
   auto&               data{ Data(ds) };
   ServiceLocals const buffers{ PROMPT_BYTES + NAME_BYTES };
   auto const          name{ buffers.At(0) };
@@ -166,23 +164,15 @@ void opeu_alloc_finish(uint8_t ds[65536], HostWordsEvent event) {
 // The module's services: element relinking and release, capacities, the supply exchanges, unit names, the prompt, the
 // chief's text, the list dialog and the pending finish.
 uint16_t svc_allocdst(uint8_t* ds, uint16_t id, uint16_t* args, uint16_t count) {
-  uint16_t sp, r = 0;
+  uint16_t r = 0;
   switch (id) {
-  case 0: r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 1: opeu_insert_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 2: r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case 3: opeu_unit_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 4: opeu_objective_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 5: // the two 32-byte unit-name buffers live in a DS stack frame
-    sp = port_stack_enter(SUPPLY_FRAME);
-    opeu_supply_exchange_units(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1), (uint16_t)(sp - 2u - 0x20u), (uint16_t)(sp - 2u - 0x40u));
-    port_stack_leave(SUPPLY_FRAME);
-    break;
-  case 6:
-    sp = port_stack_enter(SUPPLY_FRAME);
-    opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1), (uint16_t)(sp - 2u - 0x20u));
-    port_stack_leave(SUPPLY_FRAME);
-    break;
+  case 0:  r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 1:  opeu_insert_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 2:  r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case 3:  opeu_unit_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
+  case 4:  opeu_objective_capacities(ds, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
+  case 5:  opeu_supply_exchange_units(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case 6:  opeu_supply_exchange_objective(ds, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
   case 7:  r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case 8:  opeu_request_format(ds, { args, count }); break;
   case 9:  opeu_ops_chief_text(ds, svc_chief, Arg(args, count, 0)); break;

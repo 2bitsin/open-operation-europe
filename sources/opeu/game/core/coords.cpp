@@ -76,10 +76,6 @@ constexpr std::uint8_t DOWN{ 1 };
 constexpr std::uint16_t MOUSE_Y_AT{ 0 };
 constexpr std::uint16_t MOUSE_X_AT{ 4 };
 constexpr std::uint16_t MOUSE_BYTES{ 6 };
-// The cell shown before, in the frame below scratch: the first comparison reads it before the loop sets it, so it
-// keeps what its DS stack slot holds.
-constexpr std::uint16_t PREVIOUS_X_LOCAL{ 36 };
-constexpr std::uint16_t PREVIOUS_Y_LOCAL{ 138 };
 
 // Mouse areas of the screen.
 struct Area {
@@ -98,15 +94,14 @@ auto Inside(Area const& area, std::uint16_t x, std::uint16_t y) -> bool {
 
 // Runs the inspection from the cell at the near addresses x and y; returns 1 when the player picked a cell (or
 // ordered a regiment), 0 when he left.
-uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t scratch, uint16_t x, uint16_t y) {
+uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t x, uint16_t y) {
   ServiceLocals const locals{ MOUSE_BYTES };
   auto&               data{ Data(ds) };
   auto&               cell_x{ Byte(ds, x) };
   auto&               cell_y{ Byte(ds, y) };
   auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
   auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-  auto&               previous_x{ Byte(ds, Local(scratch, PREVIOUS_X_LOCAL)) };
-  auto&               previous_y{ Byte(ds, Local(scratch, PREVIOUS_Y_LOCAL)) };
+  std::uint8_t        previous_x{ cell_x }; // the column shown before; at the start the cursor stays in its column
   auto const          side{ data.current_side };
   auto const          tactical{ [&] { return data.view_side != NONE; } };
   auto const          strategic{ [&] { return data.overview_side != NONE; } };
@@ -297,7 +292,6 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t s
         opeu_grid_step(&cell_x, &cell_y, direction);
     }
     previous_x = display_x;
-    previous_y = display_y;
   }
   Call(ds, event, ERASE, display_x, display_y);
   Call(ds, event, RESTORE, 0, 0, 80, 24, 0, data.bitmap_buffer, SAVE_OFFSET);
@@ -308,23 +302,16 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
   uint16_t result{ 0 };
   switch (id) {
   case LOCATION:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_arrival_location(ds, svc_mappos, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)),
-                            static_cast<std::uint8_t>(Arg(args, count, 2)));
-    });
+    opeu_arrival_location(ds, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
-  case RESET: opeu_input_reset(ds, svc_mouse); break;
-  case SAVE:  opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
-  case ERASE:
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) {
-      opeu_map_erase(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
-    });
-    break;
+  case RESET:           opeu_input_reset(ds, svc_mouse); break;
+  case SAVE:            opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
+  case ERASE:           opeu_map_erase(ds, svc_maperase, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
   case INSPECT:         opeu_map_inspect(ds, svc_inspect, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case CURSOR:          WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_map_cursor(ds, svc_cursor, static_cast<std::uint16_t>(sp - 2), Arg(args, count, 0), Arg(args, count, 1)); }); break;
-  case OBJECTIVE_PANEL: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_objective_panel(ds, svc_vwpanel, sp, Arg(args, count, 0)); }); break;
-  case UNIT_PANEL:      WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_panel(ds, svc_vwpanel, sp, Arg(args, count, 0)); }); break;
-  case SUMMARY:         WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_army_summary(ds, svc_armysum, static_cast<std::uint16_t>(sp - 2 - 0x50)); }); break;
+  case CURSOR:          opeu_map_cursor(ds, svc_cursor, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OBJECTIVE_PANEL: opeu_objective_panel(ds, svc_vwpanel, Arg(args, count, 0)); break;
+  case UNIT_PANEL:      opeu_unit_panel(ds, svc_vwpanel, Arg(args, count, 0)); break;
+  case SUMMARY:         opeu_army_summary(ds, svc_armysum); break;
   case MOUSE_SHOW:      opeu_mouse_show(ds, svc_mouse); break;
   case MOUSE_BUTTONS:   result = opeu_mouse_buttons(ds, svc_mouse); break;
   case MOUSE_POSITION:  opeu_mouse_position(ds, svc_mouse, Arg(args, count, 0), Arg(args, count, 1)); break;
@@ -333,7 +320,7 @@ uint16_t svc_coords(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
     opeu_viewport_pan(ds, svc_viewpan, static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
                       static_cast<std::uint8_t>(Arg(args, count, 4)), static_cast<std::uint8_t>(Arg(args, count, 3)));
     break;
-  case UNIT_ACTION: WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_unit_action(ds, svc_ordact, sp, Arg(args, count, 0), Arg(args, count, 1)); }); break;
+  case UNIT_ACTION: opeu_unit_action(ds, svc_ordact, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOOKUP:      result = opeu_message_lookup(ds, svc_msglook, static_cast<std::int16_t>(Arg(args, count, 0))); break;
   case MESSAGE:     opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case KEY:         result = opeu_keyboard_key(ds, svc_keyboard); break;

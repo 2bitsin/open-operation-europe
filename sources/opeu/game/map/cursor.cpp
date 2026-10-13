@@ -30,7 +30,7 @@ constexpr uint16_t NAME_BUFFER_BYTES{ 38 }; // the DS reserve the unit's name is
 } // namespace
 
 // x and y: the cell (their low bytes).
-void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t x, uint16_t y) {
+void opeu_map_cursor(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto const& data{ Data(ds) };
   auto const  cell_x{ static_cast<uint8_t>(x) };
   auto const  cell_y{ static_cast<uint8_t>(y) };

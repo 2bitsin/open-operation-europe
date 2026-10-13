@@ -59,11 +59,9 @@ uint16_t svc_daily(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t 
   switch (id) {
   case PREPARE:  opeu_turn_prepare(ds, (const DialogHost*)port_dialogs_host()); break;
   case CONTEXT:  opeu_daily_context(ds, svc_context, (uint8_t)a0); break;
-  case ACTIVATE: // the map-erase frame is the routine's BP (entry SP - 2)
-    WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_daily_activate(ds, svc_maperase, static_cast<std::uint16_t>(sp - 2), static_cast<std::uint8_t>(a0)); });
-    break;
-  case SHOW: opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
-  default:   port_unhandled("daily", id, 4);
+  case ACTIVATE: opeu_daily_activate(ds, svc_maperase, static_cast<std::uint8_t>(a0)); break;
+  case SHOW:     opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
+  default:       port_unhandled("daily", id, 4);
   }
   return 0;
 }

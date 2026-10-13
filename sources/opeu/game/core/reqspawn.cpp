@@ -55,22 +55,16 @@ void opeu_request_action2(uint8_t ds[65536], PendingEvent event, uint8_t side, u
 uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
   switch (static_cast<SpawnService>(id)) {
   case SpawnService::PREPARE: {
-    auto const frame{ port_frame_enter() };
-    opeu_arrival_prepare(ds, svc_maperase, frame, a);
-    port_frame_leave();
+    opeu_arrival_prepare(ds, svc_maperase, a);
     break;
   }
   case SpawnService::CONTEXT:  opeu_set_turn_context(ds, svc_sound, (uint8_t)a); break;
   case SpawnService::LOCATION: {
-    auto const frame{ port_frame_enter() };
-    opeu_arrival_location(ds, svc_mappos, frame, (uint8_t)a, (uint8_t)b, (uint8_t)c);
-    port_frame_leave();
+    opeu_arrival_location(ds, svc_mappos, (uint8_t)a, (uint8_t)b, (uint8_t)c);
     break;
   }
   case SpawnService::VIEW: {
-    auto const frame{ port_frame_enter() };
-    opeu_arrival_view(ds, svc_mapunit, frame, a);
-    port_frame_leave();
+    opeu_arrival_view(ds, svc_mapunit, a);
     break;
   }
   case SpawnService::SHOW:   opeu_daily_show(ds, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;

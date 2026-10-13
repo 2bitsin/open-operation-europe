@@ -43,7 +43,7 @@ auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x, 
 } // namespace
 
 // repeat: keep stepping while the steps cost nothing.
-void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t repeat) {
+void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t repeat) {
   auto&               data{ Data(ds) };
   auto const          current{ data.current_unit_ptr };
   auto&               unit{ Record<Unit>(data, current) };

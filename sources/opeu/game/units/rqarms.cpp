@@ -31,13 +31,11 @@ namespace {
 // cell's x and y bytes, then the confirmation text.
 constexpr std::uint16_t REQUEST_SCRATCH{ 0x80 };
 constexpr std::uint16_t CONFIRM_BUFFER{ 4 };
-// The request-menu prompts keep their text buffer at the same place in their own frame.
-constexpr std::uint16_t PICK_FRAME{ 2 };
 } // namespace
 
 // "What kind of battalion would you like sent?": cancels a filed battalion request, or has the player choose one of
 // the side's available equipment types and the own city that receives it, then files the request.
-void opeu_request_arms(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+void opeu_request_arms(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const buffers{ REQUEST_SCRATCH };
   auto const          scratch{ buffers.At(0) };
@@ -99,41 +97,37 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id, const u
   auto&    data{ Data(ds) };
   uint16_t r = 0;
   switch (static_cast<RequestService>(id)) {
-  case RequestService::RANDOM:  r = opeu_rand_bounded(Arg(args, count, 0)); break;
-  case RequestService::MIN16:   r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAX16:   r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::PENDING: r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CANCEL_PROMPT:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t { return opeu_request_cancel_prompt(ds, svc_rqcommon, (uint16_t)(sp - REQUEST_SCRATCH), Arg(args, count, 0)); });
+  case RequestService::RANDOM:        r = opeu_rand_bounded(Arg(args, count, 0)); break;
+  case RequestService::MIN16:         r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::MAX16:         r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::PENDING:       r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
+  case RequestService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(ds, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestService::NO_MORE:       opeu_request_no_more(ds, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestService::FILE_REQUEST:  {
+    // the request is filed from a copy in a reserve of its own
+    ServiceLocals const locals{ sizeof(RequestSlot) };
+    auto const          at{ locals.At(0) };
+    Record<RequestSlot>(data, at) = { Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2) };
+    opeu_request_file(ds, svc_rqcommon, at);
     break;
-  case RequestService::NO_MORE: WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_request_no_more(ds, svc_rqcommon, (uint16_t)(sp - REQUEST_SCRATCH), Arg(args, count, 0)); }); break;
-  case RequestService::FILE_REQUEST:
-    // the request is filed from a copy on the caller's frame
-    WithStack(SERVICE_STACK, [&](std::uint16_t sp) {
-      auto const at{ static_cast<std::uint16_t>(sp - sizeof(RequestSlot)) };
-      Record<RequestSlot>(data, at) = { Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2) };
-      opeu_request_file(ds, svc_rqcommon, at);
-    });
-    break;
-  case RequestService::FREE_UNITS:      r = opeu_release_side_units(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RequestService::FREE_ELEMENTS:   r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RequestService::CONTROL_PANEL:   opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
-  case RequestService::CONTROL_MESSAGE: opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::LIST_DIALOG:     r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case RequestService::UNIT_INDEX:      r = opeu_unit_index(Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_0_TO_3: r = opeu_category_0_to_3((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_4_OR_5: r = opeu_category_4_or_5((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CATEGORY_6:      r = opeu_category_6((uint8_t)Arg(args, count, 0)); break;
-  case RequestService::ARMY_TITLE:      opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestService::DELAY_DIALOG:    r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case RequestService::CONFIRM_OK:      r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestService::REQUEST_FORMAT:  opeu_request_format(ds, { args, count }); break;
-  case RequestService::CONFIRM_MESSAGE: r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAP_PICK_LOCATION:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t { return opeu_map_pick_location(ds, svc_mappick, (uint16_t)(sp - PICK_FRAME), Arg(args, count, 0), Arg(args, count, 1)); });
-    break;
-  case RequestService::ELEMENT_TYPES: r = opeu_list_due_records(ds, Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:                            port_unhandled(module, id, count);
+  }
+  case RequestService::FREE_UNITS:        r = opeu_release_side_units(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case RequestService::FREE_ELEMENTS:     r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case RequestService::CONTROL_PANEL:     opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;
+  case RequestService::CONTROL_MESSAGE:   opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::LIST_DIALOG:       r = opeu_list_dialog(ds, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case RequestService::UNIT_INDEX:        r = opeu_unit_index(Arg(args, count, 0)); break;
+  case RequestService::CATEGORY_0_TO_3:   r = opeu_category_0_to_3((uint8_t)Arg(args, count, 0)); break;
+  case RequestService::CATEGORY_4_OR_5:   r = opeu_category_4_or_5((uint8_t)Arg(args, count, 0)); break;
+  case RequestService::CATEGORY_6:        r = opeu_category_6((uint8_t)Arg(args, count, 0)); break;
+  case RequestService::ARMY_TITLE:        opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case RequestService::DELAY_DIALOG:      r = opeu_delay_dialog(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
+  case RequestService::CONFIRM_OK:        r = opeu_confirm_ok(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case RequestService::REQUEST_FORMAT:    opeu_request_format(ds, { args, count }); break;
+  case RequestService::CONFIRM_MESSAGE:   r = opeu_confirm_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::MAP_PICK_LOCATION: r = opeu_map_pick_location(ds, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::ELEMENT_TYPES:     r = opeu_list_due_records(ds, Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                                port_unhandled(module, id, count);
   }
   return r;
 }
@@ -141,7 +135,7 @@ uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id, const u
 auto port_routine_opeu_request_arms(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  WithStack(SERVICE_STACK, [&](std::uint16_t sp) { opeu_request_arms(ds, svc_rqarms, (uint16_t)(sp - REQUEST_SCRATCH)); });
+  opeu_request_arms(ds, svc_rqarms);
   return 0;
 }
 

@@ -25,21 +25,20 @@ namespace {
 
 using enum TransferService;
 
-// Fixed spots in the DS stack window: the words the capacity and percentage services write, the two names and the
-// target cell the player picks.
-constexpr std::uint16_t SCRATCH_AT{ 0xee00 };
-constexpr std::uint16_t FIRST_NAME_AT{ 0xee20 };
-constexpr std::uint16_t SECOND_NAME_AT{ 0xee40 };
-constexpr std::uint16_t CELL_AT{ 0xee84 };
+// The locals the services reach by near address, in each routine's reserve: the words the capacity and percentage
+// services write, the two names and the target cell the player picks.
+constexpr std::uint16_t SCRATCH_WORDS{ 6 };
+constexpr std::uint16_t NAME_BYTES{ 0x20 };
+constexpr std::uint16_t CELL_BYTES{ 2 };
 
 // The computer's targets, in percent of the capacity: low, full, and what it adds to its side's fill.
 constexpr std::uint16_t LOW_TARGET{ 10 };
 constexpr std::uint16_t FULL_TARGET{ 100 };
 constexpr std::uint16_t FILL_MARGIN{ 30 };
 
-// The scratch word n.
-constexpr auto Scratch(unsigned n) -> std::uint16_t {
-  return static_cast<std::uint16_t>(SCRATCH_AT + 2 * n);
+// The scratch word n of a reserve.
+auto Scratch(ServiceLocals const& words, unsigned n) -> std::uint16_t {
+  return words.At(static_cast<std::uint16_t>(2 * n));
 }
 
 // The near pointer of a transfer_table word.
@@ -64,10 +63,13 @@ void StoreUnit(DataSegment& data, std::uint16_t unit, std::uint8_t side) {
 
 // The supply order next to the current regiment, of an objective or of another regiment.
 auto SupplyOrder(std::uint8_t* ds, HostWordsEvent event, bool objective) -> std::uint16_t {
-  auto&      data{ Data(ds) };
-  auto const target{ objective ? Call(ds, event, OBJECTIVE_TARGET, CELL_AT, CELL_AT + 1, data.current_side) : Call(ds, event, UNIT_TARGET, CELL_AT, CELL_AT + 1) };
+  ServiceLocals const cell{ CELL_BYTES };
+  auto const          x_at{ cell.At(0) };
+  auto const          y_at{ cell.At(1) };
+  auto&               data{ Data(ds) };
+  auto const          target{ objective ? Call(ds, event, OBJECTIVE_TARGET, x_at, y_at, data.current_side) : Call(ds, event, UNIT_TARGET, x_at, y_at) };
   if (target) {
-    if (!Call(ds, event, ADJACENT, Byte(ds, CELL_AT), Byte(ds, CELL_AT + 1))) return 0;
+    if (!Call(ds, event, ADJACENT, Byte(ds, x_at), Byte(ds, y_at))) return 0;
     auto const hours{ opeu_transfer_level(ds, event) };
     // The order takes its hours before the supplies move.
     if (!Call(ds, event, ORDER_PROGRESS, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), hours)) return 1;
@@ -86,12 +88,13 @@ auto SupplyOrder(std::uint8_t* ds, HostWordsEvent event, bool objective) -> std:
 // each capacity. The division's eighth regiment fills to 10%, or beside an objective to 100% of a resource the
 // objective holds above its reserve; other regiments fill to their side's percentage plus 30, at most 100.
 void opeu_transfer_load_unit(uint8_t ds[65536], HostWordsEvent event, uint16_t unit, uint8_t side) {
-  auto&       data{ Data(ds) };
-  auto const& regiment{ Record<Unit>(data, unit) };
+  ServiceLocals const scratch{ 2 * SCRATCH_WORDS };
+  auto&               data{ Data(ds) };
+  auto const&         regiment{ Record<Unit>(data, unit) };
   opeu_transfer_set(ds, side, 0, AMOUNT, regiment.resources[0]);
   opeu_transfer_set(ds, side, 1, AMOUNT, regiment.resources[1]);
   opeu_transfer_set(ds, side, 2, AMOUNT, regiment.resources[2]);
-  std::array<std::uint16_t, RESOURCES> const words{ Scratch(1), Scratch(5), Scratch(3) };
+  std::array<std::uint16_t, RESOURCES> const words{ Scratch(scratch, 1), Scratch(scratch, 5), Scratch(scratch, 3) };
   Call(ds, event, UNIT_CAPACITIES, unit, words[0], words[1], words[2]);
   std::array<std::uint16_t, RESOURCES> const capacity{ Word(ds, words[0]), Word(ds, words[1]), Word(ds, words[2]) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) opeu_transfer_set(ds, side, resource, CAPACITY, capacity[resource]);
@@ -104,7 +107,7 @@ void opeu_transfer_load_unit(uint8_t ds[65536], HostWordsEvent event, uint16_t u
       for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) target[resource] = objective.resources[resource] > objective.reserves[resource] ? FULL_TARGET : LOW_TARGET;
     }
   } else {
-    std::array<std::uint16_t, RESOURCES> const fill{ Scratch(0), Scratch(4), Scratch(2) };
+    std::array<std::uint16_t, RESOURCES> const fill{ Scratch(scratch, 0), Scratch(scratch, 4), Scratch(scratch, 2) };
     Call(ds, event, SIDE_PERCENTAGES, data.current_side, fill[0], fill[1], fill[2], 0);
     for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) target[resource] = opeu_min16(static_cast<std::uint16_t>(Word(ds, fill[resource]) + FILL_MARGIN), FULL_TARGET);
   }
@@ -123,14 +126,15 @@ void opeu_transfer_load_objective(uint8_t ds[65536], HostWordsEvent event, uint1
 // The transfer between two regiments, repeated until it is confirmed (or the computer finishes); the player runs it
 // when a player commands the side, unless the computer has taken over both divisions.
 void opeu_transfer_units(uint8_t ds[65536], HostWordsEvent event, uint16_t first, uint16_t second) {
-  auto& data{ Data(ds) };
+  ServiceLocals const names{ 2 * NAME_BYTES };
+  auto&               data{ Data(ds) };
   data.transfer_objective_ptr = 0;
   do {
     opeu_transfer_load_unit(ds, event, first, 0);
     opeu_transfer_load_unit(ds, event, second, 1);
     // The second name is taken first (the original's right-to-left arguments).
-    auto const second_name{ UnitName(ds, event, second, SECOND_NAME_AT) };
-    auto const first_name{ UnitName(ds, event, first, FIRST_NAME_AT) };
+    auto const second_name{ UnitName(ds, event, second, names.At(NAME_BYTES)) };
+    auto const first_name{ UnitName(ds, event, first, names.At(0)) };
     opeu_transfer_draw(ds, event, first_name, second_name);
   } while (!opeu_transfer_run(ds, event, data.side_control[data.current_side] == SIDE_PLAYED && (!DivisionHeld(ds, event, first) || !DivisionHeld(ds, event, second))));
   StoreUnit(data, first, 0);
@@ -139,12 +143,13 @@ void opeu_transfer_units(uint8_t ds[65536], HostWordsEvent event, uint16_t first
 
 // The transfer between a regiment and an objective.
 void opeu_transfer_objective(uint8_t ds[65536], HostWordsEvent event, uint16_t unit, uint16_t objective) {
-  auto& data{ Data(ds) };
+  ServiceLocals const name{ NAME_BYTES };
+  auto&               data{ Data(ds) };
   data.transfer_objective_ptr = objective;
   do {
     opeu_transfer_load_unit(ds, event, unit, 0);
     opeu_transfer_load_objective(ds, event, objective);
-    opeu_transfer_draw(ds, event, UnitName(ds, event, unit, FIRST_NAME_AT), objective);
+    opeu_transfer_draw(ds, event, UnitName(ds, event, unit, name.At(0)), objective);
   } while (!opeu_transfer_run(ds, event, data.side_control[data.current_side] == SIDE_PLAYED && !DivisionHeld(ds, event, unit)));
   StoreUnit(data, unit, 0);
   auto& city{ Record<Objective>(data, objective) };

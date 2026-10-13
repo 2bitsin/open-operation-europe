@@ -75,17 +75,6 @@ inline constexpr std::uint16_t MENU_CANCELLED{ 0xffff };
 // The DS stack size of the list window state a view saves around a nested list dialog.
 inline constexpr std::uint16_t LIST_WINDOW_STATE{ 7 };
 
-// The entry SP a view passes to another view routine it calls directly, from a routine whose frame holds `frame`
-// bytes of locals.
-[[nodiscard]] constexpr auto CalleeStack(std::uint16_t sp, std::uint16_t frame) noexcept -> std::uint16_t {
-  return static_cast<std::uint16_t>(sp - 6 - frame);
-}
-
-// The DS offset of a view's frame local `offset` bytes below its frame pointer (sp - 2).
-[[nodiscard]] constexpr auto FrameLocal(std::uint16_t sp, std::uint16_t offset) noexcept -> std::uint16_t {
-  return Local(static_cast<std::uint16_t>(sp - 2), offset);
-}
-
 // Gives a list dialog its row check.
 inline auto SetRowCheck(std::uint8_t* ds, HostEvent event, ListWindow& dialog, RowCheck check) -> void {
   dialog.select.offset  = std::to_underlying(check);
@@ -102,8 +91,6 @@ inline auto RunAction(std::uint8_t* ds, HostEvent event, std::array<FarPointer, 
 } // namespace opeu::game::detail::view_service
 
 namespace opeu::game {
-using detail::view_service::CalleeStack;
-using detail::view_service::FrameLocal;
 using detail::view_service::LIST_WINDOW_STATE;
 using detail::view_service::MENU_CANCELLED;
 using detail::view_service::RowCheck;

@@ -146,15 +146,15 @@ private:
     return Record<BattlePosition>(_data, Near(_data, _data.battle_positions));
   }
 
-  // Fills the path costs from one cell toward another, on a battle stack frame.
+  // Fills the path costs from one cell toward another.
   auto Flood(Cell const from, Cell const to, int const mode) -> unsigned {
-    return WithBattleStack([&](auto const sp) { return opeu_battle_path_flood(port_ds, svc_btlpath, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode), BattleFrame(sp)); });
+    return opeu_battle_path_flood(port_ds, svc_btlpath, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode));
   }
 
   // Moves the element one step down the flooded costs; x_at addresses its position's x byte, the y byte follows.
   static auto Step(std::integral auto const x_at) -> unsigned {
     auto const y_at{ static_cast<decltype(x_at)>(x_at + 1) };
-    return WithBattleStack([&](auto const sp) { return opeu_battle_path_step(port_ds, svc_btlpath, x_at, y_at, BattleFrame(sp)); });
+    return opeu_battle_path_step(port_ds, svc_btlpath, x_at, y_at);
   }
 
   [[nodiscard]] static constexpr auto Byte(std::integral auto const value) -> std::uint8_t {
