@@ -14,6 +14,8 @@ namespace opeu::render::detail::screen_palette {
 
 inline constexpr auto COLOUR_NUMBERS{ 16uz };
 inline constexpr auto PALETTE_ENTRIES{ 256uz };
+inline constexpr auto PALETTE_LEVELS{ 768uz }; // three 8-bit levels per entry, what the pump presents
+static_assert(PALETTE_LEVELS == PALETTE_ENTRIES * 3);
 
 class ScreenPalette {
 public:
@@ -34,7 +36,7 @@ public:
     return _colour_map.at(number);
   }
   // Every entry's 8-bit levels, red, green, blue (entries past 63 black): the platform's indexed present.
-  [[nodiscard]] auto EntryLevels() const -> std::array<std::uint8_t, PALETTE_ENTRIES * 3>;
+  [[nodiscard]] auto EntryLevels() const -> std::array<std::uint8_t, PALETTE_LEVELS>;
 
 private:
   struct Entry {
@@ -57,6 +59,7 @@ private:
 namespace opeu::render {
 using detail::screen_palette::COLOUR_NUMBERS;
 using detail::screen_palette::PALETTE_ENTRIES;
+using detail::screen_palette::PALETTE_LEVELS;
 using detail::screen_palette::ScreenPalette;
 using detail::screen_palette::Shown;
 }

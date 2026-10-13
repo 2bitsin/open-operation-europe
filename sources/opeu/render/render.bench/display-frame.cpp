@@ -123,7 +123,7 @@ auto NativeFrame(benchmark::State& state) -> void {
   auto native{ services::NativeDisplay{} };
   Start(native);
   auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
-  auto palette{ std::array<std::uint8_t, PALETTE_ENTRIES * 3>{} };
+  auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
   for (auto _ : state) {
     Frame(native, bytes);
     benchmark::DoNotOptimize(VgalibRender(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette));

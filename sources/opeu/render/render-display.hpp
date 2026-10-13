@@ -78,7 +78,7 @@ public:
   // The frame as Present shows it, 640x480 RGBA.
   [[nodiscard]] auto Capture() -> assets::Texture;
   // The frame as palette entries and every entry's 8-bit levels: what the services' indexed present takes today.
-  auto               RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> frame, std::span<std::uint8_t, PALETTE_ENTRIES * 3> palette) -> void;
+  auto               RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> frame, std::span<std::uint8_t, PALETTE_LEVELS> palette) -> void;
   [[nodiscard]] auto Statistics() const noexcept -> ByteStatistics {
     return _textures.Statistics();
   }

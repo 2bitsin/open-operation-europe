@@ -51,8 +51,8 @@ auto ScreenPalette::Colours() const -> assets::PaletteColours {
   return colours;
 }
 
-auto ScreenPalette::EntryLevels() const -> std::array<std::uint8_t, PALETTE_ENTRIES * 3> {
-  auto levels{ std::array<std::uint8_t, PALETTE_ENTRIES * 3>{} };
+auto ScreenPalette::EntryLevels() const -> std::array<std::uint8_t, PALETTE_LEVELS> {
+  auto levels{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
   std::ranges::transform(assets::Grid(_entries.size(), 3), levels.begin(), [this](auto const place) {
     auto const& entry{ _entries.at(place.first) };
     return Shown(std::array{ entry.red, entry.green, entry.blue }.at(place.second));

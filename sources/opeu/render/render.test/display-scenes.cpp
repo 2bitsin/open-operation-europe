@@ -181,8 +181,8 @@ TEST(DisplayScenes, ABattleCellWithAUnitAndATracer) {
 
 // What the pump presents today, from either display: the frame as palette entries and the entries' levels.
 struct Indexed {
-  std::vector<std::uint8_t>                     frame = std::vector<std::uint8_t>(FRAME_PIXELS);
-  std::array<std::uint8_t, PALETTE_ENTRIES * 3> palette{};
+  std::vector<std::uint8_t>                frame = std::vector<std::uint8_t>(FRAME_PIXELS);
+  std::array<std::uint8_t, PALETTE_LEVELS> palette{};
 
   [[nodiscard]] auto Frame() -> std::span<std::uint8_t, FRAME_PIXELS> {
     return std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS };

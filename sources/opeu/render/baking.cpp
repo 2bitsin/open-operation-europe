@@ -28,7 +28,10 @@ auto KeyedImage(assets::Image const& image, Keying const keying) -> assets::Imag
 auto KeyedImage(assets::Texture const& image, Keying const keying, std::optional<assets::Colour> const background) -> assets::Texture {
   if (keying == Keying::OPAQUE || !background) return image;
   auto const keyed{ [colour = *background](auto const pixel) {
-    auto const shows{ pixel[0] == std::byte{ colour.r } && pixel[1] == std::byte{ colour.g } && pixel[2] == std::byte{ colour.b } };
+    auto const shows{
+      std::array{ pixel[0],              pixel[1],              pixel[2]              }
+      == std::array{ std::byte{ colour.r }, std::byte{ colour.g }, std::byte{ colour.b } }
+    };
     return std::array{ pixel[0], pixel[1], pixel[2], shows ? std::byte{ 0 } : pixel[3] };
   } };
   auto const pixels{ Rows(image.Pixels(), RowLayout{ .pitch = 4, .width = 4, .count = image.Width() * image.Height() }) };

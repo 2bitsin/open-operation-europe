@@ -136,7 +136,7 @@ struct DashedPoint {
   auto const inside{ [](LinePoint const point) { return point.x < FRAME_WIDTH && point.y < GAME_LINES; } };
   auto const points{ LinePoints({ .x = ends.from.x, .y = ends.from.y }, { .x = ends.to.x, .y = ends.to.y }) | std::views::filter(inside) | std::ranges::to<std::vector>() };
   return std::views::zip(points, std::views::iota(0uz)) | std::views::transform([pattern](auto const entry) {
-           auto const [point, n]{ entry };
+           auto const& [point, n]{ entry };
            return DashedPoint{ .at = FramePoint(point.x, point.y), .on = pattern == 0 || (pattern << (n % 8) & 0x80) != 0 };
          })
          | std::ranges::to<std::vector>();
@@ -156,8 +156,8 @@ struct DashedPoint {
 
 // The smallest rectangle holding every point.
 [[nodiscard]] auto Bounds(std::span<DashedPoint const> const points) -> Rect {
-  auto const [left, right]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.x; })) };
-  auto const [top, bottom]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.y; })) };
+  auto const& [left, right]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.x; })) };
+  auto const& [top, bottom]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.y; })) };
   return Rect{ .x = left, .y = top, .width = right - left + 1, .height = bottom - top + 1 };
 }
 
@@ -496,7 +496,7 @@ auto RenderDisplay::Capture() -> assets::Texture {
   return _frame.Capture(_mode == Mode::GRAPHICS ? WHITE : BLACK);
 }
 
-auto RenderDisplay::RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> const frame, std::span<std::uint8_t, PALETTE_ENTRIES * 3> const palette) -> void {
+auto RenderDisplay::RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> const frame, std::span<std::uint8_t, PALETTE_LEVELS> const palette) -> void {
   std::ranges::copy(_palette.EntryLevels(), palette.begin());
   if (_mode == Mode::TEXT) {
     std::ranges::fill(frame, 0);

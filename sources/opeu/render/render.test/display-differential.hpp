@@ -82,7 +82,7 @@ struct Run {
 // The native adapter's frame: the Canvas's palette entries in its palette's colours.
 [[nodiscard]] inline auto NativeFrame() -> assets::Texture {
   auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
-  auto palette{ std::array<std::uint8_t, PALETTE_ENTRIES * 3>{} };
+  auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
   std::ignore = VgalibRender(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette);
   auto const pixel{ [&palette](std::uint8_t const entry) {
     auto const at{ std::size_t{ entry } * 3 };
