@@ -47,7 +47,6 @@ uint16_t opeu_battle_sprite_offset(uint8_t* ds, BattleEvent, uint8_t sprite) {
 
 void opeu_battle_draw_sprite(uint8_t* ds, BattleEvent event, uint16_t offset) {
   auto const& data{ Data(ds) };
-  Call(ds, event, BattleRoutine::GFX_WAIT);
   Call(ds, event, BattleRoutine::VRAM_LOAD, Near(data, data.vram), data.sprite_segment, offset + MASK_OFFSET);
   Call(ds, event, BattleRoutine::VRAM_DRAW, Near(data, data.vram), data.sprite_segment, offset);
 }

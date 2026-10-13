@@ -38,18 +38,6 @@ auto opeu_fm_busy() -> uint16_t;         /* INT 66h F100h: remaining countdown t
 auto opeu_turn_input_b() -> uint16_t;    /* INT 16h AH=1: 1 when a key is waiting */
 auto opeu_sound_open(uint16_t driver_off, uint16_t driver_seg, uint16_t effects_off, uint16_t effects_seg) -> int16_t;
 
-/* ---- EMSDRV (src/main/asm/emsdrv.asm): no expanded memory manager ------- */
-auto opeu_ems_present() -> int16_t; /* 0: no EMM */
-auto opeu_ems_status() -> int16_t;
-auto opeu_ems_version() -> int16_t;
-auto opeu_ems_page_count(int16_t* count) -> int16_t;
-auto opeu_ems_free_pages(int16_t* total, int16_t* available) -> int16_t;
-auto opeu_ems_frame(uint16_t* segment) -> int16_t;
-auto opeu_ems_allocate(int16_t pages, int16_t* handle) -> int16_t;
-auto opeu_ems_page_array(uint8_t* pages) -> int16_t;
-auto opeu_ems_map(int16_t handle, uint16_t physical, int16_t logical) -> int16_t;
-auto opeu_ems_release(int16_t handle) -> int16_t;
-
 /* ---- BIOS keyboard (INT 16h), as KEYBOARD/TEXTOUT use it ---------------- */
 auto port_key_available() -> uint16_t; /* AH=01h: 1 if a key is queued */
 auto port_key_read() -> uint16_t;      /* AH=00h: AH=scan, AL=ASCII (blocks, pumping) */

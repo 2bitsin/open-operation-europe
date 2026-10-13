@@ -18,7 +18,6 @@ enum class TransferService : std::uint16_t {
   PRINT                = 10, // (format, arguments...)
   GLYPH                = 11, // (x, y, width, height, colour, near glyph)
   TITLE                = 12, // (text): the panel's title
-  MAP_DIALOG           = 13, // maps the dialog images in
   BOX                  = 14, // (x, y, width, height, colour)
   SOUND_CUE_14         = 15, // the computer's transfer begins
   SOUND_CUE_16         = 16, // the computer's transfer ends

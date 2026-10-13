@@ -24,7 +24,6 @@ enum class MapService : uint16_t {
   WAIT             = 12, // ticks
   CONTROL_MESSAGE  = 13, // text, person
   STATUS_MODE      = 14, // mode
-  VIEW_PREPARE     = 15, //
   READ_FAR_BYTES   = 16, // source offset, source segment, DS destination, size
 };
 

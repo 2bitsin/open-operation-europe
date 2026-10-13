@@ -20,7 +20,7 @@ auto InitialSetupText(DataSegment& data) -> void {
   SetText(data.question_format, "%s");
   SetText(data.menu_format, "\033C%c\033B0\033M4%s");
   SetText(data.numdlg_format, "\033C7\033B1%2d");
-  SetText(data.ems_device_name, "EMMXXXX0");
+  SetText(data.reserved_ems_name, "EMMXXXX0"); // kept for the layout until M4
   SetEach(std::to_array<std::uint16_t>({ 0x0033, 0x00d8, 0x0033, 0x00d8, 0x003f, 0x0168, 0x0043, 0x00ca, 0x0032, 0x00e0, 0x0033, 0x00de, 0x0039, 0x00ce }),
           [&](std::size_t index, std::uint16_t value) { data.setup_marker_points[index] = value; });
   SetEach(std::to_array<std::uint16_t>({ 0x000d, 0x0012, 0x0017, 0x001c, 0x0021, 0x0026 }), [&](std::size_t index, std::uint16_t value) { data.mgamen_blocks[index] = value; });

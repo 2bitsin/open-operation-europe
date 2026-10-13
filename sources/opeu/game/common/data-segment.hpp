@@ -1068,32 +1068,29 @@ struct DataSegment {
         std::uint16_t               input_mode;
         std::array<std::uint8_t, 2> input_mode_bytes;
       };
-      std::array<char, 13> menu_format;             // DS:4504
-      std::uint8_t : 8;                             // DS:4511: pads the next field to a word
-      std::uint16_t               menu_save_offset; // DS:4512
-      std::uint16_t               numdlg_x;         // DS:4514
-      std::uint16_t               numdlg_y;         // DS:4516
-      std::array<std::uint8_t, 5> numdlg_digits;    // DS:4518
-      std::array<char, 10>        numdlg_format;    // DS:451d
-      std::uint8_t : 8;                             // DS:4527: pads the next field to a word
-      std::array<char, 8>  ems_device_name;         // DS:4528
-      std::uint16_t        numdlg_image_mapped;     // DS:4530
-      std::uint16_t        tile_mapped;             // DS:4532
-      std::uint16_t        sprite_mapped;           // DS:4534
-      std::uint16_t        frame_mapped;            // DS:4536
-      std::uint16_t        setup_marker_points[14]; // DS:4538
-      std::uint16_t        mgamen_blocks[6];        // DS:4554
-      std::array<char, 9>  savedata_name;           // DS:4560
-      std::array<char, 26> no_saved_games_text;     // DS:4569
-      std::array<char, 3>  load_print_format;       // DS:4583
-      std::array<char, 9>  load_savedata_name;      // DS:4586
-      std::array<char, 17> load_which_text;         // DS:458f
-      std::array<char, 22> loading_text;            // DS:45a0
-      std::array<char, 28> loaded_text;             // DS:45b6
-      std::array<char, 29> load_failed_text;        // DS:45d2
-      std::array<char, 8>  play_widths;             // DS:45ef
-      std::array<char, 9>  reinforce_widths;        // DS:45f7
-      union {                                       // DS:4600
+      std::array<char, 13> menu_format;                     // DS:4504
+      std::uint8_t : 8;                                     // DS:4511: pads the next field to a word
+      std::uint16_t               menu_save_offset;         // DS:4512
+      std::uint16_t               numdlg_x;                 // DS:4514
+      std::uint16_t               numdlg_y;                 // DS:4516
+      std::array<std::uint8_t, 5> numdlg_digits;            // DS:4518
+      std::array<char, 10>        numdlg_format;            // DS:451d
+      std::uint8_t : 8;                                     // DS:4527: pads the next field to a word
+      std::array<char, 8>          reserved_ems_name;       // DS:4528: kept for the layout until M4
+      std::array<std::uint16_t, 4> reserved_ems_mapped;     // DS:4530: kept for the layout until M4
+      std::uint16_t                setup_marker_points[14]; // DS:4538
+      std::uint16_t                mgamen_blocks[6];        // DS:4554
+      std::array<char, 9>          savedata_name;           // DS:4560
+      std::array<char, 26>         no_saved_games_text;     // DS:4569
+      std::array<char, 3>          load_print_format;       // DS:4583
+      std::array<char, 9>          load_savedata_name;      // DS:4586
+      std::array<char, 17>         load_which_text;         // DS:458f
+      std::array<char, 22>         loading_text;            // DS:45a0
+      std::array<char, 28>         loaded_text;             // DS:45b6
+      std::array<char, 29>         load_failed_text;        // DS:45d2
+      std::array<char, 8>          play_widths;             // DS:45ef
+      std::array<char, 9>          reinforce_widths;        // DS:45f7
+      union {                                               // DS:4600
         std::uint16_t               shown_portrait;
         std::array<std::uint8_t, 2> shown_portrait_bytes;
       };
@@ -2539,29 +2536,24 @@ struct DataSegment {
   std::array<std::uint8_t, 2> movecost_segment; // DS:c384
   // unnamed: zero-initialised state before edata; never read or written
   std::array<std::uint8_t, 228> unknown_c386;
-  union { // DS:c46a
-    std::uint16_t edata;
-    std::uint16_t tile_ems_handle;
-  };
-  std::uint16_t                ems_pages[8];            // DS:c46c
-  std::uint16_t                frame_ems_handle;        // DS:c47c
-  std::uint16_t                sprite_ems_handle;       // DS:c47e
-  std::uint16_t                numdlg_ems_handle;       // DS:c480
-  std::array<Person, 20>       people_backup;           // DS:c482: the staff candidates as drawn, before their rerolls
-  std::uint16_t                scenario_text_x;         // DS:c6ee
-  std::uint16_t                scenario_text_y;         // DS:c6f0
-  std::uint16_t                end_score;               // DS:c6f2
-  std::array<std::uint8_t, 78> random_state;            // DS:c6f4
-  std::uint16_t                list_mouse;              // DS:c742
-  std::uint16_t                tbl_save_map;            // DS:c744
-  std::uint16_t                tbl_save_level;          // DS:c746
-  std::uint16_t                initial_person;          // DS:c748
-  std::uint16_t                initial_template5;       // DS:c74a
-  std::uint16_t                initial_template4;       // DS:c74c
-  std::uint16_t                brief_mark_x;            // DS:c74e
-  std::uint16_t                brief_mark_y;            // DS:c750
-  std::uint16_t                daily_record;            // DS:c752
-  std::uint8_t                 daily_side;              // DS:c754
+  std::uint16_t                 edata;                  // DS:c46a: the end of the initialised data, kept for the layout until M4
+  std::array<std::uint16_t, 8>  reserved_ems_pages;     // DS:c46c: kept for the layout until M4
+  std::array<std::uint16_t, 3>  reserved_ems_handles;   // DS:c47c: kept for the layout until M4
+  std::array<Person, 20>        people_backup;          // DS:c482: the staff candidates as drawn, before their rerolls
+  std::uint16_t                 scenario_text_x;        // DS:c6ee
+  std::uint16_t                 scenario_text_y;        // DS:c6f0
+  std::uint16_t                 end_score;              // DS:c6f2
+  std::array<std::uint8_t, 78>  random_state;           // DS:c6f4
+  std::uint16_t                 list_mouse;             // DS:c742
+  std::uint16_t                 tbl_save_map;           // DS:c744
+  std::uint16_t                 tbl_save_level;         // DS:c746
+  std::uint16_t                 initial_person;         // DS:c748
+  std::uint16_t                 initial_template5;      // DS:c74a
+  std::uint16_t                 initial_template4;      // DS:c74c
+  std::uint16_t                 brief_mark_x;           // DS:c74e
+  std::uint16_t                 brief_mark_y;           // DS:c750
+  std::uint16_t                 daily_record;           // DS:c752
+  std::uint8_t                  daily_side;             // DS:c754
   std::uint8_t : 8;                                     // DS:c755: pads the next field to a word
   std::uint8_t air_side;                                // DS:c756
   std::uint8_t : 8;                                     // DS:c757: pads the next field to a word
@@ -3322,11 +3314,8 @@ static_assert(offsetof(DataSegment, numdlg_x) == 0x4514);
 static_assert(offsetof(DataSegment, numdlg_y) == 0x4516);
 static_assert(offsetof(DataSegment, numdlg_digits) == 0x4518);
 static_assert(offsetof(DataSegment, numdlg_format) == 0x451d);
-static_assert(offsetof(DataSegment, ems_device_name) == 0x4528);
-static_assert(offsetof(DataSegment, numdlg_image_mapped) == 0x4530);
-static_assert(offsetof(DataSegment, tile_mapped) == 0x4532);
-static_assert(offsetof(DataSegment, sprite_mapped) == 0x4534);
-static_assert(offsetof(DataSegment, frame_mapped) == 0x4536);
+static_assert(offsetof(DataSegment, reserved_ems_name) == 0x4528);
+static_assert(offsetof(DataSegment, reserved_ems_mapped) == 0x4530);
 static_assert(offsetof(DataSegment, setup_marker_points) == 0x4538);
 static_assert(offsetof(DataSegment, mgamen_blocks) == 0x4554);
 static_assert(offsetof(DataSegment, savedata_name) == 0x4560);
@@ -4634,11 +4623,8 @@ static_assert(offsetof(DataSegment, btlcurs_segment) == 0xc382);
 static_assert(offsetof(DataSegment, movecost_segment) == 0xc384);
 static_assert(offsetof(DataSegment, unknown_c386) == 0xc386);
 static_assert(offsetof(DataSegment, edata) == 0xc46a);
-static_assert(offsetof(DataSegment, tile_ems_handle) == 0xc46a);
-static_assert(offsetof(DataSegment, ems_pages) == 0xc46c);
-static_assert(offsetof(DataSegment, frame_ems_handle) == 0xc47c);
-static_assert(offsetof(DataSegment, sprite_ems_handle) == 0xc47e);
-static_assert(offsetof(DataSegment, numdlg_ems_handle) == 0xc480);
+static_assert(offsetof(DataSegment, reserved_ems_pages) == 0xc46c);
+static_assert(offsetof(DataSegment, reserved_ems_handles) == 0xc47c);
 static_assert(offsetof(DataSegment, people_backup) == 0xc482);
 static_assert(offsetof(DataSegment, scenario_text_x) == 0xc6ee);
 static_assert(offsetof(DataSegment, scenario_text_y) == 0xc6f0);

@@ -14,7 +14,6 @@
 
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
-#include "core/emsmap.hpp"
 #include "core/recindex.hpp"
 #include "core/textout.hpp"
 #include "glue.hpp"
@@ -124,7 +123,6 @@ void opeu_transfer_draw(uint8_t ds[65536], HostWordsEvent event, uint16_t first,
   auto const& data{ Data(ds) };
   if (!SidePlayed(data, data.current_side)) return;
   Call(ds, event, TITLE, offsetof(DataSegment, transfer_title));
-  Call(ds, event, MAP_DIALOG);
   Call(ds, event, RESTORE, data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(ds, name)), NAME_LIMIT) };
@@ -221,7 +219,6 @@ uint16_t svc_transfer(uint8_t* ds, const char* module, uint16_t id, uint16_t* ar
   case PRINT:           opeu_cursor_print(ds, { args, count }); break;
   case GLYPH:           r = (uint16_t)opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), PORT_DS(Arg(args, count, 5))); break;
   case TITLE:           opeu_army_title(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_DIALOG:      opeu_ems_map_dialog(ds, svc_emsmap); break;
   case BOX:             r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case SOUND_CUE_14:    opeu_sound_cue14(ds, svc_soundcue); break;
   case SOUND_CUE_16:    opeu_sound_cue16(ds, svc_soundcue); break;

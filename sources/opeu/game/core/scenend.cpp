@@ -249,24 +249,24 @@ void opeu_free_error(uint8_t ds[65536], HostEvent event, uint16_t name) {
   Call(ds, event, POSITION, 0, 0);
 }
 
-// Frees the DOS memory segments; segments mapped from EMS stay.
+// Frees the memory segments.
 void opeu_free_segments(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
-  auto const  release{ [&](bool mapped, uint16_t segment, auto const& name) {
-    if (!mapped && !Call(ds, event, FREE, segment)) opeu_free_error(ds, event, Near(data, name));
+  auto const  release{ [&](uint16_t segment, auto const& name) {
+    if (!Call(ds, event, FREE, segment)) opeu_free_error(ds, event, Near(data, name));
   } };
-  release(false, data.overview_tile_segment, data.name_bmapseg);
-  release(data.tile_mapped, data.tile_segment, data.name_mmapseg);
-  release(false, data.hex_display_segment, data.name_hdispseg);
-  release(false, data.icon_segment, data.name_hunitseg);
-  release(false, data.image_segment, data.name_grpseg);
-  release(false, data.numdlg_save_segment, data.name_ms_winseg);
-  release(data.numdlg_image_mapped, data.numdlg_image_segment, data.name_ms_seg);
-  release(data.sprite_mapped, data.sprite_segment, data.name_hfontseg);
-  release(false, data.vseg_segment, data.name_vseg);
-  release(false, data.portrait_segment, data.name_kaoseg);
-  release(false, data.face_segment, data.name_armsseg);
-  release(data.frame_mapped, data.frame_segment, data.name_mdispseg);
+  release(data.overview_tile_segment, data.name_bmapseg);
+  release(data.tile_segment, data.name_mmapseg);
+  release(data.hex_display_segment, data.name_hdispseg);
+  release(data.icon_segment, data.name_hunitseg);
+  release(data.image_segment, data.name_grpseg);
+  release(data.numdlg_save_segment, data.name_ms_winseg);
+  release(data.numdlg_image_segment, data.name_ms_seg);
+  release(data.sprite_segment, data.name_hfontseg);
+  release(data.vseg_segment, data.name_vseg);
+  release(data.portrait_segment, data.name_kaoseg);
+  release(data.face_segment, data.name_armsseg);
+  release(data.frame_segment, data.name_mdispseg);
 }
 
 // Closes the portrait, face and message-picture files.

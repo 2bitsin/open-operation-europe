@@ -22,7 +22,6 @@ enum class InputCall : std::uint16_t {
   DELAY_UNITS    = 9,  // (units)
   UI_FILL        = 10, // (x1, y1, x2, y2, colour)
   UI_INVERT      = 11, // (x, y, w, h, mode)
-  EMS_MAP        = 12,
   UI_LINE        = 13, // (x1, y1, x2, y2, colour)
   READ_KEY       = 20, // -> key
   INPUT_FLUSH    = 21,

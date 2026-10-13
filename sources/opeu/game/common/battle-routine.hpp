@@ -44,7 +44,6 @@ enum class BattleRoutine : std::uint32_t {
   MOUSE_RIGHT                = 0x5bae,
   MOUSE_BUTTONS              = 0x5bf0,
   INPUT_RESET                = 0x5c34,
-  GFX_WAIT                   = 0x6b2a,
   READ_FAR_BYTES             = 0x9d68,
   STRING_COPY                = 0x9e90,
   MIN16                      = 0x9f3e,

@@ -13,7 +13,6 @@
 #include "core/app.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
-#include "core/emsmap.hpp"
 #include "core/scenend.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
@@ -65,7 +64,6 @@ enum class SettingsService : uint16_t {
   FINISH_SIDE     = 24, // (value)
   TURN_CONTEXT    = 25, // (value)
   FREE_SEGMENTS   = 26,
-  MEMORY_RELEASE  = 27,
   CLOSE_FILES     = 28,
   APPLICATION     = 29, // start the game over
   CREATE          = 30, // (name): the file handle
@@ -378,7 +376,6 @@ void opeu_quit_to_dos(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, FM_NOOP);
   Call(ds, event, TEXT_MODE);
   Call(ds, event, FREE_SEGMENTS);
-  Call(ds, event, MEMORY_RELEASE);
   Call(ds, event, DISK_RESET);
   Call(ds, event, EXIT, QUIT_EXIT_CODE);
 }
@@ -400,7 +397,6 @@ void opeu_settings_new_game(uint8_t ds[65536], HostEvent event) {
     Call(ds, event, FM_NOOP);
     Call(ds, event, TEXT_MODE);
     Call(ds, event, FREE_SEGMENTS);
-    Call(ds, event, MEMORY_RELEASE);
     Call(ds, event, VGA_CLEAR);
     Call(ds, event, SCREEN_RESET);
     data.startup_mode  = 0;
@@ -463,7 +459,6 @@ uint16_t svc_settings(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
   case FINISH_SIDE:     opeu_finish_side_initialization(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case TURN_CONTEXT:    opeu_set_turn_context(ds, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case FREE_SEGMENTS:   opeu_free_segments(ds, svc_scenend); break;
-  case MEMORY_RELEASE:  r = (uint16_t)opeu_memory_release(ds, svc_emsmap); break;
   case CLOSE_FILES:     opeu_close_data_files(ds, svc_scenend); break;
   case APPLICATION:     opeu_application_entry(ds, svc_app); break;
   case CREATE:          r = (uint16_t)opeu_dos_create((const char*)PORT_DS(Arg(args, count, 0))); break;

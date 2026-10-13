@@ -352,7 +352,6 @@ auto svc_keyboard(std::uint8_t* ds, std::uint16_t call, std::uint16_t* w) -> std
   case InputCall::DELAY_UNITS:    return svc_menudraw(ds, call, w);
   case InputCall::UI_FILL:
   case InputCall::UI_INVERT:
-  case InputCall::EMS_MAP:
   case InputCall::UI_LINE:        return svc_numdlg(ds, call, w);
   case InputCall::READ_KEY:       return opeu_key_read(ds, text);
   case InputCall::INPUT_FLUSH:    opeu_input_flush(ds, text); break;

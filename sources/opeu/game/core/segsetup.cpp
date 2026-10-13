@@ -1,10 +1,8 @@
-// Start-up: allocating the game's memory blocks (falling back to EMS buffers), opening the data files, and the
-// out-of-memory notice.
+// Start-up: allocating the game's memory blocks, opening the data files, and the out-of-memory notice.
 #include "core/segsetup.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
-#include "core/emsmap.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
 
@@ -22,20 +20,19 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the start-up routines call through their event; 0..8 are the EMS services of core/emsmap.
+// The services the start-up routines call through their event.
 enum class SetupService : uint16_t {
-  EMS_LAST         = 8,
-  PRINT            = 9,  // print a text at the cursor
-  WAIT_KEY         = 10, // the key pressed, 0 for none
-  QUIT             = 11, // quit to the system
-  ALLOCATE         = 12, // allocate paragraphs of memory, 0 when short
-  OPEN_RESOURCE    = 13, // open a data file by name
-  DOS_HANDLERS     = 14, // install the break and critical-error handlers
-  VGA_SETUP        = 15,
-  IDENTITY_PALETTE = 16,
-  VGA_CLEAR        = 17,
-  PALETTE_TITLE    = 18, // the title screen's palette
-  SOUND_INITIALIZE = 19,
+  PRINT            = 0, // print a text at the cursor
+  WAIT_KEY         = 1, // the key pressed, 0 for none
+  QUIT             = 2, // quit to the system
+  ALLOCATE         = 3, // allocate paragraphs of memory, 0 when short
+  OPEN_RESOURCE    = 4, // open a data file by name
+  DOS_HANDLERS     = 5, // install the break and critical-error handlers
+  VGA_SETUP        = 6,
+  IDENTITY_PALETTE = 7,
+  VGA_CLEAR        = 8,
+  PALETTE_TITLE    = 9, // the title screen's palette
+  SOUND_INITIALIZE = 10,
 };
 
 // Allocates a memory block and stores its segment; returns the segment (0 when memory is short).
@@ -62,8 +59,7 @@ void opeu_memory_fail(uint8_t ds[65536], HostEvent event, uint16_t) {
   Call(ds, event, SetupService::QUIT);
 }
 
-// Allocates the twelve memory blocks; the last four fall back to an EMS buffer when memory is short and an EMS
-// manager is present. A block that cannot be had ends the game with the out-of-memory notice.
+// Allocates the twelve memory blocks. A block that cannot be had ends the game with the out-of-memory notice.
 void opeu_alloc_segments(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const need{ [&](uint16_t& segment, uint16_t paragraphs, auto const& name) {
@@ -77,11 +73,10 @@ void opeu_alloc_segments(uint8_t ds[65536], HostEvent event) {
   need(data.hex_display_segment, 0x65, data.setup_name_hdispseg);
   need(data.face_segment, 0x4b0, data.setup_name_armsseg);
   need(data.portrait_segment, 0x4b0, data.setup_name_kaoseg);
-  int16_t const ems = opeu_ems_detect(ds, event);
-  if (Allocate(ds, event, data.frame_segment, 0x280) == 0 && (ems == 0 || opeu_ems_alloc_frame(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mdispseg));
-  if (Allocate(ds, event, data.numdlg_image_segment, 0x5b1) == 0 && (ems == 0 || opeu_ems_alloc_numdlg(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_ms_seg));
-  if (Allocate(ds, event, data.sprite_segment, 0xf14) == 0 && (ems == 0 || opeu_ems_alloc_sprite(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_hfontseg));
-  if (Allocate(ds, event, data.tile_segment, 0x6c1) == 0 && (ems == 0 || opeu_ems_alloc_tile(ds, event) == 0)) opeu_memory_fail(ds, event, Near(data, data.setup_name_mmapseg));
+  need(data.frame_segment, 0x280, data.setup_name_mdispseg);
+  need(data.numdlg_image_segment, 0x5b1, data.setup_name_ms_seg);
+  need(data.sprite_segment, 0xf14, data.setup_name_hfontseg);
+  need(data.tile_segment, 0x6c1, data.setup_name_mmapseg);
 }
 
 // Opens the portrait, arms and event data files.
@@ -106,7 +101,6 @@ void opeu_app_prepare(uint8_t ds[65536], HostEvent event) {
 }
 
 uint16_t svc_segsetup(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  if (id <= std::to_underlying(SetupService::EMS_LAST)) return svc_emsmap(ds, id, args, count);
   switch (static_cast<SetupService>(id)) {
   case SetupService::PRINT:            opeu_cursor_print(ds, { args, 1 }); break;
   case SetupService::WAIT_KEY:         return opeu_turn_input_b();

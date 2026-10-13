@@ -37,7 +37,6 @@ PortHandler port_routine_opeu_mouse_left;
 PortHandler port_routine_opeu_mouse_right;
 PortHandler port_routine_opeu_mouse_buttons;
 PortHandler port_routine_opeu_input_reset;
-PortHandler port_routine_opeu_gfx_wait;
 PortHandler port_routine_opeu_staff_reroll_selected;
 PortHandler port_routine_opeu_general_assign_choice;
 PortHandler port_routine_opeu_general_list_draw_rows;
@@ -542,28 +541,6 @@ extern const PortLink port_links[] = {
   { 0x066d8u, "opeu_numdlg_outside",                                                            nullptr                                      },
   { 0x06708u, "opeu_numdlg_track",                                                              nullptr                                      },
   { 0x069a8u, "opeu_numdlg_run",                                                                nullptr                                      },
-  { 0x069dau, "opeu_ems_present",                                                               nullptr                                      },
-  { 0x069fau, "opeu_ems_status",                                                                nullptr                                      },
-  { 0x06a03u, "opeu_ems_version",                                                               nullptr                                      },
-  { 0x06a1bu, "opeu_ems_page_count",                                                            nullptr                                      },
-  { 0x06a34u, "opeu_ems_free_pages",                                                            nullptr                                      },
-  { 0x06a53u, "opeu_ems_frame",                                                                 nullptr                                      },
-  { 0x06a6du, "opeu_ems_allocate",                                                              nullptr                                      },
-  { 0x06a88u, "opeu_ems_page_array",                                                            nullptr                                      },
-  { 0x06a9fu, "opeu_ems_map",                                                                   nullptr                                      },
-  { 0x06ab5u, "opeu_ems_release",                                                               nullptr                                      },
-  { 0x06ac6u, "opeu_ems_map_pages",                                                             nullptr                                      },
-  { 0x06b02u, "opeu_view_prepare",                                                              nullptr                                      },
-  { 0x06b16u, "opeu_ems_map_dialog",                                                            nullptr                                      },
-  { 0x06b2au, "opeu_gfx_wait",                                                                  port_routine_opeu_gfx_wait                   },
-  { 0x06b3eu, "opeu_display_prepare",                                                           nullptr                                      },
-  { 0x06b54u, "opeu_memory_release",                                                            nullptr                                      },
-  { 0x06bd6u, "opeu_ems_reserve",                                                               nullptr                                      },
-  { 0x06c1cu, "opeu_ems_alloc_sprite",                                                          nullptr                                      },
-  { 0x06c44u, "opeu_ems_alloc_numdlg",                                                          nullptr                                      },
-  { 0x06c6cu, "opeu_ems_alloc_tile",                                                            nullptr                                      },
-  { 0x06c94u, "opeu_ems_alloc_frame",                                                           nullptr                                      },
-  { 0x06cbcu, "opeu_ems_detect",                                                                nullptr                                      },
   { 0x06db6u, "opeu_setup_marker_show",                                                         nullptr                                      },
   { 0x06e24u, "opeu_setup_marker_hide",                                                         nullptr                                      },
   { 0x06e64u, "opeu_rebase_scenario",                                                           nullptr                                      },
@@ -2173,4 +2150,4 @@ extern const PortLink port_links[] = {
   { 0x45820u, "opeu_fg4582_0000",                                                               nullptr                                      },
   { 0x464a0u, "opeu_fg4582_0c80/opeu_path_cost",                                                nullptr                                      },
 };
-extern const unsigned port_link_count = 1811;
+extern const unsigned port_link_count = 1789;

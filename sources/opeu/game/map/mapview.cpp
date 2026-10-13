@@ -92,7 +92,6 @@ void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto const pixel{ ViewPixel(data, { cell_x, cell_y }) };
   auto const pixel_x{ pixel.x };
   auto const pixel_y{ pixel.y };
-  Call(ds, event, MapService::VIEW_PREPARE);
   auto const tile{ data.map_tiles[MAP_WIDTH * cell_y + cell_x] };
   Call(ds, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 3, 24, 0, data.tile_segment, tile * TILE_BYTES);
   auto const overlay{ [&](uint8_t sprite) {

@@ -7,7 +7,6 @@
 #include "common/host.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
-#include "core/emsmap.hpp"
 #include "core/numeric.hpp"
 #include "core/uiprim.hpp"
 #include "glue.hpp"
@@ -82,7 +81,6 @@ auto Clamped(std::uint8_t* ds, HostService service, std::uint16_t lo, std::uint1
 void opeu_numdlg_button(std::uint8_t* ds, HostService service, std::uint8_t n, std::uint16_t tile) {
   auto const& data{ Data(ds) };
   opeu_mouse_hide(ds, service);
-  Input(ds, service, InputCall::EMS_MAP);
   Input(ds, service, InputCall::BITMAP_RESTORE, n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, data.message_picture_segment, tile);
   opeu_mouse_show(ds, service);
 }
@@ -100,7 +98,6 @@ void opeu_numdlg_release(std::uint8_t* ds, HostService service, std::uint8_t n) 
 void opeu_numdlg_open(std::uint8_t* ds, HostService service) {
   auto const& data{ Data(ds) };
   Input(ds, service, InputCall::BITMAP_SAVE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, data.numdlg_save_segment, 0);
-  Input(ds, service, InputCall::EMS_MAP);
   Input(ds, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.message_picture_segment, 0);
   opeu_numdlg_release(ds, service, CANCEL_BUTTON);
   opeu_numdlg_release(ds, service, OK_BUTTON);
@@ -390,7 +387,6 @@ auto svc_numdlg(std::uint8_t* ds, std::uint16_t call, std::uint16_t* words) -> s
   case InputCall::BITMAP_RESTORE: return svc_menudraw(ds, call, words);
   case InputCall::UI_FILL:        opeu_ui_fill(words[0], words[1], words[2], words[3], words[4]); break;
   case InputCall::UI_INVERT:      opeu_ui_highlight(words[0], words[1], words[2], words[3], words[4]); break;
-  case InputCall::EMS_MAP:        opeu_ems_map_dialog(ds, svc_emsmap); break;
   case InputCall::UI_LINE:        opeu_ui_line(words[0], words[1], words[2], words[3], words[4]); break;
   default:                        port_unhandled("numdlg", call, 7);
   }

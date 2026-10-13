@@ -13,7 +13,6 @@
 #include "types.hpp"
 
 #include "core/dialogs.hpp"
-#include "core/emsmap.hpp"
 #include "core/memory.hpp"
 #include "core/sideutil.hpp"
 #include "glue.hpp"
@@ -125,7 +124,6 @@ uint16_t svc_map_plan(uint8_t* ds, const char* module, uint16_t kind, const uint
   case MapService::WAIT:             opeu_delay_units(ds, svc_waitkey, static_cast<uint8_t>(w(0))); break;
   case MapService::CONTROL_MESSAGE:  opeu_control_message(ds, static_cast<DialogHost const*>(port_dialogs_host()), w(0), w(1)); break;
   case MapService::STATUS_MODE:      opeu_turn_frame(ds, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(w(0))); break;
-  case MapService::VIEW_PREPARE:     opeu_view_prepare(ds, svc_emsmap); break;
   case MapService::READ_FAR_BYTES:   opeu_read_far_bytes(ds, port_far(w(1), 0), w(0), w(2), w(3)); break;
   default:                           port_unhandled(module, kind, count);
   }

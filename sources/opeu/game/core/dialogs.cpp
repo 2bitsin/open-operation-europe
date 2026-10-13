@@ -13,7 +13,6 @@
 #include "common/scenario.hpp"
 #include "common/side-color.hpp"
 #include "core/context.hpp"
-#include "core/emsmap.hpp"
 #include "core/msglook.hpp"
 #include "core/people.hpp"
 #include "core/personfl.hpp"
@@ -50,7 +49,6 @@ enum Service : std::uint16_t {
   BITMAP_SAVE        = 1,  // (x, y, columns, rows, segment, offset)
   UI_BOX             = 2,  // (x, y, width, height, color)
   VGA_CLEAR          = 3,  // ()
-  DISPLAY_PREPARE    = 4,  // ()
   PICTURE_MEMORY     = 5,  // (x, y, segment, offset)
   PALETTE_FOR_HOUR   = 6,  // ()
   PICTURE_FILE       = 7,  // (x, y, handle, block)
@@ -137,7 +135,6 @@ void opeu_panel_border(uint8_t ds[65536], const DialogHost* host, uint16_t which
 uint16_t opeu_message_backdrop(uint8_t ds[65536], const DialogHost* host) {
   auto& data{ Data(ds) };
   if (data.context_display_word == 0) {
-    Send(ds, host, DISPLAY_PREPARE);
     Send(ds, host, PICTURE_MEMORY, 0x160, 0x18, data.frame_segment, 0x1000);
     return data.context_display_word = 1;
   }
@@ -152,7 +149,6 @@ void opeu_turn_prepare(uint8_t ds[65536], const DialogHost* host) {
     weather = Near(data, data.hurricane_name);
   else
     weather = data.weather_names[data.weather];
-  Send(ds, host, DISPLAY_PREPARE);
   Send(ds, host, PICTURE_MEMORY, 0, 0x18, data.frame_segment, 0x1c00);
   Send(ds, host, CONTEXT_SAVE);
   Send(ds, host, ARMY_POSITION, 0x12, 0x20);
@@ -166,7 +162,6 @@ void opeu_turn_frame(uint8_t ds[65536], const DialogHost* host, uint8_t mode) {
   auto& data{ Data(ds) };
   if (mode == data.turn_frame_mode) return;
   opeu_turn_prepare(ds, host);
-  if (data.turn_frame_mode != 1 || mode != 0) Send(ds, host, DISPLAY_PREPARE);
   Send(ds, host, PICTURE_MEMORY, 0, 0x38, data.frame_segment, 0x400);
   bool const          map{ mode == 0 };
   std::uint16_t const offset{ CurrentScenario(data) == Scenario::AFRICA ? (map ? std::uint16_t{ 0x120 } : std::uint16_t{ 0x360 }) : (map ? std::uint16_t{ 0x240 } : std::uint16_t{ 0x4e0 }) };
@@ -183,7 +178,6 @@ void opeu_turn_active_begin(uint8_t ds[65536], const DialogHost* host) {
   if (data.control_selection == 1)
     Send(ds, host, UI_BOX, 1, 3, 0x4e, 0x12, 0xf);
   else {
-    Send(ds, host, DISPLAY_PREPARE);
     Send(ds, host, PICTURE_MEMORY, 0, 0, data.frame_segment, 0);
     data.control_selection = 1;
   }
@@ -498,7 +492,6 @@ uint16_t svc_dialogs(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
   case BITMAP_SAVE:      opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
   case UI_BOX:           r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case VGA_CLEAR:        r = (uint16_t)opeu_vga_clear(); break;
-  case DISPLAY_PREPARE:  opeu_display_prepare(ds, svc_emsmap); break;
   case PICTURE_MEMORY:   opeu_picture_memory_masked(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case PALETTE_FOR_HOUR: opeu_palette_for_hour(ds, (const UiHost*)port_uiprim_host()); break;
   case PICTURE_FILE:     opeu_picture_file(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
