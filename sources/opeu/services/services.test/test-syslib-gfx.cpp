@@ -1,108 +1,98 @@
 // Checks of the battle-cell and sprite routines against values worked out by hand, in the bit-per-colour form of the
 // game's buffers.
-#include "canvas.hpp"
 #include "syslib-gfx.hpp"
-#include <print>
-#include <source_location>
-#include <stdio.h>
-#include <string.h>
 
-static int failures;
+#include "canvas.hpp"
+
+#include <gtest/gtest.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <ranges>
+
+namespace opeu::services {
 namespace {
 
-// Print the place of a check that does not hold.
-auto Check(bool held, std::source_location where = std::source_location::current()) -> void {
-  if (!held) {
-    std::println("FAIL {}:{}", where.file_name(), where.line());
-    failures++;
+using CellBuffer = std::array<std::uint8_t, SYSLIB_CELL_BYTES>;
+
+// Bit `plane` of the 8 pixels of screen column `column` (80 columns per screen line).
+auto Plane(int const plane, int const column) -> int {
+  return Screen().PlaneBits(Offset{ column } * 8, plane);
+}
+
+auto SetPlane(int const plane, int const column, int const bits) -> void {
+  Screen().SetPlaneBits(Offset{ column } * 8, plane, static_cast<std::uint8_t>(bits));
+}
+
+// Sets bits `bits` in every colour bit of the screen columns [from, from + count).
+auto SetAllPlanes(int const from, int const count, int const bits) -> void {
+  std::ranges::for_each(std::views::iota(0, 4), [&](int const plane) { std::ranges::for_each(std::views::iota(from, from + count), [&](int const column) { SetPlane(plane, column, bits); }); });
+}
+
+class SyslibGfx : public testing::Test {
+protected:
+  auto SetUp() -> void override {
+    Screen().Clear();
   }
+};
+
+TEST_F(SyslibGfx, RestoresACellHalfAColumnRight) { // 354F
+  constexpr auto COLUMN{ 40 * 80 + 2 };
+  CellBuffer     cell{ 0x12, 0x34, 0x56, 0x78, 0x9A };
+  SetAllPlanes(COLUMN, 6, 0xAA);
+  opeu_vram_restore_odd(2, 0, cell.data());
+  EXPECT_EQ(Plane(0, COLUMN), 0xA1);
+  EXPECT_EQ(Plane(0, COLUMN + 1), 0x23);
+  EXPECT_EQ(Plane(0, COLUMN + 2), 0x45);
+  EXPECT_EQ(Plane(0, COLUMN + 3), 0x67);
+  EXPECT_EQ(Plane(0, COLUMN + 4), 0x89);
+  EXPECT_EQ(Plane(0, COLUMN + 5), 0xAA);
+  EXPECT_TRUE(Plane(1, COLUMN) == 0xA0 && Plane(1, COLUMN + 5) == 0x0A);
+  EXPECT_EQ(Plane(1, COLUMN + 6), 0x00);
 }
 
+TEST_F(SyslibGfx, SavesAndRestoresCells) { // 3882, 37E4, 34B8
+  constexpr std::array<std::uint8_t, 6> SAVED_ROW{ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
+  CellBuffer                            cell{};
+  CellBuffer                            again{};
+  std::ranges::for_each(std::views::iota(0, 6), [&](int const i) { SetPlane(0, 3200 + i, SAVED_ROW[static_cast<std::size_t>(i)]); });
+  opeu_vram_save_odd(0, 0, cell.data());
+  EXPECT_TRUE(cell[0] == 0x23 && cell[1] == 0x45 && cell[2] == 0x67 && cell[3] == 0x89 && cell[4] == 0xAB);
+  EXPECT_EQ(cell[5], 0);
+  std::ranges::transform(std::views::iota(0uz, cell.size()), cell.begin(), [](std::size_t const i) { return static_cast<std::uint8_t>(i * 7 + 3); });
+  opeu_vram_restore(10, 100, cell.data());
+  EXPECT_EQ(Plane(2, (100 + 40) * 80 + 10 + 80 + 3), cell[20 + 10 + 3]);
+  opeu_vram_save(10, 100, again.data());
+  EXPECT_EQ(cell, again);
+  opeu_vram_restore_odd(20, 50, cell.data());
+  opeu_vram_save_odd(20, 50, again.data());
+  EXPECT_EQ(cell, again);
 }
 
-// Bit p of the 8 pixels of screen column a (80 columns per screen line).
-static uint8_t Plane(int p, unsigned a) {
-  return opeu::services::Screen().PlaneBits(opeu::services::Offset{ a } * 8, p);
+TEST_F(SyslibGfx, SpillsGlyphPairsAcrossColourBitBlocks) { // 3A4D: the word operations cross the blocks
+  constexpr std::array<std::uint8_t, 6> GLYPH{ 0x81, 0, 0, 0, 0, 0 };
+  std::array<std::uint8_t, 540>         cell{};
+  std::array<std::uint8_t, 540>         expected{};
+  cell.fill(0xFF);
+  expected.fill(0xFF);
+  expected[4]  = 0xBF;
+  expected[5]  = 0x7F;
+  expected[14] = 0xBF;
+  expected[15] = 0x7F;
+  expected[19] = 0xBF;
+  expected[20] = 0x7F;
+  opeu_vram_glyph_color(cell.data(), GLYPH.data(), 33, 0, 0);
+  EXPECT_EQ(cell, expected);
+  cell.fill(0);
+  opeu_vram_glyph(cell.data(), GLYPH.data(), 0, 1); // colour bits 0-2 get 81h, bit 3 cleared
+  EXPECT_TRUE(cell[20] == 0x81 && cell[25] == 0x81 && cell[30] == 0x81 && cell[35] == 0 && cell[21] == 0);
 }
 
-static void SetPlane(int p, unsigned a, unsigned bits) {
-  opeu::services::Screen().SetPlaneBits(opeu::services::Offset{ a } * 8, p, (uint8_t)bits);
-}
-
-static void clear(void) {
-  opeu::services::Screen().Clear();
-}
-
-static void TestRestoreOdd(void) /* 354F */
-{
-  uint8_t  buf[520];
-  uint16_t di = 40 * 80 + 2;
-  int      p;
-  clear();
-  memset(buf, 0, sizeof buf);
-  for (p = 0; p < 4; p++)
-    for (int i = 0; i < 6; i++) SetPlane(p, di + i, 0xAA);
-  buf[0] = 0x12;
-  buf[1] = 0x34;
-  buf[2] = 0x56;
-  buf[3] = 0x78;
-  buf[4] = 0x9A;
-  opeu_vram_restore_odd(2, 0, buf);
-  Check(Plane(0, di) == 0xA1);
-  Check(Plane(0, di + 1) == 0x23);
-  Check(Plane(0, di + 2) == 0x45);
-  Check(Plane(0, di + 3) == 0x67);
-  Check(Plane(0, di + 4) == 0x89);
-  Check(Plane(0, di + 5) == 0xAA);
-  Check(Plane(1, di) == 0xA0 && Plane(1, di + 5) == 0x0A);
-  Check(Plane(1, di + 6) == 0x00);
-}
-
-static void TestSaveOddAndRoundtrip(void) /* 3882, 37E4, 34B8 */
-{
-  static const uint8_t SAVED_ROW[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
-  uint8_t              buf[520], buf2[520];
-  unsigned             i;
-  clear();
-  for (i = 0; i < 6; i++) SetPlane(0, 3200 + i, SAVED_ROW[i]);
-  opeu_vram_save_odd(0, 0, buf);
-  Check(buf[0] == 0x23 && buf[1] == 0x45 && buf[2] == 0x67 && buf[3] == 0x89 && buf[4] == 0xAB);
-  Check(buf[5] == 0);
-  for (i = 0; i < 520; i++) buf[i] = (uint8_t)(i * 7 + 3);
-  opeu_vram_restore(10, 100, buf);
-  Check(Plane(2, (100 + 40) * 80 + 10 + 80 + 3) == buf[20 + 10 + 3]);
-  opeu_vram_save(10, 100, buf2);
-  Check(memcmp(buf, buf2, 520) == 0);
-  opeu_vram_restore_odd(20, 50, buf);
-  opeu_vram_save_odd(20, 50, buf2);
-  Check(memcmp(buf, buf2, 520) == 0);
-}
-
-static void TestGlyphColorSpill(void) /* 3A4D: word ops cross plane blocks */
-{
-  uint8_t v[540], exp[540];
-  uint8_t g[6] = { 0x81, 0, 0, 0, 0, 0 };
-  memset(v, 0xFF, sizeof v);
-  memset(exp, 0xFF, sizeof exp);
-  exp[4]  = 0xBF;
-  exp[5]  = 0x7F;
-  exp[14] = 0xBF;
-  exp[15] = 0x7F;
-  exp[19] = 0xBF;
-  exp[20] = 0x7F;
-  opeu_vram_glyph_color(v, g, 33, 0, 0);
-  Check(memcmp(v, exp, sizeof v) == 0);
-  memset(v, 0, sizeof v);
-  opeu_vram_glyph(v, g, 0, 1); /* planes 0-2 get 0x81, plane 3 cleared */
-  Check(v[20] == 0x81 && v[25] == 0x81 && v[30] == 0x81 && v[35] == 0 && v[21] == 0);
-}
-
-static void TestSpriteCompose(void) /* 3E0A */
-{
-  static const uint8_t SPRITE_MASK[2] = { 0xF0, 0x0F };
-  static const uint8_t IMG[6]         = { 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
-  uint8_t              buf[16];
-  clear();
+TEST_F(SyslibGfx, ComposesSprites) { // 3E0A
+  constexpr std::array<std::uint8_t, 2> MASK{ 0xF0, 0x0F };
+  constexpr std::array<std::uint8_t, 6> IMAGE{ 0x01, 0x02, 0x04, 0x10, 0x20, 0x40 };
+  std::array<std::uint8_t, 16>          buffer{};
   SetPlane(0, 3200, 0xFF);
   SetPlane(0, 3201, 0xFF);
   SetPlane(1, 3200, 0xFF);
@@ -111,75 +101,56 @@ static void TestSpriteCompose(void) /* 3E0A */
   SetPlane(2, 3201, 0xFF);
   SetPlane(3, 3200, 0x0F);
   SetPlane(3, 3201, 0xF0);
-  opeu_sprite_compose(0, 0, 2, 1, SPRITE_MASK, IMG, buf, 0);
-  Check(Plane(0, 3200) == 0xF1 && Plane(0, 3201) == 0x1F);
-  Check(Plane(1, 3200) == 0xF2 && Plane(1, 3201) == 0x20);
-  Check(Plane(2, 3200) == 0x04 && Plane(2, 3201) == 0x4F);
-  Check(Plane(3, 3200) == 0x00 && Plane(3, 3201) == 0x00);
-  Check(buf[0] == 0xF1 && buf[3] == 0x20 && buf[6] == 0x00);
+  opeu_sprite_compose(0, 0, 2, 1, MASK.data(), IMAGE.data(), buffer.data(), 0);
+  EXPECT_TRUE(Plane(0, 3200) == 0xF1 && Plane(0, 3201) == 0x1F);
+  EXPECT_TRUE(Plane(1, 3200) == 0xF2 && Plane(1, 3201) == 0x20);
+  EXPECT_TRUE(Plane(2, 3200) == 0x04 && Plane(2, 3201) == 0x4F);
+  EXPECT_TRUE(Plane(3, 3200) == 0x00 && Plane(3, 3201) == 0x00);
+  EXPECT_TRUE(buffer[0] == 0xF1 && buffer[3] == 0x20 && buffer[6] == 0x00);
 }
 
-static void Test3f26(void) /* 3F26 with a 4-pixel shift */
-{
-  static const uint8_t SHIFTED_MASK[1] = { 0x00 };
-  static const uint8_t IMG[4]          = { 0x0F, 0xF0, 0x3C, 0xC3 };
-  uint8_t              buf[8];
-  int                  p;
-  clear();
-  for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
-  koei_3f26(4, 0, 8, 1, SHIFTED_MASK, IMG, buf, 1);
-  Check(Plane(0, 3200) == 0xF0 && Plane(0, 3201) == 0xFF);
-  Check(Plane(1, 3200) == 0xFF && Plane(1, 3201) == 0x0F);
-  Check(Plane(2, 3200) == 0xF3 && Plane(2, 3201) == 0xCF);
-  Check(Plane(3, 3200) == 0xFC && Plane(3, 3201) == 0x3F);
-  /* flags bit 0 clear: the original never returns; the port leaves VRAM alone */
-  for (p = 0; p < 4; p++) SetPlane(p, 3200, 0xFF), SetPlane(p, 3201, 0xFF);
-  koei_3f26(4, 0, 8, 1, SHIFTED_MASK, IMG, buf, 0);
-  Check(Plane(0, 3200) == 0xFF && Plane(3, 3201) == 0xFF);
+TEST_F(SyslibGfx, ComposesSpritesShiftedByPixels) { // 3F26 with a 4-pixel shift
+  constexpr std::array<std::uint8_t, 1> MASK{ 0x00 };
+  constexpr std::array<std::uint8_t, 4> IMAGE{ 0x0F, 0xF0, 0x3C, 0xC3 };
+  std::array<std::uint8_t, 8>           buffer{};
+  SetAllPlanes(3200, 2, 0xFF);
+  koei_3f26(4, 0, 8, 1, MASK.data(), IMAGE.data(), buffer.data(), 1);
+  EXPECT_TRUE(Plane(0, 3200) == 0xF0 && Plane(0, 3201) == 0xFF);
+  EXPECT_TRUE(Plane(1, 3200) == 0xFF && Plane(1, 3201) == 0x0F);
+  EXPECT_TRUE(Plane(2, 3200) == 0xF3 && Plane(2, 3201) == 0xCF);
+  EXPECT_TRUE(Plane(3, 3200) == 0xFC && Plane(3, 3201) == 0x3F);
+  // Flags bit 0 clear: the original never returns; the port leaves the screen alone.
+  SetAllPlanes(3200, 2, 0xFF);
+  koei_3f26(4, 0, 8, 1, MASK.data(), IMAGE.data(), buffer.data(), 0);
+  EXPECT_TRUE(Plane(0, 3200) == 0xFF && Plane(3, 3201) == 0xFF);
 }
 
-static void TestCopyAndFill(void) /* 3BC5 overlap, 3B77 */
-{
-  clear();
+TEST_F(SyslibGfx, CopiesBlocksAndFillsColourBitThree) { // 3BC5 overlap, 3B77
   SetPlane(0, 3200, 1);
   SetPlane(0, 3201, 2);
   SetPlane(0, 3202, 3);
   SetPlane(0, 3203, 4);
   koei_3bc5(0, 0, 1, 0);
-  Check(Plane(0, 3201) == 1 && Plane(0, 3202) == 2 && Plane(0, 3203) == 2);
-  clear();
+  EXPECT_TRUE(Plane(0, 3201) == 1 && Plane(0, 3202) == 2 && Plane(0, 3203) == 2);
+  Screen().Clear();
   Koei3b77(5, 2, 3, 2, 0x1A5);
-  Check(Plane(3, 42 * 80 + 5) == 0xA5 && Plane(3, 43 * 80 + 7) == 0xA5);
-  Check(Plane(3, 43 * 80 + 8) == 0 && Plane(3, 44 * 80 + 5) == 0);
-  Check(Plane(0, 42 * 80 + 5) == 0);
+  EXPECT_TRUE(Plane(3, 42 * 80 + 5) == 0xA5 && Plane(3, 43 * 80 + 7) == 0xA5);
+  EXPECT_TRUE(Plane(3, 43 * 80 + 8) == 0 && Plane(3, 44 * 80 + 5) == 0);
+  EXPECT_EQ(Plane(0, 42 * 80 + 5), 0);
 }
 
-static void TestLoadDraw(void) /* 3B1E, 3A04 */
-{
-  uint8_t  v[520], m[130], s[520];
-  unsigned i;
-  memset(v, 0xFF, sizeof v);
-  for (i = 0; i < 130; i++) m[i] = (uint8_t)(i | 0x80);
-  opeu_vram_load(v, m);
-  Check(v[0] == 0x80 && v[5] == 0x80 && v[15 + 4] == 0x84 && v[20] == 0x85 && v[519] == (uint8_t)(129 | 0x80));
-  memset(s, 0x01, sizeof s);
-  opeu_vram_draw(v, s);
-  Check(v[0] == 0x81 && v[519] == 0x81);
+TEST_F(SyslibGfx, MasksAndDrawsCells) { // 3B1E, 3A04
+  CellBuffer                    cell{};
+  std::array<std::uint8_t, 130> mask{};
+  CellBuffer                    source{};
+  cell.fill(0xFF);
+  std::ranges::transform(std::views::iota(0uz, mask.size()), mask.begin(), [](std::size_t const i) { return static_cast<std::uint8_t>(i | 0x80); });
+  opeu_vram_load(cell.data(), mask.data());
+  EXPECT_TRUE(cell[0] == 0x80 && cell[5] == 0x80 && cell[15 + 4] == 0x84 && cell[20] == 0x85 && cell[519] == (129 | 0x80));
+  source.fill(0x01);
+  opeu_vram_draw(cell.data(), source.data());
+  EXPECT_TRUE(cell[0] == 0x81 && cell[519] == 0x81);
 }
 
-/* Run by services.test/c-suites.cpp; returns non-zero on a failure. */
-int TestSyslibGfx(void) {
-  TestRestoreOdd();
-  TestSaveOddAndRoundtrip();
-  TestGlyphColorSpill();
-  TestSpriteCompose();
-  Test3f26();
-  TestCopyAndFill();
-  TestLoadDraw();
-  if (failures) {
-    printf("%d failure(s)\n", failures);
-    return 1;
-  }
-  printf("syslib_gfx: all tests passed\n");
-  return 0;
+}
 }
