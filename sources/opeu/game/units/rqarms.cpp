@@ -24,11 +24,14 @@
 #include "units/value.hpp"
 
 #include <array>
+#include <ranges>
 #include <utility>
 
 using namespace opeu::game;
 
 namespace {
+// The element categories the arms list runs through.
+constexpr std::uint8_t CATEGORIES{ 8 };
 // A request's buffers in the data segment (its own reserve, and the frame the request services are given): the picked
 // cell's x and y bytes, then the confirmation text.
 constexpr std::uint16_t REQUEST_SCRATCH{ 0x80 };
@@ -51,8 +54,7 @@ void opeu_request_arms(Game& game) {
   }
   opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   std::uint8_t count{ 0 };
-  for (std::uint8_t category{ 0 }; category < 8; ++category)
-    count += static_cast<std::uint8_t>(opeu_list_due_records(game, Near(data, data.rq_type_list[count]), static_cast<uint8_t>(data.side_masks[data.current_side]), static_cast<uint8_t>(category)));
+  for (auto const category : std::views::iota(std::uint8_t{ 0 }, CATEGORIES)) count += opeu_list_due_records(game, Near(data, data.rq_type_list[count]), data.side_masks[data.current_side], category);
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_which), data.context_record2);
   if (!opeu_list_dialog(game, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;

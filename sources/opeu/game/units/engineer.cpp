@@ -58,8 +58,7 @@ enum Picture : std::uint16_t {
 auto SkillRoll(Game& game, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(game) };
   std::uint16_t const random{ port_rand_bounded(game, bound) };
-  ServiceLocals const count{ 2 };
-  std::uint16_t const engineers{ opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::ENGINEERS)), game.State().Bytes(count.At(0), 1).data()) };
+  std::uint16_t const engineers{ UnitQuantity(data, data.current_unit_ptr, Bits(Category::ENGINEERS)).total };
   std::uint16_t const average10{ opeu_unit_average10(game, data.current_unit_ptr) };
   std::uint16_t const average11{ opeu_unit_average11(game, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random
@@ -81,6 +80,11 @@ auto Report(Game& game, auto const& text) -> void {
   opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, text));
 }
 
+// The strength of the current regiment's repair crews.
+[[nodiscard]] auto RepairCrews(DataSegment const& data) -> std::uint16_t {
+  return UnitQuantity(data, data.current_unit_ptr, Bits(Category::REPAIR)).total;
+}
+
 auto RestoreOrder(Game& game) -> void {
   opeu_restore_unit_order(game, Data(game).current_unit_ptr);
 }
@@ -97,20 +101,15 @@ void opeu_mines_laid_finish(Game& game) {
 
 // Lays mines at the destination cell unless the side has mined it already or the regiment stands on it.
 uint16_t opeu_engineer_lay_mines(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        at_x{ destination.XAt() };
-  auto const        at_y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
-  auto const  x{ Byte(game, at_x) };
-  auto const  y{ Byte(game, at_y) };
+  auto& data{ Data(game) };
+  auto const [x, y]{ DestinationCell(game) };
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
-  if (!opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side)) && (regiment.x != x || regiment.y != y)) {
-    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
-    if (LowerProgress(game, opeu_mine_skill(game)) && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == NO_SIDE) {
+  if (!opeu_cell_marked(game, x, y, static_cast<uint8_t>(data.current_side)) && (regiment.x != x || regiment.y != y)) {
+    if (!opeu_move_adjacent(game, x, y)) return 0;
+    if (LowerProgress(game, opeu_mine_skill(game)) && opeu_cell_side(game, x, y) == NO_SIDE) {
       Report(game, data.mines_laid_text);
-      opeu_mark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side));
-      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      opeu_mark_cell(game, x, y, static_cast<uint8_t>(data.current_side));
+      opeu_map_erase(game, x, y);
       Show(game, MINES_LAID_PICTURE, Presenter::MINES_LAID);
       RestoreOrder(game);
     }
@@ -126,20 +125,15 @@ void opeu_mines_removed_finish(Game& game) {
 
 // Clears the mines of both sides at the destination cell.
 uint16_t opeu_engineer_remove_mines(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        at_x{ destination.XAt() };
-  auto const        at_y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
-  auto const x{ Byte(game, at_x) };
-  auto const y{ Byte(game, at_y) };
-  if (opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(data.current_side))) {
-    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
+  auto& data{ Data(game) };
+  auto const [x, y]{ DestinationCell(game) };
+  if (opeu_cell_marked(game, x, y, static_cast<uint8_t>(data.current_side))) {
+    if (!opeu_move_adjacent(game, x, y)) return 0;
     if (LowerProgress(game, opeu_mine_skill(game))) {
       Report(game, data.mines_removed_text);
-      opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(0));
-      opeu_unmark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(1));
-      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      opeu_unmark_cell(game, x, y, static_cast<uint8_t>(0));
+      opeu_unmark_cell(game, x, y, static_cast<uint8_t>(1));
+      opeu_map_erase(game, x, y);
       Show(game, MINES_REMOVED_PICTURE, Presenter::MINES_REMOVED);
       RestoreOrder(game);
     }
@@ -160,19 +154,14 @@ void opeu_bridge_built_finish(Game& game) {
 
 // Builds a bridge over the river at the destination cell.
 uint16_t opeu_engineer_build_bridge(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        at_x{ destination.XAt() };
-  auto const        at_y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
-  auto const x{ Byte(game, at_x) };
-  auto const y{ Byte(game, at_y) };
-  if (static_cast<Terrain>(static_cast<std::uint8_t>(opeu_map_code(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)))) == Terrain::RIVER) {
-    if (!opeu_move_adjacent(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
-    if (LowerProgress(game, opeu_bridge_skill(game)) && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == NO_SIDE) {
+  auto& data{ Data(game) };
+  auto const [x, y]{ DestinationCell(game) };
+  if (static_cast<Terrain>(opeu_map_code(game, x, y)) == Terrain::RIVER) {
+    if (!opeu_move_adjacent(game, x, y)) return 0;
+    if (LowerProgress(game, opeu_bridge_skill(game)) && opeu_cell_side(game, x, y) == NO_SIDE) {
       Report(game, data.bridge_built_text);
-      opeu_map_mark_10(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
-      opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+      opeu_map_mark_10(game, x, y);
+      opeu_map_erase(game, x, y);
       Show(game, BRIDGE_PICTURE, Presenter::BRIDGE_BUILT);
       RestoreOrder(game);
     }
@@ -203,10 +192,8 @@ void opeu_arms_repaired_finish(Game& game) {
 
 // Repairs the arms of the own objective at the destination; the order ends when nothing is left to repair.
 uint16_t opeu_engineer_repair_objective(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const counts{ 2 };
-  auto const          crews{ counts.At(0) };
-  if (!opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data())) {
+  auto& data{ Data(game) };
+  if (!RepairCrews(data)) {
     RestoreOrder(game);
     return 1;
   }
@@ -217,7 +204,7 @@ uint16_t opeu_engineer_repair_objective(Game& game) {
   if (!objective) return 1;
   if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data()) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(RepairCrews(data) / 10 + 1) };
   bool repaired{ false };
   for (auto& item : Record<Objective>(data, objective).items)
     if (item.quantity && opeu_arms_repair(game, budget, Near(data, item))) repaired = true;
@@ -231,10 +218,8 @@ uint16_t opeu_engineer_repair_objective(Game& game) {
 
 // Repairs the arms of the friendly regiment the order targets; the order ends when nothing is left to repair.
 uint16_t opeu_engineer_repair_unit(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const counts{ 2 };
-  auto const          crews{ counts.At(0) };
-  if (!opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data())) {
+  auto& data{ Data(game) };
+  if (!RepairCrews(data)) {
     RestoreOrder(game);
     return 1;
   }
@@ -245,7 +230,7 @@ uint16_t opeu_engineer_repair_unit(Game& game) {
   if (!unit) return 1;
   if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::REPAIR)), game.State().Bytes(crews, 1).data()) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(RepairCrews(data) / 10 + 1) };
   bool repaired{ false };
   for (auto element{ Record<Unit>(data, unit).first }; element; element = Record<Element>(data, element).next)
     if (opeu_arms_repair(game, budget, Near(data, Record<Element>(data, element).type))) repaired = true;

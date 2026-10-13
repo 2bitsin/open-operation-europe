@@ -40,7 +40,7 @@ void opeu_rq_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row, 
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.rq_unit_header));
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const unit{ data.ai_unit_list[entry] };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, 3, data.current_side);

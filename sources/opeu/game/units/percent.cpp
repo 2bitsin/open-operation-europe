@@ -17,10 +17,6 @@ auto UnitResourcePercentages(DataSegment const& data, std::uint16_t unit) -> Res
     opeu_resource_percent(record.resources[2], capacities.food),
   };
 }
-
-auto StoreUnitResourcePercentages(Game& game, std::uint16_t unit, ResourceWords at) -> void {
-  StoreResources(game, at, UnitResourcePercentages(Data(game), unit));
-}
 } // namespace opeu::game::detail::percent
 
 using namespace opeu::game;

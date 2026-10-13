@@ -22,7 +22,11 @@
 #include "units/resagg.hpp"
 #include "units/supply.hpp"
 #include "units/unitname.hpp"
+#include <algorithm>
 #include <array>
+#include <cstddef>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -40,75 +44,100 @@ auto Fill(Item& item, Item const& row) -> void {
   item.quantity = row.quantity;
   item.extra    = 0;
 }
+
+// Ammunition, fuel and food summed over the parties, in 32 bits.
+using Sums = std::array<std::int32_t, 3>;
+
+auto Add(Sums& sums, std::uint16_t const (&resources)[3]) -> void {
+  std::ranges::transform(sums, resources, sums.begin(), [](std::int32_t sum, std::uint16_t amount) { return sum + amount; });
+}
+
+// The allocation rows [begin, end) a party takes.
+struct Rows {
+  std::uint8_t begin;
+  std::uint8_t end;
+};
+
+// Empties the unit and gives it a fresh element, with its type's averages, for each nonempty allocation row.
+auto RebuildUnit(Game& game, std::uint16_t unit_near, Rows rows, std::uint8_t types) -> void {
+  auto& data{ Data(game) };
+  auto& unit{ Record<Unit>(data, unit_near) };
+  while (unit.first) opeu_remove_element(game, unit_near, unit.first);
+  opeu_release_side_elements(game, Near(data, data.alloc_elements), 0);
+  std::uint8_t used{ 0 };
+  for (auto const& slot : std::span{ data.alloc_slots }.subspan(rows.begin, rows.end - rows.begin) | std::views::filter([](Item const& row) { return row.quantity != 0; })) {
+    auto const element_near{ data.alloc_elements[used++] };
+    auto&      element{ Record<Element>(data, element_near) };
+    element.type     = slot.type;
+    element.quantity = slot.quantity;
+    element.damage   = 0;
+    opeu_alloc_element_values(game, element_near, types);
+    opeu_insert_element(game, unit_near, element_near);
+  }
+}
+
+// Fills the objective's six items from its allocation rows and the spare stock, clearing the items left over.
+auto FillObjective(DataSegment& data, Rows rows) -> void {
+  auto&        objective{ Record<Objective>(data, data.alloc_objective) };
+  std::uint8_t used{ 0 };
+  auto const   stocked{ [](Item const& row) { return row.quantity != 0; } };
+  for (auto const& row : std::span{ data.alloc_slots }.subspan(rows.begin, rows.end - rows.begin) | std::views::filter(stocked)) Fill(objective.items[used++], row);
+  for (auto const& row : std::span{ data.supply_spare }.first(data.tally_reject_count) | std::views::filter(stocked)) Fill(objective.items[used++], row);
+  std::ranges::for_each(std::span{ objective.items }.subspan(used), [](Item& item) { item.quantity = 0; });
+}
+
+// The first unit keeps what it can carry; the second unit takes the rest and the two exchange supplies.
+auto ShareWithUnit(Game& game, Sums const& sums, Resources const& capacities) -> void {
+  auto& data{ Data(game) };
+  auto& unit{ Record<Unit>(data, data.alloc_units[0]) };
+  auto& other{ Record<Unit>(data, data.alloc_units[1]) };
+  for (auto const [resource, sum, capacity] : std::views::zip(std::views::iota(0uz), sums, Figures(capacities))) {
+    unit.resources[resource]  = sum > std::int32_t{ capacity } ? capacity : static_cast<std::uint16_t>(sum);
+    other.resources[resource] = static_cast<std::uint16_t>(static_cast<std::uint16_t>(sum) - unit.resources[resource]);
+  }
+  opeu_supply_exchange_units(game, data.alloc_units[0], data.alloc_units[1]);
+}
+
+// The unit keeps what it can carry; the objective takes the rest, capped at 60000, and the two exchange supplies.
+auto ShareWithObjective(Game& game, Sums const& sums, Resources const& capacities) -> void {
+  auto& data{ Data(game) };
+  auto& unit{ Record<Unit>(data, data.alloc_units[0]) };
+  auto& objective{ Record<Objective>(data, data.alloc_objective) };
+  for (auto const [resource, sum, capacity] : std::views::zip(std::views::iota(0uz), sums, Figures(capacities))) {
+    unit.resources[resource] = sum > std::int32_t{ capacity } ? capacity : static_cast<std::uint16_t>(sum);
+    if (sum - unit.resources[resource] > RESOURCE_LIMIT)
+      objective.resources[resource] = RESOURCE_LIMIT;
+    else
+      objective.resources[resource] = static_cast<std::uint16_t>(static_cast<std::uint16_t>(sum) - unit.resources[resource]);
+  }
+  opeu_supply_exchange_objective(game, data.alloc_units[0], data.alloc_objective);
+}
 } // namespace
 
 // Rebuilds each unit's element list from its allocation rows (or fills the objective's six items), then splits the
 // summed resources: the first unit up to its capacities, the rest to the second unit or (capped at 60000) to the
 // objective.
-void opeu_alloc_distribute(Game& game, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
-  auto&         data{ Data(game) };
-  std::int32_t  sum_a{ 0 }, sum_b{ 0 }, sum_c{ 0 };
-  std::uint16_t capacity_a[2]{}, capacity_b[2]{}, capacity_c[2]{};
-  std::uint8_t  start{ 0 };
-  for (std::uint8_t i{ 0 }; i < 2; ++i) {
-    auto const unit_near{ data.alloc_units[i] };
+void opeu_alloc_distribute(Game& game, Allocation const& allocation) {
+  auto&                    data{ Data(game) };
+  Sums                     sums{};
+  std::array<Resources, 2> capacities{};
+  Rows                     rows{ 0, allocation.slots };
+  for (auto const [party, unit_near] : std::views::zip(std::views::iota(0uz), data.alloc_units)) {
     if (unit_near != 0) {
-      auto& unit{ Record<Unit>(data, unit_near) };
-      while (unit.first) opeu_remove_element(game, unit_near, unit.first);
-      opeu_release_side_elements(game, Near(data, data.alloc_elements), static_cast<uint8_t>(0));
-      std::uint8_t used{ 0 };
-      for (auto row{ start }; row < first; ++row) {
-        auto const& slot{ data.alloc_slots[row] };
-        if (!slot.quantity) continue;
-        auto const element_near{ data.alloc_elements[used++] };
-        auto&      element{ Record<Element>(data, element_near) };
-        element.type     = slot.type;
-        element.quantity = slot.quantity;
-        element.damage   = 0;
-        opeu_alloc_element_values(game, element_near, count);
-        opeu_insert_element(game, unit_near, element_near);
-      }
-      sum_a += unit.resources[0];
-      sum_b += unit.resources[1];
-      sum_c += unit.resources[2];
-      opeu_unit_capacities(game, unit_near, &capacity_a[i], &capacity_b[i], &capacity_c[i]);
-      start  = first;
-      first += second;
+      RebuildUnit(game, unit_near, rows, allocation.types);
+      Add(sums, Record<Unit>(data, unit_near).resources);
+      capacities[party] = UnitCapacities(data, unit_near);
+      rows              = { rows.end, static_cast<std::uint8_t>(rows.end + allocation.other_slots) };
     } else {
-      auto&        objective{ Record<Objective>(data, data.alloc_objective) };
-      std::uint8_t used{ 0 };
-      for (auto row{ start }; third + start > row; ++row)
-        if (data.alloc_slots[row].quantity) Fill(objective.items[used++], data.alloc_slots[row]);
-      for (std::uint8_t row{ 0 }; row < data.tally_reject_count; ++row)
-        if (data.supply_spare[row].quantity) Fill(objective.items[used++], data.supply_spare[row]);
-      for (; used < 6; ++used) objective.items[used].quantity = 0;
-      sum_a += objective.resources[0];
-      sum_b += objective.resources[1];
-      sum_c += objective.resources[2];
-      opeu_objective_capacities(game, data.alloc_objective, &capacity_a[1], &capacity_b[1], &capacity_c[1]);
+      FillObjective(data, { rows.begin, static_cast<std::uint8_t>(rows.begin + allocation.spare_slots) });
+      Add(sums, Record<Objective>(data, data.alloc_objective).resources);
+      capacities[1] = ObjectiveCapacities(data, data.alloc_objective);
     }
   }
-  auto& unit{ Record<Unit>(data, data.alloc_units[0]) };
-  unit.resources[0] = sum_a > std::int32_t{ capacity_a[0] } ? capacity_a[0] : static_cast<std::uint16_t>(sum_a);
-  unit.resources[1] = sum_b > std::int32_t{ capacity_b[0] } ? capacity_b[0] : static_cast<std::uint16_t>(sum_b);
-  unit.resources[2] = sum_c > std::int32_t{ capacity_c[0] } ? capacity_c[0] : static_cast<std::uint16_t>(sum_c);
-  if (auto const other_near{ data.alloc_units[1] }; other_near != 0) {
-    auto& other{ Record<Unit>(data, other_near) };
-    other.resources[0] = static_cast<std::uint16_t>(sum_a) - unit.resources[0];
-    other.resources[1] = static_cast<std::uint16_t>(sum_b) - unit.resources[1];
-    other.resources[2] = static_cast<std::uint16_t>(sum_c) - unit.resources[2];
-    opeu_supply_exchange_units(game, data.alloc_units[0], other_near);
-  } else {
-    auto&              objective{ Record<Objective>(data, data.alloc_objective) };
-    std::int32_t const sums[3]{ sum_a, sum_b, sum_c };
-    for (auto resource{ 0 }; resource < 3; ++resource) {
-      if (sums[resource] - unit.resources[resource] > RESOURCE_LIMIT)
-        objective.resources[resource] = RESOURCE_LIMIT;
-      else
-        objective.resources[resource] = static_cast<std::uint16_t>(sums[resource]) - unit.resources[resource];
-    }
-    opeu_supply_exchange_objective(game, data.alloc_units[0], data.alloc_objective);
-  }
+  if (data.alloc_units[1] != 0)
+    ShareWithUnit(game, sums, capacities[0]);
+  else
+    ShareWithObjective(game, sums, capacities[0]);
 }
 
 // For each present unit, lists its elements in the choice dialog and asks for the regimental headquarters, formatting

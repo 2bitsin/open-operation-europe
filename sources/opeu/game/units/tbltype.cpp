@@ -35,7 +35,7 @@ void opeu_tbl_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row,
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_type_header));
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const  near{ data.tbl_type_list[entry] };
     auto const& type{ Record<ElementType>(data, near) };
     if (flags & DRAW_NAMES) {

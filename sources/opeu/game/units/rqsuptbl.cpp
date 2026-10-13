@@ -38,7 +38,7 @@ void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, 
     opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(data.current_side));
     opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));
   }
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const& type{ data.element_types[data.rq_type_list[entry]] };
     auto const  y{ RowY(data, window, entry) };
     if (flags & DRAW_NAMES) {

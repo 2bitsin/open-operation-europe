@@ -45,24 +45,19 @@ void opeu_order_destroy_present(Game& game) {
 }
 
 uint16_t opeu_order_destroy_run(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        at_x{ destination.XAt() };
-  auto const        at_y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(at_x, 1).data(), game.State().Bytes(at_y, 1).data());
-  if (static_cast<Terrain>(static_cast<std::uint8_t>(opeu_map_code(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y))))) != Terrain::BRIDGE
-      || StandsOn(game, at_x, at_y)) {
+  auto& data{ Data(game) };
+  auto const [x, y]{ DestinationCell(game) };
+  if (static_cast<Terrain>(opeu_map_code(game, x, y)) != Terrain::BRIDGE || StandsOn(data, { x, y })) {
     opeu_restore_unit_order(game, data.current_unit_ptr);
     return 1;
   }
-  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
+  if (!opeu_move_adjacent(game, x, y)) return 0;
   auto const loss{ opeu_order_destroy_loss(game) };
-  if (opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))
-      && static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) == NO_SIDE) {
+  if (opeu_move_level_lower(game, CurrentOrder(data), loss) && opeu_cell_side(game, x, y) == NO_SIDE) {
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
     opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BRIDGE_DESTROYED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::BRIDGE_DESTROYED);
-    opeu_map_mark_5(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)));
-    opeu_map_erase(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)));
+    opeu_map_mark_5(game, x, y);
+    opeu_map_erase(game, x, y);
     opeu_restore_unit_order(game, data.current_unit_ptr);
   }
   return 1;

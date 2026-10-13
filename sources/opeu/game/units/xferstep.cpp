@@ -63,16 +63,15 @@ void opeu_transfer_step(Game& game) {
   if (!data.transfer_interactive && SidePlayed(data, data.current_side)) opeu_sound_cue14(game);
   data.transfer_auto = UNMOVED;
   selected           = 0;
-  opeu_transfer_draw_row(game, 1, 0);
-  opeu_transfer_draw_row(game, 0, 0);
-  opeu_transfer_draw_row(game, 2, 0);
+  opeu_transfer_draw_row(game, 1);
+  opeu_transfer_draw_row(game, 0);
+  opeu_transfer_draw_row(game, 2);
   opeu_input_reset(game);
   for (;;) {
-    std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
-    auto const   left{ TableAt(0, selected, AMOUNT) };
-    auto const   right{ TableAt(1, selected, AMOUNT) };
-    auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
-    auto const   right_capacity{ data.transfer_objective_ptr ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited)) : TableAt(1, selected, CAPACITY) };
+    auto const left{ TableAt(0, selected, AMOUNT) };
+    auto const right{ TableAt(1, selected, AMOUNT) };
+    auto const left_capacity{ TableAt(0, selected, CAPACITY) };
+    auto const right_capacity{ data.transfer_objective_ptr ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited)) : TableAt(1, selected, CAPACITY) };
     if (SidePlayed(data, data.current_side) && selected != highlighted) {
       if (highlighted != NO_ROW) Highlight(game, highlighted);
       Highlight(game, selected);
@@ -93,7 +92,6 @@ void opeu_transfer_step(Game& game) {
       auto const moved{ opeu_min16(opeu_min16(Word(game, left_capacity) - Word(game, left), KeyAmount(key)), Word(game, right)) };
       SetWord(game, left, Word(game, left) + moved);
       SetWord(game, right, Word(game, right) - moved);
-      redraw = 1;
       break;
     }
     case '3':
@@ -102,11 +100,10 @@ void opeu_transfer_step(Game& game) {
       auto const moved{ opeu_min16(opeu_min16(Word(game, left), KeyAmount(key)), Word(game, right_capacity) - Word(game, right)) };
       SetWord(game, left, Word(game, left) - moved);
       SetWord(game, right, Word(game, right) + moved);
-      redraw = 2;
       break;
     }
     case KEY_ENTER:
-      opeu_transfer_draw_row(game, selected, redraw);
+      opeu_transfer_draw_row(game, selected);
       if (data.transfer_interactive) {
         data.transfer_interactive = opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_group_record);
         return;
@@ -118,7 +115,7 @@ void opeu_transfer_step(Game& game) {
       data.transfer_interactive = 1;
       return;
     }
-    opeu_transfer_draw_row(game, selected, redraw);
+    opeu_transfer_draw_row(game, selected);
   }
 }
 

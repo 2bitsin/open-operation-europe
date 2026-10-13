@@ -19,6 +19,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "units/table.hpp"
 
 #include <array>
 #include <cstddef>
@@ -52,6 +53,9 @@ constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a po
 }
 
 // Restores the bottom panel and prints a prompt with one argument.
+// The staff roles the dismissals 1..3 clear.
+constexpr std::array<std::uint8_t, 3> STAFF_KINDS{ 1, 2, 3 };
+
 template <typename... _Arguments>
 auto Prompt(Game& game, std::uint16_t text, _Arguments... arguments) -> void {
   opeu_staff_restore_bottom(game);
@@ -65,7 +69,6 @@ auto Prompt(Game& game, std::uint16_t text, _Arguments... arguments) -> void {
 // commander. Returns 1 after a change, 0 when the general is already assigned.
 uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
   auto&               data{ Data(game) };
-  int const           staff_kinds[3]{ 1, 2, 3 };
   std::uint16_t const person{ data.general_list[data.list_row] };
   if (choice <= 10 && HasPost(Record<Person>(data, person))) return 0;
   switch (choice) {
@@ -122,7 +125,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     int const slot{ choice - 11 };
     opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(HIGHLIGHT));
     if (dismissal <= 3)
-      opeu_clear_staff_role(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(staff_kinds[slot])));
+      opeu_clear_staff_role(game, static_cast<uint8_t>(data.current_side), STAFF_KINDS.at(static_cast<std::size_t>(slot)));
     else
       opeu_clear_division_command(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(dismissal - 4)));
     opeu_staff_frame_option(game, static_cast<int16_t>(slot));
@@ -148,7 +151,7 @@ void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint
     opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(HEADER) });
   }
-  for (std::uint8_t index{ first }; index <= last; ++index) {
+  for (auto const index : DrawnRows(first, last)) {
     auto const  person{ data.general_list[index] };
     auto const& general{ Record<Person>(data, person) };
     if (general.status == PERSON_VACANT) continue;

@@ -19,8 +19,6 @@
 
 using namespace opeu::game;
 
-namespace { } // namespace
-
 uint8_t opeu_order_defend_loss(Game& game) {
   auto&               data{ Data(game) };
   auto const          person{ opeu_unit_person(game, data.current_unit_ptr) };
@@ -31,12 +29,8 @@ uint8_t opeu_order_defend_loss(Game& game) {
 
 // Nonzero (the order step is done) while the regiment holds its destination.
 uint16_t opeu_order_defend_run(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        x{ destination.XAt() };
-  auto const        y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data());
-  if (!StandsOn(game, x, y)) return 0;
+  auto& data{ Data(game) };
+  if (!StandsOn(data, DestinationCell(game))) return 0;
   auto const loss{ opeu_order_defend_loss(game) };
   opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss));
   return 1;

@@ -37,7 +37,7 @@ void opeu_tbl_draw_elements(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_element_header));
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const  near{ data.row_elements[entry] };
     auto const& element{ Record<Element>(data, near) };
     auto const  side{ opeu_element_side(near) };

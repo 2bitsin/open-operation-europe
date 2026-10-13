@@ -32,7 +32,7 @@ void opeu_tbl_draw_strength(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_str_header));
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const& item{ Record<Item>(data, data.strength_items[entry]) };
     auto const& type{ data.element_types[item.type] };
     if (flags & DRAW_NAMES) {

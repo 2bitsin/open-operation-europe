@@ -10,35 +10,60 @@
 #include "units/ratio.hpp"
 #include "units/resagg.hpp"
 
-using namespace opeu::game;
+#include <algorithm>
+#include <ranges>
 
+namespace opeu::game::detail::aggpct {
 namespace {
 [[nodiscard]] auto Percent(std::uint32_t stored, std::uint32_t capacity) -> std::uint16_t {
   return opeu_resource_percent_wide(static_cast<std::int32_t>(stored), static_cast<std::int32_t>(capacity));
 }
+
+[[nodiscard]] auto Percentages(ResourceTotals const& stored, ResourceTotals const& capacities) -> Resources {
+  return { Percent(stored.ammunition, capacities.ammunition), Percent(stored.fuel, capacities.fuel), Percent(stored.food, capacities.food) };
+}
+
+// What an objective holds above its reserve of one resource, in a wrapping word.
+[[nodiscard]] auto Surplus(Objective const& objective, std::size_t resource) -> std::uint16_t {
+  return static_cast<std::uint16_t>(objective.resources[resource] - opeu_min16(objective.resources[resource], objective.reserves[resource]));
+}
+
+// The side's stored resources plus the surplus of each of its active objectives.
+[[nodiscard]] auto StoredWithSurplus(Game const& game, std::uint8_t side) -> ResourceTotals {
+  auto const& data{ Data(game) };
+  auto const  owned{ [&](Objective const& objective) { return objective.active && opeu_objective_side(game, Near(data, objective)) == side; } };
+  auto const  add{ [](ResourceTotals const& totals, Objective const& objective) -> ResourceTotals {
+    return { totals.ammunition + Surplus(objective, 0), totals.fuel + Surplus(objective, 1), totals.food + Surplus(objective, 2) };
+  } };
+  return std::ranges::fold_left(data.objectives | std::views::filter(owned), SideStoredResources(data, side), add);
+}
 } // namespace
 
+auto GroupResourcePercentages(DataSegment const& data, std::uint16_t group) -> Resources {
+  return Percentages(GroupStoredResources(data, group), GroupCapacities(data, group));
+}
+
+auto SideUnitResourcePercentages(DataSegment const& data, std::uint8_t side) -> Resources {
+  return Percentages(SideStoredResources(data, side), SideCapacities(data, side));
+}
+
+auto SideResourcePercentages(Game const& game, std::uint8_t side) -> Resources {
+  return Percentages(StoredWithSurplus(game, side), SideCapacities(Data(game), side));
+}
+} // namespace opeu::game::detail::aggpct
+
+using namespace opeu::game;
+
 void opeu_group_resource_percentages(Game& game, uint16_t group, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  std::uint32_t stored_a, stored_b, stored_c, capacity_a, capacity_b, capacity_c;
-  opeu_group_resources(game, group, &stored_a, &stored_b, &stored_c, 1);
-  opeu_group_resources(game, group, &capacity_a, &capacity_b, &capacity_c, 0);
-  *result_a = Percent(stored_a, capacity_a);
-  *result_b = Percent(stored_b, capacity_b);
-  *result_c = Percent(stored_c, capacity_c);
+  auto const percentages{ GroupResourcePercentages(Data(game), group) };
+  *result_a = percentages.ammunition;
+  *result_b = percentages.fuel;
+  *result_c = percentages.food;
 }
 
 void opeu_side_resource_percentages(Game& game, uint8_t side, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c, uint16_t units_only) {
-  auto&         data{ Data(game) };
-  std::uint32_t stored[3], capacity[3];
-  opeu_side_resources(game, side, &stored[0], &stored[1], &stored[2], 1);
-  opeu_side_resources(game, side, &capacity[0], &capacity[1], &capacity[2], 0);
-  if (!units_only) {
-    for (auto const& objective : data.objectives)
-      if (objective.active && opeu_objective_side(game, Near(data, objective)) == side)
-        for (auto resource{ 0 }; resource < 3; ++resource)
-          stored[resource] += static_cast<std::uint16_t>(objective.resources[resource] - opeu_min16(objective.resources[resource], objective.reserves[resource]));
-  }
-  *result_a = Percent(stored[0], capacity[0]);
-  *result_b = Percent(stored[1], capacity[1]);
-  *result_c = Percent(stored[2], capacity[2]);
+  auto const percentages{ units_only ? SideUnitResourcePercentages(Data(game), side) : SideResourcePercentages(game, side) };
+  *result_a = percentages.ammunition;
+  *result_b = percentages.fuel;
+  *result_c = percentages.food;
 }

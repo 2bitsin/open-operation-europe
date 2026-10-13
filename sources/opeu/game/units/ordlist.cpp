@@ -22,6 +22,9 @@
 #include "services.hpp"
 #include "units/ordact.hpp"
 
+#include <algorithm>
+#include <iterator>
+
 using namespace opeu::game;
 
 namespace {
@@ -32,9 +35,10 @@ auto RunList(Game& game, ListWindow& list) -> std::uint16_t {
 
 // Lists the eight regiments of the current side's division `group` in the regiment rows.
 uint8_t opeu_order_units_fill(Game& game, uint8_t group) {
-  auto& data{ Data(game) };
-  for (std::uint8_t index{ 0 }; index < 8; ++index) data.row_units[index] = Near(data, data.units[(data.current_side * GROUPS_PER_SIDE + group) * 8 + index]);
-  return 8;
+  auto&      data{ Data(game) };
+  auto const units{ GroupUnits(data, data.current_side, group) };
+  std::ranges::transform(units, std::begin(data.row_units), [&](Unit const& unit) { return Near(data, unit); });
+  return static_cast<std::uint8_t>(units.size());
 }
 
 // The Orders command.

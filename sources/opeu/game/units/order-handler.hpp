@@ -6,6 +6,8 @@
 #include "common/events.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
+#include "opeu/contract.hpp"
+#include "units/orders.hpp"
 
 #include <cstdint>
 #include <utility>
@@ -40,15 +42,23 @@ private:
   ServiceLocals _locals{ 4 };
 };
 
-// Whether the current regiment stands on the cell whose coordinates are the DS bytes at x and y.
-[[nodiscard]] inline auto StandsOn(Game const& game, std::uint16_t x, std::uint16_t y) noexcept -> bool {
-  auto const& unit{ Record<Unit>(Data(game), Data(game).current_unit_ptr) };
-  return unit.x == Record<std::uint8_t>(Data(game), x) && unit.y == Record<std::uint8_t>(Data(game), y);
+// The cell the current regiment's order leads to; a handler only runs for an order kind that has one.
+[[nodiscard]] inline auto DestinationCell(Game const& game) -> MapPoint {
+  auto const destination{ UnitOrderDestination(game, Data(game).current_unit_ptr) };
+  Expects(destination.cell.has_value(), "an order handler runs an order that leads to a cell");
+  return *destination.cell;
+}
+
+// Whether the current regiment stands on the cell.
+[[nodiscard]] inline auto StandsOn(DataSegment const& data, MapPoint cell) noexcept -> bool {
+  auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
+  return unit.x == cell.x && unit.y == cell.y;
 }
 } // namespace opeu::game::detail::order_handler
 
 namespace opeu::game {
 using detail::order_handler::CurrentOrder;
+using detail::order_handler::DestinationCell;
 using detail::order_handler::RollBound;
 using detail::order_handler::ServiceCell;
 using detail::order_handler::SHOW_DONE;

@@ -11,8 +11,10 @@
 #include "core/textout.hpp"
 #include "link/glue.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <ranges>
 
 namespace opeu::game::detail::unit_table {
 
@@ -24,6 +26,11 @@ inline constexpr std::uint8_t DRAW_NAMES{ 5 };
 inline constexpr std::uint16_t TABLE_SCRATCH{ 0xc0 };
 // The row text buffer at the start of the frame buffers.
 inline constexpr std::uint16_t ROW_TEXT{ 4 };
+
+// The rows `first` to `last` a row-draw callback draws, none when `first` is past `last`.
+[[nodiscard]] inline auto DrawnRows(std::uint8_t first, std::uint8_t last) {
+  return std::views::iota(unsigned{ first }, std::max(unsigned{ first }, last + 1u)) | std::views::transform([](unsigned row) { return static_cast<std::uint8_t>(row); });
+}
 
 // The text column of the table body's left edge (the column's lead within the window).
 [[nodiscard]] inline auto BodyX(DataSegment const& data, ListWindow const& window, TableColumns const& layout) -> std::uint16_t {
@@ -59,6 +66,7 @@ inline auto StartRowName(Game& game, ListWindow const& window, std::uint8_t entr
 namespace opeu::game {
 using detail::unit_table::DRAW_HEADING;
 using detail::unit_table::DRAW_NAMES;
+using detail::unit_table::DrawnRows;
 using detail::unit_table::DrawHeading;
 using detail::unit_table::DrawRowText;
 using detail::unit_table::ROW_TEXT;

@@ -1,66 +1,93 @@
-// Stored resources or capacities summed over a group's or a side's active units, and the capacities of an objective's
+// Stored resources or capacities summed over a group's or a side's ready units, and the capacities of an objective's
 // stock.
 #include "units/resagg.hpp"
 #include "common/data-segment.hpp"
-#include "core/numeric.hpp"
+#include "common/forces.hpp"
+#include "common/game.hpp"
 #include "core/recindex.hpp"
 #include "types.hpp"
 #include "units/capacity.hpp"
 
-#include "common/game.hpp"
-#include "link/glue.hpp"
-#include "port.hpp"
-#include "services.hpp"
+#include <algorithm>
+#include <ranges>
+#include <span>
 
-using namespace opeu::game;
+namespace opeu::game::detail::resagg {
+namespace {
+// An objective's stock saturates each sum at this amount.
+constexpr std::uint32_t STOCK_LIMIT{ 60000 };
 
-// Sums over the group's ready units: their stored resources, or their capacities when `stored` is zero.
-void opeu_group_resources(Game& game, uint16_t group, uint32_t* result_a, uint32_t* result_b, uint32_t* result_c, uint16_t stored) {
-  auto& data{ Data(game) };
-  *result_a = *result_b = *result_c = 0;
-  auto const first{ UNITS_PER_SIDE * opeu_group_side(group) + UNITS_PER_GROUP * opeu_group_index(group) };
-  for (auto index{ first }; index < first + UNITS_PER_GROUP; ++index) {
-    auto& unit{ data.units[index] };
-    if (!(unit.flags & Bits(UnitFlag::READY))) continue;
-    std::uint16_t a, b, c;
-    if (stored) {
-      a = unit.resources[0];
-      b = unit.resources[1];
-      c = unit.resources[2];
-    } else
-      opeu_unit_capacities(game, Near(data, unit), &a, &b, &c);
-    *result_a += a;
-    *result_b += b;
-    *result_c += c;
-  }
+// Adds three figures (a unit's or a group's) to the totals.
+constexpr auto ADD{ [](ResourceTotals const& totals, auto const& figures) -> ResourceTotals {
+  return { totals.ammunition + figures.ammunition, totals.fuel + figures.fuel, totals.food + figures.food };
+} };
+
+[[nodiscard]] auto IsReady(Unit const& unit) -> bool {
+  return (unit.flags & Bits(UnitFlag::READY)) != 0;
 }
 
-// Sums opeu_group_resources over the side's ready groups.
-void opeu_side_resources(Game& game, uint8_t side, uint32_t* result_a, uint32_t* result_b, uint32_t* result_c, uint16_t stored) {
-  auto& data{ Data(game) };
-  *result_a = *result_b = *result_c = 0;
-  for (auto index{ GROUPS_PER_SIDE * side }; index < GROUPS_PER_SIDE * (side + 1u); ++index) {
-    auto& group{ data.groups[index] };
-    if (!(group.flags & Bits(GroupFlag::READY))) continue;
-    std::uint32_t a, b, c;
-    opeu_group_resources(game, Near(data, group), &a, &b, &c, stored);
-    *result_a += a;
-    *result_b += b;
-    *result_c += c;
-  }
+[[nodiscard]] auto IsReady(Group const& group) -> bool {
+  return (group.flags & Bits(GroupFlag::READY)) != 0;
 }
 
-// The capacities of an objective's stock items, each sum saturating at 60000.
-void opeu_objective_capacities(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto& data{ Data(game) };
-  *result_a = *result_b = *result_c = 0;
-  for (auto const& item : Record<Objective>(data, objective).items) {
-    if (!item.quantity) continue;
+[[nodiscard]] auto StoredResources(Unit const& unit) -> Resources {
+  return { unit.resources[0], unit.resources[1], unit.resources[2] };
+}
+
+// Sums `figures` of each ready unit of the group.
+[[nodiscard]] auto SumGroup(DataSegment const& data, std::uint16_t group, auto figures) -> ResourceTotals {
+  auto const units{ GroupUnits(data, opeu_group_side(group), opeu_group_index(group)) };
+  return std::ranges::fold_left(units | std::views::filter([](Unit const& unit) { return IsReady(unit); }) | std::views::transform(figures), ResourceTotals{}, ADD);
+}
+
+// Sums `group_totals` of each ready group of the side.
+[[nodiscard]] auto SumSide(DataSegment const& data, std::uint8_t side, auto group_totals) -> ResourceTotals {
+  auto const groups{ std::span{ data.groups }.subspan(GROUPS_PER_SIDE * side, GROUPS_PER_SIDE) };
+  auto const totals{ [&](Group const& group) { return group_totals(data, Near(data, group)); } };
+  return std::ranges::fold_left(groups | std::views::filter([](Group const& group) { return IsReady(group); }) | std::views::transform(totals), ResourceTotals{}, ADD);
+}
+
+// Adds `amount` to `sum` without wrapping, capped at the stock limit.
+[[nodiscard]] auto StockSum(std::uint16_t sum, std::uint16_t amount) -> std::uint16_t {
+  return static_cast<std::uint16_t>(std::min(std::uint32_t{ sum } + amount, STOCK_LIMIT));
+}
+} // namespace
+
+auto GroupStoredResources(DataSegment const& data, std::uint16_t group) -> ResourceTotals {
+  return SumGroup(data, group, [](Unit const& unit) { return StoredResources(unit); });
+}
+
+auto GroupCapacities(DataSegment const& data, std::uint16_t group) -> ResourceTotals {
+  return SumGroup(data, group, [&](Unit const& unit) { return UnitCapacities(data, Near(data, unit)); });
+}
+
+auto SideStoredResources(DataSegment const& data, std::uint8_t side) -> ResourceTotals {
+  return SumSide(data, side, GroupStoredResources);
+}
+
+auto SideCapacities(DataSegment const& data, std::uint8_t side) -> ResourceTotals {
+  return SumSide(data, side, GroupCapacities);
+}
+
+auto ObjectiveCapacities(DataSegment const& data, std::uint16_t objective) -> Resources {
+  Resources capacities{ 0, 0, 0 };
+  for (auto const& item : Record<Objective>(data, objective).items | std::views::filter([](Item const& item) { return item.quantity != 0; })) {
     auto const& type{ data.element_types[item.type] };
     auto const  category{ type.category };
     auto const  quantity{ item.quantity };
-    opeu_add_word(static_cast<std::uint16_t>(unsigned{ data.ammunition_capacities[category] } * quantity), 60000, result_a);
-    opeu_add_word(static_cast<std::uint16_t>(unsigned{ type.fuel_capacity } * quantity), 60000, result_b);
-    opeu_add_word(static_cast<std::uint16_t>(unsigned{ data.food_capacities[category] } * quantity), 60000, result_c);
+    capacities.ammunition = StockSum(capacities.ammunition, static_cast<std::uint16_t>(unsigned{ data.ammunition_capacities[category] } * quantity));
+    capacities.fuel       = StockSum(capacities.fuel, static_cast<std::uint16_t>(unsigned{ type.fuel_capacity } * quantity));
+    capacities.food       = StockSum(capacities.food, static_cast<std::uint16_t>(unsigned{ data.food_capacities[category] } * quantity));
   }
+  return capacities;
+}
+} // namespace opeu::game::detail::resagg
+
+using namespace opeu::game;
+
+void opeu_objective_capacities(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
+  auto const capacities{ ObjectiveCapacities(Data(game), objective) };
+  *result_a = capacities.ammunition;
+  *result_b = capacities.fuel;
+  *result_c = capacities.food;
 }

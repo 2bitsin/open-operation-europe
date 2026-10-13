@@ -45,8 +45,6 @@ constexpr std::uint8_t DIVISION_MENU{ 3 };
 // Where the order menu's speaker is shown.
 constexpr std::uint16_t MENU_X{ 0x36 };
 constexpr std::uint16_t MENU_Y{ 0x144 };
-// unit_quantity's category of repair crews.
-constexpr std::uint8_t REPAIR_CREWS{ 6 };
 // The ticks the screen waits after an order.
 constexpr std::uint16_t ORDER_DELAY{ 0x14 };
 // The value of the cached control cell that forces a redraw.
@@ -62,7 +60,6 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
   auto const          x_at{ local(PICKED_X) };
   auto const          y_at{ local(PICKED_Y) };
   auto const          buffer{ local(BUFFER) };
-  std::uint8_t        crews{};
   auto const          side{ data.current_side };
   auto const          whole{ data.unit_order_active != 0 };
   auto const          division_units{ [&](std::uint8_t index) -> Unit& { return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index]; } };
@@ -92,7 +89,7 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
       return;
     }
     kind = data.issue_order_codes[menu][choice - 1];
-    if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(game, unit, REPAIR_CREWS, &crews)) {
+    if (kind == Kind(UnitOrder::REPAIR_CITY) && !UnitQuantity(data, unit, Bits(Category::REPAIR)).total) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.no_repair_unit), person);
       continue;
     }

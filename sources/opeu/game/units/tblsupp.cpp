@@ -36,7 +36,7 @@ void opeu_tbl_draw_supplies(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_supply_header));
-  for (auto entry{ first }; entry <= last; ++entry) {
+  for (auto const entry : DrawnRows(first, last)) {
     auto const  near{ data.tbl_objective_list[entry] };
     auto const& city{ Record<Objective>(data, near) };
     auto const  side{ opeu_objective_side(game, near) };
@@ -45,14 +45,9 @@ void opeu_tbl_draw_supplies(Game& game, uint8_t column, uint8_t first, uint8_t r
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_supply_name)), static_cast<std::uint16_t>(near) });
     }
     if ((side == data.current_side && opeu_objective_eligible(game, near)) || (side != data.current_side && (city.flags & Bits(ObjectiveFlag::MARKED)))) {
-      std::uint16_t ammunition{};
-      std::uint16_t fuel{};
-      std::uint16_t food{};
-      opeu_objective_resource_percentages(game, near, &ammunition, &fuel, &food);
-      opeu_request_format(game, std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_supply_row)),
-                                                               static_cast<std::uint16_t>(city.resources[1]), static_cast<std::uint16_t>(fuel), static_cast<std::uint16_t>(city.resources[0]),
-                                                               static_cast<std::uint16_t>(ammunition), static_cast<std::uint16_t>(city.resources[2]), static_cast<std::uint16_t>(food),
-                                                               static_cast<std::uint16_t>(city.strength), static_cast<std::uint16_t>(city.strength_limit) });
+      auto const percentages{ ObjectiveResourcePercentages(data, near) };
+      opeu_request_format(game, std::array<std::uint16_t, 10>{ text, Near(data, data.tbl_supply_row), city.resources[1], percentages.fuel, city.resources[0], percentages.ammunition, city.resources[2],
+                                                               percentages.food, city.strength, city.strength_limit });
     } else
       opeu_string_copy(game, text, Near(data, data.tbl_supply_blank));
     DrawRowText(game, window, layout, entry, text);

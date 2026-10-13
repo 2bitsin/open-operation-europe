@@ -34,6 +34,7 @@
 #include "units/select.hpp"
 #include "units/stats.hpp"
 #include "units/unitname.hpp"
+#include <algorithm>
 #include <array>
 
 using namespace opeu::game;
@@ -51,16 +52,10 @@ constexpr std::uint8_t NO_VIEW{ 0xff };
 // The routine's locals whose near addresses reach services, at their places below the top of its reserve.
 constexpr std::uint16_t LOCALS_BYTES{ 0xee };
 enum Locals : std::uint16_t {
-  PERCENT_AMMUNITION  = 0x2c,
-  UNIT_NAME_TEXT      = 0x2a, // 32 bytes
-  CAPACITY_AMMUNITION = 0x2e,
-  ELEMENT_NAME_TEXT   = 0x52, // 32 bytes
-  CAPACITY_FOOD       = 0x5a,
-  PERCENT_FOOD        = 0x58,
-  LOSS_TEXT           = 0xee, // 30 bytes
-  REPORT_TEXT         = 0xce, // 100 bytes
-  CAPACITY_FUEL       = 0x68,
-  PERCENT_FUEL        = 0x66,
+  UNIT_NAME_TEXT    = 0x2a, // 32 bytes
+  ELEMENT_NAME_TEXT = 0x52, // 32 bytes
+  LOSS_TEXT         = 0xee, // 30 bytes
+  REPORT_TEXT       = 0xce, // 100 bytes
 };
 
 // The morale an element loses: the square root of its losses, times one more than a twentieth of its experience, plus
@@ -83,19 +78,13 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
   auto const          element_name{ local(ELEMENT_NAME_TEXT) };
   auto const          text{ local(REPORT_TEXT) };
   auto const          loss_text{ local(LOSS_TEXT) };
-  auto const          percents{
-    std::array{ local(PERCENT_AMMUNITION), local(PERCENT_FUEL), local(PERCENT_FOOD) }
-  };
-  auto const capacities{
-    std::array{ local(CAPACITY_AMMUNITION), local(CAPACITY_FUEL), local(CAPACITY_FOOD) }
-  };
-  std::uint8_t const x{ regiment.x };
-  std::uint8_t const y{ regiment.y };
-  auto const         side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
-  auto const         group{ static_cast<std::uint8_t>(opeu_unit_group_index(unit)) };
-  auto const         division{ Near(data, GroupOf(data, side, group)) };
-  bool const         side_selected{ opeu_find_side_selected_unit(game, static_cast<uint8_t>(side)) == unit };
-  bool const         group_selected{ opeu_find_group_selected_unit(game, division) == unit };
+  std::uint8_t const  x{ regiment.x };
+  std::uint8_t const  y{ regiment.y };
+  auto const          side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
+  auto const          group{ static_cast<std::uint8_t>(opeu_unit_group_index(unit)) };
+  auto const          division{ Near(data, GroupOf(data, side, group)) };
+  bool const          side_selected{ opeu_find_side_selected_unit(game, static_cast<uint8_t>(side)) == unit };
+  bool const          group_selected{ opeu_find_group_selected_unit(game, division) == unit };
   opeu_unit_name(game, unit, name);
   // The side that watches: the enemy when a player commands it and may see the regiment, else its own side when a
   // player commands it and the regiment may be selected.
@@ -106,8 +95,8 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
     visible = data.side_status[viewer] == SIDE_PLAYED && opeu_unit_selection_eligible(game, unit);
   }
   if (visible && e) opeu_location_blast(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(viewer));
-  StoreUnitResourcePercentages(game, unit, { static_cast<std::uint16_t>(percents[0]), static_cast<std::uint16_t>(percents[1]), static_cast<std::uint16_t>(percents[2]) });
-  bool report{ true };
+  auto const percents{ Figures(UnitResourcePercentages(data, unit)) };
+  bool       report{ true };
   for (auto near{ regiment.first }; near; near = Record<Element>(data, near).next) {
     auto& element{ Record<Element>(data, near) };
     opeu_element_name(game, near, element_name);
@@ -187,7 +176,6 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
     }
   }
   regiment.moved = 0;
-  StoreUnitCapacities(game, unit, { static_cast<std::uint16_t>(capacities[0]), static_cast<std::uint16_t>(capacities[1]), static_cast<std::uint16_t>(capacities[2]) });
-  for (std::size_t resource{ 0 }; resource < 3; ++resource) regiment.resources[resource] = opeu_percent(Word(game, capacities[resource]), Word(game, percents[resource]));
+  std::ranges::transform(Figures(UnitCapacities(data, unit)), percents, regiment.resources, opeu_percent);
   if (visible && e) opeu_blast_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
 }

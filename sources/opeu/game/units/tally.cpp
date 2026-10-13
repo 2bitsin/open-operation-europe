@@ -19,6 +19,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
@@ -106,13 +109,14 @@ uint8_t opeu_tally_stock(Game& game, uint16_t source_offset, uint8_t count, uint
 
 // Per-type averages, dividing each sum by max(quantity, 1). See opeu_supply_count.
 void opeu_tally_average(Game& game, uint8_t count) {
-  auto& data{ Data(game) };
-  for (std::uint8_t row{ 0 }; row < count; ++row) {
-    auto const divisor{ static_cast<std::int32_t>(opeu_max16(data.supply_amounts[row], 1)) };
-    data.supply_morale_averages[row]     = static_cast<std::int32_t>(data.supply_morale_sums[row]) / divisor;
-    data.supply_training_averages[row]   = static_cast<std::int32_t>(data.supply_training_sums[row]) / divisor;
-    data.supply_experience_averages[row] = static_cast<std::int32_t>(data.supply_experience_sums[row]) / divisor;
-  }
+  auto&      data{ Data(game) };
+  auto const average{ [&](auto const& sums, auto& averages) {
+    std::ranges::transform(std::span{ sums }.first(count), data.supply_amounts, averages.begin(),
+                           [](std::uint32_t sum, std::uint16_t amount) { return static_cast<std::uint8_t>(static_cast<std::int32_t>(sum) / static_cast<std::int32_t>(opeu_max16(amount, 1))); });
+  } };
+  average(data.supply_morale_sums, data.supply_morale_averages);
+  average(data.supply_training_sums, data.supply_training_averages);
+  average(data.supply_experience_sums, data.supply_experience_averages);
 }
 
 // A unit against an objective's stock; the unit's slot selects the stock kind.

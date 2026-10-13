@@ -41,17 +41,16 @@ using namespace opeu::game;
 namespace {
 // The locals the services read and write, as offsets below the top of the routine's reserve.
 enum ServiceLocal : std::uint16_t {
-  STEP_X       = 2, // attack_allowed: the neighbour cell
-  STEP_Y       = 4,
-  OCCUPY_X     = 6, // occupy: the objective's cell
-  OCCUPY_Y     = 0x6c,
-  OCCUPY_COUNT = 4,    // occupy: objective_quantity's count
-  OCCUPY_TEXT  = 0x6a, // occupy: the report
-  ATTACK_X     = 4,    // attack: the target regiment's cell
-  ATTACK_Y     = 0x30,
-  ATTACK_NAME  = 0x10, // attack: the target's name
-  ATTACK_TEXT  = 0x2e, // attack: the target's label
-  START_TEXT   = 0x66, // attack_start: the confirmation and report text
+  STEP_X      = 2, // attack_allowed: the neighbour cell
+  STEP_Y      = 4,
+  OCCUPY_X    = 6, // occupy: the objective's cell
+  OCCUPY_Y    = 0x6c,
+  OCCUPY_TEXT = 0x6a, // occupy: the report
+  ATTACK_X    = 4,    // attack: the target regiment's cell
+  ATTACK_Y    = 0x30,
+  ATTACK_NAME = 0x10, // attack: the target's name
+  ATTACK_TEXT = 0x2e, // attack: the target's label
+  START_TEXT  = 0x66, // attack_start: the confirmation and report text
 };
 // The reserves: each routine's deepest local.
 constexpr std::uint16_t ALLOWED_BYTES{ STEP_Y };
@@ -62,8 +61,6 @@ constexpr std::uint16_t ATTACK_BYTES{ ATTACK_Y };
 // The pictures of the day's show.
 constexpr std::uint16_t BATTLE_PICTURE{ 0x1d7 };
 constexpr std::uint16_t OCCUPIED_PICTURE{ 0xa2 };
-// objective_quantity's category for all the objective's arms.
-constexpr std::uint16_t ALL_ARMS{ 0xff };
 // The ticks wait_units waits after an occupation.
 constexpr std::uint16_t OCCUPIED_WAIT{ 0x1e };
 // The colour codes of the side names in a regiment label.
@@ -196,7 +193,7 @@ uint16_t opeu_order_occupy_run(Game& game) {
   auto const loss{ opeu_order_occupy_loss(game) };
   if (!opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))) return 1;
   if (static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) == NO_SIDE
-      && !opeu_objective_quantity(game, objective, static_cast<uint8_t>(ALL_ARMS), game.State().Bytes(local(OCCUPY_COUNT), 1).data())) {
+      && !ObjectiveQuantity(data, objective, ANY_CATEGORY).total) {
     auto& target{ Record<Objective>(data, objective) };
     target.flags ^= Bits(ObjectiveFlag::SIDE_1);
     opeu_move_unit(game, 1);

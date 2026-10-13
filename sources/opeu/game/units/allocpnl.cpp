@@ -1,5 +1,5 @@
-// The type panel of the equipment allocation screen, the test that both units' amounts are nonempty, the strength
-// values a new element takes from its type's averages, and the capped proportional share of a value.
+// The type panel of the equipment allocation screen, the test that both units' amounts are nonempty, and the strength
+// values a new element takes from its type's averages.
 #include "units/allocpnl.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -20,8 +20,6 @@ using namespace opeu::game;
 namespace {
 // The field width of each statistic the panel prints.
 constexpr std::uint16_t STAT_WIDTH{ 6 };
-// The largest share opeu_alloc_scaled returns.
-constexpr std::int32_t SHARE_CAP{ 60000 };
 
 // The average of supply type `slot` in `averages`; the slot past the last reads on into the next table, as the game
 // does when an element's type is not among the supply types.
@@ -79,14 +77,4 @@ void opeu_alloc_element_values(Game& game, uint16_t element, uint8_t count) {
   unit_element.morale     = Average(game, data.supply_morale_averages, slot);
   unit_element.training   = Average(game, data.supply_training_averages, slot);
   unit_element.experience = Average(game, data.supply_experience_averages, slot);
-}
-
-// value * (amount * 100 / total) / 100, capped at 60000; nothing when there is no total. The product keeps its low
-// 32 bits.
-uint16_t opeu_alloc_scaled(Game& game, int32_t value, uint16_t amount, int32_t total) {
-  (void)game;
-  if (!total) return 0;
-  auto const percent{ static_cast<std::int32_t>(amount) * 100 / total };
-  auto const share{ static_cast<std::int32_t>(static_cast<std::uint32_t>(percent) * static_cast<std::uint32_t>(value)) / 100 };
-  return static_cast<std::uint16_t>(share > SHARE_CAP ? SHARE_CAP : share);
 }

@@ -61,16 +61,3 @@ uint8_t opeu_release_side_units(Game& game, uint16_t list, uint8_t mask) {
   }
   return released;
 }
-
-// Values above 100 return " N/A"; others are written as digits into the shared "    %" text, whose near pointer is
-// returned.
-uint16_t opeu_percent_text_of(Game& game, uint16_t value) {
-  auto& data{ Data(game) };
-  if (value > 100) return Near(data, data.not_available_text);
-  auto& text{ data.percent_text };
-  if (value > 99) text[0] = static_cast<char>(value / 100 + '0');
-  if (value > 9) text[1] = static_cast<char>(value % 100 / 10 + '0');
-  text[2]  = static_cast<char>(value % 10 + '0');
-  text[3] |= static_cast<char>(0xb3);
-  return Near(data, text);
-}

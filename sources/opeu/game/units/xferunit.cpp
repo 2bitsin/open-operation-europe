@@ -27,16 +27,18 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
+#include <tuple>
 
 using namespace opeu::game;
 
 namespace {
 
-// The locals the services reach by near address, in each routine's reserve: the words the capacity and percentage
-// services write, the two names and the target cell the player picks.
-constexpr std::uint16_t SCRATCH_WORDS{ 6 };
+// The locals the services reach by near address, in each routine's reserve: the two names and the target cell the
+// player picks.
 constexpr std::uint16_t NAME_BYTES{ 0x20 };
 constexpr std::uint16_t CELL_BYTES{ 2 };
 
@@ -45,15 +47,7 @@ constexpr std::uint16_t LOW_TARGET{ 10 };
 constexpr std::uint16_t FULL_TARGET{ 100 };
 constexpr std::uint16_t FILL_MARGIN{ 30 };
 
-// The scratch word n of a reserve.
-auto Scratch(ServiceLocals const& words, unsigned n) -> std::uint16_t {
-  return words.At(static_cast<std::uint16_t>(2 * n));
-}
-
-// The near pointer of a transfer_table word.
-constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uint16_t {
-  return static_cast<std::uint16_t>(offsetof(DataSegment, transfer_table) + 2 * ((side * 3u + row) * 3u + column));
-}
+using ResourceFigures = std::array<std::uint16_t, RESOURCES>;
 
 // Whether the computer has taken over the regiment's division (it runs that division's transfers).
 auto DivisionHeld(Game& game, std::uint16_t unit) -> bool {
@@ -64,72 +58,88 @@ auto UnitName(Game& game, std::uint16_t unit, std::uint16_t buffer) -> std::uint
   return opeu_unit_name(game, unit, buffer);
 }
 
-// Writes the table's amounts back to the regiment.
-void StoreUnit(DataSegment& data, std::uint16_t unit, std::uint8_t side) {
-  auto& regiment{ Record<Unit>(data, unit) };
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) regiment.resources[resource] = data.transfer_table[side][resource][AMOUNT];
+// Writes one column of the table's side.
+auto SetColumn(DataSegment& data, std::uint8_t side, TransferColumn column, ResourceFigures const& figures) -> void {
+  std::ranges::for_each(std::views::zip(data.transfer_table[side], figures), [column](auto&& row) { std::get<0>(row)[column] = std::get<1>(row); });
 }
 
-// The supply order next to the current regiment, of an objective or of another regiment.
-auto SupplyOrder(Game& game, bool objective) -> std::uint16_t {
-  ServiceLocals const cell{ CELL_BYTES };
-  auto const          x_at{ cell.At(0) };
-  auto const          y_at{ cell.At(1) };
-  auto&               data{ Data(game) };
-  auto const          target{ objective ? opeu_move_objective_target(game, x_at, y_at, static_cast<uint8_t>(data.current_side)) : opeu_move_unit_target(game, x_at, y_at) };
-  if (target) {
-    if (!opeu_move_adjacent(game, static_cast<std::uint8_t>(Byte(game, x_at)), static_cast<std::uint8_t>(Byte(game, y_at)))) return 0;
+// The amounts of the table's side, in resource order.
+[[nodiscard]] auto ColumnOf(DataSegment const& data, std::uint8_t side, TransferColumn column) -> ResourceFigures {
+  auto const& rows{ data.transfer_table[side] };
+  return { rows[0][column], rows[1][column], rows[2][column] };
+}
+
+// Writes the table's amounts back to the regiment.
+auto StoreUnit(DataSegment& data, std::uint16_t unit, std::uint8_t side) -> void {
+  std::ranges::copy(ColumnOf(data, side, AMOUNT), Record<Unit>(data, unit).resources);
+}
+
+// The computer's targets for a regiment, in percent of its capacities: the division's eighth regiment fills to 10%,
+// or beside an objective to 100% of a resource the objective holds above its reserve; other regiments fill to their
+// side's percentage plus 30, at most 100.
+[[nodiscard]] auto Targets(Game const& game, std::uint16_t unit) -> ResourceFigures {
+  auto const& data{ Data(game) };
+  if (!opeu_category_7(static_cast<std::uint8_t>(opeu_unit_index(unit)))) {
+    auto const      fill{ Figures(SideResourcePercentages(game, data.current_side)) };
+    ResourceFigures targets{};
+    std::ranges::transform(fill, targets.begin(), [](std::uint16_t percent) { return opeu_min16(static_cast<std::uint16_t>(percent + FILL_MARGIN), FULL_TARGET); });
+    return targets;
+  }
+  if (!data.transfer_objective_ptr) return { LOW_TARGET, LOW_TARGET, LOW_TARGET };
+  auto const& objective{ Record<Objective>(data, data.transfer_objective_ptr) };
+  auto const  target{ [&](std::size_t resource) { return objective.resources[resource] > objective.reserves[resource] ? FULL_TARGET : LOW_TARGET; } };
+  return { target(0), target(1), target(2) };
+}
+
+// The target regiment or objective of a supply order and the cell it stands on.
+struct SupplyTarget {
+  std::uint16_t near; // 0 when the target is gone
+  std::uint8_t  x;
+  std::uint8_t  y;
+};
+
+// The supply order next to the current regiment: once beside the target and the order's hours are spent, `transfer`
+// moves the supplies; a lost target or a done transfer ends the order.
+auto Supply(Game& game, SupplyTarget const& target, auto transfer) -> std::uint16_t {
+  auto& data{ Data(game) };
+  if (target.near) {
+    if (!opeu_move_adjacent(game, target.x, target.y)) return 0;
     auto const hours{ opeu_transfer_level(game) };
     // The order takes its hours before the supplies move.
-    if (!opeu_move_level_lower(game, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), static_cast<uint8_t>(hours))) return 1;
-    auto const unit{ data.current_unit_ptr };
-    if (objective)
-      opeu_transfer_objective(game, unit, target);
-    else
-      opeu_transfer_units(game, unit, target);
+    if (!opeu_move_level_lower(game, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), hours)) return 1;
+    transfer(game, data.current_unit_ptr, target.near);
   }
   opeu_restore_unit_order(game, data.current_unit_ptr);
   return 1;
 }
+
+// The cell bytes a target service wrote, with the target it found.
+[[nodiscard]] auto TargetAt(Game& game, ServiceLocals const& cell, std::uint16_t near) -> SupplyTarget {
+  return { near, Byte(game, cell.At(0)), Byte(game, cell.At(1)) };
+}
 } // namespace
 
 // Loads a regiment into the table's `side`: its amounts, its capacities and the computer's targets in percent of
-// each capacity. The division's eighth regiment fills to 10%, or beside an objective to 100% of a resource the
-// objective holds above its reserve; other regiments fill to their side's percentage plus 30, at most 100.
+// each capacity.
 void opeu_transfer_load_unit(Game& game, uint16_t unit, uint8_t side) {
-  ServiceLocals const scratch{ 2 * SCRATCH_WORDS };
-  auto&               data{ Data(game) };
-  auto const&         regiment{ Record<Unit>(data, unit) };
-  opeu_transfer_set(game, side, 0, AMOUNT, regiment.resources[0]);
-  opeu_transfer_set(game, side, 1, AMOUNT, regiment.resources[1]);
-  opeu_transfer_set(game, side, 2, AMOUNT, regiment.resources[2]);
-  std::array<std::uint16_t, RESOURCES> const words{ Scratch(scratch, 1), Scratch(scratch, 5), Scratch(scratch, 3) };
-  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, words[0]), port_ds_word_ptr(game, words[1]), port_ds_word_ptr(game, words[2]));
-  std::array<std::uint16_t, RESOURCES> const capacity{ Word(game, words[0]), Word(game, words[1]), Word(game, words[2]) };
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) opeu_transfer_set(game, side, resource, CAPACITY, capacity[resource]);
-  std::array<std::uint16_t, RESOURCES> target;
-  if (opeu_category_7(static_cast<uint8_t>(static_cast<std::uint8_t>(opeu_unit_index(unit))))) {
-    if (!data.transfer_objective_ptr) {
-      target.fill(LOW_TARGET);
-    } else {
-      auto const& objective{ Record<Objective>(data, data.transfer_objective_ptr) };
-      for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) target[resource] = objective.resources[resource] > objective.reserves[resource] ? FULL_TARGET : LOW_TARGET;
-    }
-  } else {
-    std::array<std::uint16_t, RESOURCES> const fill{ Scratch(scratch, 0), Scratch(scratch, 4), Scratch(scratch, 2) };
-    opeu_side_resource_percentages(game, static_cast<uint8_t>(data.current_side), port_ds_word_ptr(game, fill[0]), port_ds_word_ptr(game, fill[1]), port_ds_word_ptr(game, fill[2]), 0);
-    for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) target[resource] = opeu_min16(static_cast<std::uint16_t>(Word(game, fill[resource]) + FILL_MARGIN), FULL_TARGET);
-  }
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) opeu_transfer_set(game, side, resource, TARGET, opeu_percent(capacity[resource], target[resource]));
+  auto&       data{ Data(game) };
+  auto const& regiment{ Record<Unit>(data, unit) };
+  SetColumn(data, side, AMOUNT, { regiment.resources[0], regiment.resources[1], regiment.resources[2] });
+  auto const capacities{ Figures(UnitCapacities(data, unit)) };
+  SetColumn(data, side, CAPACITY, capacities);
+  auto const      targets{ Targets(game, unit) };
+  ResourceFigures percents{};
+  std::ranges::transform(capacities, targets, percents.begin(), opeu_percent);
+  SetColumn(data, side, TARGET, percents);
 }
 
 // Loads an objective into the table's right side: its capacities, its reserves as the targets and its amounts.
 void opeu_transfer_load_objective(Game& game, uint16_t objective) {
-  auto& data{ Data(game) };
-  opeu_objective_capacities(game, objective, port_ds_word_ptr(game, TableAt(1, 0, CAPACITY)), port_ds_word_ptr(game, TableAt(1, 1, CAPACITY)), port_ds_word_ptr(game, TableAt(1, 2, CAPACITY)));
+  auto&       data{ Data(game) };
   auto const& city{ Record<Objective>(data, objective) };
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][TARGET] = city.reserves[resource];
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][AMOUNT] = city.resources[resource];
+  SetColumn(data, 1, CAPACITY, Figures(ObjectiveCapacities(data, objective)));
+  SetColumn(data, 1, TARGET, { city.reserves[0], city.reserves[1], city.reserves[2] });
+  SetColumn(data, 1, AMOUNT, { city.resources[0], city.resources[1], city.resources[2] });
 }
 
 // The transfer between two regiments, repeated until it is confirmed (or the computer finishes); the player runs it
@@ -161,8 +171,7 @@ void opeu_transfer_objective(Game& game, uint16_t unit, uint16_t objective) {
     opeu_transfer_draw(game, UnitName(game, unit, name.At(0)), objective);
   } while (!opeu_transfer_run(game, data.side_control[data.current_side] == SIDE_PLAYED && !DivisionHeld(game, unit)));
   StoreUnit(data, unit, 0);
-  auto& city{ Record<Objective>(data, objective) };
-  for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) city.resources[resource] = data.transfer_table[1][resource][AMOUNT];
+  std::ranges::copy(ColumnOf(data, 1, AMOUNT), Record<Objective>(data, objective).resources);
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
 }
 
@@ -174,9 +183,13 @@ uint8_t opeu_transfer_level(Game& game) {
 }
 
 uint16_t opeu_order_supply_objective(Game& game) {
-  return SupplyOrder(game, true);
+  ServiceLocals const cell{ CELL_BYTES };
+  auto const          objective{ opeu_move_objective_target(game, cell.At(0), cell.At(1), Data(game).current_side) };
+  return Supply(game, TargetAt(game, cell, objective), opeu_transfer_objective);
 }
 
 uint16_t opeu_order_supply_unit(Game& game) {
-  return SupplyOrder(game, false);
+  ServiceLocals const cell{ CELL_BYTES };
+  auto const          unit{ opeu_move_unit_target(game, cell.At(0), cell.At(1)) };
+  return Supply(game, TargetAt(game, cell, unit), opeu_transfer_units);
 }

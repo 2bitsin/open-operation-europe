@@ -27,6 +27,7 @@
 #include "map/stepmap.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "units/allocation.hpp"
 #include "units/allocdst.hpp"
 #include "units/allocpnl.hpp"
 #include "units/allocscr.hpp"
@@ -82,14 +83,6 @@ auto Refresh(Game& game) -> void {
   data.daily_active = 0;
 }
 
-// The allocation the player edits.
-struct Allocation {
-  std::uint8_t slots;       // the first regiment's slots (t)
-  std::uint8_t other_slots; // the second regiment's slots, 0 with an objective (U)
-  std::uint8_t spare_slots; // the objective's stock items the first regiment may draw (y)
-  std::uint8_t types;       // the types in the allocation (r)
-};
-
 // Runs the allocation dialog until the player completes or cancels it; a completed allocation delays the side.
 auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> void {
   auto&      data{ Data(game) };
@@ -98,7 +91,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   data.supply_count          = a.slots;
   data.supply_slot_list.rows = static_cast<std::uint8_t>(a.slots + a.other_slots + a.spare_slots + 1);
   data.supply_type_list.rows = static_cast<std::uint8_t>(a.types + 1);
-  opeu_alloc_screen(game, static_cast<uint8_t>(data.supply_count), static_cast<uint8_t>(a.other_slots), static_cast<uint8_t>(a.spare_slots), static_cast<uint8_t>(a.types));
+  opeu_alloc_screen(game, a);
   auto const back_to_map{ [&] {
     opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
     auto const current{ [&]() -> Unit const& { return Record<Unit>(data, data.current_unit_ptr); } };
@@ -115,7 +108,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
           flags = ALLOC_FIRST;
           continue;
         }
-        opeu_alloc_distribute(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots), static_cast<uint8_t>(a.spare_slots), static_cast<uint8_t>(a.types));
+        opeu_alloc_distribute(game, a);
         opeu_alloc_choose_hq(game);
         back_to_map();
         data.side_delays[data.current_side] = 1;
@@ -147,7 +140,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
       opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.organize_number)) });
       auto const amount{ opeu_ops_chief_number(game, text, 1, most, 1, 0) };
       if (amount == MENU_CANCELLED) continue;
-      opeu_alloc_take(game, item, static_cast<uint8_t>(row), amount, static_cast<uint8_t>(a.types));
+      opeu_alloc_take(game, { .entry = item, .slot = row, .amount = amount }, a.types);
       next = ALLOC_AGAIN;
       break;
     }

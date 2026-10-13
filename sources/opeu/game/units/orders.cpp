@@ -8,21 +8,16 @@
 #include "map/query.hpp"
 #include "types.hpp"
 
-using namespace opeu::game;
+#include <array>
+#include <ranges>
 
-namespace {
-// The slots argument of opeu_clear_unit_orders: a mask of the slots to clear.
-enum Slots : std::uint8_t {
-  CURRENT_SLOT = 1,
-  SAVED_SLOT   = 2,
-};
-} // namespace
+using namespace opeu::game;
 
 // Clears the slots in the mask and the regiment's target and movement state.
 void opeu_clear_unit_orders(Game& game, uint16_t unit, uint8_t slots) {
   auto& regiment{ Record<Unit>(Data(game), unit) };
-  for (std::uint8_t slot{ 0 }; slot < 2; ++slot)
-    if (slots & (1u << slot)) regiment.orders[slot].progress = regiment.orders[slot].kind = ORDER_UNUSED;
+  for (auto const [order, mask] : std::views::zip(regiment.orders, std::array{ CURRENT_SLOT, SAVED_SLOT }))
+    if (slots & mask) order.progress = order.kind = ORDER_UNUSED;
   regiment.target_x = ORDER_UNUSED;
   regiment.moved    = 0;
 }
@@ -57,14 +52,35 @@ void opeu_restore_unit_order(Game& game, uint16_t unit) {
     opeu_clear_unit_orders(game, unit, CURRENT_SLOT | SAVED_SLOT);
 }
 
-// The cell the regiment's current order leads to, in x and y; nonzero when it is on the map and still valid: an
-// objective order needs an objective at the cell, a regiment order a ready target regiment. x and y are written even
-// when the order turns out invalid.
-uint16_t opeu_unit_order_destination(Game const& game, uint16_t unit, uint8_t* x, uint8_t* y) {
+namespace opeu::game::detail::orders {
+namespace {
+// Whether an order of `kind` at the cell needs an objective there.
+[[nodiscard]] auto NeedsObjective(std::uint8_t kind) -> bool {
+  return kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY);
+}
+
+[[nodiscard]] auto OnMap(MapPoint cell) -> bool {
+  return cell.x < MAP_WIDTH && cell.y < MAP_HEIGHT;
+}
+
+[[nodiscard]] auto CellDestination(Game const& game, Order const& order) -> OrderDestination {
+  MapPoint const cell{ order.cell.x, order.cell.y };
+  auto const     valid{ (!NeedsObjective(order.kind) || opeu_find_objective_at(game, cell.x, cell.y)) && OnMap(cell) };
+  return { cell, valid };
+}
+
+[[nodiscard]] auto RegimentDestination(DataSegment const& data, Order const& order) -> OrderDestination {
+  auto const&    target{ Record<Unit>(data, order.target) };
+  MapPoint const cell{ target.x, target.y };
+  auto const     valid{ order.target && (target.flags & Bits(UnitFlag::READY)) && OnMap(cell) };
+  return { cell, valid };
+}
+} // namespace
+
+auto UnitOrderDestination(Game const& game, std::uint16_t unit) -> OrderDestination {
   auto const& data{ Data(game) };
   auto const& order{ Record<Unit>(data, unit).orders[0] };
-  auto const  kind{ order.kind };
-  switch (static_cast<UnitOrder>(kind)) {
+  switch (static_cast<UnitOrder>(order.kind)) {
   case UnitOrder::MOVE:
   case UnitOrder::OCCUPY:
   case UnitOrder::DEFEND:
@@ -74,22 +90,23 @@ uint16_t opeu_unit_order_destination(Game const& game, uint16_t unit, uint8_t* x
   case UnitOrder::DESTROY_BRIDGE:
   case UnitOrder::RESUPPLY:
   case UnitOrder::REPAIR_CITY:
-  case UnitOrder::REST:
-    *x = order.cell.x;
-    *y = order.cell.y;
-    if ((kind == Kind(UnitOrder::OCCUPY) || kind == Kind(UnitOrder::RESUPPLY) || kind == Kind(UnitOrder::REPAIR_CITY)) && !opeu_find_objective_at(game, *x, *y)) return 0;
-    break;
+  case UnitOrder::REST:           return CellDestination(game, order);
   case UnitOrder::ATTACK:
   case UnitOrder::SUPPLY_UNIT:
   case UnitOrder::REPAIR_UNIT:
-  case UnitOrder::PURSUE:      {
-    auto const& target{ Record<Unit>(data, order.target) };
-    *x = target.x;
-    *y = target.y;
-    if (!order.target || !(target.flags & Bits(UnitFlag::READY))) return 0;
-    break;
+  case UnitOrder::PURSUE:         return RegimentDestination(data, order);
+  default:                        return { std::nullopt, false };
   }
-  default: return 0;
+}
+} // namespace opeu::game::detail::orders
+
+// The cell the regiment's current order leads to, in x and y, which are left alone for an order without a place;
+// nonzero when the destination is valid.
+uint16_t opeu_unit_order_destination(Game const& game, uint16_t unit, uint8_t* x, uint8_t* y) {
+  auto const destination{ UnitOrderDestination(game, unit) };
+  if (destination.cell) {
+    *x = destination.cell->x;
+    *y = destination.cell->y;
   }
-  return *x < MAP_WIDTH && *y < MAP_HEIGHT;
+  return destination.valid;
 }

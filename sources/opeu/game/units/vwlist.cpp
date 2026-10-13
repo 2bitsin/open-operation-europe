@@ -49,20 +49,6 @@ uint8_t opeu_list_objective_stocks(Game& game, uint16_t objective) {
   return count;
 }
 
-// The total quantity of a regiment's spotted elements whose type is of `category`; their number goes to the byte at
-// `count`.
-uint16_t opeu_element_kind_total(Game& game, uint16_t unit, uint8_t category, uint16_t count) {
-  auto&         data{ Data(game) };
-  std::uint16_t total{ 0 };
-  Byte(game, count) = 0;
-  for (auto const& element : Elements(data, Record<Unit>(data, unit)))
-    if (data.element_types[element.type].category == category && (element.flags & Bits(ElementFlag::SPOTTED))) {
-      total += element.quantity;
-      ++Byte(game, count);
-    }
-  return total;
-}
-
 // Row check: an own objective that may be listed, or an enemy objective that was reconnoitred.
 uint8_t opeu_view_objective_ok(Game& game) {
   auto&      data{ Data(game) };
@@ -72,8 +58,7 @@ uint8_t opeu_view_objective_ok(Game& game) {
 }
 
 // Row check that rejects every row.
-uint8_t opeu_view_false(Game& game) {
-  (void)game;
+uint8_t opeu_view_false(Game&) {
   return 0;
 }
 
@@ -104,8 +89,7 @@ uint8_t opeu_view_false_3(Game& game) {
 }
 
 // Row check that accepts every row.
-uint8_t opeu_view_true(Game& game) {
-  (void)game;
+uint8_t opeu_view_true(Game&) {
   return 1;
 }
 

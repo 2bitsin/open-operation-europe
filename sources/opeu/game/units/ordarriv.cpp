@@ -28,12 +28,8 @@ constexpr std::uint16_t RESUME_DRAW{ 15 };
 
 // The move order: at the destination, the regiment reports its arrival and its saved order resumes.
 uint16_t opeu_order_arrive(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        x{ destination.XAt() };
-  auto const        y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data());
-  if (!StandsOn(game, x, y)) return 0;
+  auto& data{ Data(game) };
+  if (!StandsOn(data, DestinationCell(game))) return 0;
   opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.arrived_text));
   opeu_restore_unit_order(game, data.current_unit_ptr);
   return 1;
@@ -59,12 +55,8 @@ uint8_t opeu_order_hold_delay(Game& game) {
 // The rest order: hold at the destination. Once the hold runs out and an order is saved, the first element whose
 // experience is below a draw of 0..14 resumes that order.
 uint16_t opeu_order_hold(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination;
-  auto const        x{ destination.XAt() };
-  auto const        y{ destination.YAt() };
-  opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data());
-  if (!StandsOn(game, x, y)) return 0;
+  auto& data{ Data(game) };
+  if (!StandsOn(data, DestinationCell(game))) return 0;
   // The delay is taken before the current regiment is read again.
   auto const delay{ opeu_order_hold_delay(game) };
   if (opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(delay)) && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)

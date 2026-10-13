@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 #include <utility>
 
 using namespace opeu::game;
@@ -45,10 +46,12 @@ using namespace opeu::game;
 namespace {
 
 // The keys of the keypad's columns, top to bottom.
-constexpr std::uint8_t KEYS[3][3]{
-  { '7', '4', '1' },
-  { '8', '5', '2' },
-  { '9', '6', '3' }
+constexpr std::array<std::array<std::uint8_t, 3>, 3> KEYS{
+  {
+   { '7', '4', '1' },
+   { '8', '5', '2' },
+   { '9', '6', '3' },
+   }
 };
 
 constexpr std::uint16_t BOX_WIDTH{ 3 }; // the percentage's background, in 8-pixel columns
@@ -62,16 +65,18 @@ constexpr std::uint8_t UNMOVED{ '-' };
 
 // The key under a point of the keypad, NO_KEY off it.
 uint8_t opeu_transfer_keypad_hit(Game& game, uint16_t x, uint16_t y) {
-  auto const&  data{ Data(game) };
-  auto const   left{ static_cast<std::uint16_t>(data.transfer_panel_x << 3) };
-  auto const   top{ data.transfer_panel_y };
-  std::uint8_t key{ NO_KEY };
-  for (auto column = 0u; column < 3; ++column) {
-    if (static_cast<std::uint16_t>(left + KEY_COLUMNS[column]) > x || static_cast<std::uint16_t>(left + KEY_COLUMNS[column + 1]) <= x) continue;
-    for (auto row = 0u; row < 3; ++row)
-      if (static_cast<std::uint16_t>(top + KEY_ROWS[row]) <= y && static_cast<std::uint16_t>(top + KEY_ROWS[row + 1]) > y) key = KEYS[column][row];
-  }
-  return key;
+  auto const& data{ Data(game) };
+  auto const  left{ static_cast<std::uint16_t>(data.transfer_panel_x << 3) };
+  auto const  top{ data.transfer_panel_y };
+  // The band [edges[i], edges[i + 1]) of the panel holding the point, offset by `origin`.
+  auto const band{ [](std::array<std::uint16_t, 4> const& edges, std::uint16_t origin, std::uint16_t point) {
+    auto const below{ [&](std::uint16_t edge) { return static_cast<std::uint16_t>(origin + edge) <= point; } };
+    return std::ranges::find_if_not(edges, below) - edges.begin() - 1;
+  } };
+  auto const column{ band(KEY_COLUMNS, left, x) };
+  auto const row{ band(KEY_ROWS, top, y) };
+  if (column < 0 || column > 2 || row < 0 || row > 2) return NO_KEY;
+  return KEYS[static_cast<std::size_t>(column)][static_cast<std::size_t>(row)];
 }
 
 // With the mouse: the right button is Enter and a left click on the keys 8, 5 or 2 selects row 0, 1 or 2 (stored at
@@ -90,24 +95,15 @@ uint8_t opeu_transfer_input(Game& game, uint16_t row) {
     }
     if (static_cast<uint16_t>(opeu_mouse_left(game))) {
       key = opeu_transfer_keypad_hit(game, x, y);
-      for (std::uint8_t selected = 0; selected < RESOURCES; ++selected)
-        if (key == KEYS[1][selected]) {
-          Record<std::uint8_t>(data, row) = selected;
-          key                             = NO_KEY;
-        }
+      if (auto const selected{ std::ranges::find(KEYS[1], key) }; selected != KEYS[1].end()) {
+        Record<std::uint8_t>(data, row) = static_cast<std::uint8_t>(selected - KEYS[1].begin());
+        key                             = NO_KEY;
+      }
       break;
     }
   }
   opeu_mouse_hide(game);
   return key;
-}
-
-void opeu_transfer_set(Game& game, uint8_t side, uint8_t row, uint8_t column, uint16_t value) {
-  Data(game).transfer_table[side][row][column] = value;
-}
-
-uint16_t opeu_transfer_get(Game const& game, uint8_t side, uint8_t row, uint8_t column) {
-  return Data(game).transfer_table[side][row][column];
 }
 
 // For a player's side: titles the panel, restores its background and centres the two names, at most ten characters
@@ -127,15 +123,8 @@ void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_name_text)), static_cast<std::uint16_t>(second) });
 }
 
-// Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
-void opeu_transfer_digits(Game& game, uint16_t x, uint16_t y, uint16_t value) {
-  DrawDigits(game, x, y, value);
-}
-
-// For a player's side, redraws a resource row: both amounts and both fill percentages. column (the column just
-// changed) is not used.
-void opeu_transfer_draw_row(Game& game, uint8_t row, uint8_t column) {
-  (void)column;
+// For a player's side, redraws a resource row: both amounts and both fill percentages.
+void opeu_transfer_draw_row(Game& game, uint8_t row) {
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
   auto const& left{ data.transfer_table[0][row] };
@@ -152,9 +141,9 @@ void opeu_transfer_draw_row(Game& game, uint8_t row, uint8_t column) {
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_amount_text)), static_cast<std::uint16_t>(right_amount) });
   opeu_ui_box(x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
-  opeu_transfer_digits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
+  DrawDigits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
   opeu_ui_box(x + 0x19, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
-  opeu_transfer_digits(game, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
+  DrawDigits(game, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_colour)) });
 }
 

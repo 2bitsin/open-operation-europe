@@ -5,6 +5,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace opeu::game::detail::capacity {
@@ -15,6 +16,11 @@ struct Resources {
   std::uint16_t fuel;
   std::uint16_t food;
 };
+
+// The three figures in resource order (ammunition, fuel, food), as a unit's or an objective's resources are stored.
+[[nodiscard]] constexpr auto Figures(Resources const& resources) noexcept -> std::array<std::uint16_t, 3> {
+  return { resources.ammunition, resources.fuel, resources.food };
+}
 
 // The DS offsets of the three words that receive a unit's ammunition, fuel and food figures.
 struct ResourceWords {
@@ -34,6 +40,7 @@ auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void;
 } // namespace opeu::game::detail::capacity
 
 namespace opeu::game {
+using detail::capacity::Figures;
 using detail::capacity::ResourceWords;
 using detail::capacity::Resources;
 using detail::capacity::StoreResources;

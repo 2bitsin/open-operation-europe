@@ -52,21 +52,16 @@ constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
 
 // The order slot and its code are taken before the destination.
 void opeu_turn_final_action(Game& game) {
-  auto&             data{ Data(game) };
-  ServiceCell const destination_cell;
-  auto const        x{ destination_cell.XAt() };
-  auto const        y{ destination_cell.YAt() };
-  auto const        slot{ Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]) };
-  auto const        code{ Record<Order>(data, slot).kind };
-  if (!opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
-    opeu_clear_unit_orders(game, data.current_unit_ptr, static_cast<std::uint8_t>(3));
+  auto&      data{ Data(game) };
+  auto const unit{ data.current_unit_ptr };
+  auto const slot{ Near(data, Record<Unit>(data, unit).orders[0]) };
+  auto const code{ Record<Order>(data, slot).kind };
+  if (!UnitOrderDestination(game, unit).valid) {
+    opeu_clear_unit_orders(game, unit, CURRENT_SLOT | SAVED_SLOT);
     return;
   }
   if (Dispatch(ORDER_HANDLERS, data.order_handlers.at(code), game)) return;
-  if (opeu_move_level_lower(game, slot, static_cast<uint8_t>(0))) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
-  std::uint16_t const unit[1]{ data.current_unit_ptr };
-  std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - opeu_unit_average9(game, unit[0])) / 35 + 1) };
-  if (opeu_move_level_raise(game, raise[0], static_cast<std::uint8_t>(raise[1]))) {
-    opeu_move_unit(game, data.order_moves[code]);
-  }
+  if (opeu_move_level_lower(game, slot, 0)) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
+  auto const raise{ static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - opeu_unit_average9(game, data.current_unit_ptr)) / 35 + 1) };
+  if (opeu_move_level_raise(game, slot, raise)) opeu_move_unit(game, data.order_moves[code]);
 }

@@ -7,9 +7,9 @@
 #include "map/occupy.hpp"
 #include "types.hpp"
 
-using namespace opeu::game;
+#include <algorithm>
 
-namespace { } // namespace
+using namespace opeu::game;
 
 // Inserts the element after the unit's elements of the same or a lower category, marks it ready, places the unit on
 // the map and readies its division. The link walk treats the unit as a chain head: its first word is the next link.
@@ -39,9 +39,7 @@ uint8_t opeu_remove_element(Game& game, uint16_t unit, uint16_t element) {
     removed.flags                  &= static_cast<std::uint8_t>(~Bits(ElementFlag::READY));
     if (Record<Unit>(data, unit).first) return 0;
     opeu_remove_unit(game, unit);
-    auto const first{ UNITS_PER_SIDE * side + UNITS_PER_GROUP * group };
-    for (std::uint8_t index{ 0 }; index < UNITS_PER_GROUP; ++index)
-      if (data.units[first + index].flags & Bits(UnitFlag::READY)) return 1;
+    if (std::ranges::any_of(GroupUnits(data, side, group), [](Unit const& member) { return (member.flags & Bits(UnitFlag::READY)) != 0; })) return 1;
     GroupOf(data, side, group).flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::READY));
     return 3;
   }

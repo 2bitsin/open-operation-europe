@@ -6,13 +6,24 @@
 #include "units/ratio.hpp"
 #include "units/resagg.hpp"
 
+namespace opeu::game::detail::objpct {
+
+auto ObjectiveResourcePercentages(DataSegment const& data, std::uint16_t objective) -> Resources {
+  auto const  capacities{ ObjectiveCapacities(data, objective) };
+  auto const& record{ Record<Objective>(data, objective) };
+  return {
+    opeu_resource_percent(record.resources[0], capacities.ammunition),
+    opeu_resource_percent(record.resources[1], capacities.fuel),
+    opeu_resource_percent(record.resources[2], capacities.food),
+  };
+}
+} // namespace opeu::game::detail::objpct
+
 using namespace opeu::game;
 
 void opeu_objective_resource_percentages(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  uint16_t capacity_c, capacity_b, capacity_a;
-  opeu_objective_capacities(game, objective, &capacity_a, &capacity_b, &capacity_c);
-  auto const& record{ Record<Objective>(Data(game), objective) };
-  *result_a = opeu_resource_percent(record.resources[0], capacity_a);
-  *result_b = opeu_resource_percent(record.resources[1], capacity_b);
-  *result_c = opeu_resource_percent(record.resources[2], capacity_c);
+  auto const percentages{ ObjectiveResourcePercentages(Data(game), objective) };
+  *result_a = percentages.ammunition;
+  *result_b = percentages.fuel;
+  *result_c = percentages.food;
 }
