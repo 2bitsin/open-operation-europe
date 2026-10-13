@@ -3,14 +3,20 @@
 // the error starting at half the major length, the minor step +1 when x and y increase together and -1 otherwise.
 // Coordinates are 16-bit words as the game passes them; a point keeps them (a caller drops the ones off its screen).
 
-#include <cstdint>
+#include "opeu/services/machine-display.hpp"
+
+#include <type_traits>
 #include <vector>
 
 namespace opeu::render::detail::line_points {
 
+// The game's 16-bit word, as services::Display passes coordinates, colours and modes.
+using Word       = decltype(services::Point::x);
+using SignedWord = std::make_signed_t<Word>;
+
 struct LinePoint {
-  std::uint16_t x{};
-  std::uint16_t y{};
+  Word x{};
+  Word y{};
 
   auto operator==(LinePoint const&) const -> bool = default;
 };
@@ -23,4 +29,6 @@ struct LinePoint {
 namespace opeu::render {
 using detail::line_points::LinePoint;
 using detail::line_points::LinePoints;
+using detail::line_points::SignedWord;
+using detail::line_points::Word;
 }

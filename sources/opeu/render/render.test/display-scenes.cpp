@@ -54,7 +54,7 @@ auto MapView(services::Display& display) -> void {
   std::ranges::for_each(assets::Grid(14, 14), [&](auto const cell) {
     auto const& tile{ tiles.at((cell.first * 5 + cell.second * 3) % tiles.size()) };
     auto const  at{
-      services::Area{ .x = static_cast<std::uint16_t>(1 + cell.second * 3), .y = static_cast<std::uint16_t>(16 + cell.first * 24), .width = 3, .height = 24 }
+      services::Area{ .x = static_cast<Word>(1 + cell.second * 3), .y = static_cast<Word>(16 + cell.first * 24), .width = 3, .height = 24 }
     };
     std::ignore = display.DrawColumns(at, { .mode = 0, .bytes = tile });
   });
@@ -94,10 +94,10 @@ constexpr auto GLYPH_BYTES{ 16uz };
   return text | std::views::transform([](char const c) { return Shipped().Record(std::format("text-glyph/{:03}", static_cast<int>(c)), GLYPH_BYTES); }) | std::ranges::to<std::vector>();
 }
 
-auto Write(services::Display& display, std::string_view const text, services::Point const at, std::uint16_t const mode) -> void {
-  std::ranges::for_each(std::views::zip(Glyphs(text), std::views::iota(std::uint16_t{ 0 })), [&](auto const entry) {
+auto Write(services::Display& display, std::string_view const text, services::Point const at, Word const mode) -> void {
+  std::ranges::for_each(std::views::zip(Glyphs(text), std::views::iota(Word{ 0 })), [&](auto const entry) {
     auto const& [glyph, n]{ entry };
-    display.DrawBitsOnPaper({ .x = static_cast<std::uint16_t>(at.x + n), .y = at.y, .width = 1, .height = 16 }, { .mode = mode, .bytes = glyph });
+    display.DrawBitsOnPaper({ .x = static_cast<Word>(at.x + n), .y = at.y, .width = 1, .height = 16 }, { .mode = mode, .bytes = glyph });
   });
 }
 
@@ -122,9 +122,9 @@ auto Dialog(services::Display& display) -> void {
   Write(display, "Attack", { .x = 21, .y = 128 }, 0x000E);
   Write(display, "Wait", { .x = 21, .y = 144 }, 0x000E);
   auto const title{ Glyphs("REPORT") };
-  std::ranges::for_each(std::views::zip(title, std::views::iota(std::uint16_t{ 0 })), [&](auto const entry) {
+  std::ranges::for_each(std::views::zip(title, std::views::iota(Word{ 0 })), [&](auto const entry) {
     auto const& [glyph, n]{ entry };
-    std::ignore = display.DrawBits({ .x = static_cast<std::uint16_t>(30 + n), .y = 62, .width = 1, .height = 16 }, { .mode = 0x040B, .bytes = glyph });
+    std::ignore = display.DrawBits({ .x = static_cast<Word>(30 + n), .y = 62, .width = 1, .height = 16 }, { .mode = 0x040B, .bytes = glyph });
   });
   std::ignore = display.Highlight({ .x = 21, .y = 128, .width = 6, .height = 16 }, 0x0107); // the menu row chosen: one XOR
 }

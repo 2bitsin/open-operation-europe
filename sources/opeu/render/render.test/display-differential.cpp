@@ -108,8 +108,8 @@ TEST(DisplayDifferential, DrawsColumnImagesInEveryMode) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
-    std::ranges::for_each(std::array<std::uint16_t, 6>{ 0, 1, 2, 3, 4, 0x8000 }, [&](std::uint16_t const mode) {
-      Push(outcome, display.DrawColumns({ .x = static_cast<std::uint16_t>(3 + mode % 7 * 10), .y = 20, .width = 4, .height = 9 }, { .mode = mode, .bytes = IMAGE }));
+    std::ranges::for_each(std::array<Word, 6>{ 0, 1, 2, 3, 4, 0x8000 }, [&](Word const mode) {
+      Push(outcome, display.DrawColumns({ .x = static_cast<Word>(3 + mode % 7 * 10), .y = 20, .width = 4, .height = 9 }, { .mode = mode, .bytes = IMAGE }));
     });
     Push(outcome, display.DrawColumns({ .x = 79, .y = 0, .width = 2, .height = 1 }, { .mode = 0, .bytes = IMAGE }));  // past the right edge
     Push(outcome, display.DrawColumns({ .x = 0, .y = 395, .width = 2, .height = 6 }, { .mode = 0, .bytes = IMAGE })); // past the bottom
@@ -122,8 +122,8 @@ TEST(DisplayDifferential, DrawsThreeByteColumnImagesInEveryMode) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
-    std::ranges::for_each(std::array<std::uint16_t, 7>{ 0, 0x4000, 1, 2, 3, 4, 0x8000 }, [&](std::uint16_t const mode) {
-      Push(outcome, display.DrawThreeByteColumns({ .x = static_cast<std::uint16_t>(5 + (mode & 7) * 9 + (mode >> 14) * 3), .y = 30, .width = 3, .height = 8 }, { .mode = mode, .bytes = IMAGE }));
+    std::ranges::for_each(std::array<Word, 7>{ 0, 0x4000, 1, 2, 3, 4, 0x8000 }, [&](Word const mode) {
+      Push(outcome, display.DrawThreeByteColumns({ .x = static_cast<Word>(5 + (mode & 7) * 9 + (mode >> 14) * 3), .y = 30, .width = 3, .height = 8 }, { .mode = mode, .bytes = IMAGE }));
     });
     Push(outcome, display.DrawThreeByteColumns({ .x = 0, .y = 0, .width = 3, .height = 8 }, { .mode = 0x4005, .bytes = IMAGE }));
     return outcome;
@@ -134,9 +134,9 @@ TEST(DisplayDifferential, DrawsBitsWithEveryPen) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
-    std::ranges::for_each(std::array<std::uint16_t, 8>{ 0x0005, 0x0409, 0x010C, 0x0203, 0x030A, 0x0705, 0x8402, 0x810E }, [&, x = std::uint16_t{ 2 }](std::uint16_t const mode) mutable {
+    std::ranges::for_each(std::array<Word, 8>{ 0x0005, 0x0409, 0x010C, 0x0203, 0x030A, 0x0705, 0x8402, 0x810E }, [&, x = Word{ 2 }](Word const mode) mutable {
       Push(outcome, display.DrawBits({ .x = x, .y = 50, .width = 6, .height = 10 }, { .mode = mode, .bytes = IMAGE }));
-      x = static_cast<std::uint16_t>(x + 9);
+      x = static_cast<Word>(x + 9);
     });
     Push(outcome, display.DrawBits({ .x = 75, .y = 50, .width = 6, .height = 10 }, { .mode = 0x0105, .bytes = IMAGE }));
     return outcome;
@@ -162,9 +162,9 @@ TEST(DisplayDifferential, DrawsShiftedBitsAtAnyPixel) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
-    std::ranges::for_each(std::array<std::uint16_t, 6>{ 0x0104, 0x0009, 0x020B, 0x030E, 0x0406, 0x0507 }, [&, x = std::uint16_t{ 13 }](std::uint16_t const mode) mutable {
+    std::ranges::for_each(std::array<Word, 6>{ 0x0104, 0x0009, 0x020B, 0x030E, 0x0406, 0x0507 }, [&, x = Word{ 13 }](Word const mode) mutable {
       Push(outcome, display.DrawShiftedBits({ .x = x, .y = 60, .width = 21, .height = 7 }, { .mode = mode, .bytes = IMAGE }));
-      x = static_cast<std::uint16_t>(x + 37);
+      x = static_cast<Word>(x + 37);
     });
     Push(outcome, display.DrawShiftedBits({ .x = 630, .y = 60, .width = 11, .height = 7 }, { .mode = 0x0004, .bytes = IMAGE }));
     return outcome;
@@ -265,7 +265,7 @@ TEST(DisplayDifferential, DrawsBoxesAndHighlights) {
 TEST(DisplayDifferential, DrawsLinesPlainDashedAndCombined) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
-    auto const line{ [&display](Corners const ends, std::uint16_t const colour) { display.Line(ends, colour); } };
+    auto const line{ [&display](Corners const ends, Word const colour) { display.Line(ends, colour); } };
     line(
         {
             .from = { .x = 10,  .y = 20  },
@@ -383,7 +383,7 @@ TEST(DisplayDifferential, ComposesSpritesOverTheScreen) {
     BusyScreen(display);
     auto       buffer{ std::vector<std::uint8_t>(6uz * 26 * 4) };
     auto       outcome{ Outcome{} };
-    auto const sprite{ [&](std::uint16_t const flags) {
+    auto const sprite{ [&](Word const flags) {
       return services::Sprite{ .and_mask = std::span{ IMAGE }.first(1024), .or_image = std::span{ IMAGE }.subspan(1024), .buffer = buffer, .flags = flags };
     } };
     display.ComposeSprite({ .x = 20, .y = 100, .width = 5, .height = 26 }, sprite(1));

@@ -6,10 +6,8 @@
 namespace opeu::render::detail::line_points {
 namespace {
 
-using Word = std::uint16_t;
-
 [[nodiscard]] constexpr auto Signed(Word const value) noexcept -> int {
-  return static_cast<std::int16_t>(value);
+  return static_cast<SignedWord>(value);
 }
 
 // The distance between two words, as the 16-bit absolute difference.

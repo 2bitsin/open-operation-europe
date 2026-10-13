@@ -13,6 +13,7 @@
 #include "opeu/render/byte-textures.hpp"
 #include "opeu/render/display.hpp"
 #include "opeu/render/game-frame.hpp"
+#include "opeu/render/line-points.hpp"
 #include "opeu/render/pen.hpp"
 #include "opeu/render/screen-palette.hpp"
 #include "opeu/render/texture-cache.hpp"
@@ -23,9 +24,6 @@
 #include <span>
 
 namespace opeu::render::detail::render_display {
-
-// A colour or mode word of the game's library, as services/vgalib.hpp describes it per routine.
-using Word = std::uint16_t;
 
 inline constexpr auto FRAME_PIXELS{ 640uz * 480uz };
 

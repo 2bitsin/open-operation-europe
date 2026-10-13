@@ -8,6 +8,7 @@
 #include "opeu/assets/palette.hpp"
 #include "opeu/assets/source.hpp"
 #include "opeu/platform/sdl3/renderer-host.hpp"
+#include "opeu/render/line-points.hpp"
 #include "opeu/render/render-display.hpp"
 #include "opeu/services/native-machine.hpp"
 #include "opeu/services/vgalib.hpp"
@@ -71,8 +72,7 @@ struct FrameBytes {
 auto Map(services::Display& display, FrameBytes const& bytes) -> void {
   std::ranges::for_each(assets::Grid(14, 14), [&](auto const cell) {
     auto const& tile{ bytes.tiles.at((cell.first * 5 + cell.second * 3) % bytes.tiles.size()) };
-    std::ignore = display.DrawColumns({ .x = static_cast<std::uint16_t>(1 + cell.second * 3), .y = static_cast<std::uint16_t>(16 + cell.first * 24), .width = 3, .height = 24 },
-                                      { .mode = 0, .bytes = tile });
+    std::ignore = display.DrawColumns({ .x = static_cast<Word>(1 + cell.second * 3), .y = static_cast<Word>(16 + cell.first * 24), .width = 3, .height = 24 }, { .mode = 0, .bytes = tile });
   });
 }
 
@@ -81,7 +81,7 @@ auto Dialog(services::Display& display, FrameBytes const& bytes) -> void {
   std::ranges::for_each(std::views::zip(bytes.glyphs, std::views::iota(0)), [&display](auto const entry) {
     auto const& [glyph, n]{ entry };
     auto const at{
-      services::Area{ .x = static_cast<std::uint16_t>(52 + n % 19), .y = static_cast<std::uint16_t>(64 + n / 19 * 16), .width = 1, .height = 16 }
+      services::Area{ .x = static_cast<Word>(52 + n % 19), .y = static_cast<Word>(64 + n / 19 * 16), .width = 1, .height = 16 }
     };
     display.DrawBitsOnPaper(at, { .mode = 0x000F, .bytes = glyph });
   });
