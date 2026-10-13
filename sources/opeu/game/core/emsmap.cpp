@@ -99,10 +99,11 @@ int16_t opeu_memory_release(uint8_t ds[65536], HostEvent event) {
 }
 
 // Allocates `pages` pages into the handle variable at `handle` if the EMM has that many unallocated; 1 on success.
-// The EMM writes the free-page counts into two words of the caller's frame below `sp`.
-int16_t opeu_ems_reserve(uint8_t ds[65536], HostEvent event, uint16_t sp, uint16_t handle, int16_t pages) {
-  auto const total{ static_cast<std::uint16_t>(sp - 4) };
-  auto const unallocated{ static_cast<std::uint16_t>(sp - 6) };
+// The EMM writes the free-page counts into two words of the routine's reserve.
+int16_t opeu_ems_reserve(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16_t handle, int16_t pages) {
+  ServiceLocals const locals{ 4 };
+  auto const          unallocated{ locals.At(0) };
+  auto const          total{ locals.At(2) };
   return Call(ds, event, FREE_PAGES, total, unallocated) == 0 && static_cast<int16_t>(Word(ds, unallocated)) >= pages && Call(ds, event, ALLOCATE, pages, handle) == 0 ? 1 : 0;
 }
 
@@ -131,12 +132,14 @@ int16_t opeu_ems_alloc_frame(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // Detects an EMM whose page frame (at or above A000) is four consecutive 16 KiB pages and records those pages in
-// ems_pages; 1 on success. The EMM writes its answers into the frame below `sp`.
-int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto const pages{ static_cast<std::uint16_t>(sp - 0x102) };
-  auto const count_at{ static_cast<std::uint16_t>(sp - 0x104) };
-  auto const frame_at{ static_cast<std::uint16_t>(sp - 0x106) };
-  auto const count{ [&] { return static_cast<int16_t>(Word(ds, count_at)); } };
+// ems_pages; 1 on success. The EMM writes its answers into the routine's reserve: the page frame, the page count and
+// the page array.
+int16_t opeu_ems_detect(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ 0x106 };
+  auto const          frame_at{ locals.At(0) };
+  auto const          count_at{ locals.At(2) };
+  auto const          pages{ locals.At(4) };
+  auto const          count{ [&] { return static_cast<int16_t>(Word(ds, count_at)); } };
   if (!Call(ds, event, PRESENT) || Call(ds, event, STATUS) || Call(ds, event, FRAME, frame_at) || Call(ds, event, PAGE_COUNT, count_at) || count() > MAX_PAGES || Call(ds, event, PAGE_ARRAY, pages)
       || Word(ds, frame_at) < FRAME_LOWEST)
     return 0;
