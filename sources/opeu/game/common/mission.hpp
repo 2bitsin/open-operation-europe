@@ -2,6 +2,9 @@
 // routines (core/msn*) call through their event.
 #pragma once
 
+#include "common/events.hpp"
+#include "common/memory.hpp"
+
 #include <cstdint>
 
 namespace opeu::game::detail::mission {
@@ -48,6 +51,11 @@ inline constexpr std::uint16_t MISSION_CODE_SEGMENT{ 0x0e8e };
 inline constexpr std::uint16_t FINISH_PRESENTER{ 0x0042 }; // opeu_mission_finish_present
 inline constexpr std::uint16_t DELAY_PRESENTER{ 0x004a };  // opeu_mission_delay_present
 
+// The near pointer of a mission message's text.
+[[nodiscard]] inline auto MissionText(std::uint8_t* ds, HostEvent event, std::uint16_t id) -> std::uint16_t {
+  return Call(ds, event, MissionService::MISSION_TEXT, id);
+}
+
 } // namespace opeu::game::detail::mission
 
 namespace opeu::game {
@@ -76,4 +84,5 @@ using detail::mission::MISSION_UNIT_NAME;
 using detail::mission::MISSION_WEATHER;
 using detail::mission::MissionKind;
 using detail::mission::MissionService;
+using detail::mission::MissionText;
 } // namespace opeu::game

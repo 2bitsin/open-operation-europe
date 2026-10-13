@@ -35,10 +35,6 @@ enum ReportText : uint16_t {
   ASSASSINATED   = 3, // " has been assassinated!" after a general's name
 };
 
-auto Text(uint8_t* ds, HostEvent event, uint16_t id) -> uint16_t {
-  return Call(ds, event, MISSION_TEXT, id);
-}
-
 // The side's special-forces commander: the person template of that post for the army commander's nation.
 auto SpecialForcesCommander(uint8_t* ds, uint8_t side) -> uint16_t {
   auto const& commander{ Record<Person>(Data(ds), opeu_find_side_record(ds, side, std::to_underlying(StaffRole::ARMY_COMMANDER))) };
@@ -47,7 +43,7 @@ auto SpecialForcesCommander(uint8_t* ds, uint8_t side) -> uint16_t {
 
 // Formats a report into message: format, the side's colour and name, then text.
 void FormatReport(uint8_t* ds, HostEvent event, uint16_t message, uint16_t format, uint8_t side, uint16_t text) {
-  auto const format_text{ Text(ds, event, format) };
+  auto const format_text{ MissionText(ds, event, format) };
   Call(ds, event, MISSION_FORMAT, message, format_text, SideColorCode(side), Data(ds).side_names[side], text);
 }
 
@@ -126,7 +122,7 @@ void opeu_mission_person_killed(uint8_t ds[65536], HostEvent event, uint16_t per
     Call(ds, event, MISSION_TURN_CONTEXT, 0x10);
     Call(ds, event, MISSION_FINISH_SIDE, 0);
     opeu_string_copy(ds, message, person);
-    opeu_string_append(ds, message, Text(ds, event, ASSASSINATED));
+    opeu_string_append(ds, message, MissionText(ds, event, ASSASSINATED));
   }
   Call(ds, event, MISSION_DEPUTY, person);
   if (played()) {

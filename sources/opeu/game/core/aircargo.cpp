@@ -100,10 +100,6 @@ constexpr std::uint16_t FUEL_CAPACITY_AT{ 0x78 };
 constexpr std::uint16_t FOOD_CAPACITY_AT{ 0x7a };
 constexpr std::uint16_t DROP_LOCALS{ 0x7c };
 
-auto AirSide(DataSegment& data) -> Side& {
-  return data.sides[data.air_side];
-}
-
 // Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before.
 auto Unload(AirLift& lift, std::uint16_t (&stock)[3], std::uint16_t const (&limit)[3]) -> void {
   for (int i{ 0 }; i < 3; ++i) {

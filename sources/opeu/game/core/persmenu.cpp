@@ -67,12 +67,6 @@ constexpr uint16_t ASSIGN_PROMPT_BYTES{ 0x6c };
 // The leave prompt, which the format service writes.
 constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
-// Points the list's select callback at the personnel routine at offset.
-void SetSelect(ListWindow& list, uint16_t offset, uint16_t segment) {
-  list.select.offset  = offset;
-  list.select.segment = segment;
-}
-
 // Shows the list window; 0 when it is cancelled.
 auto ShowList(uint8_t* ds, HostEvent event, ListWindow const& list) -> uint16_t {
   return Call(ds, event, PersonnelService::LIST, Near(Data(ds), list), LIST_LIMIT, LIST_FLAGS);
@@ -122,7 +116,7 @@ uint8_t opeu_division_toggle(uint8_t ds[65536], HostEvent event, uint16_t, uint8
 // Asks which division commander to put in charge.
 void opeu_division_commander_menu(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto& data{ Data(ds) };
-  SetSelect(data.division_dialog, TOGGLE_OFFSET, segment);
+  SetListPredicate(data.division_dialog, TOGGLE_OFFSET, segment);
   Call(ds, event, PersonnelService::MESSAGE, Near(data, data.division_charge_prompt), data.context_record2);
   ShowList(ds, event, data.division_dialog);
 }
@@ -145,7 +139,7 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t segment)
   auto& data{ Data(ds) };
   bool  assigned{ false };
   while (FillGenerals(ds, event, segment) != 1) {
-    SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
+    SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(ds, event, PersonnelService::MESSAGE, Near(data, data.assign_who_prompt), data.context_record2);
     if (!ShowList(ds, event, data.people_dialog)) {
       Call(ds, event, PersonnelService::PANEL);
@@ -211,7 +205,7 @@ void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto const          prompt{ locals.At(0) };
   bool                rested{ false };
   for (; FillGenerals(ds, event, segment) != 1; rested = true) {
-    SetSelect(data.people_dialog, ALWAYS_OFFSET, segment);
+    SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(ds, event, PersonnelService::PANEL);
     Call(ds, event, PersonnelService::MESSAGE, Near(data, data.rest_who_prompt), data.context_record2);
     if (!ShowList(ds, event, data.people_dialog)) return;

@@ -2,6 +2,8 @@
 // speak for them and the screen rows a plane flies between.
 #pragma once
 
+#include "common/data-segment.hpp"
+
 #include <cstdint>
 
 namespace opeu::game::detail::air_flight {
@@ -17,6 +19,11 @@ inline constexpr std::uint8_t AIR_OFFICER_TEMPLATE{ 6 };
 inline constexpr std::uint16_t FLIGHT_TOP_ROW{ 0x15c };
 inline constexpr std::uint16_t FLIGHT_BOTTOM_ROW{ 0x54 };
 
+// The side record of the side flying the mission (air_side).
+[[nodiscard]] inline auto AirSide(DataSegment& data) noexcept -> Side& {
+  return data.sides[data.air_side];
+}
+
 } // namespace opeu::game::detail::air_flight
 
 namespace opeu::game {
@@ -25,4 +32,5 @@ using detail::air_flight::AIR_OFFICER_TEMPLATE;
 using detail::air_flight::FLIGHT_BOTTOM_ROW;
 using detail::air_flight::FLIGHT_COMMANDER_KIND;
 using detail::air_flight::FLIGHT_TOP_ROW;
+using detail::air_flight::AirSide;
 } // namespace opeu::game

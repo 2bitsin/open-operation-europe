@@ -32,13 +32,6 @@ namespace {
   return Bits(opeu_battle_unit_side(ds, event, unit) ? MapCell::MARK_1 : MapCell::MARK_0);
 }
 
-// Takes percent of the value away.
-void Reduce(uint16_t& value, uint16_t percent) {
-  uint16_t left{ value };
-  opeu_sub_word(opeu_mul_div(left, percent, 100), &left);
-  value = left;
-}
-
 } // namespace
 
 void opeu_battle_exit_to_map(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
@@ -86,11 +79,7 @@ void opeu_battle_element_withdraw(uint8_t* ds, BattleEvent event, uint16_t eleme
     for (auto& other : Elements(data, Record<Unit>(data, unit)))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
     auto const percent{ opeu_rand_bounded(static_cast<uint16_t>(gone * 10u + 41)) };
-    Reduce(objective.resources[1], percent);
-    Reduce(objective.resources[2], percent);
-    Reduce(objective.resources[0], percent);
-    for (auto& item : objective.items)
-      if (item.quantity) item.quantity = 0;
+    AbandonObjectiveStores(objective, percent);
   }
   opeu_battle_remove_list(ds, event, unit);
 }

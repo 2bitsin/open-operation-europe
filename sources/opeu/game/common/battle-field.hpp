@@ -2,7 +2,10 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "core/numeric.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace opeu::game::detail::battle_field {
@@ -114,6 +117,20 @@ inline constexpr unsigned BATTLE_LIST_LENGTH{ 9 };
   return data.battle_lists[side * BATTLE_LIST_LENGTH + i];
 }
 
+// A garrison that leaves the field abandons `percent` of the objective's ammunition, fuel and food and all of its
+// equipment (map/btladv, map/btlretr). The stores are packed fields, so each is worked on as a copy.
+inline auto AbandonObjectiveStores(Objective& objective, std::uint16_t percent) noexcept -> void {
+  constexpr std::array STORES{ 1u, 2u, 0u }; // the original's order: fuel, food, ammunition
+  std::ranges::for_each(STORES, [&objective, percent](unsigned store) {
+    std::uint16_t left{ objective.resources[store] };
+    opeu_sub_word(opeu_mul_div(left, percent, 100), &left);
+    objective.resources[store] = left;
+  });
+  std::ranges::for_each(objective.items, [](auto& item) {
+    if (item.quantity) item.quantity = 0;
+  });
+}
+
 } // namespace opeu::game::detail::battle_field
 
 namespace opeu::game {
@@ -136,4 +153,5 @@ using detail::battle_field::CellFacing;
 using detail::battle_field::BattleTerrainAt;
 using detail::battle_field::PositionOf;
 using detail::battle_field::RANGED_MODE;
+using detail::battle_field::AbandonObjectiveStores;
 } // namespace opeu::game

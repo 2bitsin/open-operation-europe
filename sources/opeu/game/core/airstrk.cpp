@@ -92,10 +92,6 @@ constexpr std::uint16_t BOMB_LEAD{ 0x20 };          // rows above the target whe
 constexpr std::uint16_t STRIKE_PRESENTER{ 0x0406 }; // opeu_air_strike_present, in the code segment below
 constexpr std::uint16_t STRIKE_SEGMENT{ 0x0f43 };
 
-auto AirSide(DataSegment& data) -> Side& {
-  return data.sides[data.air_side];
-}
-
 auto IsNight(std::uint8_t* ds, HostEvent event) -> bool {
   return Call(ds, event, NIGHT, Data(ds).hour) != 0;
 }

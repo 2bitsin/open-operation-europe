@@ -48,10 +48,6 @@ auto Random(uint8_t* ds, HostEvent event, uint16_t bound) -> uint16_t {
   return Call(ds, event, MISSION_RANDOM, bound);
 }
 
-auto Text(uint8_t* ds, HostEvent event, uint16_t id) -> uint16_t {
-  return Call(ds, event, MISSION_TEXT, id);
-}
-
 auto General(uint8_t* ds, uint8_t side, StaffRole role) -> uint16_t {
   return opeu_find_side_record(ds, side, std::to_underlying(role));
 }
@@ -70,7 +66,7 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event, uint8_t side) 
   ServiceLocals const locals{ 0x50 };
   auto const          text{ locals.At(0) };
   auto const          target{ Data(ds).sides[side].order.target };
-  auto const          mission_text{ Text(ds, event, ASSASSINATION_MISSION) };
+  auto const          mission_text{ MissionText(ds, event, ASSASSINATION_MISSION) };
   opeu_string_append(ds, opeu_mission_target_name(ds, event, side, target, text), mission_text);
   if (opeu_officer_rating(ds, side, OFFICER) / 10 > Random(ds, event, 100)) {
     auto       struck{ false };
@@ -98,7 +94,7 @@ void opeu_mission_assassinate(uint8_t ds[65536], HostEvent event, uint8_t side) 
         Call(ds, event, MISSION_TURN_CONTEXT, 0x10);
         Call(ds, event, MISSION_FINISH_SIDE, 0);
         opeu_string_copy(ds, text, commander);
-        opeu_string_append(ds, text, Text(ds, event, ASSASSINATED));
+        opeu_string_append(ds, text, MissionText(ds, event, ASSASSINATED));
         opeu_string_append(ds, text, static_cast<uint16_t>(offsetof(DataSegment, mission_bold_off)));
         Call(ds, event, MISSION_MESSAGE, text, General(ds, commander_side, StaffRole::INTELLIGENCE_CHIEF));
         Call(ds, event, MISSION_DAILY_SHOW, FALLEN_PICTURE, commander_side, DELAY_PRESENTER, MISSION_CODE_SEGMENT);

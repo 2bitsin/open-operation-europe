@@ -43,12 +43,6 @@ constexpr uint8_t MOVE_CLASSES{ 5 }; // move_costs columns
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN));
 }
 
-// Takes `percent` of a stock away (the stock field is packed, so it is worked on as a copy).
-void Reduce(uint16_t& stock, uint16_t percent) {
-  uint16_t value{ stock };
-  opeu_sub_word(opeu_mul_div(value, percent, 100), &value);
-  stock = value;
-}
 } // namespace
 
 uint16_t opeu_battle_retreat_cell_ok(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t unit) {
@@ -107,11 +101,7 @@ void opeu_battle_unit_retreat(uint8_t* ds, BattleEvent event, uint16_t unit, uin
     auto&      objective{ Record<Objective>(data, opeu_find_objective_at(ds, data.battle_x, data.battle_y)) };
     auto const elements{ opeu_battle_element_count(ds, event, unit) };
     auto const percent{ opeu_rand_bounded(static_cast<uint16_t>(elements * 10u + 0x29)) };
-    Reduce(objective.resources[1], percent);
-    Reduce(objective.resources[2], percent);
-    Reduce(objective.resources[0], percent);
-    for (auto& item : objective.items)
-      if (item.quantity) item.quantity = 0;
+    AbandonObjectiveStores(objective, percent);
     opeu_battle_remove_list(ds, event, unit);
   }
 }

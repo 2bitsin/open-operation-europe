@@ -61,10 +61,6 @@ auto ListDialog(std::uint8_t* ds, HostEvent event, ListWindow const& window) -> 
   return Call(ds, event, LIST_DIALOG, Near(Data(ds), window), 1, 7);
 }
 
-void SetSelect(ListWindow& window, std::uint16_t offset) {
-  window.select = { offset, opeu_airdrop_code_segment };
-}
-
 auto ReleaseUnits(std::uint8_t* ds, std::uint16_t list) -> std::uint8_t {
   return opeu_release_side_units(ds, list, CHOSEN);
 }
@@ -123,7 +119,7 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event) {
   constexpr std::uint16_t SUPPLY_UNITS{ offsetof(DataSegment, supply_units) };
   constexpr std::uint16_t ALLOC_ELEMENTS{ offsetof(DataSegment, alloc_elements) };
   data.regiment_dialog.rows = static_cast<std::uint8_t>(ReleaseUnits(ds, SUPPLY_UNITS) + 1);
-  SetSelect(data.regiment_dialog, MARK_REGIMENT_OFFSET);
+  SetListPredicate(data.regiment_dialog, MARK_REGIMENT_OFFSET, opeu_airdrop_code_segment);
   Call(ds, event, MESSAGE, Near(data, data.drop_which_regiment), data.context_record3);
   if (ListDialog(ds, event, data.regiment_dialog)) {
     // The regiment's battalion quota is read again on every step, as the dialogs run in between.
@@ -131,7 +127,7 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event) {
     auto const quota{ [&] { return data.ai_unit_element_counts[regiment]; } };
     auto const free{ static_cast<std::uint8_t>(opeu_min16(ReleaseElements(ds, ALLOC_ELEMENTS), quota())) };
     data.choice_dialog.rows = static_cast<std::uint8_t>(free + 1);
-    SetSelect(data.choice_dialog, ASSIGN_TROOPS_OFFSET);
+    SetListPredicate(data.choice_dialog, ASSIGN_TROOPS_OFFSET, opeu_airdrop_code_segment);
     auto const type{ opeu_air_paratroop_type(ds, event) };
     for (std::uint8_t i{ 0 }; i < quota() && free > i; ++i) {
       auto& element{ Record<Element>(data, data.alloc_elements[i]) };
@@ -149,7 +145,7 @@ uint16_t opeu_air_choose_forces(uint8_t ds[65536], HostEvent event) {
     }
     if (kept) {
       data.choice_dialog.rows = static_cast<std::uint8_t>(kept + 1);
-      SetSelect(data.choice_dialog, MARK_BATTALION_OFFSET);
+      SetListPredicate(data.choice_dialog, MARK_BATTALION_OFFSET, opeu_airdrop_code_segment);
       Call(ds, event, MESSAGE, Near(data, data.drop_command_post), data.context_record3);
       if (ListDialog(ds, event, data.choice_dialog)) return 1;
     }
