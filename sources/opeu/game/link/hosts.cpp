@@ -1,7 +1,7 @@
 /* Struct hosts of the three modules whose entries take a host structure.
- * Each getter returns the single instance; uiprim's `event` is its service
- * (svc_uiprim), the other members are platform state the modules read: the
- * arena, the DS scratch area and the segment numbers of the layout. */
+ * Each getter returns the single instance; its members are platform state the
+ * modules read: the arena, the DS scratch area and the segment numbers of the
+ * layout. */
 #include "link/glue.hpp"
 
 #include "common/game.hpp"
@@ -26,7 +26,7 @@ constexpr std::uint16_t UIPRIM_FILE_READER{ 0x0132 };   // opeu_stream_file_byte
 constexpr std::uint16_t UIPRIM_MEMORY_READER{ 0x01fc }; // opeu_stream_memory_byte in UIPRIM_CODE_SEGMENT
 } // namespace
 
-static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT, UIPRIM_CODE_SEGMENT, svc_uiprim };
+static UiHost uiprim_host = { 0, PORT_DS_SEGMENT, UIPRIM_TILES_SEGMENT, UIPRIM_CODE_SEGMENT };
 
 void* port_uiprim_host(void) {
   uiprim_host.memory = port_arena;

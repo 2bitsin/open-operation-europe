@@ -47,16 +47,8 @@ auto Column(DataSegment const& data) -> std::uint16_t {
   return static_cast<std::uint16_t>(data.numdlg_x << 3);
 }
 
-// The UI outline reports each of its lines as its event 5, drawn here.
-auto OutlineLine(Game&, std::uint8_t*, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint32_t {
-  constexpr std::uint16_t LINE_EVENT{ 5 };
-  if (id != LINE_EVENT || count != 5) return 0;
-  opeu_ui_line(args[0], args[1], args[2], args[3], args[4]);
-  return 0;
-}
-
 auto Outline(Game& game, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2) -> void {
-  UiHost host{ nullptr, 0, 0, 0, OutlineLine };
+  UiHost host{ nullptr, 0, 0, 0 };
   opeu_ui_outline(game, &host, x1, y1, x2, y2, OUTLINE_COLOUR);
 }
 

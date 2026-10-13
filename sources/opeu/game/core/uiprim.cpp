@@ -20,22 +20,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services a UI primitive calls through its host's event.
-enum class UiService : std::uint16_t {
-  SEEK          = 0,  // (handle, position low, high, origin) -> DX:AX
-  READ          = 1,  // (handle, segment, offset, count) -> bytes read
-  BLIT          = 2,  // (x, y, w, h, mode, segment, offset)
-  DRAW          = 3,  // (x, y, w, h, mode, segment, offset)
-  DRAW_NEAR     = 4,  // (x, y, w, h, mode, near pointer)
-  LINE          = 5,  // (x1, y1, x2, y2, color)
-  BOX           = 6,  // (x, y, w, h, color)
-  COPY          = 7,  // (x, y, w, h, x2, y2): a screen area to another place
-  SET_PALETTE   = 8,  // (first, count, near pointer)
-  DECODE        = 9,  // (x, y, reader offset, reader segment)
-  DECODE_MASKED = 10, // (x, y, reader offset, reader segment)
-  POSITION      = 11, // (x, y): the text cursor
-};
-
 // The decoder's byte readers in this module's code segment: opeu_stream_file_byte and opeu_stream_memory_byte.
 constexpr std::uint16_t FILE_READER{ 0x132 };
 constexpr std::uint16_t MEMORY_READER{ 0x1fc };
@@ -50,18 +34,12 @@ constexpr std::uint16_t IMAGE_BYTES{ 0x780 }; // a portrait or face: 24 x 80 pix
 constexpr std::uint8_t  END_OF_LIST{ 0xff };
 constexpr std::int32_t  SEEK_FAILED{ -1 };
 
-template <typename... Words>
-auto UiCall(Game& game, UiHost const* host, UiService service, Words... words) -> std::uint32_t {
-  std::uint16_t const args[]{ static_cast<std::uint16_t>(words)... };
-  return host->event(game, host->memory, std::to_underlying(service), args, sizeof...(Words));
-}
-
 auto Seek(Game& game, UiHost const* host, std::int16_t handle, std::int32_t position, std::uint16_t origin) -> std::int32_t {
-  return static_cast<std::int32_t>(UiCall(game, host, UiService::SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(static_cast<std::uint32_t>(position) >> 16), origin));
+  return opeu_dos_seek(handle, position, static_cast<std::int16_t>(origin));
 }
 
 auto ReadFar(Game& game, UiHost const* host, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> std::uint16_t {
-  return static_cast<std::uint16_t>(UiCall(game, host, UiService::READ, handle, segment, offset, count));
+  return static_cast<std::uint16_t>(opeu_dos_read_far(handle, segment, offset, count));
 }
 
 auto Multiply(std::uint16_t a, std::uint16_t b) -> std::uint16_t {
@@ -90,7 +68,7 @@ auto StreamNext(Game& game, UiHost const* host) -> std::uint8_t {
 
 void BlitStream(Game& game, UiHost const* host, std::uint16_t x, std::uint16_t y) {
   auto const& stream{ Data(game).stream };
-  UiCall(game, host, UiService::BLIT, x, y, 1, 32, 0, stream.segment, stream.offset);
+  opeu_blit_far(x, y, 1, 32, 0, port_far(stream.segment, stream.offset));
 }
 
 // A cache of 0x780-byte image slots kept as a most-recently-used list of nodes; the head is a near pointer to a node.
@@ -173,7 +151,7 @@ void opeu_image_read_draw(Game& game, const UiHost* host, uint16_t x, uint16_t y
   auto const size{ Multiply(Multiply(h, w), 3) };
   if (size > IMAGE_END) return;
   ReadFar(game, host, handle, segment, IMAGE_END - size, size);
-  UiCall(game, host, UiService::BLIT, x, y, w, h, mode, segment, IMAGE_END - size);
+  opeu_blit_far(x, y, w, h, mode, port_far(segment, IMAGE_END - size));
 }
 
 // Unpacks count bytes: a 0 or 0xff byte is followed by its repeat count.
@@ -200,7 +178,7 @@ void opeu_image_draw_masked(Game& game, const UiHost* host, uint16_t x, uint16_t
     for (auto left{ count }; left--; at.offset++) FarByte(game, host, at) ^= 0xff;
     mode = 0x407;
   }
-  UiCall(game, host, UiService::DRAW, x, y, w, h, mode, segment, IMAGE_END - count);
+  opeu_draw_far(x, y, w, h, mode, port_far(segment, IMAGE_END - count));
 }
 
 // The decoder's reader for a picture file: refills the stream buffer from the picture file when it runs dry.
@@ -226,13 +204,13 @@ void opeu_stream_seek_block(Game& game, const UiHost* host, uint16_t x, uint16_t
 void opeu_picture_file(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, host, x, y, block);
-  UiCall(game, host, UiService::DECODE, x, y, FILE_READER, host->code_segment);
+  opeu_picture_decode(x, y, port_picture_reader(FILE_READER, host->code_segment));
 }
 
 void opeu_picture_file_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, host, x, y, block);
-  UiCall(game, host, UiService::DECODE_MASKED, x, y, FILE_READER, host->code_segment);
+  opeu_picture_decode_masked(x, y, port_picture_reader(FILE_READER, host->code_segment));
 }
 
 // The decoder's reader for a picture in memory.
@@ -242,12 +220,12 @@ uint8_t opeu_stream_memory_byte(Game& game, const UiHost* host) {
 
 void opeu_picture_memory(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
-  UiCall(game, host, UiService::DECODE, x, y, MEMORY_READER, host->code_segment);
+  opeu_picture_decode(x, y, port_picture_reader(MEMORY_READER, host->code_segment));
 }
 
 void opeu_picture_memory_masked(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
-  UiCall(game, host, UiService::DECODE_MASKED, x, y, MEMORY_READER, host->code_segment);
+  opeu_picture_decode_masked(x, y, port_picture_reader(MEMORY_READER, host->code_segment));
 }
 
 void opeu_stream_seek(Game& game, const UiHost* host, int32_t position, int16_t handle) {
@@ -256,7 +234,7 @@ void opeu_stream_seek(Game& game, const UiHost* host, int32_t position, int16_t 
 
 void opeu_picture_file_at(Game& game, const UiHost* host, uint16_t x, uint16_t y, int16_t handle, int32_t position) {
   opeu_stream_seek(game, host, position, handle);
-  UiCall(game, host, UiService::DECODE_MASKED, x, y, FILE_READER, host->code_segment);
+  opeu_picture_decode_masked(x, y, port_picture_reader(FILE_READER, host->code_segment));
 }
 
 // The frame of the context panel from the tile segment: left end, middle columns, right end; then the cursor inside.
@@ -269,7 +247,7 @@ void opeu_context_frame(Game& game, const UiHost* host, uint16_t x, uint16_t y, 
   for (i = x + 1; i < static_cast<std::uint16_t>(x + width - 1); i++) BlitStream(game, host, i, y);
   SetStream(data, host->tiles_segment, 0xc0);
   BlitStream(game, host, i, y);
-  UiCall(game, host, UiService::POSITION, x + 1, y + 8);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(x + 1), static_cast<std::int16_t>(y + 8));
 }
 
 void opeu_portrait_unlink(Game& game, uint16_t node) {
@@ -298,7 +276,7 @@ uint16_t opeu_portrait_load(Game& game, const UiHost* host, uint8_t key) {
 // Blits the general's portrait; the cache lookup runs before the portrait segment is read.
 void opeu_context_portrait(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t person) {
   auto const offset{ opeu_portrait_load(game, host, Record<Person>(Data(game), person).portrait) };
-  UiCall(game, host, UiService::BLIT, x, y, 8, 80, 0, Data(game).portrait_segment, offset);
+  opeu_blit_far(x, y, 8, 80, 0, port_far(Data(game).portrait_segment, offset));
 }
 
 void opeu_face_unlink(Game& game, uint16_t node) {
@@ -344,32 +322,32 @@ void opeu_face_draw(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint
 }
 
 void opeu_ui_outline(Game& game, const UiHost* host, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
-  UiCall(game, host, UiService::LINE, x1, y1, x2, y1, color);
-  UiCall(game, host, UiService::LINE, x2, y1, x2, y2, color);
-  UiCall(game, host, UiService::LINE, x1, y2, x2, y2, color);
-  UiCall(game, host, UiService::LINE, x1, y1, x1, y2, color);
+  opeu_ui_line(x1, y1, x2, y1, color);
+  opeu_ui_line(x2, y1, x2, y2, color);
+  opeu_ui_line(x1, y2, x2, y2, color);
+  opeu_ui_line(x1, y1, x1, y2, color);
 }
 
 // Fills the screen with a backdrop pattern: one 16-pixel band drawn, then copied down the screen.
 void opeu_backdrop_fill(Game& game, const UiHost* host) {
   auto const pattern{ Near(Data(game), Data(game).backdrop_pattern) };
-  for (std::uint16_t x = 0; x < 80; x += 2) UiCall(game, host, UiService::DRAW_NEAR, x, 0, 2, 16, 1, pattern);
-  for (std::uint16_t y = 16; y < 400; y += 16) UiCall(game, host, UiService::COPY, 0, y - 16, 80, 16, 0, y);
+  for (std::uint16_t x = 0; x < 80; x += 2) opeu_draw_near(x, 0, 2, 16, 1, game.State().Bytes(pattern).data());
+  for (std::uint16_t y = 16; y < 400; y += 16) opeu_screen_copy(0, y - 16, 80, 16, 0, y);
 }
 
 void opeu_backdrop_fill_color(Game& game, const UiHost* host, uint8_t color) {
   auto const pattern{ Near(Data(game), Data(game).backdrop_color_pattern) };
-  for (std::uint16_t x = 0; x < 80; x += 2) UiCall(game, host, UiService::DRAW_NEAR, x, 0, 2, 16, color, pattern);
-  for (std::uint16_t y = 16; y < 400; y += 16) UiCall(game, host, UiService::COPY, 0, y - 16, 80, 16, 0, y);
+  for (std::uint16_t x = 0; x < 80; x += 2) opeu_draw_near(x, 0, 2, 16, color, game.State().Bytes(pattern).data());
+  for (std::uint16_t y = 16; y < 400; y += 16) opeu_screen_copy(0, y - 16, 80, 16, 0, y);
 }
 
 // A blue screen with an outlined box for the text at (x, y); leaves the cursor there and returns the text.
 uint16_t opeu_title_box(Game& game, const UiHost* host, uint16_t x, uint16_t y, uint16_t text) {
   auto const length{ static_cast<std::uint16_t>(opeu_string_length(game, text) + 2) };
   opeu_backdrop_fill_color(game, host, 1);
-  UiCall(game, host, UiService::BOX, x - 1, y - 4, length, 24, 1);
+  opeu_ui_box(x - 1, y - 4, length, 24, 1);
   opeu_ui_outline(game, host, (x - 1) * 8, y - 4, (length + x) * 8 - 9, y + 19, 7);
-  UiCall(game, host, UiService::POSITION, x, y);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(x), static_cast<std::int16_t>(y));
   return text;
 }
 
@@ -377,55 +355,26 @@ uint16_t opeu_title_box(Game& game, const UiHost* host, uint16_t x, uint16_t y, 
 void opeu_palette_for_hour(Game& game, const UiHost* host) {
   auto&         data{ Data(game) };
   std::uint16_t palette{ 0 };
-  UiCall(game, host, UiService::SET_PALETTE, 0, 8, Near(data, data.palette_base));
+  opeu_set_palette(0, 8, data.palette_base.data());
   if (opeu_hour_is_dawn(data.hour)) palette = Near(data, data.palette_dawn);
   if (opeu_hour_is_day(data.hour)) palette = Near(data, data.palette_day);
   if (opeu_hour_is_dusk(data.hour)) palette = Near(data, data.palette_dusk);
   if (opeu_hour_is_night(data.hour)) palette = Near(data, data.palette_night);
-  UiCall(game, host, UiService::SET_PALETTE, 8, 8, palette);
+  opeu_set_palette(8, 8, game.State().Bytes(palette).data());
 }
 
 void opeu_palette_daylight(Game& game, const UiHost* host) {
   auto& data{ Data(game) };
-  UiCall(game, host, UiService::SET_PALETTE, 0, 8, Near(data, data.palette_base));
-  UiCall(game, host, UiService::SET_PALETTE, 8, 8, Near(data, data.palette_day));
+  opeu_set_palette(0, 8, data.palette_base.data());
+  opeu_set_palette(8, 8, data.palette_day.data());
 }
 
 void opeu_palette_title_screen(Game& game, const UiHost* host) {
   auto& data{ Data(game) };
-  UiCall(game, host, UiService::SET_PALETTE, 0, 16, Near(data, data.palette_title));
+  opeu_set_palette(0, 16, data.palette_title.data());
 }
 
 void opeu_palette_map_screen(Game& game, const UiHost* host) {
   auto& data{ Data(game) };
-  UiCall(game, host, UiService::SET_PALETTE, 0, 16, Near(data, data.palette_map));
-}
-
-// The UI primitives' services: file seek and read, the VGA library's drawing, the palette, the picture decoder with
-// this module's readers, and the text cursor.
-uint32_t svc_uiprim(Game& game, uint8_t* memory, uint16_t id, const uint16_t* args, uint16_t count) {
-  (void)game;
-  (void)memory;
-  switch (static_cast<UiService>(id)) {
-  case UiService::SEEK: return (uint32_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3));
-  case UiService::READ: return (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3));
-  case UiService::BLIT:
-    opeu_blit_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    return 0;
-  case UiService::DRAW:
-    opeu_draw_far(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    return 0;
-  case UiService::DRAW_NEAR:
-    opeu_draw_near(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), game.State().Bytes(Arg(args, count, 5)).data());
-    return 0;
-  case UiService::LINE:          opeu_ui_line(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); return 0;
-  case UiService::BOX:           opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); return 0;
-  case UiService::COPY:          opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); return 0;
-  case UiService::SET_PALETTE:   opeu_set_palette((uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), game.State().Bytes(Arg(args, count, 2)).data()); return 0;
-  case UiService::DECODE:        opeu_picture_decode(Arg(args, count, 0), Arg(args, count, 1), port_picture_reader(Arg(args, count, 2), Arg(args, count, 3))); return 0;
-  case UiService::DECODE_MASKED: opeu_picture_decode_masked(Arg(args, count, 0), Arg(args, count, 1), port_picture_reader(Arg(args, count, 2), Arg(args, count, 3))); return 0;
-  case UiService::POSITION:      opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); return 0;
-  default:                       port_unhandled("uiprim", id, count);
-  }
-  return 0;
+  opeu_set_palette(0, 16, data.palette_map.data());
 }

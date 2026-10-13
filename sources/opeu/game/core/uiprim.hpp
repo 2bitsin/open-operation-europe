@@ -36,5 +36,3 @@ void     opeu_palette_for_hour(Game& game, const UiHost* host);
 void     opeu_palette_daylight(Game& game, const UiHost* host);
 void     opeu_palette_title_screen(Game& game, const UiHost* host);
 void     opeu_palette_map_screen(Game& game, const UiHost* host);
-
-uint32_t svc_uiprim(Game& game, uint8_t* memory, uint16_t id, const uint16_t* args, uint16_t count);

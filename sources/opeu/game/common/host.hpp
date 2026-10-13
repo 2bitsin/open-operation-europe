@@ -2,8 +2,6 @@
 // driver calls.
 #pragma once
 
-#include "common/events.hpp"
-
 #include <cstdint>
 
 // Driver registers as words or as byte halves.
@@ -40,9 +38,8 @@ struct DialogHost {
 // The text output's host: no state of its own since its services became direct calls (B5 retires the hosts).
 struct TextHost { };
 
-// The UI primitives' memory, segment numbers and service.
+// The UI primitives' memory and segment numbers.
 struct UiHost {
   std::uint8_t* memory;
   std::uint16_t ds_segment, tiles_segment, code_segment;
-  UiEvent       event;
 };
