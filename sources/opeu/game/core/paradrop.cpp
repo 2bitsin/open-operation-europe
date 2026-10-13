@@ -64,7 +64,7 @@ constexpr uint16_t PRESENTER_SEGMENT{ 0xf43 };
 // Lands the side's paratroop regiment of the drop (a DS offset) at the drop's cell; returns the regiment.
 auto CreateDropUnit(Game& game, uint8_t side, uint16_t drop) -> uint16_t {
   auto const& planned{ Record<AirDrop>(Data(game), drop) };
-  return opeu_para_unit_create(game, svc_paraunit, side, planned.x, planned.y);
+  return opeu_para_unit_create(game, side, planned.x, planned.y);
 }
 
 } // namespace
@@ -165,7 +165,7 @@ void opeu_para_drop_event(Game& game, uint16_t segment) {
     if (target_y - row == LANDING_ROWS) {
       opeu_music_command7(game);
       auto const unit{ CreateDropUnit(game, static_cast<uint8_t>(side_index), Near(data, drop)) };
-      if (opeu_para_land(game, svc_paraunit, unit, (drop.transports - left) * 10)) opeu_arrival_prepare(game, unit);
+      if (opeu_para_land(game, unit, (drop.transports - left) * 10)) opeu_arrival_prepare(game, unit);
     }
     opeu_delay_ticks(game, 1);
     opeu_air_sprite_restore(game, 0, target_x, row);

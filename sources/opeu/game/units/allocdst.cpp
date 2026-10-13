@@ -31,35 +31,10 @@ namespace {
 constexpr std::uint16_t PROMPT_BYTES{ 0x64 };
 constexpr std::uint16_t NAME_BYTES{ 0x20 };
 
-// The services the module calls through its event (svc_allocdst). Capacities come back in args[1..3].
-enum Service : std::uint16_t {
-  REMOVE_ELEMENT       = 0,  // (unit, element)
-  INSERT_ELEMENT       = 1,  // (unit, element)
-  RELEASE_ELEMENTS     = 2,  // (list, mask)
-  UNIT_CAPACITIES      = 3,  // (unit) -> args[1..3]
-  OBJECTIVE_CAPACITIES = 4,  // (objective) -> args[1..3]
-  SHARE_UNITS          = 5,  // (unit, other)
-  SHARE_OBJECTIVE      = 6,  // (unit, objective)
-  UNIT_NAME            = 7,  // (unit, buffer) -> text
-  REQUEST_FORMAT       = 8,  // (buffer, format, text)
-  CHIEF_TEXT           = 9,  // (text)
-  LIST_DIALOG          = 10, // (dialog, mode, height)
-  PENDING_FINISH       = 11, // (code)
-};
-
 // The offset of opeu_tally_mark in the callback segment: the choice dialog's select callback.
 constexpr std::uint16_t TALLY_MARK_OFFSET{ 0x10b8 };
 // Stored resources are capped at this amount.
 constexpr std::int32_t RESOURCE_LIMIT{ 60000 };
-
-// Asks the event for the three capacities of a unit or an objective.
-auto Capacities(Game& game, HostWordsEvent event, Service service, std::uint16_t owner, std::uint16_t& a, std::uint16_t& b, std::uint16_t& c) -> void {
-  std::uint16_t args[4]{ owner, a, b, c };
-  event(game, service, args, 1);
-  a = args[1];
-  b = args[2];
-  c = args[3];
-}
 
 // Copies an allocation row into a stock item, clearing its extra word.
 auto Fill(Item& item, Item const& row) -> void {
@@ -72,7 +47,7 @@ auto Fill(Item& item, Item const& row) -> void {
 // Rebuilds each unit's element list from its allocation rows (or fills the objective's six items), then splits the
 // summed resources: the first unit up to its capacities, the rest to the second unit or (capped at 60000) to the
 // objective.
-void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
+void opeu_alloc_distribute(Game& game, uint8_t first, uint8_t second, uint8_t third, uint8_t count) {
   auto&         data{ Data(game) };
   std::int32_t  sum_a{ 0 }, sum_b{ 0 }, sum_c{ 0 };
   std::uint16_t capacity_a[2]{}, capacity_b[2]{}, capacity_c[2]{};
@@ -98,7 +73,7 @@ void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint
       sum_a += unit.resources[0];
       sum_b += unit.resources[1];
       sum_c += unit.resources[2];
-      Capacities(game, event, UNIT_CAPACITIES, unit_near, capacity_a[i], capacity_b[i], capacity_c[i]);
+      opeu_unit_capacities(game, unit_near, &capacity_a[i], &capacity_b[i], &capacity_c[i]);
       start  = first;
       first += second;
     } else {
@@ -112,7 +87,7 @@ void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint
       sum_a += objective.resources[0];
       sum_b += objective.resources[1];
       sum_c += objective.resources[2];
-      Capacities(game, event, OBJECTIVE_CAPACITIES, data.alloc_objective, capacity_a[1], capacity_b[1], capacity_c[1]);
+      opeu_objective_capacities(game, data.alloc_objective, &capacity_a[1], &capacity_b[1], &capacity_c[1]);
     }
   }
   auto& unit{ Record<Unit>(data, data.alloc_units[0]) };
@@ -124,7 +99,7 @@ void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint
     other.resources[0] = static_cast<std::uint16_t>(sum_a) - unit.resources[0];
     other.resources[1] = static_cast<std::uint16_t>(sum_b) - unit.resources[1];
     other.resources[2] = static_cast<std::uint16_t>(sum_c) - unit.resources[2];
-    opeu_supply_exchange_units(game, svc_supply, data.alloc_units[0], other_near);
+    opeu_supply_exchange_units(game, data.alloc_units[0], other_near);
   } else {
     auto&              objective{ Record<Objective>(data, data.alloc_objective) };
     std::int32_t const sums[3]{ sum_a, sum_b, sum_c };
@@ -134,7 +109,7 @@ void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint
       else
         objective.resources[resource] = static_cast<std::uint16_t>(sums[resource]) - unit.resources[resource];
     }
-    opeu_supply_exchange_objective(game, svc_supply, data.alloc_units[0], data.alloc_objective);
+    opeu_supply_exchange_objective(game, data.alloc_units[0], data.alloc_objective);
   }
 }
 
@@ -162,28 +137,6 @@ void opeu_alloc_choose_hq(Game& game, uint16_t callback_segment) {
 
 void opeu_alloc_finish(Game& game) {
   opeu_pending_finish(game, static_cast<uint8_t>(3));
-}
-
-// The module's services: element relinking and release, capacities, the supply exchanges, unit names, the prompt, the
-// chief's text, the list dialog and the pending finish.
-uint16_t svc_allocdst(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case 0:  r = opeu_remove_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 1:  opeu_insert_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 2:  r = opeu_release_side_elements(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case 3:  opeu_unit_capacities(game, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 4:  opeu_objective_capacities(game, Arg(args, count, 0), &args[1], &args[2], &args[3]); break;
-  case 5:  opeu_supply_exchange_units(game, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 6:  opeu_supply_exchange_objective(game, svc_supply, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 7:  r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case 8:  opeu_request_format(game, { args, count }); break;
-  case 9:  opeu_ops_chief_text(game, Arg(args, count, 0)); break;
-  case 10: r = opeu_list_dialog(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case 11: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  default: port_unhandled("allocdst", id, count);
-  }
-  return r;
 }
 
 auto port_routine_opeu_alloc_finish(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {

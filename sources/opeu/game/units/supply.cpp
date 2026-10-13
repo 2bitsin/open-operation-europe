@@ -18,36 +18,23 @@
 
 using namespace opeu::game;
 
-using SupplyEvent = uint16_t (*)(Game&, uint16_t, const uint16_t*, uint16_t);
-
 namespace {
-// The transfer dialog's services: 100 draws it with the two parties' names, 101 runs one step and reports completion.
-enum : std::uint16_t {
-  SUPPLY_DRAW = 100,
-  SUPPLY_STEP = 101,
-};
-
 constexpr std::uint16_t NO_OBJECTIVE{ 0 };
 constexpr std::uint8_t  CURRENT{ 0 };
 constexpr std::uint8_t  CAPACITY{ 1 };
 
-auto Raise(Game& game, SupplyEvent event, std::uint16_t id, std::uint16_t count, std::uint16_t first, std::uint16_t second) -> std::uint16_t {
-  std::uint16_t args[2]{ first, second };
-  return event(game, id, args, count);
-}
-
 // Draws the dialog for two units; a and b are the name buffers. The second name is formatted first.
-auto DrawUnits(Game& game, SupplyEvent event, std::uint16_t first, std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
+auto DrawUnits(Game& game, std::uint16_t first, std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
   auto const second_name{ opeu_unit_name(game, second, b) };
-  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, first, a), second_name);
+  opeu_supply_draw(game, opeu_unit_name(game, first, a), second_name);
 }
 
 // A unit name buffer the unit-name service formats into.
 constexpr std::uint16_t NAME_BYTES{ 0x20 };
 
 // Runs the dialog until it reports completion.
-auto RunDialog(Game& game, SupplyEvent event) -> void {
-  while (!Raise(game, event, SUPPLY_STEP, 0, 0, 0)) {
+auto RunDialog(Game& game) -> void {
+  while (!opeu_supply_step(game, svc_supstep)) {
   }
 }
 
@@ -79,40 +66,27 @@ void opeu_supply_load_objective(Game& game, uint16_t objective) {
 }
 
 // Exchanges supplies between two units; the units' names are formatted into the routine's two 32-byte buffers.
-void opeu_supply_exchange_units(Game& game, SupplyEvent event, uint16_t first, uint16_t second) {
+void opeu_supply_exchange_units(Game& game, uint16_t first, uint16_t second) {
   auto&               data{ Data(game) };
   ServiceLocals const names{ 2 * NAME_BYTES };
   data.supply_objective = NO_OBJECTIVE;
   opeu_supply_load_unit(game, first, 0);
   opeu_supply_load_unit(game, second, 1);
-  DrawUnits(game, event, first, names.At(NAME_BYTES), second, names.At(0));
-  RunDialog(game, event);
+  DrawUnits(game, first, names.At(NAME_BYTES), second, names.At(0));
+  RunDialog(game);
   StoreBack(data, 0, Record<Unit>(data, first));
   StoreBack(data, 1, Record<Unit>(data, second));
 }
 
 // Exchanges supplies between a unit and an objective; the unit's name is formatted into the routine's 32-byte buffer.
-void opeu_supply_exchange_objective(Game& game, SupplyEvent event, uint16_t unit, uint16_t objective) {
+void opeu_supply_exchange_objective(Game& game, uint16_t unit, uint16_t objective) {
   auto&               data{ Data(game) };
   ServiceLocals const name{ NAME_BYTES };
   data.supply_objective = objective;
   opeu_supply_load_unit(game, unit, 0);
   opeu_supply_load_objective(game, objective);
-  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, unit, name.At(0)), objective);
-  RunDialog(game, event);
+  opeu_supply_draw(game, opeu_unit_name(game, unit, name.At(0)), objective);
+  RunDialog(game);
   StoreBack(data, 0, Record<Unit>(data, unit));
   StoreBack(data, 1, Record<Objective>(data, objective));
-}
-
-// The services the module calls out to: the transfer dialog's draw and step, and request_format (id 2), which
-// opeu_unit_name raises through the event it receives.
-uint16_t svc_supply(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case 2:           opeu_request_format(game, { args, count }); break;
-  case SUPPLY_DRAW: opeu_supply_draw(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case SUPPLY_STEP: r = opeu_supply_step(game, svc_supstep); break;
-  default:          port_unhandled("supply", id, count);
-  }
-  return r;
 }

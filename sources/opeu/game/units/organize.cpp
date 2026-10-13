@@ -124,7 +124,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
           flags = ALLOC_FIRST;
           continue;
         }
-        opeu_alloc_distribute(game, svc_allocdst, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots), static_cast<uint8_t>(a.spare_slots), static_cast<uint8_t>(a.types));
+        opeu_alloc_distribute(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots), static_cast<uint8_t>(a.spare_slots), static_cast<uint8_t>(a.types));
         opeu_alloc_choose_hq(game, ORGANIZE_SEGMENT);
         back_to_map();
         data.side_delays[data.current_side] = 1;
