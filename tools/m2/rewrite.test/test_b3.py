@@ -59,7 +59,7 @@ def test_a_callback_still_called_or_of_a_routine_whose_address_is_taken_stays(pa
 
 def test_a_dispatcher_or_an_event_routine_nothing_names_goes_and_one_still_handed_on_stays(passed):
   tree, result = passed
-  assert result.deleted[:2] == ["MenuEvent", "svc_menu"]
+  assert result.deleted[:3] == ["List", "MenuEvent", "svc_menu"]
   assert "svc_menu" not in Read(tree, "core/menu.cpp") and "svc_menu" not in Read(tree, "core/menu.hpp")
   assert "MenuEvent" not in Read(tree, "core/menu.cpp") and "An event written as a function" not in Read(tree, "core/menu.cpp")
   assert "std::uint16_t svc_hold(" in Read(tree, "core/menu.cpp")
@@ -93,7 +93,7 @@ def test_the_callback_header_goes_only_from_files_that_name_nothing_of_it(passed
   tree, result = passed
   assert '#include "common/events.hpp"' not in Read(tree, "core/count.cpp")
   assert '#include "common/events.hpp"' in Read(tree, "core/draw.cpp")
-  assert result.includes == ["game/core/count.cpp: common/events.hpp"]
+  assert result.includes == ["game/core/count.cpp: common/events.hpp", "game/io/list.hpp: common/events.hpp"]
 
 
 def test_enumerations_are_read_with_their_enumerators():
@@ -121,3 +121,11 @@ def test_only_selects_the_sites_bound_to_dispatchers_of_the_given_files():
 def test_a_reserves_near_address_has_no_side_effect(word, effects):
   source = SourceFile(PurePosixPath("x.cpp"), word)
   assert _SideEffects(source, Span(0, len(source.tokens))) is effects
+
+
+def test_a_word_packing_wrapper_nothing_calls_goes_with_its_re_export(passed):
+  tree, result = passed
+  header = Read(tree, "io/list.hpp")
+  assert "List" not in header and "A call with its argument words" not in header
+  assert "using detail::list_call::ROWS;" in header and "inline constexpr std::uint8_t ROWS{ 8 };" in header
+  assert "List" in result.deleted

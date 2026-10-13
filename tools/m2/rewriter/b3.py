@@ -9,8 +9,9 @@ applies, to the rewritten tree:
               callback parameters, is dropped from the definition, from every declaration and from every call (a
               fixed point: one used for anything else, or of a routine whose address is taken, stays); a `(void)name;`
               that only silenced it goes with it
-  dispatcher  a `svc_*` nothing names any more is deleted, and a routine only the dropped arguments named (an event
-              written as a function, `LabelEvent`), then every function only deleted functions named
+  dispatcher  a `svc_*` nothing names any more is deleted with its re-export, and a routine only the dropped arguments
+              named (an event written as a function, `LabelEvent`) and a wrapper packing words like Call (`Call`,
+              `CallWords`, `List`, `Input`) nothing calls any more, then every function only deleted functions named
   enum        an enumeration whose enumerators were service ids (case labels of a dispatcher) is deleted when neither
               it nor any enumerator is named outside it any more, and a `constexpr` constant a site gave as its
               service id when nothing names it any more
@@ -24,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 from .b2 import DELETE, EVENTS_HEADER, TIGHT, _AddressTaken, _Declarations, _DeleteFunctions, _Heads, _Line, _OpenParen, _References, _RemoveListItem, _Write
-from .calls import IsCallback
+from .calls import CALL_LIKE, IsCallback
 from .constants import ConstantScopes
 from .functions import Function
 from .program import Program
@@ -239,15 +240,26 @@ def DeleteDispatchers(program: Program, result: B3Result) -> dict:
     for name, definitions in program.definitions.items():
       if name in dead or not all(str(f.file).startswith("game/") for f in definitions):
         continue
-      outside = [where for where, inside in references.get(name, []) if inside not in dead]
-      if not outside and (name.startswith("svc_") or name in result.unpassed or references.get(name)):
+      outside = [where for where, inside in references.get(name, []) if inside not in dead and inside != name and not _ReExport(program, where, name)]
+      named_by_dead = any(inside in dead for _, inside in references.get(name, []))
+      if not outside and (name.startswith("svc_") or name in result.unpassed or name in CALL_LIKE or named_by_dead):
         dead.add(name)
         changed = True
   edits: dict = {}
   for name in sorted(dead):
-    _DeleteFunctions(program, program.definitions[name] + program.declarations.get(name, []), edits)
+    functions = program.definitions[name] + program.declarations.get(name, [])
+    _DeleteFunctions(program, functions, edits)
+    for path in {function.file for function in functions}:
+      edits[path] |= _ReExports(program.Source(path), [name])
   result.deleted += sorted(dead)
   return edits
+
+
+def _ReExport(program: Program, where: str, name: str) -> bool:
+  """Whether the mention at `path:line` is the name's re-export `using detail::x::NAME;`."""
+  path, line = where.rsplit(":", 1)
+  text = program.Source(PurePosixPath(path)).text.split("\n")[int(line) - 1]
+  return re.fullmatch(rf"\s*using\s+[\w:]+::{re.escape(name)};\s*", text) is not None
 
 
 # ---- enum ----------------------------------------------------------------------------------------------------------------
