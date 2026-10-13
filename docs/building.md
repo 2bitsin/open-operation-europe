@@ -257,6 +257,11 @@ _pyvenv/bin/python sources/opeu/integration/perf.test/perf.py baseline _local/pe
 _pyvenv/bin/python sources/opeu/integration/perf.test/perf.py reference _local/perf/v1.0.1/_build/<profile>-release/bin/opeu v1.0.1
 ```
 
+`add-runs <build>` baselines only the runs the machine's entry lacks (a
+new run promoted into the suite), scaling them by the existing runs'
+baseline over their time in the same session, so nothing already recorded
+moves; the v1.0.1 reference for a new run is added with `reference`.
+
 `baseline` plays every run 7 times with the calibration processes among
 the plays and records medians and minima of CPU and wall time and the
 calibration median, runs every benchmark 7 x 5 times, and writes the entry
