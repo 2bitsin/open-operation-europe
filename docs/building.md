@@ -74,8 +74,9 @@ its `fixed_ptr` row counts every fixed-width integer pointer
 (`u?intN_t*`, `uintptr_t*`, `const` included; matches, not lines), the
 user's metric, which only falls; `int86`, `regs`, `far_pointer` and
 `reg_field` count the DOS interrupt calls, their register blocks, the far
-pointer fields and the register field accesses (`.ax`, `->dl`), comments
-included;
+pointer fields, the register field accesses (`.ax`, `->dl`) and the C
+memory and string routines (`c_mem`: `memset`, `memcpy`, `strcmp`, ...),
+comments included;
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
 starts from the baseline committed at `HEAD`, not the working file, and
