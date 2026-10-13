@@ -59,7 +59,9 @@ auto ExpectAsDecoded(AssetPack const& pack, Catalogue const& catalogue, std::str
   ASSERT_TRUE(image && palette) << id;
   EXPECT_EQ(loaded->texture, ToTexture(*image, *palette)) << id;
   EXPECT_EQ(loaded->indexed.has_value(), loaded->entry.recolour.has_value()) << id;
-  if (loaded->indexed) EXPECT_TRUE(SameDrawing(*loaded->indexed, *image)) << id;
+  if (loaded->indexed) {
+    EXPECT_TRUE(SameDrawing(*loaded->indexed, *image)) << id;
+  }
 }
 
 }

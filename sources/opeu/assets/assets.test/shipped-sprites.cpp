@@ -8,6 +8,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <ranges>
 #include <string_view>
 #include <vector>
@@ -36,6 +38,15 @@ auto AllSized(std::vector<Image> const& images, std::size_t const width, std::si
 
 auto Highest(Image const& image) -> std::uint8_t {
   return std::ranges::max(image.Pixels());
+}
+
+// One glyph's bytes as a fixed-size record, so sorting compares a known length.
+using GlyphRecord = std::array<std::byte, GLYPH_BYTES>;
+
+auto ToRecord(Bytes const glyph) -> GlyphRecord {
+  GlyphRecord record{};
+  std::ranges::copy(glyph, record.begin());
+  return record;
 }
 
 }
@@ -152,7 +163,7 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
   auto glyphs{ DecodeGlyphs(Shipped("MSG.16P")).value() };
   EXPECT_EQ(glyphs.size(), GAME_GLYPHS);
   EXPECT_TRUE(std::ranges::equal(Shipped("MSG"), Shipped("MSG.16P")));
-  auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES) | std::views::transform([](Bytes const glyph) { return glyph | std::ranges::to<std::vector>(); }) | std::ranges::to<std::vector>() };
+  auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES) | std::views::transform(ToRecord) | std::ranges::to<std::vector>() };
   auto       sorted{ records };
   std::ranges::sort(sorted);
   EXPECT_EQ(std::ranges::unique(sorted).begin(), sorted.end());

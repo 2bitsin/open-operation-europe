@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <format>
 #include <ranges>
-#include <set>
 #include <utility>
 #include <vector>
 
@@ -29,8 +28,11 @@ auto Failed(std::string_view const what, assets::DecodeError const error) -> Don
 // The indices an image draws, ascending.
 auto ColoursUsed(assets::Image const& image) -> std::vector<int> {
   auto drawn{ std::views::iota(0uz, image.Pixels().size()) | std::views::filter([&image](std::size_t const n) { return image.Opaque().empty() || image.Opaque()[n] != 0; })
-              | std::views::transform([&image](std::size_t const n) { return int{ image.Pixels()[n] }; }) | std::ranges::to<std::set>() };
-  return drawn | std::ranges::to<std::vector>();
+              | std::views::transform([&image](std::size_t const n) { return int{ image.Pixels()[n] }; }) | std::ranges::to<std::vector>() };
+  std::ranges::sort(drawn);
+  auto const repeated{ std::ranges::unique(drawn) };
+  drawn.erase(repeated.begin(), repeated.end());
+  return drawn;
 }
 
 // Rows of a square grid of bytes as a JSON array of arrays.
