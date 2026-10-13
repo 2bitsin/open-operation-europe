@@ -90,21 +90,3 @@ auto ObjectiveQuantity(DataSegment const& data, std::uint16_t objective, std::ui
   return std::ranges::fold_left(Record<Objective>(data, objective).items | std::views::filter(stocked) | std::views::transform(quantity), Quantity{ 0, 0 }, ADD);
 }
 } // namespace opeu::game::detail::stats
-
-uint16_t opeu_unit_quantity(Game& game, uint16_t unit, uint8_t category, uint8_t* count) {
-  auto const quantity{ UnitQuantity(Data(game), unit, category) };
-  *count = quantity.count;
-  return quantity.total;
-}
-
-uint32_t opeu_side_quantity(Game& game, uint8_t side, uint8_t category, uint8_t* count) {
-  auto const quantity{ SideQuantity(Data(game), side, category) };
-  *count = quantity.count;
-  return quantity.total;
-}
-
-uint16_t opeu_objective_quantity(Game& game, uint16_t objective, uint8_t category, uint8_t* count) {
-  auto const quantity{ ObjectiveQuantity(Data(game), objective, category) };
-  *count = quantity.count;
-  return quantity.total;
-}

@@ -18,12 +18,3 @@ auto ObjectiveResourcePercentages(DataSegment const& data, std::uint16_t objecti
   };
 }
 } // namespace opeu::game::detail::objpct
-
-using namespace opeu::game;
-
-void opeu_objective_resource_percentages(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const percentages{ ObjectiveResourcePercentages(Data(game), objective) };
-  *result_a = percentages.ammunition;
-  *result_b = percentages.fuel;
-  *result_c = percentages.food;
-}

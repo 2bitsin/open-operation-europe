@@ -18,12 +18,3 @@ auto UnitResourcePercentages(DataSegment const& data, std::uint16_t unit) -> Res
   };
 }
 } // namespace opeu::game::detail::percent
-
-using namespace opeu::game;
-
-void opeu_unit_resource_percentages(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const percentages{ UnitResourcePercentages(Data(game), unit) };
-  *result_a = percentages.ammunition;
-  *result_b = percentages.fuel;
-  *result_c = percentages.food;
-}

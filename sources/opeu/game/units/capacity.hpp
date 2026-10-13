@@ -34,18 +34,12 @@ struct ResourceWords {
 
 // Stores the unit's capacities into the words at `at`.
 auto StoreUnitCapacities(Game& game, std::uint16_t unit, ResourceWords at) -> void;
-
-// Stores the three figures into the words at `at`.
-auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void;
 } // namespace opeu::game::detail::capacity
 
 namespace opeu::game {
 using detail::capacity::Figures;
 using detail::capacity::ResourceWords;
 using detail::capacity::Resources;
-using detail::capacity::StoreResources;
 using detail::capacity::StoreUnitCapacities;
 using detail::capacity::UnitCapacities;
 } // namespace opeu::game
-
-void opeu_unit_capacities(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);

@@ -8,6 +8,14 @@
 #include "types.hpp"
 
 namespace opeu::game::detail::capacity {
+namespace {
+// Stores the three figures into the words at `at`.
+auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void {
+  SetWord(game, at.ammunition, resources.ammunition);
+  SetWord(game, at.fuel, resources.fuel);
+  SetWord(game, at.food, resources.food);
+}
+} // namespace
 
 auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources {
   Resources capacities{ 0, 0, 0 };
@@ -25,19 +33,4 @@ auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources {
 auto StoreUnitCapacities(Game& game, std::uint16_t unit, ResourceWords at) -> void {
   StoreResources(game, at, UnitCapacities(Data(game), unit));
 }
-
-auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void {
-  SetWord(game, at.ammunition, resources.ammunition);
-  SetWord(game, at.fuel, resources.fuel);
-  SetWord(game, at.food, resources.food);
-}
 } // namespace opeu::game::detail::capacity
-
-using namespace opeu::game;
-
-void opeu_unit_capacities(Game const& game, uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const capacities{ UnitCapacities(Data(game), unit) };
-  *result_a = capacities.ammunition;
-  *result_b = capacities.fuel;
-  *result_c = capacities.food;
-}

@@ -17,5 +17,3 @@ namespace opeu::game::detail::objpct {
 namespace opeu::game {
 using detail::objpct::ObjectiveResourcePercentages;
 } // namespace opeu::game
-
-void opeu_objective_resource_percentages(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);

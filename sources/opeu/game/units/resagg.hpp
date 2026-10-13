@@ -41,5 +41,3 @@ using detail::resagg::ResourceTotals;
 using detail::resagg::SideCapacities;
 using detail::resagg::SideStoredResources;
 } // namespace opeu::game
-
-void opeu_objective_capacities(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);

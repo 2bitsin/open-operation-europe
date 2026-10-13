@@ -25,6 +25,3 @@ using detail::aggpct::GroupResourcePercentages;
 using detail::aggpct::SideResourcePercentages;
 using detail::aggpct::SideUnitResourcePercentages;
 } // namespace opeu::game
-
-void opeu_group_resource_percentages(Game& game, uint16_t group, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c);
-void opeu_side_resource_percentages(Game& game, uint8_t side, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c, uint16_t units_only);

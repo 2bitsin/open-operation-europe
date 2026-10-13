@@ -51,19 +51,3 @@ auto SideResourcePercentages(Game const& game, std::uint8_t side) -> Resources {
   return Percentages(StoredWithSurplus(game, side), SideCapacities(Data(game), side));
 }
 } // namespace opeu::game::detail::aggpct
-
-using namespace opeu::game;
-
-void opeu_group_resource_percentages(Game& game, uint16_t group, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const percentages{ GroupResourcePercentages(Data(game), group) };
-  *result_a = percentages.ammunition;
-  *result_b = percentages.fuel;
-  *result_c = percentages.food;
-}
-
-void opeu_side_resource_percentages(Game& game, uint8_t side, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c, uint16_t units_only) {
-  auto const percentages{ units_only ? SideUnitResourcePercentages(Data(game), side) : SideResourcePercentages(game, side) };
-  *result_a = percentages.ammunition;
-  *result_b = percentages.fuel;
-  *result_c = percentages.food;
-}

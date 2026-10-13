@@ -82,12 +82,3 @@ auto ObjectiveCapacities(DataSegment const& data, std::uint16_t objective) -> Re
   return capacities;
 }
 } // namespace opeu::game::detail::resagg
-
-using namespace opeu::game;
-
-void opeu_objective_capacities(Game& game, uint16_t objective, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  auto const capacities{ ObjectiveCapacities(Data(game), objective) };
-  *result_a = capacities.ammunition;
-  *result_b = capacities.fuel;
-  *result_c = capacities.food;
-}
