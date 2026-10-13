@@ -7,6 +7,7 @@
 #include "opeu/assets/catalogue.hpp"
 #include "opeu/assets/pack.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <optional>
@@ -30,7 +31,7 @@ public:
   [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>> override;
   [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font> override;
   [[nodiscard]] auto FontNames() const -> std::vector<std::string> override;
-  [[nodiscard]] auto Scale() const -> unsigned override;
+  [[nodiscard]] auto Scale() const -> std::uint32_t override;
 
 private:
   // A pack image: a catalogue asset, or its side-0 variant.

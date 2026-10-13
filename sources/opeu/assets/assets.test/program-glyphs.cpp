@@ -39,7 +39,7 @@ auto InkedPixels(Image const& image) -> std::size_t {
 // The set bits of a table's rows from `at`.
 auto SetBits(std::string_view const table, std::size_t const at, std::size_t const rows) -> std::size_t {
   auto const bytes{ ProgramFile(table).value().subspan(at, rows) };
-  return std::ranges::fold_left(bytes | std::views::transform([](std::byte const b) { return static_cast<std::size_t>(std::popcount(std::to_integer<unsigned>(b))); }), 0uz, std::plus{});
+  return std::ranges::fold_left(bytes | std::views::transform([](std::byte const b) { return static_cast<std::size_t>(std::popcount(std::to_integer<std::uint8_t>(b))); }), 0uz, std::plus{});
 }
 
 }

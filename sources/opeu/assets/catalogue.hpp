@@ -47,7 +47,7 @@ struct Asset {
   std::uint32_t    mask_at{}; // MASKED_SPRITE: the AND mask's offset
   Layout           layout{};
   unsigned         width_bytes{}; // raw layouts: bytes per row (a stream states its own size)
-  unsigned         width{};       // BITMAP: pixels per row when fewer than width_bytes x 8 (the left ones), else 0
+  std::uint32_t    width{};       // BITMAP: pixels per row when fewer than width_bytes x 8 (the left ones), else 0
   unsigned         height{};      // raw layouts: rows
   Role             role{};
   std::string_view palette;           // the palette the game shows it in (see palette.hpp)

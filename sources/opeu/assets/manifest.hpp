@@ -50,7 +50,7 @@ struct PackedAsset {
 struct Font {
   std::size_t              cell_width{};
   std::size_t              cell_height{};
-  unsigned                 first_code{}; // the code of the first glyph: 0x20 for the text font, 0 where a glyph's number is its code
+  std::uint32_t            first_code{}; // the code of the first glyph: 0x20 for the text font, 0 where a glyph's number is its code
   std::vector<std::string> glyphs;       // ids in code order
 
   auto operator==(Font const&) const -> bool = default;
@@ -64,12 +64,12 @@ public:
   using Fonts      = std::map<std::string, Font, std::less<>>;
 
   struct Contents {
-    std::string name;
-    unsigned    scale{ 1 };
-    Assets      assets;
-    Palettes    palettes;
-    Animations  animations;
-    Fonts       fonts;
+    std::string   name;
+    std::uint32_t scale{ 1 };
+    Assets        assets;
+    Palettes      palettes;
+    Animations    animations;
+    Fonts         fonts;
   };
 
   explicit Manifest(Contents contents);
@@ -80,7 +80,7 @@ public:
     return _contents.name;
   }
   // How many image pixels a game pixel is, each way (1 for the classic pack, 4 for a remaster at 4x).
-  [[nodiscard]] auto Scale() const noexcept -> unsigned {
+  [[nodiscard]] auto Scale() const noexcept -> std::uint32_t {
     return _contents.scale;
   }
   [[nodiscard]] auto Find(std::string_view id) const -> std::optional<PackedAsset>;

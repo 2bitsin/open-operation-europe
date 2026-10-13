@@ -87,15 +87,16 @@ auto VariantEntry(std::string const& of, Asset const& asset, Image const& image)
 }
 
 // The number a glyph's id ends in: its code in its font.
-auto CodeOf(std::string_view const id) -> unsigned {
+auto CodeOf(std::string_view const id) -> std::uint32_t {
   auto const number{ id.substr(id.rfind('/') + 1) };
-  auto       code{ 0U };
+  auto       code{ std::uint32_t{} };
   std::from_chars(number.data(), std::to_address(number.end()), code);
   return code;
 }
 
-auto CellOf(Asset const& glyph) -> std::pair<std::size_t, std::size_t> {
-  return { glyph.width != 0 ? glyph.width : glyph.width_bytes * 8uz, glyph.height };
+// A glyph's cell: the font's cell before scaling.
+auto FontOf(Asset const& glyph) -> Font {
+  return Font{ .cell_width = glyph.width != 0 ? glyph.width : glyph.width_bytes * 8uz, .cell_height = glyph.height, .first_code = CodeOf(glyph.id), .glyphs = {} };
 }
 
 }
@@ -107,8 +108,7 @@ CataloguePack::CataloguePack(Catalogue catalogue) : _catalogue{ std::move(catalo
     if (!asset.animation.empty()) _animations[asset.animation].push_back(asset.id); // the catalogue lists frames in order
     if (asset.role != Role::GLYPH) return;
     auto const name{ asset.id.substr(0, asset.id.find('/')) };
-    auto const [width, height]{ CellOf(asset) };
-    auto& font{ _fonts.try_emplace(name, Font{ .cell_width = width, .cell_height = height, .first_code = CodeOf(asset.id), .glyphs = {} }).first->second };
+    auto&      font{ _fonts.try_emplace(name, FontOf(asset)).first->second };
     font.glyphs.push_back(asset.id);
   });
 }
@@ -162,7 +162,7 @@ auto CataloguePack::FontNames() const -> std::vector<std::string> {
   return _fonts | std::views::keys | std::ranges::to<std::vector>();
 }
 
-auto CataloguePack::Scale() const -> unsigned {
+auto CataloguePack::Scale() const -> std::uint32_t {
   return 1;
 }
 

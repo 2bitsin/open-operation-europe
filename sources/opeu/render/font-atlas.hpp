@@ -20,10 +20,10 @@ namespace opeu::render::detail::font_atlas {
 using GlyphIndex = std::uint32_t;
 
 struct FontMetrics {
-  Size        cell{};       // in game pixels: every glyph is drawn in it, and the pen advances by its width
-  Size        slot{};       // in atlas pixels: the cell times the pack's scale
-  std::size_t count{};      // glyphs
-  unsigned    first_code{}; // the code of glyph 0 (0x20 for the text font)
+  Size          cell{};       // in game pixels: every glyph is drawn in it, and the pen advances by its width
+  Size          slot{};       // in atlas pixels: the cell times the pack's scale
+  std::size_t   count{};      // glyphs
+  std::uint32_t first_code{}; // the code of glyph 0 (0x20 for the text font)
 
   auto operator==(FontMetrics const&) const -> bool = default;
 };

@@ -30,6 +30,7 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <ostream>
 #include <ranges>
 #include <span>
@@ -55,8 +56,14 @@ inline constexpr auto CLASSIC{
 inline constexpr auto PACKS{ std::array{ CLASSIC } };
 
 // gtest prints the parameter by its name.
-inline auto PrintTo(PackUnderTest const& under_test, std::ostream* out) -> void {
-  *out << under_test.name;
+inline auto operator<<(std::ostream& out, PackUnderTest const& under_test) -> std::ostream& {
+  return out << under_test.name;
+}
+
+// The environment variable `name`, when set.
+inline auto Environment(std::string const& name) -> std::optional<std::string> {
+  auto const value{ std::getenv(name.c_str()) };
+  return value != nullptr ? std::optional<std::string>{ value } : std::nullopt;
 }
 
 // The parameter's name in a test's name: Scenes/DrawsEveryCommandInOrder/classic.
@@ -110,7 +117,7 @@ struct Headless {
 
 // The image equals the golden at `path`; OPEU_REGENERATE_GOLDENS=1 writes it instead.
 inline auto ExpectGoldenAt(assets::Texture const& image, std::filesystem::path const& path) -> void {
-  if (std::getenv("OPEU_REGENERATE_GOLDENS") != nullptr) {
+  if (Environment("OPEU_REGENERATE_GOLDENS")) {
     std::filesystem::create_directories(path.parent_path());
     auto const written{ WritePng(image, path) };
     ASSERT_TRUE(written) << written.error().detail;

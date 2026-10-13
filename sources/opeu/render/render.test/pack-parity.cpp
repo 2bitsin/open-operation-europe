@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -22,8 +21,7 @@ using test::OpenHeadless;
 constexpr auto SHIPPED{ std::string_view{ "../opeu/assets.embed" } };
 
 [[nodiscard]] auto PackUnderTest() -> std::filesystem::path {
-  auto const given{ std::getenv("OPEU_CLASSIC_PACK") };
-  return given != nullptr ? std::filesystem::path{ given } : std::filesystem::path{ test::CLASSIC.path };
+  return std::filesystem::path{ test::Environment("OPEU_CLASSIC_PACK").value_or(std::string{ test::CLASSIC.path }) };
 }
 
 // The pack's own image (no palette), then every palette the game shows the asset in.

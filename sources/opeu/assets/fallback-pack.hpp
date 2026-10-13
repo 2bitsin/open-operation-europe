@@ -5,6 +5,7 @@
 
 #include "opeu/assets/pack.hpp"
 
+#include <cstdint>
 #include <memory>
 
 namespace opeu::assets::detail::fallback_pack {
@@ -21,7 +22,7 @@ public:
   [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font> override;
   [[nodiscard]] auto FontNames() const -> std::vector<std::string> override;
   // The preferred pack's: a replaced image is drawn at its own scale, the others at the fallback's.
-  [[nodiscard]] auto Scale() const -> unsigned override;
+  [[nodiscard]] auto Scale() const -> std::uint32_t override;
 
 private:
   // The pack that answers for `id`.

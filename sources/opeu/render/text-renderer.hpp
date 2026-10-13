@@ -8,6 +8,7 @@
 #include "opeu/render/geometry.hpp"
 #include "opeu/render/render-error.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -35,8 +36,8 @@ struct TextRun {
 };
 
 // The glyph numbers of `text` in a font whose glyph 0 has the code `first_code` (FontMetrics::first_code).
-[[nodiscard]] inline auto GlyphsOf(std::string_view const text, unsigned const first_code) -> std::vector<GlyphIndex> {
-  return text | std::views::transform([first_code](char const c) { return static_cast<GlyphIndex>(static_cast<unsigned char>(c) - first_code); }) | std::ranges::to<std::vector>();
+[[nodiscard]] inline auto GlyphsOf(std::string_view const text, std::uint32_t const first_code) -> std::vector<GlyphIndex> {
+  return text | std::views::transform([first_code](char const c) { return static_cast<GlyphIndex>(static_cast<std::uint8_t>(c) - first_code); }) | std::ranges::to<std::vector>();
 }
 
 class TextRenderer {

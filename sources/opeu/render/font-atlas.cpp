@@ -25,11 +25,11 @@ namespace {
   return glyphs;
 }
 
-[[nodiscard]] auto Scaled(Size const size, unsigned const scale) -> Size {
+[[nodiscard]] auto Scaled(Size const size, std::uint32_t const scale) -> Size {
   return Size{ .width = size.width * static_cast<int>(scale), .height = size.height * static_cast<int>(scale) };
 }
 
-[[nodiscard]] auto MetricsOf(assets::Font const& font, unsigned const scale) -> FontMetrics {
+[[nodiscard]] auto MetricsOf(assets::Font const& font, std::uint32_t const scale) -> FontMetrics {
   auto const cell{
     Size{ .width = static_cast<int>(font.cell_width), .height = static_cast<int>(font.cell_height) }
   };

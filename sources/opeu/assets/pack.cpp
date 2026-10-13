@@ -60,7 +60,7 @@ auto Pack::FontNames() const -> std::vector<std::string> {
   return _manifest.FontNames();
 }
 
-auto Pack::Scale() const -> unsigned {
+auto Pack::Scale() const -> std::uint32_t {
   return _manifest.Scale();
 }
 

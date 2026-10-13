@@ -9,6 +9,7 @@
 #include "opeu/assets/pack-files.hpp"
 #include "opeu/assets/texture.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -41,7 +42,7 @@ public:
   [[nodiscard]] virtual auto FontNamed(std::string_view name) const -> std::optional<Font>                       = 0;
   [[nodiscard]] virtual auto FontNames() const -> std::vector<std::string>                                       = 0; // sorted
   // How many image pixels a game pixel is, each way: 1 for the classic pack, 4 for a remaster at 4x.
-  [[nodiscard]] virtual auto Scale() const -> unsigned = 0;
+  [[nodiscard]] virtual auto Scale() const -> std::uint32_t = 0;
 
 protected:
   AssetPack()                                        = default;
@@ -63,7 +64,7 @@ public:
   [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>> override;
   [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font> override;
   [[nodiscard]] auto FontNames() const -> std::vector<std::string> override;
-  [[nodiscard]] auto Scale() const -> unsigned override;
+  [[nodiscard]] auto Scale() const -> std::uint32_t override;
 
 private:
   Pack(std::unique_ptr<PackFiles const> files, Manifest manifest);

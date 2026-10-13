@@ -77,7 +77,7 @@ auto ByName(Json const& object, _Convert convert) -> std::map<std::string, _Valu
 auto ToContents(Json const& pack) -> Manifest::Contents {
   return Manifest::Contents{
     .name       = pack.at("name").get<std::string>(),
-    .scale      = pack.at("scale").get<unsigned>(),
+    .scale      = pack.at("scale").get<std::uint32_t>(),
     .assets     = ToAssets(pack.at("assets")),
     .palettes   = ByName<PaletteColours>(pack.at("palettes"), ToColours),
     .animations = ByName<std::vector<std::string>>(pack.value("animations", Json::object()), ToIds),
