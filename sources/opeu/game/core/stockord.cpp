@@ -4,24 +4,29 @@
 #include "core/stockord.hpp"
 #include "common/events.hpp"
 #include "common/menu.hpp"
+#include "core/context.hpp"
+#include "core/dialogs.hpp"
+#include "core/textout.hpp"
+#include "io/listdlg.hpp"
+#include "map/mapunit.hpp"
+#include "map/objeleg.hpp"
+#include "map/query.hpp"
 #include "types.hpp"
+#include "units/resagg.hpp"
 
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
 
 namespace {
-
-using enum BattleRoutine;
 
 constexpr std::uint16_t STOCK_LIMIT{ 60000 };          // the largest stockpile order
 constexpr std::uint16_t CITY_ENABLED_AT{ 0x4e };       // opeu_stock_city_enabled in this module's code segment
@@ -39,120 +44,108 @@ enum Resource {
 } // namespace
 
 // Lists the side's cities in view_objectives; returns their count.
-uint8_t opeu_stock_cities_fill(Game& game, BattleEvent event) {
+uint8_t opeu_stock_cities_fill(Game& game) {
   auto&   data{ Data(game) };
   uint8_t count{ 0 };
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
-    if (objective.active != 0 && static_cast<std::uint8_t>(Call(game, event, OBJECTIVE_SIDE, near)) == data.current_side) data.view_objectives[count++] = near;
+    if (objective.active != 0 && static_cast<std::uint8_t>(opeu_objective_side(game, near)) == data.current_side) data.view_objectives[count++] = near;
   }
   return count;
 }
 
 // The list's predicate: whether the city on the selected row may take orders.
-uint8_t opeu_stock_city_enabled(Game& game, BattleEvent event) {
+uint8_t opeu_stock_city_enabled(Game& game) {
   auto const& data{ Data(game) };
-  return Call(game, event, OBJECTIVE_ELIGIBLE, data.view_objectives[data.list_row]) != 0;
+  return opeu_objective_eligible(game, data.view_objectives[data.list_row]) != 0;
 }
 
 // The stockpile panel: per resource the garrison's capacity, the city's stock and the ordered stockpile. The
 // capacities service writes the capacities into the routine's reserve.
-void opeu_stock_show(Game& game, BattleEvent event, uint16_t objective) {
+void opeu_stock_show(Game& game, uint16_t objective) {
   ServiceLocals const locals{ 6 };
   auto&               data{ Data(game) };
   auto const          fuel{ locals.At(0) };
   auto const          food{ locals.At(2) };
   auto const          ammo{ locals.At(4) };
   auto const&         city{ Record<Objective>(data, objective) };
-  Call(game, event, OBJECTIVE_CAPACITIES, objective, ammo, fuel, food);
-  Call(game, event, INFO_PANEL_BEGIN);
-  Call(game, event, UI_TEXT, offsetof(DataSegment, stock_header));
-  Call(game, event, CURSOR_PRINT, offsetof(DataSegment, stock_fuel_line), Word(game, fuel), city.resources[FUEL], city.reserves[FUEL]);
-  Call(game, event, CURSOR_PRINT, offsetof(DataSegment, stock_ammo_line), Word(game, ammo), city.resources[AMMUNITION], city.reserves[AMMUNITION]);
-  Call(game, event, CURSOR_PRINT, offsetof(DataSegment, stock_food_line), Word(game, food), city.resources[FOOD], city.reserves[FOOD]);
+  opeu_objective_capacities(game, objective, port_ds_word_ptr(game, ammo), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
+  opeu_info_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), offsetof(DataSegment, stock_header));
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), static_cast<std::uint16_t>(Word(game, fuel)),
+                                                        static_cast<std::uint16_t>(city.resources[FUEL]), static_cast<std::uint16_t>(city.reserves[FUEL]) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), static_cast<std::uint16_t>(Word(game, ammo)),
+                                                        static_cast<std::uint16_t>(city.resources[AMMUNITION]), static_cast<std::uint16_t>(city.reserves[AMMUNITION]) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), static_cast<std::uint16_t>(Word(game, food)),
+                                                        static_cast<std::uint16_t>(city.resources[FOOD]), static_cast<std::uint16_t>(city.reserves[FOOD]) });
 }
 
 // The panel under the city's name.
-void opeu_stock_show_titled(Game& game, BattleEvent event, uint16_t objective) {
-  Call(game, event, ARMY_TITLE, objective);
-  opeu_stock_show(game, event, objective);
+void opeu_stock_show_titled(Game& game, uint16_t objective) {
+  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), objective);
+  opeu_stock_show(game, objective);
 }
 
 // Asks how much of one resource to store (0..60000); MENU_CANCELLED when refused.
-uint16_t opeu_stock_ask(Game& game, BattleEvent event, uint16_t what) {
+uint16_t opeu_stock_ask(Game& game, uint16_t what) {
   ServiceLocals const locals{ 0x64 }; // the question the format service writes
   auto const&         data{ Data(game) };
   auto const          question{ locals.At(0) };
-  Call(game, event, REQUEST_FORMAT, question, data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what);
-  return Call(game, event, CONTROL_CHOOSE, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(question),
+                                                          static_cast<std::uint16_t>(data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question)),
+                                                          static_cast<std::uint16_t>(what) });
+  return opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }
 
 // Edits the city's three stockpile orders: fuel, ammunition, food, then the confirmation.
-void opeu_stock_edit(Game& game, BattleEvent event, uint16_t objective) {
+void opeu_stock_edit(Game& game, uint16_t objective) {
   auto&               data{ Data(game) };
   auto&               city{ Record<Objective>(data, objective) };
   std::uint16_t const before[]{ city.reserves[AMMUNITION], city.reserves[FUEL], city.reserves[FOOD] };
-  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(game, event, what)) != MENU_CANCELLED; } };
-  opeu_stock_show(game, event, objective);
+  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(game, what)) != MENU_CANCELLED; } };
+  opeu_stock_show(game, objective);
   if (ask(FUEL, offsetof(DataSegment, stock_fuel))) {
-    opeu_stock_show_titled(game, event, objective);
+    opeu_stock_show_titled(game, objective);
     if (ask(AMMUNITION, offsetof(DataSegment, stock_ammo))) {
-      opeu_stock_show(game, event, objective);
+      opeu_stock_show(game, objective);
       if (ask(FOOD, offsetof(DataSegment, stock_food))) {
-        opeu_stock_show(game, event, objective);
-        if (Call(game, event, CONFIRM_OK, data.context_record2)) return;
+        opeu_stock_show(game, objective);
+        if (opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_record2)) return;
       }
     }
   }
   for (auto const resource : { AMMUNITION, FUEL, FOOD }) city.reserves[resource] = before[resource];
-  Call(game, event, DAILY_CONTEXT, data.current_side);
+  opeu_daily_context(game, svc_context, static_cast<std::uint8_t>(data.current_side));
 }
 
 // Command action 2: the list of the side's cities until the player leaves it. segment is this module's code segment,
 // for the list's predicate.
-void opeu_turn_action_2(Game& game, BattleEvent event, uint16_t segment) {
+void opeu_turn_action_2(Game& game, uint16_t segment) {
   auto& data{ Data(game) };
   auto& list{ data.city_dialog };
-  list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(game, event) + 1);
+  list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(game) + 1);
   if (list.rows == 1) {
-    Call(game, event, CONTROL_MESSAGE, offsetof(DataSegment, stock_no_cities), data.context_record3);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_no_cities), data.context_record3);
     return;
   }
   list.select = { CITY_ENABLED_AT, segment };
   auto height{ FIRST_HEIGHT };
   for (;;) {
-    Call(game, event, CONTROL_MESSAGE, offsetof(DataSegment, stock_select_city), data.context_record2);
-    Call(game, event, TITLE_PANEL_BEGIN);
-    if (!Call(game, event, LIST_DIALOG, offsetof(DataSegment, city_dialog), 1, height)) break;
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_select_city), data.context_record2);
+    opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+    if (!opeu_list_dialog(game, svc_listdlg, offsetof(DataSegment, city_dialog), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height))) break;
     auto const objective{ data.view_objectives[data.list_row] };
-    Call(game, event, UNIT_FLASH, objective, FLASH_TICKS);
-    opeu_stock_edit(game, event, objective);
+    opeu_unit_flash(game, svc_mapunit, objective, static_cast<uint8_t>(FLASH_TICKS));
+    opeu_stock_edit(game, objective);
     height = LATER_HEIGHT;
   }
 }
 
-// The routines take their register arguments in AX, DX, BX order, so those with more than one register argument get
-// their arguments reordered; the rest forward as they are.
-uint16_t svc_stockord(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
-  static constexpr unsigned char capacities[]{ 1, 2, 0, 3 };   // (objective, a, b, c) -> (a, b, objective, c)
-  static constexpr unsigned char swap[]{ 1, 0 };               // (record, ticks), (text, person)
-  static constexpr unsigned char choose[]{ 1, 2, 0, 3, 4, 5 }; // (text, first, last, ...) -> (first, last, text, ...)
-  static constexpr unsigned char list_dialog[]{ 1, 2, 0 };     // (window, limit, flags) -> (limit, flags, window)
-  switch (static_cast<BattleRoutine>(service)) {
-  case OBJECTIVE_CAPACITIES: return btl_reorder(game, service, args, count, capacities, 4);
-  case UNIT_FLASH:
-  case CONTROL_MESSAGE:      return btl_reorder(game, service, args, count, swap, 2);
-  case CONTROL_CHOOSE:       return btl_reorder(game, service, args, count, choose, 6);
-  case LIST_DIALOG:          return btl_reorder(game, service, args, count, list_dialog, 3);
-  default:                   return port_service(game, service, args, count);
-  }
-}
-
 auto port_routine_opeu_stock_city_enabled(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_stock_city_enabled(game, svc_stockord);
+  return opeu_stock_city_enabled(game);
 }
 
 auto port_routine_opeu_turn_action_2(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_2(game, svc_stockord, STOCK_ORDER_SEGMENT);
+  opeu_turn_action_2(game, STOCK_ORDER_SEGMENT);
   return 0;
 }

@@ -36,7 +36,3 @@ uint16_t opeu_objective_eligible(Game const& game, uint16_t objective) {
   if (!NeighbourInCommunication(game, objective)) return 0;
   return opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, opeu_objective_side(game, objective)));
 }
-
-auto port_routine_opeu_objective_eligible(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_objective_eligible(game, Arg(args, count, 0));
-}

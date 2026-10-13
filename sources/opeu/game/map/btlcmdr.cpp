@@ -2,18 +2,28 @@
 // the destruction of an element.
 #include "map/btlcmdr.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/people.hpp"
+#include "core/recindex.hpp"
+#include "core/strings.hpp"
+#include "core/textout.hpp"
+#include "core/uiprim.hpp"
+#include "map/btlcalc.hpp"
+#include "map/btllist.hpp"
+#include "map/btlmove.hpp"
+#include "map/btlunit.hpp"
+#include "map/hqloss.hpp"
+#include "map/query.hpp"
 #include "types.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -25,222 +35,158 @@ constexpr uint8_t  TEXT_WHITE{ 7 };
 
 // Rows first.. of the screen, each restored from column 0 across widths[row] tiles.
 template <typename Widths>
-void RestoreLeft(Game& game, BattleEvent event, Widths const& widths, uint8_t rows, uint8_t first) {
+void RestoreLeft(Game& game, Widths const& widths, uint8_t rows, uint8_t first) {
   for (uint8_t row{ 0 }; row < rows; ++row)
-    for (uint8_t column{ 0 }; column < widths[row]; ++column) opeu_battle_restore_tile(game, event, column, static_cast<uint8_t>(row + first));
+    for (uint8_t column{ 0 }; column < widths[row]; ++column) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
 }
 
 // The same from the last column leftward.
 template <typename Widths>
-void RestoreRight(Game& game, BattleEvent event, Widths const& widths, uint8_t rows, uint8_t first) {
+void RestoreRight(Game& game, Widths const& widths, uint8_t rows, uint8_t first) {
   for (uint8_t row{ 0 }; row < rows; ++row)
-    for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column) opeu_battle_restore_tile(game, event, column, static_cast<uint8_t>(row + first));
+    for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
 }
 
 // Takes percent of the word away through the original's services.
-void Reduce(Game& game, BattleEvent event, uint16_t& value, uint16_t percent) {
-  auto const amount{ Call(game, event, BattleRoutine::MUL_DIV, value, percent, 100) };
-  Call(game, event, BattleRoutine::SUB_WORD, amount, Near(Data(game), value));
+void Reduce(Game& game, uint16_t& value, uint16_t percent) {
+  auto const amount{ opeu_mul_div(value, percent, 100) };
+  opeu_sub_word(amount, port_ds_word_ptr(game, Near(Data(game), value)));
 }
 } // namespace
 
-void opeu_battle_restore_tile(Game& game, BattleEvent event, uint8_t column, uint8_t row) {
-  Call(game, event, BattleRoutine::SCREEN_COPY, 0x1e, 0, 2, 0x10, column * 2, row << 4);
+void opeu_battle_restore_tile(Game& game, uint8_t column, uint8_t row) {
+  opeu_screen_copy(0x1e, 0, 2, 0x10, column * 2, row << 4);
 }
 
-void opeu_battle_info_clear(Game& game, BattleEvent event) {
-  RestoreLeft(game, event, Data(game).battle_info_widths, 4, 5);
+void opeu_battle_info_clear(Game& game) {
+  RestoreLeft(game, Data(game).battle_info_widths, 4, 5);
 }
 
-void opeu_battle_panel_begin(Game& game, BattleEvent event) {
-  RestoreRight(game, event, Data(game).battle_top_widths, 11, 0);
+void opeu_battle_panel_begin(Game& game) {
+  RestoreRight(game, Data(game).battle_top_widths, 11, 0);
 }
 
-void opeu_battle_panel_side1(Game& game, BattleEvent event) {
-  RestoreLeft(game, event, Data(game).battle_mid_left_widths, 6, 15);
-  opeu_battle_name_clear_left(game, event);
+void opeu_battle_panel_side1(Game& game) {
+  RestoreLeft(game, Data(game).battle_mid_left_widths, 6, 15);
+  opeu_battle_name_clear_left(game);
   Data(game).battle_panel_shown[0] = 0;
 }
 
-void opeu_battle_panel_side0(Game& game, BattleEvent event) {
-  RestoreRight(game, event, Data(game).battle_mid_right_widths, 6, 15);
-  opeu_battle_name_clear_right(game, event);
+void opeu_battle_panel_side0(Game& game) {
+  RestoreRight(game, Data(game).battle_mid_right_widths, 6, 15);
+  opeu_battle_name_clear_right(game);
   Data(game).battle_panel_shown[1] = 0;
 }
 
-void opeu_battle_name_clear_left(Game& game, BattleEvent event) {
+void opeu_battle_name_clear_left(Game& game) {
   auto& data{ Data(game) };
-  RestoreLeft(game, event, data.battle_low_left_widths, 4, 21);
-  Call(game, event, BattleRoutine::ARMY_POSITION, 1, 0x158);
-  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.battle_left_mark));
+  RestoreLeft(game, data.battle_low_left_widths, 4, 21);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(1), static_cast<short>(0x158));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_left_mark));
 }
 
-void opeu_battle_name_clear_right(Game& game, BattleEvent event) {
+void opeu_battle_name_clear_right(Game& game) {
   auto& data{ Data(game) };
-  RestoreRight(game, event, data.battle_low_right_widths, 4, 21);
-  Call(game, event, BattleRoutine::ARMY_POSITION, 0x38, 0x158);
-  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.battle_right_mark));
+  RestoreRight(game, data.battle_low_right_widths, 4, 21);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(0x38), static_cast<short>(0x158));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_right_mark));
 }
 
-void opeu_battle_commander_panel(Game& game, BattleEvent event, uint8_t side, uint16_t refresh) {
+void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ NAME_BYTES };
   auto const          name{ locals.At(0) };
   if (refresh) {
     if (side == 0)
-      opeu_battle_name_clear_right(game, event);
+      opeu_battle_name_clear_right(game);
     else
-      opeu_battle_name_clear_left(game, event);
+      opeu_battle_name_clear_left(game);
   }
   if (data.battle_panel_shown[side]) {
     if (side == 0)
-      opeu_battle_name_clear_left(game, event);
+      opeu_battle_name_clear_left(game);
     else
-      opeu_battle_name_clear_right(game, event);
+      opeu_battle_name_clear_right(game);
     return;
   }
   if (side == 0)
-    opeu_battle_panel_side1(game, event);
+    opeu_battle_panel_side1(game);
   else
-    opeu_battle_panel_side0(game, event);
+    opeu_battle_panel_side0(game);
   // The defender's first unit, or the attacker's: the garrison is led by the side's second staff post.
   auto const defender{ BattleList(data, 1, 0) };
-  auto const ours{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_SIDE, defender)) == side };
+  auto const ours{ static_cast<uint8_t>(opeu_battle_unit_side(game, defender)) == side };
   uint16_t   person;
   if (ours && defender == Near(data, data.battle_garrison)) {
-    person = Call(game, event, BattleRoutine::FIND_SIDE_RECORD, side, 2);
-    Call(game, event, BattleRoutine::STRING_COPY, name, data.role_names[1]);
+    person = opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(2));
+    opeu_string_copy(game, name, data.role_names[1]);
   } else {
     auto const unit{ ours ? defender : BattleList(data, 0, 0) };
-    auto const group{ static_cast<uint8_t>(Call(game, event, BattleRoutine::UNIT_GROUP_INDEX, unit)) };
-    person = Call(game, event, BattleRoutine::FIND_GROUP_RECORD, side, group);
-    Call(game, event, BattleRoutine::REQUEST_FORMAT, name, data.battle_division_format, group + 1);
+    auto const group{ static_cast<uint8_t>(opeu_unit_group_index(unit)) };
+    person = opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group));
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(data.battle_division_format), static_cast<std::uint16_t>(group + 1) });
   }
   auto const x{ side ? 0x3c : 9 };
-  Call(game, event, BattleRoutine::CONTEXT_SAVE);
-  Call(game, event, BattleRoutine::CONTEXT_PORTRAIT, side ? 0x48 : 0, 0x100, person);
-  Call(game, event, BattleRoutine::ARMY_POSITION, x, 0x130);
-  Call(game, event, BattleRoutine::TEXT_COLOR, NAME_COLOR[side ? 1 : 0]);
-  Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_commander_format), name);
-  Call(game, event, BattleRoutine::ARMY_POSITION, x, 0x140);
-  Call(game, event, BattleRoutine::TEXT_COLOR, TEXT_WHITE);
-  Call(game, event, BattleRoutine::UI_TEXT, person);
-  Call(game, event, BattleRoutine::CONTEXT_RESTORE);
+  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), side ? 0x48 : 0, 0x100, person);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(0x130));
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), NAME_COLOR[side ? 1 : 0]);
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_commander_format)), static_cast<std::uint16_t>(name) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(0x140));
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TEXT_WHITE);
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), person);
+  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
   data.battle_panel_shown[side] = 1;
 }
 
 // Shows the side's commander panel with the wait text and its value.
-void opeu_battle_commander_wait(Game& game, BattleEvent event, uint16_t text, uint8_t side, uint8_t value) {
-  opeu_battle_commander_panel(game, event, side, 1);
-  Call(game, event, BattleRoutine::CURSOR_PRINT, Near(Data(game), Data(game).battle_wait_format), text, value + '0');
+void opeu_battle_commander_wait(Game& game, uint16_t text, uint8_t side, uint8_t value) {
+  opeu_battle_commander_panel(game, side, 1);
+  opeu_cursor_print(
+      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).battle_wait_format)), static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(value + '0') });
 }
 
-void opeu_battle_commander_message(Game& game, BattleEvent event, uint16_t text, uint8_t side, uint8_t value) {
-  opeu_battle_commander_panel(game, event, side, 0);
-  Call(game, event, BattleRoutine::CURSOR_PRINT, Near(Data(game), Data(game).battle_prompt_format), text, value + '0');
+void opeu_battle_commander_message(Game& game, uint16_t text, uint8_t side, uint8_t value) {
+  opeu_battle_commander_panel(game, side, 0);
+  opeu_cursor_print(
+      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).battle_prompt_format)), static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(value + '0') });
 }
 
-void opeu_battle_element_destroy(Game& game, BattleEvent event, uint16_t element) {
+void opeu_battle_element_destroy(Game& game, uint16_t element) {
   auto& data{ Data(game) };
-  Call(game, event, BattleRoutine::BATTLE_CLEAR_CELL, PositionOf(data, element).x, PositionOf(data, element).y);
-  auto const unit{ Call(game, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element, 0) };
+  opeu_battle_clear_cell(game, static_cast<uint8_t>(PositionOf(data, element).x), static_cast<uint8_t>(PositionOf(data, element).y));
+  auto const unit{ opeu_battle_element_unit(game, element) };
   bool const selected{ (Record<Element>(data, element).flags & Bits(ElementFlag::SELECTED)) != 0 };
-  Call(game, event, BattleRoutine::BATTLE_REMOVE_UNIT, unit, element);
+  opeu_battle_remove_unit(game, unit, element);
   auto& record{ Record<Unit>(data, unit) };
   if (!(record.flags & Bits(UnitFlag::READY))) {
     record.resources[1] = 0;
     record.resources[0] = 0;
     record.resources[2] = 0;
-    Call(game, event, BattleRoutine::BATTLE_REMOVE_LIST, unit);
+    opeu_battle_remove_list(game, unit);
     return;
   }
   if (selected) {
     data.battle_lost_element = element;
     data.battle_lost_unit    = unit;
-    Call(game, event, BattleRoutine::BATTLE_HQ_LOST);
+    opeu_battle_hq_lost(game);
     data.battle_lost_element = 0;
     data.battle_lost_unit    = 0;
   }
-  if (Call(game, event, BattleRoutine::BATTLE_UNIT_ACTIVE, unit)) return;
+  if (opeu_battle_unit_active(game, unit)) return;
   auto const garrison{ Near(data, data.battle_garrison) };
-  if (static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
+  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
   if (unit == garrison) {
-    auto&   objective{ Record<Objective>(data, Call(game, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
+    auto&   objective{ Record<Objective>(data, opeu_find_objective_at(game, static_cast<uint8_t>(data.battle_x), static_cast<uint8_t>(data.battle_y))) };
     uint8_t gone{ 0 };
     for (auto& other : Elements(data, record))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
-    auto const percent{ Call(game, event, BattleRoutine::RAND_BOUNDED, gone * 10 + 41) };
-    Reduce(game, event, objective.resources[1], percent);
-    Reduce(game, event, objective.resources[2], percent);
-    Reduce(game, event, objective.resources[0], percent);
+    auto const percent{ port_rand_bounded(game, gone * 10 + 41) };
+    Reduce(game, objective.resources[1], percent);
+    Reduce(game, objective.resources[2], percent);
+    Reduce(game, objective.resources[0], percent);
     for (auto& item : objective.items)
       if (item.quantity) item.quantity = 0;
   }
-  Call(game, event, BattleRoutine::BATTLE_REMOVE_LIST, unit);
-}
-
-// The services of the commander modules (this one and map/btlloss): the string copy, the unit removal and the ranged
-// fire take their two pointer words BX before AX.
-uint16_t svc_battle_commander(Game& game, uint32_t address, const uint16_t* args, unsigned count) {
-  static unsigned char const swap[]{ 1, 0 };
-  switch (static_cast<BattleRoutine>(address)) {
-  case BattleRoutine::STRING_COPY:
-  case BattleRoutine::BATTLE_REMOVE_UNIT:
-  case BattleRoutine::BATTLE_RANGED_FIRE: return btl_reorder(game, address, args, count, swap, 2);
-  default:                                return port_service(game, address, args, count);
-  }
-}
-
-uint16_t svc_btlcmdr(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_commander(game, service, args, count);
-}
-
-auto port_routine_opeu_battle_commander_message(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_commander_message(game, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-  return 0;
-}
-
-auto port_routine_opeu_battle_commander_panel(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_commander_panel(game, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1));
-  return 0;
-}
-
-auto port_routine_opeu_battle_commander_wait(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_commander_wait(game, svc_btlcmdr, Arg(args, count, 2), static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-  return 0;
-}
-
-auto port_routine_opeu_battle_info_clear(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_info_clear(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_name_clear_left(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_name_clear_left(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_name_clear_right(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_name_clear_right(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_panel_begin(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_panel_begin(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_panel_side0(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_panel_side0(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_panel_side1(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_panel_side1(game, svc_btlcmdr);
-  return 0;
-}
-
-auto port_routine_opeu_battle_restore_tile(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_restore_tile(game, svc_btlcmdr, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-  return 0;
+  opeu_battle_remove_list(game, unit);
 }

@@ -69,8 +69,3 @@ uint32_t opeu_parse_decimal(Game& game, uint16_t text) {
   for (uint16_t p{ text }; Byte(game, p); p++) value = value * 10 + (Byte(game, p) - '0');
   return value;
 }
-
-auto port_routine_opeu_read_far_bytes(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_read_far_bytes(game, port_far(Arg(args, count, 3), 0), Arg(args, count, 2), Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
-}

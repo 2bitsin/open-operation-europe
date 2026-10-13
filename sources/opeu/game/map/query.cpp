@@ -33,15 +33,3 @@ uint16_t opeu_find_objective_at(Game const& game, uint8_t x, uint8_t y) {
 uint8_t opeu_objective_side(Game const& game, uint16_t objective) {
   return (Record<Objective>(Data(game), objective).flags & Bits(ObjectiveFlag::SIDE_1)) != 0;
 }
-
-auto port_routine_opeu_find_objective_at(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_find_objective_at(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_find_unit_at(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_find_unit_at(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_objective_side(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_objective_side(game, Arg(args, count, 0));
-}

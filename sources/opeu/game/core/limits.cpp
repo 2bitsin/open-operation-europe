@@ -23,14 +23,3 @@ uint16_t opeu_abs16_bits(uint16_t value) {
 uint16_t opeu_negative_to_minus_one(uint16_t value) {
   return (int16_t)value < 0 ? 0xffff : value;
 }
-
-// The routines other modules reach through the link table.
-auto port_routine_opeu_max16(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_max16(Arg(args, count, 0), Arg(args, count, 1));
-}
-
-auto port_routine_opeu_min16(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_min16(Arg(args, count, 0), Arg(args, count, 1));
-}

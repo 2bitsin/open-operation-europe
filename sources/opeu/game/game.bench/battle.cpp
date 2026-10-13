@@ -3,7 +3,6 @@
 // element ratings, the element at every cell, and the exit cells of the player's battle orders. Each routine is called
 // directly with the service it gets in the game, the path routines on a battle stack frame as the game gives them.
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "map/btlcalc.hpp"
@@ -105,7 +104,7 @@ public:
 
   // Frames the cells the element can leave the battle from; returns whether there is one.
   auto MarkExits() -> unsigned {
-    return opeu_battle_mark_exits(_game, svc_btlreach, Element());
+    return opeu_battle_mark_exits(_game, Element());
   }
 
 private:
@@ -149,13 +148,13 @@ private:
 
   // Fills the path costs from one cell toward another.
   auto Flood(Cell const from, Cell const to, int const mode) -> unsigned {
-    return opeu_battle_path_flood(_game, svc_btlpath, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode));
+    return opeu_battle_path_flood(_game, Byte(from.x), Byte(from.y), Byte(to.x), Byte(to.y), Element(), Byte(mode));
   }
 
   // Moves the element one step down the flooded costs; x_at addresses its position's x byte, the y byte follows.
   auto Step(std::integral auto const x_at) -> unsigned {
     auto const y_at{ static_cast<decltype(x_at)>(x_at + 1) };
-    return opeu_battle_path_step(_game, svc_btlpath, x_at, y_at);
+    return opeu_battle_path_step(_game, x_at, y_at);
   }
 
   [[nodiscard]] static constexpr auto Byte(std::integral auto const value) -> std::uint8_t {

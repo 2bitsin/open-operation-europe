@@ -6,7 +6,6 @@
 #include "map/btlretr.hpp"
 #include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
@@ -14,8 +13,10 @@
 #include "common/memory.hpp"
 #include "core/numeric.hpp"
 #include "core/random.hpp"
+#include "map/btlhit.hpp"
 #include "map/btllist.hpp"
 #include "map/btlmove.hpp"
+#include "map/btlturn.hpp"
 #include "map/cellflag.hpp"
 #include "map/query.hpp"
 #include "map/stepmap.hpp"
@@ -24,7 +25,6 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -41,17 +41,17 @@ constexpr uint8_t MOVE_CLASSES{ 5 }; // move_costs columns
   return static_cast<uint8_t>(static_cast<int16_t>(static_cast<uint16_t>(unit - UNITS_AT)) / static_cast<int16_t>(sizeof(Unit)) & 7);
 }
 
-[[nodiscard]] auto ComputerTurn(Game& game, BattleEvent event) -> uint8_t {
-  return static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_COMPUTER_TURN));
+[[nodiscard]] auto ComputerTurn(Game& game) -> uint8_t {
+  return static_cast<uint8_t>(opeu_battle_computer_turn(game));
 }
 
 } // namespace
 
-uint16_t opeu_battle_retreat_cell_ok(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t unit) {
+uint16_t opeu_battle_retreat_cell_ok(Game& game, uint8_t x, uint8_t y, uint16_t unit) {
   auto& data{ Data(game) };
   if (opeu_find_unit_at(game, x, y)) return 0;
   if (auto const objective{ opeu_find_objective_at(game, x, y) }) {
-    auto const side{ opeu_battle_unit_side(game, event, BattleList(data, 1, 0)) };
+    auto const side{ opeu_battle_unit_side(game, BattleList(data, 1, 0)) };
     if (side != ((Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::SIDE_1)) != 0)) return 0;
   }
   auto const terrain{ MapCellAt(data, x, y) & Bits(MapCell::TERRAIN_MASK) };
@@ -59,12 +59,12 @@ uint16_t opeu_battle_retreat_cell_ok(Game& game, BattleEvent event, uint8_t x, u
     auto const move_class{ data.battle_retreat_class[data.element_types[element.type].category] };
     if (data.move_costs[terrain * MOVE_CLASSES + move_class] == IMPASSABLE_COST) return 0;
   }
-  if (opeu_cell_marked(game, x, y, opeu_battle_unit_side(game, event, unit))) return 0;
+  if (opeu_cell_marked(game, x, y, opeu_battle_unit_side(game, unit))) return 0;
   return 1;
 }
 
 // A random element of the unit takes the bombard path of the attack resolution, and the unit's side marks the cell.
-void opeu_battle_retreat_to(Game& game, BattleEvent event, uint16_t unit, uint8_t x, uint8_t y) {
+void opeu_battle_retreat_to(Game& game, uint16_t unit, uint8_t x, uint8_t y) {
   auto&    data{ Data(game) };
   auto&    record{ Record<Unit>(data, unit) };
   uint16_t count{ 0 };
@@ -72,53 +72,53 @@ void opeu_battle_retreat_to(Game& game, BattleEvent event, uint16_t unit, uint8_
   auto const chosen{ opeu_rand_bounded(count) };
   auto       it{ Elements(data, record).begin() };
   for (uint16_t i{ 0 }; chosen > i; ++i) ++it;
-  Call(game, event, BattleRoutine::BATTLE_RESOLVE_ATTACK, it.Near(), 0);
-  MapCellAt(data, x, y) |= opeu_battle_unit_side(game, event, unit) ? Bits(MapCell::MARK_1) : Bits(MapCell::MARK_0);
+  opeu_battle_resolve_attack(game, 0, it.Near());
+  MapCellAt(data, x, y) |= opeu_battle_unit_side(game, unit) ? Bits(MapCell::MARK_1) : Bits(MapCell::MARK_0);
 }
 
 // side: the unit's battle list (unused).
-void opeu_battle_unit_retreat(Game& game, BattleEvent event, uint16_t unit, uint8_t) {
+void opeu_battle_unit_retreat(Game& game, uint16_t unit, uint8_t) {
   auto& data{ Data(game) };
-  if (UnitDirection(game, event, unit) == AT_BATTLE && unit != GARRISON_AT) {
-    auto const side{ opeu_battle_unit_side(game, event, unit) };
+  if (UnitDirection(game, unit) == AT_BATTLE && unit != GARRISON_AT) {
+    auto const side{ opeu_battle_unit_side(game, unit) };
     for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
       uint8_t x{ data.battle_x };
       uint8_t y{ data.battle_y };
       if (!opeu_grid_step(&x, &y, direction)) continue;
-      if (!opeu_battle_retreat_cell_ok(game, event, x, y, unit)) continue;
+      if (!opeu_battle_retreat_cell_ok(game, x, y, unit)) continue;
       uint8_t to_x{ data.battle_x };
       uint8_t to_y{ data.battle_y };
       opeu_grid_step(&to_x, &to_y, direction);
       if (opeu_cell_marked(game, to_x, to_y, 1)) {
         if (opeu_cell_marked(game, to_x, to_y, side)) continue;
-        opeu_battle_retreat_to(game, event, unit, to_x, to_y);
+        opeu_battle_retreat_to(game, unit, to_x, to_y);
         return;
       }
       data.battle_direction = direction;
     }
-    if (data.battle_direction != NO_DIRECTION) opeu_battle_remove_list(game, event, unit);
+    if (data.battle_direction != NO_DIRECTION) opeu_battle_remove_list(game, unit);
   }
-  if (UnitDirection(game, event, unit) != AT_BATTLE) opeu_battle_remove_list(game, event, unit);
+  if (UnitDirection(game, unit) != AT_BATTLE) opeu_battle_remove_list(game, unit);
   if (unit == GARRISON_AT) {
     auto&      objective{ Record<Objective>(data, opeu_find_objective_at(game, data.battle_x, data.battle_y)) };
-    auto const elements{ opeu_battle_element_count(game, event, unit) };
+    auto const elements{ opeu_battle_element_count(game, unit) };
     auto const percent{ opeu_rand_bounded(static_cast<uint16_t>(elements * 10u + 0x29)) };
     AbandonObjectiveStores(objective, percent);
-    opeu_battle_remove_list(game, event, unit);
+    opeu_battle_remove_list(game, unit);
   }
 }
 
 // Units out of ammunition may retreat; a side outnumbered more than five to one may break; supply and repair units
 // retreat more readily the more retreat cells they have.
-void opeu_battle_morale_check(Game& game, BattleEvent event) {
+void opeu_battle_morale_check(Game& game) {
   auto&   data{ Data(game) };
   uint8_t strength[SIDE_COUNT];
   for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list) {
     strength[list] = 0;
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (auto const unit{ BattleList(data, list, slot) }) {
-        if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30) opeu_battle_unit_retreat(game, event, unit, list);
-        strength[list] = static_cast<uint8_t>(strength[list] + opeu_battle_element_count(game, event, unit));
+        if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30) opeu_battle_unit_retreat(game, unit, list);
+        strength[list] = static_cast<uint8_t>(strength[list] + opeu_battle_element_count(game, unit));
       }
     if (!strength[list]) return;
   }
@@ -138,8 +138,8 @@ void opeu_battle_morale_check(Game& game, BattleEvent event) {
   if (odds > 5)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (auto const unit{ BattleList(data, weaker, slot) }; unit && unit != GARRISON_AT && !support(unit) && opeu_rand_bounded(100) < 20) {
-        opeu_battle_unit_retreat(game, event, unit, weaker);
-        if (ComputerTurn(game, event)) return;
+        opeu_battle_unit_retreat(game, unit, weaker);
+        if (ComputerTurn(game)) return;
       }
   for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
@@ -149,20 +149,11 @@ void opeu_battle_morale_check(Game& game, BattleEvent event) {
       for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
         uint8_t x{ data.battle_x };
         uint8_t y{ data.battle_y };
-        if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(game, event, x, y, unit)) chance = static_cast<uint8_t>(chance + 10);
+        if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(game, x, y, unit)) chance = static_cast<uint8_t>(chance + 10);
       }
       if (opeu_rand_bounded(100) < chance) {
-        opeu_battle_unit_retreat(game, event, unit, list);
-        if (ComputerTurn(game, event)) return;
+        opeu_battle_unit_retreat(game, unit, list);
+        if (ComputerTurn(game)) return;
       }
     }
-}
-
-uint16_t svc_btlretr(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
-}
-
-auto port_routine_opeu_battle_morale_check(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_morale_check(game, svc_btlretr);
-  return 0;
 }

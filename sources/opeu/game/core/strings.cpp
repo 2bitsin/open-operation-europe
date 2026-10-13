@@ -40,7 +40,3 @@ uint8_t opeu_ascii_lower(uint8_t code) {
   if (code >= 'A' && code <= 'Z') return code + 32;
   return code;
 }
-
-auto port_routine_opeu_string_copy(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_string_copy(game, Arg(args, count, 1), Arg(args, count, 0));
-}

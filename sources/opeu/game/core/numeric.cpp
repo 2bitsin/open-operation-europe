@@ -44,18 +44,3 @@ uint16_t opeu_sub_word(uint16_t amount, uint16_t* value) {
   *value -= opeu_min16(*value, amount);
   return *value;
 }
-
-auto port_routine_opeu_mul_div(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_mul_div(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
-}
-
-auto port_routine_opeu_sub_byte(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_sub_byte(Arg(args, count, 0), game.State().Bytes(Arg(args, count, 1), 1).data());
-}
-
-auto port_routine_opeu_sub_word(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_sub_word(Arg(args, count, 0), port_ds_word_ptr(game, Arg(args, count, 1)));
-}

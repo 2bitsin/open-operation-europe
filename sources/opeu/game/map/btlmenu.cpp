@@ -1,15 +1,21 @@
 // The player's battle orders menu: where its buttons go, and the dispatch of the order chosen.
 #include "map/btlmenu.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
+#include "core/limits.hpp"
+#include "core/textout.hpp"
+#include "io/keyboard.hpp"
+#include "io/mouse.hpp"
+#include "map/btlcalc.hpp"
+#include "map/btlcmdr.hpp"
 #include "map/btlcmds.hpp"
 #include "map/btlexec.hpp"
 #include "map/btllist.hpp"
+#include "map/btlpanel.hpp"
 #include "map/btlreach.hpp"
 #include "map/btlunit.hpp"
 #include "types.hpp"
@@ -45,25 +51,25 @@ enum class Choice : uint16_t {
   WITHDRAW = 6,
 };
 
-void Panels(Game& game, BattleEvent event) {
-  Call(game, event, BattleRoutine::BATTLE_PANEL_BEGIN);
-  Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE0);
-  Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE1);
+void Panels(Game& game) {
+  opeu_battle_panel_begin(game);
+  opeu_battle_panel_side0(game);
+  opeu_battle_panel_side1(game);
 }
 } // namespace
 
 // With the mouse the buttons stack at the pointer; with the keyboard they take their places on the active side.
-void opeu_battle_menu_place(Game& game, BattleEvent event) {
+void opeu_battle_menu_place(Game& game) {
   auto& data{ Data(game) };
   if (data.input_mode) {
     ServiceLocals const locals{ MOUSE_RESERVE };
     auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
     auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-    Call(game, event, BattleRoutine::MOUSE_POSITION, mouse_y_at, mouse_x_at);
+    opeu_mouse_position(game, svc_mouse, mouse_x_at, mouse_y_at);
     auto y{ static_cast<uint16_t>(Word(game, mouse_y_at) + POINTER_DY) };
     auto x{ static_cast<uint16_t>(Word(game, mouse_x_at) + POINTER_DX) };
-    x = Call(game, event, BattleRoutine::MAX16, Call(game, event, BattleRoutine::MIN16, x >> 3, LAST_COLUMN), 1);
-    y = Call(game, event, BattleRoutine::MIN16, y, LAST_ROW);
+    x = opeu_max16(opeu_min16(x >> 3, LAST_COLUMN), 1);
+    y = opeu_min16(y, LAST_ROW);
     for (unsigned i{ 0 }; i < BUTTONS; ++i) {
       data.battle_menu_items[i].x = x;
       data.battle_menu_items[i].y = static_cast<uint16_t>(BUTTON_HEIGHT * i + y);
@@ -78,20 +84,20 @@ void opeu_battle_menu_place(Game& game, BattleEvent event) {
 
 // The cursor starts on the element's goal (its target's cell when engaged); a withdrawal marks the exits first. After
 // the order, a unit not next to the battle's cell takes the exit direction of its first withdrawing element.
-uint16_t opeu_battle_orders_menu(Game& game, BattleEvent event, uint16_t element) {
+uint16_t opeu_battle_orders_menu(Game& game, uint16_t element) {
   auto&      data{ Data(game) };
-  auto const unit{ opeu_battle_element_unit(game, event, element) };
-  Call(game, event, BattleRoutine::BATTLE_ELEMENT_PANEL, 0, element);
+  auto const unit{ opeu_battle_element_unit(game, element) };
+  opeu_battle_element_panel(game, element, 0);
   for (;;) {
-    opeu_battle_menu_place(game, event);
-    Call(game, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
-    auto choice{ Call(game, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1, Near(data, data.battle_menu_items)) };
+    opeu_battle_menu_place(game);
+    opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
+    auto choice{ opeu_prompt_value(game, svc_keyboard, Near(data, data.battle_msg_orders), 1, BUTTONS, static_cast<std::int16_t>(1), Near(data, data.battle_menu_items)) };
     if (choice == MENU_CANCELLED) {
-      Panels(game, event);
-      Call(game, event, BattleRoutine::TEXT_PAPER_SET, 0);
+      Panels(game);
+      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
       return 0;
     }
-    Call(game, event, BattleRoutine::TEXT_PAPER_SET, 0);
+    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
     if (choice == std::to_underlying(Choice::REST)) choice = std::to_underlying(Choice::WITHDRAW);
     auto const withdraw{ choice == std::to_underlying(Choice::WITHDRAW) };
     switch (static_cast<Choice>(choice)) {
@@ -100,7 +106,7 @@ uint16_t opeu_battle_orders_menu(Game& game, BattleEvent event, uint16_t element
     case Choice::BLITZ:
     case Choice::WITHDRAW: {
       auto const& position{ PositionOf(data, element) };
-      if (opeu_battle_engaged(game, event, element)) {
+      if (opeu_battle_engaged(game, element)) {
         auto const& target{ PositionOf(data, position.target) };
         data.battle_cursor_x = target.x;
         data.battle_cursor_y = target.y;
@@ -109,36 +115,31 @@ uint16_t opeu_battle_orders_menu(Game& game, BattleEvent event, uint16_t element
         data.battle_cursor_y = position.goal_y;
       }
       if (withdraw) {
-        if (opeu_battle_lone_withdrawal(game, event, element)) data.battle_exit_direction[0] = NO_SIDE;
-        if (!opeu_battle_mark_exits(game, event, element)) {
-          Call(game, event, BattleRoutine::BATTLE_COMMANDER_MESSAGE, data.battle_active_side, 1, Near(data, data.battle_msg_cannot_withdraw));
+        if (opeu_battle_lone_withdrawal(game, element)) data.battle_exit_direction[0] = NO_SIDE;
+        if (!opeu_battle_mark_exits(game, element)) {
+          opeu_battle_commander_message(game, Near(data, data.battle_msg_cannot_withdraw), static_cast<uint8_t>(data.battle_active_side), static_cast<uint8_t>(1));
           continue;
         }
       }
-      if (!opeu_battle_order_command(game, event, element, static_cast<uint8_t>(choice - 1))) data.battle_cursor_x = data.battle_cursor_y = 0;
-      if (withdraw) opeu_battle_unmark_exits(game, event, element);
+      if (!opeu_battle_order_command(game, element, static_cast<uint8_t>(choice - 1))) data.battle_cursor_x = data.battle_cursor_y = 0;
+      if (withdraw) opeu_battle_unmark_exits(game, element);
       break;
     }
-    case Choice::DEFEND: opeu_battle_order_defend(game, event, element); break;
-    case Choice::REST:   opeu_battle_order_rest(game, event, element); break;
+    case Choice::DEFEND: opeu_battle_order_defend(game, element); break;
+    case Choice::REST:   opeu_battle_order_rest(game, element); break;
     }
     break;
   }
-  if (static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) {
+  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) {
     auto exit{ NO_SIDE };
     for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
-      if (opeu_battle_state(game, event, it.Near()) == std::to_underlying(BattleState::WITHDRAW)) {
+      if (opeu_battle_state(game, it.Near()) == std::to_underlying(BattleState::WITHDRAW)) {
         auto const& position{ PositionOf(data, it.Near()) };
         exit = static_cast<uint8_t>((BattleCellAt(data, position.goal_x, position.goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1);
         break;
       }
     data.battle_exit_direction[0] = exit;
   }
-  Panels(game, event);
+  Panels(game);
   return 0;
-}
-
-// The services of this module: the player orders group's (map/btlcmds).
-uint16_t svc_btlmenu(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_orders(game, service, args, count);
 }

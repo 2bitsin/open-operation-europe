@@ -73,18 +73,3 @@ uint16_t opeu_hour_is_dusk(uint8_t code) {
 uint16_t opeu_hour_is_night(uint8_t code) {
   return code >= 20 || code <= 4;
 }
-
-auto port_routine_opeu_category_6(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_category_6((uint8_t)Arg(args, count, 0));
-}
-
-auto port_routine_opeu_category_7(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_category_7((uint8_t)Arg(args, count, 0));
-}
-
-auto port_routine_opeu_hour_is_night(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_hour_is_night((uint8_t)Arg(args, count, 0));
-}

@@ -56,8 +56,3 @@ auto svc_waitkey(Game& game, std::uint16_t kind, std::uint16_t const* args, std:
   }
   return 0;
 }
-
-auto port_routine_opeu_delay_units(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0)));
-  return 0;
-}

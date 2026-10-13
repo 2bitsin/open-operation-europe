@@ -54,13 +54,3 @@ uint16_t opeu_unit_group(uint16_t unit) {
 uint8_t opeu_element_side(uint16_t element) {
   return RecordIndex<Element>(element, ELEMENTS_AT) / SIDE_ELEMENTS;
 }
-
-auto port_routine_opeu_unit_group_index(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_unit_group_index(Arg(args, count, 0));
-}
-
-auto port_routine_opeu_unit_side(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_unit_side(Arg(args, count, 0));
-}

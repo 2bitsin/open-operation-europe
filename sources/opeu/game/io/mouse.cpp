@@ -138,36 +138,3 @@ auto svc_mouse(Game&, std::uint16_t call, std::uint16_t* words) -> std::uint16_t
   }
   return 0;
 }
-
-auto port_routine_opeu_input_reset(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_input_reset(game, svc_mouse);
-  return 0;
-}
-
-auto port_routine_opeu_mouse_buttons(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_mouse_buttons(game, svc_mouse);
-}
-
-auto port_routine_opeu_mouse_hide(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mouse_hide(game, svc_mouse);
-  return 0;
-}
-
-auto port_routine_opeu_mouse_left(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse));
-}
-
-// The game passes y, then x.
-auto port_routine_opeu_mouse_position(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_mouse_position(game, svc_mouse, Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_mouse_right(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse));
-}
-
-auto port_routine_opeu_mouse_show(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_mouse_show(game, svc_mouse);
-  return 0;
-}

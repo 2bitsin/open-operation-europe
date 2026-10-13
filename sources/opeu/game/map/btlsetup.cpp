@@ -5,22 +5,37 @@
 // opeu_battle_run_rounds runs up to ten rounds.
 #include "map/btlsetup.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "core/context.hpp"
+#include "core/dialogs.hpp"
+#include "core/people.hpp"
+#include "core/recindex.hpp"
+#include "core/textout.hpp"
+#include "core/uiprim.hpp"
+#include "io/sound.hpp"
+#include "map/btlaitrn.hpp"
+#include "map/btlcalc.hpp"
+#include "map/btlcmdr.hpp"
 #include "map/btllist.hpp"
+#include "map/btlmap.hpp"
+#include "map/btlready.hpp"
 #include "map/btlround.hpp"
+#include "map/btlturn.hpp"
 #include "map/btlunit.hpp"
+#include "map/dplside.hpp"
+#include "map/query.hpp"
 #include "types.hpp"
+#include "units/value.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
@@ -35,68 +50,68 @@ constexpr uint16_t BATTLE_MUSIC_COMPUTER{ 8 };
 constexpr uint8_t  POSITION_BYTES{ sizeof(BattlePosition) };
 
 // A general's health drops by 3 at night, else by 2.
-void Tire(Game& game, BattleEvent event, uint16_t person) {
+void Tire(Game& game, uint16_t person) {
   auto&      data{ Data(game) };
-  auto const night{ Call(game, event, BattleRoutine::HOUR_IS_NIGHT, data.hour) };
-  Call(game, event, BattleRoutine::SUB_BYTE, night ? 3 : 2, Near(data, Record<Person>(data, person).health));
+  auto const night{ opeu_hour_is_night(static_cast<uint8_t>(data.hour)) };
+  opeu_sub_byte(night ? 3 : 2, game.State().Bytes(Near(data, Record<Person>(data, person).health), 1).data());
 }
 } // namespace
 
-uint16_t opeu_battle_side_needs_input(Game& game, BattleEvent event, uint8_t side) {
+uint16_t opeu_battle_side_needs_input(Game& game, uint8_t side) {
   auto& data{ Data(game) };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, side, slot) }; unit && !Call(game, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) return 1;
+    if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_controlled(game, svc_btlcalc, unit)) return 1;
   return 0;
 }
 
-void opeu_battle_run_rounds(Game& game, BattleEvent event) {
+void opeu_battle_run_rounds(Game& game) {
   auto& data{ Data(game) };
   for (data.battle_level_limit = 0; data.battle_level_limit < ROUND_COUNT; ++data.battle_level_limit) {
-    if (static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_COMPUTER_TURN))) {
-      opeu_battle_report_outcome(game, event);
+    if (static_cast<uint8_t>(opeu_battle_computer_turn(game))) {
+      opeu_battle_report_outcome(game);
       return;
     }
-    for (uint8_t line{ 1 }; line <= 4; ++line) Call(game, event, BattleRoutine::BATTLE_RESTORE_TILE, line, 9);
-    Call(game, event, BattleRoutine::ARMY_POSITION, BANNER_X, BANNER_Y);
-    Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_round_format), data.battle_level_limit + 1);
-    if (opeu_battle_side_needs_input(game, event, 0) || opeu_battle_side_needs_input(game, event, 1)) Call(game, event, BattleRoutine::BATTLE_SELECT_SERVICE);
-    if (data.battle_level_limit) Call(game, event, BattleRoutine::BATTLE_ANNOUNCE_READY);
-    if (!Call(game, event, BattleRoutine::BATTLE_TURN_LOOP)) {
-      opeu_battle_report_outcome(game, event);
+    for (uint8_t line{ 1 }; line <= 4; ++line) opeu_battle_restore_tile(game, static_cast<uint8_t>(line), static_cast<uint8_t>(9));
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(BANNER_X), static_cast<short>(BANNER_Y));
+    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_round_format)), static_cast<std::uint16_t>(data.battle_level_limit + 1) });
+    if (opeu_battle_side_needs_input(game, 0) || opeu_battle_side_needs_input(game, 1)) opeu_battle_select_service(game);
+    if (data.battle_level_limit) opeu_battle_announce_ready(game);
+    if (!opeu_battle_turn_loop(game)) {
+      opeu_battle_report_outcome(game);
       return;
     }
   }
-  opeu_battle_report_stalemate(game, event);
+  opeu_battle_report_stalemate(game);
 }
 
-void opeu_battle_tire_leaders(Game& game, BattleEvent event) {
+void opeu_battle_tire_leaders(Game& game) {
   auto&                            data{ Data(game) };
   std::array<bool, GROUP_PRESENCE> present{};
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
       if (auto const unit{ BattleList(data, side, slot) }; unit && unit != GARRISON_AT) {
-        unsigned at{ opeu_battle_unit_side(game, event, unit) * GROUPS_PER_SIDE };
-        at += static_cast<uint8_t>(Call(game, event, BattleRoutine::UNIT_GROUP_INDEX, unit));
+        unsigned at{ opeu_battle_unit_side(game, unit) * GROUPS_PER_SIDE };
+        at += static_cast<uint8_t>(opeu_unit_group_index(unit));
         if (at < GROUP_PRESENCE) present[at] = true;
       }
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
     if (!data.battle_command[side]) {
       for (uint8_t group{ 0 }; group < GROUPS_PER_SIDE; ++group)
-        if (present[side * GROUPS_PER_SIDE + group]) Tire(game, event, Call(game, event, BattleRoutine::FIND_GROUP_RECORD, side, group));
+        if (present[side * GROUPS_PER_SIDE + group]) Tire(game, opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group)));
     } else {
-      Tire(game, event, Call(game, event, BattleRoutine::FIND_SIDE_RECORD, side, 1));
+      Tire(game, opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(1)));
     }
   }
 }
 
-void opeu_battle_start_music(Game& game, BattleEvent event) {
+void opeu_battle_start_music(Game& game) {
   auto&      data{ Data(game) };
-  auto const side{ opeu_battle_unit_side(game, event, data.battle_lists[0]) };
-  Call(game, event, BattleRoutine::SET_TURN_CONTEXT, data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER);
+  auto const side{ opeu_battle_unit_side(game, data.battle_lists[0]) };
+  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(data.side_status[side] == SIDE_PLAYED ? BATTLE_MUSIC_PLAYER : BATTLE_MUSIC_COMPUTER));
 }
 
 // side: nonzero for side 1. index: the element's position record.
-void opeu_battle_reset_element(Game& game, BattleEvent event, uint16_t element, uint8_t side, uint8_t index) {
+void opeu_battle_reset_element(Game& game, uint16_t element, uint8_t side, uint8_t index) {
   auto& data{ Data(game) };
   auto& record{ Record<Element>(data, element) };
   if (!side)
@@ -113,10 +128,10 @@ void opeu_battle_reset_element(Game& game, BattleEvent event, uint16_t element, 
   position.state     = std::to_underlying(BattleState::DEFEND);
   position.goal_x    = 0;
   position.goal_y    = 0;
-  opeu_battle_set_order(game, event, element, 0);
+  opeu_battle_set_order(game, element, 0);
 }
 
-void opeu_battle_reset_elements(Game& game, BattleEvent event) {
+void opeu_battle_reset_elements(Game& game) {
   auto&   data{ Data(game) };
   uint8_t index{ 0 };
   for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
@@ -125,33 +140,24 @@ void opeu_battle_reset_elements(Game& game, BattleEvent event) {
       if (!unit) continue;
       uint8_t element_side;
       if (unit == GARRISON_AT) {
-        auto const objective{ Call(game, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y) };
+        auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(data.battle_x), static_cast<uint8_t>(data.battle_y)) };
         element_side = (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::SIDE_1)) != 0;
       } else {
-        element_side = static_cast<uint8_t>(Call(game, event, BattleRoutine::UNIT_SIDE, unit));
+        element_side = static_cast<uint8_t>(opeu_unit_side(unit));
       }
-      for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) opeu_battle_reset_element(game, event, it.Near(), element_side, index++);
+      for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) opeu_battle_reset_element(game, it.Near(), element_side, index++);
     }
 }
 
-void opeu_notice_one(Game& game, BattleEvent event) {
-  opeu_battle_reset_elements(game, event);
-  opeu_battle_start_music(game, event);
-  Call(game, event, BattleRoutine::BATTLE_MAP_SETUP);
-  Call(game, event, BattleRoutine::DEPLOY_BATTLE);
-  opeu_battle_tire_leaders(game, event);
-  opeu_battle_run_rounds(game, event);
-  Call(game, event, BattleRoutine::VGA_CLEAR);
-  Call(game, event, BattleRoutine::PALETTE_FOR_HOUR);
-  Call(game, event, BattleRoutine::SCREEN_RESET);
-  Call(game, event, BattleRoutine::DAILY_CONTEXT, Data(game).current_side);
-}
-
-uint16_t svc_btlsetup(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
-}
-
-auto port_routine_opeu_battle_tire_leaders(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_tire_leaders(game, svc_btlsetup);
-  return 0;
+void opeu_notice_one(Game& game) {
+  opeu_battle_reset_elements(game);
+  opeu_battle_start_music(game);
+  opeu_battle_map_setup(game, svc_btlmap);
+  opeu_deploy_battle(game);
+  opeu_battle_tire_leaders(game);
+  opeu_battle_run_rounds(game);
+  opeu_vga_clear();
+  opeu_palette_for_hour(game, static_cast<const UiHost*>(port_uiprim_host()));
+  opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_daily_context(game, svc_context, static_cast<std::uint8_t>(Data(game).current_side));
 }

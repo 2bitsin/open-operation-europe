@@ -230,27 +230,7 @@ auto svc_sound(Game&, std::uint16_t call, std::uint16_t* words) -> std::uint16_t
   return 0;
 }
 
-auto port_routine_opeu_effect_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_effect_finish(game, svc_sound);
-  return 0;
-}
-
-auto port_routine_opeu_finish_side_initialization(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
-  return 0;
-}
-
-auto port_routine_opeu_music_command7(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_music_command7(game, svc_sound);
-  return 0;
-}
-
 auto port_routine_opeu_music_stop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_music_stop(game, svc_sound);
-  return 0;
-}
-
-auto port_routine_opeu_set_turn_context(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0)));
   return 0;
 }

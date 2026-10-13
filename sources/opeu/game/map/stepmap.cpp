@@ -18,8 +18,3 @@ uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
   *y = next_y;
   return 1;
 }
-
-auto port_routine_opeu_grid_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  (void)game;
-  return opeu_grid_step(game.State().Bytes(Arg(args, count, 2), 1).data(), game.State().Bytes(Arg(args, count, 0), 1).data(), static_cast<uint8_t>(Arg(args, count, 1)));
-}

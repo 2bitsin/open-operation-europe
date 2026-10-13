@@ -429,28 +429,3 @@ uint32_t svc_uiprim(Game& game, uint8_t* memory, uint16_t id, const uint16_t* ar
   }
   return 0;
 }
-
-auto port_routine_opeu_context_frame(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_context_frame(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
-  return 0;
-}
-
-auto port_routine_opeu_context_portrait(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2));
-  return 0;
-}
-
-auto port_routine_opeu_face_draw(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_face_draw(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3));
-  return 0;
-}
-
-auto port_routine_opeu_palette_for_hour(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_palette_for_hour(game, (const UiHost*)port_uiprim_host());
-  return 0;
-}
-
-auto port_routine_opeu_ui_outline(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_ui_outline(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-  return 0;
-}

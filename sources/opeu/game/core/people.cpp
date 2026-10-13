@@ -32,11 +32,3 @@ uint16_t opeu_find_group_record(Game const& game, uint8_t side, uint8_t group) {
   }
   return 0;
 }
-
-auto port_routine_opeu_find_group_record(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_find_group_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-}
-
-auto port_routine_opeu_find_side_record(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
-}

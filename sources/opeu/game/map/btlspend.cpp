@@ -13,7 +13,6 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -52,10 +51,10 @@ void Spend(DataSegment& data, uint16_t unit, uint16_t element, uint16_t before, 
 }
 } // namespace
 
-void opeu_battle_spend_fuel(Game& game, BattleEvent event, uint16_t element, uint16_t before) {
+void opeu_battle_spend_fuel(Game& game, uint16_t element, uint16_t before) {
   auto& data{ Data(game) };
   if (!Weight(data, Record<Element>(data, element), Supply::FUEL)) return;
-  auto const unit{ opeu_battle_element_unit(game, event, element) };
+  auto const unit{ opeu_battle_element_unit(game, element) };
   bool       fuelled{ false };
   for (auto const& other : Elements(data, Record<Unit>(data, unit)))
     if (Weight(data, other, Supply::FUEL) && other.quantity) {
@@ -69,29 +68,10 @@ void opeu_battle_spend_fuel(Game& game, BattleEvent event, uint16_t element, uin
   Spend(data, unit, element, before, Supply::FUEL);
 }
 
-void opeu_battle_spend_ammo(Game& game, BattleEvent event, uint16_t element, uint16_t before) {
-  Spend(Data(game), opeu_battle_element_unit(game, event, element), element, before, Supply::AMMUNITION);
+void opeu_battle_spend_ammo(Game& game, uint16_t element, uint16_t before) {
+  Spend(Data(game), opeu_battle_element_unit(game, element), element, before, Supply::AMMUNITION);
 }
 
-void opeu_battle_spend_stores(Game& game, BattleEvent event, uint16_t element, uint16_t before) {
-  Spend(Data(game), opeu_battle_element_unit(game, event, element), element, before, Supply::FOOD);
-}
-
-uint16_t svc_btlspend(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
-}
-
-auto port_routine_opeu_battle_spend_ammo(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_spend_ammo(game, svc_btlspend, Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_battle_spend_fuel(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_spend_fuel(game, svc_btlspend, Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_battle_spend_stores(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_spend_stores(game, svc_btlspend, Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
+void opeu_battle_spend_stores(Game& game, uint16_t element, uint16_t before) {
+  Spend(Data(game), opeu_battle_element_unit(game, element), element, before, Supply::FOOD);
 }

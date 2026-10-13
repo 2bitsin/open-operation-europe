@@ -231,15 +231,10 @@ uint16_t svc_btlmap(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case MapSetupService::FIND_OBJECTIVE_AT: return opeu_find_objective_at(game, byte(0), byte(1));
   case MapSetupService::VGA_CLEAR:         return static_cast<uint16_t>(opeu_vga_clear());
   case MapSetupService::PALETTE_TITLE:     opeu_palette_title_screen(game, static_cast<UiHost const*>(port_uiprim_host())); return 0;
-  case MapSetupService::DRAW_CELL_ABOVE:   opeu_battle_draw_cell_above(game, svc_btlcell, byte(0), byte(1)); return 0;
-  case MapSetupService::DRAW_CELL:         opeu_battle_draw_cell(game, svc_btlcell, byte(0), byte(1)); return 0;
+  case MapSetupService::DRAW_CELL_ABOVE:   opeu_battle_draw_cell_above(game, byte(0), byte(1)); return 0;
+  case MapSetupService::DRAW_CELL:         opeu_battle_draw_cell(game, byte(0), byte(1)); return 0;
   case MapSetupService::FAR_BYTE:          return *port_far(w(0), w(1));
   default:                                 port_unhandled("btlmap", id, count);
   }
-  return 0;
-}
-
-auto port_routine_opeu_battle_map_setup(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_battle_map_setup(game, svc_btlmap);
   return 0;
 }

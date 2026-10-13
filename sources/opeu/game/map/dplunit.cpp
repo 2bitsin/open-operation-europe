@@ -3,20 +3,26 @@
 // still off the field and then asks whether deployment is finished.
 #include "map/dplunit.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
+#include "core/textout.hpp"
+#include "io/keyboard.hpp"
+#include "io/listdlg.hpp"
+#include "map/btlcmdr.hpp"
+#include "map/btllist.hpp"
 #include "map/dplauto.hpp"
 #include "map/dplcell.hpp"
 #include "types.hpp"
+#include "units/unitname.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -34,20 +40,21 @@ constexpr uint8_t REDRAW{ 6 };
 }
 } // namespace
 
-void opeu_deploy_unit(Game& game, BattleEvent event, uint16_t unit) {
+void opeu_deploy_unit(Game& game, uint16_t unit) {
   auto&      data{ Data(game) };
-  auto const panel{ [&] { Call(game, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0); } };
-  auto const close_question{ [&] { Call(game, event, BattleRoutine::TEXT_PAPER_SET, 0); } };
+  auto const panel{ [&] { opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0); } };
+  auto const close_question{ [&] { opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0)); } };
   panel();
-  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_title));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_title));
   if (unit != Near(data, data.garrison_unit)) {
-    auto const name{ Call(game, event, BattleRoutine::UNIT_NAME, unit, NAME_AT) };
-    auto const side{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_UNIT_SIDE, unit)) };
-    Call(game, event, BattleRoutine::CURSOR_PRINT, Near(data, data.deploy_unit_title), SideColorCode(side), name);
+    auto const name{ opeu_unit_name(game, svc_unitname, unit, NAME_AT) };
+    auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
+    opeu_cursor_print(
+        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.deploy_unit_title)), static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
   } else {
-    Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.deploy_garrison_title));
+    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_garrison_title));
   }
-  data.deploy_window.rows = static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_COUNT, unit) + 1);
+  data.deploy_window.rows = static_cast<uint8_t>(static_cast<std::uint16_t>(opeu_battle_element_count(game, unit)) + 1);
   {
     uint8_t row{ 0 };
     for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it, ++row) data.ai_element_list[row] = it.Near();
@@ -57,15 +64,15 @@ void opeu_deploy_unit(Game& game, BattleEvent event, uint16_t unit) {
     auto draw{ FIRST_DRAW };
     for (;;) {
       data.list_row = data.deploy_row;
-      if (Call(game, event, BattleRoutine::LIST_DIALOG, Near(data, data.deploy_window), 1, draw)) {
+      if (opeu_list_dialog(game, svc_listdlg, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) {
         // An element row: lift the element, show its zone and place it by hand.
         data.deploy_row = data.list_row;
         auto element{ Record<Unit>(data, unit).first };
         for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
-        if (PlacedX(game, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(game, event, element);
-        opeu_deploy_show_zone(game, event, element);
-        opeu_deploy_manual(game, event, element);
-        opeu_deploy_hide_zone(game, event, element);
+        if (PlacedX(game, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(game, element);
+        opeu_deploy_show_zone(game, element);
+        opeu_deploy_manual(game, element);
+        opeu_deploy_hide_zone(game, element);
         draw = REDRAW;
         continue;
       }
@@ -77,26 +84,22 @@ void opeu_deploy_unit(Game& game, BattleEvent event, uint16_t unit) {
       }
       if (off_field) {
         panel();
-        Call(game, event, BattleRoutine::REQUEST_FORMAT, QUESTION_AT, Near(data, data.deploy_ask_auto), off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others));
-        if (!Call(game, event, BattleRoutine::PROMPT_YES_NO, QUESTION_AT)) {
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(QUESTION_AT), static_cast<std::uint16_t>(Near(data, data.deploy_ask_auto)),
+                                                                static_cast<std::uint16_t>(off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others)) });
+        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, QUESTION_AT))) {
           close_question();
           break; // back to the list's first row
         }
         close_question();
-        opeu_deploy_auto(game, event, unit);
+        opeu_deploy_auto(game, unit);
       }
       panel();
-      auto const done{ Call(game, event, BattleRoutine::PROMPT_YES_NO, Near(data, data.deploy_ask_done)) };
+      auto const done{ static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Near(data, data.deploy_ask_done))) };
       close_question();
-      Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE1);
-      Call(game, event, BattleRoutine::BATTLE_PANEL_SIDE0);
+      opeu_battle_panel_side1(game);
+      opeu_battle_panel_side0(game);
       if (done) return;
       draw = REDRAW;
     }
   }
-}
-
-// Services of this module: the deployment group's (map/dplauto).
-uint16_t svc_dplunit(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_deploy(game, service, args, count);
 }

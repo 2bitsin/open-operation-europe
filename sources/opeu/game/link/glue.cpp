@@ -65,13 +65,6 @@ void port_daily_show(Game& game, uint16_t id, uint16_t side, uint16_t off, uint1
   opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), id, (uint8_t)side, (uint32_t)seg << 16 | off);
 }
 
-uint16_t btl_reorder(Game& game, uint32_t address, const uint16_t* args, unsigned count, const unsigned char* order, unsigned n) {
-  uint16_t out[8];
-  unsigned i;
-  for (i = 0; i < n && i < 8; ++i) out[i] = order[i] < count ? args[order[i]] : 0;
-  return (uint16_t)port_call(game, address, out, n);
-}
-
 uint32_t port_call_named(Game& game, const char* name, const uint16_t* args, unsigned count) {
   uint32_t address = port_routine_address(name);
   if (!address) port_fatal("no routine named %s", name);

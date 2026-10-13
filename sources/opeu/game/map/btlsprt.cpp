@@ -1,7 +1,6 @@
 // Battle sprites: the sprite offsets, the terrain sprites and the overlays of the neighbouring cells.
 #include "map/btlsprt.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
@@ -10,7 +9,6 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -41,37 +39,37 @@ constexpr uint8_t VARIANT_DIAGONAL{ 0 };
 constexpr uint8_t LAST_CELL{ BATTLE_WIDTH - 1 };
 } // namespace
 
-uint16_t opeu_battle_sprite_offset(Game& game, BattleEvent, uint8_t sprite) {
+uint16_t opeu_battle_sprite_offset(Game& game, uint8_t sprite) {
   auto const& data{ Data(game) };
   if (sprite < TERRAIN_SPRITES) return static_cast<uint16_t>((sprite * VARIANTS + data.sprite_variant[0]) * SPRITE_BYTES);
   return static_cast<uint16_t>((sprite + OVERLAYS_AT) * SPRITE_BYTES);
 }
 
-void opeu_battle_draw_sprite(Game& game, BattleEvent event, uint16_t offset) {
+void opeu_battle_draw_sprite(Game& game, uint16_t offset) {
   auto const& data{ Data(game) };
-  Call(game, event, BattleRoutine::VRAM_LOAD, Near(data, data.vram), data.sprite_segment, offset + MASK_OFFSET);
-  Call(game, event, BattleRoutine::VRAM_DRAW, Near(data, data.vram), data.sprite_segment, offset);
+  opeu_vram_load(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.sprite_segment, offset + MASK_OFFSET));
+  opeu_vram_draw(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.sprite_segment, offset));
 }
 
 // A city cell also shows its share of the garrison.
-void opeu_battle_draw_extra(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint8_t code) {
+void opeu_battle_draw_extra(Game& game, uint8_t x, uint8_t y, uint8_t code) {
   auto& data{ Data(game) };
-  opeu_battle_draw_sprite(game, event, opeu_battle_sprite_offset(game, event, code));
+  opeu_battle_draw_sprite(game, opeu_battle_sprite_offset(game, code));
   if (code != BATTLE_CITY) return;
   for (unsigned i{ 0 };; ++i) {
     auto const& extra{ BattleExtraAt(data, i) };
     if (extra.x == x && extra.y == y) {
-      opeu_battle_draw_number(game, event, extra.count);
+      opeu_battle_draw_number(game, extra.count);
       return;
     }
     if (extra.x == BATTLE_UNPLACED) return;
   }
 }
 
-void opeu_battle_draw_terrain(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint8_t code) {
+void opeu_battle_draw_terrain(Game& game, uint8_t x, uint8_t y, uint8_t code) {
   auto const variant{ static_cast<uint8_t>(code >> 6) };
   auto const terrain{ static_cast<uint8_t>(code & BATTLE_TERRAIN_MASK) };
-  auto const offset{ [&](uint8_t sprite) { return opeu_battle_sprite_offset(game, event, sprite); } };
+  auto const offset{ [&](uint8_t sprite) { return opeu_battle_sprite_offset(game, sprite); } };
   // The overlay of the variant; the original leaves the offset unset for the variants it has no case for.
   auto const two_way{ [&] {
     switch (variant) {
@@ -80,39 +78,35 @@ void opeu_battle_draw_terrain(Game& game, BattleEvent event, uint8_t x, uint8_t 
     default: return uint16_t{ 0 };
     }
   } };
-  if (terrain == BLANK_CODE) opeu_battle_draw_sprite(game, event, offset(OVERLAY_0));
+  if (terrain == BLANK_CODE) opeu_battle_draw_sprite(game, offset(OVERLAY_0));
   if (terrain == BRIDGE_A_CODE) {
-    opeu_battle_draw_sprite(game, event, two_way());
-    opeu_battle_draw_sprite(game, event, offset(BRIDGE_A));
+    opeu_battle_draw_sprite(game, two_way());
+    opeu_battle_draw_sprite(game, offset(BRIDGE_A));
   }
   if (terrain == BRIDGE_B_CODE) {
-    opeu_battle_draw_sprite(game, event, two_way());
-    opeu_battle_draw_sprite(game, event, offset(BRIDGE_B));
+    opeu_battle_draw_sprite(game, two_way());
+    opeu_battle_draw_sprite(game, offset(BRIDGE_B));
   }
-  if (terrain >= 21 && terrain <= 30) opeu_battle_draw_sprite(game, event, two_way());
+  if (terrain >= 21 && terrain <= 30) opeu_battle_draw_sprite(game, two_way());
   if (terrain >= 33 && terrain <= 43) {
     constexpr uint8_t four_way[]{ OVERLAY_0, OVERLAY_1, OVERLAY_2, OVERLAY_3 };
-    opeu_battle_draw_sprite(game, event, offset(four_way[variant]));
+    opeu_battle_draw_sprite(game, offset(four_way[variant]));
   }
-  opeu_battle_draw_extra(game, event, x, y, terrain);
+  opeu_battle_draw_extra(game, x, y, terrain);
 }
 
-uint16_t opeu_battle_sprite_valid(Game&, BattleEvent, uint8_t sprite) {
+uint16_t opeu_battle_sprite_valid(Game&, uint8_t sprite) {
   return sprite < TERRAIN_SPRITES;
 }
 
-void opeu_battle_draw_neighbors(Game& game, BattleEvent event, uint8_t x, uint8_t y) {
+void opeu_battle_draw_neighbors(Game& game, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto const overlay{ [&](uint8_t variant, uint8_t at_x, uint8_t at_y) {
     data.sprite_variant[0] = variant;
     auto const sprite{ static_cast<uint8_t>(BattleTerrainAt(data, at_x, at_y) & BATTLE_TERRAIN_MASK) };
-    if (opeu_battle_sprite_valid(game, event, sprite)) opeu_battle_draw_sprite(game, event, opeu_battle_sprite_offset(game, event, sprite));
+    if (opeu_battle_sprite_valid(game, sprite)) opeu_battle_draw_sprite(game, opeu_battle_sprite_offset(game, sprite));
   } };
   if (y < LAST_CELL) overlay(VARIANT_BELOW, x, y + 1);
   if (x < LAST_CELL) overlay(VARIANT_RIGHT, x + 1, y);
   if (x < LAST_CELL && y < LAST_CELL) overlay(VARIANT_DIAGONAL, x + 1, y + 1);
-}
-
-uint16_t svc_btlsprt(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
 }

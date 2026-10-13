@@ -1,13 +1,13 @@
 // The routine link table (game/link/link.cpp, gen/link-table.cpp): routine identifier (the routine's original address)
-// -> the handler that calls it, for the address-keyed service callbacks of the battle modules and the far code
-// pointers in the data. M2's batch B4 replaces it with direct calls and deletes it.
+// -> the handler that calls it, for the far code pointers in the data. M2's batch B4 replaces them with enums and
+// direct calls and deletes the table.
 #pragma once
 
 #include "common/events.hpp"
 
 #include <cstdint>
 
-/* A linked routine. Arguments are 16-bit words in the address-keyed
+/* A linked routine. Arguments are 16-bit words in the link
  * convention: register arguments in AX, DX, BX order (bytes zero-extended),
  * then stack arguments in prototype order; far pointers are (offset,
  * segment), 32-bit values (low, high). Near pointers are DS offsets. The
@@ -27,8 +27,6 @@ using PortHandler = auto(Game& game, std::uint16_t const* args, unsigned count) 
 
 /* Call a routine by its identifier; fatal (with its name) when unlinked. */
 auto port_call(Game& game, std::uint32_t address, std::uint16_t const* args, unsigned count) -> std::uint32_t;
-/* The address-keyed service callback signature used by the battle modules. */
-auto port_service(Game& game, std::uint32_t address, std::uint16_t const* args, unsigned count) -> std::uint16_t;
 /* Name of a routine identifier (for diagnostics), or nullptr. */
 auto port_routine_name(std::uint32_t address) -> char const*;
 /* Identifier of a routine by name (the DOS symbol without _ / @ prefix), 0 if unknown. */

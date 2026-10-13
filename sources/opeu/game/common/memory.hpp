@@ -20,7 +20,7 @@ inline constexpr std::uint16_t FRAME_SEGMENT{ 0x349b };      // map tiles, cell 
 inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen backgrounds (plane sprites, the weather)
 
 // Calls a service with its argument words (a count of 0 passes no array); a service given as a scoped enum
-// (BattleRoutine, MapService) passes its value. For services that write results back into the argument array, build
+// (MapService, ViewService) passes its value. For services that write results back into the argument array, build
 // the array at the call site instead.
 template <typename Event, typename Service, typename... Words>
 inline auto Call(Game& game, Event event, Service service, Words... words) {

@@ -62,8 +62,3 @@ void opeu_initialize_deputy(Game& game, uint16_t person) {
   deputy.experience = 0;
   deputy.portrait   = opeu_choose_deputy_identity(game, opeu_person_lacks_side0_flag(game, person));
 }
-
-auto port_routine_opeu_initialize_deputy(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_initialize_deputy(game, Arg(args, count, 0));
-  return 0;
-}

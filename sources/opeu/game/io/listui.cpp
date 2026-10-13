@@ -334,8 +334,3 @@ auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16
   }
   return 0;
 }
-
-auto port_routine_opeu_table_columns(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_table_columns(game, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-  return 0;
-}

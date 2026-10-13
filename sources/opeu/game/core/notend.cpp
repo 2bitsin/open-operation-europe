@@ -311,7 +311,7 @@ uint16_t svc_notend(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case FORMAT:        opeu_request_format(game, { args, count }); break;
   case UNIT_MESSAGE:  opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:   opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
-  case ELEMENT_SIDE: r = opeu_battle_element_side(game, svc_btllist, Arg(args, count, 0)); break;
+  case ELEMENT_SIDE: r = opeu_battle_element_side(game, Arg(args, count, 0)); break;
   case UNIT_NAME:    r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ITEM_NAME:    r = opeu_item_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case TYPE_NAME:    r = opeu_type_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;

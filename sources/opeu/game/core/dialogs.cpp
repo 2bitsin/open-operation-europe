@@ -543,37 +543,3 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   }
   return r;
 }
-
-auto port_routine_opeu_army_title(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_confirm_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0));
-}
-
-auto port_routine_opeu_control_choose(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_control_choose(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 3), Arg(args, count, 4),
-                             Arg(args, count, 5));
-}
-
-auto port_routine_opeu_control_message(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
-}
-
-auto port_routine_opeu_info_panel_begin(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_info_panel_begin(game, (const DialogHost*)port_dialogs_host());
-  return 0;
-}
-
-auto port_routine_opeu_screen_reset(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_screen_reset(game, (const DialogHost*)port_dialogs_host());
-  return 0;
-}
-
-auto port_routine_opeu_title_panel_begin(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_title_panel_begin(game, (const DialogHost*)port_dialogs_host());
-  return 0;
-}

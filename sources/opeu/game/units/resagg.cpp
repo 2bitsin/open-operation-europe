@@ -64,8 +64,3 @@ void opeu_objective_capacities(Game& game, uint16_t objective, uint16_t* result_
     opeu_add_word(static_cast<std::uint16_t>(unsigned{ data.food_capacities[category] } * quantity), 60000, result_c);
   }
 }
-
-auto port_routine_opeu_objective_capacities(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_objective_capacities(game, Arg(args, count, 2), port_ds_word_ptr(game, Arg(args, count, 0)), port_ds_word_ptr(game, Arg(args, count, 1)), port_ds_word_ptr(game, Arg(args, count, 3)));
-  return 0;
-}

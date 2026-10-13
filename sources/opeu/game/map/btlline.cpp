@@ -1,14 +1,13 @@
 // The arc of a shot between two screen points, drawn as small outlined boxes.
 #include "map/btlline.hpp"
-#include "common/battle-routine.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
+#include "core/uiprim.hpp"
 #include "types.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -24,13 +23,13 @@ constexpr int16_t ARC_FLATNESS{ -15 };
   return static_cast<int16_t>(opeu_abs16_bits(static_cast<uint16_t>(v)));
 }
 
-void Outline(Game& game, BattleEvent event, int16_t x, int16_t y) {
-  Call(game, event, BattleRoutine::UI_OUTLINE, x, y, x + 2, y + 4, ARC_COLOR);
+void Outline(Game& game, int16_t x, int16_t y) {
+  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), x, y, x + 2, y + 4, ARC_COLOR);
 }
 } // namespace
 
 // The arithmetic is on 16-bit words, as the original's: the square is truncated to 16 bits before the division.
-void opeu_battle_draw_line(Game& game, BattleEvent event, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
+void opeu_battle_draw_line(Game& game, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
   auto const dx{ static_cast<int16_t>(x1 - x0) };
   auto const dy{ static_cast<int16_t>(y1 - y0) };
   auto const width{ Abs(dx) };
@@ -52,13 +51,13 @@ void opeu_battle_draw_line(Game& game, BattleEvent event, int16_t x0, int16_t y0
     for (int16_t n{ width }; n; --n) {
       auto const px{ x };
       auto const py{ static_cast<int16_t>(y - lift() - ARC_RISE) };
-      if (py >= 0) Outline(game, event, px, py);
+      if (py >= 0) Outline(game, px, py);
       error = static_cast<int16_t>(error - height);
       if (error < 0) {
         error = static_cast<int16_t>(error + width);
         y     = static_cast<int16_t>(y + slope);
       }
-      if (py >= 0) Outline(game, event, px, py);
+      if (py >= 0) Outline(game, px, py);
       x = static_cast<int16_t>(x + step);
       ++along;
     }
@@ -71,19 +70,15 @@ void opeu_battle_draw_line(Game& game, BattleEvent event, int16_t x0, int16_t y0
     for (int16_t n{ height }; n; --n) {
       auto const px{ x };
       auto const py{ static_cast<int16_t>(y - lift() - ARC_RISE) };
-      if (py >= 0) Outline(game, event, px, py);
+      if (py >= 0) Outline(game, px, py);
       error = static_cast<int16_t>(error - width);
       if (error < 0) {
         error = static_cast<int16_t>(error + height);
         x     = static_cast<int16_t>(x + slope);
         ++along;
       }
-      if (py >= 0) Outline(game, event, px, py);
+      if (py >= 0) Outline(game, px, py);
       y = static_cast<int16_t>(y + step);
     }
   }
-}
-
-uint16_t svc_btlline(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
 }

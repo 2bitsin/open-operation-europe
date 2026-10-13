@@ -1,14 +1,16 @@
 // The computer's battle force balance and the plan its unit fights by (1..5, from cautious to bold).
 #include "map/btlaipwr.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
+#include "core/people.hpp"
+#include "core/recindex.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
+#include "map/query.hpp"
 #include "types.hpp"
 
 #include "common/game.hpp"
@@ -36,7 +38,7 @@ template <typename Field>
 }
 } // namespace
 
-uint16_t opeu_battle_ai_side_power(Game& game, BattleEvent event, uint8_t side, uint16_t all) {
+uint16_t opeu_battle_ai_side_power(Game& game, uint8_t side, uint16_t all) {
   auto&    data{ Data(game) };
   uint16_t total{ 0 };
   for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
@@ -44,8 +46,8 @@ uint16_t opeu_battle_ai_side_power(Game& game, BattleEvent event, uint8_t side, 
     if (!unit) continue;
     for (auto& element : Elements(data, Record<Unit>(data, unit))) {
       auto const near{ Near(data, element) };
-      if (!opeu_battle_element_active(game, event, near)) continue;
-      if (!all && (!opeu_battle_element_flag2(game, event, near) || !opeu_battle_level_allowed(game, event, near))) continue;
+      if (!opeu_battle_element_active(game, near)) continue;
+      if (!all && (!opeu_battle_element_flag2(game, near) || !opeu_battle_level_allowed(game, near))) continue;
       auto const category{ data.element_types[element.type].category };
       if (category >= FIRST_SINGLE_CATEGORY && category <= 7)
         ++total;
@@ -56,18 +58,18 @@ uint16_t opeu_battle_ai_side_power(Game& game, BattleEvent event, uint8_t side, 
   return opeu_max16(total, 1);
 }
 
-uint8_t opeu_battle_ai_power_ratio(Game& game, BattleEvent event, uint16_t unit) {
+uint8_t opeu_battle_ai_power_ratio(Game& game, uint16_t unit) {
   auto&          data{ Data(game) };
   auto const     side{ data.battle_ai_side };
   uint16_t const power[2]{
-    opeu_battle_ai_side_power(game, event, 0, side == 0),
-    opeu_battle_ai_side_power(game, event, 1, side != 0),
+    opeu_battle_ai_side_power(game, 0, side == 0),
+    opeu_battle_ai_side_power(game, 1, side != 0),
   };
   auto const other{ static_cast<uint8_t>(side == 0) };
   if (power[other] == 0) return 5;
   uint16_t ratio{ static_cast<uint16_t>(power[1] > power[0] ? power[1] / opeu_max16(power[0], 1) : power[0] / opeu_max16(power[1], 1)) };
   if (ratio > 5) {
-    if (auto const found{ Call(game, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) }) {
+    if (auto const found{ opeu_find_unit_at(game, static_cast<uint8_t>(data.battle_attacker_x), static_cast<uint8_t>(data.battle_attacker_y)) }) {
       if (found != unit) return power[side & 1] < power[other] ? 1 : 5;
       ratio = 5;
     }
@@ -83,13 +85,13 @@ uint8_t opeu_battle_ai_power_ratio(Game& game, BattleEvent event, uint16_t unit)
   return 3;
 }
 
-uint8_t opeu_battle_ai_choose_plan(Game& game, BattleEvent event, uint16_t unit) {
+uint8_t opeu_battle_ai_choose_plan(Game& game, uint16_t unit) {
   auto& data{ Data(game) };
   int   bravery{ 0 };
   int   experience{ 0 };
   int   training{ 0 };
   int   morale{ 0 };
-  auto  plan{ opeu_battle_ai_power_ratio(game, event, unit) };
+  auto  plan{ opeu_battle_ai_power_ratio(game, unit) };
   auto  value{ Average(data, unit, &Element::morale) };
   if (value < 20) morale = -1;
   if (value > 60) morale = 1;
@@ -102,10 +104,10 @@ uint8_t opeu_battle_ai_choose_plan(Game& game, BattleEvent event, uint16_t unit)
   if (value > 80) experience = -2;
   uint16_t commander;
   if (unit == Near(data, data.battle_garrison))
-    commander = Call(game, event, BattleRoutine::FIND_SIDE_RECORD, opeu_battle_unit_side(game, event, unit), 1);
+    commander = opeu_find_side_record(game, static_cast<uint8_t>(opeu_battle_unit_side(game, unit)), static_cast<uint8_t>(1));
   else {
-    auto const group{ static_cast<uint8_t>(Call(game, event, BattleRoutine::UNIT_GROUP_INDEX, unit)) };
-    commander = Call(game, event, BattleRoutine::FIND_GROUP_RECORD, opeu_battle_unit_side(game, event, unit), group);
+    auto const group{ static_cast<uint8_t>(opeu_unit_group_index(unit)) };
+    commander = opeu_find_group_record(game, static_cast<uint8_t>(opeu_battle_unit_side(game, unit)), static_cast<uint8_t>(group));
   }
   if (commander && !(Record<Person>(data, commander).role & Bits(PersonRole::DEPUTY))) {
     auto const courage{ Record<Person>(data, commander).bravery };
@@ -117,8 +119,4 @@ uint8_t opeu_battle_ai_choose_plan(Game& game, BattleEvent event, uint16_t unit)
   }
   plan = static_cast<uint8_t>(plan + bravery + experience + training + morale);
   return static_cast<uint8_t>(opeu_min16(opeu_max16(plan, 1), 5));
-}
-
-uint16_t svc_btlaipwr(Game& game, uint32_t service, const uint16_t* args, unsigned int count) {
-  return svc_battle_ai(game, service, args, count);
 }

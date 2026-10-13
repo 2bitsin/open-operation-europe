@@ -7,7 +7,6 @@
 // and reports each to the player.
 #include "map/btlpath.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
@@ -16,14 +15,21 @@
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
 #include "core/strings.hpp"
+#include "core/textout.hpp"
+#include "map/btlcalc.hpp"
+#include "map/btlcmdr.hpp"
+#include "map/btldir.hpp"
+#include "map/btlelem.hpp"
+#include "map/btllist.hpp"
+#include "map/btlunit.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -53,9 +59,9 @@ constexpr uint16_t MESSAGE_AT{ 0x20 };
 constexpr uint8_t SPOT_STEPS{ 6 };
 constexpr uint8_t SPOT_STEP{ 20 };
 
-[[nodiscard]] auto TerrainCost(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> uint8_t {
+[[nodiscard]] auto TerrainCost(Game& game, uint8_t x, uint8_t y, uint16_t element) -> uint8_t {
   auto const& data{ Data(game) };
-  auto const  terrain{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) };
+  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
   return data.battle_terrain_costs[terrain * 8u + ElementTypeOf(data, element).category];
 }
 
@@ -79,18 +85,18 @@ constexpr uint8_t SPOT_STEP{ 20 };
 }
 } // namespace
 
-uint8_t opeu_battle_path_cost(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
-  if (Call(game, event, BattleRoutine::BATTLE_CELL_OCCUPIED, x, y)) return BLOCKED;
-  return TerrainCost(game, event, x, y, element);
+uint8_t opeu_battle_path_cost(Game& game, uint8_t x, uint8_t y, uint16_t element) {
+  if (opeu_battle_cell_occupied(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return BLOCKED;
+  return TerrainCost(game, x, y, element);
 }
 
-uint8_t opeu_battle_path_cost_any(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {
-  return TerrainCost(game, event, x, y, element);
+uint8_t opeu_battle_path_cost_any(Game& game, uint8_t x, uint8_t y, uint16_t element) {
+  return TerrainCost(game, x, y, element);
 }
 
 // x, y: DS offsets of the cell bytes, moved to the cheapest neighbour. With no reachable neighbour the cell takes the
 // reserve's stale bytes, as the original's uninitialized locals.
-uint16_t opeu_battle_path_step(Game& game, BattleEvent event, uint16_t x, uint16_t y) {
+uint16_t opeu_battle_path_step(Game& game, uint16_t x, uint16_t y) {
   auto const&         data{ Data(game) };
   ServiceLocals const locals{ STEP_RESERVE };
   auto const          step_x_at{ locals.At(STEP_X_AT) };
@@ -101,7 +107,7 @@ uint16_t opeu_battle_path_step(Game& game, BattleEvent event, uint16_t x, uint16
   for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
     Byte(game, step_x_at) = Byte(game, x);
     Byte(game, step_y_at) = Byte(game, y);
-    if (!Call(game, event, BattleRoutine::BATTLE_STEP, step_y_at, direction, step_x_at)) continue;
+    if (!opeu_battle_step(game, svc_btlcalc, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
     auto const cost{ data.battle_path_costs[Byte(game, step_y_at) * BATTLE_WIDTH + Byte(game, step_x_at)] };
     if (cost < best) {
       best_x = Byte(game, step_x_at);
@@ -119,7 +125,7 @@ uint16_t opeu_battle_path_step(Game& game, BattleEvent event, uint16_t x, uint16
 }
 
 // Fills battle_path_costs from (x, y). Returns 1 when the flood reached (to_x, to_y) with FLOOD_TO_CELL set.
-uint16_t opeu_battle_path_flood(Game& game, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode) {
+uint16_t opeu_battle_path_flood(Game& game, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode) {
   auto&               data{ Data(game) };
   auto&               queue{ data.battle_path_queue };
   auto&               costs{ data.battle_path_costs };
@@ -138,13 +144,13 @@ uint16_t opeu_battle_path_flood(Game& game, BattleEvent event, uint8_t x, uint8_
     for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
       Byte(game, step_x_at) = from_x;
       Byte(game, step_y_at) = from_y;
-      if (!Call(game, event, BattleRoutine::BATTLE_STEP, step_y_at, direction, step_x_at)) continue;
+      if (!opeu_battle_step(game, svc_btlcalc, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
       auto const step_x{ Byte(game, step_x_at) };
       auto const step_y{ Byte(game, step_y_at) };
       if (to_x == step_x && to_y == step_y && (mode & FLOOD_TO_CELL)) return 1;
       auto const cell{ static_cast<uint8_t>(step_y * BATTLE_WIDTH + step_x) };
       if (costs[cell] != UNREACHED) continue;
-      auto const entry{ mode & FLOOD_THROUGH ? opeu_battle_path_cost_any(game, event, step_x, step_y, element) : opeu_battle_path_cost(game, event, step_x, step_y, element) };
+      auto const entry{ mode & FLOOD_THROUGH ? opeu_battle_path_cost_any(game, step_x, step_y, element) : opeu_battle_path_cost(game, step_x, step_y, element) };
       if (entry == BLOCKED) continue;
       costs[cell] = static_cast<uint16_t>(entry + cost);
       // Insert the cell after the last entry no dearer than it (the start cell costs 0, so the walk stops there).
@@ -163,38 +169,41 @@ uint16_t opeu_battle_path_flood(Game& game, BattleEvent event, uint8_t x, uint8_
 }
 
 // Redraws a newly spotted element and tells the other side "<name> sighted!".
-void opeu_battle_report_sighted(Game& game, BattleEvent event, uint16_t element) {
+void opeu_battle_report_sighted(Game& game, uint16_t element) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ SIGHTED_RESERVE };
   auto const          message{ locals.At(MESSAGE_AT) };
   auto const          name_at{ locals.At(NAME_AT) };
   auto const&         position{ PositionOf(data, element) };
-  auto const          side{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
-  auto const          mode{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_MODE, element)) };
-  Call(game, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, position.x, position.y, element, mode);
+  auto const          side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
+  auto const          mode{ static_cast<uint8_t>(opeu_battle_mode(game, element)) };
+  opeu_battle_draw_element_at(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y), element, static_cast<uint8_t>(mode));
   auto const name{ opeu_element_name(game, element, name_at) };
-  Call(game, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_sighted), SideColorCode(side), name);
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.battle_fmt_sighted)),
+                                                          static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
   opeu_string_append(game, message, Near(data, data.battle_text_sighted));
-  Call(game, event, BattleRoutine::BATTLE_COMMANDER_WAIT, opeu_opposite_side(side), 2, message);
+  auto const hoisted0{ static_cast<std::uint16_t>(opeu_opposite_side(side)) };
+  auto const hoisted2{ static_cast<std::uint16_t>(message) };
+  opeu_battle_commander_wait(game, hoisted2, static_cast<uint8_t>(hoisted0), static_cast<uint8_t>(2));
 }
 
 // Whether the element spots the other: a chance by terrain mode, less the other cell's cover and the weather's toll.
-uint16_t opeu_battle_spot_chance(Game& game, BattleEvent event, uint16_t element, uint16_t other) {
+uint16_t opeu_battle_spot_chance(Game& game, uint16_t element, uint16_t other) {
   auto&       data{ Data(game) };
   auto const& position{ PositionOf(data, other) };
-  auto const  mode{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_TERRAIN_MODE, other, element)) };
+  auto const  mode{ static_cast<uint8_t>(opeu_battle_terrain_mode(game, element, other)) };
   auto        chance{ static_cast<uint8_t>((SPOT_STEPS - mode) * SPOT_STEP) };
-  auto const  terrain{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_CELL_TERRAIN, position.x, position.y)) };
+  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
   opeu_sub_byte(Cover(terrain), &chance);
   opeu_sub_byte(WeatherToll(data.weather), &chance);
-  return Call(game, event, BattleRoutine::RAND_BOUNDED, 100) < chance ? 1 : 0;
+  return port_rand_bounded(game, 100) < chance ? 1 : 0;
 }
 
 // The element looks around its cell: the enemies it sights are spotted and reported.
-void opeu_battle_spot_enemies(Game& game, BattleEvent event, uint16_t element) {
+void opeu_battle_spot_enemies(Game& game, uint16_t element) {
   auto&       data{ Data(game) };
   auto const& position{ PositionOf(data, element) };
-  auto const  side{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
+  auto const  side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
   auto const  range{ data.battle_spot_range[ElementTypeOf(data, element).category] };
   auto const  span{ static_cast<uint8_t>(range * 2 + 1) };
   auto const  left{ static_cast<int16_t>(position.x - range) };
@@ -203,31 +212,11 @@ void opeu_battle_spot_enemies(Game& game, BattleEvent event, uint16_t element) {
     auto x{ left };
     for (uint8_t column{ 0 }; column < span; ++column, ++x) {
       if (x < 0 || x >= static_cast<int16_t>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int16_t>(BATTLE_WIDTH)) continue;
-      auto const other{ Call(game, event, BattleRoutine::BATTLE_ELEMENT_AT, static_cast<uint16_t>(x), static_cast<uint16_t>(y)) };
-      if (!other || static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SIDE, other)) == side || Call(game, event, BattleRoutine::BATTLE_ELEMENT_FLAG2, other)
-          || !opeu_battle_spot_chance(game, event, element, other))
-        continue;
+      auto const other{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(static_cast<uint16_t>(x)), static_cast<uint8_t>(static_cast<uint16_t>(y))) };
+      if (!other || static_cast<uint8_t>(opeu_battle_element_side(game, other)) == side || opeu_battle_element_flag2(game, other) || !opeu_battle_spot_chance(game, element, other)) continue;
       Record<Element>(data, other).flags |= Bits(ElementFlag::SPOTTED);
-      auto const own{ static_cast<uint8_t>(Call(game, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
-      if (Word(game, static_cast<uint16_t>(Near(data, data.side_status) + own * 2)) == SIDE_PLAYED) opeu_battle_report_sighted(game, event, other);
+      auto const own{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
+      if (Word(game, static_cast<uint16_t>(Near(data, data.side_status) + own * 2)) == SIDE_PLAYED) opeu_battle_report_sighted(game, other);
     }
   }
-}
-
-uint16_t svc_btlpath(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
-}
-
-auto port_routine_opeu_battle_path_flood(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  return opeu_battle_path_flood(game, svc_btlpath, byte(0), byte(1), byte(2), byte(3), Arg(args, count, 4), byte(5));
-}
-
-auto port_routine_opeu_battle_path_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_path_step(game, svc_btlpath, Arg(args, count, 1), Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_spot_enemies(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_spot_enemies(game, svc_btlpath, Arg(args, count, 0));
-  return 0;
 }

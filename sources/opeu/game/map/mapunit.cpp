@@ -1,7 +1,6 @@
 // Flashing map cells: an objective's or a unit's cell around a report, a division's units while its position is
 // reported, an arriving unit, and a location shown to a player's side.
 #include "map/mapunit.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
@@ -112,9 +111,4 @@ void opeu_location_flash(Game& game, HostEvent event, uint8_t x, uint8_t y, uint
 
 uint16_t svc_mapunit(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
   return svc_map_plan(game, "mapunit", kind, args, count);
-}
-
-auto port_routine_opeu_unit_flash(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_unit_flash(game, svc_mapunit, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
-  return 0;
 }

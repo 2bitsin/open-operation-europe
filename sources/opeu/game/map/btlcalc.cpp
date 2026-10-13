@@ -227,66 +227,9 @@ uint16_t opeu_battle_element_at(Game& game, BattleService, uint8_t x, uint8_t y)
 uint16_t svc_btlcalc(Game& game, uint16_t id, uint16_t arg) {
   switch (static_cast<CalcService>(id)) {
   case CalcService::WAIT:         opeu_delay_units(game, svc_waitkey, static_cast<uint8_t>(arg)); return 0;
-  case CalcService::ELEMENT_SIDE: return opeu_battle_element_side(game, svc_btllist, arg);
-  case CalcService::UNIT_SIDE:    return opeu_battle_unit_side(game, svc_btllist, arg);
-  case CalcService::ELEMENT_UNIT: return opeu_battle_element_unit(game, svc_btllist, arg);
+  case CalcService::ELEMENT_SIDE: return opeu_battle_element_side(game, arg);
+  case CalcService::UNIT_SIDE:    return opeu_battle_unit_side(game, arg);
+  case CalcService::ELEMENT_UNIT: return opeu_battle_element_unit(game, arg);
   default:                        port_unhandled("btlcalc", id, 1); return 0;
   }
-}
-
-auto port_routine_opeu_battle_can_enter(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
-}
-
-auto port_routine_opeu_battle_cell_terrain(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_battle_element_at(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_battle_element_range(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_range(game, svc_btlcalc, Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_element_rating(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_rating(game, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_element_shots(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_shots(game, svc_btlcalc, Arg(args, count, 1), Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_element_strength(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_element_strength(game, svc_btlcalc, Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_move_cost(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_move_cost(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), Arg(args, count, 2));
-}
-
-auto port_routine_opeu_battle_odds(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_odds(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_battle_pause(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(Arg(args, count, 0)));
-  return 0;
-}
-
-auto port_routine_opeu_battle_skill(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_skill(game, svc_btlcalc, Arg(args, count, 1), static_cast<uint8_t>(Arg(args, count, 0)));
-}
-
-auto port_routine_opeu_battle_step(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_step(game, svc_btlcalc, game.State().Bytes(Arg(args, count, 2), 1).data(), game.State().Bytes(Arg(args, count, 0), 1).data(), static_cast<uint8_t>(Arg(args, count, 1)));
-}
-
-auto port_routine_opeu_battle_unit_controlled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_unit_controlled(game, svc_btlcalc, Arg(args, count, 0));
-}
-
-auto port_routine_opeu_battle_unit_direction(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_battle_unit_direction(game, svc_btlcalc, Arg(args, count, 0));
 }

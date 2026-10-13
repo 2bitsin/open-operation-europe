@@ -57,7 +57,3 @@ uint16_t svc_labels(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   }
   return r;
 }
-
-auto port_routine_opeu_element_name(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_element_name(game, Arg(args, count, 1), Arg(args, count, 0));
-}

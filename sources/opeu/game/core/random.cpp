@@ -24,7 +24,3 @@ uint16_t opeu_rand_bounded(uint16_t bound) {
   if (bound == 0) return bound;
   return opeu_rand_next() % bound;
 }
-
-auto port_routine_opeu_rand_bounded(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return port_rand_bounded(game, Arg(args, count, 0));
-}

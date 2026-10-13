@@ -110,8 +110,3 @@ void opeu_turn_selected_begin(Game& game) {
   opeu_rank_side_entries(game);
   if (data.side_control[side] == SIDE_COMPUTER && data.side_stance[side] == Bits(Stance::OFFENSIVE) && !std::ranges::equal(Entries(data, side), before)) opeu_side_groups_retarget(game, side);
 }
-
-auto port_routine_opeu_side_groups_retarget(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_side_groups_retarget(game, (uint8_t)Arg(args, count, 0));
-  return 0;
-}

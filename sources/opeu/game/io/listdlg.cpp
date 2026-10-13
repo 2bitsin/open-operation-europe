@@ -278,8 +278,3 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
 auto svc_listdlg(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t {
   return svc_listui(game, kind, args, count);
 }
-
-// The game passes the window last.
-auto port_routine_opeu_list_dialog(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_list_dialog(game, svc_listdlg, Arg(args, count, 2), static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)));
-}

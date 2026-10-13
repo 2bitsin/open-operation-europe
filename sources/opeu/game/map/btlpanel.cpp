@@ -2,13 +2,14 @@
 // target, and its type's ratings beside its picture.
 #include "map/btlpanel.hpp"
 #include "common/battle-field.hpp"
-#include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
+#include "core/uiprim.hpp"
+#include "map/btlcmdr.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
 #include "map/query.hpp"
@@ -18,7 +19,6 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -57,17 +57,17 @@ uint16_t NameForward(Game& game, uint16_t, const uint16_t* args, uint16_t count)
 } // namespace
 
 // orders_hidden: the enemy's element, whose order the panel does not show.
-void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, uint16_t orders_hidden) {
+void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hidden) {
   auto&               data{ Data(game) };
   auto const&         record{ Record<Element>(data, element) };
   ServiceLocals const locals{ NAMES_RESERVE };
   auto const          unit_name{ locals.At(UNIT_NAME_AT) };
   auto const          element_name{ locals.At(ELEMENT_NAME_AT) };
-  auto                side{ opeu_battle_element_side(game, event, element) };
-  auto const          unit{ opeu_battle_element_unit(game, event, element) };
-  auto const          at{ [&](uint16_t column, uint16_t row) { Call(game, event, BattleRoutine::ARMY_POSITION, column, row); } };
+  auto                side{ opeu_battle_element_side(game, element) };
+  auto const          unit{ opeu_battle_element_unit(game, element) };
+  auto const          at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(column), static_cast<short>(row)); } };
   auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<uint16_t, 1 + sizeof...(words)>{ Near(data, format), static_cast<uint16_t>(words)... }); } };
-  Call(game, event, BattleRoutine::BATTLE_PANEL_BEGIN);
+  opeu_battle_panel_begin(game);
   at(TITLE_COLUMN, 0);
   uint16_t name;
   if (unit == GARRISON_AT) {
@@ -81,7 +81,7 @@ void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, 
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(game, element, element_name);
   }
-  Call(game, event, BattleRoutine::UI_TEXT, name);
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), name);
   at(STATS_COLUMN, 0);
   print(data.battle_fmt_ok, record.quantity);
   at(STATS_COLUMN, LINE);
@@ -95,9 +95,9 @@ void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, 
   // The cell shown as the target: the target's (the element's own once the target is gone), or the goal.
   uint8_t target_x;
   uint8_t target_y;
-  if (opeu_battle_engaged(game, event, element)) {
+  if (opeu_battle_engaged(game, element)) {
     auto const  target{ PositionOf(data, element).target };
-    auto const& position{ PositionOf(data, opeu_battle_element_active(game, event, target) ? target : element) };
+    auto const& position{ PositionOf(data, opeu_battle_element_active(game, target) ? target : element) };
     target_x = position.x;
     target_y = position.y;
   } else {
@@ -114,11 +114,11 @@ void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, 
   if (orders_hidden)
     print(data.battle_fmt_no_orders);
   else
-    print(data.battle_fmt_orders, data.battle_order_names[opeu_battle_state(game, event, element)]);
+    print(data.battle_fmt_orders, data.battle_order_names[opeu_battle_state(game, element)]);
   at(TARGET_COLUMN, TARGET_ROW);
   if (!orders_hidden) print(data.battle_fmt_target, target_x, target_y);
   if (orders_hidden) side = opeu_opposite_side(side);
-  Call(game, event, side == 0 ? BattleRoutine::BATTLE_PANEL_SIDE0 : BattleRoutine::BATTLE_PANEL_SIDE1);
+  (side == 0) ? opeu_battle_panel_side0(game) : opeu_battle_panel_side1(game);
   auto const& type{ data.element_types[record.type] };
   auto const  card{ side ? CARD_COLUMN_1 : CARD_COLUMN_0 };
   at(card, CARD_ROW);
@@ -129,15 +129,6 @@ void opeu_battle_element_panel(Game& game, BattleEvent event, uint16_t element, 
   print(data.battle_fmt_speed, type.speed);
   at(card, CARD_ROW + 3 * LINE);
   print(data.battle_fmt_range, type.gun_range);
-  Call(game, event, BattleRoutine::FACE_DRAW, side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, record.type);
-  Call(game, event, BattleRoutine::UI_TEXT, Near(data, data.battle_fmt_end));
-}
-
-uint16_t svc_btlpanel(Game& game, uint32_t address, const uint16_t* args, unsigned int count) {
-  return port_service(game, address, args, count);
-}
-
-auto port_routine_opeu_battle_element_panel(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_battle_element_panel(game, svc_btlpanel, Arg(args, count, 1), Arg(args, count, 0));
-  return 0;
+  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, static_cast<uint8_t>(record.type));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_fmt_end));
 }

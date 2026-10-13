@@ -52,7 +52,3 @@ uint32_t port_call(Game& game, uint32_t address, const uint16_t* args, unsigned 
   port_trace("link", "<- %s = %08x", l->name, (unsigned)r);
   return r;
 }
-
-uint16_t port_service(Game& game, uint32_t address, const uint16_t* args, unsigned count) {
-  return (uint16_t)port_call(game, address, args, count);
-}

@@ -374,16 +374,3 @@ auto svc_keyboard(Game& game, std::uint16_t call, std::uint16_t* w) -> std::uint
   }
   return 0;
 }
-
-auto port_routine_opeu_keyboard_key(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_keyboard_key(game, svc_keyboard);
-}
-
-auto port_routine_opeu_prompt_value(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_prompt_value(game, svc_keyboard, Arg(args, count, 2), Arg(args, count, 0), Arg(args, count, 1), static_cast<std::int16_t>(Arg(args, count, 3)), Arg(args, count, 4));
-}
-
-auto port_routine_opeu_prompt_yes_no(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const answer{ static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, Arg(args, count, 0))) };
-  return answer;
-}
