@@ -140,7 +140,8 @@ class Substituter:
 
   def _ReadText(self, site: CallSite, target: Target, read: WordRead, words: list[str], substitution: Substitution) -> str:
     if read.kind == SPAN:
-      items = [self._Word(target, position, words, substitution) for position in range(target.count)]
+      length = target.count if read.length is None else read.length
+      items = [self._Word(target, position, words, substitution) for position in range(length)]
       return "std::span<std::uint16_t const>{}" if not items else f"std::array<std::uint16_t, {len(items)}>{{ {', '.join(_Cast(item) for item in items)} }}"
     if read.accessor:
       return self._Accessor(site, target, read.accessor, read.arguments, (words, substitution))
@@ -450,8 +451,11 @@ def _OrderHazard(owner: SourceFile, expression: Span, reads: list[WordRead], tar
   if not effects:
     return ""
   used = [target.words[index] if index < len(target.words) else None for read in reads if read.kind != SPAN for index in read.Indices()]
-  if any(read.kind == SPAN for read in reads):
-    return ""  # a span lists every word in order
+  spans = [read for read in reads if read.kind == SPAN]
+  if spans:
+    shortest = min(len(target.words) if read.length is None else read.length for read in spans)
+    dropped = [index for index in effects if index >= shortest]
+    return f"word {dropped[0]} has side effects and is past the span's end" if dropped else ""  # a span lists its words in order
   for index in effects:
     if used.count(index) != 1:
       return f"word {index} has side effects and is read {used.count(index)} times"

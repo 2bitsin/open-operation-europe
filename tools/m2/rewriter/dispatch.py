@@ -138,7 +138,7 @@ def _Dispatcher(program: Program, function: Function) -> Dispatcher:
   id_name = parameters[id_at].name if id_at is not None else ""
   pointer = next((p for p in parameters if p.type.replace("const", "").replace(" ", "").endswith("uint16_t*")), None)
   count = parameters[parameters.index(pointer) + 1].name if pointer is not None and parameters.index(pointer) + 1 < len(parameters) else ""
-  context = WordContext(pointer.name, count) if pointer is not None and pointer.name else None
+  context = WordContext(pointer.name, count) if pointer is not None and pointer.name else _NamedWords(parameters, id_at)
   battle = id_at is not None and "uint32_t" in parameters[id_at].type
   dispatcher = Dispatcher(function, context, id_name, battle, out=_OutName(parameters))
   body = Span(function.body.first + 1, function.body.last - 1)
@@ -172,13 +172,25 @@ def _ReadGuards(source: SourceFile, statements: list[Span], dispatcher: Dispatch
         dispatcher.forward = forward
       else:
         dispatcher.guards.append(_Guard(source, dispatcher, statement))
-    elif first.text == "auto" and tokens[statement.first + 1].text == "const" and tokens[statement.first + 3].text == "{":
-      dispatcher.locals[tokens[statement.first + 2].text] = Span(statement.first + 4, partners[statement.first + 3])
+    elif first.text == "auto" and (name := _ConstLocalName(tokens, statement)) is not None:
+      dispatcher.locals[tokens[name].text] = Span(name + 2, partners[name + 1])
     elif first.text == "(" and tokens[statement.first + 1].text == "void":
       continue
     else:
       rest.append(statement)
   return rest
+
+
+def _ConstLocalName(tokens, statement: Span) -> int | None:
+  """The name's index in `auto const NAME{ ... };`, `auto* const NAME{ ... };` or `auto const* NAME{ ... };`."""
+  at = statement.first + 1
+  qualifiers = []
+  while at < statement.last and tokens[at].text in ("const", "*"):
+    qualifiers.append(tokens[at].text)
+    at += 1
+  if "const" not in qualifiers or tokens[at].kind != IDENTIFIER or tokens[at + 1].text != "{":
+    return None
+  return at
 
 
 def _Guard(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> Guard:
@@ -235,6 +247,14 @@ def DeclaredNames(source: SourceFile, statement: Span) -> set[str]:
       continue
     index += 1
   return names
+
+
+def _NamedWords(parameters: list, id_at: int | None) -> WordContext | None:
+  """The context of a dispatcher that receives its words as scalars after the id (`svc_x(game, id, a0, a1, a2, a3)`)."""
+  if id_at is None:
+    return None
+  named = tuple(p.name for p in parameters[id_at + 1:] if p.name and p.type.replace("std::", "") == "uint16_t")
+  return WordContext("", "", named=named) if named and len(named) == len(parameters) - id_at - 1 else None
 
 
 def _IsId(type_text: str) -> bool:
@@ -315,14 +335,16 @@ def _CallForward(source: SourceFile, dispatcher: Dispatcher, first: int) -> Forw
   arguments = [Compact(tokens, part) for part in Arguments(tokens, source.partners, first + 1)]
   if arguments and arguments[-1].startswith("&") and dispatcher.result and arguments[-1] == "&" + dispatcher.result:
     arguments = arguments[:-1]
-  if len(arguments) < 4 or arguments[-2:] != [dispatcher.context.args, dispatcher.context.count]:
+  words = [dispatcher.context.args, dispatcher.context.count] if dispatcher.context.count else [dispatcher.context.args]
+  if not dispatcher.context.args or len(arguments) < len(words) + 2 or arguments[-len(words):] != words:
     return None
   target = "port_service" if name == "port_call" else name
-  if arguments[-3] == dispatcher.id_name:
+  service = arguments[-len(words) - 1]
+  if service == dispatcher.id_name:
     return Forward(target)
-  if dispatcher.Evaluate(source, arguments[-3], 0) is None and dispatcher.constants.Evaluate(arguments[-3]) is None:
+  if dispatcher.Evaluate(source, service, 0) is None and dispatcher.constants.Evaluate(service) is None:
     return None
-  return Forward(target, id_expression=arguments[-3])
+  return Forward(target, id_expression=service)
 
 
 def _PredicateForward(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> Forward | None:
@@ -507,7 +529,7 @@ def _DispatcherLocals(source: SourceFile, dispatcher: Dispatcher, span: Span, ca
   uses."""
   parameters = {p.name for p in dispatcher.function.parameters} - {*SEGMENT_NAMES, dispatcher.id_name}
   if dispatcher.context is not None:
-    parameters -= {dispatcher.context.args, dispatcher.context.count}
+    parameters -= {dispatcher.context.args, dispatcher.context.count, *dispatcher.context.named}
   tokens = source.tokens
   used = {tokens[i].text for i in range(span.first, span.last) if tokens[i].kind == IDENTIFIER and tokens[i - 1].text not in (".", "->", "::")}
   accessors = set(dispatcher.context.accessors) if dispatcher.context is not None else set()

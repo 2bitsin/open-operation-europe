@@ -39,6 +39,7 @@ class WordRead:
   accessor:  str = ""
   arguments: tuple[int, ...] = ()  # an accessor's literal arguments
   words:     tuple[int, ...] = ()  # the words an accessor reads, in order
+  length:    int | None = None     # a span of a literal length (`{ args, 3 }`); None: every word the site gives
 
   @property
   def wide(self) -> bool:
@@ -65,10 +66,12 @@ class WordUse:
 
 @dataclass
 class WordContext:
-  """The names under which a dispatcher or handler receives its words."""
+  """The names under which a dispatcher or handler receives its words: an array and its count, or (a dispatcher of
+  an event that passes its words as scalars, `svc_x(game, id, a0, a1, a2, a3)`) one name per word."""
   args:      str
   count:     str
   accessors: dict[str, Accessor] = field(default_factory=dict)
+  named:     tuple[str, ...] = ()
 
   def Scan(self, source: SourceFile, span: Span) -> WordUse:
     """Every read of the words inside span (accessor bodies are not part of span)."""
@@ -93,11 +96,24 @@ class WordContext:
     following = tokens[index + 1].text if index + 1 < len(tokens) else ""
     if token.kind == IDENTIFIER and following == "(" and index + 1 in partners and not _Member(tokens, index):
       return self._Read(source, index)
-    if token.text == "{" and index in partners and [t.text for t in tokens[index + 1:partners[index]]] == [self.args, ",", self.count]:
+    inside = [t for t in tokens[index + 1:partners[index]]] if token.text == "{" and index in partners else []
+    if self.args and [t.text for t in inside] == [self.args, ",", self.count]:
       return WordRead(Span(index, partners[index] + 1), 0, SPAN)
+    if self.args and len(inside) == 3 and inside[0].text == self.args and inside[1].text == "," and IsIntegerLiteral(inside[2]):
+      return WordRead(Span(index, partners[index] + 1), 0, SPAN, length=_Value(inside[2].text))
     if token.text == self.args and following == "[" and index + 1 in partners and not _Member(tokens, index):
       return self._Indexed(source, index)
+    if token.kind == IDENTIFIER and token.text in self.named and not _Member(tokens, index):
+      return self._Named(source, index)
     return None
+
+  def _Named(self, source: SourceFile, index: int) -> WordRead | int:
+    """A scalar word's name read as a value (not assigned to, not addressed)."""
+    tokens = source.tokens
+    after = tokens[index + 1].text if index + 1 < len(tokens) else ""
+    if after in ("=", "+=", "-=", "|=", "&=", "++", "--") or tokens[index - 1].text in ("&", "++", "--"):
+      return -1
+    return WordRead(Span(index, index + 1), self.named.index(tokens[index].text))
 
   def _Indexed(self, source: SourceFile, index: int) -> WordRead | int:
     """`args[N]` read as a value (not assigned to, not addressed)."""

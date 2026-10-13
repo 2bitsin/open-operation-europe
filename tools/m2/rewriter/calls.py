@@ -15,6 +15,11 @@ from .tokens import IDENTIFIER
 CALLBACK_TYPES = ("HostEvent", "HostWordsEvent", "HostService", "HostNotify", "BattleEvent", "BattleService", "PendingEvent",
                   "SideColorEvent", "UiEvent", "ArrivalEvent", "SupplyEvent", "UtilService", "TextEvent", "EmsEvent", "SoundService")
 CALL_TEMPLATE = PurePosixPath("game/common/memory.hpp")
+# The calls that pack their words for an event as Call does: Call(game, event, ID, words...), CallWords (an event
+# taking four scalar words, missing ones 0), List and Input (io's word arrays, Input's padded with zeros to seven).
+CALL_LIKE = {"Call", "CallWords", "List", "Input"}
+# The event types whose words are scalars: a raw `event(game, ID, words...)` is a site like Call's.
+SCALAR_EVENTS = {"PendingEvent", "SideColorEvent", "BattleService", "ArrivalEvent"}
 STATEMENT_STARTS = {";", "{", "}", "else", "do"}
 CONTROL_WORDS = {"if", "while", "for", "switch"}
 UNBOUND = "<unbound>"
@@ -52,17 +57,47 @@ def FindCallSites(program: Program) -> list[CallSite]:
       continue
     tokens, partners = source.tokens, source.partners
     for index, token in enumerate(tokens[:-1]):
-      if token.text != "Call" or tokens[index + 1].text != "(" or index + 1 not in partners or tokens[index - 1].text in (".", "->"):
+      if tokens[index + 1].text != "(" or index + 1 not in partners or tokens[index - 1].text in (".", "->"):
         continue
-      function = program.Enclosing(path, index)
-      arguments = Arguments(tokens, partners, index + 1)
-      if function is None or len(arguments) < 3:
-        continue
-      start = index - 2 if tokens[index - 1].text == "::" else index
-      span = Span(start, partners[index + 1] + 1)
-      sites.append(CallSite(path, token.line, Span(index, index + 1), span, function, arguments[0], arguments[1],
-                            arguments[2], arguments[3:], ValueUsed(source, span)))
+      if token.text in CALL_LIKE:
+        site = _WrappedSite(program, source, index)
+      elif token.kind == IDENTIFIER:
+        site = _RawSite(program, source, index)
+      else:
+        site = None
+      if site is not None:
+        sites.append(site)
   return sites
+
+
+def _WrappedSite(program: Program, source: SourceFile, index: int) -> CallSite | None:
+  """`Call(game, event, ID, words...)` (or another of CALL_LIKE) inside a function."""
+  tokens, partners = source.tokens, source.partners
+  function = program.Enclosing(source.path, index)
+  arguments = Arguments(tokens, partners, index + 1)
+  if function is None or len(arguments) < 3 or function.name in CALL_LIKE:
+    return None
+  start = index - 2 if tokens[index - 1].text == "::" else index
+  span = Span(start, partners[index + 1] + 1)
+  return CallSite(source.path, tokens[index].line, Span(index, index + 1), span, function, arguments[0], arguments[1],
+                  arguments[2], arguments[3:], ValueUsed(source, span))
+
+
+def _RawSite(program: Program, source: SourceFile, index: int) -> CallSite | None:
+  """`event(game, ID, words...)` through a callback parameter of a scalar-word event type."""
+  tokens, partners = source.tokens, source.partners
+  function = program.Enclosing(source.path, index)
+  if function is None or tokens[index - 1].text == "::":
+    return None
+  position = function.ParameterIndex(tokens[index].text)
+  if position is None or not set(re.findall(r"\w+", function.parameters[position].type)) & SCALAR_EVENTS:
+    return None
+  arguments = Arguments(tokens, partners, index + 1)
+  if len(arguments) < 2:
+    return None
+  span = Span(index, partners[index + 1] + 1)
+  return CallSite(source.path, tokens[index].line, Span(index, index + 1), span, function, arguments[0], Span(index, index + 1),
+                  arguments[1], arguments[2:], ValueUsed(source, span))
 
 
 def ValueUsed(source: SourceFile, span: Span) -> bool:

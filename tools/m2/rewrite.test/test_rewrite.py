@@ -147,7 +147,7 @@ def test_apply_rewrites_a_scratch_copy(tmp_path):
   assert "Call(ds, event, TWICE);" in alpha
   assert '#include "core/target.hpp"' in (tree / "sources/opeu/game/core/gamma.cpp").read_text()
   assert "#include <array>" in alpha
-  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/map/battle.cpp": 5,
+  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/io/input.cpp": 3, "game/map/battle.cpp": 5,
                               "game/map/plan.cpp": 8, "game/units/orders.cpp": 4}
   assert applied.skipped == ["game/common/rows.hpp:19 needs core/rows-panel.hpp, which includes this header (an include cycle); left for a hand edit"]
 
@@ -167,8 +167,8 @@ def test_apply_hoists_before_a_declaration_and_names_each_sites_words_apart(tmp_
 def test_the_dry_run_writes_the_model_plans_and_listings(tmp_path):
   assert rewrite.main(["--tree", str(FIXTURE), "--out", str(tmp_path)]) == 0
   summary = json.loads((tmp_path / "summary.json").read_text())
-  assert summary["plans"] == {"b2": 5, "b3": 24}
-  assert summary["call_sites"] == 36
+  assert summary["plans"] == {"b2": 5, "b3": 27}
+  assert summary["call_sites"] == 39
   assert summary["unresolved_by_reason"] == {"multi-statement case or handler": 2, "id not served": 2, "service id is a parameter": 1,
                                              "callback bound to dispatchers that reach different code": 1, "no link handler at the address": 1}
   plan = json.loads((tmp_path / "plan-b2.json").read_text())
@@ -306,3 +306,16 @@ def test_a_battle_dispatchers_own_branch_is_a_case(model):
 def test_a_handler_of_a_local_and_its_use_is_one_statement(model):
   assert Replacement(model, "game/map/battle.cpp", 69) == "static_cast<std::uint16_t>(opeu_ask(ds, 8))"
   assert Replacement(model, "game/map/battle.cpp", 70) == "opeu_mark_cell(ds, yes)"
+
+
+def test_a_word_array_wrapper_forwards_a_group_without_a_count_and_reads_a_span_of_a_literal_length(model):
+  assert Replacement(model, "game/io/input.cpp", 43) == "opeu_fill(ds, std::array<std::uint16_t, 3>{ 7, 8, 0 })"
+  assert TargetOf(model, "game/io/input.cpp", 43).chain == ["svc_input", "svc_draw", "1"]
+
+
+def test_a_pointer_local_of_the_dispatcher_from_a_pure_call_is_inlined(model):
+  assert Replacement(model, "game/io/input.cpp", 44) == "opeu_put(ds, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>('x'))"
+
+
+def test_a_raw_call_of_a_scalar_event_is_a_site_whose_words_are_named(model):
+  assert Replacement(model, "game/io/input.cpp", 45) == "opeu_pending(ds, 6, 5)"
