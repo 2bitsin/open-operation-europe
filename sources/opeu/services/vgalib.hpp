@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <span>
 
 // Start-up: the graphics screen shown, cleared, with the start colour map and palette.
@@ -11,8 +12,9 @@ void vgalib_init(void);
 // The frame as palette entries and the palette in 8-bit levels; true when anything changed since the previous call.
 auto VgalibRender(std::span<std::uint8_t, 640 * 480> frame, std::span<std::uint8_t, 768> palette) -> bool;
 
-// Reader callback of the picture decoders: returns the next stream byte.
-using PictureByteReader = uint8_t (*)(void);
+// Reader of the picture decoders: returns the next stream byte. A callable the caller injects; a plain function
+// pointer (the game's port_picture_reader, the opening's stream) converts to it.
+using PictureByteReader = std::function<std::uint8_t()>;
 
 // Colours 0-15 show palette entries 0-15.
 void koei_vga_identity_palette(void);
@@ -70,5 +72,5 @@ void opeu_text_mode(void);
 void                   opeu_screen_copy(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t x2, uint16_t y2);
 inline constexpr auto& opeu_vga_copy{ opeu_screen_copy };
 // Picture decoders (stream format at Canvas::DecodePicture): masked (run table, 16 colours) and plain (8 colours). 0 or -1.
-int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader reader);
-int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader reader);
+int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader const& reader);
+int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader const& reader);

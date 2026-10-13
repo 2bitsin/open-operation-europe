@@ -320,6 +320,10 @@ static void TestPicture(void) {
     Check(px(8 + x, 4) == e, "plain row1 copy-up x={}", x);
   }
   Check(stream == PLAIN_PICTURE + sizeof PLAIN_PICTURE, "plain stream consumed");
+  Fillpx(0);
+  std::size_t read{};
+  auto const  reader{ [&read] { return PLAIN_PICTURE[read++]; } }; // an injected reader with state of its own
+  Check(opeu_picture_decode(8, 3, reader) == 0 && read == sizeof PLAIN_PICTURE && px(9, 3) == 4 && px(11, 4) == 1, "plain decode from a capturing reader");
 
   Fillpx(0);
   stream = MASKED;

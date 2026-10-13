@@ -114,7 +114,7 @@ constexpr std::array<std::uint8_t, COLOURS> START_COLOUR_MAP{ 0x00, 0x01, 0x02, 
   return GameAt(0, 0) + Offset{ unit } * 4;
 }
 
-[[nodiscard]] auto ReadWord(ByteReader read) -> std::uint16_t {
+[[nodiscard]] auto ReadWord(ByteReader const& read) -> std::uint16_t {
   std::uint16_t const low{ read() };
   return static_cast<std::uint16_t>(low | read() << 8);
 }
@@ -547,7 +547,7 @@ auto Canvas::PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void {
   _changed = true;
 }
 
-auto Canvas::MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept -> std::uint16_t {
+auto Canvas::MaskedLiteral(std::uint8_t command, ByteReader const& read) const noexcept -> std::uint16_t {
   auto const kind{ static_cast<std::uint8_t>(command & 0x78) };
   if (kind == 0) return 0;
   if (kind & 0x40) return _picture_runs[(kind >> 3) & 7];
@@ -578,7 +578,7 @@ auto Canvas::MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept
 //             0001..0110 one byte b for the colour-bit pairs (1,0) (2,0) (3,0) (2,1) (3,1) (3,2), high nibble to the
 //             higher bit, the other bits 0.
 // A bad header leaves the stream partly read.
-auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bool masked) noexcept -> Drawn {
+auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader const& read, bool masked) noexcept -> Drawn {
   auto const width{ ReadWord(read) };
   if (static_cast<std::uint16_t>(width - 1) > 639) return std::unexpected{ DrawError::BAD_HEADER };
   auto const height{ ReadWord(read) };
@@ -586,7 +586,7 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bo
   if (y > 399 || static_cast<std::uint16_t>(height + y) > 400) return std::unexpected{ DrawError::BAD_HEADER };
   if (x > 639 || static_cast<std::uint16_t>(x + width) > 640) return std::unexpected{ DrawError::BAD_HEADER };
   auto const units{ static_cast<std::uint16_t>((width + 3) >> 2) };
-  if (masked) std::ranges::generate(_picture_runs, [read] { return ReadWord(read); });
+  if (masked) std::ranges::generate(_picture_runs, [&read] { return ReadWord(read); });
   for (auto const row : std::views::iota(0, int{ height })) {
     auto unit{ static_cast<std::uint16_t>((x >> 2) + (y + row) * 160u) };
     // Commands until the row's units are covered; the decoder cannot know a command's length before reading it.

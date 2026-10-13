@@ -123,11 +123,11 @@ void opeu_screen_copy(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t
   Screen().CopyColumns(x1, y1, w, h, x2, y2);
 }
 
-int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader reader) {
+int16_t opeu_picture_decode_masked(uint16_t x, uint16_t y, PictureByteReader const& reader) {
   return Status(Screen().DecodePicture(x, y, reader, true));
 }
 
-int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader reader) {
+int16_t opeu_picture_decode(uint16_t x, uint16_t y, PictureByteReader const& reader) {
   return Status(Screen().DecodePicture(x, y, reader, false));
 }
 

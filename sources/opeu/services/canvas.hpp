@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <span>
 
 namespace opeu::services::detail::canvas {
@@ -46,8 +47,8 @@ enum class DrawError : std::uint8_t {
 };
 using Drawn = std::expected<void, DrawError>;
 
-// Supplies the next byte of a picture stream.
-using ByteReader = std::uint8_t (*)();
+// Supplies the next byte of a picture stream (injected by the caller: a file, a memory block, a test's bytes).
+using ByteReader = std::function<std::uint8_t()>;
 
 // Images arrive in the game's forms: column images of one byte per colour bit for each 8 pixels (leftmost in bit 7),
 // 1-bit glyphs, pictures in 4-pixel units. Coordinates are game coordinates; the column routines count x and w in
@@ -111,7 +112,7 @@ public:
   auto Plot(std::uint16_t x, std::uint16_t y, std::uint16_t colour) noexcept -> void;
   auto Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void;
   auto CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2, std::uint16_t y2) noexcept -> void;
-  auto DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader read, bool masked) noexcept -> Drawn;
+  auto DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader const& read, bool masked) noexcept -> Drawn;
 
   // ---- presentation ----
   // True once after every change.
@@ -164,7 +165,7 @@ private:
   auto               PenBits(Offset at, std::uint8_t bits) noexcept -> void;
   auto               PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t colour, std::uint8_t& pattern_bit) noexcept -> void;
   auto               PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void;
-  [[nodiscard]] auto MaskedLiteral(std::uint8_t command, ByteReader read) const noexcept -> std::uint16_t;
+  [[nodiscard]] auto MaskedLiteral(std::uint8_t command, ByteReader const& read) const noexcept -> std::uint16_t;
 
   std::array<canvas::Pixel, STORED>       _pixels{};
   std::array<std::uint8_t, PALETTE_BYTES> _palette{};
