@@ -78,8 +78,11 @@ pointer fields, the register field accesses (`.ax`, `->dl`) and the C
 memory and string routines (`c_mem`: `memset`, `memcpy`, `strcmp`, ...)
 the C stdio file calls (`c_stdio`: `fopen`, `fread`, ...) and the
 includes of C headers (`c_lib_header`: `<cstring>`, `<cstdlib>`,
-`<string.h>`, `<stdlib.h>`; `c_header`: any `<name.h>`), comments
-included;
+`<string.h>`, `<stdlib.h>`; `c_header`: any `<name.h>`), and the
+remnant rows (`koei_names`, `variadic`, `printf`, `printf_family`,
+`c_runtime`, `seg_off`, `void_cast`, `c_comment`, `preproc_if`,
+`reinterpret_cast`, `c_int_types`, `legacy_prefix`, `placeholder`),
+comments included (`c_comment` counts `/*` openers only);
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
 starts from the baseline committed at `HEAD`, not the working file, and
