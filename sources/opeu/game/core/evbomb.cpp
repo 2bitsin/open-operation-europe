@@ -182,7 +182,7 @@ uint16_t svc_evbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case SPRITE_COMPOSE: opeu_sprite_compose(word(0), word(1), word(2), word(3), port_far(word(5), word(4)), port_far(word(7), word(6)), port_far(word(9), word(8)), word(10)); break;
   case BITMAP_RESTORE: result = static_cast<uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6)))); break;
   case MAP_CENTER:     {
-    opeu_map_center(game, svc_mappos, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
+    opeu_map_center(game, static_cast<uint8_t>(word(0)), static_cast<uint8_t>(word(1)), static_cast<uint8_t>(word(2)));
     break;
   }
   case SOUND_CUE:      opeu_sound_cue4(game, svc_soundcue); break;

@@ -301,14 +301,12 @@ uint16_t opeu_control_coordinates(Game& game, HostEvent event, uint16_t x, uint1
 uint16_t svc_coords(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case LOCATION:
-    opeu_arrival_location(game, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  case RESET:           opeu_input_reset(game, svc_mouse); break;
-  case SAVE:            opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
-  case ERASE:           opeu_map_erase(game, svc_maperase, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case INSPECT:         opeu_map_inspect(game, svc_inspect, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case CURSOR:          opeu_map_cursor(game, svc_cursor, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
+  case RESET:    opeu_input_reset(game, svc_mouse); break;
+  case SAVE:     opeu_bitmap_save(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), port_far(Arg(args, count, 4), Arg(args, count, 5))); break;
+  case ERASE:    opeu_map_erase(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case INSPECT:  opeu_map_inspect(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
+  case CURSOR:   opeu_map_cursor(game, svc_cursor, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OBJECTIVE_PANEL: opeu_objective_panel(game, svc_vwpanel, Arg(args, count, 0)); break;
   case UNIT_PANEL:      opeu_unit_panel(game, svc_vwpanel, Arg(args, count, 0)); break;
   case SUMMARY:         opeu_army_summary(game, svc_armysum); break;
@@ -317,7 +315,7 @@ uint16_t svc_coords(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case MOUSE_POSITION:  opeu_mouse_position(game, svc_mouse, Arg(args, count, 0), Arg(args, count, 1)); break;
   case MOUSE_HIDE:      opeu_mouse_hide(game, svc_mouse); break;
   case PAN:
-    opeu_viewport_pan(game, svc_viewpan, static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
+    opeu_viewport_pan(game, static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
                       static_cast<std::uint8_t>(Arg(args, count, 4)), static_cast<std::uint8_t>(Arg(args, count, 3)));
     break;
   case UNIT_ACTION: opeu_unit_action(game, svc_ordact, Arg(args, count, 0), Arg(args, count, 1)); break;

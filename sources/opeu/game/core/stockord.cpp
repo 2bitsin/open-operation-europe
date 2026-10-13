@@ -135,7 +135,7 @@ void opeu_turn_action_2(Game& game, uint16_t segment) {
     opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
     if (!opeu_list_dialog(game, svc_listdlg, offsetof(DataSegment, city_dialog), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height))) break;
     auto const objective{ data.view_objectives[data.list_row] };
-    opeu_unit_flash(game, svc_mapunit, objective, static_cast<uint8_t>(FLASH_TICKS));
+    opeu_unit_flash(game, objective, static_cast<uint8_t>(FLASH_TICKS));
     opeu_stock_edit(game, objective);
     height = LATER_HEIGHT;
   }

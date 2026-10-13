@@ -276,7 +276,7 @@ uint16_t svc_paraunit(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
   }
   case ParaService::UNIT_AT:         r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ParaService::ARRIVAL_PREPARE: {
-    opeu_arrival_prepare(game, svc_maperase, Arg(args, count, 0));
+    opeu_arrival_prepare(game, Arg(args, count, 0));
     break;
   }
   case ParaService::CASUALTIES: {
@@ -286,7 +286,7 @@ uint16_t svc_paraunit(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
   case ParaService::CELL_MARKED: r = opeu_cell_marked(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ParaService::MARK_CELL:   opeu_mark_cell(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ParaService::MAP_ERASE:   {
-    opeu_map_erase(game, svc_maperase, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
+    opeu_map_erase(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1));
     break;
   }
   case ParaService::CELL_SIDE: r = opeu_cell_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

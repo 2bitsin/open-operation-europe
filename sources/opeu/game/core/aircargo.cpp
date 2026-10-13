@@ -283,7 +283,7 @@ uint16_t svc_aircargo(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case SOUND_CUE:       opeu_sound_cue4(game, svc_soundcue); break;
   case REQUEST_FORMAT:  opeu_request_format(game, { args, count }); break;
   case MAP_CENTER:      {
-    opeu_map_center(game, svc_mappos, byte(0), byte(1), byte(2));
+    opeu_map_center(game, byte(0), byte(1), byte(2));
     break;
   }
   case DAILY_SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;

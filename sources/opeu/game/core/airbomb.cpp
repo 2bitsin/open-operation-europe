@@ -194,7 +194,7 @@ uint16_t svc_air(Game& game, const char* module, uint16_t id, const uint16_t* ar
   case DIALOG:    result = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case TITLE:     opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case PICK:      {
-    result = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1));
+    result = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1));
     break;
   }
   case LIST_DIALOG: result = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2))); break;

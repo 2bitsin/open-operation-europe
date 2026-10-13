@@ -23,18 +23,13 @@ void opeu_control_position(Game& game, uint16_t x, uint16_t y) {
 }
 
 // Scrolls so that the block holding (x, y) is one block inside the view. frame: this routine's frame.
-void opeu_map_center(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
-  opeu_map_scroll_to(game, event, static_cast<int16_t>((x & BLOCK_MASK) - BLOCK), static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
+void opeu_map_center(Game& game, uint8_t x, uint8_t y, uint8_t side) {
+  opeu_map_scroll_to(game, static_cast<int16_t>((x & BLOCK_MASK) - BLOCK), static_cast<int16_t>((y & BLOCK_MASK) - BLOCK), side);
 }
 
-void opeu_arrival_location(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
+void opeu_arrival_location(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   if (!Data(game).map_mode[0])
-    opeu_daily_activate(game, event, side);
+    opeu_daily_activate(game, side);
   else
-    opeu_map_center(game, event, x, y, side);
-}
-
-// This module raises nothing itself; the routines it runs use the map segment's shared services.
-uint16_t svc_mappos(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(game, "mappos", kind, args, count);
+    opeu_map_center(game, x, y, side);
 }

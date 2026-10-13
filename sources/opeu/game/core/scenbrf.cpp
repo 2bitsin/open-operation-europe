@@ -368,7 +368,7 @@ void opeu_brief_berlin(Game& game, HostEvent event) {
 uint16_t svc_scenbrf(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case ACTIVATE:        opeu_daily_activate(game, svc_maperase, (uint8_t)Arg(args, count, 0)); break;
+  case ACTIVATE:        opeu_daily_activate(game, (uint8_t)Arg(args, count, 0)); break;
   case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OVERVIEW_PIXEL:  opeu_overview_pixel(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case INVERT:          r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;

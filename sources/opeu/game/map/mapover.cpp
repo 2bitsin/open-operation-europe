@@ -9,6 +9,7 @@
 #include "common/memory.hpp"
 #include "common/order.hpp"
 #include "common/scenario.hpp"
+#include "core/memory.hpp"
 #include "core/recindex.hpp"
 #include "map/blast.hpp"
 #include "map/cellflag.hpp"
@@ -44,9 +45,10 @@ constexpr uint16_t BULGE_MARKER[2]{ 2, 4 };
 constexpr uint16_t MARKER[2]{ 0x702, 0x701 };
 
 // Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
-void Compose(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
+void Compose(Game& game, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
   auto const& data{ Data(game) };
-  Call(game, event, MapService::SPRITE_COMPOSE, x, y, 1, 8, data.stream_ptr[0], data.stream_ptr[1], offset, segment, 0, data.bitmap_buffer, 0);
+  opeu_sprite_compose(x, y, 1, 8, port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])), port_far(segment, offset),
+                      port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 0);
 }
 
 // side_status of any side byte, 255 included, read where the original reads it.
@@ -57,15 +59,15 @@ void Compose(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t offse
 } // namespace
 
 // The glyph is read into a DS buffer the far read, the recolouring and the compose service work on.
-void opeu_overview_unit_draw(Game& game, HostEvent event, uint16_t unit, uint16_t x, uint16_t y) {
+void opeu_overview_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ GLYPH_BYTES };
   auto const          buffer{ locals.At(0) };
   auto const          draw{ [&](uint16_t glyphs, uint16_t mask) {
-    Call(game, event, MapService::READ_FAR_BYTES, glyphs, SPRITE_SEGMENT, buffer, GLYPH_BYTES);
+    opeu_read_far_bytes(game, port_far(SPRITE_SEGMENT, 0), static_cast<std::uint16_t>(glyphs), static_cast<std::uint16_t>(buffer), GLYPH_BYTES);
     opeu_sprite_recolor(game, buffer, GLYPH_BYTES, opeu_unit_side(unit));
     SetStream(data, SPRITE_SEGMENT, mask);
-    Compose(game, event, x, y, buffer, DATA_SEGMENT);
+    Compose(game, x, y, buffer, DATA_SEGMENT);
   } };
   bool       order_shown{ false };
   auto const side{ opeu_unit_side(unit) };
@@ -88,25 +90,28 @@ void opeu_overview_unit_draw(Game& game, HostEvent event, uint16_t unit, uint16_
 }
 
 // Redraws the overview's cell (x, y) and the unit on it.
-void opeu_overview_cell_draw(Game& game, HostEvent event, uint8_t x, uint8_t y) {
+void opeu_overview_cell_draw(Game& game, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto const pixel{ OverviewPixel({ x, y }) };
   auto const pixel_x{ pixel.x };
   auto const pixel_y{ pixel.y };
   auto const tile{ data.map_tiles[MAP_WIDTH * y + x] };
-  Call(game, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 1, 8, 0, data.overview_tile_segment, tile * TILE_BYTES);
+  opeu_bitmap_restore(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, 0,
+                      port_far(static_cast<std::uint16_t>(data.overview_tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)));
   if (auto const objective{ opeu_find_objective_at(game, x, y) }) {
     auto const& modes{ CurrentScenario(data) == Scenario::BULGE ? BULGE_MARKER : MARKER };
     auto const  mode{ modes[opeu_objective_side(game, objective) == 0 ? 0 : 1] };
-    Call(game, event, MapService::DRAW_MASKED_NEAR, pixel_x, pixel_y, 1, 8, mode, Near(data, data.overview_objective_glyph));
+    opeu_code_0000_28c5(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, static_cast<std::uint16_t>(mode),
+                        game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.overview_objective_glyph))).data());
   }
   if (SideStatus(game, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(game, x, y, data.overview_side)) {
     SetStream(data, SPRITE_SEGMENT, MARK_MASK);
-    Compose(game, event, pixel_x, pixel_y, MARK_GLYPH, SPRITE_SEGMENT);
+    Compose(game, pixel_x, pixel_y, MARK_GLYPH, SPRITE_SEGMENT);
   }
   if (opeu_map_code(game, x, y) == BRIDGE_CODE) {
     SetStream(data, SPRITE_SEGMENT, BRIDGE_GLYPH);
-    Call(game, event, MapService::BLIT_FAR, pixel_x, pixel_y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
+    opeu_blit_far(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, 4,
+                  port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
   }
-  if (auto const unit{ opeu_find_unit_at(game, x, y) }; unit && opeu_unit_visible(game, unit)) opeu_overview_unit_draw(game, event, unit, pixel_x, pixel_y);
+  if (auto const unit{ opeu_find_unit_at(game, x, y) }; unit && opeu_unit_visible(game, unit)) opeu_overview_unit_draw(game, unit, pixel_x, pixel_y);
 }

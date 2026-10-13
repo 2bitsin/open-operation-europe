@@ -60,7 +60,7 @@ uint16_t svc_delivery(const char* module, Game& game, uint16_t id, const uint16_
   uint16_t r = 0;
   switch (static_cast<DeliveryService>(id)) {
   case DeliveryService::LOCATION: {
-    opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
+    opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
   case DeliveryService::MESSAGE_TEXT: r = opeu_message_lookup(game, svc_msglook, (short)Arg(args, count, 0)); break;

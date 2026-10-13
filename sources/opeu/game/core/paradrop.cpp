@@ -220,7 +220,7 @@ uint16_t svc_paradrop(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case DropService::CUE:             opeu_sound_cue4(game, svc_soundcue); break;
   case DropService::SIDE_FOR_STATUS: r = opeu_side_for_status(game, (uint8_t)Arg(args, count, 0)); break;
   case DropService::MAP_CENTER:      {
-    opeu_map_center(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
+    opeu_map_center(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;
   }
   case DropService::DAILY_SHOW:      port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
@@ -228,7 +228,7 @@ uint16_t svc_paradrop(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case DropService::UNIT_CREATE:     r = CreateDropUnit(game, static_cast<uint8_t>(Arg(args, count, 0)), Arg(args, count, 1)); break;
   case DropService::LAND:            r = opeu_para_land(game, svc_paraunit, Arg(args, count, 0), Arg(args, count, 1)); break;
   case DropService::ARRIVAL_PREPARE: {
-    opeu_arrival_prepare(game, svc_maperase, Arg(args, count, 0));
+    opeu_arrival_prepare(game, Arg(args, count, 0));
     break;
   }
   case DropService::DELAY:       opeu_delay_ticks(game, Arg(args, count, 0)); break;

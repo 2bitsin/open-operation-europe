@@ -148,14 +148,14 @@ int svc_orders(Game& game, uint16_t id, const uint16_t* args, uint16_t count, ui
   case ORDERS_REQUEST_FORMAT:   opeu_request_format(game, { args, count }); break;
   case ORDERS_CONTROL_MESSAGE:  opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_CONFIRM_MESSAGE:  r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ORDERS_PICK_LOCATION:    r = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case ORDERS_ARRIVAL_LOCATION: opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ORDERS_PICK_LOCATION:    r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_CONTROL_PANEL:    opeu_title_panel_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case ORDERS_GROUP_SHOW:       opeu_group_show(game, svc_mapunit, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case ORDERS_GROUP_SHOW:       opeu_group_show(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case ORDERS_LIST_DIALOG:      r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case ORDERS_UNIT_ORDER_MENU:  opeu_unit_order_menu(game, svc_ordissue, (uint8_t)Arg(args, count, 0)); break;
   case ORDERS_SPEAKER_PANEL:    r = opeu_speaker_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_UNIT_ANNOUNCE:    opeu_unit_announce(game, svc_mapunit, Arg(args, count, 0)); break;
+  case ORDERS_UNIT_ANNOUNCE:    opeu_unit_announce(game, Arg(args, count, 0)); break;
   case ORDERS_ARMY_POSITION:    opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case ORDERS_PROMPT:           r = opeu_prompt_value_cancel(game, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case ORDERS_CONTROL_POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;

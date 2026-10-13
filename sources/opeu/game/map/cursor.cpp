@@ -16,6 +16,7 @@
 #include "common/game.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -35,19 +36,21 @@ void opeu_map_cursor(Game& game, HostEvent event, uint16_t x, uint16_t y) {
   auto const  cell_x{ static_cast<uint8_t>(x) };
   auto const  cell_y{ static_cast<uint8_t>(y) };
   auto const  terrain{ opeu_map_code(game, cell_x, cell_y) };
-  Call(game, event, CursorService::BEGIN);
-  Call(game, event, CursorService::PRINT, Near(data, data.cursor_position_format), data.map_scale * cell_x, data.map_scale * cell_y);
-  Call(game, event, CursorService::TEXT, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
+  opeu_turn_active_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
+  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_position_format)), static_cast<std::uint16_t>(data.map_scale * cell_x),
+                                                        static_cast<std::uint16_t>(data.map_scale * cell_y) });
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
   auto const side{ opeu_cell_side(game, cell_x, cell_y) };
   if (side != NO_SIDE) {
     auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
     if ((side == data.current_side && opeu_unit_selection_eligible(game, unit)) || (side != data.current_side && opeu_unit_special(game, unit))) {
       ServiceLocals const locals{ NAME_BUFFER_BYTES };
       auto const          name{ opeu_unit_name(game, event, unit, locals.At(0)) };
-      Call(game, event, CursorService::PRINT, Near(data, data.cursor_unit_format), data.side_names[side], name);
+      opeu_cursor_print(
+          game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_unit_format)), static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(name) });
     }
   }
-  Call(game, event, CursorService::TEXT, Near(data, data.cursor_end));
+  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.cursor_end));
 }
 
 uint16_t svc_cursor(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {

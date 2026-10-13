@@ -106,12 +106,10 @@ uint16_t svc_control1(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case PREPARE:  opeu_control_prepare(game); break;
   case BEGIN:    opeu_control_begin(game, svc_soundcue); break;
   case POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOCATION:
-    opeu_arrival_location(game, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  case SUMMARY: opeu_army_summary(game, svc_armysum); break;
-  case ACTIVE:  opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case FORMAT:  opeu_request_format(game, { args, count }); break;
+  case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
+  case SUMMARY:  opeu_army_summary(game, svc_armysum); break;
+  case ACTIVE:   opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
+  case FORMAT:   opeu_request_format(game, { args, count }); break;
   case MENU:
     result = opeu_control_choose(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
                                  Arg(args, count, 5));

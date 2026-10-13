@@ -350,14 +350,14 @@ int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case OrderService::CONFIRM_MESSAGE:         r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::DAILY_SHOW:              opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
   case OrderService::OPPOSITE_SIDE:           r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
-  case OrderService::MOVE_OBJECTIVE_TARGET:   r = opeu_move_objective_target(game, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case OrderService::MOVE_ADJACENT:           r = opeu_move_adjacent(game, svc_movetgt, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::MOVE_OBJECTIVE_TARGET:   r = opeu_move_objective_target(game, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case OrderService::MOVE_ADJACENT:           r = opeu_move_adjacent(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::MOVE_LEVEL_LOWER:        r = opeu_move_level_lower(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::CELL_SIDE:               r = opeu_cell_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::OBJECTIVE_QUANTITY:      r = opeu_objective_quantity(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), game.State().Bytes(Arg(args, count, 2), 1).data()); break;
-  case OrderService::MOVE_UNIT:               opeu_move_unit(game, svc_moveunit, Arg(args, count, 0)); break;
+  case OrderService::MOVE_UNIT:               opeu_move_unit(game, Arg(args, count, 0)); break;
   case OrderService::SIDE_GROUPS_RETARGET:    opeu_side_groups_retarget(game, (uint8_t)Arg(args, count, 0)); break;
-  case OrderService::MOVE_UNIT_TARGET:        r = opeu_move_unit_target(game, svc_movetgt, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OrderService::MOVE_UNIT_TARGET:        r = opeu_move_unit_target(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::UNIT_NAME:               r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::ABS16_BITS:              r = opeu_abs16_bits(Arg(args, count, 0)); break;
   case OrderService::UNIT_PERSON:             r = opeu_unit_person(game, Arg(args, count, 0)); break;
@@ -368,7 +368,7 @@ int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t co
     break;
   case OrderService::MAP_CODE:       r = opeu_map_code(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::MAP_MARK5:      opeu_map_mark_5(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::MAP_ERASE:      opeu_map_erase(game, svc_maperase, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case OrderService::MAP_ERASE:      opeu_map_erase(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::WAIT_UNITS:     opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::SOUND_CUE5:     opeu_sound_cue5(game, svc_soundcue); break;

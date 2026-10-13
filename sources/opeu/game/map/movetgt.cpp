@@ -31,11 +31,11 @@
 #include "common/game.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
+#include <array>
 
 using namespace opeu::game;
 
 namespace {
-constexpr uint16_t PATH_SEGMENT{ 0x4582 }; // the far path-cost grid and queue
 // opeu_move_adjacent's DS reserve for the step coordinates the grid step service moves.
 constexpr uint16_t STEP_RESERVE{ 4 };
 constexpr uint16_t STEP_X_AT{ 2 };
@@ -54,7 +54,7 @@ constexpr uint8_t PROGRESS_UNSET{ 255 };
 } // namespace
 
 // Whether (x, y) is the current unit's cell or one next to it.
-uint16_t opeu_move_adjacent(Game& game, HostEvent event, uint8_t x, uint8_t y) {
+uint16_t opeu_move_adjacent(Game& game, uint8_t x, uint8_t y) {
   auto const&         data{ Data(game) };
   auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
   ServiceLocals const locals{ STEP_RESERVE };
@@ -63,42 +63,45 @@ uint16_t opeu_move_adjacent(Game& game, HostEvent event, uint8_t x, uint8_t y) {
   for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; direction++) {
     Byte(game, x_at) = unit.x;
     Byte(game, y_at) = unit.y;
-    if (Call(game, event, MoveService::GRID_STEP, x_at, y_at, direction) && x == Byte(game, x_at) && y == Byte(game, y_at)) return 1;
+    if (opeu_grid_step(game.State().Bytes(static_cast<std::uint16_t>(x_at), 1).data(), game.State().Bytes(static_cast<std::uint16_t>(y_at), 1).data(), static_cast<uint8_t>(direction))
+        && x == Byte(game, x_at) && y == Byte(game, y_at))
+      return 1;
   }
   return 0;
 }
 
 // The objective at the current unit's order destination when the side holds it; otherwise the order is restored and
 // 0 returned. x and y: DS offsets of the bytes that receive the destination.
-uint16_t opeu_move_objective_target(Game& game, HostEvent event, uint16_t x, uint16_t y, uint8_t side) {
+uint16_t opeu_move_objective_target(Game& game, uint16_t x, uint16_t y, uint8_t side) {
   auto const current{ Data(game).current_unit_ptr };
-  if (Call(game, event, MoveService::DESTINATION, current, x, y)) {
-    auto const objective{ Call(game, event, MoveService::FIND_OBJECTIVE, Byte(game, x), Byte(game, y)) };
-    if (static_cast<uint8_t>(Call(game, event, MoveService::OBJECTIVE_SIDE, objective)) == side) return objective;
+  if (opeu_unit_order_destination(game, static_cast<std::uint16_t>(current), game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
+    auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y))) };
+    if (static_cast<uint8_t>(opeu_objective_side(game, objective)) == side) return objective;
   }
-  Call(game, event, MoveService::RESTORE_ORDER, current);
+  opeu_restore_unit_order(game, static_cast<std::uint16_t>(current));
   return 0;
 }
 
 // The unit at the current unit's order destination. A player's side (or a computer side below delivery level 2) must
 // still see it: a friendly unit must be selectable, an enemy one spotted; otherwise the loss of sight is reported, the
 // order restored and 0 returned.
-uint16_t opeu_move_unit_target(Game& game, HostEvent event, uint16_t x, uint16_t y) {
+uint16_t opeu_move_unit_target(Game& game, uint16_t x, uint16_t y) {
   auto const& data{ Data(game) };
   auto const  current{ data.current_unit_ptr };
-  if (Call(game, event, MoveService::DESTINATION, current, x, y)) {
-    auto const target{ Call(game, event, MoveService::FIND_UNIT, Byte(game, x), Byte(game, y)) };
+  if (opeu_unit_order_destination(game, static_cast<std::uint16_t>(current), game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
+    auto const target{ opeu_find_unit_at(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y))) };
     if (data.side_control[data.current_side] != SIDE_PLAYED && data.delivery_level >= 2) return target;
-    auto const side{ static_cast<uint8_t>(Call(game, event, MoveService::UNIT_SIDE, target)) };
-    auto const seen{ side == data.current_side ? Call(game, event, MoveService::UNIT_ELIGIBLE, target) : Call(game, event, MoveService::UNIT_SPOTTED, target) };
+    auto const side{ static_cast<uint8_t>(opeu_unit_side(target)) };
+    auto const seen{ side == data.current_side ? opeu_unit_selection_eligible(game, target) : opeu_unit_special(game, target) };
     if (seen) return target;
     ServiceLocals const locals{ REPORT_RESERVE };
     auto const          report{ locals.At(REPORT_AT) };
-    Call(game, event, MoveService::FORMAT, report, Near(data, data.lost_sight_format), side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side],
-         Call(game, event, MoveService::UNIT_NAME, target, locals.At(NAME_AT)));
-    Call(game, event, MoveService::UNIT_MESSAGE, current, report);
+    opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.lost_sight_format)),
+                                                            static_cast<std::uint16_t>(side == 0 ? SIDE_0_LOST : SIDE_1_LOST), static_cast<std::uint16_t>(data.side_names[side]),
+                                                            static_cast<std::uint16_t>(opeu_unit_name(game, svc_unitname, target, static_cast<std::uint16_t>(locals.At(NAME_AT)))) });
+    opeu_unit_report(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(report));
   }
-  Call(game, event, MoveService::RESTORE_ORDER, current);
+  opeu_restore_unit_order(game, static_cast<std::uint16_t>(current));
   return 0;
 }
 
@@ -116,48 +119,4 @@ uint16_t opeu_move_level_lower(Game& game, uint16_t record, uint8_t value) {
   if (progress && progress < PROGRESS_UP) --progress;
   if (progress == PROGRESS_DONE_UP || progress == PROGRESS_UNSET) progress = value;
   return progress == 0;
-}
-
-uint16_t svc_map_move(Game& game, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
-  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  switch (static_cast<MoveService>(id)) {
-  case MoveService::RATING:           return opeu_move_rating(game, svc_movemine);
-  case MoveService::GRID_STEP:        return opeu_grid_step(game.State().Bytes(arg(0), 1).data(), game.State().Bytes(arg(1), 1).data(), byte(2));
-  case MoveService::COST:             return opeu_move_cost(game, byte(0), byte(1), arg(2));
-  case MoveService::DISTANCE:         return opeu_grid_distance(byte(0), byte(1), byte(2), byte(3));
-  case MoveService::DESTINATION:      return opeu_unit_order_destination(game, arg(0), game.State().Bytes(arg(1), 1).data(), game.State().Bytes(arg(2), 1).data());
-  case MoveService::REACHABLE:        return opeu_move_reachable(game, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), byte(0), byte(1), byte(2), byte(3), arg(4));
-  case MoveService::IS_ENGINEER:      return opeu_category_6(byte(0));
-  case MoveService::STEP_TOWARD:      return opeu_grid_step_toward(game, port_far(PATH_SEGMENT, 0), arg(0), arg(1), byte(2), byte(3));
-  case MoveService::CLEAR_PATH:       opeu_move_clear(port_far(PATH_SEGMENT, 0), byte(0), byte(1)); return 0;
-  case MoveService::FIND_OBJECTIVE:   return opeu_find_objective_at(game, byte(0), byte(1));
-  case MoveService::OBJECTIVE_SIDE:   return opeu_objective_side(game, arg(0));
-  case MoveService::FIND_UNIT:        return opeu_find_unit_at(game, byte(0), byte(1));
-  case MoveService::UNIT_SIDE:        return opeu_unit_side(arg(0));
-  case MoveService::CELL_SIDE:        return opeu_cell_side(game, byte(0), byte(1));
-  case MoveService::SUPPLIED:         return opeu_move_supplied(game);
-  case MoveService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, byte(0), byte(1), byte(2)); return 0;
-  case MoveService::ARRIVAL_VIEW:     opeu_arrival_view(game, svc_mapunit, arg(0)); return 0;
-  case MoveService::UNIT_ERASE:       opeu_unit_remove_draw(game, svc_maperase, arg(0)); return 0;
-  case MoveService::ARRIVAL_PREPARE:  opeu_arrival_prepare(game, svc_maperase, arg(0)); return 0;
-  case MoveService::CLAMP:            opeu_move_clamp(game); return 0;
-  case MoveService::CELL_MARKED:      return opeu_cell_marked(game, byte(0), byte(1), byte(2));
-  case MoveService::MINES:            opeu_move_mines(game, svc_movemine, byte(0), byte(1)); return 0;
-  case MoveService::SPOT:             opeu_move_spot(game, svc_movespot); return 0;
-  case MoveService::CONSUME:          opeu_move_consume(game); return 0;
-  case MoveService::ENEMY_ADJACENT:   return opeu_move_enemy_adjacent(game, svc_movespot);
-  case MoveService::RESTORE_ORDER:    opeu_restore_unit_order(game, arg(0)); return 0;
-  case MoveService::UNIT_ELIGIBLE:    return opeu_unit_selection_eligible(game, arg(0));
-  case MoveService::UNIT_SPOTTED:     return opeu_unit_special(game, arg(0));
-  case MoveService::UNIT_NAME:        return opeu_unit_name(game, svc_unitname, arg(0), arg(1));
-  case MoveService::FORMAT:           opeu_request_format(game, { args, count }); return 0;
-  case MoveService::UNIT_MESSAGE:     opeu_unit_report(game, static_cast<DialogHost const*>(port_dialogs_host()), arg(0), arg(1)); return 0;
-  default:                            port_unhandled(module, id, count);
-  }
-  return 0;
-}
-
-uint16_t svc_movetgt(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_map_move(game, "movetgt", id, args, count);
 }

@@ -275,7 +275,7 @@ uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case DELAY_DIALOG:         r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case ARMY_TITLE:           opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OBJECTIVE_SIDE:       r = opeu_objective_side(game, Arg(args, count, 0)); break;
   case ARMY_POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case DAILY_CONTEXT:        opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;

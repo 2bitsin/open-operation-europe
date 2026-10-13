@@ -305,9 +305,9 @@ uint16_t svc_notend(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   switch (id) {
   case SOUND_CUE:     opeu_sound_cue10(game, svc_soundcue); break;
   case WAIT:          opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case SHOW_LOCATION: opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ERASE_UNIT:    opeu_unit_remove_draw(game, svc_maperase, Arg(args, count, 0)); break;
-  case PREPARE_UNIT:  opeu_arrival_prepare(game, svc_maperase, Arg(args, count, 0)); break;
+  case SHOW_LOCATION: opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ERASE_UNIT:    opeu_unit_remove_draw(game, Arg(args, count, 0)); break;
+  case PREPARE_UNIT:  opeu_arrival_prepare(game, Arg(args, count, 0)); break;
   case FORMAT:        opeu_request_format(game, { args, count }); break;
   case UNIT_MESSAGE:  opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:   opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;

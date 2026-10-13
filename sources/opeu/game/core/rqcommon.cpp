@@ -113,7 +113,7 @@ uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t
   case RequestMenuService::CONFIRM:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case RequestMenuService::SHOW:         opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
-  case RequestMenuService::PICK:         r = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestMenuService::PICK:         r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::POSITION:     opeu_army_position(game, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
   case RequestMenuService::PRINT:        opeu_cursor_print(game, { args, count }); break;
   case RequestMenuService::MODE_IS:      r = opeu_request_mode_is(game, (uint8_t)Arg(args, count, 0)); break;

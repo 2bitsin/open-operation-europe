@@ -40,11 +40,9 @@ void opeu_turn_control_other(Game& game, HostEvent event, HostEvent context_even
 
 uint16_t svc_control2(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case LOCATION:
-    opeu_arrival_location(game, svc_mappos, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  case FINISH: opeu_control_other_finish(game); break;
-  default:     port_unhandled("control2", id, count);
+  case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
+  case FINISH:   opeu_control_other_finish(game); break;
+  default:       port_unhandled("control2", id, count);
   }
   return 0;
 }

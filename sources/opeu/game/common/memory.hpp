@@ -18,6 +18,7 @@ inline constexpr std::uint16_t DATA_SEGMENT{ 0x4712 };       // DS (= SS): a far
 inline constexpr std::uint16_t SPRITE_SEGMENT{ 0x361c };     // unit, order and effect sprites and their masks
 inline constexpr std::uint16_t FRAME_SEGMENT{ 0x349b };      // map tiles, cell frames and dialog frames
 inline constexpr std::uint16_t BACKGROUND_SEGMENT{ 0x3a64 }; // saved screen backgrounds (plane sprites, the weather)
+inline constexpr std::uint16_t PATH_SEGMENT{ 0x4582 };       // the movement path-cost grid and its queue
 
 // Calls a service with its argument words (a count of 0 passes no array); a service given as a scoped enum
 // (MapService, ViewService) passes its value. For services that write results back into the argument array, build
@@ -71,9 +72,10 @@ private:
 namespace opeu::game {
 using detail::memory::BACKGROUND_SEGMENT;
 using detail::memory::Call;
+using detail::memory::CallWords;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
-using detail::memory::CallWords;
+using detail::memory::PATH_SEGMENT;
 using detail::memory::ServiceLocals;
 using detail::memory::SPRITE_SEGMENT;
 } // namespace opeu::game

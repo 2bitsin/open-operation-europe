@@ -95,10 +95,10 @@ uint16_t svc_arrivals(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_
   uint16_t r = 0;
   switch (id) {
   case LOCATE:    r = opeu_arrival_locate(game, svc_arrplace, a0, a1, (uint8_t)a2); break;
-  case PREPARE:   opeu_arrival_prepare(game, svc_maperase, a0); break;
+  case PREPARE:   opeu_arrival_prepare(game, a0); break;
   case CONTEXT:   opeu_set_turn_context(game, svc_sound, (uint8_t)a0); break;
-  case LOCATION:  opeu_arrival_location(game, svc_mappos, (uint8_t)a0, (uint8_t)a1, (uint8_t)a2); break;
-  case UNIT_VIEW: opeu_arrival_view(game, svc_mapunit, a0); break;
+  case LOCATION:  opeu_arrival_location(game, (uint8_t)a0, (uint8_t)a1, (uint8_t)a2); break;
+  case UNIT_VIEW: opeu_arrival_view(game, a0); break;
   case SHOW:      opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
   case FINISH:    opeu_finish_side_initialization(game, svc_sound, (uint8_t)a0); break;
   default:        port_unhandled("arrivals", id, 4);

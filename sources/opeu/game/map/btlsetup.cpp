@@ -152,7 +152,7 @@ void opeu_battle_reset_elements(Game& game) {
 void opeu_notice_one(Game& game) {
   opeu_battle_reset_elements(game);
   opeu_battle_start_music(game);
-  opeu_battle_map_setup(game, svc_btlmap);
+  opeu_battle_map_setup(game);
   opeu_deploy_battle(game);
   opeu_battle_tire_leaders(game);
   opeu_battle_run_rounds(game);

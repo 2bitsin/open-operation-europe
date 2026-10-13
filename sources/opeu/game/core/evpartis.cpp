@@ -118,11 +118,11 @@ uint16_t svc_evpartis(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case MESSAGE:    opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW: port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case RISING:     {
-    opeu_location_flash(game, svc_mapunit, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)));
     break;
   }
   case ERASE: {
-    opeu_map_erase(game, svc_maperase, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
+    opeu_map_erase(game, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
     break;
   }
   default: port_unhandled("evpartis", id, count);

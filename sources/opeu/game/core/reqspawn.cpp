@@ -53,16 +53,16 @@ void opeu_request_action2(Game& game, PendingEvent event, uint8_t side, uint16_t
 uint16_t svc_reqspawn(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
   switch (static_cast<SpawnService>(id)) {
   case SpawnService::PREPARE: {
-    opeu_arrival_prepare(game, svc_maperase, a);
+    opeu_arrival_prepare(game, a);
     break;
   }
   case SpawnService::CONTEXT:  opeu_set_turn_context(game, svc_sound, (uint8_t)a); break;
   case SpawnService::LOCATION: {
-    opeu_arrival_location(game, svc_mappos, (uint8_t)a, (uint8_t)b, (uint8_t)c);
+    opeu_arrival_location(game, (uint8_t)a, (uint8_t)b, (uint8_t)c);
     break;
   }
   case SpawnService::VIEW: {
-    opeu_arrival_view(game, svc_mapunit, a);
+    opeu_arrival_view(game, a);
     break;
   }
   case SpawnService::SHOW:   opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;

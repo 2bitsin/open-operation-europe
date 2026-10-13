@@ -28,16 +28,6 @@
 using namespace opeu::game;
 
 namespace {
-enum class BlastService : uint16_t {
-  SIDE_FOR_STATUS  = 0, // side -> the side whose view shows
-  ARRIVAL_LOCATION = 1, // x, y, side
-  SOUND            = 2, //
-  WAIT             = 3, // units
-  BLIT_FAR         = 4, // as MapService::BLIT_FAR
-  SPRITE_COMPOSE   = 5, // as MapService::SPRITE_COMPOSE
-  EFFECT_FINISH    = 6, //
-  MAP_ERASE        = 7, // x, y
-};
 
 // The animation in the sprite segment: overview frames, tactical images and their masks.
 constexpr uint16_t OVERVIEW_FRAMES{ 0x0260 };
@@ -54,84 +44,42 @@ constexpr uint8_t  NONE{ 255 };
 
 } // namespace
 
-void opeu_location_blast(Game& game, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
+void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   auto&      data{ Data(game) };
-  auto const shown{ static_cast<uint8_t>(Call(game, event, BlastService::SIDE_FOR_STATUS, side)) };
-  Call(game, event, BlastService::ARRIVAL_LOCATION, x, y, shown);
-  Call(game, event, BlastService::SOUND);
-  Call(game, event, BlastService::WAIT, FRAME_WAIT);
+  auto const shown{ static_cast<uint8_t>(opeu_side_for_status(game, static_cast<uint8_t>(side))) };
+  opeu_arrival_location(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(shown));
+  opeu_sound_cue5(game, svc_soundcue);
+  opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
   if (data.overview_side != NONE) {
     auto const pixel{ OverviewPixel({ x, y }) };
     for (uint8_t i{ 0 }; i < OVERVIEW_FRAME_COUNT; ++i) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
-      Call(game, event, BlastService::BLIT_FAR, pixel.x, pixel.y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
-      Call(game, event, BlastService::WAIT, FRAME_WAIT);
+      opeu_blit_far(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, 4,
+                    port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
+      opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
     }
   } else {
     auto const pixel{ ViewPixel(data, { x, y }) };
     for (uint8_t i{ 0 }; i < VIEW_FRAME_COUNT; ++i) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
-      Call(game, event, BlastService::SPRITE_COMPOSE, pixel.x, pixel.y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i), SPRITE_SEGMENT, 0,
-           data.bitmap_buffer, 0);
-      Call(game, event, BlastService::WAIT, FRAME_WAIT);
+      opeu_sprite_compose(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24,
+                          port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
+                          port_far(SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i)), port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 0);
+      opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
     }
   }
-  Call(game, event, BlastService::EFFECT_FINISH);
+  opeu_effect_finish(game, svc_sound);
 }
 
-void opeu_blast_erase(Game& game, HostEvent event, uint8_t x, uint8_t y) {
-  Call(game, event, BlastService::MAP_ERASE, x, y);
+void opeu_blast_erase(Game& game, uint8_t x, uint8_t y) {
+  opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
 }
 
-void opeu_blast_pause(Game& game, HostEvent event) {
-  Call(game, event, BlastService::WAIT, PAUSE_WAIT);
-}
-
-uint16_t svc_blast(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  switch (static_cast<BlastService>(id)) {
-  case BlastService::SIDE_FOR_STATUS:  return opeu_side_for_status(game, byte(0));
-  case BlastService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, byte(0), byte(1), byte(2)); return 0;
-  case BlastService::SOUND:            opeu_sound_cue5(game, svc_soundcue); return 0;
-  case BlastService::WAIT:             opeu_delay_units(game, byte(0)); return 0;
-  case BlastService::BLIT_FAR:         return svc_map_plan(game, "blast", std::to_underlying(MapService::BLIT_FAR), args, count);
-  case BlastService::SPRITE_COMPOSE:   return svc_map_plan(game, "blast", std::to_underlying(MapService::SPRITE_COMPOSE), args, count);
-  case BlastService::EFFECT_FINISH:    opeu_effect_finish(game, svc_sound); return 0;
-  case BlastService::MAP_ERASE:        opeu_map_erase(game, svc_maperase, byte(0), byte(1)); return 0;
-  default:                             port_unhandled("blast", id, count);
-  }
-  return 0;
-}
-
-// The map segment's shared services (MapService). The VGA "far" routines take the segment before the offset; the
-// compositor takes (offset, segment) pairs for the image, the mask and the target buffer.
-uint16_t svc_map_plan(Game& game, const char* module, uint16_t kind, const uint16_t* args, uint16_t count) {
-  auto const w{ [&](unsigned i) { return Arg(args, count, i); } };
-  auto const far{ [&](unsigned segment, unsigned offset) { return port_far(w(segment), w(offset)); } };
-  auto const near{ [&](unsigned i) { return game.State().Bytes(w(i)).data(); } };
-  switch (static_cast<MapService>(kind)) {
-  case MapService::DRAW_FAR:         opeu_draw_far(w(0), w(1), w(2), w(3), w(4), far(5, 6)); break;
-  case MapService::DRAW_NEAR:        opeu_draw_near(w(0), w(1), w(2), w(3), w(4), near(5)); break;
-  case MapService::RESTORE_NEAR:     koei_266c(w(0), w(1), w(2), w(3), w(4), near(5)); break;
-  case MapService::SAVE_NEAR:        koei_2e72(w(0), w(1), w(2), w(3), near(4)); break;
-  case MapService::GLYPH_NEAR:       opeu_vga_glyph(w(0), w(1), w(2), w(3), w(4), near(5)); break;
-  case MapService::LINE:             opeu_ui_line(w(0), w(1), w(2), w(3), w(4)); break;
-  case MapService::RESTORE_FAR:      opeu_bitmap_restore(w(0), w(1), w(2), w(3), w(4), far(5, 6)); break;
-  case MapService::DRAW_MASKED_NEAR: opeu_code_0000_28c5(w(0), w(1), w(2), w(3), w(4), near(5)); break;
-  case MapService::SPRITE_COMPOSE:   opeu_sprite_compose(w(0), w(1), w(2), w(3), far(5, 4), far(7, 6), far(9, 8), w(10)); break;
-  case MapService::BLIT_FAR:         opeu_blit_far(w(0), w(1), w(2), w(3), w(4), far(5, 6)); break;
-  case MapService::PATTERN_NEAR:     koei_27c2(w(0), w(1), w(2), w(3), w(4), near(5)); break;
-  case MapService::SCREEN_SHIFT:     koei_3bc5(w(0), w(1), w(2), w(3)); break;
-  case MapService::WAIT:             opeu_delay_units(game, static_cast<uint8_t>(w(0))); break;
-  case MapService::CONTROL_MESSAGE:  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), w(0), w(1)); break;
-  case MapService::STATUS_MODE:      opeu_turn_frame(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(w(0))); break;
-  case MapService::READ_FAR_BYTES:   opeu_read_far_bytes(game, port_far(w(1), 0), w(0), w(2), w(3)); break;
-  default:                           port_unhandled(module, kind, count);
-  }
-  return 0;
+void opeu_blast_pause(Game& game) {
+  opeu_delay_units(game, static_cast<uint8_t>(PAUSE_WAIT));
 }
 
 auto port_routine_opeu_blast_pause(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_blast_pause(game, svc_blast);
+  opeu_blast_pause(game);
   return 0;
 }

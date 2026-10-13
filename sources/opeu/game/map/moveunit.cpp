@@ -8,8 +8,24 @@
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
+#include "core/recindex.hpp"
+#include "map/cellflag.hpp"
+#include "map/distance.hpp"
+#include "map/maperase.hpp"
+#include "map/mappos.hpp"
+#include "map/mapunit.hpp"
+#include "map/movecost.hpp"
+#include "map/movemine.hpp"
+#include "map/movespot.hpp"
+#include "map/movesup.hpp"
 #include "map/movetgt.hpp"
+#include "map/occupy.hpp"
+#include "map/query.hpp"
+#include "map/stepmap.hpp"
+#include "map/toward.hpp"
 #include "types.hpp"
+#include "units/orders.hpp"
+#include "units/value.hpp"
 
 using namespace opeu::game;
 
@@ -55,24 +71,26 @@ auto Fetch(Game& game, ReservedCell const& cell) -> void {
 }
 
 // Moves the cell to its neighbour in the direction; nonzero when the neighbour is on the map.
-auto GridStep(Game& game, HostEvent event, ReservedCell const& cell, uint8_t direction) -> uint16_t {
+auto GridStep(Game& game, ReservedCell const& cell, uint8_t direction) -> uint16_t {
   Stage(game, cell);
-  auto const stepped{ Call(game, event, MoveService::GRID_STEP, cell.x_at, cell.y_at, direction) };
+  auto const stepped{ opeu_grid_step(game.State().Bytes(static_cast<std::uint16_t>(cell.x_at), 1).data(), game.State().Bytes(static_cast<std::uint16_t>(cell.y_at), 1).data(),
+                                     static_cast<uint8_t>(direction)) };
   Fetch(game, cell);
   return stepped;
 }
 
 // Moves the cell one step along the path toward the goal; returns the step's cost, or STUCK.
-auto StepToward(Game& game, HostEvent event, ReservedCell const& cell, Goal goal) -> uint16_t {
+auto StepToward(Game& game, ReservedCell const& cell, Goal goal) -> uint16_t {
   Stage(game, cell);
-  auto const cost{ Call(game, event, MoveService::STEP_TOWARD, cell.x_at, cell.y_at, goal.x, goal.y) };
+  auto const cost{ opeu_grid_step_toward(game, port_far(PATH_SEGMENT, 0), static_cast<std::uint16_t>(cell.x_at), static_cast<std::uint16_t>(cell.y_at), static_cast<uint8_t>(goal.x),
+                                         static_cast<uint8_t>(goal.y)) };
   Fetch(game, cell);
   return cost;
 }
 } // namespace
 
 // repeat: keep stepping while the steps cost nothing.
-void opeu_move_unit(Game& game, HostEvent event, uint16_t repeat) {
+void opeu_move_unit(Game& game, uint16_t repeat) {
   auto&               data{ Data(game) };
   auto const          current{ data.current_unit_ptr };
   auto&               unit{ Record<Unit>(data, current) };
@@ -81,11 +99,11 @@ void opeu_move_unit(Game& game, HostEvent event, uint16_t repeat) {
   auto const          probe_y_at{ locals.At(PROBE_Y_AT) };
   auto const          next_x_at{ locals.At(NEXT_X_AT) };
   auto const          next_y_at{ locals.At(NEXT_Y_AT) };
-  auto const          step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return GridStep(game, event, { x, y, probe_x_at, probe_y_at }, direction); } };
-  auto const          cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(Call(game, event, MoveService::COST, x, y, current)); } };
-  uint8_t             next_x{ unit.x };
-  uint8_t             next_y{ unit.y };
-  auto const          rating{ static_cast<uint8_t>(Call(game, event, MoveService::RATING)) };
+  auto const          step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return GridStep(game, { x, y, probe_x_at, probe_y_at }, direction); } };
+  auto const cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(opeu_move_cost(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<std::uint16_t>(current))); } };
+  uint8_t    next_x{ unit.x };
+  uint8_t    next_y{ unit.y };
+  auto const rating{ static_cast<uint8_t>(opeu_move_rating(game)) };
   opeu_add_byte(rating, POINTS_LIMIT, &unit.moved);
 
   // Nothing to do unless some neighbouring cell is affordable.
@@ -110,26 +128,33 @@ void opeu_move_unit(Game& game, HostEvent event, uint16_t repeat) {
       committed = false;
       restart   = false;
     }
-    if (unit.target_x == NONE || (!committed && static_cast<uint8_t>(Call(game, event, MoveService::DISTANCE, next_x, next_y, unit.target_x, unit.target_y)) < NEAR_DESTINATION)) {
+    if (unit.target_x == NONE
+        || (!committed
+            && static_cast<uint8_t>(opeu_grid_distance(static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y), static_cast<uint8_t>(unit.target_x), static_cast<uint8_t>(unit.target_y)))
+                   < NEAR_DESTINATION)) {
       // The destination lands in its DS bytes; where the unit has none they keep what they held.
-      Call(game, event, MoveService::DESTINATION, current, locals.At(GOAL_X_AT), locals.At(GOAL_Y_AT));
+      auto const hoisted0{ static_cast<std::uint16_t>(current) };
+      auto const hoisted1{ static_cast<std::uint16_t>(locals.At(GOAL_X_AT)) };
+      auto const hoisted2{ static_cast<std::uint16_t>(locals.At(GOAL_Y_AT)) };
+      opeu_unit_order_destination(game, hoisted0, game.State().Bytes(hoisted1, 1).data(), game.State().Bytes(hoisted2, 1).data());
       uint8_t const goal_x{ Byte(game, locals.At(GOAL_X_AT)) };
       uint8_t const goal_y{ Byte(game, locals.At(GOAL_Y_AT)) };
-      if (!Call(game, event, MoveService::REACHABLE, goal_x, goal_y, next_x, next_y, current)) {
+      if (!opeu_move_reachable(game, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), static_cast<uint8_t>(goal_x), static_cast<uint8_t>(goal_y), static_cast<uint8_t>(next_x),
+                               static_cast<uint8_t>(next_y), static_cast<std::uint16_t>(current))) {
         auto& link{ data.unit_links[data.current_side * GROUPS_PER_SIDE + data.current_group] };
-        if (!link || Call(game, event, MoveService::IS_ENGINEER, data.current_entry)) link = current;
+        if (!link || opeu_category_6(static_cast<uint8_t>(data.current_entry))) link = current;
         unit.target_x = NONE;
         return;
       }
       uint8_t waypoint_x{ next_x };
       uint8_t waypoint_y{ next_y };
-      for (uint8_t steps{ 0 }; (waypoint_x != goal_x || waypoint_y != goal_y) && steps < ROUTE_STEPS; steps++)
-        StepToward(game, event, { waypoint_x, waypoint_y, probe_x_at, probe_y_at }, { goal_x, goal_y });
+      for (uint8_t steps{ 0 }; (waypoint_x != goal_x || waypoint_y != goal_y) && steps < ROUTE_STEPS; steps++) StepToward(game, { waypoint_x, waypoint_y, probe_x_at, probe_y_at }, { goal_x, goal_y });
       unit.target_x = waypoint_x;
       unit.target_y = waypoint_y;
       committed     = true;
     } else if (!committed) {
-      if (!Call(game, event, MoveService::REACHABLE, unit.target_x, unit.target_y, next_x, next_y, current)) {
+      if (!opeu_move_reachable(game, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), static_cast<uint8_t>(unit.target_x), static_cast<uint8_t>(unit.target_y), static_cast<uint8_t>(next_x),
+                               static_cast<uint8_t>(next_y), static_cast<std::uint16_t>(current))) {
         unit.target_x = NONE;
         restart       = true;
         continue;
@@ -137,17 +162,17 @@ void opeu_move_unit(Game& game, HostEvent event, uint16_t repeat) {
       committed = true;
     }
 
-    Call(game, event, MoveService::CLEAR_PATH, next_x, next_y);
-    remaining = StepToward(game, event, { next_x, next_y, next_x_at, next_y_at }, { unit.target_x, unit.target_y });
+    opeu_move_clear(port_far(PATH_SEGMENT, 0), static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y));
+    remaining = StepToward(game, { next_x, next_y, next_x_at, next_y_at }, { unit.target_x, unit.target_y });
     if (remaining == STUCK || (!repeat && !remaining)) return;
-    auto const objective{ Call(game, event, MoveService::FIND_OBJECTIVE, next_x, next_y) };
-    bool       blocked{ objective != 0 && static_cast<uint8_t>(Call(game, event, MoveService::OBJECTIVE_SIDE, objective)) != data.current_side };
+    auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y)) };
+    bool       blocked{ objective != 0 && static_cast<uint8_t>(opeu_objective_side(game, objective)) != data.current_side };
     if (!blocked) {
-      auto const other{ Call(game, event, MoveService::FIND_UNIT, next_x, next_y) };
-      blocked = other != 0 && static_cast<uint8_t>(Call(game, event, MoveService::UNIT_SIDE, other)) != data.current_side;
+      auto const other{ opeu_find_unit_at(game, static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y)) };
+      blocked = other != 0 && static_cast<uint8_t>(opeu_unit_side(other)) != data.current_side;
     }
     if (blocked) {
-      Call(game, event, MoveService::CLEAR_PATH, next_x, next_y);
+      opeu_move_clear(port_far(PATH_SEGMENT, 0), static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y));
       next_x = unit.x;
       next_y = unit.y;
       continue;
@@ -155,37 +180,33 @@ void opeu_move_unit(Game& game, HostEvent event, uint16_t repeat) {
 
     auto const cost{ cost_at(next_x, next_y) };
     unit.moved = static_cast<uint8_t>(opeu_min16(opeu_max16(cost, rating), unit.moved));
-    if (unit.moved < cost || static_cast<uint8_t>(Call(game, event, MoveService::CELL_SIDE, next_x, next_y)) != NONE) return;
-    if (!Call(game, event, MoveService::SUPPLIED)) {
+    if (unit.moved < cost || static_cast<uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y))) != NONE) return;
+    if (!opeu_move_supplied(game)) {
       unit.moved = 0;
       return;
     }
-    Call(game, event, MoveService::ARRIVAL_LOCATION, unit.x, unit.y, data.current_side);
+    opeu_arrival_location(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(data.current_side));
     if (!shown) {
-      Call(game, event, MoveService::ARRIVAL_VIEW, current);
+      opeu_arrival_view(game, static_cast<std::uint16_t>(current));
       shown = true;
     }
     auto const from_x{ unit.x };
     auto const from_y{ unit.y };
-    Call(game, event, MoveService::UNIT_ERASE, current);
+    opeu_unit_remove_draw(game, static_cast<std::uint16_t>(current));
     unit.x      = next_x;
     unit.y      = next_y;
     unit.moved -= cost;
-    Call(game, event, MoveService::ARRIVAL_PREPARE, current);
-    Call(game, event, MoveService::CLAMP);
-    if (Call(game, event, MoveService::CELL_MARKED, next_x, next_y, NONE)) {
-      Call(game, event, MoveService::MINES, from_x, from_y);
+    opeu_arrival_prepare(game, static_cast<std::uint16_t>(current));
+    opeu_move_clamp(game);
+    if (opeu_cell_marked(game, static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y), static_cast<uint8_t>(NONE))) {
+      opeu_move_mines(game, static_cast<uint8_t>(from_x), static_cast<uint8_t>(from_y));
       if (!unit.first) return;
     } else {
-      Call(game, event, MoveService::SPOT);
+      opeu_move_spot(game);
     }
-    Call(game, event, MoveService::ARRIVAL_PREPARE, current);
-    Call(game, event, MoveService::CONSUME);
-    if (Call(game, event, MoveService::ENEMY_ADJACENT)) return;
+    opeu_arrival_prepare(game, static_cast<std::uint16_t>(current));
+    opeu_move_consume(game);
+    if (opeu_move_enemy_adjacent(game)) return;
     if (!remaining) return;
   }
-}
-
-uint16_t svc_moveunit(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_map_move(game, "moveunit", id, args, count);
 }

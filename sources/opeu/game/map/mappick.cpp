@@ -29,21 +29,6 @@
 using namespace opeu::game;
 
 namespace {
-enum class PickService : uint16_t {
-  ARRIVAL_LOCATION = 0,  // x, y, side
-  INPUT_RESET      = 1,  //
-  BITMAP_SAVE      = 2,  // x, y, w, h, segment, offset
-  MAP_ERASE        = 3,  // x, y
-  INSPECT          = 4,  // x, y
-  CURSOR           = 5,  // x, y
-  MOUSE_SHOW       = 9,  //
-  MOUSE_BUTTONS    = 10, //
-  MOUSE_POSITION   = 11, // DS offsets of the x and y words it writes
-  MOUSE_HIDE       = 12, //
-  VIEWPORT_PAN     = 13, // dx, dy, x, side, y
-  KEYBOARD_KEY     = 17, //
-  BITMAP_RESTORE   = 18, // x, y, w, h, mode, segment, offset
-};
 enum class Outcome {
   ACCEPT,
   CANCEL,
@@ -82,7 +67,7 @@ constexpr uint8_t STEP_UP{ 6 };
 } // namespace
 
 // x and y: DS offsets of the cell bytes.
-uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_t y) {
+uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ MOUSE_RESERVE };
   auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
@@ -95,24 +80,27 @@ uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_
   Byte(game, y) %= MAP_HEIGHT;
   uint8_t shown_x{ NONE };
   uint8_t shown_y{ 0 };
-  if (!data.input_mode) Call(game, event, PickService::ARRIVAL_LOCATION, Byte(game, x), Byte(game, y), data.current_side);
-  Call(game, event, PickService::INPUT_RESET);
-  Call(game, event, PickService::BITMAP_SAVE, 0, 0, 80, 24, data.bitmap_buffer, STATUS_OFFSET);
+  if (!data.input_mode) opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y)), static_cast<uint8_t>(data.current_side));
+  opeu_input_reset(game, svc_mouse);
+  opeu_bitmap_save(0, 0, 80, 24, port_far(static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
   data.control_selection = 0;
-  auto const pan{ [&](int16_t dx, int16_t dy) { Call(game, event, PickService::VIEWPORT_PAN, dx, dy, shown_x, data.current_side, shown_y); } };
+  auto const pan{ [&](int16_t dx, int16_t dy) {
+    opeu_viewport_pan(game, static_cast<int16_t>(static_cast<std::uint16_t>(dx)), static_cast<int16_t>(static_cast<std::uint16_t>(dy)), static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y),
+                      static_cast<uint8_t>(data.current_side));
+  } };
 
   // Mouse input until the pointer moves to another cell or a button decides.
   auto const mouse{ [&]() -> Outcome {
     for (;;) {
-      Call(game, event, PickService::MOUSE_SHOW);
-      auto const buttons{ static_cast<uint8_t>(Call(game, event, PickService::MOUSE_BUTTONS)) };
-      Call(game, event, PickService::MOUSE_POSITION, mouse_x_at, mouse_y_at);
+      opeu_mouse_show(game, svc_mouse);
+      auto const buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game, svc_mouse)) };
+      opeu_mouse_position(game, svc_mouse, static_cast<std::uint16_t>(mouse_x_at), static_cast<std::uint16_t>(mouse_y_at));
       // The pointer words are read from DS at each use, as the services in between may write them.
       auto const pointer_x{ [&] { return Word(game, mouse_x_at); } };
       auto const pointer_y{ [&] { return Word(game, mouse_y_at); } };
       auto const in{ [&](Area const& area) { return area.Holds(pointer_x(), pointer_y()); } };
       if (buttons & LEFT_BUTTON) {
-        Call(game, event, PickService::MOUSE_HIDE);
+        opeu_mouse_hide(game, svc_mouse);
         if ((view_up() && in(VIEW_CELLS)) || (overview_up() && in(OVERVIEW_CELLS) && OnMap(shown_x, shown_y) && opeu_map_code(game, shown_x, shown_y))) return Outcome::ACCEPT;
         if (view_up()) {
           uint8_t direction{ NONE };
@@ -136,13 +124,13 @@ uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_
             Byte(game, x) = shown_x;
             Byte(game, y) = shown_y;
             opeu_grid_step_viewport(game, x, y, direction);
-            Call(game, event, PickService::MOUSE_HIDE);
+            opeu_mouse_hide(game, svc_mouse);
             return Outcome::MOVE;
           }
         }
       }
       if (buttons & RIGHT_BUTTON) {
-        Call(game, event, PickService::MOUSE_HIDE);
+        opeu_mouse_hide(game, svc_mouse);
         return Outcome::CANCEL;
       }
       if (view_up() && in(VIEW_CELLS)) {
@@ -157,7 +145,7 @@ uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_
         Byte(game, y) = static_cast<uint8_t>((pointer_y() - OVERVIEW_CELLS.top) >> 3);
       }
       if (Byte(game, x) == shown_x && Byte(game, y) == shown_y) continue;
-      Call(game, event, PickService::MOUSE_HIDE);
+      opeu_mouse_hide(game, svc_mouse);
       return Outcome::MOVE;
     }
   } };
@@ -165,7 +153,7 @@ uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_
   // One key: a move of the cursor (or a pan of the view), or a decision.
   auto const keyboard{ [&]() -> Outcome {
     uint8_t    direction{ NONE };
-    auto const key{ static_cast<uint8_t>(Call(game, event, PickService::KEYBOARD_KEY)) };
+    auto const key{ static_cast<uint8_t>(opeu_keyboard_key(game, svc_keyboard)) };
     switch (key) {
     case '6':
       if (view_up()) {
@@ -225,36 +213,14 @@ uint16_t opeu_map_pick_location(Game& game, HostEvent event, uint16_t x, uint16_
 
   Outcome outcome;
   do {
-    if (shown_x != NONE) Call(game, event, PickService::MAP_ERASE, shown_x, shown_y);
+    if (shown_x != NONE) opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
     shown_x = Byte(game, x);
     shown_y = Byte(game, y);
-    Call(game, event, PickService::INSPECT, shown_x, shown_y);
-    Call(game, event, PickService::CURSOR, shown_x, shown_y);
+    opeu_map_inspect(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
+    opeu_map_cursor(game, svc_cursor, shown_x, shown_y);
     outcome = data.input_mode ? mouse() : keyboard();
   } while (outcome == Outcome::MOVE);
-  Call(game, event, PickService::MAP_ERASE, shown_x, shown_y);
-  Call(game, event, PickService::BITMAP_RESTORE, 0, 0, 80, 24, 0, data.bitmap_buffer, STATUS_OFFSET);
+  opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
+  opeu_bitmap_restore(0, 0, 80, 24, 0, port_far(static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
   return outcome == Outcome::ACCEPT;
-}
-
-uint16_t svc_mappick(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
-  auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(Arg(args, count, i)); } };
-  switch (static_cast<PickService>(id)) {
-  case PickService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, byte(0), byte(1), byte(2)); return 0;
-  case PickService::INPUT_RESET:      opeu_input_reset(game, svc_mouse); return 0;
-  case PickService::BITMAP_SAVE:      opeu_bitmap_save(arg(0), arg(1), arg(2), arg(3), port_far(arg(4), arg(5))); return 0;
-  case PickService::MAP_ERASE:        opeu_map_erase(game, svc_maperase, byte(0), byte(1)); return 0;
-  case PickService::INSPECT:          opeu_map_inspect(game, svc_inspect, byte(0), byte(1)); return 0;
-  case PickService::CURSOR:           opeu_map_cursor(game, svc_cursor, arg(0), arg(1)); return 0;
-  case PickService::MOUSE_SHOW:       opeu_mouse_show(game, svc_mouse); return 0;
-  case PickService::MOUSE_BUTTONS:    return opeu_mouse_buttons(game, svc_mouse);
-  case PickService::MOUSE_POSITION:   opeu_mouse_position(game, svc_mouse, arg(0), arg(1)); return 0;
-  case PickService::MOUSE_HIDE:       opeu_mouse_hide(game, svc_mouse); return 0;
-  case PickService::VIEWPORT_PAN:     opeu_viewport_pan(game, svc_viewpan, static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1)), byte(2), byte(4), byte(3)); return 0;
-  case PickService::KEYBOARD_KEY:     return opeu_keyboard_key(game, svc_keyboard);
-  case PickService::BITMAP_RESTORE:   opeu_bitmap_restore(arg(0), arg(1), arg(2), arg(3), arg(4), port_far(arg(5), arg(6))); return 0;
-  default:                            port_unhandled("mappick", id, count);
-  }
-  return 0;
 }

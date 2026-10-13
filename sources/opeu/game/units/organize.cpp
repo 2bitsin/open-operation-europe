@@ -302,7 +302,7 @@ uint16_t svc_organize(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::CONTROL_CONFIRM: r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::LIST_DIALOG:     r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::GROUP_NOTICE:    // The game passes (flags, unit) to the announcement, whose one parameter receives the flags word.
-    opeu_unit_announce(game, svc_mapunit, Arg(args, count, 0));
+    opeu_unit_announce(game, Arg(args, count, 0));
     break;
   case Service::COPY_BYTES:    opeu_copy_bytes(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case Service::DAILY_CONTEXT: opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
@@ -316,7 +316,7 @@ uint16_t svc_organize(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::OBJECTIVE_SIDE:   r = opeu_objective_side(game, Arg(args, count, 0)); break;
   case Service::RELEASE_ELEMENTS: r = opeu_release_side_elements(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::CONTROL_POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::ARRIVAL_LOCATION: opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::LIST_LENGTH:      r = opeu_list_length(game, Arg(args, count, 0)); break;
   case Service::SUPPORTED_UNITS:  r = opeu_side_supported_units(game, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::NEIGHBOR_UNITS:   r = opeu_neighbor_units(game, Arg(args, count, 0), Arg(args, count, 1)); break;

@@ -70,7 +70,7 @@ uint16_t svc_evcomms(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case FORMAT:  opeu_request_format(game, { args, count }); break;
   case FLASH:   {
-    opeu_location_flash(game, svc_mapunit, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
+    opeu_location_flash(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
     break;
   }
   default: port_unhandled("evcomms", id, count);

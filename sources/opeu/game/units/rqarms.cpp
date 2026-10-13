@@ -118,7 +118,7 @@ uint16_t svc_units_request(const char* module, Game& game, uint16_t id, const ui
   case RequestService::CONFIRM_OK:      r = opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case RequestService::REQUEST_FORMAT:  opeu_request_format(game, { args, count }); break;
   case RequestService::CONFIRM_MESSAGE: r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAP_PICK_LOCATION: r = opeu_map_pick_location(game, svc_mappick, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::MAP_PICK_LOCATION: r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestService::ELEMENT_TYPES:     r = opeu_list_due_records(game, Arg(args, count, 2), (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:                                port_unhandled(module, id, count);
   }

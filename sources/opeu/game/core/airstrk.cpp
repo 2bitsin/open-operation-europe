@@ -256,13 +256,13 @@ uint16_t svc_airstrk(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
     break;
   }
   case OBJECTIVE_DAMAGE: {
-    opeu_objective_damage(game, svc_objdamag, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
+    opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     break;
   }
   case TURN_CONTEXT:    opeu_set_turn_context(game, svc_sound, byte(0)); break;
   case SIDE_FOR_STATUS: result = opeu_side_for_status(game, byte(0)); break;
   case MAP_CENTER:      {
-    opeu_map_center(game, svc_mappos, byte(0), byte(1), byte(2));
+    opeu_map_center(game, byte(0), byte(1), byte(2));
     break;
   }
   case SPRITE_DRAW: {

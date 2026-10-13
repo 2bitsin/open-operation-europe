@@ -226,7 +226,7 @@ uint16_t svc_casualty(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::UNIT_NAME:            r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::UNIT_SPECIAL:         r = opeu_unit_special(game, Arg(args, count, 0)); break;
   case Service::UNIT_ELIGIBLE:        r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case Service::LOCATION_BLAST:       opeu_location_blast(game, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::LOCATION_BLAST:       opeu_location_blast(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::RESOURCE_PERCENTAGES: StoreUnitResourcePercentages(game, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
   case Service::ELEMENT_NAME:         r = opeu_element_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::RANDOM:               r = port_rand_bounded(game, Arg(args, count, 0)); break;
@@ -235,7 +235,7 @@ uint16_t svc_casualty(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::GENERAL_CASUALTY:     opeu_general_casualty(game, svc_genwound, Arg(args, count, 0)); break;
   case Service::GROUP_RECORD:         r = opeu_find_group_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::SIDE_REPORT:          opeu_unit_side_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ARRIVAL_LOCATION:     opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::ARRIVAL_LOCATION:     opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case Service::SQUARE_ROOT:          r = opeu_isqrt(Arg(args, count, 0)); break;
   case Service::REMOVE_ELEMENT:       r = opeu_remove_element(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::SELECT_ELEMENT:       opeu_select_preferred_element(game, Arg(args, count, 0)); break;
@@ -245,7 +245,7 @@ uint16_t svc_casualty(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::REPORT_ELEMENT:       opeu_group_element_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case Service::CONTROL_MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::CAPACITIES:           StoreUnitCapacities(game, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
-  case Service::BLAST_ERASE:          opeu_blast_erase(game, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::BLAST_ERASE:          opeu_blast_erase(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:                            port_unhandled("casualty", id, count);
   }
   return r;

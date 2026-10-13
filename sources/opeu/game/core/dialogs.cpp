@@ -527,14 +527,14 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case REQUEST_TEXT:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
   case UNIT_NAME:          r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ARRIVAL_LOCATION:   opeu_arrival_location(game, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ARRIVAL_LOCATION:   opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case GROUP_INDEX:        r = opeu_unit_group_index(Arg(args, count, 0)); break;
   case FIND_GROUP_RECORD:  r = opeu_find_group_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case ARRIVAL_VIEW:       opeu_arrival_view(game, svc_mapunit, Arg(args, count, 0)); break;
+  case ARRIVAL_VIEW:       opeu_arrival_view(game, Arg(args, count, 0)); break;
   case OBJECTIVE_SIDE:     r = opeu_objective_side(game, Arg(args, count, 0)); break;
   case OBJECTIVE_ELIGIBLE: r = opeu_objective_eligible(game, Arg(args, count, 0)); break;
   case FIND_SIDE_RECORD:   r = opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case ARRIVAL_FLASH:      opeu_side_cell_flash(game, svc_mapunit, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case ARRIVAL_FLASH:      opeu_side_cell_flash(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case OPPOSITE_SIDE:      r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
   case UNIT_SPECIAL:       r = opeu_unit_special(game, Arg(args, count, 0)); break;
   case TYPE_NAME_TEXT:     r = opeu_type_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
