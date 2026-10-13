@@ -94,23 +94,15 @@ uint16_t svc_rqarms(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t cou
 
 // The services of the battalion and regiment requests; `module` names the caller in diagnostics.
 uint16_t svc_units_request(const char* module, uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto&    data{ Data(ds) };
   uint16_t r = 0;
   switch (static_cast<RequestService>(id)) {
-  case RequestService::RANDOM:        r = opeu_rand_bounded(Arg(args, count, 0)); break;
-  case RequestService::MIN16:         r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::MAX16:         r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestService::PENDING:       r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
-  case RequestService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(ds, svc_rqcommon, Arg(args, count, 0)); break;
-  case RequestService::NO_MORE:       opeu_request_no_more(ds, svc_rqcommon, Arg(args, count, 0)); break;
-  case RequestService::FILE_REQUEST:  {
-    // the request is filed from a copy in a reserve of its own
-    ServiceLocals const locals{ sizeof(RequestSlot) };
-    auto const          at{ locals.At(0) };
-    Record<RequestSlot>(data, at) = { Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2) };
-    opeu_request_file(ds, svc_rqcommon, at);
-    break;
-  }
+  case RequestService::RANDOM:            r = opeu_rand_bounded(Arg(args, count, 0)); break;
+  case RequestService::MIN16:             r = opeu_min16(Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::MAX16:             r = opeu_max16(Arg(args, count, 0), Arg(args, count, 1)); break;
+  case RequestService::PENDING:           r = opeu_request_pending(ds, (uint8_t)Arg(args, count, 0)); break;
+  case RequestService::CANCEL_PROMPT:     r = opeu_request_cancel_prompt(ds, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestService::NO_MORE:           opeu_request_no_more(ds, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestService::FILE_REQUEST:      FileRequest(ds, { Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)) }); break;
   case RequestService::FREE_UNITS:        r = opeu_release_side_units(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case RequestService::FREE_ELEMENTS:     r = opeu_release_side_elements(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case RequestService::CONTROL_PANEL:     opeu_title_panel_begin(ds, (const DialogHost*)port_dialogs_host()); break;

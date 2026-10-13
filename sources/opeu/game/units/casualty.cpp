@@ -216,52 +216,36 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
 
 // The casualty routine's services.
 uint16_t svc_casualty(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0, a, b, c;
+  uint16_t r = 0;
   switch (static_cast<Service>(id)) {
-  case Service::UNIT_SIDE:           r = opeu_unit_side(Arg(args, count, 0)); break;
-  case Service::UNIT_GROUP_INDEX:    r = opeu_unit_group_index(Arg(args, count, 0)); break;
-  case Service::SIDE_SELECTED_UNIT:  r = opeu_find_side_selected_unit(ds, (uint8_t)Arg(args, count, 0)); break;
-  case Service::GROUP_SELECTED_UNIT: r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_NAME:           r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::UNIT_SPECIAL:        r = opeu_unit_special(ds, Arg(args, count, 0)); break;
-  case Service::UNIT_ELIGIBLE:       r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
-  case Service::LOCATION_BLAST:      opeu_location_blast(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case Service::RESOURCE_PERCENTAGES:
-    a = port_ds_word(Arg(args, count, 1));
-    b = port_ds_word(Arg(args, count, 2));
-    c = port_ds_word(Arg(args, count, 3));
-    opeu_unit_resource_percentages(ds, Arg(args, count, 0), &a, &b, &c);
-    port_ds_set_word(Arg(args, count, 1), a);
-    port_ds_set_word(Arg(args, count, 2), b);
-    port_ds_set_word(Arg(args, count, 3), c);
-    break;
-  case Service::ELEMENT_NAME:     r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::RANDOM:           r = port_rand_bounded(ds, Arg(args, count, 0)); break;
-  case Service::FORMAT:           opeu_request_format(ds, { args, count }); break;
-  case Service::SIDE_RECORD:      r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case Service::GENERAL_CASUALTY: opeu_general_casualty(ds, svc_genwound, Arg(args, count, 0)); break;
-  case Service::GROUP_RECORD:     r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case Service::SIDE_REPORT:      opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::ARRIVAL_LOCATION: opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case Service::SQUARE_ROOT:      r = opeu_isqrt(Arg(args, count, 0)); break;
-  case Service::REMOVE_ELEMENT:   r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::SELECT_ELEMENT:   opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
-  case Service::SELECT_UNIT:      opeu_select_first_unit(ds, Arg(args, count, 0)); break;
-  case Service::SET_COUNTER:      opeu_set_record_counter(PORT_DS(Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
-  case Service::SELECT_GROUP:     opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
-  case Service::REPORT_ELEMENT:   opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case Service::CONTROL_MESSAGE:  opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case Service::CAPACITIES:
-    a = port_ds_word(Arg(args, count, 1));
-    b = port_ds_word(Arg(args, count, 2));
-    c = port_ds_word(Arg(args, count, 3));
-    opeu_unit_capacities(ds, Arg(args, count, 0), &a, &b, &c);
-    port_ds_set_word(Arg(args, count, 1), a);
-    port_ds_set_word(Arg(args, count, 2), b);
-    port_ds_set_word(Arg(args, count, 3), c);
-    break;
-  case Service::BLAST_ERASE: opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:                   port_unhandled("casualty", id, count);
+  case Service::UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
+  case Service::UNIT_GROUP_INDEX:     r = opeu_unit_group_index(Arg(args, count, 0)); break;
+  case Service::SIDE_SELECTED_UNIT:   r = opeu_find_side_selected_unit(ds, (uint8_t)Arg(args, count, 0)); break;
+  case Service::GROUP_SELECTED_UNIT:  r = opeu_find_group_selected_unit(ds, Arg(args, count, 0)); break;
+  case Service::UNIT_NAME:            r = opeu_unit_name(ds, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::UNIT_SPECIAL:         r = opeu_unit_special(ds, Arg(args, count, 0)); break;
+  case Service::UNIT_ELIGIBLE:        r = opeu_unit_selection_eligible(ds, Arg(args, count, 0)); break;
+  case Service::LOCATION_BLAST:       opeu_location_blast(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::RESOURCE_PERCENTAGES: StoreUnitResourcePercentages(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
+  case Service::ELEMENT_NAME:         r = opeu_element_name(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::RANDOM:               r = port_rand_bounded(ds, Arg(args, count, 0)); break;
+  case Service::FORMAT:               opeu_request_format(ds, { args, count }); break;
+  case Service::SIDE_RECORD:          r = opeu_find_side_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::GENERAL_CASUALTY:     opeu_general_casualty(ds, svc_genwound, Arg(args, count, 0)); break;
+  case Service::GROUP_RECORD:         r = opeu_find_group_record(ds, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SIDE_REPORT:          opeu_unit_side_report(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::ARRIVAL_LOCATION:     opeu_arrival_location(ds, svc_mappos, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case Service::SQUARE_ROOT:          r = opeu_isqrt(Arg(args, count, 0)); break;
+  case Service::REMOVE_ELEMENT:       r = opeu_remove_element(ds, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::SELECT_ELEMENT:       opeu_select_preferred_element(ds, Arg(args, count, 0)); break;
+  case Service::SELECT_UNIT:          opeu_select_first_unit(ds, Arg(args, count, 0)); break;
+  case Service::SET_COUNTER:          opeu_set_record_counter(PORT_DS(Arg(args, count, 0)), (uint8_t)Arg(args, count, 1)); break;
+  case Service::SELECT_GROUP:         opeu_select_first_group(ds, (uint8_t)Arg(args, count, 0)); break;
+  case Service::REPORT_ELEMENT:       opeu_group_element_panel(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
+  case Service::CONTROL_MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
+  case Service::CAPACITIES:           StoreUnitCapacities(ds, Arg(args, count, 0), { Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3) }); break;
+  case Service::BLAST_ERASE:          opeu_blast_erase(ds, svc_blast, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  default:                            port_unhandled("casualty", id, count);
   }
   return r;
 }

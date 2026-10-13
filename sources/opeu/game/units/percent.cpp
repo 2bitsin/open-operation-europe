@@ -5,13 +5,28 @@
 #include "units/capacity.hpp"
 #include "units/ratio.hpp"
 
+namespace opeu::game::detail::percent {
+
+auto UnitResourcePercentages(DataSegment const& data, std::uint16_t unit) -> Resources {
+  auto const  capacities{ UnitCapacities(data, unit) };
+  auto const& record{ Record<Unit>(data, unit) };
+  return {
+    opeu_resource_percent(record.resources[0], capacities.ammunition),
+    opeu_resource_percent(record.resources[1], capacities.fuel),
+    opeu_resource_percent(record.resources[2], capacities.food),
+  };
+}
+
+auto StoreUnitResourcePercentages(std::uint8_t* ds, std::uint16_t unit, ResourceWords at) -> void {
+  StoreResources(ds, at, UnitResourcePercentages(Data(ds), unit));
+}
+} // namespace opeu::game::detail::percent
+
 using namespace opeu::game;
 
 void opeu_unit_resource_percentages(const uint8_t ds[65536], uint16_t unit, uint16_t* result_a, uint16_t* result_b, uint16_t* result_c) {
-  uint16_t capacity_c, capacity_b, capacity_a;
-  opeu_unit_capacities(ds, unit, &capacity_a, &capacity_b, &capacity_c);
-  auto const& record{ Record<Unit>(Data(ds), unit) };
-  *result_a = opeu_resource_percent(record.resources[0], capacity_a);
-  *result_b = opeu_resource_percent(record.resources[1], capacity_b);
-  *result_c = opeu_resource_percent(record.resources[2], capacity_c);
+  auto const percentages{ UnitResourcePercentages(Data(ds), unit) };
+  *result_a = percentages.ammunition;
+  *result_b = percentages.fuel;
+  *result_c = percentages.food;
 }

@@ -19,6 +19,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
@@ -70,10 +71,11 @@ constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a po
 }
 
 // Restores the bottom panel and prints a prompt with one argument.
-auto Prompt(std::uint8_t* ds, HostEvent event, std::uint16_t text, auto... arguments) -> void {
+template <typename... _Arguments>
+auto Prompt(std::uint8_t* ds, HostEvent event, std::uint16_t text, _Arguments... arguments) -> void {
   Call(ds, event, RESTORE_BOTTOM);
   Call(ds, event, POSITION, PROMPT_X, PROMPT_Y);
-  Call(ds, event, PRINT, text, arguments...);
+  opeu_cursor_print(ds, std::array<std::uint16_t, 1 + sizeof...(_Arguments)>{ text, static_cast<std::uint16_t>(arguments)... });
   Call(ds, event, TEXT_ATTRIBUTE, 0);
 }
 } // namespace
