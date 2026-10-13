@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
-from .b2 import EVENTS_HEADER, TIGHT, _AddressTaken, _Declarations, _DeleteFunctions, _Heads, _Line, _OpenParen, _References, _RemoveListItem, _Write
+from .b2 import DELETE, EVENTS_HEADER, TIGHT, _AddressTaken, _Declarations, _DeleteFunctions, _Heads, _Line, _OpenParen, _References, _RemoveListItem, _Write
 from .calls import IsCallback
 from .constants import ConstantScopes
 from .functions import Function
@@ -60,6 +60,7 @@ def B3Pass(root: Path, labels: set[str], ids: set[str] = frozenset()) -> B3Resul
   _Write(root, None, DeleteDispatchers(Program(SourceTree(root)), result))
   _Write(root, None, DeleteEnums(SourceTree(root), labels, result))
   _Write(root, None, DeleteServiceConstants(SourceTree(root), ids, result))
+  _Write(root, None, DeleteEmptyHeaders(SourceTree(root), result))
   _Write(root, None, DropEventsInclude(SourceTree(root), result))
   return result
 
@@ -296,8 +297,17 @@ def DeleteEnums(tree: SourceTree, labels: set[str], result: B3Result) -> dict:
         continue
       first, last = source.tokens[enumeration.span.first].line, source.tokens[enumeration.span.last - 1].line
       edits.setdefault(path, set()).add(("lines", first, last))
+      edits[path] |= _ReExports(source, [enumeration.name, *enumeration.enumerators])
       result.enums.append(described)
   return edits
+
+
+def _ReExports(source: SourceFile, names: list[str]) -> set:
+  """The re-export lines `using detail::x::NAME;` of names in the file's own re-export block."""
+  wanted = "|".join(re.escape(name) for name in names if name)
+  if not wanted:
+    return set()
+  return {(match.start(), match.end(), "") for match in re.finditer(rf"^[ \t]*using[ \t]+[\w:]+::(?:{wanted});[ \t]*\n", source.text, re.M)}
 
 
 def DeleteServiceConstants(tree: SourceTree, ids: set[str], result: B3Result) -> dict:
@@ -357,6 +367,38 @@ def _EnumerationNamed(tree: SourceTree, scopes: ConstantScopes, enumeration: Enu
       if token.text in names and (qualified or bare):
         return f"{token.text} is named at {path}:{token.line}"
   return ""
+
+
+# ---- header --------------------------------------------------------------------------------------------------------------
+
+EMPTY_NAMESPACE = re.compile(r"^namespace[ \t]+[\w:]+[ \t]*\{\s*\}[ \t]*(//[^\n]*)?\n?", re.M)
+
+
+def DeleteEmptyHeaders(tree: SourceTree, result: B3Result) -> dict:
+  """A game header left with nothing but comments, `#pragma once`, includes and empty namespaces is deleted, and every
+  `#include` of it; a header that still declares something loses its empty namespace blocks."""
+  edits: dict = {}
+  for path, source in tree.files.items():
+    if not str(path).startswith("game/") or path.suffix != ".hpp":
+      continue
+    empties = list(EMPTY_NAMESPACE.finditer(source.text))
+    rest = EMPTY_NAMESPACE.sub("", source.text)
+    if _Declares(rest):
+      edits.setdefault(path, set()).update((match.start(), match.end(), "") for match in empties)
+      continue
+    edits[path] = {DELETE}
+    result.deleted.append(f"{path} (empty header)")
+    include = str(path.relative_to("game"))
+    for other, text in ((other, s.text) for other, s in tree.files.items() if other != path):
+      for match in re.finditer(rf'^#include "{re.escape(include)}"[^\n]*\n', text, re.M):
+        edits.setdefault(other, set()).add((match.start(), match.end(), ""))
+  return edits
+
+
+def _Declares(text: str) -> bool:
+  code = re.sub(r"//[^\n]*|/\*.*?\*/", "", text, flags=re.S)
+  code = re.sub(r"^[ \t]*#[^\n]*$", "", code, flags=re.M)
+  return bool(code.strip())
 
 
 # ---- include -------------------------------------------------------------------------------------------------------------

@@ -25,7 +25,7 @@ GAME = Path("sources/opeu/game")
 def passed(tmp_path_factory):
   tree = tmp_path_factory.mktemp("b3") / "tree"
   shutil.copytree(FIXTURE, tree)
-  return tree, B3Pass(tree, {"SHOW", "DRAW", "WAIT"}, {"ROW_SERVICE", "HOLD_SERVICE"})
+  return tree, B3Pass(tree, {"SHOW", "DRAW", "WAIT", "TALLY"}, {"ROW_SERVICE", "HOLD_SERVICE"})
 
 
 def Read(tree: Path, path: str) -> str:
@@ -59,7 +59,7 @@ def test_a_callback_still_called_or_of_a_routine_whose_address_is_taken_stays(pa
 
 def test_a_dispatcher_or_an_event_routine_nothing_names_goes_and_one_still_handed_on_stays(passed):
   tree, result = passed
-  assert result.deleted == ["MenuEvent", "svc_menu"]
+  assert result.deleted[:2] == ["MenuEvent", "svc_menu"]
   assert "svc_menu" not in Read(tree, "core/menu.cpp") and "svc_menu" not in Read(tree, "core/menu.hpp")
   assert "MenuEvent" not in Read(tree, "core/menu.cpp") and "An event written as a function" not in Read(tree, "core/menu.cpp")
   assert "std::uint16_t svc_hold(" in Read(tree, "core/menu.cpp")
@@ -70,7 +70,7 @@ def test_a_service_enumeration_nothing_names_goes_and_one_still_named_stays(pass
   menu = Read(tree, "core/menu.cpp")
   assert "enum Service" not in menu and "The services of the menu." not in menu
   assert "enum class HoldService" in menu
-  assert result.enums == ["game/core/menu.cpp Service"]
+  assert result.enums == ["game/common/count-service.hpp CountService", "game/core/menu.cpp Service"]
   assert any(line.startswith("game/core/menu.cpp HoldService: HoldService is named at game/core/menu.cpp:") for line in result.kept)
 
 
@@ -80,6 +80,13 @@ def test_a_service_id_constant_nothing_names_goes_with_its_comment(passed):
   assert "ROW_SERVICE" not in menu and "asked a row for" not in menu
   assert "// The id the hold still answers.\nconstexpr std::uint16_t HOLD_SERVICE{ 5 };" in menu
   assert result.constants == ["game/core/menu.cpp ROW_SERVICE"]
+
+
+def test_a_header_left_with_nothing_goes_with_its_includes(passed):
+  tree, result = passed
+  assert not (tree / GAME / "common/count-service.hpp").exists()
+  assert "count-service" not in Read(tree, "core/count.cpp")
+  assert "game/common/count-service.hpp (empty header)" in result.deleted
 
 
 def test_the_callback_header_goes_only_from_files_that_name_nothing_of_it(passed):
