@@ -19,7 +19,7 @@ How the gates decide (the evidence is in docs/building.md, "Benchmarks and profi
            onto the efficiency cores. Every play session therefore interleaves CALIBRATION processes (a fixed
            pure-Python workload, CALIBRATION_WORKLOAD) with the plays in the same pool, so they meet the same load;
            the median of their CPU times against the baseline's is the session's slowdown. It tracked the CPU time
-           of v1.0.1's plays to within 5 % while those moved by 21 % between a quieter and a loaded machine. On a
+           of v1.0.1's plays to within 5 to 8 % while those moved by 12 to 21 % between sessions. On a
            machine the baseline does not list, the same ratio scales the closest listed machine's numbers.
   a run    passes when the median of RUN_SAMPLES plays is within the budget of the baseline median, times the
            slowdown, plus RUN_SLACK_S (process start-up jitter, which dominates the 50 ms runs); one over it is
