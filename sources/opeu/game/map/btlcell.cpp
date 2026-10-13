@@ -26,11 +26,30 @@ enum class SpriteVariant : uint8_t {
 };
 constexpr uint16_t CELL_HEIGHT{ 26 };
 
-// Saves the screen at the pixel position into the VRAM buffer, or restores it from there.
-void Vram(uint8_t* ds, BattleEvent event, bool save, uint16_t x, uint16_t y) {
-  auto const buffer{ Near(Data(ds), Data(ds).vram) };
-  auto const routine{ (x & 7) ? (save ? BattleRoutine::VRAM_SAVE_ODD : BattleRoutine::VRAM_RESTORE_ODD) : (save ? BattleRoutine::VRAM_SAVE : BattleRoutine::VRAM_RESTORE) };
-  Call(ds, event, routine, x >> 3, y, buffer);
+[[nodiscard]] auto VramBuffer(uint8_t* ds) -> uint16_t {
+  return Near(Data(ds), Data(ds).vram);
+}
+
+[[nodiscard]] auto OddColumn(uint16_t x) -> bool {
+  return (x & 7) != 0;
+}
+
+// Saves the screen at the pixel position into the VRAM buffer.
+void SaveVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) {
+  auto const buffer{ VramBuffer(ds) };
+  if (OddColumn(x))
+    Call(ds, event, BattleRoutine::VRAM_SAVE_ODD, x >> 3, y, buffer);
+  else
+    Call(ds, event, BattleRoutine::VRAM_SAVE, x >> 3, y, buffer);
+}
+
+// Restores the screen at the pixel position from the VRAM buffer.
+void RestoreVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) {
+  auto const buffer{ VramBuffer(ds) };
+  if (OddColumn(x))
+    Call(ds, event, BattleRoutine::VRAM_RESTORE_ODD, x >> 3, y, buffer);
+  else
+    Call(ds, event, BattleRoutine::VRAM_RESTORE, x >> 3, y, buffer);
 }
 
 void DrawTerrain(uint8_t* ds, BattleEvent event, SpriteVariant variant, uint8_t x, uint8_t y) {
@@ -45,21 +64,21 @@ void opeu_battle_draw_cell(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y)
   auto&      data{ Data(ds) };
   auto const column{ opeu_battle_cell_column(ds, event, x, y) };
   auto const row{ opeu_battle_cell_row(ds, event, x, y) };
-  Vram(ds, event, true, column, row);
+  SaveVram(ds, event, column, row);
   data.sprite_variant[0] = Bits(SpriteVariant::WHOLE);
   opeu_battle_draw_terrain(ds, event, x, y, BattleTerrainAt(data, x, y));
   opeu_battle_draw_neighbors(ds, event, x, y);
-  Vram(ds, event, false, column, row);
+  RestoreVram(ds, event, column, row);
 }
 
 void opeu_battle_draw_cell_above(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y) {
   auto const column{ opeu_battle_cell_column(ds, event, x, y) };
   auto const row{ static_cast<uint16_t>(opeu_battle_cell_row(ds, event, x, y) - CELL_HEIGHT) };
-  Vram(ds, event, true, column, row);
+  SaveVram(ds, event, column, row);
   if (x != 0) DrawTerrain(ds, event, SpriteVariant::LEFT, static_cast<uint8_t>(x - 1), y);
   if (y != 0) DrawTerrain(ds, event, SpriteVariant::ABOVE, x, static_cast<uint8_t>(y - 1));
   if (x < BATTLE_WIDTH && y < BATTLE_WIDTH) DrawTerrain(ds, event, SpriteVariant::CELL, x, y);
-  Vram(ds, event, false, column, row);
+  RestoreVram(ds, event, column, row);
 }
 
 uint16_t svc_btlcell(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {

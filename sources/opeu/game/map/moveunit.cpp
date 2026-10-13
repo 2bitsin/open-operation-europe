@@ -28,16 +28,45 @@ constexpr uint16_t NEXT_Y_AT{ 4 };
 constexpr uint16_t GOAL_X_AT{ 2 };
 constexpr uint16_t GOAL_Y_AT{ 0 };
 
-// Raises a service that updates a cell through the DS bytes at x_at and y_at: the cell is copied there before the
-// call and read back after it.
-template <typename... Words>
-auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x, uint16_t x_at, uint8_t& y, uint16_t y_at, Words... words) -> uint16_t {
-  Byte(ds, x_at) = x;
-  Byte(ds, y_at) = y;
-  auto const result{ Call(ds, event, service, words...) };
-  x = Byte(ds, x_at);
-  y = Byte(ds, y_at);
-  return result;
+// A cell the caller holds in x and y that a service moves through the DS bytes at x_at and y_at: the cell is copied
+// there before the call and read back after it.
+struct ReservedCell {
+  uint8_t& x;
+  uint8_t& y;
+  uint16_t x_at;
+  uint16_t y_at;
+};
+
+// The cell a step heads for.
+struct Goal {
+  uint8_t x;
+  uint8_t y;
+};
+
+void Stage(uint8_t* ds, ReservedCell const& cell) {
+  Byte(ds, cell.x_at) = cell.x;
+  Byte(ds, cell.y_at) = cell.y;
+}
+
+void Fetch(uint8_t* ds, ReservedCell const& cell) {
+  cell.x = Byte(ds, cell.x_at);
+  cell.y = Byte(ds, cell.y_at);
+}
+
+// Moves the cell to its neighbour in the direction; nonzero when the neighbour is on the map.
+auto GridStep(uint8_t* ds, HostEvent event, ReservedCell const& cell, uint8_t direction) -> uint16_t {
+  Stage(ds, cell);
+  auto const stepped{ Call(ds, event, MoveService::GRID_STEP, cell.x_at, cell.y_at, direction) };
+  Fetch(ds, cell);
+  return stepped;
+}
+
+// Moves the cell one step along the path toward the goal; returns the step's cost, or STUCK.
+auto StepToward(uint8_t* ds, HostEvent event, ReservedCell const& cell, Goal goal) -> uint16_t {
+  Stage(ds, cell);
+  auto const cost{ Call(ds, event, MoveService::STEP_TOWARD, cell.x_at, cell.y_at, goal.x, goal.y) };
+  Fetch(ds, cell);
+  return cost;
 }
 } // namespace
 
@@ -51,11 +80,11 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t repeat) {
   auto const          probe_y_at{ locals.At(PROBE_Y_AT) };
   auto const          next_x_at{ locals.At(NEXT_X_AT) };
   auto const          next_y_at{ locals.At(NEXT_Y_AT) };
-  auto const step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return ThroughCell(ds, event, MoveService::GRID_STEP, x, probe_x_at, y, probe_y_at, probe_x_at, probe_y_at, direction); } };
-  auto const cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(Call(ds, event, MoveService::COST, x, y, current)); } };
-  uint8_t    next_x{ unit.x };
-  uint8_t    next_y{ unit.y };
-  auto const rating{ static_cast<uint8_t>(Call(ds, event, MoveService::RATING)) };
+  auto const          step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return GridStep(ds, event, { x, y, probe_x_at, probe_y_at }, direction); } };
+  auto const          cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(Call(ds, event, MoveService::COST, x, y, current)); } };
+  uint8_t             next_x{ unit.x };
+  uint8_t             next_y{ unit.y };
+  auto const          rating{ static_cast<uint8_t>(Call(ds, event, MoveService::RATING)) };
   opeu_add_byte(rating, POINTS_LIMIT, &unit.moved);
 
   // Nothing to do unless some neighbouring cell is affordable.
@@ -94,7 +123,7 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t repeat) {
       uint8_t waypoint_x{ next_x };
       uint8_t waypoint_y{ next_y };
       for (uint8_t steps{ 0 }; (waypoint_x != goal_x || waypoint_y != goal_y) && steps < ROUTE_STEPS; steps++)
-        ThroughCell(ds, event, MoveService::STEP_TOWARD, waypoint_x, probe_x_at, waypoint_y, probe_y_at, probe_x_at, probe_y_at, goal_x, goal_y);
+        StepToward(ds, event, { waypoint_x, waypoint_y, probe_x_at, probe_y_at }, { goal_x, goal_y });
       unit.target_x = waypoint_x;
       unit.target_y = waypoint_y;
       committed     = true;
@@ -108,7 +137,7 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t repeat) {
     }
 
     Call(ds, event, MoveService::CLEAR_PATH, next_x, next_y);
-    remaining = ThroughCell(ds, event, MoveService::STEP_TOWARD, next_x, next_x_at, next_y, next_y_at, next_x_at, next_y_at, unit.target_x, unit.target_y);
+    remaining = StepToward(ds, event, { next_x, next_y, next_x_at, next_y_at }, { unit.target_x, unit.target_y });
     if (remaining == STUCK || (!repeat && !remaining)) return;
     auto const objective{ Call(ds, event, MoveService::FIND_OBJECTIVE, next_x, next_y) };
     bool       blocked{ objective != 0 && static_cast<uint8_t>(Call(ds, event, MoveService::OBJECTIVE_SIDE, objective)) != data.current_side };

@@ -8,6 +8,7 @@
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/sideutil.hpp"
+#include "core/textout.hpp"
 #include "map/btllist.hpp"
 #include "map/btlunit.hpp"
 #include "map/query.hpp"
@@ -18,6 +19,8 @@
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
+#include <array>
 
 using namespace opeu::game;
 
@@ -61,7 +64,7 @@ void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element,
   auto                side{ opeu_battle_element_side(ds, event, element) };
   auto const          unit{ opeu_battle_element_unit(ds, event, element) };
   auto const          at{ [&](uint16_t column, uint16_t row) { Call(ds, event, BattleRoutine::ARMY_POSITION, column, row); } };
-  auto const          print{ [&](auto const& format, auto... words) { Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...); } };
+  auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(ds, std::array<uint16_t, 1 + sizeof...(words)>{ Near(data, format), static_cast<uint16_t>(words)... }); } };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   at(TITLE_COLUMN, 0);
   uint16_t name;

@@ -13,6 +13,7 @@
 #include "map/btlaiunt.hpp"
 #include "map/btllist.hpp"
 #include "map/btlmove.hpp"
+#include "map/btlpath.hpp"
 #include "map/btlunit.hpp"
 #include "types.hpp"
 
@@ -207,17 +208,21 @@ void opeu_battle_ai_think(uint8_t* ds, BattleEvent event, uint16_t element) {
   }
 }
 
+namespace opeu::game::detail::btlaiact {
+auto BattlePathStep(std::uint8_t* ds, std::uint8_t x, std::uint8_t y) -> std::uint16_t {
+  ServiceLocals const locals{ 2 };
+  auto const          x_at{ locals.At(0) };
+  auto const          y_at{ static_cast<std::uint16_t>(x_at + 1u) };
+  Byte(ds, x_at) = x;
+  Byte(ds, y_at) = y;
+  return opeu_battle_path_step(ds, svc_btlpath, x_at, y_at);
+}
+} // namespace opeu::game::detail::btlaiact
+
 // The services of the battle AI modules. The path step takes the addresses of two frame bytes it never reads back;
-// the caller passes their values, which go to two bytes in a reserve of their own.
+// the caller passes their values.
 uint16_t svc_battle_ai(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned count) {
-  if (address == std::to_underlying(BattleRoutine::BATTLE_PATH_STEP)) {
-    ServiceLocals const locals{ 2 };
-    auto const          cell{ locals.At(0) };
-    Byte(ds, cell)                             = static_cast<uint8_t>(count > 0 ? args[0] : 0);
-    Byte(ds, static_cast<uint16_t>(cell + 1u)) = static_cast<uint8_t>(count > 1 ? args[1] : 0);
-    uint16_t const words[]{ static_cast<uint16_t>(cell + 1u), cell };
-    return static_cast<uint16_t>(port_call(ds, address, words, 2));
-  }
+  if (address == std::to_underlying(BattleRoutine::BATTLE_PATH_STEP)) return BattlePathStep(ds, static_cast<uint8_t>(Arg(args, count, 0)), static_cast<uint8_t>(Arg(args, count, 1)));
   return port_service(ds, address, args, count);
 }
 

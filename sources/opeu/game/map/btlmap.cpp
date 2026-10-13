@@ -64,10 +64,6 @@ constexpr uint16_t PLACE_FRAME_Y{ 0x20 };
 constexpr uint16_t YEAR_BASE{ 40 };
 constexpr uint8_t  NO_DIRECTION{ 0xff };
 
-uint16_t Service(uint8_t* ds, HostEvent event, MapSetupService service, auto... words) {
-  return Call(ds, event, service, words...);
-}
-
 [[nodiscard]] auto StrategicTerrain(DataSegment const& data) -> uint8_t {
   return MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK);
 }
@@ -77,9 +73,9 @@ uint16_t Service(uint8_t* ds, HostEvent event, MapSetupService service, auto... 
 void opeu_battle_draw_border(uint8_t* ds, HostEvent event) {
   auto&      data{ Data(ds) };
   auto const sprite{ [&](uint16_t x, uint16_t y, uint16_t image, uint16_t mask) {
-    Service(ds, event, MapSetupService::SPRITE, x, y, BORDER_SPRITE_WIDTH, BORDER_SPRITE_HEIGHT, image, data.icon_segment, mask, data.icon_segment, 0, data.bitmap_buffer, 1);
+    Call(ds, event, MapSetupService::SPRITE, x, y, BORDER_SPRITE_WIDTH, BORDER_SPRITE_HEIGHT, image, data.icon_segment, mask, data.icon_segment, 0, data.bitmap_buffer, 1);
   } };
-  Service(ds, event, MapSetupService::BACKDROP, BORDER_COLOR);
+  Call(ds, event, MapSetupService::BACKDROP, BORDER_COLOR);
   for (uint16_t a{ 0 }; a < BATTLE_WIDTH; ++a) sprite(static_cast<uint16_t>((a + 2) * 20), static_cast<uint16_t>((a + 16) * 13), LEFT_BORDER_IMAGE, LEFT_BORDER_MASK);
   for (uint16_t b{ 0 }; b < BATTLE_WIDTH; ++b) sprite(static_cast<uint16_t>((29 - b) * 20), static_cast<uint16_t>((b + 16) * 13), RIGHT_BORDER_IMAGE, RIGHT_BORDER_MASK);
 }
@@ -95,12 +91,12 @@ void opeu_battle_load_terrain(uint8_t* ds, HostEvent event) {
   auto& data{ Data(ds) };
   data.stream_ptr[1] = data.hex_display_segment;
   data.stream_ptr[0] = static_cast<uint16_t>(data.battle_y * MAP_WIDTH + data.battle_x);
-  data.hexmap_index  = static_cast<uint8_t>(Service(ds, event, MapSetupService::FAR_BYTE, data.stream_ptr[1], data.stream_ptr[0]));
+  data.hexmap_index  = static_cast<uint8_t>(Call(ds, event, MapSetupService::FAR_BYTE, data.stream_ptr[1], data.stream_ptr[0]));
   auto const position{ (static_cast<int32_t>(data.hexmap_index - 1) + data.hexmap_offsets[std::to_underlying(CurrentScenario(data))]) * static_cast<int32_t>(TERRAIN_RECORD) };
-  auto const handle{ static_cast<int16_t>(Service(ds, event, MapSetupService::OPEN_RESOURCE, Near(data, data.hexmap_filename))) };
-  Service(ds, event, MapSetupService::SEEK, handle, static_cast<uint16_t>(position), static_cast<uint16_t>(static_cast<uint32_t>(position) >> 16), 0);
-  Service(ds, event, MapSetupService::READ, handle, Near(data, data.battle_terrain), TERRAIN_RECORD);
-  Service(ds, event, MapSetupService::CLOSE, handle);
+  auto const handle{ static_cast<int16_t>(Call(ds, event, MapSetupService::OPEN_RESOURCE, Near(data, data.hexmap_filename))) };
+  Call(ds, event, MapSetupService::SEEK, handle, static_cast<uint16_t>(position), static_cast<uint16_t>(static_cast<uint32_t>(position) >> 16), 0);
+  Call(ds, event, MapSetupService::READ, handle, Near(data, data.battle_terrain), TERRAIN_RECORD);
+  Call(ds, event, MapSetupService::CLOSE, handle);
   for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) {
       auto&      cell{ BattleTerrainAt(data, x, y) };
@@ -122,12 +118,12 @@ void opeu_battle_load_terrain(uint8_t* ds, HostEvent event) {
 // The border, the top row of half cells, then every row.
 void opeu_battle_draw_map(uint8_t* ds, HostEvent event) {
   opeu_battle_draw_border(ds, event);
-  auto const above{ [&](unsigned x, unsigned y) { Service(ds, event, MapSetupService::DRAW_CELL_ABOVE, static_cast<uint8_t>(x), static_cast<uint8_t>(y)); } };
+  auto const above{ [&](unsigned x, unsigned y) { Call(ds, event, MapSetupService::DRAW_CELL_ABOVE, static_cast<uint8_t>(x), static_cast<uint8_t>(y)); } };
   above(0, 0);
   for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) above(x + 1, 0);
   for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y) {
     above(0, y + 1);
-    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) Service(ds, event, MapSetupService::DRAW_CELL, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) Call(ds, event, MapSetupService::DRAW_CELL, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
   }
 }
 
@@ -136,18 +132,18 @@ void opeu_battle_draw_title(uint8_t* ds, HostEvent event) {
   auto&      data{ Data(ds) };
   auto const weather{ data.weather == STORM && CurrentScenario(data) == Scenario::D_DAY && data.month >= 7 && data.month <= 9 ? Near(data, data.battle_hurricane_text)
                                                                                                                               : data.weather_names[data.weather] };
-  Service(ds, event, MapSetupService::TEXT_POSITION, TITLE_X, 0);
-  Service(ds, event, MapSetupService::CONTEXT_FRAME, 0, 0, TITLE_FRAME_WIDTH);
-  Service(ds, event, MapSetupService::TEXT, Near(data, data.battle_title_style));
-  Service(ds, event, MapSetupService::PRINT, Near(data, data.battle_title_format), data.month, data.day, data.year + YEAR_BASE, data.hour, weather);
-  Service(ds, event, MapSetupService::CONTEXT_FRAME, 0, PLACE_FRAME_Y, TITLE_FRAME_WIDTH);
+  Call(ds, event, MapSetupService::TEXT_POSITION, TITLE_X, 0);
+  Call(ds, event, MapSetupService::CONTEXT_FRAME, 0, 0, TITLE_FRAME_WIDTH);
+  Call(ds, event, MapSetupService::TEXT, Near(data, data.battle_title_style));
+  Call(ds, event, MapSetupService::PRINT, Near(data, data.battle_title_format), data.month, data.day, data.year + YEAR_BASE, data.hour, weather);
+  Call(ds, event, MapSetupService::CONTEXT_FRAME, 0, PLACE_FRAME_Y, TITLE_FRAME_WIDTH);
   auto const x{ static_cast<uint16_t>(data.map_scale * data.battle_x) };
   auto const y{ static_cast<uint16_t>(data.map_scale * data.battle_y) };
-  if (auto const objective{ Service(ds, event, MapSetupService::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y) })
-    Service(ds, event, MapSetupService::PRINT, Near(data, data.battle_place_format), objective, x, y);
+  if (auto const objective{ Call(ds, event, MapSetupService::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y) })
+    Call(ds, event, MapSetupService::PRINT, Near(data, data.battle_place_format), objective, x, y);
   else
-    Service(ds, event, MapSetupService::PRINT, Near(data, data.battle_terrain_format), data.terrain_names[StrategicTerrain(data)], x, y);
-  Service(ds, event, MapSetupService::TEXT, Near(data, data.battle_title_end));
+    Call(ds, event, MapSetupService::PRINT, Near(data, data.battle_terrain_format), data.terrain_names[StrategicTerrain(data)], x, y);
+  Call(ds, event, MapSetupService::TEXT, Near(data, data.battle_title_end));
 }
 
 // The objective's garrison shared among its city cells: each gets the share, the first ones one more for the
@@ -160,7 +156,7 @@ void opeu_battle_garrison_cells(uint8_t* ds, HostEvent event) {
     extra.y     = BATTLE_UNPLACED;
     extra.count = BATTLE_UNPLACED;
   } };
-  auto const site{ Service(ds, event, MapSetupService::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y) };
+  auto const site{ Call(ds, event, MapSetupService::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y) };
   if (!site) {
     for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) clear(i);
     return;
@@ -211,8 +207,8 @@ void opeu_battle_map_setup(uint8_t* ds, HostEvent event) {
   opeu_battle_reset_state(ds, event);
   opeu_battle_load_terrain(ds, event);
   opeu_battle_garrison_cells(ds, event);
-  Service(ds, event, MapSetupService::VGA_CLEAR);
-  Service(ds, event, MapSetupService::PALETTE_TITLE);
+  Call(ds, event, MapSetupService::VGA_CLEAR);
+  Call(ds, event, MapSetupService::PALETTE_TITLE);
   opeu_battle_draw_map(ds, event);
   opeu_battle_draw_title(ds, event);
 }
@@ -220,14 +216,13 @@ void opeu_battle_map_setup(uint8_t* ds, HostEvent event) {
 uint16_t svc_btlmap(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   auto const w{ [&](unsigned i) { return Arg(args, count, i); } };
   auto const byte{ [&](unsigned i) { return static_cast<uint8_t>(w(i)); } };
-  auto const handle{ [&] { return static_cast<int16_t>(w(0)); } };
   switch (static_cast<MapSetupService>(id)) {
   case MapSetupService::BACKDROP:          opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); return 0;
   case MapSetupService::SPRITE:            koei_3f26(w(0), w(1), w(2), w(3), port_far(w(5), w(4)), port_far(w(7), w(6)), port_far(w(9), w(8)), w(10)); return 0;
   case MapSetupService::OPEN_RESOURCE:     return static_cast<uint16_t>(opeu_open_resource(ds, svc_resopen, w(0)));
-  case MapSetupService::SEEK:              return static_cast<uint16_t>(opeu_dos_seek(handle(), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(w(3))));
-  case MapSetupService::READ:              return static_cast<uint16_t>(opeu_dos_read(handle(), PORT_DS(w(1)), w(2)));
-  case MapSetupService::CLOSE:             return static_cast<uint16_t>(opeu_dos_close(handle()));
+  case MapSetupService::SEEK:              return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(w(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(w(3))));
+  case MapSetupService::READ:              return static_cast<uint16_t>(opeu_dos_read(static_cast<int16_t>(w(0)), PORT_DS(w(1)), w(2)));
+  case MapSetupService::CLOSE:             return static_cast<uint16_t>(opeu_dos_close(static_cast<int16_t>(w(0))));
   case MapSetupService::TEXT_POSITION:     opeu_army_position(ds, static_cast<TextHost*>(port_textout_host()), static_cast<short>(w(0)), static_cast<short>(w(1))); return 0;
   case MapSetupService::CONTEXT_FRAME:     opeu_context_frame(ds, static_cast<UiHost const*>(port_uiprim_host()), w(0), w(1), w(2)); return 0;
   case MapSetupService::TEXT:              opeu_ui_text(ds, static_cast<TextHost*>(port_textout_host()), w(0)); return 0;
