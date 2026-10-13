@@ -94,7 +94,7 @@ void opeu_unit_panel(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/, uint16
   Call(ds, event, ViewService::ARMY_TITLE, Call(ds, event, ViewService::UNIT_NAME, unit, locals.At(0xe)));
   Call(ds, event, ViewService::UNIT_CAPACITIES, unit, ammunition, fuel, food);
   // each capacity becomes the percentage of it the regiment holds
-  for (auto const [kind, local] : {
+  for (auto const& [kind, local] : {
            std::pair{ 0, ammunition },
            std::pair{ 1, fuel       },
            std::pair{ 2, food       }

@@ -139,7 +139,7 @@ inline void ShowAdvice(std::uint8_t* ds, HostEvent event, std::uint16_t text) {
 // The event an advice check passed on to opeu_unit_name, which formats through its own service 2.
 inline HostEvent advice_name_event{};
 inline auto      AdviceNameFormat(std::uint8_t* ds, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
-  return advice_name_event(ds, id == 2 ? ADVICE_FORMAT : id, args, count);
+  return advice_name_event(ds, id == 2 ? std::uint16_t{ ADVICE_FORMAT } : id, args, count);
 }
 
 // Writes the unit's name to a DS buffer through the advice check's own request_format; returns the buffer.

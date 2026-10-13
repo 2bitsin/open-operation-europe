@@ -125,15 +125,22 @@ TEST(DataSegment, FlagsTheSelfPropelledGunsAmongTheTanksAndTheParatroopsAsInfant
   EXPECT_GT(self_propelled, 20);
   EXPECT_EQ(airborne, 4);
   for (auto const& type : data.element_types) {
-    if (type.flags & Bits(TypeFlag::SELF_PROPELLED)) EXPECT_EQ(type.category, Bits(Category::TANKS)) << Text(data, type.name);
-    if (type.flags & Bits(TypeFlag::AIRBORNE)) EXPECT_EQ(type.category, Bits(Category::INFANTRY)) << Text(data, type.name);
+    if (type.flags & Bits(TypeFlag::SELF_PROPELLED)) {
+      EXPECT_EQ(type.category, Bits(Category::TANKS)) << Text(data, type.name);
+    }
+    if (type.flags & Bits(TypeFlag::AIRBORNE)) {
+      EXPECT_EQ(type.category, Bits(Category::INFANTRY)) << Text(data, type.name);
+    }
   }
 }
 
 TEST(DataSegment, GivesTheFuelUsersAFuelCapacity) {
   auto const& data{ Initial() };
-  for (auto const& type : data.element_types)
-    if (type.name != 0 && type.fuel_economy != 0) EXPECT_NE(type.fuel_capacity, 0) << Text(data, type.name);
+  for (auto const& type : data.element_types) {
+    if (type.name != 0 && type.fuel_economy != 0) {
+      EXPECT_NE(type.fuel_capacity, 0) << Text(data, type.name);
+    }
+  }
 }
 
 TEST(DataSegment, LabelsEveryButtonAndEndsEveryMenuWithAnEmptyRecord) {
