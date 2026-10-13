@@ -21,7 +21,8 @@ NARROW_PARAMETERS = {"uint16_t", "int16_t", "uint8_t", "int8_t", "short", "unsig
 UNSIGNED_NARROW = {"uint16_t", "uint8_t", "unsigned short", "unsigned char", "bool"}
 RESULT_AS_IS = {"uint16_t", "unsigned short"}
 PURE_CALLS = {"static_cast", "reinterpret_cast", "const_cast", "Local", "Near", "Data", "Record", "Word", "Byte", "offsetof",
-              "sizeof", "to_underlying", "Arg", "Arg32", "U16", "Bits", "port_far", "PORT_DS", "port_dialogs_host", "port_textout_host", "port_uiprim_host", "port_numdlg_host", "uint16_t", "uint8_t", "int16_t", "Lo", "Hi"}
+              "sizeof", "to_underlying", "Arg", "Arg32", "U16", "Bits", "port_far", "PORT_DS", "port_dialogs_host", "port_textout_host", "port_uiprim_host", "port_numdlg_host", "uint16_t", "uint8_t", "int16_t", "Lo", "Hi",
+              "At"}  # At: a ServiceLocals reserve's near address
 MUTATING = {"++", "--", "=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "<<=", ">>="}
 TIGHT = {".", "->", "::"}
 

@@ -14,6 +14,8 @@ import rewrite  # noqa: E402
 from rewriter.b3 import B3Pass, FindEnumerations  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import SourceFile  # noqa: E402
+from rewriter.substitute import _SideEffects  # noqa: E402
+from rewriter.syntax import Span  # noqa: E402
 
 FIXTURE = HERE / "fixtures" / "b3"
 GAME = Path("sources/opeu/game")
@@ -92,3 +94,14 @@ def test_only_selects_the_sites_bound_to_dispatchers_of_the_given_files():
   picked = [s for s in everything if chosen(s)]
   assert picked and len(picked) < len(everything)
   assert all(str(model.dispatchers[s.target.callbacks[0]].function.file).startswith("game/units/") for s in picked)
+
+
+@pytest.mark.parametrize("word, effects", [
+  ("locals.At(FUEL_AT)", False),
+  ("Near(data, data.text)", False),
+  ("opeu_unit_side(unit)", True),
+  ("count++", True),
+])
+def test_a_reserves_near_address_has_no_side_effect(word, effects):
+  source = SourceFile(PurePosixPath("x.cpp"), word)
+  assert _SideEffects(source, Span(0, len(source.tokens))) is effects
