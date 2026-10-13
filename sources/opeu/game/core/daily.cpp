@@ -2,6 +2,7 @@
 // current month is activated and presented. The scan keeps its side and record in the data segment
 // (daily_side, daily_record), where the services read them.
 #include "core/daily.hpp"
+#include "common/events.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -18,19 +19,12 @@ using namespace opeu::game;
 
 namespace {
 
-enum Service : std::uint16_t {
-  PREPARE  = 0, // ()
-  CONTEXT  = 1, // (side)
-  ACTIVATE = 2, // (side)
-  SHOW     = 3, // (picture, side, callback offset, callback segment)
-};
-
 constexpr std::uint16_t EVENT_PICTURE{ 0x73 };
 // The far routine that presents the event (opeu_daily_present), as the segment the link table resolves.
 constexpr std::uint16_t PRESENT_SEGMENT{ 0x0e36 };
 } // namespace
 
-void opeu_scan_daily_events(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_scan_daily_events(Game& game) {
   auto& data{ Data(game) };
   for (data.daily_side = 0; data.daily_side < SIDE_COUNT; ++data.daily_side) {
     if (data.side_status[data.daily_side] != SIDE_PLAYED) continue;
@@ -41,28 +35,17 @@ void opeu_scan_daily_events(Game& game, uint16_t (*event)(Game&, uint16_t, uint1
       std::uint8_t const month{ static_cast<std::uint8_t>(record.date & 15) };
       if ((data.side_masks[data.daily_side] & record.sides) && year == data.year && month == data.month) {
         data.daily_active = 1;
-        if (data.daily_pending) event(game, CONTEXT, data.daily_side, 0, 0, 0);
+        if (data.daily_pending) opeu_daily_context(game, data.daily_side);
         data.daily_active  = 0;
         data.daily_pending = 0;
-        event(game, ACTIVATE, data.daily_side, 0, 0, 0);
-        event(game, SHOW, EVENT_PICTURE, data.daily_side, 0, PRESENT_SEGMENT);
+        opeu_daily_activate(game, data.daily_side);
+        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), EVENT_PICTURE, data.daily_side, static_cast<uint32_t>(PRESENT_SEGMENT) << 16);
       }
     }
   }
 }
 
-void opeu_turn_daily(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  event(game, PREPARE, 0, 0, 0, 0);
-  opeu_scan_daily_events(game, event);
-}
-
-uint16_t svc_daily(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
-  switch (id) {
-  case PREPARE:  opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case CONTEXT:  opeu_daily_context(game, (uint8_t)a0); break;
-  case ACTIVATE: opeu_daily_activate(game, static_cast<std::uint8_t>(a0)); break;
-  case SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a0, (uint8_t)a1, (uint32_t)a3 << 16 | a2); break;
-  default:       port_unhandled("daily", id, 4);
-  }
-  return 0;
+void opeu_turn_daily(Game& game) {
+  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_scan_daily_events(game);
 }

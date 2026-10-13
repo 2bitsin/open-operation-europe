@@ -25,21 +25,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services opeu_hourly_c_stage_b calls through its event.
-enum class RequestService : uint16_t {
-  VALID     = 0, // opeu_request_valid(side, request)
-  SUPPLIES  = 1, // opeu_request_action0(side, request)
-  BATTALION = 2, // opeu_request_action1(side, request)
-  REGIMENT  = 3, // opeu_request_action2(side, request)
-  COMPLETE  = 4, // opeu_request_complete(side)
-  START     = 5, // opeu_request_start(side, request)
-  FALLBACK  = 6, // opeu_request_fallback(side, request)
-};
-
-auto Send(Game& game, PendingEvent event, RequestService service, uint8_t side, uint16_t request = 0) -> uint16_t {
-  return event(game, std::to_underlying(service), side, request, 0, 0);
-}
-
 constexpr uint8_t TEMPLATE_KIND{ 5 }; // the person template that speaks the request reports
 
 } // namespace
@@ -49,7 +34,7 @@ constexpr uint8_t TEMPLATE_KIND{ 5 }; // the person template that speaks the req
 // accepted when its kind is enabled, no other request is booked and a roll in 0..255 falls below the acceptance
 // threshold of its kind. The threshold of an unknown kind is the caller's stale_threshold (the game reads an
 // uninitialised word there).
-void opeu_hourly_c_stage_b(Game& game, PendingEvent event, uint16_t stale_threshold) {
+void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold) {
   auto& data{ Data(game) };
   auto  threshold{ stale_threshold };
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
@@ -58,15 +43,15 @@ void opeu_hourly_c_stage_b(Game& game, PendingEvent event, uint16_t stale_thresh
     data.request_template = opeu_find_person_template(game, Record<Person>(data, opeu_find_side_record(game, side, std::to_underlying(StaffRole::ARMY_COMMANDER))).status, TEMPLATE_KIND);
     data.request_person   = opeu_find_side_record(game, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
     if (config.kind != std::to_underlying(RequestKind::NONE) && opeu_sub_byte(1, &config.delay) == 0) {
-      if (Send(game, event, RequestService::VALID, side, config_at)) {
+      if (opeu_request_valid(game, side, config_at)) {
         switch (static_cast<RequestKind>(config.kind)) {
-        case RequestKind::SUPPLIES:  Send(game, event, RequestService::SUPPLIES, side, config_at); break;
-        case RequestKind::BATTALION: Send(game, event, RequestService::BATTALION, side, config_at); break;
-        case RequestKind::REGIMENT:  Send(game, event, RequestService::REGIMENT, side, config_at); break;
+        case RequestKind::SUPPLIES:  opeu_request_action0(game, side, config_at); break;
+        case RequestKind::BATTALION: opeu_request_action1(game, side, config_at); break;
+        case RequestKind::REGIMENT:  opeu_request_action2(game, side, config_at); break;
         default:                     break;
         }
       }
-      if (config.kind == std::to_underlying(RequestKind::REGIMENT)) Send(game, event, RequestService::COMPLETE, side);
+      if (config.kind == std::to_underlying(RequestKind::REGIMENT)) opeu_request_complete(game, side);
       config.kind = std::to_underlying(RequestKind::NONE);
     }
     for (auto& request : data.sides[side].requests) {
@@ -78,25 +63,10 @@ void opeu_hourly_c_stage_b(Game& game, PendingEvent event, uint16_t stale_thresh
       default:                     break;
       }
       if (config.enabled[request.kind] == 1 && config.kind == std::to_underlying(RequestKind::NONE) && static_cast<uint8_t>(RandomBelow(game, 1000)) < threshold)
-        Send(game, event, RequestService::START, side, Near(data, request));
+        opeu_request_start(game, side, Near(data, request));
       else
-        Send(game, event, RequestService::FALLBACK, side, Near(data, request));
+        opeu_request_fallback(game, side, Near(data, request));
       break;
     }
   }
-}
-
-uint16_t svc_requests(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t, uint16_t) {
-  uint16_t r = 0;
-  switch (static_cast<RequestService>(id)) {
-  case RequestService::VALID:     r = opeu_request_valid(game, svc_reqvalid, (uint8_t)a, b); break;
-  case RequestService::SUPPLIES:  opeu_request_action0(game, (uint8_t)a, b); break;
-  case RequestService::BATTALION: opeu_request_action1(game, (uint8_t)a, b); break;
-  case RequestService::REGIMENT:  opeu_request_action2(game, (uint8_t)a, b); break;
-  case RequestService::COMPLETE:  opeu_request_complete(game, (uint8_t)a); break;
-  case RequestService::START:     opeu_request_start(game, (uint8_t)a, b); break;
-  case RequestService::FALLBACK:  opeu_request_fallback(game, (uint8_t)a, b); break;
-  default:                        port_unhandled("requests", id, 4);
-  }
-  return r;
 }

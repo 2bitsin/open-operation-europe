@@ -182,33 +182,6 @@ void opeu_air_bomb_command(Game& game) {
   if (!opeu_air_bomb_check(game, opeu_map_code(game, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(game, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
 }
 
-// The services of the air force's commands (core/airbomb, airdrop, airforce, airhelp, airlift).
-uint16_t svc_air(Game& game, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t result{ 0 };
-  switch (static_cast<AirService>(id)) {
-  case FORMAT:    opeu_request_format(game, { args, count }); break;
-  case MESSAGE:   opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CONFIRM:   result = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOOKUP:    result = opeu_message_lookup(game, static_cast<short>(Arg(args, count, 0))); break;
-  case PRINT:     opeu_cursor_print(game, { args, count }); break;
-  case SPEAKER:   result = opeu_speaker_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case TEXT_FEED: opeu_text_feed(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case VALUE:     result = opeu_choose_value(game, Arg(args, count, 0), Arg(args, count, 1), static_cast<int16_t>(Arg(args, count, 2)), Arg(args, count, 3)); break;
-  case DIALOG:    result = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case TITLE:     opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case PICK:      {
-    result = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1));
-    break;
-  }
-  case LIST_DIALOG: result = opeu_list_dialog(game, Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2))); break;
-  case POSITION:    opeu_army_position(game, (TextHost*)port_textout_host(), static_cast<short>(Arg(args, count, 0)), static_cast<short>(Arg(args, count, 1))); break;
-  case CONTEXT:     opeu_daily_context(game, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  case FAR_ACTION:  result = static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(Arg(args, count, 0)) * 16u + Arg(args, count, 1), nullptr, 0)); break;
-  default:          port_unhandled(module, id, count);
-  }
-  return result;
-}
-
 auto port_routine_opeu_air_bomb_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_air_bomb_command(game);
   return 0;

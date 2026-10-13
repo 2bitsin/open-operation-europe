@@ -26,8 +26,6 @@ using namespace opeu::game;
 
 namespace {
 
-using ArrivalEvent = auto (*)(Game&, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t) -> std::uint16_t;
-
 constexpr std::uint8_t RANK_COMMANDER{ 3 };
 } // namespace
 
@@ -41,7 +39,7 @@ void opeu_process_arrivals(Game& game, uint8_t side) {
       auto&      unit{ data.units[UNITS_PER_SIDE * side + UNITS_PER_GROUP * g + u] };
       auto const near{ Near(data, unit) };
       if (!(unit.flags & Bits(UnitFlag::ARRIVING))) continue;
-      if (!opeu_arrival_locate(game, svc_arrplace, Near(data, unit.x), Near(data, unit.y), static_cast<uint8_t>(side))) return;
+      if (!opeu_arrival_locate(game, Near(data, unit.x), Near(data, unit.y), static_cast<uint8_t>(side))) return;
       for (auto& task : group.tasks) task.kind = Bits(TaskKind::NONE);
       group.flags &= ~Bits(GroupFlag::RESERVE);
       group.flags |= Bits(GroupFlag::READY);

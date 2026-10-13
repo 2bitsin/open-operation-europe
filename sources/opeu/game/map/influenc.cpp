@@ -3,6 +3,7 @@
 // stages.
 #include "map/influenc.hpp"
 #include "common/data-segment.hpp"
+#include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/arrivals.hpp"
 #include "core/requests.hpp"
@@ -18,10 +19,6 @@
 using namespace opeu::game;
 
 namespace {
-enum class HourlyService : uint16_t {
-  REQUESTS = 0,
-  ARRIVALS = 1,
-};
 // The request stage's stale-request threshold is a DS stack word its caller never sets: the bottom word of a reserve
 // this size, as the stack held it.
 constexpr uint16_t STALE_THRESHOLD_RESERVE{ 0x10 };
@@ -65,25 +62,16 @@ void opeu_update_influence_map(Game& game) {
     }
 }
 
-void opeu_turn_hourly_c(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
-  opeu_update_influence_map(game);
-  event(game, std::to_underlying(HourlyService::REQUESTS), 0, 0, 0, 0);
-  event(game, std::to_underlying(HourlyService::ARRIVALS), 0, 0, 0, 0);
+namespace {
+// The hour's requests, with the stale threshold the game reads from an uninitialised word of the routine's frame.
+void RunRequests(Game& game) {
+  ServiceLocals const locals{ STALE_THRESHOLD_RESERVE };
+  opeu_hourly_c_stage_b(game, Word(game, locals.At(0)));
 }
+} // namespace
 
-uint16_t svc_influenc(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
-  (void)a;
-  (void)b;
-  (void)c;
-  (void)d;
-  switch (static_cast<HourlyService>(id)) {
-  case HourlyService::REQUESTS: {
-    ServiceLocals const locals{ STALE_THRESHOLD_RESERVE };
-    opeu_hourly_c_stage_b(game, svc_requests, Word(game, locals.At(0)));
-    break;
-  }
-  case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(game); break;
-  default:                      port_unhandled("influenc", id, 0);
-  }
-  return 0;
+void opeu_turn_hourly_c(Game& game) {
+  opeu_update_influence_map(game);
+  RunRequests(game);
+  opeu_hourly_c_stage_c(game);
 }

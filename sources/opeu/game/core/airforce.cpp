@@ -33,14 +33,6 @@ constexpr std::uint16_t TABLE_X{ 0x2d };
 constexpr std::uint16_t TABLE_Y{ 0xb5 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x12 };
 
-// The command's event, for the location label's format service (a plain function pointer has no capture).
-HostEvent air_event;
-
-auto Location(Game& game, HostEvent event, std::uint8_t x, std::uint8_t y, std::uint16_t buffer) -> std::uint16_t {
-  air_event = event;
-  return opeu_location_name(game, x, y, buffer);
-}
-
 auto Average(std::uint8_t a, std::uint8_t b) -> std::uint8_t {
   return static_cast<std::uint8_t>((a + b) / 2);
 }
@@ -65,7 +57,7 @@ void opeu_air_header(Game& game) {
 }
 
 // The Air Force command loop.
-void opeu_turn_action_8(Game& game, HostEvent event) {
+void opeu_turn_action_8(Game& game) {
   ServiceLocals const locals{ LOCATION_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
@@ -78,24 +70,24 @@ void opeu_turn_action_8(Game& game, HostEvent event) {
       opeu_air_header(game);
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(TABLE_Y));
       opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_strike_format)),
-                                                            static_cast<std::uint16_t>(Location(game, event, side.strike.x, side.strike.y, buffer)), static_cast<std::uint16_t>(side.strike.planes),
+                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.strike.x, side.strike.y, buffer)), static_cast<std::uint16_t>(side.strike.planes),
                                                             static_cast<std::uint16_t>(side.strike.hours) });
       row = 1;
     }
     if (side.drop.transports) {
       opeu_air_header(game);
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
-      opeu_cursor_print(game,
-                        std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_drop_format)), static_cast<std::uint16_t>(Location(game, event, side.drop.x, side.drop.y, buffer)),
-                                                      static_cast<std::uint16_t>(side.drop.transports), static_cast<std::uint16_t>(side.drop.hours) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_drop_format)),
+                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.drop.x, side.drop.y, buffer)), static_cast<std::uint16_t>(side.drop.transports),
+                                                            static_cast<std::uint16_t>(side.drop.hours) });
       ++row;
     }
     if (side.lift.planes) {
       opeu_air_header(game);
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(row * ROW_HEIGHT + TABLE_Y));
-      opeu_cursor_print(game,
-                        std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_lift_format)), static_cast<std::uint16_t>(Location(game, event, side.lift.x, side.lift.y, buffer)),
-                                                      static_cast<std::uint16_t>(side.lift.planes), static_cast<std::uint16_t>(side.lift.hours) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.air_lift_format)),
+                                                            static_cast<std::uint16_t>(opeu_location_name(game, side.lift.x, side.lift.y, buffer)), static_cast<std::uint16_t>(side.lift.planes),
+                                                            static_cast<std::uint16_t>(side.lift.hours) });
     }
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.air_mission_question), 3, data.context_record2,
                                          Near(data, data.air_mission_menu)) };
@@ -106,11 +98,7 @@ void opeu_turn_action_8(Game& game, HostEvent event) {
   } while (!data.side_delays[data.current_side]);
 }
 
-uint16_t svc_airforce(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_air(game, "airforce", id, args, count);
-}
-
 auto port_routine_opeu_turn_action_8(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_8(game, svc_airforce);
+  opeu_turn_action_8(game);
   return 0;
 }

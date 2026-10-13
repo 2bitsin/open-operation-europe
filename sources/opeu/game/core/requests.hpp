@@ -5,7 +5,4 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_hourly_c_stage_b(Game& game, PendingEvent event, uint16_t stale_threshold);
-
-// The services opeu_hourly_c_stage_b calls.
-uint16_t svc_requests(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d);
+void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold);

@@ -43,16 +43,16 @@ void opeu_process_selected_turn(Game& game) {
   auto& data{ Data(game) };
   opeu_normalize_turn_state(game);
   if (!(data.side_flags[data.current_side] & Bits(SideFlag::TURN_STARTED))) {
-    opeu_initialize_turn_side(game, svc_sideinit);
+    opeu_initialize_turn_side(game);
     data.side_flags[data.current_side] |= Bits(SideFlag::TURN_STARTED);
   }
   auto& schedule{ data.schedule_flags[0] };
-  if (schedule & Bits(ScheduleFlag::MONTHLY)) opeu_turn_daily(game, svc_daily);
+  if (schedule & Bits(ScheduleFlag::MONTHLY)) opeu_turn_daily(game);
   if (schedule & Bits(ScheduleFlag::HALF_DAY)) opeu_turn_half_day(game);
   if (schedule & Bits(ScheduleFlag::HOURLY)) {
     opeu_turn_hourly_a(game);
     opeu_turn_hourly_b(game);
-    opeu_turn_hourly_c(game, svc_influenc);
+    opeu_turn_hourly_c(game);
   }
   opeu_turn_pre_context(game);
   schedule                  = 0;
