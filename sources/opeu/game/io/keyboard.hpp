@@ -5,7 +5,6 @@
 
 #include <cstdint>
 
-void opeu_text_cursor_clear(Game& game);
 void opeu_text_cursor_draw(Game& game);
 auto opeu_key_wait_tick(Game& game) -> int;
 auto opeu_keyboard_key(Game& game) -> std::uint8_t;

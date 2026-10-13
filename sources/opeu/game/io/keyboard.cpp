@@ -1,6 +1,4 @@
-// Keyboard waits, the blinking text cursor, decimal entry, value choice and yes/no prompts. The service is the shared
-// input service (io/input-call.hpp), which this module also passes to the mouse, menu and numeric dialog routines it
-// calls.
+// Keyboard waits, the blinking text cursor, decimal entry, value choice and yes/no prompts.
 #include "io/keyboard.hpp"
 
 #include "common/data-segment.hpp"
@@ -13,7 +11,7 @@
 #include "core/limits.hpp"
 #include "core/memory.hpp"
 #include "core/textout.hpp"
-#include "io/input-call.hpp"
+#include "io/busy-wait.hpp"
 #include "io/menudraw.hpp"
 #include "io/mouse.hpp"
 #include "io/numdlg.hpp"
@@ -25,7 +23,9 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 #include <span>
+#include <string>
 
 using namespace opeu::game;
 
@@ -77,13 +77,140 @@ auto PreviousItem(std::uint16_t item) -> std::uint16_t {
   return static_cast<std::uint16_t>(item - sizeof(MenuItem));
 }
 
-} // namespace
-
-// Inverts the text cursor cell (column at most 4fh).
-void opeu_text_cursor_clear(Game& game) {
-  auto const& data{ Data(game) };
-  opeu_ui_highlight(opeu_min16(data.text_x, 0x4f), static_cast<std::uint16_t>(data.text_y), 1, 16, INVERT_MODE);
+auto Host() -> TextHost* {
+  return static_cast<TextHost*>(port_textout_host());
 }
+
+// Calls the idle hook around timed waits until input arrives.
+auto IdleUntilInput(Game& game) -> void {
+  WaitUntil([&] {
+    CallHook(game);
+    opeu_key_wait_tick(game);
+    CallHook(game);
+    return opeu_key_wait_tick(game) != 0;
+  });
+}
+
+// Erases the typed characters back to column `start`; each erase moves the cursor one column back.
+auto EraseBackTo(Game& game, std::uint16_t start) -> void {
+  while (start < TextX(game)) opeu_text_erase_char(game, Host());
+}
+
+// A keyboard walk through a menu's items: the item lit and the value it stands for.
+struct MenuCursor {
+  std::uint16_t item;
+  std::uint16_t value;
+};
+
+// The next item, wrapping from the last value to the first item.
+auto NextChoice(MenuCursor cursor, ValueRange const& range, std::uint16_t first) -> MenuCursor {
+  cursor.item = NextMenuItem(cursor.item);
+  if (++cursor.value > range.hi) return { first, range.lo };
+  return cursor;
+}
+
+// The previous item, wrapping from the first value to the last item.
+auto PreviousChoice(MenuCursor const& cursor, ValueRange const& range) -> MenuCursor {
+  if (cursor.value > range.lo) return { PreviousItem(cursor.item), static_cast<std::uint16_t>(cursor.value - 1) };
+  return { static_cast<std::uint16_t>(cursor.item + (range.hi - cursor.value) * sizeof(MenuItem)), range.hi };
+}
+
+// Chooses from the menu `first` with the keypad: 2/6 next, 8/4 previous, Enter accepts, ESC or 0 cancel
+// (MENU_CANCELLED). Leaves the menu drawn.
+auto MenuByKeys(Game& game, ValueRange const& range, std::uint16_t first) -> std::uint16_t {
+  opeu_menu_draw(game, first);
+  MenuCursor cursor{ first, range.lo };
+  opeu_menu_draw_item(game, cursor.item, MenuLight::LIT);
+  for (;;) {
+    WaitUntil([] { return opeu_turn_input_b() != 0; });
+    switch (static_cast<std::uint8_t>(opeu_key_read(game, Host()))) {
+    case '2':
+    case '6':
+      opeu_menu_draw_item(game, cursor.item, MenuLight::PLAIN);
+      cursor = NextChoice(cursor, range, first);
+      break;
+    case '8':
+    case '4':
+      opeu_menu_draw_item(game, cursor.item, MenuLight::PLAIN);
+      cursor = PreviousChoice(cursor, range);
+      break;
+    case KEY_ENTER:  opeu_menu_draw_item(game, cursor.item, MenuLight::LIT); return cursor.value;
+    case KEY_ESCAPE:
+    case '0':        return MENU_CANCELLED;
+    default:         continue;
+    }
+    opeu_menu_draw_item(game, cursor.item, MenuLight::LIT);
+  }
+}
+
+// Decimal entry in a field as wide as the range's top value, repeated until in range; an empty entry cancels
+// (MENU_CANCELLED) only when allowed.
+auto DigitsInRange(Game& game, ValueRange const& range, int cancel) -> std::uint16_t {
+  auto const start{ TextX(game) };
+  opeu_text_set_y(game, Host(), static_cast<std::int16_t>(Data(game).text_y));
+  auto const width{ static_cast<std::uint16_t>(std::to_string(range.hi).size()) };
+  std::ranges::for_each(std::views::iota(0u, std::uint32_t{ width }), [&](std::uint32_t) { opeu_text_put(game, Host(), static_cast<std::uint8_t>(' ')); });
+  EraseBackTo(game, start);
+  for (;;) {
+    auto const value{ opeu_read_decimal(game, width) };
+    if (value >= range.lo && value <= range.hi) return static_cast<std::uint16_t>(value);
+    if (value == -1 && cancel) return MENU_CANCELLED;
+    EraseBackTo(game, start);
+  }
+}
+
+// What the yes/no pointer covers and where it was drawn: the saved graphics' 8-pixel column and row, the pointer's
+// pixel position; 0xffff for none.
+struct YesNoPointer {
+  MousePoint saved{ 0xffff, 0xffff };
+  MousePoint drawn{ 0xffff, 0xffff };
+};
+
+// Points the picture stream at one of the pointer's pictures.
+auto PointAtPicture(DataSegment& data, std::uint16_t offset) -> void {
+  SetStream(data, POINTER_SEGMENT, offset);
+}
+
+auto RestoreUnder(Game& game, MousePoint const& saved) -> void {
+  auto& data{ Data(game) };
+  PointAtPicture(data, POINTER_SAVE);
+  opeu_bitmap_restore(saved.x, saved.y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+}
+
+auto SaveUnder(Game& game, MousePoint const& saved) -> void {
+  auto& data{ Data(game) };
+  PointAtPicture(data, POINTER_SAVE);
+  opeu_bitmap_save(saved.x, saved.y, 5, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+}
+
+auto DrawPointer(Game& game, MousePoint const& at) -> void {
+  auto& data{ Data(game) };
+  PointAtPicture(data, POINTER_SHAPE);
+  koei_3f26(at.x, at.y, 32, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]), port_far(POINTER_SEGMENT, POINTER_MASK), port_far(data.numdlg_save_segment, 0), 1);
+}
+
+// Follows the mouse with the pointer: restores the graphics it leaves, saves those it covers, draws it where it moved.
+auto FollowMouse(Game& game, YesNoPointer& pointer) -> void {
+  auto const mouse{ MousePosition(game) };
+  bool const moved{ mouse.x != pointer.drawn.x || mouse.y != pointer.drawn.y };
+  if (pointer.saved.x != 0xffff && moved) RestoreUnder(game, pointer.saved);
+  if (mouse.x >> 3 != pointer.saved.x || mouse.y != pointer.saved.y) {
+    pointer.saved = { static_cast<std::uint16_t>(mouse.x >> 3), mouse.y };
+    SaveUnder(game, pointer.saved);
+  }
+  if (!moved) return;
+  DrawPointer(game, mouse);
+  pointer.drawn = mouse;
+  opeu_delay_ticks(game, 3);
+}
+
+// 'Y' for a left press, 'N' for a right one, else 0.
+auto Answer(std::uint8_t buttons) -> std::uint8_t {
+  if (buttons & 1) return 'Y';
+  if (buttons & 2) return 'N';
+  return 0;
+}
+} // namespace
 
 // The blinking cursor tile; installed as the idle hook.
 void opeu_text_cursor_draw(Game& game) {
@@ -93,7 +220,7 @@ void opeu_text_cursor_draw(Game& game) {
 }
 
 // Polls input (mouse buttons or a pending key) while a 15-tick timer runs; on input reseeds the random sequence with
-// the advanced count and returns 1, else returns 0.
+// the advanced count and returns 1, else returns 0. The loop counts its polls.
 auto opeu_key_wait_tick(Game& game) -> int {
   std::uint16_t count{ RandomNext(game) };
   opeu_fm_wait_start(15);
@@ -109,39 +236,27 @@ auto opeu_key_wait_tick(Game& game) -> int {
 
 // Flushes, then calls the idle hook around timed waits until input arrives, and reads the key.
 auto opeu_keyboard_key(Game& game) -> std::uint8_t {
-  opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
-  do {
-    CallHook(game);
-    opeu_key_wait_tick(game);
-    CallHook(game);
-  } while (!opeu_key_wait_tick(game));
-  return static_cast<std::uint8_t>(opeu_key_read(game, static_cast<TextHost*>(port_textout_host())));
+  opeu_input_flush(game, Host());
+  IdleUntilInput(game);
+  return static_cast<std::uint8_t>(opeu_key_read(game, Host()));
 }
 
 // As opeu_keyboard_key, for the mouse buttons.
 auto opeu_mouse_wait_buttons(Game& game) -> std::uint8_t {
   opeu_input_reset(game);
-  do {
-    CallHook(game);
-    opeu_key_wait_tick(game);
-    CallHook(game);
-  } while (!opeu_key_wait_tick(game));
+  IdleUntilInput(game);
   return opeu_mouse_buttons(game);
 }
 
 // Without human sides just delays; else waits for a button or Enter with the blinking cursor.
-void opeu_wait_confirm(Game& game, int pause) {
+void opeu_wait_confirm(Game& game, int) {
   auto& data{ Data(game) };
   if (!data.side_control[0] && !data.side_control[1]) {
-    opeu_delay_units(game, static_cast<std::uint8_t>(20));
-    return;
-  }
-  if (pause && !(data.side_control[1] | data.side_control[0])) {
-    opeu_pending_finish(game, static_cast<std::uint8_t>(3));
+    opeu_delay_units(game, 20);
     return;
   }
   HookCursor(data);
-  while (!(HasMouse(Data(game)) ? opeu_mouse_wait_buttons(game) : opeu_keyboard_key(game) == KEY_ENTER));
+  WaitUntil([&] { return HasMouse(Data(game)) ? opeu_mouse_wait_buttons(game) != 0 : opeu_keyboard_key(game) == KEY_ENTER; });
   HookClear(data);
 }
 
@@ -150,7 +265,6 @@ void opeu_wait_confirm(Game& game, int pause) {
 auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
   auto&                                data{ Data(game) };
   std::array<std::uint8_t, MAX_DIGITS> typed_digits{};
-  auto                                 digit{ [&](std::uint8_t n) -> std::uint8_t& { return typed_digits.at(n); } };
   std::uint8_t                         typed{ 0 };
   for (;;) {
     HookCursor(data);
@@ -158,8 +272,8 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
     HookClear(data);
     if (key >= '0' && key <= '9') {
       if (typed < digits) {
-        digit(typed++) = key;
-        opeu_text_put(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(key));
+        typed_digits.at(typed++) = key;
+        opeu_text_put(game, Host(), key);
       }
     } else
       switch (key) {
@@ -167,8 +281,8 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
       case BACKSPACE:
       case LEFT_ARROW:
         if (typed) {
-          opeu_text_erase_char(game, static_cast<TextHost*>(port_textout_host()));
-          digit(--typed) = ' ';
+          opeu_text_erase_char(game, Host());
+          typed_digits.at(--typed) = ' ';
         }
         break;
       case KEY_ENTER:
@@ -180,84 +294,23 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
 }
 
 // Chooses a value in min..max. With a mouse: the menu `items`, else the numeric dialog. From the keyboard with a menu
-// (unless max is 24): keypad 2/6 next (wrapping to min), 8/4 previous (wrapping to max), Enter accepts, ESC or 0
-// cancel (0xffff). Otherwise decimal entry in a field max's digits wide, repeated until in range; an empty entry
-// cancels only when allowed.
+// (unless max is 24): the keypad walks the menu; otherwise decimal entry. Answers MENU_CANCELLED when cancelled.
 auto opeu_choose_value(Game& game, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
-  auto&        data{ Data(game) };
-  std::int32_t value;
   if (max < min) return 0;
+  ValueRange const range{ min, max };
   if (HasMouse(Data(game))) {
     if (items) return opeu_menu_select(game, items, cancel);
-    return opeu_numdlg_run(game, min, max, cancel);
+    return opeu_numdlg_run(game, range, cancel);
   }
-  if (items && max != 24) {
-    opeu_menu_draw(game, items);
-    std::uint16_t item{ items };
-    opeu_menu_draw_item(game, item, 1);
-    std::uint16_t chosen{ min };
-    value = chosen;
-    for (;;) {
-      while (!opeu_turn_input_b());
-      std::uint8_t const key{ static_cast<std::uint8_t>(opeu_key_read(game, static_cast<TextHost*>(port_textout_host()))) };
-      switch (key) {
-      case '2':
-      case '6':
-        opeu_menu_draw_item(game, item, 0);
-        item = NextMenuItem(item);
-        if (++chosen > max) {
-          chosen = min;
-          item   = items;
-        }
-        value = chosen;
-        break;
-      case '8':
-      case '4':
-        opeu_menu_draw_item(game, item, 0);
-        if (chosen > min) {
-          item = PreviousItem(item);
-          chosen--;
-        } else
-          while (chosen < max) {
-            chosen++;
-            item = NextMenuItem(item);
-          }
-        value = chosen;
-        break;
-      case KEY_ENTER:  break;
-      case KEY_ESCAPE:
-      case '0':        opeu_menu_restore(game, items); return MENU_CANCELLED;
-      default:         continue;
-      }
-      opeu_menu_draw_item(game, item, 1);
-      if (key == KEY_ENTER || key == KEY_ESCAPE) break;
-    }
-  } else {
-    auto const start{ TextX(game) };
-    opeu_text_set_y(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(data.text_y));
-    std::uint16_t width{ 0 };
-    for (std::uint16_t rest{ max };;) {
-      opeu_text_put(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(' '));
-      width++;
-      if (!(rest /= 10)) break;
-    }
-    while (start < TextX(game)) opeu_text_erase_char(game, static_cast<TextHost*>(port_textout_host()));
-    while ((value = opeu_read_decimal(game, width)) < min || value > max) {
-      if (value == -1 && cancel) {
-        if (items) opeu_menu_restore(game, items);
-        return MENU_CANCELLED;
-      }
-      while (start < TextX(game)) opeu_text_erase_char(game, static_cast<TextHost*>(port_textout_host()));
-    }
-  }
+  auto const value{ items && max != 24 ? MenuByKeys(game, range, items) : DigitsInRange(game, range, cancel) };
   if (items) opeu_menu_restore(game, items);
-  return static_cast<std::uint16_t>(value);
+  return value;
 }
 
 // Prints the prompt `text`, then chooses.
 auto opeu_prompt_value(Game& game, std::uint16_t text, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.prompt_format)), static_cast<std::uint16_t>(text) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.prompt_format)), text });
   return opeu_choose_value(game, min, max, cancel, items);
 }
 
@@ -270,47 +323,17 @@ auto opeu_prompt_value_required(Game& game, std::uint16_t text, std::uint16_t ma
 }
 
 // The yes/no pointer: limits the mouse, keeps the 5x48 graphics under it saved, draws the pointer when it moves; a
-// left press answers 'Y', a right press 'N'.
+// left press answers 'Y', a right press 'N'. The loop polls until a press.
 auto opeu_mouse_yes_no(Game& game) -> std::uint8_t {
-  auto&         data{ Data(game) };
-  std::uint16_t saved_column{ 0xffff }; // where the saved graphics are, in 8-pixel columns and pixels
-  std::uint16_t saved_y{ 0xffff };
-  std::uint16_t drawn_x{ 0xffff }; // where the pointer was drawn
-  std::uint16_t drawn_y{ 0xffff };
-  std::uint8_t  answer;
+  YesNoPointer pointer;
+  std::uint8_t answer{ 0 };
   opeu_input_reset(game);
   opeu_mouse_window(game, 0, 0, 599, 351);
-  for (;;) {
-    auto const [x, y]{ MousePosition(game) };
-    if (saved_column != 0xffff && (x != drawn_x || y != drawn_y)) {
-      SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
-      opeu_bitmap_restore(saved_column, saved_y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
-    }
-    if (x >> 3 != saved_column || y != saved_y) {
-      saved_column = x >> 3;
-      saved_y      = y;
-      SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
-      opeu_bitmap_save(saved_column, saved_y, 5, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]));
-    }
-    if (x != drawn_x || y != drawn_y) {
-      SetStream(data, POINTER_SEGMENT, POINTER_SHAPE);
-      koei_3f26(x, y, 32, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]), port_far(POINTER_SEGMENT, POINTER_MASK), port_far(data.numdlg_save_segment, 0), 1);
-      drawn_x = x;
-      drawn_y = y;
-      opeu_delay_ticks(game, 3);
-    }
-    auto const buttons{ opeu_mouse_buttons(game) };
-    if (buttons & 1) {
-      answer = 'Y';
-      break;
-    }
-    if (buttons & 2) {
-      answer = 'N';
-      break;
-    }
+  while (answer == 0) {
+    FollowMouse(game, pointer);
+    answer = Answer(opeu_mouse_buttons(game));
   }
-  SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
-  opeu_bitmap_restore(saved_column, saved_y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  RestoreUnder(game, pointer.saved);
   opeu_mouse_window(game, 0, 0, 639, 399);
   return answer;
 }
@@ -332,6 +355,6 @@ auto opeu_yes_no(Game& game) -> int {
 
 auto opeu_prompt_yes_no(Game& game, std::uint16_t text) -> int {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.question_format)), static_cast<std::uint16_t>(text) });
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.question_format)), text });
   return opeu_yes_no(game);
 }

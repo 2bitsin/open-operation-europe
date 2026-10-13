@@ -5,22 +5,18 @@
 
 #include <cstdint>
 
-void opeu_numdlg_button(Game& game, std::uint8_t n, std::uint16_t tile);
-void opeu_numdlg_press(Game& game, std::uint8_t n);
-void opeu_numdlg_release(Game& game, std::uint8_t n);
-void opeu_numdlg_open(Game& game);
-void opeu_numdlg_close(Game& game);
-void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit);
-void opeu_numdlg_split(Game& game, std::int32_t value);
-auto opeu_numdlg_value(Game& game) -> std::int32_t;
-void opeu_numdlg_show(Game& game, std::int32_t value);
-void opeu_numdlg_bar(Game& game, std::uint16_t lo, std::uint16_t hi, std::int32_t value);
-auto opeu_numdlg_hit(Game& game, std::uint16_t mx, std::uint16_t my) -> std::uint8_t;
-void opeu_numdlg_highlight(Game& game, std::uint8_t n);
-void opeu_numdlg_drag(Game& game);
-void opeu_numdlg_refresh(Game& game, std::uint8_t n);
-auto opeu_numdlg_increment(Game& game, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t;
-auto opeu_numdlg_decrement(Game& game, std::uint8_t n, std::uint16_t lo, std::uint16_t hi, std::int32_t value) -> std::int32_t;
-auto opeu_numdlg_outside(Game& game, std::uint16_t mx, std::uint16_t my) -> std::uint16_t;
-auto opeu_numdlg_track(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t;
-auto opeu_numdlg_run(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t;
+namespace opeu::game::detail::numdlg {
+// The values a choice accepts: lo..hi.
+struct ValueRange {
+  std::uint16_t lo;
+  std::uint16_t hi;
+};
+} // namespace opeu::game::detail::numdlg
+
+namespace opeu::game {
+using detail::numdlg::ValueRange;
+} // namespace opeu::game
+
+// Runs the dialog until a value in the range is accepted or (when `cancel` allows it) the dialog is cancelled; returns
+// the value or 0xffff.
+auto opeu_numdlg_run(Game& game, opeu::game::ValueRange range, int cancel) -> std::uint16_t;
