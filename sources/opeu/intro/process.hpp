@@ -2,8 +2,9 @@
  *
  * Memory. OPEN is a separate DOS program: its own DGROUP (paragraph 093A of
  * its load image), its far data (the song bank, frame 0710) and its own DOS
- * memory blocks. While it runs, the port's data arena (port_arena, 640 KiB
- * of conventional memory, plain data) holds OPEN's process instead of MAIN's:
+ * memory blocks. While it runs, OpenMemory (open-memory.hpp) holds OPEN's
+ * process in 640 KiB of conventional memory, plain data, where MAIN's
+ * would be (the port's data arena, which the FM driver reads):
  *
  *   OPEN_LOAD_SEGMENT        load image (its code is native; nothing there)
  *   OPEN_BANK_SEGMENT:0002   the FM song bank (recovered/data/ofmusic.cpp)
@@ -25,31 +26,27 @@
 #pragma once
 
 #include "recovered.hpp"
+#include "segment-bytes.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 namespace opeu::intro {
 
-inline constexpr uint16_t OPEN_LOAD_SEGMENT{ 0x0000 };
-inline constexpr uint16_t OPEN_BANK_SEGMENT{ OPEN_LOAD_SEGMENT + BANK_FRAME };
-inline constexpr uint16_t OPEN_DS_SEGMENT{ OPEN_LOAD_SEGMENT + 0x093a };
-inline constexpr uint16_t OPEN_HEAP_SEGMENT{ OPEN_DS_SEGMENT + (OPEN_STACK_TOP >> 4) + 1 };
+inline constexpr Paragraph OPEN_LOAD_SEGMENT{ 0x0000 };
+inline constexpr Paragraph OPEN_BANK_SEGMENT{ OPEN_LOAD_SEGMENT + BANK_FRAME };
+inline constexpr Paragraph OPEN_DS_SEGMENT{ OPEN_LOAD_SEGMENT + 0x093a };
+inline constexpr Paragraph OPEN_HEAP_SEGMENT{ OPEN_DS_SEGMENT + (OPEN_STACK_TOP >> 4) + 1 };
 
-/* Clear the arena and place OPEN's initial DGROUP and far data. */
-void open_memory_init();
-/* INT 21h AH=48h/49h in OPEN's process (first fit, one MCB paragraph per block). */
-auto open_dos_alloc(uint16_t paragraphs) -> uint16_t;
-auto open_dos_free(uint16_t segment) -> int;
-
-/* The placement of the recovered OPEN data objects (image.cpp). */
+// A recovered data object and its place in OPEN's load image (image.cpp).
 struct OpenImageObject {
-  void const* object;
-  uint16_t    seg, off; /* seg: 0 = DGROUP, else relative to the load segment */
-  uint16_t    size;
-  char const* name;
+  std::span<std::byte const> bytes;
+  Paragraph                  seg; // 0 = DGROUP, else relative to the load segment
+  NearWord                   off;
+  std::string_view           name;
 };
-extern OpenImageObject const open_image_objects[];
-extern unsigned const        open_image_object_count;
+[[nodiscard]] auto OpenImageObjects() -> std::span<OpenImageObject const>;
 
 }

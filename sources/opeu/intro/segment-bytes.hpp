@@ -17,7 +17,9 @@ namespace opeu::intro::detail::segment_bytes {
 inline constexpr std::size_t SEGMENT_SIZE{ 0x10000 };
 
 // A 16-bit word: a near pointer into the segment, or a byte count within it.
-using NearWord     = std::uint16_t;
+using NearWord = std::uint16_t;
+// A segment register's value: the paragraph (16 bytes) its 64 KiB start at, or a count of paragraphs.
+using Paragraph    = std::uint16_t;
 using Segment      = std::span<std::uint8_t, SEGMENT_SIZE>;
 using ConstSegment = std::span<std::uint8_t const, SEGMENT_SIZE>;
 
@@ -67,6 +69,7 @@ using detail::segment_bytes::ConstSegment;
 using detail::segment_bytes::CopyBytes;
 using detail::segment_bytes::NearCopy;
 using detail::segment_bytes::NearWord;
+using detail::segment_bytes::Paragraph;
 using detail::segment_bytes::Segment;
 using detail::segment_bytes::SEGMENT_SIZE;
 using detail::segment_bytes::StringLength;

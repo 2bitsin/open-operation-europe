@@ -1,102 +1,108 @@
-/* Placement of the recovered OPEN data objects (recovered/data): seg 0 =
- * DGROUP at the offset of the object's field in OpenDataSegment, otherwise a
- * segment relative to OPEN's load segment. memory.cpp copies each object
- * there. */
+// Placement of the recovered OPEN data objects (recovered/data): seg 0 = DGROUP at the offset of the object's field in
+// OpenDataSegment, otherwise a segment relative to OPEN's load segment. OpenMemory::Load copies each object there.
 #include "process.hpp"
 
+#include <array>
 #include <cstddef>
+#include <span>
 
 namespace opeu::intro {
+namespace {
+// The bytes of a recovered data object.
+template <class _Object>
+auto ObjectBytes(_Object const& object) -> std::span<std::byte const> {
+  return std::as_bytes(std::span{ &object, 1 });
+}
 
 // clang-format off
 // NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init): only addresses and sizes of the data objects, no values
-OpenImageObject const open_image_objects[] = {
+std::array<OpenImageObject, 78> const IMAGE_OBJECTS{ {
   /* ODTEXT */
-  { &detail::odtext::opeu_open_digit_font,        0x0000,     offsetof(OpenDataSegment, digit_font),             sizeof detail::odtext::opeu_open_digit_font,        "opeu_open_digit_font"        },
-  { &detail::odtext::opeu_open_draw_hooks,        0x0000,     offsetof(OpenDataSegment, draw_hooks),             sizeof detail::odtext::opeu_open_draw_hooks,        "opeu_open_draw_hooks"        },
-  { &detail::odtext::opeu_text_erase,             0x0000,     offsetof(OpenDataSegment, text_erase),             sizeof detail::odtext::opeu_text_erase,             "opeu_text_erase"             },
-  { &detail::odtext::opeu_text_unused_014a,       0x0000,     offsetof(OpenDataSegment, text_unused_014a),       sizeof detail::odtext::opeu_text_unused_014a,       "opeu_text_unused_014a"       },
-  { &detail::odtext::opeu_text_x,                 0x0000,     offsetof(OpenDataSegment, text_x),                 sizeof detail::odtext::opeu_text_x,                 "opeu_text_x"                 },
-  { &detail::odtext::opeu_text_y,                 0x0000,     offsetof(OpenDataSegment, text_y),                 sizeof detail::odtext::opeu_text_y,                 "opeu_text_y"                 },
-  { &detail::odtext::opeu_text_left,              0x0000,     offsetof(OpenDataSegment, text_left),              sizeof detail::odtext::opeu_text_left,              "opeu_text_left"              },
-  { &detail::odtext::opeu_text_paper,             0x0000,     offsetof(OpenDataSegment, text_paper),             sizeof detail::odtext::opeu_text_paper,             "opeu_text_paper"             },
-  { &detail::odtext::opeu_text_ink,               0x0000,     offsetof(OpenDataSegment, text_ink),               sizeof detail::odtext::opeu_text_ink,               "opeu_text_ink"               },
-  { &detail::odtext::opeu_text_background,        0x0000,     offsetof(OpenDataSegment, text_background),        sizeof detail::odtext::opeu_text_background,        "opeu_text_background"        },
-  { &detail::odtext::opeu_text_z_0163,            0x0000,     offsetof(OpenDataSegment, text_z_0163),            sizeof detail::odtext::opeu_text_z_0163,            "opeu_text_z_0163"            },
-  { &detail::odtext::opeu_text_large,             0x0000,     offsetof(OpenDataSegment, text_large),             sizeof detail::odtext::opeu_text_large,             "opeu_text_large"             },
-  { &detail::odtext::opeu_text_saved,             0x0000,     offsetof(OpenDataSegment, text_saved),             sizeof detail::odtext::opeu_text_saved,             "opeu_text_saved"             },
-  { &detail::odtext::opeu_text_lead,              0x0000,     offsetof(OpenDataSegment, text_lead),              sizeof detail::odtext::opeu_text_lead,              "opeu_text_lead"              },
-  { &detail::odtext::opeu_text_z_0173,            0x0000,     offsetof(OpenDataSegment, text_z_0173),            sizeof detail::odtext::opeu_text_z_0173,            "opeu_text_z_0173"            },
-  { &detail::odtext::opeu_text_state,             0x0000,     offsetof(OpenDataSegment, text_state),             sizeof detail::odtext::opeu_text_state,             "opeu_text_state"             },
-  { &detail::odtext::opeu_format_output,          0x0000,     offsetof(OpenDataSegment, format_output),          sizeof detail::odtext::opeu_format_output,          "opeu_format_output"          },
+  { ObjectBytes(detail::odtext::opeu_open_digit_font),        0x0000,     offsetof(OpenDataSegment, digit_font),             "opeu_open_digit_font"        },
+  { ObjectBytes(detail::odtext::opeu_open_draw_hooks),        0x0000,     offsetof(OpenDataSegment, draw_hooks),             "opeu_open_draw_hooks"        },
+  { ObjectBytes(detail::odtext::opeu_text_erase),             0x0000,     offsetof(OpenDataSegment, text_erase),             "opeu_text_erase"             },
+  { ObjectBytes(detail::odtext::opeu_text_unused_014a),       0x0000,     offsetof(OpenDataSegment, text_unused_014a),       "opeu_text_unused_014a"       },
+  { ObjectBytes(detail::odtext::opeu_text_x),                 0x0000,     offsetof(OpenDataSegment, text_x),                 "opeu_text_x"                 },
+  { ObjectBytes(detail::odtext::opeu_text_y),                 0x0000,     offsetof(OpenDataSegment, text_y),                 "opeu_text_y"                 },
+  { ObjectBytes(detail::odtext::opeu_text_left),              0x0000,     offsetof(OpenDataSegment, text_left),              "opeu_text_left"              },
+  { ObjectBytes(detail::odtext::opeu_text_paper),             0x0000,     offsetof(OpenDataSegment, text_paper),             "opeu_text_paper"             },
+  { ObjectBytes(detail::odtext::opeu_text_ink),               0x0000,     offsetof(OpenDataSegment, text_ink),               "opeu_text_ink"               },
+  { ObjectBytes(detail::odtext::opeu_text_background),        0x0000,     offsetof(OpenDataSegment, text_background),        "opeu_text_background"        },
+  { ObjectBytes(detail::odtext::opeu_text_z_0163),            0x0000,     offsetof(OpenDataSegment, text_z_0163),            "opeu_text_z_0163"            },
+  { ObjectBytes(detail::odtext::opeu_text_large),             0x0000,     offsetof(OpenDataSegment, text_large),             "opeu_text_large"             },
+  { ObjectBytes(detail::odtext::opeu_text_saved),             0x0000,     offsetof(OpenDataSegment, text_saved),             "opeu_text_saved"             },
+  { ObjectBytes(detail::odtext::opeu_text_lead),              0x0000,     offsetof(OpenDataSegment, text_lead),              "opeu_text_lead"              },
+  { ObjectBytes(detail::odtext::opeu_text_z_0173),            0x0000,     offsetof(OpenDataSegment, text_z_0173),            "opeu_text_z_0173"            },
+  { ObjectBytes(detail::odtext::opeu_text_state),             0x0000,     offsetof(OpenDataSegment, text_state),             "opeu_text_state"             },
+  { ObjectBytes(detail::odtext::opeu_format_output),          0x0000,     offsetof(OpenDataSegment, format_output),          "opeu_format_output"          },
   /* Reserved: kept for the layout until M4 */
-  { &detail::odopen::opeu_reserved_ems_name,      0x0000,     offsetof(OpenDataSegment, reserved_ems_name),      sizeof detail::odopen::opeu_reserved_ems_name,      "opeu_reserved_ems_name"      },
-  { &detail::odopen::opeu_reserved_sprite_mapped, 0x0000,     offsetof(OpenDataSegment, reserved_sprite_mapped), sizeof detail::odopen::opeu_reserved_sprite_mapped, "opeu_reserved_sprite_mapped" },
+  { ObjectBytes(detail::odopen::opeu_reserved_ems_name),      0x0000,     offsetof(OpenDataSegment, reserved_ems_name),      "opeu_reserved_ems_name"      },
+  { ObjectBytes(detail::odopen::opeu_reserved_sprite_mapped), 0x0000,     offsetof(OpenDataSegment, reserved_sprite_mapped), "opeu_reserved_sprite_mapped" },
   /* ODSOUND */
-  { &detail::odsound::opeu_music_current,         0x0000,     offsetof(OpenDataSegment, music_current),          sizeof detail::odsound::opeu_music_current,         "opeu_music_current"          },
-  { &detail::odsound::opeu_effect_current,        0x0000,     offsetof(OpenDataSegment, effect_current),         sizeof detail::odsound::opeu_effect_current,        "opeu_effect_current"         },
-  { &detail::odsound::opeu_music_bank,            0x0000,     offsetof(OpenDataSegment, music_bank),             sizeof detail::odsound::opeu_music_bank,            "opeu_music_bank"             },
-  { &detail::odsound::opeu_music_path,            0x0000,     offsetof(OpenDataSegment, music_path),             sizeof detail::odsound::opeu_music_path,            "opeu_music_path"             },
+  { ObjectBytes(detail::odsound::opeu_music_current),         0x0000,     offsetof(OpenDataSegment, music_current),          "opeu_music_current"          },
+  { ObjectBytes(detail::odsound::opeu_effect_current),        0x0000,     offsetof(OpenDataSegment, effect_current),         "opeu_effect_current"         },
+  { ObjectBytes(detail::odsound::opeu_music_bank),            0x0000,     offsetof(OpenDataSegment, music_bank),             "opeu_music_bank"             },
+  { ObjectBytes(detail::odsound::opeu_music_path),            0x0000,     offsetof(OpenDataSegment, music_path),             "opeu_music_path"             },
   /* ODOPEN */
-  { &detail::odopen::opeu_open_aborted,           0x0000,     offsetof(OpenDataSegment, aborted),                sizeof detail::odopen::opeu_open_aborted,           "opeu_open_aborted"           },
-  { &detail::odopen::opeu_open_frame_y,           0x0000,     offsetof(OpenDataSegment, frame_y),                sizeof detail::odopen::opeu_open_frame_y,           "opeu_open_frame_y"           },
-  { &detail::odopen::opeu_open_frame_h,           0x0000,     offsetof(OpenDataSegment, frame_h),                sizeof detail::odopen::opeu_open_frame_h,           "opeu_open_frame_h"           },
-  { &detail::odopen::opeu_open_frame_off,         0x0000,     offsetof(OpenDataSegment, frame_off),              sizeof detail::odopen::opeu_open_frame_off,         "opeu_open_frame_off"         },
-  { &detail::odopen::opeu_open_bob_a,             0x0000,     offsetof(OpenDataSegment, bob_a),                  sizeof detail::odopen::opeu_open_bob_a,             "opeu_open_bob_a"             },
-  { &detail::odopen::opeu_open_blast_steps,       0x0000,     offsetof(OpenDataSegment, blast_steps),            sizeof detail::odopen::opeu_open_blast_steps,       "opeu_open_blast_steps"       },
-  { &detail::odopen::opeu_open_blast_slots,       0x0000,     offsetof(OpenDataSegment, blast_slots),            sizeof detail::odopen::opeu_open_blast_slots,       "opeu_open_blast_slots"       },
-  { &detail::odopen::opeu_open_z_0227,            0x0000,     offsetof(OpenDataSegment, z_0227),                 sizeof detail::odopen::opeu_open_z_0227,            "opeu_open_z_0227"            },
-  { &detail::odopen::opeu_open_blast_x,           0x0000,     offsetof(OpenDataSegment, blast_x),                sizeof detail::odopen::opeu_open_blast_x,           "opeu_open_blast_x"           },
-  { &detail::odopen::opeu_open_blast_y,           0x0000,     offsetof(OpenDataSegment, blast_y),                sizeof detail::odopen::opeu_open_blast_y,           "opeu_open_blast_y"           },
-  { &detail::odopen::opeu_open_blast_masks,       0x0000,     offsetof(OpenDataSegment, blast_masks),            sizeof detail::odopen::opeu_open_blast_masks,       "opeu_open_blast_masks"       },
-  { &detail::odopen::opeu_open_blast_sprites,     0x0000,     offsetof(OpenDataSegment, blast_sprites),          sizeof detail::odopen::opeu_open_blast_sprites,     "opeu_open_blast_sprites"     },
-  { &detail::odopen::opeu_open_flash_slots,       0x0000,     offsetof(OpenDataSegment, flash_slots),            sizeof detail::odopen::opeu_open_flash_slots,       "opeu_open_flash_slots"       },
-  { &detail::odopen::opeu_open_z_024f,            0x0000,     offsetof(OpenDataSegment, z_024f),                 sizeof detail::odopen::opeu_open_z_024f,            "opeu_open_z_024f"            },
-  { &detail::odopen::opeu_open_bob_b,             0x0000,     offsetof(OpenDataSegment, bob_b),                  sizeof detail::odopen::opeu_open_bob_b,             "opeu_open_bob_b"             },
-  { &detail::odopen::opeu_open_flak_x,            0x0000,     offsetof(OpenDataSegment, flak_x),                 sizeof detail::odopen::opeu_open_flak_x,            "opeu_open_flak_x"            },
-  { &detail::odopen::opeu_open_flak_y,            0x0000,     offsetof(OpenDataSegment, flak_y),                 sizeof detail::odopen::opeu_open_flak_y,            "opeu_open_flak_y"            },
-  { &detail::odopen::opeu_open_gun_flips,         0x0000,     offsetof(OpenDataSegment, gun_flips),              sizeof detail::odopen::opeu_open_gun_flips,         "opeu_open_gun_flips"         },
-  { &detail::odopen::opeu_open_shell_x,           0x0000,     offsetof(OpenDataSegment, shell_x),                sizeof detail::odopen::opeu_open_shell_x,           "opeu_open_shell_x"           },
-  { &detail::odopen::opeu_open_shell_y,           0x0000,     offsetof(OpenDataSegment, shell_y),                sizeof detail::odopen::opeu_open_shell_y,           "opeu_open_shell_y"           },
-  { &detail::odopen::opeu_open_shell_w,           0x0000,     offsetof(OpenDataSegment, shell_w),                sizeof detail::odopen::opeu_open_shell_w,           "opeu_open_shell_w"           },
-  { &detail::odopen::opeu_open_shell_ws,          0x0000,     offsetof(OpenDataSegment, shell_ws),               sizeof detail::odopen::opeu_open_shell_ws,          "opeu_open_shell_ws"          },
-  { &detail::odopen::opeu_open_shell_h,           0x0000,     offsetof(OpenDataSegment, shell_h),                sizeof detail::odopen::opeu_open_shell_h,           "opeu_open_shell_h"           },
-  { &detail::odopen::opeu_open_shell_sprite,      0x0000,     offsetof(OpenDataSegment, shell_sprite),           sizeof detail::odopen::opeu_open_shell_sprite,      "opeu_open_shell_sprite"      },
-  { &detail::odopen::opeu_open_shell_save,        0x0000,     offsetof(OpenDataSegment, shell_save),             sizeof detail::odopen::opeu_open_shell_save,        "opeu_open_shell_save"        },
-  { &detail::odopen::opeu_open_flash_on,          0x0000,     offsetof(OpenDataSegment, flash_on),               sizeof detail::odopen::opeu_open_flash_on,          "opeu_open_flash_on"          },
-  { &detail::odopen::opeu_open_flash_phase,       0x0000,     offsetof(OpenDataSegment, flash_phase),            sizeof detail::odopen::opeu_open_flash_phase,       "opeu_open_flash_phase"       },
-  { &detail::odopen::opeu_open_text_alloc_err1,   0x0000,     offsetof(OpenDataSegment, alloc_err1),             sizeof detail::odopen::opeu_open_text_alloc_err1,   "opeu_open_text_alloc_err1"   },
-  { &detail::odopen::opeu_open_text_alloc_err2,   0x0000,     offsetof(OpenDataSegment, alloc_err2),             sizeof detail::odopen::opeu_open_text_alloc_err2,   "opeu_open_text_alloc_err2"   },
-  { &detail::odopen::opeu_open_text_alloc_err3,   0x0000,     offsetof(OpenDataSegment, alloc_err3),             sizeof detail::odopen::opeu_open_text_alloc_err3,   "opeu_open_text_alloc_err3"   },
-  { &detail::odopen::opeu_open_text_alloc_err4,   0x0000,     offsetof(OpenDataSegment, alloc_err4),             sizeof detail::odopen::opeu_open_text_alloc_err4,   "opeu_open_text_alloc_err4"   },
-  { &detail::odopen::opeu_open_text_alloc_err5,   0x0000,     offsetof(OpenDataSegment, alloc_err5),             sizeof detail::odopen::opeu_open_text_alloc_err5,   "opeu_open_text_alloc_err5"   },
-  { &detail::odopen::opeu_open_text_alloc_err6,   0x0000,     offsetof(OpenDataSegment, alloc_err6),             sizeof detail::odopen::opeu_open_text_alloc_err6,   "opeu_open_text_alloc_err6"   },
-  { &detail::odopen::opeu_open_text_alloc_err7,   0x0000,     offsetof(OpenDataSegment, alloc_err7),             sizeof detail::odopen::opeu_open_text_alloc_err7,   "opeu_open_text_alloc_err7"   },
-  { &detail::odopen::opeu_open_text_alloc_err9,   0x0000,     offsetof(OpenDataSegment, alloc_err9),             sizeof detail::odopen::opeu_open_text_alloc_err9,   "opeu_open_text_alloc_err9"   },
-  { &detail::odopen::opeu_open_text_console,      0x0000,     offsetof(OpenDataSegment, text_console),           sizeof detail::odopen::opeu_open_text_console,      "opeu_open_text_console"      },
-  { &detail::odopen::opeu_open_name_scesel,       0x0000,     offsetof(OpenDataSegment, name_scesel),            sizeof detail::odopen::opeu_open_name_scesel,       "opeu_open_name_scesel"       },
+  { ObjectBytes(detail::odopen::opeu_open_aborted),           0x0000,     offsetof(OpenDataSegment, aborted),                "opeu_open_aborted"           },
+  { ObjectBytes(detail::odopen::opeu_open_frame_y),           0x0000,     offsetof(OpenDataSegment, frame_y),                "opeu_open_frame_y"           },
+  { ObjectBytes(detail::odopen::opeu_open_frame_h),           0x0000,     offsetof(OpenDataSegment, frame_h),                "opeu_open_frame_h"           },
+  { ObjectBytes(detail::odopen::opeu_open_frame_off),         0x0000,     offsetof(OpenDataSegment, frame_off),              "opeu_open_frame_off"         },
+  { ObjectBytes(detail::odopen::opeu_open_bob_a),             0x0000,     offsetof(OpenDataSegment, bob_a),                  "opeu_open_bob_a"             },
+  { ObjectBytes(detail::odopen::opeu_open_blast_steps),       0x0000,     offsetof(OpenDataSegment, blast_steps),            "opeu_open_blast_steps"       },
+  { ObjectBytes(detail::odopen::opeu_open_blast_slots),       0x0000,     offsetof(OpenDataSegment, blast_slots),            "opeu_open_blast_slots"       },
+  { ObjectBytes(detail::odopen::opeu_open_z_0227),            0x0000,     offsetof(OpenDataSegment, z_0227),                 "opeu_open_z_0227"            },
+  { ObjectBytes(detail::odopen::opeu_open_blast_x),           0x0000,     offsetof(OpenDataSegment, blast_x),                "opeu_open_blast_x"           },
+  { ObjectBytes(detail::odopen::opeu_open_blast_y),           0x0000,     offsetof(OpenDataSegment, blast_y),                "opeu_open_blast_y"           },
+  { ObjectBytes(detail::odopen::opeu_open_blast_masks),       0x0000,     offsetof(OpenDataSegment, blast_masks),            "opeu_open_blast_masks"       },
+  { ObjectBytes(detail::odopen::opeu_open_blast_sprites),     0x0000,     offsetof(OpenDataSegment, blast_sprites),          "opeu_open_blast_sprites"     },
+  { ObjectBytes(detail::odopen::opeu_open_flash_slots),       0x0000,     offsetof(OpenDataSegment, flash_slots),            "opeu_open_flash_slots"       },
+  { ObjectBytes(detail::odopen::opeu_open_z_024f),            0x0000,     offsetof(OpenDataSegment, z_024f),                 "opeu_open_z_024f"            },
+  { ObjectBytes(detail::odopen::opeu_open_bob_b),             0x0000,     offsetof(OpenDataSegment, bob_b),                  "opeu_open_bob_b"             },
+  { ObjectBytes(detail::odopen::opeu_open_flak_x),            0x0000,     offsetof(OpenDataSegment, flak_x),                 "opeu_open_flak_x"            },
+  { ObjectBytes(detail::odopen::opeu_open_flak_y),            0x0000,     offsetof(OpenDataSegment, flak_y),                 "opeu_open_flak_y"            },
+  { ObjectBytes(detail::odopen::opeu_open_gun_flips),         0x0000,     offsetof(OpenDataSegment, gun_flips),              "opeu_open_gun_flips"         },
+  { ObjectBytes(detail::odopen::opeu_open_shell_x),           0x0000,     offsetof(OpenDataSegment, shell_x),                "opeu_open_shell_x"           },
+  { ObjectBytes(detail::odopen::opeu_open_shell_y),           0x0000,     offsetof(OpenDataSegment, shell_y),                "opeu_open_shell_y"           },
+  { ObjectBytes(detail::odopen::opeu_open_shell_w),           0x0000,     offsetof(OpenDataSegment, shell_w),                "opeu_open_shell_w"           },
+  { ObjectBytes(detail::odopen::opeu_open_shell_ws),          0x0000,     offsetof(OpenDataSegment, shell_ws),               "opeu_open_shell_ws"          },
+  { ObjectBytes(detail::odopen::opeu_open_shell_h),           0x0000,     offsetof(OpenDataSegment, shell_h),                "opeu_open_shell_h"           },
+  { ObjectBytes(detail::odopen::opeu_open_shell_sprite),      0x0000,     offsetof(OpenDataSegment, shell_sprite),           "opeu_open_shell_sprite"      },
+  { ObjectBytes(detail::odopen::opeu_open_shell_save),        0x0000,     offsetof(OpenDataSegment, shell_save),             "opeu_open_shell_save"        },
+  { ObjectBytes(detail::odopen::opeu_open_flash_on),          0x0000,     offsetof(OpenDataSegment, flash_on),               "opeu_open_flash_on"          },
+  { ObjectBytes(detail::odopen::opeu_open_flash_phase),       0x0000,     offsetof(OpenDataSegment, flash_phase),            "opeu_open_flash_phase"       },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err1),   0x0000,     offsetof(OpenDataSegment, alloc_err1),             "opeu_open_text_alloc_err1"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err2),   0x0000,     offsetof(OpenDataSegment, alloc_err2),             "opeu_open_text_alloc_err2"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err3),   0x0000,     offsetof(OpenDataSegment, alloc_err3),             "opeu_open_text_alloc_err3"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err4),   0x0000,     offsetof(OpenDataSegment, alloc_err4),             "opeu_open_text_alloc_err4"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err5),   0x0000,     offsetof(OpenDataSegment, alloc_err5),             "opeu_open_text_alloc_err5"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err6),   0x0000,     offsetof(OpenDataSegment, alloc_err6),             "opeu_open_text_alloc_err6"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err7),   0x0000,     offsetof(OpenDataSegment, alloc_err7),             "opeu_open_text_alloc_err7"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_alloc_err9),   0x0000,     offsetof(OpenDataSegment, alloc_err9),             "opeu_open_text_alloc_err9"   },
+  { ObjectBytes(detail::odopen::opeu_open_text_console),      0x0000,     offsetof(OpenDataSegment, text_console),           "opeu_open_text_console"      },
+  { ObjectBytes(detail::odopen::opeu_open_name_scesel),       0x0000,     offsetof(OpenDataSegment, name_scesel),            "opeu_open_name_scesel"       },
   /* ODUTIL */
-  { &detail::odutil::opeu_stream_count,           0x0000,     offsetof(OpenDataSegment, stream_count),           sizeof detail::odutil::opeu_stream_count,           "opeu_stream_count"           },
-  { &detail::odutil::opeu_open_palette,           0x0000,     offsetof(OpenDataSegment, palette),                sizeof detail::odutil::opeu_open_palette,           "opeu_open_palette"           },
-  { &detail::odutil::opeu_open_black,             0x0000,     offsetof(OpenDataSegment, black),                  sizeof detail::odutil::opeu_open_black,             "opeu_open_black"             },
-  { &detail::odutil::opeu_open_spare_palette,     0x0000,     offsetof(OpenDataSegment, spare_palette),          sizeof detail::odutil::opeu_open_spare_palette,     "opeu_open_spare_palette"     },
-  { &detail::odutil::opeu_open_icon,              0x0000,     offsetof(OpenDataSegment, icon),                   sizeof detail::odutil::opeu_open_icon,              "opeu_open_icon"              },
-  { &detail::odutil::opeu_open_error_format,      0x0000,     offsetof(OpenDataSegment, error_format),           sizeof detail::odutil::opeu_open_error_format,      "opeu_open_error_format"      },
+  { ObjectBytes(detail::odutil::opeu_stream_count),           0x0000,     offsetof(OpenDataSegment, stream_count),           "opeu_stream_count"           },
+  { ObjectBytes(detail::odutil::opeu_open_palette),           0x0000,     offsetof(OpenDataSegment, palette),                "opeu_open_palette"           },
+  { ObjectBytes(detail::odutil::opeu_open_black),             0x0000,     offsetof(OpenDataSegment, black),                  "opeu_open_black"             },
+  { ObjectBytes(detail::odutil::opeu_open_spare_palette),     0x0000,     offsetof(OpenDataSegment, spare_palette),          "opeu_open_spare_palette"     },
+  { ObjectBytes(detail::odutil::opeu_open_icon),              0x0000,     offsetof(OpenDataSegment, icon),                   "opeu_open_icon"              },
+  { ObjectBytes(detail::odutil::opeu_open_error_format),      0x0000,     offsetof(OpenDataSegment, error_format),           "opeu_open_error_format"      },
   /* ODPAL */
-  { &detail::odpal::opeu_open_name_fnt,           0x0000,     offsetof(OpenDataSegment, name_fnt),               sizeof detail::odpal::opeu_open_name_fnt,           "opeu_open_name_fnt"          },
-  { &detail::odpal::opeu_open_z_0425,             0x0000,     offsetof(OpenDataSegment, z_0425),                 sizeof detail::odpal::opeu_open_z_0425,             "opeu_open_z_0425"            },
-  { &detail::odpal::opeu_open_name_npk,           0x0000,     offsetof(OpenDataSegment, name_npk),               sizeof detail::odpal::opeu_open_name_npk,           "opeu_open_name_npk"          },
-  { &detail::odpal::opeu_open_name_mopengrp,      0x0000,     offsetof(OpenDataSegment, name_mopengrp),          sizeof detail::odpal::opeu_open_name_mopengrp,      "opeu_open_name_mopengrp"     },
-  { &detail::odpal::opeu_open_z_043f,             0x0000,     offsetof(OpenDataSegment, z_043f),                 sizeof detail::odpal::opeu_open_z_043f,             "opeu_open_z_043f"            },
-  { &detail::odpal::opeu_picture_handle,          0x0000,     offsetof(OpenDataSegment, picture_handle),         sizeof detail::odpal::opeu_picture_handle,          "opeu_picture_handle"         },
-  { &detail::odpal::opeu_open_logo_file,          0x0000,     offsetof(OpenDataSegment, logo_file),              sizeof detail::odpal::opeu_open_logo_file,          "opeu_open_logo_file"         },
-  { &detail::odpal::opeu_open_palettes,           0x0000,     offsetof(OpenDataSegment, palettes),               sizeof detail::odpal::opeu_open_palettes,           "opeu_open_palettes"          },
-  { &detail::odpal::opeu_open_fade_target,        0x0000,     offsetof(OpenDataSegment, fade_target),            sizeof detail::odpal::opeu_open_fade_target,        "opeu_open_fade_target"       },
+  { ObjectBytes(detail::odpal::opeu_open_name_fnt),           0x0000,     offsetof(OpenDataSegment, name_fnt),               "opeu_open_name_fnt"          },
+  { ObjectBytes(detail::odpal::opeu_open_z_0425),             0x0000,     offsetof(OpenDataSegment, z_0425),                 "opeu_open_z_0425"            },
+  { ObjectBytes(detail::odpal::opeu_open_name_npk),           0x0000,     offsetof(OpenDataSegment, name_npk),               "opeu_open_name_npk"          },
+  { ObjectBytes(detail::odpal::opeu_open_name_mopengrp),      0x0000,     offsetof(OpenDataSegment, name_mopengrp),          "opeu_open_name_mopengrp"     },
+  { ObjectBytes(detail::odpal::opeu_open_z_043f),             0x0000,     offsetof(OpenDataSegment, z_043f),                 "opeu_open_z_043f"            },
+  { ObjectBytes(detail::odpal::opeu_picture_handle),          0x0000,     offsetof(OpenDataSegment, picture_handle),         "opeu_picture_handle"         },
+  { ObjectBytes(detail::odpal::opeu_open_logo_file),          0x0000,     offsetof(OpenDataSegment, logo_file),              "opeu_open_logo_file"         },
+  { ObjectBytes(detail::odpal::opeu_open_palettes),           0x0000,     offsetof(OpenDataSegment, palettes),               "opeu_open_palettes"          },
+  { ObjectBytes(detail::odpal::opeu_open_fade_target),        0x0000,     offsetof(OpenDataSegment, fade_target),            "opeu_open_fade_target"       },
   /* OFMUSIC */
-  { &detail::ofmusic::opeu_music_tracks,          BANK_FRAME, BANK_OFFSET,                                       sizeof detail::ofmusic::opeu_music_tracks,          "opeu_music_tracks"           },
-  { &detail::ofmusic::opeu_music_voices,          BANK_FRAME, 0x0020,                                            sizeof detail::ofmusic::opeu_music_voices,          "opeu_music_voices"           },
-  { &detail::ofmusic::opeu_music_events,          BANK_FRAME, 0x01df,                                            sizeof detail::ofmusic::opeu_music_events,          "opeu_music_events"           },
-};
+  { ObjectBytes(detail::ofmusic::opeu_music_tracks),          BANK_FRAME, BANK_OFFSET,                                       "opeu_music_tracks"           },
+  { ObjectBytes(detail::ofmusic::opeu_music_voices),          BANK_FRAME, 0x0020,                                            "opeu_music_voices"           },
+  { ObjectBytes(detail::ofmusic::opeu_music_events),          BANK_FRAME, 0x01df,                                            "opeu_music_events"           },
+} };
 // clang-format on
 
 /* Each DGROUP object fills its field. */
@@ -175,7 +181,9 @@ static_assert(sizeof detail::odpal::opeu_picture_handle == sizeof(OpenDataSegmen
 static_assert(sizeof detail::odpal::opeu_open_logo_file == sizeof(OpenDataSegment::logo_file));
 static_assert(sizeof detail::odpal::opeu_open_palettes == sizeof(OpenDataSegment::palettes));
 static_assert(sizeof detail::odpal::opeu_open_fade_target == sizeof(OpenDataSegment::fade_target));
+} // namespace
 
-unsigned const open_image_object_count = 78;
-
+auto OpenImageObjects() -> std::span<OpenImageObject const> {
+  return IMAGE_OBJECTS;
 }
+} // namespace opeu::intro

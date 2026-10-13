@@ -1,8 +1,10 @@
-// What every routine of the opening receives: its state and the machine it runs on. The runner builds one Open over
-// the state it starts (run.cpp) and hands it down by reference; a test builds its own over a state and a fake machine.
+// What every routine of the opening receives: its state, its memory and the machine it runs on. The runner builds one
+// Open over the memory it loads (run.cpp) and hands it down by reference; a test builds its own over its own bytes and
+// a fake machine.
 #pragma once
 
 #include "dgroup.hpp"
+#include "open-memory.hpp"
 #include "open-state.hpp"
 #include "segment-bytes.hpp"
 
@@ -16,13 +18,17 @@ namespace opeu::intro::detail::open {
 
 class Open {
 public:
-  Open(OpenState& state, services::Machine& machine) noexcept : _state{ state }, _machine{ machine } { }
+  Open(OpenState& state, OpenMemory& memory, services::Machine& machine) noexcept : _state{ state }, _memory{ memory }, _machine{ machine } { }
 
   [[nodiscard]] auto State() noexcept -> OpenState& {
     return _state;
   }
   [[nodiscard]] auto State() const noexcept -> OpenState const& {
     return _state;
+  }
+  // Every paragraph OPEN addresses: its far buffers, the song bank, its DOS blocks.
+  [[nodiscard]] auto Memory() noexcept -> OpenMemory& {
+    return _memory;
   }
   [[nodiscard]] auto Machine() noexcept -> services::Machine& {
     return _machine;
@@ -34,6 +40,7 @@ public:
 
 private:
   OpenState&         _state;
+  OpenMemory&        _memory;
   services::Machine& _machine;
 };
 

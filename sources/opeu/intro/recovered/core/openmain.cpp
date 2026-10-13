@@ -927,35 +927,35 @@ auto opeu_open_title(Open& open) -> int {
 
 void opeu_open_init(Open& open) {
   int handle = 0;
-  if ((Data(open).buffer_g = open_dos_alloc(0x501)) == 0) {
+  if ((Data(open).buffer_g = open.Memory().Allocate(0x501)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err1) });
     Hang();
   }
-  if ((Data(open).buffer_h = open_dos_alloc(0x6d5)) == 0) {
+  if ((Data(open).buffer_h = open.Memory().Allocate(0x6d5)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err2) });
     Hang();
   }
-  if ((Data(open).buffer_a = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_a = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err3) });
     Hang();
   }
-  if ((Data(open).buffer_b = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_b = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err4) });
     Hang();
   }
-  if ((Data(open).buffer_c = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_c = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err5) });
     Hang();
   }
-  if ((Data(open).buffer_d = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_d = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err6) });
     Hang();
   }
-  if ((Data(open).buffer_e = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_e = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err7) });
     Hang();
   }
-  if ((Data(open).buffer_f = open_dos_alloc(0x1000)) == 0) {
+  if ((Data(open).buffer_f = open.Memory().Allocate(0x1000)) == 0) {
     CursorPrint(open, std::array<uint16_t, 1>{ Near(open, Data(open).alloc_err9) });
     Hang();
   }
@@ -972,14 +972,14 @@ void opeu_open_init(Open& open) {
 
 void opeu_open_free_buffers(Open& open) {
   opeu_vga_clear();
-  open_dos_free(Data(open).buffer_g);
-  open_dos_free(Data(open).buffer_h);
-  open_dos_free(Data(open).buffer_a);
-  open_dos_free(Data(open).buffer_b);
-  open_dos_free(Data(open).buffer_c);
-  open_dos_free(Data(open).buffer_d);
-  open_dos_free(Data(open).buffer_e);
-  open_dos_free(Data(open).buffer_f);
+  open.Memory().Free(Data(open).buffer_g);
+  open.Memory().Free(Data(open).buffer_h);
+  open.Memory().Free(Data(open).buffer_a);
+  open.Memory().Free(Data(open).buffer_b);
+  open.Memory().Free(Data(open).buffer_c);
+  open.Memory().Free(Data(open).buffer_d);
+  open.Memory().Free(Data(open).buffer_e);
+  open.Memory().Free(Data(open).buffer_f);
 }
 
 /* Music driver (int 66h): AH=1 AL=5, then AH=2 AL=20. */

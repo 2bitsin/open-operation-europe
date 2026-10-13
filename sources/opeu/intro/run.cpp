@@ -9,6 +9,8 @@
  */
 #include "hostinput.hpp" /* port_time_us */
 #include "intro.hpp"
+#include "open-memory.hpp"
+#include "open.hpp"
 #include "port.hpp"
 #include "process.hpp"
 #include "services.hpp"
@@ -17,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <span>
 
 namespace opeu::intro {
 namespace {
@@ -42,12 +45,14 @@ void open_intro_run() {
   int run = intro_mode >= 0 ? intro_mode : static_cast<int>(port_options.headless == 0);
   if (run == 0) return;
   port_trace("svc", "OPEN.EXE: start");
-  open_memory_init();
-  OpenState state{
-    Segment{ port_arena + (static_cast<uint32_t>(OPEN_DS_SEGMENT) * 16u), SEGMENT_SIZE }
+  port_arena_prepare();
+  OpenMemory memory{
+    std::span{ port_arena, PORT_ARENA_SIZE + SEGMENT_SIZE }
   };
+  memory.Load();
+  OpenState         state{ memory.Segment(OPEN_DS_SEGMENT) };
   services::Machine machine;
-  Open              open{ state, machine };
+  Open              open{ state, memory, machine };
   /* crt0 -> main(): the opening's recovered main(). */
   opeu_open_main(open);
   /* main() returned: crt0 exits, DOS frees OPEN's memory and the
@@ -60,7 +65,8 @@ void open_intro_run() {
          * this memory) from it. */
     if (char const* const path{ getenv("OPEU_OPEN_DUMP") }; path != nullptr) {
       std::ofstream file{ path, std::ios::binary };
-      file.write(reinterpret_cast<char const*>(port_arena) + (static_cast<uint32_t>(OPEN_BANK_SEGMENT) * 16u), 0x10000);
+      auto const    bank{ std::as_bytes(memory.Segment(OPEN_BANK_SEGMENT)) };
+      file.write(reinterpret_cast<char const*>(bank.data()), static_cast<std::streamsize>(bank.size())); // NOLINT(*-reinterpret-cast): bytes out
       if (!file) port_fatal("cannot write %s", path);
     }
   }

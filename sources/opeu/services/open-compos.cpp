@@ -7,18 +7,11 @@
  */
 #include "canvas.hpp"
 #include "open-services.hpp"
-#include "port.hpp"
 
 using namespace opeu::services;
 
 /* The colour bit the dissolve keeps from the screen. */
 constexpr int DISSOLVE_BIT{ 3 };
-
-/* Byte at segment:offset of the data arena (16-bit offset arithmetic is the
- * caller's: pass the wrapped offset). */
-static uint8_t* far_byte(uint16_t segment, uint16_t offset) {
-  return port_far(segment, offset);
-}
 
 /* Column x (8 pixels) of game line y as a 16-bit column number, 80 per line. */
 static uint16_t line_address(uint16_t x, uint16_t y) {
@@ -29,15 +22,16 @@ static Offset column_at(uint16_t column) {
   return Offset{ column } * 8;
 }
 
-void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t segment, uint16_t offset) {
-  uint16_t si = line_address(x, y), di = offset, rows = h;
+void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, FarBytes destination) {
+  FarSegment const segment{ destination.segment };
+  uint16_t         si = line_address(x, y), di = destination.offset, rows = h;
   do {
     uint16_t columns = w;
     do {
       int p;
       for (p = 0; p < 4; p++) {
-        *far_byte(segment, di) = Screen().PlaneBits(column_at(si), p);
-        di                     = (uint16_t)(di + 1);
+        segment[di] = Screen().PlaneBits(column_at(si), p);
+        di          = (uint16_t)(di + 1);
       }
       si = (uint16_t)(si + 1);
     } while (--columns);
@@ -45,49 +39,56 @@ void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
   } while (--rows);
 }
 
-void opeu_open_far_copy(uint16_t source_segment, uint16_t source_offset, uint16_t segment, uint16_t offset, uint16_t count) {
-  uint16_t words = (uint16_t)(count >> 1), si = source_offset, di = offset;
+void opeu_open_far_copy(FarBytes source, FarBytes destination, uint16_t count) {
+  FarSegment const source_segment{ source.segment };
+  FarSegment const segment{ destination.segment };
+  uint16_t         words = (uint16_t)(count >> 1), si = source.offset, di = destination.offset;
   while (words--) { /* REP MOVSW: CX = 0 copies nothing */
-    *far_byte(segment, di)                 = *far_byte(source_segment, si);
-    *far_byte(segment, (uint16_t)(di + 1)) = *far_byte(source_segment, (uint16_t)(si + 1));
-    si                                     = (uint16_t)(si + 2);
-    di                                     = (uint16_t)(di + 2);
+    segment[di]                 = source_segment[si];
+    segment[(uint16_t)(di + 1)] = source_segment[(uint16_t)(si + 1)];
+    si                          = (uint16_t)(si + 2);
+    di                          = (uint16_t)(di + 2);
   }
 }
 
-void opeu_open_buf_or(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t source_segment, uint16_t source_offset) {
-  uint16_t si = source_offset, di = offset, rows = h;
+void opeu_open_buf_or(FarBytes target, uint16_t w, uint16_t h, FarBytes source) {
+  FarSegment const segment{ target.segment };
+  FarSegment const source_segment{ source.segment };
+  uint16_t         si = source.offset, di = target.offset, rows = h;
   do { /* 1C54: CX = rows, inner CX = 2 * columns (LOOP) */
     uint16_t words = (uint16_t)(w << 1);
     do {
-      *far_byte(segment, di)                 |= *far_byte(source_segment, si);
-      *far_byte(segment, (uint16_t)(di + 1)) |= *far_byte(source_segment, (uint16_t)(si + 1));
-      di                                      = (uint16_t)(di + 2);
-      si                                      = (uint16_t)(si + 2);
+      segment[di]                 |= source_segment[si];
+      segment[(uint16_t)(di + 1)] |= source_segment[(uint16_t)(si + 1)];
+      di                           = (uint16_t)(di + 2);
+      si                           = (uint16_t)(si + 2);
     } while (--words);
   } while (--rows);
 }
 
-void opeu_open_buf_and_mask(uint16_t segment, uint16_t offset, uint16_t w, uint16_t h, uint16_t mask_segment, uint16_t mask_offset) {
-  uint16_t si = mask_offset, di = offset, rows = h;
+void opeu_open_buf_and_mask(FarBytes target, uint16_t w, uint16_t h, FarBytes mask) {
+  FarSegment const segment{ target.segment };
+  FarSegment const mask_segment{ mask.segment };
+  uint16_t         si = mask.offset, di = target.offset, rows = h;
   do {
     uint16_t pairs = (uint16_t)(w >> 1);
     do {
-      uint8_t m0 = *far_byte(mask_segment, si);
-      uint8_t m1 = *far_byte(mask_segment, (uint16_t)(si + 1));
+      uint8_t m0 = mask_segment[si];
+      uint8_t m1 = mask_segment[(uint16_t)(si + 1)];
       int     k;
       for (k = 0; k < 8; k++) {
-        *far_byte(segment, di) &= (k & 1) ? m1 : m0;
-        di                      = (uint16_t)(di + 1);
+        segment[di] &= (k & 1) ? m1 : m0;
+        di           = (uint16_t)(di + 1);
       }
       si = (uint16_t)(si + 2);
     } while (--pairs);
   } while (--rows);
 }
 
-void opeu_open_dissolve_blit(uint16_t x, uint16_t y, uint16_t segment, uint16_t offset, uint16_t pattern) {
-  uint16_t di = line_address(x, y), si = offset, dx = pattern;
-  int      row;
+void opeu_open_dissolve_blit(uint16_t x, uint16_t y, FarBytes source, uint16_t pattern) {
+  FarSegment const segment{ source.segment };
+  uint16_t         di = line_address(x, y), si = source.offset, dx = pattern;
+  int              row;
   for (row = 0; row < 0x120; row++) {
     uint16_t row_si = si, plane_si = si, d = di;
     int      p;
@@ -96,7 +97,7 @@ void opeu_open_dissolve_blit(uint16_t x, uint16_t y, uint16_t segment, uint16_t 
       int      c;
       d = di;
       for (c = 0; c < 0x13; c++) {
-        uint16_t ax = (uint16_t)(*far_byte(segment, s) << 8 | *far_byte(segment, (uint16_t)(s + 4)));
+        uint16_t ax = (uint16_t)(segment[s] << 8 | segment[(uint16_t)(s + 4)]);
         uint16_t bx = (uint16_t)(Screen().PlaneBits(column_at(d), DISSOLVE_BIT) << 8 | Screen().PlaneBits(column_at((uint16_t)(d + 1)), DISSOLVE_BIT));
         ax          = (uint16_t)((ax & dx) | (bx & (uint16_t)~dx));
         Screen().SetPlaneBits(column_at(d), p, (uint8_t)(ax >> 8));
