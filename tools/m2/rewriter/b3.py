@@ -12,7 +12,8 @@ applies, to the rewritten tree:
   dispatcher  a `svc_*` nothing names any more is deleted, and a routine only the dropped arguments named (an event
               written as a function, `LabelEvent`), then every function only deleted functions named
   enum        an enumeration whose enumerators were service ids (case labels of a dispatcher) is deleted when neither
-              it nor any enumerator is named outside it any more
+              it nor any enumerator is named outside it any more, and a `constexpr` constant a site gave as its
+              service id when nothing names it any more
   include     `common/events.hpp` goes from files that no longer name what it declares (the game's own name included)
 
 Every kept parameter and enumeration is listed with its reason (B3Result.kept)."""
@@ -40,22 +41,25 @@ class B3Result:
   sites:    int = 0                                  # call arguments removed with them
   deleted:  list[str] = field(default_factory=list)  # functions deleted (dispatchers and what only they named)
   enums:    list[str] = field(default_factory=list)  # service enumerations deleted
+  constants: list[str] = field(default_factory=list)  # service id constants deleted
   includes: list[str] = field(default_factory=list)  # file: include removed
   kept:     list[str] = field(default_factory=list)  # what stays, and why
   unpassed: set[str] = field(default_factory=set)    # the routines dropped arguments named (deleted when unnamed now)
 
   def Counts(self) -> dict[str, int]:
     return {"dropped": len(self.dropped), "arguments": self.sites, "deleted": len(self.deleted), "enums": len(self.enums),
-            "includes": len(self.includes), "kept": len(self.kept)}
+            "constants": len(self.constants), "includes": len(self.includes), "kept": len(self.kept)}
 
 
-def B3Pass(root: Path, labels: set[str]) -> B3Result:
+def B3Pass(root: Path, labels: set[str], ids: set[str] = frozenset()) -> B3Result:
   """Runs every rule on the tree under root (a scratch export); labels: the case labels of the dispatchers before the
-  sites were replaced (the enumerations they name are the service ids)."""
+  sites were replaced (the enumerations they name are the service ids); ids: the names the sites gave as service ids
+  (the constants among them nothing names any more go)."""
   result = B3Result()
   _Write(root, None, DropCallbacks(Program(SourceTree(root)), result))
   _Write(root, None, DeleteDispatchers(Program(SourceTree(root)), result))
   _Write(root, None, DeleteEnums(SourceTree(root), labels, result))
+  _Write(root, None, DeleteServiceConstants(SourceTree(root), ids, result))
   _Write(root, None, DropEventsInclude(SourceTree(root), result))
   return result
 
@@ -294,6 +298,42 @@ def DeleteEnums(tree: SourceTree, labels: set[str], result: B3Result) -> dict:
       edits.setdefault(path, set()).add(("lines", first, last))
       result.enums.append(described)
   return edits
+
+
+def DeleteServiceConstants(tree: SourceTree, ids: set[str], result: B3Result) -> dict:
+  """Deletes `constexpr TYPE NAME{ ... };` (or `= ...;`) declarations of service ids the sites gave that nothing names
+  any more."""
+  scopes = ConstantScopes(tree)
+  edits: dict = {}
+  for path, source in tree.files.items():
+    if not str(path).startswith("game/"):
+      continue
+    for name, span in _Constants(source, ids):
+      if _EnumerationNamed(tree, scopes, Enumeration(path, "", False, [name], span)):
+        continue
+      first, last = source.tokens[span.first].line, source.tokens[span.last - 1].line
+      edits.setdefault(path, set()).add(("lines", first, last))
+      result.constants.append(f"{path} {name}")
+  return edits
+
+
+def _Constants(source: SourceFile, ids: set[str]) -> list[tuple[str, Span]]:
+  """The `constexpr` declarations of one name among ids that stand alone on their lines: (name, span)."""
+  tokens, partners = source.tokens, source.partners
+  found = []
+  for index, token in enumerate(tokens):
+    if token.text != "constexpr" or tokens[index - 1].text not in (";", "{", "}", "inline", "static"):
+      continue
+    end = index
+    while end < len(tokens) and tokens[end].text not in ("{", "=", ";", "("):
+      end += 1
+    if end >= len(tokens) or tokens[end].text not in ("{", "=") or tokens[end - 1].kind != IDENTIFIER or tokens[end - 1].text not in ids:
+      continue
+    close = partners[end] + 1 if tokens[end].text == "{" else next(i for i in range(end, len(tokens)) if tokens[i].text == ";")
+    if close < len(tokens) and tokens[close].text == ";" and tokens[close].line == tokens[index].line:
+      start = index - 1 if tokens[index - 1].text in ("inline", "static") else index
+      found.append((tokens[end - 1].text, Span(start, close + 1)))
+  return found
 
 
 def _EnumerationNamed(tree: SourceTree, scopes: ConstantScopes, enumeration: Enumeration) -> str:

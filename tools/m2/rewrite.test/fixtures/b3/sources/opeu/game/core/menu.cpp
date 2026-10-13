@@ -14,6 +14,11 @@ enum class HoldService : std::uint16_t {
   WAIT = 0,
 };
 
+// The id the menu asked a row for.
+constexpr std::uint16_t ROW_SERVICE{ 4 }; // (row)
+// The id the hold still answers.
+constexpr std::uint16_t HOLD_SERVICE{ 5 };
+
 using Hook = void (*)(Game& game, HostEvent event);
 } // namespace
 
@@ -54,7 +59,7 @@ std::uint16_t MenuEvent(Game& game, std::uint16_t id, std::uint16_t const* args,
 }
 
 std::uint16_t svc_hold(Game& game, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) {
-  return 0;
+  return id == HOLD_SERVICE ? 1 : 0;
 }
 
 void opeu_menu_entry(Game& game) {

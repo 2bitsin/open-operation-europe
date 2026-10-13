@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
       summary["b2"] = _B2(tree, args.out)
       checked = _GameFiles(tree)
     if args.apply == "b3":
-      summary["b3"] = _B3(tree, _Labels(model), args.out)
+      summary["b3"] = _B3(tree, _Labels(model), _ServiceIds(model), args.out)
       checked = _GameFiles(tree)
     if args.check:
       summary["check"] = _Check(tree, checked, args.out / f"check-{args.apply}.txt")
@@ -116,12 +116,18 @@ def _B2(tree: Path, out: Path) -> dict:
   return result.Counts()
 
 
-def _B3(tree: Path, labels: set[str], out: Path) -> dict:
+def _B3(tree: Path, labels: set[str], ids: set[str], out: Path) -> dict:
   """The B3 cleanup after the selected sites are direct: counts, and one listing per kind into out."""
-  result = B3Pass(tree, labels)
-  for kind in ("dropped", "deleted", "enums", "includes", "kept"):
+  result = B3Pass(tree, labels, ids)
+  for kind in ("dropped", "deleted", "enums", "constants", "includes", "kept"):
     (out / f"b3-{kind}.txt").write_text("".join(f"{line}\n" for line in getattr(result, kind)))
   return result.Counts()
+
+
+def _ServiceIds(model: Model) -> set[str]:
+  """Every name in a site's service id."""
+  return {token.text for site in model.sites for token in model.program.Source(site.file).tokens[site.service.first:site.service.last]
+          if re.fullmatch(r"[A-Za-z_]\w*", token.text)}
 
 
 def _Labels(model: Model) -> set[str]:
