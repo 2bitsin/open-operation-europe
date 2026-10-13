@@ -3,9 +3,7 @@
 #include "core/app.hpp"
 #include "core/calendar.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "core/turnord.hpp"
-#include "data/mapstate.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -23,8 +21,6 @@
 #include "port.hpp"
 #include "services.hpp"
 
-#include <cstring>
-
 using namespace opeu::game;
 
 namespace {
@@ -36,15 +32,6 @@ constexpr std::uint8_t  NEW_GAME{ 21 };     // run from the current date
 constexpr std::uint8_t  LAST_YEAR{ 10 };    // the calendar stops after the tenth year
 constexpr std::uint8_t  TURN_SLOTS{ 64 };
 constexpr std::uint16_t PRESENT_ONE{ 1 };
-
-// Shuffles the turn order with the segment's random state.
-auto ShuffleTurnOrder(DataSegment& data) -> void {
-  std::memcpy(&opeu_random_state, data.random_state.data(), sizeof opeu_random_state);
-  std::memcpy(opeu_turn_order, data.turn_order.data(), data.turn_order.size());
-  opeu_shuffle_turn_order();
-  std::memcpy(data.turn_order.data(), opeu_turn_order, data.turn_order.size());
-  std::memcpy(data.random_state.data(), &opeu_random_state, sizeof opeu_random_state);
-}
 
 // After the last year (or with a start-up mode it does not know) the game stops: the host keeps running so the window
 // still closes and a headless run still stops at its time limit.
@@ -118,6 +105,6 @@ void opeu_begin_hour(Game& game) {
   data.schedule_flags[0] |= Bits(ScheduleFlag::HOURLY);
   opeu_sub_byte(1, &data.side_delays[0]);
   opeu_sub_byte(1, &data.side_delays[1]);
-  ShuffleTurnOrder(data);
+  opeu_shuffle_turn_order(game);
   data.turn_cursor = 0;
 }

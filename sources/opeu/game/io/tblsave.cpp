@@ -46,14 +46,14 @@ void opeu_tbl_draw_saves(Game& game, std::uint8_t column, std::uint8_t first, st
   auto const text_x{ row_width + x + window.x - 0x20 };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_save_header)) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(window.y + 1));
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
+    opeu_army_position(game, static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(window.y + 1));
+    opeu_text_put_range(game, buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
   }
   for (int const slot_index : std::views::iota(int{ first }, last + 1)) {
     auto const& slot{ data.save_slots[slot_index] };
     auto const  y{ (slot_index - data.list_top) * ROW_HEIGHT + window.y + 18 };
     if (flags & DRAW_NUMBER) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(window.x + 3), static_cast<std::int16_t>(y));
+      opeu_army_position(game, static_cast<std::int16_t>(window.x + 3), static_cast<std::int16_t>(y));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_save_number)), static_cast<std::uint16_t>(slot_index + 1) });
     }
     switch (slot.scenario & SCENARIO_MASK) {
@@ -77,8 +77,8 @@ void opeu_tbl_draw_saves(Game& game, std::uint8_t column, std::uint8_t first, st
                                                          static_cast<std::uint16_t>(data.tbl_save_level), static_cast<std::uint16_t>(slot.month), static_cast<std::uint16_t>(slot.day),
                                                          static_cast<std::uint16_t>(slot.year), static_cast<std::uint16_t>(slot.hour),
                                                          static_cast<std::uint16_t>(data.tbl_player_names[slot.control[0]]), static_cast<std::uint16_t>(data.tbl_player_names[slot.control[1]]) });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(y));
-      opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
+      opeu_army_position(game, static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(y));
+      opeu_text_put_range(game, buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
     }
   }
 }

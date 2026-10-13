@@ -32,13 +32,13 @@ constexpr std::uint16_t COLOR_WHITE{ 7 };
 void opeu_army_heading(Game& game, uint16_t person) {
   auto const& data{ Data(game) };
   opeu_ui_fill(6, 0, 73, 50, 0);
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 6, 0, 73, 51, COLOR_WHITE);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 1, 2);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), data.side_names[data.current_side]);
+  opeu_ui_outline(game, 6, 0, 73, 51, COLOR_WHITE);
+  opeu_army_position(game, 1, 2);
+  opeu_ui_text(game, data.side_names[data.current_side]);
   opeu_select_side_color(game, data.current_side);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 1, 18);
+  opeu_army_position(game, 1, 18);
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ ARMY_PERSON, SideTextColor(data.current_side), person });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 1, 34);
+  opeu_army_position(game, 1, 34);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ ARMY_HQ });
   opeu_ui_line(40, 51, 40, 186, COLOR_WHITE);
 }
@@ -46,11 +46,11 @@ void opeu_army_heading(Game& game, uint16_t person) {
 void opeu_division_heading(Game& game, uint16_t person) {
   auto& data{ Data(game) };
   opeu_ui_fill(6, 143, 73, 256, 0);
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 5, 142, 73, 257, COLOR_WHITE);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 1, 225);
+  opeu_ui_outline(game, 5, 142, 73, 257, COLOR_WHITE);
+  opeu_army_position(game, 1, 225);
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_LABEL, SideTextColor(data.current_side),
                                                         static_cast<std::uint16_t>((Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 1, 241);
+  opeu_army_position(game, 1, 241);
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_PERSON, SideTextColor(data.current_side), person });
-  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 1, 144, person);
+  opeu_context_portrait(game, 1, 144, person);
 }

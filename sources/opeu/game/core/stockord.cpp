@@ -64,8 +64,8 @@ void opeu_stock_show(Game& game, uint16_t objective) {
   auto&       data{ Data(game) };
   auto const& city{ Record<Objective>(data, objective) };
   auto const  capacity{ ObjectiveCapacities(data, objective) };
-  opeu_info_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), offsetof(DataSegment, stock_header));
+  opeu_info_panel_begin(game);
+  opeu_ui_text(game, offsetof(DataSegment, stock_header));
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), capacity.fuel, city.resources[FUEL], city.reserves[FUEL] });
   opeu_cursor_print(game,
                     std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), capacity.ammunition, city.resources[AMMUNITION], city.reserves[AMMUNITION] });
@@ -74,7 +74,7 @@ void opeu_stock_show(Game& game, uint16_t objective) {
 
 // The panel under the city's name.
 void opeu_stock_show_titled(Game& game, uint16_t objective) {
-  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), objective);
+  opeu_army_title(game, objective);
   opeu_stock_show(game, objective);
 }
 
@@ -85,7 +85,7 @@ uint16_t opeu_stock_ask(Game& game, uint16_t what) {
   auto const          question{ locals.At(0) };
   opeu_request_format(
       game, std::array<std::uint16_t, 3>{ question, static_cast<std::uint16_t>(data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question)), what });
-  return opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
+  return opeu_control_choose(game, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }
 
 // Edits the city's three stockpile orders: fuel, ammunition, food, then the confirmation.
@@ -101,7 +101,7 @@ void opeu_stock_edit(Game& game, uint16_t objective) {
       opeu_stock_show(game, objective);
       if (ask(FOOD, offsetof(DataSegment, stock_food))) {
         opeu_stock_show(game, objective);
-        if (opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_record2)) return;
+        if (opeu_confirm_ok(game, data.context_record2)) return;
       }
     }
   }
@@ -115,14 +115,14 @@ void opeu_turn_action_2(Game& game) {
   auto& list{ data.city_dialog };
   list.rows = static_cast<std::uint8_t>(opeu_stock_cities_fill(game) + 1);
   if (list.rows == 1) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_no_cities), data.context_record3);
+    opeu_control_message(game, offsetof(DataSegment, stock_no_cities), data.context_record3);
     return;
   }
   SetListPredicate(list, ListSelect::STOCK_CITY);
   auto height{ FIRST_HEIGHT };
   for (;;) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, stock_select_city), data.context_record2);
-    opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+    opeu_control_message(game, offsetof(DataSegment, stock_select_city), data.context_record2);
+    opeu_title_panel_begin(game);
     if (!opeu_list_dialog(game, offsetof(DataSegment, city_dialog), 1, height)) break;
     auto const objective{ data.view_objectives[data.list_row] };
     opeu_unit_flash(game, objective, FLASH_TICKS);

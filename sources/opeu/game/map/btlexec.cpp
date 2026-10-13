@@ -82,9 +82,9 @@ uint16_t opeu_battle_order_command(Game& game, uint16_t element, uint8_t command
   auto const target_at_cursor{ [&] { return opeu_battle_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)); } };
   for (;;) {
     auto const unit{ opeu_battle_element_unit(game, element) };
-    opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
+    opeu_input_flush(game);
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_msg_set_target));
+    opeu_ui_text(game, Near(data, data.battle_msg_set_target));
     if (!opeu_battle_select_cell(game)) return 0;
     switch (command) {
     case 1:

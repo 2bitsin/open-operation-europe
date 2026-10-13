@@ -11,7 +11,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
@@ -56,7 +55,7 @@ void opeu_hurricane_present(Game& game) {
   opeu_sound_cue15(game);
   opeu_daily_context(game, data.current_side);
   opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, HURRICANE_MESSAGE), (season ? data.hurricane_words[0] : data.hurricane_words[1]) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, data.context_record2);
+  opeu_control_message(game, TEXT, data.context_record2);
 }
 
 // In the hurricane weather: announces it, then each unheld cell of partisan terrain sees a rising at random (both
@@ -67,29 +66,29 @@ void opeu_partisan_event(Game& game) {
   if (data.weather != HURRICANE_WEATHER) return;
   bool const season{ HurricaneSeason(data) };
   auto const partisans{ season ? data.partisan_words[0] : data.partisan_words[1] };
-  port_daily_show(game, HURRICANE_ITEM, data.current_side, Presenter::HURRICANE);
+  opeu_daily_show(game, HURRICANE_ITEM, data.current_side, Presenter::HURRICANE);
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
-      if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || RandomBelow(game, season ? 70 : 100) != 8) continue;
+      if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || game.State().RandomBounded(season ? 70 : 100) != 8) continue;
       opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, CELL_RISING_MESSAGE), partisans });
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
+        opeu_control_message(game, TEXT, opeu_find_side_record(game, side, COMMANDER));
         opeu_location_flash(game, x, y, side);
       }
       opeu_map_mark_5(game, x, y);
       opeu_map_erase(game, x, y);
     }
   for (auto& objective : data.objectives) {
-    if (!objective.active || RandomBelow(game, season ? 50 : 80)) continue;
+    if (!objective.active || game.State().RandomBounded(season ? 50 : 80)) continue;
     auto const near{ Near(data, objective) };
     if (opeu_objective_eligible(game, near)) {
       auto const side{ opeu_objective_side(game, near) };
       if (data.side_status[side] == SIDE_PLAYED) {
         opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, opeu_message_lookup(game, OBJECTIVE_RISING_MESSAGE), partisans, near });
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), TEXT, opeu_find_side_record(game, side, COMMANDER));
+        opeu_control_message(game, TEXT, opeu_find_side_record(game, side, COMMANDER));
         opeu_location_flash(game, objective.x, objective.y, side);
       }
     }
-    opeu_sub_byte(RandomBelow(game, 10) + (season ? 5 : 3), &objective.strength);
+    opeu_sub_byte(game.State().RandomBounded(10) + (season ? 5 : 3), &objective.strength);
   }
 }

@@ -59,27 +59,27 @@ void opeu_battle_ranged_panel(Game& game, uint16_t shooter, uint16_t target) {
   auto const          shooter_name{ locals.At(SHOOTER_AT) };
   auto const          side{ opeu_battle_element_side(game, shooter) };
   opeu_battle_panel_begin(game);
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(PANEL_PAPER));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(NAME_COLUMN), static_cast<short>(SHOOTER_ROW));
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(side));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_element_name(game, shooter, shooter_name));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(VERSUS_COLUMN), static_cast<short>(VERSUS_ROW));
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), WHITE);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_text_vs));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(NAME_COLUMN), static_cast<short>(TARGET_ROW));
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(side == 0 ? 1 : 0));
+  opeu_text_paper_set(game, static_cast<uint8_t>(PANEL_PAPER));
+  opeu_army_position(game, static_cast<short>(NAME_COLUMN), static_cast<short>(SHOOTER_ROW));
+  opeu_text_color(game, SideTextColor(side));
+  opeu_ui_text(game, opeu_element_name(game, shooter, shooter_name));
+  opeu_army_position(game, static_cast<short>(VERSUS_COLUMN), static_cast<short>(VERSUS_ROW));
+  opeu_text_color(game, WHITE);
+  opeu_ui_text(game, Near(data, data.battle_text_vs));
+  opeu_army_position(game, static_cast<short>(NAME_COLUMN), static_cast<short>(TARGET_ROW));
+  opeu_text_color(game, SideTextColor(side == 0 ? 1 : 0));
   if (target) {
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_element_name(game, target, target_name));
+    opeu_ui_text(game, opeu_element_name(game, target, target_name));
   } else {
     auto const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
     auto const copied{ opeu_string_copy(game, target_name, objective) };
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_string_append(game, copied, Near(data, data.battle_text_s)));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(NAME_COLUMN), static_cast<short>(BUNKER_ROW));
+    opeu_ui_text(game, opeu_string_append(game, copied, Near(data, data.battle_text_s)));
+    opeu_army_position(game, static_cast<short>(NAME_COLUMN), static_cast<short>(BUNKER_ROW));
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.battle_text_bunker)) });
   }
   opeu_battle_commander_panel(game, static_cast<uint8_t>(side), 1);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1)),
                                                         static_cast<std::uint16_t>(shooter_name) });
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), WHITE);
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+  opeu_text_color(game, WHITE);
+  opeu_text_paper_set(game, static_cast<uint8_t>(0));
 }

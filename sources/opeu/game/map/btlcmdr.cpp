@@ -82,15 +82,15 @@ void opeu_battle_panel_side0(Game& game) {
 void opeu_battle_name_clear_left(Game& game) {
   auto& data{ Data(game) };
   RestoreLeft(game, data.battle_low_left_widths, 4, 21);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(1), static_cast<short>(0x158));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_left_mark));
+  opeu_army_position(game, static_cast<short>(1), static_cast<short>(0x158));
+  opeu_ui_text(game, Near(data, data.battle_left_mark));
 }
 
 void opeu_battle_name_clear_right(Game& game) {
   auto& data{ Data(game) };
   RestoreRight(game, data.battle_low_right_widths, 4, 21);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(0x38), static_cast<short>(0x158));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_right_mark));
+  opeu_army_position(game, static_cast<short>(0x38), static_cast<short>(0x158));
+  opeu_ui_text(game, Near(data, data.battle_right_mark));
 }
 
 void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
@@ -128,15 +128,15 @@ void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(data.battle_division_format), static_cast<std::uint16_t>(group + 1) });
   }
   auto const x{ side ? 0x3c : 9 };
-  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), side ? 0x48 : 0, 0x100, person);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(0x130));
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), NAME_COLOR[side ? 1 : 0]);
+  opeu_context_save(game);
+  opeu_context_portrait(game, side ? 0x48 : 0, 0x100, person);
+  opeu_army_position(game, static_cast<short>(x), static_cast<short>(0x130));
+  opeu_text_color(game, NAME_COLOR[side ? 1 : 0]);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_commander_format)), static_cast<std::uint16_t>(name) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(0x140));
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TEXT_WHITE);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), person);
-  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_army_position(game, static_cast<short>(x), static_cast<short>(0x140));
+  opeu_text_color(game, TEXT_WHITE);
+  opeu_ui_text(game, person);
+  opeu_context_restore(game);
   data.battle_panel_shown[side] = 1;
 }
 
@@ -182,7 +182,7 @@ void opeu_battle_element_destroy(Game& game, uint16_t element) {
     uint8_t gone{ 0 };
     for (auto& other : Elements(data, record))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
-    auto const percent{ port_rand_bounded(game, gone * 10 + 41) };
+    auto const percent{ game.State().RandomBounded(gone * 10 + 41) };
     Reduce(game, objective.resources[1], percent);
     Reduce(game, objective.resources[2], percent);
     Reduce(game, objective.resources[0], percent);

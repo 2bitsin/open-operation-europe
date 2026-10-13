@@ -29,7 +29,7 @@ constexpr std::uint16_t REPAIR_MENU{ 3 };
 void opeu_cancel_unit_orders(Game& game, uint16_t unit, uint16_t person) {
   auto& data{ Data(game) };
   if (Record<Unit>(data, unit).orders[0].kind != ORDER_UNUSED) {
-    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.cancel_orders_prompt), person)) opeu_clear_unit_orders(game, unit, CURRENT_SLOT | SAVED_SLOT);
+    if (opeu_confirm_message(game, Near(data, data.cancel_orders_prompt), person)) opeu_clear_unit_orders(game, unit, CURRENT_SLOT | SAVED_SLOT);
   }
 }
 

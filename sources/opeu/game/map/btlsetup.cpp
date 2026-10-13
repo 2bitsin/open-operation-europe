@@ -73,7 +73,7 @@ void opeu_battle_run_rounds(Game& game) {
       return;
     }
     for (auto const line : std::views::iota(uint8_t{ 1 }, uint8_t{ 5 })) opeu_battle_restore_tile(game, static_cast<uint8_t>(line), static_cast<uint8_t>(9));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(BANNER_X), static_cast<short>(BANNER_Y));
+    opeu_army_position(game, static_cast<short>(BANNER_X), static_cast<short>(BANNER_Y));
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_round_format)), static_cast<std::uint16_t>(data.battle_level_limit + 1) });
     if (opeu_battle_side_needs_input(game, 0) || opeu_battle_side_needs_input(game, 1)) opeu_battle_select_service(game);
     if (data.battle_level_limit) opeu_battle_announce_ready(game);
@@ -158,7 +158,7 @@ void opeu_notice_one(Game& game) {
   opeu_battle_tire_leaders(game);
   opeu_battle_run_rounds(game);
   opeu_vga_clear();
-  opeu_palette_for_hour(game, static_cast<const UiHost*>(port_uiprim_host()));
-  opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_palette_for_hour(game);
+  opeu_screen_reset(game);
   opeu_daily_context(game, static_cast<std::uint8_t>(Data(game).current_side));
 }

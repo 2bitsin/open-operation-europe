@@ -53,7 +53,7 @@ void opeu_daily_activate(Game& game, uint8_t side) {
   if (data.side_status[side] != SIDE_PLAYED || data.overview_side == side) return;
   data.view_side     = NO_SIDE;
   data.overview_side = side;
-  opeu_turn_frame(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(0));
+  opeu_turn_frame(game, static_cast<uint8_t>(0));
   for (auto const y : std::views::iota(uint8_t{ 0 }, MAP_HEIGHT))
     for (auto const x : std::views::iota(uint8_t{ 0 }, MAP_WIDTH)) opeu_map_erase(game, x, y);
   opeu_overview_frame(game);

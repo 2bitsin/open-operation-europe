@@ -4,9 +4,11 @@
 #pragma once
 
 #include "common/data-segment.hpp"
+#include "common/random.hpp"
 
 #include "opeu/contract.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -51,8 +53,42 @@ public:
     return std::span{ _segment }.subspan(near);
   }
 
+  // The generator itself: its draws leave the data segment's copy of the state as it was (the battle modules draw
+  // this way, so a battle's numbers do not reach the saved game until the next synchronised draw).
+  [[nodiscard]] auto Generator() noexcept -> RandomGenerator& {
+    return _generator;
+  }
+
+  // A number below `bound`, drawn from the state the data segment keeps: the generator takes that state, draws, and
+  // the data segment takes the generator's state back.
+  auto RandomBounded(std::uint16_t bound) -> std::uint16_t {
+    return Synchronised([bound](RandomGenerator& generator) { return generator.Bounded(bound); });
+  }
+  // The next number of the data segment's sequence, as RandomBounded draws it.
+  auto RandomNext() -> std::uint16_t {
+    return Synchronised([](RandomGenerator& generator) { return generator.Next(); });
+  }
+  // Seeds the generator and stores its state in the data segment.
+  auto RandomSeed(std::uint16_t seed) -> void {
+    _generator.Seed(seed);
+    StoreRandomState();
+  }
+
 private:
-  SegmentBytes _segment;
+  auto Synchronised(auto draw) -> std::uint16_t {
+    RandomState stored;
+    std::ranges::copy(std::span{ Data().random_state }.first<stored.size()>(), stored.begin());
+    _generator.Load(stored);
+    auto const result{ draw(_generator) };
+    StoreRandomState();
+    return result;
+  }
+  auto StoreRandomState() -> void {
+    std::ranges::copy(_generator.Stored(), Data().random_state.begin());
+  }
+
+  SegmentBytes    _segment;
+  RandomGenerator _generator;
 };
 } // namespace opeu::game::detail::game_state
 

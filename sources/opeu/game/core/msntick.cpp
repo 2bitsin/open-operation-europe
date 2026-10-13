@@ -74,7 +74,7 @@ void opeu_mission_tick(Game& game) {
 // The weather, the turn's preparation, the air operations and the special-forces missions.
 void opeu_turn_hourly_a(Game& game) {
   opeu_weather_update(game);
-  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_turn_prepare(game);
   opeu_air_operations(game);
   opeu_mission_tick(game);
 }

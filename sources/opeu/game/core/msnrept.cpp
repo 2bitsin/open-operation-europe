@@ -57,7 +57,7 @@ void FormatReport(Game& game, uint16_t message, uint16_t format, uint8_t side, u
 }
 
 void ShowReport(Game& game, uint16_t picture, uint8_t side, Presenter presenter) {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, side, presenter);
+  opeu_daily_show(game, picture, side, presenter);
 }
 
 } // namespace
@@ -87,7 +87,7 @@ void opeu_mission_report_success(Game& game, uint8_t side, uint16_t text, uint8_
   auto const          message{ locals.At(0) };
   auto const          speaker{ SpecialForcesCommander(game, side) };
   FormatReport(game, message, SUCCESS_FORMAT, side, text);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, speaker);
+  opeu_control_message(game, message, speaker);
   ShowReport(game, MISSION_PICTURE, side, Presenter::MISSION_FINISH);
   opeu_location_flash(game, x, y, side);
 }
@@ -98,7 +98,7 @@ void opeu_mission_report_enemy(Game& game, uint8_t side, uint16_t text, uint8_t 
   auto const          message{ locals.At(0) };
   FormatReport(game, message, ENEMY_FORMAT, side, text);
   auto const enemy{ opeu_opposite_side(side) };
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, opeu_find_side_record(game, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
+  opeu_control_message(game, message, opeu_find_side_record(game, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
   ShowReport(game, MISSION_PICTURE, enemy, Presenter::MISSION_FINISH);
   opeu_location_flash(game, x, y, enemy);
 }
@@ -109,7 +109,7 @@ void opeu_mission_report_failure(Game& game, uint8_t side, uint16_t text) {
   auto const          message{ locals.At(0) };
   auto const          speaker{ SpecialForcesCommander(game, side) };
   FormatReport(game, message, FAILURE_FORMAT, side, text);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, speaker);
+  opeu_control_message(game, message, speaker);
 }
 
 // Writes the unit's name into destination, after "Enemy " when a player commands the side; returns destination.
@@ -135,7 +135,7 @@ void opeu_mission_person_killed(Game& game, uint16_t person) {
   }
   opeu_initialize_deputy(game, person);
   if (played()) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), message, opeu_find_side_record(game, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
+    opeu_control_message(game, message, opeu_find_side_record(game, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
     ShowReport(game, FALLEN_PICTURE, side, Presenter::MISSION_DELAY);
   }
 }

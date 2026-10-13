@@ -31,9 +31,9 @@ void opeu_app_initialize(Game& game) {
   auto& data{ Data(game) };
   opeu_vga_clear();
   opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
-  opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 14, 100);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), INPUT_PROMPT);
+  opeu_input_flush(game);
+  opeu_army_position(game, 14, 100);
+  opeu_ui_text(game, INPUT_PROMPT);
   do {
     if (static_cast<uint16_t>(opeu_turn_input_a(game))) {
       data.input_mode = 1;
@@ -41,5 +41,5 @@ void opeu_app_initialize(Game& game) {
     }
   } while (!opeu_turn_input_b());
   data.input_mode = 0;
-  opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_input_flush(game);
 }

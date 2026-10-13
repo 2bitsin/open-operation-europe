@@ -4,7 +4,6 @@
 #include "common/element-chain.hpp"
 #include "common/memory.hpp"
 #include "common/order.hpp"
-#include "common/random.hpp"
 #include "core/grid-neighbours.hpp"
 #include "core/limits.hpp"
 #include "types.hpp"
@@ -95,20 +94,20 @@ uint16_t opeu_para_unit_create(Game& game, uint8_t side, uint8_t x, uint8_t y) {
     auto& element{ data.elements[side * ELEMENTS_PER_SIDE + i] };
     if (element.flags & Bits(ElementFlag::AIRBORNE)) {
       opeu_insert_element(game, near, Near(data, element));
-      element.morale     = 75 - RandomBelow(game, 21);
-      element.training   = 60 - RandomBelow(game, 21);
-      element.experience = 25 - RandomBelow(game, 21);
+      element.morale     = 75 - game.State().RandomBounded(21);
+      element.training   = 60 - game.State().RandomBounded(21);
+      element.experience = 25 - game.State().RandomBounded(21);
       element.flags      = (element.flags & Bits(ElementFlag::SELECTED)) | Bits(ElementFlag::READY);
     }
   }
   CellAt(data, x, y) = kept;
   auto const troops{ Troops(game, near) };
   auto const capacity{ Capacities(game, near) };
-  auto const ammunition_roll{ RandomBelow(game, 11) };
-  unit.resources[0] = opeu_min16(troops * 5 + ammunition_roll * RandomBelow(game, 21), capacity[0]);
+  auto const ammunition_roll{ game.State().RandomBounded(11) };
+  unit.resources[0] = opeu_min16(troops * 5 + ammunition_roll * game.State().RandomBounded(21), capacity[0]);
   unit.resources[1] = 0;
-  auto const food_roll{ RandomBelow(game, 21) };
-  unit.resources[2] = opeu_min16(troops * 5 + food_roll * RandomBelow(game, 21), capacity[2]);
+  auto const food_roll{ game.State().RandomBounded(21) };
+  unit.resources[2] = opeu_min16(troops * 5 + food_roll * game.State().RandomBounded(21), capacity[2]);
   return near;
 }
 
@@ -149,7 +148,7 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
   uint8_t    x{ unit.x };
   uint8_t    y{ unit.y };
   if (opeu_para_scatter_check(game)) {
-    if (auto const scattered{ StepOnMap({ x, y }, static_cast<uint8_t>(RandomBelow(game, 8))) }) {
+    if (auto const scattered{ StepOnMap({ x, y }, static_cast<uint8_t>(game.State().RandomBounded(8))) }) {
       x = scattered->x;
       y = scattered->y;
     }

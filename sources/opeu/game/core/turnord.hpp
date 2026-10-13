@@ -1,6 +1,6 @@
 // Shuffling the turn order.
 #pragma once
 
-#include "types.hpp"
+#include "common/events.hpp"
 
-void opeu_shuffle_turn_order(void);
+void opeu_shuffle_turn_order(Game& game);

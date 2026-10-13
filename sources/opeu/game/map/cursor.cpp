@@ -30,10 +30,10 @@ void opeu_map_cursor(Game& game, uint16_t x, uint16_t y) {
   auto const  cell_x{ static_cast<uint8_t>(x) };
   auto const  cell_y{ static_cast<uint8_t>(y) };
   auto const  terrain{ opeu_map_code(game, cell_x, cell_y) };
-  opeu_turn_active_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
+  opeu_turn_active_begin(game);
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_position_format)), static_cast<std::uint16_t>(data.map_scale * cell_x),
                                                         static_cast<std::uint16_t>(data.map_scale * cell_y) });
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
+  opeu_ui_text(game, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
   auto const side{ opeu_cell_side(game, cell_x, cell_y) };
   if (side != NO_SIDE) {
     auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
@@ -44,5 +44,5 @@ void opeu_map_cursor(Game& game, uint16_t x, uint16_t y) {
           game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_unit_format)), static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(name) });
     }
   }
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.cursor_end));
+  opeu_ui_text(game, Near(data, data.cursor_end));
 }

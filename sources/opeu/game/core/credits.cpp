@@ -31,19 +31,19 @@ constexpr std::uint16_t CREDITS_X{ 17 };
 // credits until a key or button is pressed. With the mouse input mode on, the mouse answers the prompt instead.
 void opeu_division_credits(Game& game) {
   auto& data{ Data(game) };
-  opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_input_flush(game);
   while (data.input_mode)
     if (static_cast<uint16_t>(opeu_turn_input_a(game))) return;
   if (static_cast<char>(static_cast<uint16_t>(port_getch())) == '!') {
-    opeu_backdrop_fill_color(game, static_cast<const UiHost*>(port_uiprim_host()), 1);
+    opeu_backdrop_fill_color(game, 1);
     data.restart_flag = 1;
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), CREDITS_X, 100);
+    opeu_army_position(game, CREDITS_X, 100);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_TITLE });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), CREDITS_X, 150);
+    opeu_army_position(game, CREDITS_X, 150);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_MAIN });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), CREDITS_X, 170);
+    opeu_army_position(game, CREDITS_X, 170);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_SUPPORT });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), CREDITS_X, 190);
+    opeu_army_position(game, CREDITS_X, 190);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_TRANSLATION });
     while (!opeu_turn_input_b()) {
     }

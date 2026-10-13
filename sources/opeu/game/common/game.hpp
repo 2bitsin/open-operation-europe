@@ -5,6 +5,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/game-state.hpp"
+#include "common/host.hpp"
 
 #include "machine.hpp"
 
@@ -14,7 +15,9 @@ namespace opeu::game::detail::game {
 
 class Game {
 public:
-  Game(GameState& state, services::Machine& machine) : _segment{ state.Bytes(0, SEGMENT_SIZE) }, _state{ state }, _machine{ machine } { }
+  // A game whose UI primitives reach no far memory beyond the data segment (a test's).
+  Game(GameState& state, services::Machine& machine) : Game{ state, machine, UiHost{} } { }
+  Game(GameState& state, services::Machine& machine, UiHost ui) : _segment{ state.Bytes(0, SEGMENT_SIZE) }, _state{ state }, _machine{ machine }, _ui{ ui } { }
 
   [[nodiscard]] auto State() noexcept -> GameState& {
     return _state;
@@ -24,6 +27,14 @@ public:
   }
   [[nodiscard]] auto Machine() noexcept -> services::Machine& {
     return _machine;
+  }
+
+  // The far memory and segment numbers of the UI primitives, and the dialogs' load segment and buffer area.
+  [[nodiscard]] auto Ui() const noexcept -> UiHost const& {
+    return _ui;
+  }
+  [[nodiscard]] auto Dialogs() const noexcept -> DialogHost const& {
+    return _dialogs;
   }
 
   // The state's data segment, the bytes behind every Data, Byte and Word: one load away from the game, since the
@@ -36,6 +47,8 @@ private:
   SegmentBytes       _segment;
   GameState&         _state;
   services::Machine& _machine;
+  UiHost             _ui;
+  DialogHost         _dialogs;
 };
 
 // The data segment's typed records, the game's way to its fields.

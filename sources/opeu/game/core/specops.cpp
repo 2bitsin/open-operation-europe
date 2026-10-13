@@ -13,7 +13,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
@@ -163,10 +162,10 @@ auto Recon() -> Mission {
 // as needed.
 auto Refusal(Game& game, Mission const& mission) -> int {
   auto const& data{ Data(game) };
-  if (RandomBelow(game, 31) + 50 > data.special_leadership) return 0;
-  if (RandomBelow(game, 21) + 30 > data.special_charm && RandomBelow(game, 21) + 20 > data.special_experience) return 1;
-  if (RandomBelow(game, 21) + 40 > data.special_bravery) return 2;
-  if (mission.refusals[3] != NO_TEXT && !RandomBelow(game, 5)) return 3;
+  if (game.State().RandomBounded(31) + 50 > data.special_leadership) return 0;
+  if (game.State().RandomBounded(21) + 30 > data.special_charm && game.State().RandomBounded(21) + 20 > data.special_experience) return 1;
+  if (game.State().RandomBounded(21) + 40 > data.special_bravery) return 2;
+  if (mission.refusals[3] != NO_TEXT && !game.State().RandomBounded(5)) return 3;
   return -1;
 }
 
@@ -180,7 +179,7 @@ void Plan(Game& game, Mission const& mission) {
   auto const          name{ locals.At(NAME_AT) };
   auto&               x{ Record<std::uint8_t>(data, cell_x) };
   auto&               y{ Record<std::uint8_t>(data, cell_y) };
-  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), mission.title);
+  opeu_army_title(game, mission.title);
   for (;;) {
     x = static_cast<std::uint8_t>(data.viewport_x);
     y = static_cast<std::uint8_t>(data.viewport_y);
@@ -188,11 +187,11 @@ void Plan(Game& game, Mission const& mission) {
     std::uint16_t unit{ 0 };
     bool          on_city{ false };
     for (;;) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), mission.prompt, data.special_person);
+      opeu_control_message(game, mission.prompt, data.special_person);
       if (!opeu_map_pick_location(game, cell_x, cell_y)) return;
       if (mission.city_question != NO_TEXT && (objective = opeu_find_objective_at(game, x, y)) != 0 && opeu_objective_side(game, objective) != data.current_side) {
         opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.city_question, objective });
-        if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.special_person)) {
+        if (opeu_confirm_message(game, text, data.special_person)) {
           on_city = true;
           break;
         }
@@ -202,11 +201,11 @@ void Plan(Game& game, Mission const& mission) {
       if (opeu_unit_side(unit) == data.current_side) continue;
       if (!opeu_unit_special(game, unit)) continue;
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.unit_question, opeu_unit_name(game, unit, name) });
-      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.special_person)) continue;
+      if (!opeu_confirm_message(game, text, data.special_person)) continue;
       break;
     }
     if (auto const refusal{ Refusal(game, mission) }; refusal >= 0) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), mission.refusals[refusal], data.special_person);
+      opeu_control_message(game, mission.refusals[refusal], data.special_person);
       break;
     }
     auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
@@ -217,14 +216,14 @@ void Plan(Game& game, Mission const& mission) {
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.duration, static_cast<std::uint16_t>(hours) });
     else
       opeu_request_format(game, std::array<std::uint16_t, 4>{ text, mission.duration, static_cast<std::uint16_t>(hours), (hours == 1 ? mission.hour : mission.hours) });
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.special_person);
+    opeu_control_message(game, text, data.special_person);
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.lieutenant, data.special_person });
-    if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.context_record2)) continue;
+    if (!opeu_confirm_message(game, text, data.context_record2)) continue;
     auto& order{ Record<Order>(data, data.special_order) };
     order.target   = on_city ? objective : unit;
     order.kind     = Bits(on_city ? mission.city_code : mission.unit_code);
     order.progress = hours;
-    port_daily_show(game, MISSION_REPORT, data.current_side, Presenter::SPECIAL_FORCES);
+    opeu_daily_show(game, MISSION_REPORT, data.current_side, Presenter::SPECIAL_FORCES);
     break;
   }
   data.side_delays[data.current_side] = 1;

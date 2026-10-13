@@ -11,7 +11,6 @@
 #include "common/element-chain.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
@@ -76,7 +75,7 @@ auto Weak(Game& game, Unit const& unit) -> bool {
   }
   auto const count{ UnitQuantity(data, Near(data, unit), ANY_CATEGORY).count };
   if (!count) return false;
-  return (RandomBelow(game, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(game, 20)) || RandomBelow(game, 20) + 20 > strength;
+  return (game.State().RandomBounded(20) + 20 > morale / count && experience / count > 50 - game.State().RandomBounded(20)) || game.State().RandomBounded(20) + 20 > strength;
 }
 
 // Whether the unit stands north of row 10.
@@ -98,13 +97,13 @@ void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t 
     auto const unit_name{ opeu_unit_name(game, near, name) };
     auto const format{ opeu_message_lookup(game, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
     opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, format, movement, unit_name });
-    opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
+    opeu_unit_side_report(game, near, TEXT);
     opeu_location_flash(game, unit.x, unit.y, 1);
-    port_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);
+    opeu_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);
   } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
     Format(game, PARTISANS_STRIKE_US, movement);
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
-    port_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
+    opeu_unit_report(game, near, TEXT);
+    opeu_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
   }
   opeu_music_command7(game);
   opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
@@ -116,12 +115,12 @@ void NorthernLosses(Game& game, Unit const& unit, std::uint16_t name) {
   auto const near{ Near(data, unit) };
   if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
     Format(game, ENEMY_LOSSES_NORTH, opeu_unit_name(game, near, name));
-    opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
+    opeu_unit_side_report(game, near, TEXT);
     opeu_location_flash(game, unit.x, unit.y, 1);
-    port_daily_show(game, PRESENT_B_ID, 1, Presenter::NORTHERN_LOSSES);
+    opeu_daily_show(game, PRESENT_B_ID, 1, Presenter::NORTHERN_LOSSES);
   } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
-    port_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
+    opeu_unit_report(game, near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
+    opeu_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
   }
   opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);
 }
@@ -147,7 +146,7 @@ void opeu_loss_event_a(Game& game) {
   for (auto const [slot, unit] : FirstSideUnits(data)) {
     if (!(unit.flags & Bits(UnitFlag::READY))) continue;
     if (!opeu_category_7(slot) && !Weak(game, unit)) continue;
-    if (RandomBelow(game, 100)) continue;
+    if (game.State().RandomBounded(100)) continue;
     Strike(game, unit, movement, name);
   }
 }
@@ -162,5 +161,5 @@ void opeu_loss_event_b(Game& game) {
   auto const          name{ locals.At(0) };
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
   for (auto const& unit : std::span{ data.units }.first(UNITS_PER_SIDE))
-    if ((unit.flags & Bits(UnitFlag::READY)) && North(unit) && !RandomBelow(game, 50)) NorthernLosses(game, unit, name);
+    if ((unit.flags & Bits(UnitFlag::READY)) && North(unit) && !game.State().RandomBounded(50)) NorthernLosses(game, unit, name);
 }

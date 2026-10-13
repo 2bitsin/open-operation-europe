@@ -19,7 +19,6 @@
 #include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
@@ -127,7 +126,7 @@ void opeu_bomb_event(Game& game, uint16_t load) {
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
-      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(game, troop) || RandomBelow(game, static_cast<std::uint16_t>(150 - level * 20))) continue;
+      if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(game, troop) || game.State().RandomBounded(static_cast<std::uint16_t>(150 - level * 20))) continue;
       opeu_unit_name(game, troop, name);
       std::uint8_t voice{ NO_VOICE };
       if (data.side_status[0] == SIDE_PLAYED) {
@@ -142,10 +141,10 @@ void opeu_bomb_event(Game& game, uint16_t load) {
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {
         auto const person{ opeu_find_side_record(game, voice, AIR_OFFICER_KIND) };
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), intro, person);
-        port_daily_show(game, RAID_PICTURE, 0, Presenter::BOMBING);
+        opeu_control_message(game, intro, person);
+        opeu_daily_show(game, RAID_PICTURE, 0, Presenter::BOMBING);
         opeu_bomb_animate(game, load, troop, voice);
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), report, person);
+        opeu_control_message(game, report, person);
       }
       opeu_unit_casualties(game, troop, 15, 30, 10, 0, 1);
       data.map_mode[0] = saved_mode;

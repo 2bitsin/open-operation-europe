@@ -15,7 +15,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "common/side-color.hpp"
 #include "core/airshow.hpp"
 #include "core/airstrk.hpp"
@@ -124,7 +123,7 @@ void opeu_cargo_distribute(Game& game, uint16_t cargo, uint16_t amount) {
   std::uint16_t load[3]{ lift.supplies[0], lift.supplies[1], lift.supplies[2] };
   while (amount != 0 && (load[2] | load[1] | load[0]) != 0)
     for (auto& supply : load) {
-      auto const taken{ opeu_min16(RandomBelow(game, static_cast<std::uint16_t>(amount + 1)), supply) };
+      auto const taken{ opeu_min16(game.State().RandomBounded(static_cast<std::uint16_t>(amount + 1)), supply) };
       opeu_sub_word(taken, &supply);
       amount = static_cast<std::uint16_t>(amount - taken);
     }
@@ -138,10 +137,10 @@ void opeu_cargo_drop_present(Game& game) {
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ opeu_find_side_record(game, side, FLIGHT_COMMANDER_KIND) };
     auto const officer{ opeu_find_person_template(game, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_BEGIN, officer);
+    opeu_control_message(game, CARGO_BEGIN, officer);
   } else {
     auto const enemy{ opeu_opposite_side(side) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_SPOTTED, opeu_find_side_record(game, enemy, AIR_OFFICER_KIND));
+    opeu_control_message(game, CARGO_SPOTTED, opeu_find_side_record(game, enemy, AIR_OFFICER_KIND));
   }
   opeu_sound_cue4(game);
 }
@@ -173,7 +172,7 @@ void opeu_cargo_drop_event(Game& game) {
     opeu_air_sprite_draw(game, 0, pixel.x, row, side);
     if (pixel.y == row) {
       auto const shown{ opeu_side_for_status(game, side) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), CARGO_PICTURE, shown, Presenter::CARGO_DROP);
+      opeu_daily_show(game, CARGO_PICTURE, shown, Presenter::CARGO_DROP);
     }
     if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
       opeu_music_command7(game);
@@ -184,7 +183,7 @@ void opeu_cargo_drop_event(Game& game) {
           auto const name{ opeu_unit_name(game, near, locals.At(NAME_AT)) };
           auto const color{ SideColorCode(opeu_unit_side(near)) };
           Report(game, { text, UNIT_REPORT, color, name }, delivery);
-          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
+          opeu_control_message(game, text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }
       if (auto const near{ opeu_find_objective_at(game, x, y) }; near != 0) {
@@ -193,7 +192,7 @@ void opeu_cargo_drop_event(Game& game) {
         if (opeu_objective_side(game, near) == side) {
           auto const color{ SideColorCode(opeu_objective_side(game, near)) };
           Report(game, { text, CITY_REPORT, color, near }, delivery);
-          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
+          opeu_control_message(game, text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }
     }

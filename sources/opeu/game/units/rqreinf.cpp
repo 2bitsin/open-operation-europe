@@ -7,7 +7,6 @@
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
-#include "core/random.hpp"
 #include "core/recindex.hpp"
 #include "core/rqcommon.hpp"
 #include "io/listdlg.hpp"
@@ -60,17 +59,17 @@ void opeu_reinf_element(Game& game, uint16_t element, uint8_t kind, uint8_t side
   auto& data{ Data(game) };
   auto& loaded{ Record<Element>(data, element) };
   for (;;) {
-    auto const index{ static_cast<std::uint8_t>(opeu_rand_bounded(TYPE_DRAW)) };
+    auto const index{ static_cast<std::uint8_t>(game.State().Generator().Bounded(TYPE_DRAW)) };
     if (!data.type_availability[index]) continue;
     auto const& type{ data.element_types[index] };
     auto const  category{ type.category };
     if (!Suits(kind, side, category)) continue;
     if (!(data.side_masks[data.current_side] & type.sides)) continue;
-    if (data.type_availability[index] <= opeu_rand_bounded(100)) continue;
+    if (data.type_availability[index] <= game.State().Generator().Bounded(100)) continue;
     loaded.type           = index;
     std::uint16_t amount  = data.request_capacities[category] / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1);
     amount               += (5 - data.delivery_level) * 6;
-    loaded.quantity       = opeu_min16(opeu_rand_bounded(amount / 3) + (amount >> 1), data.request_capacities[category]);
+    loaded.quantity       = opeu_min16(game.State().Generator().Bounded(amount / 3) + (amount >> 1), data.request_capacities[category]);
     loaded.damage         = 0;
     return;
   }
@@ -98,35 +97,34 @@ void opeu_request_regiment(Game& game) {
     opeu_request_no_more(game, Near(data, data.rq_battalion_text));
     return;
   }
-  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_which_regiment_text), data.context_record2);
+  opeu_title_panel_begin(game);
+  opeu_control_message(game, Near(data, data.rq_which_regiment_text), data.context_record2);
   data.rq_regiment_list.rows = static_cast<std::uint8_t>(units + 1);
   if (!opeu_list_dialog(game, Near(data, data.rq_regiment_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
   auto const    unit{ data.ai_unit_list[data.list_row] };
   auto const    slot{ static_cast<std::uint8_t>(opeu_unit_index(unit)) };
   std::uint16_t kind;
   if (opeu_category_0_to_3(static_cast<uint8_t>(slot)) || opeu_category_4_or_5(static_cast<uint8_t>(slot))) {
-    opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_regiments_text));
-    kind = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2,
-                             Near(data, data.rq_regiment_kind_menu));
+    opeu_army_title(game, Near(data, data.rq_regiments_text));
+    kind = opeu_delay_dialog(game, Near(data, data.rq_regiment_kind_text), CHOSEN_KINDS, data.context_record2, Near(data, data.rq_regiment_kind_menu));
     if (kind == 0xffff) return;
     kind--;
   } else if (opeu_category_6(static_cast<uint8_t>(slot)))
     kind = SLOT_6_KIND;
   else
     kind = OTHER_KIND;
-  if (!opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_record2)) return;
+  if (!opeu_confirm_ok(game, data.context_record2)) return;
   Record<Unit>(data, unit).flags = requested;
   auto const battalions{ data.ai_unit_element_counts[slot] };
   for (std::uint8_t row{ 0 }; row < battalions; ++row) {
-    if (!opeu_rand_bounded(battalions) && row > 1) break;
+    if (!game.State().Generator().Bounded(battalions) && row > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[row] };
-    opeu_reinf_element(game, near, static_cast<std::uint8_t>(kind), static_cast<std::uint8_t>(opeu_rand_bounded(2)));
+    opeu_reinf_element(game, near, static_cast<std::uint8_t>(kind), static_cast<std::uint8_t>(game.State().Generator().Bounded(2)));
     auto& element{ Record<Element>(data, near) };
-    element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(80));
-    element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(80));
-    element.experience = static_cast<std::uint8_t>(opeu_rand_bounded(30));
+    element.morale     = static_cast<std::uint8_t>(game.State().Generator().Bounded(80));
+    element.training   = static_cast<std::uint8_t>(game.State().Generator().Bounded(80));
+    element.experience = static_cast<std::uint8_t>(game.State().Generator().Bounded(30));
     element.flags      = Bits(ElementFlag::REQUESTED);
     --elements;
   }

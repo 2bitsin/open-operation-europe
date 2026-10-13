@@ -41,8 +41,8 @@ void opeu_battle_cursor_info(Game& game) {
   auto const y{ data.battle_cursor_y };
   auto const terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
   opeu_battle_info_clear(game);
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(PAPER));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(LINE_X), static_cast<short>(CELL_LINE_Y));
+  opeu_text_paper_set(game, static_cast<uint8_t>(PAPER));
+  opeu_army_position(game, static_cast<short>(LINE_X), static_cast<short>(CELL_LINE_Y));
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_cursor)), static_cast<std::uint16_t>(data.battle_cursor_x),
                                                         static_cast<std::uint16_t>(data.battle_cursor_y), static_cast<std::uint16_t>(data.battle_terrain_names[terrain]) });
   if (terrain == OBJECTIVE_TERRAIN)
@@ -56,13 +56,13 @@ void opeu_battle_cursor_info(Game& game) {
     }
   auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)) };
   if (element && (opeu_battle_element_side(game, element) == data.battle_active_side || opeu_battle_element_flag2(game, element))) {
-    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(opeu_battle_element_side(game, element)));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(LINE_X), static_cast<short>(TYPE_LINE_Y));
+    opeu_text_color(game, SideTextColor(opeu_battle_element_side(game, element)));
+    opeu_army_position(game, static_cast<short>(LINE_X), static_cast<short>(TYPE_LINE_Y));
     auto const& record{ Record<Element>(data, element) };
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), data.element_types[record.type].name);
-    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), LABEL_COLOR);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(LINE_X), static_cast<short>(QUANTITY_LINE_Y));
+    opeu_ui_text(game, data.element_types[record.type].name);
+    opeu_text_color(game, LABEL_COLOR);
+    opeu_army_position(game, static_cast<short>(LINE_X), static_cast<short>(QUANTITY_LINE_Y));
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_cell_ok)), static_cast<std::uint16_t>(record.quantity) });
   }
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(PAPER_OFF));
+  opeu_text_paper_set(game, static_cast<uint8_t>(PAPER_OFF));
 }

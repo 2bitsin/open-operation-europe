@@ -48,5 +48,5 @@ void opeu_tbl_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row,
                                                             type.defense, type.speed, static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10, type.gun_range });
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

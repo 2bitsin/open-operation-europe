@@ -44,7 +44,7 @@ void ViewSideCities(Game& game, std::uint8_t side, std::uint16_t none) {
   auto&      data{ Data(game) };
   auto const count{ opeu_list_side_objectives(game, side) };
   if (count == 0) {
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), none, data.context_record3);
+    opeu_control_message(game, none, data.context_record3);
     return;
   }
   opeu_view_city_list(game, count);
@@ -66,18 +66,16 @@ void opeu_view_city_list(Game& game, uint8_t count) {
   auto const          title{ locals.At(TITLE_AT) };
   data.city_dialog.rows = static_cast<uint8_t>(count + 1);
   SetListPredicate(data.city_dialog, ListSelect::VIEW_OBJECTIVE);
-  for (std::uint16_t height{ 7 };
-       opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host())),
-       opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), CITY_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.city_dialog), 1, height);
+  for (std::uint16_t height{ 7 }; opeu_title_panel_begin(game), opeu_control_message(game, CITY_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.city_dialog), 1, height);
        height = 6) {
     auto const city{ data.view_objectives[data.list_row] };
     opeu_unit_flash(game, city, 4);
     data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(game, city) + 1);
     if (data.stock_dialog.rows > 1) {
       SetListPredicate(data.stock_dialog, ListSelect::VIEW_NONE_3);
-      opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
+      opeu_title_panel_begin(game);
       opeu_request_format(game, std::array<std::uint16_t, 3>{ title, CITY_FORMAT, city });
-      opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), title, data.context_record3);
+      opeu_control_message(game, title, data.context_record3);
       opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
       opeu_list_dialog(game, Near(data, data.stock_dialog), LIST_LIMIT, LIST_FLAGS);
       opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
@@ -99,6 +97,6 @@ void opeu_view_enemy_cities(Game& game) {
 // The cities menu (own, enemy) until cancelled.
 void opeu_view_cities_menu(Game& game) {
   auto& data{ Data(game) };
-  for (std::uint16_t item; (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), CITY_SIDE_PROMPT, 2, data.context_record2, CITY_SIDE_MENU)) != MENU_CANCELLED;)
+  for (std::uint16_t item; (item = opeu_delay_dialog(game, CITY_SIDE_PROMPT, 2, data.context_record2, CITY_SIDE_MENU)) != MENU_CANCELLED;)
     Dispatch(CITY_ACTIONS, data.city_actions.at(item - 1u), game);
 }

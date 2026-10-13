@@ -46,18 +46,18 @@ void opeu_daily_context(Game& game, uint8_t side) {
   auto const& person{ Record<Person>(data, general) };
   auto const  width{ std::min(static_cast<std::uint8_t>(opeu_string_length(game, general)), MAX_NAME) };
   data.context_display_word = 0;
-  opeu_context_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 24, width + 13);
+  opeu_context_begin(game);
+  opeu_context_save(game);
+  opeu_context_frame(game, 44, 24, width + 13);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, general });
-  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_context_restore(game);
   opeu_cursor_print(game, std::array<std::uint16_t, 10>{ STATS_FORMAT, static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.infantry),
                                                          static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.bravery),
                                                          static_cast<std::uint16_t>(person.armor), ((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL),
                                                          static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.experience) });
-  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 70, 40, general);
+  opeu_context_portrait(game, 70, 40, general);
   for (std::uint16_t y{ 316 }; y < 382; y += 16) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 45, y);
+    opeu_army_position(game, 45, y);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ BLANK_FORMAT });
   }
   data.context_side = side;

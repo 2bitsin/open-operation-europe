@@ -52,5 +52,5 @@ void opeu_tbl_draw_supplies(Game& game, uint8_t column, uint8_t first, uint8_t r
       opeu_string_copy(game, text, Near(data, data.tbl_supply_blank));
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

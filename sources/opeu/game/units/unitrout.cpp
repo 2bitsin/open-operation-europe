@@ -11,8 +11,6 @@
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
 #include "common/game.hpp"
-#include "common/random.hpp"
-#include "core/random.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "map/grid.hpp"
@@ -70,13 +68,13 @@ void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t ind
   }
   if (calm) {
     for (auto const& element : Elements(data, regiment))
-      if (static_cast<std::uint8_t>(RandomBelow(game, 20) + 60) <= element.experience) {
+      if (static_cast<std::uint8_t>(game.State().RandomBounded(20) + 60) <= element.experience) {
         opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
         return;
       }
   } else {
     for (auto const& element : Elements(data, regiment)) {
-      if (static_cast<std::uint8_t>(RandomBelow(game, 10) + 80) > element.experience) continue;
+      if (static_cast<std::uint8_t>(game.State().RandomBounded(10) + 80) > element.experience) continue;
       if (opeu_map_code(game, regiment.x, regiment.y) == 1 || element.experience == 99) {
         opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
         return;
@@ -94,7 +92,7 @@ void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t ind
       return;
     }
   }
-  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && RandomBelow(game, 2) == 0) {
+  if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && game.State().RandomBounded(2) == 0) {
     for (dir = 0; dir < 8; dir++) {
       x = regiment.x;
       y = regiment.y;

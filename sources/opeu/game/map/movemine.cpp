@@ -34,15 +34,15 @@ void opeu_move_mines(Game& game, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto const current{ data.current_unit_ptr };
   if (opeu_category_6(static_cast<uint8_t>(data.current_entry))) {
-    opeu_unit_report(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(Near(data, data.mines_found_text)));
+    opeu_unit_report(game, static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(Near(data, data.mines_found_text)));
   } else {
-    opeu_unit_report(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(Near(data, data.minefield_text)));
+    opeu_unit_report(game, static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(Near(data, data.minefield_text)));
     auto const own{ data.current_side };
     auto const enemy{ opeu_opposite_side(data.current_side) };
     if (data.side_status[own] == SIDE_PLAYED && opeu_unit_selection_eligible(game, static_cast<std::uint16_t>(current)))
-      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(own), Presenter::MINES_HIT);
+      opeu_daily_show(game, MINES_PICTURE, own, Presenter::MINES_HIT);
     else if (data.side_status[enemy] == SIDE_PLAYED && opeu_unit_special(game, static_cast<std::uint16_t>(current)))
-      port_daily_show(game, MINES_PICTURE, static_cast<std::uint16_t>(enemy), Presenter::MINES_HIT);
+      opeu_daily_show(game, MINES_PICTURE, enemy, Presenter::MINES_HIT);
     opeu_unit_casualties(game, static_cast<std::uint16_t>(current), 100, 3, 15, 0, 1);
   }
   auto& unit{ Record<Unit>(data, current) };

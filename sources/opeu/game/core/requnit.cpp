@@ -3,7 +3,6 @@
 #include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/order.hpp"
-#include "common/random.hpp"
 #include "core/numeric.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
@@ -17,7 +16,7 @@ namespace {
 
 // A fresh regiment's supplies: 30..79 percent of what it can carry.
 auto InitialSupply(Game& game, uint16_t capacity) -> uint16_t {
-  return opeu_percent(capacity, RandomBelow(game, 50) + 30);
+  return opeu_percent(capacity, game.State().RandomBounded(50) + 30);
 }
 
 } // namespace

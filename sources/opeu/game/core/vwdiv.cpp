@@ -47,15 +47,15 @@ void opeu_view_division_contact(Game& game) {
   uint8_t answer;
   for (;;) {
     data.control_selection = 0;
-    opeu_turn_active_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
-    answer = static_cast<uint8_t>(opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), CONTACT_PROMPT, 4, data.context_record3, CONTACT_MENU));
+    opeu_turn_active_begin(game);
+    answer = static_cast<uint8_t>(opeu_delay_dialog(game, CONTACT_PROMPT, 4, data.context_record3, CONTACT_MENU));
     if (answer == CANCELLED) break;
     uint8_t const division = answer - 1;
     auto&         group{ GroupOf(data, data.current_side, division) };
     auto const    group_near{ Near(data, group) };
     if ((group.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, group_near))) {
       opeu_group_show(game, group_near, division);
-      opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), data.current_side ? 1 : 2);
+      opeu_backdrop_fill_color(game, data.current_side ? 1 : 2);
       auto const units{ Near(data, data.units[(division + data.current_side * GROUPS_PER_SIDE) * UNITS_PER_GROUP]) };
       auto const army{ opeu_find_side_record(game, data.current_side, ARMY_RECORD_KIND) };
       auto const commander{ opeu_find_group_record(game, data.current_side, division) };
@@ -63,12 +63,12 @@ void opeu_view_division_contact(Game& game) {
       opeu_division_heading(game, commander);
       opeu_division_regiments(game, units, commander);
       opeu_division_credits(game);
-      opeu_screen_reset(game, static_cast<DialogHost const*>(port_dialogs_host()));
+      opeu_screen_reset(game);
       opeu_daily_context(game, data.current_side);
       auto const here{ [&] -> Unit const& { return Record<Unit>(data, data.current_unit_ptr); } };
       opeu_control_position(game, here().x, here().y);
       opeu_arrival_location(game, here().x, here().y, data.current_side);
     } else
-      opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), CONTACT_LOST, data.context_record3);
+      opeu_control_message(game, CONTACT_LOST, data.context_record3);
   }
 }

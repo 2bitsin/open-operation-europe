@@ -68,7 +68,7 @@ void opeu_group_set_target(Game& game, uint8_t group) {
     Byte(game, y_at) = unit.y;
   }
   opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x_at)), static_cast<uint8_t>(Byte(game, y_at)), static_cast<uint8_t>(data.current_side));
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.target_text), person);
+  opeu_control_message(game, Near(data, data.target_text), person);
   bool changed{ false };
   if (opeu_map_pick_location(game, x_at, y_at)) {
     auto const x{ Byte(game, x_at) };
@@ -85,13 +85,13 @@ void opeu_group_set_target(Game& game, uint8_t group) {
       opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.target_cell_format)),
                                                               static_cast<std::uint16_t>(data.map_scale * x), static_cast<std::uint16_t>(y * data.map_scale) });
     }
-    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, person)) {
+    if (opeu_confirm_message(game, text, person)) {
       task.x    = Byte(game, x_at);
       task.y    = Byte(game, y_at);
       task.kind = Bits(kind);
       changed   = true;
     }
-  } else if (task.kind != Bits(TaskKind::NONE) && opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.target_cancel_text), person)) {
+  } else if (task.kind != Bits(TaskKind::NONE) && opeu_confirm_message(game, Near(data, data.target_cancel_text), person)) {
     task.kind = Bits(TaskKind::NONE);
     changed   = true;
   }

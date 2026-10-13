@@ -22,7 +22,6 @@
 #include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
 #include "core/strings.hpp"
@@ -133,8 +132,8 @@ void opeu_end_occupy(Game& game) {
   attacker.moved = 0;
   if (objective) {
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), objective });
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, side, Presenter::END_OCCUPY);
+    opeu_unit_report(game, data.current_unit_ptr, text);
+    opeu_daily_show(game, OCCUPIED_SHOW, side, Presenter::END_OCCUPY);
   }
 }
 
@@ -143,9 +142,9 @@ void opeu_end_morale(Game& game) {
   auto& data{ Data(game) };
   if (data.battle_side == NONE) return;
   for (auto& element : SideElements(data, data.battle_side))
-    if (element.flags & Bits(ElementFlag::READY)) opeu_add_byte(RandomBelow(game, 3) + 3, 99, &element.morale);
+    if (element.flags & Bits(ElementFlag::READY)) opeu_add_byte(game.State().RandomBounded(3) + 3, 99, &element.morale);
   for (auto& element : SideElements(data, opeu_opposite_side(data.battle_side)))
-    if (element.flags & Bits(ElementFlag::READY)) opeu_sub_byte(RandomBelow(game, 3) + 3, &element.morale);
+    if (element.flags & Bits(ElementFlag::READY)) opeu_sub_byte(game.State().RandomBounded(3) + 3, &element.morale);
 }
 
 // The winner's leaders gain a point of experience: the commander of each division that fought, or the side's
@@ -227,12 +226,12 @@ void opeu_end_losses(Game& game) {
       unit = GARRISON_AT;
       opeu_string_copy(game, unit_name, offsetof(DataSegment, end_garrison_name));
       opeu_type_name(game, Near(data, data.element_types[loss.item.type]), item_name);
-      opeu_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element + offsetof(Element, type));
+      opeu_element_panel(game, element + offsetof(Element, type));
     } else {
       unit = opeu_find_element_unit(game, element);
       opeu_unit_name(game, loss.unit, unit_name);
       opeu_item_name(game, Near(data, loss.item), item_name);
-      opeu_group_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element);
+      opeu_group_element_panel(game, element);
     }
     uint16_t const remaining{ Record<Element>(data, element).quantity };
     uint16_t const lost{ static_cast<uint16_t>(loss.item.quantity - remaining) };
@@ -247,7 +246,7 @@ void opeu_end_losses(Game& game) {
           game, std::array<std::uint16_t, 3>{ loss_text, static_cast<std::uint16_t>(lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format)), lost });
       opeu_string_append(game, report, loss_text);
     }
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));
+    opeu_control_message(game, report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));
   }
 }
 
@@ -256,7 +255,7 @@ void opeu_end_losses(Game& game) {
 // player plays it, else side 0's.
 void opeu_notice_end(Game& game) {
   auto& data{ Data(game) };
-  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_turn_prepare(game);
   opeu_end_losses(game);
   opeu_end_select(game, 0);
   opeu_end_select(game, 1);

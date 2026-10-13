@@ -136,7 +136,7 @@ auto DrawArrows(Game& game, ScrollStrip const& strip, ArrowLight lit) -> void {
 // Outlines the scroll strip and draws both arrows unlit, while the mouse scroll arrows show.
 auto DrawScrollbar(Game& game, ScrollStrip const& strip) -> void {
   if (!Data(game).list_mouse) return;
-  opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), strip.x, strip.top, static_cast<std::uint16_t>(strip.x + 15), strip.bottom, COLOUR);
+  opeu_ui_outline(game, strip.x, strip.top, static_cast<std::uint16_t>(strip.x + 15), strip.bottom, COLOUR);
   DrawArrows(game, strip, ArrowLight::NONE);
 }
 
@@ -194,7 +194,7 @@ auto DrawFrame(Game& game, ListWindow const& window, std::uint8_t first_column) 
   auto&      data{ Data(game) };
   auto const saved{ data.list_columns };
   DrawScrollbar(game, StripOf(window));
-  opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), GridLeft(window), window.y, GridRight(window), window.bottom, COLOUR);
+  opeu_ui_outline(game, GridLeft(window), window.y, GridRight(window), window.bottom, COLOUR);
   data.list_rows    = static_cast<std::uint8_t>(DrawRowLines(window) - 1);
   data.list_columns = static_cast<std::uint8_t>(DrawColumnLines(game, window, first_column) - 1);
   return saved;
@@ -455,7 +455,7 @@ void opeu_list_scroll(Game& game, ListWindow const& window, std::uint8_t column,
   auto const saved{ DrawFrame(game, window, target.column) };
   auto const request{ Uncovered(data, step, saved, target) };
   if (!request) return;
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
+  opeu_text_paper_set(game, static_cast<std::uint8_t>(4));
   DrawRows(game, window, *request);
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
+  opeu_text_paper_set(game, static_cast<std::uint8_t>(0));
 }

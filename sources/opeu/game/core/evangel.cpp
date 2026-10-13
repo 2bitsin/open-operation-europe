@@ -18,7 +18,6 @@
 #include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "core/textout.hpp"
@@ -59,10 +58,10 @@ auto ForEachGeneralOf(Game& game, Unit const& unit, Body&& body) -> void {
 }
 
 auto Lower(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_sub_byte(RandomBelow(game, spread) + base, &value);
+  opeu_sub_byte(game.State().RandomBounded(spread) + base, &value);
 }
 auto Raise(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_add_byte(RandomBelow(game, spread) + base, RATING_LIMIT, &value);
+  opeu_add_byte(game.State().RandomBounded(spread) + base, RATING_LIMIT, &value);
 }
 
 // Whether she visits the unit: one of its generals is in poor health or one of its battalions is a veteran.
@@ -76,15 +75,15 @@ auto Eligible(Game& game, Unit const& unit) -> bool {
 // Shows her portrait and one of six remarks; returns the outcome (remark / 2).
 auto Remark(Game& game) -> std::uint8_t {
   auto const& data{ Data(game) };
-  opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 282, 18);
+  opeu_message_panel_begin(game);
+  opeu_context_frame(game, 44, 282, 18);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ NAME });
   opeu_dos_seek(data.portrait_handle, std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16, 0);
-  opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, data.portrait_handle);
-  auto const remark{ static_cast<std::uint8_t>(RandomBelow(game, 6)) };
+  opeu_image_read_draw(game, 45, 316, 8, 80, 0, data.portrait_handle);
+  auto const remark{ static_cast<std::uint8_t>(game.State().RandomBounded(6)) };
   opeu_request_format(game, std::array<std::uint16_t, 3>{ BUFFER, REMARK_FORMAT, opeu_message_lookup(game, remark + FIRST_REMARK) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 54, 324);
-  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), BUFFER);
+  opeu_army_position(game, 54, 324);
+  opeu_text_feed(game, BUFFER);
   return static_cast<std::uint8_t>(remark >> 1);
 }
 
@@ -145,10 +144,10 @@ void opeu_angel_event(Game& game) {
     auto const& record{ Record<Unit>(data, unit) };
     auto const  x{ record.x };
     auto const  y{ record.y };
-    if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && Eligible(game, record)) {
+    if (opeu_map_code(game, x, y) == OPEN_GROUND && game.State().RandomBounded(30) == 3 && Eligible(game, record)) {
       opeu_arrival_location(game, x, y, data.event_side);
       opeu_location_flash(game, x, y, data.event_side);
-      port_daily_show(game, ANGEL_SHOW, data.event_side, Presenter::ANGEL);
+      opeu_daily_show(game, ANGEL_SHOW, data.event_side, Presenter::ANGEL);
     }
   }
 }

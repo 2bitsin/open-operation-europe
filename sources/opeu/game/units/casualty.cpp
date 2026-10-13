@@ -61,7 +61,7 @@ enum Locals : std::uint16_t {
 // The morale an element loses: the square root of its losses, times one more than a twentieth of its experience, plus
 // up to four. The random draw comes before the root, as in the game.
 auto MoraleLoss(Game& game, std::uint16_t losses, Element const& element) -> std::uint16_t {
-  auto const extra{ port_rand_bounded(game, 5) };
+  auto const extra{ game.State().RandomBounded(5) };
   auto const root{ opeu_isqrt(losses) };
   return static_cast<std::uint16_t>(root * (element.experience / 20 + 1) + extra);
 }
@@ -102,8 +102,8 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
     opeu_element_name(game, near, element_name);
     auto const    category{ data.element_types[element.type].category };
     bool const    infantry{ category == 0 };
-    std::uint16_t losses{ port_rand_bounded(game, 100) >= percent ? port_rand_bounded(game, c >> 1) : static_cast<std::uint16_t>(port_rand_bounded(game, c) + kind) };
-    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(port_rand_bounded(game, 10) + 6));
+    std::uint16_t losses{ game.State().RandomBounded(100) >= percent ? game.State().RandomBounded(c >> 1) : static_cast<std::uint16_t>(game.State().RandomBounded(c) + kind) };
+    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(game.State().RandomBounded(10) + 6));
     losses = opeu_min16(element.quantity, losses);
     opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name });
     bool wiped{ false };
@@ -114,13 +114,13 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
           for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) opeu_general_casualty(game, opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(person)));
         if (group_selected) opeu_general_casualty(game, opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group)));
         // One time in a hundred the regiment's communications are cut.
-        if (port_rand_bounded(game, 100) == 0 && opeu_unit_selection_eligible(game, unit)) {
+        if (game.State().RandomBounded(100) == 0 && opeu_unit_selection_eligible(game, unit)) {
           if (data.side_status[side] == SIDE_PLAYED) {
             if (group_selected)
               opeu_string_copy(game, text, Near(data, data.casualty_cut_selected));
             else if (!side_selected)
               opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.casualty_cut), name });
-            opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, text);
+            opeu_unit_side_report(game, unit, text);
             report = false;
           }
           regiment.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::COMMUNICATIONS));
@@ -133,7 +133,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
         opeu_sub_byte(MoraleLoss(game, infantry ? losses / 10 : losses, element), &element.morale);
         if (!infantry) {
           std::uint16_t damage{ element.damage };
-          opeu_add_word(port_rand_bounded(game, losses / 3), data.request_capacities[category], &damage);
+          opeu_add_word(game.State().RandomBounded(losses / 3), data.request_capacities[category], &damage);
           element.damage = damage;
         }
         opeu_request_format(game, std::array<std::uint16_t, 3>{ loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses });
@@ -158,16 +158,16 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
     } else
       opeu_string_append(game, text, Near(data, data.casualty_no_damage));
     if (report) {
-      if (visible) opeu_group_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), near);
+      if (visible) opeu_group_element_panel(game, near);
       if (wiped) {
         if (visible) {
           auto const person{ side == viewer ? opeu_find_group_record(game, static_cast<uint8_t>(viewer), static_cast<uint8_t>(group))
                                             : opeu_find_side_record(game, static_cast<uint8_t>(viewer), static_cast<uint8_t>(SIDE_PEOPLE)) };
           opeu_arrival_location(game, static_cast<uint8_t>(regiment.x), static_cast<uint8_t>(regiment.y), static_cast<uint8_t>(viewer));
-          opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, person);
+          opeu_control_message(game, text, person);
         }
       } else
-        opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, text);
+        opeu_unit_side_report(game, unit, text);
     }
   }
   regiment.moved = 0;

@@ -58,7 +58,7 @@ void opeu_battle_mine_report(Game& game, uint16_t element) {
 uint16_t opeu_battle_mine_damage(Game& game, uint16_t element) {
   opeu_battle_element_unit(game, element);
   auto const count{ static_cast<int16_t>(Record<Element>(Data(game), element).quantity) };
-  auto const hit{ [&](int16_t) { return port_rand_bounded(game, 100) < HIT_PERCENT; } };
+  auto const hit{ [&](int16_t) { return game.State().RandomBounded(100) < HIT_PERCENT; } };
   return static_cast<uint16_t>(std::ranges::count_if(std::views::iota(int16_t{ 0 }, std::max(count, int16_t{ 0 })), hit));
 }
 
@@ -90,7 +90,7 @@ void opeu_battle_mine_hit(Game& game, uint16_t element) {
       return;
     }
     if (auto const category{ data.element_types[hit.type].category }; category != 0) {
-      auto const amount{ port_rand_bounded(game, damage / 2) };
+      auto const amount{ game.State().RandomBounded(damage / 2) };
       auto const sum{ static_cast<uint32_t>(amount) + hit.damage };
       auto const limit{ data.request_capacities[category] };
       hit.damage = static_cast<uint16_t>(sum > limit ? limit : sum);

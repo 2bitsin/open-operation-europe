@@ -47,10 +47,10 @@ void opeu_request_supplies(Game& game) {
     if (!opeu_request_cancel_prompt(game, offsetof(DataSegment, rq_supplies_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[kind].kind = std::to_underlying(RequestKind::NONE);
   }
-  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_supplies_title));
+  opeu_army_title(game, offsetof(DataSegment, rq_supplies_title));
   cell.x = data.viewport_x_bytes[0];
   cell.y = data.viewport_y_bytes[0];
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_supplies_where), data.context_record2);
+  opeu_control_message(game, offsetof(DataSegment, rq_supplies_where), data.context_record2);
   uint16_t city;
   for (;;) {
     if (!opeu_map_pick_location(game, scratch, scratch + 1)) return;
@@ -58,7 +58,7 @@ void opeu_request_supplies(Game& game) {
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
   opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_supplies_confirm)), city });
-  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) return;
+  if (!opeu_confirm_message(game, buffer, data.context_record2)) return;
   FileRequest(game, { city, static_cast<uint8_t>(0xff), kind });
   data.side_delays[data.current_side] = 1;
 }

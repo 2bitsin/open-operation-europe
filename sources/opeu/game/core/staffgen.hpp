@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-uint8_t opeu_staff_jitter_stat(uint8_t v);
+uint8_t opeu_staff_jitter_stat(Game& game, uint8_t v);
 void    opeu_staff_roll_flag(Game& game, uint16_t person);
 void    opeu_staff_reroll_person(Game& game, uint8_t index);
 uint8_t opeu_staff_reroll_selected(Game& game);

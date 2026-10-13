@@ -56,8 +56,8 @@ constexpr uint16_t VICTORY_PAUSE{ 0x28 };
 void Stalemate(Game& game, uint16_t text) {
   opeu_battle_daily_condition(game);
   opeu_battle_clear_positions(game);
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), STALEMATE_X, BANNER_Y, STALEMATE_COLOR);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), text);
+  opeu_context_frame(game, STALEMATE_X, BANNER_Y, STALEMATE_COLOR);
+  opeu_ui_text(game, text);
   opeu_delay_units(game, static_cast<std::uint8_t>(STALEMATE_PAUSE));
   opeu_music_stop(game);
 }
@@ -105,7 +105,7 @@ void opeu_battle_report_outcome(Game& game) {
   }
   opeu_battle_daily_condition(game);
   opeu_battle_clear_positions(game);
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
+  opeu_context_frame(game, VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_victory_format)),
                                                         static_cast<std::uint16_t>(WordOf(game, Near(data, data.side_names), data.battle_side)) });
   opeu_battle_closing_music(game, static_cast<uint8_t>(result - 1));

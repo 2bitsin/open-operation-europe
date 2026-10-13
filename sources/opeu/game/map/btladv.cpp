@@ -9,7 +9,6 @@
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "map/btlcell.hpp"
 #include "map/btldir.hpp"
 #include "map/btlengag.hpp"
@@ -83,7 +82,7 @@ void opeu_battle_element_withdraw(Game& game, uint16_t element) {
     uint8_t gone{ 0 };
     for (auto& other : Elements(data, Record<Unit>(data, unit)))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
-    auto const percent{ opeu_rand_bounded(static_cast<uint16_t>(gone * 10u + 41)) };
+    auto const percent{ game.State().Generator().Bounded(static_cast<uint16_t>(gone * 10u + 41)) };
     AbandonObjectiveStores(objective, percent);
   }
   opeu_battle_remove_list(game, unit);
@@ -110,7 +109,7 @@ void opeu_battle_hold_step(Game& game, uint16_t element) {
       }
     }
   }
-  if (opeu_rand_bounded(10) < 2) opeu_battle_spot_enemies(game, element);
+  if (game.State().Generator().Bounded(10) < 2) opeu_battle_spot_enemies(game, element);
   if (ElementStrength(game, element) > order) opeu_battle_set_order(game, element, ++order);
 }
 

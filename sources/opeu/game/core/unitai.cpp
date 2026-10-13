@@ -28,7 +28,6 @@
 #include "common/forces.hpp"
 #include "common/game.hpp"
 #include "common/map-grid.hpp"
-#include "common/random.hpp"
 
 #include <algorithm>
 #include <array>
@@ -277,14 +276,14 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
     if (PathOrderStep(game, *linked)) return true;
   }
   auto group_units{ GroupUnits(data, data.current_side, data.current_group) };
-  if (PathOrderStep(game, group_units[RandomBelow(game, UNITS_PER_GROUP)])) return true;
+  if (PathOrderStep(game, group_units[game.State().RandomBounded(UNITS_PER_GROUP)])) return true;
   for (auto const& task : GroupOf(data, data.current_side, data.current_group).tasks) {
     if (task.kind == Bits(TaskKind::NONE)) continue;
     if (task.kind != Bits(TaskKind::HOLD)) continue;
     auto const* objective{ ObjectiveAt(game, task.x, task.y) };
     for (std::uint8_t attempt = 0; attempt < 10; ++attempt) {
-      auto x{ static_cast<std::uint8_t>(RandomBelow(game, 7) + objective->x) };
-      auto y{ static_cast<std::uint8_t>(RandomBelow(game, 7) + objective->y) };
+      auto x{ static_cast<std::uint8_t>(game.State().RandomBounded(7) + objective->x) };
+      auto y{ static_cast<std::uint8_t>(game.State().RandomBounded(7) + objective->y) };
       opeu_sub_byte(3, &x);
       opeu_sub_byte(3, &y);
       if (x >= MAP_WIDTH) continue;
@@ -456,7 +455,7 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
 // selected unit.
 void opeu_unit_task_service(Game& game) {
   auto& data{ Data(game) };
-  if (RandomBelow(game, 10) + 80 > opeu_unit_average11(game, data.current_unit_ptr)) {
+  if (game.State().RandomBounded(10) + 80 > opeu_unit_average11(game, data.current_unit_ptr)) {
     if (data.current_entry == ENGINEER_SLOT) {
       if (RouteOrder(game)) return;
     } else if (data.current_entry == SUPPLY_SLOT) {

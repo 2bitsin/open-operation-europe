@@ -6,7 +6,6 @@
 #include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/personfl.hpp"
-#include "core/random.hpp"
 #include "types.hpp"
 
 #include <algorithm>
@@ -86,7 +85,7 @@ void opeu_assign_side_staff(Game& game) {
 
 // Seeds the random numbers from the clock, prepares the machine and, when a new game is set up, staffs the sides.
 void opeu_app_startup_service(Game& game) {
-  opeu_rand_seed(port_clock_ticks_low());
+  game.State().Generator().Seed(port_clock_ticks_low());
   opeu_app_prepare(game);
   auto& data{ Data(game) };
   if (static_cast<uint16_t>(opeu_new_game_setup(game))) {

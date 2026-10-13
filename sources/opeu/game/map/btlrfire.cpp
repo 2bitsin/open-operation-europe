@@ -6,7 +6,6 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "io/sound.hpp"
 #include "map/btlcalc.hpp"
 #include "map/btlcell.hpp"
@@ -90,8 +89,8 @@ void Tracers(Game& game, Shot shot, ScreenLine const& line) {
   auto const  shots{ opeu_battle_element_shots(game, shot.shooter, shot.target) };
   auto const  tracers{ std::min(static_cast<uint8_t>((IsOfCategory(type, Category::INFANTRY) ? shots / 3 : shots / 15) + 1), MAX_TRACERS) };
   for ([[maybe_unused]] auto const tracer : std::views::iota(uint8_t{ 0 }, tracers)) {
-    auto const dx{ static_cast<uint16_t>(opeu_rand_bounded(8) - 4) };
-    auto const dy{ static_cast<uint16_t>(opeu_rand_bounded(10) - 5) };
+    auto const dx{ static_cast<uint16_t>(game.State().Generator().Bounded(8) - 4) };
+    auto const dy{ static_cast<uint16_t>(game.State().Generator().Bounded(10) - 5) };
     auto const jitter{ [&](ScreenPoint point) { return ScreenPoint{ static_cast<uint16_t>(point.x + dx), static_cast<uint16_t>(point.y + dy) }; } };
     FlashTracer(game, { jitter(line.from), jitter(line.to) });
   }
@@ -180,7 +179,7 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
     } else {
       // Vehicles take damage by the crew's skill.
       if (auto const category{ ElementTypeOf(data, target).category }) {
-        auto const roll{ opeu_rand_bounded(300) };
+        auto const roll{ game.State().Generator().Bounded(300) };
         auto const skill{ opeu_battle_type_skill(game, target) };
         uint16_t   damage{ hit.damage };
         opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category], &damage);

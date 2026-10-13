@@ -80,7 +80,7 @@ uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };
     opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, format, static_cast<std::uint16_t>(SideColorCode(data.air_side)), what });
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+    opeu_control_message(game, buffer, person);
     return wait ? 1 : 2;
   }
   return 0;

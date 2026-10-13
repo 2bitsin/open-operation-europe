@@ -54,10 +54,10 @@ void ReportUnits(Game& game, ReportList const& list, std::uint16_t message, std:
   for (auto const unit : list) {
     if (!unit) continue;
     opeu_string_copy(game, TEXT, opeu_message_lookup(game, message));
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, TEXT);
+    opeu_unit_report(game, unit, TEXT);
     if (!seen) {
       auto const side{ opeu_unit_side(unit) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), item, side, Presenter::REPORT);
+      opeu_daily_show(game, item, side, Presenter::REPORT);
       seen = true;
     }
   }

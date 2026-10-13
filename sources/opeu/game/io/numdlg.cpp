@@ -61,9 +61,8 @@ auto IsDigit(std::uint8_t hit) -> bool {
 
 // An outline of the dialog's size with its top-left corner at 8-pixel column `column` and pixel row `row`.
 auto Outline(Game& game, std::uint16_t column, std::uint16_t row) -> void {
-  UiHost              host{ nullptr, 0, 0 };
   std::uint16_t const x = column << 3;
-  opeu_ui_outline(game, &host, x, row, x + 0x8f, row + 0x5f, OUTLINE_COLOUR);
+  opeu_ui_outline(game, x, row, x + 0x8f, row + 0x5f, OUTLINE_COLOUR);
 }
 
 // Redraws button n's picture `tile`.
@@ -99,10 +98,10 @@ void opeu_numdlg_close(Game& game) {
 
 void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit) {
   auto const& data{ Data(game) };
-  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(i * 3 + data.numdlg_x + 2), static_cast<std::int16_t>(data.numdlg_y + 0x40));
+  opeu_context_save(game);
+  opeu_army_position(game, static_cast<std::int16_t>(i * 3 + data.numdlg_x + 2), static_cast<std::int16_t>(data.numdlg_y + 0x40));
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.numdlg_format)), static_cast<std::uint16_t>(digit), 0 });
-  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_context_restore(game);
 }
 
 // Splits a value into the five digits (the first takes everything above 9999).

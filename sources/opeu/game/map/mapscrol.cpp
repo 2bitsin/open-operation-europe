@@ -147,7 +147,7 @@ void opeu_map_scroll_to(Game& game, int16_t x, int16_t y, uint8_t side) {
   auto& data{ Data(game) };
   if (data.side_status[side] == SIDE_COMPUTER || x < ORIGIN_MIN || x > ORIGIN_MAX || y < ORIGIN_MIN || y > ORIGIN_MAX) return;
   data.overview_side = NO_SIDE;
-  opeu_turn_frame(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(1));
+  opeu_turn_frame(game, static_cast<uint8_t>(1));
   if (side != data.view_side) {
     data.view_side  = side;
     data.viewport_x = static_cast<uint16_t>(x);

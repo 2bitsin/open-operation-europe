@@ -54,9 +54,9 @@ void opeu_army_summary(Game& game) {
   auto&               data{ Data(game) };
   auto const          side{ data.current_side };
   if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != SIDE_PLAYED) return;
-  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), data.side_names[side]);
+  opeu_army_title(game, data.side_names[side]);
   if (!opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, side))) {
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), OUT_OF_SUPPLY);
+    opeu_ui_text(game, OUT_OF_SUPPLY);
     return;
   }
   std::array<std::uint32_t, CATEGORIES> totals{};
@@ -67,7 +67,7 @@ void opeu_army_summary(Game& game) {
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
       if (opeu_cell_influence_side(game, x, y) == side) ++influence;
   auto const cities{ opeu_count_active_objectives(game, side) };
-  auto const row{ [&](std::uint16_t y) { opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ROW_X, y); } };
+  auto const row{ [&](std::uint16_t y) { opeu_army_position(game, ROW_X, y); } };
   row(163);
   opeu_cursor_print(game, std::array<std::uint16_t, 6>{ ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel });
   row(181);
@@ -81,6 +81,6 @@ void opeu_army_summary(Game& game) {
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ ROW4, own.bombers, static_cast<std::uint16_t>(cities), influence });
   row(263);
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ ROW5, own.planes, own.paratroops, static_cast<std::uint16_t>(own.strength) });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 54, 138);
+  opeu_army_position(game, 54, 138);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ HQ_FORMAT, opeu_unit_name(game, opeu_find_side_selected_unit(game, side), locals.At(0)) });
 }

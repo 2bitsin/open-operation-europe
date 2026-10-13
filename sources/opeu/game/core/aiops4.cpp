@@ -7,7 +7,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/aiops1.hpp"
-#include "core/random.hpp"
 #include "map/query.hpp"
 
 #include <array>
@@ -36,7 +35,7 @@ auto IsSupport(std::uint8_t category) -> bool {
 auto RandomAvailableType(Game& game, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
   ServiceLocals const types{ ELEMENT_TYPE_COUNT };
   auto const          count{ opeu_list_due_records(game, types.At(0), mask, category) };
-  return Record<TypeList>(Data(game), types.At(0))[opeu_rand_bounded(count)];
+  return Record<TypeList>(Data(game), types.At(0))[game.State().Generator().Bounded(count)];
 }
 } // namespace
 
@@ -62,7 +61,7 @@ uint16_t opeu_ai_short_objective(Game& game) {
         && (objective.resources[0] < SHORT_STOCK || objective.resources[1] < SHORT_STOCK || objective.resources[2] < SHORT_STOCK))
       short_of[count++] = near;
   }
-  return count ? short_of[opeu_rand_bounded(count)] : 0;
+  return count ? short_of[game.State().Generator().Bounded(count)] : 0;
 }
 
 // Files a supply request for a short objective in slot 0, unless the slot is taken or the side's configuration is
@@ -98,7 +97,7 @@ uint16_t opeu_ai_destination_for_type(Game& game, uint8_t type) {
   for (std::uint8_t i{ 0 }; i < count; ++i) {
     auto weight{ static_cast<std::uint8_t>((static_cast<std::uint8_t>(AiObjectiveLevel(game, room[i])) + 1) * 18) };
     if (IsSupport(category)) weight = static_cast<std::uint8_t>(100 - weight);
-    if (opeu_rand_bounded(100) < weight) destination = room[i];
+    if (game.State().Generator().Bounded(100) < weight) destination = room[i];
   }
   return destination;
 }
@@ -136,7 +135,7 @@ uint8_t opeu_ai_short_category(Game& game) {
 
 // One of the five categories the computer side requests, at random.
 uint8_t opeu_ai_random_category(Game& game) {
-  return Data(game).ai_categories[opeu_rand_bounded(5)];
+  return Data(game).ai_categories[game.State().Generator().Bounded(5)];
 }
 
 // Files an equipment request in slot 1, unless the slot is taken or the side's configuration is of the equipment
@@ -146,7 +145,7 @@ uint16_t opeu_ai_request_equipment(Game& game) {
   if (opeu_ai_request_pending(game, 1) || opeu_ai_config_kind_is(game, EQUIPMENT_REQUEST)) return 0;
   auto&        data{ Data(game) };
   std::uint8_t category{ NO_CATEGORY };
-  if (!opeu_rand_bounded(3)) category = opeu_ai_short_category(game);
+  if (!game.State().Generator().Bounded(3)) category = opeu_ai_short_category(game);
   if (category == NO_CATEGORY) category = opeu_ai_random_category(game);
   auto const type{ RandomAvailableType(game, data.side_masks[data.current_side], category) };
   auto const destination{ opeu_ai_destination_for_type(game, type) };

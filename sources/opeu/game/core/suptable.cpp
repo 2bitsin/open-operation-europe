@@ -86,12 +86,12 @@ void opeu_supply_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const&         window{ ActiveWindow(data) };
   LayOutColumns(game, column, row);
   if (flags & 3) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, window.y + 1);
+    opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_type_header)) });
   }
   for (std::uint8_t line = first; line <= last; ++line) {
     auto const type{ TypeAt(data.supply_types[line]) };
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
+    opeu_army_position(game, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
     auto const amount{ data.supply_amounts[line] };
     auto const other{ data.supply_others[line] };
     auto const nation{ opeu_nation_code(game, type, scratch) };
@@ -116,7 +116,7 @@ uint8_t opeu_supply_return_slot(Game& game) {
   slot.quantity      = 0;
   auto const y{ data.list_row * LINE_HEIGHT + 0x2e };
   opeu_ui_highlight(0x31, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x2e, y);
+  opeu_army_position(game, 0x2e, y);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_returned_slot)),
                                                         static_cast<std::uint16_t>(data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR) });
   opeu_ui_highlight(0x2e, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
@@ -131,11 +131,11 @@ void opeu_supply_draw_slots(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const&         window{ ActiveWindow(data) };
   LayOutColumns(game, column, row);
   if (flags & 3) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, window.y + 1);
+    opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_slot_header)) });
   }
   for (std::uint16_t line = first; line <= last; ++line) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
+    opeu_army_position(game, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
     auto const& slot{ data.alloc_slots[line] };
     auto const  colour{ line < data.supply_count ? HELD_COLOUR : OTHER_COLOUR };
     if (slot.quantity) {

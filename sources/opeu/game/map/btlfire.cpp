@@ -74,7 +74,7 @@ uint16_t opeu_battle_fire_hits(Game& game, uint16_t attacker, uint16_t target) {
   chance = static_cast<uint16_t>(chance + (a.experience > t.experience ? 5 : 10));
   chance = static_cast<uint16_t>(chance + ModeFactor(ElementTypeOf(data, attacker)) * 5);
   chance = static_cast<uint16_t>(chance - Mul16(data.weather_obscurity[data.weather] + data.battle_visibility, opeu_hour_is_night(data.hour) ? 25 : 15) / 10);
-  return port_rand_bounded(game, 100) < chance ? 1 : 0;
+  return game.State().RandomBounded(100) < chance ? 1 : 0;
 }
 
 // The attacker's fire power against the target: the soft rating against infantry, the hard rating otherwise.
@@ -108,6 +108,6 @@ uint16_t opeu_battle_fire_defense(Game& game, uint16_t element) {
   auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ SideOf(game, element) };
-  auto const bonus{ port_rand_bounded(game, data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1) };
+  auto const bonus{ game.State().RandomBounded(data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1) };
   return static_cast<uint16_t>(Mul16(Record<Person>(data, record).leadership / 70 * lead + 1, value) + bonus + 1);
 }

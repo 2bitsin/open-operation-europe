@@ -74,18 +74,18 @@ uint16_t opeu_spy_commander_ready(Game& game) {
 // The message panel with her name and, when `show`, her portrait; then the text.
 void opeu_spy_portrait_text(Game& game, uint16_t text, uint16_t show) {
   auto const& data{ Data(game) };
-  opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 44, 282, 15);
+  opeu_message_panel_begin(game);
+  opeu_context_frame(game, 44, 282, 15);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Lookup(game, 0x2b)) });
   if (show) {
     opeu_dos_seek(static_cast<int16_t>(data.portrait_handle),
                   static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_LOW)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_HIGH)) << 16),
                   static_cast<int16_t>(0));
-    opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
+    opeu_image_read_draw(game, 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
   }
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(324));
+  opeu_army_position(game, static_cast<int16_t>(54), static_cast<int16_t>(324));
   opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(text) });
-  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), BUFFER);
+  opeu_text_feed(game, BUFFER);
 }
 
 // The greeting scene (messages 44..51); the commander's charm rises by 1.
@@ -101,7 +101,7 @@ void opeu_spy_present_a(Game& game) {
 }
 
 void opeu_spy_show_a(Game& game) {
-  port_daily_show(game, GREETING_SHOW, 0, Presenter::SPY_GREETING);
+  opeu_daily_show(game, GREETING_SHOW, 0, Presenter::SPY_GREETING);
 }
 
 // The accepted ending: experience up by 1, the health limit down by 1 and health capped at it.
@@ -122,13 +122,13 @@ void opeu_spy_approach(Game& game) {
   opeu_spy_portrait_text(game, BUFFER, 1);
   opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, 0x6c)) });
   opeu_spy_portrait_text(game, BUFFER, 1);
-  opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_message_panel_begin(game);
   if (data.restart_flag == 1) {
-    opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), MOVE);
+    opeu_text_feed(game, MOVE);
     auto const accepted{ static_cast<uint16_t>(opeu_yes_no(game)) };
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), BOLD_OFF);
+    opeu_ui_text(game, BOLD_OFF);
     if (accepted)
-      port_daily_show(game, ENDING_SHOW, 0, Presenter::SPY_ENDING);
+      opeu_daily_show(game, ENDING_SHOW, 0, Presenter::SPY_ENDING);
     else {
       opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(HUMPH) });
       opeu_spy_portrait_text(game, BUFFER, 1);
@@ -146,15 +146,15 @@ void opeu_spy_event(Game& game) {
   auto const sent{ Bits(SideFlag::SPY_SENT) };
   auto const over{ static_cast<std::uint8_t>(Bits(SideFlag::SPY_SENT) | Bits(SideFlag::SPY_DONE)) };
   if (data.hour == OFFER_HOUR && !(flags & sent) && opeu_spy_commander_ready(game)) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Lookup(game, 0x38), adviser);
-    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Lookup(game, 0x39), adviser)) {
+    opeu_control_message(game, Lookup(game, 0x38), adviser);
+    if (opeu_confirm_message(game, Lookup(game, 0x39), adviser)) {
       opeu_spy_show_a(game);
       flags |= sent;
     } else
       flags |= over;
   }
   if (data.hour == APPROACH_HOUR && (flags & over) == sent && opeu_spy_commander_ready(game)) {
-    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Lookup(game, 0x3a), adviser)) opeu_spy_approach(game);
+    if (opeu_confirm_message(game, Lookup(game, 0x3a), adviser)) opeu_spy_approach(game);
     flags |= Bits(SideFlag::SPY_DONE);
   }
 }

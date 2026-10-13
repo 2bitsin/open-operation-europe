@@ -122,10 +122,10 @@ void opeu_para_drop_present(Game& game) {
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ opeu_find_side_record(game, side, COMMANDER) };
     auto const person{ opeu_find_person_template(game, Record<Person>(data, commander).status, AIR_COMMANDER) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_begin), person);
+    opeu_control_message(game, Near(data, data.paratroop_drop_begin), person);
   } else {
     auto const other{ opeu_opposite_side(side) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.paratroop_drop_spotted), opeu_find_side_record(game, other, INTELLIGENCE));
+    opeu_control_message(game, Near(data, data.paratroop_drop_spotted), opeu_find_side_record(game, other, INTELLIGENCE));
   }
   opeu_sound_cue4(game);
 }
@@ -157,7 +157,7 @@ void opeu_para_drop_event(Game& game) {
       break;
     }
     opeu_air_sprite_draw(game, 0, target_x, row, side_index);
-    if (row == target_y) port_daily_show(game, SHOW_ID, opeu_side_for_status(game, side_index), Presenter::PARATROOPERS);
+    if (row == target_y) opeu_daily_show(game, SHOW_ID, opeu_side_for_status(game, side_index), Presenter::PARATROOPERS);
     if (target_y - row == LANDING_ROWS) {
       opeu_music_command7(game);
       auto const unit{ CreateDropUnit(game, side_index, Near(data, drop)) };

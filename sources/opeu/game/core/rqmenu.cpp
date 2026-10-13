@@ -43,7 +43,7 @@ constexpr auto REQUEST_HANDLERS = DispatchRows<RequestHandler, auto (*)(Game&)->
 
 // "Request   Dest     Type      Wait" at the top of the request table.
 void opeu_request_header(Game& game) {
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, HEADER_Y);
+  opeu_army_position(game, TABLE_X, HEADER_Y);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_header_text)) });
 }
 
@@ -60,10 +60,10 @@ void opeu_turn_action_7(Game& game) {
   auto const shown{ [&](RequestKind kind) { return opeu_request_pending(game, std::to_underlying(kind)) || preparing[std::to_underlying(kind)]; } };
   do {
     uint16_t rows = 0;
-    opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_title_text));
+    opeu_army_title(game, offsetof(DataSegment, rq_title_text));
     if (shown(RequestKind::SUPPLIES)) {
       opeu_request_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, FIRST_ROW_Y);
+      opeu_army_position(game, TABLE_X, FIRST_ROW_Y);
       if (preparing[0])
         opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_supply_row_text)), config.target, static_cast<std::uint16_t>(config.delay) });
       else
@@ -72,7 +72,7 @@ void opeu_turn_action_7(Game& game) {
     }
     if (shown(RequestKind::BATTALION)) {
       opeu_request_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
+      opeu_army_position(game, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[1]) {
         opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_battalion_row_text)), config.target, data.element_types[config.argument].name,
                                                               static_cast<std::uint16_t>(config.delay) });
@@ -88,7 +88,7 @@ void opeu_turn_action_7(Game& game) {
     }
     if (shown(RequestKind::REGIMENT)) {
       opeu_request_header(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
+      opeu_army_position(game, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[2])
         opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_regiment_row_text)), data.rq_regiment_kind_names[config.argument],
                                                               static_cast<std::uint16_t>(config.delay) });
@@ -98,14 +98,14 @@ void opeu_turn_action_7(Game& game) {
     }
     uint16_t choice;
     for (;;) {
-      choice = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
+      choice = opeu_delay_dialog(game, offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
       if (choice == MENU_CANCELLED) return;
       choice--;
       if (!preparing[choice]) break;
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_busy_text), data.context_record3);
+      opeu_control_message(game, offsetof(DataSegment, rq_busy_text), data.context_record3);
     }
     if (choice != std::to_underlying(RequestKind::REGIMENT) && !opeu_side_has_city(game)) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_no_city_text), data.context_record3);
+      opeu_control_message(game, offsetof(DataSegment, rq_no_city_text), data.context_record3);
     } else {
       Dispatch(REQUEST_HANDLERS, data.request_handlers.at(choice), game);
     }

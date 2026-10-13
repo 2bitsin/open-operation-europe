@@ -32,7 +32,6 @@ void opeu_choose_turn_delay(Game& game) {
   auto const          scratch{ locals.At(0) };
   auto&               data{ Data(game) };
   opeu_string_copy(game, scratch, opeu_message_lookup(game, data.input_mode == 0 ? KEYBOARD_PROMPT : MOUSE_PROMPT));
-  auto const hours{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), scratch, DIALOG_X, data.context_record2, 0) };
-  if (hours != MENU_CANCELLED && opeu_delay_confirm(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_record2, hours))
-    data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
+  auto const hours{ opeu_delay_dialog(game, scratch, DIALOG_X, data.context_record2, 0) };
+  if (hours != MENU_CANCELLED && opeu_delay_confirm(game, data.context_record2, hours)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
 }

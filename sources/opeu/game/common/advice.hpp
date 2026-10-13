@@ -5,7 +5,6 @@
 #include "common/events.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "core/memory.hpp"
 #include "core/textout.hpp"
@@ -133,7 +132,7 @@ inline void FormatAdvice(Game& game, std::uint16_t destination, std::uint16_t fo
 
 // Shows a text in a control message in the person of the staff officer giving the advice (context_record2).
 inline void ShowAdvice(Game& game, std::uint16_t text) {
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, Data(game).context_record2);
+  opeu_control_message(game, text, Data(game).context_record2);
 }
 
 // The objective level (opeu_objective_level) from which the officers count an objective as a city.
@@ -154,7 +153,7 @@ struct Advisor {
     return AdviceBuffer(game, topic);
   }
   [[nodiscard]] auto Random(std::uint16_t bound) const -> std::uint16_t {
-    return RandomBelow(game, bound);
+    return game.State().RandomBounded(bound);
   }
   // Copies a far advice text to a DS buffer.
   void Copy(std::uint16_t destination, AdviceText text) const {

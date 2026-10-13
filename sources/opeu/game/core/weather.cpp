@@ -20,8 +20,8 @@ constexpr auto WEATHER_KINDS{ 6u };
 // differs from the present one its terrain ratings replace the current ones.
 void opeu_weather_update(Game& game) {
   auto& data{ Data(game) };
-  if (port_rand_bounded(game, 4) != 0) return;
-  auto roll{ static_cast<uint16_t>(port_rand_bounded(game, 100) + 1) };
+  if (game.State().RandomBounded(4) != 0) return;
+  auto roll{ static_cast<uint16_t>(game.State().RandomBounded(100) + 1) };
   for (uint16_t next = 0; next < WEATHER_KINDS; next++) {
     auto const row{ static_cast<uint16_t>((data.month_climate[data.month] * WEATHER_KINDS + data.weather) * WEATHER_KINDS) };
     opeu_sub_word(data.weather_odds[row + next], &roll);

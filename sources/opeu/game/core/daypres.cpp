@@ -45,8 +45,8 @@ void opeu_daily_present(Game& game) {
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
   opeu_request_wait(game);
-  opeu_element_type_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), data.daily_record);
+  opeu_element_type_panel(game, data.daily_record);
   auto const& type{ Record<ElementType>(data, data.daily_record) };
   opeu_request_format(game, std::array<std::uint16_t, 4>{ text, NEW_WEAPON_FORMAT, type.name, (type.category == Bits(Category::TANKS) ? NEW_WEAPON_TANK : NEW_WEAPON_PERIOD) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, Speaker(game));
+  opeu_control_message(game, text, Speaker(game));
 }

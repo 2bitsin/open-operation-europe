@@ -69,7 +69,7 @@ uint16_t opeu_battle_attack_damage(Game& game, uint16_t attacker, uint16_t targe
   if (opeu_battle_fire_hits(game, attacker, target) == 0) return 0;
   auto const strength{ opeu_battle_fire_power(game, attacker, target) };
   auto const defense{ opeu_battle_fire_defense(game, target) };
-  auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(port_rand_bounded(game, 2) + defense), 1)) };
+  auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(game.State().RandomBounded(2) + defense), 1)) };
   headcount = U16(headcount / 10 + 1);
   model     = &ElementTypeOf(data, target);
   auto const quantity{ Record<Element>(data, target).quantity };
@@ -78,14 +78,14 @@ uint16_t opeu_battle_attack_damage(Game& game, uint16_t attacker, uint16_t targe
   if (Indirect(*model)) {
     uint16_t const night{ U16(opeu_hour_is_night(data.hour) != 0 ? 2 : 1) };
     auto const     loss{ U16(U16(U16(odds / 10 * headcount) / 7) / night / vision) };
-    auto const     bonus{ port_rand_bounded(game, 2) };
-    uint16_t const twice{ U16(port_rand_bounded(game, 6) == 0 ? 2 : 1) };
+    auto const     bonus{ game.State().RandomBounded(2) };
+    uint16_t const twice{ U16(game.State().RandomBounded(6) == 0 ? 2 : 1) };
     return U16(bonus + twice * loss);
   }
   uint16_t const night{ U16(opeu_hour_is_night(data.hour) != 0 ? 2 : 1) };
   auto const     loss{ U16(U16(odds * static_cast<uint32_t>(headcount)) / night / vision * size) };
-  auto const     bonus{ port_rand_bounded(game, 2) };
-  uint16_t const twice{ U16(port_rand_bounded(game, 6) == 0 ? 2 : 1) };
+  auto const     bonus{ game.State().RandomBounded(2) };
+  uint16_t const twice{ U16(game.State().RandomBounded(6) == 0 ? 2 : 1) };
   return U16(bonus + U16(loss / (IsOfCategory(*model, Category::INFANTRY) ? 7 : 70) * twice));
 }
 
@@ -104,7 +104,7 @@ void opeu_battle_apply_damage(Game& game, uint16_t attacker, uint16_t target) {
       AddByte(winner.training, TRAINING_GAIN, RATING_LIMIT);
       AddByte(winner.morale, MORALE_GAIN, RATING_LIMIT);
     } else if (auto const category{ data.element_types[hit.type].category }; category != 0) {
-      auto const roll{ port_rand_bounded(game, 300) };
+      auto const roll{ game.State().RandomBounded(300) };
       auto const rate{ static_cast<uint8_t>(opeu_battle_type_skill(game, target)) };
       AddWord(hit.damage, U16(U16(rate * damage) / U16(700 - roll)), data.request_capacities[category]);
     }
@@ -125,7 +125,7 @@ void opeu_battle_apply_bombard(Game& game, uint16_t target) {
       hit.damage                    = 0;
       data.battle_element_destroyed = 1;
     } else if (auto const category{ data.element_types[hit.type].category }; category != 0) {
-      auto const amount{ port_rand_bounded(game, damage >> 1) };
+      auto const amount{ game.State().RandomBounded(damage >> 1) };
       AddWord(hit.damage, amount, data.request_capacities[category]);
     }
   }

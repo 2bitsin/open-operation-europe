@@ -73,11 +73,11 @@ void OfficerDraw(Game& game, uint8_t kind, OfficerTexts const& texts) {
   ServiceLocals const locals{ DRAW_TEXT_BYTES };
   auto const          text{ locals.At(0) };
   auto const          side{ data.battle_active_side };
-  auto const          draw{ static_cast<uint8_t>(port_rand_bounded(game, 100)) };
+  auto const          draw{ static_cast<uint8_t>(game.State().RandomBounded(100)) };
   if (draw >= 10) return;
   auto const record{ kind ? opeu_find_side_record(game, side, kind) : opeu_find_group_record(game, side, data.battle_active_group) };
   if (!record || Record<Person>(data, record).role & Bits(PersonRole::DEPUTY)) return;
-  if (Record<Person>(data, record).role & Bits(PersonRole::STAFF_TRAIT) && port_rand_bounded(game, 100) < 50) return;
+  if (Record<Person>(data, record).role & Bits(PersonRole::STAFF_TRAIT) && game.State().RandomBounded(100) < 50) return;
   auto const fatal{ draw < 5 };
   auto const outcome{ fatal ? texts.killed : texts.injured };
   if (kind)
@@ -97,7 +97,7 @@ void opeu_battle_pick_hq(Game& game) {
   auto const          name{ locals.At(0) };
   auto const          side{ data.battle_active_side };
   auto const          panels{ [&] {
-    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+    opeu_text_paper_set(game, static_cast<uint8_t>(0));
     opeu_battle_panel_side1(game);
     opeu_battle_panel_side0(game);
   } };
@@ -105,11 +105,11 @@ void opeu_battle_pick_hq(Game& game) {
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.hq_fmt_side)), static_cast<std::uint16_t>(SideColorCode(side)) });
   if (auto const unit{ data.battle_lost_unit }; unit != Near(data, data.garrison_unit)) {
     auto const unit_name{ opeu_unit_name(game, unit, name) };
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), unit_name);
+    opeu_ui_text(game, unit_name);
   } else {
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.hq_city_garrison));
+    opeu_ui_text(game, Near(data, data.hq_city_garrison));
   }
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.hq_new_title));
+  opeu_ui_text(game, Near(data, data.hq_new_title));
   data.deploy_window.rows = static_cast<uint8_t>(static_cast<std::uint16_t>(opeu_battle_element_count(game, data.battle_lost_unit)) + 1);
   {
     uint8_t row{ 0 };
@@ -191,7 +191,7 @@ uint16_t opeu_battle_side_commands(Game const& game) {
 void opeu_battle_hq_shaken(Game& game, uint16_t unit) {
   auto& data{ Data(game) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
-    auto const loss{ port_rand_bounded(game, 3) + 2 };
+    auto const loss{ game.State().RandomBounded(3) + 2 };
     opeu_sub_byte(static_cast<uint16_t>(loss), &element.morale);
   }
 }

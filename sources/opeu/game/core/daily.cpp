@@ -37,13 +37,13 @@ void opeu_scan_daily_events(Game& game) {
         data.daily_active  = 0;
         data.daily_pending = 0;
         opeu_daily_activate(game, data.daily_side);
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), EVENT_PICTURE, data.daily_side, Presenter::DAILY_EVENT);
+        opeu_daily_show(game, EVENT_PICTURE, data.daily_side, Presenter::DAILY_EVENT);
       }
     }
   }
 }
 
 void opeu_turn_daily(Game& game) {
-  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_turn_prepare(game);
   opeu_scan_daily_events(game);
 }

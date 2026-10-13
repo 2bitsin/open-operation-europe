@@ -60,10 +60,10 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
       if (ready) {
-        if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_mark));
+        if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) opeu_ui_text(game, Near(data, data.tbl_unit_mark));
         opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_unit_label), opeu_unit_name(game, unit, name) });
       } else
-        opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_empty));
+        opeu_ui_text(game, Near(data, data.tbl_unit_empty));
     }
     if (!ready || (own && !opeu_unit_selection_eligible(game, unit)))
       opeu_string_copy(game, text, Near(data, data.tbl_unit_blank));
@@ -78,7 +78,7 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.tbl_unit_hidden), opeu_location_name(game, regiment.x, regiment.y, name) });
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }
 
 // The regiment orders table: the regiment's name and a fixed request text.
@@ -102,5 +102,5 @@ void opeu_tbl_draw_orders(Game& game, uint8_t column, uint8_t first, uint8_t row
     opeu_string_copy(game, text, opeu_message_lookup(game, static_cast<int16_t>(ORDERS_ROW_TEXT)));
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

@@ -46,7 +46,7 @@ constexpr uint16_t ASSASSINATED{ 3 };          // " has been assassinated!"
 constexpr uint16_t ASSASSINATION_MISSION{ 6 }; // " assassination mission"
 
 auto Random(Game& game, uint16_t bound) -> uint16_t {
-  return port_rand_bounded(game, bound);
+  return game.State().RandomBounded(bound);
 }
 
 auto General(Game& game, uint8_t side, StaffRole role) -> uint16_t {
@@ -97,8 +97,8 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
         opeu_string_copy(game, text, commander);
         opeu_string_append(game, text, MissionText(game, ASSASSINATED));
         opeu_string_append(game, text, offsetof(DataSegment, mission_bold_off));
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
-        opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), FALLEN_PICTURE, commander_side, Presenter::MISSION_DELAY);
+        opeu_control_message(game, text, General(game, commander_side, StaffRole::INTELLIGENCE_CHIEF));
+        opeu_daily_show(game, FALLEN_PICTURE, commander_side, Presenter::MISSION_DELAY);
       }
     }
     if (struck) {

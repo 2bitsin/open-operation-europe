@@ -53,7 +53,7 @@ void opeu_unit_announce(Game& game, uint16_t unit) {
   auto const& record{ Record<Unit>(data, unit) };
   if (!OverviewUp(data) || !(record.flags & Bits(UnitFlag::READY)) || !opeu_unit_visible(game, unit)) return;
   opeu_map_cell_flash(game, record.x, record.y);
-  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(Near(data, data.regiment_position_text)),
+  opeu_control_message(game, static_cast<std::uint16_t>(Near(data, data.regiment_position_text)),
                        static_cast<std::uint16_t>(opeu_find_group_record(game, data.current_side, opeu_unit_group_index(unit))));
   opeu_map_cell_flash(game, record.x, record.y);
 }
@@ -79,7 +79,7 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
     auto const& selected{ Record<Unit>(data, selected_unit) };
     opeu_arrival_location(game, selected.x, selected.y, data.current_side);
     auto const commander{ opeu_find_group_record(game, data.current_side, person) };
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(Near(data, data.division_position_text)), static_cast<std::uint16_t>(commander));
+    opeu_control_message(game, static_cast<std::uint16_t>(Near(data, data.division_position_text)), static_cast<std::uint16_t>(commander));
   }
   for (auto const i : std::views::iota(unsigned{ 0 }, UNITS_PER_GROUP)) {
     auto const& unit{ data.units[first + i] };

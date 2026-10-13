@@ -178,7 +178,7 @@ uint16_t opeu_battle_spot_chance(Game& game, uint16_t element, uint16_t other) {
   auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
   opeu_sub_byte(Cover(terrain), &chance);
   opeu_sub_byte(WeatherToll(data.weather), &chance);
-  return port_rand_bounded(game, 100) < chance ? 1 : 0;
+  return game.State().RandomBounded(100) < chance ? 1 : 0;
 }
 
 // The element looks around its cell: the enemies it sights are spotted and reported.

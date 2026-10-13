@@ -2,7 +2,6 @@
 #include "core/reqequip.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
 #include "core/msglook.hpp"
@@ -44,14 +43,14 @@ void opeu_request_action1(Game& game, uint8_t side, uint16_t request) {
     amount = static_cast<uint16_t>(amount + (5 - data.delivery_level) * 6);
   else
     amount = static_cast<uint16_t>(amount + COMPUTER_BONUS);
-  opeu_add_word(RandomBelow(game, amount / 3) + amount / 2, capacity, &item.quantity);
+  opeu_add_word(game.State().RandomBounded(amount / 3) + amount / 2, capacity, &item.quantity);
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   opeu_arrival_location(game, objective.x, objective.y, side);
   opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, opeu_message_lookup(game, HEADER_MESSAGE), Near(data, objective) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
+  opeu_control_message(game, buffer, data.request_person);
   opeu_request_wait(game);
   opeu_request_format(game, std::array<std::uint16_t, 5>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, equipment_delivery_format)), data.element_types[item.type].name, item.quantity,
                                                           static_cast<std::uint16_t>(item.quantity - before) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
+  opeu_control_message(game, buffer, data.request_person);
 }

@@ -49,36 +49,36 @@ void opeu_deploy_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t ro
   auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(game, window.widths) + Byte(game, COLUMNS_AT) + window.x - 0x20); } };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(TEXT_AT), static_cast<std::uint16_t>(Near(data, data.deploy_header)) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(strength_x()), static_cast<short>(window.y + 1));
-    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), PLAIN_COLOR);
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), TEXT_AT, static_cast<uint8_t>(Byte(game, COLUMNS_AT + 1)), static_cast<uint8_t>(Byte(game, COLUMNS_AT + 2)));
+    opeu_army_position(game, static_cast<short>(strength_x()), static_cast<short>(window.y + 1));
+    opeu_text_color(game, PLAIN_COLOR);
+    opeu_text_put_range(game, TEXT_AT, static_cast<uint8_t>(Byte(game, COLUMNS_AT + 1)), static_cast<uint8_t>(Byte(game, COLUMNS_AT + 2)));
   }
   for (auto const index : std::views::iota(unsigned{ first }, std::max(unsigned{ first }, last + 1u))) {
     auto const  element_at{ data.ai_element_list[index] };
     auto const& element{ Record<Element>(data, element_at) };
     auto const  y{ static_cast<uint16_t>((static_cast<int>(index) - data.list_top) * ROW_PIXELS + window.y + HEADER_PIXELS) };
     if (flags & DRAW_NAMES) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(window.x + 2), static_cast<short>(y));
+      opeu_army_position(game, static_cast<short>(window.x + 2), static_cast<short>(y));
       auto const side{ static_cast<uint8_t>(opeu_battle_element_side(game, element_at)) };
-      opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(side));
-      if (element.flags & Bits(ElementFlag::SELECTED)) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_mark));
+      opeu_text_color(game, SideTextColor(side));
+      if (element.flags & Bits(ElementFlag::SELECTED)) opeu_ui_text(game, Near(data, data.deploy_mark));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.deploy_name)), static_cast<std::uint16_t>(data.element_types[element.type].name) });
     }
     // In battle the element's position word points at its placement: the cell, 0xff (or the high bit) off the field.
     auto const x{ strength_x() };
     if (auto const place{ element.position }; Byte(game, place) != BATTLE_UNPLACED && !(Byte(game, place) & BATTLE_LEFT)) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(y));
-      opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), OWN_COLOR);
+      opeu_army_position(game, static_cast<short>(x), static_cast<short>(y));
+      opeu_text_color(game, OWN_COLOR);
       auto const cell{ element.position };
       opeu_cursor_print(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(Near(data, data.deploy_placed)), static_cast<std::uint16_t>(Byte(game, cell)),
                                                             static_cast<std::uint16_t>(Byte(game, static_cast<uint16_t>(cell + 1))), static_cast<std::uint16_t>(element.quantity),
                                                             static_cast<std::uint16_t>(element.morale), static_cast<std::uint16_t>(element.training), static_cast<std::uint16_t>(element.experience) });
     } else {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(x), static_cast<short>(y));
-      opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), PLAIN_COLOR);
+      opeu_army_position(game, static_cast<short>(x), static_cast<short>(y));
+      opeu_text_color(game, PLAIN_COLOR);
       opeu_cursor_print(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(Near(data, data.deploy_waiting)), static_cast<std::uint16_t>(element.quantity),
                                                             static_cast<std::uint16_t>(element.morale), static_cast<std::uint16_t>(element.training), static_cast<std::uint16_t>(element.experience) });
     }
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), PLAIN_COLOR);
+  opeu_text_color(game, PLAIN_COLOR);
 }

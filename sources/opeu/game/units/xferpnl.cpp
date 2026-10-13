@@ -111,15 +111,15 @@ uint8_t opeu_transfer_input(Game& game, uint16_t row) {
 void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
-  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, transfer_title));
+  opeu_army_title(game, offsetof(DataSegment, transfer_title));
   opeu_bitmap_restore(data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, port_far(data.numdlg_image_segment, PANEL_IMAGE_AT));
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(first) + data.transfer_panel_x + 2), static_cast<int16_t>(data.transfer_panel_y + 14));
+  opeu_army_position(game, static_cast<int16_t>(indent(first) + data.transfer_panel_x + 2), static_cast<int16_t>(data.transfer_panel_y + 14));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_name_format), first });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(second) + data.transfer_panel_x + 20), static_cast<int16_t>(data.transfer_panel_y + 14));
+  opeu_army_position(game, static_cast<int16_t>(indent(second) + data.transfer_panel_x + 20), static_cast<int16_t>(data.transfer_panel_y + 14));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_name_text), second });
 }
 
@@ -136,9 +136,9 @@ void opeu_transfer_draw_row(Game& game, uint8_t row) {
   auto const  x{ data.transfer_panel_x };
   auto const  text_y{ row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x24 };
   auto const  box_y{ static_cast<std::uint16_t>(row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x37) };
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 2), static_cast<int16_t>(text_y));
+  opeu_army_position(game, static_cast<int16_t>(x + 2), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_format), left_amount });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
+  opeu_army_position(game, static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_text), right_amount });
   opeu_ui_box(x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
   DrawDigits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);

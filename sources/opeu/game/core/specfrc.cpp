@@ -90,19 +90,18 @@ void opeu_turn_action_9(Game& game) {
   do {
     auto& order{ Record<Order>(data, data.special_order) };
     if (order.kind != Bits(SpecialMission::NONE)) {
-      opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_forces_title));
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, ORDERS_Y);
+      opeu_army_title(game, offsetof(DataSegment, special_forces_title));
+      opeu_army_position(game, INFO_X, ORDERS_Y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), data.special_mission_names[order.kind] });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, TARGET_Y);
+      opeu_army_position(game, INFO_X, TARGET_Y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_target_line)),
                                                             (opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), INFO_X, TIME_Y);
+      opeu_army_position(game, INFO_X, TIME_Y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_time_line)), static_cast<std::uint16_t>(order.progress) });
-      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
+      if (!opeu_confirm_message(game, offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
       order.kind = Bits(SpecialMission::NONE);
     }
-    auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2,
-                                         offsetof(DataSegment, special_menu)) };
+    auto const choice{ opeu_delay_dialog(game, offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2, offsetof(DataSegment, special_menu)) };
     if (choice == MENU_CANCELLED) return;
     Dispatch(SPECIAL_MISSIONS, data.special_missions.at(choice - 1u), game);
   } while (!data.side_delays[data.current_side]);

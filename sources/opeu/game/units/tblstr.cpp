@@ -42,5 +42,5 @@ void opeu_tbl_draw_strength(Game& game, uint8_t column, uint8_t first, uint8_t r
     opeu_request_format(game, std::array<std::uint16_t, 4>{ text, Near(data, data.tbl_str_row), item.quantity, item.extra });
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

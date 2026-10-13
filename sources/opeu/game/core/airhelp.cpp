@@ -42,14 +42,14 @@ uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t hi
   ServiceLocals const locals{ LINE_BYTES };
   auto&               data{ Data(game) };
   auto const          line{ locals.At(0) };
-  opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 1);
+  opeu_speaker_panel(game, person, 1);
   if (data.input_mode)
     opeu_request_format(game, std::array<std::uint16_t, 2>{ line, Near(data, data.air_question_mark) });
   else
     opeu_request_format(game, std::array<std::uint16_t, 4>{ line, Near(data, data.air_range_format), low, high });
-  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), text);
-  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), line);
-  opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
+  opeu_text_feed(game, text);
+  opeu_text_feed(game, line);
+  opeu_speaker_panel(game, person, 0);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_begin) });
   auto const chosen{ opeu_choose_value(game, low, high, static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), items) };
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_end) });
@@ -85,12 +85,12 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
   opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, opeu_message_lookup(game, CANNOT_TARGET), what, name });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
+  opeu_control_message(game, buffer, data.context_record3);
   return 0;
 }
 
 // Asks the staff officer to confirm the mission.
 uint16_t opeu_air_confirm(Game& game) {
   auto const& data{ Data(game) };
-  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, CONFIRM_MISSION), data.context_record3);
+  return opeu_confirm_message(game, opeu_message_lookup(game, CONFIRM_MISSION), data.context_record3);
 }

@@ -1,43 +1,35 @@
-// The host structures some modules take instead of a bare service, and the register block of the mouse and sound
-// driver calls.
+// The machine-side layout the UI primitives and the dialogs read: where far memory is, the segment numbers of the data
+// segment and the frame tiles, and the data-segment area of the dialogs' buffers. Members of Game (common/game.hpp);
+// B7 replaces the flat memory and the segment numbers with typed far buffers.
 #pragma once
 
+#include "port.hpp"
+
 #include <cstdint>
+#include <span>
 
-// Driver registers as words or as byte halves.
-struct WordRegs {
-  std::uint16_t ax, bx, cx, dx, si, di, cflag;
-};
+namespace opeu::game::detail::host {
 
-struct ByteRegs {
-  std::uint8_t al, ah, bl, bh, cl, ch, dl, dh;
-};
+inline constexpr std::uint16_t FRAME_TILES_SEGMENT{ 0x3873 }; // the far segment of the frame tiles (data/fg3873)
 
-union Regs {
-  WordRegs x;
-  ByteRegs h;
-};
-
-// The driver call of the mouse and sound services (int86): the seven register words go in and come back updated.
-template <typename Driver>
-inline auto Int86(Regs& r, Driver driver) -> std::uint16_t {
-  std::uint16_t words[7]{ r.x.ax, r.x.bx, r.x.cx, r.x.dx, r.x.si, r.x.di, r.x.cflag };
-  auto const    result{ driver(words) };
-  r.x = { words[0], words[1], words[2], words[3], words[4], words[5], words[6] };
-  return result;
-}
-
-// The dialogs' load segment and the DS area of their stack buffers.
+// The dialogs' load segment and the data-segment area of their buffers: the bottom of the 5120-byte stack, which the
+// stack never reaches (at most 132 bytes; one buffer owner is active at a time).
 struct DialogHost {
-  std::uint16_t load;
-  std::uint16_t scratch;
+  std::uint16_t load{ 0 };
+  std::uint16_t scratch{ PORT_DS_END };
 };
 
-// The text output's host: no state of its own since its services became direct calls (B5 retires the hosts).
-struct TextHost { };
-
-// The UI primitives' memory and segment numbers.
+// The UI primitives' far memory (linear = segment * 16 + offset) and the segment numbers they address it by.
 struct UiHost {
-  std::uint8_t* memory;
-  std::uint16_t ds_segment, tiles_segment;
+  std::span<std::uint8_t> memory;
+  std::uint16_t           ds_segment{ PORT_DS_SEGMENT };
+  std::uint16_t           tiles_segment{ FRAME_TILES_SEGMENT };
 };
+
+} // namespace opeu::game::detail::host
+
+namespace opeu::game {
+using detail::host::DialogHost;
+using detail::host::FRAME_TILES_SEGMENT;
+using detail::host::UiHost;
+} // namespace opeu::game

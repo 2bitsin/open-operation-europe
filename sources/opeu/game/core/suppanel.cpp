@@ -92,9 +92,9 @@ void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
+  opeu_army_position(game, indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_format)), first });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
+  opeu_army_position(game, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), second });
 }
 

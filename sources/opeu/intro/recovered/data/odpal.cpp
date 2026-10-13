@@ -15,17 +15,15 @@
 
 namespace opeu::intro::detail::odpal {
 
-char    opeu_open_name_fnt[]      = "KOEILOGO.FNT"; /* DS:0418 */
-uint8_t opeu_open_z_0425          = 0;              /* alignment byte */
-char    opeu_open_name_npk[]      = "OPENGRP.NPK";  /* DS:0426 */
-char    opeu_open_name_mopengrp[] = "MOPENGRP.DAT"; /* DS:0432 */
-uint8_t opeu_open_z_043f          = 0;              /* alignment byte */
-int16_t opeu_picture_handle       = -1;             /* DS:0440 OPENGRP.NPK */
-int16_t opeu_open_logo_file       = -1;             /* DS:0442 KOEILOGO.FNT */
+char const    opeu_open_name_fnt[]      = "KOEILOGO.FNT"; /* DS:0418 */
+char const    opeu_open_name_npk[]      = "OPENGRP.NPK";  /* DS:0426 */
+char const    opeu_open_name_mopengrp[] = "MOPENGRP.DAT"; /* DS:0432 */
+int16_t const opeu_picture_handle       = -1;             /* DS:0440 OPENGRP.NPK */
+int16_t const opeu_open_logo_file       = -1;             /* DS:0442 KOEILOGO.FNT */
 
 /* DS:0444, rows 0..111. */
 // clang-format off
-uint8_t opeu_open_palettes[112][48] = {
+uint8_t const opeu_open_palettes[112][48] = {
   {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }, /*   0 DS:0444 */
   { 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 }, /*   1 DS:0474 */
   {  0,  0,  0, 15,  0,  0,  0, 11,  0, 15, 15,  0,  0,  0, 15, 15,  0, 15,  0, 15, 15, 15, 15, 15,  7,  7,  7, 10,  0,  0,  0,  6,  0, 10, 10,  0,  0,  0, 10, 10,  0, 10,  0, 10, 10, 10, 10, 10 }, /*   2 DS:04a4 */
@@ -142,7 +140,7 @@ uint8_t opeu_open_palettes[112][48] = {
 // clang-format on
 
 /* DS:1944: palette 112, the target of OUTIL's alternative fade. */
-uint8_t opeu_open_fade_target[48] = { 0, 0, 0, 9, 1, 4, 3, 13, 3, 11, 13, 7, 4, 4, 9, 11, 7,  11, 6,  15, 12, 15, 15, 15,
+uint8_t const opeu_open_fade_target[48] = { 0, 0, 0, 9, 1, 4, 3, 13, 3, 11, 13, 7, 4, 4, 9, 11, 7,  11, 6,  15, 12, 15, 15, 15,
                                       6, 6, 6, 9, 4, 7, 7, 15, 8, 3,  11, 6, 3, 1, 6, 13, 11, 13, 11, 15, 14, 11, 11, 11 };
 
 }

@@ -31,7 +31,7 @@ uint8_t opeu_side_for_status(Game const& game, uint8_t side) {
 }
 
 void opeu_select_side_color(Game& game, uint8_t side) {
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), side ? SIDE1_COLOR : SIDE0_COLOR);
+  opeu_text_color(game, side ? SIDE1_COLOR : SIDE0_COLOR);
 }
 
 // 0 when the element type at near pointer record is fielded by side 0's nations, else 1.

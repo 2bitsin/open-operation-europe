@@ -7,7 +7,6 @@
 #include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
-#include "common/random.hpp"
 #include "core/limits.hpp"
 #include "core/memory.hpp"
 #include "core/textout.hpp"
@@ -77,10 +76,6 @@ auto PreviousItem(std::uint16_t item) -> std::uint16_t {
   return static_cast<std::uint16_t>(item - sizeof(MenuItem));
 }
 
-auto Host() -> TextHost* {
-  return static_cast<TextHost*>(port_textout_host());
-}
-
 // Calls the idle hook around timed waits until input arrives.
 auto IdleUntilInput(Game& game) -> void {
   WaitUntil([&] {
@@ -93,7 +88,7 @@ auto IdleUntilInput(Game& game) -> void {
 
 // Erases the typed characters back to column `start`; each erase moves the cursor one column back.
 auto EraseBackTo(Game& game, std::uint16_t start) -> void {
-  while (start < TextX(game)) opeu_text_erase_char(game, Host());
+  while (start < TextX(game)) opeu_text_erase_char(game);
 }
 
 // A keyboard walk through a menu's items: the item lit and the value it stands for.
@@ -123,7 +118,7 @@ auto MenuByKeys(Game& game, ValueRange const& range, std::uint16_t first) -> std
   opeu_menu_draw_item(game, cursor.item, MenuLight::LIT);
   for (;;) {
     WaitUntil([] { return opeu_turn_input_b() != 0; });
-    switch (static_cast<std::uint8_t>(opeu_key_read(game, Host()))) {
+    switch (static_cast<std::uint8_t>(opeu_key_read(game))) {
     case '2':
     case '6':
       opeu_menu_draw_item(game, cursor.item, MenuLight::PLAIN);
@@ -147,9 +142,9 @@ auto MenuByKeys(Game& game, ValueRange const& range, std::uint16_t first) -> std
 // (MENU_CANCELLED) only when allowed.
 auto DigitsInRange(Game& game, ValueRange const& range, int cancel) -> std::uint16_t {
   auto const start{ TextX(game) };
-  opeu_text_set_y(game, Host(), static_cast<std::int16_t>(Data(game).text_y));
+  opeu_text_set_y(game, static_cast<std::int16_t>(Data(game).text_y));
   auto const width{ static_cast<std::uint16_t>(std::to_string(range.hi).size()) };
-  std::ranges::for_each(std::views::iota(0u, std::uint32_t{ width }), [&](std::uint32_t) { opeu_text_put(game, Host(), static_cast<std::uint8_t>(' ')); });
+  std::ranges::for_each(std::views::iota(0u, std::uint32_t{ width }), [&](std::uint32_t) { opeu_text_put(game, static_cast<std::uint8_t>(' ')); });
   EraseBackTo(game, start);
   for (;;) {
     auto const value{ opeu_read_decimal(game, width) };
@@ -222,12 +217,12 @@ void opeu_text_cursor_draw(Game& game) {
 // Polls input (mouse buttons or a pending key) while a 15-tick timer runs; on input reseeds the random sequence with
 // the advanced count and returns 1, else returns 0. The loop counts its polls.
 auto opeu_key_wait_tick(Game& game) -> int {
-  std::uint16_t count{ RandomNext(game) };
+  std::uint16_t count{ game.State().RandomNext() };
   opeu_fm_wait_start(15);
   do {
     count++;
     if (HasMouse(Data(game)) ? opeu_turn_input_a(game) : opeu_turn_input_b()) {
-      RandomSeed(game, count);
+      game.State().RandomSeed(count);
       return 1;
     }
   } while (opeu_fm_busy());
@@ -236,9 +231,9 @@ auto opeu_key_wait_tick(Game& game) -> int {
 
 // Flushes, then calls the idle hook around timed waits until input arrives, and reads the key.
 auto opeu_keyboard_key(Game& game) -> std::uint8_t {
-  opeu_input_flush(game, Host());
+  opeu_input_flush(game);
   IdleUntilInput(game);
-  return static_cast<std::uint8_t>(opeu_key_read(game, Host()));
+  return static_cast<std::uint8_t>(opeu_key_read(game));
 }
 
 // As opeu_keyboard_key, for the mouse buttons.
@@ -273,7 +268,7 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
     if (key >= '0' && key <= '9') {
       if (typed < digits) {
         typed_digits.at(typed++) = key;
-        opeu_text_put(game, Host(), key);
+        opeu_text_put(game, key);
       }
     } else
       switch (key) {
@@ -281,7 +276,7 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
       case BACKSPACE:
       case LEFT_ARROW:
         if (typed) {
-          opeu_text_erase_char(game, Host());
+          opeu_text_erase_char(game);
           typed_digits.at(--typed) = ' ';
         }
         break;

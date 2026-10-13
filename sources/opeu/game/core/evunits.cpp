@@ -11,7 +11,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/order.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -33,7 +32,7 @@ constexpr std::uint8_t  CATEGORIES{ 8 };
 constexpr std::uint8_t  ORDER_DONE{ 100 }; // Order::progress of an order carried out
 
 auto Rand(Game& game, unsigned bound) -> std::uint16_t {
-  return RandomBelow(game, static_cast<std::uint16_t>(bound));
+  return game.State().RandomBounded(static_cast<std::uint16_t>(bound));
 }
 } // namespace
 
@@ -50,11 +49,11 @@ void opeu_unit_hourly_event(Game& game) {
         if (!(unit.flags & Bits(UnitFlag::READY))) continue;
         if (!(unit.flags & Bits(UnitFlag::COMMUNICATIONS)) && Rand(game, level * 10u + 24u) == 6) {
           unit.flags |= Bits(UnitFlag::COMMUNICATIONS);
-          opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, COMMS_TEXT);
+          opeu_unit_report(game, near, COMMS_TEXT);
         }
         if ((unit.flags & Bits(UnitFlag::SPOTTED)) && Rand(game, (level + 5u) * 20u) == 8) {
           unit.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SPOTTED));
-          opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, SPY_TEXT);
+          opeu_unit_report(game, near, SPY_TEXT);
         }
         for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) {
           auto const    quantity{ UnitQuantity(data, near, category).total };

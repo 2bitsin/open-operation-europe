@@ -43,7 +43,7 @@ void opeu_panel_slots(Game& game, int y, uint8_t count) {
       auto const x{ 232 * column };
       auto const top{ 17 * row + y };
       opeu_ui_fill(x + 175, top - 1, x + 400, top + 15, 0);
-      opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), x + 175, top - 1, x + 400, top + 16, WHITE);
+      opeu_ui_outline(game, x + 175, top - 1, x + 400, top + 16, WHITE);
       opeu_ui_line(x + 207, top - 1, x + 207, top + 16, WHITE);
       opeu_ui_line(x + 375, top - 1, x + 375, top + 16, WHITE);
     }
@@ -83,9 +83,9 @@ void opeu_panel_elements(Game& game, uint16_t unit, int y) {
       auto const x{ 29 * (shown % 2) };
       auto const row_y{ 17 * (shown / 2) + y };
       opeu_draw_far(x + 22, row_y, 4, 16, data.current_side ? 0x305 : 0x306, port_far(data.gfx_source[1], data.gfx_source[0]));
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x + 27, row_y);
+      opeu_army_position(game, x + 27, row_y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, opeu_element_name(game, near, buffer) });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), x + 47, row_y);
+      opeu_army_position(game, x + 47, row_y);
       opeu_cursor_print(game, std::array<std::uint16_t, 3>{ COUNT_FORMAT, SideTextColor(data.current_side), element.quantity });
       ++shown;
     }
@@ -98,7 +98,7 @@ void opeu_panel_elements(Game& game, uint16_t unit, int y) {
 void opeu_panel_battle_frame(Game& game, int y) {
   opeu_ui_line(73, 201, 84, 201, WHITE);
   opeu_ui_fill(94, y, 161, y + 34, 0);
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 94, y, 161, y + 35, WHITE);
+  opeu_ui_outline(game, 94, y, 161, y + 35, WHITE);
   opeu_ui_line(84, y + 16, 94, y + 16, WHITE);
   opeu_ui_line(84, y + 16, 84, 200, WHITE);
 }
@@ -113,17 +113,17 @@ void opeu_division_regiments(Game& game, uint16_t units, uint16_t person) {
     int        y{ battle ? 59 * i + 8 : 42 * i + 68 };
     opeu_panel_battle_frame(game, y);
     y += battle ? 10 : 2;
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, battle ? y - 7 : y - 1);
+    opeu_army_position(game, 12, battle ? y - 7 : y - 1);
     opeu_cursor_print(game,
                       std::array<std::uint16_t, 4>{ REGIMENT_FORMAT, SideTextColor(data.current_side),
                                                     static_cast<std::uint16_t>((Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1), static_cast<std::uint16_t>(i + 1) });
     if (battle) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, y + 9);
+      opeu_army_position(game, 12, y + 9);
       opeu_cursor_print(game, std::array<std::uint16_t, 1>{ BATTLE_TEXT });
       y -= 16;
       if (opeu_unit_selection_eligible(game, units)) opeu_panel_slots(game, y, 3);
     } else {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, y + 15);
+      opeu_army_position(game, 12, y + 15);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ STRING_FORMAT, data.panel_regiment_names[i - 4] });
       if (opeu_unit_selection_eligible(game, units)) opeu_panel_slots(game, y, 2);
     }

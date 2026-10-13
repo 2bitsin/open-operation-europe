@@ -146,42 +146,41 @@ void opeu_scenario_end(Game& game) {
     format_caption(opposite());
   }
   opeu_vga_clear();
-  opeu_palette_map_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
+  opeu_palette_map_screen(game);
   auto handle{ static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_data_name)))) };
-  opeu_picture_file(game, static_cast<const UiHost*>(port_uiprim_host()), 80, 64, handle, picture);
+  opeu_picture_file(game, 80, 64, handle, picture);
   opeu_dos_close(handle);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 9, 336);
+  opeu_army_position(game, 9, 336);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), caption });
   opeu_finish_side_initialization(game, 1);
   opeu_delay_units(game, 0x93);
   if (data.side_control[side] == SIDE_PLAYED) {
     // The epilogue of endgrp.npk for a human winner: four pages of text over pictures, then the last two pictures.
     auto const picture_at{ [&](uint16_t x, uint16_t y, uint32_t at) {
-      opeu_picture_file_at(game, static_cast<const UiHost*>(port_uiprim_host()), x, y, handle,
-                           static_cast<std::uint32_t>((static_cast<uint16_t>(at))) | static_cast<std::uint32_t>((static_cast<uint16_t>(at >> 16))) << 16);
+      opeu_picture_file_at(game, x, y, handle, static_cast<std::uint32_t>((static_cast<uint16_t>(at))) | static_cast<std::uint32_t>((static_cast<uint16_t>(at >> 16))) << 16);
     } };
     opeu_set_turn_context(game, CONTEXT_EPILOGUE);
     opeu_finish_side_initialization(game, 0);
     handle = static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_picture_name))));
     opeu_vga_clear();
     opeu_end_palette_dark(game);
-    opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 55, handle, 0);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 300);
+    opeu_picture_file_masked(game, 0, 55, handle, 0);
+    opeu_army_position(game, 12, 300);
     PrintMessages(game, EPILOGUE_PAGE_1);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(0, 85, 0x3d20);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 350);
+    opeu_army_position(game, 12, 350);
     PrintMessages(game, EPILOGUE_PAGE_2);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(160, 35, 0xb4b1);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 300);
+    opeu_army_position(game, 12, 300);
     PrintMessages(game, EPILOGUE_PAGE_3);
     NextPage(game);
     opeu_end_palette_dark(game);
     picture_at(160, 35, 0xd03b);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 12, 280);
+    opeu_army_position(game, 12, 280);
     PrintMessages(game, EPILOGUE_PAGE_4);
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_salute)), opeu_find_side_record(game, side, COMMANDER) });
     NextPage(game);
@@ -191,7 +190,7 @@ void opeu_scenario_end(Game& game) {
     picture_at(128, 112, 0x13829);
     opeu_dos_close(handle);
   }
-  opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_input_flush(game);
   opeu_delay_units(game, 0x1e);
   for (;;) {
     if (!static_cast<uint16_t>(opeu_music_playing(game)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b())) {
@@ -205,7 +204,7 @@ void opeu_scenario_end(Game& game) {
 void opeu_free_error(Game& game, uint16_t name) {
   (void)name;
   opeu_vga_clear();
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0, 0);
+  opeu_army_position(game, 0, 0);
 }
 
 // Frees the memory segments.

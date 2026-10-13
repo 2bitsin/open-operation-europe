@@ -11,7 +11,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "link/glue.hpp"
 #include "map/mapunit.hpp"
@@ -43,17 +42,17 @@ void opeu_objective_comms_event(Game& game) {
     auto const    side{ opeu_objective_side(game, camp) };
     std::uint16_t level{ DeliveryLevel(data, side) };
     auto const    speaker{ opeu_find_side_record(game, side, ADVISER) };
-    opeu_add_byte(RandomBelow(game, static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit, &objective.strength);
-    if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && RandomBelow(game, static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
+    opeu_add_byte(game.State().RandomBounded(static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit, &objective.strength);
+    if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && game.State().RandomBounded(static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
       objective.flags |= Bits(ObjectiveFlag::COMMUNICATIONS);
       opeu_request_format(game, std::array<std::uint16_t, 3>{ news, RESTORED_FORMAT, camp });
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), news, speaker);
+      opeu_control_message(game, news, speaker);
       opeu_location_flash(game, objective.x, objective.y, side);
     }
-    if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && RandomBelow(game, static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
+    if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && game.State().RandomBounded(static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
       objective.flags &= static_cast<std::uint8_t>(~Bits(ObjectiveFlag::MARKED));
       opeu_request_format(game, std::array<std::uint16_t, 3>{ news, CAPTURED_FORMAT, camp });
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), news, speaker);
+      opeu_control_message(game, news, speaker);
       opeu_location_flash(game, objective.x, objective.y, side);
     }
   }

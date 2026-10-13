@@ -11,7 +11,6 @@
 #include "core/daylist.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "map/cellflag.hpp"
@@ -66,9 +65,9 @@ auto FreeForDrop(Game& game, GridCell cell) -> bool {
 }
 
 // A random cell within 3 of the objective (clamped at the top and left edges).
-auto RandomCellNear(Objective const& objective) -> GridCell {
-  auto x{ static_cast<std::uint8_t>(opeu_rand_bounded(7) + objective.x) };
-  auto y{ static_cast<std::uint8_t>(opeu_rand_bounded(7) + objective.y) };
+auto RandomCellNear(Game& game, Objective const& objective) -> GridCell {
+  auto x{ static_cast<std::uint8_t>(game.State().Generator().Bounded(7) + objective.x) };
+  auto y{ static_cast<std::uint8_t>(game.State().Generator().Bounded(7) + objective.y) };
   opeu_sub_byte(3, &x);
   opeu_sub_byte(3, &y);
   return { x, y };
@@ -78,7 +77,7 @@ auto RandomCellNear(Objective const& objective) -> GridCell {
 auto FreeCellNear(Game& game, Objective const& objective) -> CellSearch {
   CellSearch search{};
   for ([[maybe_unused]] auto const attempt : std::views::iota(0, 5)) {
-    search.cell = RandomCellNear(objective);
+    search.cell = RandomCellNear(game, objective);
     if (FreeForDrop(game, search.cell)) return { search.cell, true };
   }
   return search;
@@ -108,9 +107,9 @@ auto TargetAtObjectives(Game& game, std::uint8_t side) -> std::optional<GridCell
     if (!objective.active) continue;
     GridCell const cell{ objective.x, objective.y };
     if (opeu_objective_side(game, near) == side) {
-      if (auto const target{ StepAround(cell, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !opeu_rand_bounded(2); }) }) return target;
+      if (auto const target{ StepAround(cell, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !game.State().Generator().Bounded(2); }) }) return target;
     } else if (StepAround(cell, [&](GridCell around) {
-                 return opeu_cell_side(game, around.x, around.y) == side && opeu_unit_selection_eligible(game, opeu_find_unit_at(game, around.x, around.y)) && !opeu_rand_bounded(4);
+                 return opeu_cell_side(game, around.x, around.y) == side && opeu_unit_selection_eligible(game, opeu_find_unit_at(game, around.x, around.y)) && !game.State().Generator().Bounded(4);
                }))
       return cell;
   }
@@ -123,7 +122,7 @@ auto TargetAtUnits(Game& game, std::uint8_t side) -> std::optional<GridCell> {
   auto& data{ Data(game) };
   for (auto const& unit : std::span{ data.units }.subspan(side * UNITS_PER_SIDE, UNITS_PER_SIDE)) {
     if (!(unit.flags & Bits(UnitFlag::READY))) continue;
-    if (auto const target{ StepAround({ unit.x, unit.y }, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !opeu_rand_bounded(8); }) }) return target;
+    if (auto const target{ StepAround({ unit.x, unit.y }, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !game.State().Generator().Bounded(8); }) }) return target;
   }
   return std::nullopt;
 }
@@ -142,7 +141,7 @@ uint16_t opeu_ai_spare_cargo(Game& game) {
 // unit stands. Returns 1 when a strike was planned.
 uint16_t opeu_ai_002a(Game& game) {
   auto& data{ Data(game) };
-  if (opeu_rand_bounded(6)) return 0;
+  if (game.State().Generator().Bounded(6)) return 0;
   auto const side_index{ data.current_side };
   auto&      side{ data.sides[side_index] };
   if (!side.bombers) return 0;
@@ -152,7 +151,7 @@ uint16_t opeu_ai_002a(Game& game) {
   auto& strike{ side.strike };
   strike.x      = target->x;
   strike.y      = target->y;
-  strike.planes = opeu_min16(side.bombers, opeu_rand_bounded(11) + 10);
+  strike.planes = opeu_min16(side.bombers, game.State().Generator().Bounded(11) + 10);
   strike.hours  = 1;
   strike.turns  = 7;
   return 1;
@@ -189,7 +188,7 @@ uint16_t opeu_ai_03e2(Game& game) {
   std::uint8_t favourable{ 0 };
   for (auto const influence : data.influence_map)
     if (data.current_side ? influence < 0 : influence > 0) ++favourable;
-  if (opeu_rand_bounded(100) < favourable || !opeu_rand_bounded(12)) return 0;
+  if (game.State().Generator().Bounded(100) < favourable || !game.State().Generator().Bounded(12)) return 0;
   auto& drop{ CurrentSide(data).drop };
   drop.transports = 0;
   auto const paratroops{ CurrentSide(data).paratroops };
@@ -208,11 +207,11 @@ uint16_t opeu_ai_03e2(Game& game) {
   if (!units) return 0;
   auto const elements{ AiFreeElements(game, ELEMENT_LIST, Bits(ElementFlag::AIRBORNE)) };
   if (!elements) return 0;
-  auto const    unit{ data.ai_unit_list[opeu_rand_bounded(units)] };
+  auto const    unit{ data.ai_unit_list[game.State().Generator().Bounded(units)] };
   auto const    slot{ opeu_unit_index(unit) };
   std::uint16_t troops_left{ paratroops };
   std::uint16_t planes_left{ planes };
-  for (std::uint8_t i{ 0 }; !i || (troops_left && planes_left && data.ai_unit_element_counts[slot] > i && i < elements && opeu_rand_bounded(4)); ++i) {
+  for (std::uint8_t i{ 0 }; !i || (troops_left && planes_left && data.ai_unit_element_counts[slot] > i && i < elements && game.State().Generator().Bounded(4)); ++i) {
     auto& element{ Record<Element>(data, data.ai_element_list[i]) };
     element.flags     = Bits(ElementFlag::AIRBORNE);
     element.type      = type;
@@ -225,7 +224,7 @@ uint16_t opeu_ai_03e2(Game& game) {
   Record<Unit>(data, unit).flags                        = Bits(UnitFlag::AIRBORNE);
   drop.paratroops                                       = static_cast<std::uint16_t>(paratroops - troops_left);
   drop.transports                                       = static_cast<std::uint16_t>(planes - planes_left);
-  drop.hours                                            = static_cast<std::uint8_t>(opeu_rand_bounded(5) + 1);
+  drop.hours                                            = static_cast<std::uint8_t>(game.State().Generator().Bounded(5) + 1);
   drop.due                                              = static_cast<std::uint8_t>(drop.hours + 6);
   return 1;
 }

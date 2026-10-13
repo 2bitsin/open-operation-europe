@@ -54,18 +54,16 @@ void opeu_view_regiment_list(Game& game) {
   auto const          saved_window{ locals.At(REGIMENT_SAVED_WINDOW_AT) };
   auto const          name{ locals.At(REGIMENT_NAME_AT) };
   auto const          title{ locals.At(REGIMENT_TITLE_AT) };
-  for (std::uint16_t height{ 7 };
-       opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host())),
-       opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), REGIMENT_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.organize_list), 1, height);
+  for (std::uint16_t height{ 7 }; opeu_title_panel_begin(game), opeu_control_message(game, REGIMENT_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.organize_list), 1, height);
        height = 6) {
     auto const unit{ data.supply_units[data.list_row] };
     opeu_unit_announce(game, unit);
     data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(game, unit) + 1);
     SetListPredicate(data.choice_dialog, ListSelect::VIEW_NONE_2);
-    opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
+    opeu_title_panel_begin(game);
     auto const unit_name{ opeu_unit_name(game, unit, name) };
     opeu_request_format(game, std::array<std::uint16_t, 3>{ title, REGIMENT_FORMAT, unit_name });
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), title, data.context_record3);
+    opeu_control_message(game, title, data.context_record3);
     opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
     opeu_list_dialog(game, Near(data, data.choice_dialog), LIST_LIMIT, LIST_FLAGS);
     opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
@@ -86,9 +84,8 @@ void opeu_view_own_divisions(Game& game) {
   ServiceLocals const locals{ DIVISION_LOCALS };
   auto&               data{ Data(game) };
   auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
-  for (std::uint16_t height{ 7 };
-       SetListPredicate(data.division_dialog, ListSelect::VIEW_DIVISION), opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), DIVISION_PROMPT, data.context_record3),
-       opeu_list_dialog(game, Near(data, data.division_dialog), 1, height);
+  for (std::uint16_t height{ 7 }; SetListPredicate(data.division_dialog, ListSelect::VIEW_DIVISION), opeu_control_message(game, DIVISION_PROMPT, data.context_record3),
+                                  opeu_list_dialog(game, Near(data, data.division_dialog), 1, height);
        height = 6) {
     auto const  division{ data.list_row };
     auto const& group{ GroupOf(data, data.current_side, division) };
@@ -111,7 +108,7 @@ void opeu_view_enemy_units(Game& game) {
     if ((unit.flags & Bits(UnitFlag::READY)) && opeu_unit_special(game, Near(data, unit))) data.supply_units[listed++] = Near(data, unit);
   }
   if (listed == 0) {
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), NONE_ENEMY, data.context_record3);
+    opeu_control_message(game, NONE_ENEMY, data.context_record3);
     return;
   }
   data.organize_list.rows = static_cast<uint8_t>(listed + 1);

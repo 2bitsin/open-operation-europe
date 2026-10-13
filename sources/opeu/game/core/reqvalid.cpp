@@ -40,7 +40,7 @@ uint16_t opeu_request_valid(Game& game, uint8_t side, uint16_t request) {
   auto const fail{ [&](RequestError reason) {
     data.request_error   = std::to_underlying(reason);
     data.invalid_request = request;
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, side, Presenter::REQUEST_ERROR);
+    opeu_daily_show(game, REQUEST_SHOW, side, Presenter::REQUEST_ERROR);
     return uint16_t{ 0 };
   } };
   auto const count_cells{ [&] { return opeu_request_cells(game, side, opeu_request_cell_allowed); } };

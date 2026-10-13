@@ -47,7 +47,7 @@ auto ChooseCityOrRegiment(Game& game, std::uint8_t side, std::uint8_t city_side,
     -> Choice {
   if (side == city_side && side == unit_side) {
     opeu_order_layout_pair(game, menu);
-    switch (opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), which, CHOICE_COUNT, person, choices)) {
+    switch (opeu_delay_dialog(game, which, CHOICE_COUNT, person, choices)) {
     case CHOOSE_CITY:     return Choice::CITY;
     case CHOOSE_REGIMENT: return Choice::REGIMENT;
     default:              return Choice::NEITHER;
@@ -143,5 +143,5 @@ auto AnnounceOrder(Game& game, OrderPrompts const& prompts, std::uint16_t buffer
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);
   if (kind == Kind(UnitOrder::DESTROY_BRIDGE)) engineering(DESTROY_ORDERED);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+  opeu_control_message(game, buffer, person);
 }

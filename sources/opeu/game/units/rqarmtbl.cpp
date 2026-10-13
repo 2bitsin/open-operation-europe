@@ -49,5 +49,5 @@ void opeu_rq_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row, 
     opeu_string_copy(game, text, Near(data, data.rq_unit_row));
     DrawRowText(game, window, layout, entry, text);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

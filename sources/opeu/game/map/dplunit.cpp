@@ -44,16 +44,16 @@ constexpr uint8_t REDRAW{ 6 };
 void opeu_deploy_unit(Game& game, uint16_t unit) {
   auto&      data{ Data(game) };
   auto const panel{ [&] { opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0); } };
-  auto const close_question{ [&] { opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0)); } };
+  auto const close_question{ [&] { opeu_text_paper_set(game, static_cast<uint8_t>(0)); } };
   panel();
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_title));
+  opeu_ui_text(game, Near(data, data.deploy_title));
   if (unit != Near(data, data.garrison_unit)) {
     auto const name{ opeu_unit_name(game, unit, NAME_AT) };
     auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
     opeu_cursor_print(
         game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.deploy_unit_title)), static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
   } else {
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_garrison_title));
+    opeu_ui_text(game, Near(data, data.deploy_garrison_title));
   }
   data.deploy_window.rows = static_cast<uint8_t>(static_cast<std::uint16_t>(opeu_battle_element_count(game, unit)) + 1);
   {

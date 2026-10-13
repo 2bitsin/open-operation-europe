@@ -40,5 +40,5 @@ void opeu_arrival_present(Game& game) {
   std::uint16_t const token{ side == 0 ? FIRST_SIDE_TOKEN : SECOND_SIDE_TOKEN };
   auto const          format{ opeu_message_lookup(game, ARRIVAL_FORMAT) };
   opeu_request_format(game, std::array<std::uint16_t, 6>{ REQUEST_BUFFER, format, token, data.side_names[side], token, name });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_BUFFER, data.request_person);
+  opeu_control_message(game, REQUEST_BUFFER, data.request_person);
 }

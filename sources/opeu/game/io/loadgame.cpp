@@ -37,16 +37,16 @@ constexpr Place QUESTION{ 33, 336 };
 constexpr Place RESULT{ 29, 188 };
 
 auto Framed(Game& game, Place const& place, auto const& text) -> std::uint16_t {
-  return opeu_title_box(game, static_cast<UiHost const*>(port_uiprim_host()), place.x, place.y, Near(Data(game), text));
+  return opeu_title_box(game, place.x, place.y, Near(Data(game), text));
 }
 
 auto Paper(Game& game, std::uint8_t paper) -> void {
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), paper);
+  opeu_text_paper_set(game, paper);
 }
 
 // Prints a framed message on the highlighted paper.
 auto Say(Game& game, Place const& place, auto const& text) -> void {
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Framed(game, place, text));
+  opeu_ui_text(game, Framed(game, place, text));
 }
 
 auto NoSavedGames(Game& game) -> void {
@@ -115,6 +115,6 @@ auto opeu_load_saved_game(Game& game) -> std::uint16_t {
     choice = ChooseAndLoad(game, file);
     opeu_dos_close(file);
   }
-  opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), static_cast<std::uint8_t>(1));
+  opeu_backdrop_fill_color(game, static_cast<std::uint8_t>(1));
   return choice;
 }

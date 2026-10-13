@@ -51,10 +51,10 @@ uint16_t opeu_battle_random_target(Game& game, uint16_t element) {
   unsigned const            other{ first == mine ? 1u : 0u };
   uint8_t                   n{ 0 };
   for (uint8_t i{ 0 }; BattleList(data, other, i) != 0 && i < BATTLE_LIST_LENGTH; ++i) enemies[n++] = BattleList(data, other, i);
-  auto const unit{ enemies[static_cast<uint8_t>(port_rand_bounded(game, n))] };
+  auto const unit{ enemies[static_cast<uint8_t>(game.State().RandomBounded(n))] };
   n = 0;
   for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) members[n++] = it.Near();
-  return members[static_cast<uint8_t>(port_rand_bounded(game, n))];
+  return members[static_cast<uint8_t>(game.State().RandomBounded(n))];
 }
 
 // The element waits its rounds, counted on its battle order, then fires at a random enemy.

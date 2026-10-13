@@ -63,7 +63,7 @@ void opeu_battle_draw_border(Game& game) {
               port_far(static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(image)), port_far(static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(mask)),
               port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 1);
   } };
-  opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), static_cast<uint8_t>(BORDER_COLOR));
+  opeu_backdrop_fill_color(game, static_cast<uint8_t>(BORDER_COLOR));
   for (auto const a : std::views::iota(uint16_t{ 0 }, BATTLE_WIDTH)) sprite(static_cast<uint16_t>((a + 2) * 20), static_cast<uint16_t>((a + 16) * 13), LEFT_BORDER_IMAGE, LEFT_BORDER_MASK);
   for (auto const b : std::views::iota(uint16_t{ 0 }, BATTLE_WIDTH)) sprite(static_cast<uint16_t>((29 - b) * 20), static_cast<uint16_t>((b + 16) * 13), RIGHT_BORDER_IMAGE, RIGHT_BORDER_MASK);
 }
@@ -123,12 +123,12 @@ void opeu_battle_draw_title(Game& game) {
   auto&      data{ Data(game) };
   auto const weather{ data.weather == STORM && CurrentScenario(data) == Scenario::D_DAY && data.month >= 7 && data.month <= 9 ? Near(data, data.battle_hurricane_text)
                                                                                                                               : data.weather_names[data.weather] };
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TITLE_X), static_cast<short>(0));
-  opeu_context_frame(game, static_cast<UiHost const*>(port_uiprim_host()), 0, 0, TITLE_FRAME_WIDTH);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint16_t>(Near(data, data.battle_title_style)));
+  opeu_army_position(game, static_cast<short>(TITLE_X), static_cast<short>(0));
+  opeu_context_frame(game, 0, 0, TITLE_FRAME_WIDTH);
+  opeu_ui_text(game, static_cast<std::uint16_t>(Near(data, data.battle_title_style)));
   opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(Near(data, data.battle_title_format)), static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day),
                                                         static_cast<std::uint16_t>(data.year + YEAR_BASE), static_cast<std::uint16_t>(data.hour), static_cast<std::uint16_t>(weather) });
-  opeu_context_frame(game, static_cast<UiHost const*>(port_uiprim_host()), 0, PLACE_FRAME_Y, TITLE_FRAME_WIDTH);
+  opeu_context_frame(game, 0, PLACE_FRAME_Y, TITLE_FRAME_WIDTH);
   auto const x{ static_cast<uint16_t>(data.map_scale * data.battle_x) };
   auto const y{ static_cast<uint16_t>(data.map_scale * data.battle_y) };
   if (auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_x)), static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_y))) })
@@ -137,7 +137,7 @@ void opeu_battle_draw_title(Game& game) {
   else
     opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_terrain_format)), static_cast<std::uint16_t>(data.terrain_names[StrategicTerrain(data)]),
                                                           static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(y) });
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint16_t>(Near(data, data.battle_title_end)));
+  opeu_ui_text(game, static_cast<std::uint16_t>(Near(data, data.battle_title_end)));
 }
 
 // The objective's garrison shared among its city cells: each gets the share, the first ones one more for the
@@ -202,7 +202,7 @@ void opeu_battle_map_setup(Game& game) {
   opeu_battle_load_terrain(game);
   opeu_battle_garrison_cells(game);
   opeu_vga_clear();
-  opeu_palette_title_screen(game, static_cast<UiHost const*>(port_uiprim_host()));
+  opeu_palette_title_screen(game);
   opeu_battle_draw_map(game);
   opeu_battle_draw_title(game);
 }

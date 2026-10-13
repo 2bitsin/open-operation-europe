@@ -38,7 +38,7 @@ constexpr std::uint16_t NATION_BYTES{ 0x1a };
 
 auto Outline(Game& game, std::uint16_t left, std::uint16_t top, std::uint16_t bottom) -> void {
   constexpr std::uint16_t RIGHT{ 0x170 };
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), left, top, RIGHT, bottom, 7);
+  opeu_ui_outline(game, left, top, RIGHT, bottom, 7);
 }
 
 auto DrawFirstColumn(Game& game, std::uint8_t rows) -> void {
@@ -49,7 +49,7 @@ auto DrawFirstColumn(Game& game, std::uint8_t rows) -> void {
   Outline(game, 0x15f, 0x2d, RowsHeight(rows) + 0x2d);
   opeu_vga_fill_rect(0x22, 0x2e, 10, 0x10, 3);
   opeu_vga_fill_rect(0x2c, 0x2e, 2, RowsHeight(rows), 3);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x28 - (length >> 1)), 0x2e);
+  opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), 0x2e);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_first_format), name });
 }
 
@@ -63,7 +63,7 @@ auto DrawSecondColumn(Game& game, std::uint8_t above, std::uint8_t rows) -> void
   Outline(game, 0x15f, top + 0x2d, RowsHeight(above + rows) + 0x2d);
   opeu_vga_fill_rect(0x22, static_cast<std::uint16_t>(top + 0x2e), 10, 0x10, 5);
   opeu_vga_fill_rect(0x2c, static_cast<std::uint16_t>(top + 0x2e), 2, static_cast<std::uint16_t>(RowsHeight(rows) - 1), 5);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x28 - (length >> 1)), static_cast<int16_t>(top + 0x2e));
+  opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), static_cast<int16_t>(top + 0x2e));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_second_format), name });
 }
 
@@ -73,17 +73,17 @@ auto DrawTypeList(Game& game, std::uint8_t count) -> void {
   ServiceLocals const nation{ NATION_BYTES };
   auto const          buffer{ nation.At(0) };
   opeu_vga_fill_rect(2, 0x1c, 0x1e, 0xde, 0);
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x10, 0x1c, 0x100, 0xf9, 7);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 3, 0x1d);
+  opeu_ui_outline(game, 0x10, 0x1c, 0x100, 0xf9, 7);
+  opeu_army_position(game, 3, 0x1d);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.alloc_heading) });
   for (auto const [row, supply_type] : std::views::zip(std::views::iota(0u), std::span{ data.supply_types }.first(count))) {
     auto const& type{ data.element_types[supply_type] };
     auto const  top{ RowsHeight(row) };
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 2, static_cast<int16_t>(top + 0x2e));
+    opeu_army_position(game, 2, static_cast<int16_t>(top + 0x2e));
     opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.alloc_row_format), SideTextColor(data.current_side), type.name, opeu_nation_code(game, Near(data, type), buffer) });
-    opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x10, top + 0x2d, 0x100, top + 0x3e, 7);
+    opeu_ui_outline(game, 0x10, top + 0x2d, 0x100, top + 0x3e, 7);
   }
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x80, 0x1c, 0xa8, 0xf9, 7);
+  opeu_ui_outline(game, 0x80, 0x1c, 0xa8, 0xf9, 7);
 }
 } // namespace
 
@@ -91,7 +91,7 @@ auto DrawTypeList(Game& game, std::uint8_t count) -> void {
 void opeu_alloc_amounts_show(Game& game, uint8_t count) {
   auto& data{ Data(game) };
   for (auto const [row, amount, other] : std::views::zip(std::views::iota(0u), std::span{ data.supply_amounts }.first(count), data.supply_others)) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x16, static_cast<int16_t>(RowsHeight(row) + 0x2e));
+    opeu_army_position(game, 0x16, static_cast<int16_t>(RowsHeight(row) + 0x2e));
     opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.alloc_amount_format), SideTextColor(data.current_side), amount, other });
   }
 }
@@ -111,9 +111,9 @@ void opeu_alloc_take(Game& game, Take const& take, uint8_t count) {
 // type list.
 void opeu_alloc_screen(Game& game, Allocation const& allocation) {
   auto& data{ Data(game) };
-  opeu_backdrop_fill_color(game, static_cast<const UiHost*>(port_uiprim_host()), data.current_side ? 1 : 2);
+  opeu_backdrop_fill_color(game, data.current_side ? 1 : 2);
   opeu_vga_fill_rect(0x2b, 0x110, 0x23, 0x70, 0);
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 0x158, 0x110, 0x26f, 0x17f, 7);
+  opeu_ui_outline(game, 0x158, 0x110, 0x26f, 0x17f, 7);
   DrawFirstColumn(game, data.supply_count);
   DrawSecondColumn(game, data.supply_count, allocation.other_slots ? allocation.other_slots : allocation.spare_slots);
   DrawTypeList(game, allocation.types);

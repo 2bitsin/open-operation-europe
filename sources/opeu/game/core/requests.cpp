@@ -1,7 +1,6 @@
 // The hourly handling of the sides' requests: a booked request is carried out when its delay runs out, and each hour a
 // filed request may reach headquarters, which accepts or turns it down.
 #include "core/requests.hpp"
-#include "common/random.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/template.hpp"
@@ -55,14 +54,14 @@ void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold) {
       config.kind = std::to_underlying(RequestKind::NONE);
     }
     for (auto& request : data.sides[side].requests) {
-      if (request.kind == std::to_underlying(RequestKind::NONE) || RandomBelow(game, 6) != 0) continue;
+      if (request.kind == std::to_underlying(RequestKind::NONE) || game.State().RandomBounded(6) != 0) continue;
       switch (static_cast<RequestKind>(request.kind)) {
       case RequestKind::SUPPLIES:  threshold = static_cast<uint16_t>(config.supply_rate * 10); break;
       case RequestKind::BATTALION: threshold = opeu_percent(config.reinforcement_rate * 10, data.type_availability[request.argument] * 10) / 10; break;
       case RequestKind::REGIMENT:  threshold = opeu_percent(config.reinforcement_rate * 3, data.regiment_kind_availability[request.argument] * 10) / 10; break;
       default:                     break;
       }
-      if (config.enabled[request.kind] == 1 && config.kind == std::to_underlying(RequestKind::NONE) && static_cast<uint8_t>(RandomBelow(game, 1000)) < threshold)
+      if (config.enabled[request.kind] == 1 && config.kind == std::to_underlying(RequestKind::NONE) && static_cast<uint8_t>(game.State().RandomBounded(1000)) < threshold)
         opeu_request_start(game, side, Near(data, request));
       else
         opeu_request_fallback(game, side, Near(data, request));

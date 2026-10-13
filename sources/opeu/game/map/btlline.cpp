@@ -24,7 +24,7 @@ constexpr int16_t ARC_FLATNESS{ -15 };
 }
 
 void Outline(Game& game, int16_t x, int16_t y) {
-  opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), x, y, x + 2, y + 4, ARC_COLOR);
+  opeu_ui_outline(game, x, y, x + 2, y + 4, ARC_COLOR);
 }
 } // namespace
 

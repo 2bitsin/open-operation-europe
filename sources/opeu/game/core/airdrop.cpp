@@ -20,7 +20,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/airbomb.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
@@ -85,7 +84,7 @@ uint8_t opeu_air_assign_troops(Game& game) {
     element.quantity = troops;
     element.flags    = troops ? Bits(ElementFlag::AIRBORNE) : 0;
   }
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_troops_assigned), data.context_record3);
+  opeu_control_message(game, Near(data, data.drop_troops_assigned), data.context_record3);
   return 0;
 }
 
@@ -116,7 +115,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
   constexpr std::uint16_t ALLOC_ELEMENTS{ offsetof(DataSegment, alloc_elements) };
   data.regiment_dialog.rows = static_cast<std::uint8_t>(ReleaseUnits(game, SUPPLY_UNITS) + 1);
   SetListPredicate(data.regiment_dialog, ListSelect::AIR_MARK_REGIMENT);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_which_regiment), data.context_record3);
+  opeu_control_message(game, Near(data, data.drop_which_regiment), data.context_record3);
   if (ListDialog(game, data.regiment_dialog)) {
     // The regiment's battalion quota is read again on every step, as the dialogs run in between.
     auto const regiment{ opeu_unit_index(data.supply_units[data.list_row]) };
@@ -132,7 +131,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
       element.damage   = 0;
     }
     data.air_troops = 0;
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_assign_soldiers), data.context_record3);
+    opeu_control_message(game, Near(data, data.drop_assign_soldiers), data.context_record3);
     ListDialog(game, data.choice_dialog);
     std::uint8_t kept{ 0 };
     for (std::uint8_t i{ 0 }; i < quota() && free > i; ++i) {
@@ -142,7 +141,7 @@ uint16_t opeu_air_choose_forces(Game& game) {
     if (kept) {
       data.choice_dialog.rows = static_cast<std::uint8_t>(kept + 1);
       SetListPredicate(data.choice_dialog, ListSelect::AIR_MARK_BATTALION);
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_command_post), data.context_record3);
+      opeu_control_message(game, Near(data, data.drop_command_post), data.context_record3);
       if (ListDialog(game, data.choice_dialog)) return 1;
     }
   }
@@ -158,22 +157,22 @@ uint8_t opeu_air_drop_delay(Game& game, uint8_t hours) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  std::uint8_t const  estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(RandomBelow(game, data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
+  std::uint8_t const  estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(game.State().RandomBounded(data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
   if (estimate > hours) {
-    if (95 - static_cast<std::uint8_t>(RandomBelow(game, 20)) > data.air_charm) {
+    if (95 - static_cast<std::uint8_t>(game.State().RandomBounded(20)) > data.air_charm) {
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, AIR_FORCE_DELAY), static_cast<std::uint16_t>(estimate) });
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+      opeu_control_message(game, text, data.air_person);
       return estimate;
     }
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, REQUEST_STANDS), static_cast<std::uint16_t>(estimate + 1) });
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+    opeu_control_message(game, text, data.air_person);
     return hours;
   }
-  if (opeu_hour_is_day((hours + data.hour) % 24) && 60 - static_cast<std::uint8_t>(RandomBelow(game, 20)) > data.air_charm) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, DROP_REFUSED), data.air_person);
+  if (opeu_hour_is_day((hours + data.hour) % 24) && 60 - static_cast<std::uint8_t>(game.State().RandomBounded(20)) > data.air_charm) {
+    opeu_control_message(game, opeu_message_lookup(game, DROP_REFUSED), data.air_person);
     return 0;
   }
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_understood), data.air_person);
+  opeu_control_message(game, Near(data, data.drop_understood), data.air_person);
   return hours;
 }
 
@@ -186,7 +185,7 @@ uint16_t opeu_air_drop_order(Game& game, uint8_t x, uint8_t y, uint8_t hours) {
   auto const          planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
   opeu_request_format(game, std::array<std::uint16_t, 5>{ text, opeu_message_lookup(game, PLANES_NEEDED), static_cast<std::uint16_t>(hours), planes,
                                                           (planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes)) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+  opeu_control_message(game, text, data.air_person);
   if (opeu_air_confirm(game)) {
     auto& drop{ CurrentDrop(data) };
     drop.x          = x;
@@ -205,8 +204,8 @@ uint16_t opeu_air_drop_order(Game& game, uint8_t x, uint8_t y, uint8_t hours) {
 // the side's turn ends once the drop is refused (delay 0) or ordered.
 void opeu_air_drop_command(Game& game) {
   auto&      data{ Data(game) };
-  auto const message{ [&](auto const& text) { opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, text), data.context_record3); } };
-  auto const confirm{ [&](auto const& text) { return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, text), data.context_record3); } };
+  auto const message{ [&](auto const& text) { opeu_control_message(game, Near(data, text), data.context_record3); } };
+  auto const confirm{ [&](auto const& text) { return opeu_confirm_message(game, Near(data, text), data.context_record3); } };
   if (opeu_air_paratroop_type(game) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
     message(data.drop_no_paratroopers);
     return;

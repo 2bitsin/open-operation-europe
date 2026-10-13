@@ -68,7 +68,7 @@ constexpr std::uint16_t SIDE0_COLOUR{ '5' };
 constexpr std::uint16_t SIDE1_COLOUR{ '6' };
 
 auto Random(Game& game) -> std::uint16_t {
-  return port_rand_bounded(game, RollBound(Data(game)));
+  return game.State().RandomBounded(RollBound(Data(game)));
 }
 
 auto Restore(Game& game) -> void {
@@ -105,7 +105,7 @@ auto Loss(Game& game, std::uint16_t divisor) -> std::uint8_t {
 uint16_t opeu_order_attack_allowed(Game& game, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto const average{ opeu_unit_average11(game, data.current_unit_ptr) };
-  if (average >= static_cast<std::uint16_t>(port_rand_bounded(game, 30) + 70)) {
+  if (average >= static_cast<std::uint16_t>(game.State().RandomBounded(30) + 70)) {
     Restore(game);
     return 0;
   }
@@ -144,12 +144,12 @@ void opeu_order_attack_present(Game& game) {
 uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y) {
   auto& data{ Data(game) };
   if (!opeu_move_supplied(game)) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_no_fuel));
+    opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_no_fuel));
     Restore(game);
     return 0;
   }
   if (CurrentUnit(data).resources[0] == 0) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_no_ammo));
+    opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_no_ammo));
     Restore(game);
     return 0;
   }
@@ -158,15 +158,15 @@ uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y
   auto const          text{ local(START_TEXT) };
   if (data.side_control[data.current_side] == SIDE_PLAYED && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
       && opeu_unit_selection_eligible(game, data.current_unit_ptr)) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_prepared));
+    opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_prepared));
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_ask_attack), name });
-    auto const confirmed{ opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.context_group_record) };
-    if (confirmed) opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BATTLE_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::ATTACK);
+    auto const confirmed{ opeu_confirm_message(game, text, data.context_group_record) };
+    if (confirmed) opeu_daily_show(game, BATTLE_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::ATTACK);
     return confirmed;
   }
   if (!opeu_order_attack_allowed(game, x, y)) return 0;
   opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_begin_attack), name });
-  opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
+  opeu_unit_report(game, data.current_unit_ptr, text);
   return 1;
 }
 
@@ -203,8 +203,8 @@ uint16_t opeu_order_occupy_run(Game& game) {
     }
     auto const text{ local(OCCUPY_TEXT) };
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_occupied), objective });
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::OCCUPIED);
+    opeu_unit_report(game, data.current_unit_ptr, text);
+    opeu_daily_show(game, OCCUPIED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::OCCUPIED);
     Restore(game);
     opeu_side_groups_retarget(game, 0);
     opeu_side_groups_retarget(game, 1);

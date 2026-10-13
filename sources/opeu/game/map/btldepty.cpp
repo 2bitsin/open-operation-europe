@@ -27,7 +27,7 @@ constexpr uint8_t HIT_BELOW{ 10 };
 constexpr uint8_t FATAL_BELOW{ 5 };
 
 [[nodiscard]] auto Draw(Game& game) -> uint8_t {
-  return static_cast<uint8_t>(port_rand_bounded(game, 100));
+  return static_cast<uint8_t>(game.State().RandomBounded(100));
 }
 
 // One general's draw; fatal: a fatal hit marks him out instead of appointing the deputy.

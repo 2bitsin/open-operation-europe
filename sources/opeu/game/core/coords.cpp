@@ -99,7 +99,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     auto const group{ opeu_unit_group_index(unit) };
     auto const person{ opeu_find_group_record(game, side, group) };
     if (GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, DIVISION_BUSY), person);
+      opeu_control_message(game, opeu_message_lookup(game, DIVISION_BUSY), person);
     else {
       opeu_unit_action(game, unit, group);
       opeu_map_erase(game, display_x, display_y);

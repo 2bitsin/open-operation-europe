@@ -5,7 +5,6 @@
 #include "common/data-segment.hpp"
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "common/side-color.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
@@ -46,7 +45,7 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
   auto const stock{ kind < 3 ? Near(data, record.resources[kind]) : Word(game, locals.At(STALE_SLOT_AT)) };
   auto const before{ Word(game, stock) };
   uint16_t   value{ before };
-  opeu_sub_word(RandomBelow(game, amount) + amount, &value);
+  opeu_sub_word(game.State().RandomBounded(amount) + amount, &value);
   SetWord(game, stock, value);
   auto const after{ Word(game, stock) };
   auto const colour{ SideColorCode(static_cast<uint8_t>(opeu_objective_side(game, objective))) };
@@ -54,7 +53,7 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
                                                           static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(data.supply_names[kind]),
                                                           static_cast<std::uint16_t>(static_cast<uint16_t>(before - after)), static_cast<std::uint16_t>(data.supply_names[kind]),
                                                           static_cast<std::uint16_t>(after) });
-  opeu_objective_side_report(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), objective, static_cast<std::uint16_t>(text));
+  opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(text));
 }
 
 // bp: this routine's frame. chance: the percent chance of a hit; base: the damage of a hit (none: no equipment loss);
@@ -73,32 +72,32 @@ void opeu_objective_damage(Game& game, uint16_t objective, uint16_t chance, uint
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_title)) });
     opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_heading)),
                                                             static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective) });
-    opeu_objective_side_report(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), objective, static_cast<std::uint16_t>(report));
+    opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
     for (auto& item : record.items) {
       if (item.quantity == 0) continue;
       auto const& type{ data.element_types[item.type] };
       bool const  infantry{ type.category == Bits(Category::INFANTRY) };
-      uint16_t    lost{ RandomBelow(game, 100) >= chance ? RandomBelow(game, spread >> 1) : static_cast<uint16_t>(RandomBelow(game, spread) + base) };
-      if (heavy && infantry) lost = static_cast<uint16_t>(lost * (RandomBelow(game, 10) + 6));
+      uint16_t    lost{ game.State().RandomBounded(100) >= chance ? game.State().RandomBounded(spread >> 1) : static_cast<uint16_t>(game.State().RandomBounded(spread) + base) };
+      if (heavy && infantry) lost = static_cast<uint16_t>(lost * (game.State().RandomBounded(10) + 6));
       lost          = opeu_min16(item.quantity, lost);
       item.quantity = static_cast<uint16_t>(item.quantity - lost);
       opeu_request_format(game,
                           std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_element_format)),
                                                         static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(type.name) });
-      opeu_element_panel(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), static_cast<std::uint16_t>(Near(data, item)));
+      opeu_element_panel(game, static_cast<std::uint16_t>(Near(data, item)));
       if (lost == 0) {
         opeu_string_append(game, static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_none)));
-        opeu_objective_side_report(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), objective, static_cast<std::uint16_t>(report));
+        opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
         continue;
       }
       opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(loss_text),
                                                               static_cast<std::uint16_t>(lost == 1 ? Near(data, data.damage_loss_one) : Near(data, data.damage_loss_many)),
                                                               static_cast<std::uint16_t>(lost) });
       opeu_string_append(game, static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(loss_text));
-      opeu_objective_side_report(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), objective, static_cast<std::uint16_t>(report));
+      opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
       if (!infantry) {
         uint16_t stock{ item.extra };
-        opeu_add_word(RandomBelow(game, lost / 3), data.request_capacities[type.category], &stock);
+        opeu_add_word(game.State().RandomBounded(lost / 3), data.request_capacities[type.category], &stock);
         item.extra = stock;
       }
     }
@@ -110,12 +109,12 @@ void opeu_objective_damage(Game& game, uint16_t objective, uint16_t chance, uint
   }
   if (endurance) {
     auto const before{ record.strength };
-    opeu_sub_byte(RandomBelow(game, endurance) + endurance, &record.strength);
+    opeu_sub_byte(game.State().RandomBounded(endurance) + endurance, &record.strength);
     opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_endurance_format)),
                                                             static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(record.strength),
                                                             static_cast<std::uint16_t>(before - record.strength) });
-    opeu_objective_side_report(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }(), objective, static_cast<std::uint16_t>(report));
+    opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
   }
   opeu_blast_erase(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y));
-  opeu_title_panel_begin(game, [] { return static_cast<DialogHost const*>(port_dialogs_host()); }());
+  opeu_title_panel_begin(game);
 }

@@ -48,20 +48,20 @@ void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, Near(data, data.tbl_group_header) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ColumnX(data, window, columns, -0x20), window.y + 1);
+    opeu_army_position(game, ColumnX(data, window, columns, -0x20), window.y + 1);
     opeu_select_side_color(game, side);
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_group_title), buffer });
   }
   for (std::uint8_t g = first; g <= last; ++g) {
     auto const& group{ GroupOf(data, side, g) };
     if (flags & DRAW_LABELS) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, RowY(data, window, g));
+      opeu_army_position(game, window.x + 2, RowY(data, window, g));
       opeu_select_side_color(game, side);
       if (group.flags & Bits(GroupFlag::READY)) {
         if (group.flags & Bits(GroupFlag::SELECTED)) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.tbl_group_mark) });
         opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_group_division), static_cast<std::uint16_t>(g + 1) });
       } else
-        opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_group_empty));
+        opeu_ui_text(game, Near(data, data.tbl_group_empty));
     }
     auto const group_near{ Near(data, group) };
     if ((group.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, group_near))) {
@@ -71,11 +71,11 @@ void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row
       opeu_request_format(game, std::array<std::uint16_t, 7>{ buffer, Near(data, data.tbl_group_row), kind, commander, fuel, ammo, food });
     } else
       opeu_string_copy(game, buffer, Near(data, data.tbl_group_blank));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ColumnX(data, window, columns, -0x20), RowY(data, window, g));
-    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, columns.start, columns.count);
+    opeu_army_position(game, ColumnX(data, window, columns, -0x20), RowY(data, window, g));
+    opeu_text_color(game, TABLE_TEXT_COLOR);
+    opeu_text_put_range(game, buffer, columns.start, columns.count);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
@@ -90,7 +90,7 @@ void opeu_tbl_draw_missions(Game& game, uint8_t column, uint8_t first, uint8_t r
   auto const  columns{ TableColumnLayout(game, column, row) };
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x26, 0x81);
+    opeu_army_position(game, 0x26, 0x81);
     opeu_select_side_color(game, side);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.tbl_mission_header) });
   }
@@ -99,7 +99,7 @@ void opeu_tbl_draw_missions(Game& game, uint8_t column, uint8_t first, uint8_t r
     auto const& task{ tasks[m] };
     if (flags & DRAW_LABELS) {
       opeu_select_side_color(game, side);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), window.x + 2, RowY(data, window, m));
+      opeu_army_position(game, window.x + 2, RowY(data, window, m));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_mission_label), static_cast<std::uint16_t>(m + 1) });
     }
     if (task.kind != Bits(TaskKind::NONE)) {
@@ -113,9 +113,9 @@ void opeu_tbl_draw_missions(Game& game, uint8_t column, uint8_t first, uint8_t r
       opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, Near(data, data.tbl_mission_row), data.order_names[task.kind], place });
     } else
       opeu_string_copy(game, buffer, Near(data, data.tbl_mission_blank));
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), ColumnX(data, window, columns, -0x20), RowY(data, window, m));
-    opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, columns.start, columns.count);
+    opeu_army_position(game, ColumnX(data, window, columns, -0x20), RowY(data, window, m));
+    opeu_text_color(game, TABLE_TEXT_COLOR);
+    opeu_text_put_range(game, buffer, columns.start, columns.count);
   }
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
+  opeu_text_color(game, TABLE_TEXT_COLOR);
 }

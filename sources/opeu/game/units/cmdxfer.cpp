@@ -121,16 +121,16 @@ void opeu_turn_action_3(Game& game) {
   for (;;) {
     switch (step) {
     case Step::DIVISION:
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_division), data.context_record2);
-      opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+      opeu_control_message(game, Near(data, data.transfer_which_division), data.context_record2);
+      opeu_title_panel_begin(game);
       SetListPredicate(data.division_dialog, ListSelect::TRANSFER_GROUP);
       if (!opeu_list_dialog(game, Near(data, data.division_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
       data.transfer_group = data.list_row;
       opeu_group_show(game, Near(data, GroupOf(data, data.current_side, data.transfer_group)), static_cast<uint8_t>(data.transfer_group));
       [[fallthrough]];
     case Step::REGIMENT:
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_regiment), data.context_record2);
-      opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+      opeu_control_message(game, Near(data, data.transfer_which_regiment), data.context_record2);
+      opeu_title_panel_begin(game);
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(game) + 1);
       SetListPredicate(data.organize_list, ListSelect::TRANSFER_UNIT);
       if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
@@ -143,15 +143,15 @@ void opeu_turn_action_3(Game& game) {
     case Step::ELEMENT: {
       data.choice_dialog.rows = static_cast<std::uint8_t>(opeu_transfer_elements_fill(game) + 1);
       SetListPredicate(data.choice_dialog, ListSelect::TRANSFER_ELEMENT);
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_group), data.context_record2);
-      opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+      opeu_control_message(game, Near(data, data.transfer_which_group), data.context_record2);
+      opeu_title_panel_begin(game);
       if (!opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
         step = Step::REGIMENT;
         continue;
       }
       auto const hours{ opeu_transfer_hours(game, data.current_unit_ptr, Near(data, PickedRegiment(data)), data.context_record1) };
       opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, Near(data, data.transfer_confirm), hours, hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text) });
-      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) {
+      if (!opeu_confirm_message(game, buffer, data.context_record2)) {
         step = Step::ELEMENT;
         continue;
       }
@@ -165,7 +165,7 @@ void opeu_turn_action_3(Game& game) {
       Record<Element>(data, opeu_unit_selected_element(game, Near(data, regiment))).flags &= static_cast<std::uint8_t>(~Bits(ElementFlag::SELECTED));
       Record<Element>(data, data.row_elements[data.list_row]).flags                       |= Bits(ElementFlag::SELECTED);
       data.side_delays[side]                                                               = static_cast<std::uint8_t>(hours);
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER);
+      opeu_daily_show(game, TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER);
       return;
     }
     }

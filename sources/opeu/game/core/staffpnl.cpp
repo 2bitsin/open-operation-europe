@@ -62,11 +62,11 @@ void opeu_staff_frame_option(Game& game, int16_t option) {
   if (option < 3) {
     for (ypos = 0x28; ypos < 0x76; ypos += 0x10)
       for (xpos = first_col[option]; xpos <= (uint16_t)(first_col[option] + 6); xpos += 2) opeu_screen_copy(0, 8, 2, 0x10, xpos, ypos);
-    opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), frame_left[option], 0x28, outline_right[option], 0x76, 7);
+    opeu_ui_outline(game, frame_left[option], 0x28, outline_right[option], 0x76, 7);
   } else {
     option -= 3;
     for (ypos = 0x88; ypos < 0xd6; ypos += 0x10)
       for (xpos = (uint16_t)(option * 20 + 2); xpos <= (uint16_t)(option * 20 + 8); xpos += 2) opeu_screen_copy(0, 0, 2, 0x10, xpos, ypos);
-    opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), option * 0xa0 + 0x10, 0x88, option * 0xa0 + 0x4f, 0xd6, 7);
+    opeu_ui_outline(game, option * 0xa0 + 0x10, 0x88, option * 0xa0 + 0x4f, 0xd6, 7);
   }
 }

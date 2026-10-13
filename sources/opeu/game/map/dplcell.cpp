@@ -110,9 +110,9 @@ uint16_t opeu_deploy_input(Game& game) {
 uint16_t opeu_deploy_manual(Game& game, uint16_t element) {
   auto& data{ Data(game) };
   for (;;) {
-    opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
+    opeu_input_flush(game);
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_prompt));
+    opeu_ui_text(game, Near(data, data.deploy_prompt));
     if (auto const chosen{ opeu_deploy_input(game) }; !chosen) return chosen;
     if (opeu_deploy_can_place(game, GridCell{ data.battle_cursor_x, data.battle_cursor_y }, element)) {
       opeu_deploy_put(game, element);

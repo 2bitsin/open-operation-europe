@@ -77,20 +77,20 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
   auto const&  prompts{ data.issue_prompts };
   std::uint8_t kind{};
   for (;;) {
-    opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 1);
+    opeu_speaker_panel(game, person, 1);
     auto const menu{ whole ? DIVISION_MENU : OrderMenuKind(data.list_row) };
     auto const count{ OrderCount(data.issue_order_codes[menu]) };
     opeu_order_layout(game, menu);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(MENU_X), static_cast<int16_t>(MENU_Y));
+    opeu_army_position(game, static_cast<int16_t>(MENU_X), static_cast<int16_t>(MENU_Y));
     auto const choice{ opeu_prompt_value_cancel(game, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
-    opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
+    opeu_speaker_panel(game, person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(game, unit, person);
       return;
     }
     kind = data.issue_order_codes[menu][choice - 1];
     if (kind == Kind(UnitOrder::REPAIR_CITY) && !UnitQuantity(data, unit, Bits(Category::REPAIR)).total) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.no_repair_unit), person);
+      opeu_control_message(game, Near(data, prompts.no_repair_unit), person);
       continue;
     }
     break;
@@ -100,14 +100,14 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
     Byte(game, x_at) = regiment.x;
     Byte(game, y_at) = regiment.y;
     if (kind != Kind(UnitOrder::REST) || !whole) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.select_target), person);
+      opeu_control_message(game, Near(data, prompts.select_target), person);
       if (!opeu_map_pick_location(game, x_at, y_at)) {
         opeu_cancel_unit_orders(game, unit, person);
         return;
       }
     }
     if (CheckOrderTarget(game, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
+    opeu_control_message(game, buffer, person);
     opeu_control_position(game, regiment.x, regiment.y);
     opeu_arrival_location(game, static_cast<uint8_t>(regiment.x), static_cast<uint8_t>(regiment.y), static_cast<uint8_t>(side));
   }

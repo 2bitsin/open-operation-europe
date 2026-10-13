@@ -43,7 +43,7 @@ void opeu_mission_recon_objective(Game& game, uint8_t side) {
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_objective_text)));
   if (opeu_string_length(game, target) > ONE_LINE_NAME) opeu_string_append(game, text, At(offsetof(DataSegment, recon_newline)));
   opeu_string_append(game, text, target);
-  auto const roll{ port_rand_bounded(game, 100) };
+  auto const roll{ game.State().RandomBounded(100) };
   if (opeu_officer_rating(game, side, OFFICER) <= roll) {
     opeu_mission_report_failure(game, side, text);
     return;
@@ -62,7 +62,7 @@ void opeu_mission_recon_unit(Game& game, uint8_t side) {
   auto&               unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_unit_text)));
   opeu_string_append(game, text, opeu_unit_name(game, target, name));
-  if (opeu_officer_rating(game, side, OFFICER) <= port_rand_bounded(game, 100)) {
+  if (opeu_officer_rating(game, side, OFFICER) <= game.State().RandomBounded(100)) {
     opeu_mission_report_failure(game, side, text);
     return;
   }

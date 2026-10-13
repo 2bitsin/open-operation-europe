@@ -12,7 +12,6 @@
 #include "core/daylist.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
-#include "core/random.hpp"
 #include "core/recindex.hpp"
 #include "core/rqcommon.hpp"
 #include "io/listdlg.hpp"
@@ -52,15 +51,15 @@ void opeu_request_arms(Game& game) {
     if (!opeu_request_cancel_prompt(game, Near(data, data.rq_arms_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[battalion].kind = std::to_underlying(RequestKind::NONE);
   }
-  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_title_panel_begin(game);
   std::uint8_t count{ 0 };
   for (auto const category : std::views::iota(std::uint8_t{ 0 }, CATEGORIES)) count += opeu_list_due_records(game, Near(data, data.rq_type_list[count]), data.side_masks[data.current_side], category);
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_which), data.context_record2);
+  opeu_control_message(game, Near(data, data.rq_arms_which), data.context_record2);
   if (!opeu_list_dialog(game, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_where), data.context_record2);
+  opeu_control_message(game, Near(data, data.rq_arms_where), data.context_record2);
   std::uint16_t city;
   for (;;) {
     if (!opeu_map_pick_location(game, scratch, static_cast<std::uint16_t>(scratch + 1))) return;
@@ -68,7 +67,7 @@ void opeu_request_arms(Game& game) {
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
   opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, Near(data, data.rq_arms_confirm), city });
-  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) return;
+  if (!opeu_confirm_message(game, buffer, data.context_record2)) return;
   FileRequest(game, { city, static_cast<uint8_t>(data.rq_type_list[data.list_row]), static_cast<uint8_t>(battalion) });
   data.side_delays[data.current_side] = 1;
 }

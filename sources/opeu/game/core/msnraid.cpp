@@ -41,7 +41,7 @@ auto Target(Game& game, uint8_t side) -> uint16_t {
 
 // Whether the roll succeeds: the officer's rating divided by divisor against 0..99.
 auto Succeeds(Game& game, uint8_t side, uint16_t divisor) -> bool {
-  return opeu_officer_rating(game, side, OFFICER) / divisor > port_rand_bounded(game, 100);
+  return opeu_officer_rating(game, side, OFFICER) / divisor > game.State().RandomBounded(100);
 }
 
 } // namespace

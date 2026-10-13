@@ -48,8 +48,8 @@ void opeu_view_people_list(Game& game, uint8_t count) {
   auto& data{ Data(game) };
   data.people_dialog.rows = static_cast<uint8_t>(count + 1);
   SetListPredicate(data.people_dialog, ListSelect::VIEW_NONE);
-  opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
-  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_HERE, data.context_record3);
+  opeu_title_panel_begin(game);
+  opeu_control_message(game, PEOPLE_HERE, data.context_record3);
   opeu_list_dialog(game, Near(data, data.people_dialog), LIST_LIMIT, LIST_FLAGS);
 }
 
@@ -66,7 +66,7 @@ void opeu_view_enemy_generals(Game& game) {
   auto const enemy{ opeu_opposite_side(data.current_side) };
   auto const count{ ListGenerals(data, enemy) };
   if (count == 0) {
-    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_NONE, data.context_record3);
+    opeu_control_message(game, PEOPLE_NONE, data.context_record3);
     return;
   }
   opeu_view_people_list(game, count);
@@ -75,6 +75,5 @@ void opeu_view_enemy_generals(Game& game) {
 // The generals menu (own, enemy) until cancelled.
 void opeu_view_generals_menu(Game& game) {
   auto& data{ Data(game) };
-  for (std::uint16_t item; (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_PROMPT, 2, data.context_record2, PEOPLE_MENU)) != MENU_CANCELLED;)
-    Dispatch(PEOPLE_ACTIONS, data.people_actions.at(item - 1u), game);
+  for (std::uint16_t item; (item = opeu_delay_dialog(game, PEOPLE_PROMPT, 2, data.context_record2, PEOPLE_MENU)) != MENU_CANCELLED;) Dispatch(PEOPLE_ACTIONS, data.people_actions.at(item - 1u), game);
 }

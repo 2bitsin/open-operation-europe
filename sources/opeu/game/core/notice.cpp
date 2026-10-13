@@ -14,7 +14,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/dialogs.hpp"
 #include "core/elemfind.hpp"
 #include "core/people.hpp"
@@ -203,24 +202,24 @@ void opeu_notice_decide(Game& game) {
       if (unit && unit != GARRISON_AT) {
         auto const side{ opeu_unit_side(unit) };
         if (!data.side_control[side]) {
-          if (RandomBelow(game, 100) < 50) data.battle_command[side] = 1;
+          if (game.State().RandomBounded(100) < 50) data.battle_command[side] = 1;
           break;
         }
         if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, list, side)) != 0
             && !(Record<Group>(data, opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK))) {
           opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, notice_command_text)), data.side_names[side] });
-          data.battle_command[side] = opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, 2));
+          data.battle_command[side] = opeu_confirm_message(game, text, opeu_find_side_record(game, side, 2));
           break;
         }
       } else if (unit == GARRISON_AT && (objective = opeu_find_objective_at(game, data.battle_x, data.battle_y)) != 0) {
         auto const side{ opeu_objective_side(game, objective) };
         if (!data.side_control[side]) {
-          if (RandomBelow(game, 100) < 50) data.battle_command[side] = 1;
+          if (game.State().RandomBounded(100) < 50) data.battle_command[side] = 1;
           break;
         }
         if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, list, side)) != 0) {
           opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, notice_control_text)), data.side_names[side] });
-          data.battle_command[side] = opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, 2));
+          data.battle_command[side] = opeu_confirm_message(game, text, opeu_find_side_record(game, side, 2));
           break;
         }
       }
@@ -233,9 +232,7 @@ void opeu_notice_decide(Game& game) {
 uint16_t opeu_notice_view_battle(Game& game) {
   auto const& data{ Data(game) };
   if (!data.battle_report) return 0;
-  if (data.battle_view == 0xff)
-    return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, notice_battle_text),
-                                opeu_find_side_record(game, data.side_control[0] == PLAYER_CONTROL ? 0 : 1, 2));
+  if (data.battle_view == 0xff) return opeu_confirm_message(game, offsetof(DataSegment, notice_battle_text), opeu_find_side_record(game, data.side_control[0] == PLAYER_CONTROL ? 0 : 1, 2));
   return data.battle_view;
 }
 
@@ -262,11 +259,11 @@ void opeu_notice_attack(Game& game) {
   } else
     opeu_string_copy(game, text, offsetof(DataSegment, notice_under_attack_text));
   if (unit) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, text);
-    if (opeu_unit_selection_eligible(game, unit)) opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, opeu_opposite_side(side), Presenter::NOTICE_VIEW);
+    opeu_unit_report(game, unit, text);
+    if (opeu_unit_selection_eligible(game, unit)) opeu_daily_show(game, ATTACK_SHOW, opeu_opposite_side(side), Presenter::NOTICE_VIEW);
   } else if (objective) {
-    opeu_objective_report(game, static_cast<const DialogHost*>(port_dialogs_host()), objective, text);
-    if (opeu_objective_eligible(game, objective)) opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ATTACK_SHOW, opeu_opposite_side(side), Presenter::NOTICE_VIEW);
+    opeu_objective_report(game, objective, text);
+    if (opeu_objective_eligible(game, objective)) opeu_daily_show(game, ATTACK_SHOW, opeu_opposite_side(side), Presenter::NOTICE_VIEW);
   }
   if (!unit) return;
   auto const& order{ Record<Unit>(data, unit).orders[0] };

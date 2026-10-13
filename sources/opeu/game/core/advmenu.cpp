@@ -69,11 +69,11 @@ void opeu_control_prepare(Game& game) {
 void opeu_staff_advice_menu(Game& game) {
   auto& data{ Data(game) };
   for (;;) {
-    std::uint16_t topic{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), ADVICE_PROMPT, 5, data.context_record2, ADVICE_MENU) };
+    std::uint16_t topic{ opeu_delay_dialog(game, ADVICE_PROMPT, 5, data.context_record2, ADVICE_MENU) };
     if (topic == MENU_CANCELLED) break;
     topic--;
     if (data.advice_messages[topic][0])
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.advice_messages[topic]), data.context_record2);
+      opeu_control_message(game, Near(data, data.advice_messages[topic]), data.context_record2);
     else
       Dispatch(ADVICE_ACTIONS, data.advice_actions.at(topic), game);
   }
@@ -85,7 +85,7 @@ void opeu_turn_action_5(Game& game) {
   std::uint16_t officer;
   std::uint16_t result;
   do {
-    if ((officer = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == MENU_CANCELLED) return;
+    if ((officer = opeu_delay_dialog(game, STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == MENU_CANCELLED) return;
     result = Dispatch(STAFF_ACTIONS, data.staff_actions.at(officer), game);
   } while (officer != INTELLIGENCE || result != 1);
 }

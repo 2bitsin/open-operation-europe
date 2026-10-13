@@ -1,43 +1,53 @@
-// The game's random numbers drawn from the generator state the data segment keeps (random_state, its first four
-// bytes), so a saved game carries the sequence on.
+// The game's random-number generator: a 32-bit linear congruential state (the C runtime's rand), drawn from 15 bits at a
+// time. GameState owns one; the data segment keeps a copy of its state (random_state) for the saved game.
 #pragma once
 
-#include "common/data-segment.hpp"
-#include "common/game.hpp"
-#include "core/random.hpp"
-
+#include <array>
+#include <bit>
 #include <cstdint>
-#include <cstring>
 
 namespace opeu::game::detail::random {
 
-// A number in [0, bound): loads the state from the segment, draws, stores the state back.
-inline auto RandomBelow(Game& game, std::uint16_t bound) -> std::uint16_t {
-  auto& state{ Data(game).random_state };
-  std::memcpy(&opeu_random_state, state.data(), sizeof opeu_random_state);
-  auto const result{ opeu_rand_bounded(bound) };
-  std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
-  return result;
-}
+using RandomState = std::array<std::uint8_t, 4>; // the state as the data segment stores it (host byte order)
 
-// The next raw number of the sequence.
-inline auto RandomNext(Game& game) -> std::uint16_t {
-  auto& state{ Data(game).random_state };
-  std::memcpy(&opeu_random_state, state.data(), sizeof opeu_random_state);
-  auto const result{ opeu_rand_next() };
-  std::memcpy(state.data(), &opeu_random_state, sizeof opeu_random_state);
-  return result;
-}
+class RandomGenerator {
+public:
+  // The next number of the sequence, 0..0x7fff.
+  auto Next() noexcept -> std::uint16_t {
+    _state = _state * MULTIPLIER + INCREMENT;
+    return static_cast<std::uint16_t>(_state >> 16 & 0x7fff);
+  }
 
-// Starts the sequence again from `seed`.
-inline auto RandomSeed(Game& game, std::uint16_t seed) -> void {
-  opeu_rand_seed(seed);
-  std::memcpy(Data(game).random_state.data(), &opeu_random_state, sizeof opeu_random_state);
-}
+  // A number below `bound`; a zero bound gives 0 without advancing the state.
+  auto Bounded(std::uint16_t bound) noexcept -> std::uint16_t {
+    if (bound == 0) return bound;
+    return static_cast<std::uint16_t>(Next() % bound);
+  }
+
+  // Starts the sequence from a word; the state's high word becomes zero.
+  auto Seed(std::uint16_t seed) noexcept -> void {
+    _state = seed;
+  }
+
+  // Takes the state a saved game carries on.
+  auto Load(RandomState const& stored) noexcept -> void {
+    _state = std::bit_cast<std::uint32_t>(stored);
+  }
+
+  [[nodiscard]] auto Stored() const noexcept -> RandomState {
+    return std::bit_cast<RandomState>(_state);
+  }
+
+private:
+  static constexpr std::uint32_t MULTIPLIER{ 1103515245 };
+  static constexpr std::uint32_t INCREMENT{ 12345 };
+
+  std::uint32_t _state{ 0 };
+};
+
 } // namespace opeu::game::detail::random
 
 namespace opeu::game {
-using detail::random::RandomBelow;
-using detail::random::RandomNext;
-using detail::random::RandomSeed;
+using detail::random::RandomGenerator;
+using detail::random::RandomState;
 } // namespace opeu::game

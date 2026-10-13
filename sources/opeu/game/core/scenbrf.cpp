@@ -68,7 +68,7 @@ public:
 
 private:
   auto SayAt(std::uint16_t text) -> void {
-    opeu_control_message(_game, static_cast<const DialogHost*>(port_dialogs_host()), text, _speaker);
+    opeu_control_message(_game, text, _speaker);
   }
 
   Game&               _game;

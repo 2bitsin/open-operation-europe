@@ -17,6 +17,9 @@ it with direct calls. Dry runs only; it never writes under sources/ of the check
                                          the B4 pass (code pointers -> enums, rewriter/b4.py): the slot enums and the
                                          presenters, checked against the link table, and the data initialisers'
                                          pairs as enumerators; with --apply it rewrites the scratch export DIR
+    rewrite.py b5x --tree DIR --apply [--check]
+                                         the B5x pass (hosts and random draws, rewriter/b5x.py): rewrites the
+                                         scratch export DIR and counts the sites per kind
 
 The input is a `git archive` export of --rev (default HEAD) under _local/m2/tree, never the shared working tree;
 --tree reads another tree. docs/port.md "M2 rewriter" describes the rules.
@@ -39,6 +42,7 @@ from rewriter.b1 import B1Pass, WriteB1  # noqa: E402
 from rewriter.b2 import B2Pass  # noqa: E402
 from rewriter.b3 import B3Pass  # noqa: E402
 from rewriter.b4 import B4Pass, WriteB4  # noqa: E402
+from rewriter.b5x import B5xPass  # noqa: E402
 from rewriter.check import Check, CompileDatabase  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import ROOT, SOURCES, ExportCommit, SourceTree  # noqa: E402
@@ -50,7 +54,7 @@ DEFAULT_OUT = ROOT / "_local/m2/dry-run"
 
 def main(argv: list[str] | None = None) -> int:
   parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-  parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "b1", "b4"))
+  parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "b1", "b4", "b5x"))
   parser.add_argument("--rev", default="HEAD", help="the commit to export and read (default HEAD)")
   parser.add_argument("--tree", type=Path, help="read (or with --apply rewrite) this tree instead of an export of --rev")
   parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where the listings go (default _local/m2/dry-run)")
@@ -71,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     return _B1(tree, args, started)
   if args.command == "b4" and args.apply:
     return _B4(tree, args, started)
+  if args.command == "b5x":
+    if not args.apply:
+      parser.error("b5x rewrites a scratch tree: `rewrite.py b5x --tree DIR --apply`")
+    return _B5x(tree, args, started)
   model = Model(tree)
   if args.command == "b4":
     return _Stub(args.out / "b4.json", B4Model(model))
@@ -125,6 +133,19 @@ def _B4(tree: Path, args, started: float) -> int:
     summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b4.txt")
   summary["seconds"] = round(time.monotonic() - started, 1)
   (args.out / "b4-apply.json").write_text(json.dumps(summary, indent=1) + "\n")
+  print(json.dumps(summary, indent=1))
+  return 0
+
+
+def _B5x(tree: Path, args, started: float) -> int:
+  """The B5x pass over tree: hosts and random draws; the sites per file into --out, --check compiles every game/ file."""
+  result = B5xPass(tree)
+  summary = {"files": len(result.files), "sites": result.Counts()}
+  (args.out / "b5x-files.txt").write_text("".join(f"{file} {dict(counts)}\n" for file, counts in sorted(result.files.items())))
+  if args.check:
+    summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b5x.txt")
+  summary["seconds"] = round(time.monotonic() - started, 1)
+  (args.out / "b5x.json").write_text(json.dumps(summary, indent=1) + "\n")
   print(json.dumps(summary, indent=1))
   return 0
 

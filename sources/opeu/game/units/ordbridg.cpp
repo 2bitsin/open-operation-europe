@@ -33,7 +33,7 @@ constexpr std::uint16_t BRIDGE_DESTROYED_PICTURE{ 0x5b };
 uint8_t opeu_order_destroy_loss(Game& game) {
   auto&               data{ Data(game) };
   auto const          person{ opeu_unit_person(game, data.current_unit_ptr) };
-  std::uint16_t const random{ port_rand_bounded(game, RollBound(data)) };
+  std::uint16_t const random{ game.State().RandomBounded(RollBound(data)) };
   std::uint16_t const average10{ opeu_unit_average10(game, data.current_unit_ptr) };
   std::uint16_t const average11{ opeu_unit_average11(game, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / 45 + random + 5);
@@ -54,8 +54,8 @@ uint16_t opeu_order_destroy_run(Game& game) {
   if (!opeu_move_adjacent(game, x, y)) return 0;
   auto const loss{ opeu_order_destroy_loss(game) };
   if (opeu_move_level_lower(game, CurrentOrder(data), loss) && opeu_cell_side(game, x, y) == NO_SIDE) {
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), BRIDGE_DESTROYED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::BRIDGE_DESTROYED);
+    opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
+    opeu_daily_show(game, BRIDGE_DESTROYED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::BRIDGE_DESTROYED);
     opeu_map_mark_5(game, x, y);
     opeu_map_erase(game, x, y);
     opeu_restore_unit_order(game, data.current_unit_ptr);

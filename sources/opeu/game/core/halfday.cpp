@@ -20,7 +20,7 @@ constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 }; // the far text the noon eve
 
 void opeu_turn_half_day(Game& game) {
   auto const& data{ Data(game) };
-  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_turn_prepare(game);
   if (data.hour == 0)
     opeu_apply_daily_side_resources(game);
   else if (data.hour == 12) {

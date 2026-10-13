@@ -12,7 +12,6 @@
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "map/btlhit.hpp"
 #include "map/btllist.hpp"
 #include "map/btlmove.hpp"
@@ -73,7 +72,7 @@ void opeu_battle_retreat_to(Game& game, uint16_t unit, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto&      record{ Record<Unit>(data, unit) };
   auto const count{ static_cast<uint16_t>(std::ranges::distance(Elements(data, record))) };
-  auto const chosen{ opeu_rand_bounded(count) };
+  auto const chosen{ game.State().Generator().Bounded(count) };
   auto const it{ std::ranges::next(Elements(data, record).begin(), chosen) };
   opeu_battle_resolve_attack(game, 0, it.Near());
   MapCellAt(data, x, y) |= opeu_battle_unit_side(game, unit) ? Bits(MapCell::MARK_1) : Bits(MapCell::MARK_0);
@@ -100,7 +99,7 @@ void opeu_battle_unit_retreat(Game& game, uint16_t unit, uint8_t) {
   if (unit == GARRISON_AT) {
     auto&      objective{ Record<Objective>(data, opeu_find_objective_at(game, data.battle_x, data.battle_y)) };
     auto const elements{ opeu_battle_element_count(game, unit) };
-    auto const percent{ opeu_rand_bounded(static_cast<uint16_t>(elements * 10u + 0x29)) };
+    auto const percent{ game.State().Generator().Bounded(static_cast<uint16_t>(elements * 10u + 0x29)) };
     AbandonObjectiveStores(objective, percent);
     opeu_battle_remove_list(game, unit);
   }
@@ -115,7 +114,7 @@ void opeu_battle_morale_check(Game& game) {
     strength[list] = 0;
     for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, list, slot) }) {
-        if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30) opeu_battle_unit_retreat(game, unit, list);
+        if (!Record<Unit>(data, unit).resources[0] && game.State().Generator().Bounded(100) < 30) opeu_battle_unit_retreat(game, unit, list);
         strength[list] = static_cast<uint8_t>(strength[list] + opeu_battle_element_count(game, unit));
       }
     if (!strength[list]) return;
@@ -135,7 +134,7 @@ void opeu_battle_morale_check(Game& game) {
   } };
   if (odds > 5)
     for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
-      if (auto const unit{ BattleList(data, weaker, slot) }; unit && unit != GARRISON_AT && !support(unit) && opeu_rand_bounded(100) < 20) {
+      if (auto const unit{ BattleList(data, weaker, slot) }; unit && unit != GARRISON_AT && !support(unit) && game.State().Generator().Bounded(100) < 20) {
         opeu_battle_unit_retreat(game, unit, weaker);
         if (ComputerTurn(game)) return;
       }
@@ -148,7 +147,7 @@ void opeu_battle_morale_check(Game& game) {
         return cell && opeu_battle_retreat_cell_ok(game, cell->x, cell->y, unit);
       } };
       auto const chance{ static_cast<uint8_t>(20 + 10 * std::ranges::count_if(std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS), open)) };
-      if (opeu_rand_bounded(100) < chance) {
+      if (game.State().Generator().Bounded(100) < chance) {
         opeu_battle_unit_retreat(game, unit, list);
         if (ComputerTurn(game)) return;
       }

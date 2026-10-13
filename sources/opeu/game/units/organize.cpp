@@ -93,7 +93,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   data.supply_type_list.rows = static_cast<std::uint8_t>(a.types + 1);
   opeu_alloc_screen(game, a);
   auto const back_to_map{ [&] {
-    opeu_screen_reset(game, static_cast<const DialogHost*>(port_dialogs_host()));
+    opeu_screen_reset(game);
     auto const current{ [&]() -> Unit const& { return Record<Unit>(data, data.current_unit_ptr); } };
     opeu_control_position(game, current().x, current().y);
     opeu_arrival_location(game, static_cast<uint8_t>(current().x), static_cast<uint8_t>(current().y), static_cast<uint8_t>(data.current_side));
@@ -156,18 +156,18 @@ void opeu_turn_action_6(Game& game) {
   auto const          text{ LocalAt(locals, PROMPT_TEXT) };
   auto const          person{ [&] { return data.context_record2; } };
   auto const          units{ Near(data, data.row_units) };
-  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_title_panel_begin(game);
   auto flags{ LIST_FIRST };
   Refresh(game);
   for (;;) {
     opeu_copy_bytes(game, LocalAt(locals, UNIT_LIST), state, LIST_STATE_SIZE);
     data.organize_list.rows = static_cast<std::uint8_t>(opeu_side_supported_units(game, static_cast<uint8_t>(data.current_side), units)) + 1;
     if (data.organize_list.rows == 1) {
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_none), person());
+      opeu_control_message(game, Near(data, data.organize_none), person());
       return;
     }
     SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_which), person());
+    opeu_control_message(game, Near(data, data.organize_which), person());
     if (!opeu_list_dialog(game, Near(data, data.organize_list), 1, static_cast<uint8_t>(flags))) break;
     opeu_copy_bytes(game, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
     auto const unit{ data.row_units[data.list_row] };
@@ -189,11 +189,11 @@ void opeu_turn_action_6(Game& game) {
       if (!objective) continue;
       if (static_cast<std::uint8_t>(opeu_objective_side(game, objective)) != data.current_side) continue;
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.organize_confirm_format), objective });
-      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, person())) continue;
+      if (!opeu_confirm_message(game, text, person())) continue;
       allocation.types       = static_cast<std::uint8_t>(opeu_tally_unit_stock(game, unit, objective));
       allocation.other_slots = 0;
       allocation.spare_slots = static_cast<std::uint8_t>(STOCK_ITEMS - data.tally_reject_count);
-      if (allocation.spare_slots == 0) opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_no_arms), person());
+      if (allocation.spare_slots == 0) opeu_control_message(game, Near(data, data.organize_no_arms), person());
       found = true;
       break;
     }
@@ -201,14 +201,14 @@ void opeu_turn_action_6(Game& game) {
       // Otherwise a neighbouring regiment of the same class.
       allocation.types = static_cast<std::uint8_t>(opeu_neighbor_units(game, unit, units));
       if (allocation.types == 0) {
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_no_neighbor), person());
+        opeu_control_message(game, Near(data, data.organize_no_neighbor), person());
         flags = LIST_AGAIN;
         Refresh(game);
         continue;
       }
       data.organize_list.rows = static_cast<std::uint8_t>(allocation.types + 1);
       SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_with), person());
+      opeu_control_message(game, Near(data, data.organize_with), person());
       if (!opeu_list_dialog(game, Near(data, data.organize_list), 1, static_cast<uint8_t>(LIST_FIRST))) {
         flags = LIST_AGAIN;
         Refresh(game);
@@ -224,7 +224,7 @@ void opeu_turn_action_6(Game& game) {
     // The battalions must fit the free element slots; otherwise the player may keep only the first regiment's.
     auto const free{ static_cast<std::uint8_t>(opeu_release_side_elements(game, 0, 0)) };
     if (free + other_elements + elements < allocation.slots + allocation.other_slots) {
-      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_full), person())) {
+      if (!opeu_confirm_message(game, Near(data, data.organize_full), person())) {
         flags = LIST_AGAIN;
         Refresh(game);
         continue;
@@ -236,6 +236,5 @@ void opeu_turn_action_6(Game& game) {
     flags = LIST_AGAIN;
     Refresh(game);
   }
-  if (data.side_delays[data.current_side])
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DAILY_SHOW_MODE, static_cast<uint8_t>(data.current_side), Presenter::ALLOCATION_FINISH);
+  if (data.side_delays[data.current_side]) opeu_daily_show(game, DAILY_SHOW_MODE, static_cast<uint8_t>(data.current_side), Presenter::ALLOCATION_FINISH);
 }

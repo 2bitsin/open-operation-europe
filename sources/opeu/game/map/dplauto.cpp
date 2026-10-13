@@ -67,7 +67,7 @@ void Store(Game& game, ScratchCell scratch, GridCell cell) {
 }
 
 [[nodiscard]] auto Random(Game& game, uint16_t bound) -> uint16_t {
-  return port_rand_bounded(game, bound);
+  return game.State().RandomBounded(bound);
 }
 
 [[nodiscard]] auto CanPlace(Game& game, GridCell cell, uint16_t element) -> bool {

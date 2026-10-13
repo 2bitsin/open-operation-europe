@@ -105,7 +105,7 @@ void opeu_transfer_step(Game& game) {
     case KEY_ENTER:
       opeu_transfer_draw_row(game, selected);
       if (data.transfer_interactive) {
-        data.transfer_interactive = opeu_confirm_ok(game, static_cast<const DialogHost*>(port_dialogs_host()), data.context_group_record);
+        data.transfer_interactive = opeu_confirm_ok(game, data.context_group_record);
         return;
       }
       opeu_sound_cue16(game);
@@ -124,12 +124,12 @@ void opeu_transfer_step(Game& game) {
 uint16_t opeu_transfer_run(Game& game, uint16_t interactive) {
   auto& data{ Data(game) };
   if (interactive)
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
+    opeu_unit_report(game, data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
   else if (SidePlayed(data, data.current_side) && opeu_unit_selection_eligible(game, data.current_unit_ptr))
-    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
+    opeu_unit_report(game, data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
   data.transfer_interactive = interactive;
   if (SidePlayed(data, data.current_side))
-    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER_STEP);
+    opeu_daily_show(game, TRANSFER_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::TRANSFER_STEP);
   else
     opeu_transfer_step(game);
   opeu_music_command7(game);

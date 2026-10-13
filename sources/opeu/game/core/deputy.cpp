@@ -4,7 +4,6 @@
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
-#include "common/random.hpp"
 #include "core/personfl.hpp"
 #include "core/strings.hpp"
 #include "port.hpp"
@@ -39,7 +38,7 @@ uint8_t opeu_choose_deputy_identity(Game& game, uint8_t side) {
     if (person.status != PERSON_VACANT && (person.role & Bits(PersonRole::DEPUTY)) && person.portrait > identity) identity = person.portrait;
   }
   if (range.last <= identity)
-    identity = static_cast<std::uint8_t>(RandomBelow(game, static_cast<std::uint16_t>(range.last - range.first + 1)) + range.first);
+    identity = static_cast<std::uint8_t>(game.State().RandomBounded(static_cast<std::uint16_t>(range.last - range.first + 1)) + range.first);
   else
     ++identity;
   return identity;

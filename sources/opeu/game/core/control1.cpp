@@ -81,12 +81,12 @@ void opeu_turn_control_one(Game& game) {
     for (;;) {
       opeu_army_summary(game);
       data.control_selection = 0;
-      opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+      opeu_turn_active_begin(game);
       opeu_turn_pre_context(game);
       if (!inspecting) {
         ServiceLocals const prompt{ PROMPT_BYTES };
         opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt.At(0), PROMPT_FORMAT, data.context_record1 });
-        auto const choice{ opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
+        auto const choice{ opeu_control_choose(game, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
           Dispatch(CONTROL_ACTIONS, data.control_actions.at(choice), game);
           break;
@@ -102,7 +102,7 @@ void opeu_turn_control_one(Game& game) {
         auto const          at_y{ cell.At(CELL_Y_AT) };
         SetWord(game, at_x, unit.x);
         SetWord(game, at_y, unit.y);
-        do opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), READY_TEXT, data.context_record2);
+        do opeu_control_message(game, READY_TEXT, data.context_record2);
         while (opeu_control_coordinates(game, at_x, at_y));
       }
     }

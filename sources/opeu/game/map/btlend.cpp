@@ -103,7 +103,7 @@ void opeu_battle_objective_damage(Game& game) {
   auto&      data{ Data(game) };
   auto const site{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   if (site == 0) return;
-  if (port_rand_bounded(game, 100) > 40) return;
+  if (game.State().RandomBounded(100) > 40) return;
   uint8_t ours{ 0 };
   uint8_t enemies{ 0 };
   for (unsigned i{ 0 }; BattleList(data, 0, i) != 0; ++i) ours = static_cast<uint8_t>(opeu_battle_element_count(game, BattleList(data, 0, i)));
@@ -111,11 +111,11 @@ void opeu_battle_objective_damage(Game& game) {
   auto loss{ static_cast<uint16_t>(ours - enemies) };
   if (loss < 0xfffc) return;
   if (loss < 1) {
-    auto const r{ static_cast<uint16_t>(port_rand_bounded(game, 51) + 50) };
+    auto const r{ static_cast<uint16_t>(game.State().RandomBounded(51) + 50) };
     loss = opeu_mul_div(static_cast<uint16_t>(loss + 5), r, 100);
   }
   if (loss > 7) {
-    auto const r{ static_cast<uint16_t>(port_rand_bounded(game, 101) + 50) };
+    auto const r{ static_cast<uint16_t>(game.State().RandomBounded(101) + 50) };
     loss = opeu_mul_div(7, r, 100);
   }
   opeu_sub_byte(static_cast<uint8_t>(loss), &Record<Objective>(data, site).strength);

@@ -30,7 +30,7 @@ constexpr std::uint16_t RESUME_DRAW{ 15 };
 uint16_t opeu_order_arrive(Game& game) {
   auto& data{ Data(game) };
   if (!StandsOn(data, DestinationCell(game))) return 0;
-  opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, data.arrived_text));
+  opeu_unit_report(game, data.current_unit_ptr, Near(data, data.arrived_text));
   opeu_restore_unit_order(game, data.current_unit_ptr);
   return 1;
 }
@@ -62,7 +62,7 @@ uint16_t opeu_order_hold(Game& game) {
   if (opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(delay)) && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)
     for (auto const& element : Elements(data, CurrentUnit(data)))
       // The draw comes before the element is read.
-      if (auto const draw{ port_rand_bounded(game, RESUME_DRAW) }; element.experience < draw) {
+      if (auto const draw{ game.State().RandomBounded(RESUME_DRAW) }; element.experience < draw) {
         opeu_restore_unit_order(game, data.current_unit_ptr);
         break;
       }

@@ -59,26 +59,26 @@ restart:
   opeu_finish_side_initialization(game, 1);
 title:
   opeu_vga_clear();
-  opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0, 0, handle, 0);
-  opeu_palette_title_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), at(data.scensel_colors));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xf4);
-  selection = port_prompt_required(game, at(data.scensel_start_prompt), 2, at(data.scensel_start_menu));
+  opeu_picture_file_masked(game, 0, 0, handle, 0);
+  opeu_palette_title_screen(game);
+  opeu_ui_text(game, at(data.scensel_colors));
+  opeu_army_position(game, 4, 0xf4);
+  selection = opeu_prompt_value_required(game, at(data.scensel_start_prompt), 2, at(data.scensel_start_menu));
   if (selection == 1) {
     new_game = 1;
   scenario_menu:
     opeu_scenario_clear_panel(game);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x12c);
-    selection = port_prompt_cancel(game, at(data.scensel_scenario_prompt), 6, at(data.scensel_scenario_menu));
+    opeu_army_position(game, 4, 0x12c);
+    selection = opeu_prompt_value_cancel(game, at(data.scensel_scenario_prompt), 6, at(data.scensel_scenario_menu));
     if (selection == 0xff) goto title;
     scenario = selection;
     opeu_load_scenario_text(game, scenario, buf);
-    opeu_picture_file_masked(game, static_cast<const UiHost*>(port_uiprim_host()), 0x15c, 0x10, handle, data.scensel_pictures[scenario]);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x18);
+    opeu_picture_file_masked(game, 0x15c, 0x10, handle, data.scensel_pictures[scenario]);
+    opeu_army_position(game, 4, 0x18);
     opeu_scenario_clear_panel(game);
     opeu_scenario_description(game, buf);
     opeu_setup_marker_show(game, scenario);
-    if (!port_prompt_yes_no(game, at(data.scensel_empty))) goto rejected;
+    if (!opeu_prompt_yes_no(game, at(data.scensel_empty))) goto rejected;
     port_load_scenario(game, scenario);
     opeu_set_turn_context(game, 0);
     opeu_music_stop(game);
@@ -87,7 +87,7 @@ title:
     opeu_scenario_clear_panel(game);
     opeu_scenario_frame(game);
     opeu_scenario_clear_text(game);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 6, 7);
+    opeu_army_position(game, 6, 7);
     switch (data.scenario + 1) {
     case 1:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_france) }); break;
     case 2:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_africa) }); break;
@@ -96,8 +96,8 @@ title:
     case 5:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_bulge) }); break;
     default: opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_berlin) }); break;
     }
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xf4);
-    selection = port_prompt_cancel(game, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
+    opeu_army_position(game, 4, 0xf4);
+    selection = opeu_prompt_value_cancel(game, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
     if (selection == 0xff) {
       opeu_set_turn_context(game, 0);
       opeu_music_stop(game);
@@ -109,13 +109,13 @@ title:
     }
     switch (selection) {
     case 1:
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x19);
+      opeu_army_position(game, 4, 0x19);
       opeu_scenario_message(game, at(data.scensel_demo));
       side_control[1] = side_control[0] = 0;
     view_side:
       opeu_scenario_clear_text(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xdc);
-      selection = port_prompt_cancel(game, at(data.scensel_view_prompt), 2, at(data.scensel_side_menu));
+      opeu_army_position(game, 4, 0xdc);
+      selection = opeu_prompt_value_cancel(game, at(data.scensel_view_prompt), 2, at(data.scensel_side_menu));
       if (selection == 0xff) goto players;
       if (!data.input_mode) selection = selection == 1 ? 2 : 1;
       if (selection == 1) {
@@ -126,17 +126,17 @@ title:
         side_status[1] = 1;
       }
       opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_view_format), data.ui_side_names[selection - 1] });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x28);
+      opeu_army_position(game, 4, 0x28);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_view_line), buf });
       data.message_delay = 7;
       break;
     case 2:
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x19);
+      opeu_army_position(game, 4, 0x19);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_one_player), buf });
     command_side:
       opeu_scenario_clear_text(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xdc);
-      selection = port_prompt_cancel(game, at(data.scensel_command_prompt), 2, at(data.scensel_side_menu));
+      opeu_army_position(game, 4, 0xdc);
+      selection = opeu_prompt_value_cancel(game, at(data.scensel_command_prompt), 2, at(data.scensel_side_menu));
       if (selection == 0xff) goto players;
       if (!data.input_mode) selection--;
       if (selection == 1) {
@@ -148,11 +148,11 @@ title:
         side_status[1] = side_control[1] = 1;
       }
       opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_command_format), data.ui_side_names[selection - 1] });
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x28);
+      opeu_army_position(game, 4, 0x28);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_command_line), buf });
       break;
     case 3:
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x19);
+      opeu_army_position(game, 4, 0x19);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_two_players), buf });
       side_status[1] = side_status[0] = side_control[1] = side_control[0] = 1;
       break;
@@ -160,8 +160,8 @@ title:
     }
   map:
     opeu_scenario_clear_text(game);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xdc);
-    data.map_mode[0] = port_prompt_cancel(game, at(data.scensel_map_prompt), 2, at(data.scensel_map_menu));
+    opeu_army_position(game, 4, 0xdc);
+    data.map_mode[0] = opeu_prompt_value_cancel(game, at(data.scensel_map_prompt), 2, at(data.scensel_map_menu));
     if (data.map_mode[0] == 0xff) {
       if (side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_PLAYED) goto players;
       if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) goto view_side;
@@ -175,16 +175,16 @@ title:
         data.map_mode[0] = 0;
     }
     opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_map_format), (!data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field)) });
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x37);
+    opeu_army_position(game, 4, 0x37);
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_map_line), buf });
   battles:
     opeu_scenario_clear_text(game);
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xdc);
-      selection = port_prompt_cancel(game, at(data.scensel_battles_prompt), 2, at(data.scensel_battles_menu));
+      opeu_army_position(game, 4, 0xdc);
+      selection = opeu_prompt_value_cancel(game, at(data.scensel_battles_prompt), 2, at(data.scensel_battles_menu));
     } else {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0xf4);
-      selection = port_prompt_cancel(game, at(data.scensel_battles_prompt2), 3, at(data.scensel_battles_menu2));
+      opeu_army_position(game, 4, 0xf4);
+      selection = opeu_prompt_value_cancel(game, at(data.scensel_battles_prompt2), 3, at(data.scensel_battles_menu2));
     }
     if (selection == 0xff) goto map;
     switch (selection) {
@@ -201,13 +201,13 @@ title:
       opeu_string_copy(game, buf, at(data.scensel_view_selected));
       break;
     }
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x46);
+    opeu_army_position(game, 4, 0x46);
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_battles_line), buf });
   difficulty:
     if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) {
       opeu_scenario_clear_text(game);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x124);
-      data.delivery_level = port_prompt_cancel(game, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
+      opeu_army_position(game, 4, 0x124);
+      data.delivery_level = opeu_prompt_value_cancel(game, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
       if (data.delivery_level == 0xff) goto battles;
       data.delivery_level--;
       opeu_string_copy(game, buf, at(data.scensel_difficulty));
@@ -218,13 +218,13 @@ title:
       case 3: opeu_string_append(game, buf, at(data.scensel_hard)); break;
       case 4: opeu_string_append(game, buf, at(data.scensel_very_hard)); break;
       }
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x55);
+      opeu_army_position(game, 4, 0x55);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_difficulty_line), buf });
     }
     opeu_ui_box(4, 0x86, 0x22, 0xe0, 7);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x154);
-    if (!port_prompt_yes_no(game, at(data.scensel_settings_ok))) {
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x154);
+    opeu_army_position(game, 4, 0x154);
+    if (!opeu_prompt_yes_no(game, at(data.scensel_settings_ok))) {
+      opeu_army_position(game, 4, 0x154);
       opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_reselect) });
       opeu_ui_box(4, 0x86, 0x22, 0xe0, 7);
       if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) goto difficulty;
@@ -233,29 +233,29 @@ title:
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
       opeu_confirm_generals(game);
       opeu_ui_box(2, 0x86, 0x22, 0x154, 7);
-      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 4, 0x154);
-      if (port_prompt_yes_no(game, at(data.scensel_ready_demo))) goto start;
+      opeu_army_position(game, 4, 0x154);
+      if (opeu_prompt_yes_no(game, at(data.scensel_ready_demo))) goto start;
       goto restart;
     }
     opeu_delay_units(game, 15);
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), at(data.scensel_ready_colors));
+    opeu_ui_text(game, at(data.scensel_ready_colors));
     opeu_confirm_generals(game);
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x14, 0x170);
+    opeu_army_position(game, 0x14, 0x170);
   } else if (selection == 2) {
     new_game = 0;
-    opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), at(data.scensel_load_colors));
+    opeu_ui_text(game, at(data.scensel_load_colors));
     if (!opeu_load_saved_game(game)) goto restart;
-    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x1c, 0xbc);
+    opeu_army_position(game, 0x1c, 0xbc);
   } else
     goto title;
   opeu_staff_restore_bottom(game);
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), 4);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 0x1c, 0xbc, at(data.scensel_ready_blank)));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x1c, 0xbc);
-  if (!port_prompt_yes_no(game, at(data.scensel_ready))) goto restart;
+  opeu_text_paper_set(game, 4);
+  opeu_ui_text(game, opeu_title_box(game, 0x1c, 0xbc, at(data.scensel_ready_blank)));
+  opeu_army_position(game, 0x1c, 0xbc);
+  if (!opeu_prompt_yes_no(game, at(data.scensel_ready))) goto restart;
 start:
   opeu_load_scenario_graphics(game);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), at(data.scensel_done_colors));
+  opeu_ui_text(game, at(data.scensel_done_colors));
   opeu_dos_close(handle);
   return new_game;
 }

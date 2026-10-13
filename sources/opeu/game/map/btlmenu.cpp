@@ -96,10 +96,10 @@ uint16_t opeu_battle_orders_menu(Game& game, uint16_t element) {
     auto choice{ opeu_prompt_value(game, Near(data, data.battle_msg_orders), 1, BUTTONS, static_cast<std::int16_t>(1), Near(data, data.battle_menu_items)) };
     if (choice == MENU_CANCELLED) {
       Panels(game);
-      opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+      opeu_text_paper_set(game, static_cast<uint8_t>(0));
       return 0;
     }
-    opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+    opeu_text_paper_set(game, static_cast<uint8_t>(0));
     if (choice == std::to_underlying(Choice::REST)) choice = std::to_underlying(Choice::WITHDRAW);
     auto const withdraw{ choice == std::to_underlying(Choice::WITHDRAW) };
     switch (static_cast<Choice>(choice)) {

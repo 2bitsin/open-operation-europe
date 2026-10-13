@@ -1,7 +1,6 @@
 // Delivering a supplies request to an objective, and the services every delivery report uses.
 #include "core/reqres.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/numeric.hpp"
 #include "core/textout.hpp"
 #include "data-segment.hpp"
@@ -30,7 +29,7 @@ constexpr uint16_t HEADER_SIDE_WORD[]{ 54, 53 };
 
 // 10000..40000 of a supply, up to the limit.
 void Deliver(Game& game, uint16_t* stock) {
-  opeu_add_word(RandomBelow(game, 30001) + 10000, SUPPLY_LIMIT, stock);
+  opeu_add_word(game.State().RandomBounded(30001) + 10000, SUPPLY_LIMIT, stock);
 }
 
 } // namespace
@@ -49,10 +48,10 @@ void opeu_request_action0(Game& game, uint8_t side, uint16_t request) {
   // The words are taken before the text is looked up.
   uint16_t const header_words[]{ HEADER_SIDE_WORD[side == 0 ? 0 : 1], Near(data, objective) };
   opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, opeu_message_lookup(game, HEADER_MESSAGE), header_words[0], header_words[1] });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
+  opeu_control_message(game, buffer, data.request_person);
   opeu_request_wait(game);
   uint16_t const detail_words[]{ now[1], static_cast<uint16_t>(now[1] - before[1]), now[0], static_cast<uint16_t>(now[0] - before[0]), now[2], static_cast<uint16_t>(now[2] - before[2]) };
   opeu_request_format(
       game, std::array<std::uint16_t, 8>{ buffer, opeu_message_lookup(game, DETAIL_MESSAGE), detail_words[0], detail_words[1], detail_words[2], detail_words[3], detail_words[4], detail_words[5] });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
+  opeu_control_message(game, buffer, data.request_person);
 }

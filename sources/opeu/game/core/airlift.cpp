@@ -8,7 +8,6 @@
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
 #include "core/msglook.hpp"
-#include "core/random.hpp"
 #include "core/textout.hpp"
 #include "map/mappick.hpp"
 #include "types.hpp"
@@ -59,20 +58,20 @@ uint8_t opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes) {
   auto                lead{ static_cast<std::uint8_t>(opeu_min16(planes - data.air_leadership / 30 + 3, MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
-    if (90 - static_cast<std::uint8_t>(opeu_rand_bounded(30)) > data.air_charm) {
+    if (90 - static_cast<std::uint8_t>(game.State().Generator().Bounded(30)) > data.air_charm) {
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.lift_lead_format), static_cast<std::uint16_t>(lead) });
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+      opeu_control_message(game, text, data.air_person);
       return lead;
     }
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, LEAD_ACCEPTED), static_cast<std::uint16_t>(lead + 1) });
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+    opeu_control_message(game, text, data.air_person);
     return hours;
   }
-  if (opeu_hour_is_day((hours + data.hour) % 24) && 60 - static_cast<std::uint8_t>(opeu_rand_bounded(20)) > data.air_charm) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, LIFT_REFUSED), data.air_person);
+  if (opeu_hour_is_day((hours + data.hour) % 24) && 60 - static_cast<std::uint8_t>(game.State().Generator().Bounded(20)) > data.air_charm) {
+    opeu_control_message(game, opeu_message_lookup(game, LIFT_REFUSED), data.air_person);
     return 0;
   }
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_understood), data.air_person);
+  opeu_control_message(game, Near(data, data.lift_understood), data.air_person);
   return hours;
 }
 
@@ -85,7 +84,7 @@ uint16_t opeu_air_lift_order(Game& game, uint8_t x, uint8_t y, uint8_t hours, ui
   opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.lift_start_format), static_cast<std::uint16_t>(hours),
                                                           (hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), planes,
                                                           (planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
+  opeu_control_message(game, text, data.air_person);
   if (!opeu_air_confirm(game)) return 0;
   auto& lift{ Record<Side>(data, data.current_side_ptr).lift };
   lift.x           = x;
@@ -106,12 +105,12 @@ void opeu_air_lift_command(Game& game) {
   auto const ask{ [&](std::uint16_t text, std::uint16_t low, std::uint16_t high) { return opeu_air_ask_count(game, text, low, high, 1, data.context_record3, 0); } };
   auto&      side{ Record<Side>(data, data.current_side_ptr) };
   if (side.lift.planes != 0) {
-    if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_cancel), data.context_record3)) return;
+    if (!opeu_confirm_message(game, Near(data, data.lift_cancel), data.context_record3)) return;
     side.lift.planes = 0;
   }
   std::uint16_t remaining{ opeu_air_free_planes(game) };
   if (remaining == 0) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_no_planes), data.context_record3);
+    opeu_control_message(game, Near(data, data.lift_no_planes), data.context_record3);
     return;
   }
   remaining = opeu_min16(remaining, TOTAL_PLANES);
@@ -138,14 +137,14 @@ void opeu_air_lift_command(Game& game) {
   cell_x = static_cast<std::uint8_t>(data.viewport_x);
   cell_y = static_cast<std::uint8_t>(data.viewport_y);
   do {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_select_point), data.context_record3);
+    opeu_control_message(game, Near(data, data.lift_select_point), data.context_record3);
     if (!opeu_map_pick_location(game, at_x, at_y)) return;
   } while (!opeu_air_target_valid(game, cell_x, cell_y, Near(data, data.lift_cargo_name)));
   auto const delay{ ask(Near(data, data.lift_ask_hours), 1, 24) };
   if (delay == MENU_CANCELLED) return;
   auto       hours{ static_cast<std::uint8_t>(delay) };
   auto const planes{ static_cast<std::uint16_t>(initial - remaining) };
-  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.lift_confirm), data.context_record3)) return;
+  if (!opeu_confirm_message(game, Near(data, data.lift_confirm), data.context_record3)) return;
   hours = opeu_air_lift_lead(game, hours, planes);
   if (hours && !opeu_air_lift_order(game, cell_x, cell_y, hours, planes, ammo, fuel, food)) return;
   data.side_delays[data.current_side] = 1;

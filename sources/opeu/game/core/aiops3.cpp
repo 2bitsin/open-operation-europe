@@ -9,7 +9,6 @@
 #include "core/aiops1.hpp"
 #include "core/counter.hpp"
 #include "core/personfl.hpp"
-#include "core/random.hpp"
 #include "core/sideutil.hpp"
 #include "map/query.hpp"
 #include "units/resagg.hpp"
@@ -90,7 +89,7 @@ uint16_t opeu_ai_pick_enemy_objective(Game& game) {
   for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
     auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (near && opeu_objective_side(game, near) != data.current_side)
-      if (!pick || !opeu_rand_bounded(3)) pick = near;
+      if (!pick || !game.State().Generator().Bounded(3)) pick = near;
   }
   return pick;
 }
@@ -104,7 +103,7 @@ uint16_t opeu_ai_pick_enemy_unit(Game& game) {
     auto&      unit{ data.units[enemy * UNITS_PER_SIDE + i] };
     auto const near{ Near(data, unit) };
     if ((unit.flags & Bits(UnitFlag::READY)) && opeu_unit_special(game, near))
-      if (!pick || !opeu_rand_bounded(8)) pick = near;
+      if (!pick || !game.State().Generator().Bounded(8)) pick = near;
   }
   return pick;
 }
@@ -115,7 +114,7 @@ uint16_t opeu_ai_choose_target(Game& game) {
   auto& data{ Data(game) };
   auto& order{ Record<Side>(data, data.current_side_ptr).order };
   if (order.kind != NO_TARGET) return 0;
-  auto const    draw{ static_cast<std::uint8_t>(opeu_rand_bounded(8)) };
+  auto const    draw{ static_cast<std::uint8_t>(game.State().Generator().Bounded(8)) };
   std::uint16_t target{ 0 };
   switch (draw) {
   case 0:

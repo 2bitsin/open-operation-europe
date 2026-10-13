@@ -49,7 +49,7 @@ namespace {
     auto const distance{ GridDistance(from, { other.x, other.y }) };
     if (opeu_unit_selection_eligible(game, current) && sight > distance)
       for (auto& element : Elements(data, other))
-        if (port_rand_bounded(game, sight) >= distance) element.flags |= Bits(ElementFlag::SPOTTED);
+        if (game.State().RandomBounded(sight) >= distance) element.flags |= Bits(ElementFlag::SPOTTED);
     if (opeu_unit_selection_eligible(game, Near(data, other)) && distance < nearest) nearest = distance;
   }
   return nearest;
@@ -64,9 +64,9 @@ void opeu_move_spot(Game& game) {
   if (nearest == NONE || (mover.flags & Bits(UnitFlag::SPOTTED))) return;
   // The nearest enemy may spot the mover's elements in turn; an unseen element may slip away.
   for (auto& element : Elements(data, mover)) {
-    if (port_rand_bounded(game, sight) >= nearest)
+    if (game.State().RandomBounded(sight) >= nearest)
       element.flags |= Bits(ElementFlag::SPOTTED);
-    else if (!port_rand_bounded(game, static_cast<std::uint16_t>(sight * 10)))
+    else if (!game.State().RandomBounded(static_cast<std::uint16_t>(sight * 10)))
       element.flags &= ~Bits(ElementFlag::SPOTTED);
   }
 }

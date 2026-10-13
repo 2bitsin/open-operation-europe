@@ -6,7 +6,6 @@
 #include "common/events.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/memory.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
@@ -61,13 +60,13 @@ void SetRequests(Game& game, RequestKind kind, uint16_t enabled) {
 // Each element of the side gains 30..49 morale, up to 99.
 void RaiseMorale(Game& game, uint8_t side) {
   std::ranges::for_each(std::span{ Data(game).elements }.subspan(side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE),
-                        [&game](Element& element) { opeu_add_byte(RandomBelow(game, 20) + 30, 99, &element.morale); });
+                        [&game](Element& element) { opeu_add_byte(game.State().RandomBounded(20) + 30, 99, &element.morale); });
 }
 
 // Each element of the side loses 30..49 morale.
 void LowerMorale(Game& game, uint8_t side) {
   std::ranges::for_each(std::span{ Data(game).elements }.subspan(side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE),
-                        [&game](Element& element) { opeu_sub_byte(RandomBelow(game, 20) + 30, &element.morale); });
+                        [&game](Element& element) { opeu_sub_byte(game.State().RandomBounded(20) + 30, &element.morale); });
 }
 
 // A side with a reserve division expects its reserves.
@@ -153,27 +152,27 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 // Opens the panel with the person's post, name and portrait.
 void OpenSpeakerPanel(Game& game, uint16_t person) {
   auto& data{ Data(game) };
-  opeu_message_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), At(offsetof(DataSegment, noon_role_style)));
+  opeu_message_panel_begin(game);
+  opeu_ui_text(game, At(offsetof(DataSegment, noon_role_style)));
   auto const role{ data.role_names[(Record<Person>(data, person).role & Bits(PersonRole::ROLE_MASK)) - 1] };
-  opeu_context_frame(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2c, 0x11a, static_cast<uint8_t>(opeu_string_length(game, person) + opeu_string_length(game, role) + 5));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), role);
+  opeu_context_frame(game, 0x2c, 0x11a, static_cast<uint8_t>(opeu_string_length(game, person) + opeu_string_length(game, role) + 5));
+  opeu_ui_text(game, role);
   opeu_cursor_print(game, std::array<uint16_t, 2>{ At(offsetof(DataSegment, noon_name_format)), person });
-  opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 0x2d, 0x13c, person);
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), At(offsetof(DataSegment, noon_speech_style)));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), 0x36, 0x144);
+  opeu_context_portrait(game, 0x2d, 0x13c, person);
+  opeu_ui_text(game, At(offsetof(DataSegment, noon_speech_style)));
+  opeu_army_position(game, 0x36, 0x144);
 }
 
 // Closes the speaker's panel and waits for a key.
 void CloseSpeakerPanel(Game& game) {
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), At(offsetof(DataSegment, noon_speech_end)));
+  opeu_ui_text(game, At(offsetof(DataSegment, noon_speech_end)));
   opeu_wait_confirm(game, 1);
 }
 
 // The person speaks the text in the portrait panel.
 void Speak(Game& game, uint16_t speech, uint16_t person) {
   OpenSpeakerPanel(game, person);
-  opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), speech);
+  opeu_text_feed(game, speech);
   CloseSpeakerPanel(game);
 }
 
@@ -207,11 +206,11 @@ void opeu_turn_noon_events(Game& game, const uint8_t* far_text) {
   opeu_daily_context(game, data.current_side);
   for (auto const& noon : data.noon_events | std::views::take_while(listed) | std::views::filter(today)) {
     if (noon.action != NoonAction::NONE) Dispatch(NOON_ACTIONS, noon.action, game);
-    opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+    opeu_turn_active_begin(game);
     opeu_string_copy_far(game, news, const_cast<uint8_t*>(far_text), noon.news.offset);
     opeu_string_append(game, news, At(offsetof(DataSegment, noon_news_end)));
     if (far_text[noon.news.offset]) opeu_sound_cue10(game);
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), news, opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
+    opeu_control_message(game, news, opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
     if (noon.leader != NO_SPEECH) LeaderSpeaks(game, far_text, noon);
   }
 }

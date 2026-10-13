@@ -16,7 +16,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/airshow.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
@@ -69,11 +68,11 @@ uint16_t opeu_air_damage_roll(Game& game, uint8_t x, uint8_t y, uint8_t n) {
   auto&         data{ Data(game) };
   auto const    side{ data.air_side };
   auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == SIDE_PLAYED ? (data.delivery_level >> 1) * n : n) + 1) };
-  std::uint16_t lost{ opeu_officer_rating(game, side, AIR_OFFICER_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(game, bound) + 1) };
-  if (!IsNight(game)) lost += RandomBelow(game, bound) + 1;
-  if (data.sides[side].strength <= HIGH_MORALE) lost += RandomBelow(game, bound) + 1;
-  if (auto const foe{ opeu_find_unit_at(game, x, y) }; foe != 0 && opeu_unit_side(foe) != side) lost += RandomBelow(game, bound);
-  if (auto const objective{ opeu_find_objective_at(game, x, y) }; objective != 0 && opeu_objective_side(game, objective) != side) lost += RandomBelow(game, bound);
+  std::uint16_t lost{ opeu_officer_rating(game, side, AIR_OFFICER_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(game.State().RandomBounded(bound) + 1) };
+  if (!IsNight(game)) lost += game.State().RandomBounded(bound) + 1;
+  if (data.sides[side].strength <= HIGH_MORALE) lost += game.State().RandomBounded(bound) + 1;
+  if (auto const foe{ opeu_find_unit_at(game, x, y) }; foe != 0 && opeu_unit_side(foe) != side) lost += game.State().RandomBounded(bound);
+  if (auto const objective{ opeu_find_objective_at(game, x, y) }; objective != 0 && opeu_objective_side(game, objective) != side) lost += game.State().RandomBounded(bound);
   return lost;
 }
 
@@ -83,7 +82,7 @@ void opeu_air_destroyed_message(Game& game, uint16_t what) {
   auto const          text{ locals.At(0) };
   opeu_request_format(game, std::array<std::uint16_t, 3>{ text, DESTROYED_FORMAT, what });
   auto const officer{ opeu_find_side_record(game, Data(game).air_side, AIR_OFFICER_KIND) };
-  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, officer);
+  opeu_control_message(game, text, officer);
 }
 
 // Counts the air side's strike order down an hour; when its delay runs out the air officer decides: 1 when it flies
@@ -107,10 +106,10 @@ void opeu_air_strike_present(Game& game) {
   if (data.side_status[side] == SIDE_PLAYED) {
     auto const commander{ opeu_find_side_record(game, side, FLIGHT_COMMANDER_KIND) };
     auto const officer{ opeu_find_person_template(game, Record<Person>(data, commander).status, AIR_OFFICER_TEMPLATE) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), STRIKE_BEGIN, officer);
+    opeu_control_message(game, STRIKE_BEGIN, officer);
   } else {
     auto const enemy{ opeu_opposite_side(side) };
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), STRIKE_SPOTTED, opeu_find_side_record(game, enemy, AIR_OFFICER_KIND));
+    opeu_control_message(game, STRIKE_SPOTTED, opeu_find_side_record(game, enemy, AIR_OFFICER_KIND));
   }
   opeu_sound_cue4(game);
 }
@@ -131,11 +130,11 @@ void opeu_air_strike_hit(Game& game, uint8_t x, uint8_t y, uint16_t n) {
   auto const rate{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(supply / 10 + n) / static_cast<std::uint16_t>(night + shield + 1))
                                               * static_cast<std::uint32_t>(root)) };
   if (unit) {
-    auto const percent{ RandomBelow(game, 60) + 40 };
+    auto const percent{ game.State().RandomBounded(60) + 40 };
     opeu_unit_casualties(game, unit, percent, rate, n, 0, 1);
   }
   if (site) {
-    auto const divisor{ static_cast<std::uint16_t>(RandomBelow(game, 2) + 1) };
+    auto const divisor{ static_cast<std::uint16_t>(game.State().RandomBounded(2) + 1) };
     auto const works_night{ IsNight(game) };
     auto const works_root{ opeu_isqrt(n) };
     auto const works{ static_cast<std::uint16_t>(
@@ -168,7 +167,7 @@ void opeu_air_strike_event(Game& game) {
     opeu_air_sprite_draw(game, 0, hx, row, side);
     if (row == my) {
       auto const shown{ opeu_side_for_status(game, side) };
-      opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), side == 0 ? 0x1e : 0xf, shown, Presenter::AIR_STRIKE);
+      opeu_daily_show(game, side == 0 ? 0x1e : 0xf, shown, Presenter::AIR_STRIKE);
     }
     if (my - row == BOMB_LEAD) {
       opeu_music_command7(game);

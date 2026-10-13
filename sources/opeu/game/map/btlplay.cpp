@@ -34,7 +34,7 @@ constexpr uint8_t REDRAW_ALL{ 2 };
 constexpr uint8_t DISPATCH_ORDERS{ 8 };
 
 void Refresh(Game& game) {
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
+  opeu_text_paper_set(game, static_cast<uint8_t>(0));
   opeu_battle_panel_side1(game);
   opeu_battle_panel_side0(game);
 }

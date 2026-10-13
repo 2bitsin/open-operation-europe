@@ -9,7 +9,6 @@
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "io/mouse.hpp"
 #include "map/btladv.hpp"
 #include "map/btlcalc.hpp"
@@ -172,11 +171,11 @@ void opeu_battle_daily_condition(Game& game) {
     auto const round{ static_cast<uint16_t>(data.battle_level_limit + 1) };
     if (!opeu_hour_is_night(data.hour)) {
       opeu_add_byte(1, RATING_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(opeu_rand_bounded(round), 5), RATING_LIMIT, &element.experience);
+      opeu_add_byte(opeu_min16(game.State().Generator().Bounded(round), 5), RATING_LIMIT, &element.experience);
     } else {
       opeu_sub_byte(1, &element.morale);
       opeu_add_byte(1, RATING_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(static_cast<uint16_t>(opeu_rand_bounded(round) + 5), 10), RATING_LIMIT, &element.experience);
+      opeu_add_byte(opeu_min16(static_cast<uint16_t>(game.State().Generator().Bounded(round) + 5), 10), RATING_LIMIT, &element.experience);
     }
   });
 }

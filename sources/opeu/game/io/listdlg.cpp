@@ -146,8 +146,8 @@ auto ReprintGeneral(Game& game, ListWindow const& window, std::uint16_t general)
   std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
   if (screen_y <= 0xe8 || screen_y >= 0x140) return;
   auto const& person{ Record<Person>(data, general) };
-  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), 7);
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
+  opeu_text_color(game, 7);
+  opeu_army_position(game, static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
                      static_cast<std::int16_t>(static_cast<std::uint16_t>((i - data.list_top) * ROW_HEIGHT + window.y + 0x12)));
   opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(Near(data, data.general_stats_line)), static_cast<std::uint16_t>(person.leadership),
                                                         static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health),
@@ -158,14 +158,14 @@ auto ReprintGeneral(Game& game, ListWindow const& window, std::uint16_t general)
 // after a refusal.
 auto CommandersConfirmed(Game& game) -> bool {
   auto const& data{ Data(game) };
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
+  opeu_text_paper_set(game, static_cast<std::uint8_t>(4));
   // two text rows of 40 two-column cells, row by row, each a copy of the top-left cell
   std::ranges::for_each(std::views::iota(0u, 2u * PROMPT_CELLS), [](std::uint32_t cell) {
     opeu_screen_copy(0, 0, 2, 0x10, static_cast<std::uint16_t>(cell % PROMPT_CELLS * 2), static_cast<std::uint16_t>(0x170 + cell / PROMPT_CELLS * 0x10));
   });
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
+  opeu_army_position(game, static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
   if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) return false;
-  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
+  opeu_text_paper_set(game, static_cast<std::uint8_t>(0));
   return true;
 }
 } // namespace

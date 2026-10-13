@@ -24,7 +24,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
@@ -53,7 +52,7 @@ constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit ha
 constexpr std::uint8_t  MIN_HEALTH{ 30 };
 
 auto Raise(Game& game, std::uint8_t& rating) -> void {
-  opeu_add_byte(RandomBelow(game, 10), RATING_LIMIT, &rating);
+  opeu_add_byte(game.State().RandomBounded(10), RATING_LIMIT, &rating);
 }
 
 // Whether an enemy special unit stands next to the unit.
@@ -76,9 +75,9 @@ void Boost(Game& game, Person& general) {
 void Converse(Game& game, uint8_t side) {
   auto const commander{ opeu_find_side_record(game, side, COMMANDER) };
   auto const speaker{ opeu_find_person_template(game, Record<Person>(Data(game), opeu_find_side_record(game, side, COMMANDER)).status, VISITOR) };
-  auto const say{ [&](std::uint16_t text) { opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, speaker); } };
+  auto const say{ [&](std::uint16_t text) { opeu_control_message(game, text, speaker); } };
   auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, id); } };
-  switch (RandomBelow(game, 3)) {
+  switch (game.State().RandomBounded(3)) {
   case 0:
     opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, VISIT_FORMAT, commander });
     say(TEXT);
@@ -125,13 +124,13 @@ void opeu_visit_event(Game& game) {
     auto const& commander{ Record<Person>(data, record) };
     if (commander.health < MIN_HEALTH || (commander.flags & Bits(PersonRole::POOR_HEALTH))) continue;
     auto const unit{ opeu_person_selected_unit(game, record) };
-    if (!data.weather && opeu_unit_support_condition(game, unit) && opeu_visit_unit_safe(game, Record<Unit>(data, unit)) && RandomBelow(game, 70) == 1) {
+    if (!data.weather && opeu_unit_support_condition(game, unit) && opeu_visit_unit_safe(game, Record<Unit>(data, unit)) && game.State().RandomBounded(70) == 1) {
       auto const& target{ Record<Unit>(data, unit) };
       auto const  x{ target.x };
       auto const  y{ target.y };
       opeu_set_turn_context(game, VISIT_CONTEXT);
       opeu_location_flash(game, x, y, data.event_side);
-      port_daily_show(game, VISIT_SHOW, data.event_side, Presenter::VISIT);
+      opeu_daily_show(game, VISIT_SHOW, data.event_side, Presenter::VISIT);
       data.side_flags[data.event_side] |= Bits(SideFlag::VISITED);
       opeu_finish_side_initialization(game, 0);
     }

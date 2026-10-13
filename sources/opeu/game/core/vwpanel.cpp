@@ -51,7 +51,7 @@ constexpr ScreenPoint GARRISON_ROW{ 0x32, 0xcc };
 constexpr ScreenPoint NO_STOCK_ROW{ 0x2d, 0xdd };
 
 void Position(Game& game, ScreenPoint at) {
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), at.x, at.y);
+  opeu_army_position(game, at.x, at.y);
 }
 
 // Prints the format with its words at the text cursor.
@@ -66,7 +66,7 @@ void Print(Game& game, std::uint16_t format, _Words... words) {
 void opeu_objective_panel(Game& game, uint16_t objective) {
   auto&       data{ Data(game) };
   auto const& city{ Record<Objective>(data, objective) };
-  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), objective);
+  opeu_army_title(game, objective);
   auto const percent{ ObjectiveResourcePercentages(data, objective) };
   Position(game, FIRST_ROW);
   Print(game, FUEL_AMMO, city.resources[1], percent.fuel, city.resources[0], percent.ammunition);
@@ -94,7 +94,7 @@ void opeu_unit_panel(Game& game, uint16_t unit) {
   auto&               data{ Data(game) };
   auto const&         regiment{ Record<Unit>(data, unit) };
   auto const          location_name{ locals.At(2) };
-  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), opeu_unit_name(game, unit, locals.At(0xe)));
+  opeu_army_title(game, opeu_unit_name(game, unit, locals.At(0xe)));
   auto const capacity{ UnitCapacities(data, unit) };
   auto const ammunition{ opeu_resource_percent(regiment.resources[0], capacity.ammunition) };
   auto const fuel{ opeu_resource_percent(regiment.resources[1], capacity.fuel) };

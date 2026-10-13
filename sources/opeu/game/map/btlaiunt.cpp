@@ -140,7 +140,7 @@ auto opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> 
   auto&      data{ Data(game) };
   auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) };
   auto const pick{ [&](uint8_t column, uint8_t row, uint16_t percent) {
-    return opeu_battle_can_enter(game, static_cast<uint8_t>(column), static_cast<uint8_t>(row), element) && port_rand_bounded(game, 100) < percent;
+    return opeu_battle_can_enter(game, static_cast<uint8_t>(column), static_cast<uint8_t>(row), element) && game.State().RandomBounded(100) < percent;
   } };
   auto const search{ [&] -> std::optional<GridCell> {
     if (direction != BATTLE_NOT_ADJACENT) {

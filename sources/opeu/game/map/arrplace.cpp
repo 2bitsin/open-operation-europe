@@ -4,7 +4,6 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
-#include "common/random.hpp"
 #include "map/cellpred.hpp"
 #include "map/reqcells.hpp"
 #include "types.hpp"
@@ -28,7 +27,7 @@ uint16_t opeu_arrival_locate(Game& game, uint16_t x, uint16_t y, uint8_t side) {
   Byte(game, x) = NONE;
   for (auto const cell_y : std::views::iota(uint8_t{ 0 }, MAP_HEIGHT))
     for (auto const cell_x : std::views::iota(uint8_t{ 0 }, MAP_WIDTH))
-      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(game, x) == NONE || RandomBelow(game, count) == 0)) {
+      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(game, x) == NONE || game.State().RandomBounded(count) == 0)) {
         Byte(game, x) = cell_x;
         Byte(game, y) = cell_y;
       }

@@ -3,7 +3,6 @@
 // nearest able division to (capture an enemy objective, hold an own one); a division left without such tasks is sent
 // to a random cell in a quarter of the map no other division stands in.
 #include "core/groupai.hpp"
-#include "core/random.hpp"
 #include "map/distance.hpp"
 #include "map/grid-cell.hpp"
 #include "map/grid.hpp"
@@ -16,7 +15,6 @@
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
 #include "common/game.hpp"
-#include "common/random.hpp"
 
 #include <algorithm>
 #include <array>
@@ -154,8 +152,8 @@ constexpr std::uint8_t ORDER_12{ 12 };                                          
   auto const corner_x{ static_cast<std::uint8_t>((quarter->x & 1) * QUARTER) };
   auto const corner_y{ static_cast<std::uint8_t>((quarter->y & 1) * QUARTER) };
   for ([[maybe_unused]] auto const attempt : std::views::iota(0, 100)) {
-    auto const cell_x{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + corner_x) };
-    auto const cell_y{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + corner_y) };
+    auto const cell_x{ static_cast<std::uint8_t>(game.State().RandomBounded(QUARTER) + corner_x) };
+    auto const cell_y{ static_cast<std::uint8_t>(game.State().RandomBounded(QUARTER) + corner_y) };
     switch (opeu_map_code(game, cell_x, cell_y)) {
     case 0:
     case 1:

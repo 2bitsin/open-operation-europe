@@ -8,7 +8,6 @@
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/people.hpp"
-#include "core/random.hpp"
 #include "map/btlcalc.hpp"
 #include "map/btldir.hpp"
 #include "map/btllist.hpp"
@@ -98,7 +97,7 @@ uint16_t opeu_battle_ranged_hits(Game& game, uint16_t shooter, uint16_t target) 
   uint16_t   weather;
   auto const cover{ Cover(game, target, weather) };
   chance = static_cast<uint16_t>(chance - Mul16(static_cast<uint16_t>(cover + weather), Night(data) ? 25 : 15) / 10);
-  return opeu_rand_bounded(100) < chance ? 1 : 0;
+  return game.State().Generator().Bounded(100) < chance ? 1 : 0;
 }
 
 // The shooter's ranged power against the target.
@@ -131,7 +130,7 @@ uint16_t opeu_battle_ranged_defense(Game& game, uint16_t element) {
   auto           value{ static_cast<uint16_t>(own.training - own.experience + own.morale + fire + tactics + grade + RATING_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ opeu_battle_element_side(game, element) };
-  auto const bonus{ opeu_rand_bounded(static_cast<uint16_t>(data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1)) };
+  auto const bonus{ game.State().Generator().Bounded(static_cast<uint16_t>(data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1)) };
   return static_cast<uint16_t>(Mul16(leadership, value) + bonus + 1);
 }
 
@@ -163,7 +162,7 @@ namespace {
   if (!opeu_battle_ranged_hits(game, shooter, target)) return 0;
   auto const power{ opeu_battle_ranged_power(game, shooter, target) };
   auto const defence{ opeu_battle_ranged_defense(game, target) };
-  auto       grade{ opeu_rand_bounded(2) };
+  auto       grade{ game.State().Generator().Bounded(2) };
   grade = static_cast<uint16_t>(grade + Mul16(power, 10) / opeu_max16(defence, 1));
   count = static_cast<uint16_t>(count / 10 + 1);
   auto const& target_type{ ElementTypeOf(data, target) };
@@ -175,12 +174,12 @@ namespace {
   auto const night{ Night(data) ? 2 : 1 };
   if (IsOfCategory(target_type, Category::SUPPLY) || IsOfCategory(target_type, Category::REPAIR) || (IsOfCategory(target_type, Category::ARTILLERY) && (target_type.flags & Bits(TypeFlag::HEAVY)))) {
     auto const base{ static_cast<uint16_t>(Mul16(grade / 10, count) / 7 / night / spread) };
-    auto const roll{ opeu_rand_bounded(2) };
-    return static_cast<uint16_t>(roll + Mul16(opeu_rand_bounded(6) == 0 ? 2 : 1, base));
+    auto const roll{ game.State().Generator().Bounded(2) };
+    return static_cast<uint16_t>(roll + Mul16(game.State().Generator().Bounded(6) == 0 ? 2 : 1, base));
   }
   auto const base{ Mul16(static_cast<uint16_t>(Mul16(grade, count) / night / spread), size) };
-  auto const roll{ opeu_rand_bounded(2) };
-  return static_cast<uint16_t>(roll + Mul16(static_cast<uint16_t>(base / (IsOfCategory(target_type, Category::INFANTRY) ? 7 : 70)), opeu_rand_bounded(6) == 0 ? 2 : 1));
+  auto const roll{ game.State().Generator().Bounded(2) };
+  return static_cast<uint16_t>(roll + Mul16(static_cast<uint16_t>(base / (IsOfCategory(target_type, Category::INFANTRY) ? 7 : 70)), game.State().Generator().Bounded(6) == 0 ? 2 : 1));
 }
 
 } // namespace

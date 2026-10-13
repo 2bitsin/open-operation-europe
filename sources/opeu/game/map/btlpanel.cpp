@@ -61,7 +61,7 @@ void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hid
   auto const          element_name{ locals.At(ELEMENT_NAME_AT) };
   auto                side{ opeu_battle_element_side(game, element) };
   auto const          unit{ opeu_battle_element_unit(game, element) };
-  auto const          at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(column), static_cast<short>(row)); } };
+  auto const          at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<short>(column), static_cast<short>(row)); } };
   auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<uint16_t, 1 + sizeof...(words)>{ Near(data, format), static_cast<uint16_t>(words)... }); } };
   opeu_battle_panel_begin(game);
   at(TITLE_COLUMN, 0);
@@ -77,7 +77,7 @@ void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hid
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(game, element, element_name);
   }
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), name);
+  opeu_ui_text(game, name);
   at(STATS_COLUMN, 0);
   print(data.battle_fmt_ok, record.quantity);
   at(STATS_COLUMN, LINE);
@@ -125,6 +125,6 @@ void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hid
   print(data.battle_fmt_speed, type.speed);
   at(card, CARD_ROW + 3 * LINE);
   print(data.battle_fmt_range, type.gun_range);
-  opeu_face_draw(game, static_cast<const UiHost*>(port_uiprim_host()), side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, static_cast<uint8_t>(record.type));
-  opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.battle_fmt_end));
+  opeu_face_draw(game, side ? PICTURE_X_1 : PICTURE_X_0, PICTURE_Y, 0, static_cast<uint8_t>(record.type));
+  opeu_ui_text(game, Near(data, data.battle_fmt_end));
 }

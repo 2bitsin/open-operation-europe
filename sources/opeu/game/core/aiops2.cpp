@@ -9,7 +9,6 @@
 #include "core/aiops1.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#include "core/random.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"
 #include "units/capacity.hpp"
@@ -84,7 +83,7 @@ uint16_t opeu_ai_079c(uint16_t amount) {
 // One time in twelve, plans a supply airlift to the neediest objective (or else unit) within the side's spare
 // transports and returns 1 (0 when nothing needs or can be lifted). Otherwise returns the nonzero random draw.
 uint16_t opeu_ai_plan_supply(Game& game) {
-  auto const draw{ opeu_rand_bounded(12) };
+  auto const draw{ game.State().Generator().Bounded(12) };
   if (draw) return draw;
   auto& data{ Data(game) };
   auto& lift{ Record<Side>(data, data.current_side_ptr).lift };

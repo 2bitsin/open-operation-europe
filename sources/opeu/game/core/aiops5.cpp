@@ -13,7 +13,6 @@
 #include "core/aiops3.hpp"
 #include "core/aiops4.hpp"
 #include "core/limits.hpp"
-#include "core/random.hpp"
 #include "core/recindex.hpp"
 #include "map/occupy.hpp"
 #include "map/query.hpp"
@@ -53,16 +52,16 @@ auto SuitsKind(std::uint8_t kind, std::uint8_t side, std::uint8_t category) -> b
 void opeu_ai_equip_element(Game& game, uint16_t element, uint8_t kind, uint8_t side) {
   auto& data{ Data(game) };
   for (;;) {
-    auto const index{ static_cast<std::uint8_t>(opeu_rand_bounded(ELEMENT_TYPE_COUNT)) };
+    auto const index{ static_cast<std::uint8_t>(game.State().Generator().Bounded(ELEMENT_TYPE_COUNT)) };
     auto const weight{ data.type_availability[index] };
     if (!weight) continue;
     auto const& type{ data.element_types[index] };
-    if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides) || weight <= opeu_rand_bounded(100)) continue;
+    if (!SuitsKind(kind, side, type.category) || !(data.side_masks[data.current_side] & type.sides) || weight <= game.State().Generator().Bounded(100)) continue;
     auto&      load{ Record<Element>(data, element) };
     auto const capacity{ data.request_capacities[type.category] };
     auto const typical{ static_cast<std::uint16_t>(capacity / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1) + 18) };
     load.type     = index;
-    load.quantity = opeu_min16(opeu_rand_bounded(typical / 3) + (typical >> 1), capacity);
+    load.quantity = opeu_min16(game.State().Generator().Bounded(typical / 3) + (typical >> 1), capacity);
     load.damage   = 0;
     return;
   }
@@ -78,7 +77,7 @@ uint16_t opeu_ai_raise_unit(Game& game) {
   auto elements{ AiFreeElements(game, ELEMENT_LIST, Bits(ElementFlag::REQUESTED)) };
   if (!elements) return 0;
   auto&        data{ Data(game) };
-  auto const   unit{ data.ai_unit_list[opeu_rand_bounded(units)] };
+  auto const   unit{ data.ai_unit_list[game.State().Generator().Bounded(units)] };
   auto const   slot{ opeu_unit_index(unit) };
   std::uint8_t kind{};
   if (opeu_category_6(slot))
@@ -86,17 +85,17 @@ uint16_t opeu_ai_raise_unit(Game& game) {
   else if (opeu_category_7(slot))
     kind = 5;
   else
-    kind = static_cast<std::uint8_t>(opeu_rand_bounded(4));
+    kind = static_cast<std::uint8_t>(game.State().Generator().Bounded(4));
   Record<Unit>(data, unit).flags = Bits(UnitFlag::REQUESTED);
   for (std::uint8_t i{ 0 }; i < data.ai_unit_element_counts[slot]; ++i) {
-    if (!opeu_rand_bounded(data.ai_unit_element_counts[slot] + data.delivery_level) && i > 1) break;
+    if (!game.State().Generator().Bounded(data.ai_unit_element_counts[slot] + data.delivery_level) && i > 1) break;
     if (!elements) break;
     auto const near{ data.ai_element_list[i] };
-    opeu_ai_equip_element(game, near, kind, opeu_rand_bounded(2));
+    opeu_ai_equip_element(game, near, kind, game.State().Generator().Bounded(2));
     auto& element{ Record<Element>(data, near) };
-    element.morale     = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
-    element.training   = static_cast<std::uint8_t>(opeu_rand_bounded(20) + 20 * data.delivery_level);
-    element.experience = static_cast<std::uint8_t>(opeu_rand_bounded(10));
+    element.morale     = static_cast<std::uint8_t>(game.State().Generator().Bounded(20) + 20 * data.delivery_level);
+    element.training   = static_cast<std::uint8_t>(game.State().Generator().Bounded(20) + 20 * data.delivery_level);
+    element.experience = static_cast<std::uint8_t>(game.State().Generator().Bounded(10));
     element.flags      = Bits(ElementFlag::REQUESTED);
     --elements;
   }

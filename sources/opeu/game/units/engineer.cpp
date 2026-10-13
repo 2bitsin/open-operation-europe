@@ -57,7 +57,7 @@ enum Picture : std::uint16_t {
 // order general, random bound, engineer count, average10, average11.
 auto SkillRoll(Game& game, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(game) };
-  std::uint16_t const random{ port_rand_bounded(game, bound) };
+  std::uint16_t const random{ game.State().RandomBounded(bound) };
   std::uint16_t const engineers{ UnitQuantity(data, data.current_unit_ptr, Bits(Category::ENGINEERS)).total };
   std::uint16_t const average10{ opeu_unit_average10(game, data.current_unit_ptr) };
   std::uint16_t const average11{ opeu_unit_average11(game, data.current_unit_ptr) };
@@ -72,12 +72,12 @@ auto LowerProgress(Game& game, std::uint8_t roll) -> std::uint16_t {
 }
 
 auto Show(Game& game, Picture picture, Presenter finish) -> void {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), picture, static_cast<uint8_t>(Data(game).current_side), finish);
+  opeu_daily_show(game, picture, static_cast<uint8_t>(Data(game).current_side), finish);
 }
 
 auto Report(Game& game, auto const& text) -> void {
   auto& data{ Data(game) };
-  opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, Near(data, text));
+  opeu_unit_report(game, data.current_unit_ptr, Near(data, text));
 }
 
 // The strength of the current regiment's repair crews.

@@ -63,11 +63,11 @@ auto SavedBytes(MenuItem const& item) -> std::uint16_t {
 // Prints the item's label at pixel row y in the colour of its attribute's low byte, keeping the text context.
 auto PrintLabel(Game& game, MenuItem const& item, std::uint16_t y) -> void {
   auto& data{ Data(game) };
-  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
-  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(item.x), static_cast<std::int16_t>(y));
+  opeu_context_save(game);
+  opeu_army_position(game, static_cast<std::int16_t>(item.x), static_cast<std::int16_t>(y));
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.menu_format)), static_cast<std::uint16_t>(static_cast<std::uint8_t>(item.attribute) + '0'),
                                                         static_cast<std::uint16_t>(item.label) });
-  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_context_restore(game);
 }
 
 // The tile of a button column: the ends have their own.

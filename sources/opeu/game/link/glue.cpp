@@ -10,7 +10,6 @@
 #include "common/game.hpp"
 #include "core/aiops1.hpp"
 #include "core/dialogs.hpp"
-#include "core/random.hpp"
 #include "core/scenbrf.hpp"
 #include "core/textout.hpp"
 #include "io/keyboard.hpp"
@@ -24,27 +23,11 @@ using opeu::game::Data;
 using opeu::game::Near;
 } // namespace
 
-/* ---- C runtime random state ------------------------------------------------ *
- * rand_bounded: the generator keeps its state in a global; the saved game
- * keeps it in the data segment's random_state. */
-uint16_t port_rand_bounded(Game& game, uint16_t bound) {
-  auto& state{ Data(game).random_state };
-  std::memcpy(&opeu_random_state, state.data(), 4);
-  auto const r{ opeu_rand_bounded(bound) };
-  std::memcpy(state.data(), &opeu_random_state, 4);
-  return r;
-}
-
 /* ---- DS words ---------------------------------------------------------------- */
 
 /* Host pointer of a DS word the callee writes (output arguments). */
 uint16_t* port_ds_word_ptr(Game& game, uint16_t near) {
   return reinterpret_cast<uint16_t*>(game.State().Bytes(near, sizeof(uint16_t)).data());
-}
-
-/* Daily presentation: daily_show(id, side, presenter) with the dialogs' host. */
-void port_daily_show(Game& game, uint16_t id, uint16_t side, opeu::game::Presenter presenter) {
-  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), id, static_cast<uint8_t>(side), presenter);
 }
 
 /* ---- driver register blocks ------------------------------------------------- */
@@ -74,20 +57,6 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
   port_fm_int66(&w[0], &w[1], &w[3], ds_seg);
   w[6] = 0;
   return w[0];
-}
-
-/* ---- keyboard prompts ----------------------------------------------------------- */
-
-uint16_t port_prompt_cancel(Game& game, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_cancel(game, text, max, items);
-}
-
-uint16_t port_prompt_required(Game& game, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_required(game, text, max, items);
-}
-
-uint16_t port_prompt_yes_no(Game& game, uint16_t text) {
-  return (uint16_t)opeu_prompt_yes_no(game, text);
 }
 
 /* ---- LOADSCEN ------------------------------------------------------------------- *

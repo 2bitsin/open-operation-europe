@@ -44,11 +44,11 @@ uint8_t opeu_order_units_fill(Game& game, uint8_t group) {
 // The Orders command.
 void opeu_turn_action_1(Game& game) {
   auto& data{ Data(game) };
-  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_title_panel_begin(game);
   data.unit_order_active = 0;
   for (;;) {
     SetListPredicate(data.division_dialog, ListSelect::GROUP_TARGET);
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_division), data.context_record2);
+    opeu_control_message(game, Near(data, data.select_division), data.context_record2);
     if (!RunList(game, data.division_dialog)) return;
     auto const group{ data.list_row };
     auto&      division{ GroupOf(data, data.current_side, group) };
@@ -60,12 +60,12 @@ void opeu_turn_action_1(Game& game) {
       data.current_group = group;
       SetListPredicate(data.order_target_list, ListSelect::ANY_ORDER_TARGET);
       for (;;) {
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_order), person);
+        opeu_control_message(game, Near(data, data.select_order), person);
         if (!RunList(game, data.order_target_list)) break;
         opeu_group_set_target(game, group);
       }
       data.current_group = saved;
-    } else if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.order_whole_division), person)) {
+    } else if (opeu_confirm_message(game, Near(data, data.order_whole_division), person)) {
       data.unit_order_active = 1;
       opeu_unit_order_menu(game, static_cast<uint8_t>(group));
       data.unit_order_active = 0;
@@ -73,7 +73,7 @@ void opeu_turn_action_1(Game& game) {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(game, group) + 1);
       SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT);
       for (;;) {
-        opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_regiment), person);
+        opeu_control_message(game, Near(data, data.select_regiment), person);
         if (!RunList(game, data.organize_list)) break;
         opeu_unit_order_menu(game, static_cast<uint8_t>(group));
       }
