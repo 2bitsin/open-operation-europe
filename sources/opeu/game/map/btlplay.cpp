@@ -85,7 +85,7 @@ uint16_t opeu_battle_side_human(Game& game, uint8_t index) {
   auto& data{ Data(game) };
   data.battle_active_side = opeu_battle_unit_side(game, BattleList(data, index, 0));
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, index, slot) }; unit && opeu_battle_unit_controlled(game, svc_btlcalc, unit)) return 1;
+    if (auto const unit{ BattleList(data, index, slot) }; unit && opeu_battle_unit_controlled(game, unit)) return 1;
   return 0;
 }
 

@@ -50,7 +50,7 @@ void opeu_battle_refresh_strengths(Game& game) {
     for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
       if (auto const unit{ BattleList(data, side, i) })
         for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) {
-          auto const rounds{ static_cast<uint8_t>(opeu_battle_element_strength(game, svc_btlcalc, it.Near())) };
+          auto const rounds{ static_cast<uint8_t>(opeu_battle_element_strength(game, it.Near())) };
           PositionOf(data, it.Near()).rounds  = rounds;
           (*it).flags                        |= Bits(ElementFlag::SPOTTED);
         }

@@ -28,7 +28,7 @@ void opeu_deploy_side(Game& game, uint8_t side) {
   for (uint8_t index{ 0 }; index < BATTLE_UNITS_PER_SIDE; ++index)
     if (auto const unit{ data.battle_units[side * BATTLE_UNITS_PER_SIDE + index] }) {
       data.battle_ai_index = index;
-      if (opeu_battle_unit_controlled(game, svc_btlcalc, unit))
+      if (opeu_battle_unit_controlled(game, unit))
         opeu_deploy_unit(game, unit);
       else
         opeu_deploy_auto(game, unit);

@@ -27,23 +27,12 @@
 using namespace opeu::game;
 
 namespace {
-// The services the calculations reach.
-enum class CalcService : uint16_t {
-  WAIT         = 0, // ticks
-  ELEMENT_SIDE = 1, // element
-  UNIT_SIDE    = 2, // unit
-  ELEMENT_UNIT = 3, // element
-};
 
 constexpr uint8_t COST_CLASSES{ 8 }; // battle_terrain_costs entries per terrain class
 constexpr uint8_t NO_ELEMENT_RANGE{ 20 };
 constexpr uint8_t SKILL_CLASS_INFANTRY{ 0 }; // btlcalc_skill_class values
 constexpr uint8_t SKILL_CLASS_ARTILLERY{ 1 };
 constexpr uint8_t SKILL_CLASS_ARMOR{ 2 };
-
-auto Service(Game& game, BattleService service, CalcService id, uint16_t arg) -> uint16_t {
-  return service(game, std::to_underlying(id), arg);
-}
 
 // The byte at index of a table in the data segment, past its end as well.
 template <typename Table>
@@ -62,8 +51,8 @@ template <typename Table>
 }
 } // namespace
 
-void opeu_battle_pause(Game& game, BattleService service, uint8_t ticks) {
-  Service(game, service, CalcService::WAIT, ticks);
+void opeu_battle_pause(Game& game, uint8_t ticks) {
+  opeu_delay_units(game, ticks);
 }
 
 // The grid direction 0..7 whose step from the battle's map cell reaches the unit's cell; BATTLE_NOT_ADJACENT when
@@ -81,10 +70,10 @@ uint8_t opeu_battle_unit_direction(Game& game, uint16_t unit) {
 
 // A skill of the commander responsible for an element: the side's commander for the garrison or under a battle
 // command, otherwise the division's. The second garrison test is unreachable in the original as well.
-uint8_t opeu_battle_skill(Game& game, BattleService service, uint16_t element, uint8_t kind) {
+uint8_t opeu_battle_skill(Game& game, uint16_t element, uint8_t kind) {
   auto&      data{ Data(game) };
-  auto const side{ static_cast<uint8_t>(Service(game, service, CalcService::ELEMENT_SIDE, element)) };
-  auto const unit{ Service(game, service, CalcService::ELEMENT_UNIT, element) };
+  auto const side{ opeu_battle_element_side(game, element) };
+  auto const unit{ opeu_battle_element_unit(game, element) };
   auto const garrison{ Near(data, data.battle_garrison) };
   uint16_t   commander;
   if (data.battle_command[side] || unit == garrison)
@@ -107,13 +96,13 @@ uint8_t opeu_battle_skill(Game& game, BattleService service, uint16_t element, u
   return 0;
 }
 
-uint8_t opeu_battle_element_strength(Game& game, BattleService service, uint16_t element) {
+uint8_t opeu_battle_element_strength(Game& game, uint16_t element) {
   auto&       data{ Data(game) };
   auto const& type{ ElementTypeOf(data, element) };
   auto const& record{ Record<Element>(data, element) };
   auto        category{ type.category };
   if (category == Bits(Category::ARTILLERY) && type.gun_range <= RANGED_MODE) category = Bits(Category::TANKS);
-  auto const skill{ [&](BattleSkill kind) { return opeu_battle_skill(game, service, element, Bits(kind)); } };
+  auto const skill{ [&](BattleSkill kind) { return opeu_battle_skill(game, element, Bits(kind)); } };
   auto       bonus{ static_cast<uint8_t>(skill(BattleSkill::EXPERIENCE) / 5) };
   switch (At(data, data.btlcalc_skill_class, category)) {
   case SKILL_CLASS_INFANTRY:  opeu_add_byte(skill(BattleSkill::INFANTRY), 99, &bonus); break;
@@ -167,14 +156,14 @@ uint16_t opeu_battle_can_enter(Game& game, uint8_t x, uint8_t y, uint16_t elemen
 
 // IMPASSABLE_COST for impassable terrain, else a cost clamped to 5..250. The product is the original's 16-bit int
 // arithmetic.
-uint8_t opeu_battle_move_cost(Game& game, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
+uint8_t opeu_battle_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t element) {
   auto&       data{ Data(game) };
   auto const& record{ Record<Element>(data, element) };
   auto const  category{ ElementTypeOf(data, element).category };
   auto const  cost{ CostOf(data, opeu_battle_cell_terrain(game, x, y), category) };
   if (cost == IMPASSABLE_COST) return cost;
-  int handling{ opeu_battle_skill(game, service, element, Bits(BattleSkill::EXPERIENCE)) / 5 };
-  handling += opeu_battle_skill(game, service, element, Bits(BattleSkill::LEADERSHIP));
+  int handling{ opeu_battle_skill(game, element, Bits(BattleSkill::EXPERIENCE)) / 5 };
+  handling += opeu_battle_skill(game, element, Bits(BattleSkill::LEADERSHIP));
   handling  = handling / 20 - 2;
   handling += record.training / 20 - 1;
   handling -= record.experience / 20;
@@ -206,9 +195,9 @@ uint16_t opeu_battle_step(Game& game, uint8_t* x, uint8_t* y, uint8_t direction)
   return 0;
 }
 
-uint16_t opeu_battle_unit_controlled(Game& game, BattleService service, uint16_t unit) {
+uint16_t opeu_battle_unit_controlled(Game& game, uint16_t unit) {
   auto&      data{ Data(game) };
-  auto const side{ static_cast<uint8_t>(Service(game, service, CalcService::UNIT_SIDE, unit)) };
+  auto const side{ opeu_battle_unit_side(game, unit) };
   return data.battle_command[side] && data.side_control[side] == SIDE_PLAYED;
 }
 
@@ -222,14 +211,4 @@ uint16_t opeu_battle_element_at(Game& game, uint8_t x, uint8_t y) {
           if (position.x == x && position.y == y) return Near(data, element);
         }
   return 0;
-}
-
-uint16_t svc_btlcalc(Game& game, uint16_t id, uint16_t arg) {
-  switch (static_cast<CalcService>(id)) {
-  case CalcService::WAIT:         opeu_delay_units(game, static_cast<uint8_t>(arg)); return 0;
-  case CalcService::ELEMENT_SIDE: return opeu_battle_element_side(game, arg);
-  case CalcService::UNIT_SIDE:    return opeu_battle_unit_side(game, arg);
-  case CalcService::ELEMENT_UNIT: return opeu_battle_element_unit(game, arg);
-  default:                        port_unhandled("btlcalc", id, 1); return 0;
-  }
 }

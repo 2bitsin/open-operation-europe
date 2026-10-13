@@ -161,7 +161,7 @@ void opeu_battle_update_element(Game& game, uint16_t element) {
     Settle(game, element, BattleState::REST);
   } else if (ElementTypeOf(data, element).fuel_capacity && !record.resources[1]) {
     Settle(game, element, BattleState::DEFEND);
-  } else if (opeu_battle_unit_controlled(game, svc_btlcalc, unit)) {
+  } else if (opeu_battle_unit_controlled(game, unit)) {
     if (opeu_battle_can_act(game, element)) Settle(game, element, BattleState::DEFEND);
   } else if (opeu_battle_can_act(game, element) && !static_cast<uint8_t>(opeu_battle_computer_turn(game))) {
     data.battle_selected = element;

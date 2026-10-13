@@ -54,7 +54,7 @@ constexpr uint16_t MISS_ANIMATION{ 0x79e0 };
 }
 
 void Pause(Game& game, uint8_t units) {
-  opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(units));
+  opeu_battle_pause(game, static_cast<uint8_t>(units));
 }
 
 void Line(Game& game, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {

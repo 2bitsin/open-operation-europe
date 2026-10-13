@@ -99,7 +99,7 @@ void opeu_battle_draw_element_frame(Game& game, uint8_t x, uint8_t y, uint16_t o
 // again.
 void opeu_battle_animate_element(Game& game, uint8_t x, uint8_t y, uint16_t turn, uint16_t pause, uint16_t offset, uint16_t element) {
   opeu_battle_draw_element_frame(game, x, y, offset, 0, element);
-  opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(1));
+  opeu_battle_pause(game, static_cast<uint8_t>(1));
   if (pause) {
     opeu_battle_dispatch(game, ANIMATION_HANDLER);
     if (turn) {
@@ -109,6 +109,6 @@ void opeu_battle_animate_element(Game& game, uint8_t x, uint8_t y, uint16_t turn
   }
   for (uint8_t i{ 1 }; i < ANIMATION_FRAMES; ++i) {
     opeu_battle_draw_element_frame(game, x, y, offset, i, element);
-    opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(1));
+    opeu_battle_pause(game, static_cast<uint8_t>(1));
   }
 }

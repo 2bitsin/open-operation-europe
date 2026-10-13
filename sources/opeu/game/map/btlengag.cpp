@@ -61,7 +61,7 @@ enum class NextStep : uint8_t {
 };
 
 void Pause(Game& game) {
-  opeu_battle_pause(game, svc_btlcalc, static_cast<uint8_t>(2));
+  opeu_battle_pause(game, static_cast<uint8_t>(2));
 }
 
 [[nodiscard]] auto FindPath(Game& game, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint16_t mode) -> uint16_t {
@@ -179,7 +179,7 @@ uint8_t opeu_battle_next_step(Game& game, uint16_t element, uint16_t x, uint16_t
   for (uint8_t direction{ 0 }; direction < STEP_DIRECTIONS; ++direction) {
     from_here();
     if (opeu_battle_step(game, game.State().Bytes(next_x, 1).data(), game.State().Bytes(next_y, 1).data(), static_cast<uint8_t>(direction))) {
-      auto const cost{ static_cast<uint8_t>(opeu_battle_move_cost(game, svc_btlcalc, static_cast<uint8_t>(Byte(game, next_x)), static_cast<uint8_t>(Byte(game, next_y)), element)) };
+      auto const cost{ static_cast<uint8_t>(opeu_battle_move_cost(game, static_cast<uint8_t>(Byte(game, next_x)), static_cast<uint8_t>(Byte(game, next_y)), element)) };
       if (cost != IMPASSABLE_COST && !opeu_battle_cell_occupied(game, Byte(game, next_x), Byte(game, next_y)) && cost < cheapest) cheapest = cost;
     }
   }

@@ -60,7 +60,7 @@ void Tire(Game& game, uint16_t person) {
 uint16_t opeu_battle_side_needs_input(Game& game, uint8_t side) {
   auto& data{ Data(game) };
   for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
-    if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_controlled(game, svc_btlcalc, unit)) return 1;
+    if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_controlled(game, unit)) return 1;
   return 0;
 }
 

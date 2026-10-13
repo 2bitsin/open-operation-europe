@@ -79,7 +79,7 @@ public:
   // The move cost of every cell plus the number it can enter.
   auto MoveCosts() -> unsigned {
     return std::ranges::fold_left(Cells() | std::views::transform([this](auto const cell) {
-                                    return opeu_battle_move_cost(_game, svc_btlcalc, Byte(cell.x), Byte(cell.y), Element()) + opeu_battle_can_enter(_game, Byte(cell.x), Byte(cell.y), Element());
+                                    return opeu_battle_move_cost(_game, Byte(cell.x), Byte(cell.y), Element()) + opeu_battle_can_enter(_game, Byte(cell.x), Byte(cell.y), Element());
                                   }),
                                   0u, std::plus{});
   }
@@ -87,7 +87,7 @@ public:
   // Strength, rating against itself and shots of the element.
   auto Ratings() -> unsigned {
     auto const element{ Element() };
-    return unsigned{ opeu_battle_element_strength(_game, svc_btlcalc, element) } + opeu_battle_element_rating(_game, element, element) + opeu_battle_element_shots(_game, element, element);
+    return unsigned{ opeu_battle_element_strength(_game, element) } + opeu_battle_element_rating(_game, element, element) + opeu_battle_element_shots(_game, element, element);
   }
 
   // The element at every cell (the battle lists' walk).

@@ -120,7 +120,7 @@ uint8_t opeu_battle_execute_order(Game& game, uint16_t element, uint8_t order) {
       default:         break;
       }
       opeu_battle_set_strength(game, element, x, y);
-      opeu_battle_set_facing(game, element, static_cast<uint8_t>(opeu_battle_move_cost(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element)));
+      opeu_battle_set_facing(game, element, static_cast<uint8_t>(opeu_battle_move_cost(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element)));
     }
     if (opeu_battle_facing(game, element) > order) return wait();
     x = opeu_battle_strength_low(game, element);

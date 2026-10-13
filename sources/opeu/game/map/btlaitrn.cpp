@@ -127,7 +127,7 @@ void opeu_battle_select_service(Game& game) {
     for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
       data.battle_ai_index = i;
       auto const unit{ BattleList(data, side, i) };
-      if (unit && !opeu_battle_unit_controlled(game, svc_btlcalc, unit) && opeu_battle_level_allowed(game, Record<Unit>(data, unit).first)) opeu_battle_ai_plan_side(game, unit);
+      if (unit && !opeu_battle_unit_controlled(game, unit) && opeu_battle_level_allowed(game, Record<Unit>(data, unit).first)) opeu_battle_ai_plan_side(game, unit);
     }
   }
 }

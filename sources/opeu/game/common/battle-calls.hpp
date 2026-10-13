@@ -16,12 +16,12 @@ namespace opeu::game::detail::battle_calls {
 
 // The element's crew skill of one kind (battle_skill_kinds).
 [[nodiscard]] inline auto ElementSkill(Game& game, std::uint16_t element, std::uint8_t kind) -> std::uint8_t {
-  return static_cast<std::uint8_t>(opeu_battle_skill(game, svc_btlcalc, element, static_cast<uint8_t>(kind)));
+  return static_cast<std::uint8_t>(opeu_battle_skill(game, element, static_cast<uint8_t>(kind)));
 }
 
 // The element's battle strength.
 [[nodiscard]] inline auto ElementStrength(Game& game, std::uint16_t element) -> std::uint8_t {
-  return static_cast<std::uint8_t>(opeu_battle_element_strength(game, svc_btlcalc, element));
+  return static_cast<std::uint8_t>(opeu_battle_element_strength(game, element));
 }
 
 } // namespace opeu::game::detail::battle_calls
