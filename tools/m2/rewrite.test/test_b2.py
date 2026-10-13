@@ -15,7 +15,8 @@ from rewriter.b2 import ApplyEdits, B2Pass  # noqa: E402
 from rewriter.casts import ModernCasts  # noqa: E402
 from rewriter.functions import ScanFunctions  # noqa: E402
 from rewriter.source import SourceFile  # noqa: E402
-from rewriter.substitute import Discarded  # noqa: E402
+from rewriter.substitute import Discarded, _NarrowedToByte  # noqa: E402
+from rewriter.syntax import Span  # noqa: E402
 
 FIXTURE = HERE / "fixtures" / "b2"
 GAME = Path("sources/opeu/game")
@@ -129,3 +130,16 @@ def test_a_paragraph_whose_code_all_goes_takes_its_comments_and_a_blank_line():
 def test_a_function_pointer_member_is_not_a_function_named_by_its_type():
   source = SourceFile(PurePosixPath("x.hpp"), "struct Driver {\n  uint8_t (*read_status)(void* user);\n};\nvoid real(int);\n")
   assert [function.name for function in ScanFunctions(source).declarations] == ["real"]
+
+
+@pytest.mark.parametrize("code, narrowed", [
+  ("auto x{ static_cast<uint8_t>(Call(game, e, K)) };",      True),
+  ("auto x{ static_cast<std::uint8_t>(Call(game, e, K)) };", True),
+  ("auto x{ (uint8_t)Call(game, e, K) };",                   True),
+  ("auto x{ static_cast<uint8_t>(Call(game, e, K) + 1) };",  False),
+  ("auto x{ Call(game, e, K) };",                            False),
+])
+def test_a_result_narrowed_to_a_byte_needs_no_16_bit_conversion(code, narrowed):
+  source = SourceFile(PurePosixPath("x.cpp"), code)
+  first = next(i for i, token in enumerate(source.tokens) if token.text == "Call")
+  assert _NarrowedToByte(source, Span(first, source.partners[first + 1] + 1)) is narrowed

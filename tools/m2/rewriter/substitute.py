@@ -209,7 +209,7 @@ class Substituter:
       return f"({text}, std::uint16_t{{ 0 }})"
     callee = self.program.Signature(substitution.callee, target.owner.function.file) if substitution.callee else None
     returns = _Bare(callee.returns) if callee is not None else ""
-    if returns in RESULT_AS_IS or re.match(r"^\(?\s*static_cast\s*<\s*(std::)?uint16_t\s*>", text):
+    if returns in RESULT_AS_IS or re.match(r"^\(?\s*static_cast\s*<\s*(std::)?uint16_t\s*>", text) or _NarrowedToByte(self.program.Source(site.file), site.span):
       return text
     substitution.result_cast = True
     return f"static_cast<std::uint16_t>({text})"
@@ -247,6 +247,16 @@ class Substituter:
         substitution.cycle += [IncludeOf(header)] if IncludeOf(header) not in substitution.cycle else []
       elif IncludeOf(header) not in substitution.includes:
         substitution.includes.append(IncludeOf(header))
+
+
+def _NarrowedToByte(source: SourceFile, span: Span) -> bool:
+  """The site is the whole operand of a conversion to 8 bits (`static_cast<uint8_t>(site)`, `(uint8_t)site`), which
+  drops whatever the 16-bit conversion of its result would."""
+  tokens = source.tokens
+  before = [token.text for token in tokens[max(span.first - 7, 0):span.first]]
+  after = tokens[span.last].text if span.last < len(tokens) else ""
+  functional = before[-5:] == ["static_cast", "<", "uint8_t", ">", "("] or before[-7:] == ["static_cast", "<", "std", "::", "uint8_t", ">", "("]
+  return (functional and after == ")") or before[-3:] == ["(", "uint8_t", ")"] or before[-5:] == ["(", "std", "::", "uint8_t", ")"]
 
 
 def Discarded(text: str) -> str:
