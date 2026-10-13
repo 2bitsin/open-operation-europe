@@ -25,8 +25,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum SupplyService;
-
 constexpr std::uint8_t ROWS{ 3 };
 constexpr std::uint8_t CURRENT{ 0 };  // supply_table column: the amount
 constexpr std::uint8_t CAPACITY{ 1 }; // and the capacity
@@ -37,23 +35,23 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 }
 
 // Toggles the highlight of a row's name.
-void Highlight(Game& game, HostEvent event, std::uint8_t row) {
+void Highlight(Game& game, std::uint8_t row) {
   auto const& data{ Data(game) };
-  HighlightRow(game, event, HIGHLIGHT, { data.supply_panel_x, data.supply_panel_y }, row);
+  HighlightRow({ data.supply_panel_x, data.supply_panel_y }, row);
 }
 } // namespace
 
 // The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
-uint16_t opeu_supply_step(Game& game, HostEvent event) {
+uint16_t opeu_supply_step(Game& game) {
   ServiceLocals const locals{ 2 };
   auto const          selection{ locals.At(0) };
   auto&               data{ Data(game) };
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
   selected = 0;
-  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(1), static_cast<uint8_t>(0));
-  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(0), static_cast<uint8_t>(0));
-  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(2), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, static_cast<uint8_t>(1), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, static_cast<uint8_t>(0), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, static_cast<uint8_t>(2), static_cast<uint8_t>(0));
   opeu_ops_chief_text(game, offsetof(DataSegment, supply_prompt));
   opeu_input_reset(game);
   for (;;) {
@@ -63,8 +61,8 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
     auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
     auto const   right_capacity{ data.supply_objective ? static_cast<std::uint16_t>(offsetof(DataSegment, supply_unlimited)) : TableAt(1, selected, CAPACITY) };
     if (selected != highlighted) {
-      if (highlighted != NO_ROW) Highlight(game, event, highlighted);
-      Highlight(game, event, selected);
+      if (highlighted != NO_ROW) Highlight(game, highlighted);
+      Highlight(game, selected);
       highlighted = selected;
     }
     auto const key{ opeu_supply_input(game, selection) };
@@ -95,30 +93,10 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
       break;
     }
     case KEY_ENTER:
-      opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
-      Highlight(game, event, highlighted);
+      opeu_supply_draw_row(game, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
+      Highlight(game, highlighted);
       return opeu_ops_chief_wait(game, offsetof(DataSegment, supply_continue));
     }
-    opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
+    opeu_supply_draw_row(game, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
   }
-}
-
-uint16_t svc_supstep(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r{ 0 };
-  switch (static_cast<SupplyService>(id)) {
-  case MOUSE_SHOW:
-  case INPUT_DELAY:
-  case MOUSE_POSITION:
-  case RIGHT_DOWN:
-  case LEFT_DOWN:
-  case MOUSE_HIDE:
-  case KEY:            r = svc_suppanel(game, id, args, count); break;
-  case ROW:            opeu_supply_draw_row(game, svc_suprow, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case CHIEF_TEXT:     opeu_ops_chief_text(game, Arg(args, count, 0)); break;
-  case INPUT_RESET:    opeu_input_reset(game); break;
-  case HIGHLIGHT:      opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case CHIEF_WAIT:     r = opeu_ops_chief_wait(game, Arg(args, count, 0)); break;
-  default:             port_unhandled("supstep", id, count);
-  }
-  return r;
 }

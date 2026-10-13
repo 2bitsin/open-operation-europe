@@ -44,8 +44,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum TransferService;
-
 // The keys of the keypad's columns, top to bottom.
 constexpr std::uint8_t KEYS[3][3]{
   { '7', '4', '1' },
@@ -130,13 +128,13 @@ void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
-void opeu_transfer_digits(Game& game, HostWordsEvent event, uint16_t x, uint16_t y, uint16_t value) {
-  DrawDigits(game, event, GLYPH, x, y, value);
+void opeu_transfer_digits(Game& game, uint16_t x, uint16_t y, uint16_t value) {
+  DrawDigits(game, x, y, value);
 }
 
 // For a player's side, redraws a resource row: both amounts and both fill percentages. column (the column just
 // changed) is not used.
-void opeu_transfer_draw_row(Game& game, HostWordsEvent event, uint8_t row, uint8_t column) {
+void opeu_transfer_draw_row(Game& game, uint8_t row, uint8_t column) {
   (void)column;
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
@@ -154,9 +152,9 @@ void opeu_transfer_draw_row(Game& game, HostWordsEvent event, uint8_t row, uint8
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_amount_text)), static_cast<std::uint16_t>(right_amount) });
   opeu_ui_box(x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
-  opeu_transfer_digits(game, event, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
+  opeu_transfer_digits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
   opeu_ui_box(x + 0x19, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
-  opeu_transfer_digits(game, event, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
+  opeu_transfer_digits(game, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, transfer_colour)) });
 }
 
@@ -187,71 +185,4 @@ uint8_t opeu_transfer_auto_key(Game& game, uint8_t row) {
   if (row == RESOURCES - 1) return KEY_ENTER;
   latch = UNMOVED;
   return '2';
-}
-
-// The services of the transfer panel, its step and the supply orders, as direct calls; `module` names the caller in
-// diagnostics.
-uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* args, uint16_t count) {
-  std::uint16_t r{ 0 };
-  switch (static_cast<TransferService>(id)) {
-  case MOUSE_SHOW:     opeu_mouse_show(game); break;
-  case INPUT_DELAY:    opeu_delay_ticks(game, Arg(args, count, 0)); break;
-  case MOUSE_POSITION: {
-    // x and y go back to the caller's words.
-    auto const position{ MousePosition(game) };
-    args[0] = position.x;
-    args[1] = position.y;
-    break;
-  }
-  case RIGHT_DOWN: r = (uint16_t)opeu_mouse_right(game); break;
-  case LEFT_DOWN:  r = (uint16_t)opeu_mouse_left(game); break;
-  case MOUSE_HIDE: opeu_mouse_hide(game); break;
-  case KEY:        r = opeu_keyboard_key(game); break;
-  case RESTORE:
-    r = (uint16_t)opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  case GLYPH:
-    r = (uint16_t)opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), game.State().Bytes(Arg(args, count, 5)).data());
-    break;
-  case TITLE:           opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case BOX:             r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case SOUND_CUE_14:    opeu_sound_cue14(game); break;
-  case SOUND_CUE_16:    opeu_sound_cue16(game); break;
-  case MUSIC_COMMAND_7: opeu_music_command7(game); break;
-  case PENDING_FINISH:  opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_CONTEXT:   opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
-  case CONFIRM:         r = opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case INPUT_RESET:     opeu_input_reset(game); break;
-  case HIGHLIGHT:       r = (uint16_t)opeu_ui_highlight(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case UNIT_REPORT:     opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_ELIGIBLE:   r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case DAILY_SHOW:
-    opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
-    break;
-  case UNIT_CAPACITIES:
-    opeu_unit_capacities(game, Arg(args, count, 0), port_ds_word_ptr(game, Arg(args, count, 1)), port_ds_word_ptr(game, Arg(args, count, 2)), port_ds_word_ptr(game, Arg(args, count, 3)));
-    break;
-  case OBJECTIVE_CAPACITIES:
-    opeu_objective_capacities(game, Arg(args, count, 0), port_ds_word_ptr(game, Arg(args, count, 1)), port_ds_word_ptr(game, Arg(args, count, 2)), port_ds_word_ptr(game, Arg(args, count, 3)));
-    break;
-  case SIDE_PERCENTAGES:
-    opeu_side_resource_percentages(game, (uint8_t)Arg(args, count, 0), port_ds_word_ptr(game, Arg(args, count, 1)), port_ds_word_ptr(game, Arg(args, count, 2)),
-                                   port_ds_word_ptr(game, Arg(args, count, 3)), Arg(args, count, 4));
-    break;
-  case UNIT_SLOT:        r = opeu_unit_index(Arg(args, count, 0)); break;
-  case LAST_SLOT:        r = opeu_category_7((uint8_t)Arg(args, count, 0)); break;
-  case UNIT_GROUP:       r = opeu_unit_group(Arg(args, count, 0)); break;
-  case UNIT_NAME:        r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case UNIT_TRAINING:    r = opeu_unit_average10(game, Arg(args, count, 0)); break;
-  case UNIT_EXPERIENCE:  r = opeu_unit_average11(game, Arg(args, count, 0)); break;
-  case OBJECTIVE_TARGET: r = opeu_move_objective_target(game, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case UNIT_TARGET:      r = opeu_move_unit_target(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ADJACENT:         r = opeu_move_adjacent(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case ORDER_PROGRESS:   r = opeu_move_level_lower(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case RESTORE_ORDER:    opeu_restore_unit_order(game, Arg(args, count, 0)); break;
-  default:               port_unhandled(module, id, count);
-  }
-  return r;
 }

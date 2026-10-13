@@ -5,9 +5,11 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
+#include "services.hpp"
 
 #include <array>
 #include <cstdint>
+#include <span>
 
 namespace opeu::game::detail::exchange_panel {
 
@@ -44,21 +46,19 @@ inline constexpr std::uint16_t GLYPH_COLOUR{ 7 };
   }
 }
 
-// Draws `value` right-aligned with its last digit at x through the panel's glyph service, blanking each cell first.
-template <typename Event, typename Service>
-inline auto DrawDigits(Game& game, Event event, Service glyph, std::uint16_t x, std::uint16_t y, std::uint16_t value) -> void {
-  auto const glyphs{ Near(Data(game), Data(game).digit_glyphs) };
+// Draws `value` right-aligned with its last digit at x, blanking each cell first.
+inline auto DrawDigits(Game& game, std::uint16_t x, std::uint16_t y, std::uint16_t value) -> void {
+  auto const glyph{ [&](auto colour, unsigned digit) { opeu_vga_glyph(x, y, GLYPH_SIZE, GLYPH_SIZE, colour, std::span{ Data(game).digit_glyphs }.subspan(GLYPH_SIZE * digit).data()); } };
   for (;; x -= GLYPH_SIZE) {
-    Call(game, event, glyph, x, y, GLYPH_SIZE, GLYPH_SIZE, 0, glyphs + GLYPH_SIZE * BLANK_GLYPH);
-    Call(game, event, glyph, x, y, GLYPH_SIZE, GLYPH_SIZE, GLYPH_COLOUR, glyphs + GLYPH_SIZE * (value % 10));
+    glyph(0, BLANK_GLYPH);
+    glyph(GLYPH_COLOUR, value % 10);
     if (!(value /= 10)) break;
   }
 }
 
-// Toggles the highlight of a row's name on the panel at (panel_x, panel_y) through its highlight service.
-template <typename Event, typename Service>
-inline auto HighlightRow(Game& game, Event event, Service highlight, std::array<std::uint16_t, 2> panel, std::uint8_t row) -> void {
-  Call(game, event, highlight, panel[0] + 0xd, row * PANEL_ROW_HEIGHT + panel[1] + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
+// Toggles the highlight of a row's name on the panel at (panel_x, panel_y).
+inline auto HighlightRow(std::array<std::uint16_t, 2> panel, std::uint8_t row) -> void {
+  opeu_ui_highlight(panel[0] + 0xd, row * PANEL_ROW_HEIGHT + panel[1] + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
 }
 } // namespace opeu::game::detail::exchange_panel
 

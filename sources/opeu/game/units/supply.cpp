@@ -34,7 +34,7 @@ constexpr std::uint16_t NAME_BYTES{ 0x20 };
 
 // Runs the dialog until it reports completion.
 auto RunDialog(Game& game) -> void {
-  while (!opeu_supply_step(game, svc_supstep)) {
+  while (!opeu_supply_step(game)) {
   }
 }
 

@@ -26,8 +26,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum SupplyService;
-
 // The keys of the keypad's columns, top to bottom (the original's bottom right key is a second 6).
 constexpr std::uint8_t KEYS[3][3]{
   { '7', '4', '1' },
@@ -101,32 +99,6 @@ void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
-void opeu_supply_digits(Game& game, HostEvent event, uint16_t x, uint16_t y, uint16_t value) {
-  DrawDigits(game, event, GLYPH, x, y, value);
-}
-
-uint16_t svc_suppanel(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r{ 0 };
-  switch (static_cast<SupplyService>(id)) {
-  case MOUSE_SHOW:     opeu_mouse_show(game); break;
-  case INPUT_DELAY:    opeu_delay_ticks(game, Arg(args, count, 0)); break;
-  case MOUSE_POSITION: {
-    // x and y go back to the caller's words.
-    auto*      out{ const_cast<std::uint16_t*>(args) };
-    auto const position{ MousePosition(game) };
-    out[0] = position.x;
-    out[1] = position.y;
-    break;
-  }
-  case RIGHT_DOWN: r = static_cast<std::uint16_t>(opeu_mouse_right(game)); break;
-  case LEFT_DOWN:  r = static_cast<std::uint16_t>(opeu_mouse_left(game)); break;
-  case MOUSE_HIDE: opeu_mouse_hide(game); break;
-  case KEY:        r = opeu_keyboard_key(game); break;
-  case RESTORE: opeu_bitmap_restore(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6))); break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  case GLYPH:    opeu_vga_glyph(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), game.State().Bytes(Arg(args, count, 5)).data()); break;
-  default:       port_unhandled("suppanel", id, count);
-  }
-  return r;
+void opeu_supply_digits(Game& game, uint16_t x, uint16_t y, uint16_t value) {
+  DrawDigits(game, x, y, value);
 }
