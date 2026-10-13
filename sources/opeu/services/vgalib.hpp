@@ -12,8 +12,8 @@ auto vgalib_init() -> void;
 // The frame as palette entries and the palette in 8-bit levels; true when anything changed since the previous call.
 auto VgalibRender(std::span<std::uint8_t, 640 * 480> frame, std::span<std::uint8_t, 768> palette) -> bool;
 
-// Reader of the picture decoders: returns the next stream byte. A callable the caller injects; a plain function
-// pointer (the game's port_picture_reader, the opening's stream) converts to it.
+// Reader of the picture decoders: returns the next stream byte. A callable the caller injects (the game's reader of
+// its picture stream, the opening's stream).
 using PictureByteReader = std::function<std::uint8_t()>;
 
 // Colours 0-15 show palette entries 0-15.
