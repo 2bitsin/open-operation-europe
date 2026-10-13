@@ -2,7 +2,7 @@
 // buffers empty.
 #include "recovered.hpp"
 
-namespace opeu::intro::detail::odsound {
+namespace opeu::intro::detail::music_data {
 
 uint8_t const MUSIC_CURRENT  = 0xff;
 uint8_t const EFFECT_CURRENT = 0xff;

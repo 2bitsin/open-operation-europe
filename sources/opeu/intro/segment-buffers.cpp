@@ -1,5 +1,5 @@
-// The opening's far data and the screen operations on it (open-far.hpp).
-#include "open-far.hpp"
+// The opening's far data and the screen operations on it (segment-buffers.hpp).
+#include "segment-buffers.hpp"
 
 #include "open-services.hpp"
 #include "services.hpp"
@@ -11,7 +11,7 @@
 #include <ranges>
 #include <vector>
 
-namespace opeu::intro::detail::open_far {
+namespace opeu::intro::detail::segment_buffers {
 namespace {
 auto Word(int value) -> std::uint16_t {
   return static_cast<std::uint16_t>(value);
@@ -30,6 +30,19 @@ auto WithSource(Open& open, FarAddress at, std::size_t size, _Blit blit) -> void
   blit(wrapped.data());
 }
 
+// The area in the services' words.
+auto ColumnArea(ScreenArea area) -> services::Area {
+  return { .x = Word(area.x), .y = Word(area.y), .width = Word(area.width), .height = Word(area.height) };
+}
+
+// A saved rectangle of far memory as the compositing services take it.
+auto Saved(Open& open, FarRectangle rectangle) -> services::SavedRectangle {
+  return {
+    .bytes = { open.Memory().Segment(rectangle.segment), rectangle.offset },
+      .width = Word(rectangle.width), .height = Word(rectangle.height)
+  };
+}
+
 // Source bytes of an image: `planes` bytes per column and line (row doubling reads each row once).
 auto ImageBytes(ScreenArea area, std::size_t planes) -> std::size_t {
   return std::size_t{ Word(area.width) } * Word(area.height) * planes;
@@ -46,23 +59,23 @@ auto DrawFar(Open& open, ScreenArea area, FarImage image) -> void {
 }
 
 auto SaveScreen(Open& open, ScreenArea area, FarAddress destination) -> void {
-  SaveScreenRectangle(Word(area.x), Word(area.y), Word(area.width), Word(area.height), { open.Memory().Segment(destination.segment), destination.offset });
+  services::SaveScreenRectangle(ColumnArea(area), { open.Memory().Segment(destination.segment), destination.offset });
 }
 
 auto CopyFar(Open& open, FarAddress from, FarBuffer to) -> void {
-  CopyFarWords({ open.Memory().Segment(from.segment), from.offset }, { open.Memory().Segment(to.segment), to.offset }, to.size);
+  services::CopyFarWords({ open.Memory().Segment(from.segment), from.offset }, { open.Memory().Segment(to.segment), to.offset }, to.size);
 }
 
 auto OrSprite(Open& open, FarRectangle target, FarAddress sprite) -> void {
-  OrIntoBuffer({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(sprite.segment), sprite.offset });
+  services::OrIntoBuffer(Saved(open, target), { open.Memory().Segment(sprite.segment), sprite.offset });
 }
 
 auto AndMask(Open& open, FarRectangle target, FarAddress mask) -> void {
-  AndWithMask({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(mask.segment), mask.offset });
+  services::AndWithMask(Saved(open, target), { open.Memory().Segment(mask.segment), mask.offset });
 }
 
 auto Dissolve(Open& open, ScreenPoint at, DissolveSource source) -> void {
-  DissolveStep(Word(at.x), Word(at.y), { open.Memory().Segment(source.segment), source.offset }, source.pattern);
+  services::DissolveStep({ .x = Word(at.x), .y = Word(at.y) }, { open.Memory().Segment(source.segment), source.offset }, source.pattern);
 }
 
 auto ReadFar(Open& open, std::int16_t handle, FarBuffer buffer) -> std::int16_t {
@@ -72,4 +85,4 @@ auto ReadFar(Open& open, std::int16_t handle, FarBuffer buffer) -> std::int16_t 
 auto FarByte(Open& open, FarAddress at) -> std::uint8_t {
   return open.Memory().Segment(at.segment)[at.offset];
 }
-} // namespace opeu::intro::detail::open_far
+} // namespace opeu::intro::detail::segment_buffers

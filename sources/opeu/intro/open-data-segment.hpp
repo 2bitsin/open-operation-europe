@@ -1,16 +1,15 @@
-// OPEN.EXE's data segment (DGROUP, paragraph 093A of its load image) as the
-// opening's code sees it: the initialized objects of the five data modules
-// (recovered/data, placed by image.cpp), then the KOEI library's and C
-// runtime's data and the BSS up to _end (DS:1C40). The stack (SS = DS)
-// follows above _end.
+// OPEN.EXE's data segment (DGROUP) as the opening's code sees it: the initialized objects of the five data modules
+// (recovered/data, placed by load-image.cpp), then the KOEI library's and C runtime's data and the BSS up to _end. The
+// stack (SS = DS) follows above _end. The layout is the original's to the byte: past the song bank's track table the
+// shutdown's song 5 reads this segment as music.
 #pragma once
 
 #include <cstddef>
 #include <cstdint>
 
-namespace opeu::intro {
+namespace opeu::intro::detail::open_data_segment {
 
-// DS:0166, the console state in MAIN's order; OPEN never saves or restores it.
+// The console state in MAIN's order; OPEN never saves or restores it.
 struct TextSaved {
   int16_t x;
   int16_t y;
@@ -25,10 +24,10 @@ struct TextSaved {
 #pragma pack(push, 1)
 struct OpenDataSegment {
   uint8_t library_data[0x92]; // KOEI library and C runtime _DATA
-  // ODTEXT
+  // The text console (recovered/data/console-data.cpp)
   uint8_t   digit_font[10][16]; // unreferenced 8x16 digit glyphs
-  uint32_t  draw_hooks[4];      // far 0000:0680, 0000:069d, twice
-  uint8_t   text_erase[8];      // the erase string of text_erase_char
+  uint32_t  draw_hooks[4];      // the library's two draw routines, twice; never called through
+  uint8_t   text_erase[8];      // the erase of one character; never printed
   uint8_t   text_unused[16];
   int16_t   text_x;    // column 0..79
   int16_t   text_y;    // pixel row 0..399
@@ -42,16 +41,16 @@ struct OpenDataSegment {
   uint8_t   text_lead; // pending Shift-JIS lead byte
   uint8_t   text_lead_pad;
   int16_t   text_state;    // escape-sequence state
-  uint16_t  format_output; // request_format's destination
+  uint16_t  format_output; // a formatted string's destination; always the console
   // Reserved: kept for the layout until M4
   char    reserved_ems_name[8];
   int16_t reserved_sprite_mapped;
-  // ODSOUND
+  // The music (recovered/data/music-data.cpp)
   uint8_t music_current;
   uint8_t effect_current;
   char    music_bank[26];
   char    music_path[14];
-  // ODOPEN
+  // The scenes (recovered/data/scene-data.cpp)
   int16_t  aborted;     // a scene was aborted by input
   int16_t  frame_y[11]; // units scene: rows, heights, capture offsets
   int16_t  frame_h[11];
@@ -89,14 +88,14 @@ struct OpenDataSegment {
   char     alloc_err9[11];
   char     console_reset[13]; // the console reset sequence
   char     scenario_file_name[11];
-  // ODUTIL
+  // The helpers (recovered/data/helper-data.cpp)
   uint16_t stream_count; // picture stream bytes left
   uint8_t  palette[48];  // the current palette
   uint8_t  black[48];
   uint8_t  spare_palette[48];
   uint8_t  icon[16][2];
-  char     error_format[16]; /* "OPEN ERROR=  %s" */
-  // ODPAL
+  char     error_format[16]; // "OPEN ERROR=  %s"
+  // The file names and the palette table (recovered/data/file-and-palette-data.cpp)
   char    logo_file_name[13];
   uint8_t logo_file_name_pad;
   char    picture_file_name[12];
@@ -224,4 +223,9 @@ static_assert(offsetof(OpenDataSegment, library_bss_after_buffers) == 0x1c34);
 static_assert(sizeof(TextSaved) == 12);
 static_assert(sizeof(OpenDataSegment) == 0x1c40); // _end
 
-}
+} // namespace opeu::intro::detail::open_data_segment
+
+namespace opeu::intro {
+using detail::open_data_segment::OpenDataSegment;
+using detail::open_data_segment::TextSaved;
+} // namespace opeu::intro

@@ -3,7 +3,7 @@
 // a fake machine.
 #pragma once
 
-#include "dgroup.hpp"
+#include "open-data-segment.hpp"
 #include "open-memory.hpp"
 #include "open-state.hpp"
 #include "segment-bytes.hpp"
@@ -34,7 +34,7 @@ public:
     return _machine;
   }
   // DGROUP's bytes, behind every Byte and Word.
-  [[nodiscard]] auto Segment() const noexcept -> intro::Segment {
+  [[nodiscard]] auto Segment() const noexcept -> segment_bytes::Segment {
     return _state.Bytes();
   }
 

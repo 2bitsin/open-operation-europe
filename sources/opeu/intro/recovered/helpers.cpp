@@ -1,12 +1,13 @@
-// The opening's helpers: the tick wait with input abort, the mouse, the picture stream that always reads OPENGRP.NPK,
+// The opening's helpers: the uninterruptible delay, the tick wait with input abort, the mouse, the picture stream that always reads OPENGRP.NPK,
 // the fades of the current palette, the input poll and the file opener that stops on a missing file. Near pointers are
 // DGROUP offsets; palettes are views of DGROUP's 48-byte rows. The mouse driver, the FM driver's countdown, the files
 // and the display are called directly.
 #include "recovered.hpp"
 
 #include "hostinput.hpp" // port_time_us
-#include "open-far.hpp"
+#include "open-services.hpp"
 #include "port.hpp"
+#include "segment-buffers.hpp"
 #include "services.hpp"
 #include "vgalib.hpp"
 
@@ -15,7 +16,7 @@
 #include <cstdint>
 #include <span>
 
-namespace opeu::intro::detail::outil {
+namespace opeu::intro::detail::helpers {
 namespace {
 // The mouse driver's state query.
 struct MouseState {
@@ -64,37 +65,17 @@ auto StreamNext(Open& open) -> uint8_t {
   return FarByte(open, { Data(open).stream_segment, offset });
 }
 
-// The picture decoder's reader is a plain function: the opening it reads for, while one decode runs.
-Open* reading{ nullptr };
-
-auto ReadStreamByte() -> uint8_t;
-
-class StreamReading {
-public:
-  explicit StreamReading(Open& open) : _saved{ reading } {
-    reading = &open;
-  }
-  StreamReading(StreamReading const&)                    = delete;
-  StreamReading(StreamReading&&)                         = delete;
-  auto operator=(StreamReading const&) -> StreamReading& = delete;
-  auto operator=(StreamReading&&) -> StreamReading&      = delete;
-  ~StreamReading() {
-    reading = _saved;
-  }
-
-private:
-  Open* _saved;
-};
 } // namespace
 
-auto PollInput() -> int16_t;
 auto NextPictureByte(Open& open) -> uint8_t;
 
-namespace {
-auto ReadStreamByte() -> uint8_t {
-  return NextPictureByte(*reading);
+// Waits `ticks` of the effect countdown, whatever the input; 0 waits nothing.
+auto Delay(uint16_t ticks) -> void {
+  if (ticks != 0u) {
+    services::StartEffectCountdown(ticks);
+    while (services::EffectCountdown() != 0u);
+  }
 }
-} // namespace
 
 // Waits until the music timeline (the FM driver's down-counter) has run `ticks` further; 1 if a key or button came first.
 auto WaitTicks(uint16_t ticks) -> int16_t {
@@ -152,8 +133,7 @@ void SeekPicture(Open& open, int32_t position) {
 // Decodes the picture at a file position of OPENGRP.NPK onto the screen at (x column, y line).
 void DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position) {
   SeekPicture(open, position);
-  StreamReading const decoding{ open };
-  opeu_picture_decode_masked(x, y, ReadStreamByte);
+  opeu_picture_decode_masked(x, y, [&open] { return NextPictureByte(open); });
 }
 
 // Copies the palette to the current palette and loads the DAC.

@@ -1,4 +1,4 @@
-"""OPEN.EXE: its recovered code under recovered/ in namespace opeu::intro, and its runner (C++23)."""
+"""OPEN.EXE: its recovered code under recovered/, its process (load image, memory, state) and its runner (C++23)."""
 import buildutil_configure as bc
 
 intro = bc.source_dir()

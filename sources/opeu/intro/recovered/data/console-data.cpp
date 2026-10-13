@@ -2,7 +2,7 @@
 // the far table of two drawing routines. Far pointers are 32-bit segment:offset words.
 #include "recovered.hpp"
 
-namespace opeu::intro::detail::odtext {
+namespace opeu::intro::detail::console_data {
 namespace {
 constexpr auto FarCode(uint16_t segment, uint16_t offset) -> uint32_t {
   return static_cast<uint32_t>(segment) << 16 | offset;

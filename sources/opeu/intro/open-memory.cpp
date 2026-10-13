@@ -1,8 +1,8 @@
 // OPEN.EXE's memory (open-memory.hpp).
 #include "open-memory.hpp"
 
+#include "load-image.hpp"
 #include "port.hpp"
-#include "process.hpp"
 
 #include "opeu/contract.hpp"
 
@@ -71,7 +71,7 @@ auto OpenMemory::Free(Paragraph segment) -> bool {
   return std::erase_if(_blocks, [&](Block const& block) { return block.segment == segment; }) != 0;
 }
 
-auto OpenMemory::Segment(Paragraph paragraph) const -> intro::Segment {
+auto OpenMemory::Segment(Paragraph paragraph) const -> segment_bytes::Segment {
   return _bytes.subspan(std::size_t{ paragraph } * PARAGRAPH).first<SEGMENT_SIZE>();
 }
 

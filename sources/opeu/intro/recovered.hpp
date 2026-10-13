@@ -3,7 +3,7 @@
 // services (display, files, input, the FM driver) directly.
 #pragma once
 
-#include "dgroup.hpp"
+#include "open-data-segment.hpp"
 #include "open.hpp"
 
 #include <cstdint>
@@ -11,19 +11,16 @@
 
 namespace opeu::intro {
 
-// The FM song bank the driver is opened with: far 0710:0002.
-inline constexpr uint16_t BANK_FRAME{ 0x0710 };
-inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
-
 // A 16-colour palette in DGROUP: three 4-bit levels per colour.
 using Palette = std::span<std::uint8_t const, 48>;
 
-namespace detail::openmain {
+namespace detail::scenes {
 void RunOpening(Open& open);
-void Delay(uint16_t ticks);
 }
 
-namespace detail::outil {
+namespace detail::helpers {
+// Waits `ticks` of the effect countdown, whatever the input; 0 waits nothing.
+void Delay(uint16_t ticks);
 auto ResetMouse(Open& open) -> uint16_t;
 void DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position);
 void SetCurrentPalette(Open& open, Palette palette);
@@ -43,7 +40,7 @@ auto OpenFileOrStop(Open& open, uint16_t name) -> int16_t;
 [[noreturn]] void Hang();
 }
 
-namespace detail::otext {
+namespace detail::text_console {
 void FlushKeys();
 auto PutCharacter(Open& open, uint8_t c) -> uint8_t;
 void PutString(Open& open, uint16_t s);
@@ -52,20 +49,20 @@ void PutString(Open& open, uint16_t s);
 void CursorPrint(Open& open, std::span<uint16_t const> words);
 }
 
-namespace detail::osound {
+namespace detail::music {
 void InitializeSound(Open& open);
 void SendMusicControl(Open& open, uint8_t value);
 auto IsMusicPlaying(Open& open) -> int;
 void StartMusic(Open& open, uint8_t track);
 // The FM driver's song start (song number, 1 = track 0) and stop (fade
-// length), as the shutdown issues them without OSOUND's checks.
+// length), as the shutdown issues them without the music module's checks.
 void StartSong(uint8_t song);
 void StopMusic(uint8_t fade);
 }
 
 // The initialized data of the five DGROUP modules and of the song bank,
-// which image.cpp places.
-namespace detail::odtext {
+// which load-image.cpp places.
+namespace detail::console_data {
 extern uint8_t const   UNUSED_DIGIT_FONT[10][16];
 extern uint32_t const  DRAW_HOOKS[4];
 extern uint8_t const   TEXT_ERASE[8];
@@ -82,14 +79,14 @@ extern int16_t const   TEXT_STATE;
 extern uint16_t const  FORMAT_OUTPUT;
 }
 
-namespace detail::odsound {
+namespace detail::music_data {
 extern uint8_t const MUSIC_CURRENT;
 extern uint8_t const EFFECT_CURRENT;
 extern char const    MUSIC_BANK[26];
 extern char const    MUSIC_PATH[14];
 }
 
-namespace detail::odopen {
+namespace detail::scene_data {
 extern char const     RESERVED_EMS_NAME[8];
 extern int16_t const  RESERVED_SPRITE_MAPPED;
 extern int16_t const  ABORTED;
@@ -129,7 +126,7 @@ extern char const     CONSOLE_RESET[13];
 extern char const     SCENARIO_FILE_NAME[11];
 }
 
-namespace detail::odutil {
+namespace detail::helper_data {
 extern uint16_t const STREAM_COUNT;
 extern uint8_t const  PALETTE[48];
 extern uint8_t const  BLACK_PALETTE[48];
@@ -138,7 +135,7 @@ extern uint8_t const  ICON[16][2];
 extern char const     ERROR_FORMAT[16];
 }
 
-namespace detail::odpal {
+namespace detail::file_and_palette_data {
 extern char const    LOGO_FILE_NAME[13];
 extern char const    PICTURE_FILE_NAME[12];
 extern char const    SPRITE_FILE_NAME[13];
@@ -148,37 +145,38 @@ extern uint8_t const PALETTE_TABLE[112][48];
 extern uint8_t const CLOSING_PALETTE[48];
 }
 
-// Far data, frame 0710: the FM song bank from 0710:0002.
+// Far data: the FM song bank (recovered/data/song-bank.cpp). The namespace and the names are the probe's
+// (probes/dump-open-bank), deferred to the tree-wide rename (#17).
 namespace detail::ofmusic {
 extern uint16_t const opeu_music_tracks[3][5];
 extern uint8_t const  opeu_music_voices[447];
 extern uint8_t const  opeu_music_events[8379];
 }
 
-using detail::openmain::Delay;
-using detail::openmain::RunOpening;
-using detail::osound::SendMusicControl;
-using detail::osound::IsMusicPlaying;
-using detail::osound::StartMusic;
-using detail::osound::InitializeSound;
-using detail::osound::StartSong;
-using detail::osound::StopMusic;
-using detail::otext::CursorPrint;
-using detail::otext::FlushKeys;
-using detail::otext::PutCharacter;
-using detail::otext::PutString;
-using detail::outil::Hang;
-using detail::outil::ResetMouse;
-using detail::outil::FadeToClosingPalette;
-using detail::outil::FadeOut;
-using detail::outil::FadeOutUninterrupted;
-using detail::outil::OpenFileOrStop;
-using detail::outil::SetIdentityPalette;
-using detail::outil::PollInput;
-using detail::outil::WaitTicks;
-using detail::outil::FadePalette;
-using detail::outil::SetCurrentPalette;
-using detail::outil::StepPalette;
-using detail::outil::DrawPicture;
+using detail::helpers::Delay;
+using detail::scenes::RunOpening;
+using detail::music::SendMusicControl;
+using detail::music::IsMusicPlaying;
+using detail::music::StartMusic;
+using detail::music::InitializeSound;
+using detail::music::StartSong;
+using detail::music::StopMusic;
+using detail::text_console::CursorPrint;
+using detail::text_console::FlushKeys;
+using detail::text_console::PutCharacter;
+using detail::text_console::PutString;
+using detail::helpers::Hang;
+using detail::helpers::ResetMouse;
+using detail::helpers::FadeToClosingPalette;
+using detail::helpers::FadeOut;
+using detail::helpers::FadeOutUninterrupted;
+using detail::helpers::OpenFileOrStop;
+using detail::helpers::SetIdentityPalette;
+using detail::helpers::PollInput;
+using detail::helpers::WaitTicks;
+using detail::helpers::FadePalette;
+using detail::helpers::SetCurrentPalette;
+using detail::helpers::StepPalette;
+using detail::helpers::DrawPicture;
 
 }

@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace opeu::intro::detail::open_far {
+namespace opeu::intro::detail::segment_buffers {
 
 // A place in OPEN's far memory.
 struct FarAddress {
@@ -74,23 +74,23 @@ auto Dissolve(Open& open, ScreenPoint at, DissolveSource source) -> void;
 // Reads from an open file into far memory; the bytes read, or a DOS error code.
 auto ReadFar(Open& open, std::int16_t handle, FarBuffer buffer) -> std::int16_t;
 auto FarByte(Open& open, FarAddress at) -> std::uint8_t;
-} // namespace opeu::intro::detail::open_far
+} // namespace opeu::intro::detail::segment_buffers
 
 namespace opeu::intro {
-using detail::open_far::AndMask;
-using detail::open_far::BlitFar;
-using detail::open_far::CopyFar;
-using detail::open_far::DissolveSource;
-using detail::open_far::Dissolve;
-using detail::open_far::DrawFar;
-using detail::open_far::FarAddress;
-using detail::open_far::FarBuffer;
-using detail::open_far::FarByte;
-using detail::open_far::FarImage;
-using detail::open_far::FarRectangle;
-using detail::open_far::OrSprite;
-using detail::open_far::ReadFar;
-using detail::open_far::SaveScreen;
-using detail::open_far::ScreenArea;
-using detail::open_far::ScreenPoint;
+using detail::segment_buffers::AndMask;
+using detail::segment_buffers::BlitFar;
+using detail::segment_buffers::CopyFar;
+using detail::segment_buffers::DissolveSource;
+using detail::segment_buffers::Dissolve;
+using detail::segment_buffers::DrawFar;
+using detail::segment_buffers::FarAddress;
+using detail::segment_buffers::FarBuffer;
+using detail::segment_buffers::FarByte;
+using detail::segment_buffers::FarImage;
+using detail::segment_buffers::FarRectangle;
+using detail::segment_buffers::OrSprite;
+using detail::segment_buffers::ReadFar;
+using detail::segment_buffers::SaveScreen;
+using detail::segment_buffers::ScreenArea;
+using detail::segment_buffers::ScreenPoint;
 } // namespace opeu::intro

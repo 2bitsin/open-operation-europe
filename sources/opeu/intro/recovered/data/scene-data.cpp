@@ -3,7 +3,7 @@
 // allocation-failure report and the text console.
 #include "recovered.hpp"
 
-namespace opeu::intro::detail::odopen {
+namespace opeu::intro::detail::scene_data {
 
 // Reserved bytes (an expanded-memory device name and a zero word) the opening never reads; they hold DGROUP's layout.
 char const    RESERVED_EMS_NAME[8]   = { 'E', 'M', 'M', 'X', 'X', 'X', 'X', '0' };

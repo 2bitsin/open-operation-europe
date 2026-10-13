@@ -20,16 +20,15 @@
 // Near pointers are DGROUP offsets; all arithmetic wraps at 16 bits.
 #include "recovered.hpp"
 
-#include "open-far.hpp"
-#include "open-services.hpp"
-#include "process.hpp"
+#include "load-image.hpp"
+#include "segment-buffers.hpp"
 #include "services.hpp"
 #include "vgalib.hpp"
 
 #include <array>
 #include <cstdint>
 
-namespace opeu::intro::detail::openmain {
+namespace opeu::intro::detail::scenes {
 namespace {
 // A picture of OPENGRP.NPK by its absolute file position.
 auto PictureAt(Open& open, uint16_t x, uint16_t y, uint32_t position) -> void {
@@ -90,13 +89,6 @@ void FreeBuffers(Open& open);
 void ShutDown(Open& open);
 void OpenFiles(Open& open);
 void CloseFiles(Open& open);
-
-void Delay(uint16_t ticks) {
-  if (ticks != 0u) {
-    StartEffectCountdown(ticks);
-    while (EffectCountdown() != 0u);
-  }
-}
 
 auto WaitForMark(uint16_t target) -> int {
   while (opeu_fm_busy() > target) {

@@ -24,7 +24,7 @@
 #include <ranges>
 #include <span>
 
-namespace opeu::intro::detail::otext {
+namespace opeu::intro::detail::text_console {
 namespace {
 // The int and long at a near pointer.
 auto IntAt(Open const& open, uint16_t at) -> int16_t {

@@ -26,7 +26,7 @@ public:
   // INT 21h AH=49h; whether the segment was an allocated block.
   auto Free(Paragraph segment) -> bool;
   // The 64 KiB a segment register addresses.
-  [[nodiscard]] auto Segment(Paragraph paragraph) const -> intro::Segment;
+  [[nodiscard]] auto Segment(Paragraph paragraph) const -> segment_bytes::Segment;
   // `size` bytes from a far address on, without wrapping (a DOS transfer).
   [[nodiscard]] auto Bytes(Paragraph paragraph, NearWord offset, std::size_t size) const -> std::span<std::uint8_t>;
 

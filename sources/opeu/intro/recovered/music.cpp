@@ -3,13 +3,13 @@
 // afterwards, as the driver stayed resident between the two programs.
 #include "recovered.hpp"
 
+#include "load-image.hpp"
 #include "open-services.hpp"
-#include "process.hpp"
 #include "services.hpp"
 
 #include <cstdint>
 
-namespace opeu::intro::detail::osound {
+namespace opeu::intro::detail::music {
 namespace {
 // The driver's music functions, the high byte of the request.
 enum class Music : uint8_t {
@@ -40,7 +40,7 @@ void StopMusic(uint8_t fade) {
 
 // The driver opened with the song bank (the opening has no effect bank).
 void InitializeSound(Open& open) {
-  Data(open).music_driver  = static_cast<uint16_t>(OpenSongBank(BANK_OFFSET, OPEN_BANK_SEGMENT));
+  Data(open).music_driver  = static_cast<uint16_t>(services::OpenSongBank(BANK_OFFSET, OPEN_BANK_SEGMENT));
   Data(open).sound_enabled = static_cast<uint16_t>(Data(open).music_driver != 0);
 }
 

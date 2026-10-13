@@ -3,7 +3,7 @@
 // The original launcher (KOEI.COM) sets BIOS mode 12h, runs FMDRV.COM
 // (resident), then OPEN.EXE, then MAIN.EXE. The port does the same in one
 // process: the entry installs the FM driver, open_intro_run() runs OPEN's
-// recovered main() (recovered/core/openmain.cpp) and then MAIN starts with
+// recovered main() (RunOpening, recovered/scenes.cpp) and then MAIN starts with
 // the same window, VGA state and driver.
 //
 //   open_intro_options()  takes --no-intro / --intro out of argv (call
@@ -16,9 +16,13 @@
 // audio checks keep their timings.
 #pragma once
 
-namespace opeu::intro {
-
+// The two names are the entry's (opeu/entry.cpp), deferred to the tree-wide rename (#17).
+namespace opeu::intro::detail::intro {
 void open_intro_options(int* argc, char** argv);
 void open_intro_run();
+} // namespace opeu::intro::detail::intro
 
-}
+namespace opeu::intro {
+using detail::intro::open_intro_options;
+using detail::intro::open_intro_run;
+} // namespace opeu::intro

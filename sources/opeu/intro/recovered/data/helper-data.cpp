@@ -3,7 +3,7 @@
 // routine addresses, and the fatal-error format of the file opener.
 #include "recovered.hpp"
 
-namespace opeu::intro::detail::odutil {
+namespace opeu::intro::detail::helper_data {
 
 uint16_t const STREAM_COUNT      = 0;
 uint8_t const  PALETTE[48]       = { 0 }; // current palette

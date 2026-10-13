@@ -3,7 +3,7 @@
 // last row by its own name, CLOSING_PALETTE.
 #include "recovered.hpp"
 
-namespace opeu::intro::detail::odpal {
+namespace opeu::intro::detail::file_and_palette_data {
 
 char const    LOGO_FILE_NAME[]    = "KOEILOGO.FNT";
 char const    PICTURE_FILE_NAME[] = "OPENGRP.NPK";

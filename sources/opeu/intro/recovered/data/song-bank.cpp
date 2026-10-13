@@ -1,8 +1,8 @@
 // The opening's FM song bank, in the format of the game's bank: InitializeSound hands the driver the far address of
-// BANK_TRACKS. Offsets are relative to the bank's start.
-//   BANK_TRACKS  3 songs x 5 channel tracks; each word is the bank offset of a track's event stream (all fifteen used).
-//   BANK_VOICES  FM voice (instrument) parameters, 0x001e..0x01dd; opaque, as in the game's bank.
-//   BANK_EVENTS  the tracks' event streams from 0x01dd (the first track starts at this array); opaque bytes.
+// the track table. Offsets are relative to the bank's start.
+//   tracks  3 songs x 5 channel tracks; each word is the bank offset of a track's event stream (all fifteen used).
+//   voices  FM voice (instrument) parameters, 0x001e..0x01dd; opaque, as in the game's bank.
+//   events  the tracks' event streams from 0x01dd (the first track starts at this array); opaque bytes.
 // The opening has no separate sound-effect bank.
 #include "recovered.hpp"
 

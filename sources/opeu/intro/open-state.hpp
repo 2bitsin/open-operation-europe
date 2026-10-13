@@ -2,7 +2,7 @@
 // (SS = DS). The segment is viewed where OPEN's memory holds it, as GameState views MAIN's.
 #pragma once
 
-#include "dgroup.hpp"
+#include "open-data-segment.hpp"
 #include "segment-bytes.hpp"
 
 #include "opeu/contract.hpp"
