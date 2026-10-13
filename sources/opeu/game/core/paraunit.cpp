@@ -58,9 +58,9 @@ auto Troops(Game& game, uint16_t unit) -> uint16_t {
 
 // The unit's capacity for ammunition, fuel and food.
 auto Capacities(Game const& game, uint16_t unit) -> std::array<uint16_t, 3> {
-  std::array<uint16_t, 3> capacities{};
-  opeu_unit_capacities(game, unit, &capacities[0], &capacities[1], &capacities[2]);
-  return capacities;
+  uint16_t ammunition{ 0 }, fuel{ 0 }, food{ 0 };
+  opeu_unit_capacities(game, unit, &ammunition, &fuel, &food);
+  return { ammunition, fuel, food };
 }
 
 // Steps from (x, y) to the neighbour in direction; 0 when it is off the map.
