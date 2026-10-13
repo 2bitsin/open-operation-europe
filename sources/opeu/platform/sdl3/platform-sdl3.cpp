@@ -738,15 +738,18 @@ auto SaveFile::Open(std::string_view const dos_name, FileMode const mode) -> std
 }
 
 auto SaveFile::Read(std::span<std::uint8_t> const bytes) -> std::size_t {
-  // The stream's characters are bytes: reading through a char view of the buffer is the standard's sanctioned alias.
-  _stream.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  // The stream reads chars; a save file is small, so it reads into chars and converts them to bytes.
+  std::vector<char> chars(bytes.size());
+  _stream.read(chars.data(), static_cast<std::streamsize>(chars.size()));
   auto const count{ static_cast<std::size_t>(_stream.gcount()) };
   _stream.clear();
+  std::ranges::transform(chars | std::views::take(count), bytes.begin(), [](char const c) { return static_cast<std::uint8_t>(c); });
   return count;
 }
 
 auto SaveFile::Write(std::span<std::uint8_t const> const bytes) -> std::size_t {
-  _stream.write(reinterpret_cast<char const*>(bytes.data()), static_cast<std::streamsize>(bytes.size())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto const chars{ bytes | std::views::transform([](std::uint8_t const b) { return static_cast<char>(b); }) | std::ranges::to<std::vector>() };
+  _stream.write(chars.data(), static_cast<std::streamsize>(chars.size()));
   auto const written{ _stream.good() ? bytes.size() : 0uz };
   _stream.clear();
   return written;
