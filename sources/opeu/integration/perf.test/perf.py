@@ -37,6 +37,7 @@ How the gates decide (the evidence is in docs/building.md, "Benchmarks and profi
     python3 perf.py baseline <build dir> [--samples N]      measure a build tree and write its baseline entry
     python3 perf.py reference <opeu> [NAME] [--samples N]   record another build's runs as a reference (v1.0.1)
     python3 perf.py measure <build dir> [--samples N]       print the numbers without writing them
+    python3 perf.py add-runs <build dir> [--samples N]      baseline the runs the entry lacks, the rest kept (add_runs)
 
 `<build dir>` is a buildutil build tree (`_build/<profile>`): its `bin/opeu` is the game, and its benchmark
 executables are built there (BUILD_BENCHMARKING is configured on for them; buildutil passes the switch on every
@@ -367,6 +368,35 @@ def record_reference(opeu: Path, name: str, rounds: int) -> dict:
     return entry
 
 
+def add_runs(build: Build, rounds: int) -> dict:
+    """Baselines the runs this machine's entry for the build type lacks (a run added to the suite) without re-recording
+    the others or the benchmarks. Every gated run is played `rounds` times in one session; the kept runs are the
+    session's yardstick: the new runs' numbers are scaled by the kept runs' total CPU median in the baseline over the
+    same total now, so they read as if measured beside them. (The calibration processes tell the machine's load, not
+    how the game's speed moved since the baseline; the kept runs tell both.) Each kept run's scaled time is printed
+    beside its baseline as a check; one far off says the session was uneven and wants a full `baseline` instead."""
+    baseline = load_baseline()
+    numbers = machine_entry(baseline, machine())['builds'][build.build_type]
+    names = gated_runs(build.build_type)
+    session = sample_runs(build.opeu, names, rounds)
+    kept = [name for name in names if name in numbers['runs']]
+    scale = (sum(numbers['runs'][name]['cpu_median_s'] for name in kept) /
+             sum(statistics.median(s.cpu for s in session.runs[name]) for name in kept))
+    found = {name: scaled_summary(session.runs[name], scale) for name in names}
+    for name in kept:
+        print(f'{name}: {found[name]["cpu_median_s"]:.4f} s, baseline {numbers["runs"][name]["cpu_median_s"]:.4f} s',
+              file=sys.stderr)
+    added = {name: {**found[name], **stamp(build)} for name in names if name not in numbers['runs']}
+    numbers['runs'] = {name: numbers['runs'].get(name) or added[name] for name in names}
+    save_baseline(baseline)
+    return {'scale': round(scale, 4), 'added': added}
+
+
+def scaled_summary(samples: list[Sample], scale: float) -> dict:
+    """run_summary of samples whose times are multiplied by `scale`."""
+    return run_summary([Sample(s.cpu * scale, s.wall * scale) for s in samples])
+
+
 # ---- what the gates compare with ----
 
 @dataclass(frozen=True)
@@ -475,7 +505,7 @@ def main() -> None:
         print(json.dumps({'cpu': calibrate()}))
         return
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
-    parser.add_argument('command', choices=['baseline', 'measure', 'reference'])
+    parser.add_argument('command', choices=['baseline', 'measure', 'reference', 'add-runs'])
     parser.add_argument('target', help='a build tree, or for reference the opeu binary')
     parser.add_argument('label', nargs='?', default='v1.0.1', help='reference: the name it is recorded under')
     parser.add_argument('--samples', type=int, default=BASELINE_SAMPLES)
@@ -483,6 +513,8 @@ def main() -> None:
     target = Path(args.target).resolve()
     if args.command == 'reference':
         found = record_reference(target, args.label, args.samples)
+    elif args.command == 'add-runs':
+        found = add_runs(Build(target), args.samples)
     elif args.command == 'baseline':
         found = record_baseline(Build(target), args.samples)
     else:

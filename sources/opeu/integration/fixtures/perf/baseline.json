@@ -391,6 +391,24 @@
        "samples": 7,
        "wall_median_s": 0.1533
       },
+      "campaign-bulge-allies": {
+       "cpu_median_s": 0.2342,
+       "cpu_min_s": 0.2259,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.3933
+      },
+      "campaign-kursk-axis": {
+       "cpu_median_s": 0.1946,
+       "cpu_min_s": 0.1778,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.2948
+      },
       "demo-africa": {
        "cpu_median_s": 0.4845,
        "cpu_min_s": 0.4625,
@@ -433,6 +451,24 @@
        "samples": 7,
        "wall_median_s": 0.5565
       },
+      "end-france": {
+       "cpu_median_s": 0.5349,
+       "cpu_min_s": 0.5252,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 1.049
+      },
+      "load-africa": {
+       "cpu_median_s": 0.0514,
+       "cpu_min_s": 0.048,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.0606
+      },
       "load-play-save": {
        "cpu_median_s": 0.0788,
        "cpu_min_s": 0.0713,
@@ -444,6 +480,15 @@
        "cpu_min_s": 0.0397,
        "samples": 7,
        "wall_median_s": 0.0478
+      },
+      "menus-mouse": {
+       "cpu_median_s": 0.1038,
+       "cpu_min_s": 0.0877,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.1105
       },
       "officers-advice": {
        "cpu_median_s": 0.1783,
@@ -462,6 +507,15 @@
        "cpu_min_s": 0.1413,
        "samples": 7,
        "wall_median_s": 0.1593
+      },
+      "save-africa": {
+       "cpu_median_s": 0.1277,
+       "cpu_min_s": 0.1178,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.1452
       },
       "save-new": {
        "cpu_median_s": 0.1246,
@@ -492,6 +546,15 @@
        "cpu_min_s": 0.5204,
        "samples": 7,
        "wall_median_s": 0.5749
+      },
+      "soak-kursk-6": {
+       "cpu_median_s": 0.1624,
+       "cpu_min_s": 0.1523,
+       "measured": "2026-10-13",
+       "os_version": "macOS 26.5",
+       "revision": "fb546969",
+       "samples": 7,
+       "wall_median_s": 0.2118
       }
      }
     }
