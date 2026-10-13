@@ -337,7 +337,7 @@ void opeu_save_game(Game& game) {
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(4));
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), opeu_title_box(game, static_cast<const UiHost*>(port_uiprim_host()), 36, 336, Near(data, data.save_where)));
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.save_list), static_cast<uint8_t>(1), static_cast<uint8_t>(3))) {
+      if (!opeu_list_dialog(game, Near(data, data.save_list), static_cast<uint8_t>(1), static_cast<uint8_t>(3))) {
         opeu_dos_close(static_cast<int16_t>(file));
         break;
       }

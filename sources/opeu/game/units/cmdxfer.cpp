@@ -133,7 +133,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_division), data.context_record2);
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       SetListPredicate(data.division_dialog, GROUP_ENABLED, segment);
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.division_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
+      if (!opeu_list_dialog(game, Near(data, data.division_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
       data.transfer_group = data.list_row;
       opeu_group_show(game, Near(data, GroupOf(data, data.current_side, data.transfer_group)), static_cast<uint8_t>(data.transfer_group));
       [[fallthrough]];
@@ -142,7 +142,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(game) + 1);
       SetListPredicate(data.organize_list, UNIT_ENABLED, segment);
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.organize_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
+      if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
         step = Step::DIVISION;
         continue;
       }
@@ -154,7 +154,7 @@ void opeu_turn_action_3(Game& game, uint16_t segment) {
       SetListPredicate(data.choice_dialog, ELEMENT_ENABLED, segment);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.transfer_which_group), data.context_record2);
       opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.choice_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
+      if (!opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
         step = Step::REGIMENT;
         continue;
       }

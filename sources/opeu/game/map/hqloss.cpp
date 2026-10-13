@@ -118,7 +118,7 @@ void opeu_battle_pick_hq(Game& game) {
   auto draw{ FIRST_DRAW };
   for (;; draw = REDRAW) {
     data.list_row = data.deploy_row;
-    if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) continue;
+    if (!opeu_list_dialog(game, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) continue;
     auto element{ Record<Unit>(data, data.battle_lost_unit).first };
     data.deploy_row = data.list_row;
     for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;

@@ -57,7 +57,7 @@ auto opeu_load_saved_game(Game& game) -> std::uint16_t {
     opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(HIGHLIGHT));
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Framed(game, 33, 336, data.load_which_text));
     opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(NORMAL));
-    if ((choice = opeu_list_dialog(game, svc_listdlg, Near(data, data.save_list), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(3))) != 0) {
+    if ((choice = opeu_list_dialog(game, Near(data, data.save_list), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(3))) != 0) {
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(HIGHLIGHT));
       opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Framed(game, 32, 188, data.loading_text));
       auto const position{ static_cast<std::uint32_t>(SAVED_BYTES * data.save_slot + SAVED_BLOCKS_AT) };

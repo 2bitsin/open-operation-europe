@@ -55,7 +55,7 @@ void opeu_request_arms(Game& game) {
     count += static_cast<std::uint8_t>(opeu_list_due_records(game, Near(data, data.rq_type_list[count]), static_cast<uint8_t>(data.side_masks[data.current_side]), static_cast<uint8_t>(category)));
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_which), data.context_record2);
-  if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
+  if (!opeu_list_dialog(game, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rq_arms_where), data.context_record2);

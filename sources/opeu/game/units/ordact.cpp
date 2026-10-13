@@ -82,7 +82,7 @@ void opeu_unit_action(Game& game, uint16_t unit, uint16_t /*unused*/) {
     auto const count{ OrderCount(data.action_order_codes[menu]) };
     opeu_order_layout(game, menu);
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(MENU_X), static_cast<int16_t>(MENU_Y));
-    auto const choice{ opeu_prompt_value_cancel(game, svc_keyboard, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
+    auto const choice{ opeu_prompt_value_cancel(game, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
     opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(game, unit, person);

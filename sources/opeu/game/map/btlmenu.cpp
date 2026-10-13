@@ -91,7 +91,7 @@ uint16_t opeu_battle_orders_menu(Game& game, uint16_t element) {
   for (;;) {
     opeu_battle_menu_place(game);
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
-    auto choice{ opeu_prompt_value(game, svc_keyboard, Near(data, data.battle_msg_orders), 1, BUTTONS, static_cast<std::int16_t>(1), Near(data, data.battle_menu_items)) };
+    auto choice{ opeu_prompt_value(game, Near(data, data.battle_msg_orders), 1, BUTTONS, static_cast<std::int16_t>(1), Near(data, data.battle_menu_items)) };
     if (choice == MENU_CANCELLED) {
       Panels(game);
       opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));

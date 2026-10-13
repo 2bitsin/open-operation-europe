@@ -56,7 +56,7 @@ uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t hi
                       std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(RANGE_FORMAT), static_cast<std::uint16_t>(low), static_cast<std::uint16_t>(high) });
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), text);
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer);
-  return opeu_choose_value(game, svc_keyboard, low, high, static_cast<int16_t>(value), d);
+  return opeu_choose_value(game, low, high, static_cast<int16_t>(value), d);
 }
 
 // The operations chief asks for a number in low..high; the range text is formatted in the routine's reserve.

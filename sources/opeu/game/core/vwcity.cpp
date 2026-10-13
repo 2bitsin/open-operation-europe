@@ -62,7 +62,7 @@ void opeu_view_city_list(Game& game, uint8_t count) {
   SetRowCheck(game, data.city_dialog, RowCheck::OBJECTIVE);
   for (std::uint16_t height{ 7 }; opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host())),
                                   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), CITY_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
-                                  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.city_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
+                                  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.city_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
     auto const city{ data.view_objectives[data.list_row] };
     opeu_unit_flash(game, static_cast<std::uint16_t>(city), static_cast<std::uint8_t>(4));
@@ -73,7 +73,7 @@ void opeu_view_city_list(Game& game, uint8_t count) {
       opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(CITY_FORMAT), static_cast<std::uint16_t>(city) });
       opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(data.context_record3));
       opeu_copy_bytes(game, LIST_WINDOW, static_cast<std::uint16_t>(saved_window), LIST_WINDOW_STATE);
-      opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.stock_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
+      opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.stock_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
       opeu_copy_bytes(game, static_cast<std::uint16_t>(saved_window), LIST_WINDOW, LIST_WINDOW_STATE);
     }
   }

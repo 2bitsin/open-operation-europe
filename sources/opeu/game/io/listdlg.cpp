@@ -12,6 +12,7 @@
 #include "common/game.hpp"
 #include "io/list-keys.hpp"
 #include "io/listui.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "vgalib.hpp"
 #include <array>
@@ -41,17 +42,18 @@ auto RestoreScreen(Game& game, ListWindow const& window) -> void {
                       static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
 }
 
-auto Select(Game& game, HostWordsEvent event, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
-  return static_cast<std::uint8_t>(List(game, event, ListCall::SELECT, window.select.offset, window.select.segment, count));
+auto Select(Game& game, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
+  std::array<std::uint16_t, 1> const words{ count };
+  return static_cast<std::uint8_t>(port_call(game, static_cast<std::uint32_t>(window.select.segment) * 16u + window.select.offset, words.data(), words.size()));
 }
 
-auto NextKey(Game& game, HostWordsEvent event) -> std::uint8_t {
-  return Data(game).input_mode ? opeu_list_mouse_key(game, event) : static_cast<std::uint8_t>(opeu_keyboard_key(game));
+auto NextKey(Game& game) -> std::uint8_t {
+  return Data(game).input_mode ? opeu_list_mouse_key(game) : static_cast<std::uint8_t>(opeu_keyboard_key(game));
 }
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
 // activation) and inverts the selected row.
-auto Open(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t flags) -> void {
+auto Open(Game& game, std::uint16_t near, std::uint8_t flags) -> void {
   auto&       data{ Data(game) };
   auto const& window{ ListWindowAt(data, near) };
   data.list_mouse = !(flags & KEYBOARD_ONLY);
@@ -63,19 +65,19 @@ auto Open(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t fla
     column           = REDRAW_ORIGIN;
   } else
     column = REDRAW_HERE;
-  opeu_list_scroll(game, event, near, column, 0);
+  opeu_list_scroll(game, near, column, 0);
   opeu_list_invert(game);
 }
 } // namespace
 
 // The commander dialog: keeps the picked generals (general_list entries) and, after the seventh pick, asks "Are you
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
-auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
+auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
   auto&         data{ Data(game) };
   auto const&   window{ ListWindowAt(data, near) };
   std::uint16_t picked[10]{};
   std::uint16_t result{ 0 };
-  Open(game, event, near, flags);
+  Open(game, near, flags);
   std::uint8_t const column{ data.list_column };
   std::uint8_t       start{ data.list_top };
   std::uint8_t       used{ 0 };
@@ -86,7 +88,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
       refresh = false;
     }
     bool         scroll{ true };
-    std::uint8_t key{ NextKey(game, event) };
+    std::uint8_t key{ NextKey(game) };
     bool         withdraw{ false };
     switch (key) {
     case KEY_SCROLL_UP:
@@ -120,7 +122,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
         start++;
       break;
     case KEY_ENTER: {
-      auto const added{ Select(game, event, window, used) };
+      auto const added{ Select(game, window, used) };
       used += added;
       if ((flags & FIRST_ACTIVATION) && added) picked[used] = data.general_list[data.list_row];
       opeu_list_invert(game);
@@ -135,7 +137,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
       if (withdraw) {
         // withdraws the last pick and reprints its general's line in the list
         auto const general{ picked[used] };
-        used -= Select(game, event, window, static_cast<std::uint8_t>(used + WITHDRAW));
+        used -= Select(game, window, static_cast<std::uint8_t>(used + WITHDRAW));
         std::uint16_t i{ 0 };
         while (data.general_list[i] != general && i <= 11) i++;
         std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
@@ -154,7 +156,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
         withdraw = false;
         scroll   = true;
       }
-      if (scroll) opeu_list_scroll(game, event, near, column, start);
+      if (scroll) opeu_list_scroll(game, near, column, start);
       opeu_list_invert(game);
       if (used > COMMANDERS) used = COMMANDERS;
       if (used == COMMANDERS) {
@@ -181,12 +183,12 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
 // The list dialog: runs until `limit` choices are made (or the player cancels when allowed). On a window at column
 // 12h OK cancels and ESC selects: the dialog tests (flags == 1 | 2), which always holds. Windows at columns 0Fh and
 // 9 restore the screen and start over when another key ends the switch.
-auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t limit, std::uint8_t flags) -> std::uint16_t {
+auto opeu_list_dialog(Game& game, std::uint16_t near, std::uint8_t limit, std::uint8_t flags) -> std::uint16_t {
   auto&                   data{ Data(game) };
   auto const&             window{ ListWindowAt(data, near) };
   constexpr std::uint16_t SWAPPED_COLUMN{ 0x12 };
   for (;;) {
-    Open(game, event, near, flags);
+    Open(game, near, flags);
     std::uint8_t const column{ data.list_column };
     std::uint8_t       first{ data.list_top };
     std::uint8_t       count{ 0 };
@@ -206,7 +208,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
         SELECT,
         CANCEL
       } step{ Step::NONE };
-      switch (NextKey(game, event)) {
+      switch (NextKey(game)) {
       case KEY_SCROLL_UP:
         if (data.list_top == 0) continue;
         opeu_list_invert(game);
@@ -248,13 +250,13 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       case KEY_ZERO:   step = window.x == SWAPPED_COLUMN ? Step::SELECT : Step::CANCEL; break;
       }
       if (step == Step::SELECT) {
-        count += Select(game, event, window, count);
+        count += Select(game, window, count);
         opeu_list_invert(game);
         fresh = true;
         step  = Step::SCROLL;
       }
       if (step == Step::SCROLL) {
-        opeu_list_scroll(game, event, near, column, first);
+        opeu_list_scroll(game, near, column, first);
         step = Step::MOVED;
       }
       if (step == Step::MOVED) {
@@ -282,8 +284,4 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       return done;
     }
   }
-}
-
-auto svc_listdlg(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t {
-  return svc_listui(game, kind, args, count);
 }

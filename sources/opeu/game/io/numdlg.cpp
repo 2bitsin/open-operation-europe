@@ -47,23 +47,16 @@ auto Column(DataSegment const& data) -> std::uint16_t {
   return static_cast<std::uint16_t>(data.numdlg_x << 3);
 }
 
-// The UI outline reports each of its lines as its event 5; the bridge (passed as the outline's memory pointer)
-// forwards them as UI_LINE.
-struct OutlineBridge {
-  HostService service;
-};
-
-auto OutlineLine(Game& game, std::uint8_t* memory, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint32_t {
+// The UI outline reports each of its lines as its event 5, drawn here.
+auto OutlineLine(Game&, std::uint8_t*, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint32_t {
   constexpr std::uint16_t LINE_EVENT{ 5 };
   if (id != LINE_EVENT || count != 5) return 0;
-  auto const* bridge{ reinterpret_cast<OutlineBridge const*>(memory) };
-  Input(game, bridge->service, InputCall::UI_LINE, args[0], args[1], args[2], args[3], args[4]);
+  opeu_ui_line(args[0], args[1], args[2], args[3], args[4]);
   return 0;
 }
 
-auto Outline(Game& game, HostService service, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2) -> void {
-  OutlineBridge bridge{ service };
-  UiHost        host{ reinterpret_cast<std::uint8_t*>(&bridge), 0, 0, 0, OutlineLine };
+auto Outline(Game& game, std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2) -> void {
+  UiHost host{ nullptr, 0, 0, 0, OutlineLine };
   opeu_ui_outline(game, &host, x1, y1, x2, y2, OUTLINE_COLOUR);
 }
 
@@ -216,7 +209,7 @@ void opeu_numdlg_highlight(Game& game, std::uint8_t n) {
 }
 
 // Moves the dialog with an outline while the left button is held.
-void opeu_numdlg_drag(Game& game, HostService service) {
+void opeu_numdlg_drag(Game& game) {
   auto& data{ Data(game) };
   opeu_mouse_hide(game);
   opeu_numdlg_close(game);
@@ -238,11 +231,11 @@ void opeu_numdlg_drag(Game& game, HostService service) {
     if (x != column || y != row) {
       if (column != 0xffff) {
         opeu_mouse_hide(game);
-        Outline(game, service, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
+        Outline(game, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
         opeu_mouse_show(game);
       }
       opeu_mouse_hide(game);
-      Outline(game, service, x << 3, y, (x << 3) + 0x8f, y + 0x5f);
+      Outline(game, x << 3, y, (x << 3) + 0x8f, y + 0x5f);
       opeu_mouse_show(game);
       column = x;
       row    = y;
@@ -251,7 +244,7 @@ void opeu_numdlg_drag(Game& game, HostService service) {
   data.numdlg_x = column;
   data.numdlg_y = row;
   opeu_mouse_hide(game);
-  Outline(game, service, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
+  Outline(game, column << 3, row, (column << 3) + 0x8f, row + 0x5f);
   opeu_numdlg_open(game);
   opeu_mouse_show(game);
   opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
@@ -296,7 +289,7 @@ auto opeu_numdlg_outside(Game& game, std::uint16_t mx, std::uint16_t my) -> std:
 
 // Runs the dialog until a value in lo..hi is accepted or (when allowed) the dialog is cancelled; returns the value or
 // 0xffff.
-auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
+auto opeu_numdlg_track(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
   auto const&  data{ Data(game) };
   std::uint8_t shown{ NOTHING };
   std::int32_t value{ lo };
@@ -333,7 +326,7 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
       }
       if (opeu_mouse_left(game)) {
         if (hit == TITLE_BAR) {
-          opeu_numdlg_drag(game, service);
+          opeu_numdlg_drag(game);
           opeu_numdlg_bar(game, lo, hi, value);
           opeu_numdlg_show(game, value);
           left = Column(data);
@@ -369,9 +362,9 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
   return static_cast<std::uint16_t>(value);
 }
 
-auto opeu_numdlg_run(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
+auto opeu_numdlg_run(Game& game, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
   opeu_numdlg_open(game);
-  auto const value{ opeu_numdlg_track(game, service, lo, hi, cancel) };
+  auto const value{ opeu_numdlg_track(game, lo, hi, cancel) };
   opeu_numdlg_close(game);
   opeu_input_reset(game);
   return value;

@@ -20,6 +20,7 @@
 #include "services.hpp"
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 
 using namespace opeu::game;
@@ -59,8 +60,9 @@ auto WidthByte(Game& game, ListWindow const& window, unsigned i) -> std::uint8_t
   return Byte(game, static_cast<std::uint16_t>(window.widths + i));
 }
 
-auto DrawRows(Game& game, HostWordsEvent event, ListWindow const& window, std::uint8_t column, std::uint8_t row, std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
-  List(game, event, ListCall::DRAW_ROWS, window.draw.offset, window.draw.segment, column, row, last_column, last_row, area);
+auto DrawRows(Game& game, ListWindow const& window, std::uint8_t column, std::uint8_t row, std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
+  std::array<std::uint16_t, 5> const words{ column, row, last_column, last_row, area };
+  port_call(game, static_cast<std::uint32_t>(window.draw.segment) * 16u + window.draw.offset, words.data(), words.size());
 }
 } // namespace
 
@@ -115,7 +117,7 @@ void opeu_list_arrows_lit(Game& game, std::uint16_t x, std::uint16_t top, std::u
 // Tracks the mouse over the active window until a button press; returns KEY_SCROLL_UP or KEY_SCROLL_DOWN (left click
 // on an arrow), KEY_ENTER (left click on the selected row), KEY_ZERO (right click), or KEY_UP or KEY_DOWN when the
 // pointer is over a row above or below the selection.
-auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
+auto opeu_list_mouse_key(Game& game) -> std::uint8_t {
   auto&               data{ Data(game) };
   auto const&         window{ ListWindowAt(data, data.list_window) };
   std::uint16_t const left = window.x << 3;
@@ -125,10 +127,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
   std::uint8_t        key;
   opeu_mouse_show(game);
   for (;;) {
-    std::uint16_t position[2]{};
-    event(game, std::to_underlying(ListCall::MOUSE_POSITION), position, 2);
-    auto const x{ position[0] };
-    auto const y{ position[1] };
+    auto const [x, y]{ MousePosition(game) };
     bool const on_strip{ data.list_mouse && x >= left && static_cast<std::uint16_t>(left + 15) >= x };
     if (on_strip && y >= top && static_cast<std::uint16_t>(top + 0x1f) >= y) {
       if (state != UP_LIT) {
@@ -222,7 +221,7 @@ auto opeu_list_frame(Game& game, std::uint16_t near, std::uint8_t first_column) 
 // Shows the window from column and row. REDRAW_ORIGIN redraws from the origin, REDRAW_HERE at the current position;
 // otherwise a one-column or one-row step scrolls the drawn area and has the draw routine draw the uncovered part; an
 // unchanged position just redraws the selected row.
-void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t column, std::uint8_t row) {
+void opeu_list_scroll(Game& game, std::uint16_t near, std::uint8_t column, std::uint8_t row) {
   auto&               data{ Data(game) };
   auto const&         window{ ListWindowAt(data, near) };
   std::uint16_t const width{ window.widths };
@@ -266,7 +265,7 @@ void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t near, std:
     opeu_screen_copy(x, static_cast<std::uint16_t>(y + 0x12), static_cast<std::uint16_t>(x1 - x), static_cast<std::uint16_t>(y1 - y - 0x23), x, static_cast<std::uint16_t>(y + 0x23));
     opeu_ui_box(x, static_cast<std::uint16_t>(y + 0x12), static_cast<std::uint16_t>(x1 - x), 0x10, 0);
   } else {
-    DrawRows(game, event, window, column, data.list_row, data.list_columns + column - 1, data.list_row, SELECTED_ROW);
+    DrawRows(game, window, column, data.list_row, data.list_columns + column - 1, data.list_row, SELECTED_ROW);
     opeu_list_frame(game, near, column);
     return;
   }
@@ -295,43 +294,6 @@ void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t near, std:
     break;
   }
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
-  DrawRows(game, event, window, column, row, last_column, last_row, area);
+  DrawRows(game, window, column, row, last_column, last_row, area);
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
-}
-
-auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t {
-  auto* const text{ static_cast<TextHost*>(port_textout_host()) };
-  auto const  word{ [&](unsigned i) { return Arg(args, count, i); } };
-  switch (static_cast<ListCall>(kind)) {
-  case ListCall::DRAW_FAR:       return static_cast<std::uint16_t>(opeu_draw_far(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-  case ListCall::OUTLINE:        opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), word(0), word(1), word(2), word(3), word(4)); break;
-  case ListCall::MOUSE_SHOW:     opeu_mouse_show(game); break;
-  case ListCall::MOUSE_HIDE:     opeu_mouse_hide(game); break;
-  case ListCall::MOUSE_POSITION: {
-    auto const [x, y]{ MousePosition(game) };
-    if (count >= 2) {
-      args[0] = x;
-      args[1] = y;
-    }
-    break;
-  }
-  case ListCall::MOUSE_BUTTONS:  return opeu_mouse_buttons(game);
-  case ListCall::INPUT_RESET:    opeu_input_reset(game); break;
-  case ListCall::HIGHLIGHT:      return static_cast<std::uint16_t>(opeu_ui_highlight(word(0), word(1), word(2), word(3), word(4)));
-  case ListCall::LINE:           opeu_ui_line(word(0), word(1), word(2), word(3), word(4)); break;
-  case ListCall::SCREEN_COPY:    opeu_screen_copy(word(0), word(1), word(2), word(3), word(4), word(5)); break;
-  case ListCall::BOX:            return static_cast<std::uint16_t>(opeu_ui_box(word(0), word(1), word(2), word(3), word(4)));
-  case ListCall::BITMAP_SAVE:    opeu_bitmap_save(word(0), word(1), word(2), word(3), port_far(word(4), word(5))); break;
-  case ListCall::BITMAP_RESTORE: return static_cast<std::uint16_t>(opeu_bitmap_restore(word(0), word(1), word(2), word(3), word(4), port_far(word(5), word(6))));
-  case ListCall::PAPER:          opeu_text_paper_set(game, text, static_cast<std::uint8_t>(word(0))); break;
-  case ListCall::TEXT_COLOUR:    opeu_text_color(game, text, word(0)); break;
-  case ListCall::TEXT_POSITION:  opeu_army_position(game, text, static_cast<std::int16_t>(word(0)), static_cast<std::int16_t>(word(1))); break;
-  case ListCall::PRINT:          opeu_cursor_print(game, { args, count }); break;
-  case ListCall::KEYBOARD_KEY:   return opeu_keyboard_key(game);
-  case ListCall::YES_NO:         return static_cast<std::uint16_t>(opeu_prompt_yes_no(game, word(0)));
-  case ListCall::DRAW_ROWS:      port_call(game, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u); break;
-  case ListCall::SELECT:         return static_cast<std::uint8_t>(port_call(game, static_cast<std::uint32_t>(word(1)) * 16u + word(0), args + 2, count >= 2 ? count - 2u : 0u));
-  default:                       port_unhandled("listui", kind, count);
-  }
-  return 0;
 }

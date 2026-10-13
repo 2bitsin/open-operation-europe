@@ -103,11 +103,11 @@ uint16_t port_sound_int66(uint16_t* w, uint16_t* ds_seg) {
 /* ---- keyboard prompts ----------------------------------------------------------- */
 
 uint16_t port_prompt_cancel(Game& game, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_cancel(game, svc_keyboard, text, max, items);
+  return opeu_prompt_value_cancel(game, text, max, items);
 }
 
 uint16_t port_prompt_required(Game& game, uint16_t text, uint16_t max, uint16_t items) {
-  return opeu_prompt_value_required(game, svc_keyboard, text, max, items);
+  return opeu_prompt_value_required(game, text, max, items);
 }
 
 uint16_t port_prompt_yes_no(Game& game, uint16_t text) {

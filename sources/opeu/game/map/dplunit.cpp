@@ -64,7 +64,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
     auto draw{ FIRST_DRAW };
     for (;;) {
       data.list_row = data.deploy_row;
-      if (opeu_list_dialog(game, svc_listdlg, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) {
+      if (opeu_list_dialog(game, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) {
         // An element row: lift the element, show its zone and place it by hand.
         data.deploy_row = data.list_row;
         auto element{ Record<Unit>(data, unit).first };

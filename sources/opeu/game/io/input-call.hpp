@@ -3,7 +3,6 @@
 // (the driver call the register words) unless noted.
 #pragma once
 
-#include "common/events.hpp"
 #include "common/host.hpp"
 
 #include <cstdint>
@@ -42,14 +41,8 @@ enum class InputCall : std::uint16_t {
 };
 
 // A call with up to eleven argument words.
-template <typename... Words>
-inline auto Input(Game& game, HostService service, InputCall call, Words... words) -> std::uint16_t {
-  std::uint16_t args[sizeof...(Words) < 7 ? 7 : sizeof...(Words)]{ static_cast<std::uint16_t>(words)... };
-  return service(game, std::to_underlying(call), args);
-}
 } // namespace opeu::game::detail::input_call
 
 namespace opeu::game {
-using detail::input_call::Input;
 using detail::input_call::InputCall;
 } // namespace opeu::game

@@ -118,7 +118,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   for (;;) {
     opeu_ops_chief_text(game, Near(data, data.organize_dispatch));
     opeu_copy_bytes(game, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
-    if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.supply_slot_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) {
+    if (!opeu_list_dialog(game, Near(data, data.supply_slot_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) {
       if (!data.supply_total && opeu_alloc_groups_nonempty(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots)) == 1) {
         if (!opeu_ops_chief_wait(game, Near(data, data.organize_complete))) {
           flags = ALLOC_FIRST;
@@ -144,7 +144,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
     for (;;) {
       opeu_ops_chief_text(game, Near(data, data.organize_select));
       opeu_copy_bytes(game, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.supply_type_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
+      if (!opeu_list_dialog(game, Near(data, data.supply_type_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
       opeu_copy_bytes(game, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
       std::uint8_t const row{ data.list_row };
       auto const&        type{ data.element_types[data.supply_types[row]] };
@@ -185,7 +185,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
     }
     SetEnabled(data.organize_list, segment);
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_which), person());
-    if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
+    if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(flags))) break;
     opeu_copy_bytes(game, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
     auto const unit{ data.row_units[data.list_row] };
     opeu_unit_announce(game, flags);
@@ -227,7 +227,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
       data.organize_list.rows = static_cast<std::uint8_t>(allocation.types + 1);
       SetEnabled(data.organize_list, segment);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_with), person());
-      if (!opeu_list_dialog(game, svc_listdlg, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(LIST_FIRST))) {
+      if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(1), static_cast<uint8_t>(LIST_FIRST))) {
         flags = LIST_AGAIN;
         Refresh(game);
         continue;

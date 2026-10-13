@@ -513,7 +513,7 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
     break;
   case TEXT_WINDOW_RESET:  opeu_text_window_reset(game, (TextHost*)port_textout_host()); break;
   case TEXT_PUTC:          r = opeu_text_put(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case MENU_SELECT:        r = opeu_choose_value(game, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
+  case MENU_SELECT:        r = opeu_choose_value(game, Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
   case CONFIRM_INPUT:      r = (uint16_t)opeu_yes_no(game); break;
   case WAIT_TICKS:         opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case MUSIC_COMMAND7:     opeu_music_command7(game); break;

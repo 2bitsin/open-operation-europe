@@ -55,7 +55,7 @@ uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t hi
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), line);
   opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_begin)) });
-  auto const chosen{ opeu_choose_value(game, svc_keyboard, low, high, static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), items) };
+  auto const chosen{ opeu_choose_value(game, low, high, static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), items) };
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.air_input_end)) });
   return chosen;
 }

@@ -56,7 +56,7 @@ void opeu_view_regiment_list(Game& game) {
   auto const          title{ locals.At(REGIMENT_TITLE_AT) };
   for (std::uint16_t height{ 7 }; opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host())),
                                   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), REGIMENT_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
-                                  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.organize_list)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
+                                  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.organize_list)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
     auto const unit{ data.supply_units[data.list_row] };
     opeu_unit_announce(game, static_cast<std::uint16_t>(unit));
@@ -67,7 +67,7 @@ void opeu_view_regiment_list(Game& game) {
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(REGIMENT_FORMAT), static_cast<std::uint16_t>(unit_name) });
     opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(data.context_record3));
     opeu_copy_bytes(game, LIST_WINDOW, static_cast<std::uint16_t>(saved_window), LIST_WINDOW_STATE);
-    opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.choice_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
+    opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.choice_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
     opeu_copy_bytes(game, static_cast<std::uint16_t>(saved_window), LIST_WINDOW, LIST_WINDOW_STATE);
   }
 }
@@ -88,7 +88,7 @@ void opeu_view_own_divisions(Game& game) {
   auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
   for (std::uint16_t height{ 7 }; SetRowCheck(game, data.division_dialog, RowCheck::DIVISION),
                                   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), DIVISION_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
-                                  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.division_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
+                                  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.division_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
     auto const  division{ data.list_row };
     auto const& group{ GroupOf(data, data.current_side, division) };

@@ -85,7 +85,7 @@ void opeu_view_weapon_list(Game& game, uint16_t end) {
   data.weapons_dialog.rows = static_cast<std::uint8_t>(count + 1);
   SetRowCheck(game, data.weapons_dialog, RowCheck::ANY);
   for (std::uint16_t height{ 7 }; opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_PROMPT, static_cast<std::uint16_t>(data.context_record3)),
-                                  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.weapons_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
+                                  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.weapons_dialog)), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(height));
        height = 6) {
     opeu_element_type_panel(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(data.weapon_list[data.list_row]));
     opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), WEAPONS_HERE, static_cast<std::uint16_t>(data.context_record3));

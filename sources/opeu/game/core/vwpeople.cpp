@@ -44,7 +44,7 @@ void opeu_view_people_list(Game& game, uint8_t count) {
   SetRowCheck(game, data.people_dialog, RowCheck::NONE);
   opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
   opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_HERE, static_cast<std::uint16_t>(data.context_record3));
-  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.people_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
+  opeu_list_dialog(game, static_cast<std::uint16_t>(Near(data, data.people_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
 }
 
 // The own side's generals.

@@ -156,7 +156,7 @@ void opeu_alloc_choose_hq(Game& game, uint16_t callback_segment) {
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.regiment_hq_prompt)),
                                                             static_cast<std::uint16_t>(opeu_unit_name(game, unit_near, name)) });
     opeu_ops_chief_text(game, text);
-    opeu_list_dialog(game, svc_listdlg, Near(data, data.choice_dialog), static_cast<uint8_t>(1), static_cast<uint8_t>(9));
+    opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(1), static_cast<uint8_t>(9));
   }
 }
 
@@ -179,7 +179,7 @@ uint16_t svc_allocdst(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
   case 7:  r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case 8:  opeu_request_format(game, { args, count }); break;
   case 9:  opeu_ops_chief_text(game, Arg(args, count, 0)); break;
-  case 10: r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
+  case 10: r = opeu_list_dialog(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case 11: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   default: port_unhandled("allocdst", id, count);
   }
