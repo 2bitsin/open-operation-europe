@@ -4,7 +4,8 @@ it with direct calls. Dry runs only; it never writes under sources/ of the check
 
     rewrite.py [dry-run]                 model, B2/B3 plans and review listings of HEAD -> _local/m2/dry-run/
     rewrite.py --apply b2|b3|all --tree DIR   also rewrite a scratch export DIR (under _local/; made from --rev
-                                         when missing) and report what was replaced
+                                         when missing) and report what was replaced; b2 then drops the battle
+                                         events and deletes what only the battle path used (rewriter/b2.py)
     rewrite.py b1 [--tree DIR --apply [--check]]
                                          the B1 pass (ds -> Game&, rewriter/b1.py): its counts and review listings;
                                          with --apply it rewrites the scratch export DIR
@@ -26,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from rewriter import report  # noqa: E402
 from rewriter.apply import Apply, CheckScratch, MainCheckout  # noqa: E402
 from rewriter.b1 import B1Pass, WriteB1  # noqa: E402
+from rewriter.b2 import B2Pass  # noqa: E402
 from rewriter.check import Check, CompileDatabase  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import ROOT, SOURCES, ExportCommit, SourceTree  # noqa: E402
@@ -66,8 +68,12 @@ def main(argv: list[str] | None = None) -> int:
     applied = Apply(model, args.apply)
     summary["applied"] = {"sites": sum(applied.replaced.values()), "files": len(applied.replaced), "skipped": len(applied.skipped)}
     (args.out / f"apply-{args.apply}.txt").write_text("\n".join(applied.skipped) + "\n")
+    checked = sorted(applied.replaced)
+    if args.apply == "b2":
+      summary["b2"] = _B2(tree, args.out)
+      checked = _GameFiles(tree)
     if args.check:
-      summary["check"] = _Check(tree, sorted(applied.replaced), args.out / f"check-{args.apply}.txt")
+      summary["check"] = _Check(tree, checked, args.out / f"check-{args.apply}.txt")
   summary["seconds"] = round(time.monotonic() - started, 1)
   (args.out / "summary.json").write_text(json.dumps(summary, indent=1) + "\n")
   print(json.dumps(summary, indent=1))
@@ -84,12 +90,24 @@ def _B1(tree: Path, args, started: float) -> int:
   if args.apply:
     WriteB1(tree, result)
     if args.check:
-      game = tree / SOURCES / "game"
-      summary["check"] = _Check(tree, sorted(f"game/{path.relative_to(game).as_posix()}" for path in game.rglob("*.cpp")), args.out / "check-b1.txt")
+      summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b1.txt")
   summary["seconds"] = round(time.monotonic() - started, 1)
   (args.out / "b1.json").write_text(json.dumps(summary, indent=1) + "\n")
   print(json.dumps(summary, indent=1))
   return 0
+
+
+def _B2(tree: Path, out: Path) -> dict:
+  """The B2 cleanup after the battle sites are direct: counts, and one listing per kind into out."""
+  result = B2Pass(tree)
+  for kind in ("dropped", "deleted", "handlers", "keys", "includes", "kept"):
+    (out / f"b2-{kind}.txt").write_text("".join(f"{line}\n" for line in getattr(result, kind)))
+  return result.Counts()
+
+
+def _GameFiles(tree: Path) -> list[str]:
+  game = tree / SOURCES / "game"
+  return sorted(f"game/{path.relative_to(game).as_posix()}" for path in game.rglob("*.cpp"))
 
 
 def _Check(tree: Path, files: list[str], listing: Path) -> dict:

@@ -101,7 +101,9 @@ def _Edits(source: SourceFile, substitution: Substitution, done: FileEdits) -> l
 
 
 def _Includes(text: str, includes: list[str]) -> list[tuple[int, int, str]]:
-  """Inserts the missing `#include` lines after the file's last include (system headers after the last <...> one)."""
+  """Inserts the missing `#include` lines into the block of their kind: a game header (`map/btlunit.hpp`) at the end
+  of the first block of includes, another quoted one after the last quoted header without a directory, a system
+  header after the last <...> one (falling back to the file's last include)."""
   edits = []
   for include in includes:
     line = f"#include {include}" if include.startswith("<") else f'#include "{include}"'
@@ -109,9 +111,26 @@ def _Includes(text: str, includes: list[str]) -> list[tuple[int, int, str]]:
       continue
     quoted = [m.end() for m in re.finditer(r'^#include ".*$', text, re.M)]
     system = [m.end() for m in re.finditer(r"^#include <.*$", text, re.M)]
-    at = (system or quoted or [0])[-1] if include.startswith("<") else (quoted or system or [0])[-1]
+    bare = [m.end() for m in re.finditer(r'^#include "[^/"]*"$', text, re.M)]
+    if include.startswith("<"):
+      at = (system or quoted or [0])[-1]
+    elif "/" in include:
+      at = _FirstBlockEnd(text) or (quoted or system or [0])[-1]
+    else:
+      at = (bare or quoted or system or [0])[-1]
     edits.append((at, at, "\n" + line))
   return edits
+
+
+def _FirstBlockEnd(text: str) -> int | None:
+  """The end of the last line of the first run of consecutive `#include "..."` lines."""
+  first = re.search(r'^#include ".*$', text, re.M)
+  if first is None:
+    return None
+  end = first.end()
+  while (following := re.match(r'\n#include ".*', text[end:])) is not None:
+    end += following.end()
+  return end
 
 
 def _StatementStart(source: SourceFile, index: int) -> int:

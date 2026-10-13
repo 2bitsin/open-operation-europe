@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass, field, replace
 
 from .calls import CallSite
+from .casts import ModernCasts
 from .dispatch import SEGMENT_NAMES, STATEMENT
 from .functions import Function
 from .program import Program
@@ -72,7 +73,7 @@ class Substituter:
     substitution.order = "" if hoisted else _OrderHazard(owner_source, case.expression, reads, target, effects, words)
     if substitution.order:
       substitution.hoisted, words = _Hoisted(words)
-    text = self._Expression(site, target, case.expression, (words, substitution))
+    text = ModernCasts(self._Expression(site, target, case.expression, (words, substitution)))
     substitution.text = self._Result(site, target, text, substitution)
     self._Invisible(site, target, owner_source, substitution)
     return substitution
@@ -202,7 +203,7 @@ class Substituter:
 
   def _Result(self, site: CallSite, target: Target, text: str, substitution: Substitution) -> str:
     if not site.used:
-      return text
+      return Discarded(text)
     if target.case.form == STATEMENT:
       substitution.void_used = True
       return f"({text}, std::uint16_t{{ 0 }})"
@@ -246,6 +247,29 @@ class Substituter:
         substitution.cycle += [IncludeOf(header)] if IncludeOf(header) not in substitution.cycle else []
       elif IncludeOf(header) not in substitution.includes:
         substitution.includes.append(IncludeOf(header))
+
+
+def Discarded(text: str) -> str:
+  """A call whose value the site discards, without the conversion of its result (`(uint16_t)f(x)` -> `f(x)`): a cast
+  left in a statement of its own would be an unused value."""
+  match = re.fullmatch(r"\s*(?:\((?:std::)?u?int(?:8|16|32)_t\)|static_cast\s*<\s*(?:std::)?u?int(?:8|16|32)_t\s*>)\s*(.*)", text, re.S)
+  if match is None:
+    return text
+  inner = match.group(1)
+  if inner.startswith("(") and _Closes(inner, 0) == len(inner) - 1:
+    inner = inner[1:-1]
+  call = re.match(r"[A-Za-z_][\w:]*\s*\(", inner)
+  return inner if call and _Closes(inner, call.end() - 1) == len(inner) - 1 else text
+
+
+def _Closes(text: str, opening: int) -> int:
+  """The index of the parenthesis closing the one at opening (-1 when unbalanced)."""
+  depth = 0
+  for index in range(opening, len(text)):
+    depth += (text[index] == "(") - (text[index] == ")")
+    if depth == 0:
+      return index
+  return -1
 
 
 def _Hoisted(words: list[str]) -> tuple[list[tuple[int, str]], list[str]]:

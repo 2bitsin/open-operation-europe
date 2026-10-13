@@ -161,6 +161,8 @@ def _FunctionHead(source: SourceFile, head: Span, owner: str) -> Function | None
     return None
   if any(token.text == "=" for token in tokens[index:paren]):
     return None
+  if tokens[paren + 1].text in ("*", "&"):
+    return None  # `type (*name)(...)`: a function pointer declarator, not a function named by its type
   qualifier = tokens[name_index - 1].text == "::" and name_index - 2 >= index
   member_of = tokens[name_index - 2].text if qualifier else owner
   leading = Span(index, name_index - 2 if qualifier else name_index)

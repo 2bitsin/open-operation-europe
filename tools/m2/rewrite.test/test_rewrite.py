@@ -251,7 +251,7 @@ def test_a_forward_through_a_constexpr_table_remaps_the_id(model):
 
 
 def test_a_guard_that_is_an_id_predicate_forwards_the_ids_it_lets_through(model):
-  assert Replacement(model, "game/units/orders.cpp", 13) == "opeu_wait_units(ds, (uint8_t)side)"
+  assert Replacement(model, "game/units/orders.cpp", 13) == "opeu_wait_units(ds, static_cast<uint8_t>(side))"
   failure = TargetOf(model, "game/units/orders.cpp", 14).failure
   assert failure == "svc_unit_attack: 0x3 is not handed on ((id>OrderService::UNIT_SIDE&&id!=OrderService::WAIT_UNITS) holds)"
 
