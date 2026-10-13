@@ -65,11 +65,8 @@ void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row
     }
     auto const group_near{ Near(data, group) };
     if ((group.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, group_near))) {
-      auto const    commander{ opeu_find_group_record(game, side, g) };
-      std::uint16_t ammo;
-      std::uint16_t fuel;
-      std::uint16_t food;
-      opeu_group_resource_percentages(game, group_near, &ammo, &fuel, &food);
+      auto const commander{ opeu_find_group_record(game, side, g) };
+      auto const [ammo, fuel, food]{ GroupResourcePercentages(data, group_near) };
       auto const kind{ (group.flags & Bits(GroupFlag::AI_MARK)) ? Near(data, data.tbl_group_div) : Near(data, data.tbl_group_army) };
       opeu_request_format(game, std::array<std::uint16_t, 7>{ buffer, Near(data, data.tbl_group_row), kind, commander, fuel, ammo, food });
     } else

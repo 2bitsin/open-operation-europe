@@ -50,8 +50,7 @@ found:
     }
   auto& unit{ Record<Unit>(data, near) };
   Record<Element>(data, unit.first).flags |= Bits(ElementFlag::SELECTED);
-  uint16_t ammunition, fuel, food;
-  opeu_unit_capacities(game, near, &ammunition, &fuel, &food);
+  auto const [ammunition, fuel, food]{ UnitCapacities(data, near) };
   unit.resources[0] = InitialSupply(game, ammunition);
   unit.resources[1] = InitialSupply(game, fuel);
   unit.resources[2] = InitialSupply(game, food);

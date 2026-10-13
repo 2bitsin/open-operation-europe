@@ -39,7 +39,6 @@ namespace {
 constexpr uint8_t OBJECTIVE_CODE{ 1 };
 constexpr uint8_t NO_LANDING_CODES[]{ 0, 5, 6, 8, 10 };
 
-constexpr uint8_t ALL_CATEGORIES{ 0xff };
 constexpr uint8_t ANY_SIDE{ 0xff };
 constexpr uint8_t NEIGHBOURS{ 8 };
 constexpr uint8_t LANDING_PERCENT{ 90 };
@@ -52,15 +51,12 @@ auto CellAt(DataSegment& data, uint8_t x, uint8_t y) -> uint8_t& {
 
 // The troops in the unit's battalions.
 auto Troops(Game& game, uint16_t unit) -> uint16_t {
-  uint8_t count{ 0 };
-  return opeu_unit_quantity(game, unit, ALL_CATEGORIES, &count);
+  return UnitQuantity(Data(game), unit, ANY_CATEGORY).total;
 }
 
 // The unit's capacity for ammunition, fuel and food.
 auto Capacities(Game const& game, uint16_t unit) -> std::array<uint16_t, 3> {
-  uint16_t ammunition{ 0 }, fuel{ 0 }, food{ 0 };
-  opeu_unit_capacities(game, unit, &ammunition, &fuel, &food);
-  return { ammunition, fuel, food };
+  return Figures(UnitCapacities(Data(game), unit));
 }
 
 // Steps from (x, y) to the neighbour in direction; 0 when it is off the map.

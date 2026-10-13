@@ -57,8 +57,7 @@ void opeu_unit_hourly_event(Game& game) {
           opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, SPY_TEXT);
         }
         for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) {
-          std::uint8_t  count{};
-          auto const    quantity{ opeu_unit_quantity(game, near, category, &count) };
+          auto const    quantity{ UnitQuantity(data, near, category).total };
           std::uint16_t food{ unit.resources[2] };
           opeu_sub_word(opeu_max16(quantity / opeu_max16(data.quantity_divisors[category], 1), 1), &food);
           unit.resources[2] = food;

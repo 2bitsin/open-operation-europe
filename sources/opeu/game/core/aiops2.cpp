@@ -27,7 +27,7 @@ constexpr std::uint8_t  FIRST_HOUR{ 8 };
 constexpr std::uint8_t  LAST_HOUR{ 16 };
 
 // The lowest of the three supply percentages (stock against capacity) below `lowest`, or `lowest`.
-auto LowestPercent(std::uint16_t const (&stock)[3], std::uint16_t const (&capacity)[3], std::uint16_t lowest, bool& lower) -> std::uint16_t {
+auto LowestPercent(std::span<std::uint16_t const, 3> stock, std::span<std::uint16_t const, 3> capacity, std::uint16_t lowest, bool& lower) -> std::uint16_t {
   lower = false;
   for (int i{ 0 }; i < 3; ++i) {
     auto const percent{ opeu_mul_div(stock[i], 100, capacity[i]) };
@@ -48,11 +48,10 @@ uint16_t opeu_ai_neediest_objective(Game& game) {
   for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
     auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near || !Record<Objective>(data, near).active || !AiObjectiveEligible(game, near) || opeu_objective_side(game, near) != data.current_side) continue;
-    auto const&   objective{ Record<Objective>(data, near) };
-    std::uint16_t stock[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-    std::uint16_t capacity[3];
-    opeu_objective_capacities(game, near, &capacity[0], &capacity[1], &capacity[2]);
-    bool lower{};
+    auto const& objective{ Record<Objective>(data, near) };
+    auto const& stock{ objective.resources };
+    auto const  capacity{ Figures(ObjectiveCapacities(data, near)) };
+    bool        lower{};
     lowest = LowestPercent(stock, capacity, lowest, lower);
     if (lower) neediest = near;
   }
@@ -68,10 +67,9 @@ uint16_t opeu_ai_neediest_unit(Game& game) {
     auto&      unit{ data.units[data.current_side * UNITS_PER_SIDE + i] };
     auto const near{ Near(data, unit) };
     if (!(unit.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, near)) continue;
-    std::uint16_t stock[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-    std::uint16_t capacity[3];
-    opeu_unit_capacities(game, near, &capacity[0], &capacity[1], &capacity[2]);
-    bool lower{};
+    auto const& stock{ unit.resources };
+    auto const  capacity{ Figures(UnitCapacities(data, near)) };
+    bool        lower{};
     lowest = LowestPercent(stock, capacity, lowest, lower);
     if (lower) neediest = near;
   }
@@ -100,9 +98,8 @@ uint16_t opeu_ai_plan_supply(Game& game) {
     lift.y = objective.y;
     for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(OBJECTIVE_FULL - objective.resources[i]), i);
   } else if (auto const unit_near{ opeu_ai_neediest_unit(game) }) {
-    auto const&   unit{ Record<Unit>(data, unit_near) };
-    std::uint16_t capacity[3];
-    opeu_unit_capacities(game, unit_near, &capacity[0], &capacity[1], &capacity[2]);
+    auto const& unit{ Record<Unit>(data, unit_near) };
+    auto const  capacity{ Figures(UnitCapacities(data, unit_near)) };
     lift.x = unit.x;
     lift.y = unit.y;
     for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(capacity[i] - unit.resources[i]), i);

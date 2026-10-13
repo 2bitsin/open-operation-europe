@@ -28,10 +28,8 @@ void ClampFieldedUnits(Game& game, DataSegment& data) {
     if (!(unit.flags & Bits(UnitFlag::READY))) continue;
     auto const near{ Near(data, unit) };
     if (opeu_cell_side(game, unit.x, unit.y) != opeu_unit_side(near)) opeu_place_unit(game, near);
-    uint16_t percent[3];
-    uint16_t capacity[3];
-    opeu_unit_resource_percentages(game, near, &percent[0], &percent[1], &percent[2]);
-    opeu_unit_capacities(game, near, &capacity[0], &capacity[1], &capacity[2]);
+    auto const percent{ Figures(UnitResourcePercentages(data, near)) };
+    auto const capacity{ Figures(UnitCapacities(data, near)) };
     for (auto i = 0; i < 3; ++i)
       if (unit.resources[i] && percent[i] > 100) unit.resources[i] = capacity[i];
   }

@@ -130,8 +130,7 @@ uint16_t opeu_advice_tactical_reorganize(Game& game, const uint8_t* far_text) {
   ForEligibleUnits(game, [&](std::uint8_t, std::uint8_t, Unit& unit) {
     auto const near{ Near(data, unit) };
     if (opeu_unit_value(game, near) <= CHEAP_UNIT) ++cheap;
-    std::uint16_t capacity[3]{};
-    opeu_unit_capacities(game, near, &capacity[0], &capacity[1], &capacity[2]);
+    auto const capacity{ Figures(UnitCapacities(data, near)) };
     if (opeu_resource_percent(unit.resources[0], capacity[0]) <= LOW_SUPPLY || opeu_resource_percent(unit.resources[1], capacity[1]) <= LOW_SUPPLY
         || opeu_resource_percent(unit.resources[2], capacity[2]) <= LOW_SUPPLY)
       ++short_of_supply;
@@ -169,10 +168,8 @@ uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_tex
       if (pass == 0 && enemy > own && advisor.Random(static_cast<std::uint16_t>(6 - g)) == 1) {
         text = std::to_underlying(AdviceText::SEND_HELP);
       } else {
-        auto const   influence{ opeu_cell_influence_side(game, unit.x, unit.y) };
-        std::uint8_t to_x{};
-        std::uint8_t to_y{};
-        auto const   ordered{ opeu_unit_order_destination(game, near, &to_x, &to_y) };
+        auto const influence{ opeu_cell_influence_side(game, unit.x, unit.y) };
+        auto const ordered{ UnitOrderDestination(game, near).valid };
         if (pass == 1 && side == influence && opeu_category_4_or_5(k) && !ordered && advisor.Random(3) == 1)
           text = std::to_underlying(AdviceText::SEND_TO_FRONT);
         else if (pass == 2 && side != influence && opeu_category_4_or_5(k) && opeu_unit_value(game, near) <= CHEAP_UNIT && advisor.Random(3) == 1)
@@ -201,11 +198,10 @@ uint16_t opeu_side_request_kind_is(Game& game, const uint8_t*, uint8_t kind) {
 // Below 20 percent of a supply with no airlift and no request under way: one time in three, request supplies.
 // Otherwise an active division with fewer than four ready units: one time in three, reinforce it.
 uint16_t opeu_advice_tactical_supply_reinforce(Game& game, const uint8_t* far_text) {
-  auto&         data{ Data(game) };
-  auto const    advisor{ Tactics(game, far_text) };
-  auto const    side{ data.current_side };
-  std::uint16_t percent[3]{};
-  opeu_side_resource_percentages(game, side, &percent[0], &percent[1], &percent[2], 0);
+  auto&      data{ Data(game) };
+  auto const advisor{ Tactics(game, far_text) };
+  auto const side{ data.current_side };
+  auto const percent{ Figures(SideResourcePercentages(game, side)) };
   if ((percent[0] < LOW_SUPPLY || percent[1] < LOW_SUPPLY || percent[2] < LOW_SUPPLY) && !Record<Side>(data, data.current_side_ptr).lift.planes && !opeu_side_request_kind_is(game, far_text, 0)
       && !opeu_side_objective_slot_pending(game, far_text, 0) && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::REQUEST_SUPPLIES);

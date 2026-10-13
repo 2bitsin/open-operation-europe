@@ -48,13 +48,11 @@ enum Message : std::uint16_t {
 };
 
 constexpr std::uint16_t TEXT{ offsetof(DataSegment, event_buffer) };
-constexpr std::uint16_t ALL_CATEGORIES{ 255 };
 constexpr std::uint8_t  NORTH_ROWS{ 10 };
 // The daily shows of the two presentations.
 constexpr std::uint16_t PRESENT_A_ID{ 0x38 };
 constexpr std::uint16_t PRESENT_B_ID{ 0xb2 };
-// The reserves of the locals whose address the services receive: the quantity service's count, the names.
-constexpr std::uint16_t WEAK_COUNT{ 0xc };
+// The reserves of the locals whose address the name services receive.
 constexpr std::uint16_t NAME_A{ 0x14 };
 constexpr std::uint16_t NAME_B{ 0x10 };
 
@@ -67,19 +65,16 @@ auto Format(Game& game, std::uint16_t message, std::uint16_t word) -> void {
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
 // strength (infantry counting a tenth).
 auto Weak(Game& game, Unit const& unit) -> bool {
-  ServiceLocals const locals{ WEAK_COUNT };
-  auto&               data{ Data(game) };
-  std::uint16_t       morale{ 0 };
-  std::uint16_t       experience{ 0 };
-  std::uint16_t       strength{ 0 };
+  auto&         data{ Data(game) };
+  std::uint16_t morale{ 0 };
+  std::uint16_t experience{ 0 };
+  std::uint16_t strength{ 0 };
   for (auto const& element : Elements(data, unit)) {
     morale     += element.morale;
     experience += element.experience;
     strength   += data.element_types[element.type].category == 0 ? element.quantity / 10 : element.quantity;
   }
-  auto const at_count{ locals.At(0) };
-  opeu_unit_quantity(game, Near(data, unit), ALL_CATEGORIES, game.State().Bytes(at_count, 1).data());
-  auto const count{ static_cast<std::uint8_t>(Word(game, at_count)) };
+  auto const count{ UnitQuantity(data, Near(data, unit), ANY_CATEGORY).count };
   if (!count) return false;
   return (RandomBelow(game, 20) + 20 > morale / count && experience / count > 50 - RandomBelow(game, 20)) || RandomBelow(game, 20) + 20 > strength;
 }

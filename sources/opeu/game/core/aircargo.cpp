@@ -39,8 +39,11 @@
 #include "units/capacity.hpp"
 #include "units/unitname.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -59,29 +62,44 @@ constexpr std::uint16_t LOST_ROW{ 0x114 }; // with no plane left the flight ends
 constexpr std::uint16_t DROP_LEAD{ 0x20 }; // rows above the target where the load drops
 constexpr std::uint16_t CARGO_PICTURE{ 0x103 };
 
-// opeu_cargo_drop_event's locals that services fill, as offsets in its reserve: the report, the unit's name and the
-// unit's capacities.
-constexpr std::uint16_t TEXT_AT{ 0x00 }; // 100 bytes
-constexpr std::uint16_t NAME_AT{ 0x64 }; // 18 bytes
-constexpr std::uint16_t AMMO_CAPACITY_AT{ 0x76 };
-constexpr std::uint16_t FUEL_CAPACITY_AT{ 0x78 };
-constexpr std::uint16_t FOOD_CAPACITY_AT{ 0x7a };
-constexpr std::uint16_t DROP_LOCALS{ 0x7c };
+// opeu_cargo_drop_event's locals that services fill, as offsets in its reserve: the report and the unit's name.
+constexpr std::uint16_t TEXT_AT{ 0x00 };     // 100 bytes
+constexpr std::uint16_t NAME_AT{ 0x64 };     // 18 bytes
+constexpr std::uint16_t DROP_LOCALS{ 0x7c }; // the reserve's size
 
-// Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before.
-auto Unload(AirLift& lift, std::uint16_t (&stock)[3], std::uint16_t const (&limit)[3]) -> void {
-  for (int i{ 0 }; i < 3; ++i) {
-    auto const before{ stock[i] };
-    auto const after{ opeu_add_word(lift.supplies[i], limit[i], &stock[i]) };
-    lift.supplies[i] = static_cast<std::uint16_t>(lift.supplies[i] + static_cast<std::uint16_t>(before - after));
+// A unit's or objective's supplies before and after a drop.
+struct Delivery {
+  std::array<std::uint16_t, 3> before;
+  std::array<std::uint16_t, 3> now;
+};
+
+// What the report on a delivery names: the text buffer it is written into, its format and the receiver's colour and name.
+struct ReportHeading {
+  std::uint16_t text;
+  std::uint16_t format;
+  std::uint16_t color;
+  std::uint16_t name;
+};
+
+// Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before and after.
+auto Unload(AirLift& lift, std::span<std::uint16_t, 3> stock, std::span<std::uint16_t const, 3> limit) -> Delivery {
+  Delivery delivery{};
+  std::ranges::copy(stock, delivery.before.begin());
+  for (auto&& [supply, stocked, most] : std::views::zip(lift.supplies, stock, limit)) {
+    auto const before{ stocked };
+    auto const after{ opeu_add_word(supply, most, &stocked) };
+    supply = static_cast<std::uint16_t>(supply + static_cast<std::uint16_t>(before - after));
   }
+  std::ranges::copy(stock, delivery.now.begin());
+  return delivery;
 }
 
-// The report on what a unit or objective received: color, name, then each supply's new and old amount (fuel,
+// The report on what a unit or objective received: colour, name, then each supply's new amount and gain (fuel,
 // ammunition, food).
-auto Report(Game& game, std::uint16_t text, std::uint16_t format, std::uint16_t color, std::uint16_t name, std::uint16_t const (&now)[3], std::uint16_t const (&before)[3]) -> void {
-  opeu_request_format(game, std::array<std::uint16_t, 10>{ text, format, color, name, now[1], (static_cast<std::uint16_t>(now[1] - before[1])), now[0],
-                                                           (static_cast<std::uint16_t>(now[0] - before[0])), now[2], (static_cast<std::uint16_t>(now[2] - before[2])) });
+auto Report(Game& game, ReportHeading const& heading, Delivery const& delivery) -> void {
+  auto const& [before, now]{ delivery };
+  auto const gain{ [&](std::size_t supply) { return static_cast<std::uint16_t>(now[supply] - before[supply]); } };
+  opeu_request_format(game, std::array<std::uint16_t, 10>{ heading.text, heading.format, heading.color, heading.name, now[1], gain(1), now[0], gain(0), now[2], gain(2) });
 }
 } // namespace
 
@@ -160,28 +178,21 @@ void opeu_cargo_drop_event(Game& game) {
     if (static_cast<std::uint16_t>(pixel.y - row) == DROP_LEAD) {
       opeu_music_command7(game);
       if (auto const near{ opeu_find_unit_at(game, x, y) }; near != 0) {
-        opeu_unit_capacities(game, near, port_ds_word_ptr(game, locals.At(AMMO_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FUEL_CAPACITY_AT)), port_ds_word_ptr(game, locals.At(FOOD_CAPACITY_AT)));
-        auto&               unit{ Record<Unit>(data, near) };
-        std::uint16_t const before[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-        std::uint16_t const limit[3]{ Word(game, locals.At(AMMO_CAPACITY_AT)), Word(game, locals.At(FUEL_CAPACITY_AT)), Word(game, locals.At(FOOD_CAPACITY_AT)) };
-        Unload(lift, unit.resources, limit);
+        auto const limit{ Figures(UnitCapacities(data, near)) };
+        auto const delivery{ Unload(lift, Record<Unit>(data, near).resources, limit) };
         if (opeu_unit_side(near) == side) {
-          std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-          auto const          name{ opeu_unit_name(game, near, locals.At(NAME_AT)) };
-          auto const          color{ SideColorCode(opeu_unit_side(near)) };
-          Report(game, text, UNIT_REPORT, color, name, now, before);
+          auto const name{ opeu_unit_name(game, near, locals.At(NAME_AT)) };
+          auto const color{ SideColorCode(opeu_unit_side(near)) };
+          Report(game, { text, UNIT_REPORT, color, name }, delivery);
           opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }
       if (auto const near{ opeu_find_objective_at(game, x, y) }; near != 0) {
-        auto&                   objective{ Record<Objective>(data, near) };
-        std::uint16_t const     before[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-        constexpr std::uint16_t LIMIT[3]{ STOCK_LIMIT, STOCK_LIMIT, STOCK_LIMIT };
-        Unload(lift, objective.resources, LIMIT);
+        constexpr std::array<std::uint16_t, 3> LIMIT{ STOCK_LIMIT, STOCK_LIMIT, STOCK_LIMIT };
+        auto const                             delivery{ Unload(lift, Record<Objective>(data, near).resources, LIMIT) };
         if (opeu_objective_side(game, near) == side) {
-          std::uint16_t const now[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-          auto const          color{ SideColorCode(opeu_objective_side(game, near)) };
-          Report(game, text, CITY_REPORT, color, near, now, before);
+          auto const color{ SideColorCode(opeu_objective_side(game, near)) };
+          Report(game, { text, CITY_REPORT, color, near }, delivery);
           opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, opeu_find_side_record(game, side, AIR_OFFICER_KIND));
         }
       }

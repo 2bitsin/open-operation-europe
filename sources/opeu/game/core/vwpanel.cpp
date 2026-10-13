@@ -12,6 +12,7 @@
 #include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/element-chain.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/view-service.hpp"
@@ -63,18 +64,14 @@ void Print(Game& game, std::uint16_t format, _Words... words) {
 
 // The objective's name, supplies with their percentages, endurance and the stocks of its garrison.
 void opeu_objective_panel(Game& game, uint16_t objective) {
-  ServiceLocals const locals{ 0xa }; // the supply percentages the service writes
-  auto&               data{ Data(game) };
-  auto const&         city{ Record<Objective>(data, objective) };
-  auto const          ammunition{ locals.At(8) };
-  auto const          food{ locals.At(2) };
-  auto const          fuel{ locals.At(0) };
+  auto&       data{ Data(game) };
+  auto const& city{ Record<Objective>(data, objective) };
   opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), objective);
-  opeu_objective_resource_percentages(game, objective, port_ds_word_ptr(game, ammunition), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
+  auto const percent{ ObjectiveResourcePercentages(data, objective) };
   Position(game, FIRST_ROW);
-  Print(game, FUEL_AMMO, city.resources[1], Word(game, fuel), city.resources[0], Word(game, ammunition));
+  Print(game, FUEL_AMMO, city.resources[1], percent.fuel, city.resources[0], percent.ammunition);
   Position(game, SECOND_ROW);
-  Print(game, FOOD_END, city.resources[2], Word(game, food), city.strength, city.strength_limit);
+  Print(game, FOOD_END, city.resources[2], percent.food, city.strength, city.strength_limit);
   Position(game, GARRISON_ROW);
   Print(game, GARRISON);
   std::uint8_t shown{ 0 };
@@ -93,38 +90,28 @@ void opeu_objective_panel(Game& game, uint16_t objective) {
 // The regiment's name, its order and target (or "waiting" and its own place), supplies with their percentages, the
 // fatigue of its first battalion and its battalions.
 void opeu_unit_panel(Game& game, uint16_t unit) {
-  ServiceLocals const locals{ 0x28 }; // the supply percentages, the destination cell and two names services write
+  ServiceLocals const locals{ 0x28 }; // the two names services write
   auto&               data{ Data(game) };
   auto const&         regiment{ Record<Unit>(data, unit) };
-  auto const          ammunition{ locals.At(0x26) };
-  auto const          fuel{ locals.At(0x1c) };
-  auto const          food{ locals.At(0x1e) };
-  auto const          destination_x{ locals.At(0x1a) };
-  auto const          destination_y{ locals.At(0) };
   auto const          location_name{ locals.At(2) };
   opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), opeu_unit_name(game, unit, locals.At(0xe)));
-  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, ammunition), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
-  // each capacity becomes the percentage of it the regiment holds
-  for (auto const& [kind, local] : {
-           std::pair{ 0, ammunition },
-           std::pair{ 1, fuel       },
-           std::pair{ 2, food       }
-  })
-    SetWord(game, local, opeu_resource_percent(regiment.resources[kind], Word(game, local)));
-  auto const has_destination{ opeu_unit_order_destination(game, unit, &Record<std::uint8_t>(Data(game), destination_x), &Record<std::uint8_t>(Data(game), destination_y)) };
+  auto const capacity{ UnitCapacities(data, unit) };
+  auto const ammunition{ opeu_resource_percent(regiment.resources[0], capacity.ammunition) };
+  auto const fuel{ opeu_resource_percent(regiment.resources[1], capacity.fuel) };
+  auto const food{ opeu_resource_percent(regiment.resources[2], capacity.food) };
+  auto const destination{ UnitOrderDestination(game, unit) };
+  auto const has_destination{ destination.valid && destination.cell };
   Position(game, FIRST_ROW);
   auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + ORDER_NAME_BASE] : WAITING };
-  Print(game, ORDERS, order, regiment.resources[1], Word(game, fuel));
+  Print(game, ORDERS, order, regiment.resources[1], fuel);
   Position(game, SECOND_ROW);
-  auto const target{ has_destination ? opeu_location_name(game, Record<std::uint8_t>(data, destination_x), Record<std::uint8_t>(data, destination_y), location_name)
-                                     : opeu_location_name(game, regiment.x, regiment.y, location_name) };
-  Print(game, TARGET, target, regiment.resources[0], Word(game, ammunition));
+  auto const target{ has_destination ? opeu_location_name(game, destination.cell->x, destination.cell->y, location_name) : opeu_location_name(game, regiment.x, regiment.y, location_name) };
+  Print(game, TARGET, target, regiment.resources[0], ammunition);
   Position(game, THIRD_ROW);
-  Print(game, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(game, food));
+  Print(game, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], food);
   std::uint8_t row{ 0 };
-  for (auto element{ regiment.first }; element; element = Record<Element>(data, element).next, row++) {
-    auto const& battalion{ Record<Element>(data, element) };
-    Position(game, data.element_rows[row]);
+  for (auto const& battalion : Elements(data, regiment)) {
+    Position(game, data.element_rows[row++]);
     Print(game, ELEMENT_ROW, data.element_types[battalion.type].name, battalion.quantity);
   }
 }

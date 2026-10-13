@@ -96,11 +96,7 @@ void opeu_report_event(Game& game) {
           rested[group * UNITS_PER_GROUP + slot] = near;
           opeu_restore_unit_order(game, near);
         }
-        std::uint16_t capacity_a{};
-        std::uint16_t weight{};
-        std::uint16_t capacity_c{};
-        opeu_unit_capacities(game, near, &capacity_a, &weight, &capacity_c);
-        if (weight && !unit.resources[1]) {
+        if (UnitCapacities(data, near).fuel && !unit.resources[1]) {
           no_fuel[group * UNITS_PER_GROUP + slot] = near;
           opeu_restore_unit_order(game, near);
         }

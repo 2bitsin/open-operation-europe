@@ -61,18 +61,15 @@ uint8_t opeu_stock_city_enabled(Game& game) {
 // The stockpile panel: per resource the garrison's capacity, the city's stock and the ordered stockpile. The
 // capacities service writes the capacities into the routine's reserve.
 void opeu_stock_show(Game& game, uint16_t objective) {
-  ServiceLocals const locals{ 6 };
-  auto&               data{ Data(game) };
-  auto const          fuel{ locals.At(0) };
-  auto const          food{ locals.At(2) };
-  auto const          ammo{ locals.At(4) };
-  auto const&         city{ Record<Objective>(data, objective) };
-  opeu_objective_capacities(game, objective, port_ds_word_ptr(game, ammo), port_ds_word_ptr(game, fuel), port_ds_word_ptr(game, food));
+  auto&       data{ Data(game) };
+  auto const& city{ Record<Objective>(data, objective) };
+  auto const  capacity{ ObjectiveCapacities(data, objective) };
   opeu_info_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), offsetof(DataSegment, stock_header));
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), Word(game, fuel), city.resources[FUEL], city.reserves[FUEL] });
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), Word(game, ammo), city.resources[AMMUNITION], city.reserves[AMMUNITION] });
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), Word(game, food), city.resources[FOOD], city.reserves[FOOD] });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), capacity.fuel, city.resources[FUEL], city.reserves[FUEL] });
+  opeu_cursor_print(game,
+                    std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), capacity.ammunition, city.resources[AMMUNITION], city.reserves[AMMUNITION] });
+  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), capacity.food, city.resources[FOOD], city.reserves[FOOD] });
 }
 
 // The panel under the city's name.

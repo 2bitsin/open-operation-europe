@@ -78,7 +78,7 @@ uint16_t opeu_ai_refresh_capacities(Game& game) {
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
     if (objective.active && opeu_objective_side(game, near) == data.current_side && AiObjectiveEligible(game, near))
-      opeu_objective_capacities(game, near, &objective.reserves[0], &objective.reserves[1], &objective.reserves[2]);
+      std::ranges::copy(Figures(ObjectiveCapacities(data, near)), std::ranges::begin(objective.reserves));
   }
   return 1;
 }

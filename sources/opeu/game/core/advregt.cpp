@@ -95,9 +95,8 @@ uint16_t opeu_advice_regiment_supply_shortage(Game& game, const uint8_t* far_tex
   std::uint16_t given{ 0 };
   ForRegiments(game, true, [&](std::uint8_t g, std::uint8_t, Unit& unit) {
     if (!IsEligible(game, unit)) return false;
-    auto const    near{ Near(data, unit) };
-    std::uint16_t capacity[3]{};
-    opeu_unit_capacities(game, near, &capacity[0], &capacity[1], &capacity[2]);
+    auto const near{ Near(data, unit) };
+    auto const capacity{ Figures(UnitCapacities(data, near)) };
     for (std::uint8_t supply{ 0 }; supply < 3; ++supply)
       if (opeu_resource_percent(unit.resources[supply], capacity[supply]) <= SHORT_SUPPLY && advisor.Random(static_cast<std::uint16_t>(7 - g)) == 1) {
         given = advisor.SayAboutUnit(AdviceText::UNIT_SHORT_OF, near, data.supply_names[supply]);

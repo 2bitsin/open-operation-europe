@@ -124,9 +124,9 @@ auto PathFill(Game& game, std::uint8_t x, std::uint8_t y, std::uint8_t tx, std::
 auto PathOrderStep(Game& game, Unit& unit) -> std::uint16_t {
   auto& data{ Data(game) };
   if (!(unit.flags & Bits(UnitFlag::READY))) return 0;
-  std::uint8_t tx;
-  std::uint8_t ty;
-  if (!opeu_unit_order_destination(game, Near(data, unit), &tx, &ty)) return 0;
+  auto const destination{ UnitOrderDestination(game, Near(data, unit)) };
+  if (!destination.valid || !destination.cell) return 0;
+  auto const [tx, ty]{ *destination.cell };
   auto x{ unit.x };
   auto y{ unit.y };
   PathFill(game, tx, ty, x, y, unit);
@@ -165,17 +165,15 @@ auto NearestObjective(Game& game, Predicate predicate) -> Objective* {
   return nearest;
 }
 
-// Whether any of the unit's supplies is below its percentage of the unit's capacity.
-auto BelowPercent(Game& game, Unit const& unit, std::uint16_t ammo, std::uint16_t fuel, std::uint16_t food) -> bool {
-  std::uint16_t ammo_capacity;
-  std::uint16_t fuel_capacity;
-  std::uint16_t food_capacity;
-  opeu_unit_capacities(game, Near(Data(game), unit), &ammo_capacity, &fuel_capacity, &food_capacity);
-  return opeu_mul_div(unit.resources[0], 100, ammo_capacity) < ammo || opeu_mul_div(unit.resources[1], 100, fuel_capacity) < fuel || opeu_mul_div(unit.resources[2], 100, food_capacity) < food;
+// Whether any of the unit's supplies is below its percentage (floor) of the unit's capacity.
+auto BelowPercent(Game& game, Unit const& unit, Resources const& floor) -> bool {
+  auto const capacity{ UnitCapacities(Data(game), Near(Data(game), unit)) };
+  return opeu_mul_div(unit.resources[0], 100, capacity.ammunition) < floor.ammunition || opeu_mul_div(unit.resources[1], 100, capacity.fuel) < floor.fuel
+         || opeu_mul_div(unit.resources[2], 100, capacity.food) < floor.food;
 }
 
 // The supported unit of the current division nearest the current unit with a supply below the given percentages.
-auto NearestUnitInNeed(Game& game, std::uint16_t ammo, std::uint16_t fuel, std::uint16_t food) -> Unit* {
+auto NearestUnitInNeed(Game& game, Resources const& floor) -> Unit* {
   auto&        data{ Data(game) };
   auto const&  current{ CurrentUnit(data) };
   Unit*        nearest{ nullptr };
@@ -183,7 +181,7 @@ auto NearestUnitInNeed(Game& game, std::uint16_t ammo, std::uint16_t fuel, std::
   for (auto& unit : GroupUnits(data, data.current_side, data.current_group))
     if ((unit.flags & Bits(UnitFlag::READY)) && &unit != &current && opeu_unit_support_condition(game, Near(data, unit))) {
       auto const distance{ opeu_grid_distance(current.x, current.y, unit.x, unit.y) };
-      if (BelowPercent(game, unit, ammo, fuel, food) && distance < best) {
+      if (BelowPercent(game, unit, floor) && distance < best) {
         nearest = &unit;
         best    = distance;
       }
@@ -320,17 +318,13 @@ uint16_t opeu_plan_supply(Game& game) {
   auto&       data{ Data(game) };
   auto*       overstocked{ NearestObjective(game, Overstocked) };
   auto const& current{ CurrentUnit(data) };
-  if (BelowPercent(game, current, 10, 10, 10)) {
+  if (BelowPercent(game, current, { 10, 10, 10 })) {
     if (overstocked) {
       IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
       return 1;
     }
   } else {
-    std::uint16_t ammo;
-    std::uint16_t fuel;
-    std::uint16_t food;
-    opeu_side_resource_percentages(game, data.current_side, &ammo, &fuel, &food, 0);
-    auto const* needy{ NearestUnitInNeed(game, ammo, fuel, food) };
+    auto const* needy{ NearestUnitInNeed(game, SideResourcePercentages(game, data.current_side)) };
     if (needy && needy != &current) {
       IssueOrder(game, UnitOrder::SUPPLY_UNIT, 0, 0, NearOrNull(data, needy));
       return 1;
@@ -350,13 +344,10 @@ uint16_t opeu_plan_supply(Game& game) {
 // A combat unit below 20% of any supply loads at the nearest overstocked city among its division's tasks, else takes
 // an enemy city of the division's tasks that has supplies left.
 uint16_t opeu_unit_resupply_order(Game& game) {
-  auto&         data{ Data(game) };
-  auto const&   current{ CurrentUnit(data) };
-  std::uint16_t ammo_capacity;
-  std::uint16_t fuel_capacity;
-  std::uint16_t food_capacity;
-  opeu_unit_capacities(game, data.current_unit_ptr, &ammo_capacity, &fuel_capacity, &food_capacity);
-  if (opeu_percent(ammo_capacity, 20) > current.resources[0] || opeu_percent(fuel_capacity, 20) > current.resources[1] || opeu_percent(food_capacity, 20) > current.resources[2]) {
+  auto&       data{ Data(game) };
+  auto const& current{ CurrentUnit(data) };
+  auto const  capacity{ UnitCapacities(data, data.current_unit_ptr) };
+  if (opeu_percent(capacity.ammunition, 20) > current.resources[0] || opeu_percent(capacity.fuel, 20) > current.resources[1] || opeu_percent(capacity.food, 20) > current.resources[2]) {
     auto const* overstocked{ NearestObjective(game, Overstocked) };
     if (overstocked && GroupTargets(game, overstocked)) {
       IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);

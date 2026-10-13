@@ -25,7 +25,6 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t  ALL_CATEGORIES{ 0xff };
 constexpr std::uint16_t CHEAP_UNIT{ 300 };
 constexpr std::uint8_t  SAMPLE_STEP{ 4 }; // the territory sample takes every fourth cell each way
 
@@ -44,8 +43,7 @@ uint16_t opeu_advice_tide_isolation(Game& game, const uint8_t* far_text) {
   for (auto const& objective : data.objectives) {
     auto const near{ Near(data, objective) };
     if (!objective.active || opeu_objective_side(game, near) != side) continue;
-    std::uint8_t count{};
-    auto const   garrison{ opeu_objective_quantity(game, near, ALL_CATEGORIES, &count) };
+    auto const garrison{ ObjectiveQuantity(data, near, ANY_CATEGORY).total };
     if (opeu_cell_influence_side(game, objective.x, objective.y) != side && garrison == 0 && advisor.Random(3) == 1)
       return advisor.SayFormatted(opeu_objective_level(game, near) >= CITY_LEVEL ? AdviceText::OBJECTIVE_SAFE : AdviceText::ABANDON_OBJECTIVE, near);
   }
@@ -88,10 +86,8 @@ uint16_t opeu_advice_tide_strength_balance(Game& game, const uint8_t* far_text) 
     auto const flags{ GroupOf(data, side, g).flags };
     if ((flags & Bits(GroupFlag::READY)) && (flags & Bits(GroupFlag::RESERVE))) ++waiting;
   }
-  std::uint8_t ours{};
-  std::uint8_t theirs{};
-  opeu_side_quantity(game, side, ALL_CATEGORIES, &ours);
-  opeu_side_quantity(game, foe, ALL_CATEGORIES, &theirs);
+  auto const ours{ SideQuantity(data, side, ANY_CATEGORY).count };
+  auto const theirs{ SideQuantity(data, foe, ANY_CATEGORY).count };
   if (static_cast<std::int16_t>(theirs * 2) < static_cast<std::int16_t>(ours) && advisor.Random(4) == 1) return advisor.Say(AdviceText::GO_ON_OFFENSIVE);
   if (data.side_stance[side] == Bits(Stance::DEFENSIVE) && static_cast<std::int16_t>(ours * 2) < static_cast<std::int16_t>(theirs) && advisor.Random(4) == 1)
     return advisor.Say(AdviceText::WAIT_IT_OUT);

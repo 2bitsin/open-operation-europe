@@ -60,12 +60,8 @@ void opeu_army_summary(Game& game) {
     return;
   }
   std::array<std::uint32_t, CATEGORIES> totals{};
-  std::uint8_t                          counted{};
-  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) totals[category] = opeu_side_quantity(game, side, category, &counted);
-  std::uint16_t ammunition{};
-  std::uint16_t fuel{};
-  std::uint16_t food{};
-  opeu_side_resource_percentages(game, side, &ammunition, &fuel, &food, 1);
+  for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) totals[category] = SideQuantity(data, side, category).total;
+  auto const [ammunition, fuel, food]{ SideUnitResourcePercentages(data, side) };
   std::uint16_t influence{ 0 };
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += 4)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
