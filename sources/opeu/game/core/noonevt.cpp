@@ -27,7 +27,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -60,13 +59,13 @@ void SetRequests(Game& game, RequestKind kind, uint16_t enabled) {
 // Each element of the side gains 30..49 morale, up to 99.
 void RaiseMorale(Game& game, uint8_t side) {
   std::ranges::for_each(std::span{ Data(game).elements }.subspan(side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE),
-                        [&game](Element& element) { opeu_add_byte(game.State().RandomBounded(20) + 30, 99, &element.morale); });
+                        [&game](Element& element) { element.morale = AddByte(element.morale, game.State().RandomBounded(20) + 30, 99); });
 }
 
 // Each element of the side loses 30..49 morale.
 void LowerMorale(Game& game, uint8_t side) {
   std::ranges::for_each(std::span{ Data(game).elements }.subspan(side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE),
-                        [&game](Element& element) { opeu_sub_byte(game.State().RandomBounded(20) + 30, &element.morale); });
+                        [&game](Element& element) { element.morale = SubByte(element.morale, game.State().RandomBounded(20) + 30); });
 }
 
 // A side with a reserve division expects its reserves.
@@ -125,7 +124,7 @@ void AlliedReserves(Game& game) {
 
 // The Allied pool gains 500, up to 3000.
 void AlliedPool(Game& game) {
-  opeu_add_word(500, 3000, &Data(game).sides[ALLIES].bombers);
+  Data(game).sides[ALLIES].bombers = AddWord(Data(game).sides[ALLIES].bombers, 500, 3000);
 }
 
 // The noon actions, by the enumerator the event records hold (NONE never runs).

@@ -24,7 +24,6 @@
 #include "core/dialogs.hpp"
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "port.hpp"
 #include "services.hpp"

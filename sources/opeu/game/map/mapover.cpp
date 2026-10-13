@@ -21,7 +21,6 @@
 #include "units/selelem.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -49,8 +48,10 @@ constexpr std::array<uint16_t, 2> MARKER{ 0x702, 0x701 };
 // Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
 void Compose(Game& game, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
   auto const& data{ Data(game) };
-  opeu_sprite_compose(x, y, 1, 8, port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])), port_far(segment, offset),
-                      port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 0);
+  game.Machine().Display().ComposeSprite({ x, y, 1, 8 }, { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
+                                                           .or_image = FarBytes(game, segment, offset),
+                                                           .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
+                                                           .flags    = 0 });
 }
 
 // side_status of any side byte, 255 included, read where the original reads it.
@@ -98,13 +99,13 @@ void opeu_overview_cell_draw(Game& game, uint8_t x, uint8_t y) {
   auto const pixel_x{ pixel.x };
   auto const pixel_y{ pixel.y };
   auto const tile{ data.map_tiles[MAP_WIDTH * y + x] };
-  opeu_bitmap_restore(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, 0,
-                      port_far(static_cast<std::uint16_t>(data.overview_tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)));
+  game.Machine().Display().DrawColumns({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8 },
+                                       { 0, FarBytes(game, static_cast<std::uint16_t>(data.overview_tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)) });
   if (auto const objective{ opeu_find_objective_at(game, x, y) }) {
     auto const& modes{ CurrentScenario(data) == Scenario::BULGE ? BULGE_MARKER : MARKER };
     auto const  mode{ modes[opeu_objective_side(game, objective) == 0 ? 0 : 1] };
-    opeu_code_0000_28c5(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, static_cast<std::uint16_t>(mode),
-                        game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.overview_objective_glyph))).data());
+    game.Machine().Display().DrawBitsOnPaper({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8 },
+                                             { static_cast<std::uint16_t>(mode), game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.overview_objective_glyph))) });
   }
   if (SideStatus(game, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(game, x, y, data.overview_side)) {
     SetStream(data, SPRITE_SEGMENT, MARK_MASK);
@@ -112,8 +113,8 @@ void opeu_overview_cell_draw(Game& game, uint8_t x, uint8_t y) {
   }
   if (opeu_map_code(game, x, y) == BRIDGE_CODE) {
     SetStream(data, SPRITE_SEGMENT, BRIDGE_GLYPH);
-    opeu_blit_far(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8, 4,
-                  port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
+    game.Machine().Display().DrawThreeByteColumns({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8 },
+                                                  { 4, FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])) });
   }
   if (auto const unit{ opeu_find_unit_at(game, x, y) }; unit && opeu_unit_visible(game, unit)) opeu_overview_unit_draw(game, unit, pixel_x, pixel_y);
 }

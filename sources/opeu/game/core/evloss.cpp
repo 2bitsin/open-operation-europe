@@ -17,7 +17,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "map/support.hpp"
 #include "port.hpp"

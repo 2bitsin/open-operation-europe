@@ -10,7 +10,6 @@
 #include "core/startup.hpp"
 #include "core/textout.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -29,7 +28,7 @@ void opeu_app_startup(Game& game) {
 
 void opeu_app_initialize(Game& game) {
   auto& data{ Data(game) };
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
   opeu_input_flush(game);
   opeu_army_position(game, 14, 100);
@@ -39,7 +38,7 @@ void opeu_app_initialize(Game& game) {
       data.input_mode = 1;
       return;
     }
-  } while (!opeu_turn_input_b());
+  } while (!game.Machine().Input().KeyWaiting());
   data.input_mode = 0;
   opeu_input_flush(game);
 }

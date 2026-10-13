@@ -20,7 +20,6 @@
 #include "units/unitname.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <algorithm>

@@ -8,7 +8,6 @@
 #include "core/dialogs.hpp"
 #include "core/memory.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "units/unitname.hpp"
 

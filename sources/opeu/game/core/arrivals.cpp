@@ -14,7 +14,6 @@
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "map/arrplace.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"

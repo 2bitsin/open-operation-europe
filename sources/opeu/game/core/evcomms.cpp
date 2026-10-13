@@ -12,7 +12,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -42,7 +41,7 @@ void opeu_objective_comms_event(Game& game) {
     auto const    side{ opeu_objective_side(game, camp) };
     std::uint16_t level{ DeliveryLevel(data, side) };
     auto const    speaker{ opeu_find_side_record(game, side, ADVISER) };
-    opeu_add_byte(game.State().RandomBounded(static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit, &objective.strength);
+    objective.strength = AddByte(objective.strength, game.State().RandomBounded(static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit);
     if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && game.State().RandomBounded(static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
       objective.flags |= Bits(ObjectiveFlag::COMMUNICATIONS);
       opeu_request_format(game, std::array<std::uint16_t, 3>{ news, RESTORED_FORMAT, camp });

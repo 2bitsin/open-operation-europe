@@ -6,6 +6,11 @@
 #include "common/host.hpp"
 #include "types.hpp"
 
+#include <cstddef>
+
+// The bytes of one palette colour: its red, green and blue levels.
+inline constexpr std::size_t RGB{ 3 };
+
 void     opeu_image_read_draw(Game& game, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode, int16_t handle);
 void     opeu_rle_expand(Game& game, uint16_t count, opeu::game::FarPointer src, opeu::game::FarPointer dst);
 void     opeu_image_draw_masked(Game& game, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t mode);

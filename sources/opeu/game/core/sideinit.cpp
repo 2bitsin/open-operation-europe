@@ -11,7 +11,6 @@
 #include "core/template.hpp"
 #include "data-segment.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

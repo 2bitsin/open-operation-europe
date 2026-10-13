@@ -13,7 +13,6 @@
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -87,7 +86,7 @@ uint16_t opeu_supply_get(Game const& game, uint8_t side, uint8_t row, uint8_t co
 // Restores the panel's background and centres the two names, at most ten characters each, in its title.
 void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
   auto const& data{ Data(game) };
-  opeu_bitmap_restore(data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, port_far(data.numdlg_image_segment, PANEL_IMAGE_AT));
+  game.Machine().Display().DrawColumns({ data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT }, { 0, FarBytes(game, data.numdlg_image_segment, PANEL_IMAGE_AT) });
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;

@@ -19,7 +19,6 @@
 #include "core/msnkill.hpp"
 #include "core/msnraid.hpp"
 #include "core/msnrecon.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

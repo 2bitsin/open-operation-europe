@@ -27,7 +27,6 @@
 #include "core/strings.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/btllist.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
@@ -68,7 +67,7 @@ auto SideElements(DataSegment& data, uint8_t side) -> std::span<Element> {
 void GainExperience(DataSegment& data, uint16_t person) {
   if (!person) return;
   auto& general{ Record<Person>(data, person) };
-  if (!(general.role & Bits(PersonRole::DEPUTY))) opeu_add_byte(1, 99, &general.experience);
+  if (!(general.role & Bits(PersonRole::DEPUTY))) general.experience = AddByte(general.experience, 1, 99);
 }
 
 // Resumes the saved order of a unit of a computer-commanded division.
@@ -142,9 +141,9 @@ void opeu_end_morale(Game& game) {
   auto& data{ Data(game) };
   if (data.battle_side == NONE) return;
   for (auto& element : SideElements(data, data.battle_side))
-    if (element.flags & Bits(ElementFlag::READY)) opeu_add_byte(game.State().RandomBounded(3) + 3, 99, &element.morale);
+    if (element.flags & Bits(ElementFlag::READY)) element.morale = AddByte(element.morale, game.State().RandomBounded(3) + 3, 99);
   for (auto& element : SideElements(data, opeu_opposite_side(data.battle_side)))
-    if (element.flags & Bits(ElementFlag::READY)) opeu_sub_byte(game.State().RandomBounded(3) + 3, &element.morale);
+    if (element.flags & Bits(ElementFlag::READY)) element.morale = SubByte(element.morale, game.State().RandomBounded(3) + 3);
 }
 
 // The winner's leaders gain a point of experience: the commander of each division that fought, or the side's

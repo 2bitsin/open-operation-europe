@@ -20,7 +20,6 @@
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
-#include "link/glue.hpp"
 #include "map/blast.hpp"
 #include "map/mappos.hpp"
 #include "map/support.hpp"
@@ -129,11 +128,11 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
         }
       }
       if (element.quantity) {
-        opeu_add_byte(static_cast<std::uint16_t>(opeu_isqrt(kind) * 2), RATING_LIMIT, &element.experience);
-        opeu_sub_byte(MoraleLoss(game, infantry ? losses / 10 : losses, element), &element.morale);
+        element.experience = AddByte(element.experience, static_cast<std::uint16_t>(opeu_isqrt(kind) * 2), RATING_LIMIT);
+        element.morale     = SubByte(element.morale, MoraleLoss(game, infantry ? losses / 10 : losses, element));
         if (!infantry) {
           std::uint16_t damage{ element.damage };
-          opeu_add_word(game.State().RandomBounded(losses / 3), data.request_capacities[category], &damage);
+          damage         = AddWord(damage, game.State().RandomBounded(losses / 3), data.request_capacities[category]);
           element.damage = damage;
         }
         opeu_request_format(game, std::array<std::uint16_t, 3>{ loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses });

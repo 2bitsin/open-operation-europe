@@ -9,7 +9,6 @@
 #include "common/game.hpp"
 #include "core/context.hpp"
 #include "core/memory.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

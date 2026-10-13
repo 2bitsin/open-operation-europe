@@ -48,7 +48,9 @@ inline constexpr std::uint16_t GLYPH_COLOUR{ 7 };
 
 // Draws `value` right-aligned with its last digit at x, blanking each cell first.
 inline auto DrawDigits(Game& game, std::uint16_t x, std::uint16_t y, std::uint16_t value) -> void {
-  auto const glyph{ [&](auto colour, unsigned digit) { opeu_vga_glyph(x, y, GLYPH_SIZE, GLYPH_SIZE, colour, std::span{ Data(game).digit_glyphs }.subspan(GLYPH_SIZE * digit).data()); } };
+  auto const glyph{ [&](auto colour, unsigned digit) {
+    game.Machine().Display().DrawShiftedBits({ x, y, GLYPH_SIZE, GLYPH_SIZE }, { static_cast<uint16_t>(colour), std::span{ Data(game).digit_glyphs }.subspan(GLYPH_SIZE * digit) });
+  } };
   for (;; x -= GLYPH_SIZE) {
     glyph(0, BLANK_GLYPH);
     glyph(GLYPH_COLOUR, value % 10);
@@ -57,8 +59,8 @@ inline auto DrawDigits(Game& game, std::uint16_t x, std::uint16_t y, std::uint16
 }
 
 // Toggles the highlight of a row's name on the panel at (panel_x, panel_y).
-inline auto HighlightRow(std::array<std::uint16_t, 2> panel, std::uint8_t row) -> void {
-  opeu_ui_highlight(panel[0] + 0xd, row * PANEL_ROW_HEIGHT + panel[1] + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
+inline auto HighlightRow(Game& game, std::array<std::uint16_t, 2> panel, std::uint8_t row) -> void {
+  game.Machine().Display().Highlight({ static_cast<uint16_t>(panel[0] + 0xd), static_cast<uint16_t>(row * PANEL_ROW_HEIGHT + panel[1] + 0x23), 6, 0x1b }, HIGHLIGHT_COLOUR);
 }
 } // namespace opeu::game::detail::exchange_panel
 

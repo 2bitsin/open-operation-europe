@@ -226,9 +226,9 @@ auto HasRemaining(Game& game, Objective const& objective) -> bool {
   auto        fuel{ objective.resources[1] };
   auto        food{ objective.resources[2] };
   if (opeu_objective_side(game, Near(data, objective)) == data.current_side) {
-    opeu_sub_word(objective.reserves[0], &ammo);
-    opeu_sub_word(objective.reserves[1], &fuel);
-    opeu_sub_word(objective.reserves[2], &food);
+    ammo = SubWord(ammo, objective.reserves[0]);
+    fuel = SubWord(fuel, objective.reserves[1]);
+    food = SubWord(food, objective.reserves[2]);
   }
   return ammo || fuel || food;
 }
@@ -284,8 +284,8 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
     for (std::uint8_t attempt = 0; attempt < 10; ++attempt) {
       auto x{ static_cast<std::uint8_t>(game.State().RandomBounded(7) + objective->x) };
       auto y{ static_cast<std::uint8_t>(game.State().RandomBounded(7) + objective->y) };
-      opeu_sub_byte(3, &x);
-      opeu_sub_byte(3, &y);
+      x = SubByte(x, 3);
+      y = SubByte(y, 3);
       if (x >= MAP_WIDTH) continue;
       if (y >= MAP_HEIGHT) continue;
       switch (static_cast<Terrain>(opeu_map_code(game, x, y))) {

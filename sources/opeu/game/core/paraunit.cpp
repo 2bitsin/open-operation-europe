@@ -14,7 +14,6 @@
 #include "common/game.hpp"
 #include "core/msnrept.hpp"
 #include "core/recindex.hpp"
-#include "link/glue.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
 #include "map/maperase.hpp"

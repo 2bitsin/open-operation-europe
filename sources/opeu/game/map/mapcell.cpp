@@ -21,9 +21,10 @@ constexpr uint16_t HIGHLIGHT_MODE{ 7 };
 void opeu_view_cell_paint(Game& game, uint16_t x, uint16_t y, uint16_t mode) {
   auto& data{ Data(game) };
   auto  tile{ StreamFrameTile(data, 1) };
-  opeu_draw_far(x, y, 3, 24, BORDER_MODE, port_far(static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)));
+  game.Machine().Display().DrawBits({ x, y, 3, 24 }, { BORDER_MODE, FarBytes(game, static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)) });
   tile = StreamFrameTile(data, 0);
-  opeu_draw_far(x, y, 3, 24, static_cast<std::uint16_t>(mode | IMAGE_MODE), port_far(static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)));
+  game.Machine().Display().DrawBits({ x, y, 3, 24 },
+                                    { static_cast<std::uint16_t>(mode | IMAGE_MODE), FarBytes(game, static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)) });
 }
 
 // Overview: alternately draws the cursor marker over the saved 1 x 8 background and restores the background. Tactical
@@ -34,12 +35,12 @@ void opeu_map_cell_flash(Game& game, uint8_t x, uint8_t y) {
   if (data.overview_side != NO_SIDE) {
     auto const pixel{ OverviewPixel({ x, y }) };
     if (data.flash_state) {
-      koei_266c(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, 0, game.State().Bytes(static_cast<std::uint16_t>(buffer)).data());
+      game.Machine().Display().DrawColumns({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 }, { 0, game.State().Bytes(static_cast<std::uint16_t>(buffer)) });
       data.flash_state = 0;
     } else {
-      koei_2e72(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, game.State().Bytes(static_cast<std::uint16_t>(buffer)).data());
-      opeu_draw_near(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, HIGHLIGHT_MODE,
-                     game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.flash_marker))).data());
+      game.Machine().Display().SaveColumns({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 }, game.State().Bytes(static_cast<std::uint16_t>(buffer)));
+      game.Machine().Display().DrawBits({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 },
+                                        { HIGHLIGHT_MODE, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.flash_marker))) });
       data.flash_state = 1;
     }
   } else if (data.view_side != NO_SIDE) {

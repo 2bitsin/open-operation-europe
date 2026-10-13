@@ -17,7 +17,6 @@
 #include "core/airbomb.hpp"
 #include "core/airdrop.hpp"
 #include "core/airlift.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>

@@ -142,6 +142,8 @@ def _B5x(tree: Path, args, started: float) -> int:
   result = B5xPass(tree)
   summary = {"files": len(result.files), "sites": result.Counts()}
   (args.out / "b5x-files.txt").write_text("".join(f"{file} {dict(counts)}\n" for file, counts in sorted(result.files.items())))
+  (args.out / "b5x-left.txt").write_text("".join(f"{call}\n" for call in result.left))
+  summary["left"] = len(result.left)
   if args.check:
     summary["check"] = _Check(tree, _GameFiles(tree), args.out / "check-b5x.txt")
   summary["seconds"] = round(time.monotonic() - started, 1)

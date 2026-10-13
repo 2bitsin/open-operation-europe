@@ -29,7 +29,6 @@
 #include "units/unitname.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
@@ -192,7 +191,7 @@ void opeu_battle_hq_shaken(Game& game, uint16_t unit) {
   auto& data{ Data(game) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const loss{ game.State().RandomBounded(3) + 2 };
-    opeu_sub_byte(static_cast<uint16_t>(loss), &element.morale);
+    element.morale = SubByte(element.morale, static_cast<uint16_t>(loss));
   }
 }
 

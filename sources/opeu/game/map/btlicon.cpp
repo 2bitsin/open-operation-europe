@@ -10,7 +10,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -78,14 +77,18 @@ uint16_t opeu_battle_element_visible(Game& game, uint16_t element) {
 void opeu_battle_draw_count(Game& game, uint16_t count, uint8_t, uint16_t side) {
   auto& data{ Data(game) };
   if (data.battle_numbers_shown != 1) return;
-  auto const vram{ Near(data, data.vram) };
+  auto& display{ game.Machine().Display() };
   for (uint16_t x{ COUNT_RIGHT };; x = static_cast<uint16_t>(x - DIGIT_WIDTH)) {
-    auto const glyph{ static_cast<uint16_t>(Near(data, data.battle_digits) + count % 10 * DIGIT_WIDTH) };
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x - 1, COUNT_TOP);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x + 1, COUNT_BOTTOM);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x - 1, COUNT_BOTTOM);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x + 1, COUNT_TOP);
-    opeu_vram_glyph_color(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x, COUNT_ROW, side);
+    auto const glyph{ game.State().Bytes(static_cast<uint16_t>(Near(data, data.battle_digits) + count % 10 * DIGIT_WIDTH), services::CELL_GLYPH_LINES).first<services::CELL_GLYPH_LINES>() };
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x - 1), COUNT_TOP });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x + 1), COUNT_BOTTOM });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x - 1), COUNT_BOTTOM });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x + 1), COUNT_TOP });
+    display.DrawColouredCellGlyph(data.vram, glyph,
+                                  {
+                                      .at = { x, COUNT_ROW },
+                                        .colour = side
+    });
     if ((count /= 10) == 0) break;
   }
 }
@@ -110,6 +113,6 @@ void opeu_battle_draw_icon(Game& game, uint16_t element, uint8_t side, uint8_t m
       auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row * ICON_ROW), 2 * HALF_ROW) };
       std::ranges::swap_ranges(bytes.first(HALF_ROW), bytes.subspan(HALF_ROW));
     }
-  opeu_vram_load(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.icon_segment, offset + ICON_BYTES));
-  opeu_vram_draw_near(game.State().Bytes(Near(data, data.vram)).data(), game.State().Bytes(buffer).data());
+  game.Machine().Display().MaskCell(data.vram, FarBytes(game, data.icon_segment, offset + ICON_BYTES).first<services::CELL_MASK_BYTES>());
+  game.Machine().Display().OverlayCell(data.vram, game.State().Bytes(buffer, SYSLIB_CELL_BYTES).first<SYSLIB_CELL_BYTES>());
 }

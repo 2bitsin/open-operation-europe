@@ -8,7 +8,6 @@
 #include "common/game.hpp"
 #include "core/dialogs.hpp"
 #include "core/noonevt.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

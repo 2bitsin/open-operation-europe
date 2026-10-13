@@ -7,7 +7,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "data-segment.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -37,9 +36,9 @@ void opeu_setup_marker_show(Game& game, uint8_t index) {
   uint16_t const x{ data.setup_marker_points[index * 2] };
   uint16_t const y{ data.setup_marker_points[index * 2 + 1] };
   PointSource(data, SAVED_AREA);
-  opeu_bitmap_save(x, y, MARKER_WIDTH, MARKER_HEIGHT, port_far(data.gfx_source[1], data.gfx_source[0]));
+  game.Machine().Display().SaveColumns({ x, y, MARKER_WIDTH, MARKER_HEIGHT }, FarBytes(game, data.gfx_source[1], data.gfx_source[0]));
   PointSource(data, MARKER_IMAGE);
-  opeu_blit_far(x, y, MARKER_WIDTH, MARKER_HEIGHT, 4, port_far(data.gfx_source[1], data.gfx_source[0]));
+  game.Machine().Display().DrawThreeByteColumns({ x, y, MARKER_WIDTH, MARKER_HEIGHT }, { 4, FarBytes(game, data.gfx_source[1], data.gfx_source[0]) });
 }
 
 void opeu_setup_marker_hide(Game& game, uint8_t index) {
@@ -47,5 +46,5 @@ void opeu_setup_marker_hide(Game& game, uint8_t index) {
   uint16_t const x{ data.setup_marker_points[index * 2] };
   uint16_t const y{ data.setup_marker_points[index * 2 + 1] };
   PointSource(data, SAVED_AREA);
-  opeu_bitmap_restore(x, y, MARKER_WIDTH, MARKER_HEIGHT, 0, port_far(data.gfx_source[1], data.gfx_source[0]));
+  game.Machine().Display().DrawColumns({ x, y, MARKER_WIDTH, MARKER_HEIGHT }, { 0, FarBytes(game, data.gfx_source[1], data.gfx_source[0]) });
 }

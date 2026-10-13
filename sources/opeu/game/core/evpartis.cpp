@@ -16,7 +16,6 @@
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "map/grid.hpp"
 #include "map/maperase.hpp"
 #include "map/mapunit.hpp"
@@ -89,6 +88,6 @@ void opeu_partisan_event(Game& game) {
         opeu_location_flash(game, objective.x, objective.y, side);
       }
     }
-    opeu_sub_byte(game.State().RandomBounded(10) + (season ? 5 : 3), &objective.strength);
+    objective.strength = SubByte(objective.strength, game.State().RandomBounded(10) + (season ? 5 : 3));
   }
 }

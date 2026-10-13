@@ -18,7 +18,6 @@
 
 #include "common/game.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/btllist.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -107,9 +106,9 @@ uint8_t opeu_battle_element_strength(Game& game, uint16_t element) {
   auto const skill{ [&](BattleSkill kind) { return opeu_battle_skill(game, element, Bits(kind)); } };
   auto       bonus{ static_cast<uint8_t>(skill(BattleSkill::EXPERIENCE) / 5) };
   switch (At(data, data.btlcalc_skill_class, category)) {
-  case SKILL_CLASS_INFANTRY:  opeu_add_byte(skill(BattleSkill::INFANTRY), 99, &bonus); break;
-  case SKILL_CLASS_ARTILLERY: opeu_add_byte(skill(BattleSkill::ARTILLERY), 99, &bonus); break;
-  case SKILL_CLASS_ARMOR:     opeu_add_byte(skill(BattleSkill::ARMOR), 99, &bonus); break;
+  case SKILL_CLASS_INFANTRY:  bonus = AddByte(bonus, skill(BattleSkill::INFANTRY), 99); break;
+  case SKILL_CLASS_ARTILLERY: bonus = AddByte(bonus, skill(BattleSkill::ARTILLERY), 99); break;
+  case SKILL_CLASS_ARMOR:     bonus = AddByte(bonus, skill(BattleSkill::ARMOR), 99); break;
   }
   bonus /= 10;
   int strength{ (record.experience / 30 - record.training / 20 + 10) * (At(data, data.battle_type_factors, category) / 10) - bonus };

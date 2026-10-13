@@ -25,7 +25,6 @@
 #include "units/stats.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/ordact.hpp"

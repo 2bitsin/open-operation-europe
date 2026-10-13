@@ -6,13 +6,13 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
+#include "common/text.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/listdlg.hpp"
 #include "io/rebase.hpp"
 #include "io/resopen.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -59,15 +59,15 @@ auto NoSavedGames(Game& game) -> void {
 // Reads the 20 slot headers.
 auto ReadSlotHeaders(Game& game, std::int16_t file) -> void {
   auto& data{ Data(game) };
-  std::ranges::for_each(data.save_slots, [&](SaveSlot& slot) { opeu_dos_read(file, game.State().Bytes(Near(data, slot), sizeof slot).data(), sizeof slot); });
+  std::ranges::for_each(data.save_slots, [&](SaveSlot& slot) { game.Machine().Files().Read(HandleOf(file), game.State().Bytes(Near(data, slot), sizeof slot)); });
 }
 
 // Loads and rebases the chosen slot's game; answers whether it is valid.
 auto LoadChosenSlot(Game& game, std::int16_t file) -> bool {
   auto&      data{ Data(game) };
   auto const position{ static_cast<std::uint32_t>(SAVED_BYTES * data.save_slot + SAVED_BLOCKS_AT) };
-  opeu_dos_seek(file, static_cast<std::int32_t>(position), static_cast<std::int16_t>(SEEK_FROM_START));
-  opeu_dos_read(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
+  game.Machine().Files().Seek(HandleOf(file), static_cast<std::int32_t>(position), services::SeekOrigin::START);
+  game.Machine().Files().Read(HandleOf(file), game.State().Bytes(SAVED_FIRST, SAVED_BYTES));
   opeu_rebase_scenario(game, 1);
   auto const& slot{ data.save_slots[data.save_slot] };
   return opeu_saved_game_valid(game, data.save_slot) && slot.scenario != SLOT_EMPTY;
@@ -107,13 +107,13 @@ auto opeu_load_saved_game(Game& game) -> std::uint16_t {
   auto const&   data{ Data(game) };
   std::uint16_t choice{ 0 };
   Paper(game, HIGHLIGHT);
-  if (!opeu_dos_exists(reinterpret_cast<char const*>(game.State().Bytes(Near(data, data.savedata_name)).data()))) {
+  if (!game.Machine().Files().Exists(CString(data, Near(data, data.savedata_name)))) {
     NoSavedGames(game);
   } else {
     Paper(game, NORMAL);
     auto const file{ opeu_open_resource(game, Near(data, data.load_savedata_name)) };
     choice = ChooseAndLoad(game, file);
-    opeu_dos_close(file);
+    game.Machine().Files().Close(HandleOf(file));
   }
   opeu_backdrop_fill_color(game, static_cast<std::uint8_t>(1));
   return choice;

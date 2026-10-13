@@ -18,7 +18,6 @@
 #include "common/view-service.hpp"
 #include "core/textout.hpp"
 #include "core/vwarms.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

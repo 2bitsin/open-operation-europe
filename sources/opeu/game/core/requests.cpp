@@ -14,7 +14,6 @@
 #include "core/reqres.hpp"
 #include "core/reqspawn.hpp"
 #include "core/reqvalid.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -41,7 +40,7 @@ void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold) {
     auto const config_at{ Near(data, config) };
     data.request_template = opeu_find_person_template(game, Record<Person>(data, opeu_find_side_record(game, side, std::to_underlying(StaffRole::ARMY_COMMANDER))).status, TEMPLATE_KIND);
     data.request_person   = opeu_find_side_record(game, side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
-    if (config.kind != std::to_underlying(RequestKind::NONE) && opeu_sub_byte(1, &config.delay) == 0) {
+    if (config.kind != std::to_underlying(RequestKind::NONE) && (config.delay = SubByte(config.delay, 1)) == 0) {
       if (opeu_request_valid(game, side, config_at)) {
         switch (static_cast<RequestKind>(config.kind)) {
         case RequestKind::SUPPLIES:  opeu_request_action0(game, side, config_at); break;

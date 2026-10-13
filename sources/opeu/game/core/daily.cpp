@@ -10,7 +10,6 @@
 #include "common/memory.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "port.hpp"
 #include "services.hpp"

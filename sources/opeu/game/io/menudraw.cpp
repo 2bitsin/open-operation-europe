@@ -10,7 +10,6 @@
 #include "core/textout.hpp"
 #include "io/mouse.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -85,7 +84,7 @@ auto TileAt(MenuItem const& item, std::uint32_t column, MenuLight light) -> Tile
 auto SaveBehind(Game& game, MenuItem const& item) -> void {
   auto& data{ Data(game) };
   if (!(item.selection & SAVE_BEHIND)) return;
-  opeu_bitmap_save(item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, port_far(data.bitmap_buffer, data.menu_save_offset));
+  game.Machine().Display().SaveColumns({ static_cast<uint16_t>(item.x - 1), item.y, static_cast<uint16_t>(item.width + 2), BUTTON_HEIGHT }, FarBytes(game, data.bitmap_buffer, data.menu_save_offset));
   data.menu_save_offset += SavedBytes(item);
 }
 
@@ -93,7 +92,8 @@ auto RestoreBehind(Game& game, MenuItem const& item) -> void {
   auto& data{ Data(game) };
   if (!(item.selection & SAVE_BEHIND)) return;
   data.menu_save_offset -= SavedBytes(item);
-  opeu_bitmap_restore(item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, 0, port_far(data.bitmap_buffer, data.menu_save_offset));
+  game.Machine().Display().DrawColumns({ static_cast<uint16_t>(item.x - 1), item.y, static_cast<uint16_t>(item.width + 2), BUTTON_HEIGHT },
+                                       { 0, FarBytes(game, data.bitmap_buffer, data.menu_save_offset) });
 }
 
 // Whether the pointer is on the item: x*8..(x+width)*8-1, y..y+23.
@@ -119,7 +119,7 @@ void opeu_menu_draw_item(Game& game, std::uint16_t near, MenuLight light) {
   auto const& item{ ItemAt(game, near) };
   std::ranges::for_each(std::views::iota(std::uint32_t{ item.x }, item.x + item.width + 1u), [&](std::uint32_t column) {
     SetStream(data, TILES_SEGMENT, static_cast<std::uint16_t>(TileAt(item, column, light) * TILE_BYTES));
-    koei_2e57(static_cast<std::uint16_t>((column << 3) - 4), item.y, 1, BUTTON_HEIGHT, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+    game.Machine().Display().DrawShiftedColumns({ static_cast<std::uint16_t>((column << 3) - 4), item.y, 1, BUTTON_HEIGHT }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
   });
   PrintLabel(game, item, static_cast<std::uint16_t>((light == MenuLight::LIT ? 4 : 3) + item.y));
 }

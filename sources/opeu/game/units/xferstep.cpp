@@ -21,7 +21,6 @@
 #include "units/xferpnl.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -48,7 +47,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(Game& game, std::uint8_t row) {
   auto const& data{ Data(game) };
-  HighlightRow({ data.transfer_panel_x, data.transfer_panel_y }, row);
+  HighlightRow(game, { data.transfer_panel_x, data.transfer_panel_y }, row);
 }
 } // namespace
 

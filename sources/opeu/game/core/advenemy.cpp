@@ -16,7 +16,6 @@
 #include "core/dialogs.hpp"
 #include "core/people.hpp"
 #include "core/sideutil.hpp"
-#include "link/glue.hpp"
 #include "map/occupy.hpp"
 #include "map/query.hpp"
 #include "map/stepmap.hpp"

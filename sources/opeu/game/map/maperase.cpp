@@ -5,7 +5,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "map/blast.hpp"
 #include "map/mapframe.hpp"
 #include "map/mapover.hpp"

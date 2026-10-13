@@ -15,7 +15,6 @@
 #include "core/notice.hpp"
 #include "core/scenend.hpp"
 #include "core/victory.hpp"
-#include "link/glue.hpp"
 #include "map/btlend.hpp"
 #include "map/btlsetup.hpp"
 #include "port.hpp"
@@ -35,8 +34,8 @@ constexpr std::uint16_t PRESENT_ONE{ 1 };
 
 // After the last year (or with a start-up mode it does not know) the game stops: the host keeps running so the window
 // still closes and a headless run still stops at its time limit.
-[[noreturn]] auto Stop() -> void {
-  for (;;) port_pump();
+[[noreturn]] auto Stop(Game& game) -> void {
+  for (;;) game.Machine().Input().Pump();
 }
 } // namespace
 
@@ -46,7 +45,7 @@ void opeu_application_entry(Game& game) {
   data.startup_mode = 0;
   opeu_app_startup(game);
   auto const mode{ static_cast<std::uint8_t>(data.startup_mode) };
-  if (mode != RESUME_TURN && mode != NEW_GAME) Stop();
+  if (mode != RESUME_TURN && mode != NEW_GAME) Stop(game);
   // Resuming a turn enters the innermost loop as it stands: no loop condition, day start, hour start or turn
   // selection runs before the turn's victory check.
   bool resume{ mode == RESUME_TURN };
@@ -80,7 +79,7 @@ void opeu_application_entry(Game& game) {
     }
     data.month = 1;
   } while (++data.year < LAST_YEAR);
-  Stop();
+  Stop(game);
 }
 
 // Makes the regiment at the turn cursor current: the slot's byte holds the side (bits 5-7), the division (bits 3-4)
@@ -103,8 +102,8 @@ void opeu_begin_hour(Game& game) {
   auto& data{ Data(game) };
   if (data.hour == 0 || data.hour == 12) data.schedule_flags[0] |= Bits(ScheduleFlag::HALF_DAY);
   data.schedule_flags[0] |= Bits(ScheduleFlag::HOURLY);
-  opeu_sub_byte(1, &data.side_delays[0]);
-  opeu_sub_byte(1, &data.side_delays[1]);
+  data.side_delays[0]     = SubByte(data.side_delays[0], 1);
+  data.side_delays[1]     = SubByte(data.side_delays[1], 1);
   opeu_shuffle_turn_order(game);
   data.turn_cursor = 0;
 }

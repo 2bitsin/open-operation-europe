@@ -9,7 +9,6 @@
 #include "common/memory.hpp"
 #include "core/settings.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -23,9 +22,9 @@ constexpr std::uint8_t  UNITS_PER_SPEED_STEP{ 3 };
 
 void opeu_delay_ticks(Game& game, std::uint16_t ticks) {
   auto const& data{ Data(game) };
-  opeu_fm_wait_start(ticks);
-  while (opeu_fm_busy()) {
-    if (opeu_turn_input_b() && static_cast<std::uint8_t>(opeu_key_read(game)) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) opeu_quit_to_dos(game);
+  game.Machine().Sound().StartCountdown(ticks);
+  while (game.Machine().Sound().CountdownLeft()) {
+    if (game.Machine().Input().KeyWaiting() && static_cast<std::uint8_t>(opeu_key_read(game)) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) opeu_quit_to_dos(game);
   }
 }
 

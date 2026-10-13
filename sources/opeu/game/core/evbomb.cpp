@@ -26,7 +26,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
@@ -74,18 +73,21 @@ constexpr std::uint16_t EVENT_LOCALS{ 0xce };
 void opeu_bomb_draw_frame(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  opeu_bitmap_save(x, y, 4, 32, port_far(data.stream.segment, data.stream.offset));
+  game.Machine().Display().SaveColumns({ x, y, 4, 32 }, FarBytes(game, data.stream.segment, data.stream.offset));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_IMAGE);
-  opeu_draw_far(x + 1, y + 8, 3, 24, SHADOW_MODE, port_far(data.stream.segment, data.stream.offset));
+  game.Machine().Display().DrawBits({ static_cast<uint16_t>(x + 1), static_cast<uint16_t>(y + 8), 3, 24 }, { SHADOW_MODE, FarBytes(game, data.stream.segment, data.stream.offset) });
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), BOMB_SPRITE);
-  opeu_sprite_compose(x, y, 3, 24, port_far(data.stream.segment, data.stream.offset), port_far(load + SPRITE_SEGMENT, BOMB_MASK), port_far(data.image_segment, 0), 0);
+  game.Machine().Display().ComposeSprite({ x, y, 3, 24 }, { .and_mask = FarBytes(game, data.stream.segment, data.stream.offset),
+                                                            .or_image = FarBytes(game, load + SPRITE_SEGMENT, BOMB_MASK),
+                                                            .buffer   = FarBytes(game, data.image_segment, 0),
+                                                            .flags    = 0 });
 }
 
 // Puts the background under the bomb at (x, y) back.
 void opeu_bomb_restore_frame(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BOMB_SAVE_SEGMENT), 0);
-  opeu_bitmap_restore(x, y, 4, 32, 0, port_far(data.stream.segment, data.stream.offset));
+  game.Machine().Display().DrawColumns({ x, y, 4, 32 }, { 0, FarBytes(game, data.stream.segment, data.stream.offset) });
 }
 
 // Centres the map on the regiment and drops the bomb from the top of the screen onto it.

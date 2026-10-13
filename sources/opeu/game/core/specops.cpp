@@ -20,7 +20,6 @@
 #include "core/template.hpp"
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/cellflag.hpp"
 #include "map/mappick.hpp"
 #include "map/query.hpp"

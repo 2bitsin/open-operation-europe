@@ -21,7 +21,6 @@
 #include "units/value.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -112,8 +111,8 @@ uint16_t opeu_battle_turn_loop(Game& game) {
       auto       buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game)) };
       auto const input{ [&] {
         if (buttons & MOUSE_EVENT) return true;
-        if (!opeu_turn_input_b()) return false;
-        key = static_cast<uint8_t>(static_cast<uint16_t>(port_getch()));
+        if (!game.Machine().Input().KeyWaiting()) return false;
+        key = game.Machine().Input().ReadCharacter();
         return key != 0;
       } };
       if (input()) {
@@ -151,7 +150,7 @@ void opeu_battle_return_garrison(Game& game) {
       item.quantity = static_cast<uint16_t>(item.quantity + returned);
       left          = static_cast<uint16_t>(left - returned);
       uint16_t extra{ item.extra };
-      opeu_add_word(element.damage, capacity, &extra);
+      extra      = AddWord(extra, element.damage, capacity);
       item.extra = extra;
       if (!left) break;
     }
@@ -164,18 +163,18 @@ void opeu_battle_daily_condition(Game& game) {
   ForBattleElements(data, [&](uint16_t unit, Element& element) {
     if (data.battle_side != NO_WINNER) {
       if (opeu_battle_unit_side(game, unit) == data.battle_side)
-        opeu_add_byte(1, RATING_LIMIT, &element.morale);
+        element.morale = AddByte(element.morale, 1, RATING_LIMIT);
       else
-        opeu_sub_byte(1, &element.morale);
+        element.morale = SubByte(element.morale, 1);
     }
     auto const round{ static_cast<uint16_t>(data.battle_level_limit + 1) };
     if (!opeu_hour_is_night(data.hour)) {
-      opeu_add_byte(1, RATING_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(game.State().Generator().Bounded(round), 5), RATING_LIMIT, &element.experience);
+      element.training   = AddByte(element.training, 1, RATING_LIMIT);
+      element.experience = AddByte(element.experience, opeu_min16(game.State().Generator().Bounded(round), 5), RATING_LIMIT);
     } else {
-      opeu_sub_byte(1, &element.morale);
-      opeu_add_byte(1, RATING_LIMIT, &element.training);
-      opeu_add_byte(opeu_min16(static_cast<uint16_t>(game.State().Generator().Bounded(round) + 5), 10), RATING_LIMIT, &element.experience);
+      element.morale     = SubByte(element.morale, 1);
+      element.training   = AddByte(element.training, 1, RATING_LIMIT);
+      element.experience = AddByte(element.experience, opeu_min16(static_cast<uint16_t>(game.State().Generator().Bounded(round) + 5), 10), RATING_LIMIT);
     }
   });
 }

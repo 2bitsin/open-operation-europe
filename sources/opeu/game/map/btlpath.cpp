@@ -26,7 +26,6 @@
 #include "units/labels.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
@@ -176,8 +175,8 @@ uint16_t opeu_battle_spot_chance(Game& game, uint16_t element, uint16_t other) {
   auto const  mode{ static_cast<uint8_t>(opeu_battle_terrain_mode(game, element, other)) };
   auto        chance{ static_cast<uint8_t>((SPOT_STEPS - mode) * SPOT_STEP) };
   auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
-  opeu_sub_byte(Cover(terrain), &chance);
-  opeu_sub_byte(WeatherToll(data.weather), &chance);
+  chance = SubByte(chance, Cover(terrain));
+  chance = SubByte(chance, WeatherToll(data.weather));
   return game.State().RandomBounded(100) < chance ? 1 : 0;
 }
 

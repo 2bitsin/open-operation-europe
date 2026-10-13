@@ -18,7 +18,6 @@
 #include "core/personfl.hpp"
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -55,8 +54,8 @@ void opeu_general_casualty(Game& game, uint16_t person) {
   auto const          wounded{ [&] { return (general.flags & Bits(PersonRole::POOR_HEALTH)) != 0; } };
   auto const          posting{ [&] { return general.flags & Bits(PersonRole::ROLE_MASK); } };
   auto const          wound{ [&] {
-    opeu_sub_byte(game.State().RandomBounded(20) + 10, &general.health);
-    general.flags |= Bits(PersonRole::POOR_HEALTH);
+    general.health  = SubByte(general.health, game.State().RandomBounded(20) + 10);
+    general.flags  |= Bits(PersonRole::POOR_HEALTH);
   } };
 
   if (general.flags & KILLED_FLAG) return;

@@ -9,14 +9,16 @@
 
 #include "machine.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace opeu::game::detail::game {
 
 class Game {
 public:
-  // A game whose UI primitives reach no far memory beyond the data segment (a test's).
-  Game(GameState& state, services::Machine& machine) : Game{ state, machine, UiHost{} } { }
+  // A game whose UI primitives reach the glue's far-data arena.
+  Game(GameState& state, services::Machine& machine) : Game{ state, machine, ArenaUi() } { }
   Game(GameState& state, services::Machine& machine, UiHost ui) : _segment{ state.Bytes(0, SEGMENT_SIZE) }, _state{ state }, _machine{ machine }, _ui{ ui } { }
 
   [[nodiscard]] auto State() noexcept -> GameState& {
@@ -59,6 +61,14 @@ private:
   return data_segment::Data(static_cast<std::uint8_t const*>(game.Segment().data()));
 }
 
+// The far memory from segment:offset to its end: an image or a buffer a drawing service reads or writes, whose extent
+// only the service knows (B7 gives the far data typed buffers).
+[[nodiscard]] inline auto FarBytes(Game const& game, std::uint16_t segment, std::uint16_t offset) -> std::span<std::uint8_t> {
+  auto const linear{ std::size_t{ segment } * 16 + offset };
+  Expects(linear < game.Ui().memory.size(), "a far address lies inside far memory");
+  return game.Ui().memory.subspan(linear);
+}
+
 // The byte at a near address, as a reference: a byte variable a routine receives by its near address.
 [[nodiscard]] inline auto Byte(Game& game, std::uint16_t near) noexcept -> std::uint8_t& {
   return game.Segment()[near];
@@ -81,8 +91,10 @@ inline auto SetWord(Game& game, std::uint16_t near, std::uint16_t value) noexcep
 } // namespace opeu::game::detail::game
 
 namespace opeu::game {
+namespace services = opeu::services; // the machine's interfaces and value types, for the routines outside opeu::game
 using detail::game::Byte;
 using detail::game::Data;
+using detail::game::FarBytes;
 using detail::game::Game;
 using detail::game::SetWord;
 using detail::game::Word;

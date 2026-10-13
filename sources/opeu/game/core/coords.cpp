@@ -25,7 +25,6 @@
 #include "core/vwpanel.hpp"
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "map/cursor.hpp"
 #include "map/inspect.hpp"
 #include "map/maperase.hpp"
@@ -111,7 +110,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
   cell_y %= MAP_HEIGHT;
   opeu_arrival_location(game, cell_x, cell_y, side);
   opeu_input_reset(game);
-  opeu_bitmap_save(0, 0, 80, 24, port_far(data.bitmap_buffer, SAVE_OFFSET));
+  game.Machine().Display().SaveColumns({ 0, 0, 80, 24 }, FarBytes(game, data.bitmap_buffer, SAVE_OFFSET));
   data.control_selection = 0;
   for (bool done{ false }; !done;) {
     if (display_x != NONE) opeu_map_erase(game, display_x, display_y);
@@ -273,6 +272,6 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     previous_x = display_x;
   }
   opeu_map_erase(game, display_x, display_y);
-  opeu_bitmap_restore(0, 0, 80, 24, 0, port_far(data.bitmap_buffer, SAVE_OFFSET));
+  game.Machine().Display().DrawColumns({ 0, 0, 80, 24 }, { 0, FarBytes(game, data.bitmap_buffer, SAVE_OFFSET) });
   return result;
 }

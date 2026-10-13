@@ -19,7 +19,6 @@
 #include "io/list-keys.hpp"
 #include "io/mouse.hpp"
 #include "io/tblsave.hpp"
-#include "link/glue.hpp"
 #include "map/dplrows.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -128,9 +127,9 @@ auto DrawArrows(Game& game, ScrollStrip const& strip, ArrowLight lit) -> void {
   auto&               data{ Data(game) };
   std::uint16_t const column{ static_cast<std::uint16_t>(strip.x >> 3) };
   SetStream(data, ARROW_SEGMENT, lit == ArrowLight::UP ? ARROW_UP_LIT : ARROW_UP);
-  opeu_draw_far(column, strip.top, 2, 0x20, 7, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawBits({ column, strip.top, 2, 0x20 }, { 7, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
   SetStream(data, ARROW_SEGMENT, lit == ArrowLight::DOWN ? ARROW_DOWN_LIT : ARROW_DOWN);
-  opeu_draw_far(column, static_cast<std::uint16_t>(strip.bottom - 0x1f), 2, 0x20, 7, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawBits({ column, static_cast<std::uint16_t>(strip.bottom - 0x1f), 2, 0x20 }, { 7, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
 // Outlines the scroll strip and draws both arrows unlit, while the mouse scroll arrows show.
@@ -158,12 +157,17 @@ auto GridRight(ListWindow const& window) -> std::uint16_t {
 }
 
 // Draws a line under each row that fits, at most the window's row count; answers how many.
-auto DrawRowLines(ListWindow const& window) -> std::uint8_t {
+auto DrawRowLines(Game& game, ListWindow const& window) -> std::uint8_t {
   auto const   row_y{ [&](std::uint32_t row) { return static_cast<std::uint16_t>(window.y + row * ROW_HEIGHT); } };
   auto const   fits{ [&](std::uint16_t y) { return y <= window.bottom; } };
   std::uint8_t lines{ 0 };
   std::ranges::for_each(std::views::iota(1u, window.rows + 1u) | std::views::transform(row_y) | std::views::take_while(fits), [&](std::uint16_t y) {
-    opeu_ui_line(GridLeft(window), y, GridRight(window), y, COLOUR);
+    game.Machine().Display().Line(
+        {
+            { GridLeft(window),  y },
+            { GridRight(window), y }
+    },
+        COLOUR);
     lines++;
   });
   return lines;
@@ -172,9 +176,16 @@ auto DrawRowLines(ListWindow const& window) -> std::uint8_t {
 // Draws the column separators from first_column while they fit: one after the row width, then one after each column up
 // to the widths' terminator; answers how many.
 auto DrawColumnLines(Game& game, ListWindow const& window, std::uint8_t first_column) -> std::uint8_t {
-  auto const    widths{ game.State().Bytes(window.widths) };
-  auto const    right{ GridRight(window) };
-  auto const    line{ [&](std::uint16_t x) { opeu_ui_line(x, window.y, x, window.bottom, COLOUR); } };
+  auto const widths{ game.State().Bytes(window.widths) };
+  auto const right{ GridRight(window) };
+  auto const line{ [&](std::uint16_t x) {
+    game.Machine().Display().Line(
+        {
+            { x, window.y      },
+            { x, window.bottom }
+    },
+        COLOUR);
+  } };
   std::uint16_t x = ((widths.front() - WIDTH_BIAS) << 3) + GridLeft(window);
   if (x > right) return 0;
   line(x);
@@ -195,7 +206,7 @@ auto DrawFrame(Game& game, ListWindow const& window, std::uint8_t first_column) 
   auto const saved{ data.list_columns };
   DrawScrollbar(game, StripOf(window));
   opeu_ui_outline(game, GridLeft(window), window.y, GridRight(window), window.bottom, COLOUR);
-  data.list_rows    = static_cast<std::uint8_t>(DrawRowLines(window) - 1);
+  data.list_rows    = static_cast<std::uint8_t>(DrawRowLines(game, window) - 1);
   data.list_columns = static_cast<std::uint8_t>(DrawColumnLines(game, window, first_column) - 1);
   return saved;
 }
@@ -305,8 +316,9 @@ auto opeu_list_mouse_key(Game& game) -> std::uint8_t {
 void opeu_list_invert(Game& game) {
   auto&       data{ Data(game) };
   auto const& window{ ListWindowAt(data, data.list_window) };
-  opeu_ui_highlight(static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y),
-                    static_cast<std::uint16_t>(WidthByte(game, window, 0) - WIDTH_BIAS), 0x12, INVERT_MODE);
+  game.Machine().Display().Highlight({ static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y),
+                                       static_cast<std::uint16_t>(WidthByte(game, window, 0) - WIDTH_BIAS), 0x12 },
+                                     INVERT_MODE);
 }
 
 namespace {
@@ -331,9 +343,9 @@ auto Height(Body const& body) -> std::uint16_t {
 auto ClearWindow(Game& game, ListWindow const& window) -> void {
   auto const body{ BodyOf(window) };
   if (Data(game).list_mouse)
-    opeu_ui_box(static_cast<std::uint16_t>(body.x - 2), body.y, static_cast<std::uint16_t>(body.right - body.x + 2), Height(body), 0);
+    game.Machine().Display().Box({ static_cast<std::uint16_t>(body.x - 2), body.y, static_cast<std::uint16_t>(body.right - body.x + 2), Height(body) }, 0);
   else
-    opeu_ui_box(body.x, body.y, static_cast<std::uint16_t>(body.right - body.x), Height(body), 0);
+    game.Machine().Display().Box({ body.x, body.y, static_cast<std::uint16_t>(body.right - body.x), Height(body) }, 0);
 }
 
 // Moves the columns from `column` on one column to the left and clears the uncovered strip at the right.
@@ -342,8 +354,8 @@ auto ShiftColumnsLeft(Game& game, ListWindow const& window, std::uint8_t column)
   std::uint16_t const to   = WidthByte(game, window, 0) + body.x - WIDTH_BIAS;
   std::uint16_t const from = to + WidthByte(game, window, column) - WIDTH_BIAS;
   std::uint16_t const kept = body.right - from;
-  opeu_screen_copy(from, body.y, kept, Height(body), to, body.y);
-  opeu_ui_box(static_cast<std::uint16_t>(kept + to), body.y, static_cast<std::uint16_t>(body.right - kept - to), Height(body), 0);
+  game.Machine().Display().CopyColumns({ from, body.y, kept, Height(body) }, { to, body.y });
+  game.Machine().Display().Box({ static_cast<std::uint16_t>(kept + to), body.y, static_cast<std::uint16_t>(body.right - kept - to), Height(body) }, 0);
 }
 
 // Moves the columns one column to the right, making room for `column`, and clears that column.
@@ -353,24 +365,26 @@ auto ShiftColumnsRight(Game& game, ListWindow const& window, std::uint8_t column
   std::uint16_t const from = WidthByte(game, window, 0) + body.x - WIDTH_BIAS;
   std::uint16_t const to   = from + width;
   std::uint16_t const kept = body.right - to;
-  opeu_screen_copy(from, body.y, kept, Height(body), to, body.y);
-  opeu_ui_box(from, body.y, width, Height(body), 0);
+  game.Machine().Display().CopyColumns({ from, body.y, kept, Height(body) }, { to, body.y });
+  game.Machine().Display().Box({ from, body.y, width, Height(body) }, 0);
 }
 
 // Moves the rows one row up and clears the last row.
-auto ShiftRowsUp(ListWindow const& window) -> void {
+auto ShiftRowsUp(Game& game, ListWindow const& window) -> void {
   auto const body{ BodyOf(window) };
   auto const width{ static_cast<std::uint16_t>(body.right - body.x) };
-  opeu_screen_copy(body.x, static_cast<std::uint16_t>(body.y + 0x23), width, static_cast<std::uint16_t>(Height(body) - 0x23), body.x, static_cast<std::uint16_t>(body.y + 0x12));
-  opeu_ui_box(body.x, static_cast<std::uint16_t>(body.bottom - 0x10), width, 0x10, 0);
+  game.Machine().Display().CopyColumns({ body.x, static_cast<std::uint16_t>(body.y + 0x23), width, static_cast<std::uint16_t>(Height(body) - 0x23) },
+                                       { body.x, static_cast<std::uint16_t>(body.y + 0x12) });
+  game.Machine().Display().Box({ body.x, static_cast<std::uint16_t>(body.bottom - 0x10), width, 0x10 }, 0);
 }
 
 // Moves the rows one row down and clears the first row.
-auto ShiftRowsDown(ListWindow const& window) -> void {
+auto ShiftRowsDown(Game& game, ListWindow const& window) -> void {
   auto const body{ BodyOf(window) };
   auto const width{ static_cast<std::uint16_t>(body.right - body.x) };
-  opeu_screen_copy(body.x, static_cast<std::uint16_t>(body.y + 0x12), width, static_cast<std::uint16_t>(Height(body) - 0x23), body.x, static_cast<std::uint16_t>(body.y + 0x23));
-  opeu_ui_box(body.x, static_cast<std::uint16_t>(body.y + 0x12), width, 0x10, 0);
+  game.Machine().Display().CopyColumns({ body.x, static_cast<std::uint16_t>(body.y + 0x12), width, static_cast<std::uint16_t>(Height(body) - 0x23) },
+                                       { body.x, static_cast<std::uint16_t>(body.y + 0x23) });
+  game.Machine().Display().Box({ body.x, static_cast<std::uint16_t>(body.y + 0x12), width, 0x10 }, 0);
 }
 
 // Moves the window's drawn area for the step to (column, row) and answers what is left to draw; ALL after clearing it
@@ -396,10 +410,10 @@ auto Shift(Game& game, ListWindow const& window, DrawRequest& target) -> std::ui
     return SCROLL_RIGHT;
   }
   if (data.list_top < target.row) {
-    ShiftRowsUp(window);
+    ShiftRowsUp(game, window);
     return SCROLL_UP;
   }
-  ShiftRowsDown(window);
+  ShiftRowsDown(game, window);
   return SCROLL_DOWN;
 }
 

@@ -23,7 +23,6 @@
 #include "core/specfrc.hpp"
 #include "core/stockord.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"

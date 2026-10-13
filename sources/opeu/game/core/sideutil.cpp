@@ -6,7 +6,6 @@
 
 #include "common/game.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

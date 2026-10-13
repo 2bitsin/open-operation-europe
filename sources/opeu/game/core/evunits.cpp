@@ -14,7 +14,6 @@
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/stats.hpp"
@@ -58,34 +57,34 @@ void opeu_unit_hourly_event(Game& game) {
         for (std::uint8_t category{ 0 }; category < CATEGORIES; ++category) {
           auto const    quantity{ UnitQuantity(data, near, category).total };
           std::uint16_t food{ unit.resources[2] };
-          opeu_sub_word(opeu_max16(quantity / opeu_max16(data.quantity_divisors[category], 1), 1), &food);
+          food              = SubWord(food, opeu_max16(quantity / opeu_max16(data.quantity_divisors[category], 1), 1));
           unit.resources[2] = food;
         }
         auto const& food{ unit.resources[2] };
         for (auto& element : Elements(data, unit.first)) {
           auto const order{ unit.orders[0].kind };
           if (order == ORDER_UNUSED)
-            opeu_sub_byte(Rand(game, 5u - level) + 3, &element.experience);
+            element.experience = SubByte(element.experience, Rand(game, 5u - level) + 3);
           else if (unit.orders[0].progress >= ORDER_DONE)
-            opeu_add_byte(1, RATING_LIMIT, &element.experience);
+            element.experience = AddByte(element.experience, 1, RATING_LIMIT);
           else if (order == Kind(UnitOrder::REST) && food != 0) {
-            opeu_sub_byte(Rand(game, (5u - level) * 2u) + 8, &element.experience);
-            opeu_sub_byte(1, &element.morale);
+            element.experience = SubByte(element.experience, Rand(game, (5u - level) * 2u) + 8);
+            element.morale     = SubByte(element.morale, 1);
           } else
-            opeu_add_byte(2, RATING_LIMIT, &element.experience);
+            element.experience = AddByte(element.experience, 2, RATING_LIMIT);
           if (food == 0) {
-            opeu_add_byte(2, RATING_LIMIT, &element.experience);
-            opeu_sub_byte(1, &element.morale);
+            element.experience = AddByte(element.experience, 2, RATING_LIMIT);
+            element.morale     = SubByte(element.morale, 1);
           } else if (element.morale >= element.experience)
-            opeu_add_byte(Rand(game, 3) + 1, RATING_LIMIT, &element.morale);
+            element.morale = AddByte(element.morale, Rand(game, 3) + 1, RATING_LIMIT);
           else
-            opeu_sub_byte(Rand(game, 3) + 2, &element.morale);
-          if (data.element_types[element.type].fuel_economy != 0 && unit.resources[1] == 0) opeu_sub_byte(1, &element.morale);
-          if (unit.resources[0] == 0) opeu_sub_byte(1, &element.morale);
+            element.morale = SubByte(element.morale, Rand(game, 3) + 2);
+          if (data.element_types[element.type].fuel_economy != 0 && unit.resources[1] == 0) element.morale = SubByte(element.morale, 1);
+          if (unit.resources[0] == 0) element.morale = SubByte(element.morale, 1);
           if (element.morale < opeu_unit_average9(game, near))
-            opeu_add_byte(1, RATING_LIMIT, &element.morale);
+            element.morale = AddByte(element.morale, 1, RATING_LIMIT);
           else
-            opeu_sub_byte(1, &element.morale);
+            element.morale = SubByte(element.morale, 1);
         }
         opeu_unit_morale_check(game, side, group, slot);
       }

@@ -20,7 +20,6 @@
 #include "core/scensel.hpp"
 #include "core/segsetup.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -85,7 +84,7 @@ void opeu_assign_side_staff(Game& game) {
 
 // Seeds the random numbers from the clock, prepares the machine and, when a new game is set up, staffs the sides.
 void opeu_app_startup_service(Game& game) {
-  game.State().Generator().Seed(port_clock_ticks_low());
+  game.State().Generator().Seed(game.Machine().Clock().Ticks());
   opeu_app_prepare(game);
   auto& data{ Data(game) };
   if (static_cast<uint16_t>(opeu_new_game_setup(game))) {
@@ -93,6 +92,6 @@ void opeu_app_startup_service(Game& game) {
     data.startup_mode += STARTUP_STEP;
   }
   data.startup_mode += STARTUP_STEP;
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_finish_side_initialization(game, 1);
 }

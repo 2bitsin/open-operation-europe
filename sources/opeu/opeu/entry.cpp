@@ -4,7 +4,6 @@
 #include "common/game.hpp"
 #include "core/app.hpp"
 #include "intro.hpp"
-#include "link/glue.hpp"
 #include "machine.hpp"
 #include "native-machine.hpp"
 #include "platform.hpp"
@@ -112,7 +111,7 @@ auto RunGame() -> void {
   };
   opeu::services::NativeDevices devices;
   opeu::services::Machine       machine{ devices.Devices() };
-  opeu::game::Game              game{ state, machine, opeu::game::UiHost{ .memory = std::span{ port_arena, PORT_ARENA_SIZE } } };
+  opeu::game::Game              game{ state, machine };
   opeu_application_entry(game);
 }
 } // namespace

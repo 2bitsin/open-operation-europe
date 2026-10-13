@@ -23,7 +23,6 @@
 #include "core/selunit.hpp"
 #include "core/sideinit.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "map/influenc.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -68,7 +67,7 @@ void opeu_process_selected_turn(Game& game) {
                                  data.entry_names[data.current_entry] };
     opeu_cursor_print(game, label);
     if (opeu_find_side_selected_unit(game, data.current_side) == data.current_unit_ptr && data.side_control[data.current_side] == SIDE_PLAYED) {
-      if (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b()) data.side_delays[data.current_side] = 0;
+      if (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : game.Machine().Input().KeyWaiting()) data.side_delays[data.current_side] = 0;
     }
   }
   if (opeu_find_side_selected_unit(game, data.current_side) == data.current_unit_ptr) {

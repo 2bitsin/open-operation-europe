@@ -63,7 +63,7 @@ public:
         _goal_reserve{ GOAL_RESERVE }, _rating{ static_cast<uint8_t>(opeu_move_rating(game)) } { }
 
   void Run() {
-    opeu_add_byte(_rating, POINTS_LIMIT, &_unit.moved);
+    _unit.moved = AddByte(_unit.moved, _rating, POINTS_LIMIT);
     if (!CanAffordAStep()) return;
     for (;;) switch (Plan()) {
       case Verdict::STOP:  return;

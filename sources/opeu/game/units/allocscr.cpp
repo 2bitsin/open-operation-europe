@@ -12,7 +12,6 @@
 #include "common/game.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <algorithm>
@@ -47,8 +46,8 @@ auto DrawFirstColumn(Game& game, std::uint8_t rows) -> void {
   auto const length{ HeadingLength(game, name) };
   Outline(game, 0x10f, 0x2d, 0x3e);
   Outline(game, 0x15f, 0x2d, RowsHeight(rows) + 0x2d);
-  opeu_vga_fill_rect(0x22, 0x2e, 10, 0x10, 3);
-  opeu_vga_fill_rect(0x2c, 0x2e, 2, RowsHeight(rows), 3);
+  game.Machine().Display().Box({ 0x22, 0x2e, 10, 0x10 }, 3);
+  game.Machine().Display().Box({ 0x2c, 0x2e, 2, RowsHeight(rows) }, 3);
   opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), 0x2e);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_first_format), name });
 }
@@ -61,8 +60,8 @@ auto DrawSecondColumn(Game& game, std::uint8_t above, std::uint8_t rows) -> void
   auto const top{ RowsHeight(above) };
   Outline(game, 0x10f, top + 0x2d, top + 0x3e);
   Outline(game, 0x15f, top + 0x2d, RowsHeight(above + rows) + 0x2d);
-  opeu_vga_fill_rect(0x22, static_cast<std::uint16_t>(top + 0x2e), 10, 0x10, 5);
-  opeu_vga_fill_rect(0x2c, static_cast<std::uint16_t>(top + 0x2e), 2, static_cast<std::uint16_t>(RowsHeight(rows) - 1), 5);
+  game.Machine().Display().Box({ 0x22, static_cast<std::uint16_t>(top + 0x2e), 10, 0x10 }, 5);
+  game.Machine().Display().Box({ 0x2c, static_cast<std::uint16_t>(top + 0x2e), 2, static_cast<std::uint16_t>(RowsHeight(rows) - 1) }, 5);
   opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), static_cast<int16_t>(top + 0x2e));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_second_format), name });
 }
@@ -72,7 +71,7 @@ auto DrawTypeList(Game& game, std::uint8_t count) -> void {
   auto&               data{ Data(game) };
   ServiceLocals const nation{ NATION_BYTES };
   auto const          buffer{ nation.At(0) };
-  opeu_vga_fill_rect(2, 0x1c, 0x1e, 0xde, 0);
+  game.Machine().Display().Box({ 2, 0x1c, 0x1e, 0xde }, 0);
   opeu_ui_outline(game, 0x10, 0x1c, 0x100, 0xf9, 7);
   opeu_army_position(game, 3, 0x1d);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.alloc_heading) });
@@ -112,7 +111,7 @@ void opeu_alloc_take(Game& game, Take const& take, uint8_t count) {
 void opeu_alloc_screen(Game& game, Allocation const& allocation) {
   auto& data{ Data(game) };
   opeu_backdrop_fill_color(game, data.current_side ? 1 : 2);
-  opeu_vga_fill_rect(0x2b, 0x110, 0x23, 0x70, 0);
+  game.Machine().Display().Box({ 0x2b, 0x110, 0x23, 0x70 }, 0);
   opeu_ui_outline(game, 0x158, 0x110, 0x26f, 0x17f, 7);
   DrawFirstColumn(game, data.supply_count);
   DrawSecondColumn(game, data.supply_count, allocation.other_slots ? allocation.other_slots : allocation.spare_slots);

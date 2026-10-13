@@ -38,7 +38,7 @@ void opeu_move_consume(Game& game) {
   for (auto const& element : Elements(data, unit)) {
     if (!data.element_types[element.type].fuel_economy) continue;
     uint16_t fuel{ unit.resources[FUEL] };
-    opeu_sub_word(opeu_max16(FuelUsed(data, element), 1), &fuel);
+    fuel                 = SubWord(fuel, opeu_max16(FuelUsed(data, element), 1));
     unit.resources[FUEL] = fuel;
   }
 }

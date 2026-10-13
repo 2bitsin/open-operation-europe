@@ -12,7 +12,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -46,7 +45,7 @@ void Spend(DataSegment& data, uint16_t unit, uint16_t element, uint16_t before, 
   auto const  share{ opeu_mul_div(stock, 100, total) };
   auto const& lost{ Record<Element>(data, element) };
   uint16_t    value{ stock };
-  opeu_sub_word(opeu_mul_div(static_cast<uint16_t>(Weight(data, lost, supply) * static_cast<uint16_t>(before - lost.quantity)), share, 100), &value);
+  value = SubWord(value, opeu_mul_div(static_cast<uint16_t>(Weight(data, lost, supply) * static_cast<uint16_t>(before - lost.quantity)), share, 100));
   stock = value;
 }
 } // namespace

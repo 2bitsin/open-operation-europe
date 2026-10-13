@@ -15,7 +15,6 @@
 #include "core/recindex.hpp"
 #include "core/rqcommon.hpp"
 #include "io/listdlg.hpp"
-#include "link/glue.hpp"
 #include "map/mappick.hpp"
 #include "port.hpp"
 #include "services.hpp"

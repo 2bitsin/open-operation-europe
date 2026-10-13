@@ -11,7 +11,6 @@
 #include "common/scenario.hpp"
 #include "common/table-rows.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

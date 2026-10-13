@@ -9,7 +9,6 @@
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"

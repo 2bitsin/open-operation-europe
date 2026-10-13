@@ -64,11 +64,16 @@ constexpr DigitStyle ROTATED{ Glyphs::ROTATED, 8, 5, 0, 5 };
 }
 
 void DrawGlyph(Game& game, GlyphBox const& box, uint16_t glyph) {
-  opeu_vga_glyph(box.at.x, box.at.y, box.width, box.height, box.colour, game.State().Bytes(glyph).data());
+  game.Machine().Display().DrawShiftedBits({ box.at.x, box.at.y, box.width, box.height }, { box.colour, game.State().Bytes(glyph) });
 }
 
-void DrawSegment(Segment const& segment, uint16_t colour) {
-  opeu_ui_line(segment.x1, segment.y1, segment.x2, segment.y2, colour);
+void DrawSegment(Game& game, Segment const& segment, uint16_t colour) {
+  game.Machine().Display().Line(
+      {
+          { segment.x1, segment.y1 },
+          { segment.x2, segment.y2 }
+  },
+      colour);
 }
 
 // The point `n` digits along from the first digit's.
@@ -125,13 +130,13 @@ void opeu_view_number(Game& game, ScreenPoint at, uint16_t value) {
 // The overview's rulers in colour 7, labelled 10, 20 and 30 cells times the map scale.
 void opeu_overview_frame(Game& game) {
   auto const scale{ Data(game).map_scale };
-  DrawSegment({ 0x10, 0x18c, 0x150, 0x18c }, 7);
-  DrawSegment({ 0x10, 0x188, 0x10, 0x18c }, 7);
-  DrawSegment({ 0x150, 0x188, 0x150, 0x18c }, 7);
-  for (auto const tick : std::views::iota(0, 3)) DrawSegment({ static_cast<uint16_t>(tick * 0x50 + 0x68), 0x188, static_cast<uint16_t>(tick * 0x50 + 0x68), 0x18c }, 7);
-  DrawSegment({ 0x15b, 0x44, 0x15b, 0x184 }, 7);
-  DrawSegment({ 0x157, 0x184, 0x15b, 0x184 }, 7);
-  for (auto const tick : std::views::iota(0, 4)) DrawSegment({ 0x157, static_cast<uint16_t>(tick * 0x50 + 0x44), 0x15b, static_cast<uint16_t>(tick * 0x50 + 0x44) }, 7);
+  DrawSegment(game, { 0x10, 0x18c, 0x150, 0x18c }, 7);
+  DrawSegment(game, { 0x10, 0x188, 0x10, 0x18c }, 7);
+  DrawSegment(game, { 0x150, 0x188, 0x150, 0x18c }, 7);
+  for (auto const tick : std::views::iota(0, 3)) DrawSegment(game, { static_cast<uint16_t>(tick * 0x50 + 0x68), 0x188, static_cast<uint16_t>(tick * 0x50 + 0x68), 0x18c }, 7);
+  DrawSegment(game, { 0x15b, 0x44, 0x15b, 0x184 }, 7);
+  DrawSegment(game, { 0x157, 0x184, 0x15b, 0x184 }, 7);
+  for (auto const tick : std::views::iota(0, 4)) DrawSegment(game, { 0x157, static_cast<uint16_t>(tick * 0x50 + 0x44), 0x15b, static_cast<uint16_t>(tick * 0x50 + 0x44) }, 7);
   DrawLabel(game, UPRIGHT,
             {
                 { 0x61, 0x185 },
@@ -175,10 +180,10 @@ void opeu_overview_frame(Game& game) {
 void opeu_view_frame(Game& game, int16_t x, int16_t y) {
   auto const scale{ Data(game).map_scale };
   auto const scaled{ [scale](int16_t cell) { return static_cast<int16_t>(static_cast<uint16_t>(cell) * scale); } };
-  DrawSegment({ 0x20, 0x180, 0x140, 0x180 }, 0);
-  for (auto const tick : std::views::iota(0, 13)) DrawSegment({ static_cast<uint16_t>(tick * 0x18 + 0x20), 0x17a, static_cast<uint16_t>(tick * 0x18 + 0x20), 0x180 }, 0);
-  DrawSegment({ 0x14c, 0x54, 0x14c, 0x174 }, 0);
-  for (auto const tick : std::views::iota(0, 13)) DrawSegment({ 0x148, static_cast<uint16_t>(tick * 0x18 + 0x54), 0x14c, static_cast<uint16_t>(tick * 0x18 + 0x54) }, 0);
+  DrawSegment(game, { 0x20, 0x180, 0x140, 0x180 }, 0);
+  for (auto const tick : std::views::iota(0, 13)) DrawSegment(game, { static_cast<uint16_t>(tick * 0x18 + 0x20), 0x17a, static_cast<uint16_t>(tick * 0x18 + 0x20), 0x180 }, 0);
+  DrawSegment(game, { 0x14c, 0x54, 0x14c, 0x174 }, 0);
+  for (auto const tick : std::views::iota(0, 13)) DrawSegment(game, { 0x148, static_cast<uint16_t>(tick * 0x18 + 0x54), 0x14c, static_cast<uint16_t>(tick * 0x18 + 0x54) }, 0);
   DrawLabel(game, UPRIGHT,
             {
                 { 0x77, 0x177 },

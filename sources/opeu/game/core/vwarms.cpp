@@ -26,7 +26,6 @@
 #include "core/vwpeople.hpp"
 #include "core/vwregt.hpp"
 #include "io/listdlg.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "map/objeleg.hpp"

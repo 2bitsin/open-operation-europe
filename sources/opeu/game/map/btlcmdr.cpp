@@ -20,7 +20,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
@@ -48,15 +47,14 @@ void RestoreRight(Game& game, Widths const& widths, uint8_t rows, uint8_t first)
     for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
 }
 
-// Takes percent of the word away through the original's services.
-void Reduce(Game& game, uint16_t& value, uint16_t percent) {
-  auto const amount{ opeu_mul_div(value, percent, 100) };
-  opeu_sub_word(amount, port_ds_word_ptr(game, Near(Data(game), value)));
+// Takes percent of the word away.
+void Reduce(uint16_t& value, uint16_t percent) {
+  value = SubWord(value, opeu_mul_div(value, percent, 100));
 }
 } // namespace
 
 void opeu_battle_restore_tile(Game& game, uint8_t column, uint8_t row) {
-  opeu_screen_copy(0x1e, 0, 2, 0x10, column * 2, row << 4);
+  game.Machine().Display().CopyColumns({ 0x1e, 0, 2, 0x10 }, { static_cast<uint16_t>(column * 2), static_cast<uint16_t>(row << 4) });
 }
 
 void opeu_battle_info_clear(Game& game) {
@@ -183,9 +181,9 @@ void opeu_battle_element_destroy(Game& game, uint16_t element) {
     for (auto& other : Elements(data, record))
       if ((other.flags & Bits(ElementFlag::READY)) && (PositionOf(data, Near(data, other)).x & BATTLE_LEFT)) ++gone;
     auto const percent{ game.State().RandomBounded(gone * 10 + 41) };
-    Reduce(game, objective.resources[1], percent);
-    Reduce(game, objective.resources[2], percent);
-    Reduce(game, objective.resources[0], percent);
+    Reduce(objective.resources[1], percent);
+    Reduce(objective.resources[2], percent);
+    Reduce(objective.resources[0], percent);
     for (auto& item : objective.items)
       if (item.quantity) item.quantity = 0;
   }

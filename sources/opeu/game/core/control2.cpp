@@ -9,7 +9,6 @@
 #include "common/memory.hpp"
 #include "core/aiops5.hpp"
 #include "core/context.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"

@@ -18,7 +18,6 @@
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -57,17 +56,19 @@ void opeu_air_sprite_draw(Game& game, uint16_t load, uint16_t x, uint16_t y, uin
   std::ranges::copy(opeu_view_type_masks[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
   opeu_air_sprite_mirror(game, mask, keep);
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
-  opeu_bitmap_save(x, y, 4, 32, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().SaveColumns({ x, y, 4, 32 }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), SHADOW_OFFSET);
-  opeu_draw_far(x + 1, y + 8, 3, 24, SHADOW_MODE, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawBits({ static_cast<uint16_t>(x + 1), static_cast<uint16_t>(y + 8), 3, 24 }, { SHADOW_MODE, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), PLANE_OFFSET);
-  opeu_sprite_compose(x, y, 3, 24, port_far(data.stream_ptr[1], data.stream_ptr[0]), port_far(load + DATA_SEGMENT, mask), port_far(data.bitmap_buffer, 0), 0);
+  game.Machine().Display().ComposeSprite(
+      { x, y, 3, 24 },
+      { .and_mask = FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]), .or_image = FarBytes(game, load + DATA_SEGMENT, mask), .buffer = FarBytes(game, data.bitmap_buffer, 0), .flags = 0 });
 }
 
 void opeu_air_sprite_restore(Game& game, uint16_t load, uint16_t x, uint16_t y) {
   auto& data{ Data(game) };
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
-  opeu_bitmap_restore(x, y, 4, 32, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawColumns({ x, y, 4, 32 }, { 0, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
 uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {

@@ -49,8 +49,10 @@ void ReadSprite(Game& game, uint16_t offset, uint16_t destination) {
 // Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.
 void Compose(Game& game, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
   auto const& data{ Data(game) };
-  opeu_sprite_compose(x, y, 3, 24, port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])), port_far(sprite_segment, sprite_offset),
-                      port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 0);
+  game.Machine().Display().ComposeSprite({ x, y, 3, 24 }, { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
+                                                            .or_image = FarBytes(game, sprite_segment, sprite_offset),
+                                                            .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
+                                                            .flags    = 0 });
 }
 
 } // namespace
@@ -98,8 +100,8 @@ void opeu_view_cell_draw(Game& game, uint16_t x, uint16_t y) {
   auto const pixel_x{ pixel.x };
   auto const pixel_y{ pixel.y };
   auto const tile{ data.map_tiles[MAP_WIDTH * cell_y + cell_x] };
-  opeu_bitmap_restore(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 3, 24, 0,
-                      port_far(static_cast<std::uint16_t>(data.tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)));
+  game.Machine().Display().DrawColumns({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 3, 24 },
+                                       { 0, FarBytes(game, static_cast<std::uint16_t>(data.tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)) });
   auto const overlay{ [&](uint8_t sprite) {
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(game, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);

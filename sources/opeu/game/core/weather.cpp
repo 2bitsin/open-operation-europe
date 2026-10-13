@@ -4,7 +4,6 @@
 #include "core/numeric.hpp"
 #include "data-segment.hpp"
 #include "data/fg3a64.hpp"
-#include "link/glue.hpp"
 #include "types.hpp"
 
 using namespace opeu::game;
@@ -24,7 +23,7 @@ void opeu_weather_update(Game& game) {
   auto roll{ static_cast<uint16_t>(game.State().RandomBounded(100) + 1) };
   for (uint16_t next = 0; next < WEATHER_KINDS; next++) {
     auto const row{ static_cast<uint16_t>((data.month_climate[data.month] * WEATHER_KINDS + data.weather) * WEATHER_KINDS) };
-    opeu_sub_word(data.weather_odds[row + next], &roll);
+    roll = SubWord(roll, data.weather_odds[row + next]);
     if (roll == 0) {
       if (data.weather != next) {
         data.weather = static_cast<uint8_t>(next);

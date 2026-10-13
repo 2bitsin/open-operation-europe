@@ -24,7 +24,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
@@ -102,10 +101,10 @@ uint16_t opeu_para_drop_due(Game& game) {
   auto& data{ Data(game) };
   auto& drop{ data.sides[data.air_side].drop };
   if (!drop.transports) return 0;
-  opeu_sub_byte(1, &drop.due);
+  drop.due = SubByte(drop.due, 1);
   if (!opeu_para_ready(game) || !opeu_para_cell_ok(game, drop.x, drop.y))
     opeu_para_clear(game);
-  else if (!opeu_sub_byte(1, &drop.hours))
+  else if (!(drop.hours = SubByte(drop.hours, 1)))
     switch (static_cast<AirAnswer>(static_cast<std::uint16_t>(opeu_air_report(game, Near(data, data.paratroop_drop_name), drop.due)) & 0xff)) {
     case AirAnswer::FLY:      return 1;
     case AirAnswer::WAIT:     drop.hours = 1; break;
@@ -145,9 +144,9 @@ void opeu_para_drop_event(Game& game) {
   data.map_mode[0] = 1;
   opeu_map_center(game, x, y, static_cast<std::uint16_t>(opeu_side_for_status(game, side_index)));
   uint16_t left{ drop.transports };
-  opeu_sub_word(left, &side.planes);
-  opeu_sub_word(drop.paratroops, &side.paratroops);
-  opeu_sub_word(opeu_air_damage_roll(game, x, y, opeu_min16(left, FIRE_PLANES) / 30), &left);
+  side.planes     = SubWord(side.planes, left);
+  side.paratroops = SubWord(side.paratroops, drop.paratroops);
+  left            = SubWord(left, opeu_air_damage_roll(game, x, y, opeu_min16(left, FIRE_PLANES) / 30));
   auto const     pixel{ CellViewPixel(game, x, y) };
   uint16_t const target_x{ pixel.x };
   uint16_t const target_y{ pixel.y };

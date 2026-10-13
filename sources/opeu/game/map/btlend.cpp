@@ -19,7 +19,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -118,7 +117,7 @@ void opeu_battle_objective_damage(Game& game) {
     auto const r{ static_cast<uint16_t>(game.State().RandomBounded(101) + 50) };
     loss = opeu_mul_div(7, r, 100);
   }
-  opeu_sub_byte(static_cast<uint8_t>(loss), &Record<Objective>(data, site).strength);
+  Record<Objective>(data, site).strength = SubByte(Record<Objective>(data, site).strength, static_cast<uint8_t>(loss));
 }
 
 void opeu_notice_other(Game& game) {

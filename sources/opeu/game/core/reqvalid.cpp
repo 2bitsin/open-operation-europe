@@ -9,7 +9,6 @@
 
 #include "common/game.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "map/reqcells.hpp"
 #include "port.hpp"
 #include "services.hpp"

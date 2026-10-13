@@ -5,6 +5,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
@@ -19,7 +20,6 @@
 #include "io/resopen.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/query.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -62,7 +62,7 @@ auto PrintMessages(Game& game, std::uint16_t const (&ids)[N]) -> void {
 auto NextPage(Game& game) -> void {
   opeu_delay_units(game, 0x68);
   opeu_delay_units(game, 0xb4);
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
 }
 
 } // namespace
@@ -93,12 +93,12 @@ uint16_t opeu_end_objective_points(Game& game) {
 
 // The dark palette of the epilogue pages.
 void opeu_end_palette_dark(Game& game) {
-  opeu_set_palette(0, 16, game.State().Bytes(offsetof(DataSegment, end_palette)).data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(offsetof(DataSegment, end_palette), 16 * RGB));
 }
 
 // The palette of the epilogue's last pictures.
 void opeu_end_palette_show(Game& game) {
-  opeu_set_palette(0, 16, game.State().Bytes(offsetof(DataSegment, end_palette_final)).data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(offsetof(DataSegment, end_palette_final), 16 * RGB));
 }
 
 // The outcome screen, the epilogue of a human winner, and the wait for the music to stop or a key; then the game
@@ -145,11 +145,11 @@ void opeu_scenario_end(Game& game) {
     copy_text(data.end_defeat_texts[reason]);
     format_caption(opposite());
   }
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_palette_map_screen(game);
   auto handle{ static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_data_name)))) };
   opeu_picture_file(game, 80, 64, handle, picture);
-  opeu_dos_close(handle);
+  game.Machine().Files().Close(HandleOf(handle));
   opeu_army_position(game, 9, 336);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), caption });
   opeu_finish_side_initialization(game, 1);
@@ -162,7 +162,7 @@ void opeu_scenario_end(Game& game) {
     opeu_set_turn_context(game, CONTEXT_EPILOGUE);
     opeu_finish_side_initialization(game, 0);
     handle = static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, offsetof(DataSegment, end_picture_name))));
-    opeu_vga_clear();
+    game.Machine().Display().Clear();
     opeu_end_palette_dark(game);
     opeu_picture_file_masked(game, 0, 55, handle, 0);
     opeu_army_position(game, 12, 300);
@@ -188,12 +188,12 @@ void opeu_scenario_end(Game& game) {
     picture_at(0, 0, 0x10c78);
     opeu_delay_units(game, 0x1e);
     picture_at(128, 112, 0x13829);
-    opeu_dos_close(handle);
+    game.Machine().Files().Close(HandleOf(handle));
   }
   opeu_input_flush(game);
   opeu_delay_units(game, 0x1e);
   for (;;) {
-    if (!static_cast<uint16_t>(opeu_music_playing(game)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : opeu_turn_input_b())) {
+    if (!static_cast<uint16_t>(opeu_music_playing(game)) || (data.input_mode ? static_cast<uint16_t>(opeu_turn_input_a(game)) : game.Machine().Input().KeyWaiting())) {
       opeu_quit_to_dos(game);
       return;
     }
@@ -203,7 +203,7 @@ void opeu_scenario_end(Game& game) {
 // Reports a segment that could not be freed: the screen is cleared, the name is not shown.
 void opeu_free_error(Game& game, uint16_t name) {
   (void)name;
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_army_position(game, 0, 0);
 }
 
@@ -230,9 +230,9 @@ void opeu_free_segments(Game& game) {
 // Closes the portrait, face and message-picture files.
 void opeu_close_data_files(Game& game) {
   auto const& data{ Data(game) };
-  opeu_dos_close(data.portrait_handle);
-  opeu_dos_close(data.face_handle);
-  opeu_dos_close(data.message_picture_handle);
+  game.Machine().Files().Close(HandleOf(data.portrait_handle));
+  game.Machine().Files().Close(HandleOf(data.face_handle));
+  game.Machine().Files().Close(HandleOf(data.message_picture_handle));
 }
 
 // The application's end of the game.

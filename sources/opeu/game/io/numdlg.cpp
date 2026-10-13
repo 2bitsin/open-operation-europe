@@ -13,7 +13,6 @@
 #include "core/uiprim.hpp"
 #include "io/menudraw.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -69,7 +68,8 @@ auto Outline(Game& game, std::uint16_t column, std::uint16_t row) -> void {
 void opeu_numdlg_button(Game& game, std::uint8_t n, std::uint16_t tile) {
   auto const& data{ Data(game) };
   opeu_mouse_hide(game);
-  opeu_bitmap_restore(n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, port_far(data.message_picture_segment, tile));
+  game.Machine().Display().DrawColumns({ static_cast<uint16_t>(n * 5 + data.numdlg_x + 7), static_cast<uint16_t>(data.numdlg_y + 40), 4, 16 },
+                                       { 0, FarBytes(game, data.message_picture_segment, tile) });
   opeu_mouse_show(game);
 }
 
@@ -85,15 +85,15 @@ void opeu_numdlg_release(Game& game, std::uint8_t n) {
 // Saves the covered area, draws the dialog and both buttons.
 void opeu_numdlg_open(Game& game) {
   auto const& data{ Data(game) };
-  opeu_bitmap_save(data.numdlg_x, data.numdlg_y, 0x12, 0x60, port_far(data.numdlg_save_segment, 0));
-  opeu_bitmap_restore(data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, port_far(data.message_picture_segment, 0));
+  game.Machine().Display().SaveColumns({ data.numdlg_x, data.numdlg_y, 0x12, 0x60 }, FarBytes(game, data.numdlg_save_segment, 0));
+  game.Machine().Display().DrawColumns({ data.numdlg_x, data.numdlg_y, 0x12, 0x60 }, { 0, FarBytes(game, data.message_picture_segment, 0) });
   opeu_numdlg_release(game, CANCEL_BUTTON);
   opeu_numdlg_release(game, OK_BUTTON);
 }
 
 void opeu_numdlg_close(Game& game) {
   auto const& data{ Data(game) };
-  opeu_bitmap_restore(data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, port_far(data.numdlg_save_segment, 0));
+  game.Machine().Display().DrawColumns({ data.numdlg_x, data.numdlg_y, 0x12, 0x60 }, { 0, FarBytes(game, data.numdlg_save_segment, 0) });
 }
 
 void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit) {
@@ -168,7 +168,7 @@ void opeu_numdlg_highlight(Game& game, std::uint8_t n) {
   }
   auto const& data{ Data(game) };
   opeu_mouse_hide(game);
-  opeu_ui_highlight(data.numdlg_x + x, data.numdlg_y + y, width, 0x10, INVERT_MODE);
+  game.Machine().Display().Highlight({ static_cast<uint16_t>(data.numdlg_x + x), static_cast<uint16_t>(data.numdlg_y + y), width, 0x10 }, INVERT_MODE);
   opeu_mouse_show(game);
 }
 
@@ -267,8 +267,20 @@ private:
     else
       filled = opeu_mul_div(static_cast<std::uint16_t>(value) - _range.lo, BAR_WIDTH, range);
     opeu_mouse_hide(_game);
-    if (filled) opeu_ui_fill(x + 0x10, y + 0x14, x + filled + 0xf, y + 0x1b, 2);
-    if (filled != BAR_WIDTH) opeu_ui_fill(x + filled + 0x10, y + 0x14, x + 0x7f, y + 0x1b, 0);
+    if (filled)
+      _game.Machine().Display().Fill(
+          {
+              { static_cast<uint16_t>(x + 0x10),         static_cast<uint16_t>(y + 0x14) },
+              { static_cast<uint16_t>(x + filled + 0xf), static_cast<uint16_t>(y + 0x1b) }
+      },
+          2);
+    if (filled != BAR_WIDTH)
+      _game.Machine().Display().Fill(
+          {
+              { static_cast<uint16_t>(x + filled + 0x10), static_cast<uint16_t>(y + 0x14) },
+              { static_cast<uint16_t>(x + 0x7f),          static_cast<uint16_t>(y + 0x1b) }
+      },
+          0);
     opeu_mouse_show(_game);
   }
 

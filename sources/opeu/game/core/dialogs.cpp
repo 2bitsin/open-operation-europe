@@ -28,7 +28,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "map/objeleg.hpp"
@@ -73,8 +72,8 @@ void opeu_panel_border(Game& game, uint16_t which) {
   auto const  edge{ Loaded(game.Dialogs(), PANEL_SEGMENT, which == 0 ? 128 : 0x100 + 128) };
   auto const  last_column{ data.panel_columns[which] };
   auto const  row{ data.panel_rows[which] };
-  opeu_bitmap_restore(0x2c, row, 1, 0x20, 0, port_far(corner.segment, corner.offset));
-  for (std::uint16_t column{ 0x2d }; column <= last_column; ++column) opeu_bitmap_restore(column, row, 1, 0x20, 0, port_far(edge.segment, edge.offset));
+  game.Machine().Display().DrawColumns({ 0x2c, row, 1, 0x20 }, { 0, FarBytes(game, corner.segment, corner.offset) });
+  for (std::uint16_t column{ 0x2d }; column <= last_column; ++column) game.Machine().Display().DrawColumns({ column, row, 1, 0x20 }, { 0, FarBytes(game, edge.segment, edge.offset) });
 }
 
 // Puts up the message backdrop once per screen; nonzero when it was drawn now.
@@ -115,7 +114,7 @@ void opeu_turn_frame(Game& game, uint8_t mode) {
   auto const          frame{ Loaded(game.Dialogs(), FRAME_SEGMENT, offset) };
   data.stream_ptr[0] = frame.offset;
   data.stream_ptr[1] = frame.segment;
-  opeu_bitmap_restore(0x13, map ? 0x38 : 0x44, 6, map ? 0xc : 0x10, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawColumns({ 0x13, static_cast<uint16_t>(map ? 0x38 : 0x44), 6, static_cast<uint16_t>(map ? 0xc : 0x10) }, { 0, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
   data.turn_frame_mode = mode;
 }
 
@@ -123,7 +122,7 @@ void opeu_turn_frame(Game& game, uint8_t mode) {
 void opeu_turn_active_begin(Game& game) {
   auto& data{ Data(game) };
   if (data.control_selection == 1)
-    opeu_ui_box(1, 3, 0x4e, 0x12, 0xf);
+    game.Machine().Display().Box({ 1, 3, 0x4e, 0x12 }, 0xf);
   else {
     opeu_picture_memory_masked(game, 0, 0, data.frame_segment, 0);
     data.control_selection = 1;
@@ -136,7 +135,7 @@ void opeu_context_begin(Game& game) {
   auto& data{ Data(game) };
   if (!opeu_message_backdrop(game)) {
     opeu_panel_border(game, 0);
-    opeu_ui_box(0x2d, 0x38, 0x14, 0x42, 1);
+    game.Machine().Display().Box({ 0x2d, 0x38, 0x14, 0x42 }, 1);
   }
   opeu_ui_text(game, Near(data, data.context_panel_text));
   opeu_army_position(game, 0x2d, 0x39);
@@ -146,7 +145,7 @@ void opeu_context_begin(Game& game) {
 void opeu_info_panel_begin(Game& game) {
   auto& data{ Data(game) };
   if (!opeu_message_backdrop(game))
-    opeu_ui_box(0x2d, 0x9a, 0x22, 0x80, 1);
+    game.Machine().Display().Box({ 0x2d, 0x9a, 0x22, 0x80 }, 1);
   else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, Near(data, data.info_panel_text));
@@ -157,8 +156,8 @@ void opeu_title_panel_begin(Game& game) {
   auto& data{ Data(game) };
   if (!opeu_message_backdrop(game)) {
     opeu_panel_border(game, 1);
-    opeu_ui_box(0x41, 0x84, 0xe, 0x16, 1);
-    opeu_ui_box(0x2d, 0x9a, 0x22, 0x80, 1);
+    game.Machine().Display().Box({ 0x41, 0x84, 0xe, 0x16 }, 1);
+    game.Machine().Display().Box({ 0x2d, 0x9a, 0x22, 0x80 }, 1);
   } else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, Near(data, data.title_panel_text));
@@ -169,7 +168,7 @@ void opeu_message_panel_begin(Game& game) {
   auto& data{ Data(game) };
   if (!opeu_message_backdrop(game)) {
     opeu_panel_border(game, 2);
-    opeu_ui_box(0x36, 0x13a, 0x18, 0x52, 1);
+    game.Machine().Display().Box({ 0x36, 0x13a, 0x18, 0x52 }, 1);
   } else
     data.context_side = NO_SIDE;
   opeu_ui_text(game, Near(data, data.message_panel_text));
@@ -179,7 +178,7 @@ void opeu_message_panel_begin(Game& game) {
 // Clears the screen and forgets every panel, frame and view drawn on it.
 void opeu_screen_reset(Game& game) {
   auto& data{ Data(game) };
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   data.control_selection    = 0;
   data.context_display_word = 0;
   data.overview_side        = NO_SIDE;
@@ -204,8 +203,8 @@ void opeu_daily_show(Game& game, uint16_t id, uint8_t side, Presenter present) {
   auto const& data{ Data(game) };
   if (data.side_status[side] != SIDE_PLAYED) return;
   if (data.message_pictures == 1) {
-    opeu_bitmap_save(5, 0x78, 0x22, 0xb8, port_far(data.bitmap_buffer, 0));
-    opeu_ui_box(5, 0x78, 0x22, 0xb8, SideTextColor(side));
+    game.Machine().Display().SaveColumns({ 5, 0x78, 0x22, 0xb8 }, FarBytes(game, data.bitmap_buffer, 0));
+    game.Machine().Display().Box({ 5, 0x78, 0x22, 0xb8 }, SideTextColor(side));
     opeu_ui_outline(game, 0x28, 0x78, 0x137, 0x12f, 7);
     opeu_picture_file(game, 0x30, 0x80, data.message_picture_handle, id);
   }
@@ -215,7 +214,7 @@ void opeu_daily_show(Game& game, uint16_t id, uint8_t side, Presenter present) {
     opeu_music_command7(game);
     opeu_sound_cue16(game);
   }
-  if (data.message_pictures == 1) opeu_bitmap_restore(5, 0x78, 0x22, 0xb8, 0, port_far(data.bitmap_buffer, 0));
+  if (data.message_pictures == 1) game.Machine().Display().DrawColumns({ 5, 0x78, 0x22, 0xb8 }, { 0, FarBytes(game, data.bitmap_buffer, 0) });
 }
 
 // show 1: opens the message panel with the speaker's post, name and portrait and a scrolling text window; show 0:

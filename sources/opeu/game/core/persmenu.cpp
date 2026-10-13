@@ -22,7 +22,6 @@
 #include "core/selunit.hpp"
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/support.hpp"
 #include "port.hpp"
 #include "services.hpp"

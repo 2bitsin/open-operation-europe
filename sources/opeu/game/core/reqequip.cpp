@@ -11,7 +11,6 @@
 #include "core/textout.hpp"
 #include "data-segment.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "types.hpp"
 #include <array>
@@ -43,7 +42,7 @@ void opeu_request_action1(Game& game, uint8_t side, uint16_t request) {
     amount = static_cast<uint16_t>(amount + (5 - data.delivery_level) * 6);
   else
     amount = static_cast<uint16_t>(amount + COMPUTER_BONUS);
-  opeu_add_word(game.State().RandomBounded(amount / 3) + amount / 2, capacity, &item.quantity);
+  item.quantity = AddWord(item.quantity, game.State().RandomBounded(amount / 3) + amount / 2, capacity);
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   opeu_arrival_location(game, objective.x, objective.y, side);

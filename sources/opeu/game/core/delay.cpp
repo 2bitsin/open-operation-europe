@@ -10,7 +10,6 @@
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

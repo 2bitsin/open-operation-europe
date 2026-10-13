@@ -11,7 +11,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -40,7 +39,7 @@ void opeu_supply_draw_row(Game& game, uint8_t row, uint8_t column) {
   auto const top{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(row) * PANEL_ROW_HEIGHT + data.supply_panel_y) };
   auto const text_y{ static_cast<std::uint16_t>(top + 0x24) };
   auto const digits_y{ static_cast<std::uint16_t>(top + 0x37) };
-  auto const fill{ [&](std::uint16_t fill_x) { opeu_ui_box(fill_x, digits_y, 3, 6, 0); } };
+  auto const fill{ [&](std::uint16_t fill_x) { game.Machine().Display().Box({ fill_x, digits_y, 3, 6 }, 0); } };
   opeu_army_position(game, x + 2, text_y);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_left)), left });
   opeu_army_position(game, x + 25, text_y);

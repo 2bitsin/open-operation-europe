@@ -19,7 +19,6 @@
 #include "core/recindex.hpp"
 #include "core/suptable.hpp"
 #include "io/listdlg.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "map/neighbor.hpp"

@@ -6,7 +6,6 @@
 #include "core/textout.hpp"
 #include "types.hpp"
 
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -42,7 +41,7 @@ void opeu_memory_fail(Game& game, uint16_t) {
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_message) });
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_advice) });
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_exit) });
-  while (!opeu_turn_input_b());
+  while (!game.Machine().Input().KeyWaiting());
   opeu_quit_to_dos(game);
 }
 
@@ -77,9 +76,9 @@ void opeu_open_data_files(Game& game) {
 // Prepares the machine: system handlers, the screen and title palette, sound, memory, and the data files.
 void opeu_app_prepare(Game& game) {
   koei_install_dos_handlers();
-  koei_2fea();
-  koei_vga_identity_palette();
-  opeu_vga_clear();
+  game.Machine().Display().EnterGraphics();
+  game.Machine().Display().ShowIdentityPalette();
+  game.Machine().Display().Clear();
   opeu_palette_title_screen(game);
   opeu_sound_initialize(game);
   opeu_alloc_segments(game);

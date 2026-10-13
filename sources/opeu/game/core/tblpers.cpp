@@ -13,7 +13,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>

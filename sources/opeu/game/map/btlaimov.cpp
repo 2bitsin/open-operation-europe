@@ -12,7 +12,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "map/btlaiact.hpp"
 #include "port.hpp"
 #include "services.hpp"

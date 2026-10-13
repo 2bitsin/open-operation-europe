@@ -1,12 +1,13 @@
 """The B5x pass's substitutions on small inputs: host arguments and parameters disappear, a forwarded host goes with
-them, a host's fields are read from the game, and the random draws land on GameState (synced) or its generator."""
+them, a host's fields are read from the game, the random draws land on GameState (synced) or its generator, and the
+capped arithmetic through a pointer becomes an assignment of a value."""
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
-from rewriter.b5x import B5xPass, RewriteHosts, RewriteRandom  # noqa: E402
+from rewriter.b5x import B5xPass, RewriteCapped, RewriteHosts, RewriteRandom  # noqa: E402
 
 
 def test_host_arguments_go_with_their_comma():
@@ -60,3 +61,10 @@ def test_the_pass_rewrites_game_sources_but_not_the_generator_or_the_glue(tmp_pa
   assert list(result.files) == ["core/x.cpp"]
   assert (game / "core/x.cpp").read_text() == "  y = game.State().RandomBounded(3);\n"
   assert (game / "core/random.cpp").read_text() == "uint16_t opeu_rand_bounded(uint16_t bound) {\n"
+
+
+def test_capped_arithmetic_through_an_address_becomes_an_assignment_and_a_used_value_keeps_it():
+  text = "  opeu_add_byte(1, 99, &general.experience);\n  if (!opeu_sub_byte(1, &strike.hours)) x;\n  opeu_add_word(r, L, stock);\n"
+  rewritten, counts, left = RewriteCapped(text)
+  assert rewritten == "  general.experience = AddByte(general.experience, 1, 99);\n  if (!(strike.hours = SubByte(strike.hours, 1))) x;\n  opeu_add_word(r, L, stock);\n"
+  assert (sum(counts.values()), left) == (2, ["opeu_add_word(r, L, stock)"])

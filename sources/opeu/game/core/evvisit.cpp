@@ -28,7 +28,6 @@
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -52,7 +51,7 @@ constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit ha
 constexpr std::uint8_t  MIN_HEALTH{ 30 };
 
 auto Raise(Game& game, std::uint8_t& rating) -> void {
-  opeu_add_byte(game.State().RandomBounded(10), RATING_LIMIT, &rating);
+  rating = AddByte(rating, game.State().RandomBounded(10), RATING_LIMIT);
 }
 
 // Whether an enemy special unit stands next to the unit.

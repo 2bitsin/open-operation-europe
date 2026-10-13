@@ -17,7 +17,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

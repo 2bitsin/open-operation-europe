@@ -21,7 +21,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/airbomb.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

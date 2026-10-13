@@ -6,7 +6,6 @@
 #include "core/textout.hpp"
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/dispatch.hpp"
@@ -54,13 +53,15 @@ constexpr std::uint8_t  COMMANDERS{ 7 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x11 };
 
 auto SaveScreen(Game& game, ListWindow const& window) -> void {
-  opeu_bitmap_save(static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1),
-                   static_cast<std::uint16_t>(window.bottom - window.y + 1), port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
+  game.Machine().Display().SaveColumns(
+      { static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1) },
+      FarBytes(game, static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
 }
 
 auto RestoreScreen(Game& game, ListWindow const& window) -> void {
-  opeu_bitmap_restore(static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1),
-                      static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
+  game.Machine().Display().DrawColumns(
+      { static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1) },
+      { 0, FarBytes(game, static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0) });
 }
 
 // A select routine called with the game and the running choice count, whichever of them it takes.
@@ -160,8 +161,8 @@ auto CommandersConfirmed(Game& game) -> bool {
   auto const& data{ Data(game) };
   opeu_text_paper_set(game, static_cast<std::uint8_t>(4));
   // two text rows of 40 two-column cells, row by row, each a copy of the top-left cell
-  std::ranges::for_each(std::views::iota(0u, 2u * PROMPT_CELLS), [](std::uint32_t cell) {
-    opeu_screen_copy(0, 0, 2, 0x10, static_cast<std::uint16_t>(cell % PROMPT_CELLS * 2), static_cast<std::uint16_t>(0x170 + cell / PROMPT_CELLS * 0x10));
+  std::ranges::for_each(std::views::iota(0u, 2u * PROMPT_CELLS), [&](std::uint32_t cell) {
+    game.Machine().Display().CopyColumns({ 0, 0, 2, 0x10 }, { static_cast<std::uint16_t>(cell % PROMPT_CELLS * 2), static_cast<std::uint16_t>(0x170 + cell / PROMPT_CELLS * 0x10) });
   });
   opeu_army_position(game, static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
   if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) return false;

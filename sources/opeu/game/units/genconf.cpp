@@ -17,7 +17,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/listdlg.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

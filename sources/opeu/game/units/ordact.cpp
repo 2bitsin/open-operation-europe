@@ -25,7 +25,6 @@
 #include "io/keyboard.hpp"
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappick.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"

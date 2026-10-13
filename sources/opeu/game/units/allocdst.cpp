@@ -13,7 +13,6 @@
 #include "core/chief.hpp"
 #include "io/listdlg.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/capacity.hpp"

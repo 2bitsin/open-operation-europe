@@ -14,6 +14,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/dispatch.hpp"
+#include "common/dos-file.hpp"
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
 #include "common/game.hpp"
@@ -22,7 +23,6 @@
 #include "core/msglook.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"
 #include "port.hpp"
@@ -58,10 +58,10 @@ auto ForEachGeneralOf(Game& game, Unit const& unit, Body&& body) -> void {
 }
 
 auto Lower(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_sub_byte(game.State().RandomBounded(spread) + base, &value);
+  value = SubByte(value, game.State().RandomBounded(spread) + base);
 }
 auto Raise(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t spread) -> void {
-  opeu_add_byte(game.State().RandomBounded(spread) + base, RATING_LIMIT, &value);
+  value = AddByte(value, game.State().RandomBounded(spread) + base, RATING_LIMIT);
 }
 
 // Whether she visits the unit: one of its generals is in poor health or one of its battalions is a veteran.
@@ -78,7 +78,7 @@ auto Remark(Game& game) -> std::uint8_t {
   opeu_message_panel_begin(game);
   opeu_context_frame(game, 44, 282, 18);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ NAME });
-  opeu_dos_seek(data.portrait_handle, std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16, 0);
+  game.Machine().Files().Seek(HandleOf(data.portrait_handle), static_cast<std::int32_t>(std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16), services::SeekOrigin::START);
   opeu_image_read_draw(game, 45, 316, 8, 80, 0, data.portrait_handle);
   auto const remark{ static_cast<std::uint8_t>(game.State().RandomBounded(6)) };
   opeu_request_format(game, std::array<std::uint16_t, 3>{ BUFFER, REMARK_FORMAT, opeu_message_lookup(game, remark + FIRST_REMARK) });

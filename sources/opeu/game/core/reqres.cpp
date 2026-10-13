@@ -10,7 +10,6 @@
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -28,8 +27,8 @@ constexpr uint16_t DETAIL_MESSAGE{ 73 };
 constexpr uint16_t HEADER_SIDE_WORD[]{ 54, 53 };
 
 // 10000..40000 of a supply, up to the limit.
-void Deliver(Game& game, uint16_t* stock) {
-  opeu_add_word(game.State().RandomBounded(30001) + 10000, SUPPLY_LIMIT, stock);
+void Deliver(Game& game, uint16_t& stock) {
+  stock = AddWord(stock, game.State().RandomBounded(30001) + 10000, SUPPLY_LIMIT);
 }
 
 } // namespace
@@ -40,7 +39,7 @@ void opeu_request_action0(Game& game, uint8_t side, uint16_t request) {
   auto&          data{ Data(game) };
   auto&          objective{ Record<Objective>(data, Record<RequestSlot>(data, request).target) };
   uint16_t const before[]{ objective.resources[0], objective.resources[1], objective.resources[2] };
-  for (auto i = 0; i < 3; ++i) Deliver(game, &objective.resources[i]);
+  for (auto i = 0; i < 3; ++i) Deliver(game, objective.resources[i]);
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const  buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   auto const* now{ objective.resources };

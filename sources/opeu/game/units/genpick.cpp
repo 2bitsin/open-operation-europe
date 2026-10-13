@@ -16,7 +16,6 @@
 #include "core/uiprim.hpp"
 #include "core/vacancy.hpp"
 #include "io/listui.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/table.hpp"

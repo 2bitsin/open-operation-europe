@@ -249,7 +249,7 @@ uint16_t opeu_advice_tactical_air_special_forces(Game& game, const uint8_t* far_
   auto const    advisor{ Tactics(game, far_text) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t spare{ side.planes };
-  opeu_sub_word(side.lift.planes + side.drop.transports, &spare);
+  spare = SubWord(spare, side.lift.planes + side.drop.transports);
   auto const intelligence{ Record<Person>(data, data.context_record3).charm };
   if (side.strength >= GOOD_RATING && !data.weather && intelligence >= GOOD_RATING && (side.bombers || (spare && (!side.drop.transports || !side.lift.planes))) && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::ASK_AIR_FORCE);

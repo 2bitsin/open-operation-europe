@@ -7,9 +7,9 @@
 #include "units/value.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/game.hpp"
 #include "common/host.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "vgalib.hpp"
@@ -41,14 +41,15 @@ constexpr std::uint16_t STREAM_CHUNK{ 0x2800 };
 
 constexpr std::uint16_t IMAGE_BYTES{ 0x780 }; // a portrait or face: 24 x 80 pixels
 constexpr std::uint8_t  END_OF_LIST{ 0xff };
-constexpr std::int32_t  SEEK_FAILED{ -1 };
 
-auto Seek(Game& game, std::int16_t handle, std::int32_t position, std::uint16_t origin) -> std::int32_t {
-  return opeu_dos_seek(handle, position, origin);
+// Moves the file to a position from its start; the position reached, or none on an error.
+auto Seek(Game& game, std::int16_t handle, std::int32_t position) -> std::optional<std::int32_t> {
+  return game.Machine().Files().Seek(HandleOf(handle), position, services::SeekOrigin::START);
 }
 
-auto ReadFar(Game& game, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> std::uint16_t {
-  return static_cast<std::uint16_t>(opeu_dos_read_far(handle, segment, offset, count));
+// Reads into far memory; the bytes read, 0xffff on an error.
+auto ReadFar(Game& game, std::int16_t handle, services::FarRegion into) -> std::uint16_t {
+  return DosResult(game.Machine().Files().ReadFar(HandleOf(handle), into));
 }
 
 auto Multiply(std::uint16_t a, std::uint16_t b) -> std::uint16_t {
@@ -77,7 +78,7 @@ auto StreamNext(Game& game) -> std::uint8_t {
 
 void BlitStream(Game& game, std::uint16_t x, std::uint16_t y) {
   auto const& stream{ Data(game).stream };
-  opeu_blit_far(x, y, 1, 32, 0, port_far(stream.segment, stream.offset));
+  game.Machine().Display().DrawThreeByteColumns({ x, y, 1, 32 }, { 0, FarBytes(game, stream.segment, stream.offset) });
 }
 
 // A cache of 0x780-byte image slots kept as a most-recently-used list of nodes; the head is a near pointer to a node.
@@ -159,8 +160,12 @@ void opeu_image_read_draw(Game& game, uint16_t x, uint16_t y, uint16_t w, uint16
   auto const segment{ Data(game).image_segment };
   auto const size{ Multiply(Multiply(h, w), 3) };
   if (size > IMAGE_END) return;
-  ReadFar(game, handle, segment, IMAGE_END - size, size);
-  opeu_blit_far(x, y, w, h, mode, port_far(segment, IMAGE_END - size));
+  ReadFar(game, handle,
+          {
+              .at = { segment, static_cast<std::uint16_t>(IMAGE_END - size) },
+                .size = size
+  });
+  game.Machine().Display().DrawThreeByteColumns({ x, y, w, h }, { mode, FarBytes(game, segment, IMAGE_END - size) });
 }
 
 // Unpacks count bytes: a 0 or 0xff byte is followed by its repeat count.
@@ -187,7 +192,7 @@ void opeu_image_draw_masked(Game& game, uint16_t x, uint16_t y, uint16_t w, uint
     for (auto left{ count }; left--; at.offset++) FarByte(game, at) ^= 0xff;
     mode = 0x407;
   }
-  opeu_draw_far(x, y, w, h, mode, port_far(segment, IMAGE_END - count));
+  game.Machine().Display().DrawBits({ x, y, w, h }, { mode, FarBytes(game, segment, IMAGE_END - count) });
 }
 
 // The decoder's reader for a picture file: refills the stream buffer from the picture file when it runs dry.
@@ -196,7 +201,11 @@ uint8_t opeu_stream_file_byte(Game& game) {
   if (data.stream_count == 0) {
     data.stream.segment = data.image_segment;
     data.stream.offset  = STREAM_BUFFER;
-    data.stream_count   = ReadFar(game, data.picture_handle, data.image_segment, STREAM_BUFFER, STREAM_CHUNK);
+    data.stream_count   = ReadFar(game, data.picture_handle,
+                                  {
+                                      .at = { data.image_segment, STREAM_BUFFER },
+                                        .size = STREAM_CHUNK
+    });
   }
   data.stream_count--;
   return StreamNext(game);
@@ -207,19 +216,19 @@ void opeu_stream_seek_block(Game& game, uint16_t x, uint16_t y, uint16_t block) 
   (void)x;
   (void)y;
   auto& data{ Data(game) };
-  if (Seek(game, data.picture_handle, static_cast<std::int32_t>(block) << 9, 0) != SEEK_FAILED) data.stream_count = 0;
+  if (Seek(game, data.picture_handle, static_cast<std::int32_t>(block) << 9)) data.stream_count = 0;
 }
 
 void opeu_picture_file(Game& game, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, x, y, block);
-  opeu_picture_decode(x, y, ReaderOf(game, StreamSource::FILE));
+  game.Machine().Display().DecodePicture({ x, y }, ReaderOf(game, StreamSource::FILE));
 }
 
 void opeu_picture_file_masked(Game& game, uint16_t x, uint16_t y, int16_t handle, uint16_t block) {
   Data(game).picture_handle = handle;
   opeu_stream_seek_block(game, x, y, block);
-  opeu_picture_decode_masked(x, y, ReaderOf(game, StreamSource::FILE));
+  game.Machine().Display().DecodeMaskedPicture({ x, y }, ReaderOf(game, StreamSource::FILE));
 }
 
 // The decoder's reader for a picture in memory.
@@ -229,16 +238,16 @@ uint8_t opeu_stream_memory_byte(Game& game) {
 
 void opeu_picture_memory_masked(Game& game, uint16_t x, uint16_t y, uint16_t segment, uint16_t offset) {
   SetStream(Data(game), segment, offset);
-  opeu_picture_decode_masked(x, y, ReaderOf(game, StreamSource::MEMORY));
+  game.Machine().Display().DecodeMaskedPicture({ x, y }, ReaderOf(game, StreamSource::MEMORY));
 }
 
 void opeu_stream_seek(Game& game, int32_t position, int16_t handle) {
-  if (Seek(game, handle, position, 0) != SEEK_FAILED) Data(game).stream_count = 0;
+  if (Seek(game, handle, position)) Data(game).stream_count = 0;
 }
 
 void opeu_picture_file_at(Game& game, uint16_t x, uint16_t y, int16_t handle, int32_t position) {
   opeu_stream_seek(game, position, handle);
-  opeu_picture_decode_masked(x, y, ReaderOf(game, StreamSource::FILE));
+  game.Machine().Display().DecodeMaskedPicture({ x, y }, ReaderOf(game, StreamSource::FILE));
 }
 
 // The frame of the context panel from the tile segment: left end, middle columns, right end; then the cursor inside.
@@ -261,8 +270,12 @@ uint16_t opeu_portrait_load(Game& game, uint8_t key) {
   auto const [node, cached]{ Lookup(data, cache, key) };
   auto const result{ cache.SlotOffset(data, node) };
   if (!cached) {
-    Seek(game, data.portrait_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(key) * IMAGE_BYTES), 0);
-    ReadFar(game, data.portrait_handle, data.portrait_segment, result, IMAGE_BYTES);
+    Seek(game, data.portrait_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(key) * IMAGE_BYTES));
+    ReadFar(game, data.portrait_handle,
+            {
+                .at = { data.portrait_segment, result },
+                  .size = IMAGE_BYTES
+    });
   }
   return result;
 }
@@ -270,7 +283,7 @@ uint16_t opeu_portrait_load(Game& game, uint8_t key) {
 // Blits the general's portrait; the cache lookup runs before the portrait segment is read.
 void opeu_context_portrait(Game& game, uint16_t x, uint16_t y, uint16_t person) {
   auto const offset{ opeu_portrait_load(game, Record<Person>(Data(game), person).portrait) };
-  opeu_blit_far(x, y, 8, 80, 0, port_far(Data(game).portrait_segment, offset));
+  game.Machine().Display().DrawThreeByteColumns({ x, y, 8, 80 }, { 0, FarBytes(game, Data(game).portrait_segment, offset) });
 }
 
 // The offset of a face in the face segment; a face not cached is read packed from the face file into the image
@@ -280,8 +293,12 @@ int16_t opeu_face_load(Game& game, uint8_t key) {
   auto const cache{ FaceCache(data) };
   auto const [node, cached]{ Lookup(data, cache, key) };
   if (cached) return static_cast<std::int16_t>(cache.SlotOffset(data, node));
-  Seek(game, data.face_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(data.face_offsets[key]) << 2), 0);
-  ReadFar(game, data.face_handle, data.image_segment, FACE_BUFFER, IMAGE_BYTES);
+  Seek(game, data.face_handle, static_cast<std::int32_t>(static_cast<std::uint32_t>(data.face_offsets[key]) << 2));
+  ReadFar(game, data.face_handle,
+          {
+              .at = { data.image_segment, FACE_BUFFER },
+                .size = IMAGE_BYTES
+  });
   SetStream(data, data.image_segment, FACE_BUFFER);
   auto const result{ cache.SlotOffset(data, node) };
   opeu_rle_expand(game, IMAGE_BYTES, data.stream, FarPointer{ result, data.face_segment });
@@ -306,23 +323,43 @@ void opeu_face_draw(Game& game, uint16_t x, uint16_t y, uint16_t mode, uint8_t k
 }
 
 void opeu_ui_outline(Game& game, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
-  opeu_ui_line(x1, y1, x2, y1, color);
-  opeu_ui_line(x2, y1, x2, y2, color);
-  opeu_ui_line(x1, y2, x2, y2, color);
-  opeu_ui_line(x1, y1, x1, y2, color);
+  game.Machine().Display().Line(
+      {
+          { x1, y1 },
+          { x2, y1 }
+  },
+      color);
+  game.Machine().Display().Line(
+      {
+          { x2, y1 },
+          { x2, y2 }
+  },
+      color);
+  game.Machine().Display().Line(
+      {
+          { x1, y2 },
+          { x2, y2 }
+  },
+      color);
+  game.Machine().Display().Line(
+      {
+          { x1, y1 },
+          { x1, y2 }
+  },
+      color);
 }
 
 void opeu_backdrop_fill_color(Game& game, uint8_t color) {
   auto const pattern{ Near(Data(game), Data(game).backdrop_color_pattern) };
-  for (std::uint16_t x = 0; x < 80; x += 2) opeu_draw_near(x, 0, 2, 16, color, game.State().Bytes(pattern).data());
-  for (std::uint16_t y = 16; y < 400; y += 16) opeu_screen_copy(0, y - 16, 80, 16, 0, y);
+  for (std::uint16_t x = 0; x < 80; x += 2) game.Machine().Display().DrawBits({ x, 0, 2, 16 }, { color, game.State().Bytes(pattern) });
+  for (std::uint16_t y = 16; y < 400; y += 16) game.Machine().Display().CopyColumns({ 0, static_cast<uint16_t>(y - 16), 80, 16 }, { 0, y });
 }
 
 // A blue screen with an outlined box for the text at (x, y); leaves the cursor there and returns the text.
 uint16_t opeu_title_box(Game& game, uint16_t x, uint16_t y, uint16_t text) {
   auto const length{ static_cast<std::uint16_t>(opeu_string_length(game, text) + 2) };
   opeu_backdrop_fill_color(game, 1);
-  opeu_ui_box(x - 1, y - 4, length, 24, 1);
+  game.Machine().Display().Box({ static_cast<uint16_t>(x - 1), static_cast<uint16_t>(y - 4), length, 24 }, 1);
   opeu_ui_outline(game, (x - 1) * 8, y - 4, (length + x) * 8 - 9, y + 19, 7);
   opeu_army_position(game, x, y);
   return text;
@@ -332,26 +369,26 @@ uint16_t opeu_title_box(Game& game, uint16_t x, uint16_t y, uint16_t text) {
 void opeu_palette_for_hour(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t palette{ 0 };
-  opeu_set_palette(0, 8, data.palette_base.data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(Near(data, data.palette_base), 8 * RGB));
   if (opeu_hour_is_dawn(data.hour)) palette = Near(data, data.palette_dawn);
   if (opeu_hour_is_day(data.hour)) palette = Near(data, data.palette_day);
   if (opeu_hour_is_dusk(data.hour)) palette = Near(data, data.palette_dusk);
   if (opeu_hour_is_night(data.hour)) palette = Near(data, data.palette_night);
-  opeu_set_palette(8, 8, game.State().Bytes(palette).data());
+  game.Machine().Display().LoadPalette(8, game.State().Bytes(palette, 8 * RGB));
 }
 
 void opeu_palette_daylight(Game& game) {
   auto& data{ Data(game) };
-  opeu_set_palette(0, 8, data.palette_base.data());
-  opeu_set_palette(8, 8, data.palette_day.data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(Near(data, data.palette_base), 8 * RGB));
+  game.Machine().Display().LoadPalette(8, game.State().Bytes(Near(data, data.palette_day), 8 * RGB));
 }
 
 void opeu_palette_title_screen(Game& game) {
   auto& data{ Data(game) };
-  opeu_set_palette(0, 16, data.palette_title.data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(Near(data, data.palette_title), 16 * RGB));
 }
 
 void opeu_palette_map_screen(Game& game) {
   auto& data{ Data(game) };
-  opeu_set_palette(0, 16, data.palette_map.data());
+  game.Machine().Display().LoadPalette(0, game.State().Bytes(Near(data, data.palette_map), 16 * RGB));
 }

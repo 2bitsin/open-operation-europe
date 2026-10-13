@@ -9,7 +9,6 @@
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -34,7 +33,7 @@ void opeu_division_credits(Game& game) {
   opeu_input_flush(game);
   while (data.input_mode)
     if (static_cast<uint16_t>(opeu_turn_input_a(game))) return;
-  if (static_cast<char>(static_cast<uint16_t>(port_getch())) == '!') {
+  if (static_cast<char>(game.Machine().Input().ReadCharacter()) == '!') {
     opeu_backdrop_fill_color(game, 1);
     data.restart_flag = 1;
     opeu_army_position(game, CREDITS_X, 100);
@@ -45,7 +44,7 @@ void opeu_division_credits(Game& game) {
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_SUPPORT });
     opeu_army_position(game, CREDITS_X, 190);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_TRANSLATION });
-    while (!opeu_turn_input_b()) {
+    while (!game.Machine().Input().KeyWaiting()) {
     }
   }
 }

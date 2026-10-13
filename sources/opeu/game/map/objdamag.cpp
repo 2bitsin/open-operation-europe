@@ -17,7 +17,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include <array>
 
@@ -45,7 +44,7 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
   auto const stock{ kind < 3 ? Near(data, record.resources[kind]) : Word(game, locals.At(STALE_SLOT_AT)) };
   auto const before{ Word(game, stock) };
   uint16_t   value{ before };
-  opeu_sub_word(game.State().RandomBounded(amount) + amount, &value);
+  value = SubWord(value, game.State().RandomBounded(amount) + amount);
   SetWord(game, stock, value);
   auto const after{ Word(game, stock) };
   auto const colour{ SideColorCode(static_cast<uint8_t>(opeu_objective_side(game, objective))) };
@@ -97,7 +96,7 @@ void opeu_objective_damage(Game& game, uint16_t objective, uint16_t chance, uint
       opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
       if (!infantry) {
         uint16_t stock{ item.extra };
-        opeu_add_word(game.State().RandomBounded(lost / 3), data.request_capacities[type.category], &stock);
+        stock      = AddWord(stock, game.State().RandomBounded(lost / 3), data.request_capacities[type.category]);
         item.extra = stock;
       }
     }
@@ -109,7 +108,7 @@ void opeu_objective_damage(Game& game, uint16_t objective, uint16_t chance, uint
   }
   if (endurance) {
     auto const before{ record.strength };
-    opeu_sub_byte(game.State().RandomBounded(endurance) + endurance, &record.strength);
+    record.strength = SubByte(record.strength, game.State().RandomBounded(endurance) + endurance);
     opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_endurance_format)),
                                                             static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(record.strength),
                                                             static_cast<std::uint16_t>(before - record.strength) });

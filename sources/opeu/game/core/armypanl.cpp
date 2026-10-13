@@ -11,7 +11,6 @@
 #include "common/side-color.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "map/support.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -42,10 +41,25 @@ void opeu_panel_slots(Game& game, int y, uint8_t count) {
     for (int column{ 0 }; column < 2; ++column) {
       auto const x{ 232 * column };
       auto const top{ 17 * row + y };
-      opeu_ui_fill(x + 175, top - 1, x + 400, top + 15, 0);
+      game.Machine().Display().Fill(
+          {
+              { static_cast<uint16_t>(x + 175), static_cast<uint16_t>(top - 1)  },
+              { static_cast<uint16_t>(x + 400), static_cast<uint16_t>(top + 15) }
+      },
+          0);
       opeu_ui_outline(game, x + 175, top - 1, x + 400, top + 16, WHITE);
-      opeu_ui_line(x + 207, top - 1, x + 207, top + 16, WHITE);
-      opeu_ui_line(x + 375, top - 1, x + 375, top + 16, WHITE);
+      game.Machine().Display().Line(
+          {
+              { static_cast<uint16_t>(x + 207), static_cast<uint16_t>(top - 1)  },
+              { static_cast<uint16_t>(x + 207), static_cast<uint16_t>(top + 16) }
+      },
+          WHITE);
+      game.Machine().Display().Line(
+          {
+              { static_cast<uint16_t>(x + 375), static_cast<uint16_t>(top - 1)  },
+              { static_cast<uint16_t>(x + 375), static_cast<uint16_t>(top + 16) }
+      },
+          WHITE);
     }
 }
 
@@ -82,7 +96,8 @@ void opeu_panel_elements(Game& game, uint16_t unit, int y) {
       data.gfx_source[1] = static_cast<std::uint16_t>(icon >> 16);
       auto const x{ 29 * (shown % 2) };
       auto const row_y{ 17 * (shown / 2) + y };
-      opeu_draw_far(x + 22, row_y, 4, 16, data.current_side ? 0x305 : 0x306, port_far(data.gfx_source[1], data.gfx_source[0]));
+      game.Machine().Display().DrawBits({ static_cast<uint16_t>(x + 22), static_cast<uint16_t>(row_y), 4, 16 },
+                                        { static_cast<uint16_t>(data.current_side ? 0x305 : 0x306), FarBytes(game, data.gfx_source[1], data.gfx_source[0]) });
       opeu_army_position(game, x + 27, row_y);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, opeu_element_name(game, near, buffer) });
       opeu_army_position(game, x + 47, row_y);
@@ -96,11 +111,31 @@ void opeu_panel_elements(Game& game, uint16_t unit, int y) {
 
 // The battle frame of one regiment at y, joined to the division's line.
 void opeu_panel_battle_frame(Game& game, int y) {
-  opeu_ui_line(73, 201, 84, 201, WHITE);
-  opeu_ui_fill(94, y, 161, y + 34, 0);
+  game.Machine().Display().Line(
+      {
+          { 73, 201 },
+          { 84, 201 }
+  },
+      WHITE);
+  game.Machine().Display().Fill(
+      {
+          { 94,  static_cast<uint16_t>(y)      },
+          { 161, static_cast<uint16_t>(y + 34) }
+  },
+      0);
   opeu_ui_outline(game, 94, y, 161, y + 35, WHITE);
-  opeu_ui_line(84, y + 16, 94, y + 16, WHITE);
-  opeu_ui_line(84, y + 16, 84, 200, WHITE);
+  game.Machine().Display().Line(
+      {
+          { 84, static_cast<uint16_t>(y + 16) },
+          { 94, static_cast<uint16_t>(y + 16) }
+  },
+      WHITE);
+  game.Machine().Display().Line(
+      {
+          { 84, static_cast<uint16_t>(y + 16) },
+          { 84, 200                           }
+  },
+      WHITE);
 }
 
 // The eight regiments of a division from `units` (the view menu's division entry): regiments 1-4 are the battle

@@ -12,6 +12,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/scenario.hpp"
@@ -22,7 +23,6 @@
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -78,9 +78,7 @@ void opeu_spy_portrait_text(Game& game, uint16_t text, uint16_t show) {
   opeu_context_frame(game, 44, 282, 15);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Lookup(game, 0x2b)) });
   if (show) {
-    opeu_dos_seek(static_cast<int16_t>(data.portrait_handle),
-                  static_cast<int32_t>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_LOW)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(PORTRAIT_HIGH)) << 16),
-                  static_cast<int16_t>(0));
+    game.Machine().Files().Seek(HandleOf(data.portrait_handle), static_cast<std::int32_t>(std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16), services::SeekOrigin::START);
     opeu_image_read_draw(game, 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
   }
   opeu_army_position(game, static_cast<int16_t>(54), static_cast<int16_t>(324));
@@ -97,7 +95,8 @@ void opeu_spy_present_a(Game& game) {
     opeu_spy_portrait_text(game, BUFFER, 1);
   }
   opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
-  opeu_add_byte(1, RATING_LIMIT, &Record<Person>(Data(game), near).charm);
+  auto& charm{ Record<Person>(Data(game), near).charm };
+  charm = AddByte(charm, 1, RATING_LIMIT);
 }
 
 void opeu_spy_show_a(Game& game) {
@@ -109,9 +108,9 @@ void opeu_spy_present_b(Game& game) {
   opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(LAUGH) });
   opeu_spy_portrait_text(game, BUFFER, 1);
   auto& commander{ Record<Person>(Data(game), Commander(game)) };
-  opeu_add_byte(1, RATING_LIMIT, &commander.experience);
-  opeu_sub_byte(1, &commander.max_health);
-  commander.health = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.max_health));
+  commander.experience = AddByte(commander.experience, 1, RATING_LIMIT);
+  commander.max_health = SubByte(commander.max_health, 1);
+  commander.health     = static_cast<std::uint8_t>(opeu_min16(commander.health, commander.max_health));
 }
 
 // The approach scene and its question.

@@ -9,7 +9,6 @@
 #include "common/table-rows.hpp"
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
-#include "link/glue.hpp"
 
 #include <algorithm>
 #include <array>

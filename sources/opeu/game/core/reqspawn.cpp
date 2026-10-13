@@ -10,7 +10,6 @@
 #include "common/game.hpp"
 #include "core/dialogs.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
 #include "map/mapunit.hpp"

@@ -15,7 +15,6 @@
 #include "core/chief.hpp"
 #include "core/suprow.hpp"
 #include "io/mouse.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -37,7 +36,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(Game& game, std::uint8_t row) {
   auto const& data{ Data(game) };
-  HighlightRow({ data.supply_panel_x, data.supply_panel_y }, row);
+  HighlightRow(game, { data.supply_panel_x, data.supply_panel_y }, row);
 }
 } // namespace
 

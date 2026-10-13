@@ -123,7 +123,7 @@ inline auto AbandonObjectiveStores(Objective& objective, std::uint16_t percent) 
   constexpr std::array STORES{ 1u, 2u, 0u }; // the original's order: fuel, food, ammunition
   std::ranges::for_each(STORES, [&objective, percent](unsigned store) {
     std::uint16_t left{ objective.resources[store] };
-    opeu_sub_word(opeu_mul_div(left, percent, 100), &left);
+    left                       = SubWord(left, opeu_mul_div(left, percent, 100));
     objective.resources[store] = left;
   });
   std::ranges::for_each(objective.items, [](auto& item) {

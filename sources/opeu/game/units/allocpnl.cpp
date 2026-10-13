@@ -10,7 +10,6 @@
 #include "common/game.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
@@ -30,8 +29,8 @@ constexpr std::uint16_t STAT_WIDTH{ 6 };
 
 // Restores the type panel's background from the off-screen copy.
 void opeu_alloc_clear_panel(Game& game) {
-  for (std::uint8_t row{ 0 }; row < 4; ++row) opeu_vga_copy(15, 0x108, 0x1a, 0x20, 1, static_cast<std::uint16_t>(row * 32 + 0x108));
-  for (std::uint8_t column{ 0 }; column < 2; ++column) opeu_vga_copy(0x22, 0xb8, 6, 0x50, static_cast<std::uint16_t>(column * 6 + 0x1c), 0x128);
+  for (std::uint8_t row{ 0 }; row < 4; ++row) game.Machine().Display().CopyColumns({ 15, 0x108, 0x1a, 0x20 }, { 1, static_cast<std::uint16_t>(row * 32 + 0x108) });
+  for (std::uint8_t column{ 0 }; column < 2; ++column) game.Machine().Display().CopyColumns({ 0x22, 0xb8, 6, 0x50 }, { static_cast<std::uint16_t>(column * 6 + 0x1c), 0x128 });
 }
 
 // The type's name, symbol and six statistics: hard and soft rating, range, speed, the load (usage times weight over

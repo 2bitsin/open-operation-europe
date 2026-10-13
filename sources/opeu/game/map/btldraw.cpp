@@ -11,7 +11,6 @@
 
 #include "common/game.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -44,7 +43,7 @@ void BlitHexMask(Game& game, uint16_t mask, uint16_t x, uint16_t y, uint16_t mod
   auto& data{ Data(game) };
   data.stream_ptr[0] = static_cast<uint16_t>(mask * HEX_MASK_BYTES);
   data.stream_ptr[1] = HEX_MASK_SEGMENT;
-  opeu_gfx_blit(x, y, HEX_WIDTH, HEX_HEIGHT, mode, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawShiftedBits({ x, y, HEX_WIDTH, HEX_HEIGHT }, { mode, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
 // The battle's sound effects, by the enumerator battle_handlers holds for the handler.
@@ -94,14 +93,18 @@ void opeu_battle_draw_number(Game& game, uint16_t value) {
   auto& data{ Data(game) };
   if (data.battle_numbers_shown != 1) return;
   auto const colour{ opeu_objective_side(game, opeu_find_objective_at(game, data.battle_x, data.battle_y)) };
-  auto const vram{ Near(data, data.vram) };
+  auto&      display{ game.Machine().Display() };
   for (uint16_t x{ NUMBER_RIGHT };; x = static_cast<uint16_t>(x - DIGIT_WIDTH)) {
-    auto const glyph{ static_cast<uint16_t>(Near(data, data.battle_digits) + value % 10 * DIGIT_WIDTH) };
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x - 1, NUMBER_TOP);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x + 1, NUMBER_BOTTOM);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x - 1, NUMBER_BOTTOM);
-    opeu_vram_glyph(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x + 1, NUMBER_TOP);
-    opeu_vram_glyph_color(game.State().Bytes(vram).data(), game.State().Bytes(glyph).data(), x, NUMBER_ROW, colour);
+    auto const glyph{ game.State().Bytes(static_cast<uint16_t>(Near(data, data.battle_digits) + value % 10 * DIGIT_WIDTH), services::CELL_GLYPH_LINES).first<services::CELL_GLYPH_LINES>() };
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x - 1), NUMBER_TOP });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x + 1), NUMBER_BOTTOM });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x - 1), NUMBER_BOTTOM });
+    display.DrawCellGlyph(data.vram, glyph, { static_cast<uint16_t>(x + 1), NUMBER_TOP });
+    display.DrawColouredCellGlyph(data.vram, glyph,
+                                  {
+                                      .at = { x, NUMBER_ROW },
+                                        .colour = colour
+    });
     if ((value /= 10) == 0) break;
   }
 }

@@ -10,7 +10,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -26,30 +25,28 @@ enum class SpriteVariant : uint8_t {
 };
 constexpr uint16_t CELL_HEIGHT{ 26 };
 
-[[nodiscard]] auto VramBuffer(Game& game) -> uint16_t {
-  return Near(Data(game), Data(game).vram);
-}
-
 [[nodiscard]] auto OddColumn(uint16_t x) -> bool {
   return (x & 7) != 0;
 }
 
 // Saves the screen at the pixel position into the VRAM buffer.
 auto SaveVram(Game& game, uint16_t x, uint16_t y) -> void {
-  auto const buffer{ VramBuffer(game) };
+  auto&                 display{ game.Machine().Display() };
+  services::Point const at{ static_cast<uint16_t>(x >> 3), y };
   if (OddColumn(x))
-    opeu_vram_save_odd(x >> 3, y, game.State().Bytes(buffer).data());
+    display.SaveShiftedCell(at, Data(game).vram);
   else
-    opeu_vram_save(x >> 3, y, game.State().Bytes(buffer).data());
+    display.SaveCell(at, Data(game).vram);
 }
 
 // Restores the screen at the pixel position from the VRAM buffer.
 auto RestoreVram(Game& game, uint16_t x, uint16_t y) -> void {
-  auto const buffer{ VramBuffer(game) };
+  auto&                 display{ game.Machine().Display() };
+  services::Point const at{ static_cast<uint16_t>(x >> 3), y };
   if (OddColumn(x))
-    opeu_vram_restore_odd(x >> 3, y, game.State().Bytes(buffer).data());
+    display.RestoreShiftedCell(at, Data(game).vram);
   else
-    opeu_vram_restore(x >> 3, y, game.State().Bytes(buffer).data());
+    display.RestoreCell(at, Data(game).vram);
 }
 
 void DrawTerrain(Game& game, SpriteVariant variant, uint8_t x, uint8_t y) {

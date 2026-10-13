@@ -9,7 +9,6 @@
 #include "common/memory.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,11 +37,11 @@ void opeu_scenario_message(Game& game, uint16_t text) {
 }
 
 void opeu_scenario_clear_panel(Game& game) {
-  opeu_ui_box(3, 8, 0x22, 0x170, 7);
+  game.Machine().Display().Box({ 3, 8, 0x22, 0x170 }, 7);
 }
 
 void opeu_scenario_clear_text(Game& game) {
-  opeu_ui_box(2, 0x86, 0x22, 0xb8, 7);
+  game.Machine().Display().Box({ 2, 0x86, 0x22, 0xb8 }, 7);
   opeu_army_position(game, 4, 0xe0);
 }
 

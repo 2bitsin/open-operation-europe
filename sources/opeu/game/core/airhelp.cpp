@@ -15,7 +15,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/airbomb.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
@@ -61,7 +60,7 @@ uint16_t opeu_air_free_planes(Game& game) {
   auto&         data{ Data(game) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t planes{ side.planes };
-  opeu_sub_word(side.lift.planes + side.drop.transports, &planes);
+  planes = SubWord(planes, side.lift.planes + side.drop.transports);
   return planes;
 }
 

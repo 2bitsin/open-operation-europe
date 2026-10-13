@@ -11,7 +11,6 @@
 #include "units/stats.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "map/movetgt.hpp"
 #include "port.hpp"
 #include "services.hpp"

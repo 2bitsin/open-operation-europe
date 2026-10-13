@@ -31,7 +31,6 @@
 #include "io/keyboard.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -180,23 +179,18 @@ auto FormatWords(DataSegment const& data, std::span<uint16_t const> words) -> st
   return FormatText(data, CString(data, words.front()), words.subspan(1));
 }
 
-// Where a glyph goes: its cell and its colour attribute (paper << 8 | ink).
-struct GlyphCell {
-  int16_t x;
-  int16_t y;
-  int16_t attribute;
-};
-
-// Draws a glyph's 16 rows of bits with the drawing routine: transparent (only the ink) or opaque.
-template <auto DRAW>
-void DrawGlyphWith(GlyphCell const& cell, std::span<uint8_t const> bits) {
-  DRAW(static_cast<uint16_t>(cell.x), static_cast<uint16_t>(cell.y), 1, GLYPH_BYTES, static_cast<uint16_t>(cell.attribute), bits.data());
+// Draws a glyph's 16 rows of bits: transparent (only the ink) or opaque (on its paper colour).
+auto DrawTransparentGlyph(opeu::services::Display& display, opeu::services::Area area, opeu::services::Image image) -> void {
+  display.DrawBits(area, image);
+}
+auto DrawOpaqueGlyph(opeu::services::Display& display, opeu::services::Area area, opeu::services::Image image) -> void {
+  display.DrawBitsOnPaper(area, image);
 }
 
 // The glyph routines, by the enumerator glyph_draw holds.
-constexpr auto GLYPH_ROUTINES = DispatchRows<GlyphDraw, void (*)(GlyphCell const&, std::span<uint8_t const>)>({
-    { GlyphDraw::TRANSPARENT, DrawGlyphWith<opeu_draw_near>      },
-    { GlyphDraw::OPAQUE,      DrawGlyphWith<opeu_code_0000_28c5> },
+constexpr auto GLYPH_ROUTINES = DispatchRows<GlyphDraw, void (*)(opeu::services::Display&, opeu::services::Area, opeu::services::Image)>({
+    { GlyphDraw::TRANSPARENT, DrawTransparentGlyph },
+    { GlyphDraw::OPAQUE,      DrawOpaqueGlyph      },
 });
 
 auto State(DataSegment const& data) -> EscapeState {
@@ -210,7 +204,7 @@ void SetState(DataSegment& data, EscapeState state) {
 
 // Waits for a key; keypad scan codes become digits unless the character is CR or ESC.
 uint8_t opeu_key_read(Game& game) {
-  auto const key{ port_key_read() };
+  auto const key{ game.Machine().Input().ReadKey() };
   auto const scan{ static_cast<uint8_t>(key >> 8) };
   auto       code{ static_cast<uint8_t>(key) };
   if (code == '\r' || code == ESCAPE) return code;
@@ -231,7 +225,7 @@ uint8_t opeu_key_read(Game& game) {
 
 // Reads every waiting key.
 void opeu_input_flush(Game& game) {
-  while (opeu_turn_input_b()) opeu_key_read(game);
+  while (game.Machine().Input().KeyWaiting()) opeu_key_read(game);
 }
 
 // Word-wrapping text output with embedded escape sequences.
@@ -270,7 +264,9 @@ int16_t opeu_text_scroll_check(Game& game) {
 void opeu_text_scroll_up(Game& game) {
   auto const& data{ Data(game) };
   opeu_wait_confirm(game, static_cast<int16_t>(0));
-  opeu_ui_box(data.text_left, data.text_top, data.text_right - data.text_left, data.text_bottom - data.text_top + 2, data.text_background ? data.text_background : data.text_paper);
+  game.Machine().Display().Box({ static_cast<uint16_t>(data.text_left), static_cast<uint16_t>(data.text_top), static_cast<uint16_t>(data.text_right - data.text_left),
+                                 static_cast<uint16_t>(data.text_bottom - data.text_top + 2) },
+                               data.text_background ? data.text_background : data.text_paper);
   opeu_army_position(game, data.text_left, data.text_top);
 }
 
@@ -345,8 +341,10 @@ void opeu_context_restore(Game& game) {
 void opeu_text_glyph(Game& game, int16_t x, int16_t y, int16_t attribute, uint16_t code) {
   auto const& data{ Data(game) };
   if (code < FIRST_GLYPH || code > 0x7f) return;
-  auto const bits{ std::span{ data.text_font }.subspan((code - FIRST_GLYPH) * GLYPH_BYTES, GLYPH_BYTES) };
-  Dispatch(GLYPH_ROUTINES, data.glyph_draw[data.text_background != 0], GlyphCell{ x, y, attribute }, bits);
+  auto const                  bits{ std::span{ data.text_font }.subspan((code - FIRST_GLYPH) * GLYPH_BYTES, GLYPH_BYTES) };
+  opeu::services::Area const  cell{ static_cast<uint16_t>(x), static_cast<uint16_t>(y), 1, GLYPH_BYTES };
+  opeu::services::Image const image{ static_cast<uint16_t>(attribute), bits };
+  Dispatch(GLYPH_ROUTINES, data.glyph_draw[data.text_background != 0], game.Machine().Display(), cell, image);
 }
 
 // Moves the cursor to the start of the next line, unless that passes the screen's bottom.
@@ -387,8 +385,11 @@ uint8_t opeu_text_put(Game& game, uint8_t c) {
     case 'Y': SetState(data, EscapeState::IGNORE); break;
     case 'E': opeu_sound_reset(game); [[fallthrough]];
     case 'W': SetState(data, EscapeState::FINISH); break;
-    case 'T': opeu_ui_box(data.text_x, data.text_y, COLUMNS - data.text_x, data.text_height, data.text_background); goto reset;
-    case '*': opeu_vga_clear(); goto reset;
+    case 'T':
+      game.Machine().Display().Box({ static_cast<uint16_t>(data.text_x), static_cast<uint16_t>(data.text_y), static_cast<uint16_t>(COLUMNS - data.text_x), static_cast<uint16_t>(data.text_height) },
+                                   data.text_background);
+      goto reset;
+    case '*': game.Machine().Display().Clear(); goto reset;
     case 'S':
       if (data.text_scroll)
         opeu_text_scroll_up(game);

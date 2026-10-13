@@ -20,7 +20,6 @@
 #include "core/sideutil.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
 #include "map/maperase.hpp"

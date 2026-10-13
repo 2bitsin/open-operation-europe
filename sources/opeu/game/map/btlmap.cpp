@@ -9,11 +9,11 @@
 #include "common/scenario.hpp"
 #include "types.hpp"
 
+#include "common/dos-file.hpp"
 #include "common/game.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/resopen.hpp"
-#include "link/glue.hpp"
 #include "map/btlcell.hpp"
 #include "map/query.hpp"
 #include "port.hpp"
@@ -59,9 +59,11 @@ constexpr uint8_t  NO_DIRECTION{ 0xff };
 void opeu_battle_draw_border(Game& game) {
   auto&      data{ Data(game) };
   auto const sprite{ [&](uint16_t x, uint16_t y, uint16_t image, uint16_t mask) {
-    koei_3f26(static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(y), BORDER_SPRITE_WIDTH, BORDER_SPRITE_HEIGHT,
-              port_far(static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(image)), port_far(static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(mask)),
-              port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 1);
+    game.Machine().Display().ComposeShiftedSprite({ static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(y), BORDER_SPRITE_WIDTH, BORDER_SPRITE_HEIGHT },
+                                                  { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(image)),
+                                                    .or_image = FarBytes(game, static_cast<std::uint16_t>(data.icon_segment), static_cast<std::uint16_t>(mask)),
+                                                    .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
+                                                    .flags    = 1 });
   } };
   opeu_backdrop_fill_color(game, static_cast<uint8_t>(BORDER_COLOR));
   for (auto const a : std::views::iota(uint16_t{ 0 }, BATTLE_WIDTH)) sprite(static_cast<uint16_t>((a + 2) * 20), static_cast<uint16_t>((a + 16) * 13), LEFT_BORDER_IMAGE, LEFT_BORDER_MASK);
@@ -81,13 +83,11 @@ void opeu_battle_load_terrain(Game& game) {
   data.stream_ptr[0] = static_cast<uint16_t>(data.battle_y * MAP_WIDTH + data.battle_x);
   data.hexmap_index  = static_cast<uint8_t>(*port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
   auto const position{ (static_cast<int32_t>(data.hexmap_index - 1) + data.hexmap_offsets[std::to_underlying(CurrentScenario(data))]) * static_cast<int32_t>(TERRAIN_RECORD) };
-  auto const handle{ static_cast<int16_t>(static_cast<uint16_t>(opeu_open_resource(game, static_cast<std::uint16_t>(Near(data, data.hexmap_filename))))) };
-  opeu_dos_seek(static_cast<int16_t>(static_cast<std::uint16_t>(handle)),
-                static_cast<int32_t>((static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(position)))
-                                      | static_cast<std::uint32_t>(static_cast<std::uint16_t>(static_cast<uint16_t>(static_cast<uint32_t>(position) >> 16))) << 16)),
-                static_cast<int16_t>(0));
-  opeu_dos_read(static_cast<int16_t>(static_cast<std::uint16_t>(handle)), game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.battle_terrain)), TERRAIN_RECORD).data(), TERRAIN_RECORD);
-  opeu_dos_close(static_cast<int16_t>(static_cast<std::uint16_t>(handle)));
+  auto const handle{ opeu_open_resource(game, Near(data, data.hexmap_filename)) };
+  auto&      files{ game.Machine().Files() };
+  files.Seek(HandleOf(handle), position, services::SeekOrigin::START);
+  files.Read(HandleOf(handle), game.State().Bytes(Near(data, data.battle_terrain), TERRAIN_RECORD));
+  files.Close(HandleOf(handle));
   for (auto const y : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH))
     for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) {
       auto&      cell{ BattleTerrainAt(data, x, y) };
@@ -201,7 +201,7 @@ void opeu_battle_map_setup(Game& game) {
   opeu_battle_reset_state(game);
   opeu_battle_load_terrain(game);
   opeu_battle_garrison_cells(game);
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_palette_title_screen(game);
   opeu_battle_draw_map(game);
   opeu_battle_draw_title(game);

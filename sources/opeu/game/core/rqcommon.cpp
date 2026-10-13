@@ -9,7 +9,6 @@
 #include "core/dialogs.hpp"
 #include "core/textout.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappick.hpp"
 #include "port.hpp"
 #include "services.hpp"

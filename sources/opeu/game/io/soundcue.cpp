@@ -3,7 +3,6 @@
 
 #include "common/game.hpp"
 #include "io/sound.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 
 void opeu_sound_cue0(Game& game) {

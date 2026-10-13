@@ -28,7 +28,6 @@
 
 #include "common/game.hpp"
 #include "core/msnkill.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -70,7 +69,8 @@ uint16_t opeu_officer_rating(Game const& game, uint8_t side, uint8_t kind) {
 
 // One point of experience for the officer, up to 99.
 void opeu_officer_gain(Game& game, uint8_t side, uint8_t kind) {
-  opeu_add_byte(1, 99, &Record<Person>(Data(game), opeu_find_side_record(game, side, kind)).experience);
+  auto& experience{ Record<Person>(Data(game), opeu_find_side_record(game, side, kind)).experience };
+  experience = AddByte(experience, 1, 99);
 }
 
 void opeu_mission_finish_present(Game& game) {

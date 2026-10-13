@@ -6,6 +6,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/scenui.hpp"
@@ -22,11 +23,11 @@
 #include "io/scenres.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include "units/genconf.hpp"
 #include <array>
+#include <tuple>
 
 using namespace opeu::game;
 
@@ -58,7 +59,7 @@ restart:
   opeu_set_turn_context(game, 7);
   opeu_finish_side_initialization(game, 1);
 title:
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_picture_file_masked(game, 0, 0, handle, 0);
   opeu_palette_title_screen(game);
   opeu_ui_text(game, at(data.scensel_colors));
@@ -79,7 +80,8 @@ title:
     opeu_scenario_description(game, buf);
     opeu_setup_marker_show(game, scenario);
     if (!opeu_prompt_yes_no(game, at(data.scensel_empty))) goto rejected;
-    port_load_scenario(game, scenario);
+    // Files shorter than the records leave the data segment as it was; the setup goes on with it.
+    std::ignore = LoadScenarioFromFiles(game, static_cast<Scenario>(scenario));
     opeu_set_turn_context(game, 0);
     opeu_music_stop(game);
     opeu_set_turn_context(game, data.scenario + 1);
@@ -221,18 +223,18 @@ title:
       opeu_army_position(game, 4, 0x55);
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_difficulty_line), buf });
     }
-    opeu_ui_box(4, 0x86, 0x22, 0xe0, 7);
+    game.Machine().Display().Box({ 4, 0x86, 0x22, 0xe0 }, 7);
     opeu_army_position(game, 4, 0x154);
     if (!opeu_prompt_yes_no(game, at(data.scensel_settings_ok))) {
       opeu_army_position(game, 4, 0x154);
       opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_reselect) });
-      opeu_ui_box(4, 0x86, 0x22, 0xe0, 7);
+      game.Machine().Display().Box({ 4, 0x86, 0x22, 0xe0 }, 7);
       if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) goto difficulty;
       goto battles;
     }
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
       opeu_confirm_generals(game);
-      opeu_ui_box(2, 0x86, 0x22, 0x154, 7);
+      game.Machine().Display().Box({ 2, 0x86, 0x22, 0x154 }, 7);
       opeu_army_position(game, 4, 0x154);
       if (opeu_prompt_yes_no(game, at(data.scensel_ready_demo))) goto start;
       goto restart;
@@ -256,6 +258,6 @@ title:
 start:
   opeu_load_scenario_graphics(game);
   opeu_ui_text(game, at(data.scensel_done_colors));
-  opeu_dos_close(handle);
+  game.Machine().Files().Close(HandleOf(handle));
   return new_game;
 }

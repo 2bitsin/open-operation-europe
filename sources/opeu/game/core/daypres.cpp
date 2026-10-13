@@ -12,7 +12,6 @@
 #include "core/people.hpp"
 #include "core/template.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

@@ -15,7 +15,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -34,12 +33,20 @@ constexpr uint8_t  ANIMATION_HANDLER{ 5 };
 
 // Saves (and restores) the screen under a cell; a column not on a byte boundary takes the odd routine.
 void SaveCell(Game& game, uint16_t column, uint16_t row) {
-  (column & 7) ? opeu_vram_save_odd(column >> 3, row, game.State().Bytes(Near(Data(game), Data(game).vram)).data())
-               : opeu_vram_save(column >> 3, row, game.State().Bytes(Near(Data(game), Data(game).vram)).data());
+  auto&                 display{ game.Machine().Display() };
+  services::Point const at{ static_cast<uint16_t>(column >> 3), row };
+  if (column & 7)
+    display.SaveShiftedCell(at, Data(game).vram);
+  else
+    display.SaveCell(at, Data(game).vram);
 }
 void RestoreCell(Game& game, uint16_t column, uint16_t row) {
-  (column & 7) ? opeu_vram_restore_odd(column >> 3, row, game.State().Bytes(Near(Data(game), Data(game).vram)).data())
-               : opeu_vram_restore(column >> 3, row, game.State().Bytes(Near(Data(game), Data(game).vram)).data());
+  auto&                 display{ game.Machine().Display() };
+  services::Point const at{ static_cast<uint16_t>(column >> 3), row };
+  if (column & 7)
+    display.RestoreShiftedCell(at, Data(game).vram);
+  else
+    display.RestoreCell(at, Data(game).vram);
 }
 
 // One frame of an animation over the cell, with the element under it.
@@ -58,8 +65,8 @@ void DrawFrame(Game& game, GridCell cell, CellAnimation const& animation, uint8_
     opeu_battle_draw_count(game, Record<Element>(data, element).quantity, mode, side == 1);
   }
   auto const image{ static_cast<uint16_t>(animation.frames + frame * ICON_STRIDE) };
-  opeu_vram_load(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.icon_segment, image + ICON_BYTES));
-  opeu_vram_draw(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.icon_segment, image));
+  game.Machine().Display().MaskCell(data.vram, FarBytes(game, data.icon_segment, image + ICON_BYTES).first<services::CELL_MASK_BYTES>());
+  game.Machine().Display().OverlayCell(data.vram, FarBytes(game, data.icon_segment, image).first<SYSLIB_CELL_BYTES>());
   opeu_battle_draw_neighbors(game, cell.x, cell.y);
   RestoreCell(game, column, row);
 }

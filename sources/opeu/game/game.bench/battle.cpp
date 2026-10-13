@@ -10,7 +10,6 @@
 #include "map/btlreach.hpp"
 #include "services.bench/calibration.hpp"
 
-#include "link/glue.hpp"
 #include "port.hpp"
 
 #include <benchmark/benchmark.h>

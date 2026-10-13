@@ -8,7 +8,6 @@
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
-#include "link/glue.hpp"
 #include "map/blast.hpp"
 #include "map/mapframe.hpp"
 #include "map/mapview.hpp"
@@ -52,7 +51,8 @@ void opeu_view_cell_clear(Game& game, int16_t x, int16_t y) {
   auto const  pixel_x{ static_cast<int16_t>((x - ViewX(data)) * 3 + 4) };
   auto const  pixel_y{ static_cast<int16_t>((y - ViewY(data)) * 24 + 84) };
   for (auto const pair : std::views::iota(0, 12))
-    koei_27c2(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y + pair * 2), 3, 2, 0, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.view_clear_pattern))).data());
+    game.Machine().Display().DrawThreeByteColumns({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y + pair * 2), 3, 2 },
+                                                  { 0, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.view_clear_pattern))) });
 }
 
 // frame: this routine's frame.
@@ -99,7 +99,8 @@ void opeu_view_scroll(Game& game, int16_t x, int16_t y) {
       } else {
         auto const pixel_x{ static_cast<uint16_t>(static_cast<uint16_t>(cell_x - data.viewport_x) * 3u + 4u) };
         auto const pixel_y{ static_cast<uint16_t>(static_cast<uint16_t>(cell_y - data.viewport_y) * 24u + 84u) };
-        koei_3bc5(static_cast<std::uint16_t>(shift_x + pixel_x), static_cast<std::uint16_t>(shift_y + pixel_y), static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y));
+        game.Machine().Display().CopyCellBlock({ static_cast<std::uint16_t>(shift_x + pixel_x), static_cast<std::uint16_t>(shift_y + pixel_y) },
+                                               { static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y) });
       }
       if (last_x == cell_x) break;
     }

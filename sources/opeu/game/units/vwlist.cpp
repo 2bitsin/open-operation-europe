@@ -11,7 +11,6 @@
 #include "common/game.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
-#include "link/glue.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"

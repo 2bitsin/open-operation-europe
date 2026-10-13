@@ -24,7 +24,6 @@
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/support.hpp"
 #include "port.hpp"
 #include "services.hpp"

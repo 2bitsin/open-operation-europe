@@ -9,7 +9,6 @@
 #include "common/memory.hpp"
 #include "core/uiprim.hpp"
 #include "data-segment.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -20,7 +19,7 @@ namespace { } // namespace
 // A rating drawn around a base: base plus 0..40 capped at 119, then usually 20 less; one time in ten instead capped
 // at 99.
 uint8_t opeu_staff_jitter_stat(Game& game, uint8_t v) {
-  opeu_add_byte(game.State().Generator().Bounded(41), 119, &v);
+  v = AddByte(v, game.State().Generator().Bounded(41), 119);
   if (game.State().Generator().Bounded(10))
     v -= 20;
   else

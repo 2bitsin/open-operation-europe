@@ -19,7 +19,6 @@
 #include "core/sideutil.hpp"
 #include "core/textout.hpp"
 #include "io/listui.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 #include <array>

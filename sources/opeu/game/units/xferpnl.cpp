@@ -22,7 +22,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/movetgt.hpp"
 #include "map/support.hpp"
 #include "port.hpp"
@@ -112,7 +111,7 @@ void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
   opeu_army_title(game, offsetof(DataSegment, transfer_title));
-  opeu_bitmap_restore(data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, port_far(data.numdlg_image_segment, PANEL_IMAGE_AT));
+  game.Machine().Display().DrawColumns({ data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT }, { 0, FarBytes(game, data.numdlg_image_segment, PANEL_IMAGE_AT) });
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
@@ -140,9 +139,9 @@ void opeu_transfer_draw_row(Game& game, uint8_t row) {
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_format), left_amount });
   opeu_army_position(game, static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_text), right_amount });
-  opeu_ui_box(x + 2, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
+  game.Machine().Display().Box({ static_cast<uint16_t>(x + 2), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
   DrawDigits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
-  opeu_ui_box(x + 0x19, box_y, BOX_WIDTH, BOX_HEIGHT, 0);
+  game.Machine().Display().Box({ static_cast<uint16_t>(x + 0x19), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
   DrawDigits(game, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ offsetof(DataSegment, transfer_colour) });
 }

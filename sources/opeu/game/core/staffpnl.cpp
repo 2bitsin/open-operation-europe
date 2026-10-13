@@ -7,7 +7,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -19,14 +18,14 @@ namespace { } // namespace
 void opeu_staff_restore_bottom(Game& game) {
   uint16_t x, y;
   for (y = 0x170; y < 0x188; y += 0x10)
-    for (x = 0; x < 0x50; x += 2) opeu_screen_copy(0, 0, 2, 0x10, x, y);
+    for (x = 0; x < 0x50; x += 2) game.Machine().Display().CopyColumns({ 0, 0, 2, 0x10 }, { x, y });
 }
 
 // Restores the panel's left strip.
 void opeu_staff_restore_left(Game& game) {
   uint16_t x, y;
   for (y = 0xf8; y < 0x160; y += 0x10)
-    for (x = 0; x < 0x14; x += 2) opeu_screen_copy(0, 0, 2, 0x10, x, y);
+    for (x = 0; x < 0x14; x += 2) game.Machine().Display().CopyColumns({ 0, 0, 2, 0x10 }, { x, y });
 }
 
 // Marks an option: options 0..2 sit in the upper row, 3.. in the lower row.
@@ -37,10 +36,10 @@ void opeu_staff_mark_option(Game& game, int16_t option) {
   start[1] = 0x15;
   start[2] = 0x3d;
   if (option < 3) {
-    for (column = start[option]; column < (uint16_t)(start[option] + 10); column += 2) opeu_screen_copy(1, 8, 2, 0x10, column, 0x58);
+    for (column = start[option]; column < (uint16_t)(start[option] + 10); column += 2) game.Machine().Display().CopyColumns({ 1, 8, 2, 0x10 }, { column, 0x58 });
   } else {
     option -= 3;
-    for (column = (uint16_t)(option * 20 + 11); column < (uint16_t)(option * 20 + 0x15); column += 2) opeu_screen_copy(1, 8, 2, 0x10, column, 0x98);
+    for (column = (uint16_t)(option * 20 + 11); column < (uint16_t)(option * 20 + 0x15); column += 2) game.Machine().Display().CopyColumns({ 1, 8, 2, 0x10 }, { column, 0x98 });
   }
 }
 
@@ -61,12 +60,12 @@ void opeu_staff_frame_option(Game& game, int16_t option) {
   first_col[2]     = 0x34;
   if (option < 3) {
     for (ypos = 0x28; ypos < 0x76; ypos += 0x10)
-      for (xpos = first_col[option]; xpos <= (uint16_t)(first_col[option] + 6); xpos += 2) opeu_screen_copy(0, 8, 2, 0x10, xpos, ypos);
+      for (xpos = first_col[option]; xpos <= (uint16_t)(first_col[option] + 6); xpos += 2) game.Machine().Display().CopyColumns({ 0, 8, 2, 0x10 }, { xpos, ypos });
     opeu_ui_outline(game, frame_left[option], 0x28, outline_right[option], 0x76, 7);
   } else {
     option -= 3;
     for (ypos = 0x88; ypos < 0xd6; ypos += 0x10)
-      for (xpos = (uint16_t)(option * 20 + 2); xpos <= (uint16_t)(option * 20 + 8); xpos += 2) opeu_screen_copy(0, 0, 2, 0x10, xpos, ypos);
+      for (xpos = (uint16_t)(option * 20 + 2); xpos <= (uint16_t)(option * 20 + 8); xpos += 2) game.Machine().Display().CopyColumns({ 0, 0, 2, 0x10 }, { xpos, ypos });
     opeu_ui_outline(game, option * 0xa0 + 0x10, 0x88, option * 0xa0 + 0x4f, 0xd6, 7);
   }
 }

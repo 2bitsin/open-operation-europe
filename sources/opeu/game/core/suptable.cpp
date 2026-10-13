@@ -11,7 +11,6 @@
 #include "common/table-rows.hpp"
 #include "core/textout.hpp"
 #include "io/listui.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -115,11 +114,11 @@ uint8_t opeu_supply_return_slot(Game& game) {
   slot.type          = NO_TYPE;
   slot.quantity      = 0;
   auto const y{ data.list_row * LINE_HEIGHT + 0x2e };
-  opeu_ui_highlight(0x31, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
+  game.Machine().Display().Highlight({ 0x31, static_cast<uint16_t>(y), 0x16, 0x10 }, HIGHLIGHT_COLOUR);
   opeu_army_position(game, 0x2e, y);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_returned_slot)),
                                                         static_cast<std::uint16_t>(data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR) });
-  opeu_ui_highlight(0x2e, y, 0x16, 0x10, HIGHLIGHT_COLOUR);
+  game.Machine().Display().Highlight({ 0x2e, static_cast<uint16_t>(y), 0x16, 0x10 }, HIGHLIGHT_COLOUR);
   return 1;
 }
 

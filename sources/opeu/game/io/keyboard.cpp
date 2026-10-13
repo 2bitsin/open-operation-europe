@@ -15,7 +15,6 @@
 #include "io/mouse.hpp"
 #include "io/numdlg.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -117,7 +116,7 @@ auto MenuByKeys(Game& game, ValueRange const& range, std::uint16_t first) -> std
   MenuCursor cursor{ first, range.lo };
   opeu_menu_draw_item(game, cursor.item, MenuLight::LIT);
   for (;;) {
-    WaitUntil([] { return opeu_turn_input_b() != 0; });
+    WaitUntil([&] { return game.Machine().Input().KeyWaiting(); });
     switch (static_cast<std::uint8_t>(opeu_key_read(game))) {
     case '2':
     case '6':
@@ -169,19 +168,22 @@ auto PointAtPicture(DataSegment& data, std::uint16_t offset) -> void {
 auto RestoreUnder(Game& game, MousePoint const& saved) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SAVE);
-  opeu_bitmap_restore(saved.x, saved.y, 5, 48, 0, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawColumns({ saved.x, saved.y, 5, 48 }, { 0, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
 auto SaveUnder(Game& game, MousePoint const& saved) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SAVE);
-  opeu_bitmap_save(saved.x, saved.y, 5, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().SaveColumns({ saved.x, saved.y, 5, 48 }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
 }
 
 auto DrawPointer(Game& game, MousePoint const& at) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SHAPE);
-  koei_3f26(at.x, at.y, 32, 48, port_far(data.stream_ptr[1], data.stream_ptr[0]), port_far(POINTER_SEGMENT, POINTER_MASK), port_far(data.numdlg_save_segment, 0), 1);
+  game.Machine().Display().ComposeShiftedSprite({ at.x, at.y, 32, 48 }, { .and_mask = FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]),
+                                                                          .or_image = FarBytes(game, POINTER_SEGMENT, POINTER_MASK),
+                                                                          .buffer   = FarBytes(game, data.numdlg_save_segment, 0),
+                                                                          .flags    = 1 });
 }
 
 // Follows the mouse with the pointer: restores the graphics it leaves, saves those it covers, draws it where it moved.
@@ -211,21 +213,21 @@ auto Answer(std::uint8_t buttons) -> std::uint8_t {
 void opeu_text_cursor_draw(Game& game) {
   auto& data{ Data(game) };
   SetStream(data, POINTER_SEGMENT, CURSOR_TILE);
-  opeu_draw_far(opeu_min16(data.text_x, 0x4e), data.text_y, 2, 16, INVERT_MODE, port_far(data.stream_ptr[1], data.stream_ptr[0]));
+  game.Machine().Display().DrawBits({ opeu_min16(data.text_x, 0x4e), static_cast<uint16_t>(data.text_y), 2, 16 }, { INVERT_MODE, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
 // Polls input (mouse buttons or a pending key) while a 15-tick timer runs; on input reseeds the random sequence with
 // the advanced count and returns 1, else returns 0. The loop counts its polls.
 auto opeu_key_wait_tick(Game& game) -> int {
   std::uint16_t count{ game.State().RandomNext() };
-  opeu_fm_wait_start(15);
+  game.Machine().Sound().StartCountdown(15);
   do {
     count++;
-    if (HasMouse(Data(game)) ? opeu_turn_input_a(game) : opeu_turn_input_b()) {
+    if (HasMouse(Data(game)) ? opeu_turn_input_a(game) : game.Machine().Input().KeyWaiting()) {
       game.State().RandomSeed(count);
       return 1;
     }
-  } while (opeu_fm_busy());
+  } while (game.Machine().Sound().CountdownLeft());
   return 0;
 }
 

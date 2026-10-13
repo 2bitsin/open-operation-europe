@@ -20,7 +20,6 @@
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "map/stepmap.hpp"
@@ -280,8 +279,8 @@ void opeu_notice_attack(Game& game) {
   }
   for (uint16_t at = Record<Unit>(data, unit).first; at; at = Record<Element>(data, at).next) {
     auto& element{ Record<Element>(data, at) };
-    opeu_add_byte(fatigue, 99, &element.experience);
-    opeu_sub_byte(morale_loss, &element.morale);
+    element.experience = AddByte(element.experience, fatigue, 99);
+    element.morale     = SubByte(element.morale, morale_loss);
   }
 }
 

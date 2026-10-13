@@ -28,7 +28,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/grid.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
@@ -90,8 +89,9 @@ void opeu_air_destroyed_message(Game& game, uint16_t what) {
 uint16_t opeu_air_strike_due(Game& game) {
   auto& strike{ AirSide(Data(game)).strike };
   if (!strike.planes) return 0;
-  opeu_sub_byte(1, &strike.turns);
-  if (!opeu_sub_byte(1, &strike.hours)) switch (opeu_air_report(game, STRIKE_NAME, strike.turns)) {
+  strike.turns = SubByte(strike.turns, 1);
+  strike.hours = SubByte(strike.hours, 1);
+  if (!strike.hours) switch (opeu_air_report(game, STRIKE_NAME, strike.turns)) {
     case 0: return 1;
     case 1: strike.hours = 1; break;
     case 2: strike.planes = 0; break;
@@ -155,8 +155,8 @@ void opeu_air_strike_event(Game& game) {
   auto const    x{ record.strike.x };
   auto const    y{ record.strike.y };
   std::uint16_t planes{ record.strike.planes };
-  opeu_sub_word(planes, &record.bombers);
-  opeu_sub_word(opeu_air_damage_roll(game, x, y, opeu_min16(planes, 20) / 7), &planes);
+  record.bombers = SubWord(record.bombers, planes);
+  planes         = SubWord(planes, opeu_air_damage_roll(game, x, y, opeu_min16(planes, 20) / 7));
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   opeu_map_center(game, x, y, opeu_side_for_status(game, side));

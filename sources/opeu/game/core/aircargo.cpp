@@ -29,7 +29,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappixel.hpp"
 #include "map/mappos.hpp"
 #include "map/query.hpp"
@@ -86,7 +85,8 @@ auto Unload(AirLift& lift, std::span<std::uint16_t, 3> stock, std::span<std::uin
   std::ranges::copy(stock, delivery.before.begin());
   for (auto&& [supply, stocked, most] : std::views::zip(lift.supplies, stock, limit)) {
     auto const before{ stocked };
-    auto const after{ opeu_add_word(supply, most, &stocked) };
+    stocked = AddWord(stocked, supply, most);
+    auto const after{ stocked };
     supply = static_cast<std::uint16_t>(supply + static_cast<std::uint16_t>(before - after));
   }
   std::ranges::copy(stock, delivery.now.begin());
@@ -107,8 +107,9 @@ auto Report(Game& game, ReportHeading const& heading, Delivery const& delivery) 
 uint16_t opeu_cargo_drop_due(Game& game) {
   auto& lift{ AirSide(Data(game)).lift };
   if (!lift.planes) return 0;
-  opeu_sub_byte(1, &lift.turns);
-  if (!opeu_sub_byte(1, &lift.hours)) switch (opeu_air_report(game, CARGO_NAME, lift.turns)) {
+  lift.turns = SubByte(lift.turns, 1);
+  lift.hours = SubByte(lift.hours, 1);
+  if (!lift.hours) switch (opeu_air_report(game, CARGO_NAME, lift.turns)) {
     case 0: return 1;
     case 1: lift.hours = 1; break;
     case 2: lift.planes = 0; break;
@@ -124,7 +125,7 @@ void opeu_cargo_distribute(Game& game, uint16_t cargo, uint16_t amount) {
   while (amount != 0 && (load[2] | load[1] | load[0]) != 0)
     for (auto& supply : load) {
       auto const taken{ opeu_min16(game.State().RandomBounded(static_cast<std::uint16_t>(amount + 1)), supply) };
-      opeu_sub_word(taken, &supply);
+      supply = SubWord(supply, taken);
       amount = static_cast<std::uint16_t>(amount - taken);
     }
   for (int i{ 0 }; i < 3; ++i) lift.supplies[i] = load[i];
@@ -155,9 +156,9 @@ void opeu_cargo_drop_event(Game& game) {
   auto const          x{ lift.x };
   auto const          y{ lift.y };
   auto                planes{ lift.planes };
-  opeu_sub_word(planes, &record.planes);
-  for (int i{ 0 }; i < 3; ++i) opeu_sub_word(lift.supplies[i], &record.stock[i]);
-  opeu_sub_word(opeu_air_damage_roll(game, x, y, opeu_min16(planes, 0x1d) / 10), &planes);
+  record.planes = SubWord(record.planes, planes);
+  for (int i{ 0 }; i < 3; ++i) record.stock[i] = SubWord(record.stock[i], lift.supplies[i]);
+  planes = SubWord(planes, opeu_air_damage_roll(game, x, y, opeu_min16(planes, 0x1d) / 10));
   opeu_cargo_distribute(game, Near(data, lift), (lift.planes - planes) * LOAD_PER_PLANE);
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
@@ -200,7 +201,7 @@ void opeu_cargo_drop_event(Game& game) {
     opeu_air_sprite_restore(game, 0, pixel.x, row);
   }
   data.map_mode[0] = view;
-  for (int i{ 0 }; i < 3; ++i) opeu_add_word(lift.supplies[i], STOCK_LIMIT, &record.stock[i]);
+  for (int i{ 0 }; i < 3; ++i) record.stock[i] = AddWord(record.stock[i], lift.supplies[i], STOCK_LIMIT);
   if (planes != 0) {
     opeu_officer_gain(game, side, AIR_OFFICER_KIND);
     record.pending_planes = static_cast<std::uint16_t>(record.pending_planes + planes);

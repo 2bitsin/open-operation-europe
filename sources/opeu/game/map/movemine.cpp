@@ -19,7 +19,6 @@
 #include "units/value.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -67,7 +66,7 @@ uint8_t opeu_move_rating(Game& game) {
   auto const  training{ opeu_unit_average10(game, static_cast<std::uint16_t>(current)) };
   auto const  experience{ opeu_unit_average11(game, static_cast<std::uint16_t>(current)) };
   auto const  leadership{ Record<Person>(data, data.context_group_record).leadership };
-  auto        rating{ static_cast<uint16_t>(static_cast<uint16_t>(leadership + morale + training) / 3) };
+  auto const  rating{ static_cast<uint16_t>(static_cast<uint16_t>(leadership + morale + training) / 3) };
   auto const  bonus{ data.side_control[data.current_side] == SIDE_COMPUTER ? data.delivery_level : 0 };
-  return static_cast<uint8_t>(opeu_isqrt(static_cast<std::uint16_t>(opeu_sub_word(experience, &rating))) + bonus);
+  return static_cast<uint8_t>(opeu_isqrt(SubWord(rating, experience)) + bonus);
 }

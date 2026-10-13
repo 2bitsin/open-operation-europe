@@ -17,7 +17,6 @@
 #include "core/dialogs.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -85,7 +84,7 @@ void opeu_wound_event(Game& game) {
         if (game.State().RandomBounded(static_cast<std::uint16_t>(level * 10 + 24)) == 2)
           person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
         else
-          opeu_sub_byte(10 - person.max_health / 10, &person.health);
+          person.health = SubByte(person.health, 10 - person.max_health / 10);
         if (person.health == 0) {
           if (person.role & Bits(PersonRole::DEPUTY))
             person.health = 1;
@@ -100,7 +99,7 @@ void opeu_wound_event(Game& game) {
         amount = 1;
       else if (opeu_get_record_counter(person))
         amount = 3;
-      opeu_add_byte(amount, person.max_health, &person.health);
+      person.health = AddByte(person.health, amount, person.max_health);
     }
   }
 }

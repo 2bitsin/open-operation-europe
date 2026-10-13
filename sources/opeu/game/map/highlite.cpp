@@ -24,15 +24,15 @@ void opeu_map_highlight_view(Game& game, uint8_t x, uint8_t y) {
   auto&      data{ Data(game) };
   auto const pixel{ ViewPixel(data, { x, y }) };
   auto       tile{ StreamFrameTile(data, 3) };
-  opeu_draw_far(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24, MASK_MODE,
-                port_far(static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)));
+  game.Machine().Display().DrawBits({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24 },
+                                    { MASK_MODE, FarBytes(game, static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)) });
   tile = StreamFrameTile(data, 2);
-  opeu_draw_far(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24, IMAGE_MODE,
-                port_far(static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)));
+  game.Machine().Display().DrawBits({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24 },
+                                    { IMAGE_MODE, FarBytes(game, static_cast<std::uint16_t>(tile.segment), static_cast<std::uint16_t>(tile.offset)) });
 }
 
 void opeu_map_highlight_overview(Game& game, uint8_t x, uint8_t y) {
   auto const pixel{ OverviewPixel({ x, y }) };
-  opeu_draw_near(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, MARKER_MODE,
-                 game.State().Bytes(static_cast<std::uint16_t>(Near(Data(game), Data(game).flash_marker))).data());
+  game.Machine().Display().DrawBits({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 },
+                                    { MARKER_MODE, game.State().Bytes(static_cast<std::uint16_t>(Near(Data(game), Data(game).flash_marker))) });
 }

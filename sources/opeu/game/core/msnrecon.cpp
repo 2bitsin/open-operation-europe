@@ -15,7 +15,6 @@
 
 #include "common/game.hpp"
 #include "core/msnkill.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

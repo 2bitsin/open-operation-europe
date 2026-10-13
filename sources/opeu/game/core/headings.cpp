@@ -10,7 +10,6 @@
 #include "common/side-color.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -31,7 +30,12 @@ constexpr std::uint16_t COLOR_WHITE{ 7 };
 
 void opeu_army_heading(Game& game, uint16_t person) {
   auto const& data{ Data(game) };
-  opeu_ui_fill(6, 0, 73, 50, 0);
+  game.Machine().Display().Fill(
+      {
+          { 6,  0  },
+          { 73, 50 }
+  },
+      0);
   opeu_ui_outline(game, 6, 0, 73, 51, COLOR_WHITE);
   opeu_army_position(game, 1, 2);
   opeu_ui_text(game, data.side_names[data.current_side]);
@@ -40,12 +44,22 @@ void opeu_army_heading(Game& game, uint16_t person) {
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ ARMY_PERSON, SideTextColor(data.current_side), person });
   opeu_army_position(game, 1, 34);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ ARMY_HQ });
-  opeu_ui_line(40, 51, 40, 186, COLOR_WHITE);
+  game.Machine().Display().Line(
+      {
+          { 40, 51  },
+          { 40, 186 }
+  },
+      COLOR_WHITE);
 }
 
 void opeu_division_heading(Game& game, uint16_t person) {
   auto& data{ Data(game) };
-  opeu_ui_fill(6, 143, 73, 256, 0);
+  game.Machine().Display().Fill(
+      {
+          { 6,  143 },
+          { 73, 256 }
+  },
+      0);
   opeu_ui_outline(game, 5, 142, 73, 257, COLOR_WHITE);
   opeu_army_position(game, 1, 225);
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_LABEL, SideTextColor(data.current_side),

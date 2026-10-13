@@ -12,7 +12,6 @@
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
 #include "io/soundcue.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

@@ -8,7 +8,6 @@
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/blast.hpp"
 #include "map/mapcell.hpp"
 #include "map/maperase.hpp"
@@ -72,8 +71,9 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
     if (!shown(unit)) continue;
     if (unit.flags & Bits(UnitFlag::SELECTED)) selected_unit = Near(data, unit);
     auto const pixel{ pixel_of(unit) };
-    koei_2e72(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, game.State().Bytes(static_cast<std::uint16_t>(buffer(i))).data());
-    opeu_draw_near(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, MARKER_MODE, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.flash_marker))).data());
+    game.Machine().Display().SaveColumns({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 }, game.State().Bytes(static_cast<std::uint16_t>(buffer(i))));
+    game.Machine().Display().DrawBits({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 },
+                                      { MARKER_MODE, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.flash_marker))) });
   }
   if (OverviewUp(data) && (Record<Group>(data, group).flags & Bits(GroupFlag::READY))) {
     auto const& selected{ Record<Unit>(data, selected_unit) };
@@ -85,7 +85,7 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
     auto const& unit{ data.units[first + i] };
     if (!shown(unit)) continue;
     auto const pixel{ pixel_of(unit) };
-    koei_266c(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, 0, game.State().Bytes(static_cast<std::uint16_t>(buffer(i))).data());
+    game.Machine().Display().DrawColumns({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 }, { 0, game.State().Bytes(static_cast<std::uint16_t>(buffer(i))) });
   }
 }
 

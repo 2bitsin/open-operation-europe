@@ -12,6 +12,7 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
+#include "common/text.hpp"
 #include "core/app.hpp"
 #include "core/context.hpp"
 #include "core/dialogs.hpp"
@@ -24,7 +25,6 @@
 #include "io/resopen.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -52,10 +52,9 @@ constexpr uint16_t CAPTION_BYTES{ 0x640 };
 // The exit code the game ends with when the player leaves to DOS.
 constexpr uint16_t QUIT_EXIT_CODE{ 100 };
 
-// SEEK with a 32-bit file offset.
-auto Seek(Game& game, uint16_t handle, int32_t offset, uint16_t whence) -> uint16_t {
-  return static_cast<uint16_t>(
-      opeu_dos_seek(handle, static_cast<std::uint32_t>((static_cast<uint16_t>(offset))) | static_cast<std::uint32_t>((static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16))) << 16, whence));
+// Moves the file to a position from its start.
+auto Seek(Game& game, uint16_t handle, int32_t position) -> void {
+  game.Machine().Files().Seek(HandleOf(handle), position, services::SeekOrigin::START);
 }
 
 // The save/quit menu's routines, by the enumerator save_quit_actions holds for the entry.
@@ -216,16 +215,16 @@ void opeu_save_create(Game& game) {
   auto& first{ data.save_slots[0] };
   FillSlot(data, first);
   opeu_save_checksum(game, 0);
-  auto const file{ static_cast<uint16_t>(opeu_dos_create(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.create_file_name)).data()))) };
+  auto const file{ HandleOf(StoredHandle(game.Machine().Files().Create(CString(data, Near(data, data.create_file_name))))) };
   for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) {
     first.scenario = slot == 0 ? data.scenario : SLOT_EMPTY;
-    opeu_dos_write(file, game.State().Bytes(SAVE_SLOTS_AT, SLOT_BYTES).data(), SLOT_BYTES);
+    game.Machine().Files().Write(file, game.State().Bytes(SAVE_SLOTS_AT, SLOT_BYTES));
   }
   opeu_save_unrebase(game);
-  for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_write(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
+  for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) game.Machine().Files().Write(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES));
   opeu_save_rebase(game);
-  opeu_dos_close(file);
-  if (static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.create_check_name)).data())))) {
+  game.Machine().Files().Close(file);
+  if (game.Machine().Files().Exists(CString(data, Near(data, data.create_check_name)))) {
     opeu_ui_text(game, opeu_title_box(game, 31, 188, Near(data, data.create_saved)));
     opeu_delay_units(game, 15);
     opeu_text_paper_set(game, 0);
@@ -235,7 +234,7 @@ void opeu_save_create(Game& game) {
 // A framed prompt at text column x, pixel row y, with the cursor at its start; returns the text.
 uint16_t opeu_save_prompt_box(Game& game, uint16_t x, uint16_t y, uint16_t text) {
   auto const width{ static_cast<uint16_t>(opeu_string_length(game, text) + 2) };
-  opeu_ui_box(x - 1, y - 4, width, 24, 1);
+  game.Machine().Display().Box({ static_cast<uint16_t>(x - 1), static_cast<uint16_t>(y - 4), width, 24 }, 1);
   opeu_ui_outline(game, (x - 1) * 8, y - 4, (x + width) * 8 - 9, y + 19, 7);
   opeu_army_position(game, x, y);
   return text;
@@ -246,9 +245,9 @@ void opeu_save_game(Game& game) {
   auto& data{ Data(game) };
   opeu_screen_reset(game);
   opeu_text_paper_set(game, 4);
-  if (!static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.save_check_name)).data())))) {
+  if (!game.Machine().Files().Exists(CString(data, Near(data, data.save_check_name)))) {
     opeu_save_create(game);
-    if (!static_cast<uint16_t>(opeu_dos_exists(reinterpret_cast<const char*>(game.State().Bytes(Near(data, data.save_recheck_name)).data())))) {
+    if (!game.Machine().Files().Exists(CString(data, Near(data, data.save_recheck_name)))) {
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.save_failed_format), (opeu_title_box(game, 30, 188, Near(data, data.save_failed))) });
       opeu_delay_units(game, 20);
       opeu_text_paper_set(game, 0);
@@ -256,17 +255,17 @@ void opeu_save_game(Game& game) {
   } else {
     opeu_text_paper_set(game, 0);
     auto const file{ static_cast<uint16_t>(opeu_open_resource(game, Near(data, data.save_open_name))) };
-    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) opeu_dos_read(file, game.State().Bytes(Near(data, data.save_slots[slot]), SLOT_BYTES).data(), SLOT_BYTES);
+    for (uint8_t slot = 0; slot < SAVE_FILE_SLOTS; slot++) game.Machine().Files().Read(HandleOf(file), game.State().Bytes(Near(data, data.save_slots[slot]), SLOT_BYTES));
     for (;;) {
       opeu_text_paper_set(game, 4);
       opeu_ui_text(game, opeu_title_box(game, 36, 336, Near(data, data.save_where)));
       opeu_text_paper_set(game, 0);
       if (!opeu_list_dialog(game, Near(data, data.save_list), 1, 3)) {
-        opeu_dos_close(file);
+        game.Machine().Files().Close(HandleOf(file));
         break;
       }
       opeu_text_paper_set(game, 4);
-      opeu_screen_copy(0, 240, 80, 48, 0, 320);
+      game.Machine().Display().CopyColumns({ 0, 240, 80, 48 }, { 0, 320 });
       opeu_ui_text(game, opeu_save_prompt_box(game, 35, 336, Near(data, data.save_confirm)));
       opeu_army_position(game, 39, 336);
       if (!static_cast<uint16_t>(opeu_prompt_yes_no(game, Near(data, data.save_answer)))) continue;
@@ -274,13 +273,13 @@ void opeu_save_game(Game& game) {
       auto& slot{ data.save_slots[data.save_slot] };
       FillSlot(data, slot);
       opeu_save_checksum(game, data.save_slot);
-      Seek(game, file, static_cast<int32_t>(data.save_slot) * SLOT_BYTES, SEEK_FROM_START);
-      opeu_dos_write(file, game.State().Bytes(Near(data, slot), SLOT_BYTES).data(), SLOT_BYTES);
-      Seek(game, file, static_cast<int32_t>(SAVED_BYTES) * data.save_slot + SAVED_BLOCKS_AT, SEEK_FROM_START);
+      Seek(game, file, static_cast<int32_t>(data.save_slot) * SLOT_BYTES);
+      game.Machine().Files().Write(HandleOf(file), game.State().Bytes(Near(data, slot), SLOT_BYTES));
+      Seek(game, file, static_cast<int32_t>(SAVED_BYTES) * data.save_slot + SAVED_BLOCKS_AT);
       opeu_save_unrebase(game);
-      opeu_dos_write(file, game.State().Bytes(SAVED_FIRST, SAVED_BYTES).data(), SAVED_BYTES);
+      game.Machine().Files().Write(HandleOf(file), game.State().Bytes(SAVED_FIRST, SAVED_BYTES));
       opeu_save_rebase(game);
-      opeu_dos_close(file);
+      game.Machine().Files().Close(HandleOf(file));
       opeu_ui_text(game, opeu_title_box(game, 35, 188, Near(data, data.save_finished)));
       opeu_delay_units(game, 20);
       opeu_text_paper_set(game, 0);
@@ -297,23 +296,28 @@ void opeu_save_game(Game& game) {
 void opeu_quit_to_dos(Game& game) {
   auto const& data{ Data(game) };
   auto const  file{ static_cast<uint16_t>(opeu_open_resource(game, Near(data, data.logo_file_name))) };
-  Seek(game, file, 0, SEEK_FROM_START);
-  opeu_dos_read_far(file, data.bitmap_buffer, LOGO_AT, LOGO_BYTES);
-  Seek(game, file, CAPTION_IN_FILE, SEEK_FROM_START);
-  opeu_dos_read_far(file, data.bitmap_buffer, CAPTION_AT, CAPTION_BYTES);
-  opeu_dos_close(file);
-  opeu_vga_clear();
+  Seek(game, file, 0);
+  game.Machine().Files().ReadFar(HandleOf(file), {
+                                                     .at = { data.bitmap_buffer, LOGO_AT },
+                                                       .size = LOGO_BYTES
+  });
+  Seek(game, file, CAPTION_IN_FILE);
+  game.Machine().Files().ReadFar(HandleOf(file), {
+                                                     .at = { data.bitmap_buffer, CAPTION_AT },
+                                                       .size = CAPTION_BYTES
+  });
+  game.Machine().Files().Close(HandleOf(file));
+  game.Machine().Display().Clear();
   opeu_palette_title_screen(game);
   opeu_finish_side_initialization(game, 0);
-  opeu_gfx_blit(216, 120, 208, 112, 2, port_far(data.bitmap_buffer, LOGO_AT));
-  opeu_gfx_blit(160, 232, 320, 40, 7, port_far(data.bitmap_buffer, CAPTION_AT));
+  game.Machine().Display().DrawShiftedBits({ 216, 120, 208, 112 }, { 2, FarBytes(game, data.bitmap_buffer, LOGO_AT) });
+  game.Machine().Display().DrawShiftedBits({ 160, 232, 320, 40 }, { 7, FarBytes(game, data.bitmap_buffer, CAPTION_AT) });
   opeu_set_turn_context(game, 0);
   opeu_music_stop(game);
-  opeu_fm_wait_start(200);
-  while (opeu_fm_busy());
-  opeu_sound_open(0, 0, 0, 0);
-  opeu_fm_noop();
-  opeu_text_mode();
+  game.Machine().Sound().StartCountdown(200);
+  while (game.Machine().Sound().CountdownLeft());
+  game.Machine().Sound().Open({}, {});
+  game.Machine().Display().LeaveGraphics();
   opeu_free_segments(game);
   opeu_disk_reset(game);
   port_exit(static_cast<int16_t>(QUIT_EXIT_CODE));
@@ -330,13 +334,12 @@ void opeu_settings_new_game(Game& game) {
   if ((data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_COMPUTER) || opeu_confirm_message(game, Near(data, data.new_game_question), data.context_record2)) {
     opeu_set_turn_context(game, 0);
     opeu_music_stop(game);
-    opeu_sound_open(0, 0, 0, 0);
+    game.Machine().Sound().Open({}, {});
     opeu_close_data_files(game);
     opeu_palette_daylight(game);
-    opeu_fm_noop();
-    opeu_text_mode();
+    game.Machine().Display().LeaveGraphics();
     opeu_free_segments(game);
-    opeu_vga_clear();
+    game.Machine().Display().Clear();
     opeu_screen_reset(game);
     data.startup_mode  = 0;
     data.daily_pending = 1;

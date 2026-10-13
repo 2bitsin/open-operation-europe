@@ -8,7 +8,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -48,9 +47,9 @@ uint16_t opeu_battle_sprite_offset(Game& game, uint8_t sprite) {
 }
 
 void opeu_battle_draw_sprite(Game& game, uint16_t offset) {
-  auto const& data{ Data(game) };
-  opeu_vram_load(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.sprite_segment, offset + MASK_OFFSET));
-  opeu_vram_draw(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.sprite_segment, offset));
+  auto& data{ Data(game) };
+  game.Machine().Display().MaskCell(data.vram, FarBytes(game, data.sprite_segment, offset + MASK_OFFSET).first<services::CELL_MASK_BYTES>());
+  game.Machine().Display().OverlayCell(data.vram, FarBytes(game, data.sprite_segment, offset).first<SYSLIB_CELL_BYTES>());
 }
 
 // A city cell also shows its share of the garrison.

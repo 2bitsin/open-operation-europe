@@ -22,7 +22,6 @@
 
 #include "common/events.hpp"
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -84,7 +83,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
   uint8_t shown_y{ 0 };
   if (!data.input_mode) opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y)), static_cast<uint8_t>(data.current_side));
   opeu_input_reset(game);
-  opeu_bitmap_save(0, 0, 80, 24, port_far(static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
+  game.Machine().Display().SaveColumns({ 0, 0, 80, 24 }, FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
   data.control_selection = 0;
   auto const pan{ [&](int16_t dx, int16_t dy) {
     opeu_viewport_pan(game, static_cast<int16_t>(static_cast<std::uint16_t>(dx)), static_cast<int16_t>(static_cast<std::uint16_t>(dy)), static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y),
@@ -223,6 +222,6 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
     outcome = data.input_mode ? mouse() : keyboard();
   } while (outcome == Outcome::MOVE);
   opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
-  opeu_bitmap_restore(0, 0, 80, 24, 0, port_far(static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
+  game.Machine().Display().DrawColumns({ 0, 0, 80, 24 }, { 0, FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET) });
   return outcome == Outcome::ACCEPT;
 }

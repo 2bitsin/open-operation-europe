@@ -31,7 +31,6 @@
 #include "units/value.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -54,7 +53,8 @@ constexpr uint8_t  POSITION_BYTES{ sizeof(BattlePosition) };
 void Tire(Game& game, uint16_t person) {
   auto&      data{ Data(game) };
   auto const night{ opeu_hour_is_night(static_cast<uint8_t>(data.hour)) };
-  opeu_sub_byte(night ? 3 : 2, game.State().Bytes(Near(data, Record<Person>(data, person).health), 1).data());
+  auto&      health{ Record<Person>(data, person).health };
+  health = SubByte(health, night ? 3 : 2);
 }
 } // namespace
 
@@ -157,7 +157,7 @@ void opeu_notice_one(Game& game) {
   opeu_deploy_battle(game);
   opeu_battle_tire_leaders(game);
   opeu_battle_run_rounds(game);
-  opeu_vga_clear();
+  game.Machine().Display().Clear();
   opeu_palette_for_hour(game);
   opeu_screen_reset(game);
   opeu_daily_context(game, static_cast<std::uint8_t>(Data(game).current_side));

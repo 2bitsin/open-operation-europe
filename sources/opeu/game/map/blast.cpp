@@ -19,7 +19,6 @@
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "map/mappos.hpp"
 #include "port.hpp"
@@ -56,17 +55,19 @@ void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
     auto const pixel{ OverviewPixel({ x, y }) };
     for (auto const i : std::views::iota(uint8_t{ 0 }, OVERVIEW_FRAME_COUNT)) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
-      opeu_blit_far(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, 4,
-                    port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
+      game.Machine().Display().DrawThreeByteColumns({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8 },
+                                                    { 4, FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])) });
       opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
     }
   } else {
     auto const pixel{ ViewPixel(data, { x, y }) };
     for (auto const i : std::views::iota(uint8_t{ 0 }, VIEW_FRAME_COUNT)) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
-      opeu_sprite_compose(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24,
-                          port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
-                          port_far(SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i)), port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 0);
+      game.Machine().Display().ComposeSprite({ static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24 },
+                                             { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
+                                               .or_image = FarBytes(game, SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i)),
+                                               .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
+                                               .flags    = 0 });
       opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
     }
   }

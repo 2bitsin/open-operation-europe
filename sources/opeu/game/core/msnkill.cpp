@@ -27,7 +27,6 @@
 #include "core/weather.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
-#include "link/glue.hpp"
 #include "map/mapunit.hpp"
 #include "map/objdamag.hpp"
 #include "port.hpp"
@@ -106,7 +105,7 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
       auto& unit{ Record<Unit>(data, target) };
       if (data.side_status[side] == SIDE_PLAYED) opeu_mission_report_success(game, side, text, unit.x, unit.y);
       opeu_officer_gain(game, side, OFFICER);
-      for (auto& element : Elements(data, unit)) opeu_sub_byte(Random(game, 20) + 30, &element.morale);
+      for (auto& element : Elements(data, unit)) element.morale = SubByte(element.morale, Random(game, 20) + 30);
       return;
     }
   }

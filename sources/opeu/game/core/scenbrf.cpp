@@ -10,7 +10,6 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
-#include "link/glue.hpp"
 #include "map/maperase.hpp"
 #include "map/mappixel.hpp"
 #include "port.hpp"

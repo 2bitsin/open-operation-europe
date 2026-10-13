@@ -68,8 +68,8 @@ auto FreeForDrop(Game& game, GridCell cell) -> bool {
 auto RandomCellNear(Game& game, Objective const& objective) -> GridCell {
   auto x{ static_cast<std::uint8_t>(game.State().Generator().Bounded(7) + objective.x) };
   auto y{ static_cast<std::uint8_t>(game.State().Generator().Bounded(7) + objective.y) };
-  opeu_sub_byte(3, &x);
-  opeu_sub_byte(3, &y);
+  x = SubByte(x, 3);
+  y = SubByte(y, 3);
   return { x, y };
 }
 
@@ -132,7 +132,7 @@ auto TargetAtUnits(Game& game, std::uint8_t side) -> std::optional<GridCell> {
 uint16_t opeu_ai_spare_cargo(Game& game) {
   auto&         side{ CurrentSide(Data(game)) };
   std::uint16_t spare{ side.planes };
-  opeu_sub_word(side.lift.planes + side.drop.transports, &spare);
+  spare = SubWord(spare, side.lift.planes + side.drop.transports);
   return spare;
 }
 

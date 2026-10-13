@@ -23,7 +23,6 @@
 #include "units/xferstep.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 

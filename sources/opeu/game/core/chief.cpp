@@ -11,7 +11,6 @@
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/keyboard.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,7 +37,7 @@ auto Chief(Game& game) -> std::uint16_t {
 // Draws the panel: a frame wide enough for the chief's name, the name and the portrait; leaves the text cursor in it.
 uint16_t opeu_ops_chief_show(Game& game) {
   opeu_person_lacks_side0_flag(game, Chief(game));
-  opeu_ui_box(PANEL_X, PANEL_Y, 0x18, 0x40, 0);
+  game.Machine().Display().Box({ PANEL_X, PANEL_Y, 0x18, 0x40 }, 0);
   opeu_context_frame(game, 0x2a, 0x10a, static_cast<std::uint8_t>(opeu_string_length(game, Chief(game)) + 13));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ CHIEF_FORMAT, Chief(game) });
   opeu_context_portrait(game, 0x2b, 0x131, Chief(game));

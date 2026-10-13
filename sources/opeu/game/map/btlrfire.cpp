@@ -22,7 +22,6 @@
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -78,9 +77,19 @@ struct Shot {
 
 // A tracer XORed onto the screen, held a moment and XORed off again.
 void FlashTracer(Game& game, ScreenLine const& line) {
-  opeu_ui_line(line.from.x, line.from.y, line.to.x, line.to.y, TRACER_COLOR);
+  game.Machine().Display().Line(
+      {
+          { line.from.x, line.from.y },
+          { line.to.x,   line.to.y   }
+  },
+      TRACER_COLOR);
   Pause(game, 1);
-  opeu_ui_line(line.from.x, line.from.y, line.to.x, line.to.y, TRACER_COLOR);
+  game.Machine().Display().Line(
+      {
+          { line.from.x, line.from.y },
+          { line.to.x,   line.to.y   }
+  },
+      TRACER_COLOR);
 }
 
 // A few tracers along the line, each jittered: one per three shots for infantry, per fifteen otherwise, at most five.
@@ -163,7 +172,7 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
     auto&      hit{ Record<Element>(data, target) };
     auto const before{ hit.quantity };
     uint16_t   quantity{ before };
-    opeu_sub_word(losses, &quantity);
+    quantity     = SubWord(quantity, losses);
     hit.quantity = quantity;
     opeu_battle_spend_fuel(game, target, before);
     opeu_battle_spend_ammo(game, target, before);
@@ -174,15 +183,15 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
       opeu_battle_wiped_notice(game, target);
       data.battle_element_destroyed = 1;
       auto& own{ Record<Element>(data, shooter) };
-      opeu_add_byte(1, RATING_LIMIT, &own.training);
-      opeu_add_byte(3, RATING_LIMIT, &own.morale);
+      own.training = AddByte(own.training, 1, RATING_LIMIT);
+      own.morale   = AddByte(own.morale, 3, RATING_LIMIT);
     } else {
       // Vehicles take damage by the crew's skill.
       if (auto const category{ ElementTypeOf(data, target).category }) {
         auto const roll{ game.State().Generator().Bounded(300) };
         auto const skill{ opeu_battle_type_skill(game, target) };
         uint16_t   damage{ hit.damage };
-        opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category], &damage);
+        damage     = AddWord(damage, static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category]);
         hit.damage = damage;
       }
       opeu_battle_redraw_cell(game, cell, { target, opeu_battle_mode(game, target) });
@@ -194,8 +203,8 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
       auto& extra{ BattleExtraAt(data, i) };
       if (extra.x == BATTLE_UNPLACED) break;
       if (extra.x == cell.x && extra.y == cell.y) {
-        opeu_sub_byte(losses, &extra.count);
-        opeu_sub_byte(losses, &objective.strength);
+        extra.count        = SubByte(extra.count, losses);
+        objective.strength = SubByte(objective.strength, losses);
         opeu_battle_refresh_cell(game, cell.x, cell.y);
         break;
       }
