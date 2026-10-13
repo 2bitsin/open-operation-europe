@@ -77,7 +77,32 @@ class Model:
       "resolved_battle_path": sum(1 for target in targets if target.resolved and target.battle),
       "resolved_numbered":    sum(1 for target in targets if target.resolved and not target.battle),
       "unresolved":           sum(1 for target in targets if not target.resolved),
+      "unresolved_by_reason": dict(Counter(ReasonOf(target.failure) for target in targets if not target.resolved).most_common()),
     }
+
+
+REASONS = (
+  ("parameter pack",                 "a word is a parameter pack expansion"),
+  ("service id is a parameter",      "service id is a parameter"),
+  ("is not a constant",              "service id is not a constant"),
+  ("bound to dispatchers that reach", "callback bound to dispatchers that reach different code"),
+  ("callback",                       "callback not bound to a dispatcher"),
+  ("multi-statement",                "multi-statement case or handler"),
+  ("raw-word",                       "raw-word case or handler"),
+  ("svc-forwarding",                 "forwarding case the tool cannot follow"),
+  ("calls the link table by itself", "link-calling case"),
+  ("link-calling",                   "link-calling case"),
+  ("no handler linked",              "no link handler at the address"),
+  ("not handed on",                  "id not served"),
+  ("does not serve",                 "id not served"),
+  ("has no case",                    "id not served"),
+  ("guard",                          "guard the tool cannot follow"),
+)
+
+
+def ReasonOf(failure: str) -> str:
+  """The kind of an unresolved site's failure, for the summary's counts."""
+  return next((reason for mark, reason in REASONS if mark in failure), failure.split(":")[0])
 
 
 def _Shape(dispatcher: Dispatcher) -> str:

@@ -4,13 +4,13 @@ whose side effects move, names the site's file cannot see)."""
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .calls import CallSite
 from .dispatch import STATEMENT
 from .functions import Function
 from .program import Program
-from .resolve import Target
+from .resolve import Target, TernaryParts
 from .source import SourceFile
 from .syntax import Arguments, Compact, Span, Splice, Text
 from .tokens import IDENTIFIER
@@ -38,6 +38,8 @@ class Substitution:
   invisible:   list[str] = field(default_factory=list)  # names of the target's file the site's file cannot see
   includes:    list[str] = field(default_factory=list)  # headers the site's file must include for them
   local:       list[str] = field(default_factory=list)  # of those, names only the target's own .cpp defines
+  cycle:       list[str] = field(default_factory=list)  # of those, headers that include the site's own header
+  near:        list[str] = field(default_factory=list)  # near pointers made of a word (typed references in B5)
   callee:      str = ""
 
 
@@ -48,28 +50,79 @@ class Substituter:
   _done:   dict[object, list["Substitution"]] = field(default_factory=dict)  # file -> the substitutions made there
 
   def Substitute(self, site: CallSite, target: Target) -> Substitution:
-    owner_source = self.program.Source(target.owner.function.file)
-    case = target.case
-    words = [self._WordText(site, span) for span in site.words]
-    reads = [read for read in case.words.reads if case.expression.Contains(read.span.first)]
-    substitution = Substitution(site, target, "", callee=CalleeOf(owner_source, case.expression))
-    effects = [index for index, span in enumerate(site.words) if _SideEffects(self.program.Source(site.file), span)]
-    substitution.order = _OrderHazard(owner_source, case.expression, reads, target, effects, words)
-    if substitution.order:
-      substitution.hoisted = [(index, words[index]) for index in range(len(words)) if not _Constant(words[index])]
-      words = [f"hoisted{index}" if not _Constant(text) else text for index, text in enumerate(words)]
-    replacements = [(read.span, self._ReadText(site, target, read, words, substitution)) for read in reads]
-    replacements += self._Renames(site, target, owner_source)
-    text = Splice(owner_source.text, owner_source.tokens, case.expression, replacements)
-    substitution.text = self._Result(site, target, text, substitution)
-    self._Invisible(site, target, owner_source, substitution)
+    substitution = self._Ternary(site, target) if target.branches else self._One(site, target, None)
     if "std::array" in substitution.text:
       substitution.includes.append("<array>")
     for inner in self._Inner(site):
       substitution.includes += [include for include in inner.includes if include not in substitution.includes]
       substitution.local += [name for name in inner.local if name not in substitution.local]
+      substitution.cycle += [include for include in inner.cycle if include not in substitution.cycle]
     self._done.setdefault(site.file, []).append(substitution)
     return substitution
+
+  def _One(self, site: CallSite, target: Target, hoisted: list[str] | None) -> Substitution:
+    """The substitution of a site reaching one case; hoisted: the words already evaluated first, by name."""
+    owner_source = self.program.Source(target.owner.function.file)
+    case = target.case
+    words = hoisted or [self._WordText(site, span) for span in site.words]
+    spans = [case.expression, *case.locals.values()]
+    reads = [read for read in case.words.reads if any(span.Contains(read.span.first) for span in spans)]
+    substitution = Substitution(site, target, "", callee=CalleeOf(owner_source, case.expression))
+    effects = [index for index, span in enumerate(site.words) if _SideEffects(self.program.Source(site.file), span)]
+    substitution.order = "" if hoisted else _OrderHazard(owner_source, case.expression, reads, target, effects, words)
+    if substitution.order:
+      substitution.hoisted, words = _Hoisted(words)
+    text = self._Expression(site, target, case.expression, (words, substitution))
+    substitution.text = self._Result(site, target, text, substitution)
+    self._Invisible(site, target, owner_source, substitution)
+    return substitution
+
+  def _Expression(self, site: CallSite, target: Target, span: Span, state: tuple[list[str], Substitution]) -> str:
+    """The text of a span of the case: the site's words where it reads them, the site's names for ds and the id, and
+    each local of the case replaced by its own expression."""
+    words, substitution = state
+    owner = self.program.Source(target.owner.function.file)
+    case = target.case
+    reads = [read for read in case.words.reads if span.Contains(read.span.first)]
+    replacements = [(read.span, self._ReadText(site, target, read, words, substitution)) for read in reads]
+    replacements += self._Renames(site, target, owner, span)
+    for name, local in case.locals.items():
+      uses = [index for index in range(span.first, span.last) if owner.tokens[index].text == name and owner.tokens[index - 1].text not in TIGHT]
+      text = self._Expression(site, target, local, state) if uses else ""
+      replacements += [(Span(index, index + 1), f"({text})" if _Operators(text) else text) for index in uses]
+    return Splice(owner.text, owner.tokens, span, replacements)
+
+  def _Ternary(self, site: CallSite, target: Target) -> Substitution:
+    """A site whose id is `condition ? A : B`: the condition choosing between the two routine calls, as an expression
+    when both give the same type (or the value is used: both give AX then), else as an if statement."""
+    source = self.program.Source(site.file)
+    condition, *alternatives = TernaryParts(source.tokens, site.service)
+    words = [self._WordText(site, span) for span in site.words]
+    effects = [index for index, span in enumerate(site.words) if _SideEffects(source, span)]
+    hoisted, named = _Hoisted(words) if effects else ([], None)
+    branches = [self._One(replace(site, service=part), branch, named) for part, branch in zip(alternatives, target.branches)]
+    substitution = _Merged(site, target, branches)
+    substitution.hoisted = hoisted
+    substitution.order = "words with side effects are evaluated once, before the condition" if hoisted else ""
+    condition_text = self._WordText(site, condition)
+    test = f"({condition_text})" if _Operators(condition_text) else condition_text
+    first, second = (branch.text for branch in branches)
+    if site.used or self._SameType(branches):
+      substitution.text = f"{test} ? {first} : {second}"
+    elif _StatementStart(source, site.span):
+      substitution.text = f"if ({condition_text}) {first}; else {second}"
+    else:
+      substitution.text = f"{test} ? static_cast<void>({first}) : static_cast<void>({second})"
+    if site.used:
+      substitution.text = f"({substitution.text})"
+    return substitution
+
+  def _SameType(self, branches: list[Substitution]) -> bool:
+    types = set()
+    for branch in branches:
+      callee = self.program.Signature(branch.callee, branch.target.owner.function.file) if branch.callee else None
+      types.add(_Bare(callee.returns) if callee is not None else "?")
+    return len(types) == 1 and "?" not in types
 
   def _Inner(self, site: CallSite) -> list["Substitution"]:
     return [done for done in self._done.get(site.file, []) if site.span.first < done.site.span.first and done.site.span.last <= site.span.last]
@@ -87,14 +140,13 @@ class Substituter:
     if read.kind == SPAN:
       items = [self._Word(target, position, words, substitution) for position in range(target.count)]
       return "std::span<std::uint16_t const>{}" if not items else f"std::array<std::uint16_t, {len(items)}>{{ {', '.join(_Cast(item) for item in items)} }}"
+    if read.accessor:
+      return self._Accessor(site, target, read.accessor, read.arguments, (words, substitution))
     low = self._Word(target, read.index, words, substitution)
     if read.kind == WIDE:
       high = self._Word(target, read.index + 1, words, substitution)
       return f"(static_cast<std::uint32_t>({_Cast(low)}) | static_cast<std::uint32_t>({_Cast(high)}) << 16)"
-    owner = self.program.Source(target.owner.function.file)
-    if read.accessor:
-      return self._Accessor(target, read, low, owner)
-    return _Placed(low, owner, read.span, self.program, site)
+    return _Placed(low, self.program.Source(target.owner.function.file), read.span, self.program, site)
 
   def _Word(self, target: Target, position: int, words: list[str], substitution: Substitution) -> str:
     """The site's word at a target's word position, `0` when the target reads past what it receives."""
@@ -104,31 +156,47 @@ class Substituter:
       return "0"
     return words[index]
 
-  def _Accessor(self, target: Target, read: WordRead, word: str, owner: SourceFile) -> str:
-    """An accessor call (`byte(2)`) expanded: its lambda's expression with the word in place of its own read."""
-    accessor = target.owner.context.accessors[read.accessor]
-    tokens = owner.tokens
+  def _Accessor(self, site: CallSite, target: Target, name: str, arguments: tuple, state: tuple[list[str], Substitution]) -> str:
+    """An accessor call (`byte(2)`, `far(5, 6)`) expanded: its lambda's expression with each word read in place,
+    accessors it calls expanded the same way."""
+    words, substitution = state
+    accessors = target.owner.context.accessors
+    accessor = accessors[name]
+    owner = self.program.Source(target.owner.function.file)
+    tokens, partners = owner.tokens, owner.partners
+    bound = dict(zip(accessor.parameters, arguments))
     replacements = []
-    for index in range(accessor.expression.first, accessor.expression.last):
-      if tokens[index].text in ("Arg", "Arg32") and tokens[index + 1].text == "(":
-        close = owner.partners[index + 1]
-        replacements.append((Span(index, close + 1), _Placed(word, owner, Span(index, close + 1), self.program, None)))
-        break
+    index = accessor.expression.first
+    while index < accessor.expression.last - 1:
+      inner = [Compact(tokens, part) for part in Arguments(tokens, partners, index + 1)] if tokens[index + 1].text == "(" else []
+      if tokens[index].text in ("Arg", "Arg32") and inner and inner[-1] in bound:
+        word = self._Word(target, bound[inner[-1]], words, substitution)
+        replacements.append((Span(index, partners[index + 1] + 1), _Placed(word, owner, Span(index, partners[index + 1] + 1), self.program, site)))
+      elif tokens[index].text in accessors and inner and all(argument in bound for argument in inner):
+        text = self._Accessor(site, target, tokens[index].text, tuple(bound[argument] for argument in inner), state)
+        replacements.append((Span(index, partners[index + 1] + 1), text))
+      else:
+        index += 1
+        continue
+      index = partners[index + 1] + 1
     text = Splice(owner.text, tokens, accessor.expression, replacements)
-    return f"({text})" if _Operators(Text(tokens, accessor.expression, owner.text)) else text
+    text = f"({text})" if _Operators(Text(tokens, accessor.expression, owner.text)) else text
+    if accessor.near and text not in substitution.near:
+      substitution.near.append(text)
+    return text
 
-  def _Renames(self, site: CallSite, target: Target, owner: SourceFile) -> list[tuple[Span, str]]:
+  def _Renames(self, site: CallSite, target: Target, owner: SourceFile, span: Span) -> list[tuple[Span, str]]:
     """`ds` and the dispatcher's id where the target names them: the site's own expressions."""
     source = self.program.Source(site.file)
     names = {"ds": Text(source.tokens, site.ds, source.text)}
     if target.owner.id_name:
-      names[target.owner.id_name] = Text(source.tokens, site.service, source.text)
+      names[target.owner.id_name] = Text(source.tokens, site.service, source.text) if target.service is None else f"0x{target.service:x}"
     tokens = owner.tokens
-    for name, span in target.owner.Inlined(owner).items():
-      text = Text(tokens, span, owner.text)
+    for name, local in target.owner.Inlined(owner).items():
+      text = Text(tokens, local, owner.text)
       names[name] = f"({text})" if _Operators(text) else text
     reads = target.case.words.reads
-    return [(Span(index, index + 1), names[tokens[index].text]) for index in range(target.case.expression.first, target.case.expression.last)
+    return [(Span(index, index + 1), names[tokens[index].text]) for index in range(span.first, span.last)
             if tokens[index].kind == IDENTIFIER and tokens[index].text in names and names[tokens[index].text] != tokens[index].text
             and tokens[index - 1].text not in TIGHT and not any(read.span.Contains(index) for read in reads)]
 
@@ -156,10 +224,12 @@ class Substituter:
     tokens = owner.tokens
     inlined = target.owner.Inlined(owner)
     used = {tokens[i].text for i in range(target.case.expression.first, target.case.expression.last)}
-    spans = [target.case.expression] + [span for name, span in inlined.items() if name in used]
+    accessors = target.owner.context.accessors if target.owner.context is not None else {}
+    spans = [target.case.expression, *target.case.locals.values()] + [span for name, span in inlined.items() if name in used]
+    spans += [accessor.expression for name, accessor in accessors.items() if name in used or any(read.accessor == name for read in target.case.words.reads)]
     for index in (i for span in spans for i in range(span.first, span.last)):
       token = tokens[index]
-      if token.kind != IDENTIFIER or tokens[index - 1].text in TIGHT or token.text in substitution.invisible or token.text in inlined:
+      if token.kind != IDENTIFIER or tokens[index - 1].text in TIGHT or token.text in substitution.invisible or token.text in inlined or token.text in accessors:
         continue
       known = self.program.definitions.get(token.text, []) + self.program.declarations.get(token.text, [])
       if known and not any(function.file in visible for function in known):
@@ -172,8 +242,35 @@ class Substituter:
       header = next((file for file in files if file.suffix == ".hpp"), None)
       if header is None:
         substitution.local.append(token.text)
+      elif site.file in self.program.scopes.Closure(header):
+        substitution.cycle += [IncludeOf(header)] if IncludeOf(header) not in substitution.cycle else []
       elif IncludeOf(header) not in substitution.includes:
         substitution.includes.append(IncludeOf(header))
+
+
+def _Hoisted(words: list[str]) -> tuple[list[tuple[int, str]], list[str]]:
+  """The words to evaluate first (every one that is not a constant) and the names that stand for them."""
+  hoisted = [(index, text) for index, text in enumerate(words) if not _Constant(text)]
+  return hoisted, [f"hoisted{index}" if not _Constant(text) else text for index, text in enumerate(words)]
+
+
+def _Merged(site: CallSite, target: Target, branches: list[Substitution]) -> Substitution:
+  """One substitution carrying what each branch of a conditional id needs and reports."""
+  merged = Substitution(site, target, "", callee=" / ".join(dict.fromkeys(branch.callee for branch in branches)))
+  for branch in branches:
+    merged.past_end += [position for position in branch.past_end if position not in merged.past_end]
+    merged.void_used |= branch.void_used
+    merged.result_cast |= branch.result_cast
+    for name in ("invisible", "includes", "local", "cycle", "near"):
+      getattr(merged, name).extend(item for item in getattr(branch, name) if item not in getattr(merged, name))
+  return merged
+
+
+def _StatementStart(source: SourceFile, span: Span) -> bool:
+  """The expression at span is a whole statement where a statement may begin (not the body of an unbraced if)."""
+  tokens = source.tokens
+  following = tokens[span.last].text if span.last < len(tokens) else ""
+  return following == ";" and tokens[span.first - 1].text in (";", "{", "}")
 
 
 def IncludeOf(header) -> str:
@@ -317,7 +414,7 @@ def _OrderHazard(owner: SourceFile, expression: Span, reads: list[WordRead], tar
   """Why the site's words must be evaluated first, in order (empty when the call evaluates them as `Call` did)."""
   if not effects:
     return ""
-  used = [target.words[read.index] if read.index < len(target.words) else None for read in reads if read.kind != SPAN]
+  used = [target.words[index] if index < len(target.words) else None for read in reads if read.kind != SPAN for index in read.Indices()]
   if any(read.kind == SPAN for read in reads):
     return ""  # a span lists every word in order
   for index in effects:

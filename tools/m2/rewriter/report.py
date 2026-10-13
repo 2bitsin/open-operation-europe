@@ -104,6 +104,8 @@ def WriteReviews(model: Model, out: Path) -> dict[str, int]:
     "order":         [f"{where(s)}: {s.order}; words {[i for i, _ in s.hoisted]} hoisted in order" for s in substitutions if s.order],
     "includes":      [f"{where(s)}: includes {', '.join(s.includes)}" for s in substitutions if s.includes],
     "local":         [f"{where(s)}: needs {', '.join(s.local)}, defined only in {s.target.owner.function.file}" for s in substitutions if s.local],
+    "cycle":         [f"{where(s)}: needs {', '.join(s.cycle)}, which includes {s.site.file} (an include cycle)" for s in substitutions if s.cycle],
+    "near":          [f"{where(s)}: near pointer {near}" for s in substitutions for near in s.near],
     "unbound":       [f"{where(s)}: some caller binds the callback where the tool cannot see; resolved by {s.target.callbacks}" for s in substitutions if s.target.unbound],
     "polymorphic":   _Polymorphic(model),
     "unresolved":    _Unresolved(model),

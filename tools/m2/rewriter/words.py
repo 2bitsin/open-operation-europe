@@ -6,18 +6,24 @@ from dataclasses import dataclass, field
 
 from .constants import IsIntegerLiteral
 from .source import SourceFile
-from .syntax import Arguments, Span
+from .syntax import Arguments, Compact, Span, SplitTopLevel
 from .tokens import IDENTIFIER
 
 WIDE_READS = {"Arg32"}
 
 
+NEAR_MARKS = {"PORT_DS"}
+
+
 @dataclass(frozen=True)
 class Accessor:
-  """A lambda over the words: `auto const word{ [&](unsigned i) { return Arg(args, count, i); } };`."""
+  """A lambda over the words: `auto const word{ [&](unsigned i) { return Arg(args, count, i); } };`, or one over
+  other accessors (`far(segment, offset)` returning `port_far(w(segment), w(offset))`)."""
   name:       str
-  parameter:  str
-  expression: Span  # the lambda's return expression
+  parameters: tuple[str, ...]
+  expression: Span             # the lambda's return expression
+  order:      tuple[int, ...]  # the parameters whose words the expression reads, in the order it reads them
+  near:       bool = False     # it makes a near pointer into the data segment of a word
 
 
 WORD = "word"  # Arg(args, count, i), word(i), args[i]: one word, 0 past the end
@@ -27,14 +33,21 @@ SPAN = "span"  # { args, count }: every word, as a span
 
 @dataclass(frozen=True)
 class WordRead:
-  span:     Span    # the whole read expression, e.g. `Arg(args, count, 2)`, `word(2)` or `{ args, count }`
-  index:    int     # the word read (the low word of an Arg32; 0 for a span)
-  kind:     str = WORD
-  accessor: str = ""
+  span:      Span    # the whole read expression, e.g. `Arg(args, count, 2)`, `word(2)` or `{ args, count }`
+  index:     int     # the word read (the low word of an Arg32; 0 for a span; an accessor's first word)
+  kind:      str = WORD
+  accessor:  str = ""
+  arguments: tuple[int, ...] = ()  # an accessor's literal arguments
+  words:     tuple[int, ...] = ()  # the words an accessor reads, in order
 
   @property
   def wide(self) -> bool:
     return self.kind == WIDE
+
+  def Indices(self) -> tuple[int, ...]:
+    if self.accessor:
+      return self.words
+    return (self.index, self.index + 1) if self.wide else (self.index,)
 
 
 @dataclass
@@ -44,7 +57,7 @@ class WordUse:
   #                                                 whose index is not a constant
 
   def Indices(self) -> list[int]:
-    return [index for read in self.reads if read.kind != SPAN for index in ((read.index, read.index + 1) if read.wide else (read.index,))]
+    return [index for read in self.reads if read.kind != SPAN for index in read.Indices()]
 
   def Spans(self) -> bool:
     return any(read.kind == SPAN for read in self.reads)
@@ -107,11 +120,13 @@ class WordContext:
       if len(word) == 1 and IsIntegerLiteral(tokens[word.first]):
         return WordRead(Span(index, close + 1), _Value(tokens[word.first].text), WIDE if name in WIDE_READS else WORD)
       return -1
-    if name in self.accessors and len(arguments) == 1:
-      word = arguments[0]
-      if len(word) == 1 and IsIntegerLiteral(tokens[word.first]):
-        return WordRead(Span(index, close + 1), _Value(tokens[word.first].text), WORD, name)
-      return -1
+    accessor = self.accessors.get(name)
+    if accessor is not None and len(arguments) == len(accessor.parameters):
+      if not all(len(word) == 1 and IsIntegerLiteral(tokens[word.first]) for word in arguments):
+        return -1
+      literals = tuple(_Value(tokens[word.first].text) for word in arguments)
+      words = tuple(literals[position] for position in accessor.order)
+      return WordRead(Span(index, close + 1), words[0] if words else literals[0], WORD, name, literals, words)
     return None
 
   def _Names(self, tokens, arguments: list[Span]) -> bool:
@@ -120,29 +135,59 @@ class WordContext:
 
 
 def FindAccessors(source: SourceFile, statements: list[Span], context: WordContext) -> dict[str, Accessor]:
-  """The accessor lambdas declared among statements: `auto [const] NAME{ [..](T i) [-> R] { return EXPR; } };` or the
-  same with `= [..] ... ;`, whose EXPR reads the words."""
+  """The accessor lambdas declared among statements: `auto [const] NAME{ [..](T i, ...) [-> R] { return EXPR; } };` or
+  the same with `= [..] ... ;`, whose EXPR reads the words or calls an accessor declared before it."""
   found: dict[str, Accessor] = {}
-  tokens, partners = source.tokens, source.partners
   for statement in statements:
-    words = [token.text for token in tokens[statement.first:statement.last]]
-    if not words or words[0] != "auto":
-      continue
-    name_at = statement.first + (2 if len(words) > 1 and words[1] == "const" else 1)
-    capture = next((i for i in range(name_at, statement.last) if tokens[i].text == "["), None)
-    if tokens[name_at].kind != IDENTIFIER or capture is None or capture not in partners:
-      continue
-    parameters = partners[capture] + 1
-    if tokens[parameters].text != "(":
-      continue
-    names = [tokens[i].text for i in range(parameters + 1, partners[parameters]) if tokens[i].kind == IDENTIFIER]
-    body = next((i for i in range(partners[parameters], statement.last) if tokens[i].text == "{"), None)
-    if not names or body is None or tokens[body + 1].text != "return":
-      continue
-    expression = Span(body + 2, partners[body] - 1)
-    if any(token.text == context.args for token in tokens[expression.first:expression.last]):
-      found[tokens[name_at].text] = Accessor(tokens[name_at].text, names[-1], expression)
+    accessor = _Accessor(source, statement, context, found)
+    if accessor is not None:
+      found[accessor.name] = accessor
   return found
+
+
+def _Accessor(source: SourceFile, statement: Span, context: WordContext, known: dict[str, Accessor]) -> Accessor | None:
+  tokens, partners = source.tokens, source.partners
+  words = [token.text for token in tokens[statement.first:statement.last]]
+  if not words or words[0] != "auto":
+    return None
+  name_at = statement.first + (2 if len(words) > 1 and words[1] == "const" else 1)
+  capture = next((i for i in range(name_at, statement.last) if tokens[i].text == "["), None)
+  if tokens[name_at].kind != IDENTIFIER or capture is None or capture not in partners or tokens[partners[capture] + 1].text != "(":
+    return None
+  parameters = partners[capture] + 1
+  names = tuple(tokens[part.last - 1].text for part in SplitTopLevel(tokens, Span(parameters + 1, partners[parameters]), ","))
+  body = next((i for i in range(partners[parameters], statement.last) if tokens[i].text == "{"), None)
+  if not names or body is None or tokens[body + 1].text != "return":
+    return None
+  expression = Span(body + 2, partners[body] - 1)
+  order = _ReadOrder(source, expression, names, context, known)
+  if order is None:
+    return None
+  near = any(t.text in NEAR_MARKS or t.text in known and known[t.text].near for t in tokens[expression.first:expression.last])
+  return Accessor(tokens[name_at].text, names, expression, order, near)
+
+
+def _ReadOrder(source: SourceFile, expression: Span, names: tuple[str, ...], context: WordContext,
+               known: dict[str, Accessor]) -> tuple[int, ...] | None:
+  """The parameter positions whose words the expression reads, in order; None when it reads no words."""
+  tokens, partners = source.tokens, source.partners
+  order: list[int] = []
+  reads = False
+  for index in range(expression.first, expression.last - 1):
+    token = tokens[index]
+    if token.kind != IDENTIFIER or tokens[index + 1].text != "(" or index + 1 not in partners:
+      reads = reads or token.text == context.args
+      continue
+    arguments = [Compact(tokens, part) for part in Arguments(tokens, partners, index + 1)]
+    if token.text in ("Arg", *WIDE_READS) and arguments[:1] == [context.args]:
+      reads = True
+      order += [names.index(arguments[-1])] if arguments[-1] in names else []
+    elif token.text in known:
+      reads = True
+      inner = known[token.text]
+      bound = [names.index(argument) if argument in names else None for argument in arguments]
+      order += [bound[position] for position in inner.order if position < len(bound) and bound[position] is not None]
+  return tuple(order) if reads else None
 
 
 def _Member(tokens, index: int) -> bool:

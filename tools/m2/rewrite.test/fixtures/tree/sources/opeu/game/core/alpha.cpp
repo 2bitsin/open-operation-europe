@@ -48,3 +48,9 @@ uint16_t svc_alpha(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t coun
 uint16_t svc_beta(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   return svc_alpha(ds, id, args, count);
 }
+
+// Two sites of one block whose words are evaluated first, one of them in a declaration's initialiser.
+void opeu_alpha_twice(std::uint8_t* ds) {
+  auto const first{ Call(ds, svc_alpha, PAIR, opeu_tick(ds), opeu_tick(ds)) };
+  Call(ds, svc_alpha, PAIR, opeu_tick(ds), first);
+}

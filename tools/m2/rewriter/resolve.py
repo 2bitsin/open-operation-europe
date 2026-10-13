@@ -2,14 +2,13 @@
 single-statement case or handler whose routine call replaces the site."""
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 
 from .calls import Bindings, CallSite
 from .dispatch import LINKING, SINGLE, Case, Dispatcher, Forward
 from .links import LinkTable
 from .program import Program
-from .syntax import Compact
+from .syntax import Compact, Span, SplitTopLevel
 
 MAX_HOPS = 8
 
@@ -26,12 +25,17 @@ class Target:
   failure:    str = ""
   callbacks:  list[str] = field(default_factory=list)  # the svc_* the site's callback may be (all reach this target)
   unbound:    bool = False       # some caller binds the callback where the tool cannot see (a pointer, a member)
+  service:    int | None = None  # the id the case was reached with, when a forward changed the site's id
+  condition:  Span | None = None  # a site whose id is `condition ? A : B`: the condition, and the two targets
+  branches:   list["Target"] = field(default_factory=list)
 
   def Same(self, other: "Target") -> bool:
     return self.case is other.case and self.words == other.words and self.count == other.count
 
   @property
   def resolved(self) -> bool:
+    if self.branches:
+      return not self.failure and all(branch.resolved for branch in self.branches)
     return self.case is not None and self.case.kind == SINGLE and not self.failure
 
 
@@ -53,16 +57,43 @@ class Resolver:
     if any(Compact(source.tokens, word).endswith("...") for word in site.words):
       return Target(None, None, words, len(words), bound, failure="a word is a parameter pack expansion (the count is not fixed)")
     service = Compact(source.tokens, site.service)
+    if site.function.ParameterIndex(service) is not None:
+      return Target(None, None, words, len(words), bound, failure=f"service id is a parameter ({service} of {site.function.name})")
+    if len(site.service) == 1 and source.tokens[site.service.first].text.islower():
+      return Target(None, None, words, len(words), bound, failure=f"service id is a parameter ({service}, a local {site.function.name} computes from its parameters)")
+    ternary = TernaryParts(source.tokens, site.service)
+    if ternary is not None:
+      return self._Ternary(site, ternary, bound, words)
     value = self.program.ConstantsOf(site.file).Evaluate(service)
     if value is None:
       return Target(None, None, words, len(words), bound, failure=f"service {service} is not a constant")
+    target = self._Bound(bound, value, words)
+    target.callbacks, target.unbound = bound, len(bound) != len(callbacks)
+    return target
+
+  def _Bound(self, bound: list[str], value: int, words: list[int | None]) -> Target:
+    """The target of an id through every dispatcher the callback may be (a failure when they reach different code)."""
     targets = [self._FromDispatcher(name, value, words, []) for name in bound]
     target = targets[0]
-    target.callbacks, target.unbound = bound, len(bound) != len(callbacks)
     if not all(target.Same(other) and not other.failure for other in targets[1:]):
       target.failure = target.failure or "callback bound to dispatchers that reach different code: " + "; ".join(
         " > ".join(other.chain) for other in targets)
     return target
+
+  def _Ternary(self, site: CallSite, parts: tuple[Span, Span, Span], bound: list[str], words: list[int | None]) -> Target:
+    """A site whose id is `condition ? A : B` with A and B constants: both targets, resolved only when both are."""
+    source = self.program.Source(site.file)
+    constants = self.program.ConstantsOf(site.file)
+    condition, *alternatives = parts
+    values = [constants.Evaluate(Compact(source.tokens, part)) for part in alternatives]
+    if None in values:
+      return Target(None, None, words, len(words), bound, failure=f"service {Compact(source.tokens, site.service)} is not a constant")
+    branches = [self._Bound(bound, value, words) for value in values]
+    first = branches[0]
+    failure = "; ".join(f"{'AB'[i]}: {branch.failure}" for i, branch in enumerate(branches) if branch.failure)
+    chain = [" | ".join(" > ".join(branch.chain) for branch in branches)]
+    return Target(first.case, first.owner, words, len(words), chain, battle=first.battle, failure=failure, callbacks=bound,
+                  condition=condition, branches=branches)
 
   def _Callbacks(self, site: CallSite, event: str) -> set[str]:
     if event.startswith("svc_"):
@@ -79,6 +110,10 @@ class Resolver:
     guarded = self._Guard(dispatcher, value)
     if isinstance(guarded, str):
       return Target(None, dispatcher, words, len(words), chain, failure=guarded)
+    if isinstance(guarded, Case):
+      target = self._Reached(dispatcher, guarded, words, chain)
+      target.battle = dispatcher.battle  # a battle dispatcher's own branch for a routine address: B2's
+      return target
     if guarded is not None:
       return self._Forward(dispatcher, guarded, value, words, chain)
     if dispatcher.forward is not None:
@@ -88,34 +123,50 @@ class Resolver:
     case = dispatcher.CaseFor(value) or dispatcher.default
     if case is None:
       return Target(None, dispatcher, words, len(words), chain, failure=f"{name} has no case 0x{value:x} and no default")
+    if case is dispatcher.default and dispatcher.out:
+      return Target(None, dispatcher, words, len(words), chain, failure=f"{name} does not serve 0x{value:x} (its default reports it unserved)")
     if case.forward is not None:
       return self._Forward(dispatcher, case.forward, value, words, chain)
+    return self._Reached(dispatcher, case, words, chain)
+
+  def _Reached(self, dispatcher: Dispatcher, case: Case, words: list[int | None], chain: list[str]) -> Target:
+    """The target of a case (or a guard's branch) that does the work itself."""
     if case.kind == LINKING and case.forward is None:
       return Target(case, dispatcher, words, len(words), chain, failure=f"case {case.labels[0]} calls the link table by itself")
-    failure = "" if case.kind == SINGLE else f"case {case.labels[0]} of {name} is {case.kind} ({case.reason})"
+    failure = "" if case.kind == SINGLE else f"case {case.labels[0]} of {dispatcher.name} is {case.kind} ({case.reason})"
     return Target(case, dispatcher, words, len(words), chain + [case.labels[0]], failure=failure)
 
-  def _Guard(self, dispatcher: Dispatcher, value: int) -> Forward | str | None:
-    """The forward of the first guard the id passes, a failure when that guard does more or cannot be evaluated."""
+  def _Guard(self, dispatcher: Dispatcher, value: int) -> Forward | Case | str | None:
+    """What the first guard the id passes does (a forward or a case of its own), a failure when it cannot be told."""
+    source = self.program.Source(dispatcher.function.file)
     for guard in dispatcher.guards:
-      source = self.program.Source(dispatcher.function.file)
       text = Compact(source.tokens, guard.condition)
-      for name, span in dispatcher.locals.items():
-        text = re.sub(rf"\b{name}\b", f"({Compact(source.tokens, span)})", text)
-      passed = dispatcher.constants.Evaluate(re.sub(rf"\b{dispatcher.id_name}\b", str(value), text))
+      passed = dispatcher.Evaluate(source, text, value)
       if passed is None:
         return f"{dispatcher.name}: guard on line {guard.line} cannot be evaluated ({text})"
       if passed:
-        return guard.forward or f"{dispatcher.name}: guard on line {guard.line} takes 0x{value:x} itself"
+        return guard.forward or guard.case or f"{dispatcher.name}: guard on line {guard.line} takes 0x{value:x} itself"
     return None
 
   def _Forward(self, dispatcher: Dispatcher, forward: Forward, value: int, words: list[int | None], chain: list[str]) -> Target:
     if forward.reorder is not None:
       words = [words[i] if i < len(words) else None for i in forward.reorder]
-    if forward.service is not None:
-      value = forward.service
+    source = self.program.Source(dispatcher.function.file)
+    for predicate in forward.unless:
+      held = dispatcher.Evaluate(source, predicate, value)
+      if held is None or held:
+        reason = "cannot be evaluated" if held is None else "holds"
+        return Target(None, dispatcher, words, len(words), chain, failure=f"{dispatcher.name}: 0x{value:x} is not handed on ({predicate} {reason})")
+    remapped = value
+    if forward.id_expression is not None:
+      remapped = dispatcher.Evaluate(source, forward.id_expression, value)
+      if remapped is None:
+        return Target(None, dispatcher, words, len(words), chain, failure=f"{dispatcher.name}: id {forward.id_expression} for 0x{value:x} is not a constant")
     if forward.target != "port_service":
-      return self._FromDispatcher(forward.target, value, words, chain)
+      target = self._FromDispatcher(forward.target, remapped, words, chain)
+      target.service = target.service if target.service is not None or remapped == value else remapped
+      return target
+    value = remapped
     handler = self.links.HandlerAt(value)
     chain = chain + [self.links.KeyName(value)]
     if handler is None:
@@ -123,3 +174,12 @@ class Resolver:
     case = handler.case
     failure = "" if case.kind == SINGLE else f"handler {handler.name} is {case.kind} ({case.reason})"
     return Target(case, handler.dispatcher, words, len(words), chain + [handler.name], battle=True, failure=failure)
+
+
+def TernaryParts(tokens, span: Span) -> tuple[Span, Span, Span] | None:
+  """(condition, A, B) of an expression `condition ? A : B` at the top level of span, None when it is not one."""
+  question = SplitTopLevel(tokens, span, "?")
+  if len(question) != 2:
+    return None
+  alternatives = SplitTopLevel(tokens, question[1], ":")
+  return (question[0], alternatives[0], alternatives[1]) if len(alternatives) == 2 else None

@@ -2,6 +2,7 @@
 another dispatcher or to the link table (`port_service`)."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .constants import Constants
@@ -43,7 +44,8 @@ class Case:
   stack:      bool = False
   line:       int = 0
   reason:     str = ""
-  forward:    "Forward | None" = None  # a battle case handing the words on to the link table, maybe reordered
+  forward:    "Forward | None" = None  # a case handing the words on to another dispatcher or to the link table
+  locals:     dict[str, Span] = field(default_factory=dict)  # a local the statement uses once: NAME -> its expression
 
   def Summary(self, source: SourceFile) -> dict:
     return {"labels": self.labels, "values": self.values, "kind": self.kind, "form": self.form, "line": self.line,
@@ -54,18 +56,23 @@ class Case:
 
 @dataclass
 class Forward:
-  """A dispatcher (or its default) handing the call on unchanged: to another svc_* or to the link table."""
-  target:  str  # a svc_* name or "port_service"
-  reorder: tuple[int, ...] | None = None  # btl_reorder's word order
-  service: int | None = None              # a different service id than the one received
+  """A dispatcher (or one of its cases) handing the words on: to another svc_* or to the link table. The id handed on
+  is the one received, or `id_expression` evaluated on it (a constant, or a constexpr table indexed by the id); an id
+  for which one of the `unless` predicates holds is not handed on (the dispatcher reports it unhandled)."""
+  target:        str                           # a svc_* name or "port_service"
+  reorder:       tuple[int, ...] | None = None  # btl_reorder's word order
+  id_expression: str | None = None             # the id handed on, as text over the received id
+  unless:        tuple[str, ...] = ()          # predicates on the received id that keep it from being handed on
 
 
 @dataclass
 class Guard:
-  """An `if (CONDITION) ...` on the id before the switch or the forward: a forward when the branch only forwards."""
+  """An `if (CONDITION) ...` on the id before the switch or the forward: a forward when the branch only forwards, a
+  case when the condition is `id == K` and the branch does the work itself."""
   condition: Span
   forward:   Forward | None
   line:      int
+  case:      Case | None = None
 
 
 @dataclass
@@ -78,6 +85,7 @@ class Dispatcher:
   default:   Case | None = None
   forward:   Forward | None = None
   result:    str = ""  # the result variable the cases assign
+  out:       str = ""  # the parameter the result is stored through when the dispatcher returns whether it served the id
   irregular: str = ""  # why the body is neither a switch nor a forwarder
   guards:    list[Guard] = field(default_factory=list)
   locals:    dict[str, Span] = field(default_factory=dict)  # constant locals the guards may compare with
@@ -94,8 +102,22 @@ class Dispatcher:
     return {name: span for name, span in self.locals.items() if not _Impure(source, span) and self.context is not None
             and not any(t.text in (self.context.args, self.context.count) or t.text in self.context.accessors for t in source.tokens[span.first:span.last])}
 
+  def WordLocals(self, source: SourceFile) -> dict[str, Span]:
+    """The `auto const NAME{ EXPR };` locals whose EXPR only reads words and converts them (`x{ static_cast<uint8_t>(
+    Arg(args, count, 0)) }`): a case naming NAME reads the word where it names it."""
+    if self.context is None:
+      return {}
+    return {name: span for name, span in self.locals.items() if not _Impure(source, span, READS_AND_CASTS)
+            and any(t.text in ("Arg", "Arg32") for t in source.tokens[span.first:span.last]) and "[" not in {t.text for t in source.tokens[span.first:span.last]}}
+
   def CaseFor(self, value: int) -> Case | None:
     return next((case for case in self.cases if value in case.values), None)
+
+  def Evaluate(self, source: SourceFile, text: str, value: int) -> int | None:
+    """An expression over the id (Compact text) evaluated for one id value, the dispatcher's constant locals in place."""
+    for name, span in self.locals.items():
+      text = re.sub(rf"\b{name}\b", f"({Compact(source.tokens, span)})", text)
+    return self.constants.Evaluate(re.sub(rf"(?<![\w:]){self.id_name}\b", str(value), text)) if self.id_name else None
 
 
 def FindDispatchers(program: Program) -> dict[str, Dispatcher]:
@@ -116,39 +138,38 @@ def _Dispatcher(program: Program, function: Function) -> Dispatcher:
   count = parameters[parameters.index(pointer) + 1].name if pointer is not None and parameters.index(pointer) + 1 < len(parameters) else ""
   context = WordContext(pointer.name, count) if pointer is not None and pointer.name else None
   battle = id_at is not None and "uint32_t" in parameters[id_at].type
-  dispatcher = Dispatcher(function, context, id_name, battle)
+  dispatcher = Dispatcher(function, context, id_name, battle, out=_OutName(parameters))
   body = Span(function.body.first + 1, function.body.last - 1)
   statements = Statements(source.tokens, source.partners, body)
   if context is not None:
     context.accessors = FindAccessors(source, statements, context)
   constants = dispatcher.constants = program.ConstantsOf(function.file)
   dispatcher.declared = {name for s in statements if source.tokens[s.first].text != "switch" for name in DeclaredNames(source, s)}
-  statements = _ReadGuards(source, statements, dispatcher, constants)
+  dispatcher.result = _ResultName(source, statements, dispatcher.out)
+  statements = _ReadGuards(source, statements, dispatcher)
   switch = next((s for s in statements if source.tokens[s.first].text == "switch"), None)
   if switch is None:
-    _ReadForwarder(source, statements, dispatcher, constants)
+    _ReadForwarder(source, statements, dispatcher)
   else:
-    dispatcher.result = _ResultName(source, statements)
     if "BattleRoutine" in Compact(source.tokens, Span(switch.first, source.partners[switch.first + 1] + 1)):
       dispatcher.battle = True
     _ReadSwitch(program, source, switch, dispatcher)
   return dispatcher
 
 
-def _ReadGuards(source: SourceFile, statements: list[Span], dispatcher: Dispatcher, constants: Constants) -> list[Span]:
-  """Takes the `if` statements on the id (and the constant locals they compare with) out of statements."""
+def _ReadGuards(source: SourceFile, statements: list[Span], dispatcher: Dispatcher) -> list[Span]:
+  """Takes the `if` statements on the id (and the constant locals they compare with) out of statements; an `if` that
+  forwards in its condition (`if (P || !svc_x(...)) port_unhandled(...);`) is the dispatcher's forward."""
   tokens, partners = source.tokens, source.partners
   rest = []
   for statement in statements:
     first = tokens[statement.first]
     if first.text == "if" and dispatcher.id_name in {t.text for t in tokens[statement.first:partners[statement.first + 1]]}:
-      close = partners[statement.first + 1]
-      branch = Span(close + 1, statement.last)
-      if tokens[branch.first].text == "{" and partners.get(branch.first) == branch.last - 1:
-        branch = Span(branch.first + 1, branch.last - 1)
-      inner = Statements(tokens, partners, branch)
-      forward = ForwardOf(source, dispatcher, inner[0], constants) if len(inner) == 1 else None
-      dispatcher.guards.append(Guard(Span(statement.first + 2, close), forward, first.line))
+      forward = ForwardOf(source, dispatcher, statement)
+      if forward is not None:
+        dispatcher.forward = forward
+      else:
+        dispatcher.guards.append(_Guard(source, dispatcher, statement))
     elif first.text == "auto" and tokens[statement.first + 1].text == "const" and tokens[statement.first + 3].text == "{":
       dispatcher.locals[tokens[statement.first + 2].text] = Span(statement.first + 4, partners[statement.first + 3])
     elif first.text == "(" and tokens[statement.first + 1].text == "void":
@@ -158,12 +179,40 @@ def _ReadGuards(source: SourceFile, statements: list[Span], dispatcher: Dispatch
   return rest
 
 
+def _Guard(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> Guard:
+  """`if (CONDITION) BRANCH`: a forward when BRANCH only forwards, a case when CONDITION is `id == K`."""
+  tokens, partners = source.tokens, source.partners
+  close = partners[statement.first + 1]
+  condition = Span(statement.first + 2, close)
+  branch = Span(close + 1, statement.last)
+  if tokens[branch.first].text == "{" and partners.get(branch.first) == branch.last - 1:
+    branch = Span(branch.first + 1, branch.last - 1)
+  inner = [s for s in Statements(tokens, partners, branch) if not IsFiller(source, s)]
+  forward = ForwardOf(source, dispatcher, inner[0]) if len(inner) == 1 else None
+  guard = Guard(condition, forward, tokens[statement.first].line)
+  label = _EqualityLabel(source, dispatcher, condition)
+  if forward is None and label:
+    guard.case = Case([label], [dispatcher.constants.Evaluate(label)], branch, inner, line=guard.line)
+    Classify(source, dispatcher, guard.case)
+  return guard
+
+
+def _EqualityLabel(source: SourceFile, dispatcher: Dispatcher, condition: Span) -> str:
+  """K of a condition `id == K` (or `K == id`) where K is a constant, else empty."""
+  sides = Compact(source.tokens, condition).split("==")
+  if len(sides) != 2 or dispatcher.id_name not in sides:
+    return ""
+  label = sides[1] if sides[0] == dispatcher.id_name else sides[0]
+  return label if dispatcher.constants.Evaluate(label) is not None else ""
+
+
 PURE_LOCALS = {"static_cast", "port_dialogs_host", "port_textout_host", "port_uiprim_host", "port_numdlg_host", "std", "to_underlying"}
+READS_AND_CASTS = {"static_cast", "Arg", "Arg32", "std", "to_underlying"}
 
 
-def _Impure(source: SourceFile, span: Span) -> bool:
+def _Impure(source: SourceFile, span: Span, pure: set[str] = PURE_LOCALS) -> bool:
   tokens = source.tokens
-  return any(tokens[i].kind == IDENTIFIER and tokens[i + 1].text == "(" and tokens[i].text not in PURE_LOCALS for i in range(span.first, span.last - 1))
+  return any(tokens[i].kind == IDENTIFIER and tokens[i + 1].text == "(" and tokens[i].text not in pure for i in range(span.first, span.last - 1))
 
 
 def DeclaredNames(source: SourceFile, statement: Span) -> set[str]:
@@ -190,64 +239,14 @@ def _IsId(type_text: str) -> bool:
   return type_text.replace("std::", "") in ("uint16_t", "uint32_t")
 
 
-def _ReadGuards(source: SourceFile, statements: list[Span], dispatcher: Dispatcher, constants: Constants) -> list[Span]:
-  """Takes the `if` statements on the id (and the constant locals they compare with) out of statements."""
-  tokens, partners = source.tokens, source.partners
-  rest = []
-  for statement in statements:
-    first = tokens[statement.first]
-    if first.text == "if" and dispatcher.id_name in {t.text for t in tokens[statement.first:partners[statement.first + 1]]}:
-      close = partners[statement.first + 1]
-      branch = Span(close + 1, statement.last)
-      if tokens[branch.first].text == "{" and partners.get(branch.first) == branch.last - 1:
-        branch = Span(branch.first + 1, branch.last - 1)
-      inner = Statements(tokens, partners, branch)
-      forward = ForwardOf(source, dispatcher, inner[0], constants) if len(inner) == 1 else None
-      dispatcher.guards.append(Guard(Span(statement.first + 2, close), forward, first.line))
-    elif first.text == "auto" and tokens[statement.first + 1].text == "const" and tokens[statement.first + 3].text == "{":
-      dispatcher.locals[tokens[statement.first + 2].text] = Span(statement.first + 4, partners[statement.first + 3])
-    elif first.text == "(" and tokens[statement.first + 1].text == "void":
-      continue
-    else:
-      rest.append(statement)
-  return rest
+def _OutName(parameters: list) -> str:
+  """The `uint16_t* result` parameter (non-const) through which a dispatcher that returns a flag stores its result."""
+  return next((p.name for p in parameters if p.type.replace("std::", "").replace(" ", "") == "uint16_t*"), "")
 
 
-PURE_LOCALS = {"static_cast", "port_dialogs_host", "port_textout_host", "port_uiprim_host", "port_numdlg_host", "std", "to_underlying"}
-
-
-def _Impure(source: SourceFile, span: Span) -> bool:
-  tokens = source.tokens
-  return any(tokens[i].kind == IDENTIFIER and tokens[i + 1].text == "(" and tokens[i].text not in PURE_LOCALS for i in range(span.first, span.last - 1))
-
-
-def DeclaredNames(source: SourceFile, statement: Span) -> set[str]:
-  """The names a declaration statement declares (`auto const* dialogs{ ... };`, `uint16_t sp, r = 0;`)."""
-  tokens, partners = source.tokens, source.partners
-  if tokens[statement.first].text in ("return", "if", "switch", "for", "while", "do", "(") or tokens[statement.first].kind != IDENTIFIER:
-    return set()
-  names, index = set(), statement.first + 1
-  while index < statement.last:
-    token = tokens[index]
-    following = tokens[index + 1].text if index + 1 < statement.last else ""
-    if token.kind == IDENTIFIER and following in ("{", "=", ";", ",", "[") and tokens[index - 1].text not in (".", "->", "::", "(", "=", ","):
-      names.add(token.text)
-    elif token.kind == IDENTIFIER and following in ("{", "=", ";", ",", "[") and tokens[index - 1].text == ",":
-      names.add(token.text)
-    if token.text in ("(", "[", "{") and index in partners:
-      index = partners[index] + 1
-      continue
-    index += 1
-  return names
-
-
-def _IsId(type_text: str) -> bool:
-  return type_text.replace("std::", "") in ("uint16_t", "uint32_t")
-
-
-def _ResultName(source: SourceFile, statements: list[Span]) -> str:
+def _ResultName(source: SourceFile, statements: list[Span], out: str) -> str:
   """The local the cases assign their result to: declared before the switch (`uint16_t sp, r = 0;`) and returned
-  after it (`return r;`)."""
+  after it (`return r;`) or stored through the out parameter (`*result = r;`)."""
   tokens = source.tokens
   declared: set[str] = set()
   for statement in statements:
@@ -256,36 +255,90 @@ def _ResultName(source: SourceFile, statements: list[Span]) -> str:
     if tokens[start].text in RESULT_TYPES:
       declared |= {tokens[part.first].text for part in SplitTopLevel(tokens, Span(start + 1, statement.last - 1), ",") if len(part)}
   returned = [tokens[s.first + 1].text for s in statements if tokens[s.first].text == "return" and len(s) == 3]
-  return next((name for name in returned if name in declared), "")
+  stored = [tokens[s.first + 3].text for s in statements if out and len(s) == 5 and [t.text for t in tokens[s.first:s.first + 3]] == ["*", out, "="]]
+  return next((name for name in returned + stored if name in declared), "")
 
 
-def _ReadForwarder(source: SourceFile, statements: list[Span], dispatcher: Dispatcher, constants: Constants) -> None:
-  real = [s for s in statements if source.tokens[s.first].text != "static"]
-  forward = ForwardOf(source, dispatcher, real[0], constants) if len(real) == 1 else None
+def _ReadForwarder(source: SourceFile, statements: list[Span], dispatcher: Dispatcher) -> None:
+  real = [s for s in statements if source.tokens[s.first].text != "static" and not _ResultBookkeeping(source, dispatcher, s)]
+  if dispatcher.forward is not None and not real:
+    return
+  forward = ForwardOf(source, dispatcher, real[0]) if len(real) == 1 and dispatcher.forward is None else None
   if forward is None:
     dispatcher.irregular = f"{len(real)} statements, no switch" + (f" after {len(dispatcher.guards)} guards" if dispatcher.guards else "")
   dispatcher.forward = forward
 
 
-def ForwardOf(source: SourceFile, dispatcher: Dispatcher, statement: Span, constants: Constants) -> Forward | None:
-  """`[return] svc_x(ds, [module,] ID, args, count);` or `[return] port_service(ds, ID, args, count);` as a Forward:
-  the words handed on unchanged, ID the dispatcher's own id or a constant."""
+def _ResultBookkeeping(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> bool:
+  """The result variable's declaration, `return result;` or `*out = result;`."""
+  if not dispatcher.result:
+    return False
+  texts = [token.text for token in source.tokens[statement.first:statement.last]]
+  return texts in (["return", dispatcher.result, ";"], ["*", dispatcher.out, "=", dispatcher.result, ";"]) or (
+    dispatcher.result in DeclaredNames(source, statement) and texts[0] in RESULT_TYPES | {"std"})
+
+
+def ForwardOf(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> Forward | None:
+  """A statement that hands the words on as a Forward, the id handed on being the dispatcher's own, a constant or a
+  table entry indexed by it:
+    [return | result =] svc_x(ds, [module,] ID, args, count [, &result]);
+    [return] port_service(ds, ID, args, count);
+    if (P || ... || !svc_x(ds, ID, args, count, &result)) port_unhandled(...);"""
   tokens = source.tokens
-  first = statement.first + (1 if tokens[statement.first].text == "return" else 0)
-  if tokens[first].kind != IDENTIFIER or tokens[first + 1].text != "(" or dispatcher.context is None:
+  if dispatcher.context is None:
     return None
-  name = tokens[first].text
+  if tokens[statement.first].text == "if":
+    return _PredicateForward(source, dispatcher, statement)
+  first = statement.first + _LeadLength(source, dispatcher, statement)
   end = statement.last - (1 if tokens[statement.last - 1].text == ";" else 0)
-  if source.partners.get(first + 1, -1) + 1 != end or not (name.startswith("svc_") or name in ("port_service", "port_call")):
+  if source.partners.get(first + 1, -1) + 1 != end:
+    return None
+  return _CallForward(source, dispatcher, first)
+
+
+def _LeadLength(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> int:
+  """How many tokens before the call: 1 for `return`, 2 for `result =`, else 0."""
+  texts = [token.text for token in source.tokens[statement.first:statement.first + 2]]
+  if texts[:1] == ["return"]:
+    return 1
+  return 2 if dispatcher.result and texts == [dispatcher.result, "="] else 0
+
+
+def _CallForward(source: SourceFile, dispatcher: Dispatcher, first: int) -> Forward | None:
+  """The call at first as a Forward when it is one of a dispatcher or of the link table taking the words unchanged."""
+  tokens = source.tokens
+  name = tokens[first].text
+  if tokens[first].kind != IDENTIFIER or tokens[first + 1].text != "(" or not (name.startswith("svc_") or name in ("port_service", "port_call")):
     return None
   arguments = [Compact(tokens, part) for part in Arguments(tokens, source.partners, first + 1)]
+  if arguments and arguments[-1].startswith("&") and dispatcher.result and arguments[-1] == "&" + dispatcher.result:
+    arguments = arguments[:-1]
   if len(arguments) < 4 or arguments[-2:] != [dispatcher.context.args, dispatcher.context.count]:
     return None
   target = "port_service" if name == "port_call" else name
   if arguments[-3] == dispatcher.id_name:
     return Forward(target)
-  service = constants.Evaluate(arguments[-3])
-  return Forward(target, service=service) if service is not None else None
+  if dispatcher.Evaluate(source, arguments[-3], 0) is None and dispatcher.constants.Evaluate(arguments[-3]) is None:
+    return None
+  return Forward(target, id_expression=arguments[-3])
+
+
+def _PredicateForward(source: SourceFile, dispatcher: Dispatcher, statement: Span) -> Forward | None:
+  """`if (P || ... || !svc_x(ds, ID, args, count, &result)) port_unhandled(...);`: the call forwards unless a P holds."""
+  tokens, partners = source.tokens, source.partners
+  close = partners[statement.first + 1]
+  body = [token.text for token in tokens[close + 1:close + 3]]
+  if body != ["port_unhandled", "("]:
+    return None
+  terms = SplitTopLevel(tokens, Span(statement.first + 2, close), "||")
+  last = terms[-1]
+  if tokens[last.first].text != "!" or partners.get(last.first + 2, -1) != last.last - 1:
+    return None
+  forward = _CallForward(source, dispatcher, last.first + 1)
+  if forward is None:
+    return None
+  forward.unless = tuple(Compact(tokens, term) for term in terms[:-1])
+  return forward
 
 
 def _ReadSwitch(program: Program, source: SourceFile, switch: Span, dispatcher: Dispatcher) -> None:
@@ -369,20 +422,45 @@ def Classify(source: SourceFile, dispatcher: Dispatcher, case: Case) -> None:
   called = {tokens[i].text for s in case.statements for i in range(s.first, s.last - 1) if tokens[i].kind == IDENTIFIER and tokens[i + 1].text == "("}
   case.stack = bool(names & STACK_CALLS)
   if dispatcher.context is not None:
-    case.words = _Words(source, dispatcher.context, case.statements)
+    case.locals = {name: span for name, span in dispatcher.WordLocals(source).items() if name in names}
+    case.words = _Words(source, dispatcher.context, case.statements + list(case.locals.values()))
   statements = _DropTrailingResultReturn(source, dispatcher, case.statements)
   if called & LINK_CALLS:
     case.kind, case.reason = LINKING, ", ".join(sorted(called & LINK_CALLS))
     case.forward = _LinkForward(source, dispatcher, statements) if len(statements) == 1 else None
   elif any(name.startswith("svc_") for name in called):
-    case.forward = ForwardOf(source, dispatcher, statements[0], dispatcher.constants) if len(statements) == 1 else None
+    case.forward = ForwardOf(source, dispatcher, statements[0]) if len(statements) == 1 else None
     case.kind, case.reason = FORWARDING, ", ".join(sorted(name for name in called if name.startswith("svc_")))
   elif case.words.raw:
     case.kind, case.reason = RAW, f"{len(case.words.raw)} raw uses"
+  elif len(statements) == 2 and _LocalUsedOnce(source, statements, case):
+    _Single(source, dispatcher, case, statements[1])
   elif len(statements) != 1:
     case.kind, case.reason = MULTI, f"{len(statements)} statements"
   else:
     _Single(source, dispatcher, case, statements[0])
+
+
+def _LocalUsedOnce(source: SourceFile, statements: list[Span], case: Case) -> bool:
+  """`auto [const] NAME{ EXPR };` then a statement naming NAME once, EXPR evaluated where NAME stood without moving a
+  side effect: EXPR only reads words and converts, or the statement is `return NAME;`. Records NAME in case.locals."""
+  tokens, partners = source.tokens, source.partners
+  declaration, use = statements
+  at = declaration.first + (2 if [t.text for t in tokens[declaration.first:declaration.first + 2]] == ["auto", "const"] else 1)
+  if tokens[declaration.first].text != "auto" or tokens[at].kind != IDENTIFIER or tokens[at + 1].text != "{":
+    return False
+  if partners.get(at + 1) != declaration.last - 2 or tokens[declaration.last - 1].text != ";":
+    return False
+  name = tokens[at].text
+  if sum(1 for t in tokens[use.first:use.last] if t.text == name) != 1:
+    return False
+  expression = Span(at + 2, declaration.last - 2)
+  if any(t.text == name for t in tokens[expression.first:expression.last]):
+    return False
+  if _Impure(source, expression, READS_AND_CASTS) and [t.text for t in tokens[use.first:use.last]] != ["return", name, ";"]:
+    return False
+  case.locals[name] = expression
+  return True
 
 
 def _Words(source: SourceFile, context: WordContext, statements: list[Span]) -> WordUse:
@@ -413,7 +491,7 @@ def _Single(source: SourceFile, dispatcher: Dispatcher, case: Case, statement: S
     case.form, case.expression = ASSIGNS, Span(statement.first + 2, end)
   else:
     case.form, case.expression = STATEMENT, Span(statement.first, end)
-  foreign = _DispatcherLocals(source, dispatcher, case.expression)
+  foreign = _DispatcherLocals(source, dispatcher, case.expression, case.locals)
   if foreign:
     case.kind, case.reason = MULTI, "uses " + ", ".join(sorted(foreign))
   elif tokens[statement.first].text in ("if", "for", "while", "switch", "do"):
@@ -422,7 +500,7 @@ def _Single(source: SourceFile, dispatcher: Dispatcher, case: Case, statement: S
     case.kind = SINGLE
 
 
-def _DispatcherLocals(source: SourceFile, dispatcher: Dispatcher, span: Span) -> set[str]:
+def _DispatcherLocals(source: SourceFile, dispatcher: Dispatcher, span: Span, case_locals: dict[str, Span]) -> set[str]:
   """Names of the dispatcher's own parameters and locals (other than ds, the words and the id) an expression uses."""
   parameters = {p.name for p in dispatcher.function.parameters} - {"ds", dispatcher.id_name}
   if dispatcher.context is not None:
@@ -431,7 +509,7 @@ def _DispatcherLocals(source: SourceFile, dispatcher: Dispatcher, span: Span) ->
   used = {tokens[i].text for i in range(span.first, span.last) if tokens[i].kind == IDENTIFIER and tokens[i - 1].text not in (".", "->", "::")}
   accessors = set(dispatcher.context.accessors) if dispatcher.context is not None else set()
   locals_ = (parameters | (dispatcher.declared - set(dispatcher.Inlined(source))) | ({dispatcher.result} - {""})) & used
-  return locals_ - accessors
+  return locals_ - accessors - set(case_locals)
 
 
 def _LinkForward(source: SourceFile, dispatcher: Dispatcher, statements: list[Span]) -> Forward | None:

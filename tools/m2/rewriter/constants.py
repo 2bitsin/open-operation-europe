@@ -12,16 +12,23 @@ from .tokens import IDENTIFIER, NUMBER, Token
 INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
 _SAFE = re.compile(r"^[0-9a-fA-FxX+\-*/%|&^~<>=!()\s]*$")
 _CONSTANT = re.compile(r"\bconstexpr\s+(?:std::)?(?:u?int(?:8|16|32)_t|unsigned|int|auto)\s+([A-Za-z_]\w*)\s*(?:\{\s*([^{};]+?)\s*\}|=\s*([^;{}]+?)\s*);")
+_TABLE = re.compile(r"\bconstexpr\s+(?:std::array\s*<[^;{}]*?>\s+([A-Za-z_]\w*)|[\w:]+(?:\s+[\w:]+)*\s+([A-Za-z_]\w*)\s*\[[^\]]*\])\s*(?:=\s*)?\{([^{};]*)\}\s*;", re.S)
+_INDEXED = re.compile(r"(?<![\w:])([A-Za-z_]\w*)\s*\[([^\[\]]*)\]")
 
 
 @dataclass
 class Constants:
-  """name -> value; a scoped enumerator is also listed as Enum::NAME."""
-  values: dict[str, int] = field(default_factory=dict)
+  """name -> value; a scoped enumerator is also listed as Enum::NAME. Tables: constexpr arrays, by the text of
+  each element (evaluated where they are indexed, with every constant the indexing file sees)."""
+  values: dict[str, int]       = field(default_factory=dict)
+  tables: dict[str, list[str]] = field(default_factory=dict)
 
   def Evaluate(self, expression: str) -> int | None:
-    """The value of a constant expression of literals and known names (None when it is not one)."""
-    text = re.sub(r"\bstatic_cast\s*<[^<>]*>", "", expression)
+    """The value of a constant expression of literals, known names and indexed tables (None when it is not one)."""
+    text = self._IndexTables(expression)
+    if text is None:
+      return None
+    text = re.sub(r"\bstatic_cast\s*<[^<>]*>", "", text)
     text = re.sub(r"\bstd::to_underlying\b", "", text)
     text = re.sub(r"(?<![\w:])([A-Za-z_][\w:]*)", lambda match: str(self._Lookup(match.group(1))), text)
     text = re.sub(r"\b(0[xX][0-9a-fA-F]+|\d+)[uUlL]*\b", r"\1", text)
@@ -33,6 +40,18 @@ class Constants:
       return int(eval(text, {"__builtins__": {}}))  # only digits, operators and parentheses reach here
     except (SyntaxError, TypeError, ZeroDivisionError):
       return None
+
+  def _IndexTables(self, expression: str) -> str | None:
+    """The expression with each `table[index]` of a known table replaced by its element (innermost first)."""
+    text = expression
+    while (match := next((m for m in _INDEXED.finditer(text) if m.group(1) in self.tables), None)) is not None:
+      index = self.Evaluate(match.group(2))
+      table = self.tables[match.group(1)]
+      element = self.Evaluate(table[index]) if index is not None and 0 <= index < len(table) else None
+      if element is None:
+        return None
+      text = text[:match.start()] + str(element) + text[match.end():]
+    return text
 
   def _Lookup(self, name: str) -> int | None:
     """A name, or its last two parts when it is spelled with a namespace (opeu::game::Service::X)."""
@@ -52,6 +71,8 @@ def FileConstants(source: SourceFile) -> Constants:
   for index, token in enumerate(tokens):
     if token.text == "enum":
       _Enum(source, index, constants)
+  for match in _TABLE.finditer(source.text):
+    constants.tables[match.group(1) or match.group(2)] = [element.strip() for element in match.group(3).split(",") if element.strip()]
   return constants
 
 
@@ -93,10 +114,11 @@ class ConstantScopes:
 
   def Of(self, path: PurePosixPath) -> Constants:
     if path not in self._cache:
-      merged: dict[str, int] = {}
+      merged, tables = {}, {}
       for included in reversed(self.Closure(path)):
         merged.update(self._own[included].values)
-      self._cache[path] = Constants(merged)
+        tables.update(self._own[included].tables)
+      self._cache[path] = Constants(merged, tables)
     return self._cache[path]
 
   def DefiningFiles(self, name: str) -> list[PurePosixPath]:
@@ -123,7 +145,6 @@ class ConstantScopes:
     candidates = [p for p in self._by_name.get(PurePosixPath(include).name, []) if p.as_posix().endswith(include)]
     beside = [p for p in candidates if p.parent == includer.parent]
     return (beside or candidates or [None])[0]
-
 
 
 def IsIntegerLiteral(token: Token) -> bool:

@@ -119,7 +119,7 @@ def test_callbacks_bound_to_different_code_are_not_substituted(model, tmp_path):
   unresolved = (tmp_path / "review-unresolved.txt").read_text()
   assert "case TWICE of svc_alpha is multi-statement" in unresolved
   assert "no handler linked at 0x01030" in unresolved
-  assert reviews["unresolved"] == 3
+  assert reviews["unresolved"] == 7
 
 
 def test_a_site_in_another_file_than_its_target_gets_the_target_header(model):
@@ -143,15 +143,30 @@ def test_apply_rewrites_a_scratch_copy(tmp_path):
   assert "Call(ds, event, TWICE);" in alpha
   assert '#include "core/target.hpp"' in (tree / "sources/opeu/game/core/gamma.cpp").read_text()
   assert "#include <array>" in alpha
-  assert applied.replaced == {"game/core/alpha.cpp": 8, "game/core/gamma.cpp": 1, "game/map/battle.cpp": 2}
-  assert not applied.skipped
+  assert applied.replaced == {"game/common/rows.hpp": 0, "game/core/alpha.cpp": 10, "game/core/gamma.cpp": 1, "game/map/battle.cpp": 5,
+                              "game/map/plan.cpp": 8, "game/units/orders.cpp": 4}
+  assert applied.skipped == ["game/common/rows.hpp:19 needs core/rows-panel.hpp, which includes this header (an include cycle); left for a hand edit"]
+
+
+def test_apply_hoists_before_a_declaration_and_names_each_sites_words_apart(tmp_path):
+  tree = tmp_path / "tree"
+  shutil.copytree(FIXTURE, tree)
+  Apply(Model(tree), "b3")
+  alpha = (tree / "sources/opeu/game/core/alpha.cpp").read_text()
+  first = ("auto const hoisted0{ static_cast<std::uint16_t>(opeu_tick(ds)) }; auto const hoisted1{ static_cast<std::uint16_t>(opeu_tick(ds)) }; "
+           "auto const first{ (opeu_pair(ds, hoisted1, hoisted0), std::uint16_t{ 0 }) };")
+  second = ("auto const hoisted0_1{ static_cast<std::uint16_t>(opeu_tick(ds)) }; auto const hoisted1_1{ static_cast<std::uint16_t>(first) }; "
+            "opeu_pair(ds, hoisted1_1, hoisted0_1);")
+  assert first in alpha and second in alpha
 
 
 def test_the_dry_run_writes_the_model_plans_and_listings(tmp_path):
   assert rewrite.main(["--tree", str(FIXTURE), "--out", str(tmp_path)]) == 0
   summary = json.loads((tmp_path / "summary.json").read_text())
-  assert summary["plans"] == {"b2": 2, "b3": 9}
-  assert summary["call_sites"] == 14
+  assert summary["plans"] == {"b2": 5, "b3": 24}
+  assert summary["call_sites"] == 36
+  assert summary["unresolved_by_reason"] == {"multi-statement case or handler": 2, "id not served": 2, "service id is a parameter": 1,
+                                             "callback bound to dispatchers that reach different code": 1, "no link handler at the address": 1}
   plan = json.loads((tmp_path / "plan-b2.json").read_text())
   assert plan[0]["original"] == "Call(ds, event, BattleRoutine::SET_ORDER, element, step)"
   assert {path.name for path in tmp_path.iterdir()} >= {"model.json", "plan-b2.txt", "plan-b3.json", "review-past-end.txt", "review-order.txt"}
@@ -166,3 +181,74 @@ def test_b1_counts_the_data_segment_parameters_and_raw_views(model):
 def test_b4_names_the_routine_behind_each_initial_code_pointer(model):
   tables = B4Model(model)["tables"]
   assert tables == [{"field": "control_actions", "slots": 2, "enum": "ControlAction", "initial": ["opeu_action_one", "NONE"]}]
+
+
+def TargetOf(model: Model, file: str, line: int):
+  return next(model.targets[site.Key()] for site in model.sites if str(site.file) == file and site.line == line)
+
+
+def test_a_case_forwarding_with_an_out_word_reaches_the_shared_dispatchers_case(model):
+  assert Replacement(model, "game/units/orders.cpp", 10) == "opeu_unit_value(ds, unit)"
+  assert TargetOf(model, "game/units/orders.cpp", 10).chain == ["svc_unit_orders", "svc_order_handler", "OrderService::UNIT_VALUE"]
+
+
+def test_a_forward_through_a_constexpr_table_remaps_the_id(model):
+  assert Replacement(model, "game/units/orders.cpp", 11) == "static_cast<std::uint16_t>(opeu_unit_side(value))"
+  assert TargetOf(model, "game/units/orders.cpp", 11).chain == ["svc_unit_table", "svc_order_handler", "OrderService::UNIT_SIDE"]
+  assert TargetOf(model, "game/units/orders.cpp", 12).failure == "svc_unit_table: 0x3 is not handed on (shared[id]==NONE holds)"
+
+
+def test_a_guard_that_is_an_id_predicate_forwards_the_ids_it_lets_through(model):
+  assert Replacement(model, "game/units/orders.cpp", 13) == "opeu_wait_units(ds, (uint8_t)side)"
+  failure = TargetOf(model, "game/units/orders.cpp", 14).failure
+  assert failure == "svc_unit_attack: 0x3 is not handed on ((id>OrderService::UNIT_SIDE&&id!=OrderService::WAIT_UNITS) holds)"
+
+
+def test_an_assigned_forward_is_followed(model):
+  chain = TargetOf(model, "game/units/orders.cpp", 15).chain
+  assert chain == ["svc_unit_panel", "svc_unit_orders", "svc_order_handler", "OrderService::UNIT_VALUE"]
+
+
+def test_local_word_helpers_expand_to_their_expressions(model, tmp_path):
+  assert Replacement(model, "game/map/plan.cpp", 34) == "opeu_draw_far(x, y, port_far(segment, buffer))"
+  assert Replacement(model, "game/map/plan.cpp", 35) == "opeu_draw_near(x, y, PORT_DS(buffer))"
+  assert Replacement(model, "game/map/plan.cpp", 36) == "opeu_compose(port_far(segment, buffer), port_far(segment, 0), x)"
+  report.WriteReviews(model, tmp_path)
+  near = (tmp_path / "review-near.txt").read_text().splitlines()
+  assert near[0] == "game/map/plan.cpp:35 opeu_plan_draw -> opeu_draw_near [svc_cell > svc_plan > PlanService::DRAW_NEAR]: near pointer PORT_DS(buffer)"
+  assert len(near) == 4
+
+
+def test_a_local_of_the_dispatcher_that_reads_a_word_reads_the_sites_word(model):
+  assert "opeu_highlight_view(ds, static_cast<uint8_t>(column))" in Replacement(model, "game/map/plan.cpp", 40)
+
+
+@pytest.mark.parametrize("line, replacement", [
+  (40, "(side == 0) ? opeu_highlight_view(ds, static_cast<uint8_t>(column)) : opeu_highlight_overview(ds, static_cast<uint8_t>(column))"),
+  (41, "if (column & 7) opeu_draw_far(column, side, port_far(0x100, 0x200)); else opeu_draw_near(column, side, PORT_DS(0x100))"),
+  (42, "((column & 7) ? opeu_draw_far(column, side, port_far(0x100, 0x200)) : (opeu_draw_near(column, side, PORT_DS(0x100)), std::uint16_t{ 0 }))"),
+  (43, "(column & 7) ? static_cast<void>(opeu_draw_far(column, side, port_far(0x100, 0x200))) : static_cast<void>(opeu_draw_near(column, side, PORT_DS(0x100)))"),
+])
+def test_a_conditional_service_id_chooses_between_both_calls(model, line, replacement):
+  assert Replacement(model, "game/map/plan.cpp", line) == replacement
+
+
+def test_a_conditional_service_ids_words_with_side_effects_are_evaluated_once_first(model):
+  substitution = next(s for s in model.substitutions.values() if str(s.site.file) == "game/map/plan.cpp" and s.site.line == 44)
+  assert substitution.hoisted == [(0, "opeu_next_column(ds)")]
+  assert substitution.text == "(side == 0) ? opeu_highlight_view(ds, static_cast<uint8_t>(hoisted0)) : opeu_highlight_overview(ds, static_cast<uint8_t>(hoisted0))"
+
+
+def test_a_service_id_that_is_a_parameter_is_reported(model):
+  assert TargetOf(model, "game/map/plan.cpp", 48).failure == "service id is a parameter (service of opeu_plan_pixel)"
+
+
+def test_a_battle_dispatchers_own_branch_is_a_case(model):
+  step = next(s for s in model.substitutions.values() if str(s.site.file) == "game/map/battle.cpp" and s.site.line == 67)
+  assert (step.text, step.target.battle) == ("opeu_path_step(ds, 5, 6)", True)
+  assert "of svc_battle_guard is multi-statement (2 statements)" in TargetOf(model, "game/map/battle.cpp", 68).failure
+
+
+def test_a_handler_of_a_local_and_its_use_is_one_statement(model):
+  assert Replacement(model, "game/map/battle.cpp", 69) == "static_cast<std::uint16_t>(opeu_ask(ds, 8))"
+  assert Replacement(model, "game/map/battle.cpp", 70) == "opeu_mark_cell(ds, yes)"

@@ -13,3 +13,6 @@ auto port_call(std::uint8_t* ds, std::uint32_t address, std::uint16_t const* arg
 auto port_service(std::uint8_t* ds, std::uint32_t address, std::uint16_t const* args, unsigned count) -> std::uint16_t;
 auto btl_reorder(std::uint8_t* ds, std::uint32_t address, std::uint16_t const* args, unsigned count, unsigned char const* order, unsigned n) -> std::uint16_t;
 auto port_dialogs_host() -> void*;
+auto port_far(std::uint16_t segment, std::uint16_t offset) -> std::uint8_t*;
+auto PORT_DS(auto offset) -> std::uint8_t*;
+void port_unhandled(char const* module, unsigned id, unsigned count);
