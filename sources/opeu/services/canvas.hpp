@@ -77,6 +77,18 @@ public:
   }
   // Copies `count` pixels as memmove does (the source read before it is overwritten).
   auto Move(Offset to, Offset from, std::int64_t count) noexcept -> void;
+  // The same for a short run of COUNT pixels, inline: the block routines move a few octets per line, so the call and
+  // the general run arithmetic would cost more than the copy. A run across the end of the store takes the general path.
+  template <std::size_t COUNT>
+  auto Move(Offset to, Offset from) noexcept -> void {
+    auto const target{ Wrap(to) };
+    auto const source{ Wrap(from) };
+    if (target > STORED - COUNT || source > STORED - COUNT) return Move(to, from, COUNT);
+    std::array<canvas::Pixel, COUNT> held{};
+    std::ranges::copy(std::span{ _pixels }.subspan(source).template first<COUNT>(), held.begin());
+    std::ranges::copy(held, std::span{ _pixels }.subspan(target).begin());
+    _changed = true;
+  }
   auto Clear() noexcept -> void;
   // Bit `plane` of the 8 pixels from `at`, the leftmost in bit 7: the form of the game's save buffers.
   [[nodiscard]] auto PlaneBits(Offset at, int plane) const noexcept -> std::uint8_t;
@@ -165,8 +177,11 @@ private:
 };
 
 // The one screen of the running program. Transitional: the game's drawing calls reach the canvas through this until
-// they take it from their caller (#14).
-[[nodiscard]] auto Screen() noexcept -> Canvas&;
+// they take it from their caller (#14). Inline, so a call costs a load and a branch.
+[[nodiscard]] inline auto Screen() noexcept -> Canvas& {
+  static Canvas screen;
+  return screen;
+}
 
 }
 

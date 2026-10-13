@@ -629,9 +629,4 @@ auto Canvas::Render(std::span<std::uint8_t, PIXELS> frame, std::span<std::uint8_
   std::ranges::transform(std::span{ _pixels }.first<PIXELS>(), frame.begin(), [this](canvas::Pixel pixel) { return _colour_map[pixel]; });
 }
 
-auto Screen() noexcept -> Canvas& {
-  static Canvas screen;
-  return screen;
-}
-
 }

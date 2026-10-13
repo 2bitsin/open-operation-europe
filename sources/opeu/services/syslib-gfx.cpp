@@ -174,10 +174,12 @@ void koei_3b77(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
 // Copies the 3-column x 24-line block at (x1, y1) to (x2, y2), line by line from the top; within a line the first two
 // columns are read before either is written.
 void koei_3bc5(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-  for (auto const row : std::views::iota(0, 24)) {
-    auto const from{ ColumnAt(x1, y1) + row * 640 }, to{ ColumnAt(x2, y2) + row * 640 };
-    Screen().Move(to, from, 16);
-    Screen().Move(to + 16, from + 16, 8);
+  auto&      screen{ Screen() };
+  auto const from{ ColumnAt(x1, y1) };
+  auto const to{ ColumnAt(x2, y2) };
+  for (auto const line : std::views::iota(0, 24) | std::views::transform([](int row) { return Offset{ row } * 640; })) {
+    screen.Move<16>(to + line, from + line);
+    screen.Move<8>(to + line + 16, from + line + 16);
   }
 }
 
