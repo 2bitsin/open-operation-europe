@@ -93,7 +93,7 @@ WARNINGS = ["-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion", "-Wshadow",
 
 (`bc.declare(source, options=WARNINGS + ...)`), so the ordinary `./buildutil
 build` is the warnings build and any new warning stops it. glue, platform,
-intro, opeu and render have it; turning it on for another module is the same list
+intro and opeu have it; turning it on for another module is the same list
 in that module's `configure.py` and the fixes it asks for. The conversions
 the gate asks for are explicit casts that keep the value the implicit
 conversion gave. Proven with Apple clang; gcc reports some conversions
@@ -386,6 +386,78 @@ same script:
 
 On 2026-10-09 (arm64, emsdk 6.0.10) the three files were byte-identical to
 the macOS native build's.
+
+## Continuous integration
+
+`.gitlab-ci.yml` runs on every push to `main`, on every merge request
+(one pipeline per MR, not a second one for its branch) and from the *Run
+pipeline* button. Each job's script is one call of
+`python3 tools/ci/pipeline.py <job>`; the driver does the work in Python,
+prints each step as a collapsible section of the job log, and on a failure
+ends with `pipeline: <job> FAILED at "<step>" (exit N)` and a line saying
+what to look at first. Everything a job hands back is under `_local/ci/`
+in its artifacts (kept two weeks, also for failed jobs): `logs/` (the
+buildutil logs), `reports/`, `smoke/`, `web/`, `test-output/`, `perf/`.
+
+| Job | Stage | Runner | What it does |
+|---|---|---|---|
+| `census` | check | docker | `tools/census/census.py` (the table of HEAD in `reports/census.md`) and the census gate's pytest suite; no build |
+| `linux-build` | build | docker | `./buildutil build --release` with gcc 14, every compiler warning and error counted per flag and module (`reports/compiler-diagnostics.txt`), then the three smokes (`smoke/<name>/`: `final.png`, WAV, OPL log, `port.log`) with `ok`/`DIFF` against the goldens |
+| `web` | build | docker | the Emscripten lane: emsdk 6.0.10, `./buildutil build --compiler emscripten --release --no-tests`, no `.data` file installed, the smoke under node (`web/`: `opeu.{html,js,wasm}`, `sizes.txt`, `web-smoke.{png,wav,opl,sha1}`) |
+| `linux-test` | test | docker | `./buildutil test`: the GoogleTest suites, the pytest suites with the functional suite, the perf gates and the `tools/*/pytest.ini` suites (the census gate among them); on a failure, ctest's logs and the failing runs' directories in `test-output/` |
+| `macos` | test | macOS ARM shell | `./buildutil build --release` and `./buildutil test` natively; manual and allowed to fail while that runner is offline |
+| `perf-baseline` | test | docker | manual: records the docker runner's entry in the perf baseline (`perf/baseline.json`, to commit as `sources/opeu/integration/fixtures/perf/baseline.json`) |
+
+The Linux jobs run in `ubuntu:24.04` on the docker runner (tag
+`docker-linux`), the same image and the same package lists as the
+container lanes above (`tools/ci/buildutil_lane.py`, `tools/ci/web_lane.py`);
+their only shell line installs `python3`. The driver installs the packages
+(archives cached in `_local/ci/apt/`), makes gcc 14 the default, lets
+`./buildutil` bootstrap `_pyvenv/` from the vendored `.buildutil/` and
+adds pip's cmake to it (Ubuntu's 3.28 is too old, see Prerequisites).
+Caches: `_pyvenv/` keyed on `buildutil.toml` and the vendored buildutil's
+version, `_conanhome/` keyed on `conanfile.py` and `sources/CMakeLists.txt`
+(one for gcc, one for Emscripten), the emsdk in `_local/ci/emsdk/` keyed on
+`tools/ci/web_lane.py`. `linux-build` writes the caches, `linux-test`
+only reads them.
+
+The `-Werror` warnings gate (Warnings above) applies under gcc as under
+clang. When gcc stops a gated module, `linux-build` fails and names the
+modules and `reports/compiler-diagnostics.txt`; the fix is in the code, not
+in the flags.
+
+The perf gates judge the runner against `fixtures/perf/baseline.json`
+(Benchmarks and profiling above). Until the runner has its own entry the
+numbers of the closest listed machine apply, measured with another compiler
+and usually another architecture, so `linux-test` sets
+`OPEU_PERF_BUDGET` to `CI_FOREIGN_PERF_BUDGET` (100 % by default, a
+pipeline variable) and the gate catches only gross regressions there. Run
+`perf-baseline` on `main` and commit its `baseline.json`; from then on the
+runner is a listed machine and the gate's own 10 % applies. An explicit
+`OPEU_PERF_BUDGET` variable wins over both.
+
+Variables. The conan remote is the instance's masked CI/CD variables
+`CI_ARTIFACTORY_HREF`, `CI_ARTIFACTORY_NAME`, `CI_ARTIFACTORY_USER` and
+`CI_ARTIFACTORY_PASS` (not protected, so merge requests get them too),
+the names this checkout's `.env` uses, which buildutil reads as the
+fallback spellings of `CONAN_REMOTE_*`. With them a job downloads the
+binaries other machines uploaded and uploads what it built; without them
+(the log's `host` section says which) conan builds SDL's graph from
+conancenter sources, which is slow but works. A project that does not
+inherit them defines the same four, masked. Optional: `OPEU_PERF_BUDGET`,
+`CI_FOREIGN_PERF_BUDGET`.
+
+Runners: `census`, `linux-build`, `linux-test`, `web` and `perf-baseline`
+need a Linux docker runner tagged `docker-linux` (network to the Ubuntu
+mirror, GitHub for the emsdk, PyPI and the conan remote; a few GB of
+disk for `_conanhome/`). `macos` needs a shell runner tagged `macos` and
+`macbook-arm-shell` with Python 3, Xcode's command line tools, CMake 3.30
+or newer (else pip's goes into `_pyvenv/`) and Ninja.
+
+A job locally: `python3 tools/ci/pipeline.py <job>` on a machine like the
+runner (it installs packages with apt, so on a workstation run it in a
+throwaway container), or the container lanes above, which build the same
+thing from a read-only mount.
 
 ## Emscripten (the browser build)
 
