@@ -48,6 +48,22 @@ auto Pack::Ids() const -> std::vector<std::string> {
   return _manifest.Ids();
 }
 
+auto Pack::Frames(std::string_view const animation) const -> std::optional<std::vector<std::string>> {
+  return _manifest.Frames(animation);
+}
+
+auto Pack::FontNamed(std::string_view const name) const -> std::optional<Font> {
+  return _manifest.FontNamed(name);
+}
+
+auto Pack::FontNames() const -> std::vector<std::string> {
+  return _manifest.FontNames();
+}
+
+auto Pack::Scale() const -> unsigned {
+  return _manifest.Scale();
+}
+
 auto Pack::LoadTexture(PackedAsset const& entry) const -> Packed<Texture> {
   auto texture{ _files->Read(entry.image).and_then([](std::vector<std::byte> const& png) { return ReadTexture(png); }) };
   if (texture && (texture->Width() != entry.width * _manifest.Scale() || texture->Height() != entry.height * _manifest.Scale())) return WrongSize(entry, entry.image);

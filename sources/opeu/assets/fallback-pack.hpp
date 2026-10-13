@@ -1,6 +1,7 @@
 #pragma once
-// A pack over another: every id the preferred pack holds comes from it, every other id from the fallback. A remaster
-// pack over the classic pack is one: the game always runs on a whole pack, however few assets are remastered.
+// A pack over another: every id the preferred pack holds comes from it, every other id from the fallback; palettes,
+// animations and fonts the same by name. A remaster pack over the classic pack is one: the game always runs on a whole
+// pack, however few assets are remastered.
 
 #include "opeu/assets/pack.hpp"
 
@@ -16,6 +17,11 @@ public:
   [[nodiscard]] auto Load(std::string_view id) const -> Packed<LoadedAsset> override;
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours> override;
   [[nodiscard]] auto Ids() const -> std::vector<std::string> override;
+  [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>> override;
+  [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font> override;
+  [[nodiscard]] auto FontNames() const -> std::vector<std::string> override;
+  // The preferred pack's: a replaced image is drawn at its own scale, the others at the fallback's.
+  [[nodiscard]] auto Scale() const -> unsigned override;
 
 private:
   // The pack that answers for `id`.

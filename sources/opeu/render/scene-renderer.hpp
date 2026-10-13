@@ -1,6 +1,6 @@
 #pragma once
-// Draws a Scene on the Display: sprites from the texture cache, fills and lines as the renderer's own, text through
-// the text renderer, in the scene's order; the scene's tint is applied when the frame is shown.
+// Draws a Scene on the Display: sprites and tiles from the texture cache, fills and lines as the renderer's own, text
+// through the text renderer, in the scene's order; the scene's tint is applied when the frame is shown.
 
 #include "opeu/render/display.hpp"
 #include "opeu/render/render-error.hpp"
@@ -23,11 +23,13 @@ public:
 
 private:
   auto Draw(Sprite const& sprite) -> Rendered<void>;
+  auto Draw(Tiles const& tiles) -> Rendered<void>;
   auto Draw(Fill const& fill) -> Rendered<void>;
   auto Draw(Line const& line) -> Rendered<void>;
   auto Draw(Text const& text) -> Rendered<void>;
 
   [[nodiscard]] auto AssetOf(Sprite const& sprite) const -> Rendered<std::string>;
+  auto               Place(TextureKey const& key, Point at) -> Rendered<void>;
 
   std::reference_wrapper<Display>            _display;
   std::reference_wrapper<TextureCache>       _textures;

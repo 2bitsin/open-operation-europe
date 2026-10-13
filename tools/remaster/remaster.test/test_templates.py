@@ -7,7 +7,7 @@ import pytest
 from packs import ClassicPack
 from templates import Templates, prompt_for
 
-CLASSIC_TOTAL = 3142
+CLASSIC_TOTAL = 3262
 REQUIRED = {'template', 'title', 'pack_class', 'ids', 'count', 'scale', 'background', 'recolour', 'references', 'rules'}
 TEMPLATES = Templates.load()
 

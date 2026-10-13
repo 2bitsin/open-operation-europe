@@ -70,8 +70,8 @@ struct Options {
 class Stage {
 public:
   Stage(SDL_Renderer& renderer, assets::Pack const& pack)
-      : _display{ render::Display::Open(renderer).value() }, _source{ pack }, _textures{ renderer, _source, CACHE_CAPACITY },
-        _text{ render::AtlasTextRenderer::Build(renderer, _source, render::CLASSIC_FONTS).value() }, _day{ _source.Palette("main/day").value() } { }
+      : _display{ render::Display::Open(renderer).value() }, _textures{ renderer, pack, CACHE_CAPACITY }, _text{ render::AtlasTextRenderer::Build(renderer, pack).value() },
+        _day{ pack.Palette("main/day").value() } { }
 
   auto Show(std::size_t const frame) -> render::Rendered<render::Scene> {
     auto       scene{ DemoScene(frame, _day) };
@@ -88,7 +88,6 @@ public:
 
 private:
   render::Display           _display;
-  render::PackSource        _source;
   render::TextureCache      _textures;
   render::AtlasTextRenderer _text;
   assets::PaletteColours    _day;

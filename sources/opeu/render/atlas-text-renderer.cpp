@@ -12,16 +12,20 @@ namespace {
   return At(Point{ .x = run.at.x + (static_cast<int>(index) * cell.width), .y = run.at.y }, cell);
 }
 
+[[nodiscard]] auto RunArea(TextRun const& run, Size const cell) -> Rect {
+  return At(run.at, Size{ .width = static_cast<int>(run.glyphs.size()) * cell.width, .height = cell.height });
+}
+
 }
 
 AtlasTextRenderer::AtlasTextRenderer(Atlases atlases) : _atlases{ std::move(atlases) } { }
 
-auto AtlasTextRenderer::Build(SDL_Renderer& renderer, PackSource const& source, std::span<std::string_view const> const fonts) -> Rendered<AtlasTextRenderer> {
+auto AtlasTextRenderer::Build(SDL_Renderer& renderer, assets::AssetPack const& pack) -> Rendered<AtlasTextRenderer> {
   auto atlases{ Atlases{} };
-  for (auto const name : fonts) {
-    auto atlas{ FontAtlas::Build(renderer, source, name) };
+  for (auto const& name : pack.FontNames()) {
+    auto atlas{ FontAtlas::Build(renderer, pack, name) };
     if (!atlas) return std::unexpected{ atlas.error() };
-    atlases.emplace(std::string{ name }, *std::move(atlas));
+    atlases.emplace(name, *std::move(atlas));
   }
   return AtlasTextRenderer{ std::move(atlases) };
 }
@@ -36,6 +40,7 @@ auto AtlasTextRenderer::Draw(Display& display, TextRun const& run) const -> Rend
   if (!font) return std::unexpected{ font.error() };
   auto const& atlas{ font->get() };
   if (!std::ranges::all_of(run.glyphs, [&atlas](GlyphIndex const glyph) { return atlas.Area(glyph).has_value(); })) return Failed(std::format("a glyph past the end of {}", run.font));
+  if (run.paper) display.Fill(RunArea(run, atlas.Metrics().cell), *run.paper);
   for (auto const [index, glyph] : std::views::zip(std::views::iota(0uz), run.glyphs)) {
     auto const blit{
       Blit{ .destination = CellAt(run, index, atlas.Metrics().cell), .source = atlas.Area(glyph), .modulation = run.colour }
@@ -48,8 +53,7 @@ auto AtlasTextRenderer::Draw(Display& display, TextRun const& run) const -> Rend
 auto AtlasTextRenderer::Measure(TextRun const& run) const -> Rendered<Size> {
   auto const font{ Font(run.font) };
   if (!font) return std::unexpected{ font.error() };
-  auto const cell{ font->get().Metrics().cell };
-  return Size{ .width = static_cast<int>(run.glyphs.size()) * cell.width, .height = cell.height };
+  return Dimensions(RunArea(run, font->get().Metrics().cell));
 }
 
 }

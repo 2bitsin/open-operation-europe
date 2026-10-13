@@ -55,7 +55,7 @@ auto ToColours(Json const& rows) -> PaletteColours {
 
 auto ToFont(Json const& font) -> Font {
   auto const cell{ font.at("cell").get<std::array<std::size_t, 2>>() };
-  return Font{ .cell_width = std::get<0>(cell), .cell_height = std::get<1>(cell), .glyphs = font.at("glyphs").get<std::vector<std::string>>() };
+  return Font{ .cell_width = std::get<0>(cell), .cell_height = std::get<1>(cell), .first_code = font.value("first", 0U), .glyphs = font.at("glyphs").get<std::vector<std::string>>() };
 }
 
 auto ToIds(Json const& ids) -> std::vector<std::string> {
@@ -127,6 +127,10 @@ auto Manifest::Frames(std::string_view const animation) const -> std::optional<s
 
 auto Manifest::FontNamed(std::string_view const name) const -> std::optional<Font> {
   return Lookup(_contents.fonts, name);
+}
+
+auto Manifest::FontNames() const -> std::vector<std::string> {
+  return _contents.fonts | std::views::keys | std::ranges::to<std::vector>();
 }
 
 }

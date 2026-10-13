@@ -171,7 +171,7 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
 
 TEST(ShippedCatalogue, DecodesEveryAssetOfEveryFile) {
   auto const catalogue{ Catalogue{ Embedded() } };
-  EXPECT_EQ(catalogue.Assets().size(), 3'098U);
+  EXPECT_EQ(catalogue.Assets().size(), 3'218U); // 3,098 from the shipped files, 120 from the program's glyph tables
   EXPECT_TRUE(std::ranges::all_of(catalogue.Assets(), [&](Asset const& asset) { return catalogue.Decode(asset).has_value(); }));
   auto ids{ catalogue.Assets() | std::views::transform(&Asset::id) | std::ranges::to<std::vector>() };
   std::ranges::sort(ids);

@@ -7,7 +7,9 @@
 
 #include <gtest/gtest.h>
 
+#include <format>
 #include <ranges>
+#include <string>
 #include <vector>
 
 namespace opeu::render::detail::scene_test {
@@ -15,14 +17,14 @@ namespace opeu::render::detail::scene_test {
 using test::ExpectGolden;
 using test::OpenHeadless;
 using test::OpenSample;
+using test::PackUnderTest;
 
-class Scenes : public testing::Test {
+class Scenes : public testing::TestWithParam<PackUnderTest> {
 protected:
   test::Headless    _headless{ OpenHeadless() };
-  assets::Pack      _pack{ OpenSample() };
-  PackSource        _source{ _pack };
-  TextureCache      _textures{ _headless.display.Renderer(), _source, 16 };
-  AtlasTextRenderer _text{ AtlasTextRenderer::Build(_headless.display.Renderer(), _source, CLASSIC_FONTS).value() };
+  assets::Pack      _pack{ OpenSample(GetParam()) };
+  TextureCache      _textures{ _headless.display.Renderer(), _pack, 16 };
+  AtlasTextRenderer _text{ AtlasTextRenderer::Build(_headless.display.Renderer(), _pack).value() };
   SceneRenderer     _scenes{ _headless.display, _textures, _text };
 
   [[nodiscard]] auto Pen(std::size_t const index) const -> Rgba {
@@ -75,13 +77,13 @@ protected:
   }
 };
 
-TEST_F(Scenes, DrawsEveryCommandInOrder) {
+TEST_P(Scenes, DrawsEveryCommandInOrder) {
   _headless.display.Begin();
   ASSERT_TRUE(_scenes.Compose(Battle()));
-  ExpectGolden(Corner(), "scene");
+  ExpectGolden(Corner(), GetParam(), "scene");
 }
 
-TEST_F(Scenes, FadesByTheScenesTint) {
+TEST_P(Scenes, FadesByTheScenesTint) {
   auto scene{ Battle() };
   scene.Tint(Dimmed(WHITE, 0x60));
   ASSERT_TRUE(_scenes.Show(scene));
@@ -90,10 +92,10 @@ TEST_F(Scenes, FadesByTheScenesTint) {
   ASSERT_TRUE(_scenes.Compose(scene));
   auto const faded{ _headless.display.Capture(Dimmed(WHITE, 0x60)).value() };
   EXPECT_EQ(shown, faded);
-  ExpectGolden(test::Crop(shown, Size{ .width = 160, .height = 112 }), "scene-faded");
+  ExpectGolden(test::Crop(shown, Size{ .width = 160, .height = 112 }), GetParam(), "scene-faded");
 }
 
-TEST_F(Scenes, BakesTexturesOncePerAssetAndPalette) {
+TEST_P(Scenes, BakesTexturesOncePerAssetAndPalette) {
   _headless.display.Begin();
   ASSERT_TRUE(_scenes.Compose(Battle()));
   ASSERT_TRUE(_scenes.Compose(Battle()));
@@ -101,10 +103,34 @@ TEST_F(Scenes, BakesTexturesOncePerAssetAndPalette) {
   EXPECT_EQ(_textures.Statistics().hits, (2u * 11u) - 9u);
 }
 
-TEST_F(Scenes, StopsAtACommandItCannotDraw) {
+TEST_P(Scenes, LaysTilesOutInRows) {
+  auto const ids{ std::views::iota(10, 19) | std::views::transform([](int const n) { return std::format("view-tile/map-2/{}", n); }) | std::ranges::to<std::vector>() };
+  auto       scene{ Scene{} };
+  scene.Add(Tiles{
+      .assets = ids, .columns = 3, .cell = Size{ .width = 24, .height = 24 },
+              .palette = "main/dusk", .at = Point{ .x = 4,      .y = 4       }
+  });
+  scene.Add(Tiles{
+      .assets = ids, .columns = 9, .cell = Size{ .width = 24, .height = 24 },
+              .palette = "main/night", .at = Point{ .x = 4,      .y = 80      }
+  });
+  _headless.display.Begin();
+  ASSERT_TRUE(_scenes.Compose(scene));
+  EXPECT_EQ(_textures.Statistics().misses, 2u * 9u);
+  ExpectGolden(_headless.display.Read(Rect{ .x = 0, .y = 0, .width = 224, .height = 108 }).value(), GetParam(), "tiles");
+}
+
+TEST_P(Scenes, StopsAtACommandItCannotDraw) {
   auto scene{ Scene{} };
   scene.Add(Sprite{ .asset = "battle-blast/large", .frame = 9 });
   EXPECT_FALSE(_scenes.Compose(scene).has_value());
+  EXPECT_FALSE(_scenes
+                   .Compose(Scene{
+  }
+                                .Add(Tiles{ .assets = { "view-tile/map-2/17", "view-tile/map-9/00" }, .columns = 2 }))
+                   .has_value());
 }
+
+INSTANTIATE_TEST_SUITE_P(Packs, Scenes, testing::ValuesIn(test::PACKS), test::PackName);
 
 }

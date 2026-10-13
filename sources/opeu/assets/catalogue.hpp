@@ -1,6 +1,7 @@
 #pragma once
-// Every picture, sprite, tile, portrait, silhouette, mask and glyph in the shipped files, with a stable id and
-// where and how it is stored. None of the files has a header or a directory: the places are the game's own.
+// Every picture, sprite, tile, portrait, silhouette, mask and glyph in the shipped files and in the program's own
+// glyph tables (program-glyphs.hpp), with a stable id and where and how it is stored. None of the files has a header
+// or a directory: the places are the game's own.
 
 #include "opeu/assets/image.hpp"
 #include "opeu/assets/source.hpp"
@@ -40,12 +41,13 @@ enum class Role : std::uint8_t {
 
 struct Asset {
   std::string      id;        // "face/000", "hexunit/icon-03/facing-1", ...
-  std::string_view file;      // the shipped file name
+  std::string_view file;      // the shipped file name, or a program table's (PROGRAM_TEXT_FONT, ...)
   std::string_view group;     // the manifest it belongs to
   std::uint32_t    at{};      // byte offset of the record in the file
   std::uint32_t    mask_at{}; // MASKED_SPRITE: the AND mask's offset
   Layout           layout{};
   unsigned         width_bytes{}; // raw layouts: bytes per row (a stream states its own size)
+  unsigned         width{};       // BITMAP: pixels per row when fewer than width_bytes x 8 (the left ones), else 0
   unsigned         height{};      // raw layouts: rows
   Role             role{};
   std::string_view palette;           // the palette the game shows it in (see palette.hpp)
@@ -76,6 +78,8 @@ public:
     return _assets;
   }
   [[nodiscard]] auto Find(std::string_view id) const -> std::optional<Asset>;
+  // The bytes of a shipped file or a program table.
+  [[nodiscard]] auto File(std::string_view name) const -> Decoded<Bytes>;
   [[nodiscard]] auto Decode(Asset const& asset) const -> Decoded<Image>;
   // The asset as the screen shows it in its palette (for a unit icon, side 1's colours; SideZeroColours on the
   // decoded image gives side 0's).

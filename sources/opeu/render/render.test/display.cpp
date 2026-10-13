@@ -1,11 +1,14 @@
 #include "headless.hpp"
 
+#include "opeu/assets/palette.hpp"
+#include "opeu/assets/texture.hpp"
 #include "opeu/render/display.hpp"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <ranges>
 #include <vector>
 
@@ -132,6 +135,46 @@ TEST(Display, RestoresASnapshotExactly) {
   display.Restore(snapshot);
   EXPECT_EQ(Region(display), before);
   ExpectGolden(before, "snapshot");
+}
+
+TEST(Display, CopiesARectangleAsItWasEvenOverlapping) {
+  auto  headless{ OpenHeadless() };
+  auto& display{ headless.display };
+  display.Begin();
+  display.Fill(Rect{ .x = 0, .y = 0, .width = 64, .height = 48 }, BLUE);
+  display.Fill(Rect{ .x = 4, .y = 4, .width = 16, .height = 8 }, RED);
+  display.Line(Point{ .x = 4, .y = 4 }, Point{ .x = 19, .y = 11 }, WHITE);
+  auto const block{
+    Rect{ .x = 4, .y = 4, .width = 16, .height = 8 }
+  };
+  auto const before{ display.Read(block).value() };
+  ASSERT_TRUE(display.Copy(block, Point{ .x = 12, .y = 8 })); // overlaps its source: a scroll
+  EXPECT_EQ(display.Read(Rect{ .x = 12, .y = 8, .width = 16, .height = 8 }).value(), before);
+  ASSERT_TRUE(display.Copy(Rect{ .x = 0, .y = 0, .width = 32, .height = 24 }, Point{ .x = 32, .y = 24 })); // a block repeated
+  ExpectGolden(Region(display), "copy");
+}
+
+TEST(Display, ShowsAnIndexedImageInAPalette) {
+  auto       headless{ OpenHeadless() };
+  auto const day{ assets::Colours(assets::FindPalette("main/day")->levels) };
+  auto const night{ assets::Colours(assets::FindPalette("main/night")->levels) };
+  // A 16x4 image of every colour index, and its lower half masked out.
+  auto const indices{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n % 16); }) | std::ranges::to<std::vector>() };
+  auto const opaque{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n < 32 ? 1 : 0); }) | std::ranges::to<std::vector>() };
+  auto const image{
+    assets::Image{ 16, 4, indices, opaque }
+  };
+  auto const in_day{ Texture::Upload(headless.display.Renderer(), assets::ToTexture(image, day)).value() };
+  auto const in_night{ Texture::Upload(headless.display.Renderer(), assets::ToTexture(image, night)).value() };
+  headless.display.Begin();
+  headless.display.Fill(Rect{ .x = 0, .y = 0, .width = 64, .height = 48 }, GREEN);
+  headless.display.Draw(in_day, Blit{
+                                    .destination = Rect{ .x = 0, .y = 0, .width = 64, .height = 16 }
+  });
+  headless.display.Draw(in_night, Blit{
+                                      .destination = Rect{ .x = 0, .y = 24, .width = 64, .height = 16 }
+  });
+  ExpectGolden(Region(headless.display), "indexed-image");
 }
 
 TEST(Display, RefusesASnapshotOfTheWindow) {

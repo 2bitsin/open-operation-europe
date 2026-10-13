@@ -99,12 +99,14 @@ def sequences(records):
 
 
 def fonts(records):
-    """Each glyph font (the glyphs whose ids share a first segment) with its cell size and glyph ids in code order."""
+    """Each glyph font (the glyphs whose ids share a first segment) with its cell size, the code of its first glyph
+    (the number its id ends in: 32 for the text font's space) and its glyph ids in code order."""
     glyphs = defaultdict(list)
     for record in records:
         if record['role'] == 'glyph':
             glyphs[record['id'].split('/')[0]].append(record)
-    return {name: {'cell': [found[0]['width'], found[0]['height']], 'glyphs': [r['id'] for r in found]}
+    return {name: {'cell': [found[0]['width'], found[0]['height']], 'first': int(found[0]['id'].rsplit('/', 1)[1]),
+                   'glyphs': [r['id'] for r in found]}
             for name, found in sorted(glyphs.items())}
 
 

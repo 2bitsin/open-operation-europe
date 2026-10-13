@@ -3,6 +3,7 @@
 #include "opeu/contract.hpp"
 #include "opeu/render/baking.hpp"
 
+#include <format>
 #include <utility>
 
 namespace opeu::render::detail::texture_cache {
@@ -14,7 +15,7 @@ namespace {
 
 }
 
-TextureCache::TextureCache(SDL_Renderer& renderer, PackSource const& source, std::size_t const capacity) : _renderer{ renderer }, _source{ source }, _capacity{ capacity } {
+TextureCache::TextureCache(SDL_Renderer& renderer, assets::AssetPack const& pack, std::size_t const capacity) : _renderer{ renderer }, _pack{ pack }, _capacity{ capacity } {
   Expects(capacity > 0, "a texture cache holds at least one texture");
 }
 
@@ -32,14 +33,20 @@ auto TextureCache::Fetch(TextureKey const& key) -> Rendered<SharedBaked> {
 }
 
 auto TextureCache::Bake(TextureKey const& key) const -> Rendered<Baked> {
-  auto const asset{ _source.get().Load(key.asset) };
-  if (!asset) return std::unexpected{ asset.error() };
-  auto const colours{ key.palette.empty() ? Rendered<assets::PaletteColours>{} : _source.get().Palette(key.palette) };
-  if (!colours) return std::unexpected{ colours.error() };
-  auto const pixels{ key.palette.empty() ? asset->texture : render::Bake(*asset, *colours) };
-  auto       texture{ Texture::Upload(_renderer.get(), pixels) };
+  auto const asset{ _pack.get().Load(key.asset) };
+  if (!asset) return PackFailed(asset.error());
+  auto const pixels{ Pixels(*asset, key.palette) };
+  if (!pixels) return std::unexpected{ pixels.error() };
+  auto texture{ Texture::Upload(_renderer.get(), *pixels) };
   if (!texture) return std::unexpected{ texture.error() };
   return Baked{ .texture = *std::move(texture), .size = GameSize(asset->entry) };
+}
+
+auto TextureCache::Pixels(assets::LoadedAsset const& asset, std::string_view const palette) const -> Rendered<assets::Texture> {
+  if (palette.empty()) return asset.texture;
+  auto const colours{ _pack.get().Palette(palette) };
+  if (!colours) return Failed(std::format("no palette {}", palette));
+  return render::Bake(asset, *colours);
 }
 
 auto TextureCache::Remember(TextureKey const& key, SharedBaked baked) -> void {

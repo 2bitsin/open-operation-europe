@@ -27,15 +27,21 @@ struct LoadedAsset {
   auto operator==(LoadedAsset const&) const -> bool = default;
 };
 
-// What the renderer asks of a pack, whichever packs stand behind it.
+// What the renderer asks of a pack, whichever packs stand behind it: images by id, palettes, the animations' frames,
+// the glyph fonts and the scale.
 class AssetPack {
 public:
   virtual ~AssetPack() = default;
 
-  [[nodiscard]] virtual auto Find(std::string_view id) const -> std::optional<PackedAsset>         = 0;
-  [[nodiscard]] virtual auto Load(std::string_view id) const -> Packed<LoadedAsset>                = 0;
-  [[nodiscard]] virtual auto Palette(std::string_view name) const -> std::optional<PaletteColours> = 0;
-  [[nodiscard]] virtual auto Ids() const -> std::vector<std::string>                               = 0; // sorted
+  [[nodiscard]] virtual auto Find(std::string_view id) const -> std::optional<PackedAsset>                       = 0;
+  [[nodiscard]] virtual auto Load(std::string_view id) const -> Packed<LoadedAsset>                              = 0;
+  [[nodiscard]] virtual auto Palette(std::string_view name) const -> std::optional<PaletteColours>               = 0;
+  [[nodiscard]] virtual auto Ids() const -> std::vector<std::string>                                             = 0; // sorted
+  [[nodiscard]] virtual auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>> = 0; // the frame ids in order
+  [[nodiscard]] virtual auto FontNamed(std::string_view name) const -> std::optional<Font>                       = 0;
+  [[nodiscard]] virtual auto FontNames() const -> std::vector<std::string>                                       = 0; // sorted
+  // How many image pixels a game pixel is, each way: 1 for the classic pack, 4 for a remaster at 4x.
+  [[nodiscard]] virtual auto Scale() const -> unsigned = 0;
 
 protected:
   AssetPack()                                        = default;
@@ -54,11 +60,10 @@ public:
   [[nodiscard]] auto Load(std::string_view id) const -> Packed<LoadedAsset> override;
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours> override;
   [[nodiscard]] auto Ids() const -> std::vector<std::string> override;
-
-  // The animations, fonts, name and scale.
-  [[nodiscard]] auto Listing() const noexcept -> Manifest const& {
-    return _manifest;
-  }
+  [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>> override;
+  [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font> override;
+  [[nodiscard]] auto FontNames() const -> std::vector<std::string> override;
+  [[nodiscard]] auto Scale() const -> unsigned override;
 
 private:
   Pack(std::unique_ptr<PackFiles const> files, Manifest manifest);

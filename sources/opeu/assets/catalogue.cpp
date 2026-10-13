@@ -5,6 +5,7 @@
 #include "opeu/assets/palette.hpp"
 #include "opeu/assets/picture-stream.hpp"
 #include "opeu/assets/planar.hpp"
+#include "opeu/assets/program-glyphs.hpp"
 #include "opeu/assets/runs.hpp"
 
 #include <algorithm>
@@ -150,6 +151,7 @@ auto Stream(std::string id, std::string_view const file, std::uint32_t const at,
                 .mask_at         = 0,
                 .layout          = layout,
                 .width_bytes     = 0,
+                .width           = 0,
                 .height          = 0,
                 .role            = Role::PICTURE,
                 .palette         = palette,
@@ -193,6 +195,7 @@ auto Raw(std::string id, std::string_view const file, std::string_view const gro
                 .mask_at         = 0,
                 .layout          = layout,
                 .width_bytes     = static_cast<unsigned>(width_bytes),
+                .width           = 0,
                 .height          = static_cast<unsigned>(height),
                 .role            = role,
                 .palette         = "main/day",
@@ -358,6 +361,42 @@ auto AddGlyphs(Builder& out) -> void {
   }
 }
 
+auto Glyph(std::string id, std::string_view const table, std::size_t const at, std::size_t const height, std::string_view const use) -> Asset {
+  return Bitmap(std::move(id), table, "glyphs", static_cast<std::uint32_t>(at), 1, height, Role::GLYPH, 7, false, use);
+}
+
+auto DigitUse(std::size_t const digit, std::string_view const where) -> std::string {
+  return digit < 10 ? std::format("{}, {}", where, digit) : std::format("{}, the blank that clears a digit's cell", where);
+}
+
+auto AddProgramGlyphs(Builder& out) -> void {
+  for (auto const n : Indices(TEXT_GLYPHS)) {
+    auto const code{ FIRST_TEXT_CODE + n };
+    out.Add(Glyph(std::format("text-glyph/{:03}", code), PROGRAM_TEXT_FONT, n * TEXT_GLYPH_HEIGHT, TEXT_GLYPH_HEIGHT, std::format("the game's text, code 0x{:02X}", code)));
+  }
+  for (auto const n : Indices(DIGIT_GLYPHS)) {
+    auto digit{ Glyph(std::format("digit-glyph/{:02}", n), PROGRAM_DIGITS, n * DIGIT_SIZE, DIGIT_SIZE, DigitUse(n, "the map scales' and battle panels' digits")) };
+    digit.width = DIGIT_SIZE;
+    out.Add(std::move(digit));
+  }
+  for (auto const n : Indices(DIGIT_GLYPHS)) {
+    out.Add(Glyph(std::format("sideways-digit-glyph/{:02}", n), PROGRAM_SIDEWAYS_DIGITS, n * SIDEWAYS_DIGIT_HEIGHT, SIDEWAYS_DIGIT_HEIGHT, DigitUse(n, "the vertical map scale's digits")));
+  }
+  for (auto const [n, use] : std::views::zip(Indices(MARKERS), std::array{ std::string_view{ "an objective on the overview" }, std::string_view{ "the overview's flashing cell" } })) {
+    out.Add(Glyph(std::format("marker-glyph/{}", n), PROGRAM_MARKERS, n * MARKER_SIZE, MARKER_SIZE, use));
+  }
+}
+
+// The left `width` pixels of every row (all of them when `width` is 0).
+auto Narrowed(Image const& image, std::size_t const width) -> Image {
+  if (width == 0 || width >= image.Width()) return image;
+  auto const left{ [&image, width](std::span<std::uint8_t const> const values) {
+    return Indices(image.Height()) | std::views::transform([values, &image, width](std::size_t const row) { return values.subspan(row * image.Width(), width); }) | std::views::join
+           | std::ranges::to<std::vector>();
+  } };
+  return Image{ width, image.Height(), left(image.Pixels()), image.HasMask() ? left(image.Opaque()) : std::vector<std::uint8_t>{} };
+}
+
 // A one-bit asset as its shape drawn in the ink, everything else transparent.
 auto Inked(Image const& bits, Asset const& asset) -> Image {
   auto opaque{ bits.Pixels() | std::views::transform([&](std::uint8_t const bit) { return static_cast<std::uint8_t>((bit != 0) != asset.ink_where_clear); }) | std::ranges::to<std::vector>() };
@@ -380,7 +419,9 @@ auto DecodeAsset(Bytes const file, Asset const& asset) -> Decoded<Image> {
     return Region(file, asset, planes).and_then([&](Bytes const bytes) { return DecodeInterleaved(bytes, asset.width_bytes, asset.height, planes); });
   }
   case Layout::BITMAP:
-    return Region(file, asset, 1).and_then([&](Bytes const bytes) { return DecodeBitmap(bytes, asset.width_bytes, asset.height); }).transform([&](Image const& bits) { return Inked(bits, asset); });
+    return Region(file, asset, 1).and_then([&](Bytes const bytes) { return DecodeBitmap(bytes, asset.width_bytes, asset.height); }).transform([&](Image const& bits) {
+      return Narrowed(Inked(bits, asset), asset.width);
+    });
   case Layout::RUNS_BITMAP:
     return ExpandRuns(file.subspan(asset.at), std::size_t{ asset.width_bytes } * asset.height)
         .and_then([&](Expanded const& expanded) { return DecodeBitmap(expanded.bytes, asset.width_bytes, asset.height); })
@@ -441,6 +482,7 @@ Catalogue::Catalogue(Source const& source) : _source{ source } {
   AddScreens(builder);
   AddMasks(builder);
   AddGlyphs(builder);
+  AddProgramGlyphs(builder);
   _assets = builder.Take();
 }
 
@@ -450,8 +492,13 @@ auto Catalogue::Find(std::string_view const id) const -> std::optional<Asset> {
   return *found;
 }
 
+auto Catalogue::File(std::string_view const name) const -> Decoded<Bytes> {
+  if (auto const table{ ProgramFile(name) }) return *table;
+  return _source.get().File(name);
+}
+
 auto Catalogue::Decode(Asset const& asset) const -> Decoded<Image> {
-  return _source.get().File(asset.file).and_then([&](Bytes const file) { return DecodeAsset(file, asset); });
+  return File(asset.file).and_then([&](Bytes const file) { return DecodeAsset(file, asset); });
 }
 
 auto Catalogue::DecodeTexture(Asset const& asset) const -> Decoded<Texture> {

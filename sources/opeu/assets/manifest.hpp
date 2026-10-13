@@ -50,7 +50,8 @@ struct PackedAsset {
 struct Font {
   std::size_t              cell_width{};
   std::size_t              cell_height{};
-  std::vector<std::string> glyphs; // ids in code order
+  unsigned                 first_code{}; // the code of the first glyph: 0x20 for the text font, 0 where a glyph's number is its code
+  std::vector<std::string> glyphs;       // ids in code order
 
   auto operator==(Font const&) const -> bool = default;
 };
@@ -87,6 +88,7 @@ public:
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours>;
   [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>>;
   [[nodiscard]] auto FontNamed(std::string_view name) const -> std::optional<Font>;
+  [[nodiscard]] auto FontNames() const -> std::vector<std::string>; // sorted
 
 private:
   Contents _contents;

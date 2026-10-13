@@ -155,6 +155,13 @@ auto Display::Restore(Snapshot const& snapshot) -> void {
   Draw(snapshot.pixels, Blit{ .destination = snapshot.area });
 }
 
+auto Display::Copy(Rect const source, Point const destination) -> Rendered<void> {
+  auto const taken{ Take(source) };
+  if (!taken) return std::unexpected{ taken.error() };
+  Draw(taken->pixels, Blit{ .destination = At(destination, Dimensions(source)) });
+  return {};
+}
+
 auto Display::Read(Rect const area) const -> Rendered<assets::Texture> {
   auto const rect{ ToSdlPixels(area) };
   auto const read{ platform::UniqueSurface{ SDL_RenderReadPixels(&Renderer(), &rect) } };

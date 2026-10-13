@@ -1,9 +1,10 @@
 #pragma once
-// Textures baked from the pack, one per (asset id, palette), kept in a bounded least-recently-used cache. A palette
-// change (an hour, a scene of the opening) is a different key: the textures of the previous palette age out.
+// Textures baked from an asset pack (a built pack, a remaster over it, or the decoders' CataloguePack: the same
+// interface), one per (asset id, palette), kept in a bounded least-recently-used cache. A palette change (an hour, a
+// scene of the opening) is a different key: the textures of the previous palette age out.
 
+#include "opeu/assets/pack.hpp"
 #include "opeu/render/geometry.hpp"
-#include "opeu/render/pack-source.hpp"
 #include "opeu/render/render-error.hpp"
 #include "opeu/render/texture.hpp"
 
@@ -16,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace opeu::render::detail::texture_cache {
 
@@ -44,7 +46,7 @@ struct CacheStatistics {
 
 class TextureCache {
 public:
-  TextureCache(SDL_Renderer& renderer, PackSource const& source, std::size_t capacity);
+  TextureCache(SDL_Renderer& renderer, assets::AssetPack const& pack, std::size_t capacity);
 
   // The texture for `key`, baked on a miss. It stays valid while held, even after the cache lets it go.
   [[nodiscard]] auto Fetch(TextureKey const& key) -> Rendered<SharedBaked>;
@@ -54,8 +56,8 @@ public:
   [[nodiscard]] auto Holds(TextureKey const& key) const -> bool {
     return _slots.contains(key);
   }
-  [[nodiscard]] auto Source() const noexcept -> PackSource const& {
-    return _source.get();
+  [[nodiscard]] auto Pack() const noexcept -> assets::AssetPack const& {
+    return _pack.get();
   }
 
 private:
@@ -66,10 +68,12 @@ private:
   using Recent = std::list<Slot>;
 
   [[nodiscard]] auto Bake(TextureKey const& key) const -> Rendered<Baked>;
+  // The asset's image as the pack holds it (no palette named), or baked in the palette.
+  [[nodiscard]] auto Pixels(assets::LoadedAsset const& asset, std::string_view palette) const -> Rendered<assets::Texture>;
   auto               Remember(TextureKey const& key, SharedBaked baked) -> void;
 
   std::reference_wrapper<SDL_Renderer>                _renderer;
-  std::reference_wrapper<PackSource const>            _source;
+  std::reference_wrapper<assets::AssetPack const>     _pack;
   std::size_t                                         _capacity;
   Recent                                              _recent; // most recently used first
   std::map<TextureKey, Recent::iterator, std::less<>> _slots;

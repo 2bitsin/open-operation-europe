@@ -20,6 +20,7 @@ constexpr auto TINY{ std::string_view{ R"({
  "palettes": {"grey": [[0, 0, 0], [8, 8, 8], [16, 16, 16], [24, 24, 24], [32, 32, 32], [40, 40, 40], [48, 48, 48], [56, 56, 56],
                        [64, 64, 64], [72, 72, 72], [80, 80, 80], [88, 88, 88], [96, 96, 96], [104, 104, 104], [112, 112, 112], [120, 120, 120]]},
  "animations": {"blink": ["eye/1", "eye/0"]},
+ "fonts": {"eyes": {"cell": [2, 3], "first": 48, "glyphs": ["eye/0", "eye/1"]}, "plain": {"cell": [2, 3], "glyphs": ["eye/1"]}},
  "assets": [
   {"id": "eye/0", "class": "sprites", "role": "sprite", "width": 2, "height": 3, "palette": "grey", "palettes": ["grey"], "mask": true, "image": "sprites/eye/0.png",
    "recolour": "ink", "indexed": "sprites/eye/0.index.png", "animation": "blink", "frame": 1, "use": "an eye"},
@@ -76,6 +77,14 @@ TEST(Manifest, KeepsPalettesAndAnimations) {
   EXPECT_EQ((*grey)[15], (Colour{ .r = 120, .g = 120, .b = 120 }));
   EXPECT_FALSE(manifest->Palette("sepia"));
   EXPECT_EQ(manifest->Frames("blink"), (std::vector<std::string>{ "eye/1", "eye/0" }));
+}
+
+TEST(Manifest, ListsItsFontsWithTheirFirstCode) {
+  auto const manifest{ Manifest::Parse(ToBytes(TINY)) };
+  ASSERT_TRUE(manifest);
+  EXPECT_EQ(manifest->FontNames(), (std::vector<std::string>{ "eyes", "plain" }));
+  EXPECT_EQ(manifest->FontNamed("eyes")->first_code, 48U);
+  EXPECT_EQ(manifest->FontNamed("plain")->first_code, 0U); // no "first": the glyph numbers are the codes
 }
 
 TEST(Manifest, KeepsTheSamplesFonts) {

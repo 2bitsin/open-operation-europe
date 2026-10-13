@@ -8,6 +8,17 @@
 
 namespace opeu::assets::detail::fallback_pack {
 
+namespace {
+
+// The names of two sorted lists, sorted, each once.
+auto Union(std::vector<std::string> const& first, std::vector<std::string> const& second) -> std::vector<std::string> {
+  auto names{ std::vector<std::string>{} };
+  std::ranges::set_union(first, second, std::back_inserter(names));
+  return names;
+}
+
+}
+
 FallbackPack::FallbackPack(std::unique_ptr<AssetPack const> preferred, std::unique_ptr<AssetPack const> fallback) : _preferred{ std::move(preferred) }, _fallback{ std::move(fallback) } {
   Expects(_preferred != nullptr && _fallback != nullptr, "a fallback pack stacks two packs");
 }
@@ -25,11 +36,23 @@ auto FallbackPack::Palette(std::string_view const name) const -> std::optional<P
 }
 
 auto FallbackPack::Ids() const -> std::vector<std::string> {
-  auto const preferred{ _preferred->Ids() };
-  auto const fallback{ _fallback->Ids() };
-  auto       ids{ std::vector<std::string>{} };
-  std::ranges::set_union(preferred, fallback, std::back_inserter(ids));
-  return ids;
+  return Union(_preferred->Ids(), _fallback->Ids());
+}
+
+auto FallbackPack::Frames(std::string_view const animation) const -> std::optional<std::vector<std::string>> {
+  return _preferred->Frames(animation).or_else([&] { return _fallback->Frames(animation); });
+}
+
+auto FallbackPack::FontNamed(std::string_view const name) const -> std::optional<Font> {
+  return _preferred->FontNamed(name).or_else([&] { return _fallback->FontNamed(name); });
+}
+
+auto FallbackPack::FontNames() const -> std::vector<std::string> {
+  return Union(_preferred->FontNames(), _fallback->FontNames());
+}
+
+auto FallbackPack::Scale() const -> unsigned {
+  return _preferred->Scale();
 }
 
 auto FallbackPack::Holder(std::string_view const id) const -> AssetPack const& {

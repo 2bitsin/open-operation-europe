@@ -1,5 +1,8 @@
 #include "opeu/render/scene-renderer.hpp"
 
+#include <algorithm>
+#include <format>
+#include <ranges>
 #include <variant>
 
 namespace opeu::render::detail::scene_renderer {
@@ -22,7 +25,10 @@ auto SceneRenderer::Compose(Scene const& scene) -> Rendered<void> {
 
 auto SceneRenderer::AssetOf(Sprite const& sprite) const -> Rendered<std::string> {
   if (!sprite.frame) return sprite.asset;
-  return _textures.get().Source().Frame(sprite.asset, *sprite.frame);
+  auto const frames{ _textures.get().Pack().Frames(sprite.asset) };
+  if (!frames) return Failed(std::format("no animation {}", sprite.asset));
+  if (*sprite.frame >= frames->size()) return Failed(std::format("{} has {} frames, not {}", sprite.asset, frames->size(), *sprite.frame + 1));
+  return frames->at(*sprite.frame);
 }
 
 auto SceneRenderer::Draw(Sprite const& sprite) -> Rendered<void> {
@@ -32,6 +38,24 @@ auto SceneRenderer::Draw(Sprite const& sprite) -> Rendered<void> {
   if (!baked) return std::unexpected{ baked.error() };
   auto const destination{ At(sprite.at, sprite.size.value_or((*baked)->size)) };
   _display.get().Draw((*baked)->texture, Blit{ .destination = destination, .flip = sprite.flip, .modulation = sprite.modulation });
+  return {};
+}
+
+auto SceneRenderer::Draw(Tiles const& tiles) -> Rendered<void> {
+  auto const columns{ static_cast<int>(std::max(tiles.columns, 1uz)) };
+  for (auto const [index, asset] : std::views::zip(std::views::iota(0), tiles.assets)) {
+    auto const at{
+      Point{ .x = tiles.at.x + (index % columns * tiles.cell.width), .y = tiles.at.y + (index / columns * tiles.cell.height) }
+    };
+    if (auto const placed{ Place(TextureKey{ .asset = asset, .palette = tiles.palette }, at) }; !placed) return placed;
+  }
+  return {};
+}
+
+auto SceneRenderer::Place(TextureKey const& key, Point const at) -> Rendered<void> {
+  auto const baked{ _textures.get().Fetch(key) };
+  if (!baked) return std::unexpected{ baked.error() };
+  _display.get().Draw((*baked)->texture, Blit{ .destination = At(at, (*baked)->size) });
   return {};
 }
 

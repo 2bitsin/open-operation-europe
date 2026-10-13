@@ -37,7 +37,7 @@ TEST(Pack, LoadsTheSameFromItsDirectoryAndItsArchive) {
   auto const directory{ OpenSample(SAMPLE_DIRECTORY) };
   auto const archive{ OpenSample(SAMPLE_ARCHIVE) };
   ASSERT_EQ(directory.Ids(), archive.Ids());
-  EXPECT_EQ(directory.Ids().size(), 18U);
+  EXPECT_EQ(directory.Ids().size(), 22U);
   EXPECT_TRUE(std::ranges::all_of(directory.Ids(), [&](std::string const& id) { return directory.Load(id) && directory.Load(id) == archive.Load(id); }));
 }
 
@@ -71,9 +71,24 @@ TEST(Pack, ListsAUnitIconsSideZeroVariant) {
 
 TEST(Pack, KnowsAnimationsAndPalettes) {
   auto const pack{ OpenSample(SAMPLE_ARCHIVE) };
-  EXPECT_EQ(pack.Listing().Frames("battle-blast/large"), (std::vector<std::string>{ "battle-blast/large/0", "battle-blast/large/1", "battle-blast/large/2", "battle-blast/large/3" }));
+  EXPECT_EQ(pack.Frames("battle-blast/large"), (std::vector<std::string>{ "battle-blast/large/0", "battle-blast/large/1", "battle-blast/large/2", "battle-blast/large/3" }));
+  EXPECT_FALSE(pack.Frames("battle-blast/huge"));
   EXPECT_EQ(pack.Palette("main/day"), Colours(FindPalette("main/day")->levels));
   EXPECT_FALSE(pack.Palette("main/noon"));
+}
+
+TEST(Pack, KnowsItsFontsAndItsScale) {
+  auto const pack{ OpenSample(SAMPLE_DIRECTORY) };
+  EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "sideways-digit-glyph", "text-glyph" }));
+  auto const text{ pack.FontNamed("text-glyph") };
+  ASSERT_TRUE(text);
+  EXPECT_EQ(text->cell_width, 8U);
+  EXPECT_EQ(text->cell_height, 16U);
+  EXPECT_EQ(text->first_code, 65U); // the sample holds the glyph of 'A' alone
+  EXPECT_EQ(text->glyphs, std::vector<std::string>{ "text-glyph/065" });
+  EXPECT_EQ(pack.FontNamed("digit-glyph")->cell_width, 6U);
+  EXPECT_FALSE(pack.FontNamed("kana"));
+  EXPECT_EQ(pack.Scale(), 1U);
 }
 
 TEST(Pack, SaysAnUnknownIdIsUnknown) {

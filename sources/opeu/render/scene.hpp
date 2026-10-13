@@ -1,6 +1,6 @@
 #pragma once
-// One frame as the game describes it: logical operations in drawing order (a sprite by asset id, a filled
-// rectangle, a line, a run of text) and the frame's tint (a fade, an hour's colour). A thin value: built per frame,
+// One frame as the game describes it: logical operations in drawing order (a sprite by asset id, a grid of tiles, a
+// filled rectangle, a line, a run of text) and the frame's tint (a fade, an hour's colour). A thin value: built per frame,
 // drawn by SceneRenderer, then dropped; nothing is retained between frames.
 
 #include "opeu/render/display.hpp"
@@ -28,6 +28,17 @@ struct Sprite {
   auto operator==(Sprite const&) const -> bool = default;
 };
 
+// A grid of tiles drawn row by row from `at`: the map view's 24x24 cells, the overview's 8x8 ones.
+struct Tiles {
+  std::vector<std::string> assets{}; // row-major
+  std::size_t              columns{ 1 };
+  Size                     cell{};
+  std::string              palette{}; // the hour's, for the maps
+  Point                    at{};
+
+  auto operator==(Tiles const&) const -> bool = default;
+};
+
 struct Fill {
   Rect area{};
   Rgba colour{};
@@ -44,7 +55,7 @@ struct Line {
 };
 
 using Text    = TextRun;
-using Command = std::variant<Sprite, Fill, Line, Text>;
+using Command = std::variant<Sprite, Tiles, Fill, Line, Text>;
 
 class Scene {
 public:
@@ -75,4 +86,5 @@ using detail::scene::Line;
 using detail::scene::Scene;
 using detail::scene::Sprite;
 using detail::scene::Text;
+using detail::scene::Tiles;
 }

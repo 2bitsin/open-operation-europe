@@ -5,7 +5,11 @@ pack_class: glyphs
 ids:
   - game-glyph/*
   - ending-glyph/*
-count: 1298
+  - text-glyph/*
+  - digit-glyph/*
+  - sideways-digit-glyph/*
+  - marker-glyph/*
+count: 1418
 scale: 4
 background: transparent
 recolour: ink
@@ -26,8 +30,11 @@ rules:
 
 ## What it is
 
-The game's text is drawn glyph by glyph from two fixed-cell fonts of 16x14 cells: `game-glyph/<nnnn>` (1080 glyphs:
-kana, kanji, Latin letters, digits and symbols, in code order) and `ending-glyph/<nnn>` (218, the ending's text).
+The game's text is drawn glyph by glyph from fixed-cell fonts: `text-glyph/<code>` (96 glyphs of 8x16, the codes
+0x20..0x7F of the game's English text), `digit-glyph/<nn>` (6x6 digits and the blank that clears one),
+`sideways-digit-glyph/<nn>` (the same digits turned to read downward, 8x5), `marker-glyph/<n>` (two 8x8 overview
+markers), and the Chinese edition's 16x14 fonts `game-glyph/<nnnn>` (1080 glyphs: kana, kanji, Latin letters, digits
+and symbols, in code order) and `ending-glyph/<nnn>` (218, the ending's text).
 Each glyph is a one-bit shape the game draws in a pen colour, so the image is a white or grey shape on transparency.
 
 ## Size and scale

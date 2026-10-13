@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace opeu::assets {
 
@@ -23,6 +25,8 @@ using test::ToBytes;
 // listed with an image the pack does not hold.
 constexpr auto REMASTER{ std::string_view{ R"({
  "format": "opeu-pack/1", "name": "remaster", "scale": 1,
+ "animations": {"battle-blast/large": ["portrait/118"], "blink": ["portrait/200"]},
+ "fonts": {"text-glyph": {"cell": [8, 16], "first": 32, "glyphs": ["portrait/118"]}, "runes": {"cell": [32, 16], "glyphs": ["portrait/200"]}},
  "palettes": {"sepia": [[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5], [6, 6, 6], [7, 7, 7], [8, 8, 8],
                         [9, 9, 9], [10, 10, 10], [11, 11, 11], [12, 12, 12], [13, 13, 13], [14, 14, 14], [15, 15, 15], [16, 16, 16]]},
  "assets": [
@@ -64,10 +68,34 @@ TEST(FallbackPack, ReportsABrokenReplacementRatherThanHidingIt) {
 
 TEST(FallbackPack, ListsTheIdsOfBothPacks) {
   auto const ids{ Remastered().Ids() };
-  EXPECT_EQ(ids.size(), 19U);
+  EXPECT_EQ(ids.size(), 23U);
   EXPECT_TRUE(std::ranges::is_sorted(ids));
   EXPECT_TRUE(std::ranges::contains(ids, "portrait/200"));
   EXPECT_TRUE(std::ranges::contains(ids, "dialog/yes"));
+}
+
+TEST(FallbackPack, TakesAnimationsAndFontsByNameFromThePreferredPackFirst) {
+  auto const pack{ Remastered() };
+  EXPECT_EQ(pack.Frames("battle-blast/large"), std::vector<std::string>{ "portrait/118" });
+  EXPECT_EQ(pack.Frames("blink"), std::vector<std::string>{ "portrait/200" });
+  EXPECT_EQ(pack.Frames("battle-blast/small"), std::nullopt);
+  EXPECT_EQ(pack.FontNamed("text-glyph")->first_code, 32U);
+  EXPECT_EQ(pack.FontNamed("ending-glyph"), OpenSample(SAMPLE_ARCHIVE).FontNamed("ending-glyph"));
+  EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "runes", "sideways-digit-glyph", "text-glyph" }));
+}
+
+TEST(FallbackPack, HasThePreferredPacksScale) {
+  auto const manifest{ std::string{ R"({"format": "opeu-pack/1", "name": "big", "scale": 4, "palettes": {}, "assets": []})" } };
+  auto       big{
+    OpenMemoryPack({ { "pack.json", ToBytes(manifest) } }
+    )
+  };
+  ASSERT_TRUE(big);
+  auto const pack{
+    FallbackPack{ std::make_unique<Pack const>(*std::move(big)), std::make_unique<Pack const>(OpenSample(SAMPLE_ARCHIVE)) }
+  };
+  EXPECT_EQ(pack.Scale(), 4U);
+  EXPECT_EQ(Remastered().Scale(), 1U);
 }
 
 TEST(FallbackPack, FindsPalettesInEitherPack) {
