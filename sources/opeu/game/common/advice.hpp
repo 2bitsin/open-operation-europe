@@ -148,26 +148,21 @@ inline auto AdviceUnitName(std::uint8_t* ds, HostEvent event, std::uint16_t unit
   return opeu_unit_name(ds, AdviceNameFormat, unit, buffer);
 }
 
-// An advice check's context: the far advice texts, the event its services go through, the topic whose buffer it
-// writes and the SP it was entered with (its frame's scratch buffers live below it on the DS stack).
+// The DS bytes an advice check reserves for an advice text it formats (the longest is 107 bytes) and for a unit name.
+inline constexpr std::uint16_t ADVICE_TEXT_BYTES{ 0x80 };
+inline constexpr std::uint16_t UNIT_NAME_BYTES{ 0x40 };
+
+// An advice check's context: the far advice texts, the event its services go through and the topic whose buffer it
+// writes.
 struct Advisor {
   std::uint8_t*       ds;
   std::uint8_t const* far_text;
   HostEvent           event;
   AdviceTopic         topic;
-  std::uint16_t       sp;
 
   // The topic's advice buffer.
   [[nodiscard]] auto Buffer() const -> std::uint16_t {
     return AdviceBuffer(ds, topic);
-  }
-  // The DS offset of a frame buffer `offset` bytes below the check's frame pointer.
-  [[nodiscard]] auto Scratch(std::uint16_t offset) const -> std::uint16_t {
-    return Local(static_cast<std::uint16_t>(sp - 2), offset);
-  }
-  // The SP a nested check is entered with.
-  [[nodiscard]] auto Nested() const -> std::uint16_t {
-    return static_cast<std::uint16_t>(sp - 4);
   }
   [[nodiscard]] auto Random(std::uint16_t bound) const -> std::uint16_t {
     return RandomBelow(ds, bound);
@@ -191,17 +186,21 @@ struct Advisor {
     Show();
     return 1;
   }
-  // Gives the advice text formatted with the words through the frame buffer at `scratch`; returns 1.
+  // Gives the advice text formatted with the words; the formatting service reads the text from the data segment.
+  // Returns 1.
   template <typename... Words>
-  auto SayFormatted(std::uint16_t scratch, AdviceText text, Words... words) const -> std::uint16_t {
-    Copy(scratch, text);
-    Format(scratch, words...);
+  auto SayFormatted(AdviceText text, Words... words) const -> std::uint16_t {
+    ServiceLocals const format{ ADVICE_TEXT_BYTES };
+    Copy(format.At(0), text);
+    Format(format.At(0), words...);
     Show();
     return 1;
   }
-  // The unit's name written to a DS buffer; returns the buffer.
-  [[nodiscard]] auto UnitName(std::uint16_t unit, std::uint16_t buffer) const -> std::uint16_t {
-    return AdviceUnitName(ds, event, unit, buffer);
+  // Gives the advice text formatted with the unit's name and the further words; returns 1.
+  template <typename... Words>
+  auto SayAboutUnit(AdviceText text, std::uint16_t unit, Words... words) const -> std::uint16_t {
+    ServiceLocals const name{ UNIT_NAME_BYTES };
+    return SayFormatted(text, AdviceUnitName(ds, event, unit, name.At(0)), words...);
   }
 };
 } // namespace opeu::game::detail::advice
@@ -210,6 +209,7 @@ namespace opeu::game {
 using detail::advice::ADVICE_FORMAT;
 using detail::advice::ADVICE_MESSAGE;
 using detail::advice::ADVICE_SEGMENT;
+using detail::advice::ADVICE_TEXT_BYTES;
 using detail::advice::AdviceBuffer;
 using detail::advice::AdviceService;
 using detail::advice::AdviceText;
@@ -220,4 +220,5 @@ using detail::advice::Advisor;
 using detail::advice::CopyAdvice;
 using detail::advice::FormatAdvice;
 using detail::advice::ShowAdvice;
+using detail::advice::UNIT_NAME_BYTES;
 } // namespace opeu::game

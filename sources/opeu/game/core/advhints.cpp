@@ -21,8 +21,8 @@ namespace {
 
 constexpr std::uint8_t STAFF_TEMPLATE{ 6 }; // the person template kind of the air commander
 
-auto Hints(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text, std::uint16_t sp) -> Advisor {
-  return { ds, far_text, event, AdviceTopic::HINTS, sp };
+auto Hints(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text) -> Advisor {
+  return { ds, far_text, event, AdviceTopic::HINTS };
 }
 } // namespace
 
@@ -30,23 +30,22 @@ auto Hints(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text, std:
 // on an intelligence chief of little charm (he and the air commander disagree), then on the scenario: the Ardennes
 // winter (scenario 4), the hurricane season (scenario 3 in July to September), and bridges in any scenario but 1 and
 // 2, worded by the side's stance.
-uint16_t opeu_advice_situational_hint(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_situational_hint(uint8_t ds[65536], const uint8_t* far_text, HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const advisor{ Hints(ds, event, far_text, sp) };
+  auto const advisor{ Hints(ds, event, far_text) };
   auto const side{ data.current_side };
-  auto const text{ advisor.Scratch(0x68) };
   auto const air{ Record<Side>(data, data.current_side_ptr).strength };
   if (air <= 30 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_AIR_SUPPORT);
   if (air >= 50 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_CARPET_BOMBING);
   if (air >= 30 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_AIR_GUNFIRE);
   for (std::uint8_t g{ 2 }; g < GROUPS_PER_SIDE; ++g)
-    if ((GroupOf(data, side, g).flags & Bits(GroupFlag::RESERVE)) && advisor.Random(4) == 1) return advisor.SayFormatted(text, AdviceText::HINT_RESERVE_DIVISION, g + 1);
+    if ((GroupOf(data, side, g).flags & Bits(GroupFlag::RESERVE)) && advisor.Random(4) == 1) return advisor.SayFormatted(AdviceText::HINT_RESERVE_DIVISION, g + 1);
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
     auto const person{ opeu_find_group_record(ds, side, g) };
-    if (person && (Record<Person>(data, person).role & Bits(PersonRole::DEPUTY)) && advisor.Random(4) == 1) return advisor.SayFormatted(text, AdviceText::HINT_DEPUTY, g + 1);
+    if (person && (Record<Person>(data, person).role & Bits(PersonRole::DEPUTY)) && advisor.Random(4) == 1) return advisor.SayFormatted(AdviceText::HINT_DEPUTY, g + 1);
   }
   if (Record<Person>(data, data.context_record3).charm <= 40 && advisor.Random(4) == 1)
-    return advisor.SayFormatted(text, AdviceText::HINT_STAFF_DISAGREE, data.context_record3, opeu_find_person_template(ds, Record<Person>(data, data.context_record1).status, STAFF_TEMPLATE));
+    return advisor.SayFormatted(AdviceText::HINT_STAFF_DISAGREE, data.context_record3, opeu_find_person_template(ds, Record<Person>(data, data.context_record1).status, STAFF_TEMPLATE));
   auto const scenario{ CurrentScenario(data) };
   if (scenario == Scenario::BULGE && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_ARDENNES_WINTER);
   if (scenario == Scenario::D_DAY && data.month >= 7 && data.month <= 9 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_HURRICANE_SEASON);
@@ -56,9 +55,9 @@ uint16_t opeu_advice_situational_hint(uint8_t ds[65536], const uint8_t* far_text
 }
 
 // One of the twenty general tips.
-uint16_t opeu_advice_general_tip(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
+uint16_t opeu_advice_general_tip(uint8_t ds[65536], const uint8_t* far_text, HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const advisor{ Hints(ds, event, far_text, sp) };
+  auto const advisor{ Hints(ds, event, far_text) };
   auto const tip{ advisor.Random(20) };
   CopyAdvice(ds, far_text, advisor.Buffer(), data.advice_tips[tip].offset);
   advisor.Show();
@@ -66,10 +65,9 @@ uint16_t opeu_advice_general_tip(uint8_t ds[65536], const uint8_t* far_text, Hos
 }
 
 // Operation Hints: a situational hint, else a general tip.
-uint16_t opeu_advice_operation_hints(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint16_t sp) {
-  auto const nested{ static_cast<std::uint16_t>(sp - 4) };
-  if (auto const given{ opeu_advice_situational_hint(ds, far_text, event, nested) }) return given;
-  return opeu_advice_general_tip(ds, far_text, event, nested);
+uint16_t opeu_advice_operation_hints(uint8_t ds[65536], const uint8_t* far_text, HostEvent event) {
+  if (auto const given{ opeu_advice_situational_hint(ds, far_text, event) }) return given;
+  return opeu_advice_general_tip(ds, far_text, event);
 }
 
 uint16_t svc_advhints(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
@@ -77,5 +75,5 @@ uint16_t svc_advhints(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t c
 }
 
 auto port_routine_opeu_advice_operation_hints(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return WithStack(PORT_FRAME, [&](std::uint16_t sp) { return opeu_advice_operation_hints(ds, AdviceTexts(), svc_advhints, sp); });
+  return opeu_advice_operation_hints(ds, AdviceTexts(), svc_advhints);
 }

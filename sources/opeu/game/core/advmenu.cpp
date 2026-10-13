@@ -16,7 +16,7 @@
 
 using namespace opeu::game;
 
-// Near pointers are DS offsets; sp is the DS offset of SP at entry. Services leave the module through event:
+// Near pointers are DS offsets. Services leave the module through event:
 // 1 control_message(text, person), 2 delay_dialog(text, last, person, menu), 3 far call(offset, segment) whose AX is
 // returned.
 namespace {
@@ -34,13 +34,9 @@ constexpr std::uint16_t STAFF_MENU{ offsetof(DataSegment, staff_menu) };
 constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint16_t INTELLIGENCE{ 2 }; // the staff menu's second item
 
-// Calls an action through the far pointer the table holds; the pointer is first stored at the caller's frame slot
-// (the far-call temporary).
-auto CallAction(std::uint8_t* ds, HostEvent event, FarPointer const& action, std::uint16_t slot) -> std::uint16_t {
-  auto&      data{ Data(ds) };
-  auto const target{ action };
-  Record<FarPointer>(data, slot) = target;
-  return Call(ds, event, FAR_CALL, target.offset, target.segment);
+// Calls an action through the far pointer the table holds.
+auto CallAction(std::uint8_t* ds, HostEvent event, FarPointer const& action) -> std::uint16_t {
+  return Call(ds, event, FAR_CALL, action.offset, action.segment);
 }
 } // namespace
 
@@ -51,7 +47,7 @@ void opeu_control_prepare(uint8_t ds[65536], HostEvent event, uint16_t sp) {
 }
 
 // The advice menu: topics 1-5 until cancelled.
-void opeu_staff_advice_menu(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_staff_advice_menu(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (;;) {
     std::uint16_t topic{ Call(ds, event, DELAY_DIALOG, ADVICE_PROMPT, 5, data.context_record2, ADVICE_MENU) };
@@ -60,18 +56,18 @@ void opeu_staff_advice_menu(uint8_t ds[65536], HostEvent event, uint16_t sp) {
     if (data.advice_messages[topic][0])
       Call(ds, event, CONTROL_MESSAGE, Near(data, data.advice_messages[topic]), data.context_record2);
     else
-      CallAction(ds, event, data.advice_actions[topic], static_cast<std::uint16_t>(sp - 2 - 6));
+      CallAction(ds, event, data.advice_actions[topic]);
   }
 }
 
 // Command action 5: Operations or Intelligence, until Intelligence reports a result of 1.
-void opeu_turn_action_5(uint8_t ds[65536], HostEvent event, uint16_t sp) {
+void opeu_turn_action_5(uint8_t ds[65536], HostEvent event) {
   auto&         data{ Data(ds) };
   std::uint16_t officer;
   std::uint16_t result;
   do {
     if ((officer = Call(ds, event, DELAY_DIALOG, STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == CANCELLED) return;
-    result = CallAction(ds, event, data.staff_actions[officer], static_cast<std::uint16_t>(sp - 2 - 8));
+    result = CallAction(ds, event, data.staff_actions[officer]);
   } while (officer != INTELLIGENCE || result != 1);
 }
 
@@ -88,11 +84,11 @@ uint16_t svc_advmenu(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_staff_advice_menu(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_staff_advice_menu(ds, svc_advmenu, sp); });
+  opeu_staff_advice_menu(ds, svc_advmenu);
   return 0;
 }
 
 auto port_routine_opeu_turn_action_5(std::uint8_t* ds, std::uint16_t const*, unsigned) -> std::uint32_t {
-  WithStack(PORT_FRAME, [&](std::uint16_t sp) { opeu_turn_action_5(ds, svc_advmenu, sp); });
+  opeu_turn_action_5(ds, svc_advmenu);
   return 0;
 }
