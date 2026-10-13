@@ -93,6 +93,9 @@ def test_keys_nothing_names_go_and_an_empty_enumeration_takes_its_header(passed)
   ("g((short)-1)",                                       "g((short)-1)"),
   ("(Name)x",                                            "(Name)x"),
   ("sizeof(int) + h(a)(b)",                              "sizeof(int) + h(a)(b)"),
+  ("(uint8_t)static_cast<std::uint16_t>(f(x))",          "static_cast<uint8_t>(static_cast<std::uint16_t>(f(x)))"),
+  ("(const char*)bytes.data()",                          "reinterpret_cast<const char*>(bytes.data())"),
+  ("(uint8_t*)p",                                        "reinterpret_cast<uint8_t*>(p)"),
 ])
 def test_c_style_casts_of_postfix_operands_become_static_casts(text, modern):
   assert ModernCasts(text) == modern

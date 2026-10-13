@@ -40,10 +40,11 @@ def CheckScratch(tree: Path) -> None:
     raise MainCheckout(f"{tree} is the shared checkout; --apply rewrites only an export under _local/")
 
 
-def Apply(model: Model, batch: str) -> Applied:
-  """Rewrites model.root's files for batch ('b2', 'b3' or 'all'); returns what was replaced and what was not."""
+def Apply(model: Model, batch: str, select=None) -> Applied:
+  """Rewrites model.root's files for batch ('b2', 'b3' or 'all'), only the substitutions select chooses when given;
+  returns what was replaced and what was not."""
   CheckScratch(model.root)
-  chosen = [s for s in model.substitutions.values() if batch == "all" or (batch == "b2") == s.target.battle]
+  chosen = [s for s in model.substitutions.values() if (batch == "all" or (batch == "b2") == s.target.battle) and (select is None or select(s))]
   applied = Applied()
   by_file: dict = {}
   for substitution in _Outermost(chosen):

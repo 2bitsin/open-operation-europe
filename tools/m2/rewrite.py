@@ -5,7 +5,11 @@ it with direct calls. Dry runs only; it never writes under sources/ of the check
     rewrite.py [dry-run]                 model, B2/B3 plans and review listings of HEAD -> _local/m2/dry-run/
     rewrite.py --apply b2|b3|all --tree DIR   also rewrite a scratch export DIR (under _local/; made from --rev
                                          when missing) and report what was replaced; b2 then drops the battle
-                                         events and deletes what only the battle path used (rewriter/b2.py)
+                                         events and deletes what only the battle path used (rewriter/b2.py), b3
+                                         the callback parameters, dispatchers and service ids (rewriter/b3.py)
+    rewrite.py --apply b3 --only 'io/*,map/*' --tree DIR
+                                         only the sites whose callback is bound to dispatchers of those files
+                                         (globs relative to sources/opeu/game): one sub-batch
     rewrite.py b1 [--tree DIR --apply [--check]]
                                          the B1 pass (ds -> Game&, rewriter/b1.py): its counts and review listings;
                                          with --apply it rewrites the scratch export DIR
@@ -17,7 +21,9 @@ The input is a `git archive` export of --rev (default HEAD) under _local/m2/tree
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -28,6 +34,7 @@ from rewriter import report  # noqa: E402
 from rewriter.apply import Apply, CheckScratch, MainCheckout  # noqa: E402
 from rewriter.b1 import B1Pass, WriteB1  # noqa: E402
 from rewriter.b2 import B2Pass  # noqa: E402
+from rewriter.b3 import B3Pass  # noqa: E402
 from rewriter.check import Check, CompileDatabase  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import ROOT, SOURCES, ExportCommit, SourceTree  # noqa: E402
@@ -46,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
   parser.add_argument("--apply", nargs="?", const="b1", choices=("b1", "b2", "b3", "all"),
                       help="rewrite --tree with this batch's substitutions (b1: `rewrite.py b1 --tree DIR --apply`)")
   parser.add_argument("--check", action="store_true", help="with --apply: compile every rewritten file (-fsyntax-only)")
+  parser.add_argument("--only", default="", help="with --apply b3: comma-separated globs of the dispatchers' files (relative to game/) whose sites to replace")
   args = parser.parse_args(argv)
   if args.apply and args.tree is None:
     parser.error("--apply needs --tree: a scratch export under _local/, never the checkout")
@@ -65,12 +73,15 @@ def main(argv: list[str] | None = None) -> int:
   reviews = report.WriteReviews(model, args.out)
   summary = {**headline, "plans": plans, "reviews": reviews}
   if args.apply:
-    applied = Apply(model, args.apply)
+    applied = Apply(model, args.apply, _Selection(model, args.only))
     summary["applied"] = {"sites": sum(applied.replaced.values()), "files": len(applied.replaced), "skipped": len(applied.skipped)}
     (args.out / f"apply-{args.apply}.txt").write_text("\n".join(applied.skipped) + "\n")
     checked = sorted(applied.replaced)
     if args.apply == "b2":
       summary["b2"] = _B2(tree, args.out)
+      checked = _GameFiles(tree)
+    if args.apply == "b3":
+      summary["b3"] = _B3(tree, _Labels(model), args.out)
       checked = _GameFiles(tree)
     if args.check:
       summary["check"] = _Check(tree, checked, args.out / f"check-{args.apply}.txt")
@@ -103,6 +114,32 @@ def _B2(tree: Path, out: Path) -> dict:
   for kind in ("dropped", "deleted", "handlers", "keys", "includes", "kept"):
     (out / f"b2-{kind}.txt").write_text("".join(f"{line}\n" for line in getattr(result, kind)))
   return result.Counts()
+
+
+def _B3(tree: Path, labels: set[str], out: Path) -> dict:
+  """The B3 cleanup after the selected sites are direct: counts, and one listing per kind into out."""
+  result = B3Pass(tree, labels)
+  for kind in ("dropped", "deleted", "enums", "includes", "kept"):
+    (out / f"b3-{kind}.txt").write_text("".join(f"{line}\n" for line in getattr(result, kind)))
+  return result.Counts()
+
+
+def _Labels(model: Model) -> set[str]:
+  """Every name in a case label of a dispatcher (the service ids, as enumerators)."""
+  return {name for dispatcher in model.dispatchers.values() for case in dispatcher.cases for label in case.labels
+          for name in re.findall(r"[A-Za-z_]\w*", label)}
+
+
+def _Selection(model: Model, only: str):
+  """The predicate choosing a substitution by the file of the dispatcher its site's callback is bound to."""
+  patterns = [pattern.strip() for pattern in only.split(",") if pattern.strip()]
+  if not patterns:
+    return None
+  def Chosen(substitution) -> bool:
+    bound = substitution.target.callbacks or substitution.target.chain[:1]
+    files = [str(model.dispatchers[name].function.file.relative_to("game")) for name in bound if name in model.dispatchers]
+    return bool(files) and all(any(fnmatch.fnmatch(file, pattern) for pattern in patterns) for file in files)
+  return Chosen
 
 
 def _GameFiles(tree: Path) -> list[str]:

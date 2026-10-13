@@ -1,8 +1,9 @@
 """C-style casts of an inlined expression written as `static_cast`: `(uint8_t)x` -> `static_cast<uint8_t>(x)`,
 `(TextHost*)port_textout_host()` -> `static_cast<TextHost*>(port_textout_host())`. Only a cast to a plain type
 (an integer type, `void`, or a possibly const pointer to a named type, which a void* converts to) whose operand is a
-postfix expression (a name with its calls, subscripts and member accesses, a literal, or a parenthesised
-expression) is rewritten; any other cast is left as written."""
+postfix expression (a name with its calls, subscripts and member accesses, a named cast, a literal, or a parenthesised
+expression) is rewritten; any other cast is left as written. A cast to a pointer to a character or integer type
+reinterprets the bytes it points at (`(const char*)bytes.data()`), so it becomes a `reinterpret_cast`."""
 from __future__ import annotations
 
 import re
@@ -12,6 +13,8 @@ _TYPE = re.compile(r"\(\s*((?:const\s+)?(?:std::)?(?:u?int(?:8|16|32|64)_t|short
 _NAME = re.compile(r"[A-Za-z_][\w]*(?:\s*::\s*[A-Za-z_]\w*)*")
 _LITERAL = re.compile(r"(?:0[xX][0-9a-fA-F]+|\d+)[uUlL]*")
 _POINTER_FREE = re.compile(r"[A-Z]\w*")
+_BYTE_POINTER = re.compile(r"(?:const\s+)?(?:std::)?(?:u?int(?:8|16|32|64)_t|short|int|long|unsigned(?:\s+\w+)?|signed\s+char|char)(?:\s+const)?\s*\*.*")
+_NAMED_CASTS = ("static_cast", "reinterpret_cast", "const_cast")
 
 
 def ModernCasts(text: str) -> str:
@@ -26,7 +29,8 @@ def ModernCasts(text: str) -> str:
       continue
     operand = ModernCasts(text[operand_start:end])
     out.append(text[position:start])
-    out.append(f"static_cast<{' '.join(type_text.split())}>({_Unparenthesised(operand)})")
+    kind = "reinterpret_cast" if _BYTE_POINTER.fullmatch(type_text.strip()) else "static_cast"
+    out.append(f"{kind}<{' '.join(type_text.split())}>({_Unparenthesised(operand)})")
     position = end
   out.append(text[position:])
   return "".join(out)
@@ -58,7 +62,7 @@ def _OperandEnd(text: str, start: int) -> int | None:
     if end is not None and _TYPE.fullmatch(text, start, end):
       return None  # a cast of a cast: left as written
   elif (name := _NAME.match(text, start)) is not None:
-    end = name.end()
+    end = _NamedCastEnd(text, name) if name.group(0) in _NAMED_CASTS else name.end()
   elif (literal := _LITERAL.match(text, start)) is not None:
     return literal.end()
   else:
@@ -75,6 +79,18 @@ def _OperandEnd(text: str, start: int) -> int | None:
       end += member.end()
     else:
       return end
+
+
+def _NamedCastEnd(text: str, name: re.Match) -> int | None:
+  """The index just past the `<type>` of a named cast (its parenthesised operand follows), or None."""
+  if name.end() >= len(text) or text[name.end()] != "<":
+    return None
+  depth = 0
+  for index in range(name.end(), len(text)):
+    depth += {"<": 1, ">": -1}.get(text[index], 0)
+    if depth == 0:
+      return index + 1 if text[index + 1:index + 2] == "(" else None
+  return None
 
 
 def _Closing(text: str, opening: int) -> int | None:

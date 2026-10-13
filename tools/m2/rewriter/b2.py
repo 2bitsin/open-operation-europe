@@ -171,10 +171,11 @@ def _Propagate(edges: dict[_Slot, set[_Slot]], live: dict[_Slot, str]) -> None:
         changed = True
 
 
-def _AddressTaken(program: Program) -> dict[tuple[PurePosixPath, str], str]:
-  """(file, name) of the routines with a BattleEvent parameter named other than in a call or a declaration where they
-  are visible (their type is then fixed by what receives them)."""
-  names = {name for name, definitions in program.definitions.items() if any(p.type == EVENT for f in definitions for p in f.parameters)}
+def _AddressTaken(program: Program, names: set[str] | None = None) -> dict[tuple[PurePosixPath, str], str]:
+  """(file, name) of the routines (by default those with a BattleEvent parameter) named other than in a call or a
+  declaration where they are visible (their type is then fixed by what receives them)."""
+  if names is None:
+    names = {name for name, definitions in program.definitions.items() if any(p.type == EVENT for f in definitions for p in f.parameters)}
   heads = _Heads(program)
   taken = {}
   for path, source in program.tree.files.items():
