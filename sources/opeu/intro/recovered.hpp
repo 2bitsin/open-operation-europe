@@ -19,25 +19,24 @@ inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
 using Palette = std::span<std::uint8_t const, 48>;
 
 namespace detail::openmain {
-void opeu_open_main(Open& open);
-void opeu_open_delay(uint16_t ticks);
+void RunOpening(Open& open);
+void Delay(uint16_t ticks);
 }
 
 namespace detail::outil {
-auto opeu_mouse_reset(Open& open) -> uint16_t;
-void opeu_picture_file_at(Open& open, uint16_t x, uint16_t y, int32_t position);
-void opeu_open_palette_set(Open& open, Palette palette);
-auto opeu_open_palette_step(Open& open, Palette target) -> int16_t;
-auto opeu_open_palette_fade(Open& open, Palette target, uint16_t mode) -> int16_t;
-auto opeu_open_fade_in(Open& open) -> int16_t;
-auto opeu_open_fade_in_wait(Open& open) -> int16_t;
-auto opeu_open_fade_alt(Open& open) -> int16_t;
-void opeu_open_identity_palette(Open& open);
-auto opeu_open_input_poll() -> int16_t;
-auto opeu_open_file_or_die(Open& open, uint16_t name) -> int16_t;
-void opeu_open_stub_a();
-void opeu_open_stub_b();
-void opeu_open_stub_c();
+auto ResetMouse(Open& open) -> uint16_t;
+void DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position);
+void SetCurrentPalette(Open& open, Palette palette);
+auto StepPalette(Open& open, Palette target) -> int16_t;
+auto FadePalette(Open& open, Palette target, uint16_t mode) -> int16_t;
+auto FadeOut(Open& open) -> int16_t;
+auto FadeOutUninterrupted(Open& open) -> int16_t;
+auto FadeToClosingPalette(Open& open) -> int16_t;
+void SetIdentityPalette(Open& open);
+auto PollInput() -> int16_t;
+/* Waits until the music timeline has run `ticks` further; 1 if a key or button came first. */
+auto WaitTicks(uint16_t ticks) -> int16_t;
+auto OpenFileOrStop(Open& open, uint16_t name) -> int16_t;
 /* The stop after an allocation or open failure: the original spins in an
  * empty loop; the host pumps its events instead, so a window close or a
  * headless run's end still stops the program. */
@@ -45,19 +44,19 @@ void opeu_open_stub_c();
 }
 
 namespace detail::otext {
-void opeu_input_flush();
-auto opeu_text_put(Open& open, uint8_t c) -> uint8_t;
-void opeu_ui_text(Open& open, uint16_t s);
+void FlushKeys();
+auto PutCharacter(Open& open, uint8_t c) -> uint8_t;
+void PutString(Open& open, uint16_t s);
 /* cursor_print(format, ...): the words are pushed on the stack as the caller
  * pushed them, the format's near pointer first. */
 void CursorPrint(Open& open, std::span<uint16_t const> words);
 }
 
 namespace detail::osound {
-void opeu_sound_initialize(Open& open);
-void opeu_finish_side_initialization(Open& open, uint8_t value);
-auto opeu_music_playing(Open& open) -> int;
-void opeu_music_start(Open& open, uint8_t track);
+void InitializeSound(Open& open);
+void SendMusicControl(Open& open, uint8_t value);
+auto IsMusicPlaying(Open& open) -> int;
+void StartMusic(Open& open, uint8_t track);
 /* The FM driver's song start (song number, 1 = track 0) and stop (fade
  * length), as the shutdown issues them without OSOUND's checks. */
 void StartSong(uint8_t song);
@@ -67,128 +66,119 @@ void StopMusic(uint8_t fade);
 /* The initialized data of the five DGROUP modules and of the song bank,
  * which image.cpp places. */
 namespace detail::odtext {
-extern uint8_t   opeu_open_digit_font[10][16];
-extern uint32_t  opeu_open_draw_hooks[4];
-extern uint8_t   opeu_text_erase[8];
-extern uint8_t   opeu_text_unused_014a[16];
-extern int16_t   opeu_text_x;
-extern int16_t   opeu_text_y;
-extern int16_t   opeu_text_left;
-extern uint8_t   opeu_text_paper;
-extern uint8_t   opeu_text_ink;
-extern uint8_t   opeu_text_background;
-extern uint8_t   opeu_text_z_0163;
-extern int16_t   opeu_text_large;
-extern TextSaved opeu_text_saved;
-extern uint8_t   opeu_text_lead;
-extern uint8_t   opeu_text_z_0173;
-extern int16_t   opeu_text_state;
-extern uint16_t  opeu_format_output;
+extern uint8_t const   UNUSED_DIGIT_FONT[10][16];
+extern uint32_t const  DRAW_HOOKS[4];
+extern uint8_t const   TEXT_ERASE[8];
+extern int16_t const   TEXT_X;
+extern int16_t const   TEXT_Y;
+extern int16_t const   TEXT_LEFT;
+extern uint8_t const   TEXT_PAPER;
+extern uint8_t const   TEXT_INK;
+extern uint8_t const   TEXT_BACKGROUND;
+extern int16_t const   TEXT_LARGE;
+extern TextSaved const TEXT_SAVED;
+extern uint8_t const   TEXT_LEAD;
+extern int16_t const   TEXT_STATE;
+extern uint16_t const  FORMAT_OUTPUT;
 }
 
 namespace detail::odsound {
-extern uint8_t opeu_music_current;
-extern uint8_t opeu_effect_current;
-extern char    opeu_music_bank[26];
-extern char    opeu_music_path[14];
+extern uint8_t const MUSIC_CURRENT;
+extern uint8_t const EFFECT_CURRENT;
+extern char const    MUSIC_BANK[26];
+extern char const    MUSIC_PATH[14];
 }
 
 namespace detail::odopen {
-extern char     opeu_reserved_ems_name[8];
-extern int16_t  opeu_reserved_sprite_mapped;
-extern int16_t  opeu_open_aborted;
-extern int16_t  opeu_open_frame_y[11];
-extern int16_t  opeu_open_frame_h[11];
-extern uint16_t opeu_open_frame_off[11];
-extern uint16_t opeu_open_bob_a[20];
-extern int16_t  opeu_open_blast_steps[6];
-extern uint8_t  opeu_open_blast_slots[3];
-extern uint8_t  opeu_open_z_0227;
-extern int16_t  opeu_open_blast_x[3];
-extern int16_t  opeu_open_blast_y[3];
-extern uint16_t opeu_open_blast_masks[6];
-extern uint16_t opeu_open_blast_sprites[6];
-extern uint8_t  opeu_open_flash_slots[3];
-extern uint8_t  opeu_open_z_024f;
-extern uint16_t opeu_open_bob_b[20];
-extern int16_t  opeu_open_flak_x[4];
-extern int16_t  opeu_open_flak_y[4];
-extern int16_t  opeu_open_gun_flips[3];
-extern int16_t  opeu_open_shell_x[6];
-extern int16_t  opeu_open_shell_y[6];
-extern int16_t  opeu_open_shell_w[6];
-extern int16_t  opeu_open_shell_ws[6];
-extern int16_t  opeu_open_shell_h[6];
-extern uint16_t opeu_open_shell_sprite[6];
-extern uint16_t opeu_open_shell_save[6];
-extern int16_t  opeu_open_flash_on;
-extern int16_t  opeu_open_flash_phase;
-extern char     opeu_open_text_alloc_err1[11];
-extern char     opeu_open_text_alloc_err2[11];
-extern char     opeu_open_text_alloc_err3[11];
-extern char     opeu_open_text_alloc_err4[11];
-extern char     opeu_open_text_alloc_err5[11];
-extern char     opeu_open_text_alloc_err6[11];
-extern char     opeu_open_text_alloc_err7[11];
-extern char     opeu_open_text_alloc_err9[11];
-extern char     opeu_open_text_console[13];
-extern char     opeu_open_name_scesel[11];
+extern char const     RESERVED_EMS_NAME[8];
+extern int16_t const  RESERVED_SPRITE_MAPPED;
+extern int16_t const  ABORTED;
+extern int16_t const  FRAME_Y[11];
+extern int16_t const  FRAME_H[11];
+extern uint16_t const FRAME_OFF[11];
+extern uint16_t const BOB_A[20];
+extern int16_t const  BLAST_STEPS[6];
+extern uint8_t const  BLAST_SLOTS[3];
+extern int16_t const  BLAST_X[3];
+extern int16_t const  BLAST_Y[3];
+extern uint16_t const BLAST_MASKS[6];
+extern uint16_t const BLAST_SPRITES[6];
+extern uint8_t const  FLASH_SLOTS[3];
+extern uint16_t const BOB_B[20];
+extern int16_t const  FLAK_X[4];
+extern int16_t const  FLAK_Y[4];
+extern int16_t const  GUN_FLIPS[3];
+extern int16_t const  SHELL_X[6];
+extern int16_t const  SHELL_Y[6];
+extern int16_t const  SHELL_W[6];
+extern int16_t const  SHELL_WS[6];
+extern int16_t const  SHELL_H[6];
+extern uint16_t const SHELL_SPRITE[6];
+extern uint16_t const SHELL_SAVE[6];
+extern int16_t const  FLASH_ON;
+extern int16_t const  FLASH_PHASE;
+extern char const     ALLOC_ERR1[11];
+extern char const     ALLOC_ERR2[11];
+extern char const     ALLOC_ERR3[11];
+extern char const     ALLOC_ERR4[11];
+extern char const     ALLOC_ERR5[11];
+extern char const     ALLOC_ERR6[11];
+extern char const     ALLOC_ERR7[11];
+extern char const     ALLOC_ERR9[11];
+extern char const     CONSOLE_RESET[13];
+extern char const     SCENARIO_FILE_NAME[11];
 }
 
 namespace detail::odutil {
-extern uint16_t opeu_stream_count;
-extern uint8_t  opeu_open_palette[48];
-extern uint8_t  opeu_open_black[48];
-extern uint8_t  opeu_open_spare_palette[48];
-extern uint8_t  opeu_open_icon[16][2];
-extern char     opeu_open_error_format[16];
+extern uint16_t const STREAM_COUNT;
+extern uint8_t const  PALETTE[48];
+extern uint8_t const  BLACK_PALETTE[48];
+extern uint8_t const  SPARE_PALETTE[48];
+extern uint8_t const  ICON[16][2];
+extern char const     ERROR_FORMAT[16];
 }
 
 namespace detail::odpal {
-extern char    opeu_open_name_fnt[13];
-extern uint8_t opeu_open_z_0425;
-extern char    opeu_open_name_npk[12];
-extern char    opeu_open_name_mopengrp[13];
-extern uint8_t opeu_open_z_043f;
-extern int16_t opeu_picture_handle;
-extern int16_t opeu_open_logo_file;
-extern uint8_t opeu_open_palettes[112][48];
-extern uint8_t opeu_open_fade_target[48];
+extern char const    LOGO_FILE_NAME[13];
+extern char const    PICTURE_FILE_NAME[12];
+extern char const    SPRITE_FILE_NAME[13];
+extern int16_t const PICTURE_HANDLE;
+extern int16_t const LOGO_HANDLE;
+extern uint8_t const PALETTE_TABLE[112][48];
+extern uint8_t const CLOSING_PALETTE[48];
 }
 
 /* Far data, frame 0710: the FM song bank from 0710:0002. */
 namespace detail::ofmusic {
-extern uint16_t opeu_music_tracks[3][5];
-extern uint8_t  opeu_music_voices[447];
-extern uint8_t  opeu_music_events[8379];
+extern uint16_t const opeu_music_tracks[3][5];
+extern uint8_t const  opeu_music_voices[447];
+extern uint8_t const  opeu_music_events[8379];
 }
 
-using detail::openmain::opeu_open_delay;
-using detail::openmain::opeu_open_main;
-using detail::osound::opeu_finish_side_initialization;
-using detail::osound::opeu_music_playing;
-using detail::osound::opeu_music_start;
-using detail::osound::opeu_sound_initialize;
+using detail::openmain::Delay;
+using detail::openmain::RunOpening;
+using detail::osound::SendMusicControl;
+using detail::osound::IsMusicPlaying;
+using detail::osound::StartMusic;
+using detail::osound::InitializeSound;
 using detail::osound::StartSong;
 using detail::osound::StopMusic;
 using detail::otext::CursorPrint;
-using detail::otext::opeu_input_flush;
-using detail::otext::opeu_text_put;
-using detail::otext::opeu_ui_text;
+using detail::otext::FlushKeys;
+using detail::otext::PutCharacter;
+using detail::otext::PutString;
 using detail::outil::Hang;
-using detail::outil::opeu_mouse_reset;
-using detail::outil::opeu_open_fade_alt;
-using detail::outil::opeu_open_fade_in;
-using detail::outil::opeu_open_fade_in_wait;
-using detail::outil::opeu_open_file_or_die;
-using detail::outil::opeu_open_identity_palette;
-using detail::outil::opeu_open_input_poll;
-using detail::outil::opeu_open_palette_fade;
-using detail::outil::opeu_open_palette_set;
-using detail::outil::opeu_open_palette_step;
-using detail::outil::opeu_open_stub_a;
-using detail::outil::opeu_open_stub_b;
-using detail::outil::opeu_open_stub_c;
-using detail::outil::opeu_picture_file_at;
+using detail::outil::ResetMouse;
+using detail::outil::FadeToClosingPalette;
+using detail::outil::FadeOut;
+using detail::outil::FadeOutUninterrupted;
+using detail::outil::OpenFileOrStop;
+using detail::outil::SetIdentityPalette;
+using detail::outil::PollInput;
+using detail::outil::WaitTicks;
+using detail::outil::FadePalette;
+using detail::outil::SetCurrentPalette;
+using detail::outil::StepPalette;
+using detail::outil::DrawPicture;
 
 }

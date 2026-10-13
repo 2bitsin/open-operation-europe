@@ -18,8 +18,8 @@ struct TextSaved {
   uint8_t paper;
   uint8_t ink;
   uint8_t background;
-  uint8_t z_016f;
-  int16_t z_0170;
+  uint8_t pad;
+  int16_t large;
 };
 
 #pragma pack(push, 1)
@@ -29,18 +29,18 @@ struct OpenDataSegment {
   uint8_t   digit_font[10][16]; /* unreferenced 8x16 digit glyphs */
   uint32_t  draw_hooks[4];      /* far 0000:0680, 0000:069d, twice */
   uint8_t   text_erase[8];      /* the erase string of text_erase_char */
-  uint8_t   text_unused_014a[16];
+  uint8_t   text_unused[16];
   int16_t   text_x;    /* column 0..79 */
   int16_t   text_y;    /* pixel row 0..399 */
   int16_t   text_left; /* left column (ESC R) */
   uint8_t   text_paper;
   uint8_t   text_ink;
   uint8_t   text_background;
-  uint8_t   text_z_0163;
+  uint8_t   text_background_pad;
   int16_t   text_large; /* large mode (ESC Y 1) */
   TextSaved text_saved;
   uint8_t   text_lead; /* pending Shift-JIS lead byte */
-  uint8_t   text_z_0173;
+  uint8_t   text_lead_pad;
   int16_t   text_state;    /* escape-sequence state */
   uint16_t  format_output; /* request_format's destination */
   /* Reserved: kept for the layout until M4 */
@@ -59,13 +59,13 @@ struct OpenDataSegment {
   uint16_t bob_a[20];      /* bobbing curve of the first aircraft group */
   int16_t  blast_steps[6]; /* explosions */
   uint8_t  blast_slots[3];
-  uint8_t  z_0227;
+  uint8_t  blast_slots_pad;
   int16_t  blast_x[3];
   int16_t  blast_y[3];
   uint16_t blast_masks[6];
   uint16_t blast_sprites[6];
   uint8_t  flash_slots[3]; /* flak flash palettes */
-  uint8_t  z_024f;
+  uint8_t  flash_slots_pad;
   uint16_t bob_b[20]; /* bobbing curve of the second aircraft group */
   int16_t  flak_x[4];
   int16_t  flak_y[4];
@@ -87,8 +87,8 @@ struct OpenDataSegment {
   char     alloc_err6[11];
   char     alloc_err7[11];
   char     alloc_err9[11];
-  char     text_console[13]; /* the console reset sequence */
-  char     name_scesel[11];
+  char     console_reset[13]; /* the console reset sequence */
+  char     scenario_file_name[11];
   /* ODUTIL */
   uint16_t stream_count; /* picture stream bytes left */
   uint8_t  palette[48];  /* the current palette */
@@ -97,52 +97,52 @@ struct OpenDataSegment {
   uint8_t  icon[16][2];
   char     error_format[16]; /* "OPEN ERROR=  %s" */
   /* ODPAL */
-  char    name_fnt[13];
-  uint8_t z_0425;
-  char    name_npk[12];
-  char    name_mopengrp[13];
-  uint8_t z_043f;
+  char    logo_file_name[13];
+  uint8_t logo_file_name_pad;
+  char    picture_file_name[12];
+  char    sprite_file_name[13];
+  uint8_t sprite_file_name_pad;
   int16_t picture_handle; /* OPENGRP.NPK */
-  int16_t logo_file;      /* KOEILOGO.FNT */
+  int16_t logo_handle;    /* KOEILOGO.FNT */
   uint8_t palettes[112][48];
-  uint8_t fade_target[48];          /* palette 112 */
-  uint8_t library_data_1974[0x284]; /* KOEI library and C runtime data */
+  uint8_t closing_palette[48];                /* palette 112 */
+  uint8_t library_data_after_palettes[0x284]; /* KOEI library and C runtime data */
   /* BSS */
   uint8_t  reserved_ems_pages[16]; /* kept for the layout until M4 */
   uint16_t reserved_sprite_handle; /* kept for the layout until M4 */
-  uint8_t  library_bss_1c0a[4];
+  uint8_t  library_bss_after_sprite_handle[4];
   uint16_t stream_offset; /* the picture stream's far pointer */
   uint16_t stream_segment;
-  uint8_t  library_bss_1c12[14];
-  uint16_t driver;   /* the music driver's open result */
-  uint16_t buffer_a; /* segments of the 64 KB far buffers */
+  uint8_t  library_bss_after_stream[14];
+  uint16_t music_driver; /* the music driver's open result */
+  uint16_t buffer_a;     /* segments of the 64 KB far buffers */
   uint16_t buffer_b;
   uint16_t buffer_c;
   uint16_t buffer_d;
   uint16_t buffer_e;
   uint16_t buffer_f;
   uint16_t sound_enabled;
-  uint16_t buffer_g; /* the picture stream's buffer */
-  uint16_t buffer_h; /* MOPENGRP.DAT: masks and shell sprites */
-  uint8_t  library_bss_1c34[12];
+  uint16_t stream_buffer; /* the picture stream's buffer */
+  uint16_t sprite_sheet;  /* MOPENGRP.DAT: masks and shell sprites */
+  uint8_t  library_bss_after_buffers[12];
 };
 #pragma pack(pop)
 
 static_assert(offsetof(OpenDataSegment, digit_font) == 0x0092);
 static_assert(offsetof(OpenDataSegment, draw_hooks) == 0x0132);
 static_assert(offsetof(OpenDataSegment, text_erase) == 0x0142);
-static_assert(offsetof(OpenDataSegment, text_unused_014a) == 0x014a);
+static_assert(offsetof(OpenDataSegment, text_unused) == 0x014a);
 static_assert(offsetof(OpenDataSegment, text_x) == 0x015a);
 static_assert(offsetof(OpenDataSegment, text_y) == 0x015c);
 static_assert(offsetof(OpenDataSegment, text_left) == 0x015e);
 static_assert(offsetof(OpenDataSegment, text_paper) == 0x0160);
 static_assert(offsetof(OpenDataSegment, text_ink) == 0x0161);
 static_assert(offsetof(OpenDataSegment, text_background) == 0x0162);
-static_assert(offsetof(OpenDataSegment, text_z_0163) == 0x0163);
+static_assert(offsetof(OpenDataSegment, text_background_pad) == 0x0163);
 static_assert(offsetof(OpenDataSegment, text_large) == 0x0164);
 static_assert(offsetof(OpenDataSegment, text_saved) == 0x0166);
 static_assert(offsetof(OpenDataSegment, text_lead) == 0x0172);
-static_assert(offsetof(OpenDataSegment, text_z_0173) == 0x0173);
+static_assert(offsetof(OpenDataSegment, text_lead_pad) == 0x0173);
 static_assert(offsetof(OpenDataSegment, text_state) == 0x0174);
 static_assert(offsetof(OpenDataSegment, format_output) == 0x0176);
 static_assert(offsetof(OpenDataSegment, reserved_ems_name) == 0x0178);
@@ -158,13 +158,13 @@ static_assert(offsetof(OpenDataSegment, frame_off) == 0x01da);
 static_assert(offsetof(OpenDataSegment, bob_a) == 0x01f0);
 static_assert(offsetof(OpenDataSegment, blast_steps) == 0x0218);
 static_assert(offsetof(OpenDataSegment, blast_slots) == 0x0224);
-static_assert(offsetof(OpenDataSegment, z_0227) == 0x0227);
+static_assert(offsetof(OpenDataSegment, blast_slots_pad) == 0x0227);
 static_assert(offsetof(OpenDataSegment, blast_x) == 0x0228);
 static_assert(offsetof(OpenDataSegment, blast_y) == 0x022e);
 static_assert(offsetof(OpenDataSegment, blast_masks) == 0x0234);
 static_assert(offsetof(OpenDataSegment, blast_sprites) == 0x0240);
 static_assert(offsetof(OpenDataSegment, flash_slots) == 0x024c);
-static_assert(offsetof(OpenDataSegment, z_024f) == 0x024f);
+static_assert(offsetof(OpenDataSegment, flash_slots_pad) == 0x024f);
 static_assert(offsetof(OpenDataSegment, bob_b) == 0x0250);
 static_assert(offsetof(OpenDataSegment, flak_x) == 0x0278);
 static_assert(offsetof(OpenDataSegment, flak_y) == 0x0280);
@@ -186,31 +186,31 @@ static_assert(offsetof(OpenDataSegment, alloc_err5) == 0x0312);
 static_assert(offsetof(OpenDataSegment, alloc_err6) == 0x031d);
 static_assert(offsetof(OpenDataSegment, alloc_err7) == 0x0328);
 static_assert(offsetof(OpenDataSegment, alloc_err9) == 0x0333);
-static_assert(offsetof(OpenDataSegment, text_console) == 0x033e);
-static_assert(offsetof(OpenDataSegment, name_scesel) == 0x034b);
+static_assert(offsetof(OpenDataSegment, console_reset) == 0x033e);
+static_assert(offsetof(OpenDataSegment, scenario_file_name) == 0x034b);
 static_assert(offsetof(OpenDataSegment, stream_count) == 0x0356);
 static_assert(offsetof(OpenDataSegment, palette) == 0x0358);
 static_assert(offsetof(OpenDataSegment, black) == 0x0388);
 static_assert(offsetof(OpenDataSegment, spare_palette) == 0x03b8);
 static_assert(offsetof(OpenDataSegment, icon) == 0x03e8);
 static_assert(offsetof(OpenDataSegment, error_format) == 0x0408);
-static_assert(offsetof(OpenDataSegment, name_fnt) == 0x0418);
-static_assert(offsetof(OpenDataSegment, z_0425) == 0x0425);
-static_assert(offsetof(OpenDataSegment, name_npk) == 0x0426);
-static_assert(offsetof(OpenDataSegment, name_mopengrp) == 0x0432);
-static_assert(offsetof(OpenDataSegment, z_043f) == 0x043f);
+static_assert(offsetof(OpenDataSegment, logo_file_name) == 0x0418);
+static_assert(offsetof(OpenDataSegment, logo_file_name_pad) == 0x0425);
+static_assert(offsetof(OpenDataSegment, picture_file_name) == 0x0426);
+static_assert(offsetof(OpenDataSegment, sprite_file_name) == 0x0432);
+static_assert(offsetof(OpenDataSegment, sprite_file_name_pad) == 0x043f);
 static_assert(offsetof(OpenDataSegment, picture_handle) == 0x0440);
-static_assert(offsetof(OpenDataSegment, logo_file) == 0x0442);
+static_assert(offsetof(OpenDataSegment, logo_handle) == 0x0442);
 static_assert(offsetof(OpenDataSegment, palettes) == 0x0444);
-static_assert(offsetof(OpenDataSegment, fade_target) == 0x1944);
-static_assert(offsetof(OpenDataSegment, library_data_1974) == 0x1974);
+static_assert(offsetof(OpenDataSegment, closing_palette) == 0x1944);
+static_assert(offsetof(OpenDataSegment, library_data_after_palettes) == 0x1974);
 static_assert(offsetof(OpenDataSegment, reserved_ems_pages) == 0x1bf8);
 static_assert(offsetof(OpenDataSegment, reserved_sprite_handle) == 0x1c08);
-static_assert(offsetof(OpenDataSegment, library_bss_1c0a) == 0x1c0a);
+static_assert(offsetof(OpenDataSegment, library_bss_after_sprite_handle) == 0x1c0a);
 static_assert(offsetof(OpenDataSegment, stream_offset) == 0x1c0e);
 static_assert(offsetof(OpenDataSegment, stream_segment) == 0x1c10);
-static_assert(offsetof(OpenDataSegment, library_bss_1c12) == 0x1c12);
-static_assert(offsetof(OpenDataSegment, driver) == 0x1c20);
+static_assert(offsetof(OpenDataSegment, library_bss_after_stream) == 0x1c12);
+static_assert(offsetof(OpenDataSegment, music_driver) == 0x1c20);
 static_assert(offsetof(OpenDataSegment, buffer_a) == 0x1c22);
 static_assert(offsetof(OpenDataSegment, buffer_b) == 0x1c24);
 static_assert(offsetof(OpenDataSegment, buffer_c) == 0x1c26);
@@ -218,9 +218,9 @@ static_assert(offsetof(OpenDataSegment, buffer_d) == 0x1c28);
 static_assert(offsetof(OpenDataSegment, buffer_e) == 0x1c2a);
 static_assert(offsetof(OpenDataSegment, buffer_f) == 0x1c2c);
 static_assert(offsetof(OpenDataSegment, sound_enabled) == 0x1c2e);
-static_assert(offsetof(OpenDataSegment, buffer_g) == 0x1c30);
-static_assert(offsetof(OpenDataSegment, buffer_h) == 0x1c32);
-static_assert(offsetof(OpenDataSegment, library_bss_1c34) == 0x1c34);
+static_assert(offsetof(OpenDataSegment, stream_buffer) == 0x1c30);
+static_assert(offsetof(OpenDataSegment, sprite_sheet) == 0x1c32);
+static_assert(offsetof(OpenDataSegment, library_bss_after_buffers) == 0x1c34);
 static_assert(sizeof(TextSaved) == 12);
 static_assert(sizeof(OpenDataSegment) == 0x1c40); /* _end */
 

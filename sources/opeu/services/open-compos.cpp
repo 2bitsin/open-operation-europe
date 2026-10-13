@@ -14,23 +14,23 @@ using namespace opeu::services;
 constexpr int DISSOLVE_BIT{ 3 };
 
 /* Column x (8 pixels) of game line y as a 16-bit column number, 80 per line. */
-static uint16_t line_address(uint16_t x, uint16_t y) {
+static uint16_t ScreenColumn(uint16_t x, uint16_t y) {
   return (uint16_t)((uint16_t)(y + opeu::services::detail::canvas::GAME_TOP) * 80u + x);
 }
 
-static Offset column_at(uint16_t column) {
+static Offset ColumnOffset(uint16_t column) {
   return Offset{ column } * 8;
 }
 
-void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, FarBytes destination) {
+void SaveScreenRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, FarBytes destination) {
   FarSegment const segment{ destination.segment };
-  uint16_t         si = line_address(x, y), di = destination.offset, rows = h;
+  uint16_t         si = ScreenColumn(x, y), di = destination.offset, rows = h;
   do {
     uint16_t columns = w;
     do {
       int p;
       for (p = 0; p < 4; p++) {
-        segment[di] = Screen().PlaneBits(column_at(si), p);
+        segment[di] = Screen().PlaneBits(ColumnOffset(si), p);
         di          = (uint16_t)(di + 1);
       }
       si = (uint16_t)(si + 1);
@@ -39,7 +39,7 @@ void opeu_open_bitmap_save(uint16_t x, uint16_t y, uint16_t w, uint16_t h, FarBy
   } while (--rows);
 }
 
-void opeu_open_far_copy(FarBytes source, FarBytes destination, uint16_t count) {
+void CopyFarWords(FarBytes source, FarBytes destination, uint16_t count) {
   FarSegment const source_segment{ source.segment };
   FarSegment const segment{ destination.segment };
   uint16_t         words = (uint16_t)(count >> 1), si = source.offset, di = destination.offset;
@@ -51,7 +51,7 @@ void opeu_open_far_copy(FarBytes source, FarBytes destination, uint16_t count) {
   }
 }
 
-void opeu_open_buf_or(FarBytes target, uint16_t w, uint16_t h, FarBytes source) {
+void OrIntoBuffer(FarBytes target, uint16_t w, uint16_t h, FarBytes source) {
   FarSegment const segment{ target.segment };
   FarSegment const source_segment{ source.segment };
   uint16_t         si = source.offset, di = target.offset, rows = h;
@@ -66,7 +66,7 @@ void opeu_open_buf_or(FarBytes target, uint16_t w, uint16_t h, FarBytes source) 
   } while (--rows);
 }
 
-void opeu_open_buf_and_mask(FarBytes target, uint16_t w, uint16_t h, FarBytes mask) {
+void AndWithMask(FarBytes target, uint16_t w, uint16_t h, FarBytes mask) {
   FarSegment const segment{ target.segment };
   FarSegment const mask_segment{ mask.segment };
   uint16_t         si = mask.offset, di = target.offset, rows = h;
@@ -85,9 +85,9 @@ void opeu_open_buf_and_mask(FarBytes target, uint16_t w, uint16_t h, FarBytes ma
   } while (--rows);
 }
 
-void opeu_open_dissolve_blit(uint16_t x, uint16_t y, FarBytes source, uint16_t pattern) {
+void DissolveStep(uint16_t x, uint16_t y, FarBytes source, uint16_t pattern) {
   FarSegment const segment{ source.segment };
-  uint16_t         di = line_address(x, y), si = source.offset, dx = pattern;
+  uint16_t         di = ScreenColumn(x, y), si = source.offset, dx = pattern;
   int              row;
   for (row = 0; row < 0x120; row++) {
     uint16_t row_si = si, plane_si = si, d = di;
@@ -98,10 +98,10 @@ void opeu_open_dissolve_blit(uint16_t x, uint16_t y, FarBytes source, uint16_t p
       d = di;
       for (c = 0; c < 0x13; c++) {
         uint16_t ax = (uint16_t)(segment[s] << 8 | segment[(uint16_t)(s + 4)]);
-        uint16_t bx = (uint16_t)(Screen().PlaneBits(column_at(d), DISSOLVE_BIT) << 8 | Screen().PlaneBits(column_at((uint16_t)(d + 1)), DISSOLVE_BIT));
+        uint16_t bx = (uint16_t)(Screen().PlaneBits(ColumnOffset(d), DISSOLVE_BIT) << 8 | Screen().PlaneBits(ColumnOffset((uint16_t)(d + 1)), DISSOLVE_BIT));
         ax          = (uint16_t)((ax & dx) | (bx & (uint16_t)~dx));
-        Screen().SetPlaneBits(column_at(d), p, (uint8_t)(ax >> 8));
-        Screen().SetPlaneBits(column_at((uint16_t)(d + 1)), p, (uint8_t)ax);
+        Screen().SetPlaneBits(ColumnOffset(d), p, (uint8_t)(ax >> 8));
+        Screen().SetPlaneBits(ColumnOffset((uint16_t)(d + 1)), p, (uint8_t)ax);
         d = (uint16_t)(d + 2);
         s = (uint16_t)(s + 8);
       }
@@ -111,9 +111,4 @@ void opeu_open_dissolve_blit(uint16_t x, uint16_t y, FarBytes source, uint16_t p
     di = (uint16_t)(d + 0x2a);           /* the next line: 38 columns drawn + 42 */
     si = (uint16_t)(row_si + 0x98);
   }
-}
-
-void koei_09b7(uint16_t a, uint16_t b) {
-  (void)a;
-  (void)b;
 }

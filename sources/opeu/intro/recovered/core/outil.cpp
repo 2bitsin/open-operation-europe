@@ -4,8 +4,7 @@
  * and the picture helpers (UIPRIM 0a04). The rest is OPEN's: a tick wait with
  * input abort, the image-stream variants that always read the picture file
  * DS:0440, the palette set/step/fade helpers on the current palette DS:0358,
- * the fade wrappers, the input poll, the open-or-die file opener and three
- * empty routines the text engine calls.
+ * the fade wrappers, the input poll and the open-or-die file opener.
  *
  * Near pointers are DS offsets; palettes are views of DGROUP's 48-byte rows.
  * The mouse driver, the FM driver's countdown, the files and the display are
@@ -103,86 +102,86 @@ private:
 };
 } // namespace
 
-auto opeu_open_input_poll() -> int16_t;
-auto opeu_stream_file_byte(Open& open) -> uint8_t;
+auto PollInput() -> int16_t;
+auto NextPictureByte(Open& open) -> uint8_t;
 
 namespace {
 auto ReadStreamByte() -> uint8_t {
-  return opeu_stream_file_byte(*reading);
+  return NextPictureByte(*reading);
 }
 } // namespace
 
 /* 062d:0008. AX=ticks. Waits until the FM driver's down-counter has run
  * `ticks` further; 1 if the input poll reported a key or button first. */
-auto opeu_open_wait_ticks(uint16_t ticks) -> int16_t {
+auto WaitTicks(uint16_t ticks) -> int16_t {
   auto const target{ static_cast<uint16_t>(opeu_fm_busy() - ticks) };
   do {
-    if (opeu_open_input_poll() != 0) return 1;
+    if (PollInput() != 0) return 1;
   } while (opeu_fm_busy() > target);
   return 0;
 }
 
 /* 062d:003e (MAIN 05a8:0210). The pointer's range: columns x..x+width, game
  * lines y..y+height (screen lines 40 lower). */
-void opeu_mouse_window(int16_t x, int16_t y, int16_t width, int16_t height) {
+void LimitMouse(int16_t x, int16_t y, int16_t width, int16_t height) {
   port_mouse_x_range(static_cast<uint16_t>(x), static_cast<uint16_t>(width + x));
   port_mouse_y_range(static_cast<uint16_t>(y + 40), static_cast<uint16_t>(y + height + 40));
 }
 
 /* 062d:0094 (MAIN 05a8:000c). Driver reset, then limit to 640x400; returns the reset's result. */
-auto opeu_mouse_reset([[maybe_unused]] Open& open) -> uint16_t {
+auto ResetMouse([[maybe_unused]] Open& open) -> uint16_t {
   uint16_t const installed{ port_mouse_reset() };
-  opeu_mouse_window(0, 0, 640, 400);
+  LimitMouse(0, 0, 640, 400);
   return installed;
 }
 
 /* 062d:00c6 (MAIN 05a8:0104). Queries the driver even without a mouse. */
-auto opeu_mouse_left() -> int {
+auto LeftButtonDown() -> int {
   return ((QueryMouse().buttons & 1) != 0) ? -1 : 0;
 }
 
 /* 062d:00f0 (MAIN 05a8:012e). */
-auto opeu_mouse_right() -> int {
+auto RightButtonDown() -> int {
   return ((QueryMouse().buttons & 2) != 0) ? -1 : 0;
 }
 
 /* 062d:011a (MAIN 05a8:0158). */
-auto opeu_turn_input_a() -> int {
-  return static_cast<int>((opeu_mouse_left() != 0) || (opeu_mouse_right() != 0));
+auto ButtonDown() -> int {
+  return static_cast<int>((LeftButtonDown() != 0) || (RightButtonDown() != 0));
 }
 
 /* 062d:0132 (MAIN 0a04:0132 with a 0x5000-byte buffer at offset 0). */
-auto opeu_stream_file_byte(Open& open) -> uint8_t {
+auto NextPictureByte(Open& open) -> uint8_t {
   if (Data(open).stream_count == 0) {
-    Data(open).stream_segment = Data(open).buffer_g;
+    Data(open).stream_segment = Data(open).stream_buffer;
     Data(open).stream_offset  = 0;
-    Data(open).stream_count   = static_cast<uint16_t>(ReadFar(open, Data(open).picture_handle, { Data(open).buffer_g, 0, 0x5000 }));
+    Data(open).stream_count   = static_cast<uint16_t>(ReadFar(open, Data(open).picture_handle, { Data(open).stream_buffer, 0, 0x5000 }));
   }
   Data(open).stream_count--;
   return StreamNext(open);
 }
 
 /* 062d:016a (MAIN 0a04:0250 on the picture file). DX:AX=position. */
-void opeu_stream_seek(Open& open, int32_t position) {
+void SeekPicture(Open& open, int32_t position) {
   if (opeu_dos_seek(Data(open).picture_handle, position, 0) != -1) Data(open).stream_count = 0;
 }
 
 /* 062d:018e (bytes of MAIN 0a04:0272). AX=x, DX=y, stack position; RETF 4. */
-void opeu_picture_file_at(Open& open, uint16_t x, uint16_t y, int32_t position) {
-  opeu_stream_seek(open, position);
+void DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position) {
+  SeekPicture(open, position);
   StreamReading const decoding{ open };
   opeu_picture_decode_masked(x, y, ReadStreamByte);
 }
 
 /* 062d:01bc. Copies the palette to the current palette and loads the DAC. */
-void opeu_open_palette_set(Open& open, Palette palette) {
+void SetCurrentPalette(Open& open, Palette palette) {
   std::ranges::copy(palette, std::begin(Data(open).palette));
   LoadPalette(open);
 }
 
 /* 062d:01fe. Moves every current component one step toward the target,
  * loads the DAC if anything changed and reports that. */
-auto opeu_open_palette_step(Open& open, Palette target) -> int16_t {
+auto StepPalette(Open& open, Palette target) -> int16_t {
   if (!StepToward(open, target)) return 0;
   LoadPalette(open);
   return 1;
@@ -191,12 +190,12 @@ auto opeu_open_palette_step(Open& open, Palette target) -> int16_t {
 /* 062d:0262. AX=mode: fades completely. mode -1 waits for the driver timer
  * between steps; any other mode waits a tick and returns 1 if the input poll
  * aborts the fade. */
-auto opeu_open_palette_fade(Open& open, Palette target, uint16_t mode) -> int16_t {
+auto FadePalette(Open& open, Palette target, uint16_t mode) -> int16_t {
   while (StepToward(open, target)) {
     LoadPalette(open);
     if (mode == 0xffff) {
-      opeu_open_delay(0);
-    } else if (opeu_open_wait_ticks(1) != 0) {
+      Delay(0);
+    } else if (WaitTicks(1) != 0) {
       return 1;
     }
   }
@@ -204,38 +203,38 @@ auto opeu_open_palette_fade(Open& open, Palette target, uint16_t mode) -> int16_
 }
 
 /* 062d:0304. Abortable fade to black. */
-auto opeu_open_fade_in(Open& open) -> int16_t {
-  return opeu_open_palette_fade(open, Data(open).black, 2);
+auto FadeOut(Open& open) -> int16_t {
+  return FadePalette(open, Data(open).black, 2);
 }
 
 /* 062d:0310. Fade to black. */
-auto opeu_open_fade_in_wait(Open& open) -> int16_t {
-  return opeu_open_palette_fade(open, Data(open).black, 0xffff);
+auto FadeOutUninterrupted(Open& open) -> int16_t {
+  return FadePalette(open, Data(open).black, 0xffff);
 }
 
 /* 062d:031c. Fade to DS:1944. */
-auto opeu_open_fade_alt(Open& open) -> int16_t {
-  return opeu_open_palette_fade(open, Data(open).fade_target, 0xffff);
+auto FadeToClosingPalette(Open& open) -> int16_t {
+  return FadePalette(open, Data(open).closing_palette, 0xffff);
 }
 
 /* 062d:0328. */
-void opeu_open_identity_palette([[maybe_unused]] Open& open) {
+void SetIdentityPalette([[maybe_unused]] Open& open) {
   koei_vga_identity_palette();
 }
 
 /* 062d:032e. 1 (input flushed) for a key, 2 for a mouse button, else 0. */
-auto opeu_open_input_poll() -> int16_t {
+auto PollInput() -> int16_t {
   if (opeu_turn_input_b() != 0) {
-    opeu_input_flush();
+    FlushKeys();
     return 1;
   }
-  if (opeu_turn_input_a() != 0) return 2;
+  if (ButtonDown() != 0) return 2;
   return 0;
 }
 
 /* 062d:0350. Opens the file named at a near pointer read/write or reports it
  * and stops. */
-auto opeu_open_file_or_die(Open& open, uint16_t name) -> int16_t {
+auto OpenFileOrStop(Open& open, uint16_t name) -> int16_t {
   auto const handle{ opeu_dos_open(reinterpret_cast<char const*>(&Byte(open, name)), 2) }; // NOLINT(*-reinterpret-cast): the DOS name's characters
   if (handle == -1) {
     opeu_vga_clear();
@@ -244,13 +243,6 @@ auto opeu_open_file_or_die(Open& open, uint16_t name) -> int16_t {
   }
   return handle;
 }
-
-/* 062d:0416, 0418, 041a: empty routines called by the text engine (OTEXT). */
-void opeu_open_stub_a() { }
-
-void opeu_open_stub_b() { }
-
-void opeu_open_stub_c() { }
 
 void Hang() {
   for (;;) port_pump();

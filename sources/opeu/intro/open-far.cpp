@@ -46,23 +46,23 @@ auto DrawFar(Open& open, ScreenArea area, FarImage image) -> void {
 }
 
 auto SaveScreen(Open& open, ScreenArea area, FarAddress destination) -> void {
-  opeu_open_bitmap_save(Word(area.x), Word(area.y), Word(area.width), Word(area.height), { open.Memory().Segment(destination.segment), destination.offset });
+  SaveScreenRectangle(Word(area.x), Word(area.y), Word(area.width), Word(area.height), { open.Memory().Segment(destination.segment), destination.offset });
 }
 
 auto CopyFar(Open& open, FarAddress from, FarBuffer to) -> void {
-  opeu_open_far_copy({ open.Memory().Segment(from.segment), from.offset }, { open.Memory().Segment(to.segment), to.offset }, to.size);
+  CopyFarWords({ open.Memory().Segment(from.segment), from.offset }, { open.Memory().Segment(to.segment), to.offset }, to.size);
 }
 
 auto OrSprite(Open& open, FarRectangle target, FarAddress sprite) -> void {
-  opeu_open_buf_or({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(sprite.segment), sprite.offset });
+  OrIntoBuffer({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(sprite.segment), sprite.offset });
 }
 
 auto AndMask(Open& open, FarRectangle target, FarAddress mask) -> void {
-  opeu_open_buf_and_mask({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(mask.segment), mask.offset });
+  AndWithMask({ open.Memory().Segment(target.segment), target.offset }, Word(target.width), Word(target.height), { open.Memory().Segment(mask.segment), mask.offset });
 }
 
 auto Dissolve(Open& open, ScreenPoint at, DissolveSource source) -> void {
-  opeu_open_dissolve_blit(Word(at.x), Word(at.y), { open.Memory().Segment(source.segment), source.offset }, source.pattern);
+  DissolveStep(Word(at.x), Word(at.y), { open.Memory().Segment(source.segment), source.offset }, source.pattern);
 }
 
 auto ReadFar(Open& open, std::int16_t handle, FarBuffer buffer) -> std::int16_t {
