@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -20,7 +21,7 @@ struct Colour {
   std::uint8_t g{};
   std::uint8_t b{};
 
-  auto operator==(Colour const&) const -> bool = default;
+  auto operator<=>(Colour const&) const = default;
 };
 
 using Levels = std::array<std::uint8_t, 48>;

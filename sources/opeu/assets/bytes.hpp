@@ -8,6 +8,7 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <utility>
 
 namespace opeu::assets::detail::bytes {
 
@@ -29,6 +30,12 @@ using Bytes = std::span<std::byte const>;
 // 0, 1, ..., count - 1.
 [[nodiscard]] constexpr auto Indices(std::size_t const count) {
   return std::views::iota(0uz, count);
+}
+
+// Every (row, column) of a `rows` x `columns` grid, row-major (the standard library here has no
+// views::cartesian_product).
+[[nodiscard]] constexpr auto Grid(std::size_t const rows, std::size_t const columns) {
+  return Indices(rows * columns) | std::views::transform([columns](std::size_t const n) { return std::pair{ n / columns, n % columns }; });
 }
 
 // `count` consecutive records of `size` bytes from the start of `bytes` (which must hold them).
@@ -89,6 +96,7 @@ using detail::bytes::Byte;
 using detail::bytes::ByteReader;
 using detail::bytes::Bytes;
 using detail::bytes::Chunks;
+using detail::bytes::Grid;
 using detail::bytes::Indices;
 using detail::bytes::PixelBit;
 using detail::bytes::Records;
