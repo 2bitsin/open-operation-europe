@@ -6,19 +6,17 @@
 #include "common/game.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
+#include "core/dialogs.hpp"
 #include "core/memory.hpp"
+#include "core/textout.hpp"
+#include "link/glue.hpp"
 #include "port.hpp"
 #include "units/unitname.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace opeu::game::detail::advice {
-
-// The services an advice check calls through its event (svc_advice in core/advenemy).
-enum AdviceService : std::uint16_t {
-  ADVICE_FORMAT  = 0, // request_format(destination, format, words...)
-  ADVICE_MESSAGE = 1, // control_message(text, person)
-};
 
 // The topics of the staff advice menu; each writes its own advice buffer.
 enum class AdviceTopic : std::uint8_t {
@@ -128,22 +126,14 @@ inline void CopyAdvice(Game& game, std::uint8_t const* far_text, std::uint16_t d
 
 // Formats into `destination` through request_format.
 template <typename... Words>
-inline void FormatAdvice(Game& game, HostEvent event, std::uint16_t destination, std::uint16_t format, Words... words) {
-  Call(game, event, ADVICE_FORMAT, destination, format, words...);
+inline void FormatAdvice(Game& game, std::uint16_t destination, std::uint16_t format, Words... words) {
+  std::array<std::uint16_t, 2 + sizeof...(Words)> const args{ destination, format, static_cast<std::uint16_t>(words)... };
+  opeu_request_format(game, args);
 }
 
 // Shows a text in a control message in the person of the staff officer giving the advice (context_record2).
-inline void ShowAdvice(Game& game, HostEvent event, std::uint16_t text) {
-  Call(game, event, ADVICE_MESSAGE, text, Data(game).context_record2);
-}
-
-// The event an advice check passed on to opeu_unit_name, which formats through its own service 2.
-inline HostEvent advice_name_event{};
-
-// Writes the unit's name to a DS buffer through the advice check's own request_format; returns the buffer.
-inline auto AdviceUnitName(Game& game, HostEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
-  advice_name_event = event;
-  return opeu_unit_name(game, unit, buffer);
+inline void ShowAdvice(Game& game, std::uint16_t text) {
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, Data(game).context_record2);
 }
 
 // The objective level (opeu_objective_level) from which the officers count an objective as a city.
@@ -153,12 +143,10 @@ inline constexpr std::uint8_t CITY_LEVEL{ 4 };
 inline constexpr std::uint16_t ADVICE_TEXT_BYTES{ 0x80 };
 inline constexpr std::uint16_t UNIT_NAME_BYTES{ 0x40 };
 
-// An advice check's context: the far advice texts, the event its services go through and the topic whose buffer it
-// writes.
+// An advice check's context: the far advice texts and the topic whose buffer it writes.
 struct Advisor {
   Game&               game;
   std::uint8_t const* far_text;
-  HostEvent           event;
   AdviceTopic         topic;
 
   // The topic's advice buffer.
@@ -175,11 +163,11 @@ struct Advisor {
   // Formats into the topic's buffer.
   template <typename... Words>
   void Format(std::uint16_t format, Words... words) const {
-    FormatAdvice(game, event, Buffer(), format, words...);
+    FormatAdvice(game, Buffer(), format, words...);
   }
   // Shows the topic's buffer.
   void Show() const {
-    ShowAdvice(game, event, Buffer());
+    ShowAdvice(game, Buffer());
   }
   // Gives the advice text as it stands; returns 1, the check's "advice given".
   auto Say(AdviceText text) const -> std::uint16_t {
@@ -201,22 +189,18 @@ struct Advisor {
   template <typename... Words>
   auto SayAboutUnit(AdviceText text, std::uint16_t unit, Words... words) const -> std::uint16_t {
     ServiceLocals const name{ UNIT_NAME_BYTES };
-    return SayFormatted(text, AdviceUnitName(game, event, unit, name.At(0)), words...);
+    return SayFormatted(text, opeu_unit_name(game, unit, name.At(0)), words...);
   }
 };
 } // namespace opeu::game::detail::advice
 
 namespace opeu::game {
-using detail::advice::ADVICE_FORMAT;
-using detail::advice::ADVICE_MESSAGE;
 using detail::advice::ADVICE_SEGMENT;
 using detail::advice::ADVICE_TEXT_BYTES;
 using detail::advice::AdviceBuffer;
-using detail::advice::AdviceService;
 using detail::advice::AdviceText;
 using detail::advice::AdviceTexts;
 using detail::advice::AdviceTopic;
-using detail::advice::AdviceUnitName;
 using detail::advice::Advisor;
 using detail::advice::CopyAdvice;
 using detail::advice::FormatAdvice;

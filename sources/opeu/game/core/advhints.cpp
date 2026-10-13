@@ -22,8 +22,8 @@ namespace {
 
 constexpr std::uint8_t STAFF_TEMPLATE{ 6 }; // the person template kind of the air commander
 
-auto Hints(Game& game, HostEvent event, std::uint8_t const* far_text) -> Advisor {
-  return { game, far_text, event, AdviceTopic::HINTS };
+auto Hints(Game& game, std::uint8_t const* far_text) -> Advisor {
+  return { game, far_text, AdviceTopic::HINTS };
 }
 } // namespace
 
@@ -31,9 +31,9 @@ auto Hints(Game& game, HostEvent event, std::uint8_t const* far_text) -> Advisor
 // on an intelligence chief of little charm (he and the air commander disagree), then on the scenario: the Ardennes
 // winter (scenario 4), the hurricane season (scenario 3 in July to September), and bridges in any scenario but 1 and
 // 2, worded by the side's stance.
-uint16_t opeu_advice_situational_hint(Game& game, const uint8_t* far_text, HostEvent event) {
+uint16_t opeu_advice_situational_hint(Game& game, const uint8_t* far_text) {
   auto&      data{ Data(game) };
-  auto const advisor{ Hints(game, event, far_text) };
+  auto const advisor{ Hints(game, far_text) };
   auto const side{ data.current_side };
   auto const air{ Record<Side>(data, data.current_side_ptr).strength };
   if (air <= 30 && advisor.Random(4) == 1) return advisor.Say(AdviceText::HINT_AIR_SUPPORT);
@@ -56,9 +56,9 @@ uint16_t opeu_advice_situational_hint(Game& game, const uint8_t* far_text, HostE
 }
 
 // One of the twenty general tips.
-uint16_t opeu_advice_general_tip(Game& game, const uint8_t* far_text, HostEvent event) {
+uint16_t opeu_advice_general_tip(Game& game, const uint8_t* far_text) {
   auto&      data{ Data(game) };
-  auto const advisor{ Hints(game, event, far_text) };
+  auto const advisor{ Hints(game, far_text) };
   auto const tip{ advisor.Random(20) };
   CopyAdvice(game, far_text, advisor.Buffer(), data.advice_tips[tip].offset);
   advisor.Show();
@@ -66,15 +66,11 @@ uint16_t opeu_advice_general_tip(Game& game, const uint8_t* far_text, HostEvent 
 }
 
 // Operation Hints: a situational hint, else a general tip.
-uint16_t opeu_advice_operation_hints(Game& game, const uint8_t* far_text, HostEvent event) {
-  if (auto const given{ opeu_advice_situational_hint(game, far_text, event) }) return given;
-  return opeu_advice_general_tip(game, far_text, event);
-}
-
-uint16_t svc_advhints(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_advice("advhints", game, id, args, count);
+uint16_t opeu_advice_operation_hints(Game& game, const uint8_t* far_text) {
+  if (auto const given{ opeu_advice_situational_hint(game, far_text) }) return given;
+  return opeu_advice_general_tip(game, far_text);
 }
 
 auto port_routine_opeu_advice_operation_hints(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_advice_operation_hints(game, AdviceTexts(), svc_advhints);
+  return opeu_advice_operation_hints(game, AdviceTexts());
 }
