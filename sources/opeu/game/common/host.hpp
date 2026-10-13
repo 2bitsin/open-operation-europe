@@ -19,8 +19,6 @@ union Regs {
 };
 
 // The driver call of the mouse and sound services (int86): the seven register words go in and come back updated.
-inline constexpr std::uint16_t INT86_CALL{ 1 };
-
 template <typename Driver>
 inline auto Int86(Regs& r, Driver driver) -> std::uint16_t {
   std::uint16_t words[7]{ r.x.ax, r.x.bx, r.x.cx, r.x.dx, r.x.si, r.x.di, r.x.cflag };

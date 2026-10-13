@@ -14,7 +14,6 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#include "common/air-service.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -27,8 +26,6 @@
 using namespace opeu::game;
 
 namespace {
-
-using enum AirService;
 
 constexpr std::uint16_t LOAD{ 3000 };       // the units one cargo plane carries
 constexpr std::uint16_t KIND_PLANES{ 20 };  // the most planes one kind of supply takes

@@ -143,17 +143,11 @@ void opeu_battle_auto_hq(Game& game) {
   auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
   if (data.side_status[side] != SIDE_PLAYED) return;
   ServiceLocals const locals{ AUTO_RESERVE };
-  auto const          hoisted0{ static_cast<std::uint16_t>(locals.At(AUTO_LABEL)) };
-  auto const          hoisted1{ static_cast<std::uint16_t>(best) };
-  auto const          label{ opeu_element_name(game, hoisted1, hoisted0) };
-  auto const          hoisted0_1{ static_cast<std::uint16_t>(locals.At(AUTO_NAME)) };
-  auto const          hoisted1_1{ static_cast<std::uint16_t>(data.battle_lost_unit) };
-  auto const          name{ opeu_unit_name(game, hoisted1_1, hoisted0_1) };
+  auto const          label{ opeu_element_name(game, best, locals.At(AUTO_LABEL)) };
+  auto const          name{ opeu_unit_name(game, data.battle_lost_unit, locals.At(AUTO_NAME)) };
   opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(locals.At(AUTO_TEXT)), static_cast<std::uint16_t>(Near(data, data.hq_fmt_moved)),
                                                           static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(label) });
-  auto const hoisted0_2{ static_cast<std::uint16_t>(side) };
-  auto const hoisted2_2{ static_cast<std::uint16_t>(locals.At(AUTO_TEXT)) };
-  opeu_battle_commander_wait(game, hoisted2_2, static_cast<uint8_t>(hoisted0_2), static_cast<uint8_t>(MESSAGE_MODE));
+  opeu_battle_commander_wait(game, locals.At(AUTO_TEXT), side, MESSAGE_MODE);
 }
 
 void opeu_battle_officer_hit(Game& game, uint16_t record, uint16_t text, uint16_t killed) {

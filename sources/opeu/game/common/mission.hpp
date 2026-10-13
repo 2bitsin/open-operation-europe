@@ -1,5 +1,4 @@
-// The special-forces missions: the kinds a side's mission order (Side::order) holds and the services the mission
-// routines (core/msn*) call through their event.
+// The special-forces missions: the kinds a side's mission order (Side::order) holds.
 #pragma once
 
 #include "common/events.hpp"

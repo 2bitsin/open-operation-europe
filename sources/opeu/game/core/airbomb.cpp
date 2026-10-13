@@ -1,7 +1,6 @@
 // The Bombing Attack command: the player picks a map site and a mission type (carpet bombing, attack sortie,
 // strafing run); the air officer may object (low fuel, too few bombers, poor crews, or by chance), otherwise the
-// sortie is announced and, once confirmed, stored as the current side's air strike. Also svc_air, the services of
-// all the air force's commands.
+// sortie is announced and, once confirmed, stored as the current side's air strike.
 #include "core/airbomb.hpp"
 #include "common/events.hpp"
 #include "common/menu.hpp"
@@ -11,7 +10,6 @@
 #include "types.hpp"
 #include "units/value.hpp"
 
-#include "common/air-service.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -35,8 +33,6 @@
 using namespace opeu::game;
 
 namespace {
-
-using enum AirService;
 
 // Message ids (message_lookup).
 constexpr std::uint16_t LOW_FUEL{ 0x50 };

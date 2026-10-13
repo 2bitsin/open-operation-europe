@@ -17,7 +17,6 @@
 #include "units/release.hpp"
 #include "units/value.hpp"
 
-#include "common/air-service.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -36,8 +35,6 @@ using namespace opeu::game;
 uint16_t opeu_airdrop_code_segment = 0x23b2;
 
 namespace {
-
-using enum AirService;
 
 // The far offsets of the list-dialog callbacks (the routine handlers below).
 constexpr std::uint16_t MARK_REGIMENT_OFFSET{ 0x06ca };

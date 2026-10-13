@@ -125,12 +125,8 @@ void opeu_transfer_load_unit(Game& game, uint16_t unit, uint8_t side) {
 
 // Loads an objective into the table's right side: its capacities, its reserves as the targets and its amounts.
 void opeu_transfer_load_objective(Game& game, uint16_t objective) {
-  auto&      data{ Data(game) };
-  auto const hoisted0{ static_cast<std::uint16_t>(objective) };
-  auto const hoisted1{ static_cast<std::uint16_t>(TableAt(1, 0, CAPACITY)) };
-  auto const hoisted2{ static_cast<std::uint16_t>(TableAt(1, 1, CAPACITY)) };
-  auto const hoisted3{ static_cast<std::uint16_t>(TableAt(1, 2, CAPACITY)) };
-  opeu_objective_capacities(game, hoisted0, port_ds_word_ptr(game, hoisted1), port_ds_word_ptr(game, hoisted2), port_ds_word_ptr(game, hoisted3));
+  auto& data{ Data(game) };
+  opeu_objective_capacities(game, objective, port_ds_word_ptr(game, TableAt(1, 0, CAPACITY)), port_ds_word_ptr(game, TableAt(1, 1, CAPACITY)), port_ds_word_ptr(game, TableAt(1, 2, CAPACITY)));
   auto const& city{ Record<Objective>(data, objective) };
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][TARGET] = city.reserves[resource];
   for (std::uint8_t resource = 0; resource < RESOURCES; ++resource) data.transfer_table[1][resource][AMOUNT] = city.resources[resource];

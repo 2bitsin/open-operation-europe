@@ -28,8 +28,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum SpecialService;
-
 constexpr std::uint8_t  OFFICER_KIND{ 7 };  // the person template kind of the Special Forces officer
 constexpr std::uint16_t MISSION_COUNT{ 5 }; // the entries of the mission menu
 constexpr std::uint16_t INFO_X{ 0x2d };     // the column of the pending mission's lines

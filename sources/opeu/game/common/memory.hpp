@@ -1,4 +1,4 @@
-// Service locals, far segments and service calls on MAIN's 16-bit data segment, shared by the game files.
+// Service locals and far segments on MAIN's 16-bit data segment, shared by the game files.
 #pragma once
 
 #include "common/game.hpp"

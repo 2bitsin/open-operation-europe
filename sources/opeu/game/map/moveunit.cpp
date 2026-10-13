@@ -133,10 +133,7 @@ void opeu_move_unit(Game& game, uint16_t repeat) {
             && static_cast<uint8_t>(opeu_grid_distance(static_cast<uint8_t>(next_x), static_cast<uint8_t>(next_y), static_cast<uint8_t>(unit.target_x), static_cast<uint8_t>(unit.target_y)))
                    < NEAR_DESTINATION)) {
       // The destination lands in its DS bytes; where the unit has none they keep what they held.
-      auto const hoisted0{ static_cast<std::uint16_t>(current) };
-      auto const hoisted1{ static_cast<std::uint16_t>(locals.At(GOAL_X_AT)) };
-      auto const hoisted2{ static_cast<std::uint16_t>(locals.At(GOAL_Y_AT)) };
-      opeu_unit_order_destination(game, hoisted0, game.State().Bytes(hoisted1, 1).data(), game.State().Bytes(hoisted2, 1).data());
+      opeu_unit_order_destination(game, static_cast<std::uint16_t>(current), game.State().Bytes(locals.At(GOAL_X_AT), 1).data(), game.State().Bytes(locals.At(GOAL_Y_AT), 1).data());
       uint8_t const goal_x{ Byte(game, locals.At(GOAL_X_AT)) };
       uint8_t const goal_y{ Byte(game, locals.At(GOAL_Y_AT)) };
       if (!opeu_move_reachable(game, reinterpret_cast<uint16_t*>(port_far(PATH_SEGMENT, 0)), static_cast<uint8_t>(goal_x), static_cast<uint8_t>(goal_y), static_cast<uint8_t>(next_x),

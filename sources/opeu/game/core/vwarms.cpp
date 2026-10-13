@@ -1,5 +1,5 @@
-// The information menu, the weapons views (the equipment types each side fields), the victory conditions, the view
-// menu, and the services every information view calls (svc_view).
+// The information menu, the weapons views (the equipment types each side fields), the victory conditions and the view
+// menu.
 #include "core/vwarms.hpp"
 #include "common/events.hpp"
 #include "types.hpp"

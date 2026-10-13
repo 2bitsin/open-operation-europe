@@ -38,8 +38,6 @@ using namespace opeu::game;
 
 namespace {
 
-using enum SpecialService;
-
 constexpr std::uint16_t NO_TEXT{ 0 }; // no text: the mission has no such step
 
 // The daily report entry of an accepted mission and its presenter, opeu_special_present, as the far address the

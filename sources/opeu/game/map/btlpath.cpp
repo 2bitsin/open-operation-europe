@@ -182,9 +182,7 @@ void opeu_battle_report_sighted(Game& game, uint16_t element) {
   opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.battle_fmt_sighted)),
                                                           static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
   opeu_string_append(game, message, Near(data, data.battle_text_sighted));
-  auto const hoisted0{ static_cast<std::uint16_t>(opeu_opposite_side(side)) };
-  auto const hoisted2{ static_cast<std::uint16_t>(message) };
-  opeu_battle_commander_wait(game, hoisted2, static_cast<uint8_t>(hoisted0), static_cast<uint8_t>(2));
+  opeu_battle_commander_wait(game, message, opeu_opposite_side(side), 2);
 }
 
 // Whether the element spots the other: a chance by terrain mode, less the other cell's cover and the weather's toll.

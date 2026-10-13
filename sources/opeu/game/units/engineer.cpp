@@ -66,10 +66,7 @@ auto SkillRoll(Game& game, std::uint16_t person, std::uint16_t bound, std::uint1
   auto&               data{ Data(game) };
   std::uint16_t const random{ port_rand_bounded(game, bound) };
   ServiceLocals const count{ 2 };
-  auto const          hoisted0{ static_cast<std::uint16_t>(data.current_unit_ptr) };
-  auto const          hoisted1{ static_cast<std::uint16_t>(Bits(Category::ENGINEERS)) };
-  auto const          hoisted2{ static_cast<std::uint16_t>(count.At(0)) };
-  std::uint16_t const engineers{ opeu_unit_quantity(game, hoisted0, static_cast<uint8_t>(hoisted1), game.State().Bytes(hoisted2, 1).data()) };
+  std::uint16_t const engineers{ opeu_unit_quantity(game, data.current_unit_ptr, static_cast<uint8_t>(Bits(Category::ENGINEERS)), game.State().Bytes(count.At(0), 1).data()) };
   std::uint16_t const average10{ opeu_unit_average10(game, data.current_unit_ptr) };
   std::uint16_t const average11{ opeu_unit_average11(game, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random

@@ -1,4 +1,4 @@
-// The Bombing Attack command, and svc_air, the services of the air force's commands.
+// The Bombing Attack command.
 #pragma once
 
 #include "common/events.hpp"

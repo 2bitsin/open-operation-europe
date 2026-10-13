@@ -11,7 +11,6 @@
 #include "types.hpp"
 #include "units/labels.hpp"
 
-#include "common/air-service.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -24,8 +23,6 @@
 using namespace opeu::game;
 
 namespace {
-
-using enum AirService;
 
 constexpr std::uint8_t  OFFICER_KIND{ 6 };      // the person template of the air-force officer
 constexpr std::uint16_t LOCATION_BYTES{ 0x28 }; // the location name buffer of the command, which a format service writes

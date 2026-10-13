@@ -11,7 +11,6 @@
 #include "map/query.hpp"
 #include "types.hpp"
 
-#include "common/air-service.hpp"
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
@@ -24,8 +23,6 @@
 using namespace opeu::game;
 
 namespace {
-
-using enum AirService;
 
 // The texts the format service writes: the prompt line of opeu_air_ask_count, the message of opeu_air_target_valid.
 constexpr std::uint16_t LINE_BYTES{ 0x18 };

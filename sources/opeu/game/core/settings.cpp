@@ -38,58 +38,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the Settings routines call through their event. Strings and buffers are passed as DS offsets.
-enum class SettingsService : uint16_t {
-  PRINT           = 0, // (format, ...) to the text cursor
-  FORMAT          = 1, // (destination, format, value)
-  DIALOG          = 2, // (text, x, person, menu): the chosen entry, 0xffff when cancelled
-  NUMBER          = 3, // (text, x, person, 0): a number the player enters
-  MESSAGE         = 4, // (text, person)
-  ASK             = 5, // (text, person): nonzero for yes
-  LOCATION        = 6, // (x, y, side): show the map there
-  MUSIC_STOP      = 7,
-  PRE_CONTEXT     = 8, // restart the music for the turn
-  SCREEN_RESET    = 9,
-  ATTRIBUTE       = 10, // (paper)
-  DISK_RESET      = 11,
-  FRAMED          = 12, // (x, y, text): a framed title, returns the text
-  UI_TEXT         = 13, // (text)
-  UI_WAIT         = 14, // (time)
-  OPEN            = 15, // (name): the file handle
-  MENU_CHOOSE     = 16, // (menu, first, count)
-  OUTLINE         = 17, // (x1, y1, x2, y2, colour)
-  POSITION        = 18, // (x, y) of the text cursor
-  TITLE           = 19, // (text)
-  YES_NO          = 20, // (text)
-  ACTIVE_BEGIN    = 21, // the side's turn display again
-  PALETTE_TITLE   = 22,
-  PALETTE_DEFAULT = 23,
-  FINISH_SIDE     = 24, // (value)
-  TURN_CONTEXT    = 25, // (value)
-  FREE_SEGMENTS   = 26,
-  CLOSE_FILES     = 28,
-  APPLICATION     = 29, // start the game over
-  CREATE          = 30, // (name): the file handle
-  EXISTS          = 31, // (name)
-  WRITE           = 32, // (handle, buffer, size)
-  READ            = 33, // (handle, buffer, size)
-  READ_FAR        = 34, // (handle, segment, offset, size)
-  CLOSE           = 35, // (handle)
-  SEEK            = 36, // (handle, offset low, offset high, whence)
-  BOX             = 37, // (x, y, width, height, colour)
-  VGA_COPY        = 38, // six words
-  DRAW            = 39, // (x, y, width, height, plane, segment, offset) a bitmap
-  FM_WAIT         = 40, // (time)
-  FM_BUSY         = 41,
-  SOUND_CLOSE     = 42, // (0, 0)
-  FM_NOOP         = 43,
-  TEXT_MODE       = 44,
-  EXIT            = 45, // (code)
-  VGA_CLEAR       = 46,
-  FAR_ACTION      = 47, // (offset, segment) of an action table entry outside this module
-};
-using enum SettingsService;
-
 // The entries of the far action tables (save_quit_actions, settings_actions) by their code offset.
 enum class Action : uint16_t {
   BATTLES   = 0x0084,

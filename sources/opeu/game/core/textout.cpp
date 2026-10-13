@@ -46,18 +46,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the console calls through host->event.
-enum class TextService : uint16_t {
-  KEY_READ       = 0, // wait for a key: scan code in the high byte, character in the low byte
-  KEY_WAITING    = 1, // nonzero while a key is waiting
-  WAIT_CONFIRM   = 2, // (value)
-  BOX            = 3, // (x, y, width, height, colour)
-  CLEAR          = 4, // clear the screen
-  SOUND_RESET    = 5, // (6)
-  PENDING_FINISH = 6, // (value)
-};
-using enum TextService;
-
 // The glyph routines glyph_draw holds, by their code offset.
 constexpr uint16_t GLYPH_TRANSPARENT{ 0x28a8 };
 constexpr uint16_t GLYPH_OPAQUE{ 0x28c5 };

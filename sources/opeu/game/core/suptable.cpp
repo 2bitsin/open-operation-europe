@@ -22,15 +22,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the table views call through their event.
-enum class SupplyTableService : std::uint16_t {
-  LAYOUT    = 0, // (column, row): the list's column layout
-  POSITION  = 1, // (x, y): the text cursor
-  PRINT     = 2, // (format, arguments...)
-  HIGHLIGHT = 3, // (x, y, width, height, colour)
-};
-using enum SupplyTableService;
-
 constexpr std::uint8_t  NO_TYPE{ 0xff };   // Item::type of an empty slot
 constexpr std::uint16_t LINE_HEIGHT{ 17 }; // pixels per list row
 constexpr std::uint8_t  HELD_COLOUR{ 3 };  // the rows of types the side holds

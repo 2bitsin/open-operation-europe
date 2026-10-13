@@ -1,6 +1,5 @@
-// The services the information views (core/vwarms, vwcity, vwdiv, vwpanel, vwpeople, vwregt and units/vwlist) call
-// through their event, dispatched by svc_view (core/vwarms), and the helpers those views share. Pointer arguments are
-// DS offsets; byte arguments are passed zero-extended.
+// The helpers the information views (core/vwarms, vwcity, vwdiv, vwpanel, vwpeople, vwregt and units/vwlist) share,
+// and the row checks of their list dialogs. Pointer arguments are DS offsets.
 #pragma once
 
 #include "common/data-segment.hpp"
