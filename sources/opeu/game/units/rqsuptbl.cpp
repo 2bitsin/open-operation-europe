@@ -23,14 +23,15 @@ namespace { } // namespace
 
 // Draws rows first..last of the type table's `column`, with the heading and the type names as `flags` ask. The
 // nation shown is the general's (context_record1) when the type is fielded by it, else the type's first nation.
-void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_rq_draw_types(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
   auto const  scratch{ buffers.At(0) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, row) };
+  auto const  layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ text, Near(data, data.rq_type_header) });
     opeu_army_position(game, static_cast<int16_t>(ColumnX(data, window, layout, -0x20)), static_cast<int16_t>(window.y + 1));

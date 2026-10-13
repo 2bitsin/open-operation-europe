@@ -29,7 +29,7 @@ void opeu_app_startup(Game& game) {
 void opeu_app_initialize(Game& game) {
   auto& data{ Data(game) };
   game.Machine().Display().Clear();
-  opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
+  LimitMouse(game, { .x = 0, .y = 0, .width = 0x27f, .height = 0x18f });
   opeu_input_flush(game);
   opeu_army_position(game, 14, 100);
   opeu_ui_text(game, INPUT_PROMPT);

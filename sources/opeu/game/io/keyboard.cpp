@@ -156,8 +156,8 @@ auto DigitsInRange(Game& game, ValueRange const& range, int cancel) -> std::uint
 // What the yes/no pointer covers and where it was drawn: the saved graphics' 8-pixel column and row, the pointer's
 // pixel position; 0xffff for none.
 struct YesNoPointer {
-  MousePoint saved{ 0xffff, 0xffff };
-  MousePoint drawn{ 0xffff, 0xffff };
+  ScreenPoint saved{ 0xffff, 0xffff };
+  ScreenPoint drawn{ 0xffff, 0xffff };
 };
 
 // Points the picture stream at one of the pointer's pictures.
@@ -165,19 +165,19 @@ auto PointAtPicture(DataSegment& data, std::uint16_t offset) -> void {
   SetStream(data, POINTER_SEGMENT, offset);
 }
 
-auto RestoreUnder(Game& game, MousePoint const& saved) -> void {
+auto RestoreUnder(Game& game, ScreenPoint const& saved) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SAVE);
   game.Machine().Display().DrawColumns({ saved.x, saved.y, 5, 48 }, { 0, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
 }
 
-auto SaveUnder(Game& game, MousePoint const& saved) -> void {
+auto SaveUnder(Game& game, ScreenPoint const& saved) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SAVE);
   game.Machine().Display().SaveColumns({ saved.x, saved.y, 5, 48 }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
 }
 
-auto DrawPointer(Game& game, MousePoint const& at) -> void {
+auto DrawPointer(Game& game, ScreenPoint const& at) -> void {
   auto& data{ Data(game) };
   PointAtPicture(data, POINTER_SHAPE);
   game.Machine().Display().ComposeShiftedSprite({ at.x, at.y, 32, 48 }, { .and_mask = FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]),
@@ -246,7 +246,7 @@ auto opeu_mouse_wait_buttons(Game& game) -> std::uint8_t {
 }
 
 // Without human sides just delays; else waits for a button or Enter with the blinking cursor.
-void opeu_wait_confirm(Game& game, int) {
+void opeu_wait_confirm(Game& game) {
   auto& data{ Data(game) };
   if (!data.side_control[0] && !data.side_control[1]) {
     opeu_delay_units(game, 20);
@@ -290,33 +290,42 @@ auto opeu_read_decimal(Game& game, std::uint16_t digits) -> std::int32_t {
   }
 }
 
-// Chooses a value in min..max. With a mouse: the menu `items`, else the numeric dialog. From the keyboard with a menu
-// (unless max is 24): the keypad walks the menu; otherwise decimal entry. Answers MENU_CANCELLED when cancelled.
-auto opeu_choose_value(Game& game, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
-  if (max < min) return 0;
-  ValueRange const range{ min, max };
+// Chooses a value in the range. With a mouse: the menu `items`, else the numeric dialog. From the keyboard with a menu
+// (unless the range ends at 24): the keypad walks the menu; otherwise decimal entry. Answers MENU_CANCELLED when
+// cancelled.
+auto opeu_choose_value(Game& game, ValueRange range, ChoiceOptions options) -> std::uint16_t {
+  auto const [cancel, items]{ options };
+  if (range.hi < range.lo) return 0;
   if (HasMouse(Data(game))) {
     if (items) return opeu_menu_select(game, items, cancel);
     return opeu_numdlg_run(game, range, cancel);
   }
-  auto const value{ items && max != 24 ? MenuByKeys(game, range, items) : DigitsInRange(game, range, cancel) };
+  auto const value{ items && range.hi != 24 ? MenuByKeys(game, range, items) : DigitsInRange(game, range, cancel) };
   if (items) opeu_menu_restore(game, items);
   return value;
 }
 
 // Prints the prompt `text`, then chooses.
-auto opeu_prompt_value(Game& game, std::uint16_t text, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
+auto opeu_prompt_value(Game& game, std::uint16_t text, ValueChoice const& choice) -> std::uint16_t {
   auto const& data{ Data(game) };
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.prompt_format)), text });
-  return opeu_choose_value(game, min, max, cancel, items);
+  return opeu_choose_value(game, choice.range, choice.options);
 }
 
 auto opeu_prompt_value_cancel(Game& game, std::uint16_t text, std::uint16_t max, std::uint16_t items) -> std::uint16_t {
-  return opeu_prompt_value(game, text, 1, max, 1, items);
+  return opeu_prompt_value(game, text,
+                           {
+                               .range = { 1,           max            },
+                                 .options = { .cancel = 1, .items = items }
+  });
 }
 
 auto opeu_prompt_value_required(Game& game, std::uint16_t text, std::uint16_t max, std::uint16_t items) -> std::uint16_t {
-  return opeu_prompt_value(game, text, 1, max, 0, items);
+  return opeu_prompt_value(game, text,
+                           {
+                               .range = { 1,           max            },
+                                 .options = { .cancel = 0, .items = items }
+  });
 }
 
 // The yes/no pointer: limits the mouse, keeps the 5x48 graphics under it saved, draws the pointer when it moves; a
@@ -325,13 +334,13 @@ auto opeu_mouse_yes_no(Game& game) -> std::uint8_t {
   YesNoPointer pointer;
   std::uint8_t answer{ 0 };
   opeu_input_reset(game);
-  opeu_mouse_window(game, 0, 0, 599, 351);
+  LimitMouse(game, { .x = 0, .y = 0, .width = 599, .height = 351 });
   while (answer == 0) {
     FollowMouse(game, pointer);
     answer = Answer(opeu_mouse_buttons(game));
   }
   RestoreUnder(game, pointer.saved);
-  opeu_mouse_window(game, 0, 0, 639, 399);
+  LimitMouse(game, { .x = 0, .y = 0, .width = 639, .height = 399 });
   return answer;
 }
 

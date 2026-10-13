@@ -106,7 +106,7 @@ void opeu_view_weapon_list(Game& game, uint16_t end) {
   auto const count{ static_cast<std::uint8_t>(static_cast<std::int16_t>(end - WEAPON_LIST) >> 1) };
   data.weapons_dialog.rows = static_cast<std::uint8_t>(count + 1);
   SetListPredicate(data.weapons_dialog, ListSelect::VIEW_ANY);
-  for (std::uint16_t height{ 7 }; opeu_control_message(game, WEAPONS_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.weapons_dialog), 1, height); height = 6) {
+  for (std::uint16_t height{ 7 }; opeu_control_message(game, WEAPONS_PROMPT, data.context_record3), opeu_list_dialog(game, data.weapons_dialog, { 1, static_cast<std::uint8_t>(height) }); height = 6) {
     opeu_element_type_panel(game, data.weapon_list[data.list_row]);
     opeu_control_message(game, WEAPONS_HERE, data.context_record3);
   }

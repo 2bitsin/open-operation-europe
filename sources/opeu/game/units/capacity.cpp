@@ -3,20 +3,9 @@
 #include "units/capacity.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
-#include "common/game.hpp"
-#include "common/memory.hpp"
 #include "types.hpp"
 
 namespace opeu::game::detail::capacity {
-namespace {
-// Stores the three figures into the words at `at`.
-auto StoreResources(Game& game, ResourceWords at, Resources resources) -> void {
-  SetWord(game, at.ammunition, resources.ammunition);
-  SetWord(game, at.fuel, resources.fuel);
-  SetWord(game, at.food, resources.food);
-}
-} // namespace
-
 auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources {
   Resources capacities{ 0, 0, 0 };
   for (auto const& element : Elements(data, Record<Unit>(data, unit))) {
@@ -30,7 +19,4 @@ auto UnitCapacities(DataSegment const& data, std::uint16_t unit) -> Resources {
   return capacities;
 }
 
-auto StoreUnitCapacities(Game& game, std::uint16_t unit, ResourceWords at) -> void {
-  StoreResources(game, at, UnitCapacities(Data(game), unit));
-}
 } // namespace opeu::game::detail::capacity

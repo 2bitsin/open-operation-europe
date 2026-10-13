@@ -1,6 +1,6 @@
 #pragma once
 
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 // The cell one step from a cell in one of the eight directions, without a bounds check.

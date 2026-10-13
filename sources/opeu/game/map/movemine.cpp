@@ -42,10 +42,10 @@ void opeu_move_mines(Game& game, uint8_t x, uint8_t y) {
       opeu_daily_show(game, MINES_PICTURE, own, Presenter::MINES_HIT);
     else if (data.side_status[enemy] == SIDE_PLAYED && opeu_unit_special(game, static_cast<std::uint16_t>(current)))
       opeu_daily_show(game, MINES_PICTURE, enemy, Presenter::MINES_HIT);
-    opeu_unit_casualties(game, static_cast<std::uint16_t>(current), 100, 3, 15, 0, 1);
+    opeu_unit_casualties(game, static_cast<std::uint16_t>(current), { .chance = 100, .base = 3, .spread = 15, .heavy = false, .blast = true });
   }
   auto& unit{ Record<Unit>(data, current) };
-  opeu_mark_cell(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(data.current_side));
+  opeu_mark_cell(game, { unit.x, unit.y }, static_cast<uint8_t>(data.current_side));
   opeu_unit_remove_draw(game, static_cast<std::uint16_t>(current));
   unit.x     = x;
   unit.y     = y;

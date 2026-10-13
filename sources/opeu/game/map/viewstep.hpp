@@ -2,7 +2,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 #include <cstdint>
@@ -17,7 +17,3 @@ namespace opeu::game::detail::viewstep {
 namespace opeu::game {
 using detail::viewstep::StepInViewport;
 } // namespace opeu::game
-
-// StepInViewport through the cell's coordinate bytes at the DS offsets x and y, for the callers outside game/map:
-// returns 1 when the step was taken.
-uint16_t opeu_grid_step_viewport(Game& game, uint16_t x, uint16_t y, uint8_t direction);

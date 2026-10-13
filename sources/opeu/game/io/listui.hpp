@@ -20,7 +20,6 @@ using detail::list_call::REDRAW_HERE;
 using detail::list_call::REDRAW_ORIGIN;
 } // namespace opeu::game
 
-void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
 auto opeu_list_mouse_key(Game& game) -> std::uint8_t;
 void opeu_list_invert(Game& game);
 void opeu_list_scroll(Game& game, opeu::game::ListWindow const& window, std::uint8_t column, std::uint8_t row);

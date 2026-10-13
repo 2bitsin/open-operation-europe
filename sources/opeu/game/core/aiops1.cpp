@@ -60,7 +60,7 @@ struct CellSearch {
 
 // Whether airborne troops can land on the cell: on the map, of drop terrain, not marked by the side and held by no side.
 auto FreeForDrop(Game& game, GridCell cell) -> bool {
-  return cell.x < MAP_WIDTH && cell.y < MAP_HEIGHT && IsDropTerrain(opeu_map_code(game, cell.x, cell.y)) && !opeu_cell_marked(game, cell.x, cell.y, Data(game).current_side)
+  return cell.x < MAP_WIDTH && cell.y < MAP_HEIGHT && IsDropTerrain(opeu_map_code(game, cell.x, cell.y)) && !opeu_cell_marked(game, { cell.x, cell.y }, Data(game).current_side)
          && opeu_cell_side(game, cell.x, cell.y) == NO_SIDE;
 }
 
@@ -175,7 +175,7 @@ uint16_t opeu_ai_exposed_enemy_objective(Game& game) {
     auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near || opeu_objective_side(game, near) == data.current_side) continue;
     auto const& objective{ Record<Objective>(data, near) };
-    if (opeu_cell_influence_side(game, objective.x, objective.y) != data.current_side) return near;
+    if (opeu_cell_influence_side(game, { objective.x, objective.y }) != data.current_side) return near;
   }
   return 0;
 }

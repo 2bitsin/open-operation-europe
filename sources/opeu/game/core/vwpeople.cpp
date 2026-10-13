@@ -49,7 +49,7 @@ void opeu_view_people_list(Game& game, uint8_t count) {
   SetListPredicate(data.people_dialog, ListSelect::VIEW_NONE);
   opeu_title_panel_begin(game);
   opeu_control_message(game, PEOPLE_HERE, data.context_record3);
-  opeu_list_dialog(game, Near(data, data.people_dialog), LIST_LIMIT, LIST_FLAGS);
+  opeu_list_dialog(game, data.people_dialog, LIST_OPTIONS);
 }
 
 // The own side's generals.

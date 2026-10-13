@@ -138,11 +138,12 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
 
 // Row-draw callback for list rows first..last (last below 255). Flags bit 0 or 1 draws the ability header, bit 0 or
 // 2 the names.
-void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_general_list_draw_rows(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&       data{ Data(game) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
   auto const  row_width{ [&] { return Record<std::uint8_t>(data, window.widths); } };
-  auto const  first_column{ static_cast<std::uint8_t>(TableColumnLayout(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row)).lead) };
+  auto const  first_column{ static_cast<std::uint8_t>(TableColumnLayout(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(last_column)).lead) };
   if (flags & 3) {
     opeu_army_position(game, static_cast<int16_t>(row_width() + first_column + window.x - 0x1f), static_cast<int16_t>(window.y + 1));
     opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));

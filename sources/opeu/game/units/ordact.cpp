@@ -38,9 +38,7 @@ namespace {
 // The locals the services read and write, as offsets below the top of the routine's reserve.
 constexpr std::uint16_t LOCALS_BYTES{ 0x74 };
 enum ServiceLocal : std::uint16_t {
-  PICKED_X = 0x08,
-  PICKED_Y = 0x0c,
-  BUFFER   = 0x74, // the message text
+  BUFFER = 0x74, // the message text
 };
 // Where the order menu's speaker is shown.
 constexpr std::uint16_t MENU_X{ 0x36 };
@@ -57,8 +55,7 @@ void opeu_unit_action(Game& game, uint16_t unit, uint16_t /*unused*/) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
-  auto const          x_at{ local(PICKED_X) };
-  auto const          y_at{ local(PICKED_Y) };
+  GridCell            cell{};
   auto const          buffer{ local(BUFFER) };
   auto&               regiment{ Record<Unit>(data, unit) };
   if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, unit)) return;
@@ -94,20 +91,21 @@ void opeu_unit_action(Game& game, uint16_t unit, uint16_t /*unused*/) {
   }
   std::uint16_t target{};
   for (;;) {
-    Byte(game, x_at) = regiment.x;
-    Byte(game, y_at) = regiment.y;
+    cell = { regiment.x, regiment.y };
     opeu_control_message(game, Near(data, prompts.select_target), person);
-    if (!opeu_map_pick_location(game, x_at, y_at)) {
+    auto const picked{ PickLocation(game, cell) };
+    if (!picked) {
       opeu_cancel_unit_orders(game, unit, person);
       return;
     }
-    if (CheckOrderTarget(game, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
+    cell = *picked;
+    if (CheckOrderTarget(game, prompts, buffer, person, unit, cell.x, cell.y, kind, target)) break;
     opeu_control_message(game, buffer, person);
     opeu_control_position(game, regiment.x, regiment.y);
     opeu_arrival_location(game, static_cast<uint8_t>(regiment.x), static_cast<uint8_t>(regiment.y), static_cast<uint8_t>(data.current_side));
   }
   AnnounceOrder(game, prompts, buffer, person, kind);
-  opeu_set_unit_order(game, unit, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
+  opeu_set_unit_order(game, unit, { .target = target, .cell = cell, .save_current = false, .code = kind });
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   done();

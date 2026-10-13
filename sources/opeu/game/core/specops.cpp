@@ -63,8 +63,6 @@ struct Mission {
 // The locals of a mission's planning that services write: offsets in its reserve.
 constexpr std::uint16_t NAME_AT{ 0x00 }; // 32 bytes: the target unit's name
 constexpr std::uint16_t TEXT_AT{ 0x20 }; // 100 bytes: the officer's question
-constexpr std::uint16_t CELL_Y_AT{ 0x84 };
-constexpr std::uint16_t CELL_X_AT{ 0x86 };
 constexpr std::uint16_t PLAN_LOCALS{ 0x88 };
 
 auto Raid() -> Mission {
@@ -172,12 +170,10 @@ auto Refusal(Game& game, Mission const& mission) -> int {
 void Plan(Game& game, Mission const& mission) {
   ServiceLocals const locals{ PLAN_LOCALS };
   auto&               data{ Data(game) };
-  auto const          cell_x{ locals.At(CELL_X_AT) };
-  auto const          cell_y{ locals.At(CELL_Y_AT) };
   auto const          text{ locals.At(TEXT_AT) };
   auto const          name{ locals.At(NAME_AT) };
-  auto&               x{ Record<std::uint8_t>(data, cell_x) };
-  auto&               y{ Record<std::uint8_t>(data, cell_y) };
+  GridCell            cell{};
+  auto& [x, y]{ cell };
   opeu_army_title(game, mission.title);
   for (;;) {
     x = static_cast<std::uint8_t>(data.viewport_x);
@@ -187,7 +183,9 @@ void Plan(Game& game, Mission const& mission) {
     bool          on_city{ false };
     for (;;) {
       opeu_control_message(game, mission.prompt, data.special_person);
-      if (!opeu_map_pick_location(game, cell_x, cell_y)) return;
+      auto const picked{ PickLocation(game, cell) };
+      if (!picked) return;
+      cell = *picked;
       if (mission.city_question != NO_TEXT && (objective = opeu_find_objective_at(game, x, y)) != 0 && opeu_objective_side(game, objective) != data.current_side) {
         opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.city_question, objective });
         if (opeu_confirm_message(game, text, data.special_person)) {
@@ -208,7 +206,7 @@ void Plan(Game& game, Mission const& mission) {
       break;
     }
     auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
-    hours += opeu_cell_influence_side(game, x, y) == data.current_side ? 0 : 1;
+    hours += opeu_cell_influence_side(game, { x, y }) == data.current_side ? 0 : 1;
     if (mission.duration == NO_TEXT)
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, RAID_DURATION_MESSAGE), static_cast<std::uint16_t>(hours) });
     else if (mission.hour == NO_TEXT)

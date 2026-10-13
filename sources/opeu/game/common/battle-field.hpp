@@ -53,7 +53,7 @@ enum class BattleState : std::uint8_t {
   ENGAGED    = 0x80,
 };
 
-// The direction from one battle cell toward another (opeu_battle_cell_facing, opeu_battle_element_facing).
+// The direction from one battle cell toward another (CellFacingToward, opeu_battle_element_facing).
 enum class CellFacing : std::uint8_t {
   UP    = 0,
   DOWN  = 1,

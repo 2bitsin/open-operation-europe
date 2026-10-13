@@ -41,11 +41,10 @@ constexpr std::uint16_t CONFIRM_BUFFER{ 4 };
 void opeu_request_arms(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ REQUEST_SCRATCH };
-  auto const          scratch{ buffers.At(0) };
-  auto&               x{ Record<std::uint8_t>(data, scratch) };
-  auto&               y{ Record<std::uint8_t>(data, static_cast<std::uint16_t>(scratch + 1)) };
-  auto const          buffer{ static_cast<std::uint16_t>(scratch + CONFIRM_BUFFER) };
-  auto const          battalion{ std::to_underlying(RequestKind::BATTALION) };
+  auto const          buffer{ buffers.At(CONFIRM_BUFFER) };
+  GridCell            cell{};
+  auto& [x, y]{ cell };
+  auto const battalion{ std::to_underlying(RequestKind::BATTALION) };
   if (opeu_request_pending(game, static_cast<uint8_t>(battalion))) {
     if (!opeu_request_cancel_prompt(game, Near(data, data.rq_arms_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[battalion].kind = std::to_underlying(RequestKind::NONE);
@@ -55,13 +54,15 @@ void opeu_request_arms(Game& game) {
   for (auto const category : std::views::iota(std::uint8_t{ 0 }, CATEGORIES)) count += opeu_list_due_records(game, Near(data, data.rq_type_list[count]), data.side_masks[data.current_side], category);
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
   opeu_control_message(game, Near(data, data.rq_arms_which), data.context_record2);
-  if (!opeu_list_dialog(game, Near(data, data.rq_type_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
+  if (!opeu_list_dialog(game, data.rq_type_dialog, LIST_OPTIONS)) return;
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
   opeu_control_message(game, Near(data, data.rq_arms_where), data.context_record2);
   std::uint16_t city;
   for (;;) {
-    if (!opeu_map_pick_location(game, scratch, static_cast<std::uint16_t>(scratch + 1))) return;
+    auto const picked{ PickLocation(game, cell) };
+    if (!picked) return;
+    cell = *picked;
     city = opeu_find_objective_at(game, x, y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }

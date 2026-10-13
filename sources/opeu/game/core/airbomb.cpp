@@ -53,9 +53,6 @@ constexpr std::uint16_t TYPE_MENU{ offsetof(DataSegment, bombing_menu) };
 constexpr std::uint8_t  CITY_TERRAIN{ 1 };
 constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the announcement's text, which the format service writes
 // The site picked, which the pick service writes: offsets in opeu_air_bomb_command's reserve.
-constexpr std::uint16_t SITE_Y_AT{ 0 };
-constexpr std::uint16_t SITE_X_AT{ 2 };
-constexpr std::uint16_t SITE_BYTES{ 4 };
 
 // A test that objects when `value` is below `limit` and, if the test has a roll, when a random number below 10 plus
 // `roll` beats the air force's skill too.
@@ -157,15 +154,12 @@ void opeu_air_bomb_command(Game& game) {
     return;
   }
   opeu_army_title(game, BOMB_TITLE);
-  ServiceLocals const locals{ SITE_BYTES };
-  auto const          at_x{ locals.At(SITE_X_AT) };
-  auto const          at_y{ locals.At(SITE_Y_AT) };
-  auto&               site_x{ Record<std::uint8_t>(data, at_x) };
-  auto&               site_y{ Record<std::uint8_t>(data, at_y) };
-  site_x = static_cast<std::uint8_t>(data.viewport_x);
-  site_y = static_cast<std::uint8_t>(data.viewport_y);
+  GridCell cell{ static_cast<std::uint8_t>(data.viewport_x), static_cast<std::uint8_t>(data.viewport_y) };
+  auto const& [site_x, site_y]{ cell };
   opeu_control_message(game, SITE_PROMPT, data.context_record3);
-  if (!opeu_map_pick_location(game, at_x, at_y)) return;
+  auto const picked{ PickLocation(game, cell) };
+  if (!picked) return;
+  cell = *picked;
   auto type{ opeu_delay_dialog(game, opeu_message_lookup(game, CHOOSE_TYPE), 3, data.context_record3, TYPE_MENU) };
   if (type == MENU_CANCELLED) return;
   --type;

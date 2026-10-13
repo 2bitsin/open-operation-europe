@@ -1,6 +1,6 @@
 #pragma once
 
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "map/path-grid.hpp"
 #include "types.hpp"
 

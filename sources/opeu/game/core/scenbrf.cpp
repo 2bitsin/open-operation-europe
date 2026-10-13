@@ -79,10 +79,10 @@ private:
 
 // Marks an overview-map cell for the blinking hook.
 void opeu_brief_mark(Game& game, uint8_t x, uint8_t y) {
-  auto& data{ Data(game) };
-  data.brief_mark_x = x;
-  data.brief_mark_y = y;
-  opeu_overview_pixel(game, offsetof(DataSegment, brief_mark_x), offsetof(DataSegment, brief_mark_y));
+  auto&      data{ Data(game) };
+  auto const pixel{ OverviewPixel({ x, y }) };
+  data.brief_mark_x = pixel.x;
+  data.brief_mark_y = pixel.y;
 }
 
 // France 1940.

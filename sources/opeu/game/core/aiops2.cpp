@@ -102,7 +102,11 @@ uint16_t opeu_ai_plan_supply(Game& game) {
     lift.x = unit.x;
     lift.y = unit.y;
     for (std::uint8_t i{ 0 }; i < 3; ++i) lift.supplies[i] = AiSupplyShare(game, &budget, opeu_ai_079c(capacity[i] - unit.resources[i]), i);
-    opeu_set_unit_order(game, unit_near, 0, unit.x, 0, 0xff, unit.y);
+    opeu_set_unit_order(game, unit_near,
+                        {
+                            .target = 0, .cell = { unit.x, unit.y },
+                                 .save_current = false, .code = 0xff
+    });
   } else
     return 0;
   lift.planes = static_cast<std::uint16_t>(planes - opeu_min16(budget, planes));

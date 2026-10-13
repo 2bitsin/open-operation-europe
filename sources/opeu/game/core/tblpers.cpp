@@ -39,13 +39,14 @@ constexpr unsigned STAFF_POSTS_AT{ 3 };
 // The general table. A general's post is his staff role when he has one, else his division when assigned to one; the
 // status column shows Rest while his counter runs, else Hurt when his health is poor. The formatted row is printed
 // as a format string with the visible start and count as its arguments.
-void opeu_tbl_draw_staff(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_staff(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
   auto const  buffer{ locals.At(0) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ TableColumnLayout(game, column, row) };
+  auto const  columns{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADER) {
     auto const header{ opeu_message_lookup(game, HEADER_MESSAGE) };
     opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, header });

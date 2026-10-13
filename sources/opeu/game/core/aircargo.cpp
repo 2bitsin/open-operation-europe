@@ -22,7 +22,6 @@
 #include "core/msnrept.hpp"
 #include "core/paradrop.hpp"
 #include "core/people.hpp"
-#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -163,7 +162,7 @@ void opeu_cargo_drop_event(Game& game) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   opeu_map_center(game, x, y, opeu_side_for_status(game, side));
-  auto const pixel{ CellViewPixel(game, x, y) };
+  auto const pixel{ ViewPixel(Data(game), { static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y) }) };
   auto const text{ locals.At(TEXT_AT) };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {
     if (row <= LOST_ROW && planes == 0) {

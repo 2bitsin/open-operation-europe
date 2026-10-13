@@ -11,6 +11,7 @@
 #include "common/element-chain.hpp"
 #include "common/forces.hpp"
 #include "common/game.hpp"
+#include "common/map-grid.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "map/grid.hpp"
@@ -22,6 +23,8 @@
 #include "units/orders.hpp"
 #include "units/stats.hpp"
 #include "units/value.hpp"
+
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -39,28 +42,29 @@ void opeu_unit_fall_back(Game& game, uint16_t unit, uint8_t x, uint8_t y) {
   auto& record{ Record<Unit>(Data(game), unit) };
   if (record.orders[0].kind == FALL_BACK) return;
   if (record.orders[1].kind != NO_SAVED_ORDER) opeu_restore_unit_order(game, unit);
-  opeu_set_unit_order(game, unit, 0, x, 1, FALL_BACK, y);
+  opeu_set_unit_order(game, unit,
+                      {
+                          .target = 0, .cell = { x, y },
+                               .save_current = true, .code = FALL_BACK
+  });
 }
 
 void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t index) {
-  auto&         data{ Data(game) };
-  auto&         regiment{ data.units[(side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP + index] };
-  auto const    unit{ Near(data, regiment) };
-  std::uint8_t  x;
-  std::uint8_t  y;
-  std::uint8_t  dir;
-  std::uint16_t site;
+  auto&          data{ Data(game) };
+  auto&          regiment{ data.units[(side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP + index] };
+  auto const     unit{ Near(data, regiment) };
+  GridCell const home{ regiment.x, regiment.y };
+  std::uint16_t  site;
   if (data.side_control[side] == SIDE_PLAYED && !(GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))) return;
   bool calm{ true };
-  for (dir = 0; dir < 8; dir++) {
-    x = regiment.x;
-    y = regiment.y;
-    if (opeu_grid_step(&x, &y, dir)) {
-      if ((site = opeu_find_objective_at(game, x, y)) != 0) {
+  for (auto const direction : std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS)) {
+    auto const next{ StepOnMap(home, direction) };
+    if (next) {
+      if ((site = opeu_find_objective_at(game, next->x, next->y)) != 0) {
         if (opeu_objective_side(game, site) == side) break;
         calm = false;
       }
-      if (auto const close{ opeu_find_unit_at(game, x, y) }; close != 0) {
+      if (auto const close{ opeu_find_unit_at(game, next->x, next->y) }; close != 0) {
         if (opeu_unit_side(close) == side) break;
         calm = false;
       }
@@ -79,12 +83,11 @@ void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t ind
         opeu_unit_fall_back(game, unit, regiment.x, regiment.y);
         return;
       }
-      for (dir = 0; dir < 8; dir++) {
-        x = regiment.x;
-        y = regiment.y;
-        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(game, x, y) == NO_SIDE && opeu_move_cost(game, x, y, unit) != IMPASSABLE_COST
-            && ((site = opeu_find_objective_at(game, x, y)) == 0 || opeu_objective_side(game, site) == side)) {
-          opeu_unit_fall_back(game, unit, x, y);
+      for (auto const direction : std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS)) {
+        auto const next{ StepOnMap(home, direction) };
+        if (next && opeu_cell_side(game, next->x, next->y) == NO_SIDE && opeu_move_cost(game, { next->x, next->y }, unit) != IMPASSABLE_COST
+            && ((site = opeu_find_objective_at(game, next->x, next->y)) == 0 || opeu_objective_side(game, site) == side)) {
+          opeu_unit_fall_back(game, unit, next->x, next->y);
           return;
         }
       }
@@ -93,23 +96,29 @@ void opeu_unit_morale_check(Game& game, uint8_t side, uint8_t group, uint8_t ind
     }
   }
   if ((opeu_category_0_to_3(index) || opeu_category_4_or_5(index)) && regiment.orders[1].kind == NO_SAVED_ORDER && game.State().RandomBounded(2) == 0) {
-    for (dir = 0; dir < 8; dir++) {
-      x = regiment.x;
-      y = regiment.y;
-      if (opeu_grid_step(&x, &y, dir) && (site = opeu_find_objective_at(game, x, y)) != 0 && opeu_objective_side(game, site) != side) {
+    for (auto const direction : std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS)) {
+      auto const next{ StepOnMap(home, direction) };
+      if (next && (site = opeu_find_objective_at(game, next->x, next->y)) != 0 && opeu_objective_side(game, site) != side) {
         auto const& objective{ Record<Objective>(data, site) };
-        opeu_set_unit_order(game, unit, 0, objective.x, 1, ATTACK_OBJECTIVE, objective.y);
+        opeu_set_unit_order(game, unit,
+                            {
+                                .target = 0, .cell = { objective.x, objective.y },
+                                     .save_current = true, .code = ATTACK_OBJECTIVE
+        });
         break;
       }
     }
     if (opeu_map_code(game, regiment.x, regiment.y) != 1) {
-      for (dir = 0; dir < 8; dir++) {
-        x = regiment.x;
-        y = regiment.y;
-        if (opeu_grid_step(&x, &y, dir) && opeu_cell_side(game, x, y) == opeu_opposite_side(side)) {
-          auto const close{ opeu_find_unit_at(game, x, y) };
+      for (auto const direction : std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS)) {
+        auto const next{ StepOnMap(home, direction) };
+        if (next && opeu_cell_side(game, next->x, next->y) == opeu_opposite_side(side)) {
+          auto const close{ opeu_find_unit_at(game, next->x, next->y) };
           if (opeu_unit_special(game, close)) {
-            opeu_set_unit_order(game, unit, close, 0, 1, ATTACK_UNIT, 0);
+            opeu_set_unit_order(game, unit,
+                                {
+                                    .target = close, .cell = { 0, 0 },
+                                         .save_current = true, .code = ATTACK_UNIT
+            });
             break;
           }
         }

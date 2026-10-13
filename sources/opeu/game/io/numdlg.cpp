@@ -129,7 +129,7 @@ void opeu_numdlg_show(Game& game, std::int32_t value) {
 }
 
 // What the mouse is on: TITLE_BAR, CANCEL_BUTTON, OK_BUTTON, a digit (FIRST_DIGIT..LAST_DIGIT) or NOTHING.
-auto opeu_numdlg_hit(Game& game, MousePoint const& mouse) -> std::uint8_t {
+auto opeu_numdlg_hit(Game& game, ScreenPoint const& mouse) -> std::uint8_t {
   auto const&         data{ Data(game) };
   std::uint8_t        hit{ NOTHING };
   std::uint16_t const x{ Column(data) };
@@ -173,7 +173,7 @@ void opeu_numdlg_highlight(Game& game, std::uint8_t n) {
 }
 
 // The dialog's top-left corner while the mouse drags it by the grab point: an 8-pixel column and a pixel row.
-auto DragCorner(MousePoint mouse, MousePoint const& grab) -> MousePoint {
+auto DragCorner(ScreenPoint mouse, ScreenPoint const& grab) -> ScreenPoint {
   if (mouse.x > 0x212) mouse.x = 0x1f4;
   if (mouse.y > 0x154) mouse.y = 0x154;
   return { static_cast<std::uint16_t>(static_cast<std::uint16_t>(mouse.x - grab.x) >> 3), static_cast<std::uint16_t>(mouse.y - grab.y) };
@@ -187,9 +187,11 @@ void opeu_numdlg_drag(Game& game) {
   opeu_mouse_show(game);
   auto const mouse{ MousePosition(game) };
   // the grab point within the dialog; the mouse stays where the dialog stays on the screen
-  MousePoint const grab{ static_cast<std::uint16_t>(mouse.x - Column(data)), static_cast<std::uint16_t>(mouse.y - data.numdlg_y) };
-  opeu_mouse_window(game, grab.x, grab.y, grab.x + 0x1f0, grab.y + 0x130);
-  MousePoint shown{ 0xffff, 0xffff };
+  ScreenPoint const grab{ static_cast<std::uint16_t>(mouse.x - Column(data)), static_cast<std::uint16_t>(mouse.y - data.numdlg_y) };
+  LimitMouse(
+      game,
+      { .x = static_cast<std::int16_t>(grab.x), .y = static_cast<std::int16_t>(grab.y), .width = static_cast<std::int16_t>(grab.x + 0x1f0), .height = static_cast<std::int16_t>(grab.y + 0x130) });
+  ScreenPoint shown{ 0xffff, 0xffff };
   do {
     auto const corner{ DragCorner(MousePosition(game), grab) };
     if (corner.x != shown.x || corner.y != shown.y) {
@@ -210,7 +212,7 @@ void opeu_numdlg_drag(Game& game) {
   Outline(game, shown.x, shown.y);
   opeu_numdlg_open(game);
   opeu_mouse_show(game);
-  opeu_mouse_window(game, 0, 0, 0x27f, 0x18f);
+  LimitMouse(game, { .x = 0, .y = 0, .width = 0x27f, .height = 0x18f });
 }
 
 void opeu_numdlg_refresh(Game& game, std::uint8_t n) {
@@ -221,7 +223,7 @@ void opeu_numdlg_refresh(Game& game, std::uint8_t n) {
 }
 
 // 0 inside the dialog's lower body x..x+8Fh, y+20h..y+5Fh.
-auto opeu_numdlg_outside(Game& game, MousePoint const& mouse) -> std::uint16_t {
+auto opeu_numdlg_outside(Game& game, ScreenPoint const& mouse) -> std::uint16_t {
   auto const&         data{ Data(game) };
   std::uint16_t const x{ Column(data) };
   if (x <= mouse.x && static_cast<std::uint16_t>(x + 0x90) > mouse.x && static_cast<std::uint16_t>(data.numdlg_y + 0x20) <= mouse.y && static_cast<std::uint16_t>(data.numdlg_y + 0x60) > mouse.y)
@@ -303,7 +305,7 @@ private:
 
   // The pointer on the dialog's body: a button under it is pressed, a digit or the title bar inverted; the left
   // button drags, cancels, accepts or counts a digit up, the right button counts it down.
-  auto Point(MousePoint const& mouse) -> void {
+  auto Point(ScreenPoint const& mouse) -> void {
     auto const hit{ opeu_numdlg_hit(_game, mouse) };
     if (hit != _shown) {
       if (IsButton(_shown)) opeu_numdlg_release(_game, _shown);
@@ -331,7 +333,7 @@ private:
   }
 
   // Outside the body the left button accepts, the right one cancels when allowed.
-  auto ClickOutside(MousePoint const& mouse) -> void {
+  auto ClickOutside(ScreenPoint const& mouse) -> void {
     if (!opeu_numdlg_outside(_game, mouse)) return;
     if (opeu_mouse_left(_game))
       AcceptInRange();

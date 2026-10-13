@@ -28,7 +28,7 @@ using namespace opeu::game;
 
 namespace {
 auto RunList(Game& game, ListWindow& list) -> std::uint16_t {
-  return opeu_list_dialog(game, Near(Data(game), list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS));
+  return opeu_list_dialog(game, list, LIST_OPTIONS);
 }
 } // namespace
 

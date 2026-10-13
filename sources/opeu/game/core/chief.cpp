@@ -54,7 +54,7 @@ uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t hi
   opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, RANGE_FORMAT, low, high });
   opeu_text_feed(game, text);
   opeu_text_feed(game, buffer);
-  return opeu_choose_value(game, low, high, static_cast<int16_t>(value), d);
+  return opeu_choose_value(game, { low, high }, { .cancel = static_cast<int16_t>(value), .items = d });
 }
 
 // The operations chief asks for a number in low..high; the range text is formatted in the routine's reserve.

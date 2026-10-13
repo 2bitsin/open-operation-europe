@@ -37,11 +37,11 @@ void InsertByCost(PathGrid const& path, std::size_t count, uint16_t cell) {
 }
 } // namespace
 
-uint8_t opeu_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t unit) {
+uint8_t opeu_move_cost(Game& game, GridCell cell, uint16_t unit) {
   auto const& data{ Data(game) };
   auto const  side{ opeu_unit_side(unit) };
-  if (opeu_cell_marked(game, x, y, side) || opeu_cell_side(game, x, y) == side) return IMPASSABLE_COST;
-  auto const terrain{ opeu_map_code(game, x, y) };
+  if (opeu_cell_marked(game, cell, side) || opeu_cell_side(game, cell.x, cell.y) == side) return IMPASSABLE_COST;
+  auto const terrain{ opeu_map_code(game, cell.x, cell.y) };
   uint8_t    cost{ 0 };
   for (auto const& element : Elements(data, Record<Unit>(data, unit))) {
     auto const move_class{ data.move_class[data.element_types[element.type].category] };
@@ -69,7 +69,7 @@ auto opeu_move_reachable(Game& game, PathGrid const& path, MoveRoute const& rout
       if (*next == route.to) return true;
       auto const cell{ PathGrid::Index(*next) };
       if (costs[cell] != PathGrid::UNREACHED) continue;
-      auto const step{ opeu_move_cost(game, next->x, next->y, route.unit) };
+      auto const step{ opeu_move_cost(game, *next, route.unit) };
       if (step == IMPASSABLE_COST) continue;
       costs[cell] = static_cast<uint16_t>(step + cost);
       InsertByCost(path, tail, cell);

@@ -18,26 +18,26 @@ namespace {
 }
 } // namespace
 
-void opeu_mark_cell(Game& game, uint8_t x, uint8_t y, uint8_t side) {
-  MapCellAt(Data(game), x, y) |= side == 0 ? Bits(MapCell::MARK_0) : Bits(MapCell::MARK_1);
+void opeu_mark_cell(Game& game, GridCell cell, uint8_t side) {
+  MapCellAt(Data(game), cell.x, cell.y) |= side == 0 ? Bits(MapCell::MARK_0) : Bits(MapCell::MARK_1);
 }
 
-void opeu_unmark_cell(Game& game, uint8_t x, uint8_t y, uint8_t side) {
-  MapCellAt(Data(game), x, y) &= side == 0 ? ~Bits(MapCell::MARK_0) : ~Bits(MapCell::MARK_1);
+void opeu_unmark_cell(Game& game, GridCell cell, uint8_t side) {
+  MapCellAt(Data(game), cell.x, cell.y) &= side == 0 ? ~Bits(MapCell::MARK_0) : ~Bits(MapCell::MARK_1);
 }
 
 // Side 255 asks whether either side marked the cell.
-uint16_t opeu_cell_marked(Game& game, uint8_t x, uint8_t y, uint8_t side) {
-  return (MapCellAt(Data(game), x, y) & MarkOf(side)) != 0;
+uint16_t opeu_cell_marked(Game& game, GridCell cell, uint8_t side) {
+  return (MapCellAt(Data(game), cell.x, cell.y) & MarkOf(side)) != 0;
 }
 
-int16_t opeu_cell_influence(Game& game, uint8_t x, uint8_t y) {
-  return InfluenceAt(Data(game), x, y);
+int16_t opeu_cell_influence(Game& game, GridCell cell) {
+  return InfluenceAt(Data(game), cell.x, cell.y);
 }
 
 // The side whose influence holds the cell, 255 where neither does.
-uint8_t opeu_cell_influence_side(Game& game, uint8_t x, uint8_t y) {
-  auto const influence{ opeu_cell_influence(game, x, y) };
+uint8_t opeu_cell_influence_side(Game& game, GridCell cell) {
+  auto const influence{ opeu_cell_influence(game, cell) };
   if (influence > 0) return 0;
   if (influence < 0) return 1;
   return 255;

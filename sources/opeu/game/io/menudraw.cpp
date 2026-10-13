@@ -97,7 +97,7 @@ auto RestoreBehind(Game& game, MenuItem const& item) -> void {
 }
 
 // Whether the pointer is on the item: x*8..(x+width)*8-1, y..y+23.
-auto Under(MenuItem const& item, MousePoint const& mouse) -> bool {
+auto Under(MenuItem const& item, ScreenPoint const& mouse) -> bool {
   std::uint16_t const left   = item.x << 3;
   std::uint16_t const top    = item.y;
   std::uint16_t const right  = left + (item.width << 3) - 1;

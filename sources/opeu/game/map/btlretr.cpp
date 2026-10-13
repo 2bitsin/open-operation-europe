@@ -62,7 +62,7 @@ uint16_t opeu_battle_retreat_cell_ok(Game& game, uint8_t x, uint8_t y, uint16_t 
     auto const move_class{ data.battle_retreat_class[data.element_types[element.type].category] };
     if (data.move_costs[terrain * MOVE_CLASSES + move_class] == IMPASSABLE_COST) return 0;
   }
-  if (opeu_cell_marked(game, x, y, opeu_battle_unit_side(game, unit))) return 0;
+  if (opeu_cell_marked(game, { x, y }, opeu_battle_unit_side(game, unit))) return 0;
   return 1;
 }
 
@@ -85,8 +85,8 @@ void opeu_battle_unit_retreat(Game& game, uint16_t unit, uint8_t) {
     for (auto const direction : std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS)) {
       auto const cell{ StepOnMap({ data.battle_x, data.battle_y }, direction) };
       if (!cell || !opeu_battle_retreat_cell_ok(game, cell->x, cell->y, unit)) continue;
-      if (opeu_cell_marked(game, cell->x, cell->y, 1)) {
-        if (opeu_cell_marked(game, cell->x, cell->y, side)) continue;
+      if (opeu_cell_marked(game, { cell->x, cell->y }, 1)) {
+        if (opeu_cell_marked(game, { cell->x, cell->y }, side)) continue;
         opeu_battle_retreat_to(game, unit, cell->x, cell->y);
         return;
       }

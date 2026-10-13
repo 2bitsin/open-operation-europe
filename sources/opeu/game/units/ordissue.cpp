@@ -35,9 +35,7 @@ namespace {
 // The locals the services read and write, as offsets below the top of the routine's reserve.
 constexpr std::uint16_t LOCALS_BYTES{ 0x7c };
 enum ServiceLocal : std::uint16_t {
-  PICKED_X = 0x0e,
-  PICKED_Y = 0x12,
-  BUFFER   = 0x7c, // the message text
+  BUFFER = 0x7c, // the message text
 };
 // The order menu of a whole division.
 constexpr std::uint8_t DIVISION_MENU{ 3 };
@@ -56,8 +54,7 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
-  auto const          x_at{ local(PICKED_X) };
-  auto const          y_at{ local(PICKED_Y) };
+  GridCell            cell{};
   auto const          buffer{ local(BUFFER) };
   auto const          side{ data.current_side };
   auto const          whole{ data.unit_order_active != 0 };
@@ -96,35 +93,37 @@ void opeu_unit_order_menu(Game& game, uint8_t group) {
   }
   std::uint16_t target{};
   for (;;) {
-    Byte(game, x_at) = regiment.x;
-    Byte(game, y_at) = regiment.y;
+    cell = { regiment.x, regiment.y };
     if (kind != Kind(UnitOrder::REST) || !whole) {
       opeu_control_message(game, Near(data, prompts.select_target), person);
-      if (!opeu_map_pick_location(game, x_at, y_at)) {
+      auto const picked{ PickLocation(game, cell) };
+      if (!picked) {
         opeu_cancel_unit_orders(game, unit, person);
         return;
       }
+      cell = *picked;
     }
-    if (CheckOrderTarget(game, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
+    if (CheckOrderTarget(game, prompts, buffer, person, unit, cell.x, cell.y, kind, target)) break;
     opeu_control_message(game, buffer, person);
     opeu_control_position(game, regiment.x, regiment.y);
     opeu_arrival_location(game, static_cast<uint8_t>(regiment.x), static_cast<uint8_t>(regiment.y), static_cast<uint8_t>(side));
   }
   AnnounceOrder(game, prompts, buffer, person, kind);
   if (!whole)
-    opeu_set_unit_order(game, unit, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
+    opeu_set_unit_order(game, unit, { .target = target, .cell = cell, .save_current = false, .code = kind });
   else
     for (std::uint8_t index{ 0 }; index < 8; ++index) {
       auto&      member{ division_units(index) };
       auto const near{ Near(data, member) };
       if (!(member.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, near)) continue;
       if (kind == Kind(UnitOrder::REST)) {
-        Byte(game, x_at) = member.x;
-        Byte(game, y_at) = member.y;
+        cell.x = member.x;
+        cell.y = member.y;
       }
       // A regiment does not pursue or supply itself.
-      auto const own_cell{ member.x == Byte(game, x_at) && member.y == Byte(game, y_at) };
-      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell)) opeu_set_unit_order(game, near, target, Byte(game, x_at), 0, kind, Byte(game, y_at));
+      auto const own_cell{ member.x == cell.x && member.y == cell.y };
+      if (!((kind == Kind(UnitOrder::PURSUE) || kind == Kind(UnitOrder::SUPPLY_UNIT)) && own_cell))
+        opeu_set_unit_order(game, near, { .target = target, .cell = cell, .save_current = false, .code = kind });
     }
   opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   data.overview_side = NO_CELL;

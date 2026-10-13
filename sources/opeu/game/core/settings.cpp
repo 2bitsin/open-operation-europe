@@ -260,7 +260,7 @@ void opeu_save_game(Game& game) {
       opeu_text_paper_set(game, 4);
       opeu_ui_text(game, opeu_title_box(game, 36, 336, Near(data, data.save_where)));
       opeu_text_paper_set(game, 0);
-      if (!opeu_list_dialog(game, Near(data, data.save_list), 1, 3)) {
+      if (!opeu_list_dialog(game, data.save_list, { 1, 3 })) {
         game.Machine().Files().Close(HandleOf(file));
         break;
       }

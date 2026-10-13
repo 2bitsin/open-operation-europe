@@ -59,29 +59,31 @@ uint16_t opeu_move_adjacent(Game& game, uint8_t x, uint8_t y) {
 }
 
 // The objective at the current unit's order destination when the side holds it; otherwise the order is restored and
-// 0 returned. x and y: DS offsets of the bytes that receive the destination.
-uint16_t opeu_move_objective_target(Game& game, uint16_t x, uint16_t y, uint8_t side) {
+// no target returned.
+auto opeu_move_objective_target(Game& game, uint8_t side) -> OrderTarget {
   auto const current{ Data(game).current_unit_ptr };
-  if (opeu_unit_order_destination(game, static_cast<std::uint16_t>(current), game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
-    auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y))) };
-    if (static_cast<uint8_t>(opeu_objective_side(game, objective)) == side) return objective;
+  if (auto const destination{ UnitOrderDestination(game, current) }; destination.valid) {
+    auto const cell{ *destination.cell };
+    auto const objective{ opeu_find_objective_at(game, cell.x, cell.y) };
+    if (static_cast<uint8_t>(opeu_objective_side(game, objective)) == side) return { objective, cell };
   }
-  opeu_restore_unit_order(game, static_cast<std::uint16_t>(current));
-  return 0;
+  opeu_restore_unit_order(game, current);
+  return { 0, {} };
 }
 
 // The unit at the current unit's order destination. A player's side (or a computer side below delivery level 2) must
 // still see it: a friendly unit must be selectable, an enemy one spotted; otherwise the loss of sight is reported, the
 // order restored and 0 returned.
-uint16_t opeu_move_unit_target(Game& game, uint16_t x, uint16_t y) {
+auto opeu_move_unit_target(Game& game) -> OrderTarget {
   auto const& data{ Data(game) };
   auto const  current{ data.current_unit_ptr };
-  if (opeu_unit_order_destination(game, static_cast<std::uint16_t>(current), game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
-    auto const target{ opeu_find_unit_at(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y))) };
-    if (data.side_control[data.current_side] != SIDE_PLAYED && data.delivery_level >= 2) return target;
+  if (auto const destination{ UnitOrderDestination(game, current) }; destination.valid) {
+    auto const cell{ *destination.cell };
+    auto const target{ opeu_find_unit_at(game, cell.x, cell.y) };
+    if (data.side_control[data.current_side] != SIDE_PLAYED && data.delivery_level >= 2) return { target, cell };
     auto const side{ static_cast<uint8_t>(opeu_unit_side(target)) };
     auto const seen{ side == data.current_side ? opeu_unit_selection_eligible(game, target) : opeu_unit_special(game, target) };
-    if (seen) return target;
+    if (seen) return { target, cell };
     ServiceLocals const locals{ REPORT_RESERVE };
     auto const          report{ locals.At(REPORT_AT) };
     opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.lost_sight_format)),
@@ -89,8 +91,8 @@ uint16_t opeu_move_unit_target(Game& game, uint16_t x, uint16_t y) {
                                                             static_cast<std::uint16_t>(opeu_unit_name(game, target, static_cast<std::uint16_t>(locals.At(NAME_AT)))) });
     opeu_unit_report(game, static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(report));
   }
-  opeu_restore_unit_order(game, static_cast<std::uint16_t>(current));
-  return 0;
+  opeu_restore_unit_order(game, current);
+  return { 0, {} };
 }
 
 // Advances an upward order progress (an unset one starts at 200 - value); returns 1 when it reaches 200.

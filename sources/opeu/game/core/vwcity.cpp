@@ -65,8 +65,8 @@ void opeu_view_city_list(Game& game, uint8_t count) {
   auto const          title{ locals.At(TITLE_AT) };
   data.city_dialog.rows = static_cast<uint8_t>(count + 1);
   SetListPredicate(data.city_dialog, ListSelect::VIEW_OBJECTIVE);
-  for (std::uint16_t height{ 7 }; opeu_title_panel_begin(game), opeu_control_message(game, CITY_PROMPT, data.context_record3), opeu_list_dialog(game, Near(data, data.city_dialog), 1, height);
-       height = 6) {
+  for (std::uint16_t height{ 7 };
+       opeu_title_panel_begin(game), opeu_control_message(game, CITY_PROMPT, data.context_record3), opeu_list_dialog(game, data.city_dialog, { 1, static_cast<std::uint8_t>(height) }); height = 6) {
     auto const city{ data.view_objectives[data.list_row] };
     opeu_unit_flash(game, city, 4);
     data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(game, city) + 1);
@@ -76,7 +76,7 @@ void opeu_view_city_list(Game& game, uint8_t count) {
       opeu_request_format(game, std::array<std::uint16_t, 3>{ title, CITY_FORMAT, city });
       opeu_control_message(game, title, data.context_record3);
       opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
-      opeu_list_dialog(game, Near(data, data.stock_dialog), LIST_LIMIT, LIST_FLAGS);
+      opeu_list_dialog(game, data.stock_dialog, LIST_OPTIONS);
       opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
     }
   }

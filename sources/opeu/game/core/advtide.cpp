@@ -44,7 +44,7 @@ uint16_t opeu_advice_tide_isolation(Game& game, const uint8_t* far_text) {
     auto const near{ Near(data, objective) };
     if (!objective.active || opeu_objective_side(game, near) != side) continue;
     auto const garrison{ ObjectiveQuantity(data, near, ANY_CATEGORY).total };
-    if (opeu_cell_influence_side(game, objective.x, objective.y) != side && garrison == 0 && advisor.Random(3) == 1)
+    if (opeu_cell_influence_side(game, { objective.x, objective.y }) != side && garrison == 0 && advisor.Random(3) == 1)
       return advisor.SayFormatted(opeu_objective_level(game, near) >= CITY_LEVEL ? AdviceText::OBJECTIVE_SAFE : AdviceText::ABANDON_OBJECTIVE, near);
   }
   if (opeu_request_cells(game, side, opeu_request_cell_allowed) == 0 && advisor.Random(3) == 1) return advisor.Say(AdviceText::FORCES_ISOLATED);
@@ -104,7 +104,7 @@ uint16_t opeu_advice_tide_territory_control(Game& game, const uint8_t* far_text)
   std::uint16_t held{ 0 };
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += SAMPLE_STEP)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += SAMPLE_STEP)
-      if (opeu_cell_influence_side(game, x, y) == data.current_side) ++held;
+      if (opeu_cell_influence_side(game, { x, y }) == data.current_side) ++held;
   if (held == 0 && advisor.Random(4) == 1) return advisor.Say(AdviceText::SITUATION_WORST);
   if (held > 75 && advisor.Random(4) == 1) return advisor.Say(AdviceText::OVERWHELMING_ENEMY);
   if (held != 0 && held < 25 && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_POWERFUL);

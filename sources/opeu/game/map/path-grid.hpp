@@ -3,7 +3,7 @@
 #pragma once
 
 #include "common/data-segment.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 
 #include <cstddef>
 #include <cstdint>

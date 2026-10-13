@@ -21,7 +21,6 @@
 #include "core/dialogs.hpp"
 #include "core/msnrept.hpp"
 #include "core/people.hpp"
-#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -131,7 +130,7 @@ void opeu_air_strike_hit(Game& game, uint8_t x, uint8_t y, uint16_t n) {
                                               * static_cast<std::uint32_t>(root)) };
   if (unit) {
     auto const percent{ game.State().RandomBounded(60) + 40 };
-    opeu_unit_casualties(game, unit, percent, rate, n, 0, 1);
+    opeu_unit_casualties(game, unit, { .chance = static_cast<std::uint16_t>(percent), .base = rate, .spread = n, .heavy = false, .blast = true });
   }
   if (site) {
     auto const divisor{ static_cast<std::uint16_t>(game.State().RandomBounded(2) + 1) };
@@ -141,7 +140,7 @@ void opeu_air_strike_hit(Game& game, uint8_t x, uint8_t y, uint16_t n) {
         static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(works_root) * supply) * static_cast<std::uint32_t>(n)) / (works_night + 1))
         / divisor) };
     auto const stores{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(static_cast<std::uint32_t>(n / 5) * n) / (IsNight(game) + 1)) };
-    opeu_objective_damage(game, site, 0x5a, rate, works, stores, n, 0);
+    opeu_objective_damage(game, site, { .chance = 0x5a, .base = rate, .spread = n, .heavy = false, .supply = works, .endurance = stores });
   }
 }
 
@@ -160,7 +159,7 @@ void opeu_air_strike_event(Game& game) {
   auto const view{ data.map_mode[0] };
   data.map_mode[0] = 1;
   opeu_map_center(game, x, y, opeu_side_for_status(game, side));
-  auto const pixel{ CellViewPixel(game, x, y) };
+  auto const pixel{ ViewPixel(Data(game), { static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y) }) };
   auto const hx{ pixel.x };
   auto const my{ pixel.y };
   for (std::uint16_t row{ FLIGHT_TOP_ROW }; row >= FLIGHT_BOTTOM_ROW; --row) {

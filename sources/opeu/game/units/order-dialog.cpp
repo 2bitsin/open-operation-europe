@@ -115,7 +115,7 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
   case UnitOrder::DEFEND:
   case UnitOrder::REST:      return enemy == city_side ? cannot() : place();
   case UnitOrder::LAY_MINES: {
-    if (opeu_cell_marked(game, x, y, side)) {
+    if (opeu_cell_marked(game, { x, y }, side)) {
       kind = Kind(UnitOrder::CLEAR_MINES);
       return place();
     }

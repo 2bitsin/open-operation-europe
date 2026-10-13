@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/events.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 auto opeu_battle_exit_to_map(Game& game, uint16_t element, opeu::game::GridCell cell) -> void;

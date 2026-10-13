@@ -105,7 +105,7 @@ void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t 
     opeu_daily_show(game, PRESENT_A_ID, 0, Presenter::PARTISAN_LOSSES);
   }
   opeu_music_command7(game);
-  opeu_unit_casualties(game, near, 10, 10, 5, 1, 1);
+  opeu_unit_casualties(game, near, { .chance = 10, .base = 10, .spread = 5, .heavy = true, .blast = true });
 }
 
 // The regiment north of row 10 takes losses.
@@ -121,7 +121,7 @@ void NorthernLosses(Game& game, Unit const& unit, std::uint16_t name) {
     opeu_unit_report(game, near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
     opeu_daily_show(game, PRESENT_B_ID, 0, Presenter::NORTHERN_LOSSES);
   }
-  opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);
+  opeu_unit_casualties(game, near, { .chance = 20, .base = 20, .spread = 5, .heavy = false, .blast = true });
 }
 } // namespace
 

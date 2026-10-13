@@ -1,6 +1,6 @@
 #pragma once
 
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 #include <cstdint>
@@ -15,7 +15,3 @@ namespace opeu::game::detail::stepmap {
 namespace opeu::game {
 using detail::stepmap::StepOnMap;
 } // namespace opeu::game
-
-// StepOnMap through the coordinate bytes, for the callers outside game/map: moves the cell and returns 1 when the step
-// stays on the map, otherwise leaves it and returns 0.
-uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction);

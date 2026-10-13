@@ -64,8 +64,8 @@ void opeu_rank_entry_insert(Game& game, uint8_t side, uint8_t first, uint8_t las
     auto const  slot{ entries[i] };
     auto const& carried{ Record<Objective>(data, objective) };
     auto const& held{ Record<Objective>(data, slot) };
-    auto const  carried_influence{ opeu_cell_influence(game, carried.x, carried.y) };
-    auto const  held_influence{ opeu_cell_influence(game, held.x, held.y) };
+    auto const  carried_influence{ opeu_cell_influence(game, { carried.x, carried.y }) };
+    auto const  held_influence{ opeu_cell_influence(game, { held.x, held.y }) };
     auto const  out_of_order{ descending ? held_influence < carried_influence : held_influence > carried_influence };
     if (out_of_order && (!ranked || opeu_objective_level(game, slot) <= opeu_objective_level(game, objective))) {
       entries[i] = objective;
@@ -85,7 +85,7 @@ void opeu_rank_side_entries(Game& game) {
   for (auto const& pass : order) {
     auto const first{ next };
     for (auto& objective : data.objectives) {
-      if (objective.active && opeu_objective_side(game, Near(data, objective)) == pass.owner && opeu_cell_influence_side(game, objective.x, objective.y) == pass.influence)
+      if (objective.active && opeu_objective_side(game, Near(data, objective)) == pass.owner && opeu_cell_influence_side(game, { objective.x, objective.y }) == pass.influence)
         opeu_rank_entry_insert(game, side, first, next++, Near(data, objective), pass.owner);
     }
   }

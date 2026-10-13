@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "common/grid-cell.hpp"
 #include "map/btlelem.hpp"
-#include "map/grid-cell.hpp"
 #include "types.hpp"
 
 // Moves the element between two cells of the field: redraws the cell it leaves and draws it at the other.

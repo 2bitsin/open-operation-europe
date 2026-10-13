@@ -21,7 +21,7 @@ void MarkCandidate(Game& game, uint8_t x, uint8_t y) {
 // Accepts any passable cell in the side's influence.
 uint16_t opeu_request_cell_allowed(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   if (opeu_map_code(game, x, y) == Bits(Terrain::IMPASSABLE)) return 0;
-  if (opeu_cell_influence_side(game, x, y) == side) MarkCandidate(game, x, y);
+  if (opeu_cell_influence_side(game, { x, y }) == side) MarkCandidate(game, x, y);
   return 1;
 }
 
@@ -32,7 +32,7 @@ uint16_t opeu_arrival_cell_allowed(Game& game, uint8_t x, uint8_t y, uint8_t sid
   case Terrain::CITY:
   case Terrain::RIVER:      break;
   default:
-    if (opeu_cell_influence_side(game, x, y) == side && opeu_cell_side(game, x, y) == ANY_SIDE && !opeu_cell_marked(game, x, y, ANY_SIDE)) MarkCandidate(game, x, y);
+    if (opeu_cell_influence_side(game, { x, y }) == side && opeu_cell_side(game, x, y) == ANY_SIDE && !opeu_cell_marked(game, { x, y }, ANY_SIDE)) MarkCandidate(game, x, y);
     break;
   }
   return 1;

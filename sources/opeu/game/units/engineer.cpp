@@ -103,11 +103,11 @@ uint16_t opeu_engineer_lay_mines(Game& game) {
   auto& data{ Data(game) };
   auto const [x, y]{ DestinationCell(game) };
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
-  if (!opeu_cell_marked(game, x, y, static_cast<uint8_t>(data.current_side)) && (regiment.x != x || regiment.y != y)) {
+  if (!opeu_cell_marked(game, { x, y }, static_cast<uint8_t>(data.current_side)) && (regiment.x != x || regiment.y != y)) {
     if (!opeu_move_adjacent(game, x, y)) return 0;
     if (LowerProgress(game, opeu_mine_skill(game)) && opeu_cell_side(game, x, y) == NO_SIDE) {
       Report(game, data.mines_laid_text);
-      opeu_mark_cell(game, x, y, static_cast<uint8_t>(data.current_side));
+      opeu_mark_cell(game, { x, y }, static_cast<uint8_t>(data.current_side));
       opeu_map_erase(game, x, y);
       Show(game, MINES_LAID_PICTURE, Presenter::MINES_LAID);
       RestoreOrder(game);
@@ -126,12 +126,12 @@ void opeu_mines_removed_finish(Game& game) {
 uint16_t opeu_engineer_remove_mines(Game& game) {
   auto& data{ Data(game) };
   auto const [x, y]{ DestinationCell(game) };
-  if (opeu_cell_marked(game, x, y, static_cast<uint8_t>(data.current_side))) {
+  if (opeu_cell_marked(game, { x, y }, static_cast<uint8_t>(data.current_side))) {
     if (!opeu_move_adjacent(game, x, y)) return 0;
     if (LowerProgress(game, opeu_mine_skill(game))) {
       Report(game, data.mines_removed_text);
-      opeu_unmark_cell(game, x, y, 0);
-      opeu_unmark_cell(game, x, y, 1);
+      opeu_unmark_cell(game, { x, y }, 0);
+      opeu_unmark_cell(game, { x, y }, 1);
       opeu_map_erase(game, x, y);
       Show(game, MINES_REMOVED_PICTURE, Presenter::MINES_REMOVED);
       RestoreOrder(game);
@@ -196,12 +196,9 @@ uint16_t opeu_engineer_repair_objective(Game& game) {
     RestoreOrder(game);
     return 1;
   }
-  ServiceCell const target;
-  auto const        at_x{ target.XAt() };
-  auto const        at_y{ target.YAt() };
-  auto const        objective{ opeu_move_objective_target(game, at_x, at_y, static_cast<uint8_t>(data.current_side)) };
+  auto const [objective, cell]{ opeu_move_objective_target(game, static_cast<uint8_t>(data.current_side)) };
   if (!objective) return 1;
-  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
+  if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto budget{ static_cast<std::uint16_t>(RepairCrews(data) / 10 + 1) };
   bool repaired{ false };
@@ -222,12 +219,9 @@ uint16_t opeu_engineer_repair_unit(Game& game) {
     RestoreOrder(game);
     return 1;
   }
-  ServiceCell const target;
-  auto const        at_x{ target.XAt() };
-  auto const        at_y{ target.YAt() };
-  auto const        unit{ opeu_move_unit_target(game, at_x, at_y) };
+  auto const [unit, cell]{ opeu_move_unit_target(game) };
   if (!unit) return 1;
-  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
+  if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
   auto budget{ static_cast<std::uint16_t>(RepairCrews(data) / 10 + 1) };
   bool repaired{ false };

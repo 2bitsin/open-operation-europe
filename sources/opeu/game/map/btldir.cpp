@@ -14,9 +14,10 @@
 
 using namespace opeu::game;
 
-uint8_t opeu_battle_cell_facing(Game&, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y) {
-  if (to_x == x) return Bits(to_y < y ? CellFacing::UP : CellFacing::DOWN);
-  return Bits(to_x < x ? CellFacing::LEFT : CellFacing::RIGHT);
+auto CellFacingToward(CellMove move) -> uint8_t {
+  auto const [from, to]{ move };
+  if (to.x == from.x) return Bits(to.y < from.y ? CellFacing::UP : CellFacing::DOWN);
+  return Bits(to.x < from.x ? CellFacing::LEFT : CellFacing::RIGHT);
 }
 
 uint8_t opeu_battle_element_facing(Game& game, uint16_t element, uint16_t other) {

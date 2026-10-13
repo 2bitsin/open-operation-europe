@@ -1,6 +1,10 @@
+// The interactive map location picker (map/mappick.cpp).
 #pragma once
 
 #include "common/events.hpp"
-#include "types.hpp"
+#include "common/grid-cell.hpp"
 
-uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y);
+#include <optional>
+
+// The cell the player picks on the map, the cursor starting on `start`; none when the player cancels.
+[[nodiscard]] auto PickLocation(Game& game, opeu::game::GridCell start) -> std::optional<opeu::game::GridCell>;

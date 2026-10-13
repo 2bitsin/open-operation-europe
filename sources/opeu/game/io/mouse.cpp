@@ -29,17 +29,10 @@ void opeu_mouse_hide(Game& game) {
   if (HasMouse(Data(game))) game.Machine().Input().HidePointer();
 }
 
-auto opeu::game::detail::mouse::MousePosition(Game& game) -> MousePoint {
+auto opeu::game::detail::mouse::MousePosition(Game& game) -> ScreenPoint {
   if (!HasMouse(Data(game))) return { 0, 0 };
   auto const mouse{ game.Machine().Input().Mouse() };
   return { mouse.x, static_cast<std::uint16_t>(mouse.y - ROW_OFFSET) };
-}
-
-// Stores the position at the DS words x and y, for the callers that pass their near addresses through a service.
-void opeu_mouse_position(Game& game, std::uint16_t x, std::uint16_t y) {
-  auto const position{ MousePosition(game) };
-  SetWord(game, x, position.x);
-  SetWord(game, y, position.y);
 }
 
 // Queries the driver even without a mouse.
@@ -68,7 +61,8 @@ void opeu_input_reset(Game& game) {
   if (HasMouse(Data(game))) WaitWhile([&] { return opeu_turn_input_a(game) != 0; });
 }
 
-void opeu_mouse_window(Game& game, std::int16_t x, std::int16_t y, std::int16_t width, std::int16_t height) {
+auto opeu::game::detail::mouse::LimitMouse(Game& game, MouseArea const& area) -> void {
+  auto const [x, y, width, height]{ area };
   game.Machine().Input().LimitPointerX({ static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(width + x) });
   game.Machine().Input().LimitPointerY({ static_cast<std::uint16_t>(y + ROW_OFFSET), static_cast<std::uint16_t>(y + height + ROW_OFFSET) });
 }

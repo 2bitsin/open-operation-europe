@@ -62,7 +62,7 @@ void opeu_mission_raid_objective(Game& game, uint8_t side) {
     opeu_string_append(game, opeu_string_copy(game, text, target), At(offsetof(DataSegment, raid_attempt_tail)));
     opeu_mission_report_enemy(game, side, text, city.x, city.y);
   }
-  opeu_objective_damage(game, target, 30, 3, 1000, 0, 15, 1);
+  opeu_objective_damage(game, target, { .chance = 30, .base = 3, .spread = 15, .heavy = true, .supply = 1000, .endurance = 0 });
   opeu_officer_gain(game, side, OFFICER);
 }
 
@@ -84,7 +84,7 @@ void opeu_mission_raid_unit(Game& game, uint8_t side) {
     opeu_string_append(game, opeu_mission_target_name(game, side, target, text), At(offsetof(DataSegment, raid_unit_tail)));
     opeu_mission_report_enemy(game, side, text, unit.x, unit.y);
   }
-  opeu_unit_casualties(game, target, 30, 3, 15, 1, 1);
+  opeu_unit_casualties(game, target, { .chance = 30, .base = 3, .spread = 15, .heavy = true, .blast = true });
   opeu_officer_gain(game, side, OFFICER);
 }
 
@@ -105,7 +105,7 @@ void opeu_mission_sabotage(Game& game, uint8_t side) {
     opeu_string_append(game, opeu_string_copy(game, text, target), At(offsetof(DataSegment, sabotage_tail)));
     opeu_mission_report_enemy(game, side, text, city.x, city.y);
   }
-  opeu_objective_damage(game, target, 10, 2, 5000, 5, 5, 0);
+  opeu_objective_damage(game, target, { .chance = 10, .base = 2, .spread = 5, .heavy = false, .supply = 5000, .endurance = 5 });
   opeu_officer_gain(game, side, OFFICER);
 }
 

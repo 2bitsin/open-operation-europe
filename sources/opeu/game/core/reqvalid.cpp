@@ -55,8 +55,12 @@ uint16_t opeu_request_valid(Game& game, uint8_t side, uint16_t request) {
     return 1;
   case RequestKind::REGIMENT:
     if (!opeu_request_group_ready(game, side)) return fail(RequestError::NO_ROOM);
-    if (!opeu_arrival_locate(game, offsetof(DataSegment, request_x), offsetof(DataSegment, request_y), side)) return fail(RequestError::NO_PLACE);
-    return 1;
+    if (auto const cell{ ArrivalCell(game, side) }) {
+      data.request_x = cell->x;
+      data.request_y = cell->y;
+      return 1;
+    }
+    return fail(RequestError::NO_PLACE);
   default: return 0;
   }
 }

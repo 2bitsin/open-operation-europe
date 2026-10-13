@@ -74,9 +74,7 @@ void opeu_overview_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) 
   } };
   bool       order_shown{ false };
   auto const side{ opeu_unit_side(unit) };
-  uint8_t    destination_x;
-  uint8_t    destination_y;
-  if (opeu_unit_order_destination(game, unit, &destination_x, &destination_y) && (SideStatus(game, side) == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
+  if (UnitOrderDestination(game, unit).valid && (SideStatus(game, side) == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown = ShowsUntilStarted(kind) ? !order.progress : order.progress < 100;
@@ -107,7 +105,7 @@ void opeu_overview_cell_draw(Game& game, uint8_t x, uint8_t y) {
     game.Machine().Display().DrawBitsOnPaper({ static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y), 1, 8 },
                                              { static_cast<std::uint16_t>(mode), game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.overview_objective_glyph))) });
   }
-  if (SideStatus(game, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(game, x, y, data.overview_side)) {
+  if (SideStatus(game, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(game, { x, y }, data.overview_side)) {
     SetStream(data, SPRITE_SEGMENT, MARK_MASK);
     Compose(game, pixel_x, pixel_y, MARK_GLYPH, SPRITE_SEGMENT);
   }

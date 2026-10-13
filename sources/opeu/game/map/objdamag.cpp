@@ -55,10 +55,8 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
   opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(text));
 }
 
-// bp: this routine's frame. chance: the percent chance of a hit; base: the damage of a hit (none: no equipment loss);
-// spread: the random part of it; heavy: infantry loses 6 to 15 times as much; supply and endurance: the supply and
-// strength losses.
-void opeu_objective_damage(Game& game, uint16_t objective, uint16_t chance, uint16_t base, uint16_t supply, uint16_t endurance, uint16_t spread, uint16_t heavy) {
+void opeu_objective_damage(Game& game, uint16_t objective, Bombing const& bombing) {
+  auto const [chance, base, spread, heavy, supply, endurance]{ bombing };
   auto&               data{ Data(game) };
   auto&               record{ Record<Objective>(data, objective) };
   ServiceLocals const locals{ REPORT_RESERVE };

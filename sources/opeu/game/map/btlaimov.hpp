@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/events.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 uint8_t opeu_battle_ai_profile(Game& game, uint16_t unit, uint16_t all);

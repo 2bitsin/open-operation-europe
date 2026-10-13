@@ -1,13 +1,12 @@
 // The interactive map location picker. With the keyboard, the digit and direction keys move the cursor (or pan the
 // tactical view), Enter accepts a passable cell and Esc or '0' cancel. With the mouse, the left button accepts the
-// cell under the pointer or pans the tactical view from its borders, and the right button cancels. The cell bytes at x
-// and y start at, and end on, the chosen cell; the result is 1 when a cell was accepted.
+// cell under the pointer or pans the tactical view from its borders, and the right button cancels. The cursor starts
+// on the cell given; the result is the cell accepted, none when cancelled.
 #include "map/mappick.hpp"
 #include "common/data-segment.hpp"
 #include "common/keys.hpp"
 #include "common/map-frame.hpp"
 #include "common/map-grid.hpp"
-#include "common/memory.hpp"
 #include "io/keyboard.hpp"
 #include "io/mouse.hpp"
 #include "map/cursor.hpp"
@@ -25,6 +24,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <optional>
 #include <ranges>
 
 using namespace opeu::game;
@@ -40,10 +40,6 @@ constexpr uint8_t  NONE{ 255 };
 constexpr uint8_t  LEFT_BUTTON{ 1 };
 constexpr uint8_t  RIGHT_BUTTON{ 2 };
 constexpr uint16_t STATUS_OFFSET{ 0x120 }; // where the status line's background is saved in the bitmap buffer
-// The DS reserve of the mouse position words the mouse service writes.
-constexpr uint16_t MOUSE_RESERVE{ 14 };
-constexpr uint16_t MOUSE_X_AT{ 4 };
-constexpr uint16_t MOUSE_Y_AT{ 0 };
 
 // Screen areas in pixels (x in pixels here, not byte columns).
 struct Area {
@@ -67,27 +63,26 @@ constexpr uint8_t STEP_RIGHT{ 4 };
 constexpr uint8_t STEP_UP{ 6 };
 } // namespace
 
-// x and y: DS offsets of the cell bytes.
-uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ MOUSE_RESERVE };
-  auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
-  auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-  auto const          view_up{ [&] { return data.view_side != NONE; } };
-  auto const          overview_up{ [&] { return data.overview_side != NONE; } };
-  if (Byte(game, y) >= MAP_HEIGHT) Byte(game, y) += 5;
-  if (Byte(game, x) >= MAP_WIDTH) Byte(game, x) += 5;
-  Byte(game, x) %= MAP_WIDTH;
-  Byte(game, y) %= MAP_HEIGHT;
+auto PickLocation(Game& game, GridCell start) -> std::optional<GridCell> {
+  auto&      data{ Data(game) };
+  auto       cell{ start };
+  auto const view_up{ [&] { return data.view_side != NONE; } };
+  auto const overview_up{ [&] { return data.overview_side != NONE; } };
+  if (cell.y >= MAP_HEIGHT) cell.y += 5;
+  if (cell.x >= MAP_WIDTH) cell.x += 5;
+  cell.x %= MAP_WIDTH;
+  cell.y %= MAP_HEIGHT;
   uint8_t shown_x{ NONE };
   uint8_t shown_y{ 0 };
-  if (!data.input_mode) opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y)), static_cast<uint8_t>(data.current_side));
+  if (!data.input_mode) opeu_arrival_location(game, cell.x, cell.y, static_cast<uint8_t>(data.current_side));
   opeu_input_reset(game);
   game.Machine().Display().SaveColumns({ 0, 0, 80, 24 }, FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET));
   data.control_selection = 0;
   auto const pan{ [&](int16_t dx, int16_t dy) {
-    opeu_viewport_pan(game, static_cast<int16_t>(static_cast<std::uint16_t>(dx)), static_cast<int16_t>(static_cast<std::uint16_t>(dy)), static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y),
-                      static_cast<uint8_t>(data.current_side));
+    opeu_viewport_pan(game, {
+                                .dx = dx, .dy = dy, .cursor = { shown_x, shown_y },
+                                        .side = static_cast<uint8_t>(data.current_side)
+    });
   } };
 
   // Mouse input until the pointer moves to another cell or a button decides.
@@ -95,11 +90,8 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
     for (;;) {
       opeu_mouse_show(game);
       auto const buttons{ static_cast<uint8_t>(opeu_mouse_buttons(game)) };
-      opeu_mouse_position(game, static_cast<std::uint16_t>(mouse_x_at), static_cast<std::uint16_t>(mouse_y_at));
-      // The pointer words are read from DS at each use, as the services in between may write them.
-      auto const pointer_x{ [&] { return Word(game, mouse_x_at); } };
-      auto const pointer_y{ [&] { return Word(game, mouse_y_at); } };
-      auto const in{ [&](Area const& area) { return area.Holds(pointer_x(), pointer_y()); } };
+      auto const pointer{ MousePosition(game) };
+      auto const in{ [&](Area const& area) { return area.Holds(pointer.x, pointer.y); } };
       if (buttons & LEFT_BUTTON) {
         opeu_mouse_hide(game);
         if ((view_up() && in(VIEW_CELLS)) || (overview_up() && in(OVERVIEW_CELLS) && OnMap(shown_x, shown_y) && opeu_map_code(game, shown_x, shown_y))) return Outcome::ACCEPT;
@@ -122,9 +114,8 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
             direction = STEP_DOWN;
           }
           if (direction != NONE) {
-            Byte(game, x) = shown_x;
-            Byte(game, y) = shown_y;
-            opeu_grid_step_viewport(game, x, y, direction);
+            GridCell const shown{ shown_x, shown_y };
+            cell = StepInViewport(data, shown, direction).value_or(shown);
             opeu_mouse_hide(game);
             return Outcome::MOVE;
           }
@@ -135,17 +126,17 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         return Outcome::CANCEL;
       }
       if (view_up() && in(VIEW_CELLS)) {
-        auto const cell_y{ static_cast<int16_t>((static_cast<int16_t>(pointer_y()) - VIEW_CELLS.top) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_y)) };
-        auto const cell_x{ static_cast<int16_t>((static_cast<int16_t>(pointer_x()) - VIEW_CELLS.left) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_x)) };
+        auto const cell_y{ static_cast<int16_t>((static_cast<int16_t>(pointer.y) - VIEW_CELLS.top) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_y)) };
+        auto const cell_x{ static_cast<int16_t>((static_cast<int16_t>(pointer.x) - VIEW_CELLS.left) / VIEW_CELL_PIXELS + static_cast<int16_t>(data.viewport_x)) };
         if (cell_x < 0 || cell_y < 0 || cell_x >= static_cast<int16_t>(MAP_WIDTH) || cell_y >= static_cast<int16_t>(MAP_HEIGHT)) continue;
-        Byte(game, x) = static_cast<uint8_t>(cell_x);
-        Byte(game, y) = static_cast<uint8_t>(cell_y);
+        cell.x = static_cast<uint8_t>(cell_x);
+        cell.y = static_cast<uint8_t>(cell_y);
       } else {
         if (!overview_up() || !in(OVERVIEW_CELLS)) continue;
-        Byte(game, x) = static_cast<uint8_t>((pointer_x() - OVERVIEW_CELLS.left) >> 3);
-        Byte(game, y) = static_cast<uint8_t>((pointer_y() - OVERVIEW_CELLS.top) >> 3);
+        cell.x = static_cast<uint8_t>((pointer.x - OVERVIEW_CELLS.left) >> 3);
+        cell.y = static_cast<uint8_t>((pointer.y - OVERVIEW_CELLS.top) >> 3);
       }
-      if (Byte(game, x) == shown_x && Byte(game, y) == shown_y) continue;
+      if (cell.x == shown_x && cell.y == shown_y) continue;
       opeu_mouse_hide(game);
       return Outcome::MOVE;
     }
@@ -161,7 +152,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         pan(1, 0);
         direction = STEP_RIGHT;
       } else {
-        ++Byte(game, x);
+        ++cell.x;
       }
       break;
     case '4':
@@ -169,7 +160,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         pan(-1, 0);
         direction = STEP_LEFT;
       } else {
-        --Byte(game, x);
+        --cell.x;
       }
       break;
     case '8':
@@ -177,7 +168,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         pan(0, -1);
         direction = STEP_UP;
       } else {
-        --Byte(game, y);
+        --cell.y;
       }
       break;
     case '2':
@@ -185,7 +176,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         pan(0, 1);
         direction = STEP_DOWN;
       } else {
-        ++Byte(game, y);
+        ++cell.y;
       }
       break;
     case KEY_ESCAPE:
@@ -201,27 +192,25 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
         }
     }
     // A step off the left or top edge wraps to 255 and lands on 0; off the right or bottom it stops at 39.
-    if (Byte(game, x) > MAP_WIDTH) Byte(game, x) = 0;
-    if (Byte(game, y) > MAP_HEIGHT) Byte(game, y) = 0;
-    if (Byte(game, x) > MAP_WIDTH - 1) Byte(game, x) = MAP_WIDTH - 1;
-    if (Byte(game, y) > MAP_HEIGHT - 1) Byte(game, y) = MAP_HEIGHT - 1;
-    GridCell const cell{ Byte(game, x), Byte(game, y) };
-    auto const     next{ view_up() ? StepInViewport(data, cell, direction) : StepOnMap(cell, direction) };
-    Byte(game, x) = next.value_or(cell).x;
-    Byte(game, y) = next.value_or(cell).y;
+    if (cell.x > MAP_WIDTH) cell.x = 0;
+    if (cell.y > MAP_HEIGHT) cell.y = 0;
+    if (cell.x > MAP_WIDTH - 1) cell.x = MAP_WIDTH - 1;
+    if (cell.y > MAP_HEIGHT - 1) cell.y = MAP_HEIGHT - 1;
+    cell = (view_up() ? StepInViewport(data, cell, direction) : StepOnMap(cell, direction)).value_or(cell);
     return Outcome::MOVE;
   } };
 
   Outcome outcome;
   do {
     if (shown_x != NONE) opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
-    shown_x = Byte(game, x);
-    shown_y = Byte(game, y);
+    shown_x = cell.x;
+    shown_y = cell.y;
     opeu_map_inspect(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
     opeu_map_cursor(game, shown_x, shown_y);
     outcome = data.input_mode ? mouse() : keyboard();
   } while (outcome == Outcome::MOVE);
   opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
   game.Machine().Display().DrawColumns({ 0, 0, 80, 24 }, { 0, FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), STATUS_OFFSET) });
-  return outcome == Outcome::ACCEPT;
+  if (outcome != Outcome::ACCEPT) return std::nullopt;
+  return cell;
 }

@@ -82,7 +82,7 @@ private:
   };
 
   [[nodiscard]] auto CostAt(GridCell cell) -> uint8_t {
-    return opeu_move_cost(_game, cell.x, cell.y, _current);
+    return opeu_move_cost(_game, { cell.x, cell.y }, _current);
   }
 
   // Whether some neighbouring cell costs no more than the unit's movement points.
@@ -131,7 +131,10 @@ private:
   [[nodiscard]] auto Destination() -> GridCell {
     auto const x_at{ _goal_reserve.At(GOAL_X_AT) };
     auto const y_at{ _goal_reserve.At(GOAL_Y_AT) };
-    opeu_unit_order_destination(_game, _current, _game.State().Bytes(x_at, 1).data(), _game.State().Bytes(y_at, 1).data());
+    if (auto const cell{ UnitOrderDestination(_game, _current).cell }) {
+      Byte(_game, x_at) = cell->x;
+      Byte(_game, y_at) = cell->y;
+    }
     return { Byte(_game, x_at), Byte(_game, y_at) };
   }
 
@@ -179,7 +182,7 @@ private:
     _unit.moved -= cost;
     opeu_arrival_prepare(_game, _current);
     opeu_move_clamp(_game);
-    if (opeu_cell_marked(_game, _next.x, _next.y, NONE)) {
+    if (opeu_cell_marked(_game, { _next.x, _next.y }, NONE)) {
       opeu_move_mines(_game, from.x, from.y);
       if (!_unit.first) return Verdict::STOP;
     } else {

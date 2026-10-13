@@ -43,16 +43,13 @@ constexpr std::uint16_t PLANES_NEEDED{ 0x79 };   // hours, planes, "plane"/"plan
 
 constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the message text of drop_delay and drop_order, which the format service writes
 // The drop site, which the map pick writes: offsets in the command's reserve.
-constexpr std::uint16_t SITE_Y_AT{ 0 };
-constexpr std::uint16_t SITE_X_AT{ 2 };
-constexpr std::uint16_t SITE_BYTES{ 4 };
 
 auto CurrentDrop(DataSegment& data) -> AirDrop& {
   return Record<Side>(data, data.current_side_ptr).drop;
 }
 
 auto ListDialog(Game& game, ListWindow const& window) -> std::uint16_t {
-  return opeu_list_dialog(game, Near(Data(game), window), LIST_LIMIT, LIST_FLAGS);
+  return opeu_list_dialog(game, window, LIST_OPTIONS);
 }
 
 auto ReleaseUnits(Game& game, std::uint16_t list) -> std::uint8_t {
@@ -228,16 +225,13 @@ void opeu_air_drop_command(Game& game) {
     return;
   }
   if (!opeu_air_choose_forces(game)) return;
-  ServiceLocals const locals{ SITE_BYTES };
-  auto const          site_x{ locals.At(SITE_X_AT) };
-  auto const          site_y{ locals.At(SITE_Y_AT) };
-  auto&               x{ Record<std::uint8_t>(data, site_x) };
-  auto&               y{ Record<std::uint8_t>(data, site_y) };
-  x = static_cast<std::uint8_t>(data.viewport_x);
-  y = static_cast<std::uint8_t>(data.viewport_y);
+  GridCell cell{ static_cast<std::uint8_t>(data.viewport_x), static_cast<std::uint8_t>(data.viewport_y) };
+  auto const& [x, y]{ cell };
   do {
     message(data.drop_where);
-    if (!opeu_map_pick_location(game, site_x, site_y)) return;
+    auto const picked{ PickLocation(game, cell) };
+    if (!picked) return;
+    cell = *picked;
   } while (!opeu_air_target_valid(game, x, y, Near(data, data.drop_paratroopers)));
   auto const hours{ opeu_air_ask_count(game, Near(data, data.drop_hours_prompt), 6, 24, 1, data.context_record3, 0) };
   if (hours == MENU_CANCELLED) return;

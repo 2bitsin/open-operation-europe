@@ -53,7 +53,11 @@ void FaceTarget(Game& game, uint16_t element, uint16_t target) {
 
 void FaceCell(Game& game, uint16_t element, uint8_t x, uint8_t y) {
   auto const& position{ Position(game, element) };
-  Face(game, element, static_cast<uint8_t>(opeu_battle_cell_facing(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y), static_cast<uint8_t>(x), static_cast<uint8_t>(y))));
+  Face(game, element,
+       CellFacingToward({
+           .from = { position.x, position.y },
+             .to = { x,          y          }
+  }));
 }
 } // namespace
 

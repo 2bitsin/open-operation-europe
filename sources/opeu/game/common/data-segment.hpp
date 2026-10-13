@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "common/menu.hpp"
+#include "common/screen-point.hpp"
 
 namespace opeu::game::detail::data_segment {
 
@@ -585,12 +586,6 @@ struct OrderPrompts {
   std::array<char, 37> nothing_to_chase; // "No regiment to pursue there, sir."
   std::array<char, 24> cannot_order;     // "You cannot %s there."
   std::array<char, 31> understood;       // "Understood. I'll have them %s."
-};
-
-// A point on the screen in text columns and pixels.
-struct ScreenPoint {
-  std::uint16_t x;
-  std::uint16_t y;
 };
 
 // Bits of Unit::flags.
@@ -5119,10 +5114,6 @@ template <typename T>
   return Record<ListWindow>(data, near);
 }
 
-// What every list dialog of the game is run with (opeu_list_dialog's limit and flags): one choice, flags 7.
-inline constexpr std::uint8_t LIST_LIMIT{ 1 };
-inline constexpr std::uint8_t LIST_FLAGS{ 7 };
-
 // Gives the list window its select routine.
 inline auto SetListPredicate(ListWindow& list, ListSelect select) noexcept -> void {
   list.select = select;
@@ -5222,8 +5213,6 @@ using detail::data_segment::RATING_LIMIT;
 using detail::data_segment::CurrentSide;
 using detail::data_segment::CurrentUnit;
 using detail::data_segment::HasMouse;
-using detail::data_segment::LIST_FLAGS;
-using detail::data_segment::LIST_LIMIT;
 using detail::data_segment::ListWindowAt;
 using detail::data_segment::Record;
 using detail::data_segment::SetListPredicate;
@@ -5237,7 +5226,6 @@ using detail::data_segment::GARRISON_AT;
 using detail::data_segment::BattleLoss;
 using detail::data_segment::SaveSlot;
 using detail::data_segment::OrderPrompts;
-using detail::data_segment::ScreenPoint;
 using detail::data_segment::Side;
 using detail::data_segment::ScheduleFlag;
 using detail::data_segment::SideFlag;

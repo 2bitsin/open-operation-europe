@@ -34,13 +34,6 @@ auto TypeAt(std::uint8_t type) -> std::uint16_t {
   return static_cast<std::uint16_t>(ELEMENT_TYPES_AT + type * sizeof(ElementType));
 }
 
-// Works out the list's column layout into a reserve of its own; the table views do not read it.
-auto LayOutColumns(Game& game, std::uint8_t column, std::uint8_t row) -> void {
-  ServiceLocals const locals{ 4 };
-  auto const          out{ locals.At(0) };
-  opeu_table_columns(game, column, row, out, out + 1, out + 2);
-}
-
 } // namespace
 
 // The list predicate of the units view: whether the unit on the selected row may be picked.
@@ -78,12 +71,12 @@ uint8_t opeu_supply_true(void) {
 }
 
 // Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
-void opeu_supply_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_types(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(game) };
   auto const&         window{ ActiveWindow(data) };
-  LayOutColumns(game, column, row);
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_type_header)) });
@@ -123,12 +116,12 @@ uint8_t opeu_supply_return_slot(Game& game) {
 }
 
 // Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
-void opeu_supply_draw_slots(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(game) };
   auto const&         window{ ActiveWindow(data) };
-  LayOutColumns(game, column, row);
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_slot_header)) });

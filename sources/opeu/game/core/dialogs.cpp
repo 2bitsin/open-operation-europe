@@ -278,7 +278,7 @@ uint16_t opeu_menu_prompt(Game& game, uint16_t text, uint16_t first, uint16_t la
   opeu_request_format(game, std::array<std::uint16_t, 4>{ range, Near(data, data.menu_prompt_format), first, last });
   opeu_text_feed(game, text);
   opeu_text_feed(game, range);
-  return opeu_choose_value(game, first, last, static_cast<int16_t>(flag), menu);
+  return opeu_choose_value(game, { first, last }, { .cancel = static_cast<int16_t>(flag), .items = menu });
 }
 
 uint16_t opeu_control_choose(Game& game, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t person, uint16_t menu) {

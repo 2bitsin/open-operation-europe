@@ -3,8 +3,8 @@
 // nearest able division to (capture an enemy objective, hold an own one); a division left without such tasks is sent
 // to a random cell in a quarter of the map no other division stands in.
 #include "core/groupai.hpp"
+#include "common/grid-cell.hpp"
 #include "map/distance.hpp"
-#include "map/grid-cell.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"

@@ -77,7 +77,7 @@ void opeu_reinforce_screen(Game& game) {
   opeu_army_position(game, 1, 0x170);
   opeu_ui_text(game, data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
   opeu_text_paper_set(game, 0);
-  opeu_list_dialog(game, Near(data, data.reinforce_dialog), 1, 3);
+  opeu_list_dialog(game, data.reinforce_dialog, { 1, 3 });
   opeu_staff_restore_bottom(game);
   opeu_staff_restore_left(game);
 }
@@ -89,7 +89,7 @@ void opeu_play_screen(Game& game) {
   opeu_army_position(game, 0x15, 0x170);
   opeu_ui_text(game, Near(data, data.play_prompt));
   opeu_text_paper_set(game, 0);
-  opeu_commander_list_dialog(game, Near(data, data.play_dialog), 7, 1);
+  opeu_commander_list_dialog(game, data.play_dialog, { 7, 1 });
   opeu_staff_restore_bottom(game);
 }
 

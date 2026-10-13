@@ -75,7 +75,7 @@ uint16_t opeu_advice_tactical_objective_threat(Game& game, const uint8_t* far_te
     if (!objective.active || opeu_objective_level(game, near) < CITY_LEVEL) continue;
     bool const ours{ opeu_objective_side(game, near) == side };
     if (ours ? data.side_stance[side] != 0 : data.side_stance[side] != Bits(Stance::OFFENSIVE)) continue;
-    if (!ours && opeu_cell_influence_side(game, objective.x, objective.y) != side) continue;
+    if (!ours && opeu_cell_influence_side(game, { objective.x, objective.y }) != side) continue;
     for (auto const [x, y] : CellsAround({ objective.x, objective.y })) {
       if (opeu_cell_side(game, x, y) != (ours ? opeu_opposite_side(side) : side)) continue;
       auto const unit{ opeu_find_unit_at(game, x, y) };
@@ -160,7 +160,7 @@ uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_tex
       if (pass == 0 && enemy > own && advisor.Random(static_cast<std::uint16_t>(6 - g)) == 1) {
         text = std::to_underlying(AdviceText::SEND_HELP);
       } else {
-        auto const influence{ opeu_cell_influence_side(game, unit.x, unit.y) };
+        auto const influence{ opeu_cell_influence_side(game, { unit.x, unit.y }) };
         auto const ordered{ UnitOrderDestination(game, near).valid };
         if (pass == 1 && side == influence && opeu_category_4_or_5(k) && !ordered && advisor.Random(3) == 1)
           text = std::to_underlying(AdviceText::SEND_TO_FRONT);

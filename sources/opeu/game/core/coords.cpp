@@ -1,6 +1,6 @@
 // The map inspection mode: the player moves a cursor over the map by keyboard or mouse; the panel shows the objective
 // or regiment under it, a click or Enter on one of the side's regiments gives it an order, Escape or the right button
-// leaves. The cell is kept in the byte variables at the near addresses x and y.
+// leaves. The inspection starts on a cell and ends on the cell the cursor was last on.
 #include "core/coords.hpp"
 #include "common/events.hpp"
 #include "common/map-grid.hpp"
@@ -18,7 +18,6 @@
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
 #include "common/game.hpp"
-#include "common/memory.hpp"
 #include "core/armysum.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
@@ -48,11 +47,6 @@ constexpr std::uint8_t LEFT{ 3 };
 constexpr std::uint8_t UP{ 6 };
 constexpr std::uint8_t DOWN{ 1 };
 
-// The mouse position words, whose addresses go to the mouse service: offsets in the routine's reserve.
-constexpr std::uint16_t MOUSE_Y_AT{ 0 };
-constexpr std::uint16_t MOUSE_X_AT{ 4 };
-constexpr std::uint16_t MOUSE_BYTES{ 6 };
-
 // Mouse areas of the screen.
 struct Area {
   std::uint16_t left;
@@ -68,24 +62,24 @@ auto Inside(Area const& area, std::uint16_t x, std::uint16_t y) -> bool {
 }
 } // namespace
 
-// Runs the inspection from the cell at the near addresses x and y; returns 1 when the player picked a cell (or
-// ordered a regiment), 0 when he left.
-uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
-  ServiceLocals const locals{ MOUSE_BYTES };
-  auto&               data{ Data(game) };
-  auto&               cell_x{ Byte(game, x) };
-  auto&               cell_y{ Byte(game, y) };
-  auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
-  auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-  std::uint8_t        previous_x{ cell_x }; // the column shown before; at the start the cursor stays in its column
-  auto const          side{ data.current_side };
-  auto const          tactical{ [&] { return data.view_side != NONE; } };
-  auto const          strategic{ [&] { return data.overview_side != NONE; } };
-  auto const          pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) { opeu_viewport_pan(game, dx, dy, at_x, at_y, side); } };
-  std::uint16_t       result{ 0 };
-  std::uint8_t        display_x{ NONE };
-  std::uint8_t        display_y{ 0 };
-  std::uint16_t       previous_panel{ 0 };
+auto opeu::game::detail::coords::InspectMap(Game& game, GridCell start) -> Inspection {
+  auto& data{ Data(game) };
+  auto  cell{ start };
+  auto& [cell_x, cell_y]{ cell };
+  std::uint8_t previous_x{ cell_x }; // the column shown before; at the start the cursor stays in its column
+  auto const   side{ data.current_side };
+  auto const   tactical{ [&] { return data.view_side != NONE; } };
+  auto const   strategic{ [&] { return data.overview_side != NONE; } };
+  auto const   pan{ [&](std::int16_t dx, std::int16_t dy, std::uint8_t at_x, std::uint8_t at_y) {
+    opeu_viewport_pan(game, {
+                                .dx = dx, .dy = dy, .cursor = { at_x, at_y },
+                                        .side = side
+    });
+  } };
+  std::uint16_t result{ 0 };
+  std::uint8_t  display_x{ NONE };
+  std::uint8_t  display_y{ 0 };
+  std::uint16_t previous_panel{ 0 };
 
   // Picks the shown cell: the result is 1. On a regiment the side can order, orders it (or reports that its division
   // is the computer's) and answers true; on a cell of no side or of another regiment, answers false.
@@ -148,9 +142,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
       for (;;) {
         opeu_mouse_show(game);
         auto const buttons{ opeu_mouse_buttons(game) };
-        opeu_mouse_position(game, mouse_x_at, mouse_y_at);
-        auto const mouse_x{ Word(game, mouse_x_at) };
-        auto const mouse_y{ Word(game, mouse_y_at) };
+        auto const [mouse_x, mouse_y]{ MousePosition(game) };
         if (buttons & 1) {
           opeu_mouse_hide(game);
           if ((tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y))
@@ -179,9 +171,8 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
               direction = DOWN;
             }
             if (direction != NONE) {
-              cell_x = display_x;
-              cell_y = display_y;
-              opeu_grid_step_viewport(game, x, y, direction);
+              GridCell const shown{ display_x, display_y };
+              cell = StepInViewport(data, shown, direction).value_or(shown);
               continue;
             }
           }
@@ -262,16 +253,11 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
       if (cell_y > MAP_HEIGHT) cell_y = 0;
       if (cell_x > MAP_WIDTH - 1) cell_x = MAP_WIDTH - 1;
       if (cell_y > MAP_HEIGHT - 1) cell_y = MAP_HEIGHT - 1;
-      if (tactical())
-        opeu_grid_step_viewport(game, x, y, direction);
-      else if (auto const next{ StepOnMap({ cell_x, cell_y }, direction) }) {
-        cell_x = next->x;
-        cell_y = next->y;
-      }
+      cell = (tactical() ? StepInViewport(data, cell, direction) : StepOnMap(cell, direction)).value_or(cell);
     }
     previous_x = display_x;
   }
   opeu_map_erase(game, display_x, display_y);
   game.Machine().Display().DrawColumns({ 0, 0, 80, 24 }, { 0, FarBytes(game, data.bitmap_buffer, SAVE_OFFSET) });
-  return result;
+  return { .cell = cell, .picked = result != 0 };
 }

@@ -61,8 +61,8 @@ uint16_t opeu_transfer_hours(Game& game, uint16_t from, uint16_t to, uint16_t pe
   auto const&         source{ Record<Unit>(data, from) };
   auto const&         target{ Record<Unit>(data, to) };
   auto const          side{ opeu_unit_side(to) };
-  std::uint16_t const distance{ opeu_grid_distance(source.x, source.y, target.x, target.y) };
-  std::uint16_t const supported{ opeu_cell_influence_side(game, target.x, target.y) == side ? 10u : 0u };
+  std::uint16_t const distance{ GridDistance({ source.x, source.y }, { target.x, target.y }) };
+  std::uint16_t const supported{ opeu_cell_influence_side(game, { target.x, target.y }) == side ? 10u : 0u };
   std::uint16_t const scale{ CurrentScenario(data) == Scenario::AFRICA ? 3u : 5u };
   return static_cast<std::uint16_t>(distance / scale * (80 - supported) / (data.sides[side].strength + Record<Person>(data, person).bravery) + 1);
 }
@@ -123,7 +123,7 @@ void opeu_turn_action_3(Game& game) {
       opeu_control_message(game, Near(data, data.transfer_which_division), data.context_record2);
       opeu_title_panel_begin(game);
       SetListPredicate(data.division_dialog, ListSelect::TRANSFER_GROUP);
-      if (!opeu_list_dialog(game, Near(data, data.division_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
+      if (!opeu_list_dialog(game, data.division_dialog, LIST_OPTIONS)) return;
       data.transfer_group = data.list_row;
       opeu_group_show(game, Near(data, GroupOf(data, data.current_side, data.transfer_group)), static_cast<uint8_t>(data.transfer_group));
       [[fallthrough]];
@@ -132,7 +132,7 @@ void opeu_turn_action_3(Game& game) {
       opeu_title_panel_begin(game);
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(game) + 1);
       SetListPredicate(data.organize_list, ListSelect::TRANSFER_UNIT);
-      if (!opeu_list_dialog(game, Near(data, data.organize_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
+      if (!opeu_list_dialog(game, data.organize_list, LIST_OPTIONS)) {
         step = Step::DIVISION;
         continue;
       }
@@ -144,7 +144,7 @@ void opeu_turn_action_3(Game& game) {
       SetListPredicate(data.choice_dialog, ListSelect::TRANSFER_ELEMENT);
       opeu_control_message(game, Near(data, data.transfer_which_group), data.context_record2);
       opeu_title_panel_begin(game);
-      if (!opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) {
+      if (!opeu_list_dialog(game, data.choice_dialog, LIST_OPTIONS)) {
         step = Step::REGIMENT;
         continue;
       }

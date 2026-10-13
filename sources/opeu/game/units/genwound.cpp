@@ -89,7 +89,7 @@ void opeu_general_casualty(Game& game, uint16_t person) {
       opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT });
       opeu_initialize_deputy(game, person);
       opeu_control_message(game, buffer, person);
-      opeu_wait_confirm(game, 1);
+      opeu_wait_confirm(game);
       general = saved;
     }
     wound();
@@ -101,7 +101,7 @@ void opeu_general_casualty(Game& game, uint16_t person) {
       opeu_finish_side_initialization(game, 0);
       opeu_daily_show(game, DEATH_SHOW, static_cast<uint8_t>(side), Presenter::BLAST_PAUSE);
       opeu_control_message(game, buffer, person);
-      opeu_wait_confirm(game, 1);
+      opeu_wait_confirm(game);
     }
   }
 }

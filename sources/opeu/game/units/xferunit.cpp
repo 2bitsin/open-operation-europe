@@ -39,7 +39,6 @@ namespace {
 // The locals the services reach by near address, in each routine's reserve: the two names and the target cell the
 // player picks.
 constexpr std::uint16_t NAME_BYTES{ 0x20 };
-constexpr std::uint16_t CELL_BYTES{ 2 };
 
 // The computer's targets, in percent of the capacity: low, full, and what it adds to its side's fill.
 constexpr std::uint16_t LOW_TARGET{ 10 };
@@ -113,8 +112,8 @@ auto Supply(Game& game, SupplyTarget const& target, auto transfer) -> std::uint1
 }
 
 // The cell bytes a target service wrote, with the target it found.
-[[nodiscard]] auto TargetAt(Game& game, ServiceLocals const& cell, std::uint16_t near) -> SupplyTarget {
-  return { near, Byte(game, cell.At(0)), Byte(game, cell.At(1)) };
+[[nodiscard]] auto TargetOf(OrderTarget const& target) -> SupplyTarget {
+  return { target.near, target.cell.x, target.cell.y };
 }
 } // namespace
 
@@ -182,13 +181,9 @@ uint8_t opeu_transfer_level(Game& game) {
 }
 
 uint16_t opeu_order_supply_objective(Game& game) {
-  ServiceLocals const cell{ CELL_BYTES };
-  auto const          objective{ opeu_move_objective_target(game, cell.At(0), cell.At(1), Data(game).current_side) };
-  return Supply(game, TargetAt(game, cell, objective), opeu_transfer_objective);
+  return Supply(game, TargetOf(opeu_move_objective_target(game, Data(game).current_side)), opeu_transfer_objective);
 }
 
 uint16_t opeu_order_supply_unit(Game& game) {
-  ServiceLocals const cell{ CELL_BYTES };
-  auto const          unit{ opeu_move_unit_target(game, cell.At(0), cell.At(1)) };
-  return Supply(game, TargetAt(game, cell, unit), opeu_transfer_units);
+  return Supply(game, TargetOf(opeu_move_unit_target(game)), opeu_transfer_units);
 }

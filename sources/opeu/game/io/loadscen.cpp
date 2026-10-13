@@ -12,7 +12,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <optional>
+#include <ranges>
 #include <span>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -29,15 +31,17 @@ using FileBytes = std::span<std::uint8_t const>;
 
 constexpr std::size_t READ_CHUNK{ 0x8000 }; // the most one read asks for
 
-// The bytes of a file from the position it is at up to `size`, read a chunk at a time; fewer when a read fails.
+// The bytes of a file from the position it is at up to `size`, read a chunk at a time; up to the first short read.
 auto ReadAll(services::Files& files, services::FileHandle file, std::size_t size) -> std::vector<std::uint8_t> {
   std::vector<std::uint8_t> bytes(size);
   std::size_t               done{ 0 };
-  while (done < size) {
-    auto const read{ files.Read(file, std::span{ bytes }.subspan(done, std::min(size - done, READ_CHUNK))) };
-    if (!read || *read == 0) break;
-    done += *read;
-  }
+  auto const                chunks{ (size + READ_CHUNK - 1) / READ_CHUNK };
+  std::ignore = std::ranges::find_if(std::views::iota(std::size_t{ 0 }, chunks), [&](std::size_t const) {
+    auto const into{ std::span{ bytes }.subspan(done, std::min(size - done, READ_CHUNK)) };
+    auto const read{ files.Read(file, into).value_or(0) };
+    done += read;
+    return read != into.size();
+  });
   bytes.resize(done);
   return bytes;
 }

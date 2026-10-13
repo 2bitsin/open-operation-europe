@@ -40,11 +40,8 @@ namespace {
 constexpr std::uint16_t PROMPT_FORMAT{ offsetof(DataSegment, control_prompt) };
 constexpr std::uint16_t READY_TEXT{ offsetof(DataSegment, control_ready) };
 constexpr std::uint16_t COMMAND_MENU{ offsetof(DataSegment, control_menu) };
-// The command prompt the format service writes, and the inspected cell's x and y words the coordinates dialog moves.
+// The command prompt the format service writes.
 constexpr std::uint16_t PROMPT_BYTES{ 50 };
-constexpr std::uint16_t CELL_X_AT{ 0 };
-constexpr std::uint16_t CELL_Y_AT{ 2 };
-constexpr std::uint16_t CELL_BYTES{ 4 };
 
 // The command menu's routines, by the enumerator control_actions holds for the choice.
 constexpr auto CONTROL_ACTIONS = DispatchRows<ControlAction, auto (*)(Game&)->void>({
@@ -95,14 +92,15 @@ void opeu_turn_control_one(Game& game) {
       } else {
         inspecting             = false;
         data.control_selection = 0;
-        auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
-        ServiceLocals const cell{ CELL_BYTES };
-        auto const          at_x{ cell.At(CELL_X_AT) };
-        auto const          at_y{ cell.At(CELL_Y_AT) };
-        SetWord(game, at_x, unit.x);
-        SetWord(game, at_y, unit.y);
-        do opeu_control_message(game, READY_TEXT, data.context_record2);
-        while (opeu_control_coordinates(game, at_x, at_y));
+        auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
+        Inspection  inspection{
+          .cell = { unit.x, unit.y },
+            .picked = false
+        };
+        do {
+          opeu_control_message(game, READY_TEXT, data.context_record2);
+          inspection = InspectMap(game, inspection.cell);
+        } while (inspection.picked);
       }
     }
   }

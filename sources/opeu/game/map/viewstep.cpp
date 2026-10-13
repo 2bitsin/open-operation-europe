@@ -24,13 +24,3 @@ auto StepInViewport(DataSegment const& data, GridCell cell, std::uint8_t directi
   return next;
 }
 } // namespace opeu::game::detail::viewstep
-
-using namespace opeu::game;
-
-uint16_t opeu_grid_step_viewport(Game& game, uint16_t x, uint16_t y, uint8_t direction) {
-  auto const next{ StepInViewport(Data(game), { Byte(game, x), Byte(game, y) }, direction) };
-  if (!next) return 0;
-  Byte(game, x) = next->x;
-  Byte(game, y) = next->y;
-  return 1;
-}

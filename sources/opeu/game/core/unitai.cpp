@@ -3,6 +3,7 @@
 // their division's objectives, resupply and attack enemy units within reach. Paths come from a flood fill of step
 // costs over the map.
 #include "core/unitai.hpp"
+#include "common/grid-cell.hpp"
 #include "core/aiterr.hpp"
 #include "core/grid-neighbours.hpp"
 #include "core/limits.hpp"
@@ -12,7 +13,6 @@
 #include "core/sideutil.hpp"
 #include "map/cellflag.hpp"
 #include "map/distance.hpp"
-#include "map/grid-cell.hpp"
 #include "map/grid.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
@@ -73,9 +73,18 @@ auto ObjectiveAt(Game& game, std::uint8_t x, std::uint8_t y) -> Objective* {
   return near ? &Record<Objective>(Data(game), near) : nullptr;
 }
 
-// Gives the current unit an order at a cell or against a target record.
-void IssueOrder(Game& game, UnitOrder kind, std::uint8_t x, std::uint8_t y, std::uint16_t target = 0) {
-  opeu_set_unit_order(game, Data(game).current_unit_ptr, target, x, 0, Bits(kind), y);
+// Gives the current unit an order at a cell.
+void IssueOrder(Game& game, UnitOrder kind, GridCell cell) {
+  opeu_set_unit_order(game, Data(game).current_unit_ptr, { .target = 0, .cell = cell, .save_current = false, .code = Bits(kind) });
+}
+
+// Gives the current unit an order against a target record (none: the order's cell is 0, 0).
+void IssueOrderAgainst(Game& game, UnitOrder kind, std::uint16_t target) {
+  opeu_set_unit_order(game, Data(game).current_unit_ptr,
+                      {
+                          .target = target, .cell = { 0, 0 },
+                               .save_current = false, .code = Bits(kind)
+  });
 }
 
 // The path cost of every map cell from a flood fill outward from a start cell, each step costing the unit's terrain
@@ -122,7 +131,7 @@ public:
         }
       }
       cell = next;
-      if (opeu_cell_marked(game, cell.x, cell.y, data.current_side) || opeu_map_code(game, cell.x, cell.y) == Bits(Terrain::RIVER)) return cell;
+      if (opeu_cell_marked(game, { cell.x, cell.y }, data.current_side) || opeu_map_code(game, cell.x, cell.y) == Bits(Terrain::RIVER)) return cell;
     }
     return std::nullopt;
   }
@@ -160,10 +169,10 @@ auto PathOrderStep(Game& game, Unit& unit) -> bool {
   auto const stop{ costs.Descend(game, { start, goal }) };
   if (!stop) return false;
   auto const [x, y]{ *stop };
-  if (opeu_cell_marked(game, x, y, data.current_side))
-    IssueOrder(game, UnitOrder::CLEAR_MINES, x, y);
+  if (opeu_cell_marked(game, { x, y }, data.current_side))
+    IssueOrder(game, UnitOrder::CLEAR_MINES, { x, y });
   else if (opeu_map_code(game, x, y) == Bits(Terrain::RIVER))
-    IssueOrder(game, UnitOrder::BUILD_BRIDGE, x, y);
+    IssueOrder(game, UnitOrder::BUILD_BRIDGE, { x, y });
   return true;
 }
 
@@ -295,10 +304,10 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
       case Terrain::BRIDGE:     continue;
       default:                  break;
       }
-      if (opeu_cell_marked(game, x, y, data.current_side)) continue;
+      if (opeu_cell_marked(game, { x, y }, data.current_side)) continue;
       auto const& current{ CurrentUnit(data) };
       if (x == current.x && y == current.y) continue;
-      IssueOrder(game, UnitOrder::LAY_MINES, x, y);
+      IssueOrder(game, UnitOrder::LAY_MINES, { x, y });
       return true;
     }
   }
@@ -313,21 +322,21 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
   auto const& current{ CurrentUnit(data) };
   if (BelowPercent(game, current, { 10, 10, 10 })) {
     if (overstocked) {
-      IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
+      IssueOrder(game, UnitOrder::RESUPPLY, { overstocked->x, overstocked->y });
       return true;
     }
   } else {
     auto const* needy{ NearestUnitInNeed(game, SideResourcePercentages(game, data.current_side)) };
     if (needy && needy != &current) {
-      IssueOrder(game, UnitOrder::SUPPLY_UNIT, 0, 0, NearOrNull(data, needy));
+      IssueOrderAgainst(game, UnitOrder::SUPPLY_UNIT, NearOrNull(data, needy));
       return true;
     }
     if (auto const* understocked{ NearestObjective(game, Understocked) }) {
-      IssueOrder(game, UnitOrder::RESUPPLY, understocked->x, understocked->y);
+      IssueOrder(game, UnitOrder::RESUPPLY, { understocked->x, understocked->y });
       return true;
     }
     if (overstocked) {
-      IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
+      IssueOrder(game, UnitOrder::RESUPPLY, { overstocked->x, overstocked->y });
       return true;
     }
   }
@@ -343,12 +352,12 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
   if (opeu_percent(capacity.ammunition, 20) > current.resources[0] || opeu_percent(capacity.fuel, 20) > current.resources[1] || opeu_percent(capacity.food, 20) > current.resources[2]) {
     auto const* overstocked{ NearestObjective(game, Overstocked) };
     if (overstocked && GroupTargets(game, overstocked)) {
-      IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
+      IssueOrder(game, UnitOrder::RESUPPLY, { overstocked->x, overstocked->y });
       return true;
     }
     for (auto const& objective : data.objectives)
       if (opeu_objective_side(game, Near(data, objective)) != data.current_side && HasRemaining(game, objective) && GroupTargets(game, &objective)) {
-        IssueOrder(game, UnitOrder::OCCUPY, objective.x, objective.y);
+        IssueOrder(game, UnitOrder::OCCUPY, { objective.x, objective.y });
         return true;
       }
   }
@@ -386,14 +395,14 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
       case TaskKind::HOLD:    order = UnitOrder::DEFEND; break;
       default:                order = UnitOrder::NONE; break;
       }
-      IssueOrder(game, order, objective->x, objective->y);
+      IssueOrder(game, order, { objective->x, objective->y });
       return true;
     }
   }
   if (move_task) {
     auto const& current{ CurrentUnit(data) };
     if (current.x != move_task->x || current.y != move_task->y) {
-      IssueOrder(game, UnitOrder::MOVE, move_task->x, move_task->y);
+      IssueOrder(game, UnitOrder::MOVE, { move_task->x, move_task->y });
       return true;
     }
   }
@@ -408,7 +417,7 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
   std::uint8_t best{ UNREACHED };
   Unit*        target{ nullptr };
   for (auto& enemy : SideUnits(data, opeu_opposite_side(side)))
-    if ((enemy.flags & Bits(UnitFlag::READY)) && WorthAttacking(game, enemy) && opeu_cell_influence_side(game, enemy.x, enemy.y) == side) {
+    if ((enemy.flags & Bits(UnitFlag::READY)) && WorthAttacking(game, enemy) && opeu_cell_influence_side(game, { enemy.x, enemy.y }) == side) {
       auto const distance{ GridDistance({ CurrentUnit(data).x, CurrentUnit(data).y }, { enemy.x, enemy.y }) };
       if (distance < best) {
         target = &enemy;
@@ -427,7 +436,7 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
         }
       }
     if (best != UNREACHED && &CurrentUnit(data) == attacker) {
-      IssueOrder(game, UnitOrder::ATTACK, 0, 0, NearOrNull(data, target));
+      IssueOrderAgainst(game, UnitOrder::ATTACK, NearOrNull(data, target));
       return true;
     }
   }
@@ -436,7 +445,7 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
     for (auto const [x, y] : CellsAround({ task.x, task.y })) {
       auto* enemy{ UnitAt(data, opeu_find_unit_at(game, x, y)) };
       if (enemy && opeu_unit_side(Near(data, *enemy)) != side && WorthAttacking(game, *enemy)) {
-        IssueOrder(game, UnitOrder::ATTACK, 0, 0, Near(data, *enemy));
+        IssueOrderAgainst(game, UnitOrder::ATTACK, Near(data, *enemy));
         return true;
       }
     }
@@ -463,6 +472,6 @@ void opeu_unit_task_service(Game& game) {
     } else if (CombatOrder(game))
       return;
     auto const selected{ opeu_find_group_selected_unit(game, data.current_group_ptr) };
-    if (selected != data.current_unit_ptr) IssueOrder(game, UnitOrder::PURSUE, 0, 0, selected);
+    if (selected != data.current_unit_ptr) IssueOrderAgainst(game, UnitOrder::PURSUE, selected);
   }
 }

@@ -156,7 +156,7 @@ void opeu_alloc_choose_hq(Game& game) {
     SetListPredicate(data.choice_dialog, ListSelect::TALLY_MARK);
     opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.regiment_hq_prompt), opeu_unit_name(game, unit_near, name) });
     opeu_ops_chief_text(game, text);
-    opeu_list_dialog(game, Near(data, data.choice_dialog), 1, 9);
+    opeu_list_dialog(game, data.choice_dialog, { 1, 9 });
   }
 }
 

@@ -16,26 +16,13 @@ using namespace opeu::game;
 namespace { }
 
 // The overview's pixel position of a cell.
-auto OverviewPixel(Pixel cell) -> Pixel {
+auto OverviewPixel(GridCell cell) -> ScreenPoint {
   return { static_cast<uint16_t>(static_cast<int16_t>(cell.x) + 2), static_cast<uint16_t>(static_cast<int16_t>(cell.y) * 8 + 68) };
 }
 
 // The tactical view's pixel position of a cell.
-auto ViewPixel(DataSegment const& data, Pixel cell) -> Pixel {
+auto ViewPixel(DataSegment const& data, GridCell cell) -> ScreenPoint {
   return { static_cast<uint16_t>((cell.x - static_cast<int16_t>(data.viewport_x)) * 3 + 4), static_cast<uint16_t>((cell.y - static_cast<int16_t>(data.viewport_y)) * 24 + 84) };
-}
-
-// The service boundary (#13 removes it): x and y are DS offsets of the cell's coordinate words, converted in place.
-void opeu_overview_pixel(Game& game, uint16_t x, uint16_t y) {
-  auto const pixel{ OverviewPixel({ Word(game, x), Word(game, y) }) };
-  SetWord(game, x, pixel.x);
-  SetWord(game, y, pixel.y);
-}
-
-void opeu_view_pixel(Game& game, uint16_t x, uint16_t y) {
-  auto const pixel{ ViewPixel(Data(game), { Word(game, x), Word(game, y) }) };
-  SetWord(game, x, pixel.x);
-  SetWord(game, y, pixel.y);
 }
 
 // Side 0's sprites swap the first two bytes of every 3-byte group of the DS buffer at sprite.

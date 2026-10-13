@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/events.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "map/path-grid.hpp"
 #include "types.hpp"
 
@@ -21,6 +21,6 @@ namespace opeu::game {
 using detail::movecost::MoveRoute;
 } // namespace opeu::game
 
-uint8_t opeu_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t unit);
+uint8_t opeu_move_cost(Game& game, opeu::game::GridCell cell, uint16_t unit);
 // Whether the unit can reach the route's end from its start, which must lie on the map; fills the path grid's costs.
 [[nodiscard]] auto opeu_move_reachable(Game& game, opeu::game::PathGrid const& path, opeu::game::MoveRoute const& route) -> bool;

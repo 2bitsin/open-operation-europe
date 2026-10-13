@@ -165,7 +165,7 @@ void OpenSpeakerPanel(Game& game, uint16_t person) {
 // Closes the speaker's panel and waits for a key.
 void CloseSpeakerPanel(Game& game) {
   opeu_ui_text(game, At(offsetof(DataSegment, noon_speech_end)));
-  opeu_wait_confirm(game, 1);
+  opeu_wait_confirm(game);
 }
 
 // The person speaks the text in the portrait panel.

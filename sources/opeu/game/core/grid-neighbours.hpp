@@ -1,8 +1,8 @@
 // The cells around a map cell that lie on the map.
 #pragma once
 
+#include "common/grid-cell.hpp"
 #include "common/map-grid.hpp"
-#include "map/grid-cell.hpp"
 #include "map/stepmap.hpp"
 
 #include <cstdint>

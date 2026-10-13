@@ -40,22 +40,15 @@ using namespace opeu::game;
 namespace {
 // The locals the services read and write, as offsets below the top of the routine's reserve.
 enum ServiceLocal : std::uint16_t {
-  STEP_X      = 2, // attack_allowed: the neighbour cell
-  STEP_Y      = 4,
-  OCCUPY_X    = 6, // occupy: the objective's cell
-  OCCUPY_Y    = 0x6c,
   OCCUPY_TEXT = 0x6a, // occupy: the report
-  ATTACK_X    = 4,    // attack: the target regiment's cell
-  ATTACK_Y    = 0x30,
   ATTACK_NAME = 0x10, // attack: the target's name
   ATTACK_TEXT = 0x2e, // attack: the target's label
   START_TEXT  = 0x66, // attack_start: the confirmation and report text
 };
 // The reserves: each routine's deepest local.
-constexpr std::uint16_t ALLOWED_BYTES{ STEP_Y };
 constexpr std::uint16_t START_BYTES{ START_TEXT };
-constexpr std::uint16_t OCCUPY_BYTES{ OCCUPY_Y };
-constexpr std::uint16_t ATTACK_BYTES{ ATTACK_Y };
+constexpr std::uint16_t OCCUPY_BYTES{ 0x6c };
+constexpr std::uint16_t ATTACK_BYTES{ 0x30 };
 
 // The pictures of the day's show.
 constexpr std::uint16_t BATTLE_PICTURE{ 0x1d7 };
@@ -108,15 +101,10 @@ uint16_t opeu_order_attack_allowed(Game& game, uint8_t x, uint8_t y) {
     Restore(game);
     return 0;
   }
-  ServiceLocals const locals{ ALLOWED_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ALLOWED_BYTES - offset)); } };
-  auto const          step_x{ local(STEP_X) };
-  auto const          step_y{ local(STEP_Y) };
   for (std::uint8_t direction{ 0 }; direction < 8; ++direction) {
-    Byte(game, step_x) = x;
-    Byte(game, step_y) = y;
-    if (!opeu_grid_step(game.State().Bytes(step_x, 1).data(), game.State().Bytes(step_y, 1).data(), static_cast<uint8_t>(direction))) continue;
-    auto const unit{ opeu_find_unit_at(game, static_cast<uint8_t>(Byte(game, step_x)), static_cast<uint8_t>(Byte(game, step_y))) };
+    auto const next{ StepOnMap({ x, y }, direction) };
+    if (!next) continue;
+    auto const unit{ opeu_find_unit_at(game, next->x, next->y) };
     if (!unit || static_cast<std::uint8_t>(opeu_unit_side(unit)) != data.current_side) continue;
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     if ((order.kind == Kind(UnitOrder::OCCUPY) || order.kind == Kind(UnitOrder::ATTACK)) && order.progress) return 0;
@@ -184,19 +172,16 @@ uint16_t opeu_order_occupy_run(Game& game) {
   auto const          enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(data.current_side))) };
   ServiceLocals const locals{ OCCUPY_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(OCCUPY_BYTES - offset)); } };
-  auto const          at_x{ local(OCCUPY_X) };
-  auto const          at_y{ local(OCCUPY_Y) };
-  auto const          objective{ opeu_move_objective_target(game, at_x, at_y, static_cast<uint8_t>(enemy)) };
+  auto const [objective, cell]{ opeu_move_objective_target(game, static_cast<uint8_t>(enemy)) };
   if (!objective) return 1;
-  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
+  if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;
   auto const loss{ opeu_order_occupy_loss(game) };
   if (!opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))) return 1;
-  if (static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) == NO_SIDE
-      && !ObjectiveQuantity(data, objective, ANY_CATEGORY).total) {
+  if (static_cast<std::uint8_t>(opeu_cell_side(game, cell.x, cell.y)) == NO_SIDE && !ObjectiveQuantity(data, objective, ANY_CATEGORY).total) {
     auto& target{ Record<Objective>(data, objective) };
     target.flags ^= Bits(ObjectiveFlag::SIDE_1);
     opeu_move_unit(game, 1);
-    if (static_cast<std::uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) != data.current_side) {
+    if (static_cast<std::uint8_t>(opeu_cell_side(game, cell.x, cell.y)) != data.current_side) {
       target.flags ^= Bits(ObjectiveFlag::SIDE_1);
       return 1;
     }
@@ -209,7 +194,7 @@ uint16_t opeu_order_occupy_run(Game& game) {
     opeu_side_groups_retarget(game, 1);
     return 1;
   }
-  if (opeu_order_attack_start(game, objective, Byte(game, at_x), Byte(game, at_y))) Engage(data, Byte(game, at_x), Byte(game, at_y));
+  if (opeu_order_attack_start(game, objective, cell.x, cell.y)) Engage(data, cell.x, cell.y);
   return 1;
 }
 
@@ -222,17 +207,15 @@ uint16_t opeu_order_attack_run(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ATTACK_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ATTACK_BYTES - offset)); } };
-  auto const          at_x{ local(ATTACK_X) };
-  auto const          at_y{ local(ATTACK_Y) };
-  auto const          unit{ opeu_move_unit_target(game, at_x, at_y) };
+  auto const [unit, cell]{ opeu_move_unit_target(game) };
   if (!unit) return 1;
-  if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
+  if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;
   auto const loss{ opeu_order_attack_loss(game) };
   if (!opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))) return 1;
   auto const name{ opeu_unit_name(game, unit, local(ATTACK_NAME)) };
   auto const side_name{ data.side_names[opeu_abs16_bits(static_cast<std::uint16_t>(data.current_side - 1))] };
   auto const text{ local(ATTACK_TEXT) };
   opeu_request_format(game, std::array<std::uint16_t, 5>{ text, Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name });
-  if (opeu_order_attack_start(game, text, Byte(game, at_x), Byte(game, at_y))) Engage(data, Byte(game, at_x), Byte(game, at_y));
+  if (opeu_order_attack_start(game, text, cell.x, cell.y)) Engage(data, cell.x, cell.y);
   return 1;
 }

@@ -66,9 +66,8 @@ auto MoraleLoss(Game& game, std::uint16_t losses, Element const& element) -> std
 }
 } // namespace
 
-// unit suffers casualties: each element loses up to c men plus kind (percent% of the time, otherwise up to c/2);
-// infantry (category 0) loses six to fifteen times that when d is set. e shows the blast animation.
-void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t kind, uint16_t c, uint16_t d, uint16_t e) {
+void opeu_unit_casualties(Game& game, uint16_t unit, CasualtyRoll const& roll) {
+  auto const [percent, kind, c, d, e]{ roll };
   auto&               data{ Data(game) };
   auto&               regiment{ Record<Unit>(data, unit) };
   ServiceLocals const locals{ LOCALS_BYTES };

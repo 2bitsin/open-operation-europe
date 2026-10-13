@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/events.hpp"
-#include "map/grid-cell.hpp"
+#include "common/grid-cell.hpp"
 #include "types.hpp"
 
 uint16_t           opeu_battle_ai_withdraw(Game& game, uint16_t element, uint16_t unit);

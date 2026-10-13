@@ -3,7 +3,6 @@
 #include "map/arrplace.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "map/cellpred.hpp"
 #include "map/reqcells.hpp"
 #include "types.hpp"
@@ -11,25 +10,18 @@
 #include "common/game.hpp"
 #include "port.hpp"
 
+#include <optional>
 #include <ranges>
 
 using namespace opeu::game;
 
-namespace {
-constexpr uint8_t NONE{ 255 };
-} // namespace
-
-// x and y: DS offsets of the bytes that receive the cell; returns 0 when there is no candidate.
-uint16_t opeu_arrival_locate(Game& game, uint16_t x, uint16_t y, uint8_t side) {
+auto ArrivalCell(Game& game, uint8_t side) -> std::optional<GridCell> {
   auto const count{ opeu_request_cells(game, side, opeu_arrival_cell_allowed) };
-  if (!count) return 0;
-  auto const& data{ Data(game) };
-  Byte(game, x) = NONE;
+  if (!count) return std::nullopt;
+  auto const&             data{ Data(game) };
+  std::optional<GridCell> picked;
   for (auto const cell_y : std::views::iota(uint8_t{ 0 }, MAP_HEIGHT))
     for (auto const cell_x : std::views::iota(uint8_t{ 0 }, MAP_WIDTH))
-      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(game, x) == NONE || game.State().RandomBounded(count) == 0)) {
-        Byte(game, x) = cell_x;
-        Byte(game, y) = cell_y;
-      }
-  return 1;
+      if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (!picked || game.State().RandomBounded(count) == 0)) picked = GridCell{ cell_x, cell_y };
+  return picked;
 }

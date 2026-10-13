@@ -7,6 +7,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/dispatch.hpp"
+#include "common/draw-request.hpp"
 #include "common/game.hpp"
 #include "common/host.hpp"
 #include "core/limits.hpp"
@@ -69,9 +70,8 @@ auto WidthByte(Game& game, ListWindow const& window, std::uint32_t i) -> std::ui
   return Byte(game, static_cast<std::uint16_t>(window.widths + i));
 }
 
-// The row-draw routines, by the enumerator a window's draw slot holds: each gets the column, first row, last column, last
-// row and the area flags.
-using RowDraw            = auto (*)(Game&, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t) -> void;
+// The row-draw routines, by the enumerator a window's draw slot holds.
+using RowDraw            = auto (*)(Game&, DrawRequest const&) -> void;
 constexpr auto ROW_DRAWS = DispatchRows<ListDraw, RowDraw>({
     { ListDraw::GENERALS,      opeu_general_list_draw_rows },
     { ListDraw::GROUPS,        opeu_tbl_draw_groups        },
@@ -91,17 +91,8 @@ constexpr auto ROW_DRAWS = DispatchRows<ListDraw, RowDraw>({
     { ListDraw::DEPLOYMENT,    opeu_deploy_draw_rows       },
 });
 
-// What a row-draw routine is asked to draw: columns column..last_column of rows row..last_row, and the area flags.
-struct DrawRequest {
-  std::uint8_t column;
-  std::uint8_t row;
-  std::uint8_t last_column;
-  std::uint8_t last_row;
-  std::uint8_t area;
-};
-
 auto DrawRows(Game& game, ListWindow const& window, DrawRequest const& request) -> void {
-  Dispatch(ROW_DRAWS, ListDraw{ window.draw }, game, request.column, request.row, request.last_column, request.last_row, request.area);
+  Dispatch(ROW_DRAWS, ListDraw{ window.draw }, game, request);
 }
 
 // The scroll strip at a window's left edge: its pixel column and the rows its arrows span.
@@ -224,14 +215,6 @@ auto TableColumnLayout(Game& game, std::uint8_t column, std::uint8_t rows) -> Ta
   return layout;
 }
 
-// The service form of TableColumnLayout: stores the three bytes at the DS offsets `first`, `second` and `third`.
-void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third) {
-  auto const layout{ TableColumnLayout(game, column, rows) };
-  Byte(game, first)  = layout.lead;
-  Byte(game, second) = layout.start;
-  Byte(game, third)  = layout.count;
-}
-
 namespace {
 
 // Where the pointer is over a list window.
@@ -273,7 +256,7 @@ struct PointerPlace {
   std::uint8_t move_key;
 };
 
-auto PlaceOf(Game& game, ListWindow const& window, MousePoint const& mouse) -> PointerPlace {
+auto PlaceOf(Game& game, ListWindow const& window, ScreenPoint const& mouse) -> PointerPlace {
   auto const& data{ Data(game) };
   auto const  strip{ StripOf(window) };
   auto const [x, y]{ mouse };

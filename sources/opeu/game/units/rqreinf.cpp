@@ -99,7 +99,7 @@ void opeu_request_regiment(Game& game) {
   opeu_title_panel_begin(game);
   opeu_control_message(game, Near(data, data.rq_which_regiment_text), data.context_record2);
   data.rq_regiment_list.rows = static_cast<std::uint8_t>(units + 1);
-  if (!opeu_list_dialog(game, Near(data, data.rq_regiment_list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS))) return;
+  if (!opeu_list_dialog(game, data.rq_regiment_list, LIST_OPTIONS)) return;
   auto const    unit{ data.ai_unit_list[data.list_row] };
   auto const    slot{ static_cast<std::uint8_t>(opeu_unit_index(unit)) };
   std::uint16_t kind;

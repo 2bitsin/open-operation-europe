@@ -64,7 +64,7 @@ void opeu_army_summary(Game& game) {
   std::uint16_t influence{ 0 };
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += 4)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
-      if (opeu_cell_influence_side(game, x, y) == side) ++influence;
+      if (opeu_cell_influence_side(game, { x, y }) == side) ++influence;
   auto const cities{ opeu_count_active_objectives(game, side) };
   auto const row{ [&](std::uint16_t y) { opeu_army_position(game, ROW_X, y); } };
   row(163);

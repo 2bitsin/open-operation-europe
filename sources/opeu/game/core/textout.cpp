@@ -263,7 +263,7 @@ int16_t opeu_text_scroll_check(Game& game) {
 // Clears the window and homes the cursor to its top left.
 void opeu_text_scroll_up(Game& game) {
   auto const& data{ Data(game) };
-  opeu_wait_confirm(game, static_cast<int16_t>(0));
+  opeu_wait_confirm(game);
   game.Machine().Display().Box({ static_cast<uint16_t>(data.text_left), static_cast<uint16_t>(data.text_top), static_cast<uint16_t>(data.text_right - data.text_left),
                                  static_cast<uint16_t>(data.text_bottom - data.text_top + 2) },
                                data.text_background ? data.text_background : data.text_paper);
@@ -394,7 +394,7 @@ uint8_t opeu_text_put(Game& game, uint8_t c) {
       if (data.text_scroll)
         opeu_text_scroll_up(game);
       else
-        opeu_wait_confirm(game, static_cast<int16_t>(1));
+        opeu_wait_confirm(game);
       goto reset;
     default: break;
     }

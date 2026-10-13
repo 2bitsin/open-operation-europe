@@ -47,7 +47,7 @@ constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
 // Shows the list window; 0 when it is cancelled.
 auto ShowList(Game& game, ListWindow const& list) -> uint16_t {
-  return opeu_list_dialog(game, Near(Data(game), list), LIST_LIMIT, LIST_FLAGS);
+  return opeu_list_dialog(game, list, LIST_OPTIONS);
 }
 
 // Lists the side's free generals and sizes the generals' list to them (one row more for the title).

@@ -24,7 +24,8 @@
 using namespace opeu::game;
 
 namespace {
-// DS scratch the services write: the column x, first and last column (3 bytes), then the header text.
+// DS scratch: the column layout (3 bytes, still stored where the original kept it: the battle path costs share the
+// bytes), then the header text the format service writes.
 constexpr uint16_t COLUMNS_AT{ 0xeb00 };
 constexpr uint16_t TEXT_AT{ 0xeb04 };
 constexpr uint16_t ROW_PIXELS{ 17 };
@@ -40,17 +41,19 @@ uint8_t opeu_deploy_true(Game&) {
   return 1;
 }
 
-void opeu_deploy_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_deploy_draw_rows(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&       data{ Data(game) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
-  opeu_table_columns(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row), COLUMNS_AT, COLUMNS_AT + 1, COLUMNS_AT + 2);
+  auto const  layout{ TableColumnLayout(game, column, last_column) };
+  std::ranges::copy(std::array{ layout.lead, layout.start, layout.count }, game.State().Bytes(COLUMNS_AT, 3).begin());
   // The strength column: the row indent, the first column and the window's left edge.
-  auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(game, window.widths) + Byte(game, COLUMNS_AT) + window.x - 0x20); } };
+  auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(game, window.widths) + layout.lead + window.x - 0x20); } };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(TEXT_AT), static_cast<std::uint16_t>(Near(data, data.deploy_header)) });
     opeu_army_position(game, static_cast<short>(strength_x()), static_cast<short>(window.y + 1));
     opeu_text_color(game, PLAIN_COLOR);
-    opeu_text_put_range(game, TEXT_AT, static_cast<uint8_t>(Byte(game, COLUMNS_AT + 1)), static_cast<uint8_t>(Byte(game, COLUMNS_AT + 2)));
+    opeu_text_put_range(game, TEXT_AT, layout.start, layout.count);
   }
   for (auto const index : std::views::iota(unsigned{ first }, std::max(unsigned{ first }, last + 1u))) {
     auto const  element_at{ data.ai_element_list[index] };

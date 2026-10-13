@@ -38,7 +38,8 @@ constexpr std::uint16_t NAME_INDENT{ 2 };
 
 // The regiment table: name, position, order target and order, and fuel, ammunition and food percentages. Own
 // regiments need to be selectable; enemy regiments show the full row only when spotted, otherwise just the position.
-void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_units(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -47,7 +48,7 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };
   auto const  second{ static_cast<std::uint16_t>(scratch + LOCATION_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, row) };
+  auto const  layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_unit_header));
   for (auto const entry : DrawnRows(first, last)) {
     auto const  unit{ data.row_units[entry] };
@@ -81,7 +82,8 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
 }
 
 // The regiment orders table: the regiment's name and a fixed request text.
-void opeu_tbl_draw_orders(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_orders(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
@@ -89,7 +91,7 @@ void opeu_tbl_draw_orders(Game& game, uint8_t column, uint8_t first, uint8_t row
   auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_BUFFER) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, row) };
+  auto const  layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_order_header));
   for (auto const entry : DrawnRows(first, last)) {
     auto const unit{ data.row_units[entry] };

@@ -17,7 +17,6 @@
 #include "core/msnrept.hpp"
 #include "core/paraunit.hpp"
 #include "core/people.hpp"
-#include "core/pixel-service.hpp"
 #include "core/recindex.hpp"
 #include "core/sideutil.hpp"
 #include "core/template.hpp"
@@ -147,7 +146,7 @@ void opeu_para_drop_event(Game& game) {
   side.planes     = SubWord(side.planes, left);
   side.paratroops = SubWord(side.paratroops, drop.paratroops);
   left            = SubWord(left, opeu_air_damage_roll(game, x, y, opeu_min16(left, FIRE_PLANES) / 30));
-  auto const     pixel{ CellViewPixel(game, x, y) };
+  auto const     pixel{ ViewPixel(Data(game), { static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y) }) };
   uint16_t const target_x{ pixel.x };
   uint16_t const target_y{ pixel.y };
   for (uint16_t row = FLIGHT_START; row >= FLIGHT_END; row--) {

@@ -28,11 +28,9 @@
 using namespace opeu::game;
 
 namespace {
-// The DS reserve of the picked cell and the question text the services write, and their offsets in it.
+// The DS reserve of the question text the services write, and its offset in it.
 constexpr uint16_t TARGET_RESERVE{ 0x76 };
 constexpr uint16_t TEXT_AT{ 0 };
-constexpr uint16_t PICKED_X_AT{ 0x6a };
-constexpr uint16_t PICKED_Y_AT{ 0x68 };
 constexpr uint16_t ONE_LINE_NAME{ 13 }; // longer objective names take two lines
 
 } // namespace
@@ -52,26 +50,20 @@ uint8_t opeu_menu_always(void) {
 void opeu_group_set_target(Game& game, uint8_t group) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ TARGET_RESERVE };
-  auto const          x_at{ locals.At(PICKED_X_AT) };
-  auto const          y_at{ locals.At(PICKED_Y_AT) };
   auto const          text{ locals.At(TEXT_AT) };
   auto const          person{ opeu_find_group_record(game, data.current_side, group) };
   auto&               division{ GroupOf(data, data.current_side, group) };
   auto&               task{ division.tasks[data.supply_row] };
-  if (task.kind != Bits(TaskKind::NONE)) {
-    Byte(game, x_at) = task.x;
-    Byte(game, y_at) = task.y;
-  } else {
+  auto const          start{ [&] {
+    if (task.kind != Bits(TaskKind::NONE)) return GridCell{ task.x, task.y };
     auto const& unit{ Record<Unit>(data, opeu_find_group_selected_unit(game, Near(data, division))) };
-    Byte(game, x_at) = unit.x;
-    Byte(game, y_at) = unit.y;
-  }
-  opeu_arrival_location(game, static_cast<uint8_t>(Byte(game, x_at)), static_cast<uint8_t>(Byte(game, y_at)), static_cast<uint8_t>(data.current_side));
+    return GridCell{ unit.x, unit.y };
+  }() };
+  opeu_arrival_location(game, start.x, start.y, static_cast<uint8_t>(data.current_side));
   opeu_control_message(game, Near(data, data.target_text), person);
   bool changed{ false };
-  if (opeu_map_pick_location(game, x_at, y_at)) {
-    auto const x{ Byte(game, x_at) };
-    auto const y{ Byte(game, y_at) };
+  if (auto const picked{ PickLocation(game, start) }) {
+    auto const [x, y]{ *picked };
     auto const objective{ opeu_find_objective_at(game, x, y) };
     TaskKind   kind;
     if (objective) {
@@ -85,8 +77,8 @@ void opeu_group_set_target(Game& game, uint8_t group) {
                                                               static_cast<std::uint16_t>(data.map_scale * x), static_cast<std::uint16_t>(y * data.map_scale) });
     }
     if (opeu_confirm_message(game, text, person)) {
-      task.x    = Byte(game, x_at);
-      task.y    = Byte(game, y_at);
+      task.x    = x;
+      task.y    = y;
       task.kind = Bits(kind);
       changed   = true;
     }

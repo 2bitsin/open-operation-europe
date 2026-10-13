@@ -132,7 +132,11 @@ auto opeu_battle_step_into(Game& game, uint16_t element, GridCell cell) -> StepI
   }
   auto const& position{ PositionOf(data, element) };
   if (!opeu_battle_cell_occupied(game, cell.x, cell.y)) {
-    uint8_t const facing{ IsOfCategory(ElementTypeOf(data, element), Category::INFANTRY) ? uint8_t{ 0 } : opeu_battle_cell_facing(game, position.x, position.y, cell.x, cell.y) };
+    uint8_t const facing{
+      IsOfCategory(ElementTypeOf(data, element), Category::INFANTRY) ? uint8_t{ 0 }
+          : CellFacingToward({ .from = { position.x, position.y }, .to = cell }
+          )
+    };
     opeu_battle_animate_facing(game, element, facing);
     opeu_battle_move_element(game,
                              {

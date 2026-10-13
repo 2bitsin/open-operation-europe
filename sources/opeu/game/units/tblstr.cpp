@@ -22,14 +22,15 @@ namespace {
 constexpr std::uint16_t NAME_INDENT{ 2 };
 } // namespace
 
-void opeu_tbl_draw_strength(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_strength(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const buffers{ TABLE_SCRATCH };
   buffers.Clear(game);
   auto const  scratch{ buffers.At(0) };
   auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, row) };
+  auto const  layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_str_header));
   for (auto const entry : DrawnRows(first, last)) {
     auto const& item{ Record<Item>(data, data.strength_items[entry]) };

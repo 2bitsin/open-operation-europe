@@ -56,8 +56,6 @@ constexpr std::uint8_t STOCK_ITEMS{ 6 };
 
 // The command's locals whose near addresses reach services, at their places below the top of its reserve.
 enum Locals : std::uint16_t {
-  STEP_X      = 0x1a, // the cell grid_step moves
-  STEP_Y      = 0x1e,
   UNIT_LIST   = 0x2e, // the saved list states
   SLOT_LIST   = 0x9e,
   TYPE_LIST   = 0xa8,
@@ -101,7 +99,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   for (;;) {
     opeu_ops_chief_text(game, Near(data, data.organize_dispatch));
     opeu_copy_bytes(game, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
-    if (!opeu_list_dialog(game, Near(data, data.supply_slot_list), 1, static_cast<uint8_t>(flags))) {
+    if (!opeu_list_dialog(game, data.supply_slot_list, { 1, static_cast<std::uint8_t>(flags) })) {
       if (!data.supply_total && opeu_alloc_groups_nonempty(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots)) == 1) {
         if (!opeu_ops_chief_wait(game, Near(data, data.organize_complete))) {
           flags = ALLOC_FIRST;
@@ -127,7 +125,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
     for (;;) {
       opeu_ops_chief_text(game, Near(data, data.organize_select));
       opeu_copy_bytes(game, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
-      if (!opeu_list_dialog(game, Near(data, data.supply_type_list), 1, static_cast<uint8_t>(flags))) break;
+      if (!opeu_list_dialog(game, data.supply_type_list, { 1, static_cast<std::uint8_t>(flags) })) break;
       opeu_copy_bytes(game, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
       std::uint8_t const row{ data.list_row };
       auto const&        type{ data.element_types[data.supply_types[row]] };
@@ -167,7 +165,7 @@ void opeu_turn_action_6(Game& game) {
     }
     SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
     opeu_control_message(game, Near(data, data.organize_which), person());
-    if (!opeu_list_dialog(game, Near(data, data.organize_list), 1, static_cast<uint8_t>(flags))) break;
+    if (!opeu_list_dialog(game, data.organize_list, { 1, static_cast<std::uint8_t>(flags) })) break;
     opeu_copy_bytes(game, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
     auto const unit{ data.row_units[data.list_row] };
     opeu_unit_announce(game, flags);
@@ -176,15 +174,12 @@ void opeu_turn_action_6(Game& game) {
     std::uint8_t other_elements{ 0 };
     opeu_supply_reset(game);
     // A friendly objective on the regiment's cell or next to it that the player accepts.
-    bool       found{ false };
-    auto const step_x{ LocalAt(locals, STEP_X) };
-    auto const step_y{ LocalAt(locals, STEP_Y) };
+    bool found{ false };
     for (std::uint8_t direction{ 0 }; direction <= GRID_DIRECTIONS; ++direction) {
       auto const& regiment{ Record<Unit>(data, unit) };
-      Byte(game, step_x) = regiment.x;
-      Byte(game, step_y) = regiment.y;
-      if (!opeu_grid_step(game.State().Bytes(step_x, 1).data(), game.State().Bytes(step_y, 1).data(), static_cast<uint8_t>(direction))) continue;
-      auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(Byte(game, step_x)), static_cast<uint8_t>(Byte(game, step_y))) };
+      auto const  next{ StepOnMap({ regiment.x, regiment.y }, direction) };
+      if (!next) continue;
+      auto const objective{ opeu_find_objective_at(game, next->x, next->y) };
       if (!objective) continue;
       if (static_cast<std::uint8_t>(opeu_objective_side(game, objective)) != data.current_side) continue;
       opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.organize_confirm_format), objective });
@@ -208,7 +203,7 @@ void opeu_turn_action_6(Game& game) {
       data.organize_list.rows = static_cast<std::uint8_t>(allocation.types + 1);
       SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
       opeu_control_message(game, Near(data, data.organize_with), person());
-      if (!opeu_list_dialog(game, Near(data, data.organize_list), 1, static_cast<uint8_t>(LIST_FIRST))) {
+      if (!opeu_list_dialog(game, data.organize_list, { 1, static_cast<std::uint8_t>(LIST_FIRST) })) {
         flags = LIST_AGAIN;
         Refresh(game);
         continue;

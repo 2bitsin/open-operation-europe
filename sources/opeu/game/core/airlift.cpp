@@ -37,9 +37,6 @@ constexpr std::uint16_t LIFT_REFUSED{ 0x74 };  // the officer refuses a daytime 
 
 constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the message text of the lead and the order, which the format service writes
 // The drop point, which the pick service writes: offsets in the command's reserve.
-constexpr std::uint16_t CELL_Y_AT{ 0 };
-constexpr std::uint16_t CELL_X_AT{ 4 };
-constexpr std::uint16_t CELL_BYTES{ 6 };
 
 // The planes `amount` units of one supply kind take: whole loads, a part load counting as one.
 constexpr auto PlanesFor(std::uint16_t amount) -> std::uint16_t {
@@ -128,16 +125,13 @@ void opeu_air_lift_command(Game& game) {
   auto const food{ ask_kind(Near(data, data.lift_ask_food), side.stock[2]) };
   if (food == MENU_CANCELLED) return;
   if (food + fuel + ammo == 0) return;
-  ServiceLocals const locals{ CELL_BYTES };
-  auto const          at_x{ locals.At(CELL_X_AT) };
-  auto const          at_y{ locals.At(CELL_Y_AT) };
-  auto&               cell_x{ Byte(game, at_x) };
-  auto&               cell_y{ Byte(game, at_y) };
-  cell_x = static_cast<std::uint8_t>(data.viewport_x);
-  cell_y = static_cast<std::uint8_t>(data.viewport_y);
+  GridCell cell{ static_cast<std::uint8_t>(data.viewport_x), static_cast<std::uint8_t>(data.viewport_y) };
+  auto const& [cell_x, cell_y]{ cell };
   do {
     opeu_control_message(game, Near(data, data.lift_select_point), data.context_record3);
-    if (!opeu_map_pick_location(game, at_x, at_y)) return;
+    auto const picked{ PickLocation(game, cell) };
+    if (!picked) return;
+    cell = *picked;
   } while (!opeu_air_target_valid(game, cell_x, cell_y, Near(data, data.lift_cargo_name)));
   auto const delay{ ask(Near(data, data.lift_ask_hours), 1, 24) };
   if (delay == MENU_CANCELLED) return;

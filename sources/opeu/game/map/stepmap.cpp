@@ -12,13 +12,3 @@ auto StepOnMap(GridCell cell, std::uint8_t direction) -> std::optional<GridCell>
   return next;
 }
 } // namespace opeu::game::detail::stepmap
-
-using namespace opeu::game;
-
-uint16_t opeu_grid_step(uint8_t* x, uint8_t* y, uint8_t direction) {
-  auto const next{ StepOnMap({ *x, *y }, direction) };
-  if (!next) return 0;
-  *x = next->x;
-  *y = next->y;
-  return 1;
-}

@@ -91,12 +91,8 @@ uint16_t opeu_notice_slot(Game& game, uint16_t objective, uint8_t slot) {
 // Builds the garrison of an objective on the battle cell from its items, with ammunition and fuel from its stocks up
 // to the garrison's capacities, holding the cell; it becomes the first defender. Returns whether it has elements.
 uint16_t opeu_notice_garrison(Game& game) {
-  ServiceLocals const locals{ 0x12 };
-  auto&               data{ Data(game) };
-  uint16_t const      capacity_a{ locals.At(0xe) };
-  uint16_t const      capacity_c{ locals.At(6) };
-  uint16_t const      capacity_b{ locals.At(0) };
-  uint16_t const      objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
+  auto&          data{ Data(game) };
+  uint16_t const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   if (!objective) return 0;
   auto& garrison{ data.garrison };
   garrison.first = 0;
@@ -112,9 +108,9 @@ uint16_t opeu_notice_garrison(Game& game) {
   auto& city{ Record<Objective>(data, objective) };
   garrison.x = data.battle_x;
   garrison.y = data.battle_y;
-  StoreUnitCapacities(game, GARRISON_AT, { capacity_a, capacity_b, capacity_c });
-  garrison.resources[0]  = opeu_min16(Word(game, capacity_a), city.resources[0]);
-  garrison.resources[1]  = opeu_min16(Word(game, capacity_b), city.resources[1]);
+  auto const capacities{ UnitCapacities(data, GARRISON_AT) };
+  garrison.resources[0]  = opeu_min16(capacities.ammunition, city.resources[0]);
+  garrison.resources[1]  = opeu_min16(capacities.fuel, city.resources[1]);
   city.resources[0]     -= garrison.resources[0];
   city.resources[1]     -= garrison.resources[1];
   auto& order{ garrison.orders[0] };

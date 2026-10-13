@@ -1,5 +1,5 @@
 // The row-draw callbacks of the division table and the mission table, and the service table every row-draw callback
-// calls through. A callback gets (column, first, row, last, flags): flags & 3 draws the header line, flags & 5 the row
+// calls through. A callback gets a DrawRequest: area & 3 draws the header line, flags & 5 the row
 // labels, and rows first..last are formatted into a frame buffer and printed through the column's visible range.
 #include "core/tblgroup.hpp"
 #include "core/people.hpp"
@@ -37,13 +37,14 @@ constexpr std::uint16_t PLACE_AT{ 60 };
 
 // The division table: each division's label and, for a division with an eligible selected unit, its commander and
 // its fuel, ammunition and food percentages.
-void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_groups(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
   auto const  buffer{ locals.At(0) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ TableColumnLayout(game, column, row) };
+  auto const  columns{ TableColumnLayout(game, column, last_column) };
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, Near(data, data.tbl_group_header) });
@@ -79,14 +80,15 @@ void opeu_tbl_draw_groups(Game& game, uint8_t column, uint8_t first, uint8_t row
 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
 // cell, or the cell in map coordinates.
-void opeu_tbl_draw_missions(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+void opeu_tbl_draw_missions(Game& game, DrawRequest const& request) {
+  auto const [column, first, last_column, last, flags]{ request };
   auto&               data{ Data(game) };
   ServiceLocals const locals{ ROW_TEXT_BYTES };
   locals.Clear(game);
   auto const  buffer{ locals.At(0) };
   auto const  place{ locals.At(PLACE_AT) };
   auto const& window{ ActiveWindow(data) };
-  auto const  columns{ TableColumnLayout(game, column, row) };
+  auto const  columns{ TableColumnLayout(game, column, last_column) };
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_army_position(game, 0x26, 0x81);

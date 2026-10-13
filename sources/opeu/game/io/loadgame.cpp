@@ -80,7 +80,7 @@ auto ChooseAndLoad(Game& game, std::int16_t file) -> std::uint16_t {
   Paper(game, HIGHLIGHT);
   Say(game, QUESTION, data.load_which_text);
   Paper(game, NORMAL);
-  auto const choice{ opeu_list_dialog(game, Near(data, data.save_list), 1, 3) };
+  auto const choice{ opeu_list_dialog(game, data.save_list, { 1, 3 }) };
   if (choice == 0) return 0;
   Paper(game, HIGHLIGHT);
   Say(game, MESSAGE, data.loading_text);

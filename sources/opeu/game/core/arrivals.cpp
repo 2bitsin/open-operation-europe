@@ -38,7 +38,10 @@ void opeu_process_arrivals(Game& game, uint8_t side) {
       auto&      unit{ data.units[UNITS_PER_SIDE * side + UNITS_PER_GROUP * g + u] };
       auto const near{ Near(data, unit) };
       if (!(unit.flags & Bits(UnitFlag::ARRIVING))) continue;
-      if (!opeu_arrival_locate(game, Near(data, unit.x), Near(data, unit.y), side)) return;
+      auto const cell{ ArrivalCell(game, side) };
+      if (!cell) return;
+      unit.x = cell->x;
+      unit.y = cell->y;
       for (auto& task : group.tasks) task.kind = Bits(TaskKind::NONE);
       group.flags &= ~Bits(GroupFlag::RESERVE);
       group.flags |= Bits(GroupFlag::READY);

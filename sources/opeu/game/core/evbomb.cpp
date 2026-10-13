@@ -22,7 +22,6 @@
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "core/msglook.hpp"
-#include "core/pixel-service.hpp"
 #include "io/sound.hpp"
 #include "io/soundcue.hpp"
 #include "io/waitkey.hpp"
@@ -98,7 +97,7 @@ void opeu_bomb_animate(Game& game, uint16_t load, uint16_t unit, uint8_t side) {
   auto const  uy{ static_cast<std::uint16_t>(target.y) };
   data.map_mode[0] = 1;
   opeu_map_center(game, ux, uy, static_cast<std::uint16_t>(opeu_side_for_status(game, side)));
-  auto const pixel{ CellViewPixel(game, ux, uy) };
+  auto const pixel{ ViewPixel(Data(game), { static_cast<std::uint8_t>(ux), static_cast<std::uint8_t>(uy) }) };
   auto const target_y{ static_cast<std::uint16_t>(pixel.y + 8) };
   for (std::uint16_t row{ FALL_TOP }; row >= target_y; --row) {
     opeu_bomb_draw_frame(game, load, pixel.x, row);
@@ -148,7 +147,7 @@ void opeu_bomb_event(Game& game, uint16_t load) {
         opeu_bomb_animate(game, load, troop, voice);
         opeu_control_message(game, report, person);
       }
-      opeu_unit_casualties(game, troop, 15, 30, 10, 0, 1);
+      opeu_unit_casualties(game, troop, { .chance = 15, .base = 30, .spread = 10, .heavy = false, .blast = true });
       data.map_mode[0] = saved_mode;
     }
   }

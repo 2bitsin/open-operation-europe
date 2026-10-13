@@ -36,10 +36,7 @@ uint16_t opeu_order_arrive(Game& game) {
 
 // The pursue order: finished beside a valid target regiment; a lost target restores the saved order.
 uint16_t opeu_order_reach_unit(Game& game) {
-  ServiceCell const destination;
-  auto const        x{ destination.XAt() };
-  auto const        y{ destination.YAt() };
-  if (opeu_move_unit_target(game, x, y)) return opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, x)), static_cast<uint8_t>(Byte(game, y))) ? 1 : 0;
+  if (auto const [unit, cell]{ opeu_move_unit_target(game) }; unit) return opeu_move_adjacent(game, cell.x, cell.y) ? 1 : 0;
   opeu_restore_unit_order(game, Data(game).current_unit_ptr);
   return 1;
 }

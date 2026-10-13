@@ -173,9 +173,9 @@ auto CommandersConfirmed(Game& game) -> bool {
 
 // The commander dialog: keeps the picked generals (general_list entries) and, after the seventh pick, asks "Are you
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
-auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
+auto opeu_commander_list_dialog(Game& game, ListWindow const& window, ListOptions options) -> std::uint16_t {
   auto&                         data{ Data(game) };
-  auto const&                   window{ ListWindowAt(data, near) };
+  auto const                    flags{ options.flags };
   std::array<std::uint16_t, 10> picked{};
   Open(game, window, flags);
   std::uint8_t const column{ data.list_column };
@@ -262,9 +262,9 @@ auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, st
 // The list dialog: runs until `limit` choices are made (or the player cancels when allowed). On a window at column
 // 12h OK cancels and ESC selects: the dialog tests (flags == 1 | 2), which always holds. Windows at columns 0Fh and
 // 9 restore the screen and start over when another key ends the switch.
-auto opeu_list_dialog(Game& game, std::uint16_t near, std::uint8_t limit, std::uint8_t flags) -> std::uint16_t {
-  auto&                   data{ Data(game) };
-  auto const&             window{ ListWindowAt(data, near) };
+auto opeu_list_dialog(Game& game, ListWindow const& window, ListOptions options) -> std::uint16_t {
+  auto& data{ Data(game) };
+  auto const [limit, flags]{ options };
   constexpr std::uint16_t SWAPPED_COLUMN{ 0x12 };
   for (;;) {
     Open(game, window, flags);

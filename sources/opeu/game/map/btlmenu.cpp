@@ -31,10 +31,6 @@ using namespace opeu::game;
 namespace {
 constexpr unsigned BUTTONS{ 5 };
 constexpr uint16_t BUTTON_HEIGHT{ 24 };
-// The placement's DS reserve for the mouse position words the mouse service writes.
-constexpr uint16_t MOUSE_RESERVE{ 6 };
-constexpr uint16_t MOUSE_X_AT{ 2 };
-constexpr uint16_t MOUSE_Y_AT{ 0 };
 // The menu opens below and right of the pointer, kept on the screen.
 constexpr uint16_t POINTER_DX{ 40 };
 constexpr uint16_t POINTER_DY{ 26 };
@@ -63,12 +59,9 @@ void Panels(Game& game) {
 void opeu_battle_menu_place(Game& game) {
   auto& data{ Data(game) };
   if (data.input_mode) {
-    ServiceLocals const locals{ MOUSE_RESERVE };
-    auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
-    auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
-    opeu_mouse_position(game, mouse_x_at, mouse_y_at);
-    auto y{ static_cast<uint16_t>(Word(game, mouse_y_at) + POINTER_DY) };
-    auto x{ static_cast<uint16_t>(Word(game, mouse_x_at) + POINTER_DX) };
+    auto const pointer{ MousePosition(game) };
+    auto       y{ static_cast<uint16_t>(pointer.y + POINTER_DY) };
+    auto       x{ static_cast<uint16_t>(pointer.x + POINTER_DX) };
     x = opeu_max16(opeu_min16(x >> 3, LAST_COLUMN), 1);
     y = opeu_min16(y, LAST_ROW);
     for (auto const i : std::views::iota(unsigned{ 0 }, BUTTONS)) {
@@ -92,7 +85,10 @@ uint16_t opeu_battle_orders_menu(Game& game, uint16_t element) {
   for (;;) {
     opeu_battle_menu_place(game);
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
-    auto choice{ opeu_prompt_value(game, Near(data, data.battle_msg_orders), 1, BUTTONS, static_cast<std::int16_t>(1), Near(data, data.battle_menu_items)) };
+    auto choice{
+      opeu_prompt_value(game, Near(data, data.battle_msg_orders), { .range = { 1, BUTTONS }, .options = { .cancel = 1, .items = Near(data, data.battle_menu_items) } }
+         )
+    };
     if (choice == MENU_CANCELLED) {
       Panels(game);
       opeu_text_paper_set(game, static_cast<uint8_t>(0));

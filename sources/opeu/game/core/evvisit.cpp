@@ -103,7 +103,7 @@ void Converse(Game& game, uint8_t side) {
 // Whether no enemy special unit stands next to the unit and its cell is open ground outside the enemy's influence.
 auto opeu_visit_unit_safe(Game& game, Unit const& unit) -> bool {
   auto const enemy{ opeu_opposite_side(opeu_unit_side(Near(Data(game), unit))) };
-  return !Threatened(game, unit, enemy) && opeu_map_code(game, unit.x, unit.y) == OPEN_GROUND && opeu_cell_influence_side(game, unit.x, unit.y) != enemy;
+  return !Threatened(game, unit, enemy) && opeu_map_code(game, unit.x, unit.y) == OPEN_GROUND && opeu_cell_influence_side(game, { unit.x, unit.y }) != enemy;
 }
 
 // The presentation (Presenter::VISIT): the conversation, then the commander panel shown afresh.

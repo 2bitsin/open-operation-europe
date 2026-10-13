@@ -57,14 +57,19 @@ auto Capacities(Game const& game, uint16_t unit) -> std::array<uint16_t, 3> {
   return Figures(UnitCapacities(Data(game), unit));
 }
 
+// The landing casualties' roll: `losses` men on a hit, up to `spread` more, the blast where a player sees it.
+auto Landing(unsigned losses, unsigned spread, bool blast) -> CasualtyRoll {
+  return { .chance = LANDING_PERCENT, .base = static_cast<uint16_t>(losses), .spread = static_cast<uint16_t>(spread), .heavy = false, .blast = blast };
+}
+
 // The unit takes landing casualties; the cell's byte is kept across them.
-void Casualties(Game& game, Unit& unit, uint16_t losses, uint16_t c, uint16_t e) {
+void Casualties(Game& game, Unit& unit, CasualtyRoll const& roll) {
   auto&      data{ Data(game) };
   auto const near{ Near(data, unit) };
   auto&      cell{ CellAt(data, unit.x, unit.y) };
   auto const kept{ cell };
   opeu_arrival_prepare(game, near);
-  opeu_unit_casualties(game, near, LANDING_PERCENT, losses, c, 0, e);
+  opeu_unit_casualties(game, near, roll);
   cell = kept;
 }
 
@@ -168,7 +173,7 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
   if (other) {
     auto& enemy{ Record<Unit>(data, other) };
     if (opeu_unit_side(other) != side) {
-      Casualties(game, unit, troops / 3 + losses, troops / 40, 1);
+      Casualties(game, unit, Landing(troops / 3 + losses, troops / 40, true));
       if (unit.first) {
         Record<Element>(data, unit.first).flags  |= Bits(ElementFlag::SPOTTED);
         Record<Element>(data, enemy.first).flags |= Bits(ElementFlag::SPOTTED);
@@ -178,18 +183,18 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
     unit.flags &= ~ready;
     opeu_arrival_prepare(game, other);
     unit.flags = flags;
-  } else if (opeu_cell_marked(game, x, y, ANY_SIDE)) {
-    Casualties(game, unit, troops / 10 + losses, troops / 40, 1);
-    opeu_mark_cell(game, x, y, side);
+  } else if (opeu_cell_marked(game, { x, y }, ANY_SIDE)) {
+    Casualties(game, unit, Landing(troops / 10 + losses, troops / 40, true));
+    opeu_mark_cell(game, { x, y }, side);
     opeu_map_erase(game, x, y);
   } else {
-    Casualties(game, unit, losses >> 1, troops / 100, 0);
+    Casualties(game, unit, Landing(losses >> 1, troops / 100, false));
     return unit.flags & ready;
   }
   if (!unit.first) return unit.flags & ready;
   for (auto const [to_x, to_y] : CellsAround({ x, y })) {
     if (opeu_cell_side(game, to_x, to_y) != NO_SIDE) continue;
-    if (opeu_cell_marked(game, to_x, to_y, ANY_SIDE)) continue;
+    if (opeu_cell_marked(game, { to_x, to_y }, ANY_SIDE)) continue;
     if (!opeu_para_cell_ok(game, to_x, to_y)) continue;
     unit.x = to_x;
     unit.y = to_y;

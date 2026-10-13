@@ -122,7 +122,7 @@ void opeu_turn_action_2(Game& game) {
   for (;;) {
     opeu_control_message(game, offsetof(DataSegment, stock_select_city), data.context_record2);
     opeu_title_panel_begin(game);
-    if (!opeu_list_dialog(game, offsetof(DataSegment, city_dialog), 1, height)) break;
+    if (!opeu_list_dialog(game, Data(game).city_dialog, { 1, static_cast<std::uint8_t>(height) })) break;
     auto const objective{ data.view_objectives[data.list_row] };
     opeu_unit_flash(game, objective, FLASH_TICKS);
     opeu_stock_edit(game, objective);
