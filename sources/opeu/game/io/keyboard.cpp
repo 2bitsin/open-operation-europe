@@ -47,11 +47,6 @@ constexpr std::uint16_t POINTER_SHAPE{ 0x6e0 };
 constexpr std::uint16_t CURSOR_HOOK_OFFSET{ 0x002e };
 constexpr std::uint16_t CURSOR_HOOK_SEGMENT{ 0x0541 };
 
-auto SetStream(DataSegment& data, std::uint16_t offset) -> void {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = POINTER_SEGMENT;
-}
-
 auto HookCursor(DataSegment& data) -> void {
   data.idle_hook = { CURSOR_HOOK_OFFSET, CURSOR_HOOK_SEGMENT };
 }
@@ -87,9 +82,6 @@ auto PreviousItem(std::uint16_t item) -> std::uint16_t {
   return static_cast<std::uint16_t>(item - sizeof(MenuItem));
 }
 
-auto NextItem(std::uint16_t item) -> std::uint16_t {
-  return static_cast<std::uint16_t>(item + sizeof(MenuItem));
-}
 } // namespace
 
 // Inverts the text cursor cell (column at most 4fh).
@@ -101,7 +93,7 @@ void opeu_text_cursor_clear(std::uint8_t* ds, HostService service) {
 // The blinking cursor tile; installed as the idle hook.
 void opeu_text_cursor_draw(std::uint8_t* ds, HostService service) {
   auto& data{ Data(ds) };
-  SetStream(data, CURSOR_TILE);
+  SetStream(data, POINTER_SEGMENT, CURSOR_TILE);
   Input(ds, service, InputCall::DRAW_FAR, opeu_min16(data.text_x, 0x4e), data.text_y, 2, 16, INVERT_MODE, data.stream_ptr[1], data.stream_ptr[0]);
 }
 
@@ -217,7 +209,7 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
       case '2':
       case '6':
         opeu_menu_draw_item(ds, service, item, 0);
-        item = NextItem(item);
+        item = NextMenuItem(item);
         if (++chosen > max) {
           chosen = min;
           item   = items;
@@ -233,7 +225,7 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
         } else
           while (chosen < max) {
             chosen++;
-            item = NextItem(item);
+            item = NextMenuItem(item);
           }
         value = chosen;
         break;
@@ -296,17 +288,17 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service) -> std::uint8_t {
   for (;;) {
     auto const [x, y]{ MousePosition(ds, service) };
     if (saved_column != 0xffff && (x != drawn_x || y != drawn_y)) {
-      SetStream(data, POINTER_SAVE);
+      SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
       Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1], data.stream_ptr[0]);
     }
     if (x >> 3 != saved_column || y != saved_y) {
       saved_column = x >> 3;
       saved_y      = y;
-      SetStream(data, POINTER_SAVE);
+      SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
       Input(ds, service, InputCall::BITMAP_SAVE, saved_column, saved_y, 5, 48, data.stream_ptr[1], data.stream_ptr[0]);
     }
     if (x != drawn_x || y != drawn_y) {
-      SetStream(data, POINTER_SHAPE);
+      SetStream(data, POINTER_SEGMENT, POINTER_SHAPE);
       Input(ds, service, InputCall::SPRITE_DRAW, x, y, 32, 48, data.stream_ptr[0], data.stream_ptr[1], POINTER_MASK, POINTER_SEGMENT, 0, data.numdlg_save_segment, 1);
       drawn_x = x;
       drawn_y = y;
@@ -322,7 +314,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service) -> std::uint8_t {
       break;
     }
   }
-  SetStream(data, POINTER_SAVE);
+  SetStream(data, POINTER_SEGMENT, POINTER_SAVE);
   Input(ds, service, InputCall::BITMAP_RESTORE, saved_column, saved_y, 5, 48, 0, data.stream_ptr[1], data.stream_ptr[0]);
   opeu_mouse_window(ds, service, 0, 0, 639, 399);
   return answer;

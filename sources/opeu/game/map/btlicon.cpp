@@ -52,7 +52,7 @@ constexpr uint8_t LAST_PLAIN_CODE{ 14 };
 
 uint8_t opeu_battle_element_icon(uint8_t* ds, BattleEvent, uint16_t element) {
   auto&       data{ Data(ds) };
-  auto const& type{ data.element_types[Record<Element>(data, element).type] };
+  auto const& type{ ElementTypeOf(data, element) };
   auto const  flags{ type.flags };
   Icon        icon{ Icon::NONE };
   switch (static_cast<Category>(type.category)) {

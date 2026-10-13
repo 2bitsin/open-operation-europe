@@ -73,7 +73,7 @@ void opeu_deploy_put(uint8_t* ds, BattleEvent event, uint16_t element) {
   PlacementByte(ds, element, 7) = PLACED;
   Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
   auto facing{ opeu_deploy_facing(ds, event, element) };
-  if (!data.element_types[Record<Element>(data, element).type].category) facing = 0;
+  if (!ElementTypeOf(data, element).category) facing = 0;
   Call(ds, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, data.battle_cursor_x, data.battle_cursor_y, element, facing);
 }
 

@@ -1,6 +1,7 @@
 // The computer's battle element actions: withdrawal to a map edge, ranged fire, the advance behind the unit's
 // ranged elements, and the dispatch on the element's plan.
 #include "map/btlaiact.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -39,14 +40,6 @@ constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
 // ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
 
-[[nodiscard]] auto TypeOf(DataSegment& data, uint16_t element) -> ElementType& {
-  return data.element_types[Record<Element>(data, element).type];
-}
-
-[[nodiscard]] auto Direction(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
-}
-
 [[nodiscard]] auto CanEnter(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> uint16_t {
   return Call(ds, event, BattleRoutine::BATTLE_CAN_ENTER, x, y, element);
 }
@@ -68,7 +61,7 @@ constexpr uint8_t RANGED_MODE{ 1 };
 
 uint16_t opeu_battle_ai_withdraw(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) {
   auto& data{ Data(ds) };
-  auto  side{ Direction(ds, event, unit) };
+  auto  side{ UnitDirection(ds, event, unit) };
   if (side == BATTLE_NOT_ADJACENT) {
     if (data.battle_ai_entry_side[0] == NONE) return 0;
     side = data.battle_ai_entry_side[0];
@@ -102,7 +95,7 @@ uint16_t opeu_battle_ai_try_fire(uint8_t* ds, BattleEvent event, uint16_t elemen
   auto& data{ Data(ds) };
   if (!CanEnter(ds, event, PositionOf(data, target).x, PositionOf(data, target).y, element)) return 0;
   if (!Flood(ds, event, PositionOf(data, target).x, PositionOf(data, target).y, PositionOf(data, element).x, PositionOf(data, element).y, element)) return 0;
-  PositionOf(data, element).state  = Bits(TypeOf(data, element).category == Bits(Category::TANKS) ? BattleState::BLITZ : BattleState::ATTACK);
+  PositionOf(data, element).state  = Bits(ElementTypeOf(data, element).category == Bits(Category::TANKS) ? BattleState::BLITZ : BattleState::ATTACK);
   PositionOf(data, element).target = target;
   opeu_battle_engage(ds, event, element);
   opeu_battle_set_facing(ds, event, element, NONE);
@@ -113,7 +106,7 @@ void opeu_battle_ai_fire_or_attack(uint8_t* ds, BattleEvent event, uint16_t elem
   auto& data{ Data(ds) };
   for (auto& other : Elements(data, Record<Unit>(data, unit))) {
     auto const near{ Near(data, other) };
-    if (opeu_battle_element_active(ds, event, near) && TypeOf(data, near).gun_range > RANGED_MODE && opeu_battle_ai_try_fire(ds, event, element, near)) return;
+    if (opeu_battle_element_active(ds, event, near) && ElementTypeOf(data, near).gun_range > RANGED_MODE && opeu_battle_ai_try_fire(ds, event, element, near)) return;
   }
   opeu_battle_ai_attack_near(ds, event, element, unit);
 }
@@ -134,14 +127,14 @@ void opeu_battle_ai_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
   for (auto& other : Elements(data, Record<Unit>(data, unit))) {
     auto const near{ Near(data, other) };
     if (!opeu_battle_element_active(ds, event, near)) continue;
-    if (TypeOf(data, near).gun_range <= RANGED_MODE) continue;
+    if (ElementTypeOf(data, near).gun_range <= RANGED_MODE) continue;
     front_x = PositionOf(data, near).x;
     front_y = PositionOf(data, near).y;
     break;
   }
   if (front_x == NONE) opeu_battle_ai_hold(ds, event, element);
-  auto direction{ Direction(ds, event, unit) };
-  if (direction == BATTLE_NOT_ADJACENT) direction = static_cast<uint8_t>(7 - Direction(ds, event, opeu_battle_ai_unit_target(ds, event, element)));
+  auto direction{ UnitDirection(ds, event, unit) };
+  if (direction == BATTLE_NOT_ADJACENT) direction = static_cast<uint8_t>(7 - UnitDirection(ds, event, opeu_battle_ai_unit_target(ds, event, element)));
   uint16_t best{ NO_DISTANCE };
   uint8_t  best_x{ 0 };
   uint8_t  best_y{ 0 };
@@ -186,7 +179,7 @@ void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element
 }
 
 void opeu_battle_ai_act(uint8_t* ds, BattleEvent event, uint16_t element) {
-  if (TypeOf(Data(ds), element).gun_range > RANGED_MODE)
+  if (ElementTypeOf(Data(ds), element).gun_range > RANGED_MODE)
     opeu_battle_ai_engage_best(ds, event, element);
   else
     opeu_battle_ai_advance(ds, event, element);

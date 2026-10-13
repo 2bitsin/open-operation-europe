@@ -59,14 +59,6 @@ void Pause(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::BATTLE_PAUSE, 2);
 }
 
-[[nodiscard]] auto TypeOf(DataSegment& data, uint16_t element) -> ElementType const& {
-  return data.element_types[Record<Element>(data, element).type];
-}
-
-[[nodiscard]] auto IsInfantry(DataSegment& data, uint16_t element) -> bool {
-  return TypeOf(data, element).category == std::to_underlying(Category::INFANTRY);
-}
-
 [[nodiscard]] auto FindPath(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint16_t mode) -> uint16_t {
   return Call(ds, event, BattleRoutine::BATTLE_PATH_FLOOD, x, y, to_x, to_y, element, mode);
 }
@@ -95,14 +87,14 @@ uint16_t opeu_battle_target_in_range(uint8_t* ds, BattleEvent event, uint16_t el
     opeu_battle_update_element(ds, event, element);
     return 0;
   }
-  return TypeOf(data, element).gun_range < opeu_battle_terrain_mode(ds, event, element, target) ? 0 : 1;
+  return ElementTypeOf(data, element).gun_range < opeu_battle_terrain_mode(ds, event, element, target) ? 0 : 1;
 }
 
 // Whether the element's goal cell is within its type's reach.
 uint16_t opeu_battle_cell_in_range(uint8_t* ds, BattleEvent, uint16_t element) {
   auto&       data{ Data(ds) };
   auto const& position{ PositionOf(data, element) };
-  return TypeOf(data, element).gun_range < opeu_grid_distance(position.x, position.y, position.goal_x, position.goal_y) ? 0 : 1;
+  return ElementTypeOf(data, element).gun_range < opeu_grid_distance(position.x, position.y, position.goal_x, position.goal_y) ? 0 : 1;
 }
 
 // Infantry flash once; other elements turn through the in-between facing to the new one.
@@ -116,7 +108,7 @@ void opeu_battle_animate_facing(uint8_t* ds, BattleEvent event, uint16_t element
     Pause(ds, event);
   } };
   auto const facing{ [](CellFacing f) { return std::to_underlying(f); } };
-  if (IsInfantry(data, element)) {
+  if (IsOfCategory(ElementTypeOf(data, element), Category::INFANTRY)) {
     draw(facing(CellFacing::DOWN));
     draw(facing(CellFacing::UP));
     return;
@@ -136,12 +128,13 @@ void opeu_battle_animate_facing(uint8_t* ds, BattleEvent event, uint16_t element
 uint8_t opeu_battle_step_into(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
-  if (TypeOf(data, element).fuel_capacity && Record<Unit>(data, unit).resources[1] == 0) {
+  if (ElementTypeOf(data, element).fuel_capacity && Record<Unit>(data, unit).resources[1] == 0) {
     opeu_battle_supply_notice(ds, event, element, SUPPLY_FUEL);
     return std::to_underlying(StepResult::ARRIVED);
   }
   if (!opeu_battle_cell_occupied(ds, event, x, y)) {
-    uint8_t const facing{ IsInfantry(data, element) ? uint8_t{ 0 } : opeu_battle_cell_facing(ds, event, PositionOf(data, element).x, PositionOf(data, element).y, x, y) };
+    uint8_t const facing{ IsOfCategory(ElementTypeOf(data, element), Category::INFANTRY) ? uint8_t{ 0 }
+                                                                                         : opeu_battle_cell_facing(ds, event, PositionOf(data, element).x, PositionOf(data, element).y, x, y) };
     opeu_battle_animate_facing(ds, event, element, facing);
     auto const from_x{ PositionOf(data, element).x };
     auto const from_y{ PositionOf(data, element).y };

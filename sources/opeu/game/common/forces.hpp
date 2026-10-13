@@ -34,6 +34,14 @@ namespace opeu::game::detail::forces {
   return std::span<Element, ELEMENTS_PER_SIDE>{ data.elements.data() + side * ELEMENTS_PER_SIDE, ELEMENTS_PER_SIDE };
 }
 
+// The 20 general records of `side`.
+[[nodiscard]] inline auto SideGenerals(DataSegment& data, unsigned side) noexcept -> std::span<Person, PEOPLE_PER_SIDE> {
+  return std::span<Person, PEOPLE_PER_SIDE>{ data.people.data() + side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE };
+}
+[[nodiscard]] inline auto SideGenerals(DataSegment const& data, unsigned side) noexcept -> std::span<Person const, PEOPLE_PER_SIDE> {
+  return std::span<Person const, PEOPLE_PER_SIDE>{ data.people.data() + side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE };
+}
+
 // A division that is fielded (READY) and not held back in reserve.
 [[nodiscard]] inline auto IsActiveGroup(Group const& group) noexcept -> bool {
   return (group.flags & Bits(GroupFlag::READY)) && !(group.flags & Bits(GroupFlag::RESERVE));
@@ -45,5 +53,6 @@ using detail::forces::GroupOf;
 using detail::forces::GroupUnits;
 using detail::forces::IsActiveGroup;
 using detail::forces::SideElements;
+using detail::forces::SideGenerals;
 using detail::forces::SideUnits;
 } // namespace opeu::game

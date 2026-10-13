@@ -3,6 +3,7 @@
 // leader speak.
 #include "core/noonevt.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/memory.hpp"
@@ -106,7 +107,7 @@ void ShiftMorale(uint8_t* ds, uint8_t side, bool raise) {
 void ExpectReserves(uint8_t* ds, uint8_t side) {
   auto& data{ Data(ds) };
   for (uint8_t i = 0; i < GROUPS_PER_SIDE; i++)
-    if (data.groups[side * GROUPS_PER_SIDE + i].flags & Bits(GroupFlag::RESERVE)) {
+    if (GroupOf(data, side, i).flags & Bits(GroupFlag::RESERVE)) {
       data.side_flags[side] |= Bits(SideFlag::RESERVES_PENDING);
       break;
     }

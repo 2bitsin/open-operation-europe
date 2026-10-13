@@ -2,6 +2,7 @@
 // attacker's scan rectangles over the zone bits and clear terrain, at random inside the field centre, or, for a
 // defending garrison, around the defenders already placed using the facing offsets.
 #include "map/dplauto.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
@@ -42,20 +43,12 @@ constexpr uint8_t SCAN_CELLS{ 4 };
 constexpr uint8_t OFFSET_CELLS{ 5 };
 constexpr uint8_t ZONE_CODES{ 8 };
 
-[[nodiscard]] auto DirectionOf(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
-}
-
 [[nodiscard]] auto Random(uint8_t* ds, BattleEvent event, uint16_t bound) -> uint16_t {
   return Call(ds, event, BattleRoutine::RAND_BOUNDED, bound);
 }
 
 [[nodiscard]] auto CanPlace(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> bool {
   return opeu_deploy_can_place(ds, event, x, y, element);
-}
-
-[[nodiscard]] auto TypeOf(DataSegment const& data, uint16_t element) -> ElementType const& {
-  return data.element_types[Record<Element>(data, element).type];
 }
 
 // The placement byte n of an element (its position word points at the placement).
@@ -110,8 +103,8 @@ constexpr uint8_t ZONE_CODES{ 8 };
 uint16_t opeu_deploy_template_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element, uint8_t index) {
   auto&      data{ Data(ds) };
   auto const unit{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element) };
-  auto const direction{ DirectionOf(ds, event, unit) };
-  auto const heavy{ TypeOf(data, element).gun_range > 1 };
+  auto const direction{ UnitDirection(ds, event, unit) };
+  auto const heavy{ ElementTypeOf(data, element).gun_range > 1 };
   uint8_t    code{ 0 };
   switch (direction) {
   case 1:
@@ -144,7 +137,7 @@ void opeu_deploy_by_template(uint8_t* ds, BattleEvent event, uint16_t x, uint16_
 
 void opeu_deploy_by_scan(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element) {
   auto&      data{ Data(ds) };
-  auto const direction{ DirectionOf(ds, event, data.battle_units[0]) };
+  auto const direction{ UnitDirection(ds, event, data.battle_units[0]) };
   uint8_t    found_x;
   uint8_t    found_y;
   auto const place{ [&] {
@@ -199,7 +192,7 @@ void opeu_deploy_put_at(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, ui
   PlacementByte(ds, element, 7) = PLACED;
   Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
   auto facing{ opeu_deploy_facing(ds, event, element) };
-  if (!TypeOf(data, element).category) facing = 0;
+  if (!ElementTypeOf(data, element).category) facing = 0;
   Call(ds, event, BattleRoutine::BATTLE_DRAW_ELEMENT_AT, x, y, element, facing);
 }
 
@@ -209,7 +202,7 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
   // The elements of type mode above 1 first: each placed at random (or where it stands) marks the garrison's centre.
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (TypeOf(data, element).gun_range <= 1) continue;
+    if (ElementTypeOf(data, element).gun_range <= 1) continue;
     if (PlacementByte(ds, element, 0) == OFF_FIELD) {
       opeu_deploy_at_random(ds, event, GARRISON_X_AT, GARRISON_Y_AT, element);
       opeu_deploy_put_at(ds, event, Byte(ds, GARRISON_X_AT), Byte(ds, GARRISON_Y_AT), element);
@@ -220,10 +213,10 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
   }
   // The others around it, facing the attacker.
   uint8_t facing{ 0 };
-  if (auto const attacker{ Call(ds, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) }) facing = static_cast<uint8_t>(7 - DirectionOf(ds, event, attacker));
+  if (auto const attacker{ Call(ds, event, BattleRoutine::FIND_UNIT_AT, data.battle_attacker_x, data.battle_attacker_y) }) facing = static_cast<uint8_t>(7 - UnitDirection(ds, event, attacker));
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (PlacementByte(ds, element, 0) != OFF_FIELD || TypeOf(data, element).gun_range != 1) continue;
+    if (PlacementByte(ds, element, 0) != OFF_FIELD || ElementTypeOf(data, element).gun_range != 1) continue;
     auto const placed{ [&] {
       for (uint8_t n{ 0 }; n < OFFSET_CELLS; ++n) {
         // Read where the original reads it: a facing past 7 (an attacker that defends) leaves the table.
@@ -248,7 +241,7 @@ void opeu_deploy_garrison(uint8_t* ds, BattleEvent event, uint16_t unit) {
 void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
   auto& data{ Data(ds) };
   auto  chain{ [&] { return Elements(data, Record<Unit>(data, unit)); } };
-  if (DirectionOf(ds, event, unit) == DEFENDING)
+  if (UnitDirection(ds, event, unit) == DEFENDING)
     for (auto const& element : chain())
       if (data.element_types[element.type].gun_range > 1) {
         opeu_deploy_garrison(ds, event, unit);
@@ -257,7 +250,7 @@ void opeu_deploy_auto(uint8_t* ds, BattleEvent event, uint16_t unit) {
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
     if (PlacementByte(ds, element, 0) != OFF_FIELD) continue;
-    if (DirectionOf(ds, event, unit) != DEFENDING) {
+    if (UnitDirection(ds, event, unit) != DEFENDING) {
       opeu_deploy_by_template(ds, event, AUTO_X_AT, AUTO_Y_AT, element);
     } else if (unit != Near(data, data.garrison_unit)) {
       // The unit's place in its group of eight.

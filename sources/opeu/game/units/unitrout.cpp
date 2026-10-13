@@ -9,6 +9,7 @@
 #include "units/unitrout.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "common/random.hpp"
 #include "core/random.hpp"
 #include "core/recindex.hpp"
@@ -50,7 +51,7 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
   std::uint8_t  y;
   std::uint8_t  dir;
   std::uint16_t site;
-  if (data.side_control[side] == SIDE_PLAYED && !(data.groups[side * GROUPS_PER_SIDE + group].flags & Bits(GroupFlag::AI_MARK))) return;
+  if (data.side_control[side] == SIDE_PLAYED && !(GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))) return;
   bool calm{ true };
   for (dir = 0; dir < 8; dir++) {
     x = regiment.x;

@@ -65,11 +65,6 @@ auto WidthByte(std::uint8_t* ds, ListWindow const& window, unsigned i) -> std::u
   return ds[static_cast<std::uint16_t>(window.widths + i)];
 }
 
-auto SetStream(DataSegment& data, std::uint16_t offset) -> void {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = ARROW_SEGMENT;
-}
-
 auto DrawRows(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, std::uint8_t column, std::uint8_t row, std::uint8_t last_column, std::uint8_t last_row, std::uint8_t area) -> void {
   List(ds, event, ListCall::DRAW_ROWS, window.draw.offset, window.draw.segment, column, row, last_column, last_row, area);
 }
@@ -79,9 +74,9 @@ auto DrawRows(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window, 
 // column x.
 void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   auto& data{ Data(ds) };
-  SetStream(data, lit == UP_LIT ? ARROW_UP_LIT : ARROW_UP);
+  SetStream(data, ARROW_SEGMENT, lit == UP_LIT ? ARROW_UP_LIT : ARROW_UP);
   List(ds, event, ListCall::DRAW_FAR, x >> 3, top, 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
-  SetStream(data, lit == DOWN_LIT ? ARROW_DOWN_LIT : ARROW_DOWN);
+  SetStream(data, ARROW_SEGMENT, lit == DOWN_LIT ? ARROW_DOWN_LIT : ARROW_DOWN);
   List(ds, event, ListCall::DRAW_FAR, x >> 3, static_cast<std::uint16_t>(bottom - 0x1f), 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
 }
 

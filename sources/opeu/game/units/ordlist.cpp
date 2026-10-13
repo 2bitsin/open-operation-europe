@@ -4,6 +4,7 @@
 #include "units/ordlist.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/people.hpp"
 #include "map/ordtgt.hpp"
@@ -31,11 +32,6 @@ constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
 constexpr std::uint16_t LIST_LIMIT{ 1 };
 constexpr std::uint16_t LIST_FLAGS{ 7 };
 
-auto SetPredicate(ListWindow& list, Routine routine, std::uint16_t segment) -> void {
-  list.select.offset  = routine;
-  list.select.segment = segment;
-}
-
 auto RunList(std::uint8_t* ds, HostEvent event, ListWindow& list) -> std::uint16_t {
   return Call(ds, event, ORDERS_LIST_DIALOG, Near(Data(ds), list), LIST_LIMIT, LIST_FLAGS);
 }
@@ -54,18 +50,18 @@ void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   Call(ds, event, ORDERS_CONTROL_PANEL);
   data.unit_order_active = 0;
   for (;;) {
-    SetPredicate(data.division_dialog, GROUP_TARGET_ENABLED, segment);
+    SetListPredicate(data.division_dialog, GROUP_TARGET_ENABLED, segment);
     Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_division), data.context_record2);
     if (!RunList(ds, event, data.division_dialog)) return;
     auto const group{ data.list_row };
-    auto&      division{ data.groups[group + data.current_side * GROUPS_PER_SIDE] };
+    auto&      division{ GroupOf(data, data.current_side, group) };
     auto const person{ opeu_find_group_record(ds, data.current_side, group) };
     Call(ds, event, ORDERS_GROUP_SHOW, Near(data, division), group);
     if (division.flags & Bits(GroupFlag::AI_MARK)) {
       // The computer runs the division: edit its objective tasks, with the division current meanwhile.
       auto const saved{ data.current_group };
       data.current_group = group;
-      SetPredicate(data.order_target_list, MENU_ALWAYS, segment);
+      SetListPredicate(data.order_target_list, MENU_ALWAYS, segment);
       for (;;) {
         Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_order), person);
         if (!RunList(ds, event, data.order_target_list)) break;
@@ -78,7 +74,7 @@ void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t segment) {
       data.unit_order_active = 0;
     } else {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(ds, group) + 1);
-      SetPredicate(data.organize_list, SUPPLY_UNIT_ENABLED, segment);
+      SetListPredicate(data.organize_list, SUPPLY_UNIT_ENABLED, segment);
       for (;;) {
         Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_regiment), person);
         if (!RunList(ds, event, data.organize_list)) break;

@@ -7,6 +7,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/order.hpp"
 #include "core/recindex.hpp"
 #include "map/blast.hpp"
 #include "map/cellflag.hpp"
@@ -41,22 +42,12 @@ void ReadSprite(uint8_t* ds, HostEvent event, uint16_t offset, uint16_t destinat
   Call(ds, event, MapService::READ_FAR_BYTES, offset, SPRITE_SEGMENT, destination, SPRITE_BYTES);
 }
 
-// Points the image stream at a mask in the sprite segment.
-void SetStream(DataSegment& data, uint16_t offset) {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = SPRITE_SEGMENT;
-}
-
 // Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.
 void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
   auto const& data{ Data(ds) };
   Call(ds, event, MapService::SPRITE_COMPOSE, x, y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], sprite_offset, sprite_segment, 0, data.bitmap_buffer, 0);
 }
 
-// The order kinds whose sprite shows until the order has started; the others show until it is complete.
-[[nodiscard]] auto ShowsUntilStarted(uint8_t kind) -> bool {
-  return kind == 1 || kind == 2 || kind == 3 || kind == 13;
-}
 } // namespace
 
 // The sprite is read into a DS buffer the far read, the recolouring and the compose service work on.
@@ -77,7 +68,7 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16_t x
       auto const sprite{ data.order_glyphs[kind] };
       ReadSprite(ds, event, static_cast<uint16_t>(ORDER_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
       recolor();
-      SetStream(data, static_cast<uint16_t>(ORDER_MASKS + sprite * SPRITE_BYTES));
+      SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(ORDER_MASKS + sprite * SPRITE_BYTES));
       Compose(ds, event, x, y, sprite_buffer, DATA_SEGMENT);
       if (kind == 1 || kind == 2 || kind == 3) order_shown = false;
     }
@@ -87,7 +78,7 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16_t x
     auto const  sprite{ data.element_types[element.type].category };
     ReadSprite(ds, event, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
     recolor();
-    SetStream(data, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
+    SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(ds, event, x, y, sprite_buffer, DATA_SEGMENT);
   }
   opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
@@ -105,7 +96,7 @@ void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y) {
   auto const tile{ data.map_tiles[MAP_WIDTH * cell_y + cell_x] };
   Call(ds, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 3, 24, 0, data.tile_segment, tile * TILE_BYTES);
   auto const overlay{ [&](uint8_t sprite) {
-    SetStream(data, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
+    SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(ds, event, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);
   } };
   if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(ds, cell_x, cell_y, data.view_side)) overlay(OVERLAY_SPRITE);

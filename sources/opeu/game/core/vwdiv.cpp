@@ -5,6 +5,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "common/view-service.hpp"
 #include "core/vwarms.hpp"
 #include "glue.hpp"
@@ -37,7 +38,7 @@ void opeu_view_division_contact(uint8_t ds[65536], HostEvent event) {
     answer = static_cast<uint8_t>(Call(ds, event, ViewService::DELAY_DIALOG, CONTACT_PROMPT, 4, data.context_record3, CONTACT_MENU));
     if (answer == CANCELLED) break;
     uint8_t const division = answer - 1;
-    auto&         group{ data.groups[division + data.current_side * GROUPS_PER_SIDE] };
+    auto&         group{ GroupOf(data, data.current_side, division) };
     auto const    group_near{ Near(data, group) };
     if ((group.flags & Bits(GroupFlag::READY)) && Call(ds, event, ViewService::UNIT_ELIGIBLE, Call(ds, event, ViewService::GROUP_SELECTED_UNIT, group_near))) {
       Call(ds, event, ViewService::GROUP_SHOW, group_near, division);

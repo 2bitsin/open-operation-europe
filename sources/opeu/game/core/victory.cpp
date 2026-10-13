@@ -1,6 +1,7 @@
 // The end-of-scenario checks. Each check that finds an outcome records it, so a later check overrides an earlier one:
 // the deadline wins over the objectives, the objectives over a fallen commander or a side without divisions.
 #include "core/victory.hpp"
+#include "common/forces.hpp"
 #include "common/scenario.hpp"
 #include "core/people.hpp"
 #include "data-segment.hpp"
@@ -45,7 +46,7 @@ void opeu_check_sides(uint8_t ds[65536]) {
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     auto active{ false };
     for (uint8_t i = 0; i < GROUPS_PER_SIDE; ++i)
-      if (data.groups[side * GROUPS_PER_SIDE + i].flags & Bits(GroupFlag::READY)) {
+      if (GroupOf(data, side, i).flags & Bits(GroupFlag::READY)) {
         active = true;
         break;
       }

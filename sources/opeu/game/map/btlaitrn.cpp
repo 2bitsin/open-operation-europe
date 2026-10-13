@@ -4,6 +4,7 @@
 // The plan byte of a list slot holds the profile in the low nibble and the plan in the high nibble; the target slot
 // holds the unit it moves against.
 #include "map/btlaitrn.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -29,10 +30,6 @@ namespace {
 // ElementType::gun_range above this fires from afar.
 constexpr uint8_t RANGED_MODE{ 1 };
 
-[[nodiscard]] auto UnitDirection(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
-}
-
 [[nodiscard]] auto UnitAt(DataSegment& data, uint16_t unit, uint8_t x, uint8_t y) -> bool {
   auto const& record{ Record<Unit>(data, unit) };
   return record.x == x && record.y == y;
@@ -41,7 +38,7 @@ constexpr uint8_t RANGED_MODE{ 1 };
 
 void opeu_battle_ai_plan_unit(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&      data{ Data(ds) };
-  auto const mode{ data.element_types[Record<Element>(data, element).type].gun_range };
+  auto const mode{ ElementTypeOf(data, element).gun_range };
   auto const target{ opeu_battle_ai_unit_target(ds, event, element) };
   if (opeu_battle_ai_choose_plan(ds, event, target) < 3 && mode <= RANGED_MODE && target)
     opeu_battle_ai_attack_near(ds, event, element, target);
@@ -58,7 +55,7 @@ void opeu_battle_ai_element(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto const  unit{ opeu_battle_element_unit(ds, event, element) };
   auto const& record{ Record<Unit>(data, unit) };
   // A heavy element of a unit out of fuel stays; a unit out of ammunition, or set to leave, makes for the edge.
-  if (data.element_types[Record<Element>(data, element).type].fuel_capacity && record.resources[1] == 0) {
+  if (ElementTypeOf(data, element).fuel_capacity && record.resources[1] == 0) {
     opeu_battle_ai_hold(ds, event, element);
     return;
   }

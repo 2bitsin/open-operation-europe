@@ -65,7 +65,7 @@ void opeu_panel_slots(uint8_t ds[65536], HostEvent event, int y, uint8_t count) 
 // The far address (segment in the high word) of the icon of an element's type, chosen by its category and flags.
 uint32_t opeu_element_icon(const uint8_t ds[65536], uint16_t element) {
   auto const&  data{ Data(ds) };
-  auto const&  type{ data.element_types[Record<Element>(data, element).type] };
+  auto const&  type{ ElementTypeOf(data, element) };
   std::uint8_t icon{ 0 };
   switch (type.category) {
   case 1:  icon = 1; break;

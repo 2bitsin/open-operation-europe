@@ -2,6 +2,7 @@
 #include "units/select.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "core/recindex.hpp"
 #include "types.hpp"
 
@@ -11,7 +12,7 @@ using namespace opeu::game;
 void opeu_select_first_group(uint8_t ds[65536], uint8_t side) {
   auto& data{ Data(ds) };
   for (std::uint8_t index{ 0 }; index < GROUPS_PER_SIDE; ++index) {
-    auto& group{ data.groups[GROUPS_PER_SIDE * side + index] };
+    auto& group{ GroupOf(data, side, index) };
     if (group.flags & Bits(GroupFlag::READY)) {
       group.flags |= Bits(GroupFlag::SELECTED);
       break;

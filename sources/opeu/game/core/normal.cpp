@@ -3,6 +3,7 @@
 // regiment has a selection, and the element chains of fielded regiments are all marked fielded.
 #include "core/normal.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "common/map-grid.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
@@ -52,7 +53,7 @@ void FillSelections(uint8_t* ds, DataSegment& data) {
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     if (!opeu_find_side_selected_unit(ds, side)) opeu_select_first_group(ds, side);
     for (uint8_t division = 0; division < GROUPS_PER_SIDE; ++division) {
-      auto const& group{ data.groups[side * GROUPS_PER_SIDE + division] };
+      auto const& group{ GroupOf(data, side, division) };
       auto const  group_near{ Near(data, group) };
       if ((group.flags & Bits(GroupFlag::READY)) && !opeu_find_group_selected_unit(ds, group_near)) opeu_select_first_unit(ds, group_near);
       for (uint8_t i = 0; i < UNITS_PER_GROUP; ++i) {
@@ -68,7 +69,7 @@ void FillSelections(uint8_t* ds, DataSegment& data) {
 void StandDownEmpty(DataSegment& data) {
   for (uint8_t side = 0; side < SIDE_COUNT; ++side)
     for (uint8_t division = 0; division < GROUPS_PER_SIDE; ++division) {
-      auto& group{ data.groups[side * GROUPS_PER_SIDE + division] };
+      auto& group{ GroupOf(data, side, division) };
       auto  manned{ false };
       for (uint8_t i = 0; i < UNITS_PER_GROUP; ++i) {
         auto& unit{ data.units[(side * GROUPS_PER_SIDE + division) * UNITS_PER_GROUP + i] };

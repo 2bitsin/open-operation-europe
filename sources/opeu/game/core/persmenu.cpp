@@ -3,6 +3,7 @@
 #include "core/persmenu.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
 #include "core/counter.hpp"
@@ -112,7 +113,7 @@ void opeu_assign_confirm(uint8_t ds[65536], HostEvent event, uint16_t segment, u
 // charge, when it is in the field and its selected regiment may be selected.
 uint8_t opeu_division_toggle(uint8_t ds[65536], HostEvent event, uint16_t, uint8_t) {
   auto& data{ Data(ds) };
-  auto& group{ data.groups[data.current_side * GROUPS_PER_SIDE + data.list_row] };
+  auto& group{ GroupOf(data, data.current_side, data.list_row) };
   if (group.flags & Bits(GroupFlag::READY))
     if (Call(ds, event, PersonnelService::UNIT_SELECTABLE, Call(ds, event, PersonnelService::GROUP_SELECTED, Near(data, group)))) group.flags ^= Bits(GroupFlag::AI_MARK);
   return 0;
@@ -163,7 +164,7 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t segment)
     for (uint8_t post = 0; post < POSTS; post++) {
       auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
       if (post < GROUPS_PER_SIDE) {
-        auto const fielded{ data.groups[data.current_side * GROUPS_PER_SIDE + post].flags & Bits(GroupFlag::READY) };
+        auto const fielded{ GroupOf(data, data.current_side, post).flags & Bits(GroupFlag::READY) };
         Call(ds, event, PersonnelService::FORMAT, text, formats[post], fielded ? data.post_labels[post] : Near(data, data.inactive_division_label), holders[post] ? holders[post] : no_holder[post]);
       } else {
         Call(ds, event, PersonnelService::FORMAT, text, formats[post], data.post_labels[post], holders[post]);

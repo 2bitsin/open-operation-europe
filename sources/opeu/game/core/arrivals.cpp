@@ -8,6 +8,7 @@
 #include "common/arrival.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "common/scenario.hpp"
 #include "core/dialogs.hpp"
 #include "glue.hpp"
@@ -45,7 +46,7 @@ void opeu_process_arrivals(uint8_t ds[65536], ArrivalEvent event, uint8_t side) 
   data.request_person = opeu_find_side_record(ds, side, RANK_COMMANDER);
   bool arrived{ false };
   for (std::uint8_t g = 0; g < GROUPS_PER_SIDE; ++g) {
-    auto& group{ data.groups[GROUPS_PER_SIDE * side + g] };
+    auto& group{ GroupOf(data, side, g) };
     for (std::uint8_t u = 0; u < UNITS_PER_GROUP; ++u) {
       auto&      unit{ data.units[UNITS_PER_SIDE * side + UNITS_PER_GROUP * g + u] };
       auto const near{ Near(data, unit) };

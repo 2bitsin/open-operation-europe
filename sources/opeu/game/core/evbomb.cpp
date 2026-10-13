@@ -89,9 +89,6 @@ constexpr std::uint16_t INTRO_AT{ 0x5c };  // 90 bytes
 constexpr std::uint16_t NAME_AT{ 0xb6 };   // 24 bytes
 constexpr std::uint16_t EVENT_LOCALS{ 0xce };
 
-auto SetStream(DataSegment& data, std::uint16_t segment, std::uint16_t offset) -> void {
-  data.stream = { offset, segment };
-}
 } // namespace
 
 // Saves the background under the bomb at (x, y) and draws the bomb and its shadow there.

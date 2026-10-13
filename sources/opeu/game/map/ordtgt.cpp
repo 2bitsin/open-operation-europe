@@ -4,6 +4,7 @@
 // cancelling clears a set slot after a confirmation. A change clears the orders of the division's units.
 #include "map/ordtgt.hpp"
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
@@ -39,15 +40,12 @@ constexpr uint16_t PICKED_Y_AT{ 0x68 };
 constexpr uint16_t ONE_LINE_NAME{ 13 }; // longer objective names take two lines
 constexpr uint8_t  ORDER_SLOTS{ 3 };    // the order slots cleared per unit
 
-[[nodiscard]] auto DivisionOf(DataSegment& data, uint8_t group) -> Group& {
-  return data.groups[data.current_side * GROUPS_PER_SIDE + group];
-}
 } // namespace
 
 // The division of the list row can be given a target when it is ready and its selected unit can be selected.
 uint8_t opeu_group_target_enabled(uint8_t* ds) {
   auto&      data{ Data(ds) };
-  auto&      division{ DivisionOf(data, data.supply_row) };
+  auto&      division{ GroupOf(data, data.current_side, data.supply_row) };
   auto const group{ Near(data, division) };
   return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, group));
 }
@@ -63,7 +61,7 @@ void opeu_group_set_target(uint8_t* ds, HostEvent event, uint8_t group) {
   auto const          y_at{ locals.At(PICKED_Y_AT) };
   auto const          text{ locals.At(TEXT_AT) };
   auto const          person{ opeu_find_group_record(ds, data.current_side, group) };
-  auto&               division{ DivisionOf(data, group) };
+  auto&               division{ GroupOf(data, data.current_side, group) };
   auto&               task{ division.tasks[data.supply_row] };
   if (task.kind != Bits(TaskKind::NONE)) {
     Byte(ds, x_at) = task.x;

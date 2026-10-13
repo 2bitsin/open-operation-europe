@@ -24,5 +24,10 @@ static_assert(sizeof(MenuItem) == 12);
 inline constexpr std::uint16_t SAVE_BEHIND{ 0x8000 };
 inline constexpr std::uint16_t SELECTION_MASK{ 0x7fff };
 
+// The near pointer of the menu item after `item`.
+[[nodiscard]] constexpr auto NextMenuItem(std::uint16_t item) noexcept -> std::uint16_t {
+  return static_cast<std::uint16_t>(item + sizeof(MenuItem));
+}
+
 // What a menu dialog answers when it is cancelled.
 inline constexpr std::uint16_t MENU_CANCELLED{ 0xffff };

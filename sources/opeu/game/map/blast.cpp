@@ -52,10 +52,6 @@ constexpr uint16_t FRAME_WAIT{ 2 };
 constexpr uint16_t PAUSE_WAIT{ 30 };
 constexpr uint8_t  NONE{ 255 };
 
-void SetStream(DataSegment& data, uint16_t offset) {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = SPRITE_SEGMENT;
-}
 } // namespace
 
 void opeu_location_blast(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uint8_t side) {
@@ -67,14 +63,14 @@ void opeu_location_blast(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y, uin
   if (data.overview_side != NONE) {
     auto const pixel{ OverviewPixel({ x, y }) };
     for (uint8_t i{ 0 }; i < OVERVIEW_FRAME_COUNT; ++i) {
-      SetStream(data, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
+      SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
       Call(ds, event, BlastService::BLIT_FAR, pixel.x, pixel.y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
       Call(ds, event, BlastService::WAIT, FRAME_WAIT);
     }
   } else {
     auto const pixel{ ViewPixel(data, { x, y }) };
     for (uint8_t i{ 0 }; i < VIEW_FRAME_COUNT; ++i) {
-      SetStream(data, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
+      SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
       Call(ds, event, BlastService::SPRITE_COMPOSE, pixel.x, pixel.y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i), SPRITE_SEGMENT, 0,
            data.bitmap_buffer, 0);
       Call(ds, event, BlastService::WAIT, FRAME_WAIT);

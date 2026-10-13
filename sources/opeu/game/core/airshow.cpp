@@ -51,12 +51,6 @@ constexpr std::uint16_t CANCELED_TEXT{ offsetof(DataSegment, air_canceled_text) 
 constexpr std::uint16_t REQUEST_BUFFER_SIZE{ 0x66 };
 constexpr std::uint8_t  RANK_AIR{ 1 };
 constexpr std::uint8_t  TEMPLATE_AIR{ 6 };
-
-// Points the graphics stream at segment:offset.
-auto SetStream(DataSegment& data, std::uint16_t segment, std::uint16_t offset) -> void {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = segment;
-}
 } // namespace
 
 void opeu_air_sprite_mirror(uint8_t ds[65536], uint16_t image, uint8_t keep) {

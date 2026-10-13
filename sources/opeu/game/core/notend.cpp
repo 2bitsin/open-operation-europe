@@ -19,6 +19,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/context.hpp"
@@ -196,7 +197,7 @@ void opeu_end_select(uint8_t ds[65536], uint8_t side) {
   std::array<bool, GROUPS_PER_SIDE> has_selection{};
   bool                              group_selected{ false };
   for (uint8_t g = 0; g < GROUPS_PER_SIDE; g++) {
-    auto const& group{ data.groups[side * GROUPS_PER_SIDE + g] };
+    auto const& group{ GroupOf(data, side, g) };
     if (group.flags & Bits(GroupFlag::READY)) {
       if (group.flags & Bits(GroupFlag::SELECTED)) group_selected = true;
       for (uint8_t u = 0; u < UNITS_PER_GROUP; u++) {
@@ -211,7 +212,7 @@ void opeu_end_select(uint8_t ds[65536], uint8_t side) {
     }
   }
   for (uint8_t g = 0; g < GROUPS_PER_SIDE; g++)
-    if (!has_selection[g]) opeu_select_first_unit(ds, Near(data, data.groups[side * GROUPS_PER_SIDE + g]));
+    if (!has_selection[g]) opeu_select_first_unit(ds, Near(data, GroupOf(data, side, g)));
   if (!group_selected) opeu_select_first_group(ds, side);
 }
 

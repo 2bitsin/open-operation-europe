@@ -3,6 +3,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/view-service.hpp"
 #include "types.hpp"
@@ -82,7 +83,7 @@ uint8_t opeu_view_false(uint8_t ds[65536], HostEvent event) {
 // Row check: an active division whose selected regiment may be selected.
 uint8_t opeu_view_group_ok(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
-  auto const& division{ data.groups[data.current_side * GROUPS_PER_SIDE + data.list_row] };
+  auto const& division{ GroupOf(data, data.current_side, data.list_row) };
   return (division.flags & Bits(GroupFlag::READY)) && Call(ds, event, ViewService::UNIT_ELIGIBLE, Call(ds, event, ViewService::GROUP_SELECTED_UNIT, Near(data, division)));
 }
 

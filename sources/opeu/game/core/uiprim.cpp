@@ -87,11 +87,6 @@ auto StreamNext(std::uint8_t* ds, UiHost const* host) -> std::uint8_t {
   return FarNext(ds, host, Data(ds).stream);
 }
 
-void SetStream(DataSegment& data, std::uint16_t segment, std::uint16_t offset) {
-  data.stream.segment = segment;
-  data.stream.offset  = offset;
-}
-
 void BlitStream(std::uint8_t* ds, UiHost const* host, std::uint16_t x, std::uint16_t y) {
   auto const& stream{ Data(ds).stream };
   UiCall(ds, host, UiService::BLIT, x, y, 1, 32, 0, stream.segment, stream.offset);

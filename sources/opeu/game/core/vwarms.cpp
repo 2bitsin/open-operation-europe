@@ -157,7 +157,7 @@ uint16_t svc_view(uint8_t* ds, const char* module, uint16_t id, const uint16_t* 
   case ViewService::BACKDROP_COLOR:      opeu_backdrop_fill_color(ds, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); break;
   case ViewService::SIDE_RECORD:         r = opeu_find_side_record(ds, byte(0), byte(1)); break;
   case ViewService::GROUP_RECORD:        r = opeu_find_group_record(ds, byte(0), byte(1)); break;
-  case ViewService::ARMY_HEADING:        opeu_army_heading(ds, svc_headings, svc_headings_color, arg(0)); break;
+  case ViewService::ARMY_HEADING:        opeu_army_heading(ds, svc_headings, svc_sideutil, arg(0)); break;
   case ViewService::DIVISION_HEADING:    opeu_division_heading(ds, svc_headings, arg(0)); break;
   case ViewService::DIVISION_UNITS:      opeu_division_regiments(ds, svc_armypanl, arg(0), arg(1)); break;
   case ViewService::DIVISION_FINISH:     opeu_division_credits(ds, svc_credits); break;

@@ -52,14 +52,10 @@ constexpr uint16_t SIDE_1_ESCAPE{ '5' };
 constexpr uint8_t SPOT_STEPS{ 6 };
 constexpr uint8_t SPOT_STEP{ 20 };
 
-[[nodiscard]] auto CategoryOf(DataSegment const& data, uint16_t element) -> uint8_t {
-  return data.element_types[Record<Element>(data, element).type].category;
-}
-
 [[nodiscard]] auto TerrainCost(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) -> uint8_t {
   auto const& data{ Data(ds) };
   auto const  terrain{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, x, y)) };
-  return data.battle_terrain_costs[terrain * 8u + CategoryOf(data, element)];
+  return data.battle_terrain_costs[terrain * 8u + ElementTypeOf(data, element).category];
 }
 
 [[nodiscard]] auto Cover(uint8_t terrain) -> uint8_t {
@@ -198,7 +194,7 @@ void opeu_battle_spot_enemies(uint8_t* ds, BattleEvent event, uint16_t element) 
   auto&       data{ Data(ds) };
   auto const& position{ PositionOf(data, element) };
   auto const  side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
-  auto const  range{ data.battle_spot_range[CategoryOf(data, element)] };
+  auto const  range{ data.battle_spot_range[ElementTypeOf(data, element).category] };
   auto const  span{ static_cast<uint8_t>(range * 2 + 1) };
   auto const  left{ static_cast<int16_t>(position.x - range) };
   auto        y{ static_cast<int16_t>(position.y - range) };

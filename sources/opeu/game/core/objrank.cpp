@@ -1,6 +1,8 @@
 // The current side's ranked objective list (side_entry_values): the active objectives grouped by who holds them and
 // on whose side of the front they lie, each group ordered by the influence on its cell.
 #include "core/objrank.hpp"
+#include "common/forces.hpp"
+#include "core/daylist.hpp"
 #include "data-segment.hpp"
 #include "map/cellflag.hpp"
 #include "map/query.hpp"
@@ -51,11 +53,6 @@ constexpr RankOrder SIDE_1_DEFENSIVE{
 
 } // namespace
 
-// The objective's level (the low nibble of its flags).
-uint8_t opeu_objective_rank_level(uint8_t ds[65536], uint16_t objective) {
-  return Record<Objective>(Data(ds), objective).flags & Bits(ObjectiveFlag::LEVEL_MASK);
-}
-
 // Inserts objective at entries[last], carrying it through entries[first..last-1]: each slot keeps the objective
 // with the smaller influence (descending: the larger). From RANKED_DELIVERY on a computer side, a slot gives way
 // only to an objective of at least its level.
@@ -70,7 +67,7 @@ void opeu_rank_entry_insert(uint8_t ds[65536], uint8_t side, uint8_t first, uint
     auto const  carried_influence{ opeu_cell_influence(ds, carried.x, carried.y) };
     auto const  held_influence{ opeu_cell_influence(ds, held.x, held.y) };
     auto const  out_of_order{ descending ? held_influence < carried_influence : held_influence > carried_influence };
-    if (out_of_order && (!ranked || opeu_objective_rank_level(ds, slot) <= opeu_objective_rank_level(ds, objective))) {
+    if (out_of_order && (!ranked || opeu_objective_level(ds, slot) <= opeu_objective_level(ds, objective))) {
       entries[i] = objective;
       objective  = slot;
     }
@@ -100,7 +97,7 @@ void opeu_rank_side_entries(uint8_t ds[65536]) {
 void opeu_side_groups_retarget(uint8_t ds[65536], uint8_t side) {
   auto& data{ Data(ds) };
   if (data.side_control[side] == SIDE_PLAYED || !Entries(data, side)[0]) return;
-  for (uint8_t i = 0; i < GROUPS_PER_SIDE; i++) data.groups[side * GROUPS_PER_SIDE + i].flags |= Bits(GroupFlag::RETARGET);
+  for (uint8_t i = 0; i < GROUPS_PER_SIDE; i++) GroupOf(data, side, i).flags |= Bits(GroupFlag::RETARGET);
 }
 
 // Re-ranks the current side's objectives; an offensive computer side whose ranking changed retargets its divisions.

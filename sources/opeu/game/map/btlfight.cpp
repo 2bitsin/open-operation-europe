@@ -29,10 +29,6 @@ constexpr uint8_t ATTACKER_WON{ 2 };
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_SIDE, unit));
 }
 
-[[nodiscard]] auto OnCity(DataSegment& data) -> bool {
-  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK)) == std::to_underlying(Terrain::CITY);
-}
-
 void Finish(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
   Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
@@ -101,7 +97,7 @@ void opeu_battle_finish_turn(uint8_t* ds, BattleEvent event) {
   auto const result{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) };
   if (result == DEFENDER_WON) {
     data.battle_side = UnitSide(ds, event, BattleList(data, 0, 0));
-    if (OnCity(data)) {
+    if (BattleOnCity(data)) {
       auto& site{ Record<Objective>(data, opeu_find_objective_at(ds, data.battle_x, data.battle_y)) };
       for (auto const& item : site.items)
         if (item.quantity) {
@@ -116,7 +112,7 @@ void opeu_battle_finish_turn(uint8_t* ds, BattleEvent event) {
   }
   if (result == ATTACKER_WON) {
     data.battle_side = UnitSide(ds, event, BattleList(data, 1, 0) == 0 ? BattleList(data, 1, 1) : BattleList(data, 1, 0));
-    if (OnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+    if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   }
   Finish(ds, event);
 }
@@ -124,7 +120,7 @@ void opeu_battle_finish_turn(uint8_t* ds, BattleEvent event) {
 void opeu_battle_finish_none(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   data.battle_side = NO_SIDE;
-  if (OnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+  if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   Finish(ds, event);
 }
 

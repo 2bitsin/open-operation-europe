@@ -13,6 +13,7 @@
 #include "units/value.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "common/random.hpp"
 
 #include <array>
@@ -28,10 +29,6 @@ constexpr std::uint8_t ORDER_12{ 12 };        // a unit order a replanned divisi
 
 [[nodiscard]] auto None(Task const& task) -> bool {
   return task.kind == Bits(TaskKind::NONE);
-}
-
-[[nodiscard]] auto SideGroup(DataSegment& data, std::uint8_t group) -> Group& {
-  return data.groups[data.current_side * GROUPS_PER_SIDE + group];
 }
 
 [[nodiscard]] auto SideUnit(DataSegment& data, std::uint8_t group, std::uint8_t slot) -> Unit& {
@@ -73,7 +70,7 @@ void opeu_group_center(uint8_t* ds, uint8_t* x, uint8_t* y, uint8_t group) {
 uint16_t opeu_objective_tasked(uint8_t* ds, uint16_t objective) {
   auto& data{ Data(ds) };
   for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-    for (auto const& task : SideGroup(data, group).tasks)
+    for (auto const& task : GroupOf(data, data.current_side, group).tasks)
       if (!None(task) && opeu_find_objective_at(ds, task.x, task.y) == objective) return 1;
   return 0;
 }
@@ -90,7 +87,7 @@ uint16_t opeu_group_can_cover(uint8_t* ds, uint8_t group, uint16_t objective) {
   for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot)
     if (Ready(SideUnit(data, group, slot)) && slot <= LAST_COMBAT_SLOT) ++units;
   std::uint8_t needed{ opeu_objective_weight(Record<Objective>(data, objective)) };
-  for (auto const& task : SideGroup(data, group).tasks)
+  for (auto const& task : GroupOf(data, data.current_side, group).tasks)
     if (!None(task) && (objective = opeu_find_objective_at(ds, task.x, task.y)) != 0) needed += opeu_objective_weight(Record<Objective>(data, objective));
   return needed <= units;
 }
@@ -122,7 +119,7 @@ uint8_t opeu_assign_objective_tasks(uint8_t* ds, uint8_t count) {
     std::uint8_t nearest_group;
     std::uint8_t nearest{ NO_DISTANCE };
     for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-      if ((SideGroup(data, group).flags & Bits(GroupFlag::READY)) && opeu_group_can_cover(ds, group, objective)) {
+      if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && opeu_group_can_cover(ds, group, objective)) {
         std::uint8_t x;
         std::uint8_t y;
         opeu_group_center(ds, &x, &y, group);
@@ -134,7 +131,7 @@ uint8_t opeu_assign_objective_tasks(uint8_t* ds, uint8_t count) {
       }
     if (nearest == NO_DISTANCE) continue;
     if (data.current_group != nearest_group) continue;
-    auto& task{ SideGroup(data, data.current_group).tasks[count++] };
+    auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
     task.x    = target.x;
     task.y    = target.y;
     task.kind = Bits(opeu_objective_side(ds, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD);
@@ -150,7 +147,7 @@ uint8_t opeu_assign_quadrant_task(uint8_t* ds, uint8_t count) {
   std::uint8_t                                x;
   std::uint8_t                                y;
   for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-    if ((SideGroup(data, group).flags & Bits(GroupFlag::READY)) && group != data.current_group) {
+    if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && group != data.current_group) {
       opeu_group_center(ds, &x, &y, group);
       taken[y / QUARTER][x / QUARTER] = 1;
     }
@@ -173,7 +170,7 @@ uint8_t opeu_assign_quadrant_task(uint8_t* ds, uint8_t count) {
     case 1:
     case 5: continue; // cells a division is not sent to
     }
-    auto& task{ SideGroup(data, data.current_group).tasks[count++] };
+    auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
     task.x    = cell_x;
     task.y    = cell_y;
     task.kind = Bits(TaskKind::MOVE);
@@ -190,7 +187,7 @@ void opeu_group_task_service(uint8_t* ds) {
   for (auto& task : current.tasks) task.kind = Bits(TaskKind::NONE);
   auto count{ opeu_assign_objective_tasks(ds, 0) };
   if (count == 0) count = opeu_assign_quadrant_task(ds, count);
-  while (count < 4) SideGroup(data, data.current_group).tasks[count++].kind = Bits(TaskKind::NONE);
+  while (count < 4) GroupOf(data, data.current_side, data.current_group).tasks[count++].kind = Bits(TaskKind::NONE);
   if (!opeu_tasks_retained(current.tasks.data(), saved.data())) {
     for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot) {
       auto& unit{ SideUnit(data, data.current_group, slot) };

@@ -1,6 +1,7 @@
 // The battle element's round: its advance off the field (onto the strategic map or out of the battle), the
 // withdrawal and hold steps, and the dispatch on its state.
 #include "map/btladv.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -38,13 +39,6 @@ void Reduce(uint16_t& value, uint16_t percent) {
   value = left;
 }
 
-[[nodiscard]] auto UnitDirection(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
-}
-
-[[nodiscard]] auto Strength(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_STRENGTH, element));
-}
 } // namespace
 
 void opeu_battle_exit_to_map(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8_t y) {
@@ -112,18 +106,18 @@ void opeu_battle_hold_step(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto  order{ opeu_battle_order(ds, event, element) };
   if (opeu_battle_level_allowed(ds, event, element)) {
     if (auto const target{ opeu_battle_best_target(ds, event, element) }) {
-      if (Strength(ds, event, element) <= order) {
+      if (ElementStrength(ds, event, element) <= order) {
         Call(ds, event, BattleRoutine::BATTLE_ATTACK_OR_HOLD, target, element);
         return;
       }
-      if (data.element_types[Record<Element>(data, element).type].category) {
+      if (ElementTypeOf(data, element).category) {
         auto const facing{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_FACING, target, element)) };
         Call(ds, event, BattleRoutine::BATTLE_ANIMATE_FACING, facing, element);
       }
     }
   }
   if (opeu_rand_bounded(10) < 2) Call(ds, event, BattleRoutine::BATTLE_SPOT_ENEMIES, element);
-  if (Strength(ds, event, element) > order) opeu_battle_set_order(ds, event, element, ++order);
+  if (ElementStrength(ds, event, element) > order) opeu_battle_set_order(ds, event, element, ++order);
 }
 
 void opeu_battle_element_step(uint8_t* ds, BattleEvent event, uint16_t element) {

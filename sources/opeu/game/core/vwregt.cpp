@@ -6,6 +6,7 @@
 #include "units/vwlist.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "common/view-service.hpp"
 #include "core/vwarms.hpp"
 #include "glue.hpp"
@@ -78,7 +79,7 @@ void opeu_view_own_divisions(uint8_t ds[65536], HostEvent event) {
                                   Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.division_dialog), 1, height);
        height = 6) {
     auto const  division{ data.list_row };
-    auto const& group{ data.groups[data.current_side * GROUPS_PER_SIDE + division] };
+    auto const& group{ GroupOf(data, data.current_side, division) };
     Call(ds, event, ViewService::GROUP_SHOW, Near(data, group), division);
     data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(ds, event, division) + 1);
     SetRowCheck(ds, event, data.organize_list, RowCheck::REGIMENT);

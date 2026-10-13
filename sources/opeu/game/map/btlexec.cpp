@@ -46,7 +46,7 @@ void Message(uint8_t* ds, BattleEvent event, uint16_t text) {
 [[nodiscard]] auto TerrainCost(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
   auto&      data{ Data(ds) };
   auto const terrain{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_CELL_TERRAIN, data.battle_cursor_x, data.battle_cursor_y)) };
-  auto const category{ data.element_types[Record<Element>(data, element).type].category };
+  auto const category{ ElementTypeOf(data, element).category };
   return data.battle_terrain_costs[terrain * 8u + category];
 }
 

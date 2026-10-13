@@ -5,6 +5,7 @@
 #include "common/data-segment.hpp"
 
 #include <cstdint>
+#include <utility>
 
 namespace opeu::game::detail::map_grid {
 
@@ -17,6 +18,11 @@ inline constexpr std::uint8_t GRID_DIRECTIONS{ 8 };
 }
 [[nodiscard]] inline auto MapCellAt(DataSegment const& data, std::uint8_t x, std::uint8_t y) noexcept -> std::uint8_t const& {
   return data.map_cells[y * MAP_WIDTH + x];
+}
+
+// Whether the battle is fought over a city (the terrain of the battle's map cell).
+[[nodiscard]] inline auto BattleOnCity(DataSegment const& data) noexcept -> bool {
+  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK)) == std::to_underlying(Terrain::CITY);
 }
 
 // The influence word of the block holding the cell (x, y): positive for side 0, negative for side 1.
@@ -34,6 +40,7 @@ inline constexpr std::uint8_t GRID_DIRECTIONS{ 8 };
 } // namespace opeu::game::detail::map_grid
 
 namespace opeu::game {
+using detail::map_grid::BattleOnCity;
 using detail::map_grid::GRID_DIRECTIONS;
 using detail::map_grid::InfluenceAt;
 using detail::map_grid::MapCellAt;

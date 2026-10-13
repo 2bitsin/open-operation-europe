@@ -46,17 +46,9 @@ constexpr uint16_t HIT_ANIMATION{ 0x6fb8 };
 constexpr uint16_t MISS_ANIMATION{ 0x79e0 };
 constexpr uint8_t  CONDITION_LIMIT{ 99 };
 
-[[nodiscard]] auto TypeOf(DataSegment const& data, uint16_t element) -> ElementType const& {
-  return data.element_types[Record<Element>(data, element).type];
-}
-
-[[nodiscard]] auto Is(ElementType const& type, Category category) -> bool {
-  return type.category == Bits(category);
-}
-
 // Tanks and artillery fire shells; the other categories fire rifles.
 [[nodiscard]] auto FiresShells(ElementType const& type) -> bool {
-  return Is(type, Category::TANKS) || Is(type, Category::ARTILLERY);
+  return IsOfCategory(type, Category::TANKS) || IsOfCategory(type, Category::ARTILLERY);
 }
 
 void Pause(uint8_t* ds, BattleEvent event, uint8_t units) {
@@ -87,7 +79,7 @@ void opeu_battle_ranged_sound(uint8_t* ds, BattleEvent event, uint16_t shooter) 
     Pause(ds, event, SILENT_PAUSE);
     return;
   }
-  auto const& type{ TypeOf(data, shooter) };
+  auto const& type{ ElementTypeOf(data, shooter) };
   if (type.flags & TYPE_OWN_SOUND) {
     opeu_battle_dispatch(ds, event, SOUND_FLAGGED);
     return;
@@ -112,12 +104,12 @@ void opeu_battle_ranged_tracers(uint8_t* ds, BattleEvent event, uint16_t shooter
     TargetCell(data, shooter, target, x, y);
     auto const  to_x{ static_cast<uint16_t>(opeu_battle_cell_column(ds, event, x, y) + CENTRE_X) };
     auto const  to_y{ static_cast<uint16_t>(opeu_battle_cell_row(ds, event, x, y) + CENTRE_Y) };
-    auto const& type{ TypeOf(data, shooter) };
+    auto const& type{ ElementTypeOf(data, shooter) };
     if (type.gun_range > 1) {
       opeu_battle_draw_line(ds, event, static_cast<int16_t>(from_x), static_cast<int16_t>(from_y), static_cast<int16_t>(to_x), static_cast<int16_t>(to_y));
     } else {
       auto tracers{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, shooter)) };
-      tracers = static_cast<uint8_t>((Is(type, Category::INFANTRY) ? tracers / 3 : tracers / 15) + 1);
+      tracers = static_cast<uint8_t>((IsOfCategory(type, Category::INFANTRY) ? tracers / 3 : tracers / 15) + 1);
       if (tracers > MAX_TRACERS) tracers = MAX_TRACERS;
       for (uint8_t i{ 0 }; i < tracers; ++i) {
         auto const dx{ static_cast<uint16_t>(opeu_rand_bounded(8) - 4) };
@@ -147,10 +139,10 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
   auto const  shot{ opeu_battle_ranged_damage(ds, event, shooter, target) };
   auto const  losses{ shot.losses };
   auto const  animation{ losses ? HIT_ANIMATION : MISS_ANIMATION };
-  auto const& type{ TypeOf(data, shooter) };
+  auto const& type{ ElementTypeOf(data, shooter) };
   if (FiresShells(type)) {
     uint8_t heavy{ 0 };
-    if (target) heavy = Is(TypeOf(data, target), Category::INFANTRY) ? losses >= 30 : losses >= 10;
+    if (target) heavy = IsOfCategory(ElementTypeOf(data, target), Category::INFANTRY) ? losses >= 30 : losses >= 10;
     opeu_battle_animate_element(ds, event, x, y, heavy, 1, animation, target);
   } else if (type.category <= Bits(Category::SUPPLY)) {
     opeu_battle_animate_element(ds, event, x, y, 0, 0, animation, target);
@@ -178,7 +170,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
       opeu_add_byte(3, CONDITION_LIMIT, &own.morale);
     } else {
       // Vehicles take damage by the crew's skill.
-      if (auto const category{ TypeOf(data, target).category }) {
+      if (auto const category{ ElementTypeOf(data, target).category }) {
         auto const roll{ opeu_rand_bounded(300) };
         auto const skill{ opeu_battle_type_skill(ds, event, target) };
         uint16_t   damage{ hit.damage };

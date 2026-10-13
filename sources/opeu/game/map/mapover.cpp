@@ -7,6 +7,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/order.hpp"
 #include "common/scenario.hpp"
 #include "core/recindex.hpp"
 #include "map/blast.hpp"
@@ -41,12 +42,6 @@ constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 constexpr uint16_t BULGE_MARKER[2]{ 2, 4 };
 constexpr uint16_t MARKER[2]{ 0x702, 0x701 };
 
-// Points the image stream at sprite-segment data.
-void SetStream(DataSegment& data, uint16_t offset) {
-  data.stream_ptr[0] = offset;
-  data.stream_ptr[1] = SPRITE_SEGMENT;
-}
-
 // Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
 void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
   auto const& data{ Data(ds) };
@@ -58,9 +53,6 @@ void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t offs
   return Word(ds, static_cast<uint16_t>(Near(Data(ds), Data(ds).side_status) + 2 * side));
 }
 
-[[nodiscard]] auto ShowsUntilStarted(uint8_t kind) -> bool {
-  return kind == 1 || kind == 2 || kind == 3 || kind == 13;
-}
 } // namespace
 
 // The glyph is read into a DS buffer the far read, the recolouring and the compose service work on.
@@ -71,7 +63,7 @@ void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t unit, uint16
   auto const          draw{ [&](uint16_t glyphs, uint16_t mask) {
     Call(ds, event, MapService::READ_FAR_BYTES, glyphs, SPRITE_SEGMENT, buffer, GLYPH_BYTES);
     opeu_sprite_recolor(ds, buffer, GLYPH_BYTES, opeu_unit_side(unit));
-    SetStream(data, mask);
+    SetStream(data, SPRITE_SEGMENT, mask);
     Compose(ds, event, x, y, buffer, DATA_SEGMENT);
   } };
   bool       order_shown{ false };
@@ -108,11 +100,11 @@ void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y)
     Call(ds, event, MapService::DRAW_MASKED_NEAR, pixel_x, pixel_y, 1, 8, mode, Near(data, data.overview_objective_glyph));
   }
   if (SideStatus(ds, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(ds, x, y, data.overview_side)) {
-    SetStream(data, MARK_MASK);
+    SetStream(data, SPRITE_SEGMENT, MARK_MASK);
     Compose(ds, event, pixel_x, pixel_y, MARK_GLYPH, SPRITE_SEGMENT);
   }
   if (opeu_map_code(ds, x, y) == BRIDGE_CODE) {
-    SetStream(data, BRIDGE_GLYPH);
+    SetStream(data, SPRITE_SEGMENT, BRIDGE_GLYPH);
     Call(ds, event, MapService::BLIT_FAR, pixel_x, pixel_y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
   }
   if (auto const unit{ opeu_find_unit_at(ds, x, y) }; unit && opeu_unit_visible(ds, unit)) opeu_overview_unit_draw(ds, event, unit, pixel_x, pixel_y);

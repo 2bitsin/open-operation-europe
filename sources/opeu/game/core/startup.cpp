@@ -3,6 +3,7 @@
 #include "core/startup.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/personfl.hpp"
 #include "core/random.hpp"
@@ -39,11 +40,6 @@ constexpr uint8_t STARTUP_STEP{ 10 };
 
 // The schedule flags a new game starts with.
 constexpr uint8_t NEW_GAME_SCHEDULE{ 7 };
-
-// The side's 20 generals.
-auto SideGenerals(DataSegment& data, uint8_t side) {
-  return std::span{ data.people }.subspan(side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE);
-}
 
 } // namespace
 

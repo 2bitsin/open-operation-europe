@@ -42,10 +42,6 @@ void SubWord(uint16_t& at, uint16_t amount) {
   return type.category == 7 || type.category == 6 || (type.category == std::to_underlying(Category::ARTILLERY) && type.flags & Bits(TypeFlag::HEAVY));
 }
 
-[[nodiscard]] auto IsInfantry(ElementType const& type) -> bool {
-  return type.category == std::to_underlying(Category::INFANTRY);
-}
-
 // After a loss from `old`, the element spends its supplies.
 void SpendSupplies(uint8_t* ds, BattleEvent event, uint16_t old, uint16_t element) {
   Call(ds, event, BattleRoutine::BATTLE_SPEND_FUEL, old, element);
@@ -59,18 +55,18 @@ uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event, uint16_t atta
   auto const company{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, attacker) };
   auto const shots{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, attacker)) };
   SubWord(Record<Unit>(data, company).resources[0], U16(shots / 3));
-  auto const* model{ &data.element_types[Record<Element>(data, attacker).type] };
+  auto const* model{ &ElementTypeOf(data, attacker) };
   uint16_t    headcount{ Record<Element>(data, attacker).quantity };
-  if (IsInfantry(*model)) headcount /= 10;
+  if (IsOfCategory(*model, Category::INFANTRY)) headcount /= 10;
   if (target == 0) return U16(U16(Call(ds, event, BattleRoutine::ISQRT, model->anti_tank) * static_cast<uint32_t>(headcount)) / 100);
   if (Call(ds, event, BattleRoutine::BATTLE_FIRE_HITS, target, attacker) == 0) return 0;
   auto const strength{ Call(ds, event, BattleRoutine::BATTLE_FIRE_POWER, target, attacker) };
   auto const defense{ Call(ds, event, BattleRoutine::BATTLE_FIRE_DEFENSE, target) };
   auto const odds{ U16(U16(strength * 10u) / opeu_max16(U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) + defense), 1)) };
   headcount = U16(headcount / 10 + 1);
-  model     = &data.element_types[Record<Element>(data, target).type];
+  model     = &ElementTypeOf(data, target);
   auto const quantity{ Record<Element>(data, target).quantity };
-  auto const size{ U16(IsInfantry(*model) ? quantity / 100 + 1 : quantity / 10 + 1) };
+  auto const size{ U16(IsOfCategory(*model, Category::INFANTRY) ? quantity / 100 + 1 : quantity / 10 + 1) };
   auto const vision{ opeu_max16(U16(data.weather_obscurity[data.weather] / 3 + data.battle_visibility / 5 + 2), 1) };
   if (Indirect(*model)) {
     uint16_t const night{ U16(opeu_hour_is_night(data.hour) != 0 ? 2 : 1) };
@@ -83,7 +79,7 @@ uint16_t opeu_battle_attack_damage(uint8_t* ds, BattleEvent event, uint16_t atta
   auto const     loss{ U16(U16(odds * static_cast<uint32_t>(headcount)) / night / vision * size) };
   auto const     bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, 2) };
   uint16_t const twice{ U16(Call(ds, event, BattleRoutine::RAND_BOUNDED, 6) == 0 ? 2 : 1) };
-  return U16(bonus + U16(loss / (IsInfantry(*model) ? 7 : 70) * twice));
+  return U16(bonus + U16(loss / (IsOfCategory(*model, Category::INFANTRY) ? 7 : 70) * twice));
 }
 
 void opeu_battle_apply_damage(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {

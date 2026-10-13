@@ -51,10 +51,6 @@ template <typename Table>
   return Record<uint8_t>(data, static_cast<uint16_t>(Near(data, table) + index));
 }
 
-[[nodiscard]] auto TypeOf(DataSegment& data, uint16_t element) -> ElementType const& {
-  return data.element_types[Record<Element>(data, element).type];
-}
-
 [[nodiscard]] auto CostOf(DataSegment& data, uint8_t terrain, uint8_t category) -> uint8_t {
   return At(data, data.battle_terrain_costs, terrain * COST_CLASSES + category);
 }
@@ -113,7 +109,7 @@ uint8_t opeu_battle_skill(uint8_t* ds, BattleService service, uint16_t element, 
 
 uint8_t opeu_battle_element_strength(uint8_t* ds, BattleService service, uint16_t element) {
   auto&       data{ Data(ds) };
-  auto const& type{ TypeOf(data, element) };
+  auto const& type{ ElementTypeOf(data, element) };
   auto const& record{ Record<Element>(data, element) };
   auto        category{ type.category };
   if (category == Bits(Category::ARTILLERY) && type.gun_range <= RANGED_MODE) category = Bits(Category::TANKS);
@@ -140,20 +136,20 @@ uint8_t opeu_battle_odds(uint8_t*, BattleService, uint8_t rating, uint8_t range)
 
 uint8_t opeu_battle_element_rating(uint8_t* ds, BattleService, uint16_t attacker, uint16_t target) {
   auto& data{ Data(ds) };
-  if (!target || TypeOf(data, target).category != Bits(Category::TANKS)) return TypeOf(data, attacker).anti_personnel;
-  return TypeOf(data, attacker).anti_tank;
+  if (!target || ElementTypeOf(data, target).category != Bits(Category::TANKS)) return ElementTypeOf(data, attacker).anti_personnel;
+  return ElementTypeOf(data, attacker).anti_tank;
 }
 
 uint8_t opeu_battle_element_range(uint8_t* ds, BattleService, uint16_t element) {
   if (!element) return NO_ELEMENT_RANGE;
-  return TypeOf(Data(ds), element).defense;
+  return ElementTypeOf(Data(ds), element).defense;
 }
 
 uint8_t opeu_battle_element_shots(uint8_t* ds, BattleService, uint16_t attacker, uint16_t target) {
   auto&      data{ Data(ds) };
   auto const quantity{ Record<Element>(data, attacker).quantity };
-  if (TypeOf(data, attacker).category != Bits(Category::INFANTRY)) return static_cast<uint8_t>(quantity);
-  auto const shots{ static_cast<uint8_t>(!target || TypeOf(data, target).category == Bits(Category::INFANTRY) ? quantity / 10 : quantity / 50) };
+  if (ElementTypeOf(data, attacker).category != Bits(Category::INFANTRY)) return static_cast<uint8_t>(quantity);
+  auto const shots{ static_cast<uint8_t>(!target || ElementTypeOf(data, target).category == Bits(Category::INFANTRY) ? quantity / 10 : quantity / 50) };
   return shots ? shots : 1;
 }
 
@@ -166,7 +162,7 @@ uint8_t opeu_battle_cell_terrain(uint8_t* ds, BattleService, uint8_t x, uint8_t 
 uint16_t opeu_battle_can_enter(uint8_t* ds, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
   auto&      data{ Data(ds) };
   auto const terrain{ opeu_battle_cell_terrain(ds, service, x, y) };
-  return CostOf(data, terrain, TypeOf(data, element).category) != IMPASSABLE;
+  return CostOf(data, terrain, ElementTypeOf(data, element).category) != IMPASSABLE;
 }
 
 // IMPASSABLE for impassable terrain, else a cost clamped to 5..250. The product is the original's 16-bit int
@@ -174,7 +170,7 @@ uint16_t opeu_battle_can_enter(uint8_t* ds, BattleService service, uint8_t x, ui
 uint8_t opeu_battle_move_cost(uint8_t* ds, BattleService service, uint8_t x, uint8_t y, uint16_t element) {
   auto&       data{ Data(ds) };
   auto const& record{ Record<Element>(data, element) };
-  auto const  category{ TypeOf(data, element).category };
+  auto const  category{ ElementTypeOf(data, element).category };
   auto const  cost{ CostOf(data, opeu_battle_cell_terrain(ds, service, x, y), category) };
   if (cost == IMPASSABLE) return cost;
   int handling{ opeu_battle_skill(ds, service, element, Bits(BattleSkill::EXPERIENCE)) / 5 };
@@ -182,7 +178,7 @@ uint8_t opeu_battle_move_cost(uint8_t* ds, BattleService service, uint8_t x, uin
   handling  = handling / 20 - 2;
   handling += record.training / 20 - 1;
   handling -= record.experience / 20;
-  int speed{ TypeOf(data, element).speed };
+  int speed{ ElementTypeOf(data, element).speed };
   if (category == Bits(Category::INFANTRY)) speed <<= 1;
   int result{ (Wrap16(static_cast<long>(Wrap16(static_cast<long>((100 - speed) / 3) * cost)) * 10) / (static_cast<int>(opeu_max16(CostOf(data, 0, category), 1)) * 10) - handling) / 2 };
   if (result < 5) result = 5;

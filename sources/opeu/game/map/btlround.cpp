@@ -45,10 +45,6 @@ constexpr uint16_t VICTORY_PAUSE{ 0x28 };
   return Word(ds, static_cast<uint16_t>(table + i * 2));
 }
 
-[[nodiscard]] auto AtCity(DataSegment const& data) -> bool {
-  return (MapCellAt(data, data.battle_x, data.battle_y) & Bits(MapCell::TERRAIN_MASK)) == std::to_underlying(Terrain::CITY);
-}
-
 void Stalemate(uint8_t* ds, BattleEvent event, uint16_t text) {
   Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
   Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
@@ -80,7 +76,7 @@ void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
   auto const result{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN)) };
   if (result == SIDE_0_DECIDES) {
     data.battle_side = opeu_battle_unit_side(ds, event, data.battle_lists[0]);
-    if (AtCity(data)) {
+    if (BattleOnCity(data)) {
       auto const near{ static_cast<uint16_t>(Call(ds, event, BattleRoutine::FIND_OBJECTIVE_AT, data.battle_x, data.battle_y)) };
       auto&      objective{ Record<Objective>(data, near) };
       for (auto const& item : objective.items)
@@ -97,7 +93,7 @@ void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
   if (result == SIDE_1_WINS) {
     auto const unit{ BattleList(data, 1, 0) ? BattleList(data, 1, 0) : BattleList(data, 1, 1) };
     data.battle_side = opeu_battle_unit_side(ds, event, unit);
-    if (AtCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+    if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   }
   Call(ds, event, BattleRoutine::BATTLE_DAILY_CONDITION);
   Call(ds, event, BattleRoutine::BATTLE_CLEAR_POSITIONS);
@@ -110,7 +106,7 @@ void opeu_battle_report_outcome(uint8_t* ds, BattleEvent event) {
 void opeu_battle_report_stalemate(uint8_t* ds, BattleEvent event) {
   auto& data{ Data(ds) };
   data.battle_side = NO_WINNER;
-  if (AtCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
+  if (BattleOnCity(data)) Call(ds, event, BattleRoutine::BATTLE_RETURN_GARRISON);
   Stalemate(ds, event, Near(data, data.battle_stalemate_text));
 }
 

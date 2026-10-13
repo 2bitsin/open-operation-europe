@@ -2,6 +2,7 @@
 //
 // The comparisons keep the original's operand order and every product wraps at 16 bits as MUL does.
 #include "map/btlfire.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -28,18 +29,11 @@ constexpr uint8_t  SIDE_RECORD_COMMANDER{ 1 };
   return static_cast<uint16_t>(static_cast<uint16_t>(x) * static_cast<uint32_t>(static_cast<uint16_t>(y)));
 }
 
-[[nodiscard]] auto Skill(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t kind) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_SKILL, kind, element));
-}
 [[nodiscard]] auto Quality(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_TYPE_SKILL, element));
 }
 [[nodiscard]] auto SideOf(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element));
-}
-
-[[nodiscard]] auto TypeOf(DataSegment& data, uint16_t element) -> ElementType const& {
-  return data.element_types[Record<Element>(data, element).type];
 }
 
 // Whether the unit's commander rides with the element (its selected element).
@@ -61,14 +55,14 @@ uint16_t opeu_battle_fire_hits(uint8_t* ds, BattleEvent event, uint16_t attacker
   uint16_t    chance;
   uint8_t     x;
   uint8_t     y;
-  x      = Skill(ds, event, attacker, SKILL_0);
-  y      = Skill(ds, event, target, SKILL_0);
+  x      = ElementSkill(ds, event, attacker, SKILL_0);
+  y      = ElementSkill(ds, event, target, SKILL_0);
   chance = x < y ? 5 : 10;
-  x      = Skill(ds, event, attacker, SKILL_2);
-  y      = Skill(ds, event, target, SKILL_2);
+  x      = ElementSkill(ds, event, attacker, SKILL_2);
+  y      = ElementSkill(ds, event, target, SKILL_2);
   chance = static_cast<uint16_t>(chance + (x < y ? 5 : 10));
-  x      = Skill(ds, event, attacker, SKILL_7);
-  y      = Skill(ds, event, target, SKILL_7);
+  x      = ElementSkill(ds, event, attacker, SKILL_7);
+  y      = ElementSkill(ds, event, target, SKILL_7);
   chance = static_cast<uint16_t>(chance + (x < y ? 5 : 10));
   x      = Quality(ds, event, attacker);
   y      = Quality(ds, event, target);
@@ -76,7 +70,7 @@ uint16_t opeu_battle_fire_hits(uint8_t* ds, BattleEvent event, uint16_t attacker
   chance = static_cast<uint16_t>(chance + (a.morale < t.morale ? 5 : 10));
   chance = static_cast<uint16_t>(chance + (a.training < t.training ? 5 : 10));
   chance = static_cast<uint16_t>(chance + (a.experience > t.experience ? 5 : 10));
-  chance = static_cast<uint16_t>(chance + ModeFactor(TypeOf(data, attacker)) * 5);
+  chance = static_cast<uint16_t>(chance + ModeFactor(ElementTypeOf(data, attacker)) * 5);
   chance = static_cast<uint16_t>(chance - Mul16(data.weather_obscurity[data.weather] + data.battle_visibility, opeu_hour_is_night(data.hour) ? 25 : 15) / 10);
   return Call(ds, event, BattleRoutine::RAND_BOUNDED, 100) < chance ? 1 : 0;
 }
@@ -84,12 +78,12 @@ uint16_t opeu_battle_fire_hits(uint8_t* ds, BattleEvent event, uint16_t attacker
 // The attacker's fire power against the target: the soft rating against infantry, the hard rating otherwise.
 uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacker, uint16_t target) {
   auto&          data{ Data(ds) };
-  auto const&    type{ TypeOf(data, attacker) };
+  auto const&    type{ ElementTypeOf(data, attacker) };
   auto const&    a{ Record<Element>(data, attacker) };
-  uint16_t const rating{ TypeOf(data, target).category == std::to_underlying(Category::INFANTRY) ? type.anti_personnel : type.anti_tank };
-  uint16_t const skill_2{ Skill(ds, event, attacker, SKILL_2) };
+  uint16_t const rating{ ElementTypeOf(data, target).category == std::to_underlying(Category::INFANTRY) ? type.anti_personnel : type.anti_tank };
+  uint16_t const skill_2{ ElementSkill(ds, event, attacker, SKILL_2) };
   uint16_t const grade{ Quality(ds, event, attacker) };
-  uint16_t const skill_7{ Skill(ds, event, attacker, SKILL_7) };
+  uint16_t const skill_7{ ElementSkill(ds, event, attacker, SKILL_7) };
   auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, attacker), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, attacker) };
   auto           value{ static_cast<uint16_t>(a.training - a.experience + skill_7 + a.morale + grade + skill_2 + CONDITION_BASE) };
@@ -103,10 +97,10 @@ uint16_t opeu_battle_fire_power(uint8_t* ds, BattleEvent event, uint16_t attacke
 uint16_t opeu_battle_fire_defense(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&          data{ Data(ds) };
   auto const&    e{ Record<Element>(data, element) };
-  uint16_t const armour{ TypeOf(data, element).defense };
-  uint16_t const skill_2{ Skill(ds, event, element, SKILL_2) };
+  uint16_t const armour{ ElementTypeOf(data, element).defense };
+  uint16_t const skill_2{ ElementSkill(ds, event, element, SKILL_2) };
   uint16_t const grade{ Quality(ds, event, element) };
-  uint16_t const skill_7{ Skill(ds, event, element, SKILL_7) };
+  uint16_t const skill_7{ ElementSkill(ds, event, element, SKILL_7) };
   auto const     record{ opeu_find_side_record(ds, SideOf(ds, event, element), SIDE_RECORD_COMMANDER) };
   auto const     lead{ Led(data, element) };
   auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2 + CONDITION_BASE) };

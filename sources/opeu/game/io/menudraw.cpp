@@ -41,10 +41,6 @@ auto ItemAt(std::uint8_t* ds, std::uint16_t near) -> MenuItem& {
   return Record<MenuItem>(Data(ds), near);
 }
 
-auto Next(std::uint16_t item) -> std::uint16_t {
-  return static_cast<std::uint16_t>(item + sizeof(MenuItem));
-}
-
 // The bytes a saved button covers: its width plus a column either side.
 auto SavedBytes(MenuItem const& item) -> std::uint16_t {
   return static_cast<std::uint16_t>((item.width + 2) * SAVED_BYTES_PER_COLUMN);
@@ -85,7 +81,7 @@ void opeu_menu_draw_item(std::uint8_t* ds, HostService service, std::uint16_t ne
 void opeu_menu_draw(std::uint8_t* ds, HostService service, std::uint16_t near) {
   auto& data{ Data(ds) };
   data.menu_save_offset = 0;
-  for (; ItemAt(ds, near).label; near = Next(near)) {
+  for (; ItemAt(ds, near).label; near = NextMenuItem(near)) {
     auto const& item{ ItemAt(ds, near) };
     if (item.selection & SAVE_BEHIND) {
       Input(ds, service, InputCall::BITMAP_SAVE, item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, data.bitmap_buffer, data.menu_save_offset);
@@ -99,7 +95,7 @@ void opeu_menu_draw(std::uint8_t* ds, HostService service, std::uint16_t near) {
 // for it) are restored in reverse order.
 void opeu_menu_restore(std::uint8_t* ds, HostService service, std::uint16_t near) {
   auto& data{ Data(ds) };
-  if (ItemAt(ds, near).label) opeu_menu_restore(ds, service, Next(near));
+  if (ItemAt(ds, near).label) opeu_menu_restore(ds, service, NextMenuItem(near));
   auto const& item{ ItemAt(ds, near) };
   if (item.selection & SAVE_BEHIND) {
     data.menu_save_offset -= SavedBytes(item);
@@ -118,7 +114,7 @@ auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items,
   std::uint16_t passes{ 0 };
   do {
     std::uint16_t index{ 0 };
-    for (std::uint16_t near{ items }; ItemAt(ds, near).label; near = Next(near), index++) {
+    for (std::uint16_t near{ items }; ItemAt(ds, near).label; near = NextMenuItem(near), index++) {
       auto const&   item{ ItemAt(ds, near) };
       std::uint16_t left   = item.x << 3;
       std::uint16_t top    = item.y;

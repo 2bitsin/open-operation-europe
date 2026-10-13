@@ -4,6 +4,7 @@
 // every element can cross, and no mark of the unit's side. Retreating into a cell the enemy marked costs a random
 // element the bombard path of the attack resolution. A garrison that breaks damages its objective instead.
 #include "map/btlretr.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -40,10 +41,6 @@ constexpr uint8_t MOVE_CLASSES{ 5 }; // move_costs columns
 
 [[nodiscard]] auto ComputerTurn(uint8_t* ds, BattleEvent event) -> uint8_t {
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_COMPUTER_TURN));
-}
-
-[[nodiscard]] auto Direction(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
 }
 
 // Takes `percent` of a stock away (the stock field is packed, so it is worked on as a copy).
@@ -86,7 +83,7 @@ void opeu_battle_retreat_to(uint8_t* ds, BattleEvent event, uint16_t unit, uint8
 // side: the unit's battle list (unused).
 void opeu_battle_unit_retreat(uint8_t* ds, BattleEvent event, uint16_t unit, uint8_t) {
   auto& data{ Data(ds) };
-  if (Direction(ds, event, unit) == AT_BATTLE && unit != GARRISON_AT) {
+  if (UnitDirection(ds, event, unit) == AT_BATTLE && unit != GARRISON_AT) {
     auto const side{ opeu_battle_unit_side(ds, event, unit) };
     for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
       uint8_t x{ data.battle_x };
@@ -105,7 +102,7 @@ void opeu_battle_unit_retreat(uint8_t* ds, BattleEvent event, uint16_t unit, uin
     }
     if (data.battle_direction != NO_DIRECTION) opeu_battle_remove_list(ds, event, unit);
   }
-  if (Direction(ds, event, unit) != AT_BATTLE) opeu_battle_remove_list(ds, event, unit);
+  if (UnitDirection(ds, event, unit) != AT_BATTLE) opeu_battle_remove_list(ds, event, unit);
   if (unit == GARRISON_AT) {
     auto&      objective{ Record<Objective>(data, opeu_find_objective_at(ds, data.battle_x, data.battle_y)) };
     auto const elements{ opeu_battle_element_count(ds, event, unit) };

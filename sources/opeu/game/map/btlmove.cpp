@@ -109,7 +109,7 @@ uint8_t opeu_battle_attack_rating(uint8_t* ds, BattleEvent event, uint16_t attac
 // the low bytes of its int coordinates after its bounds check.
 uint16_t opeu_battle_best_target(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto&       data{ Data(ds) };
-  auto const  reach{ data.element_types[Record<Element>(data, element).type].gun_range };
+  auto const  reach{ ElementTypeOf(data, element).gun_range };
   auto const  side{ opeu_battle_element_side(ds, event, element) };
   auto const& position{ PositionOf(data, element) };
   auto const  span{ static_cast<uint8_t>(reach * 2 + 1) };
@@ -156,7 +156,7 @@ void opeu_battle_update_element(uint8_t* ds, BattleEvent event, uint16_t element
   auto const& record{ Record<Unit>(data, unit) };
   if (!record.resources[0]) {
     Settle(ds, event, element, BattleState::REST);
-  } else if (data.element_types[Record<Element>(data, element).type].fuel_capacity && !record.resources[1]) {
+  } else if (ElementTypeOf(data, element).fuel_capacity && !record.resources[1]) {
     Settle(ds, event, element, BattleState::DEFEND);
   } else if (Call(ds, event, BattleRoutine::BATTLE_UNIT_CONTROLLED, unit)) {
     if (opeu_battle_can_act(ds, event, element)) Settle(ds, event, element, BattleState::DEFEND);

@@ -1,26 +1,22 @@
 // Linking elements into units: stable insertion by category and removal.
 #include "units/elemlink.hpp"
 #include "common/data-segment.hpp"
+#include "common/forces.hpp"
 #include "core/recindex.hpp"
 #include "map/occupy.hpp"
 #include "types.hpp"
 
 using namespace opeu::game;
 
-namespace {
-// The category of an element's equipment type.
-auto CategoryOf(DataSegment const& data, std::uint16_t element) -> std::uint8_t {
-  return data.element_types[Record<Element>(data, element).type].category;
-}
-} // namespace
+namespace { } // namespace
 
 // Inserts the element after the unit's elements of the same or a lower category, marks it ready, places the unit on
 // the map and readies its division. The link walk treats the unit as a chain head: its first word is the next link.
 void opeu_insert_element(uint8_t ds[65536], uint16_t unit, uint16_t element) {
   auto&      data{ Data(ds) };
-  auto const category{ CategoryOf(data, element) };
+  auto const category{ ElementTypeOf(data, element).category };
   auto       at{ unit };
-  for (auto next{ Record<Element>(data, at).next }; next && CategoryOf(data, next) <= category; next = Record<Element>(data, at).next) at = next;
+  for (auto next{ Record<Element>(data, at).next }; next && ElementTypeOf(data, next).category <= category; next = Record<Element>(data, at).next) at = next;
   auto& inserted{ Record<Element>(data, element) };
   inserted.next                   = Record<Element>(data, at).next;
   Record<Element>(data, at).next  = element;
@@ -45,7 +41,7 @@ uint8_t opeu_remove_element(uint8_t ds[65536], uint16_t unit, uint16_t element) 
     auto const first{ UNITS_PER_SIDE * side + UNITS_PER_GROUP * group };
     for (std::uint8_t index{ 0 }; index < UNITS_PER_GROUP; ++index)
       if (data.units[first + index].flags & Bits(UnitFlag::READY)) return 1;
-    data.groups[GROUPS_PER_SIDE * side + group].flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::READY));
+    GroupOf(data, side, group).flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::READY));
     return 3;
   }
   return 0;

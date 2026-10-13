@@ -4830,6 +4830,28 @@ template <typename T>
 [[nodiscard]] inline auto Near(DataSegment const& data, T const& record) noexcept -> std::uint16_t {
   return static_cast<std::uint16_t>(reinterpret_cast<std::uint8_t const*>(&record) - reinterpret_cast<std::uint8_t const*>(&data));
 }
+// The type record of an element (its ElementType in element_types).
+[[nodiscard]] inline auto ElementTypeOf(DataSegment& data, std::uint16_t element) noexcept -> ElementType& {
+  return data.element_types[Record<Element>(data, element).type];
+}
+[[nodiscard]] inline auto ElementTypeOf(DataSegment const& data, std::uint16_t element) noexcept -> ElementType const& {
+  return data.element_types[Record<Element>(data, element).type];
+}
+
+// Points the list window's row predicate at the far routine segment:routine.
+inline auto SetListPredicate(ListWindow& list, std::uint16_t routine, std::uint16_t segment) noexcept -> void {
+  list.select = { routine, segment };
+}
+
+// Points the picture decoder's read position at segment:offset.
+inline auto SetStream(DataSegment& data, std::uint16_t segment, std::uint16_t offset) noexcept -> void {
+  data.stream = { offset, segment };
+}
+
+// Whether an equipment type is of the category.
+[[nodiscard]] inline auto IsOfCategory(ElementType const& type, Category category) noexcept -> bool {
+  return type.category == Bits(category);
+}
 } // namespace opeu::game::detail::data_segment
 
 namespace opeu::game {
@@ -4856,6 +4878,8 @@ using detail::data_segment::ElementFlag;
 using detail::data_segment::ELEMENTS_AT;
 using detail::data_segment::ELEMENTS_PER_SIDE;
 using detail::data_segment::ElementType;
+using detail::data_segment::ElementTypeOf;
+using detail::data_segment::IsOfCategory;
 using detail::data_segment::FarPointer;
 using detail::data_segment::Group;
 using detail::data_segment::GroupFlag;
@@ -4883,6 +4907,8 @@ using detail::data_segment::PERSON_TEMPLATES_AT;
 using detail::data_segment::PersonRole;
 using detail::data_segment::StaffRole;
 using detail::data_segment::Record;
+using detail::data_segment::SetListPredicate;
+using detail::data_segment::SetStream;
 using detail::data_segment::REQUEST_CONFIGS_AT;
 using detail::data_segment::RequestConfig;
 using detail::data_segment::RequestSlot;

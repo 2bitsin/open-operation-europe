@@ -1,5 +1,6 @@
 // Battle order execution: advancing, attacking and holding.
 #include "map/btlorder.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -43,11 +44,7 @@ constexpr uint8_t INTO_LOST{ 2 };
 // Vehicles turn to face where they fire or go; infantry does not.
 [[nodiscard]] auto Turns(uint8_t* ds, uint16_t element) -> bool {
   auto const& data{ Data(ds) };
-  return data.element_types[Record<Element>(data, element).type].category != 0;
-}
-
-[[nodiscard]] auto Strength(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_STRENGTH, element));
+  return ElementTypeOf(data, element).category != 0;
 }
 
 void Face(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t facing) {
@@ -166,7 +163,7 @@ void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element
   if (opeu_battle_engaged(ds, event, element)) {
     auto const target{ Position(ds, element).target };
     if (Call(ds, event, BattleRoutine::BATTLE_TARGET_IN_RANGE, element)) {
-      if (Strength(ds, event, element) > order) {
+      if (ElementStrength(ds, event, element) > order) {
         if (Turns(ds, element)) FaceTarget(ds, event, element, target);
         opeu_battle_set_order(ds, event, element, ++order);
       } else {
@@ -179,7 +176,7 @@ void opeu_battle_continue_order(uint8_t* ds, BattleEvent event, uint16_t element
     auto const goal_x{ Position(ds, element).goal_x };
     auto const goal_y{ Position(ds, element).goal_y };
     if (Call(ds, event, BattleRoutine::BATTLE_CELL_IN_RANGE, element)) {
-      if (Strength(ds, event, element) > order) {
+      if (ElementStrength(ds, event, element) > order) {
         if (Turns(ds, element)) FaceCell(ds, event, element, goal_x, goal_y);
         opeu_battle_set_order(ds, event, element, ++order);
       } else {
@@ -205,7 +202,7 @@ void opeu_battle_seek_target(uint8_t* ds, BattleEvent event, uint16_t element) {
     return;
   }
   if (auto const target{ opeu_battle_best_target(ds, event, element) }) {
-    if (Strength(ds, event, element) <= order) {
+    if (ElementStrength(ds, event, element) <= order) {
       opeu_battle_attack_or_hold(ds, event, element, target);
     } else {
       if (Turns(ds, element)) FaceTarget(ds, event, element, target);

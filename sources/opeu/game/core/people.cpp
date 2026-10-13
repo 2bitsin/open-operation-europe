@@ -1,5 +1,6 @@
 // Finding a side's general by staff role or by division.
 #include "core/people.hpp"
+#include "common/forces.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
 
@@ -11,14 +12,7 @@
 
 using namespace opeu::game;
 
-namespace {
-
-// The side's 20 generals.
-auto SideGenerals(DataSegment const& data, uint8_t side) {
-  return std::span{ data.people }.subspan(side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE);
-}
-
-} // namespace
+namespace { } // namespace
 
 // Near pointer of the side's first general whose staff role is kind; 0 when none is.
 uint16_t opeu_find_side_record(const uint8_t ds[65536], uint8_t side, uint8_t kind) {

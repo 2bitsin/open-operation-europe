@@ -8,6 +8,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "common/scenario.hpp"
 #include "core/recindex.hpp"
@@ -26,6 +27,10 @@
 #include "map/mapunit.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
+#include <algorithm>
+#include <iterator>
+#include <span>
 
 using namespace opeu::game;
 
@@ -61,24 +66,16 @@ constexpr std::uint16_t SHOW_DONE{ 3 };
 // The confirmation message buffer the services format and show.
 constexpr std::uint16_t MESSAGE_BYTES{ 0x6c };
 
-auto Division(DataSegment& data, unsigned side, unsigned group) -> Group& {
-  return data.groups[side * GROUPS_PER_SIDE + group];
-}
-
-auto Regiment(DataSegment& data, unsigned side, unsigned group, unsigned index) -> Unit& {
-  return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index];
+// The transfer's division's regiments.
+auto TransferRegiments(DataSegment& data) -> std::span<Unit, UNITS_PER_GROUP> {
+  return GroupUnits(data, data.current_side, data.transfer_group);
 }
 
 // The picked regiment.
 auto PickedRegiment(DataSegment& data) -> Unit& {
-  return Regiment(data, data.current_side, data.transfer_group, data.transfer_unit);
+  return TransferRegiments(data)[data.transfer_unit];
 }
 
-// Points the list window's row predicate at `routine` in the transfer's code segment.
-auto SetPredicate(ListWindow& list, Routine routine, std::uint16_t segment) -> void {
-  list.select.offset  = routine;
-  list.select.segment = segment;
-}
 } // namespace
 
 // The hours to transfer command from the regiment `from` to the regiment `to` under the general `person`.
@@ -96,14 +93,14 @@ uint16_t opeu_transfer_hours(uint8_t ds[65536], uint16_t from, uint16_t to, uint
 // Division list predicate: an active division whose selected regiment may be selected.
 uint8_t opeu_transfer_group_enabled(uint8_t ds[65536]) {
   auto&       data{ Data(ds) };
-  auto const& division{ Division(data, data.current_side, data.list_row) };
+  auto const& division{ GroupOf(data, data.current_side, data.list_row) };
   return (division.flags & Bits(GroupFlag::READY)) && opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, Near(data, division)));
 }
 
 // Regiment list predicate: a ready regiment that may be selected.
 uint8_t opeu_transfer_unit_enabled(uint8_t ds[65536]) {
   auto&       data{ Data(ds) };
-  auto const& regiment{ Regiment(data, data.current_side, data.transfer_group, data.list_row) };
+  auto const& regiment{ TransferRegiments(data)[data.list_row] };
   return (regiment.flags & Bits(UnitFlag::READY)) && opeu_unit_selection_eligible(ds, Near(data, regiment));
 }
 
@@ -116,7 +113,7 @@ uint8_t opeu_transfer_element_enabled(uint8_t ds[65536]) {
 // Lists the picked division's eight regiments.
 uint8_t opeu_transfer_units_fill(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
-  for (std::uint8_t index{ 0 }; index < 8; ++index) data.row_units[index] = Near(data, Regiment(data, data.current_side, data.transfer_group, index));
+  std::ranges::transform(TransferRegiments(data), std::begin(data.row_units), [&data](Unit const& regiment) { return Near(data, regiment); });
   return 8;
 }
 
@@ -148,16 +145,16 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
     case Step::DIVISION:
       Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_division), data.context_record2);
       Call(ds, event, CONTROL_PANEL);
-      SetPredicate(data.division_dialog, GROUP_ENABLED, segment);
+      SetListPredicate(data.division_dialog, GROUP_ENABLED, segment);
       if (!Call(ds, event, LIST_DIALOG, Near(data, data.division_dialog), LIST_LIMIT, LIST_FLAGS)) return;
       data.transfer_group = data.list_row;
-      Call(ds, event, GROUP_SHOW, Near(data, Division(data, data.current_side, data.transfer_group)), data.transfer_group);
+      Call(ds, event, GROUP_SHOW, Near(data, GroupOf(data, data.current_side, data.transfer_group)), data.transfer_group);
       [[fallthrough]];
     case Step::REGIMENT:
       Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_regiment), data.context_record2);
       Call(ds, event, CONTROL_PANEL);
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(ds) + 1);
-      SetPredicate(data.organize_list, UNIT_ENABLED, segment);
+      SetListPredicate(data.organize_list, UNIT_ENABLED, segment);
       if (!Call(ds, event, LIST_DIALOG, Near(data, data.organize_list), LIST_LIMIT, LIST_FLAGS)) {
         step = Step::DIVISION;
         continue;
@@ -167,7 +164,7 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
       [[fallthrough]];
     case Step::ELEMENT: {
       data.choice_dialog.rows = static_cast<std::uint8_t>(opeu_transfer_elements_fill(ds) + 1);
-      SetPredicate(data.choice_dialog, ELEMENT_ENABLED, segment);
+      SetListPredicate(data.choice_dialog, ELEMENT_ENABLED, segment);
       Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_group), data.context_record2);
       Call(ds, event, CONTROL_PANEL);
       if (!Call(ds, event, LIST_DIALOG, Near(data, data.choice_dialog), LIST_LIMIT, LIST_FLAGS)) {
@@ -182,7 +179,7 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
       }
       auto const side{ data.current_side };
       Record<Group>(data, opeu_unit_group(opeu_find_side_selected_unit(ds, side))).flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::SELECTED));
-      auto& division{ Division(data, side, data.transfer_group) };
+      auto& division{ GroupOf(data, side, data.transfer_group) };
       division.flags                                                                    |= Bits(GroupFlag::SELECTED);
       Record<Unit>(data, opeu_find_group_selected_unit(ds, Near(data, division))).flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::SELECTED));
       auto& regiment{ PickedRegiment(data) };

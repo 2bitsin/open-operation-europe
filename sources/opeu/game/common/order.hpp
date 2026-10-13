@@ -30,11 +30,24 @@ inline constexpr std::uint8_t ORDER_UNUSED{ 0xff };
   default:                     return false;
   }
 }
+
+// Whether the map shows an order of `kind` until the order has started (occupy, attack, defend, rest); the others
+// show until they are complete.
+[[nodiscard]] constexpr auto ShowsUntilStarted(std::uint8_t kind) noexcept -> bool {
+  switch (static_cast<UnitOrder>(kind)) {
+  case UnitOrder::OCCUPY:
+  case UnitOrder::ATTACK:
+  case UnitOrder::DEFEND:
+  case UnitOrder::REST:   return true;
+  default:                return false;
+  }
+}
 } // namespace opeu::game::detail::order
 
 namespace opeu::game {
 using detail::order::Kind;
 using detail::order::ORDER_KINDS;
 using detail::order::ORDER_UNUSED;
+using detail::order::ShowsUntilStarted;
 using detail::order::TargetsUnit;
 } // namespace opeu::game

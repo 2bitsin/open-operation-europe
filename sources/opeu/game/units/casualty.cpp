@@ -4,6 +4,7 @@
 #include "units/casualty.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/forces.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -121,7 +122,7 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
   std::uint8_t const y{ regiment.y };
   auto const         side{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_SIDE, unit)) };
   auto const         group{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_GROUP_INDEX, unit)) };
-  auto const         division{ Near(data, data.groups[side * GROUPS_PER_SIDE + group]) };
+  auto const         division{ Near(data, GroupOf(data, side, group)) };
   bool const         side_selected{ Call(ds, event, Service::SIDE_SELECTED_UNIT, side) == unit };
   bool const         group_selected{ Call(ds, event, Service::GROUP_SELECTED_UNIT, division) == unit };
   Call(ds, event, Service::UNIT_NAME, unit, name);

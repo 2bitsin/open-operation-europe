@@ -3,6 +3,7 @@
 // the strategic cell the unit would come from (occupants, the objective's side, impassable terrain for each element,
 // the enemy's marks).
 #include "map/btlaient.hpp"
+#include "common/battle-calls.hpp"
 #include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
@@ -31,10 +32,6 @@ constexpr uint8_t  MOVE_CLASSES{ 5 }; // move_costs entries per terrain
 // The strategic direction + 1 the field is entered from at an edge cell; 0 elsewhere.
 [[nodiscard]] auto EntrySide(DataSegment& data, uint8_t x, uint8_t y) -> uint8_t {
   return static_cast<uint8_t>(BattleCellAt(data, x, y) >> std::to_underlying(BattleCell::EXIT_SHIFT));
-}
-
-[[nodiscard]] auto UnitDirection(uint8_t* ds, BattleEvent event, uint16_t unit) -> uint8_t {
-  return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
 }
 
 [[nodiscard]] auto FindEntry(uint8_t* ds, BattleEvent event, uint8_t& x, uint8_t& y, uint16_t element) -> bool {

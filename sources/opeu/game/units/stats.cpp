@@ -3,6 +3,7 @@
 #include "units/stats.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/forces.hpp"
 #include "core/recindex.hpp"
 #include "types.hpp"
 
@@ -83,7 +84,7 @@ uint32_t opeu_side_quantity(uint8_t ds[65536], uint8_t side, uint8_t category, u
   std::uint32_t total{ 0 };
   *count = 0;
   for (std::uint8_t index{ 0 }; index < GROUPS_PER_SIDE; ++index) {
-    auto const& group{ data.groups[GROUPS_PER_SIDE * side + index] };
+    auto const& group{ GroupOf(data, side, index) };
     if (group.flags & Bits(GroupFlag::READY)) {
       std::uint8_t group_count;
       total  += opeu_group_quantity(ds, Near(data, group), category, &group_count);

@@ -47,7 +47,7 @@ void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element) 
   ServiceLocals const locals{ MESSAGE_BYTES };
   auto const          message{ locals.At(0) };
   auto const          side{ opeu_battle_element_side(ds, event, element) };
-  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.element_types[Record<Element>(data, element).type].name);
+  Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, ElementTypeOf(data, element).name);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
