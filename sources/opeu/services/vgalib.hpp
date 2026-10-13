@@ -3,12 +3,13 @@
 // routines take x and w in 8-pixel columns. Images arrive in the game's formats and are decoded at the call.
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <span>
 
 // Start-up: the graphics screen shown, cleared, with the start colour map and palette.
 void vgalib_init(void);
-// The frame as palette entries and the palette in 8-bit levels; 1 when anything changed since the previous call.
-int VgalibRender(uint8_t* out640x480, uint8_t pal_rgb8[768]);
+// The frame as palette entries and the palette in 8-bit levels; true when anything changed since the previous call.
+auto VgalibRender(std::span<std::uint8_t, 640 * 480> frame, std::span<std::uint8_t, 768> palette) -> bool;
 
 // Reader callback of the picture decoders: returns the next stream byte.
 using PictureByteReader = uint8_t (*)(void);

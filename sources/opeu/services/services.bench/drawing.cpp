@@ -130,7 +130,7 @@ auto Present(benchmark::State& state) -> void {
   std::array<std::uint8_t, 768>              palette{};
   for (auto _ : state) {
     opeu_ui_box(0, 0, 1, 1, 3);
-    benchmark::DoNotOptimize(VgalibRender(frame.data(), palette.data()));
+    benchmark::DoNotOptimize(VgalibRender(frame, palette));
     benchmark::ClobberMemory();
   }
 }

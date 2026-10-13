@@ -1,346 +1,397 @@
-/* Host event pump, presentation pacing and the services' time base.
- *
- * Every polling service (key available/read, mouse state, FM countdown and
- * status) calls port_pump(). The game never waits on anything else, so this
- * is where host events enter the keyboard/mouse driver state and where the
- * VRAM model is shown (at most about 60 frames per second).
- *
- * Window mode: host time; when the pump runs many times in a row without a
- * host event it sleeps 1 ms now and then, so busy-waits do not take a whole
- * CPU. The window close request leaves the game (port_exit(0)).
- *
- * Headless mode (--headless): no window; every pump advances the virtual
- * clock by 1 ms. Input comes from the script given with --input; when the
- * virtual clock reaches --ms the screen is rendered, written to --png and
- * the program exits with 0.
- *
- * Input script format (one event per line, '#' starts a comment):
- *
- *   <ms> key <name>              press and release a key
- *   <ms> key <scan>:<ascii>      the same with BIOS codes in hex (1c:0d)
- *   <ms> text <characters>       one key per character (letters, digits,
- *                                space and the US punctuation)
- *   <ms> move <x> <y>            move the pointer (screen pixels, 0..639 x
- *                                0..479; the game band starts at y=40)
- *   <ms> click <x> <y> [left|right]  move there, press the button at <ms>
- *                                and release it 100 ms later
- *   <ms> press <x> <y> [left|right] / <ms> release <x> <y> [left|right]
- *
- * <ms> is the virtual time in milliseconds. Key names: enter, esc, space,
- * tab, bs, up, down, left, right, home, end, pgup, pgdn, ins, del,
- * f1..f10, a..z, 0..9 (top row), kp0..kp9 (keypad, Num Lock off: scan code
- * only, as the cursor keys; textout maps scan codes 47h..52h to digits).
- */
+// Host event pump, presentation pacing and the services' time base.
+//
+// Every polling service (key available/read, mouse state, FM countdown and status) calls port_pump(). The game never
+// waits on anything else, so this is where host events enter the keyboard/mouse driver state and where the VRAM model
+// is shown (at most about 60 frames per second).
+//
+// Window mode: host time; when the pump runs many times in a row without a host event it sleeps 1 ms now and then, so
+// busy-waits do not take a whole CPU. The window close request leaves the game (port_exit(0)).
+//
+// Headless mode (--headless): no window; every pump advances the virtual clock by 1 ms. Input comes from the script
+// given with --input; when the virtual clock reaches --ms the screen is rendered, written to --png and the program
+// exits with 0.
+//
+// Input script format (one event per line, '#' starts a comment):
+//
+//   <ms> key <name>              press and release a key
+//   <ms> key <scan>:<ascii>      the same with BIOS codes in hex (1c:0d)
+//   <ms> text <characters>       one key per character (letters, digits, space and the US punctuation)
+//   <ms> move <x> <y>            move the pointer (screen pixels, 0..639 x 0..479; the game band starts at y=40)
+//   <ms> click <x> <y> [left|right]  move there, press the button at <ms> and release it 100 ms later
+//   <ms> press <x> <y> [left|right] / <ms> release <x> <y> [left|right]
+//
+// <ms> is the virtual time in milliseconds. Key names: enter, esc, space, tab, bs, up, down, left, right, home, end,
+// pgup, pgdn, ins, del, f1..f10, a..z, 0..9 (top row), kp0..kp9 (keypad, Num Lock off: scan code only, as the cursor
+// keys; textout maps scan codes 47h..52h to digits).
 #include "hostinput.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "vgalib.hpp"
 
-#include <ctype.h>
+#include <algorithm>
+#include <array>
+#include <charconv>
+#include <cstdlib>
+#include <format>
+#include <fstream>
+#include <optional>
+#include <ranges>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #if defined(__APPLE__) || defined(__linux__)
 #include <execinfo.h>
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-/* ---- time base ----------------------------------------------------------- */
+namespace opeu::services::detail::pump {
+namespace {
 
-static uint64_t virtual_us;
+// ---- scripted input (headless) ----
 
-uint64_t port_time_us(void) {
-  return port_options.headless ? virtual_us : opeu::platform::TicksUs();
-}
-
-/* ---- presentation -------------------------------------------------------- */
-
-static uint8_t  frame[640 * 480];
-static uint8_t  palette[768];
-static uint64_t last_present_us;
-static int      presented_once;
-
-static void present(int force) {
-  int changed = VgalibRender(frame, palette);
-  int pointer = PortInputPointerDirty();
-  if (!force && !changed && !pointer && presented_once) return;
-  PortInputDrawPointer(frame, palette);
-  opeu::platform::Present({ .pixels = frame, .width = 640, .height = 480, .palette = palette });
-  presented_once = 1;
-}
-
-/* ---- scripted input (headless) ------------------------------------------- */
-
-typedef struct {
-  uint32_t ms;
-  int      kind; /* 0 key, 1 move, 2 press, 3 release */
-  uint8_t  scan, ascii;
-  int      x, y, button;
-} ScriptEvent;
-
-static ScriptEvent* script;
-static unsigned     script_count, script_next, script_cap;
-static int          script_loaded;
-
-static void ScriptAdd(ScriptEvent e) {
-  if (script_count == script_cap) {
-    script_cap = script_cap ? script_cap * 2 : 64;
-    script     = (ScriptEvent*)realloc(script, script_cap * sizeof *script);
-    if (!script) port_fatal("out of memory for the input script");
-  }
-  script[script_count++] = e;
-}
-
-static const struct {
-  const char* name;
-  uint8_t     scan, ascii;
-} KEY_NAMES[] = {
-  { "enter", 0x1c, 0x0d },
-  { "esc",   0x01, 0x1b },
-  { "space", 0x39, 0x20 },
-  { "tab",   0x0f, 0x09 },
-  { "bs",    0x0e, 0x08 },
-  { "up",    0x48, 0    },
-  { "down",  0x50, 0    },
-  { "left",  0x4b, 0    },
-  { "right", 0x4d, 0    },
-  { "home",  0x47, 0    },
-  { "end",   0x4f, 0    },
-  { "pgup",  0x49, 0    },
-  { "pgdn",  0x51, 0    },
-  { "ins",   0x52, 0    },
-  { "del",   0x53, 0    },
-  { "f1",    0x3b, 0    },
-  { "f2",    0x3c, 0    },
-  { "f3",    0x3d, 0    },
-  { "f4",    0x3e, 0    },
-  { "f5",    0x3f, 0    },
-  { "f6",    0x40, 0    },
-  { "f7",    0x41, 0    },
-  { "f8",    0x42, 0    },
-  { "f9",    0x43, 0    },
-  { "f10",   0x44, 0    },
-  { "kp0",   0x52, 0    },
-  { "kp1",   0x4f, 0    },
-  { "kp2",   0x50, 0    },
-  { "kp3",   0x51, 0    },
-  { "kp4",   0x4b, 0    },
-  { "kp5",   0x4c, 0    },
-  { "kp6",   0x4d, 0    },
-  { "kp7",   0x47, 0    },
-  { "kp8",   0x48, 0    },
-  { "kp9",   0x49, 0    },
+// A BIOS key: AH=scan code, AL=ASCII.
+struct Key {
+  std::uint8_t scan{};
+  std::uint8_t ascii{};
 };
 
-/* US layout: scan codes of the printable characters (unshifted, shifted). */
-static const char    ROW_CHARS[] = "1234567890-=qwertyuiop[]asdfghjkl;'`\\zxcvbnm,./";
-static const char    ROW_SHIFT[] = "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"~|ZXCVBNM<>?";
-static const uint8_t ROW_SCAN[]  = {
-  0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
-  0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+enum class Action : std::uint8_t {
+  KEY,
+  MOVE,
+  PRESS,
+  RELEASE,
 };
 
-static int CharKey(char c, uint8_t* scan, uint8_t* ascii) {
-  const char* p;
-  if (c == ' ') {
-    *scan  = 0x39;
-    *ascii = ' ';
-    return 1;
-  }
-  if ((p = strchr(ROW_CHARS, c)) != NULL && c) {
-    *scan  = ROW_SCAN[p - ROW_CHARS];
-    *ascii = (uint8_t)c;
-    return 1;
-  }
-  if ((p = strchr(ROW_SHIFT, c)) != NULL && c) {
-    *scan  = ROW_SCAN[p - ROW_SHIFT];
-    *ascii = (uint8_t)c;
-    return 1;
-  }
-  return 0;
-}
+struct ScriptEvent {
+  std::uint32_t ms{};
+  Action        action{};
+  Key           key{};
+  int           x{};
+  int           y{};
+  int           button{};
+};
 
-static int ParseKey(const char* word, uint8_t* scan, uint8_t* ascii) {
-  unsigned i, s, a;
-  for (i = 0; i < sizeof KEY_NAMES / sizeof KEY_NAMES[0]; i++)
-    if (!strcmp(word, KEY_NAMES[i].name)) {
-      *scan  = KEY_NAMES[i].scan;
-      *ascii = KEY_NAMES[i].ascii;
-      return 1;
-    }
-  if (sscanf(word, "%x:%x", &s, &a) == 2) {
-    *scan  = (uint8_t)s;
-    *ascii = (uint8_t)a;
-    return 1;
-  }
-  if (strlen(word) == 1) return CharKey(word[0], scan, ascii);
-  return 0;
-}
+struct KeyName {
+  std::string_view name;
+  Key              key;
+};
 
-static int CmpEvents(const void* a, const void* b) {
-  const ScriptEvent *x = (const ScriptEvent*)a, *y = (const ScriptEvent*)b;
-  if (x->ms != y->ms) return x->ms < y->ms ? -1 : 1;
-  return 0;
-}
-
-static void ScriptLoad(const char* path) {
-  FILE* f = fopen(path, "r");
-  char  line[512];
-  int   number = 0;
-  if (!f) port_fatal("cannot open input script %s", path);
-  while (fgets(line, sizeof line, f)) {
-    char*         hash = strchr(line, '#');
-    char          verb[32], arg[400], button[16];
-    unsigned long ms;
-    int           x, y, n;
-    ScriptEvent   e;
-    number++;
-    if (hash) *hash = 0;
-    memset(&e, 0, sizeof e);
-    button[0] = 0;
-    if (sscanf(line, "%lu %31s%n", &ms, verb, &n) < 2) continue;
-    e.ms = (uint32_t)ms;
-    if (!strcmp(verb, "key")) {
-      if (sscanf(line + n, "%399s", arg) != 1 || !ParseKey(arg, &e.scan, &e.ascii)) port_fatal("%s:%d: unknown key", path, number);
-      e.kind = 0;
-      ScriptAdd(e);
-    } else if (!strcmp(verb, "text")) {
-      char* p = line + n;
-      while (*p == ' ' || *p == '\t') p++;
-      for (; *p && *p != '\n' && *p != '\r'; p++) {
-        if (!CharKey(*p, &e.scan, &e.ascii)) port_fatal("%s:%d: no key for '%c'", path, number, *p);
-        e.kind = 0;
-        ScriptAdd(e);
-      }
-    } else if (!strcmp(verb, "move") || !strcmp(verb, "click") || !strcmp(verb, "press") || !strcmp(verb, "release")) {
-      if (sscanf(line + n, "%d %d %15s", &x, &y, button) < 2) port_fatal("%s:%d: expected <x> <y>", path, number);
-      e.x      = x;
-      e.y      = y;
-      e.button = !strcmp(button, "right") ? 1 : 0;
-      if (!strcmp(verb, "move")) {
-        e.kind = 1;
-        ScriptAdd(e);
-      } else if (!strcmp(verb, "press")) {
-        e.kind = 2;
-        ScriptAdd(e);
-      } else if (!strcmp(verb, "release")) {
-        e.kind = 3;
-        ScriptAdd(e);
-      } else {
-        e.kind = 2;
-        ScriptAdd(e);
-        e.kind  = 3;
-        e.ms   += 100;
-        ScriptAdd(e);
-      }
-    } else {
-      port_fatal("%s:%d: unknown event '%s'", path, number, verb);
-    }
-  }
-  fclose(f);
-  /* stable order by time (insertion order kept for equal times) */
+constexpr std::array<KeyName, 35> KEY_NAMES{
   {
-    unsigned i, j;
-    for (i = 1; i < script_count; i++)
-      for (j = i; j > 0 && CmpEvents(&script[j - 1], &script[j]) > 0; j--) {
-        ScriptEvent t = script[j - 1];
-        script[j - 1] = script[j];
-        script[j]     = t;
-      }
-  }
+   { "enter", { 0x1C, 0x0D } }, { "esc", { 0x01, 0x1B } }, { "space", { 0x39, 0x20 } }, { "tab", { 0x0F, 0x09 } }, { "bs", { 0x0E, 0x08 } }, { "up", { 0x48, 0 } },   { "down", { 0x50, 0 } },
+   { "left", { 0x4B, 0 } },     { "right", { 0x4D, 0 } },  { "home", { 0x47, 0 } },     { "end", { 0x4F, 0 } },    { "pgup", { 0x49, 0 } },  { "pgdn", { 0x51, 0 } }, { "ins", { 0x52, 0 } },
+   { "del", { 0x53, 0 } },      { "f1", { 0x3B, 0 } },     { "f2", { 0x3C, 0 } },       { "f3", { 0x3D, 0 } },     { "f4", { 0x3E, 0 } },    { "f5", { 0x3F, 0 } },   { "f6", { 0x40, 0 } },
+   { "f7", { 0x41, 0 } },       { "f8", { 0x42, 0 } },     { "f9", { 0x43, 0 } },       { "f10", { 0x44, 0 } },    { "kp0", { 0x52, 0 } },   { "kp1", { 0x4F, 0 } },  { "kp2", { 0x50, 0 } },
+   { "kp3", { 0x51, 0 } },      { "kp4", { 0x4B, 0 } },    { "kp5", { 0x4C, 0 } },      { "kp6", { 0x4D, 0 } },    { "kp7", { 0x47, 0 } },   { "kp8", { 0x48, 0 } },  { "kp9", { 0x49, 0 } },
+   }
+};
+
+// US layout: scan codes of the printable characters (unshifted, shifted).
+constexpr std::string_view             ROW_CHARS{ "1234567890-=qwertyuiop[]asdfghjkl;'`\\zxcvbnm,./" };
+constexpr std::string_view             ROW_SHIFT{ "!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"~|ZXCVBNM<>?" };
+constexpr std::array<std::uint8_t, 47> ROW_SCAN{
+  0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B,
+  0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+};
+
+// The key that types a character.
+auto CharKey(char const c) -> std::optional<Key> {
+  if (c == ' ') return Key{ .scan = 0x39, .ascii = ' ' };
+  auto const row{ ROW_CHARS.find(c) != std::string_view::npos ? ROW_CHARS.find(c) : ROW_SHIFT.find(c) };
+  if (c == '\0' || row == std::string_view::npos) return std::nullopt;
+  return Key{ .scan = ROW_SCAN.at(row), .ascii = static_cast<std::uint8_t>(c) };
 }
 
-static void ScriptRun(uint32_t now_ms) {
-  while (script_next < script_count && script[script_next].ms <= now_ms) {
-    const ScriptEvent* e = &script[script_next++];
-    port_trace("input", "%u ms: script event %d", (unsigned)now_ms, e->kind);
-    switch (e->kind) {
-    case 0: PortInputKey(e->scan, e->ascii); break;
-    case 1: PortInputMouseMove(e->x, e->y); break;
-    case 2: PortInputMouseButton(e->button, 1, e->x, e->y); break;
-    case 3: PortInputMouseButton(e->button, 0, e->x, e->y); break;
+// A hex number filling the whole text.
+auto Hex(std::string_view const text) -> std::optional<std::uint32_t> {
+  std::uint32_t value{};
+  auto const [end, error]{ std::from_chars(text.data(), text.data() + text.size(), value, 16) };
+  if (error != std::errc{} || end != text.data() + text.size()) return std::nullopt;
+  return value;
+}
+
+// <scan>:<ascii> in hex.
+auto CodeKey(std::string_view const word) -> std::optional<Key> {
+  auto const colon{ word.find(':') };
+  if (colon == std::string_view::npos) return std::nullopt;
+  auto const scan{ Hex(word.substr(0, colon)) };
+  auto const ascii{ Hex(word.substr(colon + 1)) };
+  if (!scan || !ascii) return std::nullopt;
+  return Key{ .scan = static_cast<std::uint8_t>(*scan), .ascii = static_cast<std::uint8_t>(*ascii) };
+}
+
+auto ParseKey(std::string_view const word) -> std::optional<Key> {
+  auto const named{ std::ranges::find(KEY_NAMES, word, &KeyName::name) };
+  if (named != KEY_NAMES.end()) return named->key;
+  if (auto const code{ CodeKey(word) }) return code;
+  if (word.size() == 1) return CharKey(word.front());
+  return std::nullopt;
+}
+
+auto WithAction(ScriptEvent event, Action const action) -> ScriptEvent {
+  event.action = action;
+  return event;
+}
+
+// Reads an input script; a malformed line ends the program with the file and line named.
+class ScriptReader {
+public:
+  explicit ScriptReader(std::string path) : _path{ std::move(path) } { }
+
+  [[nodiscard]] auto Events() -> std::vector<ScriptEvent> {
+    std::ifstream file{ _path };
+    if (!file) port_fatal("cannot open input script %s", _path.c_str());
+    std::vector<ScriptEvent> events;
+    std::string              line;
+    // A hand loop: one pass per line of the file.
+    while (std::getline(file, line)) {
+      ++_number;
+      std::ranges::copy(Parse(line.substr(0, line.find('#'))), std::back_inserter(events));
     }
+    std::ranges::stable_sort(events, {}, &ScriptEvent::ms); // equal times keep the script's order
+    return events;
+  }
+
+private:
+  [[noreturn]] auto Fail(std::string_view const message) const -> void {
+    port_fatal("%s", std::format("{}:{}: {}", _path, _number, message).c_str());
+    std::unreachable(); // port_fatal exits
+  }
+
+  [[nodiscard]] auto Parse(std::string const& line) const -> std::vector<ScriptEvent> {
+    std::istringstream arguments{ line };
+    std::uint64_t      ms{};
+    std::string        verb;
+    if (!(arguments >> ms >> verb)) return {};
+    auto const at{ ScriptEvent{ .ms = static_cast<std::uint32_t>(ms) } };
+    if (verb == "key") return { KeyEvent(at, arguments) };
+    if (verb == "text") return Text(at, arguments.eof() ? std::string_view{} : std::string_view{ line }.substr(static_cast<std::size_t>(arguments.tellg())));
+    if (verb == "move" || verb == "click" || verb == "press" || verb == "release") return Pointer(at, verb, arguments);
+    Fail(std::format("unknown event '{}'", verb));
+  }
+
+  [[nodiscard]] auto KeyEvent(ScriptEvent const& at, std::istringstream& arguments) const -> ScriptEvent {
+    std::string word;
+    arguments >> word;
+    auto const key{ ParseKey(word) };
+    if (word.empty() || !key) Fail("unknown key");
+    return { .ms = at.ms, .action = Action::KEY, .key = *key };
+  }
+
+  // `text <characters>`: one key per character up to the end of the line.
+  [[nodiscard]] auto Text(ScriptEvent const& at, std::string_view const rest) const -> std::vector<ScriptEvent> {
+    auto const start{ std::min(rest.find_first_not_of(" \t"), rest.size()) };
+    auto const text{ rest.substr(start, rest.substr(start).find_first_of("\r\n")) };
+    return text | std::views::transform([&](char const c) {
+             auto const key{ CharKey(c) };
+             if (!key) Fail(std::format("no key for '{}'", c));
+             return ScriptEvent{ .ms = at.ms, .action = Action::KEY, .key = *key };
+           })
+           | std::ranges::to<std::vector>();
+  }
+
+  // `move|click|press|release <x> <y> [left|right]`; a click is a press and the release 100 ms later.
+  [[nodiscard]] auto Pointer(ScriptEvent at, std::string const& verb, std::istringstream& arguments) const -> std::vector<ScriptEvent> {
+    std::string button;
+    if (!(arguments >> at.x >> at.y)) Fail("expected <x> <y>");
+    arguments >> button;
+    at.button = button == "right" ? 1 : 0;
+    if (verb == "move") return { WithAction(at, Action::MOVE) };
+    if (verb == "press") return { WithAction(at, Action::PRESS) };
+    if (verb == "release") return { WithAction(at, Action::RELEASE) };
+    auto release{ WithAction(at, Action::RELEASE) };
+    release.ms += 100;
+    return { WithAction(at, Action::PRESS), release };
+  }
+
+  std::string _path;
+  int         _number{};
+};
+
+auto Dispatch(ScriptEvent const& event) -> void {
+  switch (event.action) {
+  case Action::KEY:     KeyPressed(event.key.scan, event.key.ascii); break;
+  case Action::MOVE:    MouseMoved(event.x, event.y); break;
+  case Action::PRESS:   MouseButton({ .button = event.button, .down = true, .x = event.x, .y = event.y }); break;
+  case Action::RELEASE: MouseButton({ .button = event.button, .down = false, .x = event.x, .y = event.y }); break;
   }
 }
 
-/* ---- the pump ------------------------------------------------------------ */
+// The scripted events, run when their time has come.
+class InputScript {
+public:
+  InputScript() = default;
+  explicit InputScript(std::vector<ScriptEvent> events) : _events{ std::move(events) } { }
 
-static void HeadlessPump(void) {
-  uint32_t now_ms;
-  if (!script_loaded) {
-    script_loaded = 1;
-    if (port_options.input_path) ScriptLoad(port_options.input_path);
+  auto Run(std::uint32_t const now_ms) -> void {
+    auto const pending{ std::span{ _events }.subspan(_next) };
+    auto const due{ static_cast<std::size_t>(std::ranges::find_if(pending, [now_ms](ScriptEvent const& event) { return event.ms > now_ms; }) - pending.begin()) };
+    _next += due;
+    std::ranges::for_each(pending.first(due), [now_ms](ScriptEvent const& event) {
+      port_trace("input", "%u ms: script event %d", now_ms, static_cast<int>(event.action));
+      Dispatch(event);
+    });
   }
-  virtual_us += 1000;
-  port_fm_clock();
-  now_ms = (uint32_t)(virtual_us / 1000);
-  ScriptRun(now_ms);
-  if (port_options.shot_dir && port_options.shot_every_ms && now_ms % port_options.shot_every_ms == 0) {
-    char path[1024];
-    present(1);
-    snprintf(path, sizeof path, "%s/%08u.png", port_options.shot_dir, (unsigned)now_ms);
-    if (!opeu::platform::WritePng(path)) port_fatal("cannot write %s", path);
-  }
-  if (port_options.stop_ms && now_ms >= port_options.stop_ms) {
-    present(1);
-    if (port_options.png_path && !opeu::platform::WritePng(port_options.png_path)) port_fatal("cannot write %s", port_options.png_path);
-    port_trace("svc", "headless stop at %u ms", (unsigned)now_ms);
+
+private:
+  std::vector<ScriptEvent> _events;
+  std::size_t              _next{};
+};
+
+// Diagnostic: where the game was waiting when a headless run stopped (OPEU_BACKTRACE set).
+auto PrintBacktrace() -> void {
 #if defined(__APPLE__) || defined(__linux__)
-    if (getenv("OPEU_BACKTRACE")) {
-      /* Diagnostic: where the game was waiting when the run stopped. */
-      void* frames[64];
-      int   n = backtrace(frames, 64);
-      backtrace_symbols_fd(frames, n, 2);
-    }
+  if (std::getenv("OPEU_BACKTRACE") == nullptr) return;
+  std::array<void*, 64> frames{};
+  auto const            count{ backtrace(frames.data(), static_cast<int>(frames.size())) };
+  backtrace_symbols_fd(frames.data(), count, 2);
 #endif
+}
+
+// ---- the pump ----
+
+class Pump {
+public:
+  [[nodiscard]] auto TimeUs() const -> std::uint64_t {
+    return port_options.headless != 0 ? _virtual_us : platform::TicksUs();
+  }
+
+  auto Run() -> void {
+    if (port_options.headless != 0) {
+      HeadlessRun();
+    } else {
+      WindowRun();
+    }
+  }
+
+private:
+  // Renders the screen; true when it differs from what was shown.
+  [[nodiscard]] auto Render() -> bool {
+    auto const changed{ VgalibRender(std::span{ _frame }.first<hostinput::FRAME_PIXELS>(), _palette) };
+    auto const pointer{ PointerDirty() };
+    return changed || pointer || !_presented_once;
+  }
+
+  auto Show() -> void {
+    DrawPointer(std::span{ _frame }.first<hostinput::FRAME_PIXELS>(), _palette);
+    platform::Present({ .pixels = _frame, .width = 640, .height = 480, .palette = _palette });
+    _presented_once = true;
+  }
+
+  auto Present() -> void {
+    static_cast<void>(Render());
+    Show();
+  }
+
+  auto PresentChanges() -> void {
+    if (Render()) Show();
+  }
+
+  auto LoadScript() -> void {
+    if (_script) return;
+    _script = port_options.input_path != nullptr ? InputScript{ ScriptReader{ port_options.input_path }.Events() } : InputScript{};
+  }
+
+  auto Shoot(std::uint32_t const now_ms) -> void {
+    auto const path{ std::format("{}/{:08}.png", port_options.shot_dir, now_ms) };
+    Present();
+    if (!platform::WritePng(path)) port_fatal("cannot write %s", path.c_str());
+  }
+
+  auto Stop(std::uint32_t const now_ms) -> void {
+    Present();
+    if (port_options.png_path != nullptr && !platform::WritePng(port_options.png_path)) port_fatal("cannot write %s", port_options.png_path);
+    port_trace("svc", "headless stop at %u ms", now_ms);
+    PrintBacktrace();
     port_exit(0);
   }
+
+  auto HeadlessRun() -> void {
+    LoadScript();
+    _virtual_us += 1000;
+    port_fm_clock();
+    auto const now_ms{ static_cast<std::uint32_t>(_virtual_us / 1000) };
+    _script->Run(now_ms);
+    if (port_options.shot_dir != nullptr && port_options.shot_every_ms != 0 && now_ms % port_options.shot_every_ms == 0) Shoot(now_ms);
+    if (port_options.stop_ms != 0 && now_ms >= port_options.stop_ms) Stop(now_ms);
+  }
+
+  // The host's events into the devices; true when there were any.
+  static auto PollHost() -> bool {
+    auto any{ false };
+    // A hand loop: the host's queue is drained; its length is not known before.
+    while (auto const event{ platform::PollEvent() }) {
+      using enum platform::EventType;
+      any = true;
+      switch (event->type) {
+      case QUIT:       port_exit(0); break;
+      case KEY_DOWN:   KeyPressed(event->scancode, event->ascii); break;
+      case MOUSE_MOVE: MouseMoved(event->x, event->y); break;
+      case MOUSE_DOWN:
+      case MOUSE_UP:   MouseButton({ .button = event->button, .down = event->type == MOUSE_DOWN, .x = event->x, .y = event->y }); break;
+      default:         break;
+      }
+    }
+    return any;
+  }
+
+  // Every 64th idle pump sleeps 1 ms.
+  auto Idle() -> void {
+    if (++_idle % 64u == 0) platform::SleepMs(1);
+  }
+
+  auto WindowRun() -> void {
+    auto const now{ platform::TicksUs() };
+    if (now - _last_poll_us < 500u) {
+      Idle();
+      return;
+    }
+    _last_poll_us = now;
+    port_fm_clock();
+    auto const any{ PollHost() };
+    // --input in a window: the script's times are host milliseconds since start (unattended windowed runs, e.g. to
+    // hear the music)
+    if (port_options.input_path != nullptr) {
+      LoadScript();
+      _script->Run(static_cast<std::uint32_t>(platform::TicksUs() / 1000));
+    }
+    auto const later{ platform::TicksUs() };
+    if (later - _last_present_us >= 16667u) {
+      _last_present_us = later;
+      PresentChanges();
+    }
+    if (any) {
+      _idle = 0;
+    } else {
+      Idle();
+    }
+  }
+
+  std::vector<std::uint8_t>                          _frame = std::vector<std::uint8_t>(hostinput::FRAME_PIXELS);
+  std::array<std::uint8_t, hostinput::PALETTE_BYTES> _palette{};
+  std::uint64_t                                      _virtual_us{};
+  std::uint64_t                                      _last_present_us{};
+  bool                                               _presented_once{};
+  std::optional<InputScript>                         _script;
+  std::uint32_t                                      _idle{};
+  std::uint64_t                                      _last_poll_us{};
+};
+
+// The pump of the process (legacy: port_pump and port_time_us are free functions).
+auto ThePump() -> Pump& {
+  static Pump pump;
+  return pump;
 }
 
-void port_pump(void) {
-  static unsigned idle;
-  static uint64_t last_poll_us;
-  int             any = 0;
-  uint64_t        now;
+}
+}
 
-  if (port_options.headless) {
-    HeadlessPump();
-    return;
-  }
-  now = opeu::platform::TicksUs();
-  if (now - last_poll_us < 500u) {
-    if (++idle % 64u == 0) opeu::platform::SleepMs(1);
-    return;
-  }
-  last_poll_us = now;
-  port_fm_clock();
-  while (auto const ev = opeu::platform::PollEvent()) {
-    using enum opeu::platform::EventType;
-    any = 1;
-    switch (ev->type) {
-    case QUIT:       port_exit(0); break;
-    case KEY_DOWN:   PortInputKey(ev->scancode, ev->ascii); break;
-    case MOUSE_MOVE: PortInputMouseMove(ev->x, ev->y); break;
-    case MOUSE_DOWN:
-    case MOUSE_UP:   PortInputMouseButton(ev->button, ev->type == MOUSE_DOWN, ev->x, ev->y); break;
-    default:         break;
-    }
-  }
-  /* --input in a window: the script's times are host milliseconds since
-     * start (unattended windowed runs, e.g. to hear the music) */
-  if (port_options.input_path) {
-    if (!script_loaded) {
-      script_loaded = 1;
-      ScriptLoad(port_options.input_path);
-    }
-    ScriptRun((uint32_t)(opeu::platform::TicksUs() / 1000));
-  }
-  now = opeu::platform::TicksUs();
-  if (now - last_present_us >= 16667u) {
-    last_present_us = now;
-    present(0);
-  }
-  if (any)
-    idle = 0;
-  else if (++idle % 64u == 0)
-    opeu::platform::SleepMs(1);
+auto port_time_us() -> std::uint64_t {
+  return opeu::services::detail::pump::ThePump().TimeUs();
+}
+
+void port_pump() {
+  opeu::services::detail::pump::ThePump().Run();
 }

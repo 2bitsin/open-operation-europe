@@ -135,9 +135,9 @@ void vgalib_init(void) {
   Screen().Start();
 }
 
-int VgalibRender(uint8_t* out, uint8_t pal[768]) {
+auto VgalibRender(std::span<std::uint8_t, 640 * 480> const frame, std::span<std::uint8_t, 768> const palette) -> bool {
   auto&      screen{ Screen() };
   auto const changed{ screen.TakeChanged() };
-  screen.Render(std::span<uint8_t, opeu::services::detail::canvas::PIXELS>{ out, opeu::services::detail::canvas::PIXELS }, std::span<uint8_t, 768>{ pal, 768 });
+  screen.Render(frame, palette);
   return changed;
 }
