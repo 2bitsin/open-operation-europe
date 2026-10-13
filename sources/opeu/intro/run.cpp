@@ -49,7 +49,7 @@ void open_intro_run() {
   services::Machine machine;
   Open              open{ state, machine };
   /* crt0 -> main(): the opening's recovered main(). */
-  opeu_open_main(open, link_openmain);
+  opeu_open_main(open);
   /* main() returned: crt0 exits, DOS frees OPEN's memory and the
      * launcher loads MAIN.EXE. */
   port_trace("svc", "OPEN.EXE: exit at %llu us", static_cast<unsigned long long>(port_time_us()));

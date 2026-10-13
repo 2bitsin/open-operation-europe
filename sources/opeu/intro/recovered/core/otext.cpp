@@ -33,6 +33,14 @@
 #include "recovered.hpp"
 #include "segment-bytes.hpp"
 
+#include "services.hpp"
+#include "vgalib.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <ranges>
+#include <span>
+
 #include <algorithm>
 
 /* DS is explicit and near pointers are 16-bit DS offsets. The original's
@@ -42,8 +50,7 @@
  * the original stack layout after the return address. */
 namespace opeu::intro::detail::otext {
 namespace {
-using enum TextEventId;
-using TextOut = void (*)(Open& open, TextHost* host, uint16_t c);
+using TextOut = void (*)(Open& open, uint16_t c);
 
 /* The int and long at a near pointer. */
 auto IntAt(Open const& open, uint16_t at) -> int16_t {
@@ -74,94 +81,84 @@ auto NegateLong(int32_t value) -> int32_t {
   return static_cast<int32_t>(0u - static_cast<uint32_t>(value));
 }
 
-auto Event(Open& open, TextHost* host, TextEventId id) -> uint16_t {
-  return host->event(open, id, nullptr, 0);
 }
 
-template <class... Words>
-auto Event(Open& open, TextHost* host, TextEventId id, Words... words) -> uint16_t {
-  auto const     event{ host->event };
-  uint16_t const args[]{ static_cast<uint16_t>(words)... };
-  return event(open, id, args, sizeof...(Words));
-}
-}
-
-auto opeu_key_read(Open& open, TextHost* host) -> uint8_t;
-auto opeu_format_decimal(Open& open, TextHost* host, uint16_t* p) -> int16_t;
-auto opeu_put_unsigned(Open& open, TextHost* host, uint16_t* p, uint16_t v, uint16_t base) -> int16_t;
-auto opeu_put_long(Open& open, TextHost* host, uint16_t* p, int32_t v, int16_t base) -> int16_t;
-void opeu_format(Open& open, TextHost* host, uint16_t args, TextOut out);
-auto opeu_open_sjis_to_jis(Open& open, TextHost* host, uint16_t code) -> uint16_t;
-void opeu_text_clamp(Open& open, TextHost* host);
-void opeu_army_position(Open& open, TextHost* host, int16_t x, int16_t y);
-void opeu_text_set_x(Open& open, TextHost* host, int16_t x);
-void opeu_text_set_y(Open& open, TextHost* host, int16_t y);
-void opeu_text_color(Open& open, TextHost* host, uint16_t color);
-void opeu_text_paper_set(Open& open, TextHost* host, uint8_t paper);
-void opeu_text_glyph(Open& open, TextHost* host, int16_t x, int16_t y, int16_t attribute, uint16_t code);
-void opeu_text_newline(Open& open, TextHost* host);
-void opeu_text_control(Open& open, TextHost* host, uint8_t c);
-void opeu_format_store(Open& open, TextHost* host, char c);
-void opeu_request_format(Open& open, TextHost* host, uint16_t frame);
-void opeu_text_put_range(Open& open, TextHost* host, uint16_t s, uint8_t start, uint8_t count);
-void opeu_text_erase_char(Open& open, TextHost* host);
+auto opeu_key_read() -> uint8_t;
+auto opeu_format_decimal(Open& open, uint16_t& p) -> int16_t;
+auto opeu_put_unsigned(Open& open, uint16_t& p, uint16_t v, uint16_t base) -> int16_t;
+auto opeu_put_long(Open& open, uint16_t& p, int32_t v, int16_t base) -> int16_t;
+void opeu_format(Open& open, uint16_t args, TextOut out);
+auto opeu_open_sjis_to_jis(Open& open, uint16_t code) -> uint16_t;
+void opeu_text_clamp(Open& open);
+void opeu_army_position(Open& open, int16_t x, int16_t y);
+void opeu_text_set_x(Open& open, int16_t x);
+void opeu_text_set_y(Open& open, int16_t y);
+void opeu_text_color(Open& open, uint16_t color);
+void opeu_text_paper_set(Open& open, uint8_t paper);
+void opeu_text_glyph(Open& open, int16_t x, int16_t y, int16_t attribute, uint16_t code);
+void opeu_text_newline(Open& open);
+void opeu_text_control(Open& open, uint8_t c);
+void opeu_format_store(Open& open, char c);
+void opeu_request_format(Open& open, uint16_t frame);
+void opeu_text_put_range(Open& open, uint16_t s, uint8_t start, uint8_t count);
+void opeu_text_erase_char(Open& open);
 
 /* The far callbacks the original passes to opeu_format (02a0:04bc and
  * 02a0:0712) receive the character in AX. */
-static void host_put_out(Open& open, TextHost* host, uint16_t c) {
-  opeu_text_put(open, host, static_cast<uint8_t>(c));
+static void host_put_out(Open& open, uint16_t c) {
+  opeu_text_put(open, static_cast<uint8_t>(c));
 }
 
-static void host_store_out(Open& open, TextHost* host, uint16_t c) {
-  opeu_format_store(open, host, static_cast<char>(c));
+static void host_store_out(Open& open, uint16_t c) {
+  opeu_format_store(open, static_cast<char>(c));
 }
 
 /* 0002: wait for a key (INT 16h) and return its character. */
-auto opeu_key_read(Open& open, TextHost* host) -> uint8_t {
+auto opeu_key_read() -> uint8_t {
   uint16_t r = 0;
-  r          = Event(open, host, KEY_READ);
+  r          = port_key_read();
   return static_cast<uint8_t>(r);
 }
 
 /* 0022 */
-void opeu_input_flush(Open& open, TextHost* host) {
-  while (Event(open, host, KEY_WAITING) != 0u) opeu_key_read(open, host);
+void opeu_input_flush() {
+  while (opeu_turn_input_b() != 0u) opeu_key_read();
 }
 
 /* 0032: unsigned decimal at *p; *p is left at the first non-digit. */
-auto opeu_format_decimal(Open& open, [[maybe_unused]] TextHost* host, uint16_t* p) -> int16_t {
+auto opeu_format_decimal(Open& open, uint16_t& p) -> int16_t {
   uint16_t a = 0;
   uint16_t b = 0;
   a          = 0;
-  while ((b = Byte(open, *p) - '0') < 10) {
+  while ((b = Byte(open, p) - '0') < 10) {
     a = static_cast<uint16_t>(b + (a * 10));
-    ++*p;
+    ++p;
   }
   return static_cast<int16_t>(a);
 }
 
 /* 006a/00d0: digits of v in base, uppercase; return the digit count. */
-auto opeu_put_unsigned(Open& open, TextHost* host, uint16_t* p, uint16_t v, uint16_t base) -> int16_t {
+auto opeu_put_unsigned(Open& open, uint16_t& p, uint16_t v, uint16_t base) -> int16_t {
   int16_t a = 0;
   if (v < base) {
-    Byte(open, *p) = static_cast<uint8_t>(v + (v < 10 ? '0' : '7'));
-    ++*p;
+    Byte(open, p) = static_cast<uint8_t>(v + (v < 10 ? '0' : '7'));
+    ++p;
     return 1;
   }
-  a = opeu_put_unsigned(open, host, p, v / base, base);
-  opeu_put_unsigned(open, host, p, v % base, base);
+  a = opeu_put_unsigned(open, p, v / base, base);
+  opeu_put_unsigned(open, p, v % base, base);
   return static_cast<int16_t>(a + 1);
 }
 
-auto opeu_put_long(Open& open, TextHost* host, uint16_t* p, int32_t v, int16_t base) -> int16_t {
+auto opeu_put_long(Open& open, uint16_t& p, int32_t v, int16_t base) -> int16_t {
   int16_t a = 0;
   if (v < base) {
-    Byte(open, *p) = static_cast<uint8_t>(static_cast<char>(v) + (v < 10 ? '0' : '7'));
-    ++*p;
+    Byte(open, p) = static_cast<uint8_t>(static_cast<char>(v) + (v < 10 ? '0' : '7'));
+    ++p;
     return 1;
   }
-  a = opeu_put_long(open, host, p, v / base, base);
-  opeu_put_long(open, host, p, v % base, base);
+  a = opeu_put_long(open, p, v / base, base);
+  opeu_put_long(open, p, v % base, base);
   return static_cast<int16_t>(a + 1);
 }
 
@@ -170,7 +167,7 @@ auto opeu_put_long(Open& open, TextHost* host, uint16_t* p, int32_t v, int16_t b
 // The opening's recovered control flow, one branch
 // per format code; it goes when the opening becomes a scene (M6).
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void opeu_format(Open& open, TextHost* host, uint16_t args, TextOut out) {
+void opeu_format(Open& open, uint16_t args, TextOut out) {
   uint8_t                a = 0; /* pad character */
   int16_t                b = 0; /* left-justify */
   uint8_t                c = 0; /* current character */
@@ -207,12 +204,12 @@ void opeu_format(Open& open, TextHost* host, uint16_t args, TextOut out) {
       c = Byte(open, j);
       a = c == '0' ? '0' : ' ';
       if (c >= '0' && c <= '9')
-        e = opeu_format_decimal(open, host, &j);
+        e = opeu_format_decimal(open, j);
       else
         e = 0;
       c = Byte(open, j++);
       if (c == '.') {
-        d = opeu_format_decimal(open, host, &j);
+        d = opeu_format_decimal(open, j);
         m = 1;
         c = Byte(open, j++);
       }
@@ -251,7 +248,7 @@ void opeu_format(Open& open, TextHost* host, uint16_t args, TextOut out) {
       case 'O':
         i = 8;
       number:
-        if (f == 0) e = static_cast<int16_t>(e - opeu_put_unsigned(open, host, &h, static_cast<uint16_t>(NextInt(open, p)), static_cast<uint16_t>(i)));
+        if (f == 0) e = static_cast<int16_t>(e - opeu_put_unsigned(open, h, static_cast<uint16_t>(NextInt(open, p)), static_cast<uint16_t>(i)));
         goto term;
       case 'S':
         h = NextWord(open, p);
@@ -267,27 +264,27 @@ void opeu_format(Open& open, TextHost* host, uint16_t args, TextOut out) {
         m             = 0;
       pad:
         if (b == 0)
-          while (e-- > 0) out(open, host, static_cast<uint16_t>(a));
+          while (e-- > 0) out(open, static_cast<uint16_t>(a));
         while (Byte(open, h) != 0u) {
           if ((m == 0) || d > 0) {
-            out(open, host, static_cast<uint16_t>(Byte(open, h)));
+            out(open, static_cast<uint16_t>(Byte(open, h)));
             d--;
           }
           h++;
         }
         if (b != 0)
-          while (e-- > 0) out(open, host, static_cast<uint16_t>(' '));
+          while (e-- > 0) out(open, static_cast<uint16_t>(' '));
         continue;
       case 0: goto done;
       }
     }
-    out(open, host, static_cast<uint16_t>(c));
+    out(open, static_cast<uint16_t>(c));
   }
 done:;
 }
 
 /* 038e: Shift-JIS to JIS X 0208; 2228h for a code without a lead byte. */
-auto opeu_open_sjis_to_jis([[maybe_unused]] Open& open, [[maybe_unused]] TextHost* host, uint16_t code) -> uint16_t {
+auto opeu_open_sjis_to_jis([[maybe_unused]] Open& open, uint16_t code) -> uint16_t {
   uint8_t a = 0;
   uint8_t b = 0;
   a         = static_cast<uint8_t>(code >> 8);
@@ -305,56 +302,55 @@ auto opeu_open_sjis_to_jis([[maybe_unused]] Open& open, [[maybe_unused]] TextHos
   return 0x2228;
 }
 
-void opeu_text_clamp(Open& open, [[maybe_unused]] TextHost* host) {
+void opeu_text_clamp(Open& open) {
   Data(open).text_x = std::clamp<int16_t>(Data(open).text_x, 0, 79);
   Data(open).text_y = std::clamp<int16_t>(Data(open).text_y, 0, 399);
 }
 
 /* 0426: a negative coordinate keeps the current one. */
-void opeu_army_position(Open& open, TextHost* host, int16_t x, int16_t y) {
+void opeu_army_position(Open& open, int16_t x, int16_t y) {
   if (x >= 0) Data(open).text_x = x;
   if (y >= 0) Data(open).text_y = y;
-  opeu_text_clamp(open, host);
+  opeu_text_clamp(open);
 }
 
-void opeu_text_set_x(Open& open, TextHost* host, int16_t x) {
+void opeu_text_set_x(Open& open, int16_t x) {
   Data(open).text_x = x;
-  opeu_text_clamp(open, host);
+  opeu_text_clamp(open);
 }
 
-void opeu_text_set_y(Open& open, TextHost* host, int16_t y) {
+void opeu_text_set_y(Open& open, int16_t y) {
   Data(open).text_y = y;
-  opeu_text_clamp(open, host);
+  opeu_text_clamp(open);
 }
 
-void opeu_text_color(Open& open, [[maybe_unused]] TextHost* host, uint16_t color) {
+void opeu_text_color(Open& open, uint16_t color) {
   if (color <= 7) Data(open).text_ink = static_cast<uint8_t>(color);
 }
 
-void opeu_text_paper_set(Open& open, [[maybe_unused]] TextHost* host, uint8_t paper) {
+void opeu_text_paper_set(Open& open, uint8_t paper) {
   Data(open).text_paper = paper;
 }
 
 /* 045a: the glyph output of this build draws nothing. */
-void opeu_text_glyph([[maybe_unused]] Open& open, [[maybe_unused]] TextHost* host, [[maybe_unused]] int16_t x, [[maybe_unused]] int16_t y, [[maybe_unused]] int16_t attribute,
-                     [[maybe_unused]] uint16_t code) { }
+void opeu_text_glyph([[maybe_unused]] Open& open, [[maybe_unused]] int16_t x, [[maybe_unused]] int16_t y, [[maybe_unused]] int16_t attribute, [[maybe_unused]] uint16_t code) { }
 
 /* 045e: lines are 16 pixels, 32 in large mode. */
-void opeu_text_newline(Open& open, [[maybe_unused]] TextHost* host) {
+void opeu_text_newline(Open& open) {
   int16_t a         = 0;
   Data(open).text_x = Data(open).text_left;
   a                 = static_cast<int16_t>(Data(open).text_y + (Data(open).text_large != 0 ? 32 : 16));
   if (a <= 399) Data(open).text_y = a;
 }
 
-void opeu_text_control(Open& open, TextHost* host, uint8_t c) {
+void opeu_text_control(Open& open, uint8_t c) {
   switch (c) {
-  case 10: opeu_text_newline(open, host); break;
+  case 10: opeu_text_newline(open); break;
   case 13: Data(open).text_x = Data(open).text_left; break;
   case 8:
     if (Data(open).text_x >= 1) Data(open).text_x--;
     break;
-  case 7:  Event(open, host, STUB_B, 6); break;
+  case 7:  opeu_open_stub_b(); break;
   default: break;
   }
 }
@@ -363,7 +359,7 @@ void opeu_text_control(Open& open, TextHost* host, uint8_t c) {
 // The opening's recovered control flow, one branch
 // per control code; it goes when the opening becomes a scene (M6).
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t {
+auto opeu_text_put(Open& open, uint8_t c) -> uint8_t {
   uint16_t b = 0; /* character code */
   int16_t  d = 0; /* attribute */
   switch (Data(open).text_state) {
@@ -375,20 +371,23 @@ auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t {
     case 'M': Data(open).text_state = 6; break;
     case 'B': Data(open).text_state = 7; break;
     case 'Y': Data(open).text_state = 8; break;
-    case 'E': Event(open, host, STUB_B, 6); [[fallthrough]];
+    case 'E': opeu_open_stub_b(); [[fallthrough]];
     case 'W': Data(open).text_state = 9; break;
-    case 'T': Event(open, host, BOX, Data(open).text_x, Data(open).text_y, 80 - Data(open).text_x, (Data(open).text_large != 0) ? 32 : 16, Data(open).text_background); goto reset;
-    case '*': Event(open, host, CLEAR); goto reset;
-    case 'S': Event(open, host, STUB_A, 1); goto reset;
+    case 'T':
+      opeu_ui_box(static_cast<uint16_t>(Data(open).text_x), static_cast<uint16_t>(Data(open).text_y), static_cast<uint16_t>(80 - Data(open).text_x), (Data(open).text_large != 0) ? 32 : 16,
+                  Data(open).text_background);
+      goto reset;
+    case '*': opeu_vga_clear(); goto reset;
+    case 'S': opeu_open_stub_a(); goto reset;
     default:  break;
     }
     break;
   case 2:
-    opeu_text_set_y(open, host, static_cast<int16_t>((c - 0x20) << 5));
+    opeu_text_set_y(open, static_cast<int16_t>((c - 0x20) << 5));
     Data(open).text_state = 3;
     break;
   case 3:
-    opeu_text_set_x(open, host, static_cast<int16_t>(c - 0x20));
+    opeu_text_set_x(open, static_cast<int16_t>(c - 0x20));
   reset:
     Data(open).text_state = 0;
     break;
@@ -413,12 +412,12 @@ auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t {
     Data(open).text_state = 0;
     break;
   case 9:
-    Event(open, host, STUB_C, static_cast<uint8_t>(c - '0'));
+    opeu_open_stub_c();
     Data(open).text_state = 0;
     break;
   default:
     if (Data(open).text_lead != 0u) {
-      b                    = opeu_open_sjis_to_jis(open, host, static_cast<uint16_t>(c | Data(open).text_lead << 8));
+      b                    = opeu_open_sjis_to_jis(open, static_cast<uint16_t>(c | Data(open).text_lead << 8));
       Data(open).text_lead = 0;
     } else if ((c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfc)) {
       Data(open).text_lead = c;
@@ -427,17 +426,17 @@ auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t {
       Data(open).text_state = 1;
       break;
     } else if (c < 0x20) {
-      opeu_text_control(open, host, c);
+      opeu_text_control(open, c);
       break;
     } else {
       b = c;
     }
-    if ((b >= 0x200 ? 78 : 79) < Data(open).text_x) opeu_text_newline(open, host);
+    if ((b >= 0x200 ? 78 : 79) < Data(open).text_x) opeu_text_newline(open);
     d = Data(open).text_background;
     if (d == 0) d = Data(open).text_paper;
     d = static_cast<int16_t>(d << 8 | Data(open).text_ink);
     if (Data(open).text_large != 0) d = static_cast<int16_t>(d | 0x8000);
-    opeu_text_glyph(open, host, Data(open).text_x, Data(open).text_y, d, b);
+    opeu_text_glyph(open, Data(open).text_x, Data(open).text_y, d, b);
     Data(open).text_x = static_cast<int16_t>(Data(open).text_x + (b >= 0x200 ? 2 : 1));
     break;
   }
@@ -445,41 +444,47 @@ auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t {
 }
 
 /* 0712: opeu_format output for opeu_request_format. */
-void opeu_format_store(Open& open, [[maybe_unused]] TextHost* host, char c) {
+void opeu_format_store(Open& open, char c) {
   Byte(open, Data(open).format_output++) = static_cast<uint8_t>(c);
 }
 
 /* 071e */
-void opeu_ui_text(Open& open, TextHost* host, uint16_t s) {
-  while (Byte(open, s) != 0u) opeu_text_put(open, host, Byte(open, s++));
+void opeu_ui_text(Open& open, uint16_t s) {
+  while (Byte(open, s) != 0u) opeu_text_put(open, Byte(open, s++));
 }
 
 /* 073e: printf to the console. */
-void opeu_cursor_print(Open& open, TextHost* host, uint16_t frame) {
+void opeu_cursor_print(Open& open, uint16_t frame) {
   StackReservation const return_address{ open.State(), 4 };
-  opeu_format(open, host, frame, host_put_out);
+  opeu_format(open, frame, host_put_out);
 }
 
 /* 0756: sprintf. */
-void opeu_request_format(Open& open, TextHost* host, uint16_t frame) {
+void opeu_request_format(Open& open, uint16_t frame) {
   StackReservation const return_address{ open.State(), 4 };
   Data(open).format_output = Word(open, frame);
-  opeu_format(open, host, static_cast<uint16_t>(frame + 2), host_store_out);
+  opeu_format(open, static_cast<uint16_t>(frame + 2), host_store_out);
   Byte(open, Data(open).format_output) = 0;
 }
 
-void opeu_text_put_range(Open& open, TextHost* host, uint16_t s, uint8_t start, uint8_t count) {
+void opeu_text_put_range(Open& open, uint16_t s, uint8_t start, uint8_t count) {
   uint16_t a = 0;
   a          = s + start;
-  while ((count--) != 0u) opeu_text_put(open, host, Byte(open, a++));
+  while ((count--) != 0u) opeu_text_put(open, Byte(open, a++));
 }
 
 /* 07a4: erase the previous character cell, keeping the paper. */
-void opeu_text_erase_char(Open& open, TextHost* host) {
+void opeu_text_erase_char(Open& open) {
   uint8_t a = 0;
   a         = Data(open).text_paper;
-  opeu_ui_text(open, host, Near(open, Data(open).text_erase));
+  opeu_ui_text(open, Near(open, Data(open).text_erase));
   Data(open).text_paper = a;
+}
+
+void CursorPrint(Open& open, std::span<uint16_t const> words) {
+  StackReservation const frame{ open.State(), static_cast<uint16_t>(2 * words.size()) };
+  std::ranges::for_each(std::views::iota(0uz, words.size()), [&](std::size_t index) { SetWord(open, static_cast<uint16_t>(frame.Near() + (2 * index)), words[index]); });
+  opeu_cursor_print(open, frame.Near());
 }
 
 }

@@ -1,168 +1,67 @@
-/* The recovered OPEN.EXE modules (recovered/) as the link layer (link/) and
- * the runner see them. Each module calls everything outside its own code
- * segment through one service callback of its own; the ids below are the
- * services, shared by the module and its link callback. */
+/* The recovered OPEN.EXE modules (recovered/) as they see each other and as
+ * the runner sees them. Each module calls the other modules' routines and the
+ * services (display, files, input, the FM driver) directly. */
 #pragma once
 
 #include "dgroup.hpp"
 #include "open.hpp"
 
 #include <cstdint>
+#include <span>
 
 namespace opeu::intro {
-
-/* Microsoft C's <dos.h> REGS. */
-struct WordRegs {
-  uint16_t ax, bx, cx, dx, si, di, cflag;
-};
-struct ByteRegs {
-  uint8_t al, ah, bl, bh, cl, ch, dl, dh;
-};
-union Regs {
-  WordRegs x;
-  ByteRegs h;
-};
-
-/* OPENMAIN (03ac) services: arguments in the original order, results in AX. */
-enum class OpenEventId : uint16_t {
-  SFX_PLAY,             /* (ticks) 0000:133e, int 66h F001h: counter A */
-  SFX_BUSY,             /* () -> AX 0000:134b, counter A */
-  FM_BUSY,              /* () -> AX 0000:1337, counter B (the music timeline) */
-  INPUT_POLL,           /* () -> AX 062d:032e */
-  VGA_CLEAR,            /* () 0000:0913 */
-  PALETTE_FADE,         /* (mode, palette) -> AX 062d:0262 */
-  PALETTE_STEP,         /* (palette) -> AX 062d:01fe */
-  PALETTE_SET,          /* (palette) 062d:01bc */
-  FADE_OUT,             /* () -> AX 062d:0304, abortable fade to black */
-  FADE_OUT_WAIT,        /* () -> AX 062d:0310, uninterruptible */
-  PICTURE_AT,           /* (x, y, position lo, hi) 062d:018e */
-  MUSIC_START,          /* (track) 0349:00a4 */
-  MUSIC_COMMAND4,       /* (value) 0349:0020, MAIN's finish_side_initialization */
-  DOS_SEEK,             /* (handle, lo, hi, origin) 0000:009b */
-  DOS_READ_FAR,         /* (handle, segment, offset, n) 0000:0057 */
-  DRAW_FAR,             /* (x, y, w, h, mode, segment, offset) 0000:0688 */
-  BLIT_FAR,             /* (x, y, w, h, mode, segment, offset) 0000:044c */
-  BITMAP_SAVE,          /* (x, y, w, h, segment, offset) 0000:1b56 */
-  DISSOLVE,             /* (x, y, segment, offset, pattern) 0000:1e2f */
-  SCREEN_COPY,          /* (x, y, w, h, to x, to y) 0000:1bb9 */
-  UI_BOX,               /* (x, y, w, h, colour) 0000:0939 */
-  FAR_COPY,             /* (source segment, source offset, segment, offset, n) 0000:1c2f */
-  BUF_OR,               /* (segment, offset, w, h, source segment, source offset) 0000:1c74 */
-  BUF_AND_MASK,         /* (segment, offset, w, h, mask segment, mask offset) 0000:1c94 */
-  TIMELINE_START,       /* (ticks) 0000:132a, int 66h F101h: counter B */
-  FM_NOOP,              /* () 0000:1352 */
-  INSTALL_DOS_HANDLERS, /* () 0000:1310 */
-  DOS_ALLOC,            /* (paragraphs) -> AX 0000:0107 */
-  DOS_FREE,             /* (segment) 0000:011a */
-  DOS_CLOSE,            /* (handle) 0000:0032 */
-  DOS_EXISTS,           /* (name) -> AX 0000:00d9 */
-  STUB_09B7,            /* (1, 0) 0000:09b7 */
-  INT86,                /* (number, AX of the REGS block) 0000:1f40 */
-  UI_TEXT,              /* (text) 02a0:071e */
-  CURSOR_PRINT,         /* (format) 02a0:073e */
-  SOUND_INITIALIZE,     /* () 0349:0002 */
-  MUSIC_PLAYING,        /* () -> AX 0349:006e */
-  MOUSE_RESET,          /* () 062d:0094 */
-  FADE_ALT,             /* () 062d:031c, fade to palette 112 */
-  IDENTITY_PALETTE,     /* () 062d:0328 */
-  FILE_OR_DIE,          /* (name) -> AX 062d:0350 */
-  HANG,                 /* () one turn of the stop after an allocation failure */
-};
-
-/* OUTIL (062d) services: results in DX:AX. */
-enum class UtilServiceId : uint16_t {
-  FM_BUSY,               /* () counter B */
-  MOUSE_INT33,           /* int86(0x33): seven REGS words in and out */
-  DOS_INT21,             /* int86(0x21) (number, AH) */
-  DOS_READ_FAR,          /* (handle, segment, offset, n) */
-  DOS_SEEK,              /* (handle, lo, hi, origin) */
-  SET_PALETTE,           /* (first, count, palette) */
-  IDENTITY_PALETTE,      /* () */
-  UI_LINE,               /* (x1, y1, x2, y2, colour) */
-  PICTURE_DECODE_MASKED, /* (x, y, reader offset, reader segment) */
-  VGA_CLEAR,             /* () */
-  TURN_INPUT_B,          /* () key waiting */
-  INPUT_FLUSH,           /* () 02a0:0022 */
-  CURSOR_PRINT,          /* (format, name) 02a0:073e */
-  OPEN_ERROR_SPIN,       /* () one turn of the stop after an open error; nonzero ends it */
-  TEXT_PUT,              /* (c) 02a0:04bc */
-  OPEN_DELAY,            /* (ticks) 03ac:0004 */
-  FAR_BYTE,              /* (segment, offset) */
-  DOS_OPEN,              /* (name, mode) */
-};
-
-/* The picture decoder's reader: OUTIL's stream_file_byte, far 062d:0132. */
-inline constexpr uint16_t STREAM_READER_SEGMENT{ 0x062d };
-inline constexpr uint16_t STREAM_READER_OFFSET{ 0x0132 };
-
-/* OTEXT (02a0) services. */
-enum class TextEventId : uint16_t {
-  KEY_READ,    /* () INT 16h AH=0 -> AX */
-  KEY_WAITING, /* () 0000:13d1 */
-  STUB_A,      /* (value) 062d:0416 */
-  BOX,         /* (x, y, w, h, colour) 0000:0939 */
-  CLEAR,       /* () 0000:0913 */
-  STUB_B,      /* (value) 062d:0418 */
-  STUB_C,      /* (value) 062d:041a */
-};
-
-/* OSOUND (0349) calls at the INT 66h boundary. */
-enum class SoundServiceId : uint16_t {
-  DRIVER_OPEN, /* (bank offset, bank frame) 0000:13e0 */
-  INT86,       /* seven REGS words in and out */
-  INT86X,      /* REGS, then es cs ss ds, in and out */
-  SEGREAD,     /* es cs ss ds out */
-};
 
 /* The FM song bank the driver is opened with: far 0710:0002. */
 inline constexpr uint16_t BANK_FRAME{ 0x0710 };
 inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
 
-using OpenEvent    = uint16_t (*)(Open& open, OpenEventId id, uint16_t const* args, uint16_t count);
-using UtilService  = uint32_t (*)(Open& open, UtilServiceId id, uint16_t* words, uint16_t count);
-using TextEvent    = uint16_t (*)(Open& open, TextEventId id, uint16_t const* args, uint16_t count);
-using SoundService = uint16_t (*)(Open& open, SoundServiceId call, uint16_t* words);
-
-/* OTEXT's host: its event. */
-struct TextHost {
-  TextEvent event;
-};
+/* A 16-colour palette in DGROUP: three 4-bit levels per colour. */
+using Palette = std::span<std::uint8_t const, 48>;
 
 namespace detail::openmain {
-void opeu_open_main(Open& open, OpenEvent event);
-void opeu_open_delay(Open& open, OpenEvent event, uint16_t ticks);
+void opeu_open_main(Open& open);
+void opeu_open_delay(uint16_t ticks);
 }
 
 namespace detail::outil {
-auto opeu_mouse_reset(Open& open, UtilService event) -> uint16_t;
-auto opeu_stream_file_byte(Open& open, UtilService event) -> uint8_t;
-void opeu_picture_file_at(Open& open, UtilService event, uint16_t x, uint16_t y, int32_t position);
-void opeu_open_palette_set(Open& open, UtilService event, uint8_t* palette);
-auto opeu_open_palette_step(Open& open, UtilService event, uint8_t* target) -> int16_t;
-auto opeu_open_palette_fade(Open& open, UtilService event, uint8_t* target, uint16_t mode) -> int16_t;
-auto opeu_open_fade_in(Open& open, UtilService event) -> int16_t;
-auto opeu_open_fade_in_wait(Open& open, UtilService event) -> int16_t;
-auto opeu_open_fade_alt(Open& open, UtilService event) -> int16_t;
-void opeu_open_identity_palette(Open& open, UtilService event);
-auto opeu_open_input_poll(Open& open, UtilService event) -> int16_t;
-auto opeu_open_file_or_die(Open& open, UtilService event, uint16_t name) -> int16_t;
-void opeu_open_stub_a(Open& open, UtilService event);
-void opeu_open_stub_b(Open& open, UtilService event);
-void opeu_open_stub_c(Open& open, UtilService event);
+auto opeu_mouse_reset(Open& open) -> uint16_t;
+void opeu_picture_file_at(Open& open, uint16_t x, uint16_t y, int32_t position);
+void opeu_open_palette_set(Open& open, Palette palette);
+auto opeu_open_palette_step(Open& open, Palette target) -> int16_t;
+auto opeu_open_palette_fade(Open& open, Palette target, uint16_t mode) -> int16_t;
+auto opeu_open_fade_in(Open& open) -> int16_t;
+auto opeu_open_fade_in_wait(Open& open) -> int16_t;
+auto opeu_open_fade_alt(Open& open) -> int16_t;
+void opeu_open_identity_palette(Open& open);
+auto opeu_open_input_poll() -> int16_t;
+auto opeu_open_file_or_die(Open& open, uint16_t name) -> int16_t;
+void opeu_open_stub_a();
+void opeu_open_stub_b();
+void opeu_open_stub_c();
+/* The stop after an allocation or open failure: the original spins in an
+ * empty loop; the host pumps its events instead, so a window close or a
+ * headless run's end still stops the program. */
+[[noreturn]] void Hang();
 }
 
 namespace detail::otext {
-void opeu_input_flush(Open& open, TextHost* host);
-auto opeu_text_put(Open& open, TextHost* host, uint8_t c) -> uint8_t;
-void opeu_ui_text(Open& open, TextHost* host, uint16_t s);
-void opeu_cursor_print(Open& open, TextHost* host, uint16_t frame);
+void opeu_input_flush();
+auto opeu_text_put(Open& open, uint8_t c) -> uint8_t;
+void opeu_ui_text(Open& open, uint16_t s);
+/* cursor_print(format, ...): the words are pushed on the stack as the caller
+ * pushed them, the format's near pointer first. */
+void CursorPrint(Open& open, std::span<uint16_t const> words);
 }
 
 namespace detail::osound {
-void opeu_sound_initialize(Open& open, SoundService service);
-void opeu_finish_side_initialization(Open& open, SoundService service, uint8_t value);
-auto opeu_music_playing(Open& open, SoundService service) -> int;
-void opeu_music_start(Open& open, SoundService service, uint8_t track);
+void opeu_sound_initialize(Open& open);
+void opeu_finish_side_initialization(Open& open, uint8_t value);
+auto opeu_music_playing(Open& open) -> int;
+void opeu_music_start(Open& open, uint8_t track);
+/* The FM driver's song start (song number, 1 = track 0) and stop (fade
+ * length), as the shutdown issues them without OSOUND's checks. */
+void StartSong(uint8_t song);
+void StopMusic(uint8_t fade);
 }
 
 /* The initialized data of the five DGROUP modules and of the song bank,
@@ -270,10 +169,13 @@ using detail::osound::opeu_finish_side_initialization;
 using detail::osound::opeu_music_playing;
 using detail::osound::opeu_music_start;
 using detail::osound::opeu_sound_initialize;
-using detail::otext::opeu_cursor_print;
+using detail::osound::StartSong;
+using detail::osound::StopMusic;
+using detail::otext::CursorPrint;
 using detail::otext::opeu_input_flush;
 using detail::otext::opeu_text_put;
 using detail::otext::opeu_ui_text;
+using detail::outil::Hang;
 using detail::outil::opeu_mouse_reset;
 using detail::outil::opeu_open_fade_alt;
 using detail::outil::opeu_open_fade_in;
@@ -288,6 +190,5 @@ using detail::outil::opeu_open_stub_a;
 using detail::outil::opeu_open_stub_b;
 using detail::outil::opeu_open_stub_c;
 using detail::outil::opeu_picture_file_at;
-using detail::outil::opeu_stream_file_byte;
 
 }

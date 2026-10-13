@@ -1,5 +1,4 @@
-/* OPEN.EXE as a process in the port (the runner, its memory and its link
- * layer).
+/* OPEN.EXE as a process in the port: the runner and its memory.
  *
  * Memory. OPEN is a separate DOS program: its own DGROUP (paragraph 093A of
  * its load image), its far data (the song bank, frame 0710) and its own DOS
@@ -29,14 +28,12 @@
 
 #include <cstdint>
 #include <span>
-#include <utility>
 
 namespace opeu::intro {
 
 inline constexpr uint16_t OPEN_LOAD_SEGMENT{ 0x0000 };
 inline constexpr uint16_t OPEN_BANK_SEGMENT{ OPEN_LOAD_SEGMENT + BANK_FRAME };
 inline constexpr uint16_t OPEN_DS_SEGMENT{ OPEN_LOAD_SEGMENT + 0x093a };
-inline constexpr uint16_t OPEN_CODE_0349{ OPEN_LOAD_SEGMENT + 0x0349 }; /* OSOUND's CS (segread) */
 inline constexpr uint16_t OPEN_HEAP_SEGMENT{ OPEN_DS_SEGMENT + (OPEN_STACK_TOP >> 4) + 1 };
 
 /* Clear the arena and place OPEN's initial DGROUP and far data. */
@@ -54,24 +51,5 @@ struct OpenImageObject {
 };
 extern OpenImageObject const open_image_objects[];
 extern unsigned const        open_image_object_count;
-
-/* Argument word i of a service call with count words (0 past the end). */
-inline auto Arg(uint16_t const* args, uint16_t count, int i) -> uint16_t {
-  return static_cast<uint16_t>(std::cmp_less(i, count) ? args[i] : 0);
-}
-/* The 32-bit argument in words i (low) and i + 1 (high). */
-inline auto Arg32(uint16_t const* args, uint16_t count, int i) -> uint32_t {
-  return static_cast<uint32_t>(Arg(args, count, i)) | static_cast<uint32_t>(Arg(args, count, i + 1)) << 16;
-}
-
-/* Service callbacks of the recovered OPEN modules (link/). */
-auto link_openmain(Open& open, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
-auto link_outil(Open& open, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t;
-auto link_otext(Open& open, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
-auto link_osound(Open& open, SoundServiceId call, uint16_t* words) -> uint16_t;
-/* OTEXT's host structure (its event and the modeled stack pointer). */
-auto link_otext_host() -> TextHost*;
-/* cursor_print with the given argument words pushed on the modeled stack. */
-void link_otext_print(Open& open, std::span<uint16_t const> words);
 
 }
