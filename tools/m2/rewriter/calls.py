@@ -99,7 +99,9 @@ def _InForHeader(tokens, partners: dict[int, int], index: int) -> bool:
 
 
 def _IsLabel(tokens, colon: int) -> bool:
-  """A `case X:` / `default:` / access label colon, not a ternary's or a bit-field's."""
+  """A `case X:` / `default:` / goto label (`name:` opening a statement) colon, not a ternary's or a bit-field's."""
+  if colon >= 2 and tokens[colon - 1].kind == IDENTIFIER and tokens[colon - 2].text in (";", "{", "}") and tokens[colon + 1].text != ":":
+    return True
   index = colon - 1
   while index > 0 and tokens[index].text not in (";", "{", "}", "case", "default", "?"):
     index -= 1

@@ -52,6 +52,8 @@ def test_statements_end_at_semicolons_and_blocks():
   ("void f() { auto y{ Call(ds, e, 1) }; }",    True),
   ("void f() { return Call(ds, e, 1); }",       True),
   ("void f() { for (; Call(ds, e, 1), y;) {} }", False),
+  ("void f() { again: Call(ds, e, 1); }",        False),
+  ("void f() { x = y ? z : Call(ds, e, 1); }",   True),
 ])
 def test_a_value_is_used_unless_the_call_is_a_whole_statement(code, used):
   source = SourceFile(PurePosixPath("x.cpp"), code)
