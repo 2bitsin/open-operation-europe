@@ -1,47 +1,29 @@
-// One step of a map position toward a target along the cheapest neighbour of the 40 x 40 path-cost grid in the far
-// data segment. Of the eight directions that stay on the map the lowest cost wins; on a tie, a neighbour that is not
-// farther from the target on either axis than the start replaces the earlier one. The chosen cell is stored back and
-// its cost returned.
+// One step of a map position toward a target along the cheapest neighbour of the 40 x 40 path-cost grid. Of the
+// eight directions that stay on the map the lowest cost wins; on a tie, a neighbour that is not farther from the target
+// on either axis than the start replaces the earlier one.
 #include "map/toward.hpp"
-#include "common/data-segment.hpp"
-#include "common/game.hpp"
 #include "common/map-grid.hpp"
-#include "common/memory.hpp"
 #include "map/stepmap.hpp"
 #include "types.hpp"
 
 #include <cstdlib>
+#include <ranges>
 
 using namespace opeu::game;
 
 namespace {
-constexpr uint16_t PATH_COSTS{ 0x0c80 }; // the cost words in the far data
-
-[[nodiscard]] auto PathCost(const uint8_t* far_data, uint8_t x, uint8_t y) -> uint16_t {
-  auto const at{ PATH_COSTS + (y * MAP_WIDTH + x) * 2 };
-  return static_cast<uint16_t>(far_data[at] | far_data[at + 1] << 8);
+// Whether the cell is no farther from the goal on either axis than the start.
+[[nodiscard]] auto NoFarther(GridCell cell, GridCell from, GridCell goal) -> bool {
+  return std::abs(cell.x - goal.x) <= std::abs(from.x - goal.x) && std::abs(cell.y - goal.y) <= std::abs(from.y - goal.y);
 }
 } // namespace
 
-// x and y are the DS offsets of the position's coordinate bytes.
-uint16_t opeu_grid_step_toward(Game& game, const uint8_t* far_data, uint16_t x, uint16_t y, uint8_t tx, uint8_t ty) {
-  auto const distance_x{ std::abs(Byte(game, x) - tx) };
-  auto const distance_y{ std::abs(Byte(game, y) - ty) };
-  uint16_t   best_cost{ 0xffff };
-  uint8_t    best_x{ Byte(game, x) };
-  uint8_t    best_y{ Byte(game, y) };
-  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-    uint8_t next_x{ Byte(game, x) };
-    uint8_t next_y{ Byte(game, y) };
-    if (!opeu_grid_step(&next_x, &next_y, direction)) continue;
-    auto const cost{ PathCost(far_data, next_x, next_y) };
-    if (cost < best_cost || (cost == best_cost && std::abs(next_x - tx) <= distance_x && std::abs(next_y - ty) <= distance_y)) {
-      best_x    = next_x;
-      best_y    = next_y;
-      best_cost = cost;
-    }
+auto opeu_grid_step_toward(PathGrid const& path, GridCell from, GridCell goal) -> PathStep {
+  PathStep best{ from, PathGrid::UNREACHED };
+  for (auto const next : std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS) | std::views::transform([&](uint8_t direction) { return StepOnMap(from, direction); })) {
+    if (!next) continue;
+    auto const cost{ path.Cost(*next) };
+    if (cost < best.cost || (cost == best.cost && NoFarther(*next, from, goal))) best = { *next, cost };
   }
-  Byte(game, x) = best_x;
-  Byte(game, y) = best_y;
-  return best_cost;
+  return best;
 }

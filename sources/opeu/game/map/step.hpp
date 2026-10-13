@@ -1,5 +1,7 @@
 #pragma once
 
+#include "map/grid-cell.hpp"
 #include "types.hpp"
 
-void opeu_grid_step_unchecked(uint8_t* x, uint8_t* y, uint8_t direction);
+// The cell one step from a cell in one of the eight directions, without a bounds check.
+[[nodiscard]] auto opeu_grid_step_unchecked(opeu::game::GridCell cell, std::uint8_t direction) -> opeu::game::GridCell;

@@ -25,6 +25,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -52,7 +54,7 @@ void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   opeu_delay_units(game, static_cast<uint8_t>(FRAME_WAIT));
   if (data.overview_side != NONE) {
     auto const pixel{ OverviewPixel({ x, y }) };
-    for (uint8_t i{ 0 }; i < OVERVIEW_FRAME_COUNT; ++i) {
+    for (auto const i : std::views::iota(uint8_t{ 0 }, OVERVIEW_FRAME_COUNT)) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
       opeu_blit_far(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 1, 8, 4,
                     port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
@@ -60,7 +62,7 @@ void opeu_location_blast(Game& game, uint8_t x, uint8_t y, uint8_t side) {
     }
   } else {
     auto const pixel{ ViewPixel(data, { x, y }) };
-    for (uint8_t i{ 0 }; i < VIEW_FRAME_COUNT; ++i) {
+    for (auto const i : std::views::iota(uint8_t{ 0 }, VIEW_FRAME_COUNT)) {
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
       opeu_sprite_compose(static_cast<std::uint16_t>(pixel.x), static_cast<std::uint16_t>(pixel.y), 3, 24,
                           port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),

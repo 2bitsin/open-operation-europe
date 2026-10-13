@@ -23,6 +23,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -46,8 +48,8 @@ void opeu_battle_run(Game& game) {
 // Each element's rounds between shots come from its strength, and the enemy sees it.
 void opeu_battle_refresh_strengths(Game& game) {
   auto& data{ Data(game) };
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, i) })
         for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) {
           auto const rounds{ static_cast<uint8_t>(opeu_battle_element_strength(game, it.Near())) };
@@ -78,8 +80,8 @@ void opeu_battle_init_element(Game& game, uint16_t element, uint8_t side, uint8_
 void opeu_battle_init_elements(Game& game) {
   auto&   data{ Data(game) };
   uint8_t index{ 0 };
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, side, i) };
       if (unit == 0) continue;
       if (unit == Near(data, data.battle_garrison)) {

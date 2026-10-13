@@ -22,6 +22,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -49,8 +51,9 @@ constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
   return opeu_battle_path_flood(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(from_x), static_cast<uint8_t>(from_y), element, static_cast<uint8_t>(1));
 }
 
-[[nodiscard]] auto PathStep(Game& game, uint8_t x, uint8_t y) -> uint16_t {
-  return BattlePathStep(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+// The cost of the path flood's cheapest step from the cell (x, y).
+[[nodiscard]] auto DownhillCost(Game const& game, uint8_t x, uint8_t y) -> uint16_t {
+  return DownhillStep(game, { x, y }).cost;
 }
 
 // A signed 4-bit step: the low three bits with the fourth as the sign.
@@ -70,8 +73,8 @@ uint16_t opeu_battle_ai_withdraw(Game& game, uint16_t element, uint16_t unit) {
   uint16_t best{ NO_DISTANCE };
   uint8_t  best_x{ 0 };
   uint8_t  best_y{ 0 };
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x) {
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH)) {
       if (x != 0 && x != BATTLE_EDGE && y != 0 && y != BATTLE_EDGE) continue;
       if ((BattleCellAt(data, x, y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - side != 1) continue;
       if (!CanEnter(game, x, y, element)) continue;
@@ -79,7 +82,7 @@ uint16_t opeu_battle_ai_withdraw(Game& game, uint16_t element, uint16_t unit) {
       auto const from_x{ PositionOf(data, element).x };
       auto const from_y{ PositionOf(data, element).y };
       if (!Flood(game, x, y, from_x, from_y, element)) continue;
-      auto const distance{ PathStep(game, from_x, from_y) };
+      auto const distance{ DownhillCost(game, from_x, from_y) };
       if (distance < best) {
         best_x = x;
         best_y = y;
@@ -87,7 +90,7 @@ uint16_t opeu_battle_ai_withdraw(Game& game, uint16_t element, uint16_t unit) {
       }
     }
   if (best == NO_DISTANCE) return 0;
-  opeu_battle_ai_move_to(game, best_x, best_y, element);
+  opeu_battle_ai_move_to(game, GridCell{ best_x, best_y }, element);
   return 1;
 }
 
@@ -111,11 +114,11 @@ void opeu_battle_ai_fire_or_attack(Game& game, uint16_t element, uint16_t unit) 
   opeu_battle_ai_attack_near(game, element, unit);
 }
 
-uint16_t opeu_battle_ai_try_move(Game& game, uint16_t element, uint8_t x, uint8_t y) {
+auto opeu_battle_ai_try_move(Game& game, uint16_t element, GridCell cell) -> uint16_t {
   auto& data{ Data(game) };
-  if (!CanEnter(game, x, y, element)) return 0;
-  if (!Flood(game, x, y, PositionOf(data, element).x, PositionOf(data, element).y, element)) return 0;
-  opeu_battle_ai_move_to(game, x, y, element);
+  if (!CanEnter(game, cell.x, cell.y, element)) return 0;
+  if (!Flood(game, cell.x, cell.y, PositionOf(data, element).x, PositionOf(data, element).y, element)) return 0;
+  opeu_battle_ai_move_to(game, cell, element);
   return 1;
 }
 
@@ -138,7 +141,7 @@ void opeu_battle_ai_advance(Game& game, uint16_t element) {
   uint16_t best{ NO_DISTANCE };
   uint8_t  best_x{ 0 };
   uint8_t  best_y{ 0 };
-  for (uint8_t i{ 0 }; i < OFFSETS_PER_DIRECTION; ++i) {
+  for (auto const i : std::views::iota(uint8_t{ 0 }, OFFSETS_PER_DIRECTION)) {
     auto const offset{ Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_ai_offsets) + direction * OFFSETS_PER_DIRECTION + i)) };
     auto const high{ static_cast<uint8_t>(offset >> 4) };
     auto const low{ static_cast<uint8_t>(offset & 0x0f) };
@@ -154,14 +157,14 @@ void opeu_battle_ai_advance(Game& game, uint16_t element) {
     if (opeu_battle_cell_occupied(game, x, y)) continue;
     if (!Flood(game, x, y, PositionOf(data, element).x, PositionOf(data, element).y, element)) continue;
     // The original measures from the offset's nibbles, not from the cell.
-    auto const distance{ PathStep(game, high, low) };
+    auto const distance{ DownhillCost(game, high, low) };
     if (distance < best) {
       best   = distance;
       best_x = x;
       best_y = y;
     }
   }
-  if (best != NO_DISTANCE && opeu_battle_ai_try_move(game, element, best_x, best_y)) return;
+  if (best != NO_DISTANCE && opeu_battle_ai_try_move(game, element, GridCell{ best_x, best_y })) return;
   opeu_battle_ai_hold(game, element);
 }
 
@@ -172,7 +175,7 @@ void opeu_battle_ai_engage_best(Game& game, uint16_t element) {
   }
   if (auto const unit{ opeu_battle_ai_unit_target(game, element) }) {
     auto const cell{ opeu_battle_ai_random_cell(game, element, unit) };
-    opeu_battle_ai_move_to(game, cell.x, cell.y, element);
+    opeu_battle_ai_move_to(game, cell, element);
     return;
   }
   opeu_battle_ai_hold(game, element);
@@ -208,14 +211,3 @@ void opeu_battle_ai_think(Game& game, uint16_t element) {
   default:                       break;
   }
 }
-
-namespace opeu::game::detail::btlaiact {
-auto BattlePathStep(Game& game, std::uint8_t x, std::uint8_t y) -> std::uint16_t {
-  ServiceLocals const locals{ 2 };
-  auto const          x_at{ locals.At(0) };
-  auto const          y_at{ static_cast<std::uint16_t>(x_at + 1u) };
-  Byte(game, x_at) = x;
-  Byte(game, y_at) = y;
-  return opeu_battle_path_step(game, x_at, y_at);
-}
-} // namespace opeu::game::detail::btlaiact

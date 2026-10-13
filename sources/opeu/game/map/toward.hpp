@@ -1,6 +1,9 @@
 #pragma once
 
-#include "common/events.hpp"
+#include "map/grid-cell.hpp"
+#include "map/path-grid.hpp"
 #include "types.hpp"
 
-uint16_t opeu_grid_step_toward(Game& game, const uint8_t* far_data, uint16_t x, uint16_t y, uint8_t tx, uint8_t ty);
+// One step of a map cell toward a goal along the path grid's cheapest neighbour, and that neighbour's cost (0xffff, the
+// cell itself, when every neighbour is off the map).
+[[nodiscard]] auto opeu_grid_step_toward(opeu::game::PathGrid const& path, opeu::game::GridCell from, opeu::game::GridCell goal) -> opeu::game::PathStep;

@@ -28,6 +28,11 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -65,13 +70,11 @@ uint16_t opeu_battle_retreat_cell_ok(Game& game, uint8_t x, uint8_t y, uint16_t 
 
 // A random element of the unit takes the bombard path of the attack resolution, and the unit's side marks the cell.
 void opeu_battle_retreat_to(Game& game, uint16_t unit, uint8_t x, uint8_t y) {
-  auto&    data{ Data(game) };
-  auto&    record{ Record<Unit>(data, unit) };
-  uint16_t count{ 0 };
-  for (auto it{ Elements(data, record).begin() }; it != std::default_sentinel; ++it) ++count;
+  auto&      data{ Data(game) };
+  auto&      record{ Record<Unit>(data, unit) };
+  auto const count{ static_cast<uint16_t>(std::ranges::distance(Elements(data, record))) };
   auto const chosen{ opeu_rand_bounded(count) };
-  auto       it{ Elements(data, record).begin() };
-  for (uint16_t i{ 0 }; chosen > i; ++i) ++it;
+  auto const it{ std::ranges::next(Elements(data, record).begin(), chosen) };
   opeu_battle_resolve_attack(game, 0, it.Near());
   MapCellAt(data, x, y) |= opeu_battle_unit_side(game, unit) ? Bits(MapCell::MARK_1) : Bits(MapCell::MARK_0);
 }
@@ -81,17 +84,12 @@ void opeu_battle_unit_retreat(Game& game, uint16_t unit, uint8_t) {
   auto& data{ Data(game) };
   if (UnitDirection(game, unit) == AT_BATTLE && unit != GARRISON_AT) {
     auto const side{ opeu_battle_unit_side(game, unit) };
-    for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-      uint8_t x{ data.battle_x };
-      uint8_t y{ data.battle_y };
-      if (!opeu_grid_step(&x, &y, direction)) continue;
-      if (!opeu_battle_retreat_cell_ok(game, x, y, unit)) continue;
-      uint8_t to_x{ data.battle_x };
-      uint8_t to_y{ data.battle_y };
-      opeu_grid_step(&to_x, &to_y, direction);
-      if (opeu_cell_marked(game, to_x, to_y, 1)) {
-        if (opeu_cell_marked(game, to_x, to_y, side)) continue;
-        opeu_battle_retreat_to(game, unit, to_x, to_y);
+    for (auto const direction : std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS)) {
+      auto const cell{ StepOnMap({ data.battle_x, data.battle_y }, direction) };
+      if (!cell || !opeu_battle_retreat_cell_ok(game, cell->x, cell->y, unit)) continue;
+      if (opeu_cell_marked(game, cell->x, cell->y, 1)) {
+        if (opeu_cell_marked(game, cell->x, cell->y, side)) continue;
+        opeu_battle_retreat_to(game, unit, cell->x, cell->y);
         return;
       }
       data.battle_direction = direction;
@@ -111,11 +109,11 @@ void opeu_battle_unit_retreat(Game& game, uint16_t unit, uint8_t) {
 // Units out of ammunition may retreat; a side outnumbered more than five to one may break; supply and repair units
 // retreat more readily the more retreat cells they have.
 void opeu_battle_morale_check(Game& game) {
-  auto&   data{ Data(game) };
-  uint8_t strength[SIDE_COUNT];
-  for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list) {
+  auto&                           data{ Data(game) };
+  std::array<uint8_t, SIDE_COUNT> strength{};
+  for (auto const list : std::views::iota(uint8_t{ 0 }, SIDE_COUNT)) {
     strength[list] = 0;
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, list, slot) }) {
         if (!Record<Unit>(data, unit).resources[0] && opeu_rand_bounded(100) < 30) opeu_battle_unit_retreat(game, unit, list);
         strength[list] = static_cast<uint8_t>(strength[list] + opeu_battle_element_count(game, unit));
@@ -136,21 +134,20 @@ void opeu_battle_morale_check(Game& game) {
     return opeu_category_6(slot) || opeu_category_7(slot);
   } };
   if (odds > 5)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, weaker, slot) }; unit && unit != GARRISON_AT && !support(unit) && opeu_rand_bounded(100) < 20) {
         opeu_battle_unit_retreat(game, unit, weaker);
         if (ComputerTurn(game)) return;
       }
-  for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
+  for (auto const list : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, list, slot) };
       if (!unit || unit == GARRISON_AT || !support(unit)) continue;
-      uint8_t chance{ 20 };
-      for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-        uint8_t x{ data.battle_x };
-        uint8_t y{ data.battle_y };
-        if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(game, x, y, unit)) chance = static_cast<uint8_t>(chance + 10);
-      }
+      auto const open{ [&](uint8_t direction) {
+        auto const cell{ StepOnMap({ data.battle_x, data.battle_y }, direction) };
+        return cell && opeu_battle_retreat_cell_ok(game, cell->x, cell->y, unit);
+      } };
+      auto const chance{ static_cast<uint8_t>(20 + 10 * std::ranges::count_if(std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS), open)) };
       if (opeu_rand_bounded(100) < chance) {
         opeu_battle_unit_retreat(game, unit, list);
         if (ComputerTurn(game)) return;

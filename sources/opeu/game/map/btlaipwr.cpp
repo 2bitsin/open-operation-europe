@@ -19,6 +19,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -41,7 +44,7 @@ template <typename Field>
 uint16_t opeu_battle_ai_side_power(Game& game, uint8_t side, uint16_t all) {
   auto&    data{ Data(game) };
   uint16_t total{ 0 };
-  for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+  for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
     auto const unit{ BattleList(data, side, i) };
     if (!unit) continue;
     for (auto& element : Elements(data, Record<Unit>(data, unit))) {
@@ -59,9 +62,9 @@ uint16_t opeu_battle_ai_side_power(Game& game, uint8_t side, uint16_t all) {
 }
 
 uint8_t opeu_battle_ai_power_ratio(Game& game, uint16_t unit) {
-  auto&          data{ Data(game) };
-  auto const     side{ data.battle_ai_side };
-  uint16_t const power[2]{
+  auto&                         data{ Data(game) };
+  auto const                    side{ data.battle_ai_side };
+  std::array<uint16_t, 2> const power{
     opeu_battle_ai_side_power(game, 0, side == 0),
     opeu_battle_ai_side_power(game, 1, side != 0),
   };

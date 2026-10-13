@@ -29,7 +29,11 @@ void Outline(Game& game, int16_t x, int16_t y) {
 } // namespace
 
 // The arithmetic is on 16-bit words, as the original's: the square is truncated to 16 bits before the division.
-void opeu_battle_draw_line(Game& game, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
+void opeu_battle_draw_line(Game& game, ScreenPoint from, ScreenPoint to) {
+  auto const x0{ static_cast<int16_t>(from.x) };
+  auto const y0{ static_cast<int16_t>(from.y) };
+  auto const x1{ static_cast<int16_t>(to.x) };
+  auto const y1{ static_cast<int16_t>(to.y) };
   auto const dx{ static_cast<int16_t>(x1 - x0) };
   auto const dy{ static_cast<int16_t>(y1 - y0) };
   auto const width{ Abs(dx) };

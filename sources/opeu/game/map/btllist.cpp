@@ -11,6 +11,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 uint8_t opeu_battle_element_side(Game& game, uint16_t element) {
@@ -24,8 +26,8 @@ uint8_t opeu_battle_unit_side(Game& game, uint16_t unit) {
 
 uint16_t opeu_battle_element_unit(Game& game, uint16_t element) {
   auto& data{ Data(game) };
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, i) })
         for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
           if (it.Near() == element) return unit;

@@ -23,6 +23,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -68,7 +69,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
         // An element row: lift the element, show its zone and place it by hand.
         data.deploy_row = data.list_row;
         auto element{ Record<Unit>(data, unit).first };
-        for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
+        for ([[maybe_unused]] auto const row : std::views::iota(uint8_t{ 0 }, data.list_row)) element = Record<Element>(data, element).next;
         if (PlacedX(game, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(game, element);
         opeu_deploy_show_zone(game, element);
         opeu_deploy_manual(game, element);

@@ -6,14 +6,14 @@
 
 #include <array>
 
+using namespace opeu::game;
+
 namespace {
-constexpr std::array<int8_t, 8> STEP_X{ -1, 0, 1, -1, 1, -1, 0, 1 };
-constexpr std::array<int8_t, 8> STEP_Y{ 1, 1, 1, 0, 0, -1, -1, -1 };
+constexpr std::array<std::int8_t, 8> STEP_X{ -1, 0, 1, -1, 1, -1, 0, 1 };
+constexpr std::array<std::int8_t, 8> STEP_Y{ 1, 1, 1, 0, 0, -1, -1, -1 };
 } // namespace
 
-void opeu_grid_step_unchecked(uint8_t* x, uint8_t* y, uint8_t direction) {
-  if (direction < STEP_X.size()) {
-    *x = static_cast<uint8_t>(*x + STEP_X[direction]);
-    *y = static_cast<uint8_t>(*y + STEP_Y[direction]);
-  }
+auto opeu_grid_step_unchecked(GridCell cell, std::uint8_t direction) -> GridCell {
+  if (direction >= STEP_X.size()) return cell;
+  return { static_cast<std::uint8_t>(cell.x + STEP_X.at(direction)), static_cast<std::uint8_t>(cell.y + STEP_Y.at(direction)) };
 }

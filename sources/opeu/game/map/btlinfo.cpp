@@ -19,6 +19,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -45,7 +46,7 @@ void opeu_battle_cursor_info(Game& game) {
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_cursor)), static_cast<std::uint16_t>(data.battle_cursor_x),
                                                         static_cast<std::uint16_t>(data.battle_cursor_y), static_cast<std::uint16_t>(data.battle_terrain_names[terrain]) });
   if (terrain == OBJECTIVE_TERRAIN)
-    for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_EXTRA_COUNT)) {
       auto const& extra{ BattleExtraAt(data, i) };
       if (extra.x == BATTLE_UNPLACED) break;
       if (extra.x == data.battle_cursor_x && extra.y == data.battle_cursor_y) {

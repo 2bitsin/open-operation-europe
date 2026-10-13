@@ -31,15 +31,13 @@
 #include "common/game.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
 namespace {
-// opeu_move_adjacent's DS reserve for the step coordinates the grid step service moves.
-constexpr uint16_t STEP_RESERVE{ 4 };
-constexpr uint16_t STEP_X_AT{ 2 };
-constexpr uint16_t STEP_Y_AT{ 0 };
 // opeu_move_unit_target's DS reserve for the unit name and the report the services write.
 constexpr uint16_t REPORT_RESERVE{ 0x74 };
 constexpr uint16_t NAME_AT{ 0 };
@@ -55,19 +53,10 @@ constexpr uint8_t PROGRESS_UNSET{ 255 };
 
 // Whether (x, y) is the current unit's cell or one next to it.
 uint16_t opeu_move_adjacent(Game& game, uint8_t x, uint8_t y) {
-  auto const&         data{ Data(game) };
-  auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
-  ServiceLocals const locals{ STEP_RESERVE };
-  auto const          x_at{ locals.At(STEP_X_AT) };
-  auto const          y_at{ locals.At(STEP_Y_AT) };
-  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; direction++) {
-    Byte(game, x_at) = unit.x;
-    Byte(game, y_at) = unit.y;
-    if (opeu_grid_step(game.State().Bytes(static_cast<std::uint16_t>(x_at), 1).data(), game.State().Bytes(static_cast<std::uint16_t>(y_at), 1).data(), static_cast<uint8_t>(direction))
-        && x == Byte(game, x_at) && y == Byte(game, y_at))
-      return 1;
-  }
-  return 0;
+  auto const& data{ Data(game) };
+  auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
+  auto const  reaches{ [&](uint8_t direction) { return StepOnMap({ unit.x, unit.y }, direction) == GridCell{ x, y }; } };
+  return std::ranges::any_of(std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS_AND_CENTER), reaches) ? 1 : 0;
 }
 
 // The objective at the current unit's order destination when the side holds it; otherwise the order is restored and

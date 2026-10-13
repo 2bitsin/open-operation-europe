@@ -8,68 +8,85 @@
 #include "common/game.hpp"
 #include "port.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
-using Predicate = uint16_t (*)(Game&, uint8_t, uint8_t, uint8_t);
-constexpr uint8_t LAST{ MAP_WIDTH - 1 };
 constexpr uint8_t HALF{ MAP_WIDTH / 2 };
 
-// Rays along x for the rows [y_begin, y_end), from x = 0 up or from x = 39 down, each until the predicate stops it.
-void RowRays(Game& game, uint8_t side, Predicate visit, uint8_t y_begin, uint8_t y_end, bool reverse) {
-  for (uint8_t y{ y_begin }; y < y_end; ++y)
-    if (reverse) {
-      for (uint8_t x{ LAST }; x > 0; --x)
-        if (visit(game, x, y, side)) break;
-    } else {
-      for (uint8_t x{ 0 }; x < MAP_WIDTH; ++x)
-        if (visit(game, x, y, side)) break;
-    }
-}
+// Where a ray starts: at coordinate 0 running up, or at 39 running down (it stops before 0).
+enum class Ray {
+  UP,
+  DOWN,
+};
 
-// Rays along y for the columns [x_begin, x_end).
-void ColumnRays(Game& game, uint8_t side, Predicate visit, uint8_t x_begin, uint8_t x_end, bool reverse) {
-  for (uint8_t x{ x_begin }; x < x_end; ++x)
-    if (reverse) {
-      for (uint8_t y{ LAST }; y > 0; --y)
-        if (visit(game, x, y, side)) break;
-    } else {
-      for (uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
-        if (visit(game, x, y, side)) break;
-    }
-}
+// The rays of one scan: each visits cells along a row or a column until the predicate stops it.
+class RayScan {
+public:
+  RayScan(Game& game, uint8_t side, CellPredicate& visit) noexcept : _game{ game }, _side{ side }, _visit{ visit } { }
+
+  // Rays along x for the rows [begin, end).
+  void Rows(uint8_t begin, uint8_t end, Ray ray) const {
+    for (auto const y : std::views::iota(begin, end)) Run(ray, [&](uint8_t x) { return _visit(_game, x, y, _side) != 0; });
+  }
+
+  // Rays along y for the columns [begin, end).
+  void Columns(uint8_t begin, uint8_t end, Ray ray) const {
+    for (auto const x : std::views::iota(begin, end)) Run(ray, [&](uint8_t y) { return _visit(_game, x, y, _side) != 0; });
+  }
+
+private:
+  // Visits the ray's cells until one stops it.
+  template <typename _Stops>
+  static void Run(Ray ray, _Stops const& stops) {
+    if (ray == Ray::UP)
+      VisitUntil(std::views::iota(uint8_t{ 0 }, uint8_t{ MAP_WIDTH }), stops);
+    else
+      VisitUntil(std::views::iota(uint8_t{ 1 }, uint8_t{ MAP_WIDTH }) | std::views::reverse, stops);
+  }
+
+  template <typename _Cells, typename _Stops>
+  static void VisitUntil(_Cells cells, _Stops const& stops) {
+    for (auto const cell : cells)
+      if (stops(cell)) return;
+  }
+
+  Game&          _game;
+  uint8_t        _side;
+  CellPredicate& _visit;
+};
 } // namespace
 
 uint16_t opeu_count_request_cells(Game& game) {
-  uint16_t count{ 0 };
-  for (auto const candidate : Data(game).arrival_candidates)
-    if (candidate == 1) ++count;
-  return count;
+  return static_cast<uint16_t>(std::ranges::count(Data(game).arrival_candidates, uint8_t{ 1 }));
 }
 
-uint16_t opeu_request_cells(Game& game, uint8_t side, Predicate predicate) {
+uint16_t opeu_request_cells(Game& game, uint8_t side, CellPredicate& predicate) {
   auto& data{ Data(game) };
   data.arrival_candidates.fill(0);
-  auto const enabled{ [&](unsigned border) { return data.request_directions[side * 8 + border] == 1; } };
+  auto const    enabled{ [&](unsigned border) { return data.request_directions[side * 8 + border] == 1; } };
+  RayScan const scan{ game, side, predicate };
   if (enabled(0)) {
-    RowRays(game, side, predicate, HALF, MAP_HEIGHT, false);
-    ColumnRays(game, side, predicate, 0, HALF, true);
+    scan.Rows(HALF, MAP_HEIGHT, Ray::UP);
+    scan.Columns(0, HALF, Ray::DOWN);
   }
-  if (enabled(1)) ColumnRays(game, side, predicate, 0, MAP_WIDTH, true);
+  if (enabled(1)) scan.Columns(0, MAP_WIDTH, Ray::DOWN);
   if (enabled(2)) {
-    ColumnRays(game, side, predicate, HALF, MAP_WIDTH, true);
-    RowRays(game, side, predicate, HALF, MAP_HEIGHT, true);
+    scan.Columns(HALF, MAP_WIDTH, Ray::DOWN);
+    scan.Rows(HALF, MAP_HEIGHT, Ray::DOWN);
   }
-  if (enabled(3)) RowRays(game, side, predicate, 0, MAP_HEIGHT, false);
-  if (enabled(4)) RowRays(game, side, predicate, 0, MAP_HEIGHT, true);
+  if (enabled(3)) scan.Rows(0, MAP_HEIGHT, Ray::UP);
+  if (enabled(4)) scan.Rows(0, MAP_HEIGHT, Ray::DOWN);
   if (enabled(5)) {
-    RowRays(game, side, predicate, 0, HALF, false);
-    ColumnRays(game, side, predicate, 0, HALF, false);
+    scan.Rows(0, HALF, Ray::UP);
+    scan.Columns(0, HALF, Ray::UP);
   }
-  if (enabled(6)) ColumnRays(game, side, predicate, 0, MAP_WIDTH, false);
+  if (enabled(6)) scan.Columns(0, MAP_WIDTH, Ray::UP);
   if (enabled(7)) {
-    ColumnRays(game, side, predicate, HALF, MAP_WIDTH, false);
-    RowRays(game, side, predicate, 0, HALF, true);
+    scan.Columns(HALF, MAP_WIDTH, Ray::UP);
+    scan.Rows(0, HALF, Ray::DOWN);
   }
   return opeu_count_request_cells(game);
 }

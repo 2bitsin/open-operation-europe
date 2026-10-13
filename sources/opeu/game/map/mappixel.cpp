@@ -9,6 +9,8 @@
 #include "types.hpp"
 #include "units/stats.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace { }
@@ -39,8 +41,8 @@ void opeu_view_pixel(Game& game, uint16_t x, uint16_t y) {
 // Side 0's sprites swap the first two bytes of every 3-byte group of the DS buffer at sprite.
 void opeu_sprite_recolor(Game& game, uint16_t sprite, uint16_t size, uint8_t side) {
   if (side != 0) return;
-  for (uint16_t at{ 0 }; at < size; at += 3) {
-    auto const first{ static_cast<uint16_t>(sprite + at) };
+  for (auto const group : std::views::iota(0, (size + 2) / 3)) {
+    auto const first{ static_cast<uint16_t>(sprite + group * 3) };
     auto const second{ static_cast<uint16_t>(first + 1) };
     std::swap(Byte(game, first), Byte(game, second));
   }

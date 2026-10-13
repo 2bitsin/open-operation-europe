@@ -1,10 +1,14 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "map/grid-cell.hpp"
 #include "types.hpp"
 
-uint16_t opeu_item_strength(Game const& game, uint16_t item);
-int16_t  opeu_unit_strength(Game const& game, uint16_t unit);
-int16_t  opeu_objective_strength(Game const& game, uint16_t objective);
-void     opeu_add_influence(int16_t amount, int16_t* value);
-int16_t  opeu_weight_influence(uint8_t x, uint8_t y, uint8_t x2, uint8_t y2, int16_t value);
+#include <cstdint>
+
+int16_t opeu_unit_strength(Game const& game, uint16_t unit);
+int16_t opeu_objective_strength(Game const& game, uint16_t objective);
+// An influence value with an amount added, clamped to +-20000.
+[[nodiscard]] auto opeu_add_influence(std::int16_t value, std::int16_t amount) -> std::int16_t;
+// The share of a strength at a source that reaches a square of the influence map.
+[[nodiscard]] auto opeu_weight_influence(opeu::game::GridCell square, opeu::game::GridCell source, std::int16_t strength) -> std::int16_t;

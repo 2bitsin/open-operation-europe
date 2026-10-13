@@ -20,6 +20,8 @@
 #include "port.hpp"
 #include "vgalib.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -65,7 +67,7 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
   auto const shown{ [&](Unit const& unit) { return OverviewUp(data) && (unit.flags & Bits(UnitFlag::READY)) && opeu_unit_visible(game, Near(data, unit)); } };
   auto const pixel_of{ [](Unit const& unit) { return OverviewPixel({ unit.x, unit.y }); } };
   uint16_t   selected_unit{ 0 }; // stays 0 when no shown unit of the division is selected
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) {
+  for (auto const i : std::views::iota(unsigned{ 0 }, UNITS_PER_GROUP)) {
     auto const& unit{ data.units[first + i] };
     if (!shown(unit)) continue;
     if (unit.flags & Bits(UnitFlag::SELECTED)) selected_unit = Near(data, unit);
@@ -79,7 +81,7 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
     auto const commander{ opeu_find_group_record(game, data.current_side, person) };
     opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(Near(data, data.division_position_text)), static_cast<std::uint16_t>(commander));
   }
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) {
+  for (auto const i : std::views::iota(unsigned{ 0 }, UNITS_PER_GROUP)) {
     auto const& unit{ data.units[first + i] };
     if (!shown(unit)) continue;
     auto const pixel{ pixel_of(unit) };
@@ -90,7 +92,7 @@ void opeu_group_show(Game& game, uint16_t group, uint8_t person) {
 // Blinks a visible arriving unit: removed, placed, removed, placed.
 void opeu_arrival_view(Game& game, uint16_t unit) {
   if (!opeu_unit_visible(game, unit)) return;
-  for (uint8_t blink{ 0 }; blink < 4; blink++) {
+  for (auto const blink : std::views::iota(uint8_t{ 0 }, uint8_t{ 4 })) {
     if (blink & 1)
       opeu_arrival_prepare(game, unit);
     else
@@ -102,7 +104,7 @@ void opeu_arrival_view(Game& game, uint16_t unit) {
 // Six timed flashes of a cell for a player's side.
 void opeu_side_cell_flash(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   if (Data(game).side_status[side] != SIDE_PLAYED) return;
-  for (uint8_t flash{ 0 }; flash < 6; flash++) {
+  for ([[maybe_unused]] auto const flash : std::views::iota(uint8_t{ 0 }, uint8_t{ 6 })) {
     opeu_map_cell_flash(game, x, y);
     Wait(game, 2);
   }
@@ -111,5 +113,5 @@ void opeu_side_cell_flash(Game& game, uint8_t x, uint8_t y, uint8_t side) {
 // Shows the location, then flashes it twice over.
 void opeu_location_flash(Game& game, uint8_t x, uint8_t y, uint8_t side) {
   opeu_arrival_location(game, x, y, side);
-  for (uint8_t round{ 0 }; round < 2; round++) opeu_side_cell_flash(game, x, y, side);
+  for ([[maybe_unused]] auto const round : std::views::iota(uint8_t{ 0 }, uint8_t{ 2 })) opeu_side_cell_flash(game, x, y, side);
 }

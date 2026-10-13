@@ -16,6 +16,8 @@
 #include "types.hpp"
 #include "vgalib.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -49,8 +51,8 @@ void opeu_view_cell_clear(Game& game, int16_t x, int16_t y) {
   auto const& data{ Data(game) };
   auto const  pixel_x{ static_cast<int16_t>((x - ViewX(data)) * 3 + 4) };
   auto const  pixel_y{ static_cast<int16_t>((y - ViewY(data)) * 24 + 84) };
-  for (int16_t row{ 0 }; row < 24; row += 2)
-    koei_27c2(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y + row), 3, 2, 0, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.view_clear_pattern))).data());
+  for (auto const pair : std::views::iota(0, 12))
+    koei_27c2(static_cast<std::uint16_t>(pixel_x), static_cast<std::uint16_t>(pixel_y + pair * 2), 3, 2, 0, game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.view_clear_pattern))).data());
 }
 
 // frame: this routine's frame.
@@ -59,7 +61,7 @@ void opeu_view_redraw(Game& game) {
   auto const  end_x{ static_cast<int16_t>(ViewX(data) + 12) };
   auto const  end_y{ static_cast<int16_t>(ViewY(data) + 12) };
   for (int16_t y{ ViewY(data) }; end_y > y; y++)
-    for (int16_t x{ ViewX(data) }; x < end_x; x++) PaintCell(game, x, y);
+    for (auto const x : std::views::iota(int16_t{ ViewX(data) }, end_x)) PaintCell(game, x, y);
 }
 
 // Moves the view origin to (x, y), at most one cell on each axis. The cells still on screen move with the screen

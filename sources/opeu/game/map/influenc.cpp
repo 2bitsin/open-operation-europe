@@ -14,7 +14,10 @@
 #include "common/game.hpp"
 #include "port.hpp"
 
+#include <algorithm>
 #include <array>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -26,39 +29,48 @@ constexpr unsigned UNIT_COUNT{ 2 * UNITS_PER_SIDE };
 constexpr uint8_t  BLOCK{ 4 }; // cells per influence square
 } // namespace
 
-void opeu_update_influence_map(Game& game) {
-  auto&                                data{ Data(game) };
-  std::array<int16_t, UNIT_COUNT>      unit_strength{};
-  std::array<int16_t, OBJECTIVE_COUNT> objective_strength{};
-  for (unsigned i{ 0 }; i < UNIT_COUNT; ++i) {
-    auto const strength{ opeu_unit_strength(game, Near(data, data.units[i])) };
-    unit_strength[i] = i >= UNITS_PER_SIDE ? static_cast<int16_t>(-strength) : strength;
+namespace {
+// The signed strength of every unit: positive for side 0, negative for side 1.
+[[nodiscard]] auto UnitStrengths(Game const& game) -> std::array<int16_t, UNIT_COUNT> {
+  auto const&                     data{ Data(game) };
+  std::array<int16_t, UNIT_COUNT> strengths{};
+  for (auto&& [index, record, strength] : std::views::zip(std::views::iota(0u), data.units, strengths)) {
+    auto const own{ opeu_unit_strength(game, Near(data, record)) };
+    strength = index >= UNITS_PER_SIDE ? static_cast<int16_t>(-own) : own;
   }
-  for (unsigned i{ 0 }; i < OBJECTIVE_COUNT; ++i) {
-    auto const objective{ Near(data, data.objectives[i]) };
+  return strengths;
+}
+
+// The signed strength of every objective: negative when side 1 holds it.
+[[nodiscard]] auto ObjectiveStrengths(Game const& game) -> std::array<int16_t, OBJECTIVE_COUNT> {
+  auto const&                          data{ Data(game) };
+  std::array<int16_t, OBJECTIVE_COUNT> strengths{};
+  std::ranges::transform(data.objectives, strengths.begin(), [&](Objective const& record) {
+    auto const objective{ Near(data, record) };
     auto const strength{ opeu_objective_strength(game, objective) };
-    objective_strength[i] = opeu_objective_side(game, objective) == 1 ? static_cast<int16_t>(-strength) : strength;
-  }
-  for (uint8_t y{ 0 }; y < INFLUENCE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < INFLUENCE_WIDTH; ++x) {
-      auto& influence{ data.influence_map[y * INFLUENCE_WIDTH + x] };
-      influence = 0;
-      for (unsigned i{ 0 }; i < UNIT_COUNT; ++i) {
-        auto const& unit{ data.units[i] };
-        if (unit_strength[i]) {
-          int16_t value{ influence };
-          opeu_add_influence(opeu_weight_influence(x, y, unit.x / BLOCK, unit.y / BLOCK, unit_strength[i]), &value);
-          influence = value;
-        }
-      }
-      for (unsigned i{ 0 }; i < OBJECTIVE_COUNT; ++i) {
-        auto const& objective{ data.objectives[i] };
-        if (objective_strength[i]) {
-          int16_t value{ influence };
-          opeu_add_influence(opeu_weight_influence(x, y, objective.x / BLOCK, objective.y / BLOCK, objective_strength[i]), &value);
-          influence = value;
-        }
-      }
+    return opeu_objective_side(game, objective) == 1 ? static_cast<int16_t>(-strength) : strength;
+  });
+  return strengths;
+}
+
+// The influence on a square of the strengths placed at the records' cells, added to what it holds.
+template <typename _Records>
+[[nodiscard]] auto Spread(GridCell square, _Records const& records, std::span<int16_t const> strengths, int16_t influence) -> int16_t {
+  for (auto const& [record, strength] : std::views::zip(records, strengths))
+    if (strength) influence = opeu_add_influence(influence, opeu_weight_influence(square, { static_cast<uint8_t>(record.x / BLOCK), static_cast<uint8_t>(record.y / BLOCK) }, strength));
+  return influence;
+}
+} // namespace
+
+void opeu_update_influence_map(Game& game) {
+  auto&      data{ Data(game) };
+  auto const unit_strength{ UnitStrengths(game) };
+  auto const objective_strength{ ObjectiveStrengths(game) };
+  for (auto const y : std::views::iota(uint8_t{ 0 }, INFLUENCE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, INFLUENCE_WIDTH)) {
+      GridCell const square{ x, y };
+      auto const     from_units{ Spread(square, data.units, unit_strength, 0) };
+      data.influence_map[y * INFLUENCE_WIDTH + x] = Spread(square, data.objectives, objective_strength, from_units);
     }
 }
 

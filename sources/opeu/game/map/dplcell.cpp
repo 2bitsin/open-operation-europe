@@ -25,14 +25,13 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
 namespace {
-// DS scratch the grid step writes its cell into.
-constexpr uint16_t STEP_X_AT{ 0xeb10 };
-constexpr uint16_t STEP_Y_AT{ 0xeb11 };
 // The approach direction of a unit that defends (it holds the cell the attacker comes to).
 constexpr uint8_t DEFENDING{ 9 };
 // The deployment zone of a defender in the battle cell's high nibble; an attacker's is its approach direction + 1.
@@ -47,22 +46,19 @@ constexpr std::array<uint8_t, 8> AWAY{ 3, 0, 2, 3, 2, 3, 1, 2 };
 }
 
 template <typename Body> void ForEachBattleCell(Body&& body) {
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x) body(x, y);
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH)) body(x, y);
 }
 } // namespace
 
 uint8_t opeu_deploy_facing(Game& game, uint16_t element) {
   auto&      data{ Data(game) };
   auto const approach{ ApproachOf(game, element) };
-  if (approach == DEFENDING)
-    for (uint8_t direction{ 0 }; direction < TOWARD.size(); ++direction) {
-      Byte(game, STEP_X_AT) = data.battle_map_x;
-      Byte(game, STEP_Y_AT) = data.battle_map_y;
-      if (opeu_grid_step(game.State().Bytes(STEP_X_AT, 1).data(), game.State().Bytes(STEP_Y_AT, 1).data(), static_cast<uint8_t>(direction)) && data.battle_attacker_x == Byte(game, STEP_X_AT)
-          && data.battle_attacker_y == Byte(game, STEP_Y_AT))
-        return TOWARD[direction];
-    }
+  if (approach == DEFENDING) {
+    auto const directions{ std::views::iota(uint8_t{ 0 }, static_cast<uint8_t>(TOWARD.size())) };
+    auto const toward_attacker{ [&](uint8_t direction) { return StepOnMap({ data.battle_map_x, data.battle_map_y }, direction) == GridCell{ data.battle_attacker_x, data.battle_attacker_y }; } };
+    if (auto const found{ std::ranges::find_if(directions, toward_attacker) }; found != directions.end()) return TOWARD.at(*found);
+  }
   // Outside 0..7 the original falls off its switch with the direction itself.
   return approach < AWAY.size() ? AWAY[approach] : approach;
 }
@@ -75,7 +71,7 @@ void opeu_deploy_put(Game& game, uint16_t element) {
   opeu_battle_set_order(game, element, static_cast<uint8_t>(0));
   auto facing{ opeu_deploy_facing(game, element) };
   if (!ElementTypeOf(data, element).category) facing = 0;
-  opeu_battle_draw_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y), element, static_cast<uint8_t>(facing));
+  opeu_battle_draw_element_at(game, { static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y) }, { element, static_cast<uint8_t>(facing) });
 }
 
 void opeu_deploy_lift(Game& game, uint16_t element) {
@@ -85,24 +81,24 @@ void opeu_deploy_lift(Game& game, uint16_t element) {
   PositionOf(Data(game), element).y = BATTLE_UNPLACED;
 }
 
-uint16_t opeu_deploy_can_place(Game& game, uint8_t x, uint8_t y, uint16_t element) {
+auto opeu_deploy_can_place(Game& game, GridCell cell, uint16_t element) -> uint16_t {
   auto&      data{ Data(game) };
   auto const approach{ ApproachOf(game, element) };
-  if (opeu_battle_cell_occupied(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
-  auto const zone{ static_cast<uint8_t>(data.battle_cells[y][x] >> 4) };
+  if (opeu_battle_cell_occupied(game, static_cast<uint8_t>(cell.x), static_cast<uint8_t>(cell.y))) return 0;
+  auto const zone{ static_cast<uint8_t>(data.battle_cells[cell.y][cell.x] >> 4) };
   auto const in_zone{ approach == DEFENDING ? zone == DEFENDER_ZONE : zone - approach == 1 };
-  return in_zone && opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element);
+  return in_zone && opeu_battle_can_enter(game, static_cast<uint8_t>(cell.x), static_cast<uint8_t>(cell.y), element);
 }
 
 void opeu_deploy_show_zone(Game& game, uint16_t element) {
   ForEachBattleCell([&](uint8_t x, uint8_t y) {
-    if (opeu_deploy_can_place(game, x, y, element)) opeu_battle_draw_frame(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+    if (opeu_deploy_can_place(game, GridCell{ x, y }, element)) opeu_battle_draw_frame(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
   });
 }
 
 void opeu_deploy_hide_zone(Game& game, uint16_t element) {
   ForEachBattleCell([&](uint8_t x, uint8_t y) {
-    if (opeu_deploy_can_place(game, x, y, element)) opeu_battle_refresh_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
+    if (opeu_deploy_can_place(game, GridCell{ x, y }, element)) opeu_battle_refresh_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
   });
 }
 
@@ -118,7 +114,7 @@ uint16_t opeu_deploy_manual(Game& game, uint16_t element) {
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
     opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_prompt));
     if (auto const chosen{ opeu_deploy_input(game) }; !chosen) return chosen;
-    if (opeu_deploy_can_place(game, data.battle_cursor_x, data.battle_cursor_y, element)) {
+    if (opeu_deploy_can_place(game, GridCell{ data.battle_cursor_x, data.battle_cursor_y }, element)) {
       opeu_deploy_put(game, element);
       return 1;
     }

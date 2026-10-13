@@ -107,7 +107,7 @@ uint16_t opeu_battle_order_command(Game& game, uint16_t element, uint8_t command
     }
     case 0:
     case 6:
-      if (TerrainCost(game, element) != IMPASSABLE_COST && opeu_battle_cell_open(game, data.battle_cursor_x, data.battle_cursor_y, element)) {
+      if (TerrainCost(game, element) != IMPASSABLE_COST && opeu_battle_cell_open(game, GridCell{ data.battle_cursor_x, data.battle_cursor_y }, element)) {
         OrderAll(game, Kind::MOVE, whole, element, unit, 0);
         return 1;
       }

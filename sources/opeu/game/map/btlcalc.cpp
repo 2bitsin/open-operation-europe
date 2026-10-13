@@ -8,6 +8,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
@@ -22,6 +23,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <optional>
+#include <ranges>
 #include <utility>
 
 using namespace opeu::game;
@@ -60,12 +64,10 @@ void opeu_battle_pause(Game& game, uint8_t ticks) {
 uint8_t opeu_battle_unit_direction(Game& game, uint16_t unit) {
   auto&       data{ Data(game) };
   auto const& record{ Record<Unit>(data, unit) };
-  for (uint8_t direction{ 0 }; direction < 8; ++direction) {
-    uint8_t x{ data.battle_x };
-    uint8_t y{ data.battle_y };
-    if (opeu_grid_step(&x, &y, direction) && record.x == x && record.y == y) return direction;
-  }
-  return BATTLE_NOT_ADJACENT;
+  auto const  reaches{ [&](uint8_t direction) { return StepOnMap({ data.battle_x, data.battle_y }, direction) == GridCell{ record.x, record.y }; } };
+  auto const  directions{ std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS) };
+  auto const  found{ std::ranges::find_if(directions, reaches) };
+  return found == directions.end() ? BATTLE_NOT_ADJACENT : *found;
 }
 
 // A skill of the commander responsible for an element: the side's commander for the garrison or under a battle
@@ -175,24 +177,19 @@ uint8_t opeu_battle_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t element
   return static_cast<uint8_t>(result);
 }
 
-void opeu_battle_step_unchecked(Game& game, uint8_t* x, uint8_t* y, uint8_t direction) {
-  auto& data{ Data(game) };
-  if (direction < 4) {
-    *x += data.btlcalc_step_x[direction] - 1;
-    *y += data.btlcalc_step_y[direction] - 1;
-  }
+namespace {
+// One step of a field cell in one of the four directions (btlcalc_step_x/y hold each step plus one); other directions
+// leave the cell as it is.
+[[nodiscard]] auto StepUnchecked(DataSegment const& data, GridCell cell, uint8_t direction) -> GridCell {
+  if (direction >= data.btlcalc_step_x.size()) return cell;
+  return { static_cast<uint8_t>(cell.x + data.btlcalc_step_x.at(direction) - 1), static_cast<uint8_t>(cell.y + data.btlcalc_step_y.at(direction) - 1) };
 }
+} // namespace
 
-uint16_t opeu_battle_step(Game& game, uint8_t* x, uint8_t* y, uint8_t direction) {
-  uint8_t next_x{ *x };
-  uint8_t next_y{ *y };
-  opeu_battle_step_unchecked(game, &next_x, &next_y, direction);
-  if (next_x < BATTLE_WIDTH && next_y < BATTLE_WIDTH) {
-    *x = next_x;
-    *y = next_y;
-    return 1;
-  }
-  return 0;
+auto opeu_battle_step(Game const& game, GridCell cell, uint8_t direction) -> std::optional<GridCell> {
+  auto const next{ StepUnchecked(Data(game), cell, direction) };
+  if (next.x >= BATTLE_WIDTH || next.y >= BATTLE_WIDTH) return std::nullopt;
+  return next;
 }
 
 uint16_t opeu_battle_unit_controlled(Game& game, uint16_t unit) {
@@ -203,8 +200,8 @@ uint16_t opeu_battle_unit_controlled(Game& game, uint16_t unit) {
 
 uint16_t opeu_battle_element_at(Game& game, uint8_t x, uint8_t y) {
   auto& data{ Data(game) };
-  for (uint8_t side{ 0 }; side < 2; ++side)
-    for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
+  for (auto const side : std::views::iota(uint8_t{ 0 }, uint8_t{ 2 }))
+    for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, i) })
         for (auto& element : Elements(data, Record<Unit>(data, unit))) {
           auto const& position{ PositionOf(data, Near(data, element)) };

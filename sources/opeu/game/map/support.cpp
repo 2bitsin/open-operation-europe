@@ -11,25 +11,25 @@
 #include "map/stepmap.hpp"
 #include "types.hpp"
 
-using namespace opeu::game;
+#include <algorithm>
+#include <ranges>
 
-namespace { }
+using namespace opeu::game;
 
 uint16_t opeu_unit_support_condition(Game const& game, uint16_t unit) {
   auto const& data{ Data(game) };
   auto const& record{ Record<Unit>(data, unit) };
   if (record.flags & Bits(UnitFlag::COMMUNICATIONS)) return 1;
   auto const side{ opeu_unit_side(unit) };
-  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; ++direction) {
-    uint8_t x{ record.x };
-    uint8_t y{ record.y };
-    if (!opeu_grid_step(&x, &y, direction)) continue;
-    auto const objective{ opeu_find_objective_at(game, x, y) };
-    if (objective && opeu_objective_side(game, objective) == side && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::COMMUNICATIONS))) return 1;
-    auto const neighbour{ opeu_find_unit_at(game, x, y) };
-    if (neighbour && opeu_unit_side(neighbour) == side && (Record<Unit>(data, neighbour).flags & Bits(UnitFlag::COMMUNICATIONS))) return 1;
-  }
-  return 0;
+  auto const in_communication{ [&](uint8_t direction) {
+    auto const cell{ StepOnMap({ record.x, record.y }, direction) };
+    if (!cell) return false;
+    auto const objective{ opeu_find_objective_at(game, cell->x, cell->y) };
+    if (objective && opeu_objective_side(game, objective) == side && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::COMMUNICATIONS))) return true;
+    auto const neighbour{ opeu_find_unit_at(game, cell->x, cell->y) };
+    return neighbour && opeu_unit_side(neighbour) == side && (Record<Unit>(data, neighbour).flags & Bits(UnitFlag::COMMUNICATIONS));
+  } };
+  return std::ranges::any_of(std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS_AND_CENTER), in_communication) ? 1 : 0;
 }
 
 // A failed selection lookup (0) is tested like a unit at DS:0000.

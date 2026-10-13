@@ -37,6 +37,7 @@
 
 #include <array>
 #include <cstddef>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -59,7 +60,7 @@ void Tire(Game& game, uint16_t person) {
 
 uint16_t opeu_battle_side_needs_input(Game& game, uint8_t side) {
   auto& data{ Data(game) };
-  for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
     if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_controlled(game, unit)) return 1;
   return 0;
 }
@@ -71,7 +72,7 @@ void opeu_battle_run_rounds(Game& game) {
       opeu_battle_report_outcome(game);
       return;
     }
-    for (uint8_t line{ 1 }; line <= 4; ++line) opeu_battle_restore_tile(game, static_cast<uint8_t>(line), static_cast<uint8_t>(9));
+    for (auto const line : std::views::iota(uint8_t{ 1 }, uint8_t{ 5 })) opeu_battle_restore_tile(game, static_cast<uint8_t>(line), static_cast<uint8_t>(9));
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(BANNER_X), static_cast<short>(BANNER_Y));
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_round_format)), static_cast<std::uint16_t>(data.battle_level_limit + 1) });
     if (opeu_battle_side_needs_input(game, 0) || opeu_battle_side_needs_input(game, 1)) opeu_battle_select_service(game);
@@ -87,16 +88,16 @@ void opeu_battle_run_rounds(Game& game) {
 void opeu_battle_tire_leaders(Game& game) {
   auto&                            data{ Data(game) };
   std::array<bool, GROUP_PRESENCE> present{};
-  for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const side : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, slot) }; unit && unit != GARRISON_AT) {
         unsigned at{ opeu_battle_unit_side(game, unit) * GROUPS_PER_SIDE };
         at += static_cast<uint8_t>(opeu_unit_group_index(unit));
         if (at < GROUP_PRESENCE) present[at] = true;
       }
-  for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
+  for (auto const side : std::views::iota(uint8_t{ 0 }, SIDE_COUNT)) {
     if (!data.battle_command[side]) {
-      for (uint8_t group{ 0 }; group < GROUPS_PER_SIDE; ++group)
+      for (auto const group : std::views::iota(uint8_t{ 0 }, GROUPS_PER_SIDE))
         if (present[side * GROUPS_PER_SIDE + group]) Tire(game, opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group)));
     } else {
       Tire(game, opeu_find_side_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(1)));
@@ -134,8 +135,8 @@ void opeu_battle_reset_element(Game& game, uint16_t element, uint8_t side, uint8
 void opeu_battle_reset_elements(Game& game) {
   auto&   data{ Data(game) };
   uint8_t index{ 0 };
-  for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
+  for (auto const side : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, side, slot) };
       if (!unit) continue;
       uint8_t element_side;

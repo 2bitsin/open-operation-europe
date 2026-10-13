@@ -25,6 +25,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -84,7 +85,7 @@ void opeu_battle_player_orders(Game& game) {
 uint16_t opeu_battle_side_human(Game& game, uint8_t index) {
   auto& data{ Data(game) };
   data.battle_active_side = opeu_battle_unit_side(game, BattleList(data, index, 0));
-  for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
     if (auto const unit{ BattleList(data, index, slot) }; unit && opeu_battle_unit_controlled(game, unit)) return 1;
   return 0;
 }
@@ -93,8 +94,8 @@ uint16_t opeu_battle_side_human(Game& game, uint8_t index) {
 // see it.
 void opeu_battle_redraw_side(Game& game, uint8_t index) {
   auto& data{ Data(game) };
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x) {
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH)) {
       if (!opeu_battle_cell_occupied(game, x, y)) continue;
       auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
       if (index != REDRAW_ALL) {
@@ -105,13 +106,13 @@ void opeu_battle_redraw_side(Game& game, uint8_t index) {
       } else if (data.side_status[opeu_battle_element_side(game, element)] != SIDE_PLAYED && !opeu_battle_element_flag2(game, element)) {
         continue;
       }
-      opeu_battle_draw_element_at(game, x, y, element, opeu_battle_mode(game, element));
+      opeu_battle_draw_element_at(game, { x, y }, { element, opeu_battle_mode(game, element) });
     }
 }
 
 // The players take their turns, each side a player commands in order, then the whole field is redrawn.
 void opeu_battle_player_turn(Game& game) {
-  for (uint8_t index{ 0 }; index < SIDE_COUNT; ++index)
+  for (auto const index : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
     if (opeu_battle_side_human(game, index)) {
       opeu_battle_redraw_side(game, index);
       opeu_battle_player_orders(game);

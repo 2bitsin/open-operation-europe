@@ -29,6 +29,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -39,13 +41,13 @@ namespace {
 
 } // namespace
 
-void opeu_battle_exit_to_map(Game& game, uint16_t element, uint8_t x, uint8_t y) {
+auto opeu_battle_exit_to_map(Game& game, uint16_t element, GridCell cell) -> void {
   auto&      data{ Data(game) };
   auto const unit{ opeu_battle_element_unit(game, element) };
   opeu_battle_loss_check(game, 0, element);
   auto const mark{ SideMark(game, unit) };
-  MapCellAt(data, x, y)         |= mark;
-  data.battle_exit_direction[0]  = 0xff;
+  MapCellAt(data, cell.x, cell.y) |= mark;
+  data.battle_exit_direction[0]    = 0xff;
   if (opeu_battle_unit_active(game, unit)) {
     data.battle_exit_direction[0] = 0xff;
     for (auto& other : Elements(data, Record<Unit>(data, unit)))
@@ -61,11 +63,9 @@ void opeu_battle_element_withdraw(Game& game, uint16_t element) {
   if (opeu_battle_element_visible(game, element)) opeu_battle_draw_cell(game, PositionOf(data, element).x, PositionOf(data, element).y);
   if (UnitDirection(game, unit) == BATTLE_NOT_ADJACENT) {
     auto const direction{ static_cast<uint8_t>((BattleCellAt(data, goal_x, goal_y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1) };
-    uint8_t    x{ data.battle_x };
-    uint8_t    y{ data.battle_y };
-    opeu_grid_step(&x, &y, direction);
-    if ((MapCellAt(data, x, y) & Bits(MapCell::MARK_MASK)) && !(SideMark(game, unit) & MapCellAt(data, x, y))) {
-      opeu_battle_exit_to_map(game, element, x, y);
+    auto const outside{ StepOnMap({ data.battle_x, data.battle_y }, direction).value_or(GridCell{ data.battle_x, data.battle_y }) };
+    if ((MapCellAt(data, outside.x, outside.y) & Bits(MapCell::MARK_MASK)) && !(SideMark(game, unit) & MapCellAt(data, outside.x, outside.y))) {
+      opeu_battle_exit_to_map(game, element, outside);
       return;
     }
   }

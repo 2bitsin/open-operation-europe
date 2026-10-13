@@ -25,6 +25,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -75,12 +77,11 @@ void opeu_battle_ai_assign_targets(Game& game, uint8_t side, uint8_t index) {
   slot = 0;
   auto const unit{ BattleList(data, side, index) };
   auto const direction{ UnitDirection(game, unit) };
-  (void)opeu_battle_unit_side(game, unit);
   if (direction == BATTLE_NOT_ADJACENT) {
     auto const target{ BattleList(data, 0, 0) };
     if (UnitAt(data, target, data.battle_attacker_x, data.battle_attacker_y)) slot = target;
   } else if (side == 1) {
-    for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+    for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const target{ BattleList(data, 0, i) };
       if (!target) continue;
       auto const other{ UnitDirection(game, target) };
@@ -113,7 +114,7 @@ void opeu_battle_select_service(Game& game) {
     auto const unit{ opeu_battle_element_unit(game, selected) };
     auto const side{ opeu_battle_unit_side(game, unit) };
     data.battle_ai_side = static_cast<uint8_t>(opeu_battle_unit_side(game, BattleList(data, 0, 0)) == side ? 0 : 1);
-    for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i)
+    for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (BattleList(data, data.battle_ai_side, i) == unit) {
         data.battle_ai_index = i;
         break;
@@ -122,9 +123,9 @@ void opeu_battle_select_service(Game& game) {
     data.battle_selected = 0;
     return;
   }
-  for (uint8_t side{ 0 }; side < 2; ++side) {
+  for (auto const side : std::views::iota(uint8_t{ 0 }, uint8_t{ 2 })) {
     data.battle_ai_side = side;
-    for (uint8_t i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+    for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       data.battle_ai_index = i;
       auto const unit{ BattleList(data, side, i) };
       if (unit && !opeu_battle_unit_controlled(game, unit) && opeu_battle_level_allowed(game, Record<Unit>(data, unit).first)) opeu_battle_ai_plan_side(game, unit);

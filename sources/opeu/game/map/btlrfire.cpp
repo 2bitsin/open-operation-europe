@@ -27,6 +27,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -57,21 +60,48 @@ void Pause(Game& game, uint8_t units) {
   opeu_battle_pause(game, static_cast<uint8_t>(units));
 }
 
-void Line(Game& game, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-  opeu_ui_line(x1, y1, x2, y2, TRACER_COLOR);
+// The screen point at the centre of a field cell.
+[[nodiscard]] auto CellCentre(Game& game, GridCell cell) -> ScreenPoint {
+  return { static_cast<uint16_t>(opeu_battle_cell_column(game, cell.x, cell.y) + CENTRE_X), static_cast<uint16_t>(opeu_battle_cell_row(game, cell.x, cell.y) + CENTRE_Y) };
+}
+
+// A line between two screen points.
+struct ScreenLine {
+  ScreenPoint from;
+  ScreenPoint to;
+};
+
+// A shot of one element at another (0: at the shooter's goal).
+struct Shot {
+  uint16_t shooter;
+  uint16_t target;
+};
+
+// A tracer XORed onto the screen, held a moment and XORed off again.
+void FlashTracer(Game& game, ScreenLine const& line) {
+  opeu_ui_line(line.from.x, line.from.y, line.to.x, line.to.y, TRACER_COLOR);
+  Pause(game, 1);
+  opeu_ui_line(line.from.x, line.from.y, line.to.x, line.to.y, TRACER_COLOR);
+}
+
+// A few tracers along the line, each jittered: one per three shots for infantry, per fifteen otherwise, at most five.
+void Tracers(Game& game, Shot shot, ScreenLine const& line) {
+  auto const& type{ ElementTypeOf(Data(game), shot.shooter) };
+  auto const  shots{ opeu_battle_element_shots(game, shot.shooter, shot.target) };
+  auto const  tracers{ std::min(static_cast<uint8_t>((IsOfCategory(type, Category::INFANTRY) ? shots / 3 : shots / 15) + 1), MAX_TRACERS) };
+  for ([[maybe_unused]] auto const tracer : std::views::iota(uint8_t{ 0 }, tracers)) {
+    auto const dx{ static_cast<uint16_t>(opeu_rand_bounded(8) - 4) };
+    auto const dy{ static_cast<uint16_t>(opeu_rand_bounded(10) - 5) };
+    auto const jitter{ [&](ScreenPoint point) { return ScreenPoint{ static_cast<uint16_t>(point.x + dx), static_cast<uint16_t>(point.y + dy) }; } };
+    FlashTracer(game, { jitter(line.from), jitter(line.to) });
+  }
+  Pause(game, static_cast<uint8_t>(FIRE_PAUSE - tracers));
 }
 
 // The cell the shot goes to: the target's, or the shooter's goal.
-void TargetCell(DataSegment& data, uint16_t shooter, uint16_t target, uint8_t& x, uint8_t& y) {
-  if (target) {
-    auto const& position{ PositionOf(data, target) };
-    x = position.x;
-    y = position.y;
-  } else {
-    auto const& position{ PositionOf(data, shooter) };
-    x = position.goal_x;
-    y = position.goal_y;
-  }
+[[nodiscard]] auto TargetCell(DataSegment& data, uint16_t shooter, uint16_t target) -> GridCell {
+  if (target) return { PositionOf(data, target).x, PositionOf(data, target).y };
+  return { PositionOf(data, shooter).goal_x, PositionOf(data, shooter).goal_y };
 }
 } // namespace
 
@@ -97,45 +127,23 @@ void opeu_battle_ranged_sound(Game& game, uint16_t shooter) {
 void opeu_battle_ranged_tracers(Game& game, uint16_t shooter, uint16_t target) {
   auto& data{ Data(game) };
   opeu_battle_ranged_sound(game, shooter);
-  if (data.side_status[opeu_battle_element_side(game, shooter)] == SIDE_PLAYED || opeu_battle_element_flag2(game, shooter)) {
-    auto const& from{ PositionOf(data, shooter) };
-    auto const  from_x{ static_cast<uint16_t>(opeu_battle_cell_column(game, from.x, from.y) + CENTRE_X) };
-    auto const  from_y{ static_cast<uint16_t>(opeu_battle_cell_row(game, from.x, from.y) + CENTRE_Y) };
-    uint8_t     x;
-    uint8_t     y;
-    TargetCell(data, shooter, target, x, y);
-    auto const  to_x{ static_cast<uint16_t>(opeu_battle_cell_column(game, x, y) + CENTRE_X) };
-    auto const  to_y{ static_cast<uint16_t>(opeu_battle_cell_row(game, x, y) + CENTRE_Y) };
-    auto const& type{ ElementTypeOf(data, shooter) };
-    if (type.gun_range > 1) {
-      opeu_battle_draw_line(game, static_cast<int16_t>(from_x), static_cast<int16_t>(from_y), static_cast<int16_t>(to_x), static_cast<int16_t>(to_y));
-    } else {
-      auto tracers{ static_cast<uint8_t>(opeu_battle_element_shots(game, shooter, target)) };
-      tracers = static_cast<uint8_t>((IsOfCategory(type, Category::INFANTRY) ? tracers / 3 : tracers / 15) + 1);
-      if (tracers > MAX_TRACERS) tracers = MAX_TRACERS;
-      for (uint8_t i{ 0 }; i < tracers; ++i) {
-        auto const dx{ static_cast<uint16_t>(opeu_rand_bounded(8) - 4) };
-        auto const dy{ static_cast<uint16_t>(opeu_rand_bounded(10) - 5) };
-        // Drawn twice: the line XORs onto the screen and off again.
-        for (int pass{ 0 }; pass < 2; ++pass) {
-          Line(game, from_x + dx, from_y + dy, to_x + dx, to_y + dy);
-          if (!pass) Pause(game, 1);
-        }
-      }
-      Pause(game, static_cast<uint8_t>(FIRE_PAUSE - tracers));
-    }
-  } else {
+  if (data.side_status[opeu_battle_element_side(game, shooter)] != SIDE_PLAYED && !opeu_battle_element_flag2(game, shooter)) {
     Pause(game, FIRE_PAUSE);
+  } else {
+    auto const&      from{ PositionOf(data, shooter) };
+    ScreenLine const line{ CellCentre(game, { from.x, from.y }), CellCentre(game, TargetCell(data, shooter, target)) };
+    if (ElementTypeOf(data, shooter).gun_range > 1)
+      opeu_battle_draw_line(game, line.from, line.to);
+    else
+      Tracers(game, { shooter, target }, line);
   }
   opeu_music_command7(game);
 }
 
 // frame: the routine's frame; the callees run below it.
 void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
-  auto&   data{ Data(game) };
-  uint8_t x;
-  uint8_t y;
-  TargetCell(data, shooter, target, x, y);
+  auto&      data{ Data(game) };
+  auto const cell{ TargetCell(data, shooter, target) };
   opeu_battle_ranged_panel(game, shooter, target);
   opeu_battle_ranged_tracers(game, shooter, target);
   auto const  shot{ opeu_battle_ranged_damage(game, shooter, target) };
@@ -143,16 +151,15 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
   auto const  animation{ losses ? HIT_ANIMATION : MISS_ANIMATION };
   auto const& type{ ElementTypeOf(data, shooter) };
   if (FiresShells(type)) {
-    uint8_t heavy{ 0 };
-    if (target) heavy = IsOfCategory(ElementTypeOf(data, target), Category::INFANTRY) ? losses >= 30 : losses >= 10;
-    opeu_battle_animate_element(game, x, y, heavy, 1, animation, target);
+    auto const heavy{ target && (IsOfCategory(ElementTypeOf(data, target), Category::INFANTRY) ? losses >= 30 : losses >= 10) };
+    opeu_battle_animate_element(game, cell, { animation, target, true, heavy });
   } else if (type.category <= Bits(Category::SUPPLY)) {
-    opeu_battle_animate_element(game, x, y, 0, 0, animation, target);
+    opeu_battle_animate_element(game, cell, { animation, target, false, false });
   }
   opeu_battle_panel_begin(game);
   data.battle_element_destroyed = 0;
   if (!losses) {
-    opeu_battle_refresh_cell(game, x, y);
+    opeu_battle_refresh_cell(game, cell.x, cell.y);
   } else if (!shot.into_bunker) {
     auto&      hit{ Record<Element>(data, target) };
     auto const before{ hit.quantity };
@@ -164,7 +171,7 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
     opeu_battle_spend_stores(game, target, before);
     if (!hit.quantity) {
       hit.damage = 0;
-      opeu_battle_draw_cell(game, x, y);
+      opeu_battle_draw_cell(game, cell.x, cell.y);
       opeu_battle_wiped_notice(game, target);
       data.battle_element_destroyed = 1;
       auto& own{ Record<Element>(data, shooter) };
@@ -179,18 +186,18 @@ void opeu_battle_ranged_fire(Game& game, uint16_t shooter, uint16_t target) {
         opeu_add_word(static_cast<uint16_t>(static_cast<uint16_t>(skill * losses) / static_cast<uint16_t>(700 - roll)), data.request_capacities[category], &damage);
         hit.damage = damage;
       }
-      opeu_battle_redraw_cell(game, x, y, target, opeu_battle_mode(game, target));
+      opeu_battle_redraw_cell(game, cell, { target, opeu_battle_mode(game, target) });
     }
   } else {
     // A shot into a bunker: the garrison share there and the objective's strength take the losses.
     auto& objective{ Record<Objective>(data, opeu_find_objective_at(game, data.battle_x, data.battle_y)) };
-    for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_EXTRA_COUNT)) {
       auto& extra{ BattleExtraAt(data, i) };
       if (extra.x == BATTLE_UNPLACED) break;
-      if (extra.x == x && extra.y == y) {
+      if (extra.x == cell.x && extra.y == cell.y) {
         opeu_sub_byte(losses, &extra.count);
         opeu_sub_byte(losses, &objective.strength);
-        opeu_battle_refresh_cell(game, x, y);
+        opeu_battle_refresh_cell(game, cell.x, cell.y);
         break;
       }
     }

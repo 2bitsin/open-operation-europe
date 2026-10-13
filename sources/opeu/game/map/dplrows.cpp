@@ -18,7 +18,9 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -51,7 +53,7 @@ void opeu_deploy_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t ro
     opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), PLAIN_COLOR);
     opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), TEXT_AT, static_cast<uint8_t>(Byte(game, COLUMNS_AT + 1)), static_cast<uint8_t>(Byte(game, COLUMNS_AT + 2)));
   }
-  for (unsigned index{ first }; index <= last; ++index) {
+  for (auto const index : std::views::iota(unsigned{ first }, std::max(unsigned{ first }, last + 1u))) {
     auto const  element_at{ data.ai_element_list[index] };
     auto const& element{ Record<Element>(data, element_at) };
     auto const  y{ static_cast<uint16_t>((static_cast<int>(index) - data.list_top) * ROW_PIXELS + window.y + HEADER_PIXELS) };

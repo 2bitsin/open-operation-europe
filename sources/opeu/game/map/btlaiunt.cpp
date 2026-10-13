@@ -18,9 +18,11 @@
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
-#include "map/btlaiact.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
+#include <optional>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -39,7 +41,7 @@ constexpr int      SLOT_COUNT{ 2 * BATTLE_LIST_LENGTH };
 [[nodiscard]] auto FindSlot(Game& game, uint16_t element, uint16_t& unit) -> int {
   auto& data{ Data(game) };
   unit = opeu_battle_element_unit(game, element);
-  for (int k{ 0 }; k < SLOT_COUNT; ++k)
+  for (auto const k : std::views::iota(int{ 0 }, SLOT_COUNT))
     if (data.battle_lists[k] == unit) return k;
   return -1;
 }
@@ -100,7 +102,7 @@ uint16_t opeu_battle_ai_pick_target(Game& game, uint16_t element, uint16_t list,
     switch (static_cast<PickMode>(mode)) {
     case PickMode::NEAREST:
       if (Flood(game, element, target)) {
-        value = BattlePathStep(game, static_cast<uint8_t>(PositionOf(data, element).x), static_cast<uint8_t>(PositionOf(data, element).y));
+        value = DownhillStep(game, { PositionOf(data, element).x, PositionOf(data, element).y }).cost;
         if (value < best) {
           best   = value;
           chosen = target;
@@ -134,27 +136,25 @@ uint16_t opeu_battle_ai_pick_target(Game& game, uint16_t element, uint16_t list,
 
 // A random cell the element can enter: on the unit's side of the field, or near the middle when the unit is not next
 // to the battle.
-auto opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> FieldCell {
+auto opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> GridCell {
   auto&      data{ Data(game) };
   auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) };
   auto const pick{ [&](uint8_t column, uint8_t row, uint16_t percent) {
     return opeu_battle_can_enter(game, static_cast<uint8_t>(column), static_cast<uint8_t>(row), element) && port_rand_bounded(game, 100) < percent;
   } };
-  auto const search{ [&](uint8_t& column, uint8_t& row) {
+  auto const search{ [&] -> std::optional<GridCell> {
     if (direction != BATTLE_NOT_ADJACENT) {
-      for (row = 0; row < BATTLE_WIDTH; ++row)
-        for (column = 0; column < BATTLE_WIDTH; ++column)
-          if (static_cast<uint8_t>((BattleCellAt(data, column, row) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1) == direction && pick(column, row, 30)) return true;
+      for (auto const row : std::views::iota(uint8_t{ 0 }, static_cast<uint8_t>(BATTLE_WIDTH)))
+        for (auto const column : std::views::iota(uint8_t{ 0 }, static_cast<uint8_t>(BATTLE_WIDTH)))
+          if (static_cast<uint8_t>((BattleCellAt(data, column, row) >> std::to_underlying(BattleCell::EXIT_SHIFT)) - 1) == direction && pick(column, row, 30)) return GridCell{ column, row };
     } else {
-      for (row = 5; row < 9; ++row)
-        for (column = 5; column < 9; ++column)
-          if (pick(column, row, 15)) return true;
+      for (auto const row : std::views::iota(uint8_t{ 5 }, uint8_t{ 9 }))
+        for (auto const column : std::views::iota(uint8_t{ 5 }, uint8_t{ 9 }))
+          if (pick(column, row, 15)) return GridCell{ column, row };
     }
-    return false;
+    return std::nullopt;
   } };
-  uint8_t column;
-  uint8_t row;
-  while (!search(column, row)) {
-  }
-  return { column, row };
+  auto cell{ search() };
+  while (!cell) cell = search();
+  return *cell;
 }

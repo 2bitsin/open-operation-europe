@@ -1,7 +1,10 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "map/grid-cell.hpp"
 #include "types.hpp"
+
+#include <optional>
 
 // opeu_battle_skill's kind: which skill of the responsible commander.
 enum class BattleSkill : uint8_t {
@@ -26,7 +29,7 @@ uint8_t  opeu_battle_element_shots(Game& game, uint16_t attacker, uint16_t targe
 uint8_t  opeu_battle_cell_terrain(Game& game, uint8_t x, uint8_t y);
 uint16_t opeu_battle_can_enter(Game& game, uint8_t x, uint8_t y, uint16_t element);
 uint8_t  opeu_battle_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t element);
-void     opeu_battle_step_unchecked(Game& game, uint8_t* x, uint8_t* y, uint8_t direction);
-uint16_t opeu_battle_step(Game& game, uint8_t* x, uint8_t* y, uint8_t direction);
-uint16_t opeu_battle_unit_controlled(Game& game, uint16_t unit);
-uint16_t opeu_battle_element_at(Game& game, uint8_t x, uint8_t y);
+// The neighbour of a field cell in one of the four directions, when it lies on the field.
+[[nodiscard]] auto opeu_battle_step(Game const& game, opeu::game::GridCell cell, uint8_t direction) -> std::optional<opeu::game::GridCell>;
+uint16_t           opeu_battle_unit_controlled(Game& game, uint16_t unit);
+uint16_t           opeu_battle_element_at(Game& game, uint8_t x, uint8_t y);

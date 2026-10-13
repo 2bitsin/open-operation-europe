@@ -61,10 +61,10 @@ uint8_t opeu_battle_ai_profile(Game& game, uint16_t unit, uint16_t all) {
   return 3;
 }
 
-void opeu_battle_ai_move_to(Game& game, uint8_t x, uint8_t y, uint16_t element) {
+auto opeu_battle_ai_move_to(Game& game, GridCell cell, uint16_t element) -> void {
   auto& position{ PositionOf(Data(game), element) };
-  position.goal_x = x;
-  position.goal_y = y;
+  position.goal_x = cell.x;
+  position.goal_y = cell.y;
   position.state  = Bits(BattleState::BLITZ);
   opeu_battle_disengage(game, element);
   opeu_battle_set_facing(game, element, NONE);
@@ -80,7 +80,7 @@ void opeu_battle_ai_attack(Game& game, uint16_t element, uint16_t unit, uint16_t
     return;
   }
   auto const cell{ opeu_battle_ai_random_cell(game, element, unit) };
-  opeu_battle_ai_move_to(game, cell.x, cell.y, element);
+  opeu_battle_ai_move_to(game, cell, element);
 }
 
 void opeu_battle_ai_attack_near(Game& game, uint16_t element, uint16_t unit) {

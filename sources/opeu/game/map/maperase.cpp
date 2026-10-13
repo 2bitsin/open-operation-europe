@@ -13,6 +13,8 @@
 #include "map/occupy.hpp"
 #include "types.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -52,7 +54,7 @@ void opeu_daily_activate(Game& game, uint8_t side) {
   data.view_side     = NO_SIDE;
   data.overview_side = side;
   opeu_turn_frame(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(0));
-  for (uint8_t y{ 0 }; y < MAP_HEIGHT; y++)
-    for (uint8_t x{ 0 }; x < MAP_WIDTH; x++) opeu_map_erase(game, x, y);
+  for (auto const y : std::views::iota(uint8_t{ 0 }, MAP_HEIGHT))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, MAP_WIDTH)) opeu_map_erase(game, x, y);
   opeu_overview_frame(game);
 }

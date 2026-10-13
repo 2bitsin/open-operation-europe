@@ -23,6 +23,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -50,11 +52,10 @@ void Settle(Game& game, uint16_t element, BattleState state) {
 }
 } // namespace
 
-// Moves the element from (x, y) to (to_x, to_y) on the field: redraws the cell it leaves and draws it at the new one.
-void opeu_battle_move_element(Game& game, uint8_t x, uint8_t y, uint8_t to_x, uint8_t to_y, uint16_t element, uint8_t mode) {
-  if (opeu_battle_element_visible(game, element)) opeu_battle_draw_cell(game, x, y);
-  opeu_battle_draw_element_at(game, to_x, to_y, element, mode);
-  opeu_battle_clear_cell(game, x, y);
+void opeu_battle_move_element(Game& game, ShownElement shown, CellMove move) {
+  if (opeu_battle_element_visible(game, shown.element)) opeu_battle_draw_cell(game, move.from.x, move.from.y);
+  opeu_battle_draw_element_at(game, move.to, shown);
+  opeu_battle_clear_cell(game, move.from.x, move.from.y);
 }
 
 // Unlinks a destroyed element from its unit. An emptied unit is no longer ready and leaves the map; a division left
@@ -83,10 +84,10 @@ void opeu_battle_remove_unit(Game& game, uint16_t unit, uint16_t element) {
 
 void opeu_battle_remove_list(Game& game, uint16_t unit) {
   auto& data{ Data(game) };
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH))
       if (BattleList(data, side, slot) == unit) {
-        for (auto moved{ slot }; moved < BATTLE_LIST_LENGTH - 1; ++moved) BattleList(data, side, moved) = BattleList(data, side, moved + 1);
+        for (auto const moved : std::views::iota(auto{ slot }, BATTLE_LIST_LENGTH - 1)) BattleList(data, side, moved) = BattleList(data, side, moved + 1);
         BattleList(data, side, BATTLE_LIST_LENGTH - 1) = 0;
         return;
       }
@@ -116,23 +117,18 @@ uint16_t opeu_battle_best_target(Game& game, uint16_t element) {
   auto const  reach{ ElementTypeOf(data, element).gun_range };
   auto const  side{ opeu_battle_element_side(game, element) };
   auto const& position{ PositionOf(data, element) };
-  auto const  span{ static_cast<uint8_t>(reach * 2 + 1) };
-  int const   left{ position.x - reach };
-  int         y{ position.y - reach };
   uint16_t    best{ 0 };
   uint8_t     best_rating{ 0 };
-  for (uint8_t row{ 0 }; row < span; ++row, ++y) {
-    int x{ left };
-    for (uint8_t column{ 0 }; column < span; ++column, ++x) {
+  for (auto const y : std::views::iota(position.y - reach, position.y + reach + 1))
+    for (auto const x : std::views::iota(position.x - reach, position.x + reach + 1)) {
       if (x < 0 || x >= static_cast<int>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int>(BATTLE_WIDTH) || !opeu_battle_cell_occupied(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) continue;
-      auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y))) };
+      auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
       if (!opeu_battle_element_active(game, other) || opeu_battle_element_side(game, other) == side || !opeu_battle_element_flag2(game, other)) continue;
       if (auto const rating{ opeu_battle_attack_rating(game, element, other) }; rating > best_rating) {
         best_rating = rating;
         best        = other;
       }
     }
-  }
   return best_rating ? best : 0;
 }
 

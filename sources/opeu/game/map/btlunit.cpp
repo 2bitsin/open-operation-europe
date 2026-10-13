@@ -49,9 +49,9 @@ void opeu_battle_set_order(Game& game, uint16_t element, uint8_t order) {
 }
 
 // side: the side whose element stands on the cell.
-void opeu_battle_mark_cell(Game& game, uint8_t x, uint8_t y, uint8_t side) {
-  auto& cell{ Cell(game, x, y) };
-  cell = static_cast<uint8_t>((cell & ~Bits(BattleCell::OCCUPANT_MASK)) | static_cast<uint8_t>(side + 1));
+auto opeu_battle_mark_cell(Game& game, GridCell cell, uint8_t side) -> void {
+  auto& bits{ Cell(game, cell.x, cell.y) };
+  bits = static_cast<uint8_t>((bits & ~Bits(BattleCell::OCCUPANT_MASK)) | static_cast<uint8_t>(side + 1));
 }
 
 void opeu_battle_clear_cell(Game& game, uint8_t x, uint8_t y) {
@@ -119,11 +119,6 @@ void opeu_battle_set_strength(Game& game, uint16_t element, uint8_t low, uint8_t
 
 uint16_t opeu_battle_cell_occupied(Game& game, uint8_t x, uint8_t y) {
   return Occupant(game, x, y) ? 1 : 0;
-}
-
-// side: the side + 1 of the occupant asked for (0 for an empty cell).
-uint16_t opeu_battle_cell_is(Game& game, uint8_t x, uint8_t y, uint8_t side) {
-  return Occupant(game, x, y) == side ? 1 : 0;
 }
 
 // The level of the element's unit's order: what the battle_levels table gives its order kind (read past the table

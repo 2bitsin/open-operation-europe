@@ -33,6 +33,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -121,7 +122,7 @@ void opeu_battle_pick_hq(Game& game) {
     if (!opeu_list_dialog(game, Near(data, data.deploy_window), static_cast<std::uint8_t>(1), static_cast<std::uint8_t>(draw))) continue;
     auto element{ Record<Unit>(data, data.battle_lost_unit).first };
     data.deploy_row = data.list_row;
-    for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
+    for ([[maybe_unused]] auto const row : std::views::iota(uint8_t{ 0 }, data.list_row)) element = Record<Element>(data, element).next;
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
     if (static_cast<std::uint16_t>(opeu_prompt_yes_no(game, Near(data, data.hq_new_prompt)))) {
       Record<Element>(data, element).flags |= Bits(ElementFlag::SELECTED);

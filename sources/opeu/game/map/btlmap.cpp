@@ -18,7 +18,9 @@
 #include "map/query.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -62,8 +64,8 @@ void opeu_battle_draw_border(Game& game) {
               port_far(static_cast<std::uint16_t>(data.bitmap_buffer), 0), 1);
   } };
   opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), static_cast<uint8_t>(BORDER_COLOR));
-  for (uint16_t a{ 0 }; a < BATTLE_WIDTH; ++a) sprite(static_cast<uint16_t>((a + 2) * 20), static_cast<uint16_t>((a + 16) * 13), LEFT_BORDER_IMAGE, LEFT_BORDER_MASK);
-  for (uint16_t b{ 0 }; b < BATTLE_WIDTH; ++b) sprite(static_cast<uint16_t>((29 - b) * 20), static_cast<uint16_t>((b + 16) * 13), RIGHT_BORDER_IMAGE, RIGHT_BORDER_MASK);
+  for (auto const a : std::views::iota(uint16_t{ 0 }, BATTLE_WIDTH)) sprite(static_cast<uint16_t>((a + 2) * 20), static_cast<uint16_t>((a + 16) * 13), LEFT_BORDER_IMAGE, LEFT_BORDER_MASK);
+  for (auto const b : std::views::iota(uint16_t{ 0 }, BATTLE_WIDTH)) sprite(static_cast<uint16_t>((29 - b) * 20), static_cast<uint16_t>((b + 16) * 13), RIGHT_BORDER_IMAGE, RIGHT_BORDER_MASK);
 }
 
 // A hex map terrain code as the battle's (0 beyond the table).
@@ -86,15 +88,15 @@ void opeu_battle_load_terrain(Game& game) {
                 static_cast<int16_t>(0));
   opeu_dos_read(static_cast<int16_t>(static_cast<std::uint16_t>(handle)), game.State().Bytes(static_cast<std::uint16_t>(Near(data, data.battle_terrain)), TERRAIN_RECORD).data(), TERRAIN_RECORD);
   opeu_dos_close(static_cast<int16_t>(static_cast<std::uint16_t>(handle)));
-  for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) {
+  for (auto const y : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) {
       auto&      cell{ BattleTerrainAt(data, x, y) };
       auto const flags{ static_cast<uint8_t>(cell & HEX_FLAG_MASK) };
       auto const code{ opeu_hex_terrain_code(game, static_cast<uint8_t>(cell & BATTLE_TERRAIN_MASK)) };
       cell = static_cast<uint8_t>(code | flags);
     }
-  for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) {
+  for (auto const y : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) {
       auto&      cell{ BattleTerrainAt(data, x, y) };
       auto const code{ static_cast<uint8_t>(cell & BATTLE_TERRAIN_MASK) };
       if (code != TOWN_CODE_A && code != TOWN_CODE_B) continue;
@@ -109,10 +111,10 @@ void opeu_battle_draw_map(Game& game) {
   opeu_battle_draw_border(game);
   auto const above{ [&](unsigned x, unsigned y) { opeu_battle_draw_cell_above(game, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y))); } };
   above(0, 0);
-  for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) above(x + 1, 0);
-  for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y) {
+  for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) above(x + 1, 0);
+  for (auto const y : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) {
     above(0, y + 1);
-    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) opeu_battle_draw_cell(game, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y)));
+    for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) opeu_battle_draw_cell(game, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y)));
   }
 }
 
@@ -150,12 +152,12 @@ void opeu_battle_garrison_cells(Game& game) {
   } };
   auto const site{ opeu_find_objective_at(game, static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_x)), static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_y))) };
   if (!site) {
-    for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) clear(i);
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_EXTRA_COUNT)) clear(i);
     return;
   }
   uint8_t cells{ 0 };
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
       if (BattleTerrainAt(data, x, y) == BATTLE_CITY) {
         auto& extra{ BattleExtraAt(data, cells) };
         extra.x = x;
@@ -165,12 +167,12 @@ void opeu_battle_garrison_cells(Game& game) {
   auto const garrison{ Record<Objective>(data, site).strength };
   uint8_t    share{ 0 };
   if (cells) share = static_cast<uint8_t>(garrison / cells);
-  for (uint8_t i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i)
+  for (auto const i : std::views::iota(uint8_t{ 0 }, BATTLE_EXTRA_COUNT))
     if (i < cells)
       BattleExtraAt(data, i).count = share;
     else
       clear(i);
-  for (uint8_t i{ 0 }; Record<Objective>(data, site).strength - share * cells > i; ++i) ++BattleExtraAt(data, i).count;
+  for (auto const i : std::views::iota(0, std::max(0, Record<Objective>(data, site).strength - share * cells))) ++BattleExtraAt(data, static_cast<uint8_t>(i)).count;
 }
 
 void opeu_battle_reset_state(Game& game) {
@@ -178,10 +180,10 @@ void opeu_battle_reset_state(Game& game) {
   data.battle_direction    = NO_DIRECTION;
   data.battle_hq_intact[0] = 0;
   data.battle_hq_intact[1] = 0;
-  for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) BattleCellAt(data, x, y) &= static_cast<uint8_t>(~Bits(BattleCell::OCCUPANT_MASK));
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+  for (auto const y : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(unsigned{ 0 }, BATTLE_WIDTH)) BattleCellAt(data, x, y) &= static_cast<uint8_t>(~Bits(BattleCell::OCCUPANT_MASK));
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH)) {
       data.battle_ai_plans[side * BATTLE_LIST_LENGTH + i]   = 0;
       data.battle_ai_targets[side * BATTLE_LIST_LENGTH + i] = 0;
     }

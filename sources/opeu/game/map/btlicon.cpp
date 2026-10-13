@@ -15,6 +15,7 @@
 #include "services.hpp"
 
 #include <algorithm>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -105,8 +106,8 @@ void opeu_battle_draw_icon(Game& game, uint16_t element, uint8_t side, uint8_t m
   data.stream_ptr[0] = offset;
   opeu_read_far_bytes(game, port_far(segment, 0), offset, buffer, ICON_BYTES);
   if (side != 1)
-    for (uint16_t row{ 0 }; row < ICON_BYTES; row += ICON_ROW) {
-      auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row), 2 * HALF_ROW) };
+    for (auto const row : std::views::iota(uint16_t{ 0 }, static_cast<uint16_t>(ICON_BYTES / ICON_ROW))) {
+      auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row * ICON_ROW), 2 * HALF_ROW) };
       std::ranges::swap_ranges(bytes.first(HALF_ROW), bytes.subspan(HALF_ROW));
     }
   opeu_vram_load(game.State().Bytes(Near(data, data.vram)).data(), port_far(data.icon_segment, offset + ICON_BYTES));

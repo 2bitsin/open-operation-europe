@@ -12,6 +12,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
+
 using namespace opeu::game;
 
 namespace {
@@ -52,13 +54,13 @@ void opeu_battle_draw_sprite(Game& game, uint16_t offset) {
 }
 
 // A city cell also shows its share of the garrison.
-void opeu_battle_draw_extra(Game& game, uint8_t x, uint8_t y, uint8_t code) {
+auto opeu_battle_draw_extra(Game& game, GridCell cell, uint8_t code) -> void {
   auto& data{ Data(game) };
   opeu_battle_draw_sprite(game, opeu_battle_sprite_offset(game, code));
   if (code != BATTLE_CITY) return;
   for (unsigned i{ 0 };; ++i) {
     auto const& extra{ BattleExtraAt(data, i) };
-    if (extra.x == x && extra.y == y) {
+    if (extra.x == cell.x && extra.y == cell.y) {
       opeu_battle_draw_number(game, extra.count);
       return;
     }
@@ -66,7 +68,7 @@ void opeu_battle_draw_extra(Game& game, uint8_t x, uint8_t y, uint8_t code) {
   }
 }
 
-void opeu_battle_draw_terrain(Game& game, uint8_t x, uint8_t y, uint8_t code) {
+auto opeu_battle_draw_terrain(Game& game, GridCell cell, uint8_t code) -> void {
   auto const variant{ static_cast<uint8_t>(code >> 6) };
   auto const terrain{ static_cast<uint8_t>(code & BATTLE_TERRAIN_MASK) };
   auto const offset{ [&](uint8_t sprite) { return opeu_battle_sprite_offset(game, sprite); } };
@@ -89,10 +91,10 @@ void opeu_battle_draw_terrain(Game& game, uint8_t x, uint8_t y, uint8_t code) {
   }
   if (terrain >= 21 && terrain <= 30) opeu_battle_draw_sprite(game, two_way());
   if (terrain >= 33 && terrain <= 43) {
-    constexpr uint8_t four_way[]{ OVERLAY_0, OVERLAY_1, OVERLAY_2, OVERLAY_3 };
+    constexpr std::array<uint8_t, 4> four_way{ OVERLAY_0, OVERLAY_1, OVERLAY_2, OVERLAY_3 };
     opeu_battle_draw_sprite(game, offset(four_way[variant]));
   }
-  opeu_battle_draw_extra(game, x, y, terrain);
+  opeu_battle_draw_extra(game, cell, terrain);
 }
 
 uint16_t opeu_battle_sprite_valid(Game&, uint8_t sprite) {

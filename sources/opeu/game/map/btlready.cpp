@@ -22,6 +22,7 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -40,8 +41,8 @@ uint16_t opeu_battle_announce_ready(Game& game) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ NAME_BYTES };
   bool                announced{ false };
-  for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
+  for (auto const list : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, list, slot) };
       if (!unit) continue;
       auto const side{ opeu_battle_unit_side(game, unit) };

@@ -13,6 +13,9 @@
 #include "common/game.hpp"
 #include "port.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -21,14 +24,13 @@ namespace {
   auto const& data{ Data(game) };
   auto const& record{ Record<Objective>(data, objective) };
   if (record.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) return true;
-  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; ++direction) {
-    uint8_t x{ record.x };
-    uint8_t y{ record.y };
-    if (!opeu_grid_step(&x, &y, direction)) continue;
-    auto const unit{ opeu_find_unit_at(game, x, y) };
-    if (unit && opeu_unit_side(unit) == opeu_objective_side(game, objective) && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS))) return true;
-  }
-  return false;
+  auto const in_communication{ [&](uint8_t direction) {
+    auto const cell{ StepOnMap({ record.x, record.y }, direction) };
+    if (!cell) return false;
+    auto const unit{ opeu_find_unit_at(game, cell->x, cell->y) };
+    return unit && opeu_unit_side(unit) == opeu_objective_side(game, objective) && (Record<Unit>(data, unit).flags & Bits(UnitFlag::COMMUNICATIONS));
+  } };
+  return std::ranges::any_of(std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS_AND_CENTER), in_communication);
 }
 } // namespace
 

@@ -20,6 +20,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <optional>
 #include <utility>
 
 using namespace opeu::game;
@@ -37,11 +38,51 @@ constexpr uint16_t HEX_MASK_SEGMENT{ 0x352d }; // the far segment of the hex-sha
 [[nodiscard]] auto HexMask(int16_t row, int16_t column) -> uint8_t {
   return *port_far(HEX_MASK_SEGMENT, static_cast<uint16_t>(row * MASK_ROW_BYTES + column));
 }
+
+// A field cell guess in signed column and row, possibly off the field.
+struct CellGuess {
+  int16_t column;
+  int16_t row;
+};
+
+// The cell under a pixel of the screen's right half, refined by the hex mask.
+[[nodiscard]] auto RightHalfCell(int16_t x, int16_t y) -> CellGuess {
+  auto       column{ static_cast<int16_t>((x - 320) / HEX_WIDTH) };
+  auto const top{ static_cast<int16_t>((column + 2) * 13) };
+  auto       row{ static_cast<int16_t>((y - top) / HEX_HEIGHT) };
+  column = static_cast<int16_t>(column + row);
+  auto const mask_row{ static_cast<int16_t>(x % 40 < HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
+  auto const mask_byte{ static_cast<int16_t>((x % HEX_WIDTH + 20) / 8) };
+  if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> (x % HEX_WIDTH + 20) % 8))) {
+    if (mask_row < 13)
+      --row;
+    else
+      ++column;
+  }
+  return { column, row };
+}
+
+// The cell under a pixel of the screen's left half (from x = 40), refined by the hex mask.
+[[nodiscard]] auto LeftHalfCell(int16_t x, int16_t y) -> CellGuess {
+  auto       row{ static_cast<int16_t>((40 - x) / HEX_WIDTH + 13) };
+  auto const top{ static_cast<int16_t>((row + 2) * 13) };
+  auto       column{ static_cast<int16_t>((y - top) / HEX_HEIGHT) };
+  row = static_cast<int16_t>(row + column);
+  auto const mask_row{ static_cast<int16_t>(x % 40 >= HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
+  auto const mask_byte{ static_cast<int16_t>(x % HEX_WIDTH / 8) };
+  if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> x % HEX_WIDTH % 8))) {
+    if (mask_row < 13)
+      --column;
+    else
+      ++row;
+  }
+  return { column, row };
+}
 } // namespace
 
-uint16_t opeu_battle_cell_open(Game& game, uint8_t x, uint8_t y, uint16_t element) {
-  if (!opeu_battle_cell_occupied(game, x, y)) return 1;
-  auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+auto opeu_battle_cell_open(Game& game, GridCell cell, uint16_t element) -> uint16_t {
+  if (!opeu_battle_cell_occupied(game, cell.x, cell.y)) return 1;
+  auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(cell.x), static_cast<uint8_t>(cell.y)) };
   return other && opeu_battle_element_side(game, element) != opeu_battle_element_side(game, other) && !opeu_battle_element_flag2(game, other);
 }
 
@@ -60,42 +101,11 @@ void opeu_battle_cursor_step(Game& game, int16_t dx, int16_t dy) {
   opeu_battle_cursor_draw(game);
 }
 
-// x_at and y_at: the DS offsets of the two words, the pixel on entry and the cell (or NO_CELL twice) on return.
-void opeu_battle_mouse_cell(Game& game, uint16_t x_at, uint16_t y_at) {
-  auto const x{ static_cast<int16_t>(Word(game, x_at)) };
-  auto const y{ static_cast<int16_t>(Word(game, y_at)) };
-  int16_t    column;
-  int16_t    row;
-  if (x >= 320) {
-    column = static_cast<int16_t>((x - 320) / HEX_WIDTH);
-    auto const top{ static_cast<int16_t>((column + 2) * 13) };
-    row    = static_cast<int16_t>((y - top) / HEX_HEIGHT);
-    column = static_cast<int16_t>(column + row);
-    auto const mask_row{ static_cast<int16_t>(x % 40 < HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
-    auto const mask_byte{ static_cast<int16_t>((x % HEX_WIDTH + 20) / 8) };
-    if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> (x % HEX_WIDTH + 20) % 8))) {
-      if (mask_row < 13)
-        --row;
-      else
-        ++column;
-    }
-  } else if (x < 40) {
-    row = column = NO_CELL;
-  } else {
-    row = static_cast<int16_t>((40 - x) / HEX_WIDTH + 13);
-    auto const top{ static_cast<int16_t>((row + 2) * 13) };
-    column = static_cast<int16_t>((y - top) / HEX_HEIGHT);
-    row    = static_cast<int16_t>(row + column);
-    auto const mask_row{ static_cast<int16_t>(x % 40 >= HEX_WIDTH ? y % HEX_HEIGHT : (y + 13) % HEX_HEIGHT) };
-    auto const mask_byte{ static_cast<int16_t>(x % HEX_WIDTH / 8) };
-    if (!(HexMask(mask_row, mask_byte) & static_cast<uint8_t>(0x80 >> x % HEX_WIDTH % 8))) {
-      if (mask_row < 13)
-        --column;
-      else
-        ++row;
-    }
-  }
-  if (column < 0 || column >= NO_CELL || row < 0 || row >= NO_CELL) row = column = NO_CELL;
-  SetWord(game, x_at, static_cast<uint16_t>(column));
-  SetWord(game, y_at, static_cast<uint16_t>(row));
+auto opeu_battle_mouse_cell(ScreenPoint pixel) -> std::optional<GridCell> {
+  auto const x{ static_cast<int16_t>(pixel.x) };
+  auto const y{ static_cast<int16_t>(pixel.y) };
+  if (x < 320 && x < 40) return std::nullopt;
+  auto const guess{ x >= 320 ? RightHalfCell(x, y) : LeftHalfCell(x, y) };
+  if (guess.column < 0 || guess.column >= NO_CELL || guess.row < 0 || guess.row >= NO_CELL) return std::nullopt;
+  return GridCell{ static_cast<uint8_t>(guess.column), static_cast<uint8_t>(guess.row) };
 }

@@ -13,6 +13,8 @@
 #include "types.hpp"
 #include "units/typetext.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -29,18 +31,17 @@ void Store(Game& game, uint16_t& out, uint16_t unit) {
 uint8_t opeu_side_supported_units(Game& game, uint8_t side, uint16_t out) {
   auto&   data{ Data(game) };
   uint8_t found{ 0 };
-  for (uint8_t i{ 0 }; i < UNITS_PER_SIDE; ++i) {
+  for (auto const i : std::views::iota(uint8_t{ 0 }, UNITS_PER_SIDE)) {
     auto const& record{ data.units[side * UNITS_PER_SIDE + i] };
     auto const  unit{ Near(data, record) };
     if (!(record.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, unit)) continue;
-    for (uint8_t direction{ 0 }; direction <= CENTER; ++direction) {
-      uint8_t x{ record.x };
-      uint8_t y{ record.y };
-      if (!opeu_grid_step(&x, &y, direction)) continue;
-      auto const objective{ opeu_find_objective_at(game, x, y) };
+    for (auto const direction : std::views::iota(uint8_t{ 0 }, static_cast<uint8_t>(CENTER + 1))) {
+      auto const cell{ StepOnMap({ record.x, record.y }, direction) };
+      if (!cell) continue;
+      auto const objective{ opeu_find_objective_at(game, cell->x, cell->y) };
       bool       supported{ objective != 0 && opeu_objective_side(game, objective) == data.current_side };
       if (!supported && direction != CENTER) {
-        auto const neighbour{ opeu_find_unit_at(game, x, y) };
+        auto const neighbour{ opeu_find_unit_at(game, cell->x, cell->y) };
         supported = neighbour != 0 && opeu_unit_side(neighbour) == data.current_side && opeu_same_unit_class(unit, neighbour);
       }
       if (supported) {
@@ -58,11 +59,10 @@ uint8_t opeu_neighbor_units(Game& game, uint16_t unit, uint16_t out) {
   auto const& record{ Record<Unit>(Data(game), unit) };
   auto const  side{ opeu_unit_side(unit) };
   uint8_t     found{ 0 };
-  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-    uint8_t x{ record.x };
-    uint8_t y{ record.y };
-    if (!opeu_grid_step(&x, &y, direction)) continue;
-    auto const neighbour{ opeu_find_unit_at(game, x, y) };
+  for (auto const direction : std::views::iota(uint8_t{ 0 }, GRID_DIRECTIONS)) {
+    auto const cell{ StepOnMap({ record.x, record.y }, direction) };
+    if (!cell) continue;
+    auto const neighbour{ opeu_find_unit_at(game, cell->x, cell->y) };
     if (neighbour != 0 && opeu_unit_side(neighbour) == side && opeu_unit_selection_eligible(game, neighbour) && opeu_same_unit_class(unit, neighbour)) {
       Store(game, out, neighbour);
       ++found;

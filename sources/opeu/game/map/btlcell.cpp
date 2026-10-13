@@ -66,7 +66,7 @@ void opeu_battle_draw_cell(Game& game, uint8_t x, uint8_t y) {
   auto const row{ opeu_battle_cell_row(game, x, y) };
   SaveVram(game, column, row);
   data.sprite_variant[0] = Bits(SpriteVariant::WHOLE);
-  opeu_battle_draw_terrain(game, x, y, BattleTerrainAt(data, x, y));
+  opeu_battle_draw_terrain(game, GridCell{ x, y }, BattleTerrainAt(data, x, y));
   opeu_battle_draw_neighbors(game, x, y);
   RestoreVram(game, column, row);
 }

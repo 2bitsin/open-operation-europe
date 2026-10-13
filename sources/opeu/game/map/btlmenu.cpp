@@ -25,6 +25,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -70,12 +72,12 @@ void opeu_battle_menu_place(Game& game) {
     auto x{ static_cast<uint16_t>(Word(game, mouse_x_at) + POINTER_DX) };
     x = opeu_max16(opeu_min16(x >> 3, LAST_COLUMN), 1);
     y = opeu_min16(y, LAST_ROW);
-    for (unsigned i{ 0 }; i < BUTTONS; ++i) {
+    for (auto const i : std::views::iota(unsigned{ 0 }, BUTTONS)) {
       data.battle_menu_items[i].x = x;
       data.battle_menu_items[i].y = static_cast<uint16_t>(BUTTON_HEIGHT * i + y);
     }
   } else {
-    for (unsigned i{ 0 }; i < BUTTONS; ++i) {
+    for (auto const i : std::views::iota(unsigned{ 0 }, BUTTONS)) {
       data.battle_menu_items[i].x = static_cast<uint16_t>(data.battle_menu_places[i].x + (data.battle_active_side ? SIDE_1_SHIFT : 0));
       data.battle_menu_items[i].y = data.battle_menu_places[i].y;
     }

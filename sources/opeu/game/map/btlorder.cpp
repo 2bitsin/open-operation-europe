@@ -30,13 +30,6 @@ constexpr uint8_t WAITING{ 1 };
 constexpr uint8_t UPDATED{ 2 };
 constexpr uint8_t ARRIVED{ 3 };
 
-// BATTLE_NEXT_STEP's verdicts and BATTLE_STEP_INTO's.
-constexpr uint8_t STEP_WAIT{ 1 };
-constexpr uint8_t STEP_SEARCH{ 2 };
-constexpr uint8_t STEP_STUCK{ 3 };
-constexpr uint8_t INTO_BLOCKED{ 1 };
-constexpr uint8_t INTO_LOST{ 2 };
-
 [[nodiscard]] auto Is(uint8_t state, BattleState kind) -> bool {
   return state == std::to_underlying(kind);
 }
@@ -65,15 +58,10 @@ void FaceCell(Game& game, uint16_t element, uint8_t x, uint8_t y) {
 }
 } // namespace
 
-// Moves the element a step toward its goal or its target. order counts the element's waits this round. The cell it
-// heads for is two DS words: the path step services receive their addresses.
+// Moves the element a step toward its goal or its target. order counts the element's waits this round.
 uint8_t opeu_battle_execute_order(Game& game, uint16_t element, uint8_t order) {
-  ServiceLocals const locals{ 4 };
-  auto const          x_at{ locals.At(0) };
-  auto const          y_at{ locals.At(2) };
-  auto&               x{ Byte(game, x_at) };
-  auto&               y{ Byte(game, y_at) };
-  auto const          update{ [&] {
+  GridCell   cell{ 0, 0 };
+  auto const update{ [&] {
     opeu_battle_update_element(game, element);
     return UPDATED;
   } };
@@ -83,13 +71,11 @@ uint8_t opeu_battle_execute_order(Game& game, uint16_t element, uint8_t order) {
   } };
   auto const head_for_goal{ [&] {
     auto const& position{ Position(game, element) };
-    x = position.goal_x;
-    y = position.goal_y;
+    cell = { position.goal_x, position.goal_y };
   } };
   auto const head_for_target{ [&](uint16_t target) {
     auto const& position{ Position(game, target) };
-    x = position.x;
-    y = position.y;
+    cell = { position.x, position.y };
   } };
   bool retry{ true };
   for (;;) {
@@ -111,33 +97,36 @@ uint8_t opeu_battle_execute_order(Game& game, uint16_t element, uint8_t order) {
         head_for_target(Position(game, element).target);
     }
     if (opeu_battle_facing(game, element) == NO_FACING) {
-      switch (static_cast<uint8_t>(opeu_battle_next_step(game, element, x_at, y_at))) {
-      case STEP_WAIT: return wait();
-      case STEP_SEARCH:
-        if (!opeu_battle_element_path_step(game, element, x_at, y_at)) return WAITING;
+      auto const step{ opeu_battle_next_step(game, element, cell) };
+      switch (step.verdict) {
+      case NextStep::WAIT: return wait();
+      case NextStep::NO_PATH:
+        if (auto const searched{ opeu_battle_element_path_step(game, element, cell) })
+          cell = *searched;
+        else
+          return WAITING;
         break;
-      case STEP_STUCK: return update();
-      default:         break;
+      case NextStep::STUCK: return update();
+      case NextStep::FOUND: cell = step.cell; break;
       }
-      opeu_battle_set_strength(game, element, x, y);
-      opeu_battle_set_facing(game, element, static_cast<uint8_t>(opeu_battle_move_cost(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element)));
+      opeu_battle_set_strength(game, element, cell.x, cell.y);
+      opeu_battle_set_facing(game, element, static_cast<uint8_t>(opeu_battle_move_cost(game, cell.x, cell.y, element)));
     }
     if (opeu_battle_facing(game, element) > order) return wait();
-    x = opeu_battle_strength_low(game, element);
-    y = opeu_battle_strength_high(game, element);
-    auto const into{ static_cast<uint8_t>(opeu_battle_step_into(game, element, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
-    if (into == INTO_BLOCKED) {
+    cell = { opeu_battle_strength_low(game, element), opeu_battle_strength_high(game, element) };
+    auto const into{ opeu_battle_step_into(game, element, cell) };
+    if (into == StepInto::BLOCKED) {
       if (!retry) return WAITING;
       retry = false;
       continue;
     }
-    if (into == INTO_LOST) return update();
+    if (into == StepInto::ARRIVED) return update();
     break;
   }
   auto const state{ opeu_battle_state(game, element) };
   if ((Is(state, BattleState::BLITZ) && !opeu_battle_engaged(game, element)) || Is(state, BattleState::MOVE) || Is(state, BattleState::WITHDRAW)) {
     auto const& position{ Position(game, element) };
-    if (position.goal_x == x && position.goal_y == y) return ARRIVED;
+    if (position.goal_x == cell.x && position.goal_y == cell.y) return ARRIVED;
   }
   return STEPPED;
 }

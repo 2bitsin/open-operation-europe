@@ -21,20 +21,23 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <optional>
+#include <ranges>
 #include <utility>
 
 using namespace opeu::game;
 
 namespace {
-// DS scratch for the cells these routines hand each other by near address.
-constexpr uint16_t TEMPLATE_X_AT{ 0xeb80 };
-constexpr uint16_t TEMPLATE_Y_AT{ 0xeb81 };
-constexpr uint16_t AUTO_X_AT{ 0xeb82 };
-constexpr uint16_t AUTO_Y_AT{ 0xeb83 };
-constexpr uint16_t GARRISON_X_AT{ 0xeb84 };
-constexpr uint16_t GARRISON_Y_AT{ 0xeb85 };
-constexpr uint16_t SPARE_X_AT{ 0xeb86 };
-constexpr uint16_t SPARE_Y_AT{ 0xeb87 };
+// DS scratch that keeps the last cell found for automatic placement and the garrison's centre between calls: a search
+// that finds nothing leaves the previous cell in place.
+struct ScratchCell {
+  uint16_t x_at;
+  uint16_t y_at;
+};
+constexpr ScratchCell AUTO_CELL{ 0xeb82, 0xeb83 };
+constexpr ScratchCell GARRISON_CELL{ 0xeb84, 0xeb85 };
+constexpr ScratchCell SPARE_CELL{ 0xeb86, 0xeb87 };
 // The approach direction of a unit that defends.
 constexpr uint8_t DEFENDING{ 9 };
 // Battle terrain: the kind in the low six bits; 1 is clear.
@@ -43,20 +46,36 @@ constexpr uint8_t CLEAR{ 1 };
 // The field centre tried first at random.
 constexpr uint8_t CENTRE_FIRST{ 5 };
 constexpr uint8_t CENTRE_END{ 9 };
+constexpr uint8_t FIELD_END{ BATTLE_WIDTH };
 constexpr uint8_t SCAN_CELLS{ 4 };
 constexpr uint8_t OFFSET_CELLS{ 5 };
 constexpr uint8_t ZONE_CODES{ 8 };
+
+// What a scan rectangle accepts beside the attacker's zone and a free cell.
+enum class Ground {
+  CLEAR,     // clear terrain
+  BY_CHANCE, // any terrain, by a 3 in 10 chance
+};
+
+[[nodiscard]] auto Load(Game& game, ScratchCell scratch) -> GridCell {
+  return { Byte(game, scratch.x_at), Byte(game, scratch.y_at) };
+}
+
+void Store(Game& game, ScratchCell scratch, GridCell cell) {
+  Byte(game, scratch.x_at) = cell.x;
+  Byte(game, scratch.y_at) = cell.y;
+}
 
 [[nodiscard]] auto Random(Game& game, uint16_t bound) -> uint16_t {
   return port_rand_bounded(game, bound);
 }
 
-[[nodiscard]] auto CanPlace(Game& game, uint8_t x, uint8_t y, uint16_t element) -> bool {
-  return opeu_deploy_can_place(game, x, y, element);
+[[nodiscard]] auto CanPlace(Game& game, GridCell cell, uint16_t element) -> bool {
+  return opeu_deploy_can_place(game, cell, element);
 }
 
-[[nodiscard]] auto ClearTerrain(DataSegment const& data, uint8_t x, uint8_t y) -> bool {
-  return (data.battle_terrain[y * BATTLE_WIDTH + x] & TERRAIN_KIND) == CLEAR;
+[[nodiscard]] auto ClearTerrain(DataSegment const& data, GridCell cell) -> bool {
+  return (data.battle_terrain[cell.y * BATTLE_WIDTH + cell.x] & TERRAIN_KIND) == CLEAR;
 }
 
 // A signed nibble: bit 3 the sign, bits 0..2 the magnitude.
@@ -64,42 +83,113 @@ constexpr uint8_t ZONE_CODES{ 8 };
   return nibble & 8 ? -(nibble & 7) : nibble;
 }
 
-// Scans the attacker's 4 x 4 rectangle row by row (directions 1 and 6) or column by column; a cell is accepted in
-// the attacker's zone, on clear terrain (or, without `clear`, by a 3 in 10 chance) where the element may stand.
-[[nodiscard]] auto ScanRectangle(Game& game, uint8_t direction, bool clear, uint16_t element, uint8_t& found_x, uint8_t& found_y) -> bool {
-  auto& data{ Data(game) };
-  // Read where the original reads it, for any direction.
-  auto const scan{ [&](uint8_t n) { return Byte(game, static_cast<uint16_t>(Near(data, data.deploy_scan) + direction * SCAN_CELLS + n)); } };
-  auto const step_x{ scan(0) };
-  auto const step_y{ scan(1) };
-  auto const accept{ [&](uint8_t x, uint8_t y) {
-    return (data.deploy_zone_bits[y][x] & 1 << direction) && (clear ? ClearTerrain(data, x, y) : Random(game, 10) < 3) && CanPlace(game, x, y, element);
-  } };
-  auto const found{ [&](uint8_t x, uint8_t y) {
-    found_x = x;
-    found_y = y;
+// The first cell of the square [first, end) x [first, end), row by row, that the predicate accepts.
+template <typename _Accept>
+[[nodiscard]] auto FirstByRows(uint8_t first, uint8_t end, _Accept const& accept) -> std::optional<GridCell> {
+  for (auto const y : std::views::iota(first, end))
+    for (auto const x : std::views::iota(first, end))
+      if (accept(GridCell{ x, y })) return GridCell{ x, y };
+  return std::nullopt;
+}
+
+// The same, column by column.
+template <typename _Accept>
+[[nodiscard]] auto FirstByColumns(uint8_t first, uint8_t end, _Accept const& accept) -> std::optional<GridCell> {
+  for (auto const x : std::views::iota(first, end))
+    for (auto const y : std::views::iota(first, end))
+      if (accept(GridCell{ x, y })) return GridCell{ x, y };
+  return std::nullopt;
+}
+
+// Scans the attacker's 4 x 4 rectangle for the approach direction, row by row (directions 1 and 6) or column by
+// column; a cell is accepted in the attacker's zone, on the ground asked for, where the element may stand.
+class ScanRectangle {
+public:
+  ScanRectangle(Game& game, uint8_t direction, uint16_t element) : _game{ game }, _direction{ direction }, _element{ element } { }
+
+  [[nodiscard]] auto Find(Ground ground) const -> std::optional<GridCell> {
+    auto const accept{ [&](GridCell offset) {
+      auto const cell{ At(offset) };
+      return Zoned(cell) && (ground == Ground::CLEAR ? ClearTerrain(Data(_game), cell) : Random(_game, 10) < 3) && CanPlace(_game, cell, _element);
+    } };
+    auto const offset{ _direction == 1 || _direction == 6 ? FirstByRows(0, SCAN_CELLS, accept) : FirstByColumns(0, SCAN_CELLS, accept) };
+    if (!offset) return std::nullopt;
+    return At(*offset);
+  }
+
+private:
+  // The rectangle's table entry n, read where the table lies for any direction.
+  [[nodiscard]] auto Scan(uint8_t n) const -> uint8_t {
+    auto const& data{ Data(_game) };
+    return Byte(_game, static_cast<uint16_t>(Near(data, data.deploy_scan) + _direction * SCAN_CELLS + n));
+  }
+
+  // The cell `offset` steps into the rectangle; byte arithmetic wraps.
+  [[nodiscard]] auto At(GridCell offset) const -> GridCell {
+    return { static_cast<uint8_t>(Scan(2) + offset.x * Scan(0)), static_cast<uint8_t>(Scan(3) + offset.y * Scan(1)) };
+  }
+
+  [[nodiscard]] auto Zoned(GridCell cell) const -> bool {
+    return Data(_game).deploy_zone_bits[cell.y][cell.x] & 1 << _direction;
+  }
+
+  Game&    _game;
+  uint8_t  _direction;
+  uint16_t _element;
+};
+
+// Places the element where it stands or, when it is not on the field, at a random cell, which becomes the garrison's
+// centre.
+void PlaceHeavy(Game& game, uint16_t element) {
+  auto const& position{ PositionOf(Data(game), element) };
+  if (position.x != BATTLE_UNPLACED) {
+    Store(game, GARRISON_CELL, { position.x, position.y });
+    return;
+  }
+  Store(game, GARRISON_CELL, opeu_deploy_at_random(game, element));
+  opeu_deploy_put_at(game, element, Load(game, GARRISON_CELL));
+}
+
+// Places the element at the first free facing offset around the garrison's centre; false when none is free.
+[[nodiscard]] auto PlaceAroundCentre(Game& game, uint16_t element, uint8_t facing) -> bool {
+  auto&      data{ Data(game) };
+  auto const centre{ Load(game, GARRISON_CELL) };
+  for (auto const n : std::views::iota(uint8_t{ 0 }, OFFSET_CELLS)) {
+    // Read where the table lies: a facing past 7 (an attacker that defends) leaves it.
+    auto const offset{ Byte(game, static_cast<uint16_t>(Near(data, data.deploy_offsets) + facing * OFFSET_CELLS + n)) };
+    auto const cell_y{ static_cast<int16_t>(SignedNibble(offset & 0xf) + centre.y) };
+    auto const cell_x{ static_cast<int16_t>(SignedNibble(offset >> 4) + centre.x) };
+    if (cell_x < 0 || cell_x >= static_cast<int16_t>(BATTLE_WIDTH) || cell_y < 0 || cell_y >= static_cast<int16_t>(BATTLE_WIDTH)) continue;
+    GridCell const cell{ static_cast<uint8_t>(cell_x), static_cast<uint8_t>(cell_y) };
+    if (!CanPlace(game, cell, element)) continue;
+    opeu_deploy_put_at(game, element, cell);
     return true;
-  } };
-  if (direction == 1 || direction == 6) {
-    uint8_t y{ scan(3) };
-    for (uint8_t row{ 0 }; row < SCAN_CELLS; y += step_y, ++row) {
-      uint8_t x{ scan(2) };
-      for (uint8_t column{ 0 }; column < SCAN_CELLS; x += step_x, ++column)
-        if (accept(x, y)) return found(x, y);
-    }
-  } else {
-    uint8_t x{ scan(2) };
-    for (uint8_t column{ 0 }; column < SCAN_CELLS; x += step_x, ++column) {
-      uint8_t y{ scan(3) };
-      for (uint8_t row{ 0 }; row < SCAN_CELLS; y += step_y, ++row)
-        if (accept(x, y)) return found(x, y);
-    }
   }
   return false;
 }
+
+// The automatic cell of an element whose unit defends outside the garrison: at random for the categories 6 and 7 by
+// the unit's place in its group of eight, otherwise by scan.
+[[nodiscard]] auto DefenderCell(Game& game, uint16_t unit, uint16_t element) -> GridCell {
+  auto const index{ static_cast<uint8_t>(static_cast<uint8_t>(static_cast<int16_t>(unit - UNITS_AT) / static_cast<int16_t>(sizeof(Unit))) & 7) };
+  if (opeu_category_6(index) || opeu_category_7(index)) return opeu_deploy_at_random(game, element);
+  return opeu_deploy_by_scan(game, element);
+}
+
+// Finds the element's automatic cell; the scratch keeps the previous one when the template has none.
+void FindAutoCell(Game& game, uint16_t unit, uint16_t element) {
+  auto& data{ Data(game) };
+  if (UnitDirection(game, unit) != DEFENDING) {
+    if (auto const cell{ opeu_deploy_by_template(game, element) }) Store(game, AUTO_CELL, *cell);
+  } else if (unit != Near(data, data.garrison_unit)) {
+    Store(game, AUTO_CELL, DefenderCell(game, unit, element));
+  } else {
+    Store(game, AUTO_CELL, opeu_deploy_by_scan(game, element));
+  }
+}
 } // namespace
 
-uint16_t opeu_deploy_template_cell(Game& game, uint16_t x, uint16_t y, uint16_t element, uint8_t index) {
+auto opeu_deploy_template_cell(Game& game, uint16_t element, uint8_t index) -> std::optional<GridCell> {
   auto&      data{ Data(game) };
   auto const unit{ opeu_battle_element_unit(game, element) };
   auto const direction{ UnitDirection(game, unit) };
@@ -115,153 +205,76 @@ uint16_t opeu_deploy_template_cell(Game& game, uint16_t x, uint16_t y, uint16_t 
   case 5:
   case 7: code = static_cast<uint8_t>(direction << 4 | data.deploy_zone_codes[heavy ? 1 : 3][index]); break;
   }
-  for (uint8_t row{ 0 }; row < BATTLE_WIDTH; ++row)
-    for (uint8_t column{ 0 }; column < BATTLE_WIDTH; ++column)
-      if (data.deploy_templates[row][column] == code && CanPlace(game, column, row, element)) {
-        Byte(game, x) = column;
-        Byte(game, y) = row;
-        return 1;
-      }
-  return 0;
+  return FirstByRows(0, FIELD_END, [&](GridCell cell) { return data.deploy_templates[cell.y][cell.x] == code && CanPlace(game, cell, element); });
 }
 
-void opeu_deploy_by_template(Game& game, uint16_t x, uint16_t y, uint16_t element) {
-  for (uint8_t index{ 0 }; index < ZONE_CODES; ++index)
-    if (opeu_deploy_template_cell(game, TEMPLATE_X_AT, TEMPLATE_Y_AT, element, index)) {
-      Byte(game, x) = Byte(game, TEMPLATE_X_AT);
-      Byte(game, y) = Byte(game, TEMPLATE_Y_AT);
-      break;
-    }
+auto opeu_deploy_by_template(Game& game, uint16_t element) -> std::optional<GridCell> {
+  for (auto const index : std::views::iota(uint8_t{ 0 }, ZONE_CODES))
+    if (auto const cell{ opeu_deploy_template_cell(game, element, index) }) return cell;
+  return std::nullopt;
 }
 
-void opeu_deploy_by_scan(Game& game, uint16_t x, uint16_t y, uint16_t element) {
-  auto&      data{ Data(game) };
-  auto const direction{ UnitDirection(game, data.battle_units[0]) };
-  uint8_t    found_x;
-  uint8_t    found_y;
-  auto const place{ [&] {
-    Byte(game, x) = found_x;
-    Byte(game, y) = found_y;
-  } };
-  if (ScanRectangle(game, direction, true, element, found_x, found_y) || ScanRectangle(game, direction, false, element, found_x, found_y)) {
-    place();
-    return;
-  }
+auto opeu_deploy_by_scan(Game& game, uint16_t element) -> GridCell {
+  auto&               data{ Data(game) };
+  ScanRectangle const rectangle{ game, UnitDirection(game, data.battle_units[0]), element };
+  if (auto const cell{ rectangle.Find(Ground::CLEAR) }) return *cell;
+  if (auto const cell{ rectangle.Find(Ground::BY_CHANCE) }) return *cell;
   // Clear terrain anywhere by row, else any cell by column at a 1 in 10 chance, until one is found.
   auto const sweep{ [&] {
-    for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
-      for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
-        if (ClearTerrain(data, found_x, found_y) && CanPlace(game, found_x, found_y, element)) return true;
-    for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
-      for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
-        if (CanPlace(game, found_x, found_y, element) && Random(game, 10) < 1) return true;
-    return false;
+    if (auto const cell{ FirstByRows(0, FIELD_END, [&](GridCell cell) { return ClearTerrain(data, cell) && CanPlace(game, cell, element); }) }) return cell;
+    return FirstByColumns(0, FIELD_END, [&](GridCell cell) { return CanPlace(game, cell, element) && Random(game, 10) < 1; });
   } };
-  while (!sweep()) {
-  }
-  place();
+  for (;;)
+    if (auto const cell{ sweep() }) return *cell;
 }
 
-void opeu_deploy_at_random(Game& game, uint16_t x, uint16_t y, uint16_t element) {
-  uint8_t    found_x;
-  uint8_t    found_y;
-  auto const centre{ [&] {
-    for (found_y = CENTRE_FIRST; found_y < CENTRE_END; ++found_y)
-      for (found_x = CENTRE_FIRST; found_x < CENTRE_END; ++found_x)
-        if (Random(game, 10) < 2 && CanPlace(game, found_x, found_y, element)) return true;
-    return false;
-  } };
-  auto const anywhere{ [&] {
-    for (found_x = 0; found_x < BATTLE_WIDTH; ++found_x)
-      for (found_y = 0; found_y < BATTLE_WIDTH; ++found_y)
-        if (CanPlace(game, found_x, found_y, element) && Random(game, 10) < 1) return true;
-    return false;
-  } };
-  if (!centre())
-    while (!anywhere()) {
-    }
-  Byte(game, x) = found_x;
-  Byte(game, y) = found_y;
+auto opeu_deploy_at_random(Game& game, uint16_t element) -> GridCell {
+  if (auto const cell{ FirstByRows(CENTRE_FIRST, CENTRE_END, [&](GridCell cell) { return Random(game, 10) < 2 && CanPlace(game, cell, element); }) }) return *cell;
+  for (;;)
+    if (auto const cell{ FirstByColumns(0, FIELD_END, [&](GridCell cell) { return CanPlace(game, cell, element) && Random(game, 10) < 1; }) }) return *cell;
 }
 
-void opeu_deploy_put_at(Game& game, uint8_t x, uint8_t y, uint16_t element) {
+void opeu_deploy_put_at(Game& game, uint16_t element, GridCell cell) {
   auto& data{ Data(game) };
-  PositionOf(Data(game), element).goal_x = x;
-  PositionOf(Data(game), element).goal_y = y;
-  PositionOf(Data(game), element).state  = Bits(BattleState::DEFEND);
-  opeu_battle_set_order(game, element, static_cast<uint8_t>(0));
+  auto& position{ PositionOf(data, element) };
+  position.goal_x = cell.x;
+  position.goal_y = cell.y;
+  position.state  = Bits(BattleState::DEFEND);
+  opeu_battle_set_order(game, element, 0);
   auto facing{ opeu_deploy_facing(game, element) };
   if (!ElementTypeOf(data, element).category) facing = 0;
-  opeu_battle_draw_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element, static_cast<uint8_t>(facing));
+  opeu_battle_draw_element_at(game, cell, { element, facing });
 }
 
 void opeu_deploy_garrison(Game& game, uint16_t unit) {
-  auto& data{ Data(game) };
-  auto  chain{ [&] { return Elements(data, Record<Unit>(data, unit)); } };
+  auto&      data{ Data(game) };
+  auto const chain{ [&] { return Elements(data, Record<Unit>(data, unit)); } };
   // The elements of type mode above 1 first: each placed at random (or where it stands) marks the garrison's centre.
-  for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
-    auto const element{ it.Near() };
-    if (ElementTypeOf(data, element).gun_range <= 1) continue;
-    if (PositionOf(Data(game), element).x == BATTLE_UNPLACED) {
-      opeu_deploy_at_random(game, GARRISON_X_AT, GARRISON_Y_AT, element);
-      opeu_deploy_put_at(game, Byte(game, GARRISON_X_AT), Byte(game, GARRISON_Y_AT), element);
-    } else {
-      Byte(game, GARRISON_X_AT) = PositionOf(Data(game), element).x;
-      Byte(game, GARRISON_Y_AT) = PositionOf(Data(game), element).y;
-    }
-  }
+  for (auto it{ chain().begin() }; it != std::default_sentinel; ++it)
+    if (ElementTypeOf(data, it.Near()).gun_range > 1) PlaceHeavy(game, it.Near());
   // The others around it, facing the attacker.
   uint8_t facing{ 0 };
-  if (auto const attacker{ opeu_find_unit_at(game, static_cast<uint8_t>(data.battle_attacker_x), static_cast<uint8_t>(data.battle_attacker_y)) })
-    facing = static_cast<uint8_t>(7 - UnitDirection(game, attacker));
+  if (auto const attacker{ opeu_find_unit_at(game, data.battle_attacker_x, data.battle_attacker_y) }) facing = static_cast<uint8_t>(7 - UnitDirection(game, attacker));
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (PositionOf(Data(game), element).x != BATTLE_UNPLACED || ElementTypeOf(data, element).gun_range != 1) continue;
-    auto const placed{ [&] {
-      for (uint8_t n{ 0 }; n < OFFSET_CELLS; ++n) {
-        // Read where the original reads it: a facing past 7 (an attacker that defends) leaves the table.
-        auto const offset{ Byte(game, static_cast<uint16_t>(Near(data, data.deploy_offsets) + facing * OFFSET_CELLS + n)) };
-        auto const cell_y{ static_cast<int16_t>(SignedNibble(offset & 0xf) + Byte(game, GARRISON_Y_AT)) };
-        auto const cell_x{ static_cast<int16_t>(SignedNibble(offset >> 4) + Byte(game, GARRISON_X_AT)) };
-        if (cell_x >= 0 && cell_x < static_cast<int16_t>(BATTLE_WIDTH) && cell_y >= 0 && cell_y < static_cast<int16_t>(BATTLE_WIDTH)
-            && CanPlace(game, static_cast<uint8_t>(cell_x), static_cast<uint8_t>(cell_y), element)) {
-          opeu_deploy_put_at(game, static_cast<uint8_t>(cell_x), static_cast<uint8_t>(cell_y), element);
-          return true;
-        }
-      }
-      return false;
-    } };
-    if (!placed()) {
-      opeu_deploy_at_random(game, SPARE_X_AT, SPARE_Y_AT, element);
-      opeu_deploy_put_at(game, Byte(game, SPARE_X_AT), Byte(game, SPARE_Y_AT), element);
-    }
+    if (PositionOf(data, element).x != BATTLE_UNPLACED || ElementTypeOf(data, element).gun_range != 1 || PlaceAroundCentre(game, element, facing)) continue;
+    Store(game, SPARE_CELL, opeu_deploy_at_random(game, element));
+    opeu_deploy_put_at(game, element, Load(game, SPARE_CELL));
   }
 }
 
 void opeu_deploy_auto(Game& game, uint16_t unit) {
-  auto& data{ Data(game) };
-  auto  chain{ [&] { return Elements(data, Record<Unit>(data, unit)); } };
-  if (UnitDirection(game, unit) == DEFENDING)
-    for (auto const& element : chain())
-      if (data.element_types[element.type].gun_range > 1) {
-        opeu_deploy_garrison(game, unit);
-        return;
-      }
+  auto&      data{ Data(game) };
+  auto const chain{ [&] { return Elements(data, Record<Unit>(data, unit)); } };
+  auto const heavy{ [&](Element const& element) { return data.element_types[element.type].gun_range > 1; } };
+  if (UnitDirection(game, unit) == DEFENDING && std::ranges::any_of(chain(), heavy)) {
+    opeu_deploy_garrison(game, unit);
+    return;
+  }
   for (auto it{ chain().begin() }; it != std::default_sentinel; ++it) {
     auto const element{ it.Near() };
-    if (PositionOf(Data(game), element).x != BATTLE_UNPLACED) continue;
-    if (UnitDirection(game, unit) != DEFENDING) {
-      opeu_deploy_by_template(game, AUTO_X_AT, AUTO_Y_AT, element);
-    } else if (unit != Near(data, data.garrison_unit)) {
-      // The unit's place in its group of eight.
-      auto const index{ static_cast<uint8_t>(static_cast<uint8_t>(static_cast<int16_t>(unit - UNITS_AT) / static_cast<int16_t>(sizeof(Unit))) & 7) };
-      if (opeu_category_6(static_cast<uint8_t>(index)) || opeu_category_7(static_cast<uint8_t>(index)))
-        opeu_deploy_at_random(game, AUTO_X_AT, AUTO_Y_AT, element);
-      else
-        opeu_deploy_by_scan(game, AUTO_X_AT, AUTO_Y_AT, element);
-    } else {
-      opeu_deploy_by_scan(game, AUTO_X_AT, AUTO_Y_AT, element);
-    }
-    opeu_deploy_put_at(game, Byte(game, AUTO_X_AT), Byte(game, AUTO_Y_AT), element);
+    if (PositionOf(data, element).x != BATTLE_UNPLACED) continue;
+    FindAutoCell(game, unit, element);
+    opeu_deploy_put_at(game, element, Load(game, AUTO_CELL));
   }
 }

@@ -12,6 +12,8 @@
 #include "common/game.hpp"
 #include "port.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -24,8 +26,8 @@ uint16_t opeu_arrival_locate(Game& game, uint16_t x, uint16_t y, uint8_t side) {
   if (!count) return 0;
   auto const& data{ Data(game) };
   Byte(game, x) = NONE;
-  for (uint8_t cell_y{ 0 }; cell_y < MAP_HEIGHT; ++cell_y)
-    for (uint8_t cell_x{ 0 }; cell_x < MAP_WIDTH; ++cell_x)
+  for (auto const cell_y : std::views::iota(uint8_t{ 0 }, MAP_HEIGHT))
+    for (auto const cell_x : std::views::iota(uint8_t{ 0 }, MAP_WIDTH))
       if (data.arrival_candidates[cell_y * MAP_WIDTH + cell_x] == 1 && (Byte(game, x) == NONE || RandomBelow(game, count) == 0)) {
         Byte(game, x) = cell_x;
         Byte(game, y) = cell_y;

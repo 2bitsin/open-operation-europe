@@ -1,8 +1,26 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "map/grid-cell.hpp"
+#include "map/path-grid.hpp"
 #include "types.hpp"
 
-uint8_t  opeu_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t unit);
-void     opeu_move_clear(uint8_t* far_data, uint8_t x, uint8_t y);
-uint16_t opeu_move_reachable(Game& game, uint16_t* far_words, uint8_t x, uint8_t y, uint8_t tx, uint8_t ty, uint16_t unit);
+#include <cstdint>
+
+namespace opeu::game::detail::movecost {
+
+// A unit's way between two map cells.
+struct MoveRoute {
+  GridCell      from;
+  GridCell      to;
+  std::uint16_t unit;
+};
+} // namespace opeu::game::detail::movecost
+
+namespace opeu::game {
+using detail::movecost::MoveRoute;
+} // namespace opeu::game
+
+uint8_t opeu_move_cost(Game& game, uint8_t x, uint8_t y, uint16_t unit);
+// Whether the unit can reach the route's end from its start, which must lie on the map; fills the path grid's costs.
+[[nodiscard]] auto opeu_move_reachable(Game& game, opeu::game::PathGrid const& path, opeu::game::MoveRoute const& route) -> bool;

@@ -34,5 +34,5 @@ uint8_t opeu_battle_terrain_mode(Game& game, uint16_t element, uint16_t other) {
   auto&       data{ Data(game) };
   auto const& from{ PositionOf(data, element) };
   auto const& to{ PositionOf(data, other) };
-  return opeu_grid_distance(from.x, from.y, to.x, to.y);
+  return GridDistance({ from.x, from.y }, { to.x, to.y });
 }

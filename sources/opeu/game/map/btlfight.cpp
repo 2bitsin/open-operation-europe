@@ -20,7 +20,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -80,8 +82,8 @@ uint16_t opeu_battle_unit_fight(Game& game, uint16_t unit) {
 // A unit fights while its group's level allows it and it has ammunition.
 uint16_t opeu_battle_round(Game& game) {
   auto& data{ Data(game) };
-  for (unsigned side{ 0 }; side < SIDE_COUNT; ++side)
-    for (unsigned i{ 0 }; i < BATTLE_LIST_LENGTH; ++i) {
+  for (auto const side : std::views::iota(unsigned{ 0 }, SIDE_COUNT))
+    for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, side, i) };
       if (unit != 0 && opeu_battle_level_allowed(game, Record<Unit>(data, unit).first) && Record<Unit>(data, unit).resources[0] && !opeu_battle_unit_fight(game, unit)) return 0;
     }
@@ -89,9 +91,7 @@ uint16_t opeu_battle_round(Game& game) {
 }
 
 uint16_t opeu_battle_rounds(Game& game) {
-  for (uint8_t r{ 0 }; r < ROUNDS; ++r)
-    if (!opeu_battle_round(game)) return 0;
-  return 1;
+  return std::ranges::all_of(std::views::iota(uint8_t{ 0 }, ROUNDS), [&](uint8_t) { return opeu_battle_round(game) != 0; }) ? 1 : 0;
 }
 
 // The winner takes the battle's cell: a city changes hands unless it still holds items, and the losing attacker's

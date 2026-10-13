@@ -15,6 +15,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -25,7 +27,7 @@ void opeu_deploy_side(Game& game, uint8_t side) {
   auto& data{ Data(game) };
   data.battle_ai_side     = side;
   data.battle_active_side = static_cast<uint8_t>(opeu_battle_unit_side(game, data.battle_units[side * BATTLE_UNITS_PER_SIDE]));
-  for (uint8_t index{ 0 }; index < BATTLE_UNITS_PER_SIDE; ++index)
+  for (auto const index : std::views::iota(uint8_t{ 0 }, BATTLE_UNITS_PER_SIDE))
     if (auto const unit{ data.battle_units[side * BATTLE_UNITS_PER_SIDE + index] }) {
       data.battle_ai_index = index;
       if (opeu_battle_unit_controlled(game, unit))

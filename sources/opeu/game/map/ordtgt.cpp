@@ -24,6 +24,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -96,5 +97,5 @@ void opeu_group_set_target(Game& game, uint8_t group) {
   }
   if (!changed) return;
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
-  for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(game, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
+  for (auto const i : std::views::iota(unsigned{ 0 }, UNITS_PER_GROUP)) opeu_clear_unit_orders(game, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
 }

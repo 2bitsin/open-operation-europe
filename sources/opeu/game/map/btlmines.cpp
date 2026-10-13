@@ -20,7 +20,9 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -56,10 +58,8 @@ void opeu_battle_mine_report(Game& game, uint16_t element) {
 uint16_t opeu_battle_mine_damage(Game& game, uint16_t element) {
   opeu_battle_element_unit(game, element);
   auto const count{ static_cast<int16_t>(Record<Element>(Data(game), element).quantity) };
-  int16_t    hits{ 0 };
-  for (int16_t man{ 0 }; man < count; ++man)
-    if (port_rand_bounded(game, 100) < HIT_PERCENT) ++hits;
-  return static_cast<uint16_t>(hits);
+  auto const hit{ [&](int16_t) { return port_rand_bounded(game, 100) < HIT_PERCENT; } };
+  return static_cast<uint16_t>(std::ranges::count_if(std::views::iota(int16_t{ 0 }, std::max(count, int16_t{ 0 })), hit));
 }
 
 // The element is revealed, reported and blasted; its losses spend its supplies, and a destroyed element leaves the
@@ -71,7 +71,7 @@ void opeu_battle_mine_hit(Game& game, uint16_t element) {
   auto const x{ PositionOf(data, element).x };
   auto const y{ PositionOf(data, element).y };
   opeu_battle_mine_report(game, element);
-  opeu_battle_animate_element(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), 0, 1, BLAST_ANIMATION, element);
+  opeu_battle_animate_element(game, { x, y }, { BLAST_ANIMATION, element, true, false });
   auto const damage{ static_cast<int16_t>(opeu_battle_mine_damage(game, element)) };
   opeu_battle_panel_begin(game);
   data.battle_element_destroyed = 0;
@@ -97,6 +97,6 @@ void opeu_battle_mine_hit(Game& game, uint16_t element) {
     }
   }
   auto const mode{ static_cast<uint8_t>(opeu_battle_mode(game, element)) };
-  opeu_battle_redraw_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element, static_cast<uint8_t>(mode));
+  opeu_battle_redraw_cell(game, { x, y }, { element, mode });
   opeu_battle_set_order(game, element, static_cast<uint8_t>(0));
 }

@@ -23,18 +23,20 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
 [[nodiscard]] auto ExitCell(Game& game, uint8_t x, uint8_t y, uint16_t element) -> bool {
-  return opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element) && opeu_battle_exit_ok(game, x, y, element);
+  return opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element) && opeu_battle_exit_ok(game, GridCell{ x, y }, element);
 }
 } // namespace
 
 uint16_t opeu_battle_mark_exits(Game& game, uint16_t element) {
   uint8_t count{ 0 };
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
       if (ExitCell(game, x, y, element)) {
         ++count;
         opeu_battle_draw_frame(game, x, y);
@@ -43,8 +45,8 @@ uint16_t opeu_battle_mark_exits(Game& game, uint16_t element) {
 }
 
 void opeu_battle_unmark_exits(Game& game, uint16_t element) {
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
       if (ExitCell(game, x, y, element)) opeu_battle_refresh_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
 }
 

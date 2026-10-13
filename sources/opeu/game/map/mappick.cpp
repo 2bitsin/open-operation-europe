@@ -26,6 +26,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -193,7 +195,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
       if (opeu_map_code(game, shown_x, shown_y)) return Outcome::ACCEPT;
       break;
     default:
-      for (uint8_t i{ 0 }; i < data.pick_direction_keys.size(); ++i)
+      for (auto const i : std::views::iota(uint8_t{ 0 }, data.pick_direction_keys.size()))
         if (key == static_cast<uint8_t>(data.pick_direction_keys[i])) {
           direction = i;
           break;
@@ -204,10 +206,10 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
     if (Byte(game, y) > MAP_HEIGHT) Byte(game, y) = 0;
     if (Byte(game, x) > MAP_WIDTH - 1) Byte(game, x) = MAP_WIDTH - 1;
     if (Byte(game, y) > MAP_HEIGHT - 1) Byte(game, y) = MAP_HEIGHT - 1;
-    if (view_up())
-      opeu_grid_step_viewport(game, x, y, direction);
-    else
-      opeu_grid_step(game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data(), direction);
+    GridCell const cell{ Byte(game, x), Byte(game, y) };
+    auto const     next{ view_up() ? StepInViewport(data, cell, direction) : StepOnMap(cell, direction) };
+    Byte(game, x) = next.value_or(cell).x;
+    Byte(game, y) = next.value_or(cell).y;
     return Outcome::MOVE;
   } };
 

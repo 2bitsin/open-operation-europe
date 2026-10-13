@@ -24,26 +24,27 @@
 #include "port.hpp"
 #include "services.hpp"
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t  LAST_COLUMN{ 39 };
-constexpr uint16_t NAME_BYTES{ 0x0c }; // the panel's DS reserve for the 10-byte name buffer the services write
-constexpr uint8_t  NAME_COLOR[2]{ 6, 5 };
-constexpr uint8_t  TEXT_WHITE{ 7 };
+constexpr uint8_t                LAST_COLUMN{ 39 };
+constexpr uint16_t               NAME_BYTES{ 0x0c }; // the panel's DS reserve for the 10-byte name buffer the services write
+constexpr std::array<uint8_t, 2> NAME_COLOR{ 6, 5 };
+constexpr uint8_t                TEXT_WHITE{ 7 };
 
 // Rows first.. of the screen, each restored from column 0 across widths[row] tiles.
 template <typename Widths>
 void RestoreLeft(Game& game, Widths const& widths, uint8_t rows, uint8_t first) {
-  for (uint8_t row{ 0 }; row < rows; ++row)
-    for (uint8_t column{ 0 }; column < widths[row]; ++column) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
+  for (auto const row : std::views::iota(uint8_t{ 0 }, rows))
+    for (auto const column : std::views::iota(uint8_t{ 0 }, widths[row])) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
 }
 
 // The same from the last column leftward.
 template <typename Widths>
 void RestoreRight(Game& game, Widths const& widths, uint8_t rows, uint8_t first) {
-  for (uint8_t row{ 0 }; row < rows; ++row)
+  for (auto const row : std::views::iota(uint8_t{ 0 }, rows))
     for (uint8_t column{ LAST_COLUMN }; LAST_COLUMN - widths[row] < column; --column) opeu_battle_restore_tile(game, column, static_cast<uint8_t>(row + first));
 }
 

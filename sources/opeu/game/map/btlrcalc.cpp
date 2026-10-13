@@ -20,14 +20,17 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
 // The skill kinds BATTLE_SKILL rates (person and type skills).
-constexpr uint8_t SKILL_COMMAND{ 0 };
-constexpr uint8_t SKILL_TACTICS{ 2 };
-constexpr uint8_t SKILL_FIRE{ 7 };
-constexpr uint8_t TYPE_SKILLS[]{ 4, 5, 6 }; // by battle_skill_kinds
+constexpr uint8_t                SKILL_COMMAND{ 0 };
+constexpr uint8_t                SKILL_TACTICS{ 2 };
+constexpr uint8_t                SKILL_FIRE{ 7 };
+constexpr std::array<uint8_t, 3> TYPE_SKILLS{ 4, 5, 6 }; // by battle_skill_kinds
 // The bonus base of every rating, and the leader's scale for power and defence.
 constexpr uint16_t RATING_BASE{ 0x68 };
 constexpr uint8_t  POWER_LEADERSHIP{ 0x55 };
@@ -137,7 +140,7 @@ namespace {
 [[nodiscard]] auto IntoBunker(DataSegment& data, uint16_t target) -> bool {
   if (!target) return true;
   auto const& position{ PositionOf(data, target) };
-  for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
+  for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_EXTRA_COUNT)) {
     auto const& extra{ BattleExtraAt(data, i) };
     if (extra.x == BATTLE_UNPLACED) break;
     if (position.x == extra.x && position.y == extra.y && extra.count) return true;

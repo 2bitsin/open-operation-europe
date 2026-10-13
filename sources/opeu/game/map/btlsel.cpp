@@ -23,12 +23,12 @@
 using namespace opeu::game;
 
 namespace {
-// The mouse loop's DS reserve for the pointer position the mouse service writes, converted in place to a cell.
+// The mouse loop's DS reserve for the pointer position the mouse service writes.
 constexpr uint16_t MOUSE_RESERVE{ 8 };
 constexpr uint16_t MOUSE_X_AT{ 2 };
 constexpr uint16_t MOUSE_Y_AT{ 0 };
 // The column of a pointer outside the battle map.
-constexpr int16_t OFF_MAP{ 14 };
+constexpr uint8_t OFF_MAP{ 14 };
 } // namespace
 
 uint16_t opeu_battle_mouse_select(Game& game, uint16_t show_info) {
@@ -53,9 +53,9 @@ uint16_t opeu_battle_mouse_select(Game& game, uint16_t show_info) {
       break;
     }
     opeu_mouse_position(game, x_at, y_at);
-    opeu_battle_mouse_cell(game, x_at, y_at);
-    auto const x{ static_cast<int16_t>(Word(game, x_at)) };
-    auto const y{ static_cast<int16_t>(Word(game, y_at)) };
+    auto const cell{ opeu_battle_mouse_cell({ Word(game, x_at), Word(game, y_at) }).value_or(GridCell{ OFF_MAP, OFF_MAP }) };
+    auto const x{ static_cast<int16_t>(cell.x) };
+    auto const y{ static_cast<int16_t>(cell.y) };
     if (shown_x == x && shown_y == y) continue;
     if (x != OFF_MAP) {
       opeu_mouse_hide(game);

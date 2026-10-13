@@ -25,6 +25,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
+
 using namespace opeu::game;
 
 namespace {
@@ -41,8 +43,8 @@ constexpr uint16_t MASK_BYTES{ 8 };
 constexpr uint16_t TILE_BYTES{ 32 };  // an overview tile in the overview tile segment
 constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 // Draw modes of the objective marker, by its side: in the Ardennes, and elsewhere.
-constexpr uint16_t BULGE_MARKER[2]{ 2, 4 };
-constexpr uint16_t MARKER[2]{ 0x702, 0x701 };
+constexpr std::array<uint16_t, 2> BULGE_MARKER{ 2, 4 };
+constexpr std::array<uint16_t, 2> MARKER{ 0x702, 0x701 };
 
 // Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
 void Compose(Game& game, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {

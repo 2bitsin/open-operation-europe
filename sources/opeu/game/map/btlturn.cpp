@@ -26,6 +26,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -44,8 +46,8 @@ constexpr uint8_t BRIDGE_TERRAIN{ 10 };
 // Calls body(unit, element) for each element of each unit in the battle's lists.
 template <typename Body>
 void ForBattleElements(DataSegment& data, Body&& body) {
-  for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const side : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, slot) })
         for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it) body(unit, *it);
 }
@@ -54,7 +56,7 @@ void ForBattleElements(DataSegment& data, Body&& body) {
 uint8_t opeu_battle_computer_turn(Game& game) {
   auto&   data{ Data(game) };
   uint8_t present{ 0 };
-  for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
     if (auto const unit{ BattleList(data, 1, slot) }) {
       auto const& record{ Record<Unit>(data, unit) };
       if (record.x == data.battle_x && record.y == data.battle_y) ++present;
@@ -76,15 +78,15 @@ uint16_t opeu_battle_unit_turn(Game& game, uint16_t unit) {
 
 uint16_t opeu_battle_all_turns(Game& game) {
   auto& data{ Data(game) };
-  for (uint8_t side{ 0 }; side < SIDE_COUNT; ++side)
-    for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const side : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
+    for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
       if (auto const unit{ BattleList(data, side, slot) }; unit && !opeu_battle_unit_turn(game, unit)) return 0;
   return 1;
 }
 
 uint16_t opeu_battle_side_controlled(Game& game, uint8_t side) {
   auto& data{ Data(game) };
-  for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot)
+  for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH))
     if (auto const unit{ BattleList(data, side, slot) }; unit && opeu_battle_unit_controlled(game, unit)) return 1;
   return 0;
 }
@@ -93,8 +95,8 @@ uint16_t opeu_battle_side_controlled(Game& game, uint8_t side) {
 void opeu_battle_toggle_numbers(Game& game) {
   auto& data{ Data(game) };
   data.battle_numbers_shown = data.battle_numbers_shown == 1 ? 0 : 1;
-  for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
-    for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
+  for (auto const y : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
+    for (auto const x : std::views::iota(uint8_t{ 0 }, BATTLE_WIDTH))
       if (opeu_battle_cell_occupied(game, x, y) || static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == BRIDGE_TERRAIN)
         opeu_battle_refresh_cell(game, x, y);
 }
@@ -104,7 +106,7 @@ void opeu_battle_toggle_numbers(Game& game) {
 uint16_t opeu_battle_turn_loop(Game& game) {
   auto&   data{ Data(game) };
   uint8_t key{ 0 };
-  for (uint8_t step{ 0 }; step < TURN_STEPS; ++step) {
+  for (auto const step : std::views::iota(uint8_t{ 0 }, TURN_STEPS)) {
     if (!data.battle_level_limit && !step) {
       opeu_battle_player_turn(game);
     } else {

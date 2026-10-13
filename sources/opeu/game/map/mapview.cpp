@@ -86,7 +86,7 @@ void opeu_view_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) {
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
     Compose(game, x, y, sprite_buffer, DATA_SEGMENT);
   }
-  opeu_view_number(game, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
+  opeu_view_number(game, { static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18) }, static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
 
 // Redraws the tactical view's cell (x, y) and the unit on it.

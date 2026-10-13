@@ -42,10 +42,3 @@ void opeu_move_consume(Game& game) {
     unit.resources[FUEL] = fuel;
   }
 }
-
-// Called when a unit spots another; spotting has no further effect.
-void opeu_move_sighted(Game& game, uint16_t unit, uint16_t other) {
-  (void)game;
-  (void)unit;
-  (void)other;
-}

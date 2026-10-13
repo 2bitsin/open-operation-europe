@@ -7,22 +7,30 @@
 #include "map/step.hpp"
 #include "types.hpp"
 
+namespace opeu::game::detail::viewstep {
+namespace {
+constexpr std::int16_t VIEW_CELLS{ 12 };
+
+[[nodiscard]] auto InViewport(DataSegment const& data, GridCell cell) -> bool {
+  auto const view_x{ static_cast<std::int16_t>(data.viewport_x) };
+  auto const view_y{ static_cast<std::int16_t>(data.viewport_y) };
+  return cell.x >= view_x && cell.y >= view_y && cell.x < static_cast<std::int16_t>(view_x + VIEW_CELLS) && cell.y < static_cast<std::int16_t>(view_y + VIEW_CELLS);
+}
+} // namespace
+
+auto StepInViewport(DataSegment const& data, GridCell cell, std::uint8_t direction) -> std::optional<GridCell> {
+  auto const next{ opeu_grid_step_unchecked(cell, direction) };
+  if (!OnMap(next.x, next.y) || !InViewport(data, next)) return std::nullopt;
+  return next;
+}
+} // namespace opeu::game::detail::viewstep
+
 using namespace opeu::game;
 
-namespace {
-constexpr int16_t VIEW_CELLS{ 12 };
-}
-
-// x and y are the DS offsets of the cell's coordinate bytes; returns 1 when the step was taken.
 uint16_t opeu_grid_step_viewport(Game& game, uint16_t x, uint16_t y, uint8_t direction) {
-  auto const& data{ Data(game) };
-  uint8_t     next_x{ Byte(game, x) };
-  uint8_t     next_y{ Byte(game, y) };
-  opeu_grid_step_unchecked(&next_x, &next_y, direction);
-  auto const view_x{ static_cast<int16_t>(data.viewport_x) };
-  auto const view_y{ static_cast<int16_t>(data.viewport_y) };
-  if (!OnMap(next_x, next_y) || next_x < view_x || next_y < view_y || next_x >= static_cast<int16_t>(view_x + VIEW_CELLS) || next_y >= static_cast<int16_t>(view_y + VIEW_CELLS)) return 0;
-  Byte(game, x) = next_x;
-  Byte(game, y) = next_y;
+  auto const next{ StepInViewport(Data(game), { Byte(game, x), Byte(game, y) }, direction) };
+  if (!next) return 0;
+  Byte(game, x) = next->x;
+  Byte(game, y) = next->y;
   return 1;
 }

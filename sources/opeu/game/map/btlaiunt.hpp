@@ -1,11 +1,11 @@
 #pragma once
 
 #include "common/events.hpp"
-#include "map/field-cell.hpp"
+#include "map/grid-cell.hpp"
 #include "types.hpp"
 
 uint8_t  opeu_battle_ai_plan_low(Game& game, uint16_t element);
 uint8_t  opeu_battle_ai_plan_high(Game& game, uint16_t element);
 uint16_t opeu_battle_ai_unit_target(Game& game, uint16_t element);
 uint16_t opeu_battle_ai_pick_target(Game& game, uint16_t element, uint16_t list, uint8_t mode);
-auto     opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> opeu::game::FieldCell;
+auto     opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> opeu::game::GridCell;
