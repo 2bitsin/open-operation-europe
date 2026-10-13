@@ -187,25 +187,19 @@ void opeu_general_list_draw_rows(uint8_t ds[65536], HostEvent event, uint8_t col
   Call(ds, event, TEXT_COLOR, GREY);
 }
 
-// The services of the callbacks. table_columns writes three frame bytes; they are given a frame of their own and only
-// the first is returned.
+// The services of the callbacks; TABLE_COLUMNS answers the column's lead.
 uint16_t svc_genpick(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case SET_ROLE:       opeu_person_set_role(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case SET_GROUP:      opeu_person_set_group(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case PORTRAIT:       opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case TEXT_ATTRIBUTE: opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case TEXT_COLOR:     opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case POSITION:       opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case PRINT:          opeu_cursor_print(ds, { args, count }); break;
-  case SIDE_COLOR:     opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
-  case TABLE_COLUMNS:
-    r = WithStack(SERVICE_STACK, [&](std::uint16_t sp) -> std::uint16_t {
-      opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint16_t)(sp - 2u), (uint16_t)(sp - 4u), (uint16_t)(sp - 6u));
-      return Record<std::uint8_t>(Data(ds), (uint16_t)(sp - 2u));
-    });
-    break;
+  case SET_ROLE:               opeu_person_set_role(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case SET_GROUP:              opeu_person_set_group(ds, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case PORTRAIT:               opeu_context_portrait(ds, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
+  case TEXT_ATTRIBUTE:         opeu_text_paper_set(ds, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
+  case TEXT_COLOR:             opeu_text_color(ds, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
+  case POSITION:               opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
+  case PRINT:                  opeu_cursor_print(ds, { args, count }); break;
+  case SIDE_COLOR:             opeu_select_side_color(ds, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
+  case TABLE_COLUMNS:          r = TableColumnLayout(ds, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1))).lead; break;
   case RESTORE_BOTTOM:         opeu_staff_restore_bottom(ds, svc_staffpnl); break;
   case MARK_OPTION:            opeu_staff_mark_option(ds, svc_staffpnl, (int16_t)Arg(args, count, 0)); break;
   case FRAME_OPTION:           opeu_staff_frame_option(ds, svc_staffpnl, (int16_t)Arg(args, count, 0)); break;

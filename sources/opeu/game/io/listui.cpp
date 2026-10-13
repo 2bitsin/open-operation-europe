@@ -17,6 +17,9 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 using namespace opeu::game;
 
 namespace {
@@ -90,21 +93,24 @@ void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x
   }
 }
 
-// Stores at the DS byte `first` the offset (8-pixel units, from 2) of column `column` from the first visible column,
-// at `second` and `third` the total widths of the columns 0..rows before and from `column`.
+// The layout of table column `column` of the active list window: its offset (8-pixel units, from 2) from the first
+// visible column, and the total widths of the columns 0..rows before and from `column`.
+auto TableColumnLayout(std::uint8_t* ds, std::uint8_t column, std::uint8_t rows) -> TableColumns {
+  auto&        data{ Data(ds) };
+  auto const&  window{ Window(data, data.list_window) };
+  auto const   width{ [&](unsigned i) { return static_cast<std::uint8_t>(WidthByte(ds, window, i + 1) - WIDTH_BIAS); } };
+  TableColumns layout{ 2, 0, 0 };
+  for (auto const i : std::views::iota(data.list_column, std::max(data.list_column, column))) layout.lead += width(i);
+  for (auto const i : std::views::iota(0u, rows + 1u)) (i < column ? layout.start : layout.count) += width(i);
+  return layout;
+}
+
+// The service form of TableColumnLayout: stores the three bytes at the DS offsets `first`, `second` and `third`.
 void opeu_table_columns(std::uint8_t* ds, HostWordsEvent, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third) {
-  auto&       data{ Data(ds) };
-  auto const& window{ Window(data, data.list_window) };
-  ds[first] = 2;
-  std::uint8_t i;
-  for (i = data.list_column; i < column; i++) ds[first] += WidthByte(ds, window, i + 1) - WIDTH_BIAS;
-  ds[second] = ds[third] = i = 0;
-  for (; i <= rows; i++) {
-    if (i < column)
-      ds[second] += WidthByte(ds, window, i + 1) - WIDTH_BIAS;
-    else
-      ds[third] += WidthByte(ds, window, i + 1) - WIDTH_BIAS;
-  }
+  auto const layout{ TableColumnLayout(ds, column, rows) };
+  ds[first]  = layout.lead;
+  ds[second] = layout.start;
+  ds[third]  = layout.count;
 }
 
 // Redraws the arrows with the mouse cursor hidden.

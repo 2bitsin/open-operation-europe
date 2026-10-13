@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "common/table-rows.hpp"
 
 #include <cstdint>
 #include <utility>
@@ -53,6 +54,7 @@ using detail::list_call::ListCall;
 
 void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
+auto TableColumnLayout(std::uint8_t* ds, std::uint8_t column, std::uint8_t rows) -> opeu::game::TableColumns;
 void opeu_table_columns(std::uint8_t* ds, HostWordsEvent event, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
 void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t;
