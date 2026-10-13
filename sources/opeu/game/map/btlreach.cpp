@@ -27,7 +27,7 @@ using namespace opeu::game;
 
 namespace {
 [[nodiscard]] auto ExitCell(Game& game, uint8_t x, uint8_t y, uint16_t element) -> bool {
-  return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element) && opeu_battle_exit_ok(game, x, y, element);
+  return opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element) && opeu_battle_exit_ok(game, x, y, element);
 }
 } // namespace
 

@@ -118,7 +118,7 @@ uint16_t svc_movespot(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case SpotService::GRID_STEP:      return opeu_grid_step(game.State().Bytes(arg(0), 1).data(), game.State().Bytes(arg(1), 1).data(), byte(2));
   case SpotService::CELL_SIDE:      return opeu_cell_side(game, byte(0), byte(1));
   case SpotService::FIND_UNIT:      return opeu_find_unit_at(game, byte(0), byte(1));
-  case SpotService::PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, byte(0)); return 0;
+  case SpotService::PENDING_FINISH: opeu_pending_finish(game, byte(0)); return 0;
   default:                          port_unhandled("movespot", id, count);
   }
   return 0;

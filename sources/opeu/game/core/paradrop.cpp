@@ -231,7 +231,7 @@ uint16_t svc_paradrop(Game& game, uint16_t id, const uint16_t* args, uint16_t co
     opeu_arrival_prepare(game, svc_maperase, Arg(args, count, 0));
     break;
   }
-  case DropService::DELAY:       opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
+  case DropService::DELAY:       opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case DropService::SPRITE_DRAW: {
     opeu_air_sprite_draw(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
     break;

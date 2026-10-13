@@ -58,7 +58,7 @@ void opeu_view_city_list(Game& game, HostEvent event, uint8_t count) {
        height = 6) {
     auto const city{ data.view_objectives[data.list_row] };
     Call(game, event, ViewService::UNIT_FLASH, city, 4);
-    data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(game, event, city) + 1);
+    data.stock_dialog.rows = static_cast<uint8_t>(opeu_list_objective_stocks(game, city) + 1);
     if (data.stock_dialog.rows > 1) {
       SetRowCheck(game, event, data.stock_dialog, RowCheck::NONE_3);
       Call(game, event, ViewService::CONTROL_PANEL);

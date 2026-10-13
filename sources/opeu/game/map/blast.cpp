@@ -93,7 +93,7 @@ uint16_t svc_blast(Game& game, uint16_t id, const uint16_t* args, uint16_t count
   case BlastService::SIDE_FOR_STATUS:  return opeu_side_for_status(game, byte(0));
   case BlastService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, byte(0), byte(1), byte(2)); return 0;
   case BlastService::SOUND:            opeu_sound_cue5(game, svc_soundcue); return 0;
-  case BlastService::WAIT:             opeu_delay_units(game, svc_waitkey, byte(0)); return 0;
+  case BlastService::WAIT:             opeu_delay_units(game, byte(0)); return 0;
   case BlastService::BLIT_FAR:         return svc_map_plan(game, "blast", std::to_underlying(MapService::BLIT_FAR), args, count);
   case BlastService::SPRITE_COMPOSE:   return svc_map_plan(game, "blast", std::to_underlying(MapService::SPRITE_COMPOSE), args, count);
   case BlastService::EFFECT_FINISH:    opeu_effect_finish(game, svc_sound); return 0;
@@ -122,7 +122,7 @@ uint16_t svc_map_plan(Game& game, const char* module, uint16_t kind, const uint1
   case MapService::BLIT_FAR:         opeu_blit_far(w(0), w(1), w(2), w(3), w(4), far(5, 6)); break;
   case MapService::PATTERN_NEAR:     koei_27c2(w(0), w(1), w(2), w(3), w(4), near(5)); break;
   case MapService::SCREEN_SHIFT:     koei_3bc5(w(0), w(1), w(2), w(3)); break;
-  case MapService::WAIT:             opeu_delay_units(game, svc_waitkey, static_cast<uint8_t>(w(0))); break;
+  case MapService::WAIT:             opeu_delay_units(game, static_cast<uint8_t>(w(0))); break;
   case MapService::CONTROL_MESSAGE:  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), w(0), w(1)); break;
   case MapService::STATUS_MODE:      opeu_turn_frame(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<uint8_t>(w(0))); break;
   case MapService::READ_FAR_BYTES:   opeu_read_far_bytes(game, port_far(w(1), 0), w(0), w(2), w(3)); break;

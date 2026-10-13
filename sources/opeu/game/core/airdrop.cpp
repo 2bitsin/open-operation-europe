@@ -71,7 +71,7 @@ auto ReleaseElements(Game& game, std::uint16_t list) -> std::uint8_t {
 } // namespace
 
 // Regiment list callback: marks the highlighted free unit chosen.
-uint8_t opeu_air_mark_regiment(Game& game, HostEvent) {
+uint8_t opeu_air_mark_regiment(Game& game) {
   auto& data{ Data(game) };
   Record<Unit>(data, data.supply_units[data.list_row]).flags = Bits(UnitFlag::AIRBORNE);
   return 1;
@@ -82,7 +82,7 @@ uint8_t opeu_air_mark_regiment(Game& game, HostEvent) {
 uint8_t opeu_air_assign_troops(Game& game, HostEvent event) {
   auto&      data{ Data(game) };
   auto&      element{ Record<Element>(data, data.alloc_elements[data.list_row]) };
-  auto const most{ opeu_min16(opeu_min16(opeu_air_free_planes(game, event) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
+  auto const most{ opeu_min16(opeu_min16(opeu_air_free_planes(game) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
                               data.request_capacities[0]) };
   auto const troops{ opeu_air_ask_count(game, event, Near(data, data.drop_ask_troops), 0, most, 1, data.context_record3, 0) };
   if (troops != MENU_CANCELLED) {
@@ -95,14 +95,14 @@ uint8_t opeu_air_assign_troops(Game& game, HostEvent event) {
 }
 
 // Command-post list callback: marks the highlighted battalion as the drop's command post.
-uint8_t opeu_air_mark_battalion(Game& game, HostEvent) {
+uint8_t opeu_air_mark_battalion(Game& game) {
   auto& data{ Data(game) };
   Record<Element>(data, data.alloc_elements[data.list_row]).flags |= Bits(ElementFlag::SELECTED);
   return 1;
 }
 
 // The first airborne element type the current side fields, or 0xff.
-uint8_t opeu_air_paratroop_type(Game& game, HostEvent) {
+uint8_t opeu_air_paratroop_type(Game& game) {
   auto const& data{ Data(game) };
   auto const  mask{ data.side_masks[data.current_side] };
   for (std::uint8_t n{ 0 }; n < ELEMENT_TYPE_COUNT; ++n) {
@@ -129,7 +129,7 @@ uint16_t opeu_air_choose_forces(Game& game, HostEvent event) {
     auto const free{ static_cast<std::uint8_t>(opeu_min16(ReleaseElements(game, ALLOC_ELEMENTS), quota())) };
     data.choice_dialog.rows = static_cast<std::uint8_t>(free + 1);
     SetListPredicate(data.choice_dialog, ASSIGN_TROOPS_OFFSET, opeu_airdrop_code_segment);
-    auto const type{ opeu_air_paratroop_type(game, event) };
+    auto const type{ opeu_air_paratroop_type(game) };
     for (std::uint8_t i{ 0 }; i < quota() && free > i; ++i) {
       auto& element{ Record<Element>(data, data.alloc_elements[i]) };
       element.type     = type;
@@ -211,7 +211,7 @@ void opeu_air_drop_command(Game& game, HostEvent event) {
   auto&      data{ Data(game) };
   auto const message{ [&](auto const& text) { Call(game, event, MESSAGE, Near(data, text), data.context_record3); } };
   auto const confirm{ [&](auto const& text) { return Call(game, event, CONFIRM, Near(data, text), data.context_record3); } };
-  if (opeu_air_paratroop_type(game, event) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
+  if (opeu_air_paratroop_type(game) == NO_TYPE || Record<Side>(data, data.current_side_ptr).paratroops == 0) {
     message(data.drop_no_paratroopers);
     return;
   }
@@ -221,7 +221,7 @@ void opeu_air_drop_command(Game& game, HostEvent event) {
     ReleaseElements(game, 0);
     CurrentDrop(data).transports = 0;
   }
-  if (!opeu_air_free_planes(game, event)) {
+  if (!opeu_air_free_planes(game)) {
     message(data.drop_no_transports);
     return;
   }
@@ -261,11 +261,11 @@ auto port_routine_opeu_air_assign_troops(Game& game, std::uint16_t const*, unsig
 }
 
 auto port_routine_opeu_air_mark_battalion(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_air_mark_battalion(game, svc_airdrop);
+  return opeu_air_mark_battalion(game);
 }
 
 auto port_routine_opeu_air_mark_regiment(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_air_mark_regiment(game, svc_airdrop);
+  return opeu_air_mark_regiment(game);
 }
 
 auto port_routine_opeu_air_drop_command(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {

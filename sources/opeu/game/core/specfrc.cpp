@@ -52,8 +52,7 @@ void opeu_special_officer(Game& game, HostEvent event) {
 }
 
 // Whether the pending mission targets a unit (1) or a city (0); any other code is returned as it is.
-uint16_t opeu_special_unit_target(Game& game, HostEvent event) {
-  (void)event;
+uint16_t opeu_special_unit_target(Game& game) {
   auto const& data{ Data(game) };
   auto const  mission{ Record<Order>(data, data.special_order).kind };
   switch (mission) {
@@ -81,7 +80,7 @@ void opeu_turn_action_9(Game& game, HostEvent event) {
       Call(game, event, ARMY_POSITION, INFO_X, ORDERS_Y);
       Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_orders_line), data.special_mission_names[order.kind]);
       Call(game, event, ARMY_POSITION, INFO_X, TARGET_Y);
-      Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_target_line), opeu_special_unit_target(game, event) ? Call(game, event, UNIT_NAME, order.target, name) : order.target);
+      Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_target_line), opeu_special_unit_target(game) ? Call(game, event, UNIT_NAME, order.target, name) : order.target);
       Call(game, event, ARMY_POSITION, INFO_X, TIME_Y);
       Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_time_line), order.progress);
       if (!Call(game, event, CONFIRM_MESSAGE, offsetof(DataSegment, special_cancel_question), data.context_record2)) break;

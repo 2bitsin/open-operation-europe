@@ -369,8 +369,8 @@ int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case OrderService::MAP_CODE:       r = opeu_map_code(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::MAP_MARK5:      opeu_map_mark_5(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case OrderService::MAP_ERASE:      opeu_map_erase(game, svc_maperase, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case OrderService::WAIT_UNITS:     opeu_delay_units(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case OrderService::PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
+  case OrderService::WAIT_UNITS:     opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::SOUND_CUE5:     opeu_sound_cue5(game, svc_soundcue); break;
   default:                           return 0;
   }

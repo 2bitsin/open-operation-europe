@@ -103,7 +103,7 @@ void opeu_turn_control_one(Game& game, HostEvent event, HostEvent context_event)
 uint16_t svc_control1(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case PREPARE:  opeu_control_prepare(game, svc_advmenu); break;
+  case PREPARE:  opeu_control_prepare(game); break;
   case BEGIN:    opeu_control_begin(game, svc_soundcue); break;
   case POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION:

@@ -366,8 +366,8 @@ auto svc_keyboard(Game& game, std::uint16_t call, std::uint16_t* w) -> std::uint
   case InputCall::SPRITE_DRAW:    koei_3f26(w[0], w[1], w[2], w[3], port_far(w[5], w[4]), port_far(w[7], w[6]), port_far(w[9], w[8]), w[10]); break;
   case InputCall::DRAW_FAR:       opeu_draw_far(w[0], w[1], w[2], w[3], w[4], port_far(w[5], w[6])); break;
   case InputCall::CURSOR_INVERT:  opeu_ui_highlight(w[0], w[1], w[2], w[3], w[4]); break;
-  case InputCall::DELAY_TICKS:    opeu_delay_ticks(game, svc_waitkey, w[0]); break;
-  case InputCall::PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<std::uint8_t>(w[0])); break;
+  case InputCall::DELAY_TICKS:    opeu_delay_ticks(game, w[0]); break;
+  case InputCall::PENDING_FINISH: opeu_pending_finish(game, static_cast<std::uint8_t>(w[0])); break;
   case InputCall::PRINT:          opeu_cursor_print(game, { w, 2 }); break;
   case InputCall::IDLE_HOOK:      port_call(game, static_cast<std::uint32_t>(w[1]) * 16u + w[0], nullptr, 0); break;
   default:                        port_unhandled("keyboard", call, 0);

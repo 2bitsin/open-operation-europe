@@ -38,7 +38,7 @@ void opeu_battle_cursor_info(Game& game) {
   auto&      data{ Data(game) };
   auto const x{ data.battle_cursor_x };
   auto const y{ data.battle_cursor_y };
-  auto const terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
+  auto const terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
   opeu_battle_info_clear(game);
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(PAPER));
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(LINE_X), static_cast<short>(CELL_LINE_Y));
@@ -53,7 +53,7 @@ void opeu_battle_cursor_info(Game& game) {
         break;
       }
     }
-  auto const element{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)) };
+  auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)) };
   if (element && (opeu_battle_element_side(game, element) == data.battle_active_side || opeu_battle_element_flag2(game, element))) {
     opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(opeu_battle_element_side(game, element)));
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(LINE_X), static_cast<short>(TYPE_LINE_Y));

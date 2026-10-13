@@ -187,13 +187,13 @@ uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_tex
 }
 
 // Whether the side's request slot holds a pending request.
-uint16_t opeu_side_objective_slot_pending(Game& game, const uint8_t*, HostEvent, uint8_t slot) {
+uint16_t opeu_side_objective_slot_pending(Game& game, const uint8_t*, uint8_t slot) {
   auto& data{ Data(game) };
   return Record<Side>(data, data.current_side_ptr).requests[slot].kind != NO_REQUEST;
 }
 
 // Whether the side's request configuration is of `kind`.
-uint16_t opeu_side_request_kind_is(Game& game, const uint8_t*, HostEvent, uint8_t kind) {
+uint16_t opeu_side_request_kind_is(Game& game, const uint8_t*, uint8_t kind) {
   auto const& data{ Data(game) };
   return data.request_configs[data.current_side].kind == kind;
 }
@@ -206,8 +206,8 @@ uint16_t opeu_advice_tactical_supply_reinforce(Game& game, const uint8_t* far_te
   auto const    side{ data.current_side };
   std::uint16_t percent[3]{};
   opeu_side_resource_percentages(game, side, &percent[0], &percent[1], &percent[2], 0);
-  if ((percent[0] < LOW_SUPPLY || percent[1] < LOW_SUPPLY || percent[2] < LOW_SUPPLY) && !Record<Side>(data, data.current_side_ptr).lift.planes && !opeu_side_request_kind_is(game, far_text, event, 0)
-      && !opeu_side_objective_slot_pending(game, far_text, event, 0) && advisor.Random(3) == 1)
+  if ((percent[0] < LOW_SUPPLY || percent[1] < LOW_SUPPLY || percent[2] < LOW_SUPPLY) && !Record<Side>(data, data.current_side_ptr).lift.planes && !opeu_side_request_kind_is(game, far_text, 0)
+      && !opeu_side_objective_slot_pending(game, far_text, 0) && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::REQUEST_SUPPLIES);
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
     if (!IsActiveGroup(GroupOf(data, side, g))) continue;
@@ -239,7 +239,7 @@ uint16_t opeu_advice_tactical_land_mines(Game& game, const uint8_t* far_text, Ho
 
 // Whether a ready division has an idle unit of a fighting category. A division is skipped by the low bit of its first
 // unit's second order slot, not by the division's reserve flag.
-uint8_t opeu_ready_group_has_idle_unit(Game& game, const uint8_t*, HostEvent) {
+uint8_t opeu_ready_group_has_idle_unit(Game& game, const uint8_t*) {
   auto&      data{ Data(game) };
   auto const side{ data.current_side };
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
@@ -267,7 +267,7 @@ uint16_t opeu_advice_tactical_air_special_forces(Game& game, const uint8_t* far_
     return advisor.Say(AdviceText::ASK_AIR_FORCE);
   if (opeu_hour_is_night(data.hour) && Record<Person>(data, data.context_record2).charm >= GOOD_RATING && side.order.kind == Bits(UnitOrder::NONE) && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::CALL_SPECIAL_FORCES);
-  if (side.strength >= GOOD_RATING && !data.weather && Record<Person>(data, data.context_record3).charm >= 60 && opeu_ready_group_has_idle_unit(game, far_text, event) && advisor.Random(3) == 1)
+  if (side.strength >= GOOD_RATING && !data.weather && Record<Person>(data, data.context_record3).charm >= 60 && opeu_ready_group_has_idle_unit(game, far_text) && advisor.Random(3) == 1)
     return advisor.Say(AdviceText::PARATROOP_ATTACK);
   return 0;
 }

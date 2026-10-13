@@ -60,7 +60,7 @@ void SpendSupplies(Game& game, uint16_t old, uint16_t element) {
 uint16_t opeu_battle_attack_damage(Game& game, uint16_t attacker, uint16_t target) {
   auto&      data{ Data(game) };
   auto const company{ opeu_battle_element_unit(game, attacker) };
-  auto const shots{ static_cast<uint8_t>(opeu_battle_element_shots(game, svc_btlcalc, attacker, target)) };
+  auto const shots{ static_cast<uint8_t>(opeu_battle_element_shots(game, attacker, target)) };
   SubWord(Record<Unit>(data, company).resources[0], U16(shots / 3));
   auto const* model{ &ElementTypeOf(data, attacker) };
   uint16_t    headcount{ Record<Element>(data, attacker).quantity };

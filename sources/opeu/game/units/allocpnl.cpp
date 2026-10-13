@@ -60,8 +60,7 @@ void opeu_alloc_type_panel(Game& game, HostWordsEvent event, uint8_t slot, uint1
 
 // Whether the first unit's `first` allocated amounts, and the second unit's `second` after them (when it has any),
 // each hold a nonzero total.
-uint16_t opeu_alloc_groups_nonempty(Game& game, HostWordsEvent event, uint8_t first, uint8_t second) {
-  (void)event;
+uint16_t opeu_alloc_groups_nonempty(Game& game, uint8_t first, uint8_t second) {
   auto&         data{ Data(game) };
   std::uint16_t total{ 0 };
   for (std::uint16_t slot{ 0 }; slot < first + second; ++slot) {
@@ -76,8 +75,7 @@ uint16_t opeu_alloc_groups_nonempty(Game& game, HostWordsEvent event, uint8_t fi
 }
 
 // Gives the element the morale, training and experience averages of its type among the `count` supply types.
-void opeu_alloc_element_values(Game& game, HostWordsEvent event, uint16_t element, uint8_t count) {
-  (void)event;
+void opeu_alloc_element_values(Game& game, uint16_t element, uint8_t count) {
   auto&        data{ Data(game) };
   auto&        unit_element{ Record<Element>(data, element) };
   std::uint8_t slot{ 0 };
@@ -89,9 +87,8 @@ void opeu_alloc_element_values(Game& game, HostWordsEvent event, uint16_t elemen
 
 // value * (amount * 100 / total) / 100, capped at 60000; nothing when there is no total. The product keeps its low
 // 32 bits.
-uint16_t opeu_alloc_scaled(Game& game, HostWordsEvent event, int32_t value, uint16_t amount, int32_t total) {
+uint16_t opeu_alloc_scaled(Game& game, int32_t value, uint16_t amount, int32_t total) {
   (void)game;
-  (void)event;
   if (!total) return 0;
   auto const percent{ static_cast<std::int32_t>(amount) * 100 / total };
   auto const share{ static_cast<std::int32_t>(static_cast<std::uint32_t>(percent) * static_cast<std::uint32_t>(value)) / 100 };

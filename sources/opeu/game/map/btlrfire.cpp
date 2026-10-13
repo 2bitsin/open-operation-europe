@@ -110,7 +110,7 @@ void opeu_battle_ranged_tracers(Game& game, uint16_t shooter, uint16_t target) {
     if (type.gun_range > 1) {
       opeu_battle_draw_line(game, static_cast<int16_t>(from_x), static_cast<int16_t>(from_y), static_cast<int16_t>(to_x), static_cast<int16_t>(to_y));
     } else {
-      auto tracers{ static_cast<uint8_t>(opeu_battle_element_shots(game, svc_btlcalc, shooter, target)) };
+      auto tracers{ static_cast<uint8_t>(opeu_battle_element_shots(game, shooter, target)) };
       tracers = static_cast<uint8_t>((IsOfCategory(type, Category::INFANTRY) ? tracers / 3 : tracers / 15) + 1);
       if (tracers > MAX_TRACERS) tracers = MAX_TRACERS;
       for (uint8_t i{ 0 }; i < tracers; ++i) {

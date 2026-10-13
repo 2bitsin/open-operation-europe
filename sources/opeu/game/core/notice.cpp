@@ -345,7 +345,7 @@ uint16_t svc_notice(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   case FORMAT:             opeu_request_format(game, { args, count }); break;
   case SIDE_RECORD:        r = opeu_find_side_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case CONFIRM:            r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case PENDING_FINISH:     opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case PENDING_FINISH:     opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case UNIT_SPECIAL:       r = opeu_unit_special(game, Arg(args, count, 0)); break;
   case UNIT_NAME:          r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
   case COPY_STRING:        r = opeu_string_copy(game, Arg(args, count, 0), Arg(args, count, 1)); break;

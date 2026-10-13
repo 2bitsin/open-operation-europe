@@ -73,9 +73,9 @@ auto ShowList(Game& game, HostEvent event, ListWindow const& list) -> uint16_t {
 }
 
 // Lists the side's free generals and sizes the generals' list to them (one row more for the title).
-auto FillGenerals(Game& game, HostEvent event, uint16_t segment) -> uint8_t {
+auto FillGenerals(Game& game, uint16_t segment) -> uint8_t {
   auto& list{ Data(game).people_dialog };
-  list.rows = opeu_idle_commanders_fill(game, event, segment) + 1;
+  list.rows = opeu_idle_commanders_fill(game, segment) + 1;
   return list.rows;
 }
 
@@ -87,7 +87,7 @@ void opeu_personnel_finish(Game& game, HostEvent event, uint16_t) {
 }
 
 // The select callback of the generals' list: every row may be chosen.
-uint8_t opeu_commander_always(Game&, HostEvent, uint16_t, uint8_t) {
+uint8_t opeu_commander_always(Game&, uint16_t, uint8_t) {
   return 1;
 }
 
@@ -123,7 +123,7 @@ void opeu_division_commander_menu(Game& game, HostEvent event, uint16_t segment)
 
 // Fills general_list with the side's generals who are present, hold no staff post, lead no division and are not on
 // leave; returns how many.
-uint8_t opeu_idle_commanders_fill(Game& game, HostEvent, uint16_t) {
+uint8_t opeu_idle_commanders_fill(Game& game, uint16_t) {
   auto&   data{ Data(game) };
   uint8_t count{ 0 };
   for (auto& general : std::span{ data.people }.subspan(data.current_side * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE))
@@ -138,7 +138,7 @@ uint8_t opeu_idle_commanders_fill(Game& game, HostEvent, uint16_t) {
 void opeu_commander_assign(Game& game, HostEvent event, uint16_t segment) {
   auto& data{ Data(game) };
   bool  assigned{ false };
-  while (FillGenerals(game, event, segment) != 1) {
+  while (FillGenerals(game, segment) != 1) {
     SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(game, event, PersonnelService::MESSAGE, Near(data, data.assign_who_prompt), data.context_record2);
     if (!ShowList(game, event, data.people_dialog)) {
@@ -204,7 +204,7 @@ void opeu_commander_rest(Game& game, HostEvent event, uint16_t segment) {
   auto&               data{ Data(game) };
   auto const          prompt{ locals.At(0) };
   bool                rested{ false };
-  for (; FillGenerals(game, event, segment) != 1; rested = true) {
+  for (; FillGenerals(game, segment) != 1; rested = true) {
     SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
     Call(game, event, PersonnelService::PANEL);
     Call(game, event, PersonnelService::MESSAGE, Near(data, data.rest_who_prompt), data.context_record2);
@@ -238,7 +238,7 @@ uint16_t svc_persmenu(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case PersonnelService::DAILY_SHOW:
     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2));
     break;
-  case PersonnelService::PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case PersonnelService::PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case PersonnelService::LIST:           r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case PersonnelService::ASK:            r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case PersonnelService::GROUP_SELECTED: r = opeu_find_group_selected_unit(game, Arg(args, count, 0)); break;
@@ -250,7 +250,7 @@ uint16_t svc_persmenu(Game& game, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_commander_always(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_commander_always(game, svc_persmenu, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
+  return opeu_commander_always(game, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
 }
 
 auto port_routine_opeu_commander_assign(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {

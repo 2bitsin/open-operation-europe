@@ -270,7 +270,7 @@ uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case CONFIRM_MESSAGE:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case MESSAGE_LOOKUP:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case ARMY_PRINT:           opeu_cursor_print(game, { args, count }); break;
-  case PENDING_FINISH:       opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case PENDING_FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case DAILY_SHOW:           port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
   case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case DELAY_DIALOG:         r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;

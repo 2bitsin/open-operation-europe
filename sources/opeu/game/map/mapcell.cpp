@@ -45,7 +45,3 @@ void opeu_map_cell_flash(Game& game, HostEvent event, uint8_t x, uint8_t y) {
     opeu_view_cell_paint(game, event, pixel.x, pixel.y, HIGHLIGHT_MODE);
   }
 }
-
-uint16_t svc_mapcell(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(game, "mapcell", kind, args, count);
-}

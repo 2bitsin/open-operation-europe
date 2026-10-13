@@ -198,7 +198,7 @@ uint16_t svc_evloss(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
     break;
   }
   case CUE:            opeu_sound_cue12(game, svc_soundcue); break;
-  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case PENDING_FINISH: opeu_pending_finish(game, static_cast<uint8_t>(Arg(args, count, 0))); break;
   default:             port_unhandled("evloss", id, count);
   }
   return result;

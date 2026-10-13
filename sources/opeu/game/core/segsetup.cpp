@@ -107,7 +107,7 @@ uint16_t svc_segsetup(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case SetupService::WAIT_KEY:         return opeu_turn_input_b();
   case SetupService::QUIT:             opeu_quit_to_dos(game, svc_settings); break;
   case SetupService::ALLOCATE:         return opeu_dos_alloc(Arg(args, count, 0));
-  case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(game, svc_resopen, Arg(args, count, 0)));
+  case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(game, Arg(args, count, 0)));
   case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;
   case SetupService::VGA_SETUP:        koei_2fea(); break;
   case SetupService::IDENTITY_PALETTE: koei_vga_identity_palette(); break;

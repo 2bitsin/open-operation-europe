@@ -271,7 +271,7 @@ uint16_t svc_airstrk(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   }
   case DAILY_SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
   case MUSIC_COMMAND7: opeu_music_command7(game, svc_sound); break;
-  case DELAY:          opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
+  case DELAY:          opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case SPRITE_RESTORE: opeu_air_sprite_restore(game, svc_airshow, 0, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OFFICER_GAIN:   opeu_officer_gain(game, byte(0), byte(1)); break;
   case FINISH_SIDE:    opeu_finish_side_initialization(game, svc_sound, byte(0)); break;

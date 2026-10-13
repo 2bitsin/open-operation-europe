@@ -178,7 +178,7 @@ uint8_t opeu_battle_next_step(Game& game, uint16_t element, uint16_t x, uint16_t
   uint8_t cheapest{ IMPASSABLE_COST };
   for (uint8_t direction{ 0 }; direction < STEP_DIRECTIONS; ++direction) {
     from_here();
-    if (opeu_battle_step(game, svc_btlcalc, game.State().Bytes(next_x, 1).data(), game.State().Bytes(next_y, 1).data(), static_cast<uint8_t>(direction))) {
+    if (opeu_battle_step(game, game.State().Bytes(next_x, 1).data(), game.State().Bytes(next_y, 1).data(), static_cast<uint8_t>(direction))) {
       auto const cost{ static_cast<uint8_t>(opeu_battle_move_cost(game, svc_btlcalc, static_cast<uint8_t>(Byte(game, next_x)), static_cast<uint8_t>(Byte(game, next_y)), element)) };
       if (cost != IMPASSABLE_COST && !opeu_battle_cell_occupied(game, Byte(game, next_x), Byte(game, next_y)) && cost < cheapest) cheapest = cost;
     }

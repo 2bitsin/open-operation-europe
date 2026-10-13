@@ -55,7 +55,7 @@ uint16_t opeu_air_ask_count(Game& game, HostEvent event, uint16_t text, uint16_t
 }
 
 // The current side's transport planes not committed to the airlift or a drop, floored at zero.
-uint16_t opeu_air_free_planes(Game& game, HostEvent) {
+uint16_t opeu_air_free_planes(Game& game) {
   auto&         data{ Data(game) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
   std::uint16_t planes{ side.planes };
@@ -91,8 +91,4 @@ uint16_t opeu_air_target_valid(Game& game, HostEvent event, uint8_t x, uint8_t y
 uint16_t opeu_air_confirm(Game& game, HostEvent event) {
   auto const& data{ Data(game) };
   return Call(game, event, CONFIRM, Call(game, event, LOOKUP, CONFIRM_MISSION), data.context_record3);
-}
-
-uint16_t svc_airhelp(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_air(game, "airhelp", id, args, count);
 }

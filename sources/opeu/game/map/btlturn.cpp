@@ -95,7 +95,7 @@ void opeu_battle_toggle_numbers(Game& game) {
   data.battle_numbers_shown = data.battle_numbers_shown == 1 ? 0 : 1;
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x)
-      if (opeu_battle_cell_occupied(game, x, y) || static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == BRIDGE_TERRAIN)
+      if (opeu_battle_cell_occupied(game, x, y) || static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == BRIDGE_TERRAIN)
         opeu_battle_refresh_cell(game, x, y);
 }
 

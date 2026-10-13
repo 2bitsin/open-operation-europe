@@ -103,20 +103,6 @@ void opeu_group_set_target(Game& game, HostEvent event, uint8_t group) {
   for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) opeu_clear_unit_orders(game, Near(data, data.units[first + i]), ALL_ORDER_SLOTS);
 }
 
-uint16_t svc_ordtgt(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto const arg{ [&](unsigned i) { return Arg(args, count, i); } };
-  auto const host{ [] { return static_cast<DialogHost const*>(port_dialogs_host()); } };
-  switch (static_cast<TargetService>(id)) {
-  case TargetService::FORMAT:           opeu_request_format(game, { args, count }); return 0;
-  case TargetService::CONTROL_MESSAGE:  opeu_control_message(game, host(), arg(0), arg(1)); return 0;
-  case TargetService::CONFIRM:          return opeu_confirm_message(game, host(), arg(0), arg(1));
-  case TargetService::ARRIVAL_LOCATION: opeu_arrival_location(game, svc_mappos, static_cast<uint8_t>(arg(0)), static_cast<uint8_t>(arg(1)), static_cast<uint8_t>(arg(2))); return 0;
-  case TargetService::PICK_LOCATION:    return opeu_map_pick_location(game, svc_mappick, arg(0), arg(1));
-  default:                              port_unhandled("ordtgt", id, count);
-  }
-  return 0;
-}
-
 auto port_routine_opeu_group_target_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;

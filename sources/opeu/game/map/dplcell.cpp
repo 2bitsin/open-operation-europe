@@ -43,7 +43,7 @@ constexpr std::array<uint8_t, 8> AWAY{ 3, 0, 2, 3, 2, 3, 1, 2 };
 
 [[nodiscard]] auto ApproachOf(Game& game, uint16_t element) -> uint8_t {
   auto const unit{ opeu_battle_element_unit(game, element) };
-  return static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit));
+  return static_cast<uint8_t>(opeu_battle_unit_direction(game, unit));
 }
 
 template <typename Body> void ForEachBattleCell(Body&& body) {
@@ -91,7 +91,7 @@ uint16_t opeu_deploy_can_place(Game& game, uint8_t x, uint8_t y, uint16_t elemen
   if (opeu_battle_cell_occupied(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) return 0;
   auto const zone{ static_cast<uint8_t>(data.battle_cells[y][x] >> 4) };
   auto const in_zone{ approach == DEFENDING ? zone == DEFENDER_ZONE : zone - approach == 1 };
-  return in_zone && opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element);
+  return in_zone && opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element);
 }
 
 void opeu_deploy_show_zone(Game& game, uint16_t element) {

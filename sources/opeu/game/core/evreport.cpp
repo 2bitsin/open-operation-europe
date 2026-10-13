@@ -147,7 +147,7 @@ void opeu_turn_hourly_b(Game& game, HostEvent event) {
 uint16_t svc_evreport(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t result{ 0 };
   switch (id) {
-  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<uint8_t>(Arg(args, count, 0))); break;
+  case PENDING_FINISH: opeu_pending_finish(game, static_cast<uint8_t>(Arg(args, count, 0))); break;
   case LOOKUP:         result = opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(Arg(args, count, 0))); break;
   case UNIT_MESSAGE:   opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case DAILY_SHOW:

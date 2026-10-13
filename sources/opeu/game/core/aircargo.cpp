@@ -288,7 +288,7 @@ uint16_t svc_aircargo(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   }
   case DAILY_SHOW:     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), byte(1), static_cast<std::uint32_t>(Arg(args, count, 3)) << 16 | Arg(args, count, 2)); break;
   case MUSIC_COMMAND7: opeu_music_command7(game, svc_sound); break;
-  case DELAY:          opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
+  case DELAY:          opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case UNIT_AT:        result = opeu_find_unit_at(game, byte(0), byte(1)); break;
   case OBJECTIVE_AT:   result = opeu_find_objective_at(game, byte(0), byte(1)); break;
   case UNIT_SIDE:      result = opeu_unit_side(Arg(args, count, 0)); break;

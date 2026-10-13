@@ -44,4 +44,3 @@ void    opeu_text_erase_char(Game& game, TextHost* host);
 
 // The services the console calls.
 uint16_t svc_textout(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
-void     svc_textout_unused(uint8_t* a0, void* a1, uint16_t a2);

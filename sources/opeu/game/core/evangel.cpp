@@ -85,7 +85,7 @@ auto Raise(Game& game, std::uint8_t& value, std::uint16_t base, std::uint16_t sp
 }
 } // namespace
 
-uint16_t opeu_angel_unit_eligible(Game& game, HostEvent, uint16_t unit) {
+uint16_t opeu_angel_unit_eligible(Game& game, uint16_t unit) {
   bool marked{ false };
   ForEachGeneralOf(game, unit, [&](Person& person) {
     if (person.flags & Bits(PersonRole::POOR_HEALTH)) marked = true;
@@ -113,7 +113,7 @@ uint8_t opeu_angel_portrait(Game& game, HostEvent event, uint8_t) {
 }
 
 // Heals the unit's generals (health back to their limit, poor health cleared) and clears its battalions' experience.
-void opeu_angel_finish(Game& game, HostEvent, uint16_t, uint16_t unit) {
+void opeu_angel_finish(Game& game, uint16_t, uint16_t unit) {
   ForEachGeneralOf(game, unit, [](Person& person) {
     person.flags  &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
     person.health  = person.max_health;
@@ -123,22 +123,22 @@ void opeu_angel_finish(Game& game, HostEvent, uint16_t, uint16_t unit) {
 }
 
 // Lowers the general's charm by 1..10 and each battalion's morale by 20..49.
-void opeu_angel_demoralize(Game& game, HostEvent event, uint16_t person, uint16_t unit) {
+void opeu_angel_demoralize(Game& game, uint16_t person, uint16_t unit) {
   auto& data{ Data(game) };
   Lower(game, Record<Person>(data, person).charm, 1, 10);
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) Lower(game, element.morale, 20, 30);
-  opeu_angel_finish(game, event, person, unit);
+  opeu_angel_finish(game, person, unit);
 }
 
 // Raises each battalion's morale by 20..49.
-void opeu_angel_inspire(Game& game, HostEvent event, uint16_t person, uint16_t unit) {
+void opeu_angel_inspire(Game& game, uint16_t person, uint16_t unit) {
   auto& data{ Data(game) };
   for (auto& element : Elements(data, Record<Unit>(data, unit).first)) Raise(game, element.morale, 20, 30);
-  opeu_angel_finish(game, event, person, unit);
+  opeu_angel_finish(game, person, unit);
 }
 
 // Demoralizes a unit of side 0; raises the general's charm and the battalions' morale on side 1.
-void opeu_angel_judge_side(Game& game, HostEvent event, uint16_t person, uint16_t unit) {
+void opeu_angel_judge_side(Game& game, uint16_t person, uint16_t unit) {
   auto&      data{ Data(game) };
   auto&      charm{ Record<Person>(data, person).charm };
   auto const side_1{ opeu_unit_side(unit) != 0 };
@@ -151,7 +151,7 @@ void opeu_angel_judge_side(Game& game, HostEvent event, uint16_t person, uint16_
       Raise(game, element.morale, 20, 30);
     else
       Lower(game, element.morale, 20, 30);
-  opeu_angel_finish(game, event, person, unit);
+  opeu_angel_finish(game, person, unit);
 }
 
 // The presentation's far routine: her portrait and remark, then the outcome the remark chose for the commander's unit.
@@ -161,11 +161,11 @@ void opeu_angel_present(Game& game, HostEvent event, uint16_t code_segment) {
   auto const unit{ opeu_person_selected_unit(game, person) };
   auto const action{ data.angel_actions[opeu_angel_portrait(game, event, data.event_side)] };
   if (action.segment == code_segment && action.offset == DEMORALIZE_OFFSET)
-    opeu_angel_demoralize(game, event, person, unit);
+    opeu_angel_demoralize(game, person, unit);
   else if (action.segment == code_segment && action.offset == INSPIRE_OFFSET)
-    opeu_angel_inspire(game, event, person, unit);
+    opeu_angel_inspire(game, person, unit);
   else if (action.segment == code_segment && action.offset == JUDGE_OFFSET)
-    opeu_angel_judge_side(game, event, person, unit);
+    opeu_angel_judge_side(game, person, unit);
   else
     Call(game, event, FAR_ACTION, person, unit);
 }
@@ -178,7 +178,7 @@ void opeu_angel_event(Game& game, HostEvent event, uint16_t code_segment) {
     auto const& record{ Record<Unit>(data, unit) };
     auto const  x{ record.x };
     auto const  y{ record.y };
-    if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && opeu_angel_unit_eligible(game, event, unit)) {
+    if (opeu_map_code(game, x, y) == OPEN_GROUND && RandomBelow(game, 30) == 3 && opeu_angel_unit_eligible(game, unit)) {
       Call(game, event, LOCATION, x, y, data.event_side);
       Call(game, event, MARK, x, y, data.event_side);
       Call(game, event, SHOW, ANGEL_SHOW, data.event_side, PRESENT_OFFSET, code_segment);

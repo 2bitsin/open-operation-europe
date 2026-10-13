@@ -119,7 +119,7 @@ void opeu_wound_event(Game& game, HostEvent event) {
 
 uint16_t svc_evwound(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (id) {
-  case DELAY:   opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
+  case DELAY:   opeu_delay_units(game, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case CONTEXT: opeu_set_turn_context(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case FINISH:  opeu_finish_side_initialization(game, svc_sound, static_cast<std::uint8_t>(Arg(args, count, 0))); break;
   case SHOW:    port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;

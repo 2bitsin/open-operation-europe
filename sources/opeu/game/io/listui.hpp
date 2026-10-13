@@ -61,7 +61,7 @@ using detail::list_call::REDRAW_ORIGIN;
 void opeu_list_arrows(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 void opeu_list_scrollbar(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
 auto TableColumnLayout(Game& game, std::uint8_t column, std::uint8_t rows) -> opeu::game::TableColumns;
-void opeu_table_columns(Game& game, HostWordsEvent event, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
+void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
 void opeu_list_arrows_lit(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t;
 void opeu_list_invert(Game& game, HostWordsEvent event);

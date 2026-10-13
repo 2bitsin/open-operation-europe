@@ -68,7 +68,7 @@ void opeu_battle_redraw_cell(Game& game, uint8_t x, uint8_t y, uint16_t element,
 }
 
 void opeu_battle_refresh_cell(Game& game, uint8_t x, uint8_t y) {
-  auto const element{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+  auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
   auto const mode{ element ? opeu_battle_mode(game, element) : 0 };
   opeu_battle_redraw_cell(game, x, y, element, static_cast<uint8_t>(mode));
 }

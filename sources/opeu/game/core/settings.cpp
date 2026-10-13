@@ -446,11 +446,11 @@ uint16_t svc_settings(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case PRE_CONTEXT:     opeu_turn_pre_context(game, svc_context); break;
   case SCREEN_RESET:    opeu_screen_reset(game, (const DialogHost*)port_dialogs_host()); break;
   case ATTRIBUTE:       opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case DISK_RESET:      opeu_disk_reset(game, svc_resopen); break;
+  case DISK_RESET:      opeu_disk_reset(game); break;
   case FRAMED:          r = opeu_title_box(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
   case UI_TEXT:         opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case UI_WAIT:         opeu_delay_units(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case OPEN:            r = (uint16_t)opeu_open_resource(game, svc_resopen, Arg(args, count, 0)); break;
+  case UI_WAIT:         opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
+  case OPEN:            r = (uint16_t)opeu_open_resource(game, Arg(args, count, 0)); break;
   case MENU_CHOOSE:     r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case OUTLINE:         opeu_ui_outline(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;

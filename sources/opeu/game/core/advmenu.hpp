@@ -4,7 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_control_prepare(Game& game, HostEvent event);
+void opeu_control_prepare(Game& game);
 void opeu_staff_advice_menu(Game& game, HostEvent event);
 void opeu_turn_action_5(Game& game, HostEvent event);
 

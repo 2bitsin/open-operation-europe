@@ -15,4 +15,3 @@ uint8_t  opeu_transfer_auto_key(Game& game, uint8_t row);
 
 // The transfer services (TransferService, units/transfer-service.hpp); `module` names the caller in diagnostics.
 uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* args, uint16_t count);
-uint16_t svc_xferpnl(Game& game, uint16_t id, uint16_t* args, uint16_t count);

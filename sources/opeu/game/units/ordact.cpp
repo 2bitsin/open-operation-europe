@@ -161,7 +161,7 @@ int svc_orders(Game& game, uint16_t id, const uint16_t* args, uint16_t count, ui
   case ORDERS_CONTROL_POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ORDERS_MESSAGE_LOOKUP:   r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case ORDERS_DELAY_DIALOG:     r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case ORDERS_DELAY_UNITS:      opeu_delay_units(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case ORDERS_DELAY_UNITS:      opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case ORDERS_DAILY_CONTEXT:    opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
   default:                      return 0;
   }

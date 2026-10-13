@@ -32,8 +32,7 @@ uint8_t opeu_list_side_objectives(Game& game, HostEvent event, uint8_t side) {
 }
 
 // Lists a regiment's elements in the element rows; returns their count.
-uint8_t opeu_list_unit_elements(Game& game, HostEvent event, uint16_t unit) {
-  (void)event;
+uint8_t opeu_list_unit_elements(Game& game, uint16_t unit) {
   auto&        data{ Data(game) };
   std::uint8_t count{ 0 };
   auto const   chain{ Elements(data, Record<Unit>(data, unit)) };
@@ -42,8 +41,7 @@ uint8_t opeu_list_unit_elements(Game& game, HostEvent event, uint16_t unit) {
 }
 
 // Lists an objective's stock items that hold an amount in view_stocks; returns their count.
-uint8_t opeu_list_objective_stocks(Game& game, HostEvent event, uint16_t objective) {
-  (void)event;
+uint8_t opeu_list_objective_stocks(Game& game, uint16_t objective) {
   auto&        data{ Data(game) };
   std::uint8_t count{ 0 };
   for (auto const& item : Record<Objective>(data, objective).items)
@@ -53,8 +51,7 @@ uint8_t opeu_list_objective_stocks(Game& game, HostEvent event, uint16_t objecti
 
 // The total quantity of a regiment's spotted elements whose type is of `category`; their number goes to the byte at
 // `count`.
-uint16_t opeu_element_kind_total(Game& game, HostEvent event, uint16_t unit, uint8_t category, uint16_t count) {
-  (void)event;
+uint16_t opeu_element_kind_total(Game& game, uint16_t unit, uint8_t category, uint16_t count) {
   auto&         data{ Data(game) };
   std::uint16_t total{ 0 };
   Byte(game, count) = 0;
@@ -75,9 +72,8 @@ uint8_t opeu_view_objective_ok(Game& game, HostEvent event) {
 }
 
 // Row check that rejects every row.
-uint8_t opeu_view_false(Game& game, HostEvent event) {
+uint8_t opeu_view_false(Game& game) {
   (void)game;
-  (void)event;
   return 0;
 }
 
@@ -99,25 +95,23 @@ uint8_t opeu_view_unit_ok(Game& game, HostEvent event) {
 }
 
 // Further row checks that reject every row.
-uint8_t opeu_view_false_2(Game& game, HostEvent event) {
-  return opeu_view_false(game, event);
+uint8_t opeu_view_false_2(Game& game) {
+  return opeu_view_false(game);
 }
 
-uint8_t opeu_view_false_3(Game& game, HostEvent event) {
-  return opeu_view_false(game, event);
+uint8_t opeu_view_false_3(Game& game) {
+  return opeu_view_false(game);
 }
 
 // Row check that accepts every row.
-uint8_t opeu_view_true(Game& game, HostEvent event) {
+uint8_t opeu_view_true(Game& game) {
   (void)game;
-  (void)event;
   return 1;
 }
 
 // Appends to the word list at `list` the equipment types of `category` that a nation in `mask` fields and that are in
 // service by the current month (the type's date is year * 16 + month); returns how many were appended.
-uint8_t opeu_list_element_types(Game& game, HostEvent event, uint16_t list, uint8_t mask, uint8_t category) {
-  (void)event;
+uint8_t opeu_list_element_types(Game& game, uint16_t list, uint8_t mask, uint8_t category) {
   auto& data{ Data(game) };
   auto  at{ list };
   for (auto const& type : data.element_types)
@@ -145,19 +139,19 @@ uint16_t svc_vwlist(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
 auto port_routine_opeu_view_false(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_false(game, svc_vwlist);
+  return opeu_view_false(game);
 }
 
 auto port_routine_opeu_view_false_2(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_false_2(game, svc_vwlist);
+  return opeu_view_false_2(game);
 }
 
 auto port_routine_opeu_view_false_3(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_false_3(game, svc_vwlist);
+  return opeu_view_false_3(game);
 }
 
 auto port_routine_opeu_view_group_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -175,7 +169,7 @@ auto port_routine_opeu_view_objective_ok(Game& game, std::uint16_t const* args, 
 auto port_routine_opeu_view_true(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_view_true(game, svc_vwlist);
+  return opeu_view_true(game);
 }
 
 auto port_routine_opeu_view_unit_ok(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {

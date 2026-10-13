@@ -61,7 +61,7 @@ constexpr uint8_t SPOT_STEP{ 20 };
 
 [[nodiscard]] auto TerrainCost(Game& game, uint8_t x, uint8_t y, uint16_t element) -> uint8_t {
   auto const& data{ Data(game) };
-  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
+  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
   return data.battle_terrain_costs[terrain * 8u + ElementTypeOf(data, element).category];
 }
 
@@ -107,7 +107,7 @@ uint16_t opeu_battle_path_step(Game& game, uint16_t x, uint16_t y) {
   for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
     Byte(game, step_x_at) = Byte(game, x);
     Byte(game, step_y_at) = Byte(game, y);
-    if (!opeu_battle_step(game, svc_btlcalc, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
+    if (!opeu_battle_step(game, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
     auto const cost{ data.battle_path_costs[Byte(game, step_y_at) * BATTLE_WIDTH + Byte(game, step_x_at)] };
     if (cost < best) {
       best_x = Byte(game, step_x_at);
@@ -144,7 +144,7 @@ uint16_t opeu_battle_path_flood(Game& game, uint8_t x, uint8_t y, uint8_t to_x, 
     for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
       Byte(game, step_x_at) = from_x;
       Byte(game, step_y_at) = from_y;
-      if (!opeu_battle_step(game, svc_btlcalc, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
+      if (!opeu_battle_step(game, game.State().Bytes(step_x_at, 1).data(), game.State().Bytes(step_y_at, 1).data(), static_cast<uint8_t>(direction))) continue;
       auto const step_x{ Byte(game, step_x_at) };
       auto const step_y{ Byte(game, step_y_at) };
       if (to_x == step_x && to_y == step_y && (mode & FLOOD_TO_CELL)) return 1;
@@ -193,7 +193,7 @@ uint16_t opeu_battle_spot_chance(Game& game, uint16_t element, uint16_t other) {
   auto const& position{ PositionOf(data, other) };
   auto const  mode{ static_cast<uint8_t>(opeu_battle_terrain_mode(game, element, other)) };
   auto        chance{ static_cast<uint8_t>((SPOT_STEPS - mode) * SPOT_STEP) };
-  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
+  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
   opeu_sub_byte(Cover(terrain), &chance);
   opeu_sub_byte(WeatherToll(data.weather), &chance);
   return port_rand_bounded(game, 100) < chance ? 1 : 0;
@@ -212,7 +212,7 @@ void opeu_battle_spot_enemies(Game& game, uint16_t element) {
     auto x{ left };
     for (uint8_t column{ 0 }; column < span; ++column, ++x) {
       if (x < 0 || x >= static_cast<int16_t>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int16_t>(BATTLE_WIDTH)) continue;
-      auto const other{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(static_cast<uint16_t>(x)), static_cast<uint8_t>(static_cast<uint16_t>(y))) };
+      auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(static_cast<uint16_t>(x)), static_cast<uint8_t>(static_cast<uint16_t>(y))) };
       if (!other || static_cast<uint8_t>(opeu_battle_element_side(game, other)) == side || opeu_battle_element_flag2(game, other) || !opeu_battle_spot_chance(game, element, other)) continue;
       Record<Element>(data, other).flags |= Bits(ElementFlag::SPOTTED);
       auto const own{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };

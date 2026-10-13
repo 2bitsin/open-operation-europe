@@ -106,7 +106,7 @@ void opeu_air_lift_command(Game& game, HostEvent event) {
     if (!Call(game, event, CONFIRM, Near(data, data.lift_cancel), data.context_record3)) return;
     side.lift.planes = 0;
   }
-  std::uint16_t remaining{ opeu_air_free_planes(game, event) };
+  std::uint16_t remaining{ opeu_air_free_planes(game) };
   if (remaining == 0) {
     Call(game, event, MESSAGE, Near(data, data.lift_no_planes), data.context_record3);
     return;

@@ -186,9 +186,9 @@ uint16_t svc_evbomb(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
     break;
   }
   case SOUND_CUE:      opeu_sound_cue4(game, svc_soundcue); break;
-  case DELAY:          opeu_delay_ticks(game, svc_waitkey, word(0)); break;
+  case DELAY:          opeu_delay_ticks(game, word(0)); break;
   case MUSIC_COMMAND7: opeu_music_command7(game, svc_sound); break;
-  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, static_cast<uint8_t>(word(0))); break;
+  case PENDING_FINISH: opeu_pending_finish(game, static_cast<uint8_t>(word(0))); break;
   case UNIT_NAME:      result = opeu_unit_name(game, svc_unitname, word(0), word(1)); break;
   case LOOKUP:         result = opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(word(0))); break;
   case REQUEST_FORMAT: opeu_request_format(game, { args, count }); break;

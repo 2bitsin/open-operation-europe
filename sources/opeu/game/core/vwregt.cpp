@@ -50,7 +50,7 @@ void opeu_view_regiment_list(Game& game, HostEvent event) {
        height = 6) {
     auto const unit{ data.supply_units[data.list_row] };
     Call(game, event, ViewService::UNIT_ANNOUNCE, unit, height);
-    data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(game, event, unit) + 1);
+    data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(game, unit) + 1);
     SetRowCheck(game, event, data.choice_dialog, RowCheck::NONE_2);
     Call(game, event, ViewService::CONTROL_PANEL);
     auto const unit_name{ Call(game, event, ViewService::UNIT_NAME, unit, name) };
@@ -63,7 +63,7 @@ void opeu_view_regiment_list(Game& game, HostEvent event) {
 }
 
 // Lists the eight regiments of one of the own side's divisions; returns 8.
-uint8_t opeu_list_group_units(Game& game, HostEvent, uint8_t group) {
+uint8_t opeu_list_group_units(Game& game, uint8_t group) {
   auto&      data{ Data(game) };
   auto const first{ (data.current_side * GROUPS_PER_SIDE + group) * UNITS_PER_GROUP };
   for (std::uint8_t n = 0; n < UNITS_PER_GROUP; n++) data.supply_units[n] = Near(data, data.units[first + n]);
@@ -82,7 +82,7 @@ void opeu_view_own_divisions(Game& game, HostEvent event) {
     auto const  division{ data.list_row };
     auto const& group{ GroupOf(data, data.current_side, division) };
     Call(game, event, ViewService::GROUP_SHOW, Near(data, group), division);
-    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(game, event, division) + 1);
+    data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(game, division) + 1);
     SetRowCheck(game, event, data.organize_list, RowCheck::REGIMENT);
     Call(game, event, ViewService::COPY_BYTES, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
     opeu_view_regiment_list(game, event);

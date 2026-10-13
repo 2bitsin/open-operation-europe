@@ -42,8 +42,7 @@ auto CallAction(Game& game, HostEvent event, FarPointer const& action) -> std::u
 }
 } // namespace
 
-void opeu_control_prepare(Game& game, HostEvent event) {
-  (void)event;
+void opeu_control_prepare(Game& game) {
   for (auto& message : Data(game).advice_messages) message[0] = 0;
 }
 

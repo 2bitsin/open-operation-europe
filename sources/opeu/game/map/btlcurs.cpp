@@ -41,7 +41,7 @@ constexpr uint16_t HEX_MASK_SEGMENT{ 0x352d }; // the far segment of the hex-sha
 
 uint16_t opeu_battle_cell_open(Game& game, uint8_t x, uint8_t y, uint16_t element) {
   if (!opeu_battle_cell_occupied(game, x, y)) return 1;
-  auto const other{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+  auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
   return other && opeu_battle_element_side(game, element) != opeu_battle_element_side(game, other) && !opeu_battle_element_flag2(game, other);
 }
 

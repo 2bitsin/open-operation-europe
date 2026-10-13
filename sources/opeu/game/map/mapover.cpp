@@ -110,8 +110,3 @@ void opeu_overview_cell_draw(Game& game, HostEvent event, uint8_t x, uint8_t y) 
   }
   if (auto const unit{ opeu_find_unit_at(game, x, y) }; unit && opeu_unit_visible(game, unit)) opeu_overview_unit_draw(game, event, unit, pixel_x, pixel_y);
 }
-
-// Services of this module: the 15c4 segment's shared map services (map/blast).
-uint16_t svc_mapover(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(game, "mapover", kind, args, count);
-}

@@ -175,7 +175,7 @@ void opeu_battle_element_destroy(Game& game, uint16_t element) {
   }
   if (opeu_battle_unit_active(game, unit)) return;
   auto const garrison{ Near(data, data.battle_garrison) };
-  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
+  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) == BATTLE_NOT_ADJACENT && unit != garrison) data.battle_direction = data.battle_exit_direction[0];
   if (unit == garrison) {
     auto&   objective{ Record<Objective>(data, opeu_find_objective_at(game, static_cast<uint8_t>(data.battle_x), static_cast<uint8_t>(data.battle_y))) };
     uint8_t gone{ 0 };

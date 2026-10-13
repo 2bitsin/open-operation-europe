@@ -175,7 +175,7 @@ void opeu_battle_officer_hit(Game& game, uint16_t record, uint16_t text, uint16_
     message();
     Record<Person>(data, record) = saved;
   }
-  opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(HIT_WAIT));
+  opeu_delay_units(game, static_cast<std::uint8_t>(HIT_WAIT));
 }
 
 void opeu_battle_officer_losses(Game& game) {

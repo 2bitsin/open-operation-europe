@@ -120,7 +120,7 @@ uint16_t port_prompt_yes_no(Game& game, uint16_t text) {
  * resources and hand over their whole contents. */
 
 static uint8_t* read_resource(Game& game, uint16_t name, size_t* size) {
-  int16_t  h   = opeu_open_resource(game, svc_resopen, name);
+  int16_t  h   = opeu_open_resource(game, name);
   int32_t  end = h < 0 ? 0 : opeu_dos_seek(h, 0, 2);
   uint8_t* data;
   size_t   done = 0;

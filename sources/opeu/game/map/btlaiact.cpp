@@ -41,7 +41,7 @@ constexpr uint8_t  BATTLE_EDGE{ BATTLE_WIDTH - 1 };
 constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
 
 [[nodiscard]] auto CanEnter(Game& game, uint8_t x, uint8_t y, uint16_t element) -> uint16_t {
-  return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element);
+  return opeu_battle_can_enter(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), element);
 }
 
 // Floods the path costs from (from_x, from_y); nonzero when (x, y) is reached.

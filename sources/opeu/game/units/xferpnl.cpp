@@ -201,7 +201,7 @@ uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* arg
   std::uint16_t r{ 0 };
   switch (static_cast<TransferService>(id)) {
   case MOUSE_SHOW:     opeu_mouse_show(game, svc_mouse); break;
-  case INPUT_DELAY:    opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
+  case INPUT_DELAY:    opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case MOUSE_POSITION: {
     // x and y go back to the caller's words.
     auto const position{ MousePosition(game, svc_mouse) };
@@ -226,7 +226,7 @@ uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* arg
   case SOUND_CUE_14:    opeu_sound_cue14(game, svc_soundcue); break;
   case SOUND_CUE_16:    opeu_sound_cue16(game, svc_soundcue); break;
   case MUSIC_COMMAND_7: opeu_music_command7(game, svc_sound); break;
-  case PENDING_FINISH:  opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case PENDING_FINISH:  opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case DAILY_CONTEXT:   opeu_daily_context(game, svc_context, (uint8_t)Arg(args, count, 0)); break;
   case CONFIRM:         r = opeu_confirm_ok(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
   case INPUT_RESET:     opeu_input_reset(game, svc_mouse); break;
@@ -260,8 +260,4 @@ uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* arg
   default:               port_unhandled(module, id, count);
   }
   return r;
-}
-
-uint16_t svc_xferpnl(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
-  return svc_transfer(game, "xferpnl", id, args, count);
 }

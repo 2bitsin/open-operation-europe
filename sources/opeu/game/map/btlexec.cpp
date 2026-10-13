@@ -48,7 +48,7 @@ void Message(Game& game, uint16_t text) {
 // The cost for the element to enter the cursor's cell.
 [[nodiscard]] auto TerrainCost(Game& game, uint16_t element) -> uint8_t {
   auto&      data{ Data(game) };
-  auto const terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y))) };
+  auto const terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y))) };
   auto const category{ ElementTypeOf(data, element).category };
   return data.battle_terrain_costs[terrain * 8u + category];
 }
@@ -79,7 +79,7 @@ uint16_t opeu_battle_order_command(Game& game, uint16_t element, uint8_t command
   auto&      data{ Data(game) };
   auto const whole{ command >= WHOLE_UNIT };
   auto const side{ [&](uint16_t e) { return opeu_battle_element_side(game, e); } };
-  auto const target_at_cursor{ [&] { return opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)); } };
+  auto const target_at_cursor{ [&] { return opeu_battle_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)); } };
   for (;;) {
     auto const unit{ opeu_battle_element_unit(game, element) };
     opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));

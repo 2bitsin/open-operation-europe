@@ -16,20 +16,20 @@ enum class BattleSkill : uint8_t {
 };
 
 void     opeu_battle_pause(Game& game, BattleService service, uint8_t ticks);
-uint8_t  opeu_battle_unit_direction(Game& game, BattleService service, uint16_t unit);
+uint8_t  opeu_battle_unit_direction(Game& game, uint16_t unit);
 uint8_t  opeu_battle_skill(Game& game, BattleService service, uint16_t element, uint8_t kind);
 uint8_t  opeu_battle_element_strength(Game& game, BattleService service, uint16_t element);
-uint8_t  opeu_battle_odds(Game& game, BattleService service, uint8_t rating, uint8_t range);
-uint8_t  opeu_battle_element_rating(Game& game, BattleService service, uint16_t attacker, uint16_t target);
-uint8_t  opeu_battle_element_range(Game& game, BattleService service, uint16_t element);
-uint8_t  opeu_battle_element_shots(Game& game, BattleService service, uint16_t attacker, uint16_t target);
-uint8_t  opeu_battle_cell_terrain(Game& game, BattleService service, uint8_t x, uint8_t y);
-uint16_t opeu_battle_can_enter(Game& game, BattleService service, uint8_t x, uint8_t y, uint16_t element);
+uint8_t  opeu_battle_odds(Game& game, uint8_t rating, uint8_t range);
+uint8_t  opeu_battle_element_rating(Game& game, uint16_t attacker, uint16_t target);
+uint8_t  opeu_battle_element_range(Game& game, uint16_t element);
+uint8_t  opeu_battle_element_shots(Game& game, uint16_t attacker, uint16_t target);
+uint8_t  opeu_battle_cell_terrain(Game& game, uint8_t x, uint8_t y);
+uint16_t opeu_battle_can_enter(Game& game, uint8_t x, uint8_t y, uint16_t element);
 uint8_t  opeu_battle_move_cost(Game& game, BattleService service, uint8_t x, uint8_t y, uint16_t element);
-void     opeu_battle_step_unchecked(Game& game, BattleService service, uint8_t* x, uint8_t* y, uint8_t direction);
-uint16_t opeu_battle_step(Game& game, BattleService service, uint8_t* x, uint8_t* y, uint8_t direction);
+void     opeu_battle_step_unchecked(Game& game, uint8_t* x, uint8_t* y, uint8_t direction);
+uint16_t opeu_battle_step(Game& game, uint8_t* x, uint8_t* y, uint8_t direction);
 uint16_t opeu_battle_unit_controlled(Game& game, BattleService service, uint16_t unit);
-uint16_t opeu_battle_element_at(Game& game, BattleService service, uint8_t x, uint8_t y);
+uint16_t opeu_battle_element_at(Game& game, uint8_t x, uint8_t y);
 
 // The services of this module.
 uint16_t svc_btlcalc(Game& game, uint16_t id, uint16_t arg);

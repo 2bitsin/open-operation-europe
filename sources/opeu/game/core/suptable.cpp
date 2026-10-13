@@ -47,7 +47,7 @@ auto TypeAt(std::uint8_t type) -> std::uint16_t {
 auto LayOutColumns(Game& game, std::uint8_t column, std::uint8_t row) -> void {
   ServiceLocals const locals{ 4 };
   auto const          out{ locals.At(0) };
-  opeu_table_columns(game, svc_listui, column, row, out, static_cast<std::uint16_t>(out + 1), static_cast<std::uint16_t>(out + 2));
+  opeu_table_columns(game, column, row, out, static_cast<std::uint16_t>(out + 1), static_cast<std::uint16_t>(out + 2));
 }
 
 } // namespace

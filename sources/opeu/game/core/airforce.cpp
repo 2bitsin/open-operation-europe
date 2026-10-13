@@ -47,7 +47,7 @@ auto Average(std::uint8_t a, std::uint8_t b) -> std::uint8_t {
 
 // Picks the air-force officer for the commander's nations; his ratings are the averages of the commander's and the
 // chief of staff's leadership, charm and experience.
-void opeu_air_officer(Game& game, HostEvent) {
+void opeu_air_officer(Game& game) {
   auto&       data{ Data(game) };
   auto const& commander{ Record<Person>(data, data.context_record1) };
   auto const& staff{ Record<Person>(data, data.context_record3) };
@@ -68,7 +68,7 @@ void opeu_turn_action_8(Game& game, HostEvent event) {
   ServiceLocals const locals{ LOCATION_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  opeu_air_officer(game, event);
+  opeu_air_officer(game);
   do {
     auto const&   side{ Record<Side>(data, data.current_side_ptr) };
     std::uint16_t row{ 0 };

@@ -130,7 +130,7 @@ uint16_t opeu_battle_orders_menu(Game& game, uint16_t element) {
     }
     break;
   }
-  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) {
+  if (static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) == BATTLE_NOT_ADJACENT && unit != Near(data, data.battle_garrison)) {
     auto exit{ NO_SIDE };
     for (auto it{ Elements(data, Record<Unit>(data, unit)).begin() }; it != std::default_sentinel; ++it)
       if (opeu_battle_state(game, it.Near()) == std::to_underlying(BattleState::WITHDRAW)) {

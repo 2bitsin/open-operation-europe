@@ -97,9 +97,9 @@ void opeu_battle_remove_list(Game& game, uint16_t unit) {
 uint8_t opeu_battle_attack_rating(Game& game, uint16_t attacker, uint16_t target) {
   if (opeu_battle_engaged(game, attacker) && PositionOf(Data(game), attacker).target == target) return ENGAGED_RATING;
   auto const odds{ [&](uint16_t from, uint16_t to) {
-    auto const rating{ static_cast<uint8_t>(opeu_battle_element_rating(game, svc_btlcalc, to, from)) };
-    auto const range{ static_cast<uint8_t>(opeu_battle_element_range(game, svc_btlcalc, from)) };
-    return static_cast<uint8_t>(opeu_battle_odds(game, svc_btlcalc, static_cast<uint8_t>(rating), static_cast<uint8_t>(range)));
+    auto const rating{ static_cast<uint8_t>(opeu_battle_element_rating(game, to, from)) };
+    auto const range{ static_cast<uint8_t>(opeu_battle_element_range(game, from)) };
+    return static_cast<uint8_t>(opeu_battle_odds(game, static_cast<uint8_t>(rating), static_cast<uint8_t>(range)));
   } };
   auto const defence{ odds(target, attacker) };
   auto const attack{ odds(attacker, target) };
@@ -125,7 +125,7 @@ uint16_t opeu_battle_best_target(Game& game, uint16_t element) {
     int x{ left };
     for (uint8_t column{ 0 }; column < span; ++column, ++x) {
       if (x < 0 || x >= static_cast<int>(BATTLE_WIDTH) || y < 0 || y >= static_cast<int>(BATTLE_WIDTH) || !opeu_battle_cell_occupied(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) continue;
-      auto const other{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y))) };
+      auto const other{ opeu_battle_element_at(game, static_cast<uint8_t>(static_cast<uint8_t>(x)), static_cast<uint8_t>(static_cast<uint8_t>(y))) };
       if (!opeu_battle_element_active(game, other) || opeu_battle_element_side(game, other) == side || !opeu_battle_element_flag2(game, other)) continue;
       if (auto const rating{ opeu_battle_attack_rating(game, element, other) }; rating > best_rating) {
         best_rating = rating;

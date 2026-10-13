@@ -134,8 +134,8 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
   case MISSION_TURN_CONTEXT:   opeu_set_turn_context(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_FINISH_SIDE:    opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_DEPUTY:         opeu_initialize_deputy(game, Arg(args, count, 0)); break;
-  case MISSION_PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_DELAY_UNITS:    opeu_delay_units(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case MISSION_PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
+  case MISSION_DELAY_UNITS:    opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case MISSION_WEATHER:        opeu_weather_update(game); break;
   case MISSION_TURN_PREPARE:   opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
   case MISSION_AIR_OPERATIONS: opeu_air_operations(game, svc_aircargo); break;

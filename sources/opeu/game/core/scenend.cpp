@@ -296,7 +296,7 @@ uint16_t svc_scenend(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case FORMAT:           opeu_request_format(game, { args, count }); break;
   case VGA_CLEAR:        r = (uint16_t)opeu_vga_clear(); break;
   case MAP_PALETTE:      opeu_palette_map_screen(game, (const UiHost*)port_uiprim_host()); break;
-  case OPEN:             r = (uint16_t)opeu_open_resource(game, svc_resopen, Arg(args, count, 0)); break;
+  case OPEN:             r = (uint16_t)opeu_open_resource(game, Arg(args, count, 0)); break;
   case PICTURE:          opeu_picture_file(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
   case PICTURE_MASKED:   opeu_picture_file_masked(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), Arg(args, count, 3)); break;
   case PICTURE_AT:       opeu_picture_file_at(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), (int16_t)Arg(args, count, 2), (int32_t)Arg32(args, count, 3)); break;
@@ -304,7 +304,7 @@ uint16_t svc_scenend(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case POSITION:         opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case PRINT:            opeu_cursor_print(game, { args, count }); break;
   case FINISH_INIT:      opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case DELAY:            opeu_delay_units(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case DELAY:            opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
   case SET_PALETTE:      r = (uint16_t)opeu_set_palette((uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), game.State().Bytes(Arg(args, count, 2)).data()); break;
   case LOOKUP:           r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
   case FLUSH:            opeu_input_flush(game, (TextHost*)port_textout_host()); break;

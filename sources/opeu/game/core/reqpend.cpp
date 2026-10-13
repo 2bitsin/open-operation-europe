@@ -113,7 +113,7 @@ uint16_t svc_reqpend(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c
   }
   case PendingService::MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), a, b); break;
   case PendingService::PREPARE: opeu_pending_prepare(game, svc_soundcue); break;
-  case PendingService::FINISH:  opeu_pending_finish(game, svc_waitkey, (uint8_t)a); break;
+  case PendingService::FINISH:  opeu_pending_finish(game, (uint8_t)a); break;
   default:                      port_unhandled("reqpend", id, 4);
   }
   return r;

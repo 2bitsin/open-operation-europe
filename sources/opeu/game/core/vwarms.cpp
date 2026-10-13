@@ -64,7 +64,7 @@ constexpr std::uint16_t VIEW_MENU_ITEMS{ 6 };
 // Collects, kind by kind, the equipment types the nation bits allow into the weapon list and shows the list.
 void ViewWeapons(Game& game, HostEvent event, std::uint8_t mask) {
   std::uint16_t end{ WEAPON_LIST };
-  for (std::uint8_t kind = 0; kind < ELEMENT_KINDS; kind++) end = static_cast<std::uint16_t>(end + 2 * opeu_list_element_types(game, event, end, mask, kind));
+  for (std::uint8_t kind = 0; kind < ELEMENT_KINDS; kind++) end = static_cast<std::uint16_t>(end + 2 * opeu_list_element_types(game, end, mask, kind));
   opeu_view_weapon_list(game, event, end);
 }
 

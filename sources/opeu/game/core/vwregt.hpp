@@ -5,7 +5,7 @@
 #include "types.hpp"
 
 void    opeu_view_regiment_list(Game& game, HostEvent event);
-uint8_t opeu_list_group_units(Game& game, HostEvent event, uint8_t group);
+uint8_t opeu_list_group_units(Game& game, uint8_t group);
 void    opeu_view_own_divisions(Game& game, HostEvent event);
 void    opeu_view_enemy_units(Game& game, HostEvent event);
 

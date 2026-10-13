@@ -206,7 +206,7 @@ uint16_t svc_cmdxfer(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case DAILY_SHOW:
     opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (unsigned int)((uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)));
     break;
-  case PENDING_FINISH: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   default:             port_unhandled("cmdxfer", id, count);
   }
   return r;

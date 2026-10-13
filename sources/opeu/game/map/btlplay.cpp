@@ -59,7 +59,7 @@ void opeu_battle_player_orders(Game& game) {
       if (finished) return;
       continue;
     }
-    auto const element{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)) };
+    auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y)) };
     if (element) {
       if (opeu_battle_element_side(game, element) == data.battle_active_side) {
         if (opeu_battle_level_allowed(game, element)) {
@@ -96,7 +96,7 @@ void opeu_battle_redraw_side(Game& game, uint8_t index) {
   for (uint8_t y{ 0 }; y < BATTLE_WIDTH; ++y)
     for (uint8_t x{ 0 }; x < BATTLE_WIDTH; ++x) {
       if (!opeu_battle_cell_occupied(game, x, y)) continue;
-      auto const element{ opeu_battle_element_at(game, svc_btlcalc, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+      auto const element{ opeu_battle_element_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
       if (index != REDRAW_ALL) {
         if (!opeu_battle_element_flag2(game, element) && opeu_battle_element_side(game, element) != opeu_battle_unit_side(game, BattleList(data, index, 0))) {
           opeu_battle_draw_cell(game, x, y);

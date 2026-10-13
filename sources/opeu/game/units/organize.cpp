@@ -328,7 +328,7 @@ uint16_t svc_organize(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case Service::TALLY_UNITS:      r = opeu_tally_units(game, svc_tally, Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::ALLOC_SCREEN:     opeu_alloc_screen(game, svc_allocscr, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
   case Service::ALLOC_TAKE:       opeu_alloc_take(game, svc_allocscr, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), (uint8_t)Arg(args, count, 3)); break;
-  case Service::ALLOC_NONEMPTY:   r = opeu_alloc_groups_nonempty(game, svc_allocpnl, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
+  case Service::ALLOC_NONEMPTY:   r = opeu_alloc_groups_nonempty(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case Service::ALLOC_TYPE_PANEL: opeu_alloc_type_panel(game, svc_allocpnl, (uint8_t)Arg(args, count, 0), Arg(args, count, 1)); break;
   case Service::ALLOC_DISTRIBUTE:
     opeu_alloc_distribute(game, svc_allocdst, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2), (uint8_t)Arg(args, count, 3));

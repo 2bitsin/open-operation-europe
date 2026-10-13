@@ -14,18 +14,11 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
 namespace {
-
-enum Service : std::uint16_t {
-  COLUMNS   = 0, // (column, row, out0, out1, out2): writes the three DS bytes
-  POSITION  = 1, // (x, y)
-  FORMAT    = 2, // (destination, format, args...)
-  PRINT     = 6, // (format, args...)
-  PUT_RANGE = 7, // (text, start, count)
-};
 
 constexpr std::uint8_t  DRAW_HEADER{ 3 }; // flags bits that draw the header
 constexpr std::uint8_t  DRAW_NUMBER{ 5 }; // flags bits that draw the slot numbers
@@ -41,7 +34,7 @@ auto opeu_tbl_save_accept() -> std::uint8_t {
 
 // Draws the saved-game table: slot number, scenario, difficulty, date and players. Its reserve holds the column
 // layout's three bytes, then the text buffer.
-void opeu_tbl_draw_saves(Game& game, HostEvent event, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
+void opeu_tbl_draw_saves(Game& game, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
   ServiceLocals const locals{ SCRATCH_SIZE };
   locals.Clear(game);
   auto&              data{ Data(game) };
@@ -49,22 +42,22 @@ void opeu_tbl_draw_saves(Game& game, HostEvent event, std::uint8_t column, std::
   auto const         buffer{ static_cast<std::uint16_t>(scratch + BUFFER_OFFSET) };
   auto const&        window{ Record<ListWindow>(data, data.list_window) };
   std::uint8_t const row_width{ Byte(game, window.widths) };
-  Call(game, event, COLUMNS, column, row, scratch, scratch + 1, scratch + 2);
+  opeu_table_columns(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row), scratch, scratch + 1, scratch + 2);
   std::uint8_t const x{ Byte(game, scratch) };
   std::uint8_t const start{ Byte(game, static_cast<std::uint16_t>(scratch + 1)) };
   std::uint8_t const count{ Byte(game, static_cast<std::uint16_t>(scratch + 2)) };
   auto const         text_x{ row_width + x + window.x - 0x20 };
   if (flags & DRAW_HEADER) {
-    Call(game, event, FORMAT, buffer, Near(data, data.tbl_save_header));
-    Call(game, event, POSITION, text_x, window.y + 1);
-    Call(game, event, PUT_RANGE, buffer, start, count);
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_save_header)) });
+    opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(window.y + 1));
+    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
   }
   for (std::uint8_t slot_index{ first }; slot_index <= last; ++slot_index) {
     auto const& slot{ data.save_slots[slot_index] };
     auto const  y{ (slot_index - data.list_top) * ROW_HEIGHT + window.y + 18 };
     if (flags & DRAW_NUMBER) {
-      Call(game, event, POSITION, window.x + 3, y);
-      Call(game, event, PRINT, Near(data, data.tbl_save_number), slot_index + 1);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(window.x + 3), static_cast<std::int16_t>(y));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_save_number)), static_cast<std::uint16_t>(slot_index + 1) });
     }
     switch (slot.scenario & SCENARIO_MASK) {
     case 0: data.tbl_save_map = Near(data, data.tbl_map_france); break;
@@ -82,32 +75,19 @@ void opeu_tbl_draw_saves(Game& game, HostEvent event, std::uint8_t column, std::
     case 4: data.tbl_save_level = Near(data, data.tbl_level_vhard); break;
     }
     if ((slot.scenario & SCENARIO_MASK) != SLOT_EMPTY) {
-      Call(game, event, FORMAT, buffer, Near(data, data.tbl_save_row), data.tbl_save_map, data.tbl_save_level, slot.month, slot.day, slot.year, slot.hour, data.tbl_player_names[slot.control[0]],
-           data.tbl_player_names[slot.control[1]]);
-      Call(game, event, POSITION, text_x, y);
-      Call(game, event, PUT_RANGE, buffer, start, count);
+      opeu_request_format(game,
+                          std::array<std::uint16_t, 10>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_save_row)), static_cast<std::uint16_t>(data.tbl_save_map),
+                                                         static_cast<std::uint16_t>(data.tbl_save_level), static_cast<std::uint16_t>(slot.month), static_cast<std::uint16_t>(slot.day),
+                                                         static_cast<std::uint16_t>(slot.year), static_cast<std::uint16_t>(slot.hour),
+                                                         static_cast<std::uint16_t>(data.tbl_player_names[slot.control[0]]), static_cast<std::uint16_t>(data.tbl_player_names[slot.control[1]]) });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(y));
+      opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
     }
   }
 }
 
-auto svc_tblsave(Game& game, std::uint16_t kind, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
-  switch (kind) {
-  case COLUMNS:
-    opeu_table_columns(game, svc_listui, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4));
-    break;
-  case POSITION: opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(Arg(args, count, 0)), static_cast<std::int16_t>(Arg(args, count, 1))); break;
-  case FORMAT:   opeu_request_format(game, { args, count }); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  case PUT_RANGE:
-    opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)));
-    break;
-  default: port_unhandled("tblsave", kind, count);
-  }
-  return 0;
-}
-
 auto port_routine_opeu_tbl_draw_saves(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  opeu_tbl_draw_saves(game, svc_tblsave, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
+  opeu_tbl_draw_saves(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2)),
                       static_cast<std::uint8_t>(Arg(args, count, 3)), static_cast<std::uint8_t>(Arg(args, count, 4)));
   return 0;
 }

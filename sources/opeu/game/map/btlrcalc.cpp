@@ -43,7 +43,7 @@ constexpr uint8_t  DEFENCE_LEADERSHIP{ 0x46 };
 [[nodiscard]] auto Cover(Game& game, uint16_t target, uint16_t& weather) -> uint16_t {
   auto&       data{ Data(game) };
   auto const& position{ PositionOf(data, target) };
-  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, svc_btlcalc, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
+  auto const  terrain{ static_cast<uint8_t>(opeu_battle_cell_terrain(game, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y))) };
   weather = data.weather_obscurity[data.weather];
   return Record<uint8_t>(data, static_cast<uint16_t>(Near(data, data.battle_terrain_cover) + terrain));
 }
@@ -150,7 +150,7 @@ namespace {
 [[nodiscard]] auto Casualties(Game& game, uint16_t shooter, uint16_t target, bool into_bunker) -> uint16_t {
   auto&      data{ Data(game) };
   auto&      unit{ Record<Unit>(data, opeu_battle_element_unit(game, shooter)) };
-  auto const shots{ static_cast<uint16_t>(static_cast<uint8_t>(opeu_battle_element_shots(game, svc_btlcalc, shooter, target)) / 3u) };
+  auto const shots{ static_cast<uint16_t>(static_cast<uint8_t>(opeu_battle_element_shots(game, shooter, target)) / 3u) };
   auto const ammunition{ unit.resources[0] };
   unit.resources[0] = static_cast<uint16_t>(ammunition - (ammunition < shots ? ammunition : shots));
   auto const& type{ ElementTypeOf(data, shooter) };

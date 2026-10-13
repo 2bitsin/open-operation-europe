@@ -68,16 +68,6 @@ void opeu_order_layout_pair(Game& game, uint16_t kind) {
   }
 }
 
-// The helpers' only call, confirm_message, is an order service; the callers (ordissue, ordact) pass their own event.
-uint16_t svc_ordunit(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case CONFIRM_MESSAGE: svc_orders(game, id, args, count, &r); break;
-  default:              port_unhandled("ordunit", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_supply_unit_enabled(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;

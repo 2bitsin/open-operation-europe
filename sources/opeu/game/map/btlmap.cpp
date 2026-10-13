@@ -82,7 +82,7 @@ void opeu_battle_draw_border(Game& game, HostEvent event) {
 }
 
 // A hex map terrain code as the battle's (0 beyond the table).
-uint8_t opeu_hex_terrain_code(Game& game, HostEvent, uint8_t code) {
+uint8_t opeu_hex_terrain_code(Game& game, uint8_t code) {
   if (code > LAST_HEX_CODE) code = 0;
   return Data(game).hex_terrain_codes[code];
 }
@@ -102,7 +102,7 @@ void opeu_battle_load_terrain(Game& game, HostEvent event) {
     for (unsigned x{ 0 }; x < BATTLE_WIDTH; ++x) {
       auto&      cell{ BattleTerrainAt(data, x, y) };
       auto const flags{ static_cast<uint8_t>(cell & HEX_FLAG_MASK) };
-      auto const code{ opeu_hex_terrain_code(game, event, static_cast<uint8_t>(cell & BATTLE_TERRAIN_MASK)) };
+      auto const code{ opeu_hex_terrain_code(game, static_cast<uint8_t>(cell & BATTLE_TERRAIN_MASK)) };
       cell = static_cast<uint8_t>(code | flags);
     }
   for (unsigned y{ 0 }; y < BATTLE_WIDTH; ++y)
@@ -182,7 +182,7 @@ void opeu_battle_garrison_cells(Game& game, HostEvent event) {
   for (uint8_t i{ 0 }; Record<Objective>(data, site).strength - share * cells > i; ++i) ++BattleExtraAt(data, i).count;
 }
 
-void opeu_battle_reset_state(Game& game, HostEvent) {
+void opeu_battle_reset_state(Game& game) {
   auto& data{ Data(game) };
   data.battle_direction    = NO_DIRECTION;
   data.battle_hq_intact[0] = 0;
@@ -205,7 +205,7 @@ void opeu_battle_reset_state(Game& game, HostEvent) {
 
 // The entry from opeu_notice_one.
 void opeu_battle_map_setup(Game& game, HostEvent event) {
-  opeu_battle_reset_state(game, event);
+  opeu_battle_reset_state(game);
   opeu_battle_load_terrain(game, event);
   opeu_battle_garrison_cells(game, event);
   Call(game, event, MapSetupService::VGA_CLEAR);
@@ -220,7 +220,7 @@ uint16_t svc_btlmap(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   switch (static_cast<MapSetupService>(id)) {
   case MapSetupService::BACKDROP:          opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); return 0;
   case MapSetupService::SPRITE:            koei_3f26(w(0), w(1), w(2), w(3), port_far(w(5), w(4)), port_far(w(7), w(6)), port_far(w(9), w(8)), w(10)); return 0;
-  case MapSetupService::OPEN_RESOURCE:     return static_cast<uint16_t>(opeu_open_resource(game, svc_resopen, w(0)));
+  case MapSetupService::OPEN_RESOURCE:     return static_cast<uint16_t>(opeu_open_resource(game, w(0)));
   case MapSetupService::SEEK:              return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(w(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(w(3))));
   case MapSetupService::READ:              return static_cast<uint16_t>(opeu_dos_read(static_cast<int16_t>(w(0)), game.State().Bytes(w(1), w(2)).data(), w(2)));
   case MapSetupService::CLOSE:             return static_cast<uint16_t>(opeu_dos_close(static_cast<int16_t>(w(0))));

@@ -57,7 +57,7 @@ uint16_t svc_reqerror(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case ErrorService::FORMAT:       opeu_request_format(game, { args, count }); break;
   case ErrorService::SHOW:         opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case ErrorService::PREPARE:      opeu_pending_prepare(game, svc_soundcue); break;
-  case ErrorService::FINISH:       opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case ErrorService::FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   default:                         port_unhandled("reqerror", id, count);
   }
   return r;

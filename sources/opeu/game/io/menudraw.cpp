@@ -159,7 +159,7 @@ auto svc_menudraw(Game& game, std::uint16_t call, std::uint16_t* words) -> std::
   case InputCall::TILE_BLIT:      koei_2e57(words[0], words[1], words[2], words[3], port_far(words[4], words[5])); break;
   case InputCall::BITMAP_SAVE:    opeu_bitmap_save(words[0], words[1], words[2], words[3], port_far(words[4], words[5])); break;
   case InputCall::BITMAP_RESTORE: opeu_bitmap_restore(words[0], words[1], words[2], words[3], words[4], port_far(words[5], words[6])); break;
-  case InputCall::DELAY_UNITS:    opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(words[0])); break;
+  case InputCall::DELAY_UNITS:    opeu_delay_units(game, static_cast<std::uint8_t>(words[0])); break;
   default:                        port_unhandled("menudraw", call, 7);
   }
   return 0;

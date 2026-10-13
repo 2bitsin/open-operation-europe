@@ -39,7 +39,7 @@ uint16_t opeu_battle_exit_ok(Game& game, uint8_t x, uint8_t y, uint16_t element)
   if (x != 0 && y != 0 && x != LAST_CELL && y != LAST_CELL) return 0;
   --exit;
   auto const unit{ opeu_battle_element_unit(game, element) };
-  auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) };
+  auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) };
   if (direction != BATTLE_NOT_ADJACENT) return direction == exit;
   auto cell_x{ data.battle_x };
   auto cell_y{ data.battle_y };
@@ -64,6 +64,6 @@ uint16_t opeu_battle_exit_ok(Game& game, uint8_t x, uint8_t y, uint16_t element)
 
 uint16_t opeu_battle_cursor_exit_ok(Game& game, uint16_t element) {
   auto& data{ Data(game) };
-  return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y), element)
+  return opeu_battle_can_enter(game, static_cast<uint8_t>(data.battle_cursor_x), static_cast<uint8_t>(data.battle_cursor_y), element)
          && opeu_battle_exit_ok(game, data.battle_cursor_x, data.battle_cursor_y, element);
 }

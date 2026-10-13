@@ -42,7 +42,7 @@ uint8_t opeu_deploy_true(Game&) {
 void opeu_deploy_draw_rows(Game& game, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
   auto&       data{ Data(game) };
   auto const& window{ Record<ListWindow>(data, data.list_window) };
-  opeu_table_columns(game, svc_listui, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row), COLUMNS_AT, COLUMNS_AT + 1, COLUMNS_AT + 2);
+  opeu_table_columns(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row), COLUMNS_AT, COLUMNS_AT + 1, COLUMNS_AT + 2);
   // The strength column: the row indent, the first column and the window's left edge.
   auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(game, window.widths) + Byte(game, COLUMNS_AT) + window.x - 0x20); } };
   if (flags & DRAW_HEADER) {

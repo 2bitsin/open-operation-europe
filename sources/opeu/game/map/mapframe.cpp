@@ -104,7 +104,3 @@ void opeu_view_frame(Game& game, HostEvent event, int16_t x, int16_t y) {
   opeu_scale_label_y(game, event, 0x142, 0xa1, 15, 0, scaled(y + 3));
   opeu_scale_label_y(game, event, 0x142, 0x119, 15, 0, scaled(y + 8));
 }
-
-uint16_t svc_mapframe(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(game, "mapframe", kind, args, count);
-}

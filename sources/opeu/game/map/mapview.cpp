@@ -107,8 +107,3 @@ void opeu_view_cell_draw(Game& game, HostEvent event, uint16_t x, uint16_t y) {
   auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
   if (unit != 0 && opeu_unit_visible(game, unit)) opeu_view_unit_draw(game, event, unit, pixel_x, pixel_y);
 }
-
-// The services this module raises (restore, compose, view prepare, far read) are the map segment's shared ones.
-uint16_t svc_mapview(Game& game, uint16_t kind, const uint16_t* args, uint16_t count) {
-  return svc_map_plan(game, "mapview", kind, args, count);
-}

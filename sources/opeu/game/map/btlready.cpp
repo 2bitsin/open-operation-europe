@@ -67,7 +67,7 @@ uint16_t opeu_battle_announce_ready(Game& game) {
     }
   if (announced) {
     opeu_battle_player_turn(game);
-    opeu_delay_units(game, svc_waitkey, static_cast<std::uint8_t>(PAUSE));
+    opeu_delay_units(game, static_cast<std::uint8_t>(PAUSE));
   }
   return announced;
 }

@@ -95,7 +95,7 @@ auto TableColumnLayout(Game& game, std::uint8_t column, std::uint8_t rows) -> Ta
 }
 
 // The service form of TableColumnLayout: stores the three bytes at the DS offsets `first`, `second` and `third`.
-void opeu_table_columns(Game& game, HostWordsEvent, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third) {
+void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third) {
   auto const layout{ TableColumnLayout(game, column, rows) };
   Byte(game, first)  = layout.lead;
   Byte(game, second) = layout.start;

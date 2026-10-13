@@ -115,7 +115,7 @@ uint16_t svc_suppanel(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   uint16_t r{ 0 };
   switch (static_cast<SupplyService>(id)) {
   case MOUSE_SHOW:     opeu_mouse_show(game, svc_mouse); break;
-  case INPUT_DELAY:    opeu_delay_ticks(game, svc_waitkey, Arg(args, count, 0)); break;
+  case INPUT_DELAY:    opeu_delay_ticks(game, Arg(args, count, 0)); break;
   case MOUSE_POSITION: {
     // x and y go back to the caller's words.
     auto*      out{ const_cast<std::uint16_t*>(args) };

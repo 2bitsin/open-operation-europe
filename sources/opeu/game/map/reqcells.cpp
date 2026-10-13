@@ -73,11 +73,3 @@ uint16_t opeu_request_cells(Game& game, uint8_t side, Predicate predicate) {
   }
   return opeu_count_request_cells(game);
 }
-
-uint16_t svc_reqcells(uint8_t* a0, uint8_t a1, uint8_t a2, uint8_t a3) {
-  (void)a0;
-  (void)a2;
-  (void)a3;
-  port_unhandled("reqcells (no service table)", a1, 0);
-  return 0;
-}

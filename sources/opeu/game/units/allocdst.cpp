@@ -91,7 +91,7 @@ void opeu_alloc_distribute(Game& game, HostWordsEvent event, uint8_t first, uint
         element.type     = slot.type;
         element.quantity = slot.quantity;
         element.damage   = 0;
-        opeu_alloc_element_values(game, event, element_near, count);
+        opeu_alloc_element_values(game, element_near, count);
         Call(game, event, INSERT_ELEMENT, unit_near, element_near);
       }
       sum_a += unit.resources[0];
@@ -178,7 +178,7 @@ uint16_t svc_allocdst(Game& game, uint16_t id, uint16_t* args, uint16_t count) {
   case 8:  opeu_request_format(game, { args, count }); break;
   case 9:  opeu_ops_chief_text(game, svc_chief, Arg(args, count, 0)); break;
   case 10: r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case 11: opeu_pending_finish(game, svc_waitkey, (uint8_t)Arg(args, count, 0)); break;
+  case 11: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   default: port_unhandled("allocdst", id, count);
   }
   return r;

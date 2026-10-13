@@ -128,7 +128,7 @@ void opeu_tbl_draw_missions(Game& game, HostEvent event, uint8_t column, uint8_t
 uint16_t svc_table(Game& game, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
   uint16_t r = 0;
   switch (id) {
-  case COLUMNS:      opeu_table_columns(game, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
+  case COLUMNS:      opeu_table_columns(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
   case POSITION:     opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case FORMAT:       opeu_request_format(game, { args, count }); break;
   case TEXT_COLOR:   opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;

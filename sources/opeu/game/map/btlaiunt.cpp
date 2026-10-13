@@ -57,12 +57,12 @@ struct Matchup {
   uint8_t rating;
 };
 [[nodiscard]] auto MatchupOf(Game& game, uint16_t attacker, uint16_t target) -> Matchup {
-  auto const range{ static_cast<uint8_t>(opeu_battle_element_range(game, svc_btlcalc, attacker)) };
-  auto const rating{ static_cast<uint8_t>(opeu_battle_element_rating(game, svc_btlcalc, target, attacker)) };
+  auto const range{ static_cast<uint8_t>(opeu_battle_element_range(game, attacker)) };
+  auto const rating{ static_cast<uint8_t>(opeu_battle_element_rating(game, target, attacker)) };
   return { range, rating };
 }
 [[nodiscard]] auto Odds(Game& game, Matchup matchup) -> uint8_t {
-  return static_cast<uint8_t>(opeu_battle_odds(game, svc_btlcalc, static_cast<uint8_t>(matchup.rating), static_cast<uint8_t>(matchup.range)));
+  return static_cast<uint8_t>(opeu_battle_odds(game, static_cast<uint8_t>(matchup.rating), static_cast<uint8_t>(matchup.range)));
 }
 } // namespace
 
@@ -136,9 +136,9 @@ uint16_t opeu_battle_ai_pick_target(Game& game, uint16_t element, uint16_t list,
 // to the battle.
 auto opeu_battle_ai_random_cell(Game& game, uint16_t element, uint16_t unit) -> FieldCell {
   auto&      data{ Data(game) };
-  auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, svc_btlcalc, unit)) };
+  auto const direction{ static_cast<uint8_t>(opeu_battle_unit_direction(game, unit)) };
   auto const pick{ [&](uint8_t column, uint8_t row, uint16_t percent) {
-    return opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(column), static_cast<uint8_t>(row), element) && port_rand_bounded(game, 100) < percent;
+    return opeu_battle_can_enter(game, static_cast<uint8_t>(column), static_cast<uint8_t>(row), element) && port_rand_bounded(game, 100) < percent;
   } };
   auto const search{ [&](uint8_t& column, uint8_t& row) {
     if (direction != BATTLE_NOT_ADJACENT) {

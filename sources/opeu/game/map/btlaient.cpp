@@ -56,7 +56,7 @@ constexpr uint8_t  MOVE_CLASSES{ 5 }; // move_costs entries per terrain
   uint8_t  best_y{ 0 };
   for (uint8_t j{ 0 }; j < BATTLE_WIDTH; ++j)
     for (uint8_t i{ 0 }; i < BATTLE_WIDTH; ++i) {
-      if (!opeu_battle_can_enter(game, svc_btlcalc, static_cast<uint8_t>(i), static_cast<uint8_t>(j), element)) continue;
+      if (!opeu_battle_can_enter(game, static_cast<uint8_t>(i), static_cast<uint8_t>(j), element)) continue;
       if (!opeu_battle_ai_entry_ok(game, i, j, direction)) continue;
       auto const from_x{ PositionOf(data, element).x };
       auto const from_y{ PositionOf(data, element).y };
