@@ -1,19 +1,18 @@
-/* The opening's buffer compositing and screen routines that the game's library lacks: a screen save that writes
- * through a segment:offset destination (wrapping inside its segment), far copy, OR compose, AND mask, and the
- * dissolve.
- *
- * The dissolve replaces, where its mask bit is clear, every colour bit with colour bit 3 of the screen pixel, so those
- * pixels turn 0 or 15 until a later step reveals them.
- */
+// The opening's buffer compositing and screen routines that the game's library lacks: a screen save that writes
+// through a segment:offset destination (wrapping inside its segment), far copy, OR compose, AND mask, and the
+// dissolve.
+//
+// The dissolve replaces, where its mask bit is clear, every colour bit with colour bit 3 of the screen pixel, so those
+// pixels turn 0 or 15 until a later step reveals them.
 #include "canvas.hpp"
 #include "open-services.hpp"
 
 using namespace opeu::services;
 
-/* The colour bit the dissolve keeps from the screen. */
+// The colour bit the dissolve keeps from the screen.
 constexpr int DISSOLVE_BIT{ 3 };
 
-/* Column x (8 pixels) of game line y as a 16-bit column number, 80 per line. */
+// Column x (8 pixels) of game line y as a 16-bit column number, 80 per line.
 static uint16_t ScreenColumn(uint16_t x, uint16_t y) {
   return (uint16_t)((uint16_t)(y + opeu::services::detail::canvas::GAME_TOP) * 80u + x);
 }
@@ -43,7 +42,7 @@ void CopyFarWords(FarBytes source, FarBytes destination, uint16_t count) {
   FarSegment const source_segment{ source.segment };
   FarSegment const segment{ destination.segment };
   uint16_t         words = (uint16_t)(count >> 1), si = source.offset, di = destination.offset;
-  while (words--) { /* REP MOVSW: CX = 0 copies nothing */
+  while (words--) { // REP MOVSW: CX = 0 copies nothing
     segment[di]                 = source_segment[si];
     segment[(uint16_t)(di + 1)] = source_segment[(uint16_t)(si + 1)];
     si                          = (uint16_t)(si + 2);
@@ -55,7 +54,7 @@ void OrIntoBuffer(FarBytes target, uint16_t w, uint16_t h, FarBytes source) {
   FarSegment const segment{ target.segment };
   FarSegment const source_segment{ source.segment };
   uint16_t         si = source.offset, di = target.offset, rows = h;
-  do { /* 1C54: CX = rows, inner CX = 2 * columns (LOOP) */
+  do { // 1C54: CX = rows, inner CX = 2 * columns (LOOP)
     uint16_t words = (uint16_t)(w << 1);
     do {
       segment[di]                 |= source_segment[si];
@@ -107,8 +106,8 @@ void DissolveStep(uint16_t x, uint16_t y, FarBytes source, uint16_t pattern) {
       }
       plane_si = (uint16_t)(plane_si + 1);
     }
-    dx = (uint16_t)(dx << 1 | dx >> 15); /* the mask rotates left by one per row */
-    di = (uint16_t)(d + 0x2a);           /* the next line: 38 columns drawn + 42 */
+    dx = (uint16_t)(dx << 1 | dx >> 15); // the mask rotates left by one per row
+    di = (uint16_t)(d + 0x2a);           // the next line: 38 columns drawn + 42
     si = (uint16_t)(row_si + 0x98);
   }
 }

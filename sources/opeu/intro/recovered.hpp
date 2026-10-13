@@ -1,6 +1,6 @@
-/* The recovered OPEN.EXE modules (recovered/) as they see each other and as
- * the runner sees them. Each module calls the other modules' routines and the
- * services (display, files, input, the FM driver) directly. */
+// The recovered OPEN.EXE modules (recovered/) as they see each other and as
+// the runner sees them. Each module calls the other modules' routines and the
+// services (display, files, input, the FM driver) directly.
 #pragma once
 
 #include "dgroup.hpp"
@@ -11,11 +11,11 @@
 
 namespace opeu::intro {
 
-/* The FM song bank the driver is opened with: far 0710:0002. */
+// The FM song bank the driver is opened with: far 0710:0002.
 inline constexpr uint16_t BANK_FRAME{ 0x0710 };
 inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
 
-/* A 16-colour palette in DGROUP: three 4-bit levels per colour. */
+// A 16-colour palette in DGROUP: three 4-bit levels per colour.
 using Palette = std::span<std::uint8_t const, 48>;
 
 namespace detail::openmain {
@@ -34,12 +34,12 @@ auto FadeOutUninterrupted(Open& open) -> int16_t;
 auto FadeToClosingPalette(Open& open) -> int16_t;
 void SetIdentityPalette(Open& open);
 auto PollInput() -> int16_t;
-/* Waits until the music timeline has run `ticks` further; 1 if a key or button came first. */
+// Waits until the music timeline has run `ticks` further; 1 if a key or button came first.
 auto WaitTicks(uint16_t ticks) -> int16_t;
 auto OpenFileOrStop(Open& open, uint16_t name) -> int16_t;
-/* The stop after an allocation or open failure: the original spins in an
- * empty loop; the host pumps its events instead, so a window close or a
- * headless run's end still stops the program. */
+// The stop after an allocation or open failure: the original spins in an
+// empty loop; the host pumps its events instead, so a window close or a
+// headless run's end still stops the program.
 [[noreturn]] void Hang();
 }
 
@@ -47,8 +47,8 @@ namespace detail::otext {
 void FlushKeys();
 auto PutCharacter(Open& open, uint8_t c) -> uint8_t;
 void PutString(Open& open, uint16_t s);
-/* cursor_print(format, ...): the words are pushed on the stack as the caller
- * pushed them, the format's near pointer first. */
+// cursor_print(format, ...): the words are pushed on the stack as the caller
+// pushed them, the format's near pointer first.
 void CursorPrint(Open& open, std::span<uint16_t const> words);
 }
 
@@ -57,14 +57,14 @@ void InitializeSound(Open& open);
 void SendMusicControl(Open& open, uint8_t value);
 auto IsMusicPlaying(Open& open) -> int;
 void StartMusic(Open& open, uint8_t track);
-/* The FM driver's song start (song number, 1 = track 0) and stop (fade
- * length), as the shutdown issues them without OSOUND's checks. */
+// The FM driver's song start (song number, 1 = track 0) and stop (fade
+// length), as the shutdown issues them without OSOUND's checks.
 void StartSong(uint8_t song);
 void StopMusic(uint8_t fade);
 }
 
-/* The initialized data of the five DGROUP modules and of the song bank,
- * which image.cpp places. */
+// The initialized data of the five DGROUP modules and of the song bank,
+// which image.cpp places.
 namespace detail::odtext {
 extern uint8_t const   UNUSED_DIGIT_FONT[10][16];
 extern uint32_t const  DRAW_HOOKS[4];
@@ -148,7 +148,7 @@ extern uint8_t const PALETTE_TABLE[112][48];
 extern uint8_t const CLOSING_PALETTE[48];
 }
 
-/* Far data, frame 0710: the FM song bank from 0710:0002. */
+// Far data, frame 0710: the FM song bank from 0710:0002.
 namespace detail::ofmusic {
 extern uint16_t const opeu_music_tracks[3][5];
 extern uint8_t const  opeu_music_voices[447];

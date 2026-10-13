@@ -1,39 +1,23 @@
-/* OPEN 03ac:0004..2817 (image 0x3ac4..0x62d7): the opening program, one code
- * segment.
- *
- * First half (03ac:0004..0e7b): timing helpers, the KOEI logo cards, the
- * prologue, the colour cycle and flicker/dissolve scenes and the panorama
- * scene. Timing: counter A (int 66h F001/F000) drives the uninterruptible
- * Delay, which only waits when ticks != 0; counter B (int 66h
- * F100) is the music timeline, counting down, which opeu_open_wait
- * (relative) and WaitForMark (absolute) poll together with the
- * input (key or mouse button -> abort, result 1). Every abortable scene
- * returns 1 when aborted, 0 when it completed. Pictures come from
- * OPENGRP.NPK by absolute file position; captures of the screen go to the
- * six 64 KB far buffers whose segments are DS:1c22..1c2c; palettes are
- * 48-byte rows of the table at DS:0444.
- *
- * Second half (03ac:0e7c..2817): units scene: two vehicles drive in on
- * 2-byte strips, then play the eleven 160x192 frames listed at
- * DS:01ae/01c4/01da (frames 8-10 loop). Bombing: a bobbing bomber (bob table
- * DS:01f0, rotating 8x64 part) fades in over 58 frames synchronised to the
- * music timeline; three explosions are composed in far buffers (copy, 1-bpp
- * mask AND, sprite OR) and played with palette flashes. Flak: three flashes
- * over picture 0x54d6d, then the bomber again (DS:0250) with four flak
- * bursts until the palette is black. Artillery: ground and gun pictures are
- * captured in columns and panned in, then the gun fires shells along the
- * DS:028e..02d6 tables with a muzzle flash flicker (DS:02e2 on/off, DS:02e4
- * phase). Title: the colour-cycled title (short form after an abort,
- * DS:01ac), then the wait for the music to end. Init/shutdown allocate and
- * free the far buffers (DS:1c22..1c32), read MOPENGRP.DAT, open and close OPENGRP.NPK/KOEILOGO.FNT, and wait
- * for SCESEL.DAT before leaving. RunOpening is the program's main(): it
- * repeats the opening until a scene is aborted (then shows the short title)
- * or the title is skipped.
- *
- * The other modules' routines and the services (display, files, the FM
- * driver) are called directly; far buffers are reached through open-far.hpp.
- * Near pointers are DS offsets; all arithmetic wraps at 16 bits.
- */
+// The opening's scenes, from the KOEI logo to the title, and the start-up and shutdown around them.
+//
+// Timing: the effect countdown drives the uninterruptible Delay, which only waits when ticks != 0; the music timeline,
+// counting down, is what WaitTicks (relative) and WaitForMark (absolute) poll together with the input (a key or a mouse
+// button aborts, result 1). Every abortable scene returns 1 when aborted, 0 when it completed. Pictures come from
+// OPENGRP.NPK by absolute file position; screen captures go to the six 64 KiB far buffers buffer_a..buffer_f;
+// palettes are 48-byte rows of the palette table.
+//
+// The scenes: the logo and its captions; the prologue; the colour cycle and the descent; the flicker and the dissolve;
+// the march and the panorama; the units, two vehicles driving in on 2-byte strips, then the eleven 160x192 frames of
+// frame_y/frame_h/frame_off (frames 8-10 loop); the bombing, a bobbing bomber (bob_a, a rotating 8x64 part) fading in
+// over 58 frames on the music timeline, then three explosions composed in far buffers (copy, 1-bit mask AND, sprite
+// OR) and played with palette flashes; the flak, three flashes, then the bomber again (bob_b) among four bursts until
+// the palette is black; the artillery, ground and gun captured in columns and panned in, then shells fired along the
+// shell tables with a muzzle flash flicker (flash_on, flash_phase); the title, colour-cycled (the short form after an
+// abort), then the wait for the music's end. StartUp and ShutDown allocate and free the far buffers, read
+// MOPENGRP.DAT, and wait for SCESEL.DAT before leaving. RunOpening repeats the opening until a scene is aborted (then
+// the short title) or the title is skipped.
+//
+// Near pointers are DGROUP offsets; all arithmetic wraps at 16 bits.
 #include "recovered.hpp"
 
 #include "open-far.hpp"
@@ -47,19 +31,18 @@
 
 namespace opeu::intro::detail::openmain {
 namespace {
-/* A picture of OPENGRP.NPK by its absolute file position. */
+// A picture of OPENGRP.NPK by its absolute file position.
 auto PictureAt(Open& open, uint16_t x, uint16_t y, uint32_t position) -> void {
   DrawPicture(open, x, y, static_cast<int32_t>(position));
 }
 
-/* Palette n of the table at DS:0444. */
+// Palette n of the palette table.
 auto PaletteNumber(Open& open, unsigned n) -> Palette {
   return Data(open).palettes[n];
 }
 
-/* Whether the file named at a near pointer exists. The shutdown busy-waits
- * for SCESEL.DAT with it; the host stays responsive while the file is
- * missing (no effect on the result). */
+// Whether the file named at a near pointer exists. The shutdown busy-waits for SCESEL.DAT with it; the host stays
+// responsive while the file is missing (no effect on the result).
 auto FileExists(Open const& open, uint16_t name) -> bool {
   auto const found{ opeu_dos_exists(reinterpret_cast<char const*>(&Byte(open, name))) }; // NOLINT(*-reinterpret-cast): the DOS name's characters
   if (found == 0) port_pump();
@@ -428,34 +411,33 @@ auto PlayPanoramaScene(Open& open) -> int {
   if (LeavePanorama(open) != 0) return 1;
   return 0;
 }
-/* x: strip column, off_a/off_b: strip offsets in buffer C. */
 auto DriveUnitsIn(Open& open) -> int {
-  int      x     = 0;
-  uint16_t off_a = 0;
-  uint16_t off_b = 0;
+  int      x            = 0;
+  uint16_t first_strip  = 0;
+  uint16_t second_strip = 0;
   ClearScreen();
   BlitFar(open, { 2, 0, 0x14, 0x60 }, { Data(open).buffer_a, 0, 0 });
-  off_a = 0;
+  first_strip = 0;
   for (x = 0x15; x > 0; x -= 2) {
-    SaveScreen(open, { x, 0, 2, 0x60 }, { Data(open).buffer_c, off_a });
-    off_a += 0x300;
+    SaveScreen(open, { x, 0, 2, 0x60 }, { Data(open).buffer_c, first_strip });
+    first_strip += 0x300;
   }
   for (x = 0x14; x >= 0; x -= 2) {
-    SaveScreen(open, { x, 0, 2, 0x60 }, { Data(open).buffer_c, off_a });
-    off_a += 0x300;
+    SaveScreen(open, { x, 0, 2, 0x60 }, { Data(open).buffer_c, first_strip });
+    first_strip += 0x300;
   }
   ClearScreen();
   SetCurrentPalette(open, PaletteNumber(open, 36));
-  x = off_b = off_a = 0;
+  x = second_strip = first_strip = 0;
   for (; x < 31; x++) {
     opeu_screen_copy(0, 0xc4, 0x3c, 0x60, 2, 0xc4);
     if (x < 11) {
-      BlitFar(open, { 0, 0xc4, 2, 0x60 }, { Data(open).buffer_c, off_a, 0 });
-      off_a += 0x300;
+      BlitFar(open, { 0, 0xc4, 2, 0x60 }, { Data(open).buffer_c, first_strip, 0 });
+      first_strip += 0x300;
     }
     if (x > 12 && x < 24) {
-      BlitFar(open, { 0, 0xc4, 2, 0x60 }, { Data(open).buffer_c, off_b, 0 });
-      off_b += 0x300;
+      BlitFar(open, { 0, 0xc4, 2, 0x60 }, { Data(open).buffer_c, second_strip, 0 });
+      second_strip += 0x300;
     }
     if (WaitTicks(6) != 0) return 1;
   }
@@ -463,31 +445,31 @@ auto DriveUnitsIn(Open& open) -> int {
   return 0;
 }
 
-/* i: frame count, j/k: frame of the right/left vehicle. */
 auto AnimateUnits(Open& open) -> int {
-  int i = 0;
-  int j = 0;
-  int k = 0;
-  i = k = j = 0;
-  for (; i < 40; i++) {
-    if (i == 0) {
+  int tick        = 0;
+  int right_frame = 0;
+  int left_frame  = 0;
+  tick = left_frame = right_frame = 0;
+  for (; tick < 40; tick++) {
+    if (tick == 0) {
       SetCurrentPalette(open, PaletteNumber(open, 34));
       SetCurrentPalette(open, PaletteNumber(open, 35));
       if (WaitTicks(2) != 0) return 1;
       SetCurrentPalette(open, PaletteNumber(open, 36));
     }
     opeu_ui_box(0x2a, 0x64, 0x14, 0x80, 0);
-    BlitFar(open, { 0x2a, Data(open).frame_y[j], 0x14, Data(open).frame_h[j] }, { j < 5 ? Data(open).buffer_a : Data(open).buffer_b, Data(open).frame_off[j], 0 });
-    j++;
-    if (j == 11) j = 8;
+    BlitFar(open, { 0x2a, Data(open).frame_y[right_frame], 0x14, Data(open).frame_h[right_frame] },
+            { right_frame < 5 ? Data(open).buffer_a : Data(open).buffer_b, Data(open).frame_off[right_frame], 0 });
+    right_frame++;
+    if (right_frame == 11) right_frame = 8;
     opeu_ui_box(0x10, 0x64, 0x14, 0x80, 0);
-    BlitFar(open, { 0x10, Data(open).frame_y[k], 0x14, Data(open).frame_h[k] }, { k < 5 ? Data(open).buffer_a : Data(open).buffer_b, Data(open).frame_off[k], 0 });
-    if (i > 2) {
-      k++;
-      if (k == 11) k = 8;
+    BlitFar(open, { 0x10, Data(open).frame_y[left_frame], 0x14, Data(open).frame_h[left_frame] }, { left_frame < 5 ? Data(open).buffer_a : Data(open).buffer_b, Data(open).frame_off[left_frame], 0 });
+    if (tick > 2) {
+      left_frame++;
+      if (left_frame == 11) left_frame = 8;
     }
     if (WaitTicks(10) != 0) return 1;
-    if (i > 30) StepPalette(open, PaletteNumber(open, 0));
+    if (tick > 30) StepPalette(open, PaletteNumber(open, 0));
   }
   if (FadeOut(open) != 0) return 1;
   if (WaitForMark(0xc5e2) != 0) return 1;
@@ -500,17 +482,15 @@ auto PlayUnitsScene(Open& open) -> int {
   return 0;
 }
 
-/* a: composite toggle, b: frame deadline, c: bob index, d: frame,
- * e: y, f: faded in, g: rotating part offset, h: next y. */
 auto FlyBomberIn(Open& open) -> int {
-  uint16_t a = 0;
-  uint16_t b = 0;
-  int      c = 0;
-  int      d = 0;
-  uint16_t e = 0;
-  int      f = 0;
-  uint16_t g = 0;
-  uint16_t h = 0;
+  uint16_t composite   = 0;
+  uint16_t deadline    = 0;
+  int      bob         = 0;
+  int      frame       = 0;
+  uint16_t y           = 0;
+  int      faded_in    = 0;
+  uint16_t part_offset = 0;
+  uint16_t next_y      = 0;
   ClearScreen();
   PictureAt(open, 0, 0, 0x46848L);
   SaveScreen(open, { 0, 0, 0x50, 0xa0 }, { Data(open).buffer_c, 0 });
@@ -547,24 +527,24 @@ auto FlyBomberIn(Open& open) -> int {
   SaveScreen(open, { 0, 0xf0, 0x50, 0xa0 }, { Data(open).buffer_d, 0 });
   ClearScreen();
   BlitFar(open, { 0, 0x50, 0x50, 0xa0 }, { Data(open).buffer_d, 0, 0 });
-  h = e = Data(open).bob_a[0];
-  d = f = c = a = g = 0;
-  for (; d < 0x3a; d++) {
-    b  = opeu_fm_busy();
-    b -= 12;
-    e  = Data(open).bob_a[c];
-    BlitFar(open, { 0, e, 0x50, 0xa0 }, { (a != 0u) ? Data(open).buffer_d : Data(open).buffer_c, 0, 0 });
-    BlitFar(open, { 0x23, e + 0x60, 8, 0x40 }, { Data(open).buffer_a, g, 0 });
-    a ^= 1;
-    c++;
-    if (c > 19) c = 0;
-    h = Data(open).bob_a[c];
-    if (h < e) opeu_ui_box(0, h + 0xa0, 0x50, e - h, 0);
-    g += 0x800;
-    if (g >= 0x2800) g = 0;
-    if ((f == 0) && (StepPalette(open, PaletteNumber(open, 0x25)) == 0)) f = 1;
+  next_y = y = Data(open).bob_a[0];
+  frame = faded_in = bob = composite = part_offset = 0;
+  for (; frame < 0x3a; frame++) {
+    deadline  = opeu_fm_busy();
+    deadline -= 12;
+    y         = Data(open).bob_a[bob];
+    BlitFar(open, { 0, y, 0x50, 0xa0 }, { (composite != 0u) ? Data(open).buffer_d : Data(open).buffer_c, 0, 0 });
+    BlitFar(open, { 0x23, y + 0x60, 8, 0x40 }, { Data(open).buffer_a, part_offset, 0 });
+    composite ^= 1;
+    bob++;
+    if (bob > 19) bob = 0;
+    next_y = Data(open).bob_a[bob];
+    if (next_y < y) opeu_ui_box(0, next_y + 0xa0, 0x50, y - next_y, 0);
+    part_offset += 0x800;
+    if (part_offset >= 0x2800) part_offset = 0;
+    if ((faded_in == 0) && (StepPalette(open, PaletteNumber(open, 0x25)) == 0)) faded_in = 1;
 
-    while (opeu_fm_busy() > b) {
+    while (opeu_fm_busy() > deadline) {
       if (PollInput() != 0) return 1;
     }
   }
@@ -572,44 +552,43 @@ auto FlyBomberIn(Open& open) -> int {
   return 0;
 }
 
-/* k: explosion, j: frame, n: palette step, pos: frame offset. */
 // The opening's recovered animation script; it goes
 // when the opening becomes a scene (M6).
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto PlayExplosions(Open& open) -> int {
-  int      k   = 0;
-  int      j   = 0;
-  int      n   = 0;
-  uint16_t pos = 0;
+  int      blast        = 0;
+  int      frame        = 0;
+  int      step         = 0;
+  uint16_t frame_offset = 0;
   ClearScreen();
   SetCurrentPalette(open, PaletteNumber(open, 0x26));
   BlitFar(open, { 0xf, 0x28, 0x32, 0x140 }, { Data(open).buffer_b, 0, 0 });
   if (WaitForMark(0xbd4b) != 0) return 1;
   if (WaitTicks(50) != 0) return 1;
-  for (k = 0; k < 3; k++) {
-    SaveScreen(open, { Data(open).blast_x[k], Data(open).blast_y[k], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800 });
-    for (pos = 0, j = 0; j < 3; j++, pos += 0x4780) {
-      CopyFar(open, { Data(open).buffer_a, 0xb800 }, { Data(open).buffer_b, pos, 0x4780 });
-      AndMask(open, { Data(open).buffer_b, pos, 0x1a, 0xb0 }, { Data(open).sprite_sheet, Data(open).blast_masks[j] });
-      OrSprite(open, { Data(open).buffer_b, pos, 0x1a, 0xb0 }, { Data(open).buffer_e, Data(open).blast_sprites[j] });
+  for (blast = 0; blast < 3; blast++) {
+    SaveScreen(open, { Data(open).blast_x[blast], Data(open).blast_y[blast], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800 });
+    for (frame_offset = 0, frame = 0; frame < 3; frame++, frame_offset += 0x4780) {
+      CopyFar(open, { Data(open).buffer_a, 0xb800 }, { Data(open).buffer_b, frame_offset, 0x4780 });
+      AndMask(open, { Data(open).buffer_b, frame_offset, 0x1a, 0xb0 }, { Data(open).sprite_sheet, Data(open).blast_masks[frame] });
+      OrSprite(open, { Data(open).buffer_b, frame_offset, 0x1a, 0xb0 }, { Data(open).buffer_e, Data(open).blast_sprites[frame] });
     }
-    for (pos = 0, j = 3; j < 6; j++, pos += 0x4780) {
-      CopyFar(open, { Data(open).buffer_a, 0xb800 }, { Data(open).buffer_c, pos, 0x4780 });
-      AndMask(open, { Data(open).buffer_c, pos, 0x1a, 0xb0 }, { Data(open).sprite_sheet, Data(open).blast_masks[j] });
-      OrSprite(open, { Data(open).buffer_c, pos, 0x1a, 0xb0 }, { Data(open).buffer_f, Data(open).blast_sprites[j] });
+    for (frame_offset = 0, frame = 3; frame < 6; frame++, frame_offset += 0x4780) {
+      CopyFar(open, { Data(open).buffer_a, 0xb800 }, { Data(open).buffer_c, frame_offset, 0x4780 });
+      AndMask(open, { Data(open).buffer_c, frame_offset, 0x1a, 0xb0 }, { Data(open).sprite_sheet, Data(open).blast_masks[frame] });
+      OrSprite(open, { Data(open).buffer_c, frame_offset, 0x1a, 0xb0 }, { Data(open).buffer_f, Data(open).blast_sprites[frame] });
     }
-    for (pos = 0, j = 0; j < 6; j++) {
-      BlitFar(open, { Data(open).blast_x[k], Data(open).blast_y[k], 0x1a, 0xb0 }, { j < 3 ? Data(open).buffer_b : Data(open).buffer_c, pos, 4 });
-      if (pos == 0x8f00)
-        pos = 0;
+    for (frame_offset = 0, frame = 0; frame < 6; frame++) {
+      BlitFar(open, { Data(open).blast_x[blast], Data(open).blast_y[blast], 0x1a, 0xb0 }, { frame < 3 ? Data(open).buffer_b : Data(open).buffer_c, frame_offset, 4 });
+      if (frame_offset == 0x8f00)
+        frame_offset = 0;
       else
-        pos += 0x4780;
-      for (n = 0; n < Data(open).blast_steps[j]; n++) StepPalette(open, PaletteNumber(open, Data(open).blast_slots[k]));
+        frame_offset += 0x4780;
+      for (step = 0; step < Data(open).blast_steps[frame]; step++) StepPalette(open, PaletteNumber(open, Data(open).blast_slots[blast]));
       if (WaitTicks(2) != 0) return 1;
     }
-    BlitFar(open, { Data(open).blast_x[k], Data(open).blast_y[k], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800, 0 });
+    BlitFar(open, { Data(open).blast_x[blast], Data(open).blast_y[blast], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800, 0 });
     if (FadeToPalette(open, 0x26, 1) != 0) return 1;
-    BlitFar(open, { Data(open).blast_x[k], Data(open).blast_y[k], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800, 0 });
+    BlitFar(open, { Data(open).blast_x[blast], Data(open).blast_y[blast], 0x1a, 0xb0 }, { Data(open).buffer_a, 0xb800, 0 });
     if (WaitTicks(10) != 0) return 1;
   }
   if (WaitTicks(90) != 0) return 1;
@@ -656,18 +635,16 @@ auto PlayFlakFlashes(Open& open) -> int {
   return 0;
 }
 
-/* a: composite toggle, b: frame % 10, d: deadline, e: bob index,
- * f: frame, g: y, h: rotating part offset, i: next y, j: burst offset. */
 auto FlyBomberThroughFlak(Open& open) -> int {
-  uint16_t a = 0;
-  int      b = 0;
-  uint16_t d = 0;
-  int      e = 0;
-  int      f = 0;
-  uint16_t g = 0;
-  uint16_t h = 0;
-  uint16_t i = 0;
-  uint16_t j = 0;
+  uint16_t composite    = 0;
+  int      burst_phase  = 0;
+  uint16_t deadline     = 0;
+  int      bob          = 0;
+  int      frame        = 0;
+  uint16_t y            = 0;
+  uint16_t part_offset  = 0;
+  uint16_t next_y       = 0;
+  uint16_t burst_offset = 0;
   ClearScreen();
   BlitFar(open, { 0, 0x50, 0x50, 0xa0 }, { Data(open).buffer_d, 0, 0 });
   BlitFar(open, { 0x13, 0x50, 0x10, 0x90 }, { Data(open).buffer_a, 0x2800, 0 });
@@ -676,30 +653,30 @@ auto FlyBomberThroughFlak(Open& open) -> int {
   ClearScreen();
   SetCurrentPalette(open, PaletteNumber(open, 0x2e));
   BlitFar(open, { 0, 0x50, 0x50, 0xa0 }, { Data(open).buffer_d, 0, 0 });
-  i = g = Data(open).bob_b[0];
-  f = e = j = h = a = 0;
-  for (;; f++) {
-    d  = opeu_fm_busy();
-    d -= 12;
-    g  = Data(open).bob_b[e];
-    BlitFar(open, { 0, g, 0x50, 0xa0 }, { (a != 0u) ? Data(open).buffer_d : Data(open).buffer_c, 0, 0 });
-    BlitFar(open, { 0x23, g + 0x60, 8, 0x40 }, { Data(open).buffer_a, h, 0 });
-    a ^= 1;
-    e++;
-    if (e > 19) e = 0;
-    i = Data(open).bob_b[e];
-    if (i < g) opeu_ui_box(0, i + 0xa0, 0x50, g - i, 0);
-    b = f % 10;
-    if (b > 4 && b < 9) {
-      BlitFar(open, { Data(open).flak_x[f / 10 % 4] - b + 5, Data(open).flak_y[f / 10 % 4], 6, 0x3c }, { Data(open).buffer_b, j, 0 });
-      j += 0x5a0;
-      if (j >= 0x1680) j = 0;
+  next_y = y = Data(open).bob_b[0];
+  frame = bob = burst_offset = part_offset = composite = 0;
+  for (;; frame++) {
+    deadline  = opeu_fm_busy();
+    deadline -= 12;
+    y         = Data(open).bob_b[bob];
+    BlitFar(open, { 0, y, 0x50, 0xa0 }, { (composite != 0u) ? Data(open).buffer_d : Data(open).buffer_c, 0, 0 });
+    BlitFar(open, { 0x23, y + 0x60, 8, 0x40 }, { Data(open).buffer_a, part_offset, 0 });
+    composite ^= 1;
+    bob++;
+    if (bob > 19) bob = 0;
+    next_y = Data(open).bob_b[bob];
+    if (next_y < y) opeu_ui_box(0, next_y + 0xa0, 0x50, y - next_y, 0);
+    burst_phase = frame % 10;
+    if (burst_phase > 4 && burst_phase < 9) {
+      BlitFar(open, { Data(open).flak_x[frame / 10 % 4] - burst_phase + 5, Data(open).flak_y[frame / 10 % 4], 6, 0x3c }, { Data(open).buffer_b, burst_offset, 0 });
+      burst_offset += 0x5a0;
+      if (burst_offset >= 0x1680) burst_offset = 0;
     }
-    h += 0x800;
-    if (h >= 0x2800) h = 0;
-    if ((f >= 30) && (StepPalette(open, PaletteNumber(open, 0)) == 0)) break;
+    part_offset += 0x800;
+    if (part_offset >= 0x2800) part_offset = 0;
+    if ((frame >= 30) && (StepPalette(open, PaletteNumber(open, 0)) == 0)) break;
 
-    while (opeu_fm_busy() > d) {
+    while (opeu_fm_busy() > deadline) {
       if (PollInput() != 0) return 1;
     }
   }
@@ -713,12 +690,11 @@ auto PlayFlakScene(Open& open) -> int {
   return 0;
 }
 
-/* p: column / flip count, toggle: figure frame, k: salvo, o: column offset. */
 auto SetUpGun(Open& open) -> int {
-  int      p      = 0;
-  int      toggle = 0;
-  int      k      = 0;
-  uint16_t o      = 0;
+  int      p             = 0;
+  int      crew_frame    = 0;
+  int      salvo         = 0;
+  uint16_t column_offset = 0;
   ClearScreen();
   PictureAt(open, 0, 0, 0x5eddeL);
   SaveScreen(open, { 0, 0, 6, 0x30 }, { Data(open).buffer_a, 0 });
@@ -736,19 +712,19 @@ auto SetUpGun(Open& open) -> int {
   BlitFar(open, { 0x28, 0x108, 6, 0x30 }, { Data(open).buffer_a, 0xd80, 0 });
   BlitFar(open, { 0x30, 0x108, 6, 0x30 }, { Data(open).buffer_a, 0x900, 0 });
   BlitFar(open, { 0x36, 0x108, 6, 0x30 }, { Data(open).buffer_a, 0, 0 });
-  o = 0;
+  column_offset = 0;
   for (p = 0x35; p >= 0; p--) {
-    SaveScreen(open, { p, 0x108, 1, 0x30 }, { Data(open).buffer_b, o });
-    o += 0xc0;
+    SaveScreen(open, { p, 0x108, 1, 0x30 }, { Data(open).buffer_b, column_offset });
+    column_offset += 0xc0;
   }
   ClearScreen();
   PictureAt(open, 0, 0x88, 0x5f135L);
   if (WaitTicks(1) != 0) return 1;
   BlitFar(open, { 0x28, 0x108, 6, 0x30 }, { Data(open).buffer_a, 0x900, 0 });
-  o = 0;
+  column_offset = 0;
   for (p = 0x27; p >= 0; p--) {
-    SaveScreen(open, { p, 0x88, 1, 0xe0 }, { Data(open).buffer_c, o });
-    o += 0x380;
+    SaveScreen(open, { p, 0x88, 1, 0xe0 }, { Data(open).buffer_c, column_offset });
+    column_offset += 0x380;
   }
   ClearScreen();
   if (FadeToPalette(open, 0x2f, 2) != 0) return 1;
@@ -760,11 +736,11 @@ auto SetUpGun(Open& open) -> int {
   SaveScreen(open, { 1, 0x58, 0x36, 0xe0 }, { Data(open).buffer_d, 0 });
   if (WaitTicks(100) != 0) return 1;
   if (WaitForMark(0xb121) != 0) return 1;
-  for (k = toggle = 0; k < 3; k++) {
-    for (p = 0; p < Data(open).gun_flips[k]; p++) {
-      BlitFar(open, { 0x18, 0x58, 0x20, 0xe0 }, { Data(open).buffer_e, static_cast<uint16_t>((toggle != 0) ? 0 : 0x7000), 0 });
-      if (WaitTicks((toggle != 0) ? 2 : 4) != 0) return 1;
-      toggle ^= 1;
+  for (salvo = crew_frame = 0; salvo < 3; salvo++) {
+    for (p = 0; p < Data(open).gun_flips[salvo]; p++) {
+      BlitFar(open, { 0x18, 0x58, 0x20, 0xe0 }, { Data(open).buffer_e, static_cast<uint16_t>((crew_frame != 0) ? 0 : 0x7000), 0 });
+      if (WaitTicks((crew_frame != 0) ? 2 : 4) != 0) return 1;
+      crew_frame ^= 1;
     }
     if (WaitTicks(100) != 0) return 1;
   }
@@ -827,40 +803,39 @@ auto FireShellPairs(Open& open) -> int {
   return 0;
 }
 
-/* runs: pair salvos left, frame: frame, shot: 1 first, 2 pairs, 3 last. */
 // The opening's recovered animation script; it goes
 // when the opening becomes a scene (M6).
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto FireGun(Open& open) -> int {
-  int runs  = 0;
-  int frame = 0;
-  int shot  = 0;
+  int pair_salvos = 0;
+  int frame       = 0;
+  int stage       = 0;
   for (frame = 0; frame < 6; frame++)
     SaveScreen(open, { Data(open).shell_x[frame], Data(open).shell_y[frame], Data(open).shell_ws[frame], Data(open).shell_h[frame] }, { Data(open).buffer_a, Data(open).shell_save[frame] });
-  frame = runs = shot = 0;
+  frame = pair_salvos = stage = 0;
   for (; frame < 50; frame++) {
     if (frame == 7) {
-      runs = 3;
-      shot = 1;
+      pair_salvos = 3;
+      stage       = 1;
     }
     if (frame == 15) {
-      runs = 10;
-      shot = 1;
+      pair_salvos = 10;
+      stage       = 1;
     }
     if (frame == 35) {
-      runs = 5;
-      shot = 1;
+      pair_salvos = 5;
+      stage       = 1;
     }
     if (frame == 3 || frame == 12 || frame == 20 || frame == 23 || frame == 40 || frame == 49) Data(open).flash_on ^= 1;
-    if (shot == 1) {
+    if (stage == 1) {
       FireShells(open, 0);
-      shot = 2;
-    } else if (shot == 2) {
+      stage = 2;
+    } else if (stage == 2) {
       FireShellPairs(open);
-      if (--runs == 0) shot = 3;
-    } else if (shot == 3) {
+      if (--pair_salvos == 0) stage = 3;
+    } else if (stage == 3) {
       FireShells(open, 3);
-      shot = 0;
+      stage = 0;
     }
     if (Data(open).flash_on == 0)
       SetCurrentPalette(open, PaletteNumber(open, 0x2f));
@@ -970,7 +945,7 @@ void FreeBuffers(Open& open) {
   open.Memory().Free(Data(open).buffer_f);
 }
 
-/* Music driver (int 66h): AH=1 AL=5, then AH=2 AL=20. */
+// The closing song (song 5) started and at once faded out, the closing fade, then the wait for the scenario file.
 void ShutDown(Open& open) {
   FadeOutUninterrupted(open);
   StartSong(5);

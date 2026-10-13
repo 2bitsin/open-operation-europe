@@ -1,17 +1,12 @@
-/* OPEN file-backed DGROUP DS:0182..01ab (42 bytes): sound driver state of
- * OSOUND (io/osound.cpp, MAIN SOUND lineage).
- *
- * The current music track and effect start at 0ffh (none loaded); the music
- * bank name and path buffers start empty. OSOUND uses 7 and 13 bytes of the
- * two buffers; the arrays extend to the next object, all zero.
- */
+// The initial values of the music state's DGROUP fields: no track and no effect loaded (FFh), the bank name and path
+// buffers empty.
 #include "recovered.hpp"
 
 namespace opeu::intro::detail::odsound {
 
-uint8_t const MUSIC_CURRENT  = 0xff;  /* DS:0182 */
-uint8_t const EFFECT_CURRENT = 0xff;  /* DS:0183 */
-char const    MUSIC_BANK[26] = { 0 }; /* DS:0184 */
-char const    MUSIC_PATH[14] = { 0 }; /* DS:019e */
+uint8_t const MUSIC_CURRENT  = 0xff;
+uint8_t const EFFECT_CURRENT = 0xff;
+char const    MUSIC_BANK[26] = { 0 };
+char const    MUSIC_PATH[14] = { 0 };
 
 }

@@ -1,8 +1,8 @@
-/* OPEN.EXE's data segment (DGROUP, paragraph 093A of its load image) as the
- * opening's code sees it: the initialized objects of the five data modules
- * (recovered/data, placed by image.cpp), then the KOEI library's and C
- * runtime's data and the BSS up to _end (DS:1C40). The stack (SS = DS)
- * follows above _end. */
+// OPEN.EXE's data segment (DGROUP, paragraph 093A of its load image) as the
+// opening's code sees it: the initialized objects of the five data modules
+// (recovered/data, placed by image.cpp), then the KOEI library's and C
+// runtime's data and the BSS up to _end (DS:1C40). The stack (SS = DS)
+// follows above _end.
 #pragma once
 
 #include <cstddef>
@@ -10,7 +10,7 @@
 
 namespace opeu::intro {
 
-/* DS:0166, the console state in MAIN's order; OPEN never saves or restores it. */
+// DS:0166, the console state in MAIN's order; OPEN never saves or restores it.
 struct TextSaved {
   int16_t x;
   int16_t y;
@@ -24,60 +24,60 @@ struct TextSaved {
 
 #pragma pack(push, 1)
 struct OpenDataSegment {
-  uint8_t library_data[0x92]; /* KOEI library and C runtime _DATA */
-  /* ODTEXT */
-  uint8_t   digit_font[10][16]; /* unreferenced 8x16 digit glyphs */
-  uint32_t  draw_hooks[4];      /* far 0000:0680, 0000:069d, twice */
-  uint8_t   text_erase[8];      /* the erase string of text_erase_char */
+  uint8_t library_data[0x92]; // KOEI library and C runtime _DATA
+  // ODTEXT
+  uint8_t   digit_font[10][16]; // unreferenced 8x16 digit glyphs
+  uint32_t  draw_hooks[4];      // far 0000:0680, 0000:069d, twice
+  uint8_t   text_erase[8];      // the erase string of text_erase_char
   uint8_t   text_unused[16];
-  int16_t   text_x;    /* column 0..79 */
-  int16_t   text_y;    /* pixel row 0..399 */
-  int16_t   text_left; /* left column (ESC R) */
+  int16_t   text_x;    // column 0..79
+  int16_t   text_y;    // pixel row 0..399
+  int16_t   text_left; // left column (ESC R)
   uint8_t   text_paper;
   uint8_t   text_ink;
   uint8_t   text_background;
   uint8_t   text_background_pad;
-  int16_t   text_large; /* large mode (ESC Y 1) */
+  int16_t   text_large; // large mode (ESC Y 1)
   TextSaved text_saved;
-  uint8_t   text_lead; /* pending Shift-JIS lead byte */
+  uint8_t   text_lead; // pending Shift-JIS lead byte
   uint8_t   text_lead_pad;
-  int16_t   text_state;    /* escape-sequence state */
-  uint16_t  format_output; /* request_format's destination */
-  /* Reserved: kept for the layout until M4 */
+  int16_t   text_state;    // escape-sequence state
+  uint16_t  format_output; // request_format's destination
+  // Reserved: kept for the layout until M4
   char    reserved_ems_name[8];
   int16_t reserved_sprite_mapped;
-  /* ODSOUND */
+  // ODSOUND
   uint8_t music_current;
   uint8_t effect_current;
   char    music_bank[26];
   char    music_path[14];
-  /* ODOPEN */
-  int16_t  aborted;     /* a scene was aborted by input */
-  int16_t  frame_y[11]; /* units scene: rows, heights, capture offsets */
+  // ODOPEN
+  int16_t  aborted;     // a scene was aborted by input
+  int16_t  frame_y[11]; // units scene: rows, heights, capture offsets
   int16_t  frame_h[11];
   uint16_t frame_off[11];
-  uint16_t bob_a[20];      /* bobbing curve of the first aircraft group */
-  int16_t  blast_steps[6]; /* explosions */
+  uint16_t bob_a[20];      // bobbing curve of the first aircraft group
+  int16_t  blast_steps[6]; // explosions
   uint8_t  blast_slots[3];
   uint8_t  blast_slots_pad;
   int16_t  blast_x[3];
   int16_t  blast_y[3];
   uint16_t blast_masks[6];
   uint16_t blast_sprites[6];
-  uint8_t  flash_slots[3]; /* flak flash palettes */
+  uint8_t  flash_slots[3]; // flak flash palettes
   uint8_t  flash_slots_pad;
-  uint16_t bob_b[20]; /* bobbing curve of the second aircraft group */
+  uint16_t bob_b[20]; // bobbing curve of the second aircraft group
   int16_t  flak_x[4];
   int16_t  flak_y[4];
   int16_t  gun_flips[3];
-  int16_t  shell_x[6]; /* the six shell frames */
+  int16_t  shell_x[6]; // the six shell frames
   int16_t  shell_y[6];
   int16_t  shell_w[6];
   int16_t  shell_ws[6];
   int16_t  shell_h[6];
   uint16_t shell_sprite[6];
   uint16_t shell_save[6];
-  int16_t  flash_on; /* muzzle flash on/off and phase */
+  int16_t  flash_on; // muzzle flash on/off and phase
   int16_t  flash_phase;
   char     alloc_err1[11];
   char     alloc_err2[11];
@@ -87,43 +87,43 @@ struct OpenDataSegment {
   char     alloc_err6[11];
   char     alloc_err7[11];
   char     alloc_err9[11];
-  char     console_reset[13]; /* the console reset sequence */
+  char     console_reset[13]; // the console reset sequence
   char     scenario_file_name[11];
-  /* ODUTIL */
-  uint16_t stream_count; /* picture stream bytes left */
-  uint8_t  palette[48];  /* the current palette */
+  // ODUTIL
+  uint16_t stream_count; // picture stream bytes left
+  uint8_t  palette[48];  // the current palette
   uint8_t  black[48];
   uint8_t  spare_palette[48];
   uint8_t  icon[16][2];
   char     error_format[16]; /* "OPEN ERROR=  %s" */
-  /* ODPAL */
+  // ODPAL
   char    logo_file_name[13];
   uint8_t logo_file_name_pad;
   char    picture_file_name[12];
   char    sprite_file_name[13];
   uint8_t sprite_file_name_pad;
-  int16_t picture_handle; /* OPENGRP.NPK */
-  int16_t logo_handle;    /* KOEILOGO.FNT */
+  int16_t picture_handle; // OPENGRP.NPK
+  int16_t logo_handle;    // KOEILOGO.FNT
   uint8_t palettes[112][48];
-  uint8_t closing_palette[48];                /* palette 112 */
-  uint8_t library_data_after_palettes[0x284]; /* KOEI library and C runtime data */
-  /* BSS */
-  uint8_t  reserved_ems_pages[16]; /* kept for the layout until M4 */
-  uint16_t reserved_sprite_handle; /* kept for the layout until M4 */
+  uint8_t closing_palette[48];                // palette 112
+  uint8_t library_data_after_palettes[0x284]; // KOEI library and C runtime data
+  // BSS
+  uint8_t  reserved_ems_pages[16]; // kept for the layout until M4
+  uint16_t reserved_sprite_handle; // kept for the layout until M4
   uint8_t  library_bss_after_sprite_handle[4];
-  uint16_t stream_offset; /* the picture stream's far pointer */
+  uint16_t stream_offset; // the picture stream's far pointer
   uint16_t stream_segment;
   uint8_t  library_bss_after_stream[14];
-  uint16_t music_driver; /* the music driver's open result */
-  uint16_t buffer_a;     /* segments of the 64 KB far buffers */
+  uint16_t music_driver; // the music driver's open result
+  uint16_t buffer_a;     // segments of the 64 KB far buffers
   uint16_t buffer_b;
   uint16_t buffer_c;
   uint16_t buffer_d;
   uint16_t buffer_e;
   uint16_t buffer_f;
   uint16_t sound_enabled;
-  uint16_t stream_buffer; /* the picture stream's buffer */
-  uint16_t sprite_sheet;  /* MOPENGRP.DAT: masks and shell sprites */
+  uint16_t stream_buffer; // the picture stream's buffer
+  uint16_t sprite_sheet;  // MOPENGRP.DAT: masks and shell sprites
   uint8_t  library_bss_after_buffers[12];
 };
 #pragma pack(pop)
@@ -222,6 +222,6 @@ static_assert(offsetof(OpenDataSegment, stream_buffer) == 0x1c30);
 static_assert(offsetof(OpenDataSegment, sprite_sheet) == 0x1c32);
 static_assert(offsetof(OpenDataSegment, library_bss_after_buffers) == 0x1c34);
 static_assert(sizeof(TextSaved) == 12);
-static_assert(sizeof(OpenDataSegment) == 0x1c40); /* _end */
+static_assert(sizeof(OpenDataSegment) == 0x1c40); // _end
 
 }

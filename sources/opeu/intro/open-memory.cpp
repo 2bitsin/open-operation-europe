@@ -18,7 +18,7 @@ constexpr std::size_t MAX_BLOCKS{ 16 };
 
 // The paragraph an image object lies in: DGROUP's, or one relative to the load segment.
 auto ObjectParagraph(OpenImageObject const& object) -> std::uint32_t {
-  return (object.seg != 0u) ? std::uint32_t{ OPEN_LOAD_SEGMENT } + object.seg : std::uint32_t{ OPEN_DS_SEGMENT };
+  return (object.segment != 0u) ? std::uint32_t{ OPEN_LOAD_SEGMENT } + object.segment : std::uint32_t{ OPEN_DS_SEGMENT };
 }
 } // namespace
 
@@ -29,7 +29,7 @@ OpenMemory::OpenMemory(std::span<std::uint8_t> bytes) : _bytes{ bytes } {
 auto OpenMemory::Load() -> void {
   std::ranges::fill(Conventional(), std::uint8_t{ 0 });
   std::ranges::for_each(OpenImageObjects(), [&](OpenImageObject const& object) {
-    auto const linear{ (ObjectParagraph(object) * PARAGRAPH) + object.off };
+    auto const linear{ (ObjectParagraph(object) * PARAGRAPH) + object.offset };
     Expects(linear + object.bytes.size() <= Conventional().size(), "an OPEN data object lies in conventional memory");
     std::ranges::copy(object.bytes, std::as_writable_bytes(_bytes.subspan(linear)).begin());
   });

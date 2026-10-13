@@ -17,7 +17,7 @@ auto ObjectBytes(_Object const& object) -> std::span<std::byte const> {
 // clang-format off
 // NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init): only addresses and sizes of the data objects, no values
 std::array<OpenImageObject, 71> const IMAGE_OBJECTS{ {
-  /* ODTEXT */
+  // ODTEXT
   { ObjectBytes(detail::odtext::UNUSED_DIGIT_FONT),        0x0000,     offsetof(OpenDataSegment, digit_font) },
   { ObjectBytes(detail::odtext::DRAW_HOOKS),        0x0000,     offsetof(OpenDataSegment, draw_hooks) },
   { ObjectBytes(detail::odtext::TEXT_ERASE),             0x0000,     offsetof(OpenDataSegment, text_erase) },
@@ -32,15 +32,15 @@ std::array<OpenImageObject, 71> const IMAGE_OBJECTS{ {
   { ObjectBytes(detail::odtext::TEXT_LEAD),              0x0000,     offsetof(OpenDataSegment, text_lead) },
   { ObjectBytes(detail::odtext::TEXT_STATE),             0x0000,     offsetof(OpenDataSegment, text_state) },
   { ObjectBytes(detail::odtext::FORMAT_OUTPUT),          0x0000,     offsetof(OpenDataSegment, format_output) },
-  /* Reserved: kept for the layout until M4 */
+  // Reserved: kept for the layout until M4
   { ObjectBytes(detail::odopen::RESERVED_EMS_NAME),      0x0000,     offsetof(OpenDataSegment, reserved_ems_name) },
   { ObjectBytes(detail::odopen::RESERVED_SPRITE_MAPPED), 0x0000,     offsetof(OpenDataSegment, reserved_sprite_mapped) },
-  /* ODSOUND */
+  // ODSOUND
   { ObjectBytes(detail::odsound::MUSIC_CURRENT),         0x0000,     offsetof(OpenDataSegment, music_current) },
   { ObjectBytes(detail::odsound::EFFECT_CURRENT),        0x0000,     offsetof(OpenDataSegment, effect_current) },
   { ObjectBytes(detail::odsound::MUSIC_BANK),            0x0000,     offsetof(OpenDataSegment, music_bank) },
   { ObjectBytes(detail::odsound::MUSIC_PATH),            0x0000,     offsetof(OpenDataSegment, music_path) },
-  /* ODOPEN */
+  // ODOPEN
   { ObjectBytes(detail::odopen::ABORTED),           0x0000,     offsetof(OpenDataSegment, aborted) },
   { ObjectBytes(detail::odopen::FRAME_Y),           0x0000,     offsetof(OpenDataSegment, frame_y) },
   { ObjectBytes(detail::odopen::FRAME_H),           0x0000,     offsetof(OpenDataSegment, frame_h) },
@@ -76,14 +76,14 @@ std::array<OpenImageObject, 71> const IMAGE_OBJECTS{ {
   { ObjectBytes(detail::odopen::ALLOC_ERR9),   0x0000,     offsetof(OpenDataSegment, alloc_err9) },
   { ObjectBytes(detail::odopen::CONSOLE_RESET),      0x0000,     offsetof(OpenDataSegment, console_reset) },
   { ObjectBytes(detail::odopen::SCENARIO_FILE_NAME),       0x0000,     offsetof(OpenDataSegment, scenario_file_name) },
-  /* ODUTIL */
+  // ODUTIL
   { ObjectBytes(detail::odutil::STREAM_COUNT),           0x0000,     offsetof(OpenDataSegment, stream_count) },
   { ObjectBytes(detail::odutil::PALETTE),           0x0000,     offsetof(OpenDataSegment, palette) },
   { ObjectBytes(detail::odutil::BLACK_PALETTE),             0x0000,     offsetof(OpenDataSegment, black) },
   { ObjectBytes(detail::odutil::SPARE_PALETTE),     0x0000,     offsetof(OpenDataSegment, spare_palette) },
   { ObjectBytes(detail::odutil::ICON),              0x0000,     offsetof(OpenDataSegment, icon) },
   { ObjectBytes(detail::odutil::ERROR_FORMAT),      0x0000,     offsetof(OpenDataSegment, error_format) },
-  /* ODPAL */
+  // ODPAL
   { ObjectBytes(detail::odpal::LOGO_FILE_NAME),           0x0000,     offsetof(OpenDataSegment, logo_file_name) },
   { ObjectBytes(detail::odpal::PICTURE_FILE_NAME),           0x0000,     offsetof(OpenDataSegment, picture_file_name) },
   { ObjectBytes(detail::odpal::SPRITE_FILE_NAME),      0x0000,     offsetof(OpenDataSegment, sprite_file_name) },
@@ -91,14 +91,14 @@ std::array<OpenImageObject, 71> const IMAGE_OBJECTS{ {
   { ObjectBytes(detail::odpal::LOGO_HANDLE),          0x0000,     offsetof(OpenDataSegment, logo_handle) },
   { ObjectBytes(detail::odpal::PALETTE_TABLE),           0x0000,     offsetof(OpenDataSegment, palettes) },
   { ObjectBytes(detail::odpal::CLOSING_PALETTE),        0x0000,     offsetof(OpenDataSegment, closing_palette) },
-  /* OFMUSIC */
+  // OFMUSIC
   { ObjectBytes(detail::ofmusic::opeu_music_tracks),          BANK_FRAME, BANK_OFFSET },
   { ObjectBytes(detail::ofmusic::opeu_music_voices),          BANK_FRAME, 0x0020 },
   { ObjectBytes(detail::ofmusic::opeu_music_events),          BANK_FRAME, 0x01df },
 } };
 // clang-format on
 
-/* Each DGROUP object fills its field. */
+// Each DGROUP object fills its field.
 static_assert(sizeof detail::odtext::UNUSED_DIGIT_FONT == sizeof(OpenDataSegment::digit_font));
 static_assert(sizeof detail::odtext::DRAW_HOOKS == sizeof(OpenDataSegment::draw_hooks));
 static_assert(sizeof detail::odtext::TEXT_ERASE == sizeof(OpenDataSegment::text_erase));

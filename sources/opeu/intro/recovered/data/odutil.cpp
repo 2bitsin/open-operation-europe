@@ -1,27 +1,21 @@
-/* OPEN file-backed DGROUP DS:0356..0417 (194 bytes): data of the helper
- * segment 062d (core/outil.cpp).
- *
- * The image-stream byte count, the current palette and the black palette the
- * fade helpers step between (16 RGB triples of 6-bit DAC levels 0..15 as
- * the opening uses them), a further palette and a 16x16 one-bit picture that
- * no recovered routine addresses, and the fatal-error format of the
- * open-or-die helper. All objects start at even offsets.
- */
+// The initial values of the helpers' DGROUP fields: the picture stream's byte count, the current palette and the black
+// palette the fades step between (16 RGB triples of DAC levels 0..15), a palette and a 16x16 one-bit picture no
+// routine addresses, and the fatal-error format of the file opener.
 #include "recovered.hpp"
 
 namespace opeu::intro::detail::odutil {
 
-uint16_t const STREAM_COUNT      = 0;     /* DS:0356 */
-uint8_t const  PALETTE[48]       = { 0 }; /* DS:0358 current palette */
-uint8_t const  BLACK_PALETTE[48] = { 0 }; /* DS:0388 all black */
+uint16_t const STREAM_COUNT      = 0;
+uint8_t const  PALETTE[48]       = { 0 }; // current palette
+uint8_t const  BLACK_PALETTE[48] = { 0 }; // all black
 
-/* DS:03b8: unreferenced palette. */
+// A palette no routine loads.
 uint8_t const SPARE_PALETTE[48] = {
   0, 0, 0, 6, 4, 8, 5, 13, 3, 9, 13, 11, 11, 6, 3, 10, 7, 12, 11, 15, 6, 15, 15, 15, 7, 7, 7, 1, 8, 3, 4, 10, 6, 7, 10, 4, 8, 15, 6, 10, 14, 9, 12, 15, 12, 14, 15, 12
 };
 
-/* DS:03e8: unreferenced 16x16 one-bit picture, two bytes per row (most
- * significant bit leftmost): a rounded frame around an arrow. */
+// A 16x16 one-bit picture no routine draws, two bytes per row (most significant bit leftmost): a rounded frame
+// around an arrow.
 uint8_t const ICON[16][2] = {
   { 0x3f, 0xfc },
   { 0x60, 0x06 },
@@ -41,6 +35,6 @@ uint8_t const ICON[16][2] = {
   { 0x3f, 0xfc }
 };
 
-char const ERROR_FORMAT[] = "OPEN ERROR=  %s"; /* DS:0408 */
+char const ERROR_FORMAT[] = "OPEN ERROR=  %s";
 
 }

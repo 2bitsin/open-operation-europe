@@ -1,24 +1,9 @@
-/* OPEN.EXE far data, frame 0710 (image 0x7102..0x939a, 8856 bytes): the FM
- * music bank of the opening, in the format of MAIN's bank (FMUSIC).
- * InitializeSound (0349:0002) passes the far pointer
- * 0710:0002 (= opeu_music_tracks) to the INT 66h driver opener at 0000:13e0;
- * OPEN has no separate sound-effect bank.
- *
- * Bank layout, offsets relative to the bank start (0710:0002):
- *   opeu_music_tracks  3 songs x 5 channel tracks; each word is the bank
- *                      offset of a track's event stream (all fifteen used).
- *   opeu_music_voices  FM voice (instrument) parameters, 0x001e..0x01dd;
- *                      opaque, as in MAIN.
- *   opeu_music_events  Track event streams from 0x01dd (the first track
- *                      starts at this array); opaque bytes.
- * 5172 of the 8856 bytes lie in runs of 16 or more bytes that also occur
- * in MAIN's bank (voice records and event phrases).
- *
- * The relocated word at 0710:0000 (image 0x7100, value 093a) is not part of
- * this module: it is crt0dat's 2-byte EMULATOR_TEXT segment (class CODE), the
- * segment of its zero-length EMULATOR_DATA, which in OPEN coincides with
- * DGROUP. The bank follows it without paragraph padding.
- */
+// The opening's FM song bank, in the format of the game's bank: InitializeSound hands the driver the far address of
+// BANK_TRACKS. Offsets are relative to the bank's start.
+//   BANK_TRACKS  3 songs x 5 channel tracks; each word is the bank offset of a track's event stream (all fifteen used).
+//   BANK_VOICES  FM voice (instrument) parameters, 0x001e..0x01dd; opaque, as in the game's bank.
+//   BANK_EVENTS  the tracks' event streams from 0x01dd (the first track starts at this array); opaque bytes.
+// The opening has no separate sound-effect bank.
 #include "recovered.hpp"
 
 namespace opeu::intro::detail::ofmusic {
