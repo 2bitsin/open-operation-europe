@@ -83,6 +83,7 @@ remnant rows (`koei_names`, `variadic`, `printf`, `printf_family`,
 `c_runtime`, `seg_off`, `void_cast`, `c_comment`, `preproc_if`,
 `reinterpret_cast`, `c_int_types`, `legacy_prefix`, `placeholder`),
 comments included (`c_comment` counts `/*` openers only);
+`--remnants` reports the remnant rows' totals against v1.0.1, the goal
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
 starts from the baseline committed at `HEAD`, not the working file, and
@@ -418,7 +419,6 @@ buildutil logs), `reports/`, `smoke/`, `web/`, `test-output/`, `perf/`.
 
 | Job | Stage | Runner | What it does |
 |---|---|---|---|
-| `census` | check | docker | `tools/census/census.py` (the table of HEAD in `reports/census.md`) and the census gate's pytest suite; no build |
 | `linux-build` | build | docker | `./buildutil build --release` with gcc 14, every compiler warning and error counted per flag and module (`reports/compiler-diagnostics.txt`), then the three smokes (`smoke/<name>/`: `final.png`, WAV, OPL log, `port.log`) with `ok`/`DIFF` against the goldens |
 | `web` | build | docker | the Emscripten lane: emsdk 6.0.10, `./buildutil build --compiler emscripten --release --no-tests`, no `.data` file installed, the smoke under node (`web/`: `opeu.{html,js,wasm}`, `sizes.txt`, `web-smoke.{png,wav,opl,sha1}`) |
 | `linux-test` | test | docker | `./buildutil test`: the GoogleTest suites, the pytest suites with the functional suite, the perf gates and the `tools/*/pytest.ini` suites (the census gate among them); on a failure, ctest's logs and the failing runs' directories in `test-output/` |
