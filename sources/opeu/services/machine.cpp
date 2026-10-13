@@ -5,7 +5,7 @@
 
 namespace opeu::services::detail::machine {
 
-Machine::Machine() : _native{ std::make_unique<NativeDevices>() }, _devices{ _native->Devices() } { }
+Machine::Machine() : _native(std::make_unique<NativeDevices>()), _devices(_native->Devices()) { }
 
 Machine::Machine(Devices const devices) noexcept : _devices{ devices } { }
 

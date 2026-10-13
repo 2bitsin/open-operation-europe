@@ -29,7 +29,7 @@ public:
   [[nodiscard]] virtual auto KeyWaiting() -> bool = 0;
   // The next key, scan code in the high byte and ASCII in the low; waits (pumping) for one.
   virtual auto ReadKey() -> std::uint16_t = 0;
-  // The C runtime's getch(): the next key's ASCII; a key with ASCII 0 gives 0, then its scan code.
+  // The C runtime's console read: the next key's ASCII; a key with ASCII 0 gives 0, then its scan code.
   virtual auto ReadCharacter() -> std::uint8_t = 0;
   // ---- mouse
   // Resets the driver; true when a mouse is installed.
