@@ -20,11 +20,7 @@ using detail::list_call::REDRAW_HERE;
 using detail::list_call::REDRAW_ORIGIN;
 } // namespace opeu::game
 
-void opeu_list_arrows(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
-void opeu_list_scrollbar(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom);
 void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std::uint16_t first, std::uint16_t second, std::uint16_t third);
-void opeu_list_arrows_lit(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);
 auto opeu_list_mouse_key(Game& game) -> std::uint8_t;
 void opeu_list_invert(Game& game);
-auto opeu_list_frame(Game& game, std::uint16_t window, std::uint8_t first_column) -> std::uint8_t;
-void opeu_list_scroll(Game& game, std::uint16_t window, std::uint8_t column, std::uint8_t row);
+void opeu_list_scroll(Game& game, opeu::game::ListWindow const& window, std::uint8_t column, std::uint8_t row);

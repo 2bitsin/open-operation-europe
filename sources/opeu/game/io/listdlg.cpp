@@ -30,8 +30,13 @@
 #include "units/tally.hpp"
 #include "units/vwlist.hpp"
 #include "vgalib.hpp"
+
+#include <algorithm>
 #include <array>
 #include <concepts>
+#include <cstddef>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -113,31 +118,65 @@ auto NextKey(Game& game) -> std::uint8_t {
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
 // activation) and inverts the selected row.
-auto Open(Game& game, std::uint16_t near, std::uint8_t flags) -> void {
-  auto&       data{ Data(game) };
-  auto const& window{ ListWindowAt(data, near) };
+auto Open(Game& game, ListWindow const& window, std::uint8_t flags) -> void {
+  auto& data{ Data(game) };
   data.list_mouse = !(flags & KEYBOARD_ONLY);
   if (flags & SAVE_SCREEN) SaveScreen(game, window);
-  std::uint8_t column;
+  std::uint8_t column{ REDRAW_HERE };
   if (flags & FIRST_ACTIVATION) {
-    data.list_window = near;
+    data.list_window = Near(data, window);
     data.list_row    = 0;
     column           = REDRAW_ORIGIN;
-  } else
-    column = REDRAW_HERE;
-  opeu_list_scroll(game, near, column, 0);
+  }
+  opeu_list_scroll(game, window, column, 0);
   opeu_list_invert(game);
+}
+
+// The two-column cells of a prompt line.
+constexpr std::uint32_t PROMPT_CELLS{ 0x28 };
+
+// The rows general_list holds for the commander dialog.
+constexpr std::size_t LISTED_GENERALS{ 12 };
+
+// Reprints a withdrawn general's line in the list, when it is on the screen.
+auto ReprintGeneral(Game& game, ListWindow const& window, std::uint16_t general) -> void {
+  auto&               data{ Data(game) };
+  auto const          listed{ std::span{ data.general_list }.first(LISTED_GENERALS) };
+  auto const          i{ static_cast<std::uint16_t>(std::ranges::find(listed, general) - listed.begin()) };
+  std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
+  if (screen_y <= 0xe8 || screen_y >= 0x140) return;
+  auto const& person{ Record<Person>(data, general) };
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), 7);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
+                     static_cast<std::int16_t>(static_cast<std::uint16_t>((i - data.list_top) * ROW_HEIGHT + window.y + 0x12)));
+  opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(Near(data, data.general_stats_line)), static_cast<std::uint16_t>(person.leadership),
+                                                        static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health),
+                                                        static_cast<std::uint16_t>(person.infantry), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor) });
+}
+
+// Clears the prompt line and asks "Are you satisfied with the Div 4 Commander selection?"; the paper stays highlighted
+// after a refusal.
+auto CommandersConfirmed(Game& game) -> bool {
+  auto const& data{ Data(game) };
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
+  // two text rows of 40 two-column cells, row by row, each a copy of the top-left cell
+  std::ranges::for_each(std::views::iota(0u, 2u * PROMPT_CELLS), [](std::uint32_t cell) {
+    opeu_screen_copy(0, 0, 2, 0x10, static_cast<std::uint16_t>(cell % PROMPT_CELLS * 2), static_cast<std::uint16_t>(0x170 + cell / PROMPT_CELLS * 0x10));
+  });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
+  if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) return false;
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
+  return true;
 }
 } // namespace
 
 // The commander dialog: keeps the picked generals (general_list entries) and, after the seventh pick, asks "Are you
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
 auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
-  auto&         data{ Data(game) };
-  auto const&   window{ ListWindowAt(data, near) };
-  std::uint16_t picked[10]{};
-  std::uint16_t result{ 0 };
-  Open(game, near, flags);
+  auto&                         data{ Data(game) };
+  auto const&                   window{ ListWindowAt(data, near) };
+  std::array<std::uint16_t, 10> picked{};
+  Open(game, window, flags);
   std::uint8_t const column{ data.list_column };
   std::uint8_t       start{ data.list_top };
   std::uint8_t       used{ 0 };
@@ -184,7 +223,7 @@ auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, st
     case KEY_ENTER: {
       auto const added{ Select(game, window, used) };
       used += added;
-      if ((flags & FIRST_ACTIVATION) && added) picked[used] = data.general_list[data.list_row];
+      if ((flags & FIRST_ACTIVATION) && added) picked.at(used) = data.general_list[data.list_row];
       opeu_list_invert(game);
       refresh = true;
       break;
@@ -196,46 +235,25 @@ auto opeu_commander_list_dialog(Game& game, std::uint16_t near, std::uint8_t, st
     for (;;) {
       if (withdraw) {
         // withdraws the last pick and reprints its general's line in the list
-        auto const general{ picked[used] };
+        auto const general{ picked.at(used) };
         used -= Select(game, window, static_cast<std::uint8_t>(used + WITHDRAW));
-        std::uint16_t i{ 0 };
-        while (data.general_list[i] != general && i <= 11) i++;
-        std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
-        if (screen_y > 0xe8 && screen_y < 0x140) {
-          auto const& person{ Record<Person>(data, general) };
-          opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), 7);
-          opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
-                             static_cast<std::int16_t>(static_cast<std::uint16_t>((i - data.list_top) * ROW_HEIGHT + window.y + 0x12)));
-          opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(Near(data, data.general_stats_line)), static_cast<std::uint16_t>(person.leadership),
-                                                                static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health),
-                                                                static_cast<std::uint16_t>(person.infantry), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor) });
-        }
+        ReprintGeneral(game, window, general);
         opeu_list_invert(game);
         refresh = true;
         if (used > 6) used = 6;
         withdraw = false;
         scroll   = true;
       }
-      if (scroll) opeu_list_scroll(game, near, column, start);
+      if (scroll) opeu_list_scroll(game, window, column, start);
       opeu_list_invert(game);
-      if (used > COMMANDERS) used = COMMANDERS;
-      if (used == COMMANDERS) {
-        opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
-        for (std::uint16_t y{ 0x170 }; y < 0x188; y += 0x10)
-          for (std::uint16_t x{ 0 }; x < 0x50; x += 2) opeu_screen_copy(0, 0, 2, 0x10, x, y);
-        opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
-        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) {
-          used     = COMMANDERS;
-          withdraw = true;
-          continue;
-        }
-        opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
-        result = 1;
-        if (flags & SAVE_SCREEN) RestoreScreen(game, window);
-        return result;
+      used = std::min(used, COMMANDERS);
+      if (used != COMMANDERS) break;
+      if (!CommandersConfirmed(game)) {
+        withdraw = true;
+        continue;
       }
-      if (used > 6) used = 6;
-      break;
+      if (flags & SAVE_SCREEN) RestoreScreen(game, window);
+      return 1;
     }
   }
 }
@@ -248,7 +266,7 @@ auto opeu_list_dialog(Game& game, std::uint16_t near, std::uint8_t limit, std::u
   auto const&             window{ ListWindowAt(data, near) };
   constexpr std::uint16_t SWAPPED_COLUMN{ 0x12 };
   for (;;) {
-    Open(game, near, flags);
+    Open(game, window, flags);
     std::uint8_t const column{ data.list_column };
     std::uint8_t       first{ data.list_top };
     std::uint8_t       count{ 0 };
@@ -316,7 +334,7 @@ auto opeu_list_dialog(Game& game, std::uint16_t near, std::uint8_t limit, std::u
         step  = Step::SCROLL;
       }
       if (step == Step::SCROLL) {
-        opeu_list_scroll(game, near, column, first);
+        opeu_list_scroll(game, window, column, first);
         step = Step::MOVED;
       }
       if (step == Step::MOVED) {

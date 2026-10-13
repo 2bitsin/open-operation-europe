@@ -9,12 +9,14 @@
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
 #include "common/scenario.hpp"
+#include "common/table-rows.hpp"
 #include "core/textout.hpp"
-#include "io/listui.hpp"
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
 #include <array>
+#include <ranges>
 
 using namespace opeu::game;
 
@@ -23,7 +25,7 @@ namespace {
 constexpr std::uint8_t  DRAW_HEADER{ 3 }; // flags bits that draw the header
 constexpr std::uint8_t  DRAW_NUMBER{ 5 }; // flags bits that draw the slot numbers
 constexpr std::uint16_t ROW_HEIGHT{ 17 };
-constexpr std::uint16_t BUFFER_OFFSET{ 4 }; // the text buffer in the scratch area, after the column bytes
+constexpr std::uint16_t BUFFER_OFFSET{ 4 }; // the text buffer in the scratch area
 constexpr std::uint16_t SCRATCH_SIZE{ 0x68 };
 } // namespace
 
@@ -32,27 +34,22 @@ auto opeu_tbl_save_accept() -> std::uint8_t {
   return 1;
 }
 
-// Draws the saved-game table: slot number, scenario, difficulty, date and players. Its reserve holds the column
-// layout's three bytes, then the text buffer.
+// Draws the saved-game table: slot number, scenario, difficulty, date and players. Its reserve holds the text buffer.
 void opeu_tbl_draw_saves(Game& game, std::uint8_t column, std::uint8_t first, std::uint8_t row, std::uint8_t last, std::uint8_t flags) {
   ServiceLocals const locals{ SCRATCH_SIZE };
   locals.Clear(game);
   auto&              data{ Data(game) };
-  auto const         scratch{ locals.At(0) };
-  auto const         buffer{ static_cast<std::uint16_t>(scratch + BUFFER_OFFSET) };
-  auto const&        window{ Record<ListWindow>(data, data.list_window) };
+  auto const         buffer{ locals.At(BUFFER_OFFSET) };
+  auto const&        window{ ListWindowAt(data, data.list_window) };
   std::uint8_t const row_width{ Byte(game, window.widths) };
-  opeu_table_columns(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row), scratch, scratch + 1, scratch + 2);
-  std::uint8_t const x{ Byte(game, scratch) };
-  std::uint8_t const start{ Byte(game, static_cast<std::uint16_t>(scratch + 1)) };
-  std::uint8_t const count{ Byte(game, static_cast<std::uint16_t>(scratch + 2)) };
-  auto const         text_x{ row_width + x + window.x - 0x20 };
+  auto const [x, start, count]{ TableColumnLayout(game, column, row) };
+  auto const text_x{ row_width + x + window.x - 0x20 };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_save_header)) });
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(text_x), static_cast<std::int16_t>(window.y + 1));
     opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<std::uint8_t>(start), static_cast<std::uint8_t>(count));
   }
-  for (std::uint8_t slot_index{ first }; slot_index <= last; ++slot_index) {
+  for (int const slot_index : std::views::iota(int{ first }, last + 1)) {
     auto const& slot{ data.save_slots[slot_index] };
     auto const  y{ (slot_index - data.list_top) * ROW_HEIGHT + window.y + 18 };
     if (flags & DRAW_NUMBER) {
