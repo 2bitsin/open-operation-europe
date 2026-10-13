@@ -183,8 +183,7 @@ multiplied by how slow the machine is right then:
   touches), never by less than 1 on the baseline's machine.
 
 With that, the three gates passed all six times they were run together
-(five Release, one Debug) at load averages of 14 to 43 (with six extra processes sweeping 64 MiB each), and the run
-gate fails every demo when HEAD is judged against v1.0.1's numbers.
+(five Release, one Debug) at load averages of 14 to 43 (with six extra processes sweeping 64 MiB each).
 
 The baseline is per machine (CPU model, core count, OS family,
 architecture, Python version, since the calibration is Python) and per
@@ -201,13 +200,18 @@ fails the tests with the command that records it.
 The baseline also holds `reference.v1.0.1`: the same runs played by a
 Release build of v1.0.1 (a524a29), the last snapshot before the refactor,
 measured the same way, so the refactor is measured against the original C
-as well as against the last baseline. At the baseline of 2e57d779 the two
-calibrations were equal (0.596 s and 0.598 s) and HEAD took 29 % more CPU
-than v1.0.1 for the whole suite: the demos 21 to 60 % more (demo-kursk
-most), the short runs 1 to 12 % more or less. That debt predates the gate;
-the profile of demo-kursk puts the canvas's moves of the map view
-(`Canvas::Move` and its `memmove` while the map scrolls) at the top of
-what v1.0.1 did not spend.
+as well as against the last baseline. The first baseline (2e57d779) found
+HEAD 29 % over v1.0.1 for the whole suite, the demos 21 to 60 % over: the
+profile of demo-kursk put the cell block copy of the scrolling map view
+(48 short `Canvas::Move` calls per 24x24 block, each through a non-inlined
+guard and a general `memmove`) at the top. 23249d74 copies those blocks
+with inline fixed-size moves; at its baseline (e22cd832, v1.0.1 re-recorded
+in the same session) the suite is 6 % under v1.0.1, the demos 8 to 21 %
+under, demo-france-battles 3 % over, and the short menu runs 1 to 16 %
+over (10 to 20 ms each; per-call blit and glyph cost, to be measured with
+`xctrace` once Xcode is installed). The Debug block copy rose from 11.2 to
+14.8 us because the inline move is not inlined there; the baseline records
+it.
 
 ### Running
 
