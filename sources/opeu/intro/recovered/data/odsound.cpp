@@ -9,9 +9,9 @@
 
 namespace opeu::intro::detail::odsound {
 
-uint8_t const opeu_music_current  = 0xff;  /* DS:0182 */
-uint8_t const opeu_effect_current = 0xff;  /* DS:0183 */
-char const    opeu_music_bank[26] = { 0 }; /* DS:0184 */
-char const    opeu_music_path[14] = { 0 }; /* DS:019e */
+uint8_t opeu_music_current  = 0xff;  /* DS:0182 */
+uint8_t opeu_effect_current = 0xff;  /* DS:0183 */
+char    opeu_music_bank[26] = { 0 }; /* DS:0184 */
+char    opeu_music_path[14] = { 0 }; /* DS:019e */
 
 }

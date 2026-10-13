@@ -45,6 +45,7 @@ struct OpenImageObject {
   std::span<std::byte const> bytes;
   Paragraph                  seg; // 0 = DGROUP, else relative to the load segment
   NearWord                   off;
+  std::string_view           name;
 };
 [[nodiscard]] auto OpenImageObjects() -> std::span<OpenImageObject const>;
 
