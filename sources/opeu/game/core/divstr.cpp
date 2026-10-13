@@ -49,6 +49,7 @@ void opeu_show_division_strength(uint8_t ds[65536], HostNotify event, uint8_t di
       case Category::INFANTRY_X5:  troops += count * 5; break;
       case Category::TANKS:        armour += count; break;
       case Category::ARTILLERY:    artillery += count; break;
+      default:                     break; // engineers, repair and supply units are not counted
       }
     }
   }

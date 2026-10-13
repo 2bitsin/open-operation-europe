@@ -231,7 +231,7 @@ void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t /*frame*/, 
     auto const unit{ data.row_units[data.list_row] };
     Send(ds, event, Service::GROUP_NOTICE, flags, unit);
     auto const   elements{ static_cast<std::uint8_t>(Send(ds, event, Service::LIST_LENGTH, unit)) };
-    Allocation   allocation{ .slots = SlotsOf(ds, event, unit) };
+    Allocation   allocation{ .slots = SlotsOf(ds, event, unit), .other_slots = 0, .spare_slots = 0, .types = 0 };
     std::uint8_t other_elements{ 0 };
     Send(ds, event, Service::SUPPLY_RESET);
     // A friendly objective on the regiment's cell or next to it that the player accepts.
