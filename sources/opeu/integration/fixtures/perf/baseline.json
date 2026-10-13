@@ -1,0 +1,626 @@
+{
+ "about": "The perf gates' baseline (sources/opeu/integration/perf.test/perf.py writes it; test_perf.py and the modules' <module>.bench/benches.test.py read it; docs/building.md \"Benchmarks and profiling\"). Per machine (CPU, cores, OS family, architecture, Python) and build type: the revision measured, the CPU seconds of every functional-suite run (median and fastest of the samples, wall median beside), calibration_cpu_s (the median CPU seconds of the calibration processes played beside the runs, which scales the limits to the machine's load), and the CPU nanoseconds per iteration of every benchmark (fastest and median repetition). reference holds the v1.0.1 runs on the same machine, measured the same way.",
+ "machines": [
+  {
+   "builds": {
+    "debug": {
+     "benches": {
+      "opeu-game-benches/Calibration": {
+       "cpu_median_ns": 875833.3,
+       "cpu_min_ns": 638227.3,
+       "samples": 35
+      },
+      "opeu-game-benches/ElementRatings": {
+       "cpu_median_ns": 509.2,
+       "cpu_min_ns": 498.2,
+       "samples": 35
+      },
+      "opeu-game-benches/ElementsAt": {
+       "cpu_median_ns": 11121.9,
+       "cpu_min_ns": 10876.5,
+       "samples": 35
+      },
+      "opeu-game-benches/MarkExits": {
+       "cpu_median_ns": 2250000.0,
+       "cpu_min_ns": 2207200.0,
+       "samples": 35
+      },
+      "opeu-game-benches/MoveCosts": {
+       "cpu_median_ns": 106127.3,
+       "cpu_min_ns": 104049.1,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodThroughOccupants": {
+       "cpu_median_ns": 105513.6,
+       "cpu_min_ns": 94246.4,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodToCell": {
+       "cpu_median_ns": 122419.7,
+       "cpu_min_ns": 103605.9,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodWholeField": {
+       "cpu_median_ns": 121340.0,
+       "cpu_min_ns": 111090.0,
+       "samples": 35
+      },
+      "opeu-game-benches/PathWalk": {
+       "cpu_median_ns": 107073.4,
+       "cpu_min_ns": 106034.2,
+       "samples": 35
+      },
+      "opeu-services-benches/AlignedGlyph": {
+       "cpu_median_ns": 28406.6,
+       "cpu_min_ns": 25931.8,
+       "samples": 70
+      },
+      "opeu-services-benches/BattleCell": {
+       "cpu_median_ns": 418350.0,
+       "cpu_min_ns": 320954.0,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:0": {
+       "cpu_median_ns": 2287750.0,
+       "cpu_min_ns": 2233833.3,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:1": {
+       "cpu_median_ns": 2268692.3,
+       "cpu_min_ns": 2230333.3,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:4": {
+       "cpu_median_ns": 2290916.7,
+       "cpu_min_ns": 2247000.0,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitThreeByteColumns": {
+       "cpu_median_ns": 2289916.7,
+       "cpu_min_ns": 2237333.3,
+       "samples": 35
+      },
+      "opeu-services-benches/BoxAndHighlight": {
+       "cpu_median_ns": 2054100.0,
+       "cpu_min_ns": 1891800.0,
+       "samples": 35
+      },
+      "opeu-services-benches/Calibration": {
+       "cpu_median_ns": 691487.8,
+       "cpu_min_ns": 660071.4,
+       "samples": 35
+      },
+      "opeu-services-benches/CellBlockCopy": {
+       "cpu_median_ns": 15587.0,
+       "cpu_min_ns": 11243.0,
+       "samples": 35
+      },
+      "opeu-services-benches/CopyColumns": {
+       "cpu_median_ns": 12938.1,
+       "cpu_min_ns": 12655.1,
+       "samples": 35
+      },
+      "opeu-services-benches/DecodePicture": {
+       "cpu_median_ns": 3633714.3,
+       "cpu_min_ns": 2488363.6,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:0/planes:3": {
+       "cpu_median_ns": 2387615.4,
+       "cpu_min_ns": 2215083.3,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:0/planes:4": {
+       "cpu_median_ns": 2336500.0,
+       "cpu_min_ns": 2232307.7,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:1/planes:4": {
+       "cpu_median_ns": 2497916.7,
+       "cpu_min_ns": 2217666.7,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:4/planes:4": {
+       "cpu_median_ns": 2360083.3,
+       "cpu_min_ns": 2250416.7,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawShiftedColumns": {
+       "cpu_median_ns": 96801.7,
+       "cpu_min_ns": 81017.6,
+       "samples": 35
+      },
+      "opeu-services-benches/Fill": {
+       "cpu_median_ns": 16022000.0,
+       "cpu_min_ns": 15803000.0,
+       "samples": 35
+      },
+      "opeu-services-benches/Lines": {
+       "cpu_median_ns": 23061.7,
+       "cpu_min_ns": 22715.2,
+       "samples": 35
+      },
+      "opeu-services-benches/Present": {
+       "cpu_median_ns": 4150500.0,
+       "cpu_min_ns": 2953555.6,
+       "samples": 35
+      },
+      "opeu-services-benches/Render": {
+       "cpu_median_ns": 3053777.8,
+       "cpu_min_ns": 3013111.1,
+       "samples": 35
+      },
+      "opeu-services-benches/SaveColumns": {
+       "cpu_median_ns": 2190384.6,
+       "cpu_min_ns": 2003000.0,
+       "samples": 35
+      },
+      "opeu-services-benches/ScreenCopy": {
+       "cpu_median_ns": 17407.6,
+       "cpu_min_ns": 12628.9,
+       "samples": 35
+      },
+      "opeu-services-benches/ShiftedGlyph": {
+       "cpu_median_ns": 40501.5,
+       "cpu_min_ns": 38608.0,
+       "samples": 70
+      },
+      "opeu-services-benches/ShiftedTransparentImage": {
+       "cpu_median_ns": 83269.0,
+       "cpu_min_ns": 78490.2,
+       "samples": 35
+      },
+      "opeu-services-benches/SpriteCompose": {
+       "cpu_median_ns": 472062.5,
+       "cpu_min_ns": 342341.5,
+       "samples": 35
+      }
+     },
+     "calibration_cpu_s": 0.5455,
+     "measured": "2026-10-13",
+     "os_version": "macOS 26.5",
+     "revision": "2e57d779",
+     "runs": {
+      "load-play-save": {
+       "cpu_median_s": 1.1933,
+       "cpu_min_s": 1.1319,
+       "samples": 7,
+       "wall_median_s": 1.459
+      },
+      "load-save": {
+       "cpu_median_s": 0.6356,
+       "cpu_min_s": 0.5666,
+       "samples": 7,
+       "wall_median_s": 0.7343
+      },
+      "save-new": {
+       "cpu_median_s": 2.3695,
+       "cpu_min_s": 2.1693,
+       "samples": 7,
+       "wall_median_s": 3.0061
+      },
+      "smoke-input": {
+       "cpu_median_s": 1.1052,
+       "cpu_min_s": 0.9042,
+       "samples": 7,
+       "wall_median_s": 1.7649
+      }
+     }
+    },
+    "release": {
+     "benches": {
+      "opeu-game-benches/Calibration": {
+       "cpu_median_ns": 17396.8,
+       "cpu_min_ns": 11518.6,
+       "samples": 35
+      },
+      "opeu-game-benches/ElementRatings": {
+       "cpu_median_ns": 48.9,
+       "cpu_min_ns": 40.3,
+       "samples": 35
+      },
+      "opeu-game-benches/ElementsAt": {
+       "cpu_median_ns": 1777.1,
+       "cpu_min_ns": 1536.8,
+       "samples": 35
+      },
+      "opeu-game-benches/MarkExits": {
+       "cpu_median_ns": 28134.4,
+       "cpu_min_ns": 18949.0,
+       "samples": 35
+      },
+      "opeu-game-benches/MoveCosts": {
+       "cpu_median_ns": 9553.5,
+       "cpu_min_ns": 7327.9,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodThroughOccupants": {
+       "cpu_median_ns": 33879.4,
+       "cpu_min_ns": 21339.0,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodToCell": {
+       "cpu_median_ns": 38376.2,
+       "cpu_min_ns": 24251.9,
+       "samples": 35
+      },
+      "opeu-game-benches/PathFloodWholeField": {
+       "cpu_median_ns": 39821.4,
+       "cpu_min_ns": 25107.8,
+       "samples": 35
+      },
+      "opeu-game-benches/PathWalk": {
+       "cpu_median_ns": 36902.7,
+       "cpu_min_ns": 23527.2,
+       "samples": 35
+      },
+      "opeu-services-benches/AlignedGlyph": {
+       "cpu_median_ns": 77.2,
+       "cpu_min_ns": 57.4,
+       "samples": 70
+      },
+      "opeu-services-benches/BattleCell": {
+       "cpu_median_ns": 2247.5,
+       "cpu_min_ns": 1481.2,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:0": {
+       "cpu_median_ns": 5494.3,
+       "cpu_min_ns": 3544.2,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:1": {
+       "cpu_median_ns": 6680.9,
+       "cpu_min_ns": 4013.7,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitColumns/mode:4": {
+       "cpu_median_ns": 8742.5,
+       "cpu_min_ns": 5728.0,
+       "samples": 35
+      },
+      "opeu-services-benches/BlitThreeByteColumns": {
+       "cpu_median_ns": 7482.4,
+       "cpu_min_ns": 5022.4,
+       "samples": 35
+      },
+      "opeu-services-benches/BoxAndHighlight": {
+       "cpu_median_ns": 4649.0,
+       "cpu_min_ns": 3458.5,
+       "samples": 35
+      },
+      "opeu-services-benches/Calibration": {
+       "cpu_median_ns": 16129.3,
+       "cpu_min_ns": 11517.1,
+       "samples": 35
+      },
+      "opeu-services-benches/CellBlockCopy": {
+       "cpu_median_ns": 286.1,
+       "cpu_min_ns": 229.6,
+       "samples": 35
+      },
+      "opeu-services-benches/CopyColumns": {
+       "cpu_median_ns": 616.5,
+       "cpu_min_ns": 426.8,
+       "samples": 35
+      },
+      "opeu-services-benches/DecodePicture": {
+       "cpu_median_ns": 230053.1,
+       "cpu_min_ns": 174793.1,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:0/planes:3": {
+       "cpu_median_ns": 3831.6,
+       "cpu_min_ns": 2722.5,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:0/planes:4": {
+       "cpu_median_ns": 5509.3,
+       "cpu_min_ns": 3603.8,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:1/planes:4": {
+       "cpu_median_ns": 6158.2,
+       "cpu_min_ns": 3978.1,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawColumns/mode:4/planes:4": {
+       "cpu_median_ns": 8669.0,
+       "cpu_min_ns": 5785.6,
+       "samples": 35
+      },
+      "opeu-services-benches/DrawShiftedColumns": {
+       "cpu_median_ns": 531.4,
+       "cpu_min_ns": 331.5,
+       "samples": 35
+      },
+      "opeu-services-benches/Fill": {
+       "cpu_median_ns": 10144.2,
+       "cpu_min_ns": 8739.3,
+       "samples": 35
+      },
+      "opeu-services-benches/Lines": {
+       "cpu_median_ns": 5621.5,
+       "cpu_min_ns": 4383.6,
+       "samples": 35
+      },
+      "opeu-services-benches/Present": {
+       "cpu_median_ns": 137259.7,
+       "cpu_min_ns": 98805.7,
+       "samples": 35
+      },
+      "opeu-services-benches/Render": {
+       "cpu_median_ns": 134296.4,
+       "cpu_min_ns": 97494.7,
+       "samples": 35
+      },
+      "opeu-services-benches/SaveColumns": {
+       "cpu_median_ns": 9379.1,
+       "cpu_min_ns": 6384.1,
+       "samples": 35
+      },
+      "opeu-services-benches/ScreenCopy": {
+       "cpu_median_ns": 674.6,
+       "cpu_min_ns": 445.8,
+       "samples": 35
+      },
+      "opeu-services-benches/ShiftedGlyph": {
+       "cpu_median_ns": 293.4,
+       "cpu_min_ns": 214.9,
+       "samples": 70
+      },
+      "opeu-services-benches/ShiftedTransparentImage": {
+       "cpu_median_ns": 561.8,
+       "cpu_min_ns": 333.1,
+       "samples": 35
+      },
+      "opeu-services-benches/SpriteCompose": {
+       "cpu_median_ns": 3358.9,
+       "cpu_min_ns": 2431.2,
+       "samples": 35
+      }
+     },
+     "calibration_cpu_s": 0.5956,
+     "measured": "2026-10-13",
+     "os_version": "macOS 26.5",
+     "revision": "2e57d779",
+     "runs": {
+      "air-special-forces": {
+       "cpu_median_s": 0.1567,
+       "cpu_min_s": 0.1484,
+       "samples": 7,
+       "wall_median_s": 0.1698
+      },
+      "demo-africa": {
+       "cpu_median_s": 0.8418,
+       "cpu_min_s": 0.8004,
+       "samples": 7,
+       "wall_median_s": 1.5145
+      },
+      "demo-berlin": {
+       "cpu_median_s": 1.059,
+       "cpu_min_s": 1.0375,
+       "samples": 7,
+       "wall_median_s": 1.9754
+      },
+      "demo-bulge": {
+       "cpu_median_s": 0.932,
+       "cpu_min_s": 0.9238,
+       "samples": 7,
+       "wall_median_s": 1.7245
+      },
+      "demo-france": {
+       "cpu_median_s": 0.797,
+       "cpu_min_s": 0.7838,
+       "samples": 7,
+       "wall_median_s": 1.4074
+      },
+      "demo-france-battles": {
+       "cpu_median_s": 0.5344,
+       "cpu_min_s": 0.5013,
+       "samples": 7,
+       "wall_median_s": 0.875
+      },
+      "demo-kursk": {
+       "cpu_median_s": 1.2793,
+       "cpu_min_s": 1.2302,
+       "samples": 7,
+       "wall_median_s": 2.4142
+      },
+      "demo-normandy": {
+       "cpu_median_s": 0.9271,
+       "cpu_min_s": 0.9041,
+       "samples": 7,
+       "wall_median_s": 1.7568
+      },
+      "load-play-save": {
+       "cpu_median_s": 0.0801,
+       "cpu_min_s": 0.0762,
+       "samples": 7,
+       "wall_median_s": 0.0894
+      },
+      "load-save": {
+       "cpu_median_s": 0.0493,
+       "cpu_min_s": 0.0403,
+       "samples": 7,
+       "wall_median_s": 0.0603
+      },
+      "officers-advice": {
+       "cpu_median_s": 0.186,
+       "cpu_min_s": 0.1772,
+       "samples": 7,
+       "wall_median_s": 0.234
+      },
+      "orders": {
+       "cpu_median_s": 0.1718,
+       "cpu_min_s": 0.161,
+       "samples": 7,
+       "wall_median_s": 0.2003
+      },
+      "organize-request": {
+       "cpu_median_s": 0.1619,
+       "cpu_min_s": 0.1557,
+       "samples": 7,
+       "wall_median_s": 0.1854
+      },
+      "save-new": {
+       "cpu_median_s": 0.129,
+       "cpu_min_s": 0.1268,
+       "samples": 7,
+       "wall_median_s": 0.1426
+      },
+      "settings-quit": {
+       "cpu_median_s": 0.136,
+       "cpu_min_s": 0.1259,
+       "samples": 7,
+       "wall_median_s": 0.1467
+      },
+      "smoke-input": {
+       "cpu_median_s": 0.0884,
+       "cpu_min_s": 0.085,
+       "samples": 7,
+       "wall_median_s": 0.0985
+      },
+      "smoke-intro": {
+       "cpu_median_s": 0.3461,
+       "cpu_min_s": 0.3091,
+       "samples": 7,
+       "wall_median_s": 0.5497
+      },
+      "smoke-turn": {
+       "cpu_median_s": 0.6771,
+       "cpu_min_s": 0.6378,
+       "samples": 7,
+       "wall_median_s": 1.2481
+      }
+     }
+    }
+   },
+   "machine": {
+    "arch": "arm64",
+    "cores": 8,
+    "cpu": "Apple M2",
+    "os": "Darwin",
+    "python": "3.14"
+   },
+   "reference": {
+    "v1.0.1": {
+     "calibration_cpu_s": 0.5976,
+     "measured": "2026-10-13",
+     "os_version": "macOS 26.5",
+     "revision": "a524a29c",
+     "runs": {
+      "air-special-forces": {
+       "cpu_median_s": 0.1403,
+       "cpu_min_s": 0.122,
+       "samples": 7,
+       "wall_median_s": 0.1502
+      },
+      "demo-africa": {
+       "cpu_median_s": 0.6464,
+       "cpu_min_s": 0.6298,
+       "samples": 7,
+       "wall_median_s": 1.133
+      },
+      "demo-berlin": {
+       "cpu_median_s": 0.7722,
+       "cpu_min_s": 0.7487,
+       "samples": 7,
+       "wall_median_s": 1.3769
+      },
+      "demo-bulge": {
+       "cpu_median_s": 0.6722,
+       "cpu_min_s": 0.6566,
+       "samples": 7,
+       "wall_median_s": 1.2188
+      },
+      "demo-france": {
+       "cpu_median_s": 0.5769,
+       "cpu_min_s": 0.5546,
+       "samples": 7,
+       "wall_median_s": 0.9843
+      },
+      "demo-france-battles": {
+       "cpu_median_s": 0.4411,
+       "cpu_min_s": 0.3946,
+       "samples": 7,
+       "wall_median_s": 0.7168
+      },
+      "demo-kursk": {
+       "cpu_median_s": 0.7994,
+       "cpu_min_s": 0.7892,
+       "samples": 7,
+       "wall_median_s": 1.4949
+      },
+      "demo-normandy": {
+       "cpu_median_s": 0.6745,
+       "cpu_min_s": 0.6447,
+       "samples": 7,
+       "wall_median_s": 1.2059
+      },
+      "load-play-save": {
+       "cpu_median_s": 0.0796,
+       "cpu_min_s": 0.0742,
+       "samples": 7,
+       "wall_median_s": 0.0866
+      },
+      "load-save": {
+       "cpu_median_s": 0.0454,
+       "cpu_min_s": 0.0427,
+       "samples": 7,
+       "wall_median_s": 0.0535
+      },
+      "officers-advice": {
+       "cpu_median_s": 0.1704,
+       "cpu_min_s": 0.1592,
+       "samples": 7,
+       "wall_median_s": 0.1953
+      },
+      "orders": {
+       "cpu_median_s": 0.1605,
+       "cpu_min_s": 0.1491,
+       "samples": 7,
+       "wall_median_s": 0.1814
+      },
+      "organize-request": {
+       "cpu_median_s": 0.1438,
+       "cpu_min_s": 0.1321,
+       "samples": 7,
+       "wall_median_s": 0.1509
+      },
+      "save-new": {
+       "cpu_median_s": 0.1239,
+       "cpu_min_s": 0.1183,
+       "samples": 7,
+       "wall_median_s": 0.1326
+      },
+      "settings-quit": {
+       "cpu_median_s": 0.1229,
+       "cpu_min_s": 0.1181,
+       "samples": 7,
+       "wall_median_s": 0.1306
+      },
+      "smoke-input": {
+       "cpu_median_s": 0.084,
+       "cpu_min_s": 0.0806,
+       "samples": 7,
+       "wall_median_s": 0.0913
+      },
+      "smoke-intro": {
+       "cpu_median_s": 0.3179,
+       "cpu_min_s": 0.3118,
+       "samples": 7,
+       "wall_median_s": 0.4919
+      },
+      "smoke-turn": {
+       "cpu_median_s": 0.6565,
+       "cpu_min_s": 0.6278,
+       "samples": 7,
+       "wall_median_s": 1.176
+      }
+     }
+    }
+   }
+  }
+ ]
+}

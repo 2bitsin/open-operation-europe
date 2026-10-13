@@ -128,8 +128,167 @@ clang-tidy; on macOS `brew install llvm`):
 
 The positional argument is a regular expression over the source paths,
 so `'sources/opeu/(glue|platform|intro|opeu)/'` runs the finished modules
-together; `-fix` applies the automatic fixes. glue, platform, intro and
-opeu report nothing.
+together; `-fix` applies the automatic fixes. Since
+glue, platform, intro and opeu report 126, 23, 153 and 5 identifier
+findings: all legacy names that the rename tool (`tools/rename/`, #17)
+renames. They report nothing else.
+
+## Benchmarks and profiling
+
+The rule: no change may make the game notably slower. Three gates in
+`./buildutil test` hold it, against the numbers in
+`sources/opeu/integration/fixtures/perf/baseline.json`:
+
+- `sources/opeu/integration/perf.test/` (in `opeu-integration-pytest`):
+  every run of the functional suite (the six one-hour demos, the
+  battle-viewed demo, the three smokes, the save and load runs; a Debug
+  build times only the four runs that stay under 3 s there). Headless play
+  runs in virtual time as fast as the CPU allows, so a run's cost is the CPU
+  time (user + system) of its `opeu` process: the median of 3 plays, played
+  3 more times and judged on all 6 when over its limit, plus the suite's
+  total. The wall time is recorded beside it. It takes about 12 s.
+- `sources/opeu/services/services.bench/benches.test.py` and
+  `sources/opeu/game/game.bench/benches.test.py` (in
+  `opeu-services-pytest` and `opeu-game-pytest`): every google-benchmark
+  case of `opeu-services-benches` (the canvas: blits, glyphs, columns,
+  fills, lines, sprite compose, picture decode, render and present) and
+  `opeu-game-benches` (the battle calculation and pathfinding: the path
+  flood in its three modes, the walk down the flooded costs, the move
+  costs, element ratings, the element at every cell, the exit marking).
+  The gate takes the fastest of 5 repetitions per benchmark; the ones over
+  their limit are measured again, 5 repetitions at a time, for up to 20 s.
+  Noise only ever slows a benchmark down, so the fastest repetition is its
+  true cost and a real regression fails every attempt. The gates configure
+  the tested build tree with `BUILD_BENCHMARKING=ON` and build the
+  benchmark executables themselves; buildutil passes the switch on every
+  configure, so the next `./buildutil build` turns it off again.
+
+The budget is 10 % over the baseline of the same machine
+(`OPEU_PERF_BUDGET=<percent>` overrides it). A shared machine is the hard
+the efficiency cores, the same binary plays up to a third slower (measured
+on the 8-core M2 at load averages of 14 to 43). So every limit is
+multiplied by how slow the machine is right then:
+
+- for the runs, by the median CPU time of calibration processes (a fixed
+  pure-Python workload of about 0.5 s, `CALIBRATION_WORKLOAD` in
+  `perf.py`) that run in the same pool as the plays, one after every three,
+  against the median recorded beside the baseline. They meet the same load
+  as the plays: across sessions the ratio of v1.0.1's suite time to the
+  calibration held within 5 to 8 % while the suite time itself moved by
+  12 to 21 %. A calibration benchmark inside a benchmark executable did not
+  track the plays at all;
+- for the benchmarks, by how much slower than at the baseline the same
+  executable runs its `Calibration` benchmark (`services.bench/calibration.hpp`:
+  arithmetic over a 256 KiB working set, code no change to the game
+  touches), never by less than 1 on the baseline's machine.
+
+With that, the three gates passed all six times they were run together
+(five Release, one Debug) at load averages of 14 to 43 (with six extra processes sweeping 64 MiB each), and the run
+gate fails every demo when HEAD is judged against v1.0.1's numbers.
+
+The baseline is per machine (CPU model, core count, OS family,
+architecture, Python version, since the calibration is Python) and per
+build type (release, debug; RelWithDebInfo is judged as release). On a
+machine it does not list, the numbers of the closest listed one (the same
+architecture first, then the OS family, the CPU model, the core count)
+apply, scaled the same way, and the budget is 50 % (again
+`OPEU_PERF_BUDGET`): the calibration cannot capture every difference
+between two machines, so there the gate catches only gross regressions
+until the machine has its own entry. Collection reads only the baseline
+file, so the suites collect on any machine; a build type no machine lists
+fails the tests with the command that records it.
+
+The baseline also holds `reference.v1.0.1`: the same runs played by a
+Release build of v1.0.1 (a524a29), the last snapshot before the refactor,
+measured the same way, so the refactor is measured against the original C
+as well as against the last baseline. At the baseline of 2e57d779 the two
+calibrations were equal (0.596 s and 0.598 s) and HEAD took 29 % more CPU
+than v1.0.1 for the whole suite: the demos 21 to 60 % more (demo-kursk
+most), the short runs 1 to 12 % more or less. That debt predates the gate;
+the profile of demo-kursk puts the canvas's moves of the map view
+(`Canvas::Move` and its `memmove` while the map scrolls) at the top of
+what v1.0.1 did not spend.
+
+### Running
+
+```
+./buildutil bench opeu-services          # the canvas benchmarks (google-benchmark's console table)
+./buildutil bench opeu-game              # the battle and pathfinding benchmarks
+./buildutil test opeu-integration        # the run gate (with the functional suite)
+_pyvenv/bin/python sources/opeu/integration/perf.test/perf.py measure _build/<profile>   # all numbers, nothing written
+```
+
+A failure names the run or benchmark, its time, the limit, the baseline
+and the machine's slowdown. Profile it (below) before anything else.
+
+### Re-baselining
+
+After a deliberate change (a run added to the suite, a benchmark added, a
+speed-up worth keeping, a new machine), measure clean exports, never the
+shared working tree, under `_local/perf/`, Release and Debug, with the
+project venv's Python (the one `./buildutil test` runs the gate with):
+
+```
+mkdir -p _local/perf/head _local/perf/v1.0.1
+git archive HEAD | tar -x -C _local/perf/head && git rev-parse HEAD > _local/perf/head/.perf-rev
+git archive a524a29 | tar -x -C _local/perf/v1.0.1 && echo a524a29 > _local/perf/v1.0.1/.perf-rev
+(cd _local/perf/head && ./buildutil build --release && ./buildutil build --debug)
+(cd _local/perf/v1.0.1 && ./buildutil build --release)
+_pyvenv/bin/python sources/opeu/integration/perf.test/perf.py baseline _local/perf/head/_build/<profile>-release
+_pyvenv/bin/python sources/opeu/integration/perf.test/perf.py baseline _local/perf/head/_build/<profile>-debug
+_pyvenv/bin/python sources/opeu/integration/perf.test/perf.py reference _local/perf/v1.0.1/_build/<profile>-release/bin/opeu v1.0.1
+```
+
+`baseline` plays every run 7 times with the calibration processes among
+the plays and records medians and minima of CPU and wall time and the
+calibration median, runs every benchmark 7 x 5 times, and writes the entry
+of this machine and build type, leaving the others. The `.perf-rev` file
+names the revision recorded. Commit the baseline on its own, with the
+table of what moved in the body.
+
+### Profiling
+
+macOS (Instruments' command line; Xcode's Instruments app opens the trace):
+
+```
+xcrun xctrace record --template 'Time Profiler' --output _local/prof/kursk.trace \
+  --launch -- _build/<profile>/bin/opeu --headless --ms 3600000 --input <script>
+open _local/prof/kursk.trace
+sample opeu 10 -file _local/prof/kursk.sample.txt   # a quick call-tree of a running process
+```
+
+`python3 sources/opeu/integration/play.test/play.py run <opeu> demo-kursk
+_local/prof/kursk` plays a run and leaves its script in
+`_local/prof/kursk/input.txt`; a longer `--ms` gives `sample` time to
+attach.
+
+Linux:
+
+```
+perf record -g --call-graph dwarf -o _local/prof/perf.data -- _build/<profile>/bin/opeu --headless ...
+perf report -i _local/prof/perf.data --no-children
+```
+
+A benchmark profiles the same way with its executable
+(`_build/<profile>/sources/opeu/services/opeu-services-benches
+--benchmark_filter=Render --benchmark_min_time=5s`). Release builds carry
+symbols for the call tree with `./buildutil build --relwithdebinfo`, which
+the gate judges against the release baseline.
+
+clang's instrumented profile counts every function and line (exact, not
+sampled) for a run: configure a separate tree with
+`-fprofile-instr-generate -fcoverage-mapping` in `CMAKE_CXX_FLAGS` and
+`CMAKE_EXE_LINKER_FLAGS`, play the run with
+`LLVM_PROFILE_FILE=_local/prof/run.profraw`, then
+
+```
+xcrun llvm-profdata merge -o _local/prof/run.profdata _local/prof/run.profraw
+xcrun llvm-cov report _build/<profile>/bin/opeu -instr-profile=_local/prof/run.profdata
+xcrun llvm-cov show _build/<profile>/bin/opeu -instr-profile=_local/prof/run.profdata -name=<function>
+```
+
+is that build; its counts double as a profile of how often each line runs. The same
+`.profdata` feeds `-fprofile-instr-use` for a profile-guided build.
 
 ## Dependencies and the conan remote
 
