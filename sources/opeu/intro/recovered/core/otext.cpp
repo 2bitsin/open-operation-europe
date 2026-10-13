@@ -136,7 +136,7 @@ auto opeu_format_decimal(uint8_t* ds, [[maybe_unused]] TextHost* host, uint16_t*
   uint16_t b = 0;
   a          = 0;
   while ((b = At(ds, *p) - '0') < 10) {
-    a = b + (a * 10);
+    a = static_cast<uint16_t>(b + (a * 10));
     ++*p;
   }
   return static_cast<int16_t>(a);
@@ -247,6 +247,7 @@ void opeu_format(uint8_t* ds, TextHost* host, uint16_t args, TextOut out) {
             e--;
           }
         }
+        [[fallthrough]];
       case 'U': i = 10; goto number;
       case 'O':
         i = 8;
@@ -291,7 +292,7 @@ done:;
 auto opeu_open_sjis_to_jis([[maybe_unused]] uint8_t* ds, [[maybe_unused]] TextHost* host, uint16_t code) -> uint16_t {
   uint8_t a = 0;
   uint8_t b = 0;
-  a         = code >> 8;
+  a         = static_cast<uint8_t>(code >> 8);
   if (a > 0x80 && a < 0xf0) {
     a = static_cast<uint8_t>((a - (a >= 0xa0 ? 0xb0 : 0x70)) << 1);
     b = static_cast<uint8_t>(code);
@@ -376,7 +377,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     case 'M': Data(ds).text_state = 6; break;
     case 'B': Data(ds).text_state = 7; break;
     case 'Y': Data(ds).text_state = 8; break;
-    case 'E': Event(ds, host, STUB_B, 6);
+    case 'E': Event(ds, host, STUB_B, 6); [[fallthrough]];
     case 'W': Data(ds).text_state = 9; break;
     case 'T': Event(ds, host, BOX, Data(ds).text_x, Data(ds).text_y, 80 - Data(ds).text_x, (Data(ds).text_large != 0) ? 32 : 16, Data(ds).text_background); goto reset;
     case '*': Event(ds, host, CLEAR); goto reset;
@@ -439,7 +440,7 @@ auto opeu_text_put(uint8_t* ds, TextHost* host, uint8_t c) -> uint8_t {
     d = static_cast<int16_t>(d << 8 | Data(ds).text_ink);
     if (Data(ds).text_large != 0) d = static_cast<int16_t>(d | 0x8000);
     opeu_text_glyph(ds, host, Data(ds).text_x, Data(ds).text_y, d, b);
-    Data(ds).text_x += b >= 0x200 ? 2 : 1;
+    Data(ds).text_x = static_cast<int16_t>(Data(ds).text_x + (b >= 0x200 ? 2 : 1));
     break;
   }
   return c;
