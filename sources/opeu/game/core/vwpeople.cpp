@@ -40,7 +40,7 @@ void opeu_view_people_list(uint8_t ds[65536], HostEvent event, uint8_t count) {
   SetRowCheck(ds, event, data.people_dialog, RowCheck::NONE);
   Call(ds, event, ViewService::CONTROL_PANEL);
   Call(ds, event, ViewService::CONTROL_MESSAGE, PEOPLE_HERE, data.context_record3);
-  Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.people_dialog), 1, 7);
+  Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.people_dialog), LIST_LIMIT, LIST_FLAGS);
 }
 
 // The own side's generals.

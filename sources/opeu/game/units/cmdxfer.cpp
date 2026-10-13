@@ -58,9 +58,6 @@ enum Routine : std::uint16_t {
 constexpr std::uint16_t TRANSFER_PICTURE{ 0x166 };
 // The transfer's code segment in the routine link table.
 constexpr std::uint16_t TRANSFER_SEGMENT{ 0x1d42 };
-// The flags list_dialog runs the transfer's lists with.
-constexpr std::uint16_t LIST_LIMIT{ 1 };
-constexpr std::uint16_t LIST_FLAGS{ 7 };
 // pending_finish's value when the show ends.
 constexpr std::uint16_t SHOW_DONE{ 3 };
 // The confirmation message buffer the services format and show.

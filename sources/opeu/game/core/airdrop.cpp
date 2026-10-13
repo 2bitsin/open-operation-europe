@@ -58,7 +58,7 @@ auto CurrentDrop(DataSegment& data) -> AirDrop& {
 }
 
 auto ListDialog(std::uint8_t* ds, HostEvent event, ListWindow const& window) -> std::uint16_t {
-  return Call(ds, event, LIST_DIALOG, Near(Data(ds), window), 1, 7);
+  return Call(ds, event, LIST_DIALOG, Near(Data(ds), window), LIST_LIMIT, LIST_FLAGS);
 }
 
 auto ReleaseUnits(std::uint8_t* ds, std::uint16_t list) -> std::uint8_t {

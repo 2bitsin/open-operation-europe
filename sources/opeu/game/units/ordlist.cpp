@@ -28,9 +28,6 @@ enum Routine : std::uint16_t {
 };
 // The Orders command's code segment in the routine link table.
 constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
-// The flags list_dialog runs the lists with.
-constexpr std::uint16_t LIST_LIMIT{ 1 };
-constexpr std::uint16_t LIST_FLAGS{ 7 };
 
 auto RunList(std::uint8_t* ds, HostEvent event, ListWindow& list) -> std::uint16_t {
   return Call(ds, event, ORDERS_LIST_DIALOG, Near(Data(ds), list), LIST_LIMIT, LIST_FLAGS);

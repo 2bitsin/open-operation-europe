@@ -3,6 +3,7 @@
 #include "map/movetgt.hpp"
 #include "common/data-segment.hpp"
 #include "common/map-frame.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "core/recindex.hpp"
@@ -34,7 +35,6 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint16_t PATH_SEGMENT{ 0x4582 }; // the far path-cost grid and queue
-constexpr uint8_t  DIRECTIONS_AND_CENTER{ 9 };
 // opeu_move_adjacent's DS reserve for the step coordinates the grid step service moves.
 constexpr uint16_t STEP_RESERVE{ 4 };
 constexpr uint16_t STEP_X_AT{ 2 };
@@ -59,7 +59,7 @@ uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) 
   ServiceLocals const locals{ STEP_RESERVE };
   auto const          x_at{ locals.At(STEP_X_AT) };
   auto const          y_at{ locals.At(STEP_Y_AT) };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS_AND_CENTER; direction++) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; direction++) {
     Byte(ds, x_at) = unit.x;
     Byte(ds, y_at) = unit.y;
     if (Call(ds, event, MoveService::GRID_STEP, x_at, y_at, direction) && x == Byte(ds, x_at) && y == Byte(ds, y_at)) return 1;

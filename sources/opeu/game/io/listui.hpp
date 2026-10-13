@@ -34,6 +34,10 @@ enum class ListCall : std::uint16_t {
   SELECT         = 20, // the window's far select routine (offset, segment, count) -> AL
 };
 
+// The column opeu_list_scroll is given to redraw the window from its origin, or at the current position.
+inline constexpr std::uint8_t REDRAW_ORIGIN{ 0xff };
+inline constexpr std::uint8_t REDRAW_HERE{ 0xfe };
+
 // A call with its argument words.
 template <typename... Words>
 inline auto List(std::uint8_t* ds, HostWordsEvent event, ListCall call, Words... words) -> std::uint16_t {
@@ -50,6 +54,8 @@ inline auto List(std::uint8_t* ds, HostWordsEvent event, ListCall call, Words...
 namespace opeu::game {
 using detail::list_call::List;
 using detail::list_call::ListCall;
+using detail::list_call::REDRAW_HERE;
+using detail::list_call::REDRAW_ORIGIN;
 } // namespace opeu::game
 
 void opeu_list_arrows(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit);

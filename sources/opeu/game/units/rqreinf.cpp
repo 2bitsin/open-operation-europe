@@ -92,7 +92,7 @@ void opeu_request_regiment(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, RequestService::CONTROL_PANEL);
   Call(ds, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_which_regiment_text), data.context_record2);
   data.rq_regiment_list.rows = static_cast<std::uint8_t>(units + 1);
-  if (!Call(ds, event, RequestService::LIST_DIALOG, Near(data, data.rq_regiment_list), 1, 7)) return;
+  if (!Call(ds, event, RequestService::LIST_DIALOG, Near(data, data.rq_regiment_list), LIST_LIMIT, LIST_FLAGS)) return;
   auto const    unit{ data.ai_unit_list[data.list_row] };
   auto const    slot{ static_cast<std::uint8_t>(Call(ds, event, RequestService::UNIT_INDEX, unit)) };
   std::uint16_t kind;

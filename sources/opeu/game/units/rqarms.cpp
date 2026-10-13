@@ -53,7 +53,7 @@ void opeu_request_arms(uint8_t ds[65536], HostEvent event) {
     count += static_cast<std::uint8_t>(Call(ds, event, RequestService::ELEMENT_TYPES, data.side_masks[data.current_side], category, Near(data, data.rq_type_list[count])));
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
   Call(ds, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_arms_which), data.context_record2);
-  if (!Call(ds, event, RequestService::LIST_DIALOG, Near(data, data.rq_type_dialog), 1, 7)) return;
+  if (!Call(ds, event, RequestService::LIST_DIALOG, Near(data, data.rq_type_dialog), LIST_LIMIT, LIST_FLAGS)) return;
   x = static_cast<std::uint8_t>(data.viewport_x);
   y = static_cast<std::uint8_t>(data.viewport_y);
   Call(ds, event, RequestService::CONTROL_MESSAGE, Near(data, data.rq_arms_where), data.context_record2);

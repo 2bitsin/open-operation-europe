@@ -3,6 +3,7 @@
 // or when it, its division's selected unit and the side's selected unit are all in communication.
 #include "map/support.hpp"
 #include "common/data-segment.hpp"
+#include "common/map-grid.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
 #include "map/query.hpp"
@@ -11,16 +12,14 @@
 
 using namespace opeu::game;
 
-namespace {
-constexpr uint8_t DIRECTIONS_AND_CENTER{ 9 }; // direction 8 stays on the cell
-}
+namespace { }
 
 uint16_t opeu_unit_support_condition(const uint8_t* ds, uint16_t unit) {
   auto const& data{ Data(ds) };
   auto const& record{ Record<Unit>(data, unit) };
   if (record.flags & Bits(UnitFlag::COMMUNICATIONS)) return 1;
   auto const side{ opeu_unit_side(unit) };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS_AND_CENTER; ++direction) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS_AND_CENTER; ++direction) {
     uint8_t x{ record.x };
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;

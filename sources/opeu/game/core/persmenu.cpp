@@ -52,8 +52,6 @@ constexpr uint16_t PERSONNEL_SEGMENT{ 0x1d82 };
 
 constexpr uint16_t ASSIGN_SHOW{ 0x17b };
 constexpr uint8_t  ASSIGN_FINISH{ 3 };
-constexpr uint8_t  LIST_LIMIT{ 1 };
-constexpr uint8_t  LIST_FLAGS{ 7 };
 constexpr uint8_t  POSTS{ 6 };       // four divisions, operations and intelligence
 constexpr uint8_t  REST_LAST{ 10 };  // the most days of leave less one
 constexpr uint8_t  ORDERS_LAST{ 3 }; // reassign, appoint, rest

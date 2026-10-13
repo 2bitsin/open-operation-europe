@@ -64,7 +64,7 @@ void opeu_view_city_list(uint8_t ds[65536], HostEvent event, uint8_t count) {
       Call(ds, event, ViewService::REQUEST_FORMAT, title, CITY_FORMAT, city);
       Call(ds, event, ViewService::CONTROL_MESSAGE, title, data.context_record3);
       Call(ds, event, ViewService::COPY_BYTES, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
-      Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.stock_dialog), 1, 7);
+      Call(ds, event, ViewService::LIST_DIALOG, Near(data, data.stock_dialog), LIST_LIMIT, LIST_FLAGS);
       Call(ds, event, ViewService::COPY_BYTES, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
     }
   }

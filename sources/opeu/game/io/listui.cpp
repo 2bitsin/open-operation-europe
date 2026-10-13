@@ -40,10 +40,6 @@ constexpr std::uint8_t  WIDTH_BIAS{ 0x20 };
 constexpr std::uint16_t COLOUR{ 7 };
 constexpr std::uint16_t INVERT_MODE{ 0x107 };
 
-// scroll: redraw from the origin, or at the current position
-constexpr std::uint8_t REDRAW_ORIGIN{ 0xff };
-constexpr std::uint8_t REDRAW_HERE{ 0xfe };
-
 // what the draw routine is asked to draw
 enum Area : std::uint8_t {
   ALL          = 1,

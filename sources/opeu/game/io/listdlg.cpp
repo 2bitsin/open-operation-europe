@@ -20,8 +20,6 @@ enum Flag : std::uint8_t {
   KEYBOARD_ONLY    = 8,
 };
 
-constexpr std::uint8_t  REDRAW_ORIGIN{ 0xff };
-constexpr std::uint8_t  REDRAW_HERE{ 0xfe };
 constexpr std::uint8_t  WITHDRAW{ 10 };
 constexpr std::uint8_t  COMMANDERS{ 7 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x11 };

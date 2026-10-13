@@ -4867,6 +4867,10 @@ template <typename T>
   return Record<ListWindow>(data, near);
 }
 
+// What every list dialog of the game is run with (opeu_list_dialog's limit and flags): one choice, flags 7.
+inline constexpr std::uint8_t LIST_LIMIT{ 1 };
+inline constexpr std::uint8_t LIST_FLAGS{ 7 };
+
 // Points the list window's row predicate at the far routine segment:routine.
 inline auto SetListPredicate(ListWindow& list, std::uint16_t routine, std::uint16_t segment) noexcept -> void {
   list.select = { routine, segment };
@@ -4941,6 +4945,8 @@ using detail::data_segment::RATING_LIMIT;
 using detail::data_segment::CurrentSide;
 using detail::data_segment::CurrentUnit;
 using detail::data_segment::HasMouse;
+using detail::data_segment::LIST_FLAGS;
+using detail::data_segment::LIST_LIMIT;
 using detail::data_segment::ListWindowAt;
 using detail::data_segment::Record;
 using detail::data_segment::SetListPredicate;
