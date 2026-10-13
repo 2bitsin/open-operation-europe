@@ -70,10 +70,6 @@ auto CallHook(std::uint8_t* ds, HostService service) -> void {
     Input(ds, service, InputCall::IDLE_HOOK, hook.offset, hook.segment);
 }
 
-auto HasMouse(std::uint8_t const* ds) -> bool {
-  return Data(ds).input_mode != 0;
-}
-
 auto TextX(std::uint8_t const* ds) -> std::uint16_t {
   return static_cast<std::uint16_t>(Data(ds).text_x);
 }
@@ -104,7 +100,7 @@ auto opeu_key_wait_tick(std::uint8_t* ds, HostService service) -> int {
   Input(ds, service, InputCall::TIMER_START, 15);
   do {
     count++;
-    if (HasMouse(ds) ? opeu_turn_input_a(ds, service) : Input(ds, service, InputCall::KEY_PENDING)) {
+    if (HasMouse(Data(ds)) ? opeu_turn_input_a(ds, service) : Input(ds, service, InputCall::KEY_PENDING)) {
       RandomSeed(ds, count);
       return 1;
     }
@@ -146,7 +142,7 @@ void opeu_wait_confirm(std::uint8_t* ds, HostService service, int pause) {
     return;
   }
   HookCursor(data);
-  while (!(HasMouse(ds) ? opeu_mouse_wait_buttons(ds, service) : opeu_keyboard_key(ds, service) == KEY_ENTER));
+  while (!(HasMouse(Data(ds)) ? opeu_mouse_wait_buttons(ds, service) : opeu_keyboard_key(ds, service) == KEY_ENTER));
   HookClear(data);
 }
 
@@ -192,7 +188,7 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
   auto&        data{ Data(ds) };
   std::int32_t value;
   if (max < min) return 0;
-  if (HasMouse(ds)) {
+  if (HasMouse(Data(ds))) {
     if (items) return opeu_menu_select(ds, service, items, cancel);
     return opeu_numdlg_run(ds, service, min, max, cancel);
   }
@@ -324,7 +320,7 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service) -> std::uint8_t {
 auto opeu_yes_no(std::uint8_t* ds, HostService service) -> int {
   auto& data{ Data(ds) };
   HookCursor(data);
-  for (;;) switch (HasMouse(ds) ? opeu_mouse_yes_no(ds, service) : opeu_keyboard_key(ds, service)) {
+  for (;;) switch (HasMouse(Data(ds)) ? opeu_mouse_yes_no(ds, service) : opeu_keyboard_key(ds, service)) {
     case 'y':
     case KEY_ENTER:
     case 'Y':        HookClear(data); return 1;

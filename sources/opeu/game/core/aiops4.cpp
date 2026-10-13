@@ -26,10 +26,6 @@ constexpr std::array<std::uint8_t, 3> SUPPORT_CATEGORIES{ 5, 6, 7 };
 
 using TypeList = std::array<std::uint8_t, ELEMENT_TYPE_COUNT>;
 
-auto CurrentSide(DataSegment& data) -> Side& {
-  return Record<Side>(data, data.current_side_ptr);
-}
-
 auto IsSupport(std::uint8_t category) -> bool {
   return category == 5 || category == 6 || category == 7;
 }

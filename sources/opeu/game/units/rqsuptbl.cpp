@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "common/table-rows.hpp"
 #include "core/personfl.hpp"
 #include "core/tblgroup.hpp"
@@ -16,13 +17,7 @@
 
 using namespace opeu::game;
 
-namespace {
-
-// The colour of the current side's names.
-[[nodiscard]] auto SideColour(DataSegment const& data) -> std::uint16_t {
-  return data.current_side ? 5 : 6;
-}
-} // namespace
+namespace { } // namespace
 
 // Draws rows first..last of the type table's `column`, with the heading and the type names as `flags` ask. The
 // nation shown is the general's (context_record1) when the type is fielded by it, else the type's first nation.
@@ -37,7 +32,7 @@ void opeu_rq_draw_types(uint8_t ds[65536], HostEvent event, uint8_t column, uint
   if (flags & DRAW_HEADING) {
     Call(ds, event, TableService::FORMAT, text, Near(data, data.rq_type_header));
     Call(ds, event, TableService::POSITION, ColumnX(data, window, layout, -0x20), window.y + 1);
-    Call(ds, event, TableService::TEXT_COLOR, SideColour(data));
+    Call(ds, event, TableService::TEXT_COLOR, SideTextColor(data.current_side));
     Call(ds, event, TableService::PUT_RANGE, text, layout.start, layout.count);
   }
   for (auto entry{ first }; entry <= last; ++entry) {
@@ -45,7 +40,7 @@ void opeu_rq_draw_types(uint8_t ds[65536], HostEvent event, uint8_t column, uint
     auto const  y{ RowY(data, window, entry) };
     if (flags & DRAW_NAMES) {
       Call(ds, event, TableService::POSITION, window.x + 3, y);
-      Call(ds, event, TableService::TEXT_COLOR, SideColour(data));
+      Call(ds, event, TableService::TEXT_COLOR, SideTextColor(data.current_side));
       Call(ds, event, TableService::PRINT, Near(data, data.rq_type_name), type.name);
     }
     auto const          general{ Record<Person>(data, data.context_record1).status };

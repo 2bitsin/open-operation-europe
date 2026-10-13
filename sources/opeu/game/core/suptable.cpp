@@ -7,6 +7,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
+#include "common/table-rows.hpp"
 #include "core/textout.hpp"
 #include "glue.hpp"
 #include "io/listui.hpp"
@@ -41,10 +42,6 @@ auto TypeAt(std::uint8_t type) -> std::uint16_t {
   return static_cast<std::uint16_t>(ELEMENT_TYPES_AT + type * sizeof(ElementType));
 }
 
-// The frame of the active list window.
-auto Window(DataSegment const& data) -> ListWindow const& {
-  return Record<ListWindow>(data, data.list_window);
-}
 } // namespace
 
 // The list predicate of the units view: whether the unit on the selected row may be picked.
@@ -86,7 +83,7 @@ void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint8_t column,
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(ds) };
-  auto const&         window{ Window(data) };
+  auto const&         window{ ActiveWindow(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);
@@ -128,7 +125,7 @@ void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint8_t column,
   ServiceLocals const locals{ 2 * NAME_BUFFER };
   auto const          scratch{ locals.At(0) };
   auto const&         data{ Data(ds) };
-  auto const&         window{ Window(data) };
+  auto const&         window{ ActiveWindow(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);

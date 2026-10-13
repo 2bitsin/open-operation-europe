@@ -26,10 +26,6 @@ constexpr std::uint8_t  WITHDRAW{ 10 };
 constexpr std::uint8_t  COMMANDERS{ 7 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x11 };
 
-auto Window(DataSegment& data, std::uint16_t near) -> ListWindow& {
-  return Record<ListWindow>(data, near);
-}
-
 auto SaveScreen(std::uint8_t* ds, HostWordsEvent event, ListWindow const& window) -> void {
   List(ds, event, ListCall::BITMAP_SAVE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1), Data(ds).bitmap_buffer,
        0);
@@ -52,7 +48,7 @@ auto NextKey(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t {
 // activation) and inverts the selected row.
 auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t flags) -> void {
   auto&       data{ Data(ds) };
-  auto const& window{ Window(data, near) };
+  auto const& window{ ListWindowAt(data, near) };
   data.list_mouse = !(flags & KEYBOARD_ONLY);
   if (flags & SAVE_SCREEN) SaveScreen(ds, event, window);
   std::uint8_t column;
@@ -71,7 +67,7 @@ auto Open(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8
 // satisfied with the Div 4 Commander selection?"; a refusal withdraws the last pick. Ignores `limit`.
 auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t, std::uint8_t flags) -> std::uint16_t {
   auto&         data{ Data(ds) };
-  auto const&   window{ Window(data, near) };
+  auto const&   window{ ListWindowAt(data, near) };
   std::uint16_t picked[10]{};
   std::uint16_t result{ 0 };
   Open(ds, event, near, flags);
@@ -179,7 +175,7 @@ auto opeu_commander_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uin
 // 9 restore the screen and start over when another key ends the switch.
 auto opeu_list_dialog(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t limit, std::uint8_t flags) -> std::uint16_t {
   auto&                   data{ Data(ds) };
-  auto const&             window{ Window(data, near) };
+  auto const&             window{ ListWindowAt(data, near) };
   constexpr std::uint16_t SWAPPED_COLUMN{ 0x12 };
   for (;;) {
     Open(ds, event, near, flags);

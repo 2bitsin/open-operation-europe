@@ -15,11 +15,6 @@ namespace opeu::game::detail::order_handler {
 // pending_finish's value when a show ends.
 inline constexpr std::uint16_t SHOW_DONE{ 3 };
 
-// The regiment whose order runs.
-[[nodiscard]] inline auto CurrentUnit(DataSegment& data) noexcept -> Unit& {
-  return Record<Unit>(data, data.current_unit_ptr);
-}
-
 // The near pointer of the running order (the current regiment's first order slot).
 [[nodiscard]] inline auto CurrentOrder(DataSegment& data) noexcept -> std::uint16_t {
   return Near(data, CurrentUnit(data).orders[0]);
@@ -54,7 +49,6 @@ private:
 
 namespace opeu::game {
 using detail::order_handler::CurrentOrder;
-using detail::order_handler::CurrentUnit;
 using detail::order_handler::RollBound;
 using detail::order_handler::ServiceCell;
 using detail::order_handler::SHOW_DONE;

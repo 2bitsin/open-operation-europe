@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/counter.hpp"
 #include "types.hpp"
 
@@ -64,7 +65,7 @@ void opeu_general_screen(uint8_t ds[65536], HostEvent event) {
   data.reinforce_dialog.rows = listed;
   Call(ds, event, BACKDROP, static_cast<std::uint8_t>(data.current_side == 0 ? 2 : 1));
   Call(ds, event, POSITION, 0x23, 8);
-  Call(ds, event, TEXT_COLOR, data.current_side == 0 ? 6 : 5);
+  Call(ds, event, TEXT_COLOR, SideTextColor(data.current_side));
   Call(ds, event, PRINT, Near(data, data.side_title_format), data.side_titles[data.current_side]);
   Call(ds, event, TEXT_COLOR, 7);
   Call(ds, event, OUTLINE, 0x100, 0x28, 0x13f, 0x76, 7);

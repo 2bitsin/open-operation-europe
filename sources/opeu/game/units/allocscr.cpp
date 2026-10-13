@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/strings.hpp"
 #include "types.hpp"
 #include "units/typetext.hpp"
@@ -29,11 +30,6 @@ enum Service : std::uint16_t {
   BACKDROP = 4, // (mode)
 };
 
-// The colour of the current side's text.
-[[nodiscard]] auto SideColour(DataSegment const& data) -> std::uint16_t {
-  return data.current_side ? 5 : 6;
-}
-
 // A unit name centred in its column heading, capped at ten characters.
 [[nodiscard]] auto HeadingLength(std::uint8_t* ds, std::uint16_t name) -> std::uint16_t {
   std::uint16_t length = opeu_string_length(ds, name);
@@ -46,7 +42,7 @@ void opeu_alloc_amounts_show(uint8_t ds[65536], HostWordsEvent event, uint8_t co
   auto& data{ Data(ds) };
   for (std::uint8_t row{ 0 }; row < count; ++row) {
     Call(ds, event, POSITION, 0x16, row * 17 + 0x2e);
-    Call(ds, event, PRINT, Near(data, data.alloc_amount_format), SideColour(data), data.supply_amounts[row], data.supply_others[row]);
+    Call(ds, event, PRINT, Near(data, data.alloc_amount_format), SideTextColor(data.current_side), data.supply_amounts[row], data.supply_others[row]);
   }
 }
 
@@ -95,7 +91,7 @@ void opeu_alloc_screen(uint8_t ds[65536], HostWordsEvent event, uint8_t first, u
   for (std::uint8_t row{ 0 }; row < count; ++row) {
     auto const& type{ data.element_types[data.supply_types[row]] };
     Call(ds, event, POSITION, 2, row * 17 + 0x2e);
-    Call(ds, event, PRINT, Near(data, data.alloc_row_format), SideColour(data), type.name, opeu_nation_code(ds, Near(data, type), buffer));
+    Call(ds, event, PRINT, Near(data, data.alloc_row_format), SideTextColor(data.current_side), type.name, opeu_nation_code(ds, Near(data, type), buffer));
     Call(ds, event, OUTLINE, 0x10, row * 17 + 0x2d, 0x100, row * 17 + 0x3e, 7);
   }
   Call(ds, event, OUTLINE, 0x80, 0x1c, 0xa8, 0xf9, 7);

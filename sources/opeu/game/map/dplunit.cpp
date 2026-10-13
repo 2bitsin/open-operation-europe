@@ -2,6 +2,7 @@
 // which is lifted, shown its zone and placed by hand; closing the list offers automatic placement of the elements
 // still off the field and then asks whether deployment is finished.
 #include "map/dplunit.hpp"
+#include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
@@ -25,7 +26,6 @@ constexpr uint16_t QUESTION_AT{ 0xeb40 };
 // The list's first row is the header; the list opens on the first row and is redrawn whole only the first time.
 constexpr uint8_t FIRST_DRAW{ 7 };
 constexpr uint8_t REDRAW{ 6 };
-constexpr uint8_t OFF_FIELD{ 0xff };
 
 // The x byte of the element's placement (its position word points at it).
 [[nodiscard]] auto PlacedX(uint8_t* ds, Element const& element) -> uint8_t {
@@ -61,7 +61,7 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
         data.deploy_row = data.list_row;
         auto element{ Record<Unit>(data, unit).first };
         for (uint8_t row{ 0 }; row < data.list_row; ++row) element = Record<Element>(data, element).next;
-        if (PlacedX(ds, Record<Element>(data, element)) != OFF_FIELD) opeu_deploy_lift(ds, event, element);
+        if (PlacedX(ds, Record<Element>(data, element)) != BATTLE_UNPLACED) opeu_deploy_lift(ds, event, element);
         opeu_deploy_show_zone(ds, event, element);
         opeu_deploy_manual(ds, event, element);
         opeu_deploy_hide_zone(ds, event, element);
@@ -71,7 +71,7 @@ void opeu_deploy_unit(uint8_t* ds, BattleEvent event, uint16_t unit) {
       uint8_t all{ 0 };
       uint8_t off_field{ 0 };
       for (auto const& element : Elements(data, Record<Unit>(data, unit))) {
-        if (PlacedX(ds, element) == OFF_FIELD) ++off_field;
+        if (PlacedX(ds, element) == BATTLE_UNPLACED) ++off_field;
         ++all;
       }
       if (off_field) {

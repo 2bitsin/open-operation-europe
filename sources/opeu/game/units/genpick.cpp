@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "types.hpp"
 
 #include "core/divstr.hpp"
@@ -63,11 +64,6 @@ constexpr std::uint16_t ROW_HEIGHT{ 17 };
 constexpr std::uint16_t HIGHLIGHT{ 4 }; // text attribute of the choice being made
 constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a post
 
-// The nation's colour index for the side's name in the prompts.
-[[nodiscard]] auto NationColor(DataSegment const& data) -> std::uint16_t {
-  return data.current_side == 0 ? 6 : 5;
-}
-
 // Whether the general holds a staff role or commands a division.
 [[nodiscard]] auto HasPost(Person const& general) -> bool {
   return (general.flags & Bits(PersonRole::ROLE_MASK)) || (general.assignment & Bits(Assignment::DIVISION));
@@ -95,7 +91,7 @@ uint8_t opeu_general_assign_choice(uint8_t ds[65536], HostEvent event, uint8_t c
     Call(ds, event, PORTRAIT, 0x20, 0x28, person);
     Call(ds, event, TEXT_ATTRIBUTE, HIGHLIGHT);
     Call(ds, event, POSITION, 0x29, 0x58);
-    Call(ds, event, PRINT, OPS_FORMAT, NationColor(data), person);
+    Call(ds, event, PRINT, OPS_FORMAT, SideTextColor(data.current_side), person);
     Prompt(ds, event, OPS_PROMPT);
     return 1;
   case 1:
@@ -103,7 +99,7 @@ uint8_t opeu_general_assign_choice(uint8_t ds[65536], HostEvent event, uint8_t c
     Call(ds, event, PORTRAIT, 0xc, 0x28, person);
     Call(ds, event, TEXT_ATTRIBUTE, HIGHLIGHT);
     Call(ds, event, POSITION, 0x15, 0x58);
-    Call(ds, event, PRINT, INTEL_FORMAT, NationColor(data), person);
+    Call(ds, event, PRINT, INTEL_FORMAT, SideTextColor(data.current_side), person);
     Prompt(ds, event, INTEL_PROMPT);
     return 1;
   case 2: {
@@ -111,7 +107,7 @@ uint8_t opeu_general_assign_choice(uint8_t ds[65536], HostEvent event, uint8_t c
     Call(ds, event, PORTRAIT, 0x34, 0x28, person);
     Call(ds, event, TEXT_ATTRIBUTE, HIGHLIGHT);
     Call(ds, event, POSITION, 0x3d, 0x58);
-    Call(ds, event, PRINT, DIVISION_FORMAT, NationColor(data), person);
+    Call(ds, event, PRINT, DIVISION_FORMAT, SideTextColor(data.current_side), person);
     auto const post{ static_cast<std::uint8_t>(Call(ds, event, FIND_VACANT_POST)) };
     Call(ds, event, SHOW_DIVISION_STRENGTH, static_cast<std::uint8_t>(post - 3));
     Prompt(ds, event, DIVISION_PROMPT, post - 2);
@@ -125,7 +121,7 @@ uint8_t opeu_general_assign_choice(uint8_t ds[65536], HostEvent event, uint8_t c
     Call(ds, event, PORTRAIT, static_cast<std::uint16_t>(choice * 20 - 0x3a), 0x88, person);
     Call(ds, event, TEXT_ATTRIBUTE, HIGHLIGHT);
     Call(ds, event, POSITION, static_cast<std::uint16_t>(choice * 20 - 0x31), 0x98);
-    Call(ds, event, PRINT, choice == 6 ? DIVISION_SHORT : DIVISION_LONG, NationColor(data), person);
+    Call(ds, event, PRINT, choice == 6 ? DIVISION_SHORT : DIVISION_LONG, SideTextColor(data.current_side), person);
     auto const post{ static_cast<std::uint8_t>(Call(ds, event, FIND_VACANT_POST)) };
     if (post >= 7) {
       Call(ds, event, TEXT_ATTRIBUTE, 0);

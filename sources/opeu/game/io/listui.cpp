@@ -56,10 +56,6 @@ enum Area : std::uint8_t {
   SCROLL_DOWN  = 0x40,
 };
 
-auto Window(DataSegment& data, std::uint16_t near) -> ListWindow& {
-  return Record<ListWindow>(data, near);
-}
-
 // Width byte i of a window.
 auto WidthByte(std::uint8_t* ds, ListWindow const& window, unsigned i) -> std::uint8_t& {
   return ds[static_cast<std::uint16_t>(window.widths + i)];
@@ -92,7 +88,7 @@ void opeu_list_scrollbar(std::uint8_t* ds, HostWordsEvent event, std::uint16_t x
 // visible column, and the total widths of the columns 0..rows before and from `column`.
 auto TableColumnLayout(std::uint8_t* ds, std::uint8_t column, std::uint8_t rows) -> TableColumns {
   auto&        data{ Data(ds) };
-  auto const&  window{ Window(data, data.list_window) };
+  auto const&  window{ ListWindowAt(data, data.list_window) };
   auto const   width{ [&](unsigned i) { return static_cast<std::uint8_t>(WidthByte(ds, window, i + 1) - WIDTH_BIAS); } };
   TableColumns layout{ 2, 0, 0 };
   for (auto const i : std::views::iota(data.list_column, std::max(data.list_column, column))) layout.lead += width(i);
@@ -122,7 +118,7 @@ void opeu_list_arrows_lit(std::uint8_t* ds, HostWordsEvent event, std::uint16_t 
 // pointer is over a row above or below the selection.
 auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t {
   auto&               data{ Data(ds) };
-  auto const&         window{ Window(data, data.list_window) };
+  auto const&         window{ ListWindowAt(data, data.list_window) };
   std::uint16_t const left = window.x << 3;
   std::uint16_t const top{ window.y };
   std::uint16_t const bottom{ window.bottom };
@@ -186,7 +182,7 @@ auto opeu_list_mouse_key(std::uint8_t* ds, HostWordsEvent event) -> std::uint8_t
 // Inverts the selected row.
 void opeu_list_invert(std::uint8_t* ds, HostWordsEvent event) {
   auto&       data{ Data(ds) };
-  auto const& window{ Window(data, data.list_window) };
+  auto const& window{ ListWindowAt(data, data.list_window) };
   List(ds, event, ListCall::HIGHLIGHT, static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y), WidthByte(ds, window, 0) - WIDTH_BIAS,
        0x12, INVERT_MODE);
 }
@@ -195,7 +191,7 @@ void opeu_list_invert(std::uint8_t* ds, HostWordsEvent event) {
 // list_rows) and the column separators (setting list_columns). Returns the previous visible column count.
 auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t first_column) -> std::uint8_t {
   auto&               data{ Data(ds) };
-  auto const&         window{ Window(data, near) };
+  auto const&         window{ ListWindowAt(data, near) };
   auto const          saved{ data.list_columns };
   std::uint16_t       width{ window.widths };
   std::uint16_t       left  = window.x << 3;
@@ -229,7 +225,7 @@ auto opeu_list_frame(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near,
 // unchanged position just redraws the selected row.
 void opeu_list_scroll(std::uint8_t* ds, HostWordsEvent event, std::uint16_t near, std::uint8_t column, std::uint8_t row) {
   auto&               data{ Data(ds) };
-  auto const&         window{ Window(data, near) };
+  auto const&         window{ ListWindowAt(data, near) };
   std::uint16_t const width{ window.widths };
   std::uint16_t const x = window.x + 2;
   std::uint16_t const y{ window.y };

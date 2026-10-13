@@ -4849,6 +4849,24 @@ template <typename T>
   return data.element_types[Record<Element>(data, element).type];
 }
 
+// The side record and the regiment the turn is working on (current_side_ptr, current_unit_ptr).
+[[nodiscard]] inline auto CurrentSide(DataSegment& data) noexcept -> Side& {
+  return Record<Side>(data, data.current_side_ptr);
+}
+[[nodiscard]] inline auto CurrentUnit(DataSegment& data) noexcept -> Unit& {
+  return Record<Unit>(data, data.current_unit_ptr);
+}
+
+// Whether the player steers with the mouse (input_mode); otherwise the keyboard.
+[[nodiscard]] inline auto HasMouse(DataSegment const& data) noexcept -> bool {
+  return data.input_mode != 0;
+}
+
+// The list window at a near pointer.
+[[nodiscard]] inline auto ListWindowAt(DataSegment& data, std::uint16_t near) noexcept -> ListWindow& {
+  return Record<ListWindow>(data, near);
+}
+
 // Points the list window's row predicate at the far routine segment:routine.
 inline auto SetListPredicate(ListWindow& list, std::uint16_t routine, std::uint16_t segment) noexcept -> void {
   list.select = { routine, segment };
@@ -4920,6 +4938,10 @@ using detail::data_segment::StaffRole;
 using detail::data_segment::COMPUTER_DELIVERY_LEVEL;
 using detail::data_segment::DeliveryLevel;
 using detail::data_segment::RATING_LIMIT;
+using detail::data_segment::CurrentSide;
+using detail::data_segment::CurrentUnit;
+using detail::data_segment::HasMouse;
+using detail::data_segment::ListWindowAt;
 using detail::data_segment::Record;
 using detail::data_segment::SetListPredicate;
 using detail::data_segment::SetStream;

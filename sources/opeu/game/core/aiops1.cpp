@@ -50,10 +50,6 @@ constexpr auto IsDropTerrain(std::uint8_t code) -> bool {
   }
 }
 
-auto CurrentSide(DataSegment& data) -> Side& {
-  return Record<Side>(data, data.current_side_ptr);
-}
-
 // The strike's target: the first of the eight cells around (x, y) that `accept` takes; false when none does.
 template <typename Accept>
 auto StepAround(std::uint8_t x, std::uint8_t y, std::uint8_t& to_x, std::uint8_t& to_y, Accept&& accept) -> bool {

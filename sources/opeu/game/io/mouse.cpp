@@ -30,10 +30,6 @@ constexpr std::uint16_t RIGHT{ 2 };
 constexpr std::uint8_t  PRESSED{ 0x80 };
 constexpr std::uint8_t  NO_MOUSE_CLICK{ 3 };
 
-auto HasMouse(std::uint8_t const* ds) -> bool {
-  return Data(ds).input_mode != 0;
-}
-
 // INT 33h with AX = `function`; the registers come back.
 auto Mouse(std::uint8_t* ds, HostService service, Function function, std::uint16_t cx = 0, std::uint16_t dx = 0) -> Regs {
   Regs r{};
@@ -53,15 +49,15 @@ auto opeu_mouse_reset(std::uint8_t* ds, HostService service) -> std::uint16_t {
 }
 
 void opeu_mouse_show(std::uint8_t* ds, HostService service) {
-  if (HasMouse(ds)) Mouse(ds, service, SHOW);
+  if (HasMouse(Data(ds))) Mouse(ds, service, SHOW);
 }
 
 void opeu_mouse_hide(std::uint8_t* ds, HostService service) {
-  if (HasMouse(ds)) Mouse(ds, service, HIDE);
+  if (HasMouse(Data(ds))) Mouse(ds, service, HIDE);
 }
 
 auto opeu::game::detail::mouse::MousePosition(std::uint8_t* ds, HostService service) -> MousePoint {
-  if (!HasMouse(ds)) return { 0, 0 };
+  if (!HasMouse(Data(ds))) return { 0, 0 };
   auto const r{ Mouse(ds, service, STATUS) };
   return { r.x.cx, static_cast<std::uint16_t>(r.x.dx - ROW_OFFSET) };
 }
@@ -74,7 +70,7 @@ void opeu_mouse_position(std::uint8_t* ds, HostService service, std::uint16_t x,
 }
 
 void opeu_mouse_move(std::uint8_t* ds, HostService service, std::uint16_t x, std::uint16_t y) {
-  if (HasMouse(ds)) Mouse(ds, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
+  if (HasMouse(Data(ds))) Mouse(ds, service, SET, x, static_cast<std::uint16_t>(y - ROW_OFFSET));
 }
 
 // Queries the driver even without a mouse.
@@ -92,7 +88,7 @@ auto opeu_turn_input_a(std::uint8_t* ds, HostService service) -> int {
 
 // 0 without a mouse or a button; else 0x80 | 1 left | 2 right.
 auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t {
-  if (!HasMouse(ds)) return 0;
+  if (!HasMouse(Data(ds))) return 0;
   std::uint8_t buttons{ 0 };
   if (opeu_turn_input_a(ds, service)) {
     buttons = PRESSED;
@@ -104,13 +100,13 @@ auto opeu_mouse_buttons(std::uint8_t* ds, HostService service) -> std::uint8_t {
 
 // Waits until every button is released.
 void opeu_input_reset(std::uint8_t* ds, HostService service) {
-  if (HasMouse(ds))
+  if (HasMouse(Data(ds)))
     while (opeu_turn_input_a(ds, service));
 }
 
 // Waits for a press and its release; 3 without a mouse.
 auto opeu_mouse_wait_click(std::uint8_t* ds, HostService service) -> std::uint8_t {
-  if (!HasMouse(ds)) return NO_MOUSE_CLICK;
+  if (!HasMouse(Data(ds))) return NO_MOUSE_CLICK;
   while (!opeu_turn_input_a(ds, service));
   std::uint8_t buttons{ PRESSED };
   for (;;) {

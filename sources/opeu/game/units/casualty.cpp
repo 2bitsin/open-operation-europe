@@ -6,6 +6,7 @@
 #include "common/events.hpp"
 #include "common/forces.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
@@ -143,7 +144,7 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
     std::uint16_t losses{ Call(ds, event, Service::RANDOM, 100) >= percent ? Call(ds, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Call(ds, event, Service::RANDOM, c) + kind) };
     if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Call(ds, event, Service::RANDOM, 10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), side == 0 ? '6' : '5', data.side_names[side], name, element_name);
+    Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name);
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;

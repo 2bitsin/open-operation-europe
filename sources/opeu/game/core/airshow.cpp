@@ -15,6 +15,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
+#include "common/side-color.hpp"
 #include "core/dialogs.hpp"
 #include "glue.hpp"
 #include "port.hpp"
@@ -87,7 +88,7 @@ uint8_t opeu_air_report(uint8_t ds[65536], HostEvent event, uint16_t what, uint8
   if (data.weather != 0 && data.weather != 1) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };
-    Call(ds, event, REQUEST_FORMAT, buffer, format, data.air_side == 0 ? '6' : '5', what);
+    Call(ds, event, REQUEST_FORMAT, buffer, format, SideColorCode(data.air_side), what);
     Call(ds, event, CONTROL_MESSAGE, buffer, person);
     return wait ? 1 : 2;
   }

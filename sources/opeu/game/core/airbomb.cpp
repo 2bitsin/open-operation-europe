@@ -92,10 +92,6 @@ constexpr Objections OBJECTIONS[3][2]{
 };
 // clang-format on
 
-auto CurrentSide(DataSegment& data) -> Side& {
-  return Record<Side>(data, data.current_side_ptr);
-}
-
 // The message the air officer objects with, if any.
 auto Objection(std::uint8_t* ds, Objections const& rules, std::uint8_t fuel, std::uint16_t bombers) -> std::optional<std::uint16_t> {
   auto&      data{ Data(ds) };

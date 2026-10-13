@@ -6,6 +6,7 @@
 #include "common/map-frame.hpp"
 #include "common/memory.hpp"
 #include "common/random.hpp"
+#include "common/side-color.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -42,10 +43,6 @@ constexpr uint16_t REPORT_RESERVE{ 0x8e };
 constexpr uint16_t LOSS_TEXT_AT{ 0 };
 constexpr uint16_t REPORT_AT{ 0x20 };
 
-// The side letter of the report's colour code: '5' for side 1, '6' for side 0.
-[[nodiscard]] constexpr auto SideColour(uint8_t side) -> uint16_t {
-  return side ? '5' : '6';
-}
 } // namespace
 
 // Removes amount..2 * amount - 1 of one of the objective's supply stocks (kind 0..2) and reports it.
@@ -61,7 +58,7 @@ void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t objective, 
   opeu_sub_word(RandomBelow(ds, amount) + amount, &value);
   SetWord(ds, stock, value);
   auto const after{ Word(ds, stock) };
-  auto const colour{ SideColour(static_cast<uint8_t>(Call(ds, event, DamageService::OBJECTIVE_SIDE, objective))) };
+  auto const colour{ SideColorCode(static_cast<uint8_t>(Call(ds, event, DamageService::OBJECTIVE_SIDE, objective))) };
   Call(ds, event, DamageService::FORMAT, text, Near(data, data.damage_supply_format), colour, objective, data.supply_names[kind], static_cast<uint16_t>(before - after), data.supply_names[kind],
        after);
   Call(ds, event, DamageService::SIDE_REPORT, objective, text);
@@ -81,7 +78,7 @@ void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t objective, uin
   Call(ds, event, DamageService::LOCATION_BLAST, record.x, record.y, enemy);
   if (base) {
     Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_title));
-    Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_heading), SideColour(side), objective);
+    Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_heading), SideColorCode(side), objective);
     Call(ds, event, DamageService::SIDE_REPORT, objective, report);
     for (auto& item : record.items) {
       if (item.quantity == 0) continue;
@@ -91,7 +88,7 @@ void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t objective, uin
       if (heavy && infantry) lost = static_cast<uint16_t>(lost * (RandomBelow(ds, 10) + 6));
       lost          = opeu_min16(item.quantity, lost);
       item.quantity = static_cast<uint16_t>(item.quantity - lost);
-      Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_element_format), SideColour(side), data.side_names[side], type.name);
+      Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_element_format), SideColorCode(side), data.side_names[side], type.name);
       Call(ds, event, DamageService::ELEMENT_PANEL, Near(data, item));
       if (lost == 0) {
         Call(ds, event, DamageService::APPEND, report, Near(data, data.damage_none));
@@ -116,7 +113,7 @@ void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t objective, uin
   if (endurance) {
     auto const before{ record.strength };
     opeu_sub_byte(RandomBelow(ds, endurance) + endurance, &record.strength);
-    Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_endurance_format), SideColour(side), objective, record.strength, before - record.strength);
+    Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_endurance_format), SideColorCode(side), objective, record.strength, before - record.strength);
     Call(ds, event, DamageService::SIDE_REPORT, objective, report);
   }
   Call(ds, event, DamageService::BLAST_ERASE, record.x, record.y);

@@ -54,10 +54,6 @@ auto Distance1D(int difference) -> int {
   return static_cast<int16_t>(opeu_abs16_bits(static_cast<std::uint16_t>(difference)));
 }
 
-auto CurrentUnit(DataSegment& data) -> Unit& {
-  return Record<Unit>(data, data.current_unit_ptr);
-}
-
 // The near pointer of a record, 0 for none.
 template <typename T>
 auto NearOrNull(DataSegment const& data, T const* record) -> std::uint16_t {

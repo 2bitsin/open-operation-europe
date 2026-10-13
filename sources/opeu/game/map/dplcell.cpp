@@ -3,6 +3,7 @@
 // field; it may be placed on a free cell of its side's deployment zone (the high nibble of the battle cell), which
 // the zone sweeps highlight and refresh; the manual placement moves the cursor until a valid cell is chosen.
 #include "map/dplcell.hpp"
+#include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -26,8 +27,6 @@ constexpr uint16_t STEP_Y_AT{ 0xeb11 };
 constexpr uint8_t DEFENDING{ 9 };
 // The deployment zone of a defender in the battle cell's high nibble; an attacker's is its approach direction + 1.
 constexpr uint8_t DEFENDER_ZONE{ 9 };
-constexpr uint8_t OFF_FIELD{ 0xff };
-constexpr uint8_t PLACED{ 4 };
 // Facings: towards the attacker by the step direction it lies in, and away from a unit's approach direction.
 constexpr std::array<uint8_t, 8> TOWARD{ 2, 1, 3, 2, 3, 2, 0, 3 };
 constexpr std::array<uint8_t, 8> AWAY{ 3, 0, 2, 3, 2, 3, 1, 2 };
@@ -35,15 +34,6 @@ constexpr std::array<uint8_t, 8> AWAY{ 3, 0, 2, 3, 2, 3, 1, 2 };
 [[nodiscard]] auto ApproachOf(uint8_t* ds, BattleEvent event, uint16_t element) -> uint8_t {
   auto const unit{ Call(ds, event, BattleRoutine::BATTLE_ELEMENT_UNIT, element) };
   return static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit));
-}
-
-// The element's placement record (its position word points at it); re-read at each use, as its own bytes change.
-[[nodiscard]] auto Placement(uint8_t* ds, uint16_t element) -> uint16_t {
-  return Record<Element>(Data(ds), element).position;
-}
-
-[[nodiscard]] auto PlacementByte(uint8_t* ds, uint16_t element, uint16_t n) -> uint8_t& {
-  return Byte(ds, static_cast<uint16_t>(Placement(ds, element) + n));
 }
 
 template <typename Body> void ForEachBattleCell(Body&& body) {
@@ -68,9 +58,9 @@ uint8_t opeu_deploy_facing(uint8_t* ds, BattleEvent event, uint16_t element) {
 
 void opeu_deploy_put(uint8_t* ds, BattleEvent event, uint16_t element) {
   auto& data{ Data(ds) };
-  PlacementByte(ds, element, 5) = data.battle_cursor_x;
-  PlacementByte(ds, element, 6) = data.battle_cursor_y;
-  PlacementByte(ds, element, 7) = PLACED;
+  PositionOf(Data(ds), element).goal_x = data.battle_cursor_x;
+  PositionOf(Data(ds), element).goal_y = data.battle_cursor_y;
+  PositionOf(Data(ds), element).state  = Bits(BattleState::DEFEND);
   Call(ds, event, BattleRoutine::BATTLE_SET_ORDER, element, 0);
   auto facing{ opeu_deploy_facing(ds, event, element) };
   if (!ElementTypeOf(data, element).category) facing = 0;
@@ -78,10 +68,10 @@ void opeu_deploy_put(uint8_t* ds, BattleEvent event, uint16_t element) {
 }
 
 void opeu_deploy_lift(uint8_t* ds, BattleEvent event, uint16_t element) {
-  Call(ds, event, BattleRoutine::BATTLE_CLEAR_CELL, PlacementByte(ds, element, 0), PlacementByte(ds, element, 1));
-  Call(ds, event, BattleRoutine::BATTLE_DRAW_CELL, PlacementByte(ds, element, 0), PlacementByte(ds, element, 1));
-  PlacementByte(ds, element, 0) = OFF_FIELD;
-  PlacementByte(ds, element, 1) = OFF_FIELD;
+  Call(ds, event, BattleRoutine::BATTLE_CLEAR_CELL, PositionOf(Data(ds), element).x, PositionOf(Data(ds), element).y);
+  Call(ds, event, BattleRoutine::BATTLE_DRAW_CELL, PositionOf(Data(ds), element).x, PositionOf(Data(ds), element).y);
+  PositionOf(Data(ds), element).x = BATTLE_UNPLACED;
+  PositionOf(Data(ds), element).y = BATTLE_UNPLACED;
 }
 
 uint16_t opeu_deploy_can_place(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y, uint16_t element) {

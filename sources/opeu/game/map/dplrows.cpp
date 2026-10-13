@@ -3,6 +3,7 @@
 // element) in the side's colour, then the placed cell and the strengths, or the strengths alone for an element not
 // on the field.
 #include "map/dplrows.hpp"
+#include "common/battle-field.hpp"
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
@@ -25,8 +26,6 @@ constexpr uint16_t ROW_PIXELS{ 17 };
 constexpr uint16_t HEADER_PIXELS{ 18 };
 constexpr uint8_t  OWN_COLOR{ 6 };
 constexpr uint8_t  PLAIN_COLOR{ 7 };
-constexpr uint8_t  OFF_FIELD{ 0xff };
-constexpr uint8_t  OFF_FIELD_BIT{ 0x80 };
 // Bits of the draw flags: the header, the names, the strengths (both of the last are drawn for the rows).
 constexpr uint8_t DRAW_HEADER{ 0x03 };
 constexpr uint8_t DRAW_NAMES{ 0x05 };
@@ -61,7 +60,7 @@ void opeu_deploy_draw_rows(uint8_t* ds, BattleEvent event, uint8_t column, uint8
     }
     // In battle the element's position word points at its placement: the cell, 0xff (or the high bit) off the field.
     auto const x{ strength_x() };
-    if (auto const place{ element.position }; Byte(ds, place) != OFF_FIELD && !(Byte(ds, place) & OFF_FIELD_BIT)) {
+    if (auto const place{ element.position }; Byte(ds, place) != BATTLE_UNPLACED && !(Byte(ds, place) & BATTLE_LEFT)) {
       Call(ds, event, BattleRoutine::ARMY_POSITION, x, y);
       Call(ds, event, BattleRoutine::TEXT_COLOR, OWN_COLOR);
       auto const cell{ element.position };

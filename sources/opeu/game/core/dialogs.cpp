@@ -11,6 +11,7 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "common/scenario.hpp"
+#include "common/side-color.hpp"
 #include "core/context.hpp"
 #include "core/emsmap.hpp"
 #include "core/msglook.hpp"
@@ -119,10 +120,6 @@ auto Loaded(DialogHost const* host, std::uint16_t segment, std::uint16_t offset)
   return { static_cast<std::uint16_t>(host->load + segment), offset };
 }
 
-// Side letter in the report format: '6' for side 0, '5' for side 1.
-constexpr auto SideMark(std::uint8_t side) -> std::uint16_t {
-  return side ? '5' : '6';
-}
 } // namespace
 
 // Draws the border of panel `which` (0 context, 1 title, 2 message) from the panel tiles.
@@ -267,7 +264,7 @@ void opeu_daily_show(uint8_t ds[65536], const DialogHost* host, uint16_t id, uin
   if (data.side_status[side] != SIDE_PLAYED) return;
   if (data.message_pictures == 1) {
     Send(ds, host, BITMAP_SAVE, 5, 0x78, 0x22, 0xb8, data.bitmap_buffer, 0);
-    Send(ds, host, UI_BOX, 5, 0x78, 0x22, 0xb8, side ? 5 : 6);
+    Send(ds, host, UI_BOX, 5, 0x78, 0x22, 0xb8, SideTextColor(side));
     Send(ds, host, UI_OUTLINE, 0x28, 0x78, 0x137, 0x12f, 7);
     Send(ds, host, PICTURE_FILE, 0x30, 0x80, data.message_picture_handle, id);
   }
@@ -395,7 +392,7 @@ void opeu_unit_report(uint8_t ds[65536], const DialogHost* host, uint16_t unit, 
   auto const  side{ static_cast<std::uint8_t>(Send(ds, host, UNIT_SIDE, unit)) };
   if (data.side_status[side] == SIDE_PLAYED && Send(ds, host, SELECTION_ELIGIBLE, unit)) {
     auto const& record{ Record<Unit>(data, unit) };
-    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.unit_report_format), SideMark(side), data.side_names[side], Send(ds, host, UNIT_NAME, unit, name));
+    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.unit_report_format), SideColorCode(side), data.side_names[side], Send(ds, host, UNIT_NAME, unit, name));
     Send(ds, host, STRING_APPEND, text, message);
     Send(ds, host, ARRIVAL_LOCATION, record.x, record.y, side);
     opeu_control_message(ds, host, text, Send(ds, host, FIND_GROUP_RECORD, side, static_cast<std::uint8_t>(Send(ds, host, GROUP_INDEX, unit))));
@@ -410,7 +407,7 @@ void opeu_objective_report(uint8_t ds[65536], const DialogHost* host, uint16_t o
   auto const  side{ static_cast<std::uint8_t>(Send(ds, host, OBJECTIVE_SIDE, objective)) };
   if (data.side_status[side] == SIDE_PLAYED && Send(ds, host, OBJECTIVE_ELIGIBLE, objective)) {
     auto const& record{ Record<Objective>(data, objective) };
-    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.objective_report_format), SideMark(side), objective);
+    Send(ds, host, REQUEST_FORMAT, text, Near(data, data.objective_report_format), SideColorCode(side), objective);
     Send(ds, host, STRING_APPEND, text, message);
     Send(ds, host, ARRIVAL_LOCATION, record.x, record.y, side);
     opeu_control_message(ds, host, text, Send(ds, host, FIND_SIDE_RECORD, side, INTELLIGENCE_CHIEF_KIND));
