@@ -35,6 +35,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <span>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -149,11 +150,9 @@ static void ClockFramesAdvance(int16_t* out, int frames) {
 }
 
 /* SDL audio callback (the stream lock is held). */
-static void AudioCallback(void* user, int16_t* out, int frames, int rate) {
-  (void)user;
-  (void)rate;
-  ClockFramesAdvance(out, frames);
-  last_clock_us = TicksUs();
+static void AudioCallback(std::span<int16_t> stereo) {
+  ClockFramesAdvance(stereo.data(), static_cast<int>(stereo.size() / 2));
+  last_clock_us = opeu::platform::TicksUs();
 }
 
 /* Called by every event pump. */
@@ -161,15 +160,14 @@ void port_fm_clock(void) {
   uint64_t now;
   if (!installed) return;
   if (audio_device) {
-    AudioLock();
-    now = TicksUs(); /* after the lock: the callback may just have run */
+    opeu::platform::AudioLock const lock;
+    now = opeu::platform::TicksUs(); /* after the lock: the callback may just have run */
     if (now > last_clock_us && now - last_clock_us > STALL_US) {
       /* the device stopped pulling samples: keep the driver's time */
       uint64_t frames = (now - last_clock_us) * OPL_SAMPLE_RATE / 1000000u;
       ClockFramesAdvance(NULL, (int)(frames > OPL_SAMPLE_RATE ? OPL_SAMPLE_RATE : frames)); /* at most 1 s per poll */
       last_clock_us = now;
     }
-    AudioUnlock();
     return;
   }
   now = port_time_us();
@@ -183,7 +181,7 @@ void port_fm_clock(void) {
 }
 
 static void FmShutdown(void) {
-  AudioLock();
+  opeu::platform::AudioLock const lock;
   if (wav) {
     fseek(wav, 0, SEEK_SET);
     WavHeader(wav, wav_frames);
@@ -194,7 +192,6 @@ static void FmShutdown(void) {
     fclose(opl_log);
     opl_log = NULL;
   }
-  AudioUnlock();
 }
 
 /* Install the driver (FMDRV ran from OPEU.BAT before MAIN) and the audio. */
@@ -221,9 +218,9 @@ void port_fm_init(void) {
   FmdInstall(&driver, &host, 0);
   installed = 1;
   atexit(FmShutdown);
-  if (!port_options.headless && !port_options.mute && AudioOpen(OPL_SAMPLE_RATE, AudioCallback, NULL) == 0) {
-    audio_device  = AudioActive();
-    last_clock_us = TicksUs();
+  if (!port_options.headless && !port_options.mute) {
+    audio_device  = opeu::platform::OpenAudio(OPL_SAMPLE_RATE, AudioCallback) ? 1 : 0;
+    last_clock_us = opeu::platform::TicksUs();
   }
   port_trace("fm", "driver installed; clock: %s", audio_device ? "audio device" : "event pump");
   if (!port_options.headless && !port_options.mute && !audio_device) fprintf(stderr, "opeu: no audio output; the music is silent\n");
@@ -236,9 +233,8 @@ static void DriverCall(FmdRegs* r) {
     r->ax = 0xffff; /* no driver resident */
     return;
   }
-  AudioLock();
+  opeu::platform::AudioLock const lock;
   FmdInterrupt(&driver, r);
-  AudioUnlock();
 }
 
 /* Full-register INT 66h (port_sound_int66, port/core/glue.c). */

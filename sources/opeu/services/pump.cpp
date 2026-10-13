@@ -49,7 +49,7 @@
 static uint64_t virtual_us;
 
 uint64_t port_time_us(void) {
-  return port_options.headless ? virtual_us : TicksUs();
+  return port_options.headless ? virtual_us : opeu::platform::TicksUs();
 }
 
 /* ---- presentation -------------------------------------------------------- */
@@ -64,7 +64,7 @@ static void present(int force) {
   int pointer = PortInputPointerDirty();
   if (!force && !changed && !pointer && presented_once) return;
   PortInputDrawPointer(frame, palette);
-  plat_present(frame, 640, 480, palette);
+  opeu::platform::Present({ .pixels = frame, .width = 640, .height = 480, .palette = palette });
   presented_once = 1;
 }
 
@@ -278,11 +278,11 @@ static void HeadlessPump(void) {
     char path[1024];
     present(1);
     snprintf(path, sizeof path, "%s/%08u.png", port_options.shot_dir, (unsigned)now_ms);
-    if (plat_write_png(path) != 0) port_fatal("cannot write %s", path);
+    if (!opeu::platform::WritePng(path)) port_fatal("cannot write %s", path);
   }
   if (port_options.stop_ms && now_ms >= port_options.stop_ms) {
     present(1);
-    if (port_options.png_path && plat_write_png(port_options.png_path) != 0) port_fatal("cannot write %s", port_options.png_path);
+    if (port_options.png_path && !opeu::platform::WritePng(port_options.png_path)) port_fatal("cannot write %s", port_options.png_path);
     port_trace("svc", "headless stop at %u ms", (unsigned)now_ms);
 #if defined(__APPLE__) || defined(__linux__)
     if (getenv("OPEU_BACKTRACE")) {
@@ -299,7 +299,6 @@ static void HeadlessPump(void) {
 void port_pump(void) {
   static unsigned idle;
   static uint64_t last_poll_us;
-  PlatEvent       ev;
   int             any = 0;
   uint64_t        now;
 
@@ -307,22 +306,23 @@ void port_pump(void) {
     HeadlessPump();
     return;
   }
-  now = TicksUs();
+  now = opeu::platform::TicksUs();
   if (now - last_poll_us < 500u) {
-    if (++idle % 64u == 0) SleepMs(1);
+    if (++idle % 64u == 0) opeu::platform::SleepMs(1);
     return;
   }
   last_poll_us = now;
   port_fm_clock();
-  while (PollEvent(&ev)) {
+  while (auto const ev = opeu::platform::PollEvent()) {
+    using enum opeu::platform::EventType;
     any = 1;
-    switch (ev.type) {
-    case PLAT_EV_QUIT:       port_exit(0); break;
-    case PLAT_EV_KEY_DOWN:   PortInputKey(ev.scancode, ev.ascii); break;
-    case PLAT_EV_MOUSE_MOVE: PortInputMouseMove(ev.x, ev.y); break;
-    case PLAT_EV_MOUSE_DOWN:
-    case PLAT_EV_MOUSE_UP:   PortInputMouseButton(ev.button, ev.type == PLAT_EV_MOUSE_DOWN, ev.x, ev.y); break;
-    default:                 break;
+    switch (ev->type) {
+    case QUIT:       port_exit(0); break;
+    case KEY_DOWN:   PortInputKey(ev->scancode, ev->ascii); break;
+    case MOUSE_MOVE: PortInputMouseMove(ev->x, ev->y); break;
+    case MOUSE_DOWN:
+    case MOUSE_UP:   PortInputMouseButton(ev->button, ev->type == MOUSE_DOWN, ev->x, ev->y); break;
+    default:         break;
     }
   }
   /* --input in a window: the script's times are host milliseconds since
@@ -332,9 +332,9 @@ void port_pump(void) {
       script_loaded = 1;
       ScriptLoad(port_options.input_path);
     }
-    ScriptRun((uint32_t)(TicksUs() / 1000));
+    ScriptRun((uint32_t)(opeu::platform::TicksUs() / 1000));
   }
-  now = TicksUs();
+  now = opeu::platform::TicksUs();
   if (now - last_present_us >= 16667u) {
     last_present_us = now;
     present(0);
@@ -342,5 +342,5 @@ void port_pump(void) {
   if (any)
     idle = 0;
   else if (++idle % 64u == 0)
-    SleepMs(1);
+    opeu::platform::SleepMs(1);
 }

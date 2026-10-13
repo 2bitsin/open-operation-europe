@@ -5,13 +5,13 @@
 
 #include <array>
 #include <cstddef>
+#include <string_view>
 
-namespace {
+namespace opeu::opeu::detail::assets_test {
 
-auto Size(char const* const name) -> std::size_t {
-  unsigned char const* data{ nullptr };
-  std::size_t          size{ 0 };
-  return AssetFind(name, &data, &size) == 1 && data != nullptr ? size : 0;
+auto Size(std::string_view const name) -> std::size_t {
+  auto const found{ AssetFind(name) };
+  return found ? found->size() : 0;
 }
 
 TEST(Assets, HoldEveryShippedDataFile) {
@@ -20,7 +20,7 @@ TEST(Assets, HoldEveryShippedDataFile) {
                "HEXFONTS.DAT", "HEXMAP.DAT", "HEXUNIT.DAT", "KOEILOGO.FNT", "MAPINF.DAT",  "MAPPNO.DAT", "MENDGRP.DAT", "MGAMEN.DAT",  "MIDMAP.DAT",
                "MOPENGRP.DAT", "MSG",        "MSG.16P",     "MSGRP.DAT",    "OPENGRP.NPK", "SCEDATA",    "SCEEND.DAT",  "SCESEL.DAT" }
   };
-  for (auto const* const name : NAMES) {
+  for (std::string_view const name : NAMES) {
     EXPECT_GT(Size(name), 0U) << name;
   }
 }
@@ -37,4 +37,4 @@ TEST(Assets, RefuseWhatWasNotShipped) {
   EXPECT_EQ(Size(""), 0U);
 }
 
-} // namespace
+}

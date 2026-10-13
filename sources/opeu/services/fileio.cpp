@@ -1,261 +1,341 @@
-/* FILEIO (src/main/asm/fileio.asm, _TEXT 0000..011F): the KOEI DOS file and
- * memory wrappers, natively over the platform file API.
- *
- * DOS handles: 0..4 are the predefined devices; files get the lowest free
- * handle from 5 up to 19 (the 20-entry job file table of DOS). Results
- * follow the assembly exactly:
- *  - open/create: the handle, or -1 when DOS sets CF;
- *  - close: always 0 (CF is discarded);
- *  - read/write (near and far): raw AX, i.e. the byte count, or the DOS
- *    error code when DOS failed (6 = invalid handle; CF is ignored);
- *  - seek: DX:AX, the new position; on error AX = the DOS error code and DX
- *    keeps the value it was loaded with (the position's low word);
- *  - exists: open(name, 0) and close; 1 when both succeed, else 0;
- *  - alloc: the segment or 0; free: 1 on success, 0 on failure.
- *
- * Open mode (AL of 3Dh): 0 read, 1 write, 2 read/write.
- *
- * Where files are: the shipped data files are compiled into the executable
- * (asset-table.h); only the save directory (platform.h) is on disk. A name
- * is looked up in the save directory first, so a file there shadows the
- * shipped one, then in the table. A shipped file is served from memory.
- * The game opens every data file read/write (opeu_open_resource, mode 2)
- * though it writes only SAVEDATA; should it ever write to a shipped file,
- * the file is first copied into the save directory (copy on write) and the
- * handle continues on that copy. A read/write open of a save-directory file
- * that cannot be written falls back to read-only, as before.
- */
+// FILEIO: the KOEI DOS file and memory wrappers, natively over the platform's save files.
+//
+// DOS handles: 0..4 are the predefined devices; files get the lowest free handle from 5 up to 19 (the 20-entry job file
+// table of DOS). Results follow the game's library exactly:
+//  - open/create: the handle, or -1 when DOS sets CF;
+//  - close: always 0 (CF is discarded);
+//  - read/write (near and far): raw AX, i.e. the byte count, or the DOS error code when DOS failed (6 = invalid
+//    handle; CF is ignored);
+//  - seek: DX:AX, the new position; on error AX = the DOS error code and DX keeps the value it was loaded with (the
+//    position's low word);
+//  - exists: open(name, 0) and close; 1 when both succeed, else 0;
+//  - alloc: the segment or 0; free: 1 on success, 0 on failure.
+//
+// Open mode (AL of 3Dh): 0 read, 1 write, 2 read/write.
+//
+// Where files are: the shipped data files are compiled into the executable (asset-table.hpp); only the save directory
+// (platform.hpp) is on disk. A name is looked up in the save directory first, so a file there shadows the shipped one,
+// then in the table. A shipped file is served from memory. The game opens every data file read/write (mode 2) though
+// it writes only SAVEDATA; should it ever write to a shipped file, the file is first copied into the save directory
+// (copy on write) and the handle continues on that copy. A read/write open of a save-directory file that cannot be
+// written falls back to read-only.
 #include "asset-table.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
-#include <stdio.h>
-#include <string.h>
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <variant>
 
+namespace opeu::services::detail::fileio {
 namespace {
-constexpr auto DOS_HANDLES{ 20 };
-constexpr auto DOS_FIRST_FILE{ 5 };
 
-/* DOS error codes (INT 21h, carry set). */
-enum DosError {
-  DOS_ERR_NOT_FOUND      = 2,
-  DOS_ERR_ACCESS         = 5,
-  DOS_ERR_INVALID_HANDLE = 6
+using platform::FileMode;
+using platform::SaveFile;
+using platform::SeekOrigin;
+
+constexpr auto DOS_HANDLES{ 20uz };
+constexpr auto DOS_FIRST_FILE{ 5uz };
+constexpr auto NAME_LENGTH{ 79uz }; // the longest DOS name a handle remembers for its copy on write
+
+// DOS error codes (INT 21h, carry set).
+enum DosError : std::int16_t {
+  INVALID_FUNCTION = 1,
+  ACCESS_DENIED    = 5,
+  INVALID_HANDLE   = 6,
+  SEEK_ERROR       = 0x19,
 };
+
+// AL of the open call.
+enum class Access : std::uint8_t {
+  READ       = 0,
+  WRITE      = 1,
+  READ_WRITE = 2,
+};
+
+// A shipped file, read from the executable's copy; as on a file, a seek before the start fails and one past the end
+// is allowed.
+class ShippedFile {
+public:
+  explicit ShippedFile(std::span<std::uint8_t const> const bytes) : _bytes{ bytes } { }
+
+  [[nodiscard]] auto Read(std::span<std::uint8_t> const into) -> std::size_t {
+    if (_position < 0 || std::cmp_greater_equal(_position, _bytes.size())) return 0;
+    auto const left{ _bytes.subspan(static_cast<std::size_t>(_position)) };
+    auto const count{ std::min(into.size(), left.size()) };
+    std::ranges::copy(left.first(count), into.begin());
+    _position += static_cast<std::int64_t>(count);
+    return count;
+  }
+  auto Seek(std::int64_t const offset, SeekOrigin const origin) -> std::optional<std::int64_t> {
+    auto const base{ origin == SeekOrigin::START ? 0 : origin == SeekOrigin::CURRENT ? _position : static_cast<std::int64_t>(_bytes.size()) };
+    if (base + offset < 0) return std::nullopt;
+    _position = base + offset;
+    return _position;
+  }
+  [[nodiscard]] auto Bytes() const -> std::span<std::uint8_t const> {
+    return _bytes;
+  }
+  [[nodiscard]] auto Position() const -> std::int64_t {
+    return _position;
+  }
+
+private:
+  std::span<std::uint8_t const> _bytes;
+  std::int64_t                  _position{ 0 };
+};
+
+// One DOS handle: a save-directory file or a shipped one.
+struct OpenFile {
+  std::variant<SaveFile, ShippedFile> source;
+  std::string                         name; // the DOS name, for a copy on write
+  Access                              access{ Access::READ };
+  bool                                last_write{ false }; // the previous transfer was a write
+};
+
+// The job file table of the program.
+class FileTable {
+public:
+  auto UseAssets(AssetLookup lookup) -> void {
+    _find = std::move(lookup);
+  }
+  [[nodiscard]] auto Open(std::string_view name, std::uint16_t mode) -> std::int16_t;
+  [[nodiscard]] auto Create(std::string_view name) -> std::int16_t;
+  auto               Close(std::int16_t handle) -> void;
+  [[nodiscard]] auto Read(std::int16_t handle, std::span<std::uint8_t> bytes) -> std::int16_t;
+  [[nodiscard]] auto Write(std::int16_t handle, std::span<std::uint8_t const> bytes) -> std::int16_t;
+  [[nodiscard]] auto Seek(std::int16_t handle, std::int32_t position, std::int16_t origin) -> std::int32_t;
+  auto               FlushAll() -> void;
+
+private:
+  [[nodiscard]] auto Taken(std::int16_t handle) -> std::optional<OpenFile>&;
+  [[nodiscard]] auto Valid(std::int16_t handle) -> bool;
+  [[nodiscard]] auto Lookup(std::string_view name) const -> std::optional<std::span<std::uint8_t const>>;
+  [[nodiscard]] auto NewHandle(OpenFile file) -> std::int16_t;
+  auto               SwitchDirection(OpenFile& file, bool writing) -> void;
+  [[nodiscard]] auto CopyOnWrite(OpenFile& file) -> bool;
+
+  std::array<std::optional<OpenFile>, DOS_HANDLES> _handles;
+  AssetLookup                                      _find;
+};
+
+// The one table of the process. The game's file calls are free functions (services.hpp) until the machine interface
+// (M2 B5) hands the table down; then this accessor goes.
+auto Files() -> FileTable& {
+  static FileTable files;
+  return files;
 }
 
-static struct {
-  int                  used;
-  void*                file;  /* a save-directory file, or NULL for a shipped one */
-  const unsigned char* asset; /* a shipped file's bytes (file == NULL) */
-  size_t               asset_size;
-  long                 asset_pos;
-  char                 name[80];   /* the DOS name, for a copy on write */
-  uint16_t             mode;       /* 0 read, 1 write, 2 read/write */
-  int                  last_write; /* the previous transfer was a write */
-} handles[DOS_HANDLES];
-
-static OpeuAssetFind asset_find;
-
-void FilesUseAssets(OpeuAssetFind find) {
-  asset_find = find;
+// Runs `action` on the file's save-directory stream, if it is one.
+auto WhenSaved(OpenFile& file, auto const action) -> void {
+  std::visit(
+      [&action](auto& source) {
+        if constexpr (std::same_as<std::remove_cvref_t<decltype(source)>, SaveFile>) action(source);
+      },
+      file.source);
 }
 
-static int16_t NewHandle(void* file, const unsigned char* asset, size_t asset_size, const char* name, uint16_t mode) {
-  int h;
-  for (h = DOS_FIRST_FILE; h < DOS_HANDLES; h++)
-    if (!handles[h].used) {
-      handles[h].used       = 1;
-      handles[h].file       = file;
-      handles[h].asset      = asset;
-      handles[h].asset_size = asset_size;
-      handles[h].asset_pos  = 0;
-      strncpy(handles[h].name, name, sizeof handles[h].name - 1);
-      handles[h].name[sizeof handles[h].name - 1] = '\0';
-      handles[h].mode                             = mode;
-      handles[h].last_write                       = 0;
-      return (int16_t)h;
-    }
-  if (file) Fclose(file); /* DOS error 4: too many open files */
+auto OpenSaved(std::string_view const name, Access const access) -> std::optional<SaveFile> {
+  if (access == Access::READ) return SaveFile::Open(name, FileMode::READ);
+  if (auto writable{ SaveFile::Open(name, FileMode::READ_WRITE) }) return writable;
+  auto readable{ SaveFile::Open(name, FileMode::READ) };
+  if (readable) port_trace("svc", "dos_open %s: read/write refused, opened read-only", std::string{ name }.c_str());
+  return readable;
+}
+
+auto FileTable::Taken(std::int16_t const handle) -> std::optional<OpenFile>& {
+  return _handles.at(static_cast<std::size_t>(handle));
+}
+
+auto FileTable::Valid(std::int16_t const handle) -> bool {
+  return std::cmp_greater_equal(handle, DOS_FIRST_FILE) && std::cmp_less(handle, DOS_HANDLES) && Taken(handle).has_value();
+}
+
+auto FileTable::Lookup(std::string_view const name) const -> std::optional<std::span<std::uint8_t const>> {
+  return _find ? _find(name) : std::nullopt;
+}
+
+// The lowest free handle, or -1 (DOS error 4: too many open files; the file is closed again).
+auto FileTable::NewHandle(OpenFile file) -> std::int16_t {
+  auto const handles{ std::span{ _handles }.subspan(DOS_FIRST_FILE) };
+  auto const free{ std::ranges::find_if(handles, [](std::optional<OpenFile> const& file) { return !file; }) };
+  if (free == handles.end()) return -1;
+  free->emplace(std::move(file));
+  return static_cast<std::int16_t>(DOS_FIRST_FILE + static_cast<std::size_t>(free - handles.begin()));
+}
+
+auto FileTable::Open(std::string_view const name, std::uint16_t const mode) -> std::int16_t {
+  auto const code{ mode & 7 };
+  if (code > 2) return -1;
+  auto const access{ static_cast<Access>(code) };
+  auto const remembered{ std::string{ name.substr(0, NAME_LENGTH) } };
+  if (auto saved{ OpenSaved(name, access) }) return NewHandle(OpenFile{ .source = std::move(*saved), .name = remembered, .access = access });
+  if (auto const shipped{ Lookup(name) }) return NewHandle(OpenFile{ .source = ShippedFile{ *shipped }, .name = remembered, .access = access });
   return -1;
 }
 
-static int Valid(int16_t h) {
-  return h >= DOS_FIRST_FILE && h < DOS_HANDLES && handles[h].used;
+auto FileTable::Create(std::string_view const name) -> std::int16_t {
+  auto created{ SaveFile::Open(name, FileMode::CREATE) };
+  if (!created) return -1;
+  return NewHandle(OpenFile{ .source = std::move(*created), .name = std::string{ name.substr(0, NAME_LENGTH) }, .access = Access::READ_WRITE });
 }
 
-int16_t opeu_dos_open(const char* name, uint16_t mode) {
-  void*                f          = NULL;
-  const unsigned char* asset      = NULL;
-  size_t               asset_size = 0;
-  int                  shipped    = 0;
-  uint16_t             access     = (uint16_t)(mode & 7);
-  int16_t              h          = -1;
-  switch (access) {
-  case 0: f = Fopen(name, "rb"); break;
-  case 1:
-  case 2:
-    f = Fopen(name, "r+b");
-    if (!f) {
-      f = Fopen(name, "rb");
-      if (f) port_trace("svc", "dos_open %s: read/write refused, opened read-only", name);
-    }
-    break;
-  default: break;
-  }
-  if (!f && access <= 2 && asset_find) shipped = asset_find(name, &asset, &asset_size);
-  if (f || shipped) h = NewHandle(f, asset, asset_size, name, access);
-  port_trace("svc", "dos_open(%s, %u) = %d", name, mode, h);
-  return h;
+auto FileTable::Close(std::int16_t const handle) -> void {
+  if (Valid(handle)) Taken(handle).reset();
 }
 
-int16_t opeu_dos_close(int16_t handle) {
-  if (Valid(handle)) {
-    if (handles[handle].file) Fclose(handles[handle].file);
-    handles[handle].used  = 0;
-    handles[handle].file  = NULL;
-    handles[handle].asset = NULL;
-  }
+// A stream needs a positioning call between reads and writes.
+auto FileTable::SwitchDirection(OpenFile& file, bool const writing) -> void {
+  if (file.last_write == writing) return;
+  WhenSaved(file, [](SaveFile& saved) { saved.Seek(0, SeekOrigin::CURRENT); });
+  file.last_write = writing;
+}
+
+// The first write to a shipped file: its bytes become a file of the save directory, and the handle carries on there
+// at the same position.
+auto FileTable::CopyOnWrite(OpenFile& file) -> bool {
+  auto const& shipped{ std::get<ShippedFile>(file.source) };
+  auto        copy{ SaveFile::Open(file.name, FileMode::CREATE) };
+  if (!copy) return false;
+  auto const bytes{ shipped.Bytes() };
+  if ((!bytes.empty() && copy->Write(bytes) != bytes.size()) || !copy->Seek(shipped.Position(), SeekOrigin::START)) return false;
+  port_trace("svc", "dos_write %s: copied the shipped file into the save directory", file.name.c_str());
+  file.source = std::move(*copy);
+  return true;
+}
+
+auto FileTable::Read(std::int16_t const handle, std::span<std::uint8_t> const bytes) -> std::int16_t {
+  if (!Valid(handle)) return INVALID_HANDLE;
+  auto& file{ *Taken(handle) };
+  if (file.access == Access::WRITE) return ACCESS_DENIED;
+  SwitchDirection(file, false);
+  auto const count{ std::visit([bytes](auto& source) { return source.Read(bytes); }, file.source) };
+  return static_cast<std::int16_t>(static_cast<std::uint16_t>(count));
+}
+
+auto FileTable::Write(std::int16_t const handle, std::span<std::uint8_t const> const bytes) -> std::int16_t {
+  if (!Valid(handle)) return INVALID_HANDLE;
+  auto& file{ *Taken(handle) };
+  if (file.access == Access::READ) return ACCESS_DENIED;
+  SwitchDirection(file, true);
+  if (bytes.empty()) return 0; // DOS truncates at the position; nothing the game relies on
+  if (std::holds_alternative<ShippedFile>(file.source) && !CopyOnWrite(file)) return ACCESS_DENIED;
+  return static_cast<std::int16_t>(static_cast<std::uint16_t>(std::get<SaveFile>(file.source).Write(bytes)));
+}
+
+// DOS takes CX:DX as a signed 32-bit offset for origins 1 and 2 and as unsigned for 0.
+auto FileTable::Seek(std::int16_t const handle, std::int32_t const position, std::int16_t const origin) -> std::int32_t {
+  auto const low{ static_cast<std::uint32_t>(static_cast<std::uint16_t>(position)) << 16 };
+  auto const code{ static_cast<std::uint8_t>(origin) };
+  if (!Valid(handle)) return static_cast<std::int32_t>(low | INVALID_HANDLE);
+  if (code > 2) return static_cast<std::int32_t>(low | INVALID_FUNCTION);
+  auto&      file{ *Taken(handle) };
+  auto const from{ static_cast<SeekOrigin>(code) };
+  auto const offset{ from == SeekOrigin::START ? std::int64_t{ static_cast<std::uint32_t>(position) } : std::int64_t{ position } };
+  auto const reached{ std::visit([offset, from](auto& source) { return source.Seek(offset, from); }, file.source) };
+  file.last_write = false;
+  port_trace("svc", "dos_seek(%d, %ld, %d) = %ld", handle, static_cast<long>(position), origin, static_cast<long>(reached.value_or(-1)));
+  if (!reached) return static_cast<std::int32_t>(low | SEEK_ERROR);
+  return static_cast<std::int32_t>(static_cast<std::uint32_t>(*reached));
+}
+
+auto FileTable::FlushAll() -> void {
+  std::ranges::for_each(_handles, [](std::optional<OpenFile>& file) {
+    if (file) WhenSaved(*file, [](SaveFile& saved) { saved.Flush(); });
+  });
+}
+
+// The far buffer of size bytes at segment:offset (fatal when it leaves the arena).
+auto FarBytes(std::uint16_t const segment, std::uint16_t const offset, std::uint16_t const size) -> std::span<std::uint8_t> {
+  if (size != 0) port_far(segment, static_cast<std::uint16_t>(offset + size - 1)); // range check
+  return { port_far(segment, offset), size };
+}
+
+}
+}
+
+namespace opeu::services::detail::asset_table {
+auto FilesUseAssets(AssetLookup lookup) -> void {
+  fileio::Files().UseAssets(std::move(lookup));
+}
+}
+
+// ---- the game's file calls (services.hpp; renamed with #17) ----
+
+using opeu::services::detail::fileio::FarBytes;
+using opeu::services::detail::fileio::Files;
+
+auto opeu_dos_open(char const* const name, std::uint16_t const mode) -> std::int16_t {
+  auto const handle{ Files().Open(name, mode) };
+  port_trace("svc", "dos_open(%s, %u) = %d", name, mode, handle);
+  return handle;
+}
+
+auto opeu_dos_close(std::int16_t const handle) -> std::int16_t {
+  Files().Close(handle);
   port_trace("svc", "dos_close(%d)", handle);
   return 0;
 }
 
-/* stdio requires a positioning call between reads and writes on a stream. */
-static void SwitchDirection(int16_t handle, int writing) {
-  if (handles[handle].last_write != writing) {
-    if (handles[handle].file) Fseek(handles[handle].file, 0, SEEK_CUR);
-    handles[handle].last_write = writing;
-  }
+auto opeu_dos_read(std::int16_t const handle, std::uint8_t* const data, std::uint16_t const size) -> std::int16_t {
+  auto const result{ Files().Read(handle, { data, size }) };
+  port_trace("svc", "dos_read(%d, %u) = %d", handle, size, result);
+  return result;
 }
 
-static size_t AssetRead(int16_t handle, uint8_t* data, uint16_t size) {
-  long   pos = handles[handle].asset_pos;
-  size_t left, n;
-  if (pos < 0 || (size_t)pos >= handles[handle].asset_size) return 0;
-  left = handles[handle].asset_size - (size_t)pos;
-  n    = size < left ? size : left;
-  memcpy(data, handles[handle].asset + pos, n);
-  handles[handle].asset_pos = pos + (long)n;
-  return n;
+auto opeu_dos_read_far(std::int16_t const handle, std::uint16_t const segment, std::uint16_t const offset, std::uint16_t const size) -> std::int16_t {
+  auto const result{ Files().Read(handle, FarBytes(segment, offset, size)) };
+  port_trace("svc", "dos_read_far(%d, %04x:%04x, %u) = %d", handle, segment, offset, size, result);
+  return result;
 }
 
-/* The first write to a shipped file: its bytes become a file of the save
- * directory, and the handle carries on there at the same position. */
-static int CopyOnWrite(int16_t handle) {
-  void*  f    = Fopen(handles[handle].name, "w+b");
-  size_t size = handles[handle].asset_size;
-  if (!f) return -1;
-  if ((size && Fwrite(handles[handle].asset, size, f) != size) || Fseek(f, handles[handle].asset_pos, SEEK_SET) < 0) {
-    Fclose(f);
-    return -1;
-  }
-  port_trace("svc", "dos_write %s: copied the shipped file into the save directory", handles[handle].name);
-  handles[handle].file  = f;
-  handles[handle].asset = NULL;
-  return 0;
+auto opeu_dos_write(std::int16_t const handle, std::uint8_t const* const data, std::uint16_t const size) -> std::int16_t {
+  auto const result{ Files().Write(handle, { data, size }) };
+  port_trace("svc", "dos_write(%d, %u) = %d", handle, size, result);
+  return result;
 }
 
-static int16_t DoRead(int16_t handle, uint8_t* data, uint16_t size) {
-  size_t n;
-  if (!Valid(handle)) return DOS_ERR_INVALID_HANDLE;
-  if (handles[handle].mode == 1) return DOS_ERR_ACCESS;
-  SwitchDirection(handle, 0);
-  if (handles[handle].file)
-    n = Fread(data, size, handles[handle].file);
-  else
-    n = AssetRead(handle, data, size);
-  return (int16_t)(uint16_t)n;
+auto opeu_dos_write_far(std::int16_t const handle, std::uint16_t const segment, std::uint16_t const offset, std::uint16_t const size) -> std::int16_t {
+  auto const result{ Files().Write(handle, FarBytes(segment, offset, size)) };
+  port_trace("svc", "dos_write_far(%d, %04x:%04x, %u) = %d", handle, segment, offset, size, result);
+  return result;
 }
 
-static int16_t DoWrite(int16_t handle, const uint8_t* data, uint16_t size) {
-  size_t n;
-  if (!Valid(handle)) return DOS_ERR_INVALID_HANDLE;
-  if (handles[handle].mode == 0) return DOS_ERR_ACCESS;
-  SwitchDirection(handle, 1);
-  if (size == 0) return 0; /* DOS truncates at the position; nothing MAIN relies on */
-  if (!handles[handle].file && CopyOnWrite(handle) != 0) return DOS_ERR_ACCESS;
-  n = Fwrite(data, size, handles[handle].file);
-  return (int16_t)(uint16_t)n;
+auto opeu_dos_seek(std::int16_t const handle, std::int32_t const position, std::int16_t const origin) -> std::int32_t {
+  return Files().Seek(handle, position, origin);
 }
 
-int16_t opeu_dos_read(int16_t handle, uint8_t* data, uint16_t size) {
-  int16_t r = DoRead(handle, data, size);
-  port_trace("svc", "dos_read(%d, %u) = %d", handle, size, r);
-  return r;
+auto opeu_dos_create(char const* const name) -> std::int16_t {
+  auto const handle{ Files().Create(name) };
+  port_trace("svc", "dos_create(%s) = %d", name, handle);
+  return handle;
 }
 
-int16_t opeu_dos_read_far(int16_t handle, uint16_t segment, uint16_t offset, uint16_t size) {
-  int16_t r;
-  if (size) (void)port_far(segment, (uint16_t)(offset + size - 1)); /* range check */
-  r = DoRead(handle, port_far(segment, offset), size);
-  port_trace("svc", "dos_read_far(%d, %04x:%04x, %u) = %d", handle, segment, offset, size, r);
-  return r;
-}
-
-int16_t opeu_dos_write(int16_t handle, const uint8_t* data, uint16_t size) {
-  int16_t r = DoWrite(handle, data, size);
-  port_trace("svc", "dos_write(%d, %u) = %d", handle, size, r);
-  return r;
-}
-
-int16_t opeu_dos_write_far(int16_t handle, uint16_t segment, uint16_t offset, uint16_t size) {
-  int16_t r;
-  if (size) (void)port_far(segment, (uint16_t)(offset + size - 1));
-  r = DoWrite(handle, port_far(segment, offset), size);
-  port_trace("svc", "dos_write_far(%d, %04x:%04x, %u) = %d", handle, segment, offset, size, r);
-  return r;
-}
-
-int32_t opeu_dos_seek(int16_t handle, int32_t position, int16_t origin) {
-  long     r;
-  uint16_t low = (uint16_t)position;
-  uint8_t  al  = (uint8_t)origin;
-  if (!Valid(handle)) return (int32_t)((uint32_t)low << 16 | DOS_ERR_INVALID_HANDLE);
-  if (al > 2) return (int32_t)((uint32_t)low << 16 | 1); /* invalid function */
-  /* DOS takes CX:DX as a signed 32-bit offset for origins 1 and 2 and as
-     * unsigned for 0. */
-  if (handles[handle].file) {
-    r = Fseek(handles[handle].file, al == 0 ? (long)(uint32_t)position : (long)position, al == 0 ? SEEK_SET : al == 1 ? SEEK_CUR : SEEK_END);
-  } else {
-    /* as fseek on a file: before the start fails, past the end is allowed */
-    r = (al == 0 ? 0 : al == 1 ? handles[handle].asset_pos : (long)handles[handle].asset_size) + (al == 0 ? (long)(uint32_t)position : (long)position);
-    if (r < 0)
-      r = -1;
-    else
-      handles[handle].asset_pos = r;
-  }
-  handles[handle].last_write = 0;
-  port_trace("svc", "dos_seek(%d, %ld, %d) = %ld", handle, (long)position, origin, r);
-  if (r < 0) return (int32_t)((uint32_t)low << 16 | 0x19); /* seek error */
-  return (int32_t)(uint32_t)r;
-}
-
-int16_t opeu_dos_create(const char* name) {
-  void*   f = Fopen(name, "w+b");
-  int16_t h = f ? NewHandle(f, NULL, 0, name, 2) : -1;
-  port_trace("svc", "dos_create(%s) = %d", name, h);
-  return h;
-}
-
-int16_t opeu_dos_exists(const char* name) {
-  int16_t h = opeu_dos_open(name, 0);
-  if (h == -1) return 0;
-  if (opeu_dos_close(h) == -1) return 0;
+auto opeu_dos_exists(char const* const name) -> std::int16_t {
+  auto const handle{ opeu_dos_open(name, 0) };
+  if (handle == -1) return 0;
+  if (opeu_dos_close(handle) == -1) return 0;
   return 1;
 }
 
-uint16_t opeu_dos_alloc(uint16_t paragraphs) {
+auto opeu_dos_alloc(std::uint16_t const paragraphs) -> std::uint16_t {
   return port_dos_alloc(paragraphs);
 }
 
-int16_t opeu_dos_free(uint16_t segment) {
+auto opeu_dos_free(std::uint16_t const segment) -> std::int16_t {
   return port_dos_free(segment) == 0 ? 1 : 0;
 }
 
-/* INT 21h AH=0Dh: DOS writes its dirty buffers; flush every open stream. */
-void port_disk_reset(void) {
-  int h;
-  for (h = DOS_FIRST_FILE; h < DOS_HANDLES; h++)
-    if (handles[h].used && handles[h].file) fflush((FILE*)handles[h].file);
+// INT 21h AH=0Dh: DOS writes its dirty buffers; flush every open file.
+auto port_disk_reset() -> void {
+  Files().FlushAll();
 }

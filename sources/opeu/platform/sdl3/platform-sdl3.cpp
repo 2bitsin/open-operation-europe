@@ -1,29 +1,24 @@
-/* SDL3 implementation of port/platform/platform.h.
- *
- * Portable C99 + SDL3 only: builds for macOS, Linux, Windows and
- * Emscripten.  Video is an indexed framebuffer converted through the
- * palette into a streaming XRGB8888 texture, shown with SDL's logical
- * presentation (integer scaling + letterbox).  Input is translated to PC
- * set-1 make codes plus the BIOS INT 16h ASCII of a US keyboard.  Files are
- * stdio FILE* handles on paths resolved case-insensitively inside the save
- * directory.  Audio is a pull callback on an SDL_AudioStream.
- *
- * Emscripten (web build, docs/port.md "The browser build"): the game's waits are
- * polling loops that never return to a main loop, so the build uses
- * ASYNCIFY (or JSPI) and this backend hands control back to the browser at
- * exactly two places, both marked __EMSCRIPTEN__: after each presented
- * frame (so the canvas is shown and input events are delivered) and in
- * SleepMs() (the pump's idle sleep).  SDL's own automatic
- * emscripten_sleep() calls are switched off so that these are the only
- * yields.  The page's CSS sizes the canvas to an integer multiple of the
- * frame in device pixels (shell.html); SDL follows that size on window
- * resize events and, with SDL_WINDOW_HIGH_PIXEL_DENSITY, gives the canvas
- * that many device pixels, so the renderer's integer scaling applies there
- * too.  The browser blanks a canvas whose size changes, so a resize or
- * exposure redraws the last frame.  The canvas takes the keyboard events
- * itself and has no vsync setting (the browser paces frames).
- */
-#include "platform.hpp"
+// census: raii — SDL's handles live in their owners (handles.hpp); the raw pointers left are SDL's callback contexts
+// and out-parameters, wrapped where SDL hands them over.
+//
+// The SDL3 implementation of platform.hpp, for macOS, Linux, Windows and the browser. Video is the indexed frame
+// converted through the palette into a streaming XRGB8888 texture, shown with SDL's logical presentation (integer
+// scaling and letterbox). Input becomes PC set-1 make codes with the BIOS INT 16h ASCII of a US keyboard. Save files
+// are streams on paths resolved case-insensitively inside the save directory. Audio is a pull callback on an
+// SDL_AudioStream.
+//
+// In the browser (docs/port.md "The browser build") the game's waits are polling loops that never return to a main
+// loop, so the build uses ASYNCIFY (or JSPI) and this backend hands control back to the browser at exactly two places,
+// both marked __EMSCRIPTEN__: after each presented frame (so the canvas is shown and input events are delivered) and
+// in SleepMs (the pump's idle sleep). SDL's own automatic emscripten_sleep() calls are switched off, so these are the
+// only yields. The page's CSS sizes the canvas to an integer multiple of the frame in device pixels (shell.html); SDL
+// follows that size on window resize events and, with SDL_WINDOW_HIGH_PIXEL_DENSITY, gives the canvas that many
+// device pixels, so the renderer's integer scaling applies there too. The browser blanks a canvas whose size changes,
+// so a resize or exposure redraws the last frame. The canvas takes the keyboard events itself and has no vsync
+// setting (the browser paces frames).
+#include "opeu/platform/platform.hpp"
+
+#include "opeu/platform/sdl3/handles.hpp"
 
 #include <SDL3/SDL.h>
 // The headless --png writer: stb_image_write (conan stb), implemented here, its only user (platform/configure.py
@@ -36,7 +31,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
-#include <cstring>
 #include <iterator>
 #include <print>
 #include <ranges>
@@ -59,8 +53,11 @@ constexpr auto PRESENTATION{ SDL_LOGICAL_PRESENTATION_INTEGER_SCALE };
 constexpr std::size_t PATH_MAX_LENGTH{ 1024 };
 // Longest single component of a DOS name.
 constexpr std::size_t COMPONENT_MAX_LENGTH{ 256 };
-constexpr std::size_t PALETTE_BYTES{ 256 * 3 };
 constexpr int         AUDIO_CHUNK_FRAMES{ 1024 };
+constexpr int         DEFAULT_WIDTH{ 640 };
+constexpr int         DEFAULT_HEIGHT{ 480 };
+constexpr int         DEFAULT_AUDIO_RATE{ 44100 };
+constexpr auto        DEFAULT_TITLE{ std::string_view{ "Operation Europe" } };
 
 // Key kinds for the ASCII computation.
 enum class KeyKind : std::uint8_t {
@@ -195,14 +192,15 @@ constexpr std::array<KeyMap, 105> KEYMAP{ {
 } };
 // clang-format on
 
-auto FindKey(SDL_Scancode scancode) -> KeyMap const* {
+auto FindKey(SDL_Scancode const scancode) -> std::optional<KeyMap> {
   auto const found{ std::ranges::find(KEYMAP, scancode, &KeyMap::scancode) };
-  return found == KEYMAP.end() ? nullptr : &*found;
+  if (found == KEYMAP.end()) return std::nullopt;
+  return *found;
 }
 
 // BIOS INT 16h ASCII of a key for the given SDL modifier state.
-auto KeyAscii(KeyMap const& key, SDL_Keymod mod) -> std::uint8_t {
-  bool shift{ (mod & SDL_KMOD_SHIFT) != 0 };
+auto KeyAscii(KeyMap const& key, SDL_Keymod const mod) -> std::uint8_t {
+  auto shift{ (mod & SDL_KMOD_SHIFT) != 0 };
   if (key.kind == KeyKind::NOASCII) return 0;
   if ((mod & SDL_KMOD_ALT) != 0) return 0; // Alt combinations: ASCII 00
   if ((mod & SDL_KMOD_CTRL) != 0) return key.ctrl;
@@ -217,11 +215,28 @@ auto KeyAscii(KeyMap const& key, SDL_Keymod mod) -> std::uint8_t {
   }
 }
 
-auto Uppercase(char c) -> char {
+// An event of the given type, its other fields zero until set.
+auto Event(EventType const type) -> InputEvent {
+  InputEvent event{};
+  event.type = type;
+  return event;
+}
+
+// The button number the port reports: 0 left, 1 right, 2 middle; nothing for the others.
+auto ButtonNumber(Uint8 const button) -> std::optional<std::uint8_t> {
+  switch (button) {
+  case SDL_BUTTON_LEFT:   return 0;
+  case SDL_BUTTON_RIGHT:  return 1;
+  case SDL_BUTTON_MIDDLE: return 2;
+  default:                return std::nullopt;
+  }
+}
+
+auto Uppercase(char const c) -> char {
   return static_cast<char>(SDL_toupper(static_cast<unsigned char>(c)));
 }
 
-auto IsSeparator(char c) -> bool {
+auto IsSeparator(char const c) -> bool {
   return c == '\\' || c == '/';
 }
 
@@ -231,48 +246,68 @@ auto PathExists(std::string const& path) -> bool {
 
 // A directory search for one name, case-insensitively; an exact spelling wins.
 struct FindContext {
-  std::string want;
-  std::string found;
-  bool        ok{ false };
+  std::string                want;
+  std::optional<std::string> found;
 };
 
-auto SDLCALL FindEntry(void* context, [[maybe_unused]] char const* directory, char const* name) -> SDL_EnumerationResult {
-  auto& find{ *static_cast<FindContext*>(context) };
+auto SDLCALL FindEntry(void* const context, [[maybe_unused]] char const* const directory, char const* const name) -> SDL_EnumerationResult {
+  auto&                  find{ *static_cast<FindContext*>(context) };
+  std::string_view const entry{ name };
   if (SDL_strcasecmp(name, find.want.c_str()) == 0) {
-    find.found = name;
-    find.ok    = true;
-    if (find.want == name) return SDL_ENUM_SUCCESS;
+    find.found = std::string{ entry };
+    if (find.want == entry) return SDL_ENUM_SUCCESS;
   }
   return SDL_ENUM_CONTINUE;
 }
 
-// The SDL window, renderer, audio stream and the last frame, behind the plat_* contract.
+auto Spelled(std::string const& directory, std::string const& want) -> std::optional<std::string> {
+  FindContext find{ .want = want, .found = std::nullopt };
+  SDL_EnumerateDirectory(directory.c_str(), FindEntry, &find);
+  return find.found;
+}
+
+// Where a DOS name leads inside the save directory.
+enum class Found : std::uint8_t {
+  EXISTS,    // every component exists
+  CREATABLE, // all but the last, which is spelled in upper case (the DOS spelling)
+  MISSING,   // a directory is missing, or the name is too long
+};
+
+struct Resolution {
+  Found       found{ Found::MISSING };
+  std::string path;
+};
+
+using UniqueAudioStream = std::unique_ptr<SDL_AudioStream, Destroy<SDL_DestroyAudioStream>>;
+
+// The SDL window, renderer, audio stream and the last frame, behind platform.hpp.
 class Backend {
 public:
   auto               Init(PlatConfig const& config) -> int;
   auto               Shutdown() -> void;
-  auto               Present(std::span<std::uint8_t const> pixels, int width, int height, std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void;
-  auto               WritePng(char const* path) const -> int;
-  auto               PollEvent(PlatEvent& event) -> int;
-  [[nodiscard]] auto ShiftFlags() const -> std::uint8_t;
+  auto               Present(Frame const& frame) -> void;
+  [[nodiscard]] auto WritePng(std::string const& path) const -> bool;
+  [[nodiscard]] auto PollEvent() -> std::optional<InputEvent>;
   [[nodiscard]] auto TicksUs() const -> std::uint64_t;
   [[nodiscard]] auto Headless() const -> bool {
     return _headless;
   }
   auto               SetSaveDir(std::string_view dir) -> void;
-  auto               SaveDir() -> std::string const&;
-  auto               Resolve(std::string_view dos_name, bool create) -> std::pair<int, std::string>;
-  auto               OpenAudio(int rate, PlatAudioFn callback, void* user) -> int;
-  [[nodiscard]] auto AudioActive() const -> bool {
-    return _audio != nullptr;
-  }
-  auto LockAudio() const -> void;
-  auto UnlockAudio() const -> void;
+  [[nodiscard]] auto Resolve(std::string_view dos_name) -> Resolution;
+  [[nodiscard]] auto OpenAudio(int rate, AudioSource source) -> bool;
+  auto               LockAudio() const -> void;
+  auto               UnlockAudio() const -> void;
 
 private:
   auto                OpenWindow(PlatConfig const& config, int width, int height, int scale) -> int;
   auto                Redraw() const -> void;
-  auto                MousePosition(float fx, float fy, PlatEvent& event) const -> void;
+  auto                ReplaceTexture(int width, int height) -> void;
+  auto                Convert(Frame const& frame) -> void;
+  [[nodiscard]] auto  Translated(SDL_Event& sdl) const -> std::optional<InputEvent>;
+  [[nodiscard]] auto  KeyEvent(SDL_KeyboardEvent const& key) const -> std::optional<InputEvent>;
+  [[nodiscard]] auto  ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent>;
+  auto                Place(float fx, float fy, InputEvent& event) const -> void;
+  [[nodiscard]] auto  SaveDir() -> std::string const&;
   static auto SDLCALL FillAudio(void* backend, SDL_AudioStream* stream, int additional, int total) -> void;
 
   bool          _inited{ false };
@@ -280,24 +315,26 @@ private:
   SDL_InitFlags _sdl_flags{ 0 };
   std::uint64_t _t0_ns{ 0 };
 
-  SDL_Window*   _window{ nullptr };
-  SDL_Renderer* _renderer{ nullptr };
-  SDL_Texture*  _texture{ nullptr };
-  int           _texture_width{ 0 }, _texture_height{ 0 };
+  UniqueWindow   _window;
+  UniqueRenderer _renderer;
+  UniqueTexture  _texture;
+  int            _texture_width{ 0 };
+  int            _texture_height{ 0 };
 
   std::vector<std::uint8_t>               _frame; // the last indexed frame
-  int                                     _frame_width{ 0 }, _frame_height{ 0 };
+  int                                     _frame_width{ 0 };
+  int                                     _frame_height{ 0 };
   std::array<std::uint8_t, PALETTE_BYTES> _palette{};
-  std::vector<std::uint32_t>              _row; // one converted texture row
+  std::vector<std::uint32_t>              _converted; // the frame through the palette
 
-  SDL_AudioStream* _audio{ nullptr };
-  PlatAudioFn      _audio_callback{ nullptr };
-  void*            _audio_user{ nullptr };
-  int              _audio_rate{ 0 };
+  UniqueAudioStream _audio;
+  AudioSource       _audio_source;
 
   std::string _save_dir;
 };
 
+// The one backend of the process; SDL itself is process-wide. The game-facing services reach it through the free
+// functions of platform.hpp until the machine interface (M2 B5) hands it down.
 auto TheBackend() -> Backend& {
   static Backend backend;
   return backend;
@@ -308,9 +345,9 @@ auto TheBackend() -> Backend& {
 auto Backend::Init(PlatConfig const& config) -> int {
   if (_inited) return 0;
   _headless = config.headless != 0;
-  int const width{ config.width > 0 ? config.width : 640 };
-  int const height{ config.height > 0 ? config.height : 480 };
-  int const scale{ std::max(config.scale, 1) };
+  auto const width{ config.width > 0 ? config.width : DEFAULT_WIDTH };
+  auto const height{ config.height > 0 ? config.height : DEFAULT_HEIGHT };
+  auto const scale{ std::max(config.scale, 1) };
 
   if (_headless) {
     // No subsystems: timers and the filesystem helpers need none.
@@ -327,9 +364,9 @@ auto Backend::Init(PlatConfig const& config) -> int {
   return 0;
 }
 
-auto Backend::OpenWindow(PlatConfig const& config, int width, int height, int scale) -> int {
-  char const* const title{ config.title != nullptr ? config.title : "Operation Europe" };
-  SDL_SetAppMetadata(title, nullptr, nullptr);
+auto Backend::OpenWindow(PlatConfig const& config, int const width, int const height, int const scale) -> int {
+  auto const title{ std::string{ config.title.empty() ? DEFAULT_TITLE : config.title } };
+  SDL_SetAppMetadata(title.c_str(), nullptr, nullptr);
 #ifdef __EMSCRIPTEN__
   // Keys go to the canvas (focused by the page's click-to-start), and only this backend yields to the browser (see the
   // file comment).
@@ -357,45 +394,37 @@ auto Backend::OpenWindow(PlatConfig const& config, int width, int height, int sc
   // size.
   window_flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
 #endif
-  if (!SDL_CreateWindowAndRenderer(title, width * scale, height * scale, window_flags, &_window, &_renderer)) {
+  SDL_Window*   window{ nullptr };
+  SDL_Renderer* renderer{ nullptr };
+  auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), width * scale, height * scale, window_flags, &window, &renderer) };
+  _window.reset(window);
+  _renderer.reset(renderer);
+  if (!created) {
     std::println(stderr, "plat_init: SDL_CreateWindowAndRenderer: {}", SDL_GetError());
-    if (_window != nullptr) SDL_DestroyWindow(_window);
-    _window   = nullptr;
-    _renderer = nullptr;
+    _renderer.reset();
+    _window.reset();
     SDL_Quit();
     return -1;
   }
 #ifndef __EMSCRIPTEN__
-  SDL_SetRenderVSync(_renderer, 1);
+  SDL_SetRenderVSync(_renderer.get(), 1);
 #endif
-  SDL_SetRenderLogicalPresentation(_renderer, width, height, PRESENTATION);
+  SDL_SetRenderLogicalPresentation(_renderer.get(), width, height, PRESENTATION);
   if constexpr (HIDE_CURSOR) SDL_HideCursor();
   // Never deliver text-input events; the backend derives ASCII itself.
-  SDL_StopTextInput(_window);
-  SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-  SDL_RenderClear(_renderer);
-  SDL_RenderPresent(_renderer);
+  SDL_StopTextInput(_window.get());
+  SDL_SetRenderDrawColor(_renderer.get(), 0, 0, 0, 255);
+  SDL_RenderClear(_renderer.get());
+  SDL_RenderPresent(_renderer.get());
   return 0;
 }
 
 auto Backend::Shutdown() -> void {
   if (!_inited) return;
-  if (_audio != nullptr) {
-    SDL_DestroyAudioStream(_audio);
-    _audio = nullptr;
-  }
-  if (_texture != nullptr) {
-    SDL_DestroyTexture(_texture);
-    _texture = nullptr;
-  }
-  if (_renderer != nullptr) {
-    SDL_DestroyRenderer(_renderer);
-    _renderer = nullptr;
-  }
-  if (_window != nullptr) {
-    SDL_DestroyWindow(_window);
-    _window = nullptr;
-  }
+  _audio.reset();
+  _texture.reset();
+  _renderer.reset();
+  _window.reset();
   _frame.clear();
   SDL_Quit();
   _inited = false;
@@ -407,52 +436,46 @@ auto Backend::Shutdown() -> void {
 // contents are gone (a browser blanks a canvas whose size changed) and the game, waiting for input, may not draw again
 // for a long time.
 auto Backend::Redraw() const -> void {
-  if (_renderer == nullptr || _texture == nullptr) return;
-  SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-  SDL_RenderClear(_renderer);
-  SDL_RenderTexture(_renderer, _texture, nullptr, nullptr);
-  SDL_RenderPresent(_renderer);
+  if (!_renderer || !_texture) return;
+  SDL_SetRenderDrawColor(_renderer.get(), 0, 0, 0, 255);
+  SDL_RenderClear(_renderer.get());
+  SDL_RenderTexture(_renderer.get(), _texture.get(), nullptr, nullptr);
+  SDL_RenderPresent(_renderer.get());
 }
 
-auto Backend::Present(std::span<std::uint8_t const> pixels, int width, int height, std::span<std::uint8_t const, PALETTE_BYTES> palette) -> void {
-  _frame.assign(pixels.begin(), pixels.end());
-  _frame_width  = width;
-  _frame_height = height;
-  std::ranges::copy(palette, _palette.begin());
+auto Backend::ReplaceTexture(int const width, int const height) -> void {
+  _texture.reset(SDL_CreateTexture(_renderer.get(), SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, width, height));
+  if (!_texture) return;
+  SDL_SetTextureScaleMode(_texture.get(), SDL_SCALEMODE_NEAREST);
+  _texture_width  = width;
+  _texture_height = height;
+  SDL_SetRenderLogicalPresentation(_renderer.get(), width, height, PRESENTATION);
+}
 
-  if (_renderer == nullptr) return;
-
-  if (_texture == nullptr || _texture_width != width || _texture_height != height) {
-    if (_texture != nullptr) SDL_DestroyTexture(_texture);
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
-    if (_texture == nullptr) return;
-    SDL_SetTextureScaleMode(_texture, SDL_SCALEMODE_NEAREST);
-    _texture_width  = width;
-    _texture_height = height;
-    SDL_SetRenderLogicalPresentation(_renderer, width, height, PRESENTATION);
-  }
-
+// The frame through the palette into the texture.
+auto Backend::Convert(Frame const& frame) -> void {
   std::array<std::uint32_t, 256> lut{};
-  std::ranges::transform(std::views::iota(0uz, lut.size()), lut.begin(), [&palette](std::size_t index) -> std::uint32_t {
+  std::ranges::transform(std::views::iota(0uz, lut.size()), lut.begin(), [&frame](std::size_t const index) -> std::uint32_t {
     std::array<std::uint32_t, 3> rgb{};
-    std::ranges::copy(palette.subspan(index * 3, 3), rgb.begin());
+    std::ranges::copy(frame.palette.subspan(index * 3, 3), rgb.begin());
     auto const [red, green, blue]{ rgb };
     return 0xFF000000u | red << 16 | green << 8 | blue;
   });
+  _converted.resize(frame.pixels.size());
+  std::ranges::transform(frame.pixels, _converted.begin(), [&lut](std::uint8_t const index) -> std::uint32_t { return lut.at(index); });
+  SDL_UpdateTexture(_texture.get(), nullptr, _converted.data(), frame.width * static_cast<int>(sizeof(std::uint32_t)));
+}
 
-  void* locked{ nullptr };
-  int   pitch{ 0 };
-  if (SDL_LockTexture(_texture, nullptr, &locked, &pitch)) {
-    auto const      row_bytes{ static_cast<std::size_t>(width) * sizeof(std::uint32_t) };
-    std::span const texture{ static_cast<std::byte*>(locked), static_cast<std::size_t>(pitch) * static_cast<std::size_t>(height) };
-    _row.resize(static_cast<std::size_t>(width));
-    auto const columns{ static_cast<std::size_t>(width) };
-    for (auto const y : std::views::iota(0uz, static_cast<std::size_t>(height))) {
-      std::ranges::transform(pixels.subspan(y * columns, columns), _row.begin(), [&lut](std::uint8_t index) -> std::uint32_t { return lut.at(index); });
-      std::memcpy(texture.subspan(y * static_cast<std::size_t>(pitch)).data(), _row.data(), row_bytes);
-    }
-    SDL_UnlockTexture(_texture);
-  }
+auto Backend::Present(Frame const& frame) -> void {
+  _frame.assign(frame.pixels.begin(), frame.pixels.end());
+  _frame_width  = frame.width;
+  _frame_height = frame.height;
+  std::ranges::copy(frame.palette, _palette.begin());
+
+  if (!_renderer) return;
+  if (!_texture || _texture_width != frame.width || _texture_height != frame.height) ReplaceTexture(frame.width, frame.height);
+  if (!_texture) return;
+  Convert(frame);
   Redraw();
 #ifdef __EMSCRIPTEN__
   // Return to the browser so it shows the frame and queues input.
@@ -460,100 +483,78 @@ auto Backend::Present(std::span<std::uint8_t const> pixels, int width, int heigh
 #endif
 }
 
-auto Backend::WritePng(char const* path) const -> int {
-  if (_frame.empty() || path == nullptr) return -1;
-  std::vector<std::uint8_t> rgb;
-  rgb.reserve(_frame.size() * 3);
-  for (std::uint8_t const index : _frame) {
-    auto const colour{ std::span{ _palette }.subspan(static_cast<std::size_t>(index) * 3, 3) };
-    rgb.insert(rgb.end(), colour.begin(), colour.end());
-  }
+auto Backend::WritePng(std::string const& path) const -> bool {
+  if (_frame.empty() || path.empty()) return false;
+  auto const rgb{ _frame | std::views::transform([this](std::uint8_t const index) { return std::span{ _palette }.subspan(static_cast<std::size_t>(index) * 3, 3); }) | std::views::join
+                  | std::ranges::to<std::vector<std::uint8_t>>() };
   // 8-bit truecolour, filter type 0 on every row, so the image readers of the integration suites need no unfiltering.
   stbi_write_force_png_filter = 0;
-  return stbi_write_png(path, _frame_width, _frame_height, 3, rgb.data(), _frame_width * 3) != 0 ? 0 : -1;
+  return stbi_write_png(path.c_str(), _frame_width, _frame_height, 3, rgb.data(), _frame_width * 3) != 0;
 }
 
 // ---- input --------------------------------------------------------------------------------------------------------
 
-auto Backend::MousePosition(float fx, float fy, PlatEvent& event) const -> void {
-  auto const extent{ [](int texture, int frame, int fallback) -> int {
+auto Backend::Place(float const fx, float const fy, InputEvent& event) const -> void {
+  auto const extent{ [](int const texture, int const frame, int const fallback) -> int {
     if (texture > 0) return texture;
     return frame > 0 ? frame : fallback;
   } };
-  int const width{ extent(_texture_width, _frame_width, 640) };
-  int const height{ extent(_texture_height, _frame_height, 480) };
+  auto const width{ extent(_texture_width, _frame_width, DEFAULT_WIDTH) };
+  auto const height{ extent(_texture_height, _frame_height, DEFAULT_HEIGHT) };
   event.x = std::clamp(static_cast<int>(SDL_floorf(fx)), 0, width - 1);
   event.y = std::clamp(static_cast<int>(SDL_floorf(fy)), 0, height - 1);
 }
 
-auto Backend::PollEvent(PlatEvent& event) -> int {
-  if (!_inited || _headless) return 0;
-  SDL_Event sdl{};
-  while (SDL_PollEvent(&sdl)) {
-    event = PlatEvent{};
-    switch (sdl.type) {
-    case SDL_EVENT_QUIT:                      event.type = PLAT_EV_QUIT; return 1;
-    case SDL_EVENT_WINDOW_RESIZED:
-    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-    case SDL_EVENT_WINDOW_EXPOSED:            Redraw(); break;
-    case SDL_EVENT_KEY_DOWN:
-    case SDL_EVENT_KEY_UP:                    {
-      // SDL key repeat arrives as further KEY_DOWN events (repeat=1), which is exactly the DOS typematic behaviour.
-      KeyMap const* const key{ FindKey(sdl.key.scancode) };
-      if (key == nullptr) break;
-      event.type     = sdl.type == SDL_EVENT_KEY_DOWN ? PLAT_EV_KEY_DOWN : PLAT_EV_KEY_UP;
-      event.scancode = key->code;
-      event.extended = key->extended;
-      event.ascii    = event.type == PLAT_EV_KEY_DOWN ? KeyAscii(*key, sdl.key.mod) : 0;
-      return 1;
-    }
-    case SDL_EVENT_MOUSE_MOTION:
-      SDL_ConvertEventToRenderCoordinates(_renderer, &sdl);
-      event.type = PLAT_EV_MOUSE_MOVE;
-      MousePosition(sdl.motion.x, sdl.motion.y, event);
-      return 1;
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-    case SDL_EVENT_MOUSE_BUTTON_UP:   {
-      std::uint8_t button{ 0 };
-      if (sdl.button.button == SDL_BUTTON_LEFT)
-        button = 0;
-      else if (sdl.button.button == SDL_BUTTON_RIGHT)
-        button = 1;
-      else if (sdl.button.button == SDL_BUTTON_MIDDLE)
-        button = 2;
-      else
-        break;
-      SDL_ConvertEventToRenderCoordinates(_renderer, &sdl);
-      event.type   = sdl.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? PLAT_EV_MOUSE_DOWN : PLAT_EV_MOUSE_UP;
-      event.button = button;
-      MousePosition(sdl.button.x, sdl.button.y, event);
-      return 1;
-    }
-    default: break;
-    }
-  }
-  event = PlatEvent{};
-  return 0;
+// SDL key repeat arrives as further KEY_DOWN events (repeat=1), which is exactly the DOS typematic behaviour.
+auto Backend::KeyEvent(SDL_KeyboardEvent const& key) const -> std::optional<InputEvent> {
+  auto const found{ FindKey(key.scancode) };
+  if (!found) return std::nullopt;
+  auto const down{ key.type == SDL_EVENT_KEY_DOWN };
+  auto       event{ Event(down ? EventType::KEY_DOWN : EventType::KEY_UP) };
+  event.scancode = found->code;
+  event.extended = found->extended;
+  event.ascii    = down ? KeyAscii(*found, key.mod) : std::uint8_t{ 0 };
+  return event;
 }
 
-auto Backend::ShiftFlags() const -> std::uint8_t {
-  if (!_inited || _headless) return 0;
-  SDL_Keymod const mod{ SDL_GetModState() };
-  // clang-format off
-  constexpr std::array<std::pair<SDL_Keymod, std::uint8_t>, 7> FLAGS{ {
-    { SDL_KMOD_RSHIFT, 0x01 },
-    { SDL_KMOD_LSHIFT, 0x02 },
-    { SDL_KMOD_CTRL,   0x04 },
-    { SDL_KMOD_ALT,    0x08 },
-    { SDL_KMOD_SCROLL, 0x10 },
-    { SDL_KMOD_NUM,    0x20 },
-    { SDL_KMOD_CAPS,   0x40 },
-  } };
-  // clang-format on
-  std::uint8_t flags{ 0 };
-  for (auto const& [modifier, bit] : FLAGS)
-    if ((mod & modifier) != 0) flags |= bit;
-  return flags;
+auto Backend::ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent> {
+  auto const button{ ButtonNumber(sdl.button.button) };
+  if (!button) return std::nullopt;
+  SDL_ConvertEventToRenderCoordinates(_renderer.get(), &sdl);
+  auto event{ Event(sdl.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? EventType::MOUSE_DOWN : EventType::MOUSE_UP) };
+  event.button = *button;
+  Place(sdl.button.x, sdl.button.y, event);
+  return event;
+}
+
+// The port's event for one of SDL's, if it is one the port uses.
+auto Backend::Translated(SDL_Event& sdl) const -> std::optional<InputEvent> {
+  switch (sdl.type) {
+  case SDL_EVENT_QUIT:                      return Event(EventType::QUIT);
+  case SDL_EVENT_WINDOW_RESIZED:
+  case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+  case SDL_EVENT_WINDOW_EXPOSED:            Redraw(); return std::nullopt;
+  case SDL_EVENT_KEY_DOWN:
+  case SDL_EVENT_KEY_UP:                    return KeyEvent(sdl.key);
+  case SDL_EVENT_MOUSE_MOTION:              {
+    SDL_ConvertEventToRenderCoordinates(_renderer.get(), &sdl);
+    auto event{ Event(EventType::MOUSE_MOVE) };
+    Place(sdl.motion.x, sdl.motion.y, event);
+    return event;
+  }
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+  case SDL_EVENT_MOUSE_BUTTON_UP:   return ButtonEvent(sdl);
+  default:                          return std::nullopt;
+  }
+}
+
+auto Backend::PollEvent() -> std::optional<InputEvent> {
+  if (!_inited || _headless) return std::nullopt;
+  SDL_Event sdl{};
+  while (SDL_PollEvent(&sdl)) {
+    if (auto const event{ Translated(sdl) }) return event;
+  }
+  return std::nullopt;
 }
 
 // ---- time ---------------------------------------------------------------------------------------------------------
@@ -578,111 +579,112 @@ auto Backend::SaveDir() -> std::string const& {
 #ifdef __EMSCRIPTEN__
     SetSaveDir("/saves"); // web/pre.js mounts IDBFS there
 #else
-    char* const pref{ SDL_GetPrefPath("opeu", "Operation Europe") };
-    SetSaveDir(pref != nullptr ? pref : ".");
-    SDL_free(pref);
+    auto const pref{ std::unique_ptr<char, Destroy<SDL_free>>{ SDL_GetPrefPath("opeu", "Operation Europe") } };
+    SetSaveDir(pref ? std::string_view{ pref.get() } : std::string_view{ "." });
 #endif
   }
   return _save_dir;
 }
 
 // Resolves a DOS name (with '\' or '/' separators) inside the save directory, matching every component
-// case-insensitively. When the final component is missing and `create` is set, it is appended in upper case (the DOS
-// spelling). The result is 1 if the file exists, 0 if a creatable path was produced, -1 on failure, with the path.
-auto Backend::Resolve(std::string_view dos_name, bool create) -> std::pair<int, std::string> {
-  if (dos_name.empty()) return { -1, {} };
-  std::string path{ SaveDir() };
-  auto const  is_part{ [](char c) -> bool { return !IsSeparator(c); } };
-  auto        rest{ dos_name };
+// case-insensitively; a missing last component is appended in upper case, as creatable.
+auto Backend::Resolve(std::string_view const dos_name) -> Resolution {
+  if (dos_name.empty()) return {};
+  auto path{ SaveDir() };
+  auto rest{ dos_name };
   while (!rest.empty()) {
     rest.remove_prefix(std::min(rest.find_first_not_of("\\/"), rest.size()));
     if (rest.empty()) break;
-    auto const             length{ static_cast<std::size_t>(std::ranges::find_if_not(rest, is_part) - rest.begin()) };
-    std::string_view const component{ rest.substr(0, length) };
-    if (length >= COMPONENT_MAX_LENGTH) return { -1, {} };
+    auto const length{ static_cast<std::size_t>(std::ranges::find_if(rest, IsSeparator) - rest.begin()) };
+    auto const component{ std::string{ rest.substr(0, length) } };
+    if (length >= COMPONENT_MAX_LENGTH) return {};
     rest.remove_prefix(length);
-    bool const last{ rest.find_first_not_of("\\/") == std::string_view::npos };
-    if (path.size() + 1 + length + 1 > PATH_MAX_LENGTH) return { -1, {} };
+    auto const last{ rest.find_first_not_of("\\/") == std::string_view::npos };
+    if (path.size() + 1 + length + 1 > PATH_MAX_LENGTH) return {};
     // Fast path: the exact spelling exists.
-    std::string const exact{ path + "/" + std::string{ component } };
-    if (PathExists(exact)) {
+    if (auto const exact{ path + "/" + component }; PathExists(exact)) {
       path = exact;
       continue;
     }
-    FindContext find{ .want = std::string{ component }, .found = {}, .ok = false };
-    SDL_EnumerateDirectory(path.c_str(), FindEntry, &find);
-    if (find.ok) {
-      if (path.size() + 1 + find.found.size() + 1 > PATH_MAX_LENGTH) return { -1, {} };
-      path += "/" + find.found;
+    if (auto const spelled{ Spelled(path, component) }) {
+      if (path.size() + 1 + spelled->size() + 1 > PATH_MAX_LENGTH) return {};
+      path += "/" + *spelled;
       continue;
     }
-    if (!last || !create) return { -1, {} };
+    if (!last) return {};
     path += '/';
     std::ranges::transform(component, std::back_inserter(path), Uppercase);
-    return { 0, path };
+    return { .found = Found::CREATABLE, .path = path };
   }
-  return { 1, path };
+  return { .found = Found::EXISTS, .path = path };
 }
 
 // ---- audio --------------------------------------------------------------------------------------------------------
 
-auto SDLCALL Backend::FillAudio(void* backend, SDL_AudioStream* stream, int additional, [[maybe_unused]] int total) -> void {
+auto SDLCALL Backend::FillAudio(void* const backend, SDL_AudioStream* const stream, int additional, [[maybe_unused]] int const total) -> void {
   auto const&                                                                self{ *static_cast<Backend const*>(backend) };
   std::array<std::int16_t, static_cast<std::size_t>(AUDIO_CHUNK_FRAMES) * 2> samples{};
   // `additional` is in bytes; one frame is 4 bytes (S16 stereo).
   while (additional >= 4) {
-    int const frames{ std::min(additional / 4, AUDIO_CHUNK_FRAMES) };
-    if (self._audio_callback != nullptr)
-      self._audio_callback(self._audio_user, samples.data(), frames, self._audio_rate);
+    auto const frames{ std::min(additional / 4, AUDIO_CHUNK_FRAMES) };
+    auto const chunk{ std::span{ samples }.first(static_cast<std::size_t>(frames) * 2) };
+    if (self._audio_source)
+      self._audio_source(chunk);
     else
-      std::ranges::fill(samples, std::int16_t{ 0 });
-    SDL_PutAudioStreamData(stream, samples.data(), frames * 4);
+      std::ranges::fill(chunk, std::int16_t{ 0 });
+    SDL_PutAudioStreamData(stream, chunk.data(), frames * 4);
     additional -= frames * 4;
   }
 }
 
-auto Backend::OpenAudio(int rate, PlatAudioFn callback, void* user) -> int {
-  if (!_inited || _headless) return 0;
-  if ((_sdl_flags & SDL_INIT_AUDIO) == 0) return -1;
-  if (rate <= 0) rate = 44100;
-  if (_audio != nullptr) {
-    SDL_DestroyAudioStream(_audio);
-    _audio = nullptr;
-  }
-  _audio_callback = callback;
-  _audio_user     = user;
-  _audio_rate     = rate;
+auto Backend::OpenAudio(int rate, AudioSource source) -> bool {
+  if (!_inited || _headless) return false;
+  if ((_sdl_flags & SDL_INIT_AUDIO) == 0) return false;
+  if (rate <= 0) rate = DEFAULT_AUDIO_RATE;
+  _audio.reset();
+  _audio_source = std::move(source);
   SDL_AudioSpec const spec{ .format = SDL_AUDIO_S16, .channels = 2, .freq = rate };
-  _audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, FillAudio, this);
-  if (_audio == nullptr) {
+  _audio.reset(SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, FillAudio, this));
+  if (!_audio) {
     std::println(stderr, "plat_audio_open: {}", SDL_GetError());
-    return -1;
+    return false;
   }
-  SDL_ResumeAudioStreamDevice(_audio);
-  return 0;
+  SDL_ResumeAudioStreamDevice(_audio.get());
+  return true;
 }
 
 auto Backend::LockAudio() const -> void {
-  if (_audio != nullptr) SDL_LockAudioStream(_audio);
+  if (_audio) SDL_LockAudioStream(_audio.get());
 }
 
 auto Backend::UnlockAudio() const -> void {
-  if (_audio != nullptr) SDL_UnlockAudioStream(_audio);
+  if (_audio) SDL_UnlockAudioStream(_audio.get());
 }
 
-auto AsFile(void* handle) -> std::FILE* {
-  return static_cast<std::FILE*>(handle);
+[[nodiscard]] auto OpenMode(FileMode const mode) -> std::ios::openmode {
+  switch (mode) {
+  case FileMode::READ:       return std::ios::in | std::ios::binary;
+  case FileMode::READ_WRITE: return std::ios::in | std::ios::out | std::ios::binary;
+  default:                   return std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary;
+  }
 }
+
+[[nodiscard]] auto Direction(SeekOrigin const origin) -> std::ios::seekdir {
+  switch (origin) {
+  case SeekOrigin::START:   return std::ios::beg;
+  case SeekOrigin::CURRENT: return std::ios::cur;
+  default:                  return std::ios::end;
+  }
+}
+
 } // namespace
 } // namespace opeu::platform::detail::sdl3
 
 // ---- the platform contract ----------------------------------------------------------------------------------------
 
-using opeu::platform::detail::sdl3::AsFile;
-using opeu::platform::detail::sdl3::PALETTE_BYTES;
 using opeu::platform::detail::sdl3::TheBackend;
 
-auto plat_init(PlatConfig const* cfg) -> int {
+auto plat_init(PlatConfig const* const cfg) -> int {
   return cfg == nullptr ? -1 : TheBackend().Init(*cfg);
 }
 
@@ -690,29 +692,32 @@ auto plat_shutdown() -> void {
   TheBackend().Shutdown();
 }
 
-auto plat_present(std::uint8_t const* pixels, int width, int height, std::uint8_t const* palette) -> void {
-  if (pixels == nullptr || palette == nullptr || width <= 0 || height <= 0) return;
-  auto const count{ static_cast<std::size_t>(width) * static_cast<std::size_t>(height) };
-  TheBackend().Present({ pixels, count }, width, height, std::span<std::uint8_t const, PALETTE_BYTES>{ palette, PALETTE_BYTES });
+auto plat_set_save_dir(std::string_view const dir) -> void {
+  TheBackend().SetSaveDir(dir);
 }
 
-auto plat_write_png(char const* path) -> int {
+namespace opeu::platform::detail::platform {
+
+auto Present(Frame const& frame) -> void {
+  if (frame.width <= 0 || frame.height <= 0) return;
+  auto const count{ static_cast<std::size_t>(frame.width) * static_cast<std::size_t>(frame.height) };
+  if (frame.pixels.size() < count) return;
+  TheBackend().Present(Frame{ .pixels = frame.pixels.first(count), .width = frame.width, .height = frame.height, .palette = frame.palette });
+}
+
+auto WritePng(std::string const& path) -> bool {
   return TheBackend().WritePng(path);
 }
 
-auto PollEvent(PlatEvent* ev) -> int {
-  return ev == nullptr ? 0 : TheBackend().PollEvent(*ev);
-}
-
-auto ShiftFlags() -> std::uint8_t {
-  return TheBackend().ShiftFlags();
+auto PollEvent() -> std::optional<InputEvent> {
+  return TheBackend().PollEvent();
 }
 
 auto TicksUs() -> std::uint64_t {
   return TheBackend().TicksUs();
 }
 
-auto SleepMs(int ms) -> void {
+auto SleepMs(int const ms) -> void {
 #ifdef __EMSCRIPTEN__
   // Yield to the browser event loop (ASYNCIFY/JSPI unwinds the stack and resumes here from a timer).
   if (ms >= 0 && !TheBackend().Headless()) emscripten_sleep(static_cast<unsigned>(ms));
@@ -721,87 +726,57 @@ auto SleepMs(int ms) -> void {
 #endif
 }
 
-auto plat_set_save_dir(char const* dir) -> void {
-  TheBackend().SetSaveDir(dir != nullptr ? dir : "");
+SaveFile::SaveFile(std::fstream stream) : _stream{ std::move(stream) } { }
+
+auto SaveFile::Open(std::string_view const dos_name, FileMode const mode) -> std::optional<SaveFile> {
+  auto const [found, path]{ TheBackend().Resolve(dos_name) };
+  auto const usable{ mode == FileMode::CREATE ? found != sdl3::Found::MISSING : found == sdl3::Found::EXISTS };
+  if (!usable) return std::nullopt;
+  std::fstream stream{ path, sdl3::OpenMode(mode) };
+  if (!stream.is_open()) return std::nullopt;
+  return SaveFile{ std::move(stream) };
 }
 
-auto SaveDir() -> char const* {
-  return TheBackend().SaveDir().c_str();
+auto SaveFile::Read(std::span<std::uint8_t> const bytes) -> std::size_t {
+  // The stream's characters are bytes: reading through a char view of the buffer is the standard's sanctioned alias.
+  _stream.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto const count{ static_cast<std::size_t>(_stream.gcount()) };
+  _stream.clear();
+  return count;
 }
 
-auto Fopen(char const* dos_name, char const* mode) -> void* {
-  if (dos_name == nullptr || mode == nullptr) return nullptr;
-  std::string_view const how{ mode };
-  bool const             creating{ how.contains('w') || how.contains('a') };
-  auto const [found, path]{ TheBackend().Resolve(dos_name, creating) };
-  if (found < 0 || (found == 0 && !creating)) return nullptr;
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the handle crosses the contract as void*; Fclose frees it
-  return std::fopen(path.c_str(), mode);
+auto SaveFile::Write(std::span<std::uint8_t const> const bytes) -> std::size_t {
+  _stream.write(reinterpret_cast<char const*>(bytes.data()), static_cast<std::streamsize>(bytes.size())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto const written{ _stream.good() ? bytes.size() : 0uz };
+  _stream.clear();
+  return written;
 }
 
-auto Fclose(void* f) -> int {
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): releases the handle Fopen returned
-  return f != nullptr ? std::fclose(AsFile(f)) : -1;
+auto SaveFile::Seek(std::int64_t const offset, SeekOrigin const origin) -> std::optional<std::int64_t> {
+  _stream.clear();
+  _stream.seekg(offset, sdl3::Direction(origin));
+  if (_stream.fail()) {
+    _stream.clear();
+    return std::nullopt;
+  }
+  return static_cast<std::int64_t>(_stream.tellg());
 }
 
-auto Fread(void* buf, std::size_t n, void* f) -> std::size_t {
-  if (f == nullptr || buf == nullptr || n == 0) return 0;
-  return std::fread(buf, 1, n, AsFile(f));
+auto SaveFile::Flush() -> void {
+  _stream.flush();
+  _stream.clear();
 }
 
-auto Fwrite(void const* buf, std::size_t n, void* f) -> std::size_t {
-  if (f == nullptr || buf == nullptr || n == 0) return 0;
-  return std::fwrite(buf, 1, n, AsFile(f));
+auto OpenAudio(int const rate, AudioSource source) -> bool {
+  return TheBackend().OpenAudio(rate, std::move(source));
 }
 
-auto Fseek(void* f, long off, int whence) -> long {
-  if (f == nullptr) return -1;
-  if (std::fseek(AsFile(f), off, whence) != 0) return -1;
-  return std::ftell(AsFile(f));
-}
-
-auto Fsize(void* f) -> long {
-  if (f == nullptr) return -1;
-  long const at{ std::ftell(AsFile(f)) };
-  if (at < 0 || std::fseek(AsFile(f), 0, SEEK_END) != 0) return -1;
-  long const end{ std::ftell(AsFile(f)) };
-  std::fseek(AsFile(f), at, SEEK_SET);
-  return end;
-}
-
-auto Fexists(char const* dos_name) -> int {
-  return dos_name != nullptr && TheBackend().Resolve(dos_name, false).first == 1 ? 1 : 0;
-}
-
-auto Fdelete(char const* dos_name) -> int {
-  if (dos_name == nullptr) return -1;
-  auto const [found, path]{ TheBackend().Resolve(dos_name, false) };
-  if (found != 1) return -1;
-  return std::remove(path.c_str()) == 0 ? 0 : -1;
-}
-
-// DOS semantics: fails if the source is missing or the target exists.
-auto Frename(char const* from, char const* to) -> int {
-  if (from == nullptr || to == nullptr) return -1;
-  auto const [source_found, source]{ TheBackend().Resolve(from, false) };
-  if (source_found != 1) return -1;
-  auto const [target_found, target]{ TheBackend().Resolve(to, true) };
-  if (target_found != 0) return -1;
-  return std::rename(source.c_str(), target.c_str()) == 0 ? 0 : -1;
-}
-
-auto AudioOpen(int rate, PlatAudioFn fn, void* user) -> int {
-  return TheBackend().OpenAudio(rate, fn, user);
-}
-
-auto AudioActive() -> int {
-  return TheBackend().AudioActive() ? 1 : 0;
-}
-
-auto AudioLock() -> void {
+AudioLock::AudioLock() {
   TheBackend().LockAudio();
 }
 
-auto AudioUnlock() -> void {
+AudioLock::~AudioLock() {
   TheBackend().UnlockAudio();
+}
+
 }

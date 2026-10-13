@@ -1,16 +1,19 @@
 // fileio.cpp over the embedded table: shipped files from memory, the save
 // directory first, writes only there (a shipped file copied on its first write).
+#include "opeu/platform/platform.hpp"
 #include "opeu/services/asset-table.hpp"
 
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 
 auto opeu_dos_open(char const* name, std::uint16_t mode) -> std::int16_t;
 auto opeu_dos_close(std::int16_t handle) -> std::int16_t;
@@ -19,21 +22,18 @@ auto opeu_dos_write(std::int16_t handle, std::uint8_t const* data, std::uint16_t
 auto opeu_dos_seek(std::int16_t handle, std::int32_t position, std::int16_t origin) -> std::int32_t;
 auto opeu_dos_create(char const* name) -> std::int16_t;
 auto opeu_dos_exists(char const* name) -> std::int16_t;
-void plat_set_save_dir(char const* dir);
 
-namespace {
+namespace opeu::services::detail::file_layer_test {
 
 constexpr auto SHIPPED{
-  std::array<unsigned char, 6>{ 'S', 'H', 'I', 'P', 'P', 'D' }
+  std::array<std::uint8_t, 6>{ 'S', 'H', 'I', 'P', 'P', 'D' }
 };
 
-auto Find(char const* const name, unsigned char const** const data, std::size_t* const size) -> int {
-  if (std::strcmp(name, "SCEDATA") != 0) {
-    return 0;
+auto Find(std::string_view const name) -> std::optional<std::span<std::uint8_t const>> {
+  if (name != "SCEDATA") {
+    return std::nullopt;
   }
-  *data = SHIPPED.data();
-  *size = SHIPPED.size();
-  return 1;
+  return SHIPPED;
 }
 
 auto Contents(std::filesystem::path const& path) -> std::string {
@@ -45,13 +45,13 @@ auto Contents(std::filesystem::path const& path) -> std::string {
 
 class FileLayer : public ::testing::Test {
 protected:
-  void SetUp() override {
+  auto SetUp() -> void override {
     _saves = std::filesystem::temp_directory_path() / ("opeu-file-layer-" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() });
     std::filesystem::remove_all(_saves);
-    plat_set_save_dir(_saves.string().c_str());
-    FilesUseAssets(&Find);
+    plat_set_save_dir(_saves.string());
+    opeu::services::FilesUseAssets(Find);
   }
-  void TearDown() override {
+  auto TearDown() -> void override {
     std::filesystem::remove_all(_saves);
   }
   std::filesystem::path _saves;
@@ -96,4 +96,4 @@ TEST_F(FileLayer, CreatesSavedGamesInTheSaveDirectory) {
   EXPECT_EQ(opeu_dos_exists("SAVEDATA"), 1);
 }
 
-} // namespace
+}

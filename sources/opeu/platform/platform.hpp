@@ -1,110 +1,157 @@
-/* Platform contract for the Operation Europe port.
- *
- * Everything the game needs from the host machine goes through this header:
- * video (an 8-bit indexed framebuffer plus a 256-entry RGB palette), input
- * (PC/XT set-1 scancodes with ASCII, absolute mouse in game pixels), time,
- * files (the original game directory), and audio (a pull callback that an
- * OPL emulator will feed).  The SDL3 implementation lives in
- * port/platform/sdl3/; a future Emscripten build uses the same backend.
- *
- * Rules: plain C99, no blocking calls except SleepMs(), no global
- * state visible outside the backend, every function callable when the
- * backend runs headless (no window, no audio device).
- */
+// What the port needs from the host machine: a window showing an 8-bit indexed frame through a 256-entry palette,
+// input as PC set-1 scancodes with the BIOS ASCII and an absolute mouse in frame pixels, a monotonic clock, the files
+// of the save directory and an audio device pulling stereo samples. The SDL3 backend (sdl3/platform-sdl3.cpp) is
+// the one implementation, natively and in the browser. Every call works headless (no window, no audio device): a
+// presented frame is only recorded for WritePng, and no event arrives.
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <functional>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
 
-/* ---- lifecycle ---------------------------------------------------------- */
+// ---- lifecycle: the entry's (opeu/entry.cpp, frozen until #17), so the names stay as the entry spells them ----
 
 struct PlatConfig {
-  const char* title;         /* window title */
-  int         width, height; /* logical framebuffer size (640x480 for mode 12h) */
-  int         scale;         /* initial window scale factor (>=1) */
-  int         headless;      /* 1: no window, no audio device, no real input */
-  int         fullscreen;
+  std::string_view title;      // the window title
+  int              width{};    // the frame's size (640x480)
+  int              height{};   //
+  int              scale{};    // the initial window scale (at least 1)
+  int              headless{}; // 1: no window, no audio device, no input
+  int              fullscreen{};
 };
 
-auto plat_init(const PlatConfig* cfg) -> int; /* 0 on success, -1 on failure */
-void plat_shutdown();
+// NOLINTBEGIN(readability-identifier-naming): the entry calls these by their legacy names until #17
+auto plat_init(PlatConfig const* cfg) -> int; // 0 on success, -1 on failure
+auto plat_shutdown() -> void;
+// The save directory: the only place the game's files touch the file system (the shipped data files are compiled
+// into the executable and served by services/fileio.cpp). By default SDL's per-user pref path natively, /saves (the
+// page's IDBFS mount) in the browser; created when missing.
+auto plat_set_save_dir(std::string_view dir) -> void;
+// NOLINTEND(readability-identifier-naming)
 
-/* ---- video -------------------------------------------------------------- */
+namespace opeu::platform::detail::platform {
 
-/* Present one frame.  pixels: width*height palette indices, row-major,
- * pitch == width.  palette: 256 entries of 8-bit R,G,B.  Called at the
- * emulated display rate (about 60-70 Hz); in headless mode it only records
- * the frame so plat_capture() can return it. */
-void plat_present(const uint8_t* pixels, int width, int height, const uint8_t* palette);
+inline constexpr auto PALETTE_BYTES{ 256uz * 3 };
 
-/* Write the last presented frame as a PNG file.  Returns 0 on success. */
-auto plat_write_png(const char* path) -> int;
+// ---- video ----
 
-/* ---- input -------------------------------------------------------------- */
-
-// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): PlatEvent::type holds these as ints across the contract
-enum {
-  PLAT_EV_NONE = 0,
-  PLAT_EV_QUIT,       /* window closed / Cmd-Q */
-  PLAT_EV_KEY_DOWN,   /* scancode + ascii valid */
-  PLAT_EV_KEY_UP,     /* scancode valid */
-  PLAT_EV_MOUSE_MOVE, /* x, y valid (framebuffer pixels, clamped) */
-  PLAT_EV_MOUSE_DOWN, /* button valid (0 left, 1 right, 2 middle), x, y */
-  PLAT_EV_MOUSE_UP
+// One frame: width x height palette indices, row-major, and 256 entries of 8-bit red, green, blue.
+struct Frame {
+  std::span<std::uint8_t const>                pixels;
+  int                                          width{};
+  int                                          height{};
+  std::span<std::uint8_t const, PALETTE_BYTES> palette;
 };
 
-struct PlatEvent {
-  int     type;
-  uint8_t scancode; /* PC set-1 make code; bit 7 clear.  0xE0-prefixed
-                               keys (arrows, Home, ...) use their base code and
-                               set extended=1 */
-  uint8_t extended;
-  uint8_t ascii; /* BIOS INT 16h ASCII for this key with current
-                               modifiers (0 for none) */
-  uint8_t button;
-  int     x, y;
+// Shows the frame (about 60 times a second at most) and keeps it for WritePng.
+auto Present(Frame const& frame) -> void;
+// Writes the last presented frame as a PNG file; false when there is none or the file cannot be written.
+[[nodiscard]] auto WritePng(std::string const& path) -> bool;
+
+// ---- input ----
+
+enum class EventType : std::uint8_t {
+  QUIT,       // window closed, Cmd-Q
+  KEY_DOWN,   // scancode, extended, ascii
+  KEY_UP,     // scancode, extended
+  MOUSE_MOVE, // x, y (frame pixels, clamped)
+  MOUSE_DOWN, // button (0 left, 1 right, 2 middle), x, y
+  MOUSE_UP,   //
 };
 
-/* Pump the OS event queue and return the next event; 0 when empty. */
-auto PollEvent(PlatEvent* ev) -> int;
+struct InputEvent {
+  EventType    type{ EventType::QUIT };
+  std::uint8_t scancode{}; // PC set-1 make code, bit 7 clear; 0xE0-prefixed keys (arrows, Home, ...) set extended
+  std::uint8_t extended{};
+  std::uint8_t ascii{}; // the BIOS INT 16h ASCII for this key with the current modifiers (0 for none)
+  std::uint8_t button{};
+  int          x{};
+  int          y{};
+};
 
-/* Current modifier state as BIOS shift flags (0040:0017 layout):
- * bit0 right shift, bit1 left shift, bit2 ctrl, bit3 alt. */
-auto ShiftFlags() -> uint8_t;
+// Pumps the host's event queue and takes the next event the port uses.
+[[nodiscard]] auto PollEvent() -> std::optional<InputEvent>;
 
-/* ---- time --------------------------------------------------------------- */
+// ---- time ----
 
-auto TicksUs() -> uint64_t; /* monotonic microseconds since plat_init */
-void SleepMs(int ms);       /* yields; never called on Emscripten frames */
+// Monotonic microseconds since plat_init.
+[[nodiscard]] auto TicksUs() -> std::uint64_t;
+// Yields to the host for `ms` milliseconds (in the browser: to its event loop).
+auto SleepMs(int ms) -> void;
 
-/* ---- files -------------------------------------------------------------- */
+// ---- files of the save directory ----
 
-/* The save directory: the only place the game's files touch the file
- * system (the shipped data files are compiled into the executable and
- * served by services/fileio.c).  Default: SDL's per-user pref path
- * natively, /saves (the page's IDBFS mount) in the browser.  Paths given to
- * Fopen are DOS names relative to it ("SAVEDATA"); lookup is
- * case-insensitive.  mode is a C stdio mode string.  Returns NULL if
- * missing.  The handle is a stdio FILE* on every current backend. */
-void plat_set_save_dir(const char* dir);
-auto SaveDir() -> const char*;
-auto Fopen(const char* dos_name, const char* mode) -> void*;
-auto Fclose(void* f) -> int;
-auto Fread(void* buf, size_t n, void* f) -> size_t;
-auto Fwrite(const void* buf, size_t n, void* f) -> size_t;
-auto Fseek(void* f, long off, int whence) -> long; /* returns new position or -1 */
-auto Fsize(void* f) -> long;
-auto Fexists(const char* dos_name) -> int;
-auto Fdelete(const char* dos_name) -> int;
-auto Frename(const char* from, const char* to) -> int;
+enum class FileMode : std::uint8_t {
+  READ,       // an existing file, read only
+  READ_WRITE, // an existing file, read and written
+  CREATE,     // a new or emptied file, read and written
+};
 
-/* ---- audio -------------------------------------------------------------- */
+enum class SeekOrigin : std::uint8_t {
+  START,
+  CURRENT,
+  END,
+};
 
-/* The audio callback fills `frames` stereo int16 frames at `rate` Hz.
- * It runs on the audio thread; it must never block.  A NULL callback (or
- * headless mode) means silence. */
-using PlatAudioFn = void (*)(void* user, int16_t* out, int frames, int rate);
-auto AudioOpen(int rate, PlatAudioFn fn, void* user) -> int;
-auto AudioActive() -> int; /* 1 when a device stream is open */
-void AudioLock();
-void AudioUnlock();
+// A file of the save directory, named as DOS names it ("SAVEDATA", '\' or '/' between directories) and found
+// case-insensitively; a created file gets the upper-case spelling.
+class SaveFile {
+public:
+  [[nodiscard]] static auto Open(std::string_view dos_name, FileMode mode) -> std::optional<SaveFile>;
+
+  // Bytes transferred; fewer at the end of the file or on failure.
+  [[nodiscard]] auto Read(std::span<std::uint8_t> bytes) -> std::size_t;
+  [[nodiscard]] auto Write(std::span<std::uint8_t const> bytes) -> std::size_t;
+  // The new position; nothing when it would precede the start.
+  auto Seek(std::int64_t offset, SeekOrigin origin) -> std::optional<std::int64_t>;
+  auto Flush() -> void;
+
+private:
+  explicit SaveFile(std::fstream stream);
+
+  std::fstream _stream;
+};
+
+// ---- audio ----
+
+// Fills interleaved stereo samples on the audio thread; it must never block.
+using AudioSource = std::function<void(std::span<std::int16_t> stereo)>;
+
+// Opens the audio device at `rate` Hz pulling from `source`; true when a device now pulls (never headless).
+[[nodiscard]] auto OpenAudio(int rate, AudioSource source) -> bool;
+
+// Holds the audio device's lock while it lives: the source does not run meanwhile.
+class AudioLock {
+public:
+  AudioLock();
+  AudioLock(AudioLock const&)                    = delete;
+  AudioLock(AudioLock&&)                         = delete;
+  auto operator=(AudioLock const&) -> AudioLock& = delete;
+  auto operator=(AudioLock&&) -> AudioLock&      = delete;
+  ~AudioLock();
+};
+
+}
+
+namespace opeu::platform {
+using detail::platform::AudioLock;
+using detail::platform::AudioSource;
+using detail::platform::EventType;
+using detail::platform::FileMode;
+using detail::platform::Frame;
+using detail::platform::InputEvent;
+using detail::platform::OpenAudio;
+using detail::platform::PALETTE_BYTES;
+using detail::platform::PollEvent;
+using detail::platform::Present;
+using detail::platform::SaveFile;
+using detail::platform::SeekOrigin;
+using detail::platform::SleepMs;
+using detail::platform::TicksUs;
+using detail::platform::WritePng;
+}
