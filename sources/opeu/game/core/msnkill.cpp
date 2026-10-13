@@ -120,12 +120,12 @@ uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t
   uint16_t r = 0, words[1];
   switch (id) {
   case MISSION_RANDOM:     r = port_rand_bounded(game, Arg(args, count, 0)); break;
-  case MISSION_TEXT:       r = opeu_message_lookup(game, svc_msglook, (short)Arg(args, count, 0)); break;
+  case MISSION_TEXT:       r = opeu_message_lookup(game, (short)Arg(args, count, 0)); break;
   case MISSION_FORMAT:     opeu_request_format(game, { args, count }); break;
   case MISSION_MESSAGE:    opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case MISSION_DAILY_SHOW: opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
   case MISSION_FLASH:      opeu_location_flash(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case MISSION_UNIT_NAME:  r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case MISSION_UNIT_NAME:  r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case MISSION_OBJECTIVE_DAMAGE:
     opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
     break;

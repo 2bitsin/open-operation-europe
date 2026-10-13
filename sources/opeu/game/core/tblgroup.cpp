@@ -142,7 +142,7 @@ uint16_t svc_table(Game& game, const char* module, uint16_t id, const uint16_t* 
   case UI_TEXT:      opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case PRINT:        opeu_cursor_print(game, { args, count }); break;
   case PUT_RANGE:    opeu_text_put_range(game, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case REQUEST_TEXT: r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case REQUEST_TEXT: r = opeu_message_lookup(game, (int16_t)Arg(args, count, 0)); break;
   default:           port_unhandled(module, id, count);
   }
   return r;

@@ -524,9 +524,9 @@ uint16_t svc_dialogs(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case DAILY_CONTEXT:      opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
   case STRING_LENGTH:      r = opeu_string_length(game, Arg(args, count, 0)); break;
   case STRING_APPEND:      r = opeu_string_append(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case REQUEST_TEXT:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case REQUEST_TEXT:       r = opeu_message_lookup(game, (int16_t)Arg(args, count, 0)); break;
   case UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
-  case UNIT_NAME:          r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_NAME:          r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case ARRIVAL_LOCATION:   opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
   case GROUP_INDEX:        r = opeu_unit_group_index(Arg(args, count, 0)); break;
   case FIND_GROUP_RECORD:  r = opeu_find_group_record(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;

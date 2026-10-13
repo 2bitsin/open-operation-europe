@@ -58,7 +58,7 @@ uint16_t opeu_battle_announce_ready(Game& game) {
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(column), static_cast<short>(NAME_ROW));
       auto const hoisted0{ static_cast<std::uint16_t>(locals.At(0)) };
       auto const hoisted1{ static_cast<std::uint16_t>(unit) };
-      auto const name{ opeu_unit_name(game, svc_unitname, hoisted1, hoisted0) };
+      auto const name{ opeu_unit_name(game, hoisted1, hoisted0) };
       opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.battle_ready_name_format)), static_cast<std::uint16_t>(SideColorCode(side)),
                                                             static_cast<std::uint16_t>(name) });
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(column), static_cast<short>(READY_ROW));

@@ -207,8 +207,8 @@ void Plan(Game& game, Mission const& mission) {
       if ((unit = opeu_find_unit_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == 0) continue;
       if (static_cast<std::uint8_t>(opeu_unit_side(unit)) == data.current_side) continue;
       if (!opeu_unit_special(game, unit)) continue;
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(mission.unit_question),
-                                                              static_cast<std::uint16_t>(opeu_unit_name(game, svc_unitname, unit, name)) });
+      opeu_request_format(
+          game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(mission.unit_question), static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
       if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.special_person)) continue;
       break;
     }
@@ -219,8 +219,7 @@ void Plan(Game& game, Mission const& mission) {
     auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
     hours += static_cast<std::uint8_t>(opeu_cell_influence_side(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) == data.current_side ? 0 : 1;
     if (mission.duration == NO_TEXT)
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text),
-                                                              static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(RAID_DURATION_MESSAGE))),
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(RAID_DURATION_MESSAGE))),
                                                               static_cast<std::uint16_t>(hours) });
     else if (mission.hour == NO_TEXT)
       opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(mission.duration), static_cast<std::uint16_t>(hours) });
@@ -272,7 +271,7 @@ uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case REQUEST_FORMAT:       opeu_request_format(game, { args, count }); break;
   case CONTROL_MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONFIRM_MESSAGE:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MESSAGE_LOOKUP:       r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
+  case MESSAGE_LOOKUP:       r = opeu_message_lookup(game, (int16_t)Arg(args, count, 0)); break;
   case ARMY_PRINT:           opeu_cursor_print(game, { args, count }); break;
   case PENDING_FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
   case DAILY_SHOW:           port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
@@ -287,7 +286,7 @@ uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t cou
   case FIND_UNIT_AT:         r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
   case UNIT_SPECIAL:         r = opeu_unit_special(game, Arg(args, count, 0)); break;
-  case UNIT_NAME:            r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_NAME:            r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case CELL_INFLUENCE_SIDE:  r = opeu_cell_influence_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   case FIND_PERSON_TEMPLATE: r = opeu_find_person_template(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
   default:                   port_unhandled("specops", id, count);

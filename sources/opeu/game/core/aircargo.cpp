@@ -172,7 +172,7 @@ void opeu_cargo_drop_event(Game& game) {
         Unload(lift, unit.resources, limit);
         if (static_cast<std::uint8_t>(opeu_unit_side(near)) == side) {
           std::uint16_t const now[3]{ unit.resources[0], unit.resources[1], unit.resources[2] };
-          auto const          name{ opeu_unit_name(game, svc_unitname, near, locals.At(NAME_AT)) };
+          auto const          name{ opeu_unit_name(game, near, locals.At(NAME_AT)) };
           auto const          color{ SideColorCode(static_cast<std::uint8_t>(opeu_unit_side(near))) };
           Report(game, text, UNIT_REPORT, color, name, now, before);
           opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text,

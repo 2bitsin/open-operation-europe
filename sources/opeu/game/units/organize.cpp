@@ -208,7 +208,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
       opeu_request_format(
           game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.organize_confirm_format)), static_cast<std::uint16_t>(objective) });
       if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, person())) continue;
-      allocation.types       = static_cast<std::uint8_t>(opeu_tally_unit_stock(game, svc_tally, unit, objective));
+      allocation.types       = static_cast<std::uint8_t>(opeu_tally_unit_stock(game, unit, objective));
       allocation.other_slots = 0;
       allocation.spare_slots = static_cast<std::uint8_t>(STOCK_ITEMS - data.tally_reject_count);
       if (allocation.spare_slots == 0) opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.organize_no_arms), person());
@@ -237,7 +237,7 @@ void opeu_turn_action_6(Game& game, uint16_t segment) {
       other_elements         = static_cast<std::uint8_t>(opeu_list_length(game, other));
       allocation.other_slots = SlotsOf(game, other);
       allocation.spare_slots = 0;
-      allocation.types       = static_cast<std::uint8_t>(opeu_tally_units(game, svc_tally, unit, other));
+      allocation.types       = static_cast<std::uint8_t>(opeu_tally_units(game, unit, other));
     }
     // The battalions must fit the free element slots; otherwise the player may keep only the first regiment's.
     auto const free{ static_cast<std::uint8_t>(opeu_release_side_elements(game, 0, static_cast<uint8_t>(0))) };

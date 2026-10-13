@@ -101,9 +101,9 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     auto const group{ opeu_unit_group_index(unit) };
     auto const person{ opeu_find_group_record(game, side, group) };
     if (GroupOf(data, side, group).flags & Bits(GroupFlag::AI_MARK))
-      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<std::int16_t>(DIVISION_BUSY)), person);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<std::int16_t>(DIVISION_BUSY)), person);
     else {
-      opeu_unit_action(game, svc_ordact, unit, group);
+      opeu_unit_action(game, unit, group);
       opeu_map_erase(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
     }
     return true;
@@ -120,7 +120,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     display_x = cell_x;
     display_y = cell_y;
     opeu_map_inspect(game, static_cast<std::uint8_t>(display_x), static_cast<std::uint8_t>(display_y));
-    opeu_map_cursor(game, svc_cursor, display_x, display_y);
+    opeu_map_cursor(game, display_x, display_y);
     std::uint16_t panel{ 0 };
     auto          objective{ opeu_find_objective_at(game, display_x, display_y) };
     auto          unit{ opeu_find_unit_at(game, display_x, display_y) };
@@ -145,7 +145,7 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
         panel = 1;
       }
     }
-    if (!panel && previous_panel == 1) opeu_army_summary(game, svc_armysum);
+    if (!panel && previous_panel == 1) opeu_army_summary(game);
     previous_panel = panel;
     if (data.input_mode) {
       for (;;) {

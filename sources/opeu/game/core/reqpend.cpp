@@ -48,7 +48,7 @@ constexpr uint16_t REFUSAL_COUNT{ 7 };
 void FormatPending(Game& game, PendingEvent event, uint16_t id) {
   auto&      data{ Data(game) };
   auto const name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const text{ opeu_message_lookup(game, svc_msglook, static_cast<short>(id)) };
+  auto const text{ opeu_message_lookup(game, static_cast<short>(id)) };
   CallWords(game, event, PendingService::FORMAT, offsetof(DataSegment, request_buffer), text, name);
 }
 
@@ -105,7 +105,7 @@ uint16_t svc_reqpend(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c
   uint16_t r = 0;
   switch (static_cast<PendingService>(id)) {
   case PendingService::SHOW:         opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
-  case PendingService::MESSAGE_TEXT: r = opeu_message_lookup(game, svc_msglook, (short)a); break;
+  case PendingService::MESSAGE_TEXT: r = opeu_message_lookup(game, (short)a); break;
   case PendingService::FORMAT:       {
     uint16_t const words[]{ a, b, c };
     opeu_request_format(game, { words, 3 });

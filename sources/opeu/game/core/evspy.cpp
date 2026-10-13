@@ -56,7 +56,7 @@ constexpr std::uint8_t  FIT{ 70 };
 constexpr std::uint8_t  EXPERIENCED{ 50 };
 
 auto Lookup(Game& game, std::uint16_t id) -> std::uint16_t {
-  return opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(id));
+  return opeu_message_lookup(game, static_cast<int16_t>(id));
 }
 auto Commander(Game& game) -> std::uint16_t {
   return opeu_find_side_record(game, 0, COMMANDER);

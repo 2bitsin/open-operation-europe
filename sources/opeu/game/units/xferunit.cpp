@@ -63,7 +63,7 @@ auto DivisionHeld(Game& game, std::uint16_t unit) -> bool {
 }
 
 auto UnitName(Game& game, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
-  return opeu_unit_name(game, svc_unitname, unit, buffer);
+  return opeu_unit_name(game, unit, buffer);
 }
 
 // Writes the table's amounts back to the regiment.

@@ -150,11 +150,11 @@ uint16_t svc_view(Game& game, const char* module, uint16_t id, const uint16_t* a
   case ViewService::OBJECTIVE_PERCENTS:  opeu_objective_resource_percentages(game, arg(0), port_ds_word_ptr(game, arg(1)), port_ds_word_ptr(game, arg(2)), port_ds_word_ptr(game, arg(3))); break;
   case ViewService::ARMY_POSITION:       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1))); break;
   case ViewService::ARMY_PRINT:          opeu_cursor_print(game, { args, count }); break;
-  case ViewService::UNIT_NAME:           r = opeu_unit_name(game, svc_unitname, arg(0), arg(1)); break;
+  case ViewService::UNIT_NAME:           r = opeu_unit_name(game, arg(0), arg(1)); break;
   case ViewService::UNIT_CAPACITIES:     opeu_unit_capacities(game, arg(0), port_ds_word_ptr(game, arg(1)), port_ds_word_ptr(game, arg(2)), port_ds_word_ptr(game, arg(3))); break;
   case ViewService::RESOURCE_PERCENT:    r = opeu_resource_percent(arg(0), arg(2)); break;
   case ViewService::ORDER_DESTINATION:   r = opeu_unit_order_destination(game, arg(0), &Record<std::uint8_t>(Data(game), arg(1)), &Record<std::uint8_t>(Data(game), arg(2))); break;
-  case ViewService::LOCATION_NAME:       r = opeu_location_name(game, svc_labels, byte(0), byte(1), arg(2)); break;
+  case ViewService::LOCATION_NAME:       r = opeu_location_name(game, byte(0), byte(1), arg(2)); break;
   case ViewService::GROUP_SHOW:          opeu_group_show(game, arg(0), byte(1)); break;
   case ViewService::BACKDROP_COLOR:      opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); break;
   case ViewService::SIDE_RECORD:         r = opeu_find_side_record(game, byte(0), byte(1)); break;

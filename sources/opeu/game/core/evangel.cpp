@@ -93,7 +93,7 @@ uint8_t opeu_angel_portrait(Game& game, uint8_t) {
   opeu_image_read_draw(game, static_cast<const UiHost*>(port_uiprim_host()), 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
   auto const remark{ static_cast<std::uint8_t>(RandomBelow(game, 6)) };
   opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(REMARK_FORMAT),
-                                                          static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(remark + FIRST_REMARK))) });
+                                                          static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(remark + FIRST_REMARK))) });
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(324));
   opeu_text_feed(game, static_cast<const DialogHost*>(port_dialogs_host()), BUFFER);
   return static_cast<std::uint8_t>(remark >> 1);

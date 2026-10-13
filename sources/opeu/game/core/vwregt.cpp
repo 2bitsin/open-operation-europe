@@ -63,7 +63,7 @@ void opeu_view_regiment_list(Game& game) {
     data.choice_dialog.rows = static_cast<uint8_t>(opeu_list_unit_elements(game, unit) + 1);
     SetRowCheck(game, data.choice_dialog, RowCheck::NONE_2);
     opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
-    auto const unit_name{ opeu_unit_name(game, svc_unitname, static_cast<std::uint16_t>(unit), static_cast<std::uint16_t>(name)) };
+    auto const unit_name{ opeu_unit_name(game, static_cast<std::uint16_t>(unit), static_cast<std::uint16_t>(name)) };
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(REGIMENT_FORMAT), static_cast<std::uint16_t>(unit_name) });
     opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(title), static_cast<std::uint16_t>(data.context_record3));
     opeu_copy_bytes(game, LIST_WINDOW, static_cast<std::uint16_t>(saved_window), LIST_WINDOW_STATE);

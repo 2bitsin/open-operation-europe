@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/order.hpp"
+#include "core/dialogs.hpp"
 #include "map/support.hpp"
 #include "types.hpp"
 #include "units/orders.hpp"
@@ -17,8 +18,6 @@
 using namespace opeu::game;
 
 namespace {
-// The order services the helpers call (served by svc_orders).
-constexpr std::uint16_t CONFIRM_MESSAGE{ 2 }; // (text, person) -> nonzero when confirmed
 // The two-choice menus.
 constexpr std::uint16_t SUPPLY_MENU{ 2 };
 constexpr std::uint16_t REPAIR_MENU{ 3 };
@@ -27,11 +26,10 @@ constexpr std::uint8_t BOTH_SLOTS{ 3 };
 } // namespace
 
 // Asks to cancel a regiment's pending order and clears its order slots when confirmed.
-void opeu_cancel_unit_orders(Game& game, HostEvent event, uint16_t unit, uint16_t person) {
+void opeu_cancel_unit_orders(Game& game, uint16_t unit, uint16_t person) {
   auto& data{ Data(game) };
   if (Record<Unit>(data, unit).orders[0].kind != ORDER_UNUSED) {
-    std::uint16_t const args[]{ Near(data, data.cancel_orders_prompt), person };
-    if (event(game, CONFIRM_MESSAGE, args, 2)) opeu_clear_unit_orders(game, unit, BOTH_SLOTS);
+    if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.cancel_orders_prompt), person)) opeu_clear_unit_orders(game, unit, BOTH_SLOTS);
   }
 }
 

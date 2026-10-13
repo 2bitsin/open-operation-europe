@@ -139,14 +139,11 @@ inline void ShowAdvice(Game& game, HostEvent event, std::uint16_t text) {
 
 // The event an advice check passed on to opeu_unit_name, which formats through its own service 2.
 inline HostEvent advice_name_event{};
-inline auto      AdviceNameFormat(Game& game, std::uint16_t id, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
-  return advice_name_event(game, id == 2 ? std::uint16_t{ ADVICE_FORMAT } : id, args, count);
-}
 
 // Writes the unit's name to a DS buffer through the advice check's own request_format; returns the buffer.
 inline auto AdviceUnitName(Game& game, HostEvent event, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
   advice_name_event = event;
-  return opeu_unit_name(game, AdviceNameFormat, unit, buffer);
+  return opeu_unit_name(game, unit, buffer);
 }
 
 // The objective level (opeu_objective_level) from which the officers count an objective as a city.

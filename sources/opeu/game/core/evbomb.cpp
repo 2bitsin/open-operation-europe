@@ -133,20 +133,18 @@ void opeu_bomb_event(Game& game, uint16_t load) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };
       if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_special(game, troop) || RandomBelow(game, static_cast<std::uint16_t>(150 - level * 20))) continue;
-      opeu_unit_name(game, svc_unitname, static_cast<std::uint16_t>(troop), static_cast<std::uint16_t>(name));
+      opeu_unit_name(game, static_cast<std::uint16_t>(troop), static_cast<std::uint16_t>(name));
       std::uint8_t voice{ NO_VOICE };
       if (data.side_status[0] == SIDE_PLAYED) {
         voice = 0;
-        opeu_string_copy(game, intro, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(RAID_NOTICE_0)));
-        opeu_request_format(game,
-                            std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(RAID_RESULT_0))),
-                                                          static_cast<std::uint16_t>(name) });
+        opeu_string_copy(game, intro, opeu_message_lookup(game, static_cast<int16_t>(RAID_NOTICE_0)));
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(RAID_RESULT_0))),
+                                                                static_cast<std::uint16_t>(name) });
       } else if (data.side_status[1] == SIDE_PLAYED && opeu_unit_selection_eligible(game, troop)) {
         voice = 1;
-        opeu_string_copy(game, intro, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(RAID_NOTICE_1)));
-        opeu_request_format(game,
-                            std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(RAID_RESULT_1))),
-                                                          static_cast<std::uint16_t>(name) });
+        opeu_string_copy(game, intro, opeu_message_lookup(game, static_cast<int16_t>(RAID_NOTICE_1)));
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(RAID_RESULT_1))),
+                                                                static_cast<std::uint16_t>(name) });
       }
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {

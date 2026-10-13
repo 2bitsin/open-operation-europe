@@ -69,7 +69,7 @@ void opeu_turn_control_one(Game& game, HostEvent event) {
     }
     opeu_daily_context(game, data.current_side);
     for (;;) {
-      opeu_army_summary(game, svc_armysum);
+      opeu_army_summary(game);
       data.control_selection = 0;
       opeu_turn_active_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       opeu_turn_pre_context(game);
@@ -109,7 +109,7 @@ uint16_t svc_control1(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case BEGIN:    opeu_control_begin(game, svc_soundcue); break;
   case POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
-  case SUMMARY:  opeu_army_summary(game, svc_armysum); break;
+  case SUMMARY:  opeu_army_summary(game); break;
   case ACTIVE:   opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
   case FORMAT:   opeu_request_format(game, { args, count }); break;
   case MENU:

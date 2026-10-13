@@ -61,7 +61,7 @@ void opeu_mission_recon_unit(Game& game, uint8_t side) {
   auto const          target{ data.sides[side].order.target };
   auto&               unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_unit_text)));
-  opeu_string_append(game, text, opeu_unit_name(game, svc_unitname, target, name));
+  opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (opeu_officer_rating(game, side, OFFICER) <= port_rand_bounded(game, 100)) {
     opeu_mission_report_failure(game, side, text);
     return;

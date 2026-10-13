@@ -126,8 +126,7 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
     case Terrain::RIVER:
     case Terrain::BRIDGE:
     case Terrain::IMPASSABLE:
-      opeu_request_format(game,
-                          std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(NO_MINES_THERE))) });
+      opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(NO_MINES_THERE))) });
       return false;
     default: return place();
     }
@@ -145,7 +144,7 @@ auto AnnounceOrder(Game& game, OrderPrompts const& prompts, std::uint16_t buffer
   opeu_request_format(
       game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, prompts.understood)), static_cast<std::uint16_t>(data.order_names[kind + 3]) });
   auto const engineering{ [&](OrderMessage message) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(message))) });
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(message))) });
   } };
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);

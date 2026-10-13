@@ -60,7 +60,7 @@ void ReportUnits(Game& game, ReportList const& list, std::uint16_t message, std:
   bool seen{ false };
   for (auto const unit : list) {
     if (!unit) continue;
-    opeu_string_copy(game, TEXT, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(message)));
+    opeu_string_copy(game, TEXT, opeu_message_lookup(game, static_cast<int16_t>(message)));
     opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, TEXT);
     if (!seen) {
       auto const side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };

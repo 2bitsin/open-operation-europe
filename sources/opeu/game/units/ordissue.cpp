@@ -55,7 +55,7 @@ constexpr std::uint8_t NO_CELL{ 0xff };
 } // namespace
 
 // group: the division (of the current side) the order is for.
-void opeu_unit_order_menu(Game& game, HostEvent event, uint8_t group) {
+void opeu_unit_order_menu(Game& game, uint8_t group) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
@@ -88,7 +88,7 @@ void opeu_unit_order_menu(Game& game, HostEvent event, uint8_t group) {
     auto const choice{ opeu_prompt_value_cancel(game, svc_keyboard, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
     opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
     if (choice == MENU_CANCEL) {
-      opeu_cancel_unit_orders(game, event, unit, person);
+      opeu_cancel_unit_orders(game, unit, person);
       return;
     }
     kind = data.issue_order_codes[menu][choice - 1];
@@ -105,7 +105,7 @@ void opeu_unit_order_menu(Game& game, HostEvent event, uint8_t group) {
     if (kind != Kind(UnitOrder::REST) || !whole) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.select_target), person);
       if (!opeu_map_pick_location(game, x_at, y_at)) {
-        opeu_cancel_unit_orders(game, event, unit, person);
+        opeu_cancel_unit_orders(game, unit, person);
         return;
       }
     }
@@ -133,27 +133,4 @@ void opeu_unit_order_menu(Game& game, HostEvent event, uint8_t group) {
   opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   data.overview_side = NO_CELL;
   data.view_side     = NO_CELL;
-}
-
-// The menu's calls are order dialog services; confirm_message comes from opeu_cancel_unit_orders, which raises it
-// through this event.
-uint16_t svc_ordissue(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case ORDERS_REQUEST_FORMAT:
-  case ORDERS_CONTROL_MESSAGE:
-  case ORDERS_CONFIRM_MESSAGE:
-  case ORDERS_ARRIVAL_LOCATION:
-  case ORDERS_PICK_LOCATION:
-  case ORDERS_SPEAKER_PANEL:
-  case ORDERS_UNIT_ANNOUNCE:
-  case ORDERS_ARMY_POSITION:
-  case ORDERS_PROMPT:
-  case ORDERS_CONTROL_POSITION:
-  case ORDERS_MESSAGE_LOOKUP:
-  case ORDERS_DELAY_DIALOG:
-  case ORDERS_DELAY_UNITS:      svc_orders(game, id, args, count, &r); break;
-  default:                      port_unhandled("ordissue", id, count);
-  }
-  return r;
 }

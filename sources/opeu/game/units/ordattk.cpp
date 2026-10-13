@@ -239,7 +239,7 @@ uint16_t opeu_order_attack_run(Game& game) {
   if (!opeu_move_adjacent(game, static_cast<uint8_t>(Byte(game, at_x)), static_cast<uint8_t>(Byte(game, at_y)))) return 0;
   auto const loss{ opeu_order_attack_loss(game) };
   if (!opeu_move_level_lower(game, CurrentOrder(data), static_cast<uint8_t>(loss))) return 1;
-  auto const name{ opeu_unit_name(game, svc_unitname, unit, local(ATTACK_NAME)) };
+  auto const name{ opeu_unit_name(game, unit, local(ATTACK_NAME)) };
   auto const side_name{ data.side_names[opeu_abs16_bits(static_cast<std::uint16_t>(data.current_side - 1))] };
   auto const text{ local(ATTACK_TEXT) };
   opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.order_unit_label)),

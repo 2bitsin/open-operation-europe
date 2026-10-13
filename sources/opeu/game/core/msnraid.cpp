@@ -74,7 +74,7 @@ void opeu_mission_raid_unit(Game& game, uint8_t side) {
   auto const          target{ Target(game, side) };
   auto const&         unit{ Record<Unit>(Data(game), target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, raid_unit_text)));
-  opeu_string_append(game, text, opeu_unit_name(game, svc_unitname, target, name));
+  opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (!Succeeds(game, side, 4)) {
     opeu_mission_report_failure(game, side, text);
     return;
@@ -144,7 +144,7 @@ void opeu_mission_unit_4(Game& game, uint8_t side) {
   auto&               data{ Data(game) };
   auto&               unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, MissionText(game, CUT_LINES_TEXT));
-  opeu_string_append(game, text, opeu_unit_name(game, svc_unitname, target, name));
+  opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (!Succeeds(game, side, 2)) {
     opeu_mission_report_failure(game, side, text);
     return;

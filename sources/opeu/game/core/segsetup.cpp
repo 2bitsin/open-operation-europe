@@ -81,7 +81,7 @@ void opeu_app_prepare(Game& game) {
   koei_vga_identity_palette();
   opeu_vga_clear();
   opeu_palette_title_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
-  opeu_sound_initialize(game, svc_sound);
+  opeu_sound_initialize(game);
   opeu_alloc_segments(game);
   Data(game).startup_mode++;
   opeu_open_data_files(game);

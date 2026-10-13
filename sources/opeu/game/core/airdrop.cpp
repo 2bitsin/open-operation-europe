@@ -172,18 +172,18 @@ uint8_t opeu_air_drop_delay(Game& game, uint8_t hours) {
   std::uint8_t const  estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(RandomBelow(game, data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
   if (estimate > hours) {
     if (95 - static_cast<std::uint8_t>(RandomBelow(game, 20)) > data.air_charm) {
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(AIR_FORCE_DELAY))),
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(AIR_FORCE_DELAY))),
                                                               static_cast<std::uint16_t>(estimate) });
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
       return estimate;
     }
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(REQUEST_STANDS))),
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(REQUEST_STANDS))),
                                                             static_cast<std::uint16_t>(estimate + 1) });
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
     return hours;
   }
   if (opeu_hour_is_day(static_cast<std::uint8_t>((hours + data.hour) % 24)) && 60 - static_cast<std::uint8_t>(RandomBelow(game, 20)) > data.air_charm) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(DROP_REFUSED)), data.air_person);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(DROP_REFUSED)), data.air_person);
     return 0;
   }
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.drop_understood), data.air_person);
@@ -197,7 +197,7 @@ uint16_t opeu_air_drop_order(Game& game, uint8_t x, uint8_t y, uint8_t hours) {
   auto const          text{ locals.At(0) };
   auto const          troops{ data.air_troops };
   auto const          planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(PLANES_NEEDED))),
+  opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(PLANES_NEEDED))),
                                                           static_cast<std::uint16_t>(hours), static_cast<std::uint16_t>(planes),
                                                           static_cast<std::uint16_t>(planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);

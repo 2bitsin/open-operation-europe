@@ -56,7 +56,7 @@ constexpr std::uint8_t NO_CELL{ 0xff };
 } // namespace
 
 // unit: the regiment under the cursor.
-void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unused*/) {
+void opeu_unit_action(Game& game, uint16_t unit, uint16_t /*unused*/) {
   auto&               data{ Data(game) };
   ServiceLocals const locals{ LOCALS_BYTES };
   auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
@@ -85,7 +85,7 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
     auto const choice{ opeu_prompt_value_cancel(game, svc_keyboard, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
     opeu_speaker_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), person, 0);
     if (choice == MENU_CANCEL) {
-      opeu_cancel_unit_orders(game, event, unit, person);
+      opeu_cancel_unit_orders(game, unit, person);
       done();
       return;
     }
@@ -102,7 +102,7 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
     Byte(game, y_at) = regiment.y;
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, prompts.select_target), person);
     if (!opeu_map_pick_location(game, x_at, y_at)) {
-      opeu_cancel_unit_orders(game, event, unit, person);
+      opeu_cancel_unit_orders(game, unit, person);
       return;
     }
     if (CheckOrderTarget(game, prompts, buffer, person, unit, Byte(game, x_at), Byte(game, y_at), kind, target)) break;
@@ -115,56 +115,4 @@ void opeu_unit_action(Game& game, HostEvent event, uint16_t unit, uint16_t /*unu
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   opeu_delay_units(game, static_cast<uint8_t>(ORDER_DELAY));
   done();
-}
-
-// The action's calls are order dialog services; confirm_message comes from opeu_cancel_unit_orders, which raises it
-// through this event.
-uint16_t svc_ordact(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case ORDERS_REQUEST_FORMAT:
-  case ORDERS_CONTROL_MESSAGE:
-  case ORDERS_CONFIRM_MESSAGE:
-  case ORDERS_ARRIVAL_LOCATION:
-  case ORDERS_PICK_LOCATION:
-  case ORDERS_CONTROL_PANEL:
-  case ORDERS_SPEAKER_PANEL:
-  case ORDERS_ARMY_POSITION:
-  case ORDERS_PROMPT:
-  case ORDERS_CONTROL_POSITION:
-  case ORDERS_MESSAGE_LOOKUP:
-  case ORDERS_DELAY_DIALOG:
-  case ORDERS_DELAY_UNITS:
-  case ORDERS_DAILY_CONTEXT:    svc_orders(game, id, args, count, &r); break;
-  default:                      port_unhandled("ordact", id, count);
-  }
-  return r;
-}
-
-// The services the order dialogs and their helpers share (OrdersService); 0 when the id is not one of them.
-int svc_orders(Game& game, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result) {
-  uint16_t r = 0;
-  switch (id) {
-  case ORDERS_REQUEST_FORMAT:   opeu_request_format(game, { args, count }); break;
-  case ORDERS_CONTROL_MESSAGE:  opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_CONFIRM_MESSAGE:  r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_ARRIVAL_LOCATION: opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ORDERS_PICK_LOCATION:    r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_CONTROL_PANEL:    opeu_title_panel_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case ORDERS_GROUP_SHOW:       opeu_group_show(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case ORDERS_LIST_DIALOG:      r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ORDERS_UNIT_ORDER_MENU:  opeu_unit_order_menu(game, svc_ordissue, (uint8_t)Arg(args, count, 0)); break;
-  case ORDERS_SPEAKER_PANEL:    r = opeu_speaker_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_UNIT_ANNOUNCE:    opeu_unit_announce(game, Arg(args, count, 0)); break;
-  case ORDERS_ARMY_POSITION:    opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case ORDERS_PROMPT:           r = opeu_prompt_value_cancel(game, svc_keyboard, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case ORDERS_CONTROL_POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ORDERS_MESSAGE_LOOKUP:   r = opeu_message_lookup(game, svc_msglook, (int16_t)Arg(args, count, 0)); break;
-  case ORDERS_DELAY_DIALOG:     r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case ORDERS_DELAY_UNITS:      opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case ORDERS_DAILY_CONTEXT:    opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
-  default:                      return 0;
-  }
-  *result = r;
-  return 1;
 }

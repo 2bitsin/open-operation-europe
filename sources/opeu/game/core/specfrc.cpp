@@ -88,7 +88,7 @@ void opeu_turn_action_9(Game& game, HostEvent event) {
                         std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), static_cast<std::uint16_t>(data.special_mission_names[order.kind]) });
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TARGET_Y));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_target_line)),
-                                                            static_cast<std::uint16_t>(opeu_special_unit_target(game) ? opeu_unit_name(game, svc_unitname, order.target, name) : order.target) });
+                                                            static_cast<std::uint16_t>(opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TIME_Y));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_time_line)), static_cast<std::uint16_t>(order.progress) });
       if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_cancel_question), data.context_record2)) break;

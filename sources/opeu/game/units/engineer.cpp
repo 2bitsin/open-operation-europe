@@ -296,7 +296,7 @@ int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t co
   case OrderService::MOVE_UNIT:               opeu_move_unit(game, Arg(args, count, 0)); break;
   case OrderService::SIDE_GROUPS_RETARGET:    opeu_side_groups_retarget(game, (uint8_t)Arg(args, count, 0)); break;
   case OrderService::MOVE_UNIT_TARGET:        r = opeu_move_unit_target(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::UNIT_NAME:               r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case OrderService::UNIT_NAME:               r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case OrderService::ABS16_BITS:              r = opeu_abs16_bits(Arg(args, count, 0)); break;
   case OrderService::UNIT_PERSON:             r = opeu_unit_person(game, Arg(args, count, 0)); break;
   case OrderService::UNIT_AVERAGE10:          r = opeu_unit_average10(game, Arg(args, count, 0)); break;

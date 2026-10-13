@@ -48,7 +48,7 @@ void opeu_request_action1(Game& game, uint8_t side, uint16_t request) {
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   opeu_arrival_location(game, static_cast<uint8_t>(objective.x), static_cast<uint8_t>(objective.y), static_cast<uint8_t>(side));
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(HEADER_MESSAGE))),
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(HEADER_MESSAGE))),
                                                           static_cast<std::uint16_t>(Near(data, objective)) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
   opeu_request_wait(game, svc_soundcue);

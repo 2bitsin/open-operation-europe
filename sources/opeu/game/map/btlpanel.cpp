@@ -50,10 +50,6 @@ constexpr uint16_t PICTURE_X_1{ 0 };
 constexpr uint16_t PICTURE_Y{ 0x140 };
 
 // opeu_unit_name reports its formatter as its service 2; this hands it to the request formatter.
-uint16_t NameForward(Game& game, uint16_t, const uint16_t* args, uint16_t count) {
-  opeu_request_format(game, { args, count });
-  return 0;
-}
 } // namespace
 
 // orders_hidden: the enemy's element, whose order the panel does not show.
@@ -76,7 +72,7 @@ void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hid
     at(TITLE_COLUMN, LINE);
     name = opeu_type_name(game, Near(data, data.element_types[record.type]), element_name);
   } else {
-    name = opeu_unit_name(game, NameForward, unit, unit_name);
+    name = opeu_unit_name(game, unit, unit_name);
     print(data.battle_fmt_title, SideColorCode(side), data.side_names[side], name);
     at(TITLE_COLUMN, LINE);
     name = opeu_element_name(game, element, element_name);

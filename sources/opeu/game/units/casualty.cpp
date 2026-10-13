@@ -96,7 +96,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
   auto const         division{ Near(data, GroupOf(data, side, group)) };
   bool const         side_selected{ opeu_find_side_selected_unit(game, static_cast<uint8_t>(side)) == unit };
   bool const         group_selected{ opeu_find_group_selected_unit(game, division) == unit };
-  opeu_unit_name(game, svc_unitname, unit, name);
+  opeu_unit_name(game, unit, name);
   // The side that watches: the enemy when a player commands it and may see the regiment, else its own side when a
   // player commands it and the regiment may be selected.
   std::uint8_t viewer{ opeu_opposite_side(side) };

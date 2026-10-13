@@ -38,8 +38,8 @@ auto Raise(Game& game, SupplyEvent event, std::uint16_t id, std::uint16_t count,
 
 // Draws the dialog for two units; a and b are the name buffers. The second name is formatted first.
 auto DrawUnits(Game& game, SupplyEvent event, std::uint16_t first, std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
-  auto const second_name{ opeu_unit_name(game, event, second, b) };
-  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, event, first, a), second_name);
+  auto const second_name{ opeu_unit_name(game, second, b) };
+  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, first, a), second_name);
 }
 
 // A unit name buffer the unit-name service formats into.
@@ -98,7 +98,7 @@ void opeu_supply_exchange_objective(Game& game, SupplyEvent event, uint16_t unit
   data.supply_objective = objective;
   opeu_supply_load_unit(game, unit, 0);
   opeu_supply_load_objective(game, objective);
-  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, event, unit, name.At(0)), objective);
+  Raise(game, event, SUPPLY_DRAW, 2, opeu_unit_name(game, unit, name.At(0)), objective);
   RunDialog(game, event);
   StoreBack(data, 0, Record<Unit>(data, unit));
   StoreBack(data, 1, Record<Objective>(data, objective));

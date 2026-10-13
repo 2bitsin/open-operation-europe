@@ -59,7 +59,7 @@ constexpr std::uint16_t NAME_B{ 0x10 };
 
 // The format with one word, the word computed before the format is looked up.
 auto Format(Game& game, std::uint16_t message, std::uint16_t word) -> void {
-  auto const format{ opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(message)) };
+  auto const format{ opeu_message_lookup(game, static_cast<int16_t>(message)) };
   opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(word) });
 }
 } // namespace
@@ -109,8 +109,8 @@ void opeu_loss_event_a(Game& game) {
       if (!opeu_category_7(static_cast<uint8_t>(slot)) && !opeu_loss_unit_weak(game, near)) continue;
       if (RandomBelow(game, 100)) continue;
       if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
-        auto const unit_name{ opeu_unit_name(game, svc_unitname, near, name) };
-        auto const format{ opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
+        auto const unit_name{ opeu_unit_name(game, near, name) };
+        auto const format{ opeu_message_lookup(game, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
         opeu_request_format(
             game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(movement), static_cast<std::uint16_t>(unit_name) });
         opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
@@ -145,13 +145,13 @@ void opeu_loss_event_b(Game& game) {
     auto const near{ Near(data, data.units[i]) };
     if (!(Record<Unit>(data, near).flags & Bits(UnitFlag::READY)) || !opeu_loss_unit_low(game, near) || RandomBelow(game, 50)) continue;
     if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
-      Format(game, ENEMY_LOSSES_NORTH, opeu_unit_name(game, svc_unitname, near, name));
+      Format(game, ENEMY_LOSSES_NORTH, opeu_unit_name(game, near, name));
       opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, TEXT);
       auto const& unit{ Record<Unit>(data, near) };
       opeu_location_flash(game, static_cast<uint8_t>(unit.x), static_cast<uint8_t>(unit.y), static_cast<uint8_t>(1));
       port_daily_show(game, PRESENT_B_ID, 1, PRESENT_B, PRESENT_SEGMENT);
     } else if (data.side_status[0] == SIDE_PLAYED && opeu_unit_selection_eligible(game, near)) {
-      opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(OUR_LOSSES_NORTH)));
+      opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), near, opeu_message_lookup(game, static_cast<int16_t>(OUR_LOSSES_NORTH)));
       port_daily_show(game, PRESENT_B_ID, 0, PRESENT_B, PRESENT_SEGMENT);
     }
     opeu_unit_casualties(game, near, 20, 20, 5, 0, 1);

@@ -249,7 +249,7 @@ uint16_t svc_transfer(Game& game, const char* module, uint16_t id, uint16_t* arg
   case UNIT_SLOT:        r = opeu_unit_index(Arg(args, count, 0)); break;
   case LAST_SLOT:        r = opeu_category_7((uint8_t)Arg(args, count, 0)); break;
   case UNIT_GROUP:       r = opeu_unit_group(Arg(args, count, 0)); break;
-  case UNIT_NAME:        r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case UNIT_NAME:        r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case UNIT_TRAINING:    r = opeu_unit_average10(game, Arg(args, count, 0)); break;
   case UNIT_EXPERIENCE:  r = opeu_unit_average11(game, Arg(args, count, 0)); break;
   case OBJECTIVE_TARGET: r = opeu_move_objective_target(game, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;

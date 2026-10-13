@@ -37,23 +37,13 @@ uint16_t opeu_element_name(Game& game, uint16_t element, uint16_t buffer) {
 }
 
 // The name of the objective at the cell, else its coordinates scaled to the map.
-uint16_t opeu_location_name(Game& game, HostEvent event, uint8_t x, uint8_t y, uint16_t buffer) {
+uint16_t opeu_location_name(Game& game, uint8_t x, uint8_t y, uint16_t buffer) {
   auto& data{ Data(game) };
   if (auto const objective{ opeu_find_objective_at(game, x, y) }; objective != 0) {
     opeu_string_copy(game, buffer, objective);
   } else {
     std::uint16_t args[4]{ buffer, Near(data, data.location_name_format), static_cast<std::uint16_t>(x * data.map_scale), static_cast<std::uint16_t>(y * data.map_scale) };
-    event(game, 2, args, 4);
+    opeu_request_format(game, args);
   }
   return buffer;
-}
-
-// The services the module calls out to: opeu_location_name formats the coordinates through request_format (id 2).
-uint16_t svc_labels(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case 2:  opeu_request_format(game, { args, count }); break;
-  default: port_unhandled("labels", id, count);
-  }
-  return r;
 }

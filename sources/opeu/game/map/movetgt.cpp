@@ -98,7 +98,7 @@ uint16_t opeu_move_unit_target(Game& game, uint16_t x, uint16_t y) {
     auto const          report{ locals.At(REPORT_AT) };
     opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.lost_sight_format)),
                                                             static_cast<std::uint16_t>(side == 0 ? SIDE_0_LOST : SIDE_1_LOST), static_cast<std::uint16_t>(data.side_names[side]),
-                                                            static_cast<std::uint16_t>(opeu_unit_name(game, svc_unitname, target, static_cast<std::uint16_t>(locals.At(NAME_AT)))) });
+                                                            static_cast<std::uint16_t>(opeu_unit_name(game, target, static_cast<std::uint16_t>(locals.At(NAME_AT)))) });
     opeu_unit_report(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(report));
   }
   opeu_restore_unit_order(game, static_cast<std::uint16_t>(current));

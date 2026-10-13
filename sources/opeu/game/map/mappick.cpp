@@ -217,7 +217,7 @@ uint16_t opeu_map_pick_location(Game& game, uint16_t x, uint16_t y) {
     shown_x = Byte(game, x);
     shown_y = Byte(game, y);
     opeu_map_inspect(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));
-    opeu_map_cursor(game, svc_cursor, shown_x, shown_y);
+    opeu_map_cursor(game, shown_x, shown_y);
     outcome = data.input_mode ? mouse() : keyboard();
   } while (outcome == Outcome::MOVE);
   opeu_map_erase(game, static_cast<uint8_t>(shown_x), static_cast<uint8_t>(shown_y));

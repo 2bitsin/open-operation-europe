@@ -88,7 +88,7 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
   }
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(CANNOT_TARGET))),
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<short>(CANNOT_TARGET))),
                                                           static_cast<std::uint16_t>(what), static_cast<std::uint16_t>(name) });
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
   return 0;
@@ -97,5 +97,5 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
 // Asks the staff officer to confirm the mission.
 uint16_t opeu_air_confirm(Game& game) {
   auto const& data{ Data(game) };
-  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CONFIRM_MISSION)), data.context_record3);
+  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CONFIRM_MISSION)), data.context_record3);
 }

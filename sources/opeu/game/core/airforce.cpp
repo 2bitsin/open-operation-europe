@@ -35,13 +35,9 @@ constexpr std::uint16_t ROW_HEIGHT{ 0x12 };
 // The command's event, for the location label's format service (a plain function pointer has no capture).
 HostEvent air_event;
 
-auto LabelEvent(Game& game, std::uint16_t, std::uint16_t const* args, std::uint16_t count) -> std::uint16_t {
-  return air_event(game, std::to_underlying(FORMAT), args, count);
-}
-
 auto Location(Game& game, HostEvent event, std::uint8_t x, std::uint8_t y, std::uint16_t buffer) -> std::uint16_t {
   air_event = event;
-  return opeu_location_name(game, LabelEvent, x, y, buffer);
+  return opeu_location_name(game, x, y, buffer);
 }
 
 auto Average(std::uint8_t a, std::uint8_t b) -> std::uint8_t {

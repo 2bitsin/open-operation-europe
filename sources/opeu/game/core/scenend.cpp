@@ -58,7 +58,7 @@ constexpr std::uint16_t MAX_SCORE{ 1000 };
 // Prints the given message texts, one per line.
 template <std::size_t N>
 auto PrintMessages(Game& game, std::uint16_t const (&ids)[N]) -> void {
-  for (auto const id : ids) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(id))) });
+  for (auto const id : ids) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(id))) });
 }
 
 // Lets an epilogue page stand, then clears the screen to the dark palette for the next one.

@@ -6,7 +6,9 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/order-service.hpp"
+#include "map/moveunit.hpp"
 #include "types.hpp"
+#include "units/stats.hpp"
 
 #include "common/game.hpp"
 #include "link/glue.hpp"
@@ -38,27 +40,23 @@ constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
 
 // The order slot and its code are taken before the destination.
 void opeu_turn_final_action(Game& game, HostEvent event) {
-  auto&               data{ Data(game) };
-  ServiceCell const   destination_cell;
-  auto const          x{ destination_cell.XAt() };
-  auto const          y{ destination_cell.YAt() };
-  auto const          slot{ Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]) };
-  auto const          code{ Record<Order>(data, slot).kind };
-  std::uint16_t const destination[3]{ data.current_unit_ptr, x, y };
-  if (!event(game, DESTINATION, destination, 3)) {
-    std::uint16_t const clear[2]{ data.current_unit_ptr, 3 };
-    event(game, CLEAR_ORDERS, clear, 2);
+  auto&             data{ Data(game) };
+  ServiceCell const destination_cell;
+  auto const        x{ destination_cell.XAt() };
+  auto const        y{ destination_cell.YAt() };
+  auto const        slot{ Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]) };
+  auto const        code{ Record<Order>(data, slot).kind };
+  if (!opeu_unit_order_destination(game, data.current_unit_ptr, game.State().Bytes(x, 1).data(), game.State().Bytes(y, 1).data())) {
+    opeu_clear_unit_orders(game, data.current_unit_ptr, static_cast<std::uint8_t>(3));
     return;
   }
   std::uint16_t const handler[2]{ data.order_handlers[code].offset, data.order_handlers[code].segment };
   if (event(game, HANDLER, handler, 2)) return;
-  std::uint16_t const lower[2]{ slot, 0 };
-  if (event(game, LEVEL_LOWER, lower, 2)) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
+  if (opeu_move_level_lower(game, slot, static_cast<uint8_t>(0))) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
   std::uint16_t const unit[1]{ data.current_unit_ptr };
-  std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - event(game, AVERAGE9, unit, 1)) / 35 + 1) };
-  if (event(game, LEVEL_RAISE, raise, 2)) {
-    std::uint16_t const move[1]{ data.order_moves[code] };
-    event(game, MOVE, move, 1);
+  std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - opeu_unit_average9(game, unit[0])) / 35 + 1) };
+  if (opeu_move_level_raise(game, raise[0], static_cast<std::uint8_t>(raise[1]))) {
+    opeu_move_unit(game, data.order_moves[code]);
   }
 }
 

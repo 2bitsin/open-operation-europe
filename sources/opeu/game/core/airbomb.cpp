@@ -117,7 +117,7 @@ uint16_t opeu_air_bomb_check(Game& game, uint8_t city, uint16_t type) {
   auto const    bombers{ side.bombers };
   std::uint16_t text{ 0 };
   if (city < 2 && type < 3)
-    if (auto const message{ Objection(game, OBJECTIONS[type][city], fuel, bombers) }) text = opeu_message_lookup(game, svc_msglook, static_cast<short>(*message));
+    if (auto const message{ Objection(game, OBJECTIONS[type][city], fuel, bombers) }) text = opeu_message_lookup(game, static_cast<short>(*message));
   if (text) {
     opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, data.air_person);
     return 0;
@@ -137,7 +137,7 @@ uint16_t opeu_air_bomb_order(Game& game, uint8_t x, uint8_t y, uint16_t type) {
                                                 + 2) };
   auto const& flight{ data.bombing_flights[type] };
   auto const  planes{ opeu_min16(CurrentSide(data).bombers, static_cast<std::uint16_t>(flight.base + RandomBelow(game, flight.range))) };
-  auto const  format{ opeu_message_lookup(game, svc_msglook, static_cast<short>(ANNOUNCE)) };
+  auto const  format{ opeu_message_lookup(game, static_cast<short>(ANNOUNCE)) };
   opeu_request_format(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(hours),
                                                           static_cast<std::uint16_t>(hours == 1 ? HOUR_TEXT : HOURS_TEXT), static_cast<std::uint16_t>(planes),
                                                           static_cast<std::uint16_t>(planes == 1 ? PLANE_TEXT : PLANES_TEXT), static_cast<std::uint16_t>(data.bombing_names[type]) });
@@ -158,11 +158,11 @@ uint16_t opeu_air_bomb_order(Game& game, uint8_t x, uint8_t y, uint16_t type) {
 void opeu_air_bomb_command(Game& game) {
   auto& data{ Data(game) };
   if (CurrentSide(data).strike.planes) {
-    if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CANCEL_ORDER)), data.context_record3)) return;
+    if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CANCEL_ORDER)), data.context_record3)) return;
     CurrentSide(data).strike.planes = 0;
   }
   if (!CurrentSide(data).bombers) {
-    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(NO_BOMBERS)), data.context_record3);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(NO_BOMBERS)), data.context_record3);
     return;
   }
   opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), BOMB_TITLE);
@@ -175,11 +175,10 @@ void opeu_air_bomb_command(Game& game) {
   site_y = static_cast<std::uint8_t>(data.viewport_y);
   opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), SITE_PROMPT, data.context_record3);
   if (!opeu_map_pick_location(game, at_x, at_y)) return;
-  auto type{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CHOOSE_TYPE)), 3, data.context_record3,
-                               TYPE_MENU) };
+  auto type{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CHOOSE_TYPE)), 3, data.context_record3, TYPE_MENU) };
   if (type == MENU_CANCELLED) return;
   --type;
-  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, svc_msglook, static_cast<short>(CONFIRM_MISSION)), data.context_record3)) return;
+  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), opeu_message_lookup(game, static_cast<short>(CONFIRM_MISSION)), data.context_record3)) return;
   if (!opeu_air_bomb_check(game, opeu_map_code(game, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(game, site_x, site_y, type)) data.side_delays[data.current_side] = 1;
 }
 
@@ -190,7 +189,7 @@ uint16_t svc_air(Game& game, const char* module, uint16_t id, const uint16_t* ar
   case FORMAT:    opeu_request_format(game, { args, count }); break;
   case MESSAGE:   opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case CONFIRM:   result = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOOKUP:    result = opeu_message_lookup(game, svc_msglook, static_cast<short>(Arg(args, count, 0))); break;
+  case LOOKUP:    result = opeu_message_lookup(game, static_cast<short>(Arg(args, count, 0))); break;
   case PRINT:     opeu_cursor_print(game, { args, count }); break;
   case SPEAKER:   result = opeu_speaker_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case TEXT_FEED: opeu_text_feed(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;

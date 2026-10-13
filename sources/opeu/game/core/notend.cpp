@@ -232,7 +232,7 @@ void opeu_end_losses(Game& game) {
       opeu_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element + offsetof(Element, type));
     } else {
       unit = opeu_find_element_unit(game, element);
-      opeu_unit_name(game, svc_unitname, loss.unit, unit_name);
+      opeu_unit_name(game, loss.unit, unit_name);
       opeu_item_name(game, Near(data, loss.item), item_name);
       opeu_group_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element);
     }

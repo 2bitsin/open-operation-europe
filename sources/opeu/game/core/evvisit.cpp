@@ -84,7 +84,7 @@ void opeu_visit_conversation(Game& game, uint8_t side) {
   auto const commander{ opeu_find_side_record(game, side, COMMANDER) };
   auto const speaker{ opeu_find_person_template(game, Record<Person>(Data(game), opeu_find_side_record(game, side, COMMANDER)).status, VISITOR) };
   auto const say{ [&](std::uint16_t text) { opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), text, speaker); } };
-  auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(id)); } };
+  auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, static_cast<int16_t>(id)); } };
   switch (RandomBelow(game, 3)) {
   case 0:
     opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(TEXT), static_cast<std::uint16_t>(VISIT_FORMAT), static_cast<std::uint16_t>(commander) });

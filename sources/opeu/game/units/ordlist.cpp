@@ -72,7 +72,7 @@ void opeu_turn_action_1(Game& game, uint16_t segment) {
       data.current_group = saved;
     } else if (opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.order_whole_division), person)) {
       data.unit_order_active = 1;
-      opeu_unit_order_menu(game, svc_ordissue, static_cast<uint8_t>(group));
+      opeu_unit_order_menu(game, static_cast<uint8_t>(group));
       data.unit_order_active = 0;
     } else {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(game, group) + 1);
@@ -80,7 +80,7 @@ void opeu_turn_action_1(Game& game, uint16_t segment) {
       for (;;) {
         opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.select_regiment), person);
         if (!RunList(game, data.organize_list)) break;
-        opeu_unit_order_menu(game, svc_ordissue, static_cast<uint8_t>(group));
+        opeu_unit_order_menu(game, static_cast<uint8_t>(group));
       }
     }
   }

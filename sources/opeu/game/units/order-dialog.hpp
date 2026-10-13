@@ -8,28 +8,6 @@
 #include <array>
 #include <cstdint>
 
-// The services of the order dialogs and their helpers (served by svc_orders, units/ordact).
-enum OrdersService : std::uint16_t {
-  ORDERS_REQUEST_FORMAT   = 0,  // (destination, format, ...)
-  ORDERS_CONTROL_MESSAGE  = 1,  // (text, person)
-  ORDERS_CONFIRM_MESSAGE  = 2,  // (text, person) -> nonzero when confirmed
-  ORDERS_ARRIVAL_LOCATION = 3,  // (x, y, side)
-  ORDERS_PICK_LOCATION    = 4,  // (&x, &y) -> nonzero when a cell was picked
-  ORDERS_CONTROL_PANEL    = 5,  // ()
-  ORDERS_GROUP_SHOW       = 6,  // (division, person)
-  ORDERS_LIST_DIALOG      = 7,  // (list, mode, flags) -> nonzero when a row was picked
-  ORDERS_UNIT_ORDER_MENU  = 8,  // (division)
-  ORDERS_SPEAKER_PANEL    = 9,  // (person, show)
-  ORDERS_UNIT_ANNOUNCE    = 10, // (regiment, division)
-  ORDERS_ARMY_POSITION    = 11, // (x, y)
-  ORDERS_PROMPT           = 12, // (text, items, menu) -> item, MENU_CANCEL when cancelled
-  ORDERS_CONTROL_POSITION = 13, // (x, y)
-  ORDERS_MESSAGE_LOOKUP   = 14, // (id) -> text
-  ORDERS_DELAY_DIALOG     = 15, // (text, items, person, menu) -> item
-  ORDERS_DELAY_UNITS      = 16, // (units)
-  ORDERS_DAILY_CONTEXT    = 17, // (side)
-};
-
 // What ORDERS_PROMPT answers when the menu is cancelled.
 inline constexpr std::uint16_t MENU_CANCEL{ 0xffff };
 

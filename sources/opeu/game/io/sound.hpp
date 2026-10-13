@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-void opeu_sound_initialize(Game& game, HostService service);
+void opeu_sound_initialize(Game& game);
 void opeu_sound_reset(Game& game, HostService service);
 void opeu_finish_side_initialization(Game& game, HostService service, std::uint8_t value);
 void opeu_music_stop(Game& game, HostService service);

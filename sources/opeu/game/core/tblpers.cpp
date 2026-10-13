@@ -50,7 +50,7 @@ void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t fi
   auto const& window{ ActiveWindow(data) };
   auto const  columns{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADER) {
-    auto const header{ opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(HEADER_MESSAGE)) };
+    auto const header{ opeu_message_lookup(game, static_cast<int16_t>(HEADER_MESSAGE)) };
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(header) });
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x1f)), static_cast<int16_t>(window.y + 1));
     opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
@@ -74,7 +74,7 @@ void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t fi
       status = Near(data, data.tbl_person_rest);
     else if (person.role & Bits(PersonRole::POOR_HEALTH))
       status = Near(data, data.tbl_person_hurt);
-    auto const format{ opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(ROW_MESSAGE)) };
+    auto const format{ opeu_message_lookup(game, static_cast<int16_t>(ROW_MESSAGE)) };
     auto const nation{ opeu_first_mask_name(game, person.status) };
     opeu_request_format(game, std::array<std::uint16_t, 13>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(nation),
                                                              static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery),

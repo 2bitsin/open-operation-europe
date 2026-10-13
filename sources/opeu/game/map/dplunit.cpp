@@ -47,7 +47,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
   panel();
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.deploy_title));
   if (unit != Near(data, data.garrison_unit)) {
-    auto const name{ opeu_unit_name(game, svc_unitname, unit, NAME_AT) };
+    auto const name{ opeu_unit_name(game, unit, NAME_AT) };
     auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
     opeu_cursor_print(
         game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.deploy_unit_title)), static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });

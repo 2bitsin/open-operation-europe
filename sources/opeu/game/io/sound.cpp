@@ -87,10 +87,10 @@ auto Command(Game& game, HostService service, std::uint8_t ah, std::uint8_t al =
 }
 } // namespace
 
-void opeu_sound_initialize(Game& game, HostService service) {
+void opeu_sound_initialize(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t words[4]{ MUSIC_OFFSET, MUSIC_SEGMENT, EFFECTS_OFFSET, MUSIC_SEGMENT };
-  data.sound_driver  = service(game, DRIVER_OPEN, words);
+  data.sound_driver  = static_cast<std::uint16_t>(opeu_sound_open(words[0], words[1], words[2], words[3]));
   data.sound_enabled = data.sound_driver != 0;
 }
 

@@ -62,7 +62,7 @@ void opeu_daily_context(Game& game, uint8_t side) {
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(BLANK_FORMAT) });
   }
   data.context_side = side;
-  opeu_army_summary(game, svc_armysum);
+  opeu_army_summary(game);
 }
 
 void opeu_turn_pre_context(Game& game) {

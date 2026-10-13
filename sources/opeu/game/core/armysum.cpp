@@ -27,15 +27,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the summary calls through its event (FORMAT is raised by opeu_unit_name with this event).
-enum Service : std::uint16_t {
-  TITLE    = 0, // (text)
-  TEXT     = 1, // (text)
-  FORMAT   = 2, // (destination, format, words...)
-  PRINT    = 3, // (format, words...)
-  POSITION = 4, // (x, y)
-};
-
 constexpr std::uint16_t OUT_OF_SUPPLY{ offsetof(DataSegment, army_out) };
 constexpr std::uint16_t ROW0{ offsetof(DataSegment, army_row0) };
 constexpr std::uint16_t ROW1{ offsetof(DataSegment, army_row1) };
@@ -58,7 +49,7 @@ constexpr std::uint16_t NAME_BYTES{ 0x50 }; // the headquarters regiment's name
 
 // Shown on a side the player controls (or when neither side is player-controlled). The headquarters regiment's name
 // is written into the routine's reserve for the print service.
-void opeu_army_summary(Game& game, HostEvent event) {
+void opeu_army_summary(Game& game) {
   ServiceLocals const locals{ NAME_BYTES };
   auto&               data{ Data(game) };
   auto const          side{ data.current_side };
@@ -101,18 +92,6 @@ void opeu_army_summary(Game& game, HostEvent event) {
   opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(ROW5), static_cast<std::uint16_t>(own.planes), static_cast<std::uint16_t>(own.paratroops),
                                                         static_cast<std::uint16_t>(own.strength) });
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(54), static_cast<int16_t>(138));
-  opeu_cursor_print(
-      game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(HQ_FORMAT), static_cast<std::uint16_t>(opeu_unit_name(game, event, opeu_find_side_selected_unit(game, side), locals.At(0))) });
-}
-
-uint16_t svc_armysum(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case TITLE:    opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case TEXT:     opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case FORMAT:   opeu_request_format(game, { args, count }); break;
-  case PRINT:    opeu_cursor_print(game, { args, count }); break;
-  case POSITION: opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  default:       port_unhandled("armysum", id, count);
-  }
-  return 0;
+  opeu_cursor_print(game,
+                    std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(HQ_FORMAT), static_cast<std::uint16_t>(opeu_unit_name(game, opeu_find_side_selected_unit(game, side), locals.At(0))) });
 }

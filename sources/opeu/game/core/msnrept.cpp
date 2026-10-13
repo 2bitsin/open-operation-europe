@@ -117,7 +117,7 @@ void opeu_mission_report_failure(Game& game, uint8_t side, uint16_t text) {
 // Writes the unit's name into destination, after "Enemy " when a player commands the side; returns destination.
 uint16_t opeu_mission_target_name(Game& game, uint8_t side, uint16_t unit, uint16_t destination) {
   ServiceLocals const locals{ 32 }; // the name the unit-name service writes
-  auto const          name{ opeu_unit_name(game, svc_unitname, unit, locals.At(0)) };
+  auto const          name{ opeu_unit_name(game, unit, locals.At(0)) };
   auto const          prefix{ Data(game).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
   opeu_string_append(game, opeu_string_copy(game, destination, static_cast<uint16_t>(prefix)), name);
   return destination;

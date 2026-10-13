@@ -52,12 +52,12 @@ auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::u
 }
 
 // Records the compared records and names the unit in the first heading.
-auto StartTally(Game& game, HostEvent event, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
+auto StartTally(Game& game, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
   auto& data{ Data(game) };
   data.tally_unit       = unit;
   data.tally_other_unit = other;
   data.tally_source     = source;
-  opeu_unit_name(game, event, unit, Near(data, data.tally_first_name));
+  opeu_unit_name(game, unit, Near(data, data.tally_first_name));
 }
 } // namespace
 
@@ -116,8 +116,8 @@ void opeu_tally_average(Game& game, uint8_t count) {
 }
 
 // A unit against an objective's stock; the unit's slot selects the stock kind.
-uint8_t opeu_tally_unit_stock(Game& game, HostEvent event, uint16_t unit, uint16_t source_offset) {
-  StartTally(game, event, unit, 0, source_offset);
+uint8_t opeu_tally_unit_stock(Game& game, uint16_t unit, uint16_t source_offset) {
+  StartTally(game, unit, 0, source_offset);
   opeu_string_copy(game, Near(Data(game), Data(game).tally_second_name), source_offset);
   uint8_t kind;
   if (opeu_category_6(opeu_unit_index(unit)))
@@ -132,22 +132,12 @@ uint8_t opeu_tally_unit_stock(Game& game, HostEvent event, uint16_t unit, uint16
 }
 
 // Two units' elements merged into one tally.
-uint8_t opeu_tally_units(Game& game, HostEvent event, uint16_t unit, uint16_t other) {
-  StartTally(game, event, unit, other, 0);
-  opeu_unit_name(game, event, other, Near(Data(game), Data(game).tally_second_name));
+uint8_t opeu_tally_units(Game& game, uint16_t unit, uint16_t other) {
+  StartTally(game, unit, other, 0);
+  opeu_unit_name(game, other, Near(Data(game), Data(game).tally_second_name));
   auto const count{ opeu_tally_elements(game, other, opeu_tally_elements(game, unit, 0)) };
   opeu_tally_average(game, count);
   return count;
-}
-
-// The services the module calls out to: opeu_unit_name formats the unit's name through request_format (id 2).
-uint16_t svc_tally(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case 2:  opeu_request_format(game, { args, count }); break;
-  default: port_unhandled("tally", id, count);
-  }
-  return r;
 }
 
 auto port_routine_opeu_tally_mark(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {

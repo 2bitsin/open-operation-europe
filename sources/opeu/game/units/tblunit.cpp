@@ -61,7 +61,7 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
       StartRowName(game, window, entry, NAME_INDENT, side);
       if (ready) {
         if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_mark));
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_unit_label)), static_cast<std::uint16_t>(opeu_unit_name(game, event, unit, name)) });
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_unit_label)), static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
       } else
         opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_empty));
     }
@@ -75,15 +75,15 @@ void opeu_tbl_draw_units(Game& game, HostEvent event, uint8_t column, uint8_t fi
       std::uint16_t food{};
       auto const    has_destination{ opeu_unit_order_destination(game, unit, &x, &y) };
       opeu_unit_resource_percentages(game, unit, &ammunition, &fuel, &food);
-      auto const target{ has_destination ? opeu_location_name(game, event, x, y, name) : opeu_location_name(game, event, regiment.x, regiment.y, second) };
-      auto const here{ opeu_location_name(game, event, regiment.x, regiment.y, second) };
+      auto const target{ has_destination ? opeu_location_name(game, x, y, name) : opeu_location_name(game, regiment.x, regiment.y, second) };
+      auto const here{ opeu_location_name(game, regiment.x, regiment.y, second) };
       auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + 3] : Near(data, data.tbl_unit_wait) };
       opeu_request_format(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_unit_row)), static_cast<std::uint16_t>(here),
                                                               static_cast<std::uint16_t>(target), static_cast<std::uint16_t>(order), static_cast<std::uint16_t>(fuel),
                                                               static_cast<std::uint16_t>(ammunition), static_cast<std::uint16_t>(food) });
     } else if (!own && !spotted)
       opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_unit_hidden)),
-                                                              static_cast<std::uint16_t>(opeu_location_name(game, event, regiment.x, regiment.y, name)) });
+                                                              static_cast<std::uint16_t>(opeu_location_name(game, regiment.x, regiment.y, name)) });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
@@ -105,9 +105,9 @@ void opeu_tbl_draw_orders(Game& game, HostEvent event, uint8_t column, uint8_t f
     auto const side{ opeu_unit_side(unit) };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_order_label)), static_cast<std::uint16_t>(opeu_unit_name(game, event, unit, name)) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_order_label)), static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
     }
-    opeu_string_copy(game, text, opeu_message_lookup(game, svc_msglook, static_cast<int16_t>(ORDERS_ROW_TEXT)));
+    opeu_string_copy(game, text, opeu_message_lookup(game, static_cast<int16_t>(ORDERS_ROW_TEXT)));
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);

@@ -272,7 +272,7 @@ void opeu_notice_attack(Game& game) {
     uint16_t const side_name{ data.side_names[side] };
     opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(offsetof(DataSegment, notice_attack_format)),
                                                             static_cast<std::uint16_t>(SIDE_COLOUR[side == 0 ? 0 : 1]), static_cast<std::uint16_t>(side_name),
-                                                            static_cast<std::uint16_t>(opeu_unit_name(game, svc_unitname, attacker, name)) });
+                                                            static_cast<std::uint16_t>(opeu_unit_name(game, attacker, name)) });
   } else
     opeu_string_copy(game, text, offsetof(DataSegment, notice_under_attack_text));
   if (unit) {
