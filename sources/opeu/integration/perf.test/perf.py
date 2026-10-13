@@ -28,8 +28,11 @@ How the gates decide (the evidence is in docs/building.md, "Benchmarks and profi
            executable's own slowdown: how much slower than at the baseline it runs its Calibration benchmark
            (services.bench/calibration.hpp, a fixed workload no game code touches; on the baseline's machine never
            below 1). The benchmarks over their limit are measured again, BENCH_REPETITIONS at a time, for up to
-           BENCH_RETRY_SECONDS. Noise only ever slows a benchmark down, so the fastest repetition estimates its true
-           cost and a real regression fails every attempt.
+           BENCH_RETRY_SECONDS; those still over get BENCH_ATTEMPTS more attempts, BENCH_ATTEMPT_PAUSE_S apart,
+           each measuring them beside their executable's Calibration benchmark and judging them against the limit
+           that calibration gives at that moment (a neighbour job that slows a benchmark for a while slows its
+           calibration too). The budget stays the same. Noise only ever slows a benchmark down, so the fastest
+           repetition estimates its true cost and a real regression fails every attempt.
   budget   OPEU_PERF_BUDGET percent (default BUDGET_PERCENT) over the baseline of the same machine; on a machine the
            baseline does not list, FOREIGN_BUDGET_PERCENT unless OPEU_PERF_BUDGET says otherwise: one calibration
            ratio cannot capture every difference between two machines.
@@ -79,6 +82,8 @@ CALIBRATION_EVERY = 3  # plays per calibration process in a session's pool
 BENCH_REPETITIONS = 5
 BENCH_MIN_TIME = '0.02s'  # each repetition runs at least this long
 BENCH_RETRY_SECONDS = 20  # how long a bench gate keeps re-measuring the benchmarks over their limit
+BENCH_ATTEMPTS = 3  # then: attempts beside a fresh calibration for the benchmarks still over
+BENCH_ATTEMPT_PAUSE_S = 5  # the pause before each attempt, to step out of a neighbour job's burst
 BASELINE_SAMPLES = 7
 # A Debug build plays about 50 times slower than Release (the demos take a minute of CPU each), so there the gate
 # times only the runs that stay under 3 s of CPU: enough to see a regression, inside ctest's 60 s for the module.
@@ -293,13 +298,29 @@ CALIBRATION = 'Calibration'  # the benchmark of services.bench/calibration.hpp i
 
 def fastest_benches(executable: Path, standard: 'Standard') -> dict[str, float]:
     """{bench: CPU ns}: the fastest repetition of each benchmark of an executable, the ones over their limit
-    re-measured for up to BENCH_RETRY_SECONDS."""
+    re-measured for up to BENCH_RETRY_SECONDS, then given BENCH_ATTEMPTS attempts beside a fresh calibration."""
     fastest = {name: min(v) for name, v in sample_benches(executable, BENCH_REPETITIONS).items()}
     deadline = time.monotonic() + BENCH_RETRY_SECONDS
     while (over := standard.benches_over(fastest)) and time.monotonic() < deadline:
         for name, values in sample_benches(executable, BENCH_REPETITIONS, over).items():
             fastest[name] = min(fastest[name], min(values))
+    for _ in range(BENCH_ATTEMPTS):
+        if not (over := standard.benches_over(fastest)):
+            break
+        time.sleep(BENCH_ATTEMPT_PAUSE_S)
+        attempt_with_calibration(executable, standard, fastest, over)
     return fastest
+
+
+def attempt_with_calibration(executable: Path, standard: 'Standard', fastest: dict[str, float], over: list[str]) -> None:
+    """Measures the benchmarks `over` beside their calibration benchmark and keeps, for each, its time as judged by
+    that calibration: scaled by the session's slowdown over the attempt's, so that `fastest` (whose calibration time
+    stays the session's) passes it exactly when the attempt is within the limit of its own moment."""
+    calibration = executable.name + '/' + CALIBRATION
+    attempt = {name: min(v) for name, v in sample_benches(executable, BENCH_REPETITIONS, [*over, calibration]).items()}
+    for name in over:
+        scale = standard.machine_slowdown(name, fastest) / standard.machine_slowdown(name, attempt)
+        fastest[name] = min(fastest[name], attempt[name] * scale)
 
 
 def bench_summary(values: list[float]) -> dict:

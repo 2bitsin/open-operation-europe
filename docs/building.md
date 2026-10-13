@@ -171,6 +171,9 @@ The rule: no change may make the game notably slower. Three gates in
   costs, element ratings, the element at every cell, the exit marking).
   The gate takes the fastest of 5 repetitions per benchmark; the ones over
   their limit are measured again, 5 repetitions at a time, for up to 20 s.
+  Any still over get three more attempts, 5 s apart. Each attempt measures
+  them beside their executable's Calibration benchmark and judges them by
+  the limit that calibration gives at that moment, at the same budget.
   Noise only ever slows a benchmark down, so the fastest repetition is its
   true cost and a real regression fails every attempt. The gates configure
   the tested build tree with `BUILD_BENCHMARKING=ON` and build the
