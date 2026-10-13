@@ -196,7 +196,7 @@ constexpr std::array<KeyMap, 105> KEYMAP{ {
 // clang-format on
 
 auto FindKey(SDL_Scancode scancode) -> KeyMap const* {
-  auto const* const found{ std::ranges::find(KEYMAP, scancode, &KeyMap::scancode) };
+  auto const found{ std::ranges::find(KEYMAP, scancode, &KeyMap::scancode) };
   return found == KEYMAP.end() ? nullptr : &*found;
 }
 

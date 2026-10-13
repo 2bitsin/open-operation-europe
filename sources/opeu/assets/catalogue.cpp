@@ -143,7 +143,23 @@ private:
 };
 
 auto Stream(std::string id, std::string_view const file, std::uint32_t const at, Layout const layout, std::string_view const palette, std::string_view const use) -> Asset {
-  return Asset{ .id = std::move(id), .file = file, .group = "pictures", .at = at, .layout = layout, .role = Role::PICTURE, .palette = palette, .use = std::string{ use } };
+  return Asset{ .id              = std::move(id),
+                .file            = file,
+                .group           = "pictures",
+                .at              = at,
+                .mask_at         = 0,
+                .layout          = layout,
+                .width_bytes     = 0,
+                .height          = 0,
+                .role            = Role::PICTURE,
+                .palette         = palette,
+                .ink             = 0,
+                .ink_where_clear = false,
+                .side_coloured   = false,
+                .hour_coloured   = false,
+                .animation       = {},
+                .frame           = 0,
+                .use             = std::string{ use } };
 }
 
 auto AddPictures(Builder& out) -> void {
@@ -170,15 +186,23 @@ auto AddPictures(Builder& out) -> void {
 
 auto Raw(std::string id, std::string_view const file, std::string_view const group, std::uint32_t const at, Layout const layout, std::size_t const width_bytes, std::size_t const height,
          Role const role) -> Asset {
-  return Asset{ .id          = std::move(id),
-                .file        = file,
-                .group       = group,
-                .at          = at,
-                .layout      = layout,
-                .width_bytes = static_cast<unsigned>(width_bytes),
-                .height      = static_cast<unsigned>(height),
-                .role        = role,
-                .palette     = "main/day" };
+  return Asset{ .id              = std::move(id),
+                .file            = file,
+                .group           = group,
+                .at              = at,
+                .mask_at         = 0,
+                .layout          = layout,
+                .width_bytes     = static_cast<unsigned>(width_bytes),
+                .height          = static_cast<unsigned>(height),
+                .role            = role,
+                .palette         = "main/day",
+                .ink             = 0,
+                .ink_where_clear = false,
+                .side_coloured   = false,
+                .hour_coloured   = false,
+                .animation       = {},
+                .frame           = 0,
+                .use             = {} };
 }
 
 auto AddTiles(Builder& out) -> void {
