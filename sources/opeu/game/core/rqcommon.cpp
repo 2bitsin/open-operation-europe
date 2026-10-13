@@ -102,30 +102,6 @@ uint16_t opeu_side_has_city(Game const& game) {
   return 0;
 }
 
-uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<RequestMenuService>(id)) {
-  case RequestMenuService::PENDING:       r = opeu_request_pending(game, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(game, Arg(args, count, 0)); break;
-  case RequestMenuService::FILE:          FileRequest(game, { Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)) }); break;
-  case RequestMenuService::MESSAGE:       opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestMenuService::TITLE:         opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case RequestMenuService::DELAY_DIALOG: r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case RequestMenuService::FORMAT:       opeu_request_format(game, { args, count }); break;
-  case RequestMenuService::CONFIRM:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestMenuService::FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::SHOW:         opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
-  case RequestMenuService::PICK:         r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case RequestMenuService::POSITION:     opeu_army_position(game, (TextHost*)port_textout_host(), (short)Arg(args, count, 0), (short)Arg(args, count, 1)); break;
-  case RequestMenuService::PRINT:        opeu_cursor_print(game, { args, count }); break;
-  case RequestMenuService::MODE_IS:      r = opeu_request_mode_is(game, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::HAS_CITY:     r = opeu_side_has_city(game); break;
-  case RequestMenuService::FAR_CALL:     r = (uint16_t)port_call(game, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:                               port_unhandled(module, id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_request_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_request_finish(game);
   return 0;

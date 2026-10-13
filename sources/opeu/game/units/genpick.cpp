@@ -145,7 +145,7 @@ void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint
   auto const  first_column{ static_cast<std::uint8_t>(TableColumnLayout(game, static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row)).lead) };
   if (flags & 3) {
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(row_width() + first_column + window.x - 0x1f), static_cast<int16_t>(window.y + 1));
-    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+    opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(HEADER) });
   }
   for (std::uint8_t index{ first }; index <= last; ++index) {
@@ -155,12 +155,12 @@ void opeu_general_list_draw_rows(Game& game, uint8_t column, uint8_t first, uint
     auto const y{ (index - data.list_top) * ROW_HEIGHT + window.y + 0x12 };
     if (flags & 5) {
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 3), static_cast<int16_t>(y));
-      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+      opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(person) });
     }
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(row_width() + first_column + window.x - 0x1e), static_cast<int16_t>(y));
     if (HasPost(general))
-      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+      opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
     else
       opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), GREY);
     opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(STATS_FORMAT), static_cast<std::uint16_t>(general.leadership), static_cast<std::uint16_t>(general.charm),

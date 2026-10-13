@@ -4,5 +4,5 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_army_heading(Game& game, SideColorEvent color_event, uint16_t person);
+void opeu_army_heading(Game& game, uint16_t person);
 void opeu_division_heading(Game& game, uint16_t person);

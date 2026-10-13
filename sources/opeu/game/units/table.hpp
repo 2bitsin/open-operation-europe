@@ -35,7 +35,7 @@ inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const
   auto const& data{ Data(game) };
   opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format) });
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(window.y + 1));
-  opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+  opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
   opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));
 }
 
@@ -51,7 +51,7 @@ inline auto DrawRowText(Game& game, ListWindow const& window, TableColumns const
 inline auto StartRowName(Game& game, ListWindow const& window, std::uint8_t entry, std::uint16_t indent, std::uint8_t side) -> void {
   auto const& data{ Data(game) };
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + indent), static_cast<int16_t>(RowY(data, window, entry)));
-  opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+  opeu_select_side_color(game, static_cast<uint8_t>(side));
 }
 
 } // namespace opeu::game::detail::unit_table

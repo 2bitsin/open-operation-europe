@@ -50,7 +50,7 @@ void opeu_process_selected_turn(Game& game) {
   if (schedule & Bits(ScheduleFlag::MONTHLY)) opeu_turn_daily(game, svc_daily);
   if (schedule & Bits(ScheduleFlag::HALF_DAY)) opeu_turn_half_day(game);
   if (schedule & Bits(ScheduleFlag::HOURLY)) {
-    opeu_turn_hourly_a(game, svc_msntick);
+    opeu_turn_hourly_a(game);
     opeu_turn_hourly_b(game);
     opeu_turn_hourly_c(game, svc_influenc);
   }

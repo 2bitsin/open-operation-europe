@@ -26,6 +26,6 @@ void opeu_turn_half_day(Game& game) {
     opeu_apply_daily_side_resources(game);
   else if (data.hour == 12) {
     opeu_decrement_record_counters(game);
-    opeu_turn_noon_events(game, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, NOON_CODE_SEGMENT);
+    opeu_turn_noon_events(game, port_far(FAR_TEXT_SEGMENT, 0), NOON_CODE_SEGMENT);
   }
 }

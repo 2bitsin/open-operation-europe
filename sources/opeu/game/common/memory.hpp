@@ -35,12 +35,6 @@ inline auto Call(Game& game, Event event, Service service, Words... words) {
   }
 }
 
-// Calls a service whose event takes four argument words (PendingEvent); missing words are 0.
-template <typename Event, typename Service>
-inline auto CallWords(Game& game, Event event, Service service, std::uint16_t a = 0, std::uint16_t b = 0, std::uint16_t c = 0, std::uint16_t d = 0) -> std::uint16_t {
-  return event(game, static_cast<std::uint16_t>(service), a, b, c, d);
-}
-
 // The DS bytes a routine reserves on the DS stack for its locals whose near address it hands to a service: the
 // service reads and writes them in the data segment. Only those locals live here (#13 gives the services typed
 // parameters and removes it); every other local is a C++ local.
@@ -72,7 +66,6 @@ private:
 namespace opeu::game {
 using detail::memory::BACKGROUND_SEGMENT;
 using detail::memory::Call;
-using detail::memory::CallWords;
 using detail::memory::DATA_SEGMENT;
 using detail::memory::FRAME_SEGMENT;
 using detail::memory::PATH_SEGMENT;

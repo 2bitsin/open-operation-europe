@@ -12,9 +12,12 @@
 #include "types.hpp"
 #include "units/stats.hpp"
 
+#include <array>
+
 #include "common/game.hpp"
 #include "core/msnkill.hpp"
 #include "link/glue.hpp"
+#include "link/link.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
@@ -38,14 +41,15 @@ uint16_t opeu_mission_target_valid(Game& game, uint16_t mission, uint8_t side) {
 
 // Each side's mission under way counts down an hour while its target stands and, at zero, runs; a mission whose
 // target is gone is called off.
-void opeu_mission_tick(Game& game, HostEvent event) {
+void opeu_mission_tick(Game& game) {
   for (uint8_t side = 0; side < SIDE_COUNT; side++) {
     auto& mission{ Data(game).sides[side].order };
     if (mission.kind == Bits(MissionKind::NONE)) continue;
     if (opeu_mission_target_valid(game, Near(Data(game), mission), side)) {
       if (--mission.progress == 0) {
-        auto const& handler{ Data(game).mission_handlers[mission.kind] };
-        Call(game, event, MISSION_HANDLER, handler.offset, handler.segment, side);
+        auto const&                   handler{ Data(game).mission_handlers[mission.kind] };
+        std::array<uint16_t, 1> const words{ side };
+        port_call(game, static_cast<uint32_t>(handler.segment) * 16u + handler.offset, words.data(), words.size());
         mission.kind = Bits(MissionKind::NONE);
       }
     } else
@@ -54,13 +58,9 @@ void opeu_mission_tick(Game& game, HostEvent event) {
 }
 
 // The weather, the turn's preparation, the air operations and the special-forces missions.
-void opeu_turn_hourly_a(Game& game, HostEvent event) {
+void opeu_turn_hourly_a(Game& game) {
   opeu_weather_update(game);
   opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
   opeu_air_operations(game);
-  opeu_mission_tick(game, event);
-}
-
-uint16_t svc_msntick(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_mission("msntick", game, id, args, count);
+  opeu_mission_tick(game);
 }

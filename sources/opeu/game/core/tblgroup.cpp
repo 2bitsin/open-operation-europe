@@ -51,14 +51,14 @@ void opeu_tbl_draw_groups(Game& game, HostEvent event, uint8_t column, uint8_t f
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.tbl_group_header)) });
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x20)), static_cast<int16_t>(window.y + 1));
-    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+    opeu_select_side_color(game, static_cast<uint8_t>(side));
     opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_title)), static_cast<std::uint16_t>(buffer) });
   }
   for (std::uint8_t g = first; g <= last; ++g) {
     auto const& group{ GroupOf(data, side, g) };
     if (flags & DRAW_LABELS) {
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 2), static_cast<int16_t>(RowY(data, window, g)));
-      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+      opeu_select_side_color(game, static_cast<uint8_t>(side));
       if (group.flags & Bits(GroupFlag::READY)) {
         if (group.flags & Bits(GroupFlag::SELECTED)) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_mark)) });
         opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_group_division)), static_cast<std::uint16_t>(g + 1) });
@@ -98,14 +98,14 @@ void opeu_tbl_draw_missions(Game& game, HostEvent event, uint8_t column, uint8_t
   auto const  side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(0x26), static_cast<int16_t>(0x81));
-    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+    opeu_select_side_color(game, static_cast<uint8_t>(side));
     opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.tbl_mission_header)) });
   }
   auto const& tasks{ GroupOf(data, side, data.current_group).tasks };
   for (std::uint8_t m = first; m <= last; ++m) {
     auto const& task{ tasks[m] };
     if (flags & DRAW_LABELS) {
-      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(side));
+      opeu_select_side_color(game, static_cast<uint8_t>(side));
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 2), static_cast<int16_t>(RowY(data, window, m)));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_mission_label)), static_cast<std::uint16_t>(m + 1) });
     }
@@ -138,7 +138,7 @@ uint16_t svc_table(Game& game, const char* module, uint16_t id, const uint16_t* 
   case POSITION:     opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
   case FORMAT:       opeu_request_format(game, { args, count }); break;
   case TEXT_COLOR:   opeu_text_color(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case SIDE_COLOR:   opeu_select_side_color(game, svc_sideutil, (uint8_t)Arg(args, count, 0)); break;
+  case SIDE_COLOR:   opeu_select_side_color(game, (uint8_t)Arg(args, count, 0)); break;
   case UI_TEXT:      opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
   case PRINT:        opeu_cursor_print(game, { args, count }); break;
   case PUT_RANGE:    opeu_text_put_range(game, (TextHost*)port_textout_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;

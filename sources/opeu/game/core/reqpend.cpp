@@ -17,21 +17,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <utility>
 
 using namespace opeu::game;
 
 namespace {
-
-// The services the pending-request routines call through their event.
-enum class PendingService : uint16_t {
-  SHOW         = 0, // opeu_daily_show(id, side, present offset, present segment)
-  MESSAGE_TEXT = 1, // opeu_message_lookup(id) -> near pointer of the text
-  FORMAT       = 2, // request_format(destination, format, name)
-  MESSAGE      = 3, // opeu_control_message(text, person)
-  PREPARE      = 4, // opeu_pending_prepare
-  FINISH       = 5, // opeu_pending_finish(value)
-};
 
 // The far addresses of opeu_pending_start_present and opeu_pending_fallback_present, which SHOW calls back.
 constexpr uint16_t PRESENT_SEGMENT{ 0x1270 };
@@ -45,11 +36,12 @@ constexpr uint16_t REFUSED_MESSAGE{ 65 };
 constexpr uint16_t REFUSAL_COUNT{ 7 };
 
 // Formats message `id` with the name of the pending request's kind into the request buffer.
-void FormatPending(Game& game, PendingEvent event, uint16_t id) {
-  auto&      data{ Data(game) };
-  auto const name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const text{ opeu_message_lookup(game, static_cast<short>(id)) };
-  CallWords(game, event, PendingService::FORMAT, offsetof(DataSegment, request_buffer), text, name);
+void FormatPending(Game& game, uint16_t id) {
+  auto&                         data{ Data(game) };
+  auto const                    name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
+  auto const                    text{ opeu_message_lookup(game, static_cast<short>(id)) };
+  std::array<uint16_t, 3> const words{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)), text, name };
+  opeu_request_format(game, words);
 }
 
 // Shows the request buffer from the side's chief of staff; it closes by itself when no side is played by a person.
@@ -62,9 +54,9 @@ void ShowPending(Game& game) {
 } // namespace
 
 // The daily dialog's report that the pending request was accepted.
-void opeu_pending_start_present(Game& game, PendingEvent event) {
+void opeu_pending_start_present(Game& game) {
   opeu_pending_prepare(game);
-  FormatPending(game, event, ACCEPTED_MESSAGE);
+  FormatPending(game, ACCEPTED_MESSAGE);
   ShowPending(game);
 }
 
@@ -85,8 +77,8 @@ void opeu_request_start(Game& game, uint8_t side, uint16_t request) {
 }
 
 // The daily dialog's report that the pending request was turned down, in one of seven wordings.
-void opeu_pending_fallback_present(Game& game, PendingEvent event) {
-  FormatPending(game, event, REFUSED_MESSAGE + RandomBelow(game, REFUSAL_COUNT));
+void opeu_pending_fallback_present(Game& game) {
+  FormatPending(game, REFUSED_MESSAGE + RandomBelow(game, REFUSAL_COUNT));
   opeu_pending_prepare(game);
   ShowPending(game);
 }
@@ -101,30 +93,12 @@ void opeu_request_fallback(Game& game, uint8_t side, uint16_t request) {
   slot.kind = std::to_underlying(RequestKind::NONE);
 }
 
-uint16_t svc_reqpend(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
-  uint16_t r = 0;
-  switch (static_cast<PendingService>(id)) {
-  case PendingService::SHOW:         opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), a, (uint8_t)b, (uint32_t)d << 16 | c); break;
-  case PendingService::MESSAGE_TEXT: r = opeu_message_lookup(game, (short)a); break;
-  case PendingService::FORMAT:       {
-    uint16_t const words[]{ a, b, c };
-    opeu_request_format(game, { words, 3 });
-    break;
-  }
-  case PendingService::MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), a, b); break;
-  case PendingService::PREPARE: opeu_pending_prepare(game); break;
-  case PendingService::FINISH:  opeu_pending_finish(game, (uint8_t)a); break;
-  default:                      port_unhandled("reqpend", id, 4);
-  }
-  return r;
-}
-
 auto port_routine_opeu_pending_fallback_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_pending_fallback_present(game, svc_reqpend);
+  opeu_pending_fallback_present(game);
   return 0;
 }
 
 auto port_routine_opeu_pending_start_present(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_pending_start_present(game, svc_reqpend);
+  opeu_pending_start_present(game);
   return 0;
 }

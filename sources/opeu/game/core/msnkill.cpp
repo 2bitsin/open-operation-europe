@@ -115,38 +115,6 @@ void opeu_mission_assassinate(Game& game, uint8_t side) {
   opeu_mission_report_failure(game, side, text);
 }
 
-// The services of the mission routines (MissionService).
-uint16_t svc_mission(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0, words[1];
-  switch (id) {
-  case MISSION_RANDOM:     r = port_rand_bounded(game, Arg(args, count, 0)); break;
-  case MISSION_TEXT:       r = opeu_message_lookup(game, (short)Arg(args, count, 0)); break;
-  case MISSION_FORMAT:     opeu_request_format(game, { args, count }); break;
-  case MISSION_MESSAGE:    opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MISSION_DAILY_SHOW: opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
-  case MISSION_FLASH:      opeu_location_flash(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case MISSION_UNIT_NAME:  r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MISSION_OBJECTIVE_DAMAGE:
-    opeu_objective_damage(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5), Arg(args, count, 6));
-    break;
-  case MISSION_CASUALTIES:     opeu_unit_casualties(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
-  case MISSION_TURN_CONTEXT:   opeu_set_turn_context(game, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_FINISH_SIDE:    opeu_finish_side_initialization(game, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_DEPUTY:         opeu_initialize_deputy(game, Arg(args, count, 0)); break;
-  case MISSION_PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_DELAY_UNITS:    opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case MISSION_WEATHER:        opeu_weather_update(game); break;
-  case MISSION_TURN_PREPARE:   opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case MISSION_AIR_OPERATIONS: opeu_air_operations(game); break;
-  case MISSION_HANDLER:
-    words[0] = Arg(args, count, 2);
-    port_call(game, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), words, 1);
-    break;
-  default: port_unhandled(module, id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_mission_assassinate(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   opeu_mission_assassinate(game, (uint8_t)Arg(args, count, 0));
   return 0;

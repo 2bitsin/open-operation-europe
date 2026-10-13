@@ -42,7 +42,7 @@ void opeu_request_header(Game& game) {
 // preparation) or has filed gets a row: the destination, type and wait of the one under preparation, or the filed
 // one. A choice that is under preparation is refused; supplies and battalions need a city of the side. The chosen
 // request's routine runs, and the menu returns until the side's turn is used up.
-void opeu_turn_action_7(Game& game, HostEvent event) {
+void opeu_turn_action_7(Game& game) {
   auto&       data{ Data(game) };
   auto const& config{ data.request_configs[data.current_side] };
   uint16_t    preparing[CHOICES];
@@ -71,11 +71,11 @@ void opeu_turn_action_7(Game& game, HostEvent event) {
                                                               static_cast<std::uint16_t>(data.element_types[config.argument].name), static_cast<std::uint16_t>(config.delay) });
       } else {
         // The row prints the type's name; the whole type record is passed by value, as seven words.
-        auto const& request{ filed(RequestKind::BATTALION) };
-        auto const  type_at{ Near(data, data.element_types[request.argument]) };
-        uint16_t    words[2 + TYPE_RECORD_WORDS]{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)), request.target };
+        auto const&                                 request{ filed(RequestKind::BATTALION) };
+        auto const                                  type_at{ Near(data, data.element_types[request.argument]) };
+        std::array<uint16_t, 2 + TYPE_RECORD_WORDS> words{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)), request.target };
         for (uint16_t i = 0; i < TYPE_RECORD_WORDS; ++i) words[2 + i] = Word(game, static_cast<uint16_t>(type_at + 2 * i));
-        event(game, std::to_underlying(RequestMenuService::PRINT), words, static_cast<uint16_t>(std::size(words)));
+        opeu_cursor_print(game, words);
       }
       rows++;
     }
@@ -106,11 +106,7 @@ void opeu_turn_action_7(Game& game, HostEvent event) {
   } while (data.side_delays[data.current_side] == 0);
 }
 
-uint16_t svc_rqmenu(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_request("rqmenu", game, id, args, count);
-}
-
 auto port_routine_opeu_turn_action_7(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_7(game, svc_rqmenu);
+  opeu_turn_action_7(game);
   return 0;
 }

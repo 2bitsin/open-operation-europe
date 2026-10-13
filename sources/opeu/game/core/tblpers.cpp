@@ -53,7 +53,7 @@ void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t fi
     auto const header{ opeu_message_lookup(game, static_cast<int16_t>(HEADER_MESSAGE)) };
     opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(header) });
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, columns, -0x1f)), static_cast<int16_t>(window.y + 1));
-    opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(data.current_side));
+    opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
     opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), buffer, static_cast<uint8_t>(columns.start), static_cast<uint8_t>(columns.count));
   }
   for (std::uint8_t e = first; e <= last; ++e) {
@@ -61,7 +61,7 @@ void opeu_tbl_draw_staff(Game& game, HostEvent event, uint8_t column, uint8_t fi
     auto const& person{ Record<Person>(data, near) };
     if (flags & DRAW_LABELS) {
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 3), static_cast<int16_t>(RowY(data, window, e)));
-      opeu_select_side_color(game, svc_sideutil, static_cast<uint8_t>(opeu_person_lacks_side0_flag(game, near)));
+      opeu_select_side_color(game, static_cast<uint8_t>(opeu_person_lacks_side0_flag(game, near)));
       opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_person_name)), static_cast<std::uint16_t>(near) });
     }
     auto post{ Near(data, data.tbl_person_blank) };

@@ -30,8 +30,8 @@ uint8_t opeu_side_for_status(Game const& game, uint8_t side) {
   return Data(game).side_status[side] == SIDE_PLAYED ? side : opeu_opposite_side(side);
 }
 
-void opeu_select_side_color(Game& game, SideColorEvent event, uint8_t side) {
-  event(game, side ? SIDE1_COLOR : SIDE0_COLOR);
+void opeu_select_side_color(Game& game, uint8_t side) {
+  opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), side ? SIDE1_COLOR : SIDE0_COLOR);
 }
 
 // 0 when the element type at near pointer record is fielded by side 0's nations, else 1.
@@ -39,9 +39,4 @@ uint8_t opeu_record_side(Game const& game, uint16_t record) {
   auto const& data{ Data(game) };
   if (data.side_masks[0] & Record<ElementType>(data, record).sides) return 0;
   return 1;
-}
-
-// The colour service of opeu_select_side_color: sets the text colour.
-void svc_sideutil(Game& game, uint16_t color) {
-  opeu_text_color(game, (TextHost*)port_textout_host(), color);
 }

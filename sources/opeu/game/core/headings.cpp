@@ -29,13 +29,13 @@ constexpr std::uint16_t COLOR_WHITE{ 7 };
 
 } // namespace
 
-void opeu_army_heading(Game& game, SideColorEvent color_event, uint16_t person) {
+void opeu_army_heading(Game& game, uint16_t person) {
   auto const& data{ Data(game) };
   opeu_ui_fill(6, 0, 73, 50, 0);
   opeu_ui_outline(game, static_cast<const UiHost*>(port_uiprim_host()), 6, 0, 73, 51, COLOR_WHITE);
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(1), static_cast<int16_t>(2));
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), data.side_names[data.current_side]);
-  opeu_select_side_color(game, color_event, data.current_side);
+  opeu_select_side_color(game, data.current_side);
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(1), static_cast<int16_t>(18));
   opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(ARMY_PERSON), static_cast<std::uint16_t>(SideTextColor(data.current_side)), static_cast<std::uint16_t>(person) });
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(1), static_cast<int16_t>(34));

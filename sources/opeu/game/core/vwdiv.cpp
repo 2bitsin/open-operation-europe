@@ -59,7 +59,7 @@ void opeu_view_division_contact(Game& game) {
       auto const units{ Near(data, data.units[(division + data.current_side * GROUPS_PER_SIDE) * UNITS_PER_GROUP]) };
       auto const army{ opeu_find_side_record(game, static_cast<std::uint8_t>(data.current_side), static_cast<std::uint8_t>(ARMY_RECORD_KIND)) };
       auto const commander{ opeu_find_group_record(game, static_cast<std::uint8_t>(data.current_side), static_cast<std::uint8_t>(division)) };
-      opeu_army_heading(game, svc_sideutil, army);
+      opeu_army_heading(game, army);
       opeu_division_heading(game, commander);
       opeu_division_regiments(game, static_cast<std::uint16_t>(units), commander);
       opeu_division_credits(game);
