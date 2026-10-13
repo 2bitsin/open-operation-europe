@@ -112,7 +112,7 @@ uint16_t opeu_battle_fire_defense(uint8_t* ds, BattleEvent event, uint16_t eleme
   auto           value{ static_cast<uint16_t>(e.training - e.experience + e.morale + skill_7 + grade + skill_2 + CONDITION_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ SideOf(ds, event, element) };
-  auto const bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, data.side_control[side] == 0 ? data.delivery_level + 1 : 1) };
+  auto const bonus{ Call(ds, event, BattleRoutine::RAND_BOUNDED, data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1) };
   return static_cast<uint16_t>(Mul16(Record<Person>(data, record).leadership / 70 * lead + 1, value) + bonus + 1);
 }
 

@@ -4,6 +4,7 @@
 // its cost returned.
 #include "map/toward.hpp"
 #include "common/data-segment.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "map/stepmap.hpp"
 #include "types.hpp"
@@ -14,7 +15,6 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint16_t PATH_COSTS{ 0x0c80 }; // the cost words in the far data
-constexpr uint8_t  DIRECTIONS{ 8 };
 
 [[nodiscard]] auto PathCost(const uint8_t* far_data, uint8_t x, uint8_t y) -> uint16_t {
   auto const at{ PATH_COSTS + (y * MAP_WIDTH + x) * 2 };
@@ -29,7 +29,7 @@ uint16_t opeu_grid_step_toward(uint8_t* ds, const uint8_t* far_data, uint16_t x,
   uint16_t   best_cost{ 0xffff };
   uint8_t    best_x{ Byte(ds, x) };
   uint8_t    best_y{ Byte(ds, y) };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
     uint8_t next_x{ Byte(ds, x) };
     uint8_t next_y{ Byte(ds, y) };
     if (!opeu_grid_step(&next_x, &next_y, direction)) continue;

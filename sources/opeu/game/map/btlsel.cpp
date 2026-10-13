@@ -7,6 +7,7 @@
 #include "common/battle-routine.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "map/btlcmds.hpp"
 #include "map/btlcurs.hpp"
@@ -26,8 +27,6 @@ constexpr uint16_t MOUSE_X_AT{ 2 };
 constexpr uint16_t MOUSE_Y_AT{ 0 };
 // The column of a pointer outside the battle map.
 constexpr int16_t OFF_MAP{ 14 };
-constexpr uint8_t KEY_ENTER{ 0x0d };
-constexpr uint8_t KEY_ESCAPE{ 0x1b };
 } // namespace
 
 uint16_t opeu_battle_mouse_select(uint8_t* ds, BattleEvent event, uint16_t show_info) {

@@ -10,7 +10,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t  NO_SIDE{ 255 };
 constexpr uint16_t BORDER_MODE{ 0x20f };
 constexpr uint16_t IMAGE_MODE{ 0x300 }; // added to the caller's mode
 constexpr uint16_t HIGHLIGHT_MODE{ 7 };

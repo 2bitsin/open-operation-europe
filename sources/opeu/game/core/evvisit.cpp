@@ -3,6 +3,7 @@
 // and on open ground of the side's influence. A visitor chats with him and his ratings rise.
 #include "core/evvisit.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/perssel.hpp"
@@ -59,8 +60,6 @@ constexpr std::uint16_t SHOWN{ 1 };       // DataSegment::side_status of a side 
 constexpr std::uint8_t  COMMANDER{ 1 };   // the side record kind of the commander
 constexpr std::uint8_t  VISITOR{ 4 };     // the person template kind of the visitor
 constexpr std::uint8_t  OPEN_GROUND{ 1 }; // the map code of a cell the visit happens on
-constexpr std::uint8_t  NO_SIDE{ 0xff };
-constexpr std::uint8_t  DIRECTIONS{ 8 };
 constexpr std::uint8_t  MIN_HEALTH{ 30 };
 constexpr std::uint16_t MAX_RATING{ 99 };
 
@@ -73,7 +72,7 @@ auto Raise(std::uint8_t* ds, std::uint8_t& rating) -> void {
 uint16_t opeu_visit_unit_safe(uint8_t ds[65536], uint16_t unit) {
   auto const& record{ Record<Unit>(Data(ds), unit) };
   auto const  enemy{ opeu_opposite_side(opeu_unit_side(unit)) };
-  for (std::uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+  for (std::uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
     std::uint8_t x{ record.x };
     std::uint8_t y{ record.y };
     if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(ds, x, y) == enemy && opeu_unit_special(ds, opeu_find_unit_at(ds, x, y))) return 0;

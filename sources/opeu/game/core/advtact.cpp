@@ -2,6 +2,7 @@
 // advice that applies, written into the tactics topic's buffer.
 #include "core/advtact.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "types.hpp"
 
 #include "common/advice.hpp"
@@ -33,7 +34,6 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t  DIRECTIONS{ 8 };
 constexpr std::uint8_t  CITY_LEVEL{ 4 };   // the objective level the officer worries about
 constexpr std::uint16_t CHEAP_UNIT{ 300 }; // a unit worth at most this is weak
 constexpr std::uint16_t LOW_SUPPLY{ 20 };  // percent
@@ -75,7 +75,7 @@ uint16_t opeu_advice_tactical_objective_threat(uint8_t ds[65536], const uint8_t*
     bool const ours{ opeu_objective_side(ds, near) == side };
     if (ours ? data.side_stance[side] != 0 : data.side_stance[side] != Bits(Stance::OFFENSIVE)) continue;
     if (!ours && opeu_cell_influence_side(ds, objective.x, objective.y) != side) continue;
-    for (std::uint8_t d{ 0 }; d < DIRECTIONS; ++d) {
+    for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
       std::uint8_t x{ objective.x };
       std::uint8_t y{ objective.y };
       if (!opeu_grid_step(&x, &y, d)) continue;
@@ -105,7 +105,7 @@ uint16_t opeu_advice_tactical_command(uint8_t ds[65536], const uint8_t* far_text
   auto const&  selected{ Record<Unit>(data, opeu_find_side_selected_unit(ds, side)) };
   std::uint8_t own{ 1 };
   std::uint8_t enemy{ 0 };
-  for (std::uint8_t d{ 0 }; d < DIRECTIONS; ++d) {
+  for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
     std::uint8_t x{ selected.x };
     std::uint8_t y{ selected.y };
     if (!opeu_grid_step(&x, &y, d)) continue;
@@ -154,7 +154,7 @@ uint16_t opeu_advice_tactical_unit_deployment(uint8_t ds[65536], const uint8_t* 
       auto const   near{ Near(data, unit) };
       std::uint8_t own{ 1 };
       std::uint8_t enemy{ 0 };
-      for (std::uint8_t d{ 0 }; d < DIRECTIONS; ++d) {
+      for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
         std::uint8_t x{ unit.x };
         std::uint8_t y{ unit.y };
         if (!opeu_grid_step(&x, &y, d)) continue;

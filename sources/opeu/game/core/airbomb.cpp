@@ -4,6 +4,7 @@
 // all the air force's commands.
 #include "core/airbomb.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/airhelp.hpp"
 #include "core/limits.hpp"
 #include "map/grid.hpp"
@@ -53,7 +54,6 @@ constexpr std::uint16_t BOMB_TITLE{ offsetof(DataSegment, bombing_title) };
 constexpr std::uint16_t SITE_PROMPT{ offsetof(DataSegment, bombing_site_prompt) };
 constexpr std::uint16_t TYPE_MENU{ offsetof(DataSegment, bombing_menu) };
 
-constexpr std::uint16_t CANCELED{ 0xffff };
 constexpr std::uint8_t  CITY_TERRAIN{ 1 };
 constexpr std::uint16_t TEXT_BYTES{ 0x66 }; // the announcement's text, which the format service writes
 // The site picked, which the pick service writes: offsets in opeu_air_bomb_command's reserve.
@@ -175,7 +175,7 @@ void opeu_air_bomb_command(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, MESSAGE, SITE_PROMPT, data.context_record3);
   if (!Call(ds, event, PICK, at_x, at_y)) return;
   auto type{ Call(ds, event, DIALOG, Call(ds, event, LOOKUP, CHOOSE_TYPE), 3, data.context_record3, TYPE_MENU) };
-  if (type == CANCELED) return;
+  if (type == MENU_CANCELLED) return;
   --type;
   if (!Call(ds, event, CONFIRM, Call(ds, event, LOOKUP, CONFIRM_MISSION), data.context_record3)) return;
   if (!opeu_air_bomb_check(ds, event, opeu_map_code(ds, site_x, site_y) == CITY_TERRAIN, type) || opeu_air_bomb_order(ds, event, site_x, site_y, type)) data.side_delays[data.current_side] = 1;

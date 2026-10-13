@@ -85,19 +85,15 @@ enum Finish : std::uint16_t {
   ARMS_REPAIRED_FINISH = 0x03ba,
 };
 
-auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
-  return Call(ds, event, std::to_underlying(service), words...);
-}
-
 // The engineering skill roll, computed in 16-bit words of which the low byte is kept. The services are called in the
 // order general, random bound, engineer count, average10, average11.
 auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t person, std::uint16_t bound, std::uint16_t leadership_divisor, std::uint16_t engineer_divisor, std::uint16_t bonus) -> std::uint8_t {
   auto&               data{ Data(ds) };
-  std::uint16_t const random{ Send(ds, event, RAND_BOUNDED, bound) };
+  std::uint16_t const random{ Call(ds, event, RAND_BOUNDED, bound) };
   ServiceLocals const count{ 2 };
-  std::uint16_t const engineers{ Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), count.At(0)) };
-  std::uint16_t const average10{ Send(ds, event, UNIT_AVERAGE10, data.current_unit_ptr) };
-  std::uint16_t const average11{ Send(ds, event, UNIT_AVERAGE11, data.current_unit_ptr) };
+  std::uint16_t const engineers{ Call(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::ENGINEERS), count.At(0)) };
+  std::uint16_t const average10{ Call(ds, event, UNIT_AVERAGE10, data.current_unit_ptr) };
+  std::uint16_t const average11{ Call(ds, event, UNIT_AVERAGE11, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / leadership_divisor - engineers / engineer_divisor + random
                                    + bonus);
 }
@@ -105,30 +101,30 @@ auto SkillRoll(std::uint8_t* ds, HostEvent event, std::uint16_t person, std::uin
 // Lowers the current order's progress by the roll; nonzero when it runs out. The regiment is read after the roll.
 auto LowerProgress(std::uint8_t* ds, HostEvent event, std::uint8_t roll) -> std::uint16_t {
   auto& data{ Data(ds) };
-  return Send(ds, event, LEVEL_LOWER, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), roll);
+  return Call(ds, event, LEVEL_LOWER, Near(data, Record<Unit>(data, data.current_unit_ptr).orders[0]), roll);
 }
 
 auto Show(std::uint8_t* ds, HostEvent event, Picture picture, Finish finish) -> void {
-  Send(ds, event, DAILY_SHOW, picture, Data(ds).current_side, finish, ENGINEER_SEGMENT);
+  Call(ds, event, DAILY_SHOW, picture, Data(ds).current_side, finish, ENGINEER_SEGMENT);
 }
 
 auto Report(std::uint8_t* ds, HostEvent event, auto const& text) -> void {
   auto& data{ Data(ds) };
-  Send(ds, event, UNIT_REPORT, data.current_unit_ptr, Near(data, text));
+  Call(ds, event, UNIT_REPORT, data.current_unit_ptr, Near(data, text));
 }
 
 auto RestoreOrder(std::uint8_t* ds, HostEvent event) -> void {
-  Send(ds, event, RESTORE_ORDER, Data(ds).current_unit_ptr);
+  Call(ds, event, RESTORE_ORDER, Data(ds).current_unit_ptr);
 }
 } // namespace
 
 uint8_t opeu_mine_skill(uint8_t ds[65536], HostEvent event) {
-  auto const person{ Send(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
+  auto const person{ Call(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
   return SkillRoll(ds, event, person, RollBound(Data(ds)), 45, 96, 8);
 }
 
 void opeu_mines_laid_finish(uint8_t ds[65536], HostEvent event) {
-  Send(ds, event, PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
 // Lays mines at the destination cell unless the side has mined it already or the regiment stands on it.
@@ -137,16 +133,16 @@ uint16_t opeu_engineer_lay_mines(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  Call(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const  x{ Byte(ds, at_x) };
   auto const  y{ Byte(ds, at_y) };
   auto const& regiment{ Record<Unit>(data, data.current_unit_ptr) };
-  if (!Send(ds, event, CELL_MARKED, x, y, data.current_side) && (regiment.x != x || regiment.y != y)) {
-    if (!Send(ds, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(ds, event, opeu_mine_skill(ds, event)) && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
+  if (!Call(ds, event, CELL_MARKED, x, y, data.current_side) && (regiment.x != x || regiment.y != y)) {
+    if (!Call(ds, event, MOVE_ADJACENT, x, y)) return 0;
+    if (LowerProgress(ds, event, opeu_mine_skill(ds, event)) && static_cast<std::uint8_t>(Call(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
       Report(ds, event, data.mines_laid_text);
-      Send(ds, event, MARK_CELL, x, y, data.current_side);
-      Send(ds, event, MAP_ERASE, x, y);
+      Call(ds, event, MARK_CELL, x, y, data.current_side);
+      Call(ds, event, MAP_ERASE, x, y);
       Show(ds, event, MINES_LAID_PICTURE, MINES_LAID_FINISH);
       RestoreOrder(ds, event);
     }
@@ -157,7 +153,7 @@ uint16_t opeu_engineer_lay_mines(uint8_t ds[65536], HostEvent event) {
 }
 
 void opeu_mines_removed_finish(uint8_t ds[65536], HostEvent event) {
-  Send(ds, event, PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
 // Clears the mines of both sides at the destination cell.
@@ -166,16 +162,16 @@ uint16_t opeu_engineer_remove_mines(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  Call(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const x{ Byte(ds, at_x) };
   auto const y{ Byte(ds, at_y) };
-  if (Send(ds, event, CELL_MARKED, x, y, data.current_side)) {
-    if (!Send(ds, event, MOVE_ADJACENT, x, y)) return 0;
+  if (Call(ds, event, CELL_MARKED, x, y, data.current_side)) {
+    if (!Call(ds, event, MOVE_ADJACENT, x, y)) return 0;
     if (LowerProgress(ds, event, opeu_mine_skill(ds, event))) {
       Report(ds, event, data.mines_removed_text);
-      Send(ds, event, UNMARK_CELL, x, y, 0);
-      Send(ds, event, UNMARK_CELL, x, y, 1);
-      Send(ds, event, MAP_ERASE, x, y);
+      Call(ds, event, UNMARK_CELL, x, y, 0);
+      Call(ds, event, UNMARK_CELL, x, y, 1);
+      Call(ds, event, MAP_ERASE, x, y);
       Show(ds, event, MINES_REMOVED_PICTURE, MINES_REMOVED_FINISH);
       RestoreOrder(ds, event);
     }
@@ -186,12 +182,12 @@ uint16_t opeu_engineer_remove_mines(uint8_t ds[65536], HostEvent event) {
 }
 
 uint8_t opeu_bridge_skill(uint8_t ds[65536], HostEvent event) {
-  auto const person{ Send(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
+  auto const person{ Call(ds, event, UNIT_PERSON, Data(ds).current_unit_ptr) };
   return SkillRoll(ds, event, person, RollBound(Data(ds)), 35, 80, 10);
 }
 
 void opeu_bridge_built_finish(uint8_t ds[65536], HostEvent event) {
-  Send(ds, event, PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
 // Builds a bridge over the river at the destination cell.
@@ -200,15 +196,15 @@ uint16_t opeu_engineer_build_bridge(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Send(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  Call(ds, event, ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
   auto const x{ Byte(ds, at_x) };
   auto const y{ Byte(ds, at_y) };
-  if (static_cast<Terrain>(static_cast<std::uint8_t>(Send(ds, event, MAP_CODE, x, y))) == Terrain::RIVER) {
-    if (!Send(ds, event, MOVE_ADJACENT, x, y)) return 0;
-    if (LowerProgress(ds, event, opeu_bridge_skill(ds, event)) && static_cast<std::uint8_t>(Send(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
+  if (static_cast<Terrain>(static_cast<std::uint8_t>(Call(ds, event, MAP_CODE, x, y))) == Terrain::RIVER) {
+    if (!Call(ds, event, MOVE_ADJACENT, x, y)) return 0;
+    if (LowerProgress(ds, event, opeu_bridge_skill(ds, event)) && static_cast<std::uint8_t>(Call(ds, event, CELL_SIDE, x, y)) == NO_SIDE) {
       Report(ds, event, data.bridge_built_text);
-      Send(ds, event, MAP_MARK_BRIDGE, x, y);
-      Send(ds, event, MAP_ERASE, x, y);
+      Call(ds, event, MAP_MARK_BRIDGE, x, y);
+      Call(ds, event, MAP_ERASE, x, y);
       Show(ds, event, BRIDGE_PICTURE, BRIDGE_BUILT_FINISH);
       RestoreOrder(ds, event);
     }
@@ -234,7 +230,7 @@ uint16_t opeu_arms_repair(uint8_t ds[65536], uint16_t& budget, uint16_t body) {
 }
 
 void opeu_arms_repaired_finish(uint8_t ds[65536], HostEvent event) {
-  Send(ds, event, PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
 // Repairs the arms of the own objective at the destination; the order ends when nothing is left to repair.
@@ -242,18 +238,18 @@ uint16_t opeu_engineer_repair_objective(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const counts{ 2 };
   auto const          crews{ counts.At(0) };
-  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
+  if (!Call(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
   ServiceCell const target;
   auto const        at_x{ target.XAt() };
   auto const        at_y{ target.YAt() };
-  auto const        objective{ Send(ds, event, MOVE_OBJECTIVE_TARGET, at_x, at_y, data.current_side) };
+  auto const        objective{ Call(ds, event, MOVE_OBJECTIVE_TARGET, at_x, at_y, data.current_side) };
   if (!objective) return 1;
-  if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
+  if (!Call(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(Call(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
   bool repaired{ false };
   for (auto& item : Record<Objective>(data, objective).items)
     if (item.quantity && opeu_arms_repair(ds, budget, Near(data, item))) repaired = true;
@@ -270,18 +266,18 @@ uint16_t opeu_engineer_repair_unit(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   ServiceLocals const counts{ 2 };
   auto const          crews{ counts.At(0) };
-  if (!Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
+  if (!Call(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews)) {
     RestoreOrder(ds, event);
     return 1;
   }
   ServiceCell const target;
   auto const        at_x{ target.XAt() };
   auto const        at_y{ target.YAt() };
-  auto const        unit{ Send(ds, event, MOVE_UNIT_TARGET, at_x, at_y) };
+  auto const        unit{ Call(ds, event, MOVE_UNIT_TARGET, at_x, at_y) };
   if (!unit) return 1;
-  if (!Send(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
+  if (!Call(ds, event, MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   Record<Unit>(data, data.current_unit_ptr).orders[0].progress = 0;
-  auto budget{ static_cast<std::uint16_t>(Send(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
+  auto budget{ static_cast<std::uint16_t>(Call(ds, event, UNIT_QUANTITY, data.current_unit_ptr, Bits(Category::REPAIR), crews) / 10 + 1) };
   bool repaired{ false };
   for (auto element{ Record<Unit>(data, unit).first }; element; element = Record<Element>(data, element).next)
     if (opeu_arms_repair(ds, budget, Near(data, Record<Element>(data, element).type))) repaired = true;

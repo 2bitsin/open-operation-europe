@@ -15,7 +15,6 @@ enum class InspectService : uint16_t {
   HIGHLIGHT_VIEW     = 0, // x, y
   HIGHLIGHT_OVERVIEW = 1, // x, y
 };
-constexpr uint8_t NO_SIDE{ 255 };
 } // namespace
 
 void opeu_map_inspect(uint8_t* ds, HostEvent event, uint8_t x, uint8_t y) {

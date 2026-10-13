@@ -37,7 +37,7 @@ void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t element) {
   ServiceLocals const locals{ REPORT_TEXT_BYTES };
   auto const          buffer{ locals.At(0) };
   auto const          side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
-  if (data.side_status[side] == 0) return;
+  if (data.side_status[side] == SIDE_COMPUTER) return;
   Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), side ? SIDE_1_COLOR : SIDE_0_COLOR, data.side_names[side],
        data.element_types[Record<Element>(data, element).type].name);
   Append(ds, buffer, Near(data, data.retreat_mines_text));

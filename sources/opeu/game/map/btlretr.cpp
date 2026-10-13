@@ -31,8 +31,6 @@ namespace {
 // BATTLE_UNIT_DIRECTION of a unit standing on the battle cell; the battle direction before any retreat.
 constexpr uint8_t AT_BATTLE{ 9 };
 constexpr uint8_t NO_DIRECTION{ 0xff };
-constexpr uint8_t DIRECTIONS{ 8 };
-constexpr uint8_t IMPASSABLE{ 0xff };
 constexpr uint8_t MOVE_CLASSES{ 5 }; // move_costs columns
 
 // The unit's slot in its division: its index in units (signed 16-bit division), low three bits.
@@ -90,7 +88,7 @@ void opeu_battle_unit_retreat(uint8_t* ds, BattleEvent event, uint16_t unit, uin
   auto& data{ Data(ds) };
   if (Direction(ds, event, unit) == AT_BATTLE && unit != GARRISON_AT) {
     auto const side{ opeu_battle_unit_side(ds, event, unit) };
-    for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+    for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
       uint8_t x{ data.battle_x };
       uint8_t y{ data.battle_y };
       if (!opeu_grid_step(&x, &y, direction)) continue;
@@ -159,7 +157,7 @@ void opeu_battle_morale_check(uint8_t* ds, BattleEvent event) {
       auto const unit{ BattleList(data, list, slot) };
       if (!unit || unit == GARRISON_AT || !support(unit)) continue;
       uint8_t chance{ 20 };
-      for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+      for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
         uint8_t x{ data.battle_x };
         uint8_t y{ data.battle_y };
         if (opeu_grid_step(&x, &y, direction) && opeu_battle_retreat_cell_ok(ds, event, x, y, unit)) chance = static_cast<uint8_t>(chance + 10);

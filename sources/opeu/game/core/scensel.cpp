@@ -201,8 +201,8 @@ title:
     call(POSITION, 4, 0xdc);
     data.map_mode[0] = call(PROMPT_CANCEL, at(data.scensel_map_prompt), 2, at(data.scensel_map_menu));
     if (data.map_mode[0] == 0xff) {
-      if (side_control[0] == 1 && side_control[1] == 1) goto players;
-      if (side_control[0] == 0 && side_control[1] == 0) goto view_side;
+      if (side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_PLAYED) goto players;
+      if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) goto view_side;
       goto command_side;
     }
     data.map_mode[0]--;
@@ -217,7 +217,7 @@ title:
     call(PRINT, at(data.scensel_map_line), buf);
   battles:
     call(CLEAR_TEXT);
-    if (side_control[0] == 0 && side_control[1] == 0) {
+    if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
       call(POSITION, 4, 0xdc);
       selection = call(PROMPT_CANCEL, at(data.scensel_battles_prompt), 2, at(data.scensel_battles_menu));
     } else {
@@ -242,7 +242,7 @@ title:
     call(POSITION, 4, 0x46);
     call(PRINT, at(data.scensel_battles_line), buf);
   difficulty:
-    if ((side_control[0] == 1 && side_control[1] == 0) || (side_control[0] == 0 && side_control[1] == 1)) {
+    if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) {
       call(CLEAR_TEXT);
       call(POSITION, 4, 0x124);
       data.delivery_level = call(PROMPT_CANCEL, at(data.scensel_difficulty_prompt), 5, at(data.scensel_difficulty_menu));
@@ -265,10 +265,10 @@ title:
       call(POSITION, 4, 0x154);
       call(PRINT, at(data.scensel_reselect));
       call(UI_BOX, 4, 0x86, 0x22, 0xe0, 7);
-      if ((side_control[0] == 1 && side_control[1] == 0) || (side_control[0] == 0 && side_control[1] == 1)) goto difficulty;
+      if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) goto difficulty;
       goto battles;
     }
-    if (side_control[0] == 0 && side_control[1] == 0) {
+    if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
       call(CONFIRM_GENERALS);
       call(UI_BOX, 2, 0x86, 0x22, 0x154, 7);
       call(POSITION, 4, 0x154);

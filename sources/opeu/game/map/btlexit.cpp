@@ -23,10 +23,8 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t DIRECTIONS{ 8 };
 constexpr uint8_t LAST_CELL{ BATTLE_WIDTH - 1 };
-constexpr uint8_t IMPASSABLE{ 0xff }; // a move_costs entry
-constexpr uint8_t MOVE_COLUMNS{ 5 };  // move_costs: a row per terrain
+constexpr uint8_t MOVE_COLUMNS{ 5 }; // move_costs: a row per terrain
 // battle_exit_direction when either way is open.
 constexpr uint8_t ANY_SIDE{ 0xff };
 } // namespace
@@ -35,7 +33,7 @@ uint16_t opeu_battle_exit_ok(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t 
   auto& data{ Data(ds) };
   if (opeu_battle_cell_occupied(ds, event, x, y)) return 0;
   auto exit{ static_cast<uint8_t>(BattleCellAt(data, x, y) >> std::to_underlying(BattleCell::EXIT_SHIFT)) };
-  if (exit == 0 || exit > DIRECTIONS) return 0;
+  if (exit == 0 || exit > GRID_DIRECTIONS) return 0;
   if (x != 0 && y != 0 && x != LAST_CELL && y != LAST_CELL) return 0;
   --exit;
   auto const unit{ opeu_battle_element_unit(ds, event, element) };

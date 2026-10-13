@@ -13,7 +13,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t NO_SIDE{ 255 };
 constexpr int16_t VIEW_LAST{ 11 }; // the view shows 12 x 12 cells
 
 void EraseUnitCell(uint8_t* ds, HostEvent event, uint16_t unit) {

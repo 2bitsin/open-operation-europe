@@ -2,6 +2,7 @@
 #include "io/loadgame.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
 #include "core/textout.hpp"
@@ -33,7 +34,6 @@ enum Service : std::uint16_t {
   BACKDROP  = 11, // (mode)
 };
 
-constexpr std::uint16_t FROM_START{ 0 };
 constexpr std::uint16_t HIGHLIGHT{ 4 };
 constexpr std::uint16_t NORMAL{ 0 };
 
@@ -73,7 +73,7 @@ auto opeu_load_saved_game(std::uint8_t* ds, HostEvent event) -> std::uint16_t {
       Call(ds, event, ATTRIBUTE, HIGHLIGHT);
       Call(ds, event, UI_TEXT, Framed(ds, event, 32, 188, data.loading_text));
       auto const position{ static_cast<std::uint32_t>(SAVED_BYTES * data.save_slot + SAVED_BLOCKS_AT) };
-      Call(ds, event, SEEK, file, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), FROM_START);
+      Call(ds, event, SEEK, file, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), SEEK_FROM_START);
       Call(ds, event, READ, file, SAVED_FIRST, SAVED_BYTES);
       opeu_rebase_scenario(ds, 1);
       auto const& slot{ data.save_slots[data.save_slot] };

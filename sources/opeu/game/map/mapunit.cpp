@@ -19,7 +19,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t  NO_SIDE{ 255 };
 constexpr uint16_t MARKER_MODE{ 7 };
 constexpr uint16_t FLASH_BUFFER_BYTES{ 32 }; // the background saved under each unit's marker
 

@@ -25,6 +25,7 @@
 
 #include "common/data-segment.hpp"
 #include "common/forces.hpp"
+#include "common/map-grid.hpp"
 #include "common/random.hpp"
 
 #include <array>
@@ -37,9 +38,8 @@ namespace {
 constexpr std::uint8_t  UNREACHED{ 0xff };      // a distance or step cost no cell has
 constexpr std::uint16_t UNVISITED{ 0xffff };    // the path cost of a cell the fill has not reached
 constexpr std::uint8_t  IMPASSABLE_STEP{ 255 }; // the step cost of a cell the unit cannot enter
-constexpr std::uint8_t  DIRECTIONS{ 8 };
-constexpr std::uint8_t  ENGINEER_SLOT{ 6 }; // the engineer unit of a division
-constexpr std::uint8_t  SUPPLY_SLOT{ 7 };   // the supply unit of a division
+constexpr std::uint8_t  ENGINEER_SLOT{ 6 };     // the engineer unit of a division
+constexpr std::uint8_t  SUPPLY_SLOT{ 7 };       // the supply unit of a division
 
 // The first six unit slots of a division are its combat units.
 constexpr auto IsCombatSlot(std::uint8_t slot) -> bool {
@@ -91,7 +91,7 @@ auto PathFill(std::uint8_t* ds, std::uint8_t x, std::uint8_t y, std::uint8_t tx,
     std::uint8_t const  cx{ static_cast<std::uint8_t>(path_queue[head] % MAP_WIDTH) };
     std::uint8_t const  cy{ static_cast<std::uint8_t>(path_queue[head] / MAP_WIDTH) };
     std::uint16_t const cost{ path_cost[cy * MAP_WIDTH + cx] };
-    for (std::uint8_t direction = 0; direction < DIRECTIONS; direction++) {
+    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; direction++) {
       auto nx{ cx };
       auto ny{ cy };
       if (!opeu_grid_step(&nx, &ny, direction)) continue;
@@ -244,7 +244,7 @@ auto FullyAssigned(std::uint8_t* ds, Objective const* objective) -> bool {
 // delivery level is above 2.
 auto WorthAttacking(std::uint8_t* ds, Unit const& enemy) -> bool {
   auto& data{ Data(ds) };
-  return opeu_unit_special(ds, Near(data, enemy)) || (data.side_control[data.current_side] == 0 && data.delivery_level > 2);
+  return opeu_unit_special(ds, Near(data, enemy)) || (data.side_control[data.current_side] == SIDE_COMPUTER && data.delivery_level > 2);
 }
 
 } // namespace
@@ -259,7 +259,7 @@ uint16_t opeu_path_descend(uint8_t ds[65536], uint8_t* x, uint8_t* y, uint8_t tx
     std::uint16_t best{ UNVISITED };
     auto          bx{ *x };
     auto          by{ *y };
-    for (std::uint8_t direction = 0; direction < DIRECTIONS; ++direction) {
+    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; ++direction) {
       auto nx{ *x };
       auto ny{ *y };
       if (opeu_grid_step(&nx, &ny, direction)) {
@@ -454,7 +454,7 @@ uint16_t opeu_unit_attack_order(uint8_t ds[65536]) {
   }
   for (auto const& task : GroupOf(data, side, data.current_group).tasks) {
     if (task.kind == Bits(TaskKind::NONE)) continue;
-    for (std::uint8_t direction = 0; direction < DIRECTIONS; ++direction) {
+    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; ++direction) {
       auto x{ task.x };
       auto y{ task.y };
       if (!opeu_grid_step(&x, &y, direction)) continue;

@@ -52,7 +52,7 @@ constexpr std::uint16_t HEALTH_NORMAL{ 54 }; // and of any other
 // and no daily display is active; then blanks the lines below and draws the army summary.
 void opeu_daily_context(uint8_t ds[65536], HostEvent event, uint8_t side) {
   auto& data{ Data(ds) };
-  if (!data.daily_active && (side == data.context_side || data.side_status[data.current_side] == 0)) return;
+  if (!data.daily_active && (side == data.context_side || data.side_status[data.current_side] == SIDE_COMPUTER)) return;
   auto const  general{ opeu_find_side_record(ds, side, 1) };
   auto const& person{ Record<Person>(data, general) };
   auto const  width{ std::min(static_cast<std::uint8_t>(opeu_string_length(ds, general)), MAX_NAME) };

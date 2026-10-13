@@ -3,12 +3,16 @@
 #include "io/scenres.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/dos-file.hpp"
 #include "common/memory.hpp"
+#include "common/scenario.hpp"
 #include "core/emsmap.hpp"
 #include "glue.hpp"
 #include "io/resopen.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
+#include <utility>
 
 using namespace opeu::game;
 
@@ -26,17 +30,15 @@ enum Service : std::uint16_t {
   GRAPHICS_WAIT   = 8,
 };
 
-constexpr std::uint16_t FROM_START{ 0 };
-constexpr std::uint32_t TEXT_RECORD{ 800 }; // a scenario text record in SCEDATA
-constexpr std::uint8_t  MAP_MASK{ 0x7f };   // the scenario byte's map number
-constexpr std::uint8_t  WINTER_MAP{ 4 };    // the map drawn with the winter font HEXFONTS
+constexpr std::uint32_t TEXT_RECORD{ 800 };            // a scenario text record in SCEDATA
+constexpr Scenario      WINTER_MAP{ Scenario::BULGE }; // the map drawn with the winter font HEXFONTS
 
 auto Open(std::uint8_t* ds, HostEvent event, auto const& name) -> std::int16_t {
   return static_cast<std::int16_t>(Call(ds, event, OPEN, Near(Data(ds), name)));
 }
 
 auto Seek(std::uint8_t* ds, HostEvent event, std::int16_t handle, std::uint32_t position) -> void {
-  Call(ds, event, SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), FROM_START);
+  Call(ds, event, SEEK, handle, static_cast<std::uint16_t>(position), static_cast<std::uint16_t>(position >> 16), SEEK_FROM_START);
 }
 
 auto ReadFar(std::uint8_t* ds, HostEvent event, std::int16_t handle, std::uint16_t segment, std::uint16_t offset, std::uint16_t count) -> void {
@@ -66,7 +68,7 @@ void opeu_load_message_graphics(std::uint8_t* ds, HostEvent event) {
 // Loads the frame pictures, the scenario's brief and notes, its maps, hex display, unit icons and font.
 void opeu_load_scenario_graphics(std::uint8_t* ds, HostEvent event) {
   auto const&   data{ Data(ds) };
-  std::uint32_t map{ static_cast<std::uint32_t>(data.scenario & MAP_MASK) };
+  std::uint32_t map{ static_cast<std::uint32_t>(std::to_underlying(CurrentScenario(data))) };
 
   // MGAMEN: three shared frame blocks, then the map's own block (blocks of 512 bytes)
   auto file{ Open(ds, event, data.mgamen_filename) };
@@ -117,7 +119,7 @@ void opeu_load_scenario_graphics(std::uint8_t* ds, HostEvent event) {
   ReadFar(ds, event, file, data.icon_segment, 0, 0x8660);
   Call(ds, event, CLOSE, file);
 
-  file = (data.scenario & MAP_MASK) != WINTER_MAP ? Open(ds, event, data.hexfont_filename) : Open(ds, event, data.hexfonts_filename);
+  file = CurrentScenario(data) != WINTER_MAP ? Open(ds, event, data.hexfont_filename) : Open(ds, event, data.hexfonts_filename);
   Call(ds, event, GRAPHICS_WAIT);
   ReadFar(ds, event, file, data.sprite_segment, 0, 0xf136);
   Call(ds, event, CLOSE, file);

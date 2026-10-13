@@ -3,6 +3,7 @@
 // leaves. The cell is kept in the byte variables at the near addresses x and y.
 #include "core/coords.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "core/people.hpp"
 #include "core/recindex.hpp"
 #include "map/grid.hpp"
@@ -60,9 +61,7 @@ enum Service : std::uint16_t {
   RESTORE         = 18, // (x, y, width, height, mode, segment, offset) the screen
 };
 
-constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint8_t  NONE{ 0xff };
-constexpr std::uint8_t  DIRECTIONS{ 8 };
 constexpr std::uint16_t DIVISION_BUSY{ 100 }; // message id: the division is under the computer's command
 constexpr std::uint16_t SAVE_OFFSET{ 0x120 };
 
@@ -130,8 +129,8 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t x
     return true;
   } };
 
-  cell_x %= MAP_SIZE;
-  cell_y %= MAP_SIZE;
+  cell_x %= MAP_WIDTH;
+  cell_y %= MAP_HEIGHT;
   Call(ds, event, LOCATION, cell_x, cell_y, side);
   Call(ds, event, RESET);
   Call(ds, event, SAVE, 0, 0, 80, 24, data.bitmap_buffer, SAVE_OFFSET);
@@ -178,7 +177,7 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t x
         if (buttons & 1) {
           Call(ds, event, MOUSE_HIDE);
           if ((tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y))
-              || (strategic() && Inside(STRATEGIC_MAP, mouse_x, mouse_y) && display_x < MAP_SIZE && display_y < MAP_SIZE && opeu_map_code(ds, display_x, display_y))) {
+              || (strategic() && Inside(STRATEGIC_MAP, mouse_x, mouse_y) && display_x < MAP_WIDTH && display_y < MAP_HEIGHT && opeu_map_code(ds, display_x, display_y))) {
             // A click on a cell of no side or of a regiment the side cannot order keeps the inspection going.
             if (!pick()) continue;
             done = true;
@@ -219,7 +218,7 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t x
         if (tactical() && Inside(TACTICAL_MAP, mouse_x, mouse_y)) {
           auto const next_y{ static_cast<std::int16_t>((static_cast<std::int16_t>(mouse_y) - 84) / 24 + static_cast<std::int16_t>(data.viewport_y)) };
           auto const next_x{ static_cast<std::int16_t>((static_cast<std::int16_t>(mouse_x) - 32) / 24 + static_cast<std::int16_t>(data.viewport_x)) };
-          if (next_x < 0 || next_y < 0 || next_x >= MAP_SIZE || next_y >= MAP_SIZE) continue;
+          if (next_x < 0 || next_y < 0 || next_x >= static_cast<std::int16_t>(MAP_WIDTH) || next_y >= static_cast<std::int16_t>(MAP_HEIGHT)) continue;
           cell_x = static_cast<std::uint8_t>(next_x);
           cell_y = static_cast<std::uint8_t>(next_y);
         } else {
@@ -275,17 +274,17 @@ uint16_t opeu_control_coordinates(uint8_t ds[65537], HostEvent event, uint16_t x
         done = true;
         break;
       default:
-        for (std::uint8_t i{ 0 }; i < DIRECTIONS; ++i)
+        for (std::uint8_t i{ 0 }; i < GRID_DIRECTIONS; ++i)
           if (key == static_cast<std::uint8_t>(data.direction_keys[i])) {
             direction = i;
             break;
           }
       }
       if (done) break;
-      if (cell_x > MAP_SIZE) cell_x = 0;
-      if (cell_y > MAP_SIZE) cell_y = 0;
-      if (cell_x > MAP_SIZE - 1) cell_x = MAP_SIZE - 1;
-      if (cell_y > MAP_SIZE - 1) cell_y = MAP_SIZE - 1;
+      if (cell_x > MAP_WIDTH) cell_x = 0;
+      if (cell_y > MAP_HEIGHT) cell_y = 0;
+      if (cell_x > MAP_WIDTH - 1) cell_x = MAP_WIDTH - 1;
+      if (cell_y > MAP_HEIGHT - 1) cell_y = MAP_HEIGHT - 1;
       if (tactical())
         opeu_grid_step_viewport(ds, x, y, direction);
       else

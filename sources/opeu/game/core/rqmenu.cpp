@@ -2,6 +2,7 @@
 // regiment.
 #include "core/rqmenu.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 #include "core/rqcommon.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
@@ -22,7 +23,6 @@ constexpr uint16_t HEADER_Y{ 0xa3 };
 constexpr uint16_t FIRST_ROW_Y{ 0xbf };
 constexpr uint16_t ROW_HEIGHT{ 0x12 };
 constexpr uint16_t CHOICES{ 3 };           // supplies, battalion, regiment
-constexpr uint16_t CANCELLED{ 0xffff };    // the menu's answer when the player backs out
 constexpr uint16_t TYPE_RECORD_WORDS{ 7 }; // the words of an equipment type record a filed battalion row prints
 
 } // namespace
@@ -82,7 +82,7 @@ void opeu_turn_action_7(uint8_t ds[65536], HostEvent event) {
     uint16_t choice;
     for (;;) {
       choice = Call(ds, event, RequestMenuService::DELAY_DIALOG, offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
-      if (choice == CANCELLED) return;
+      if (choice == MENU_CANCELLED) return;
       choice--;
       if (!preparing[choice]) break;
       Call(ds, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_busy_text), data.context_record3);

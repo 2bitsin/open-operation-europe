@@ -214,8 +214,8 @@ void opeu_noon_speech(uint8_t ds[65536], const uint8_t* far_text, HostEvent even
 void opeu_noon_leader(uint8_t ds[65536], const uint8_t* far_text, HostEvent event, uint8_t code, uint8_t line) {
   auto const& data{ Data(ds) };
   auto        audience{ static_cast<uint8_t>(code & AUDIENCE_MASK) };
-  auto const  allied_solo{ data.side_control[0] == 0 && data.side_control[1] == SIDE_PLAYED };
-  auto const  axis_solo{ data.side_control[0] == SIDE_PLAYED && data.side_control[1] == 0 };
+  auto const  allied_solo{ data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_PLAYED };
+  auto const  axis_solo{ data.side_control[0] == SIDE_PLAYED && data.side_control[1] == SIDE_COMPUTER };
   if ((audience == NOT_ALLIED_SOLO && !allied_solo) || (audience == NOT_AXIS_SOLO && !axis_solo)) audience = EVERYONE;
   if (audience != EVERYONE) return;
   ServiceLocals const locals{ SPEECH_BYTES };

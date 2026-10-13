@@ -9,6 +9,7 @@
 #include "map/movecost.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/map-grid.hpp"
 #include "core/recindex.hpp"
 #include "map/cellflag.hpp"
 #include "map/grid.hpp"
@@ -21,26 +22,24 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t  IMPASSABLE_COST{ 255 };
 constexpr uint16_t UNREACHED{ 0xffff };
 constexpr uint16_t PATH_COSTS{ 0x0c80 }; // the grid's byte offset in the far data
 constexpr unsigned GRID_WORDS{ 0x640 };  // the grid's word offset: the queue comes first
 constexpr unsigned CELL_COUNT{ MAP_WIDTH * MAP_HEIGHT };
 constexpr unsigned TERRAIN_COLUMNS{ 5 }; // move_costs: one row per terrain, one column per movement class
-constexpr uint8_t  DIRECTIONS{ 8 };
 } // namespace
 
 uint8_t opeu_move_cost(uint8_t* ds, uint8_t x, uint8_t y, uint16_t unit) {
   auto const& data{ Data(ds) };
   auto const  side{ opeu_unit_side(unit) };
-  if (opeu_cell_marked(ds, x, y, side) || opeu_cell_side(ds, x, y) == side) return IMPASSABLE_COST;
+  if (opeu_cell_marked(ds, x, y, side) || opeu_cell_side(ds, x, y) == side) return IMPASSABLE;
   auto const terrain{ opeu_map_code(ds, x, y) };
   uint8_t    cost{ 0 };
   for (auto const& element : Elements(data, Record<Unit>(data, unit))) {
     auto const move_class{ data.move_class[data.element_types[element.type].category] };
     cost = std::max(cost, data.move_costs[terrain * TERRAIN_COLUMNS + move_class]);
   }
-  if (cost != IMPASSABLE_COST) cost = static_cast<uint8_t>(cost * data.map_scale);
+  if (cost != IMPASSABLE) cost = static_cast<uint8_t>(cost * data.map_scale);
   return cost;
 }
 
@@ -63,7 +62,7 @@ uint16_t opeu_move_reachable(uint8_t* ds, uint16_t* far_words, uint8_t x, uint8_
     auto const from_x{ static_cast<uint8_t>(queue[head] % MAP_WIDTH) };
     auto const from_y{ static_cast<uint8_t>(queue[head] / MAP_WIDTH) };
     auto const cost{ costs[from_y * MAP_WIDTH + from_x] };
-    for (uint8_t direction{ 0 }; direction < DIRECTIONS; direction++) {
+    for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; direction++) {
       uint8_t next_x{ from_x };
       uint8_t next_y{ from_y };
       if (!opeu_grid_step(&next_x, &next_y, direction) || !opeu_map_code(ds, next_x, next_y)) continue;
@@ -71,7 +70,7 @@ uint16_t opeu_move_reachable(uint8_t* ds, uint16_t* far_words, uint8_t x, uint8_
       auto const cell{ static_cast<uint16_t>(next_y * MAP_WIDTH + next_x) };
       if (costs[cell] != UNREACHED) continue;
       auto const step{ opeu_move_cost(ds, next_x, next_y, unit) };
-      if (step == IMPASSABLE_COST) continue;
+      if (step == IMPASSABLE) continue;
       costs[cell] = static_cast<uint16_t>(step + cost);
       // Insert by cost: shift dearer entries up one place from the tail.
       auto at{ tail };

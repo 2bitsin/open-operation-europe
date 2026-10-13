@@ -6,6 +6,7 @@
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 #include "map/btlcmds.hpp"
 #include "map/btlexec.hpp"
 #include "map/btllist.hpp"
@@ -33,8 +34,6 @@ constexpr uint16_t LAST_COLUMN{ 0x44 };
 constexpr uint16_t LAST_ROW{ 0x118 };
 // Side 1's keyboard menu sits further right.
 constexpr uint16_t SIDE_1_SHIFT{ 49 };
-constexpr uint16_t CANCELLED{ 0xffff };
-constexpr uint8_t  NO_SIDE{ 0xff };
 // The menu's choices; the fifth button is the withdrawal.
 enum class Choice : uint16_t {
   MOVE     = 1,
@@ -86,7 +85,7 @@ uint16_t opeu_battle_orders_menu(uint8_t* ds, BattleEvent event, uint16_t elemen
     opeu_battle_menu_place(ds, event);
     Call(ds, event, BattleRoutine::BATTLE_COMMANDER_PANEL, data.battle_active_side, 0);
     auto choice{ Call(ds, event, BattleRoutine::PROMPT_VALUE, 1, BUTTONS, Near(data, data.battle_msg_orders), 1, Near(data, data.battle_menu_items)) };
-    if (choice == CANCELLED) {
+    if (choice == MENU_CANCELLED) {
       Panels(ds, event);
       Call(ds, event, BattleRoutine::TEXT_PAPER_SET, 0);
       return 0;

@@ -69,9 +69,6 @@ enum EndService : uint16_t {
 // battle_direction and battle_side when the battle has no retreat and no winner.
 constexpr uint8_t NONE{ 255 };
 
-// opeu_cell_side of a cell no unit holds.
-constexpr uint8_t NO_SIDE{ 255 };
-
 // The saved order of a unit when it has none.
 constexpr uint8_t NO_ORDER{ 255 };
 
@@ -83,7 +80,6 @@ constexpr uint16_t OCCUPY_PRESENT_SEGMENT{ 0x3424 };
 
 // The column of move_costs each equipment category moves by (5 columns per terrain); 255 there bars the terrain.
 constexpr std::array<uint8_t, 8> OCCUPY_CLASS{ 0, 1, 2, 3, 4, 3, 1, 1 };
-constexpr uint8_t                IMPASSABLE{ 255 };
 
 // The colour codes the loss report shows each side's name in.
 constexpr uint16_t SIDE_COLOUR[]{ '6', '5' };
@@ -294,9 +290,9 @@ void opeu_notice_end(uint8_t ds[65536], HostEvent event) {
     Call(ds, event, DAILY_CONTEXT, side);
     data.daily_active = 0;
   } };
-  if (data.side_control[1] == 0 && data.side_control[0] == 1) show_context(0);
-  if (data.side_control[0] == 0 && data.side_control[1] == 1) show_context(1);
-  if (data.side_control[0] == 0 && data.side_control[1] == 0) {
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_PLAYED) show_context(0);
+  if (data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_PLAYED) show_context(1);
+  if (data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_COMPUTER) {
     data.context_side = 255;
     show_context(static_cast<uint8_t>(data.side_status[1] == SIDE_PLAYED));
   }

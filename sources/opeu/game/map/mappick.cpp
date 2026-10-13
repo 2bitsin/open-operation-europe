@@ -4,6 +4,7 @@
 // and y start at, and end on, the chosen cell; the result is 1 when a cell was accepted.
 #include "map/mappick.hpp"
 #include "common/data-segment.hpp"
+#include "common/keys.hpp"
 #include "common/map-frame.hpp"
 #include "common/map-grid.hpp"
 #include "common/memory.hpp"
@@ -51,8 +52,6 @@ enum class Outcome {
 constexpr uint8_t  NONE{ 255 };
 constexpr uint8_t  LEFT_BUTTON{ 1 };
 constexpr uint8_t  RIGHT_BUTTON{ 2 };
-constexpr uint8_t  KEY_ENTER{ 13 };
-constexpr uint8_t  KEY_ESCAPE{ 27 };
 constexpr uint16_t STATUS_OFFSET{ 0x120 }; // where the status line's background is saved in the bitmap buffer
 // The DS reserve of the mouse position words the mouse service writes.
 constexpr uint16_t MOUSE_RESERVE{ 14 };

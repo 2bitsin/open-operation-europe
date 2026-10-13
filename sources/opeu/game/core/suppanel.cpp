@@ -5,6 +5,8 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/exchange-panel.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
 #include "glue.hpp"
@@ -25,27 +27,12 @@ namespace {
 
 using enum SupplyService;
 
-// The keypad: three key columns and three key rows, in pixels from the panel's left edge and top.
-constexpr std::array<std::uint16_t, 4> KEY_COLUMNS{ 0x48, 0x68, 0x98, 0xb8 };
-constexpr std::array<std::uint16_t, 4> KEY_ROWS{ 0x23, 0x3f, 0x5b, 0x77 };
-constexpr std::uint8_t                 KEYS[3][3]{
+// The keys of the keypad's columns, top to bottom (the original's bottom right key is a second 6).
+constexpr std::uint8_t KEYS[3][3]{
   { '7', '4', '1' },
   { '8', '5', '2' },
   { '9', '6', '6' }
 };
-constexpr std::uint8_t NO_KEY{ 0xff };
-constexpr std::uint8_t ENTER{ 13 };
-
-// The panel's background, saved in the number dialog's image segment.
-constexpr std::uint16_t PANEL_WIDTH{ 0x20 }; // in 8-pixel columns
-constexpr std::uint16_t PANEL_HEIGHT{ 0x78 };
-constexpr std::uint16_t PANEL_IMAGE_AT{ 0x1f00 };
-
-constexpr std::int16_t NAME_LIMIT{ 10 }; // characters of a name in the title
-
-constexpr std::uint16_t GLYPH_SIZE{ 6 }; // digit glyphs are 6 x 6 pixels, 6 bytes each
-constexpr std::uint16_t BLANK_GLYPH{ 10 };
-constexpr std::uint16_t GLYPH_COLOUR{ 7 };
 
 auto MousePosition(std::uint8_t* ds, HostEvent event) -> std::array<std::uint16_t, 2> {
   std::array<std::uint16_t, 2> position{};
@@ -79,7 +66,7 @@ uint8_t opeu_supply_input(uint8_t ds[65536], HostEvent event, uint16_t row) {
   for (;;) {
     auto const [x, y]{ MousePosition(ds, event) };
     if (Call(ds, event, RIGHT_DOWN)) {
-      key = ENTER;
+      key = KEY_ENTER;
       break;
     }
     if (Call(ds, event, LEFT_DOWN)) {
@@ -120,12 +107,7 @@ void opeu_supply_draw(uint8_t ds[65536], HostEvent event, uint16_t first, uint16
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
 void opeu_supply_digits(uint8_t ds[65536], HostEvent event, uint16_t x, uint16_t y, uint16_t value) {
-  auto const glyphs{ Near(Data(ds), Data(ds).digit_glyphs) };
-  for (;; x -= GLYPH_SIZE) {
-    Call(ds, event, GLYPH, x, y, GLYPH_SIZE, GLYPH_SIZE, 0, glyphs + GLYPH_SIZE * BLANK_GLYPH);
-    Call(ds, event, GLYPH, x, y, GLYPH_SIZE, GLYPH_SIZE, GLYPH_COLOUR, glyphs + GLYPH_SIZE * (value % 10));
-    if (!(value /= 10)) break;
-  }
+  DrawDigits(ds, event, GLYPH, x, y, value);
 }
 
 uint16_t svc_suppanel(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

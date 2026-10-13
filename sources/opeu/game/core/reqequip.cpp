@@ -32,7 +32,7 @@ void opeu_request_action1(uint8_t ds[65536], HostEvent event, uint8_t side, uint
   if (!before) item.extra = 0;
   auto const capacity{ data.request_capacities[type.category] };
   auto       amount{ static_cast<uint16_t>(capacity / (opeu_max16(type.anti_tank, type.anti_personnel) / 20 + 1)) };
-  if (data.side_control[side] == 1)
+  if (data.side_control[side] == SIDE_PLAYED)
     amount = static_cast<uint16_t>(amount + (5 - data.delivery_level) * 6);
   else
     amount = static_cast<uint16_t>(amount + COMPUTER_BONUS);

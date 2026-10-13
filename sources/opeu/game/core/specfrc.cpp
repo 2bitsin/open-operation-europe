@@ -4,6 +4,7 @@
 // side's command phase.
 #include "core/specfrc.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -21,11 +22,10 @@ namespace {
 
 using enum SpecialService;
 
-constexpr std::uint8_t  OFFICER_KIND{ 7 };   // the person template kind of the Special Forces officer
-constexpr std::uint16_t MISSION_COUNT{ 5 };  // the entries of the mission menu
-constexpr std::uint16_t CANCELLED{ 0xffff }; // the mission menu was left
-constexpr std::uint16_t INFO_X{ 0x2d };      // the column of the pending mission's lines
-constexpr std::uint16_t ORDERS_Y{ 0xa3 };    // and their rows
+constexpr std::uint8_t  OFFICER_KIND{ 7 };  // the person template kind of the Special Forces officer
+constexpr std::uint16_t MISSION_COUNT{ 5 }; // the entries of the mission menu
+constexpr std::uint16_t INFO_X{ 0x2d };     // the column of the pending mission's lines
+constexpr std::uint16_t ORDERS_Y{ 0xa3 };   // and their rows
 constexpr std::uint16_t TARGET_Y{ 0xb5 };
 constexpr std::uint16_t TIME_Y{ 0xc7 };
 constexpr std::uint16_t NAME_BYTES{ 0x22 }; // the target unit's name, which the unit-name service writes
@@ -87,7 +87,7 @@ void opeu_turn_action_9(uint8_t ds[65536], HostEvent event) {
       order.kind = Bits(SpecialMission::NONE);
     }
     auto const choice{ Call(ds, event, DELAY_DIALOG, offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2, offsetof(DataSegment, special_menu)) };
-    if (choice == CANCELLED) return;
+    if (choice == MENU_CANCELLED) return;
     auto const& mission{ data.special_missions[choice - 1] };
     Call(ds, event, FAR_ACTION, mission.segment, mission.offset);
   } while (!data.side_delays[data.current_side]);

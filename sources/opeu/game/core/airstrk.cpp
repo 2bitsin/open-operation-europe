@@ -110,7 +110,7 @@ auto IsNight(std::uint8_t* ds, HostEvent event) -> bool {
 uint16_t opeu_air_damage_roll(uint8_t ds[65536], HostEvent event, uint8_t x, uint8_t y, uint8_t n) {
   auto&         data{ Data(ds) };
   auto const    side{ data.air_side };
-  auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == 1 ? (data.delivery_level >> 1) * n : n) + 1) };
+  auto const    bound{ static_cast<std::uint16_t>((data.side_control[side] == SIDE_PLAYED ? (data.delivery_level >> 1) * n : n) + 1) };
   std::uint16_t lost{ Call(ds, event, OFFICER_RATING, side, AIR_KIND) >= STRONG_AIR_COMMAND ? std::uint16_t{ 0 } : static_cast<std::uint16_t>(RandomBelow(ds, bound) + 1) };
   if (!IsNight(ds, event)) lost += RandomBelow(ds, bound) + 1;
   if (data.sides[side].strength <= HIGH_MORALE) lost += RandomBelow(ds, bound) + 1;

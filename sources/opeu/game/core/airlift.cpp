@@ -3,6 +3,7 @@
 // the staff's confirmation records the order as the current side's pending airlift.
 #include "core/airlift.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/airhelp.hpp"
 #include "core/limits.hpp"
 #include "core/random.hpp"
@@ -26,7 +27,6 @@ using enum AirService;
 constexpr std::uint16_t LOAD{ 3000 };       // the units one cargo plane carries
 constexpr std::uint16_t KIND_PLANES{ 20 };  // the most planes one kind of supply takes
 constexpr std::uint16_t TOTAL_PLANES{ 60 }; // the most planes one airlift takes
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint8_t  MAX_LEAD{ 24 };
 constexpr std::uint8_t  DUE_AFTER{ 6 }; // the order's countdown runs this many hours past the delay
 
@@ -116,15 +116,15 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event) {
   auto const ask_kind{ [&](std::uint16_t text, std::uint16_t stock) {
     auto const most{ opeu_min16(stock, static_cast<std::uint16_t>(opeu_min16(remaining, KIND_PLANES) * LOAD)) };
     auto const amount{ ask(text, 0, most) };
-    if (amount != CANCELLED) remaining -= PlanesFor(amount);
+    if (amount != MENU_CANCELLED) remaining -= PlanesFor(amount);
     return amount;
   } };
   auto const ammo{ ask_kind(Near(data, data.lift_ask_ammo), side.stock[0]) };
-  if (ammo == CANCELLED) return;
+  if (ammo == MENU_CANCELLED) return;
   auto const fuel{ ask_kind(Near(data, data.lift_ask_fuel), side.stock[1]) };
-  if (fuel == CANCELLED) return;
+  if (fuel == MENU_CANCELLED) return;
   auto const food{ ask_kind(Near(data, data.lift_ask_food), side.stock[2]) };
-  if (food == CANCELLED) return;
+  if (food == MENU_CANCELLED) return;
   if (food + fuel + ammo == 0) return;
   ServiceLocals const locals{ CELL_BYTES };
   auto const          at_x{ locals.At(CELL_X_AT) };
@@ -138,7 +138,7 @@ void opeu_air_lift_command(uint8_t ds[65536], HostEvent event) {
     if (!Call(ds, event, PICK, at_x, at_y)) return;
   } while (!opeu_air_target_valid(ds, event, cell_x, cell_y, Near(data, data.lift_cargo_name)));
   auto const delay{ ask(Near(data, data.lift_ask_hours), 1, 24) };
-  if (delay == CANCELLED) return;
+  if (delay == MENU_CANCELLED) return;
   auto       hours{ static_cast<std::uint8_t>(delay) };
   auto const planes{ static_cast<std::uint16_t>(initial - remaining) };
   if (!Call(ds, event, CONFIRM, Near(data, data.lift_confirm), data.context_record3)) return;

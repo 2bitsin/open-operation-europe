@@ -5,6 +5,8 @@
 #include "units/xferstep.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/exchange-panel.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "types.hpp"
@@ -23,10 +25,6 @@ namespace {
 
 using enum TransferService;
 
-constexpr std::uint8_t  NO_ROW{ 0xff };
-constexpr std::uint8_t  ENTER{ 13 };
-constexpr std::uint16_t ROW_HEIGHT{ 28 };
-constexpr std::uint16_t HIGHLIGHT_COLOUR{ 0x107 };
 // The computer's direction latch, cleared for a new transfer (units/xferpnl).
 constexpr std::uint8_t UNMOVED{ '-' };
 // The daily picture the player's transfer runs inside, and the step's own far address it runs as its presenter.
@@ -38,10 +36,6 @@ constexpr std::uint16_t FINISH_VALUE{ 3 };
 // The context_side value that has the next daily context redrawn.
 constexpr std::uint8_t NO_CONTEXT{ 0xff };
 
-auto Played(DataSegment const& data) -> bool {
-  return data.side_status[data.current_side] == SIDE_PLAYED;
-}
-
 // The near pointer of a transfer_table word.
 constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uint16_t {
   return static_cast<std::uint16_t>(offsetof(DataSegment, transfer_table) + 2 * ((side * 3u + row) * 3u + column));
@@ -50,18 +44,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(std::uint8_t* ds, HostWordsEvent event, std::uint8_t row) {
   auto const& data{ Data(ds) };
-  Call(ds, event, HIGHLIGHT, data.transfer_panel_x + 0xd, row * ROW_HEIGHT + data.transfer_panel_y + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
-}
-
-// The amount a key moves: 1, 10 or 100.
-auto KeyAmount(std::uint8_t key) -> std::uint16_t {
-  switch (key) {
-  case '1':
-  case '3': return 1;
-  case '4':
-  case '6': return 10;
-  default:  return 100;
-  }
+  HighlightRow(ds, event, HIGHLIGHT, { data.transfer_panel_x, data.transfer_panel_y }, row);
 }
 } // namespace
 
@@ -73,7 +56,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
   auto&               data{ Data(ds) };
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
-  if (!data.transfer_interactive && Played(data)) Call(ds, event, SOUND_CUE_14);
+  if (!data.transfer_interactive && SidePlayed(data, data.current_side)) Call(ds, event, SOUND_CUE_14);
   data.transfer_auto = UNMOVED;
   selected           = 0;
   opeu_transfer_draw_row(ds, event, 1, 0);
@@ -86,7 +69,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
     auto const   right{ TableAt(1, selected, AMOUNT) };
     auto const   left_capacity{ TableAt(0, selected, CAPACITY) };
     auto const   right_capacity{ data.transfer_objective_ptr ? static_cast<std::uint16_t>(offsetof(DataSegment, transfer_unlimited)) : TableAt(1, selected, CAPACITY) };
-    if (Played(data) && selected != highlighted) {
+    if (SidePlayed(data, data.current_side) && selected != highlighted) {
       if (highlighted != NO_ROW) Highlight(ds, event, highlighted);
       Highlight(ds, event, selected);
       highlighted = selected;
@@ -118,7 +101,7 @@ void opeu_transfer_step(uint8_t ds[65536], HostWordsEvent event) {
       redraw = 2;
       break;
     }
-    case ENTER:
+    case KEY_ENTER:
       opeu_transfer_draw_row(ds, event, selected, redraw);
       if (data.transfer_interactive) {
         data.transfer_interactive = Call(ds, event, CONFIRM, data.context_group_record);
@@ -141,10 +124,10 @@ uint16_t opeu_transfer_run(uint8_t ds[65536], HostWordsEvent event, uint16_t int
   auto& data{ Data(ds) };
   if (interactive)
     Call(ds, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_prompt));
-  else if (Played(data) && Call(ds, event, UNIT_ELIGIBLE, data.current_unit_ptr))
+  else if (SidePlayed(data, data.current_side) && Call(ds, event, UNIT_ELIGIBLE, data.current_unit_ptr))
     Call(ds, event, UNIT_REPORT, data.current_unit_ptr, offsetof(DataSegment, transfer_begin));
   data.transfer_interactive = interactive;
-  if (Played(data))
+  if (SidePlayed(data, data.current_side))
     Call(ds, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, STEP_OFFSET, STEP_SEGMENT);
   else
     opeu_transfer_step(ds, event);

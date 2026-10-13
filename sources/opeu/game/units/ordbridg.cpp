@@ -23,16 +23,16 @@ constexpr std::uint16_t DESTROY_PRESENT{ 0x060c };
 
 uint8_t opeu_order_destroy_loss(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
-  auto const          person{ Serve(ds, event, OrderService::UNIT_PERSON, data.current_unit_ptr) };
-  std::uint16_t const random{ Serve(ds, event, OrderService::RAND_BOUNDED, RollBound(data)) };
-  std::uint16_t const average10{ Serve(ds, event, OrderService::UNIT_AVERAGE10, data.current_unit_ptr) };
-  std::uint16_t const average11{ Serve(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) };
+  auto const          person{ Call(ds, event, OrderService::UNIT_PERSON, data.current_unit_ptr) };
+  std::uint16_t const random{ Call(ds, event, OrderService::RAND_BOUNDED, RollBound(data)) };
+  std::uint16_t const average10{ Call(ds, event, OrderService::UNIT_AVERAGE10, data.current_unit_ptr) };
+  std::uint16_t const average11{ Call(ds, event, OrderService::UNIT_AVERAGE11, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(average11 / 19 - static_cast<std::uint16_t>(Record<Person>(data, person).leadership + average10) / 45 + random + 5);
 }
 
 void opeu_order_destroy_present(uint8_t ds[65536], HostEvent event) {
-  Serve(ds, event, OrderService::SOUND_CUE5);
-  Serve(ds, event, OrderService::PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, OrderService::SOUND_CUE5);
+  Call(ds, event, OrderService::PENDING_FINISH, SHOW_DONE);
 }
 
 uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event) {
@@ -40,19 +40,19 @@ uint16_t opeu_order_destroy_run(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        at_x{ destination.XAt() };
   auto const        at_y{ destination.YAt() };
-  Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
-  if (static_cast<Terrain>(static_cast<std::uint8_t>(Serve(ds, event, OrderService::MAP_CODE, Byte(ds, at_x), Byte(ds, at_y)))) != Terrain::BRIDGE || StandsOn(ds, at_x, at_y)) {
-    Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
+  Call(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, at_x, at_y);
+  if (static_cast<Terrain>(static_cast<std::uint8_t>(Call(ds, event, OrderService::MAP_CODE, Byte(ds, at_x), Byte(ds, at_y)))) != Terrain::BRIDGE || StandsOn(ds, at_x, at_y)) {
+    Call(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
     return 1;
   }
-  if (!Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
+  if (!Call(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, at_x), Byte(ds, at_y))) return 0;
   auto const loss{ opeu_order_destroy_loss(ds, event) };
-  if (Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), loss) && static_cast<std::uint8_t>(Serve(ds, event, OrderService::CELL_SIDE, Byte(ds, at_x), Byte(ds, at_y))) == NO_SIDE) {
-    Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
-    Serve(ds, event, OrderService::DAILY_SHOW, BRIDGE_DESTROYED_PICTURE, data.current_side, DESTROY_PRESENT, ORDER_SEGMENT);
-    Serve(ds, event, OrderService::MAP_MARK5, Byte(ds, at_x), Byte(ds, at_y));
-    Serve(ds, event, OrderService::MAP_ERASE, Byte(ds, at_x), Byte(ds, at_y));
-    Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
+  if (Call(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), loss) && static_cast<std::uint8_t>(Call(ds, event, OrderService::CELL_SIDE, Byte(ds, at_x), Byte(ds, at_y))) == NO_SIDE) {
+    Call(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.order_bridge_destroyed));
+    Call(ds, event, OrderService::DAILY_SHOW, BRIDGE_DESTROYED_PICTURE, data.current_side, DESTROY_PRESENT, ORDER_SEGMENT);
+    Call(ds, event, OrderService::MAP_MARK5, Byte(ds, at_x), Byte(ds, at_y));
+    Call(ds, event, OrderService::MAP_ERASE, Byte(ds, at_x), Byte(ds, at_y));
+    Call(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
   }
   return 1;
 }

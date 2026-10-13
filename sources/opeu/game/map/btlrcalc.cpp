@@ -138,7 +138,7 @@ uint16_t opeu_battle_ranged_defense(uint8_t* ds, BattleEvent event, uint16_t ele
   auto           value{ static_cast<uint16_t>(own.training - own.experience + own.morale + fire + tactics + grade + RATING_BASE) };
   value = static_cast<uint16_t>(Mul16(value / 5, armour) / 100);
   auto const side{ opeu_battle_element_side(ds, event, element) };
-  auto const bonus{ opeu_rand_bounded(static_cast<uint16_t>(data.side_control[side] == 0 ? data.delivery_level + 1 : 1)) };
+  auto const bonus{ opeu_rand_bounded(static_cast<uint16_t>(data.side_control[side] == SIDE_COMPUTER ? data.delivery_level + 1 : 1)) };
   return static_cast<uint16_t>(Mul16(leadership, value) + bonus + 1);
 }
 

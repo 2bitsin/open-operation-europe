@@ -35,7 +35,6 @@ enum Tile : std::uint16_t {
 constexpr std::uint16_t BUTTON_HEIGHT{ 24 };
 constexpr std::uint16_t SAVED_BYTES_PER_COLUMN{ 0x60 };
 constexpr std::uint16_t NOT_CHOSEN{ 0x8000 };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr auto          MAX_ITEMS{ 30u };
 
 auto ItemAt(std::uint8_t* ds, std::uint16_t near) -> MenuItem& {
@@ -138,7 +137,7 @@ auto opeu_menu_track(std::uint8_t* ds, HostService service, std::uint16_t items,
         opeu_menu_draw_item(ds, service, near, lit[index] = 0);
         opeu_mouse_show(ds, service);
       }
-      if (cancel && opeu_mouse_right(ds, service)) chosen = CANCELLED;
+      if (cancel && opeu_mouse_right(ds, service)) chosen = MENU_CANCELLED;
     }
     if (chosen != NOT_CHOSEN) passes++;
   } while (passes < 2);

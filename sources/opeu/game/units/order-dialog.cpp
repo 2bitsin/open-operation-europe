@@ -23,18 +23,12 @@ enum OrderMessage : std::uint16_t {
   CLEAR_ORDERED   = 0x70,
   DESTROY_ORDERED = 0x71,
 };
-// The side of a cell or regiment that has none.
-constexpr std::uint8_t NO_SIDE{ 0xff };
 // The two-choice menus and the answers of their dialog.
 constexpr std::uint16_t SUPPLY_MENU{ 2 };
 constexpr std::uint16_t REPAIR_MENU{ 3 };
 constexpr std::uint16_t CHOICE_COUNT{ 2 };
 constexpr std::uint16_t CHOOSE_CITY{ 1 };
 constexpr std::uint16_t CHOOSE_REGIMENT{ 2 };
-
-auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... words) -> std::uint16_t {
-  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
-}
 
 // Supply or repair at a cell: of an own city there, of an own regiment there, or neither. With both, the player is
 // asked which.
@@ -47,7 +41,7 @@ auto ChooseCityOrRegiment(std::uint8_t* ds, HostEvent event, std::uint8_t side, 
                           std::uint16_t person) -> Choice {
   if (side == city_side && side == unit_side) {
     opeu_order_layout_pair(ds, menu);
-    switch (Send(ds, event, ORDERS_DELAY_DIALOG, which, CHOICE_COUNT, person, choices)) {
+    switch (Call(ds, event, ORDERS_DELAY_DIALOG, which, CHOICE_COUNT, person, choices)) {
     case CHOOSE_CITY:     return Choice::CITY;
     case CHOOSE_REGIMENT: return Choice::REGIMENT;
     default:              return Choice::NEITHER;
@@ -91,11 +85,11 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
     return true;
   } };
   auto const refuse{ [&](auto const& text) {
-    Send(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, text));
+    Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, text));
     return false;
   } };
   auto const cannot{ [&] {
-    Send(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3]);
+    Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3]);
     return false;
   } };
   auto const terrain{ [&] { return static_cast<Terrain>(opeu_map_code(ds, x, y)); } };
@@ -124,7 +118,7 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
     case Terrain::CITY:
     case Terrain::RIVER:
     case Terrain::BRIDGE:
-    case Terrain::IMPASSABLE: Send(ds, event, ORDERS_REQUEST_FORMAT, buffer, Send(ds, event, ORDERS_MESSAGE_LOOKUP, NO_MINES_THERE)); return false;
+    case Terrain::IMPASSABLE: Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Call(ds, event, ORDERS_MESSAGE_LOOKUP, NO_MINES_THERE)); return false;
     default:                  return place();
     }
   }
@@ -138,10 +132,10 @@ auto CheckOrderTarget(std::uint8_t* ds, HostEvent event, OrderPrompts const& pro
 
 auto AnnounceOrder(std::uint8_t* ds, HostEvent event, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
   auto& data{ Data(ds) };
-  Send(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.understood), data.order_names[kind + 3]);
-  auto const engineering{ [&](OrderMessage message) { Send(ds, event, ORDERS_REQUEST_FORMAT, buffer, Send(ds, event, ORDERS_MESSAGE_LOOKUP, message)); } };
+  Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Near(data, prompts.understood), data.order_names[kind + 3]);
+  auto const engineering{ [&](OrderMessage message) { Call(ds, event, ORDERS_REQUEST_FORMAT, buffer, Call(ds, event, ORDERS_MESSAGE_LOOKUP, message)); } };
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);
   if (kind == Kind(UnitOrder::DESTROY_BRIDGE)) engineering(DESTROY_ORDERED);
-  Send(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
+  Call(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
 }

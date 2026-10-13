@@ -9,9 +9,7 @@
 
 using namespace opeu::game;
 
-namespace {
-constexpr uint8_t NO_SIDE{ 255 };
-}
+namespace { }
 
 // The near pointer to the ready unit at (x, y), 0 when the cell's occupant bits say it is empty or none is found.
 uint16_t opeu_find_unit_at(const uint8_t* ds, uint8_t x, uint8_t y) {

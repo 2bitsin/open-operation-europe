@@ -6,6 +6,7 @@
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
 #include "core/strings.hpp"
+#include "core/tblgroup.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
@@ -15,7 +16,6 @@
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "units/rqarmtbl.hpp"
 
 using namespace opeu::game;
 
@@ -56,9 +56,9 @@ void opeu_tbl_draw_supplies(uint8_t ds[65536], HostEvent event, uint8_t column, 
 
 // The table's calls are the row-draw services.
 uint16_t svc_tblsupp(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_unit_table(ds, "tblsupp", id, args, count);
+  return svc_table(ds, "tblsupp", id, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_supplies(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunUnitTable(ds, svc_tblsupp, opeu_tbl_draw_supplies, args, count);
+  return RunTableRows(ds, svc_tblsupp, opeu_tbl_draw_supplies, args, count);
 }

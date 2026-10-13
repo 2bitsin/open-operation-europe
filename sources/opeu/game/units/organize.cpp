@@ -5,7 +5,9 @@
 #include "units/organize.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
 
@@ -89,9 +91,6 @@ constexpr std::uint16_t LIST_STATE_SIZE{ 7 };
 constexpr std::uint8_t ARMOURED_SLOTS{ 6 };
 constexpr std::uint8_t OTHER_SLOTS{ 4 };
 constexpr std::uint8_t STOCK_ITEMS{ 6 };
-// The eight directions around a cell and the cell itself.
-constexpr std::uint8_t  DIRECTIONS{ 8 };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 
 // The command's locals whose near addresses reach services, at their places below the top of its reserve.
 enum Locals : std::uint16_t {
@@ -109,12 +108,8 @@ auto LocalAt(ServiceLocals const& locals, Locals local) -> std::uint16_t {
   return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - local));
 }
 
-auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
-  return Call(ds, event, service, words...);
-}
-
 auto SlotsOf(std::uint8_t* ds, HostEvent event, std::uint16_t unit) -> std::uint8_t {
-  return Send(ds, event, Service::UNIT_CLASS, static_cast<std::uint8_t>(Send(ds, event, Service::UNIT_INDEX, unit))) ? ARMOURED_SLOTS : OTHER_SLOTS;
+  return Call(ds, event, Service::UNIT_CLASS, static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_INDEX, unit))) ? ARMOURED_SLOTS : OTHER_SLOTS;
 }
 
 auto SetEnabled(ListWindow& list, std::uint16_t segment) -> void {
@@ -126,7 +121,7 @@ auto SetEnabled(ListWindow& list, std::uint16_t segment) -> void {
 auto Refresh(std::uint8_t* ds, HostEvent event) -> void {
   auto& data{ Data(ds) };
   data.daily_active = 1;
-  Send(ds, event, Service::DAILY_CONTEXT, data.current_side);
+  Call(ds, event, Service::DAILY_CONTEXT, data.current_side);
   data.daily_active = 0;
 }
 
@@ -146,56 +141,56 @@ auto Allocate(std::uint8_t* ds, HostEvent event, ServiceLocals const& locals, Al
   data.supply_count          = a.slots;
   data.supply_slot_list.rows = static_cast<std::uint8_t>(a.slots + a.other_slots + a.spare_slots + 1);
   data.supply_type_list.rows = static_cast<std::uint8_t>(a.types + 1);
-  Send(ds, event, Service::ALLOC_SCREEN, data.supply_count, a.other_slots, a.spare_slots, a.types);
+  Call(ds, event, Service::ALLOC_SCREEN, data.supply_count, a.other_slots, a.spare_slots, a.types);
   auto const back_to_map{ [&] {
-    Send(ds, event, Service::CONTROL_RESET);
+    Call(ds, event, Service::CONTROL_RESET);
     auto const current{ [&]() -> Unit const& { return Record<Unit>(data, data.current_unit_ptr); } };
-    Send(ds, event, Service::CONTROL_POSITION, current().x, current().y);
-    Send(ds, event, Service::ARRIVAL_LOCATION, current().x, current().y, data.current_side);
+    Call(ds, event, Service::CONTROL_POSITION, current().x, current().y);
+    Call(ds, event, Service::ARRIVAL_LOCATION, current().x, current().y, data.current_side);
   } };
   auto flags{ ALLOC_FIRST };
   for (;;) {
-    Send(ds, event, Service::CHIEF_TEXT, Near(data, data.organize_dispatch));
-    Send(ds, event, Service::COPY_BYTES, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
-    if (!Send(ds, event, Service::LIST_DIALOG, Near(data, data.supply_slot_list), 1, flags)) {
-      if (!data.supply_total && Send(ds, event, Service::ALLOC_NONEMPTY, a.slots, a.other_slots) == 1) {
-        if (!Send(ds, event, Service::CHIEF_WAIT, Near(data, data.organize_complete))) {
+    Call(ds, event, Service::CHIEF_TEXT, Near(data, data.organize_dispatch));
+    Call(ds, event, Service::COPY_BYTES, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
+    if (!Call(ds, event, Service::LIST_DIALOG, Near(data, data.supply_slot_list), 1, flags)) {
+      if (!data.supply_total && Call(ds, event, Service::ALLOC_NONEMPTY, a.slots, a.other_slots) == 1) {
+        if (!Call(ds, event, Service::CHIEF_WAIT, Near(data, data.organize_complete))) {
           flags = ALLOC_FIRST;
           continue;
         }
-        Send(ds, event, Service::ALLOC_DISTRIBUTE, a.slots, a.other_slots, a.spare_slots, a.types);
-        Send(ds, event, Service::ALLOC_CHOOSE_HQ);
+        Call(ds, event, Service::ALLOC_DISTRIBUTE, a.slots, a.other_slots, a.spare_slots, a.types);
+        Call(ds, event, Service::ALLOC_CHOOSE_HQ);
         back_to_map();
         data.side_delays[data.current_side] = 1;
         return;
       }
-      if (!Send(ds, event, Service::CHIEF_WAIT, Near(data, data.organize_cancel))) {
+      if (!Call(ds, event, Service::CHIEF_WAIT, Near(data, data.organize_cancel))) {
         flags = ALLOC_FIRST;
         continue;
       }
       back_to_map();
       return;
     }
-    Send(ds, event, Service::COPY_BYTES, state, LocalAt(locals, SLOT_LIST), LIST_STATE_SIZE);
+    Call(ds, event, Service::COPY_BYTES, state, LocalAt(locals, SLOT_LIST), LIST_STATE_SIZE);
     std::uint8_t const slot{ data.list_row };
     auto const         item{ Near(data, data.alloc_slots[slot]) };
     std::uint8_t       next{ ALLOC_FIRST };
     for (;;) {
-      Send(ds, event, Service::CHIEF_TEXT, Near(data, data.organize_select));
-      Send(ds, event, Service::COPY_BYTES, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
-      if (!Send(ds, event, Service::LIST_DIALOG, Near(data, data.supply_type_list), 1, flags)) break;
-      Send(ds, event, Service::COPY_BYTES, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
+      Call(ds, event, Service::CHIEF_TEXT, Near(data, data.organize_select));
+      Call(ds, event, Service::COPY_BYTES, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
+      if (!Call(ds, event, Service::LIST_DIALOG, Near(data, data.supply_type_list), 1, flags)) break;
+      Call(ds, event, Service::COPY_BYTES, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
       std::uint8_t const row{ data.list_row };
       auto const&        type{ data.element_types[data.supply_types[row]] };
-      Send(ds, event, Service::ALLOC_TYPE_PANEL, row, Near(data, type));
+      Call(ds, event, Service::ALLOC_TYPE_PANEL, row, Near(data, type));
       // A spare slot of the first regiment (drawn from the objective's stock) may take three times the capacity.
       std::uint16_t const capacity{ data.request_capacities[type.category] };
       std::uint16_t const limit{ static_cast<std::uint16_t>(!a.other_slots && a.slots - 1 < slot ? capacity * 3 : capacity) };
       std::uint16_t const most{ limit < data.supply_amounts[row] ? limit : data.supply_amounts[row] };
-      Send(ds, event, Service::FORMAT, text, Near(data, data.organize_number));
-      auto const amount{ Send(ds, event, Service::CHIEF_NUMBER, text, 1, most, 1, 0) };
-      if (amount == CANCELLED) continue;
-      Send(ds, event, Service::ALLOC_TAKE, item, row, amount, a.types);
+      Call(ds, event, Service::FORMAT, text, Near(data, data.organize_number));
+      auto const amount{ Call(ds, event, Service::CHIEF_NUMBER, text, 1, most, 1, 0) };
+      if (amount == MENU_CANCELLED) continue;
+      Call(ds, event, Service::ALLOC_TAKE, item, row, amount, a.types);
       next = ALLOC_AGAIN;
       break;
     }
@@ -212,75 +207,75 @@ void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto const          text{ LocalAt(locals, PROMPT_TEXT) };
   auto const          person{ [&] { return data.context_record2; } };
   auto const          units{ Near(data, data.row_units) };
-  Send(ds, event, Service::CONTROL_PANEL);
+  Call(ds, event, Service::CONTROL_PANEL);
   auto flags{ LIST_FIRST };
   Refresh(ds, event);
   for (;;) {
-    Send(ds, event, Service::COPY_BYTES, LocalAt(locals, UNIT_LIST), state, LIST_STATE_SIZE);
-    data.organize_list.rows = static_cast<std::uint8_t>(Send(ds, event, Service::SUPPORTED_UNITS, data.current_side, units)) + 1;
+    Call(ds, event, Service::COPY_BYTES, LocalAt(locals, UNIT_LIST), state, LIST_STATE_SIZE);
+    data.organize_list.rows = static_cast<std::uint8_t>(Call(ds, event, Service::SUPPORTED_UNITS, data.current_side, units)) + 1;
     if (data.organize_list.rows == 1) {
-      Send(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_none), person());
+      Call(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_none), person());
       return;
     }
     SetEnabled(data.organize_list, segment);
-    Send(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_which), person());
-    if (!Send(ds, event, Service::LIST_DIALOG, Near(data, data.organize_list), 1, flags)) break;
-    Send(ds, event, Service::COPY_BYTES, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
+    Call(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_which), person());
+    if (!Call(ds, event, Service::LIST_DIALOG, Near(data, data.organize_list), 1, flags)) break;
+    Call(ds, event, Service::COPY_BYTES, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
     auto const unit{ data.row_units[data.list_row] };
-    Send(ds, event, Service::GROUP_NOTICE, flags, unit);
-    auto const   elements{ static_cast<std::uint8_t>(Send(ds, event, Service::LIST_LENGTH, unit)) };
+    Call(ds, event, Service::GROUP_NOTICE, flags, unit);
+    auto const   elements{ static_cast<std::uint8_t>(Call(ds, event, Service::LIST_LENGTH, unit)) };
     Allocation   allocation{ .slots = SlotsOf(ds, event, unit), .other_slots = 0, .spare_slots = 0, .types = 0 };
     std::uint8_t other_elements{ 0 };
-    Send(ds, event, Service::SUPPLY_RESET);
+    Call(ds, event, Service::SUPPLY_RESET);
     // A friendly objective on the regiment's cell or next to it that the player accepts.
     bool       found{ false };
     auto const step_x{ LocalAt(locals, STEP_X) };
     auto const step_y{ LocalAt(locals, STEP_Y) };
-    for (std::uint8_t direction{ 0 }; direction <= DIRECTIONS; ++direction) {
+    for (std::uint8_t direction{ 0 }; direction <= GRID_DIRECTIONS; ++direction) {
       auto const& regiment{ Record<Unit>(data, unit) };
       Byte(ds, step_x) = regiment.x;
       Byte(ds, step_y) = regiment.y;
-      if (!Send(ds, event, Service::GRID_STEP, step_x, step_y, direction)) continue;
-      auto const objective{ Send(ds, event, Service::FIND_OBJECTIVE, Byte(ds, step_x), Byte(ds, step_y)) };
+      if (!Call(ds, event, Service::GRID_STEP, step_x, step_y, direction)) continue;
+      auto const objective{ Call(ds, event, Service::FIND_OBJECTIVE, Byte(ds, step_x), Byte(ds, step_y)) };
       if (!objective) continue;
-      if (static_cast<std::uint8_t>(Send(ds, event, Service::OBJECTIVE_SIDE, objective)) != data.current_side) continue;
-      Send(ds, event, Service::FORMAT, text, Near(data, data.organize_confirm_format), objective);
-      if (!Send(ds, event, Service::CONTROL_CONFIRM, text, person())) continue;
-      allocation.types       = static_cast<std::uint8_t>(Send(ds, event, Service::TALLY_STOCK, unit, objective));
+      if (static_cast<std::uint8_t>(Call(ds, event, Service::OBJECTIVE_SIDE, objective)) != data.current_side) continue;
+      Call(ds, event, Service::FORMAT, text, Near(data, data.organize_confirm_format), objective);
+      if (!Call(ds, event, Service::CONTROL_CONFIRM, text, person())) continue;
+      allocation.types       = static_cast<std::uint8_t>(Call(ds, event, Service::TALLY_STOCK, unit, objective));
       allocation.other_slots = 0;
       allocation.spare_slots = static_cast<std::uint8_t>(STOCK_ITEMS - data.tally_reject_count);
-      if (allocation.spare_slots == 0) Send(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_no_arms), person());
+      if (allocation.spare_slots == 0) Call(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_no_arms), person());
       found = true;
       break;
     }
     if (!found) {
       // Otherwise a neighbouring regiment of the same class.
-      allocation.types = static_cast<std::uint8_t>(Send(ds, event, Service::NEIGHBOR_UNITS, unit, units));
+      allocation.types = static_cast<std::uint8_t>(Call(ds, event, Service::NEIGHBOR_UNITS, unit, units));
       if (allocation.types == 0) {
-        Send(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_no_neighbor), person());
+        Call(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_no_neighbor), person());
         flags = LIST_AGAIN;
         Refresh(ds, event);
         continue;
       }
       data.organize_list.rows = static_cast<std::uint8_t>(allocation.types + 1);
       SetEnabled(data.organize_list, segment);
-      Send(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_with), person());
-      if (!Send(ds, event, Service::LIST_DIALOG, Near(data, data.organize_list), 1, LIST_FIRST)) {
+      Call(ds, event, Service::CONTROL_MESSAGE, Near(data, data.organize_with), person());
+      if (!Call(ds, event, Service::LIST_DIALOG, Near(data, data.organize_list), 1, LIST_FIRST)) {
         flags = LIST_AGAIN;
         Refresh(ds, event);
         continue;
       }
       auto const other{ data.row_units[data.list_row] };
-      Send(ds, event, Service::GROUP_NOTICE, flags, other);
-      other_elements         = static_cast<std::uint8_t>(Send(ds, event, Service::LIST_LENGTH, other));
+      Call(ds, event, Service::GROUP_NOTICE, flags, other);
+      other_elements         = static_cast<std::uint8_t>(Call(ds, event, Service::LIST_LENGTH, other));
       allocation.other_slots = SlotsOf(ds, event, other);
       allocation.spare_slots = 0;
-      allocation.types       = static_cast<std::uint8_t>(Send(ds, event, Service::TALLY_UNITS, unit, other));
+      allocation.types       = static_cast<std::uint8_t>(Call(ds, event, Service::TALLY_UNITS, unit, other));
     }
     // The battalions must fit the free element slots; otherwise the player may keep only the first regiment's.
-    auto const free{ static_cast<std::uint8_t>(Send(ds, event, Service::RELEASE_ELEMENTS, 0, 0)) };
+    auto const free{ static_cast<std::uint8_t>(Call(ds, event, Service::RELEASE_ELEMENTS, 0, 0)) };
     if (free + other_elements + elements < allocation.slots + allocation.other_slots) {
-      if (!Send(ds, event, Service::CONTROL_CONFIRM, Near(data, data.organize_full), person())) {
+      if (!Call(ds, event, Service::CONTROL_CONFIRM, Near(data, data.organize_full), person())) {
         flags = LIST_AGAIN;
         Refresh(ds, event);
         continue;
@@ -292,7 +287,7 @@ void opeu_turn_action_6(uint8_t ds[65536], HostEvent event, uint16_t segment) {
     flags = LIST_AGAIN;
     Refresh(ds, event);
   }
-  if (data.side_delays[data.current_side]) Send(ds, event, Service::DAILY_SHOW, DAILY_SHOW_MODE, data.current_side, DAILY_REDRAW, segment);
+  if (data.side_delays[data.current_side]) Call(ds, event, Service::DAILY_SHOW, DAILY_SHOW_MODE, data.current_side, DAILY_REDRAW, segment);
 }
 
 // The command's services.

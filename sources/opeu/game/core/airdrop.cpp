@@ -3,6 +3,7 @@
 // stored as the current side's pending airborne drop.
 #include "core/airdrop.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/airhelp.hpp"
 #include "core/limits.hpp"
 #include "core/perssel.hpp"
@@ -37,7 +38,6 @@ constexpr std::uint16_t ASSIGN_TROOPS_OFFSET{ 0x06de };
 constexpr std::uint16_t MARK_BATTALION_OFFSET{ 0x077a };
 
 constexpr std::uint16_t TROOPS_PER_PLANE{ 30 };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint8_t  NO_TYPE{ 0xff };
 constexpr std::uint8_t  CHOSEN{ 0x10 }; // the mask release_side_units/elements clear and count
 
@@ -88,7 +88,7 @@ uint8_t opeu_air_assign_troops(uint8_t ds[65536], HostEvent event) {
   auto const most{ opeu_min16(opeu_min16(opeu_air_free_planes(ds, event) * TROOPS_PER_PLANE + element.quantity - data.air_troops, Record<Side>(data, data.current_side_ptr).paratroops),
                               data.request_capacities[0]) };
   auto const troops{ opeu_air_ask_count(ds, event, Near(data, data.drop_ask_troops), 0, most, 1, data.context_record3, 0) };
-  if (troops != CANCELLED) {
+  if (troops != MENU_CANCELLED) {
     data.air_troops  = static_cast<std::uint16_t>(data.air_troops + (troops - element.quantity));
     element.quantity = troops;
     element.flags    = troops ? Bits(ElementFlag::AIRBORNE) : 0;
@@ -249,7 +249,7 @@ void opeu_air_drop_command(uint8_t ds[65536], HostEvent event) {
     if (!Call(ds, event, PICK, site_x, site_y)) return;
   } while (!opeu_air_target_valid(ds, event, x, y, Near(data, data.drop_paratroopers)));
   auto const hours{ opeu_air_ask_count(ds, event, Near(data, data.drop_hours_prompt), 6, 24, 1, data.context_record3, 0) };
-  if (hours == CANCELLED) return;
+  if (hours == MENU_CANCELLED) return;
   if (!confirm(data.drop_ask_hq)) return;
   auto const delay{ opeu_air_drop_delay(ds, event, static_cast<std::uint8_t>(hours)) };
   if (delay == 0 || opeu_air_drop_order(ds, event, x, y, delay)) data.side_delays[data.current_side] = 1;

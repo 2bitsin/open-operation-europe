@@ -21,7 +21,6 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t ROUNDS{ 25 };
-constexpr uint8_t NO_SIDE{ 0xff };
 // What the computer turn reports: the defender (1) or the attacker (2) won.
 constexpr uint8_t DEFENDER_WON{ 1 };
 constexpr uint8_t ATTACKER_WON{ 2 };

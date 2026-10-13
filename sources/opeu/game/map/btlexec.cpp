@@ -35,7 +35,6 @@ enum class Kind : uint8_t {
 // opeu_battle_order_refused reasons.
 constexpr uint8_t REFUSED_TERRAIN{ 1 };
 constexpr uint8_t REFUSED_FRIEND{ 2 };
-constexpr uint8_t IMPASSABLE{ 0xff }; // a battle_terrain_costs entry
 // Added to a command for every element of the unit.
 constexpr uint8_t WHOLE_UNIT{ 6 };
 

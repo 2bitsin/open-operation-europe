@@ -11,7 +11,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t NO_SIDE{ 255 };
 constexpr uint8_t BLOCK_MASK{ 0xfc }; // the view moves in blocks of 4 cells
 constexpr int16_t BLOCK{ 4 };
 } // namespace

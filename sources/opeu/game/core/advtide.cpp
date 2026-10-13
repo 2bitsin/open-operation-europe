@@ -27,7 +27,6 @@ namespace {
 constexpr std::uint8_t  ALL_CATEGORIES{ 0xff };
 constexpr std::uint8_t  CITY_LEVEL{ 4 };
 constexpr std::uint16_t CHEAP_UNIT{ 300 };
-constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint8_t  SAMPLE_STEP{ 4 }; // the territory sample takes every fourth cell each way
 
 auto Tide(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text) -> Advisor {
@@ -107,8 +106,8 @@ uint16_t opeu_advice_tide_territory_control(uint8_t ds[65536], const uint8_t* fa
   auto const&   data{ Data(ds) };
   auto const    advisor{ Tide(ds, event, far_text) };
   std::uint16_t held{ 0 };
-  for (std::uint8_t y{ 0 }; y < MAP_SIZE; y += SAMPLE_STEP)
-    for (std::uint8_t x{ 0 }; x < MAP_SIZE; x += SAMPLE_STEP)
+  for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += SAMPLE_STEP)
+    for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += SAMPLE_STEP)
       if (opeu_cell_influence_side(ds, x, y) == data.current_side) ++held;
   if (held == 0 && advisor.Random(4) == 1) return advisor.Say(AdviceText::SITUATION_WORST);
   if (held > 75 && advisor.Random(4) == 1) return advisor.Say(AdviceText::OVERWHELMING_ENEMY);

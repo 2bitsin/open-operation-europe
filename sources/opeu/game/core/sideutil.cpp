@@ -26,7 +26,7 @@ uint8_t opeu_opposite_side(uint8_t side) {
 
 // The side itself when its status is 1, otherwise the other side.
 uint8_t opeu_side_for_status(const uint8_t ds[65536], uint8_t side) {
-  return Data(ds).side_status[side] == 1 ? side : opeu_opposite_side(side);
+  return Data(ds).side_status[side] == SIDE_PLAYED ? side : opeu_opposite_side(side);
 }
 
 void opeu_select_side_color(uint8_t ds[65536], SideColorEvent event, uint8_t side) {

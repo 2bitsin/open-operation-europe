@@ -8,6 +8,8 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/exchange-panel.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/chief.hpp"
 #include "core/suprow.hpp"
@@ -24,13 +26,9 @@ namespace {
 
 using enum SupplyService;
 
-constexpr std::uint8_t  NO_ROW{ 0xff };
-constexpr std::uint8_t  ROWS{ 3 };
-constexpr std::uint8_t  ENTER{ 13 };
-constexpr std::uint16_t ROW_HEIGHT{ 28 };
-constexpr std::uint16_t HIGHLIGHT_COLOUR{ 0x107 };
-constexpr std::uint8_t  CURRENT{ 0 };  // supply_table column: the amount
-constexpr std::uint8_t  CAPACITY{ 1 }; // and the capacity
+constexpr std::uint8_t ROWS{ 3 };
+constexpr std::uint8_t CURRENT{ 0 };  // supply_table column: the amount
+constexpr std::uint8_t CAPACITY{ 1 }; // and the capacity
 
 // The near pointer of a supply_table word.
 constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uint16_t {
@@ -40,18 +38,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(std::uint8_t* ds, HostEvent event, std::uint8_t row) {
   auto const& data{ Data(ds) };
-  Call(ds, event, HIGHLIGHT, data.supply_panel_x + 0xd, row * ROW_HEIGHT + data.supply_panel_y + 0x23, 6, 0x1b, HIGHLIGHT_COLOUR);
-}
-
-// The amount a key moves: 1, 10 or 100.
-auto KeyAmount(std::uint8_t key) -> std::uint16_t {
-  switch (key) {
-  case '1':
-  case '3': return 1;
-  case '4':
-  case '6': return 10;
-  default:  return 100;
-  }
+  HighlightRow(ds, event, HIGHLIGHT, { data.supply_panel_x, data.supply_panel_y }, row);
 }
 } // namespace
 
@@ -106,7 +93,7 @@ uint16_t opeu_supply_step(uint8_t ds[65536], HostEvent event) {
       redraw = 2;
       break;
     }
-    case ENTER:
+    case KEY_ENTER:
       Call(ds, event, ROW, selected, redraw);
       Highlight(ds, event, highlighted);
       return Call(ds, event, CHIEF_WAIT, offsetof(DataSegment, supply_continue));

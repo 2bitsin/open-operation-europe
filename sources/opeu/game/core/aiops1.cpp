@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/map-grid.hpp"
 #include "core/aibudget.hpp"
 #include "core/daylist.hpp"
 #include "core/limits.hpp"
@@ -30,11 +31,7 @@ uint16_t (*opeu_ai_unrecovered)(uint8_t* ds, uint16_t id, uint16_t ax, uint16_t 
 
 namespace {
 
-constexpr std::uint8_t  ENTRIES_PER_SIDE{ 21 };
-constexpr std::uint8_t  DIRECTIONS{ 8 };
 constexpr std::uint8_t  NO_TYPE{ 0xff };
-constexpr std::uint8_t  NO_SIDE{ 0xff };
-constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint16_t TROOPS_PER_PLANE{ 30 };
 constexpr std::uint16_t MAX_PLANES{ 33 }; // the most transports one drop takes
 constexpr std::uint16_t UNIT_LIST{ offsetof(DataSegment, ai_unit_list) };
@@ -60,7 +57,7 @@ auto CurrentSide(DataSegment& data) -> Side& {
 // The strike's target: the first of the eight cells around (x, y) that `accept` takes; false when none does.
 template <typename Accept>
 auto StepAround(std::uint8_t x, std::uint8_t y, std::uint8_t& to_x, std::uint8_t& to_y, Accept&& accept) -> bool {
-  for (std::uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+  for (std::uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
     to_x = x;
     to_y = y;
     if (opeu_grid_step(&to_x, &to_y, direction) && accept(to_x, to_y)) return true;
@@ -90,8 +87,8 @@ uint16_t opeu_ai_002a(uint8_t ds[65536]) {
   std::uint8_t y{};
   auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) { return opeu_cell_side(ds, cx, cy) == opeu_opposite_side(side_index) && opeu_unit_special(ds, opeu_find_unit_at(ds, cx, cy)); } };
   bool         found{ false };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE && !found; ++i) {
-    auto const near{ data.objective_links[side_index * ENTRIES_PER_SIDE + i] };
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE && !found; ++i) {
+    auto const near{ data.objective_links[side_index * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near) continue;
     auto const& objective{ Record<Objective>(data, near) };
     if (!objective.active) continue;
@@ -133,8 +130,8 @@ uint8_t opeu_ai_first_allowed_type(uint8_t ds[65536]) {
 // The first of the side's linked objectives held by the enemy whose cell is not under the side's influence, or 0.
 uint16_t opeu_ai_exposed_enemy_objective(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE; ++i) {
-    auto const near{ data.objective_links[data.current_side * ENTRIES_PER_SIDE + i] };
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
+    auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near || opeu_objective_side(ds, near) == data.current_side) continue;
     auto const& objective{ Record<Objective>(data, near) };
     if (opeu_cell_influence_side(ds, objective.x, objective.y) != data.current_side) return near;
@@ -151,7 +148,7 @@ uint16_t opeu_ai_free_cell_near(uint8_t ds[65536], uint16_t objective, uint8_t* 
     *y = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.y);
     opeu_sub_byte(3, x);
     opeu_sub_byte(3, y);
-    if (*x < MAP_SIZE && *y < MAP_SIZE && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(ds, *x, *y))) && !opeu_cell_marked(ds, *x, *y, data.current_side)
+    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(static_cast<std::uint8_t>(opeu_map_code(ds, *x, *y))) && !opeu_cell_marked(ds, *x, *y, data.current_side)
         && opeu_cell_side(ds, *x, *y) == NO_SIDE)
       return 1;
   }

@@ -100,8 +100,7 @@ constexpr std::uint16_t PANEL_SEGMENT{ 0x3ab9 };
 
 constexpr std::uint8_t  HURRICANE_WEATHER{ 5 }; // storms are named hurricanes in scenario 3 from July to September
 constexpr Scenario      HURRICANE_SCENARIO{ Scenario::D_DAY };
-constexpr std::uint16_t NEW_WEAPON_PICTURE{ 0xe7 }; // the daily picture that plays the fanfare
-constexpr std::uint8_t  NO_SIDE{ 0xff };
+constexpr std::uint16_t NEW_WEAPON_PICTURE{ 0xe7 };   // the daily picture that plays the fanfare
 constexpr std::uint16_t INTELLIGENCE_CHIEF_KIND{ 3 }; // find_side_record: the general who reports on objectives
 constexpr std::uint16_t ONE_HOUR_TEXT{ 0x77 };        // message id of the one-hour delay confirmation
 
@@ -286,7 +285,7 @@ void opeu_daily_show(uint8_t ds[65536], const DialogHost* host, uint16_t id, uin
 uint16_t opeu_speaker_panel(uint8_t ds[65536], const DialogHost* host, uint16_t person, uint16_t show) {
   auto const& data{ Data(ds) };
   auto const  side{ static_cast<std::uint8_t>(Send(ds, host, LACKS_SIDE0, person)) };
-  if (data.side_status[side] == 0) return 0;
+  if (data.side_status[side] == SIDE_COMPUTER) return 0;
   auto const unit{ Send(ds, host, SELECTED_UNIT, person) };
   if (data.side_initializing) Send(ds, host, DAILY_CONTEXT, side);
   if (unit && !Send(ds, host, SELECTION_ELIGIBLE, Send(ds, host, SELECTED_UNIT, person))) return 0;

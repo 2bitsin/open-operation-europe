@@ -4,6 +4,7 @@
 #include "map/movespot.hpp"
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/sideutil.hpp"
 #include "io/waitkey.hpp"
@@ -36,7 +37,6 @@ enum class SpotService : uint16_t {
   PENDING_FINISH = 12, // request
 };
 constexpr uint8_t NONE{ 255 };
-constexpr uint8_t DIRECTIONS{ 8 };
 constexpr uint8_t MINES_REQUEST{ 3 }; // the pending request the minefield report finishes
 // The DS reserve of the step coordinates the grid step service moves.
 constexpr uint16_t STEP_RESERVE{ 4 };
@@ -89,7 +89,7 @@ uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event) {
   auto const          y_at{ locals.At(STEP_Y_AT) };
   auto const          x{ mover.x };
   auto const          y{ mover.y };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS; direction++) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; direction++) {
     Byte(ds, x_at) = x;
     Byte(ds, y_at) = y;
     if (!Call(ds, event, SpotService::GRID_STEP, x_at, y_at, direction)) continue;

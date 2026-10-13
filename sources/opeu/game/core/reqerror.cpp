@@ -46,7 +46,7 @@ void opeu_request_error_present(uint8_t ds[65536], HostEvent event) {
   else
     Call(ds, event, ErrorService::FORMAT, buffer, format, name);
   Call(ds, event, ErrorService::SHOW, buffer, data.request_template);
-  if (data.side_control[1] == 0 && data.side_control[0] == 0) Call(ds, event, ErrorService::FINISH, 3);
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) Call(ds, event, ErrorService::FINISH, 3);
 }
 
 uint16_t svc_reqerror(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

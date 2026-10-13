@@ -54,8 +54,6 @@ constexpr std::uint16_t OBJECTIVE_RISING_MESSAGE{ 0x1c };
 constexpr std::uint16_t PRESENTER_OFFSET{ 0x396 };
 constexpr std::uint16_t PRESENTER_SEGMENT{ 0x108c };
 constexpr std::uint8_t  PARTISAN_TERRAIN{ 10 };
-constexpr std::uint8_t  NO_SIDE{ 0xff };
-constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint8_t  COMMANDER{ 3 }; // opeu_find_side_record's kind for the side's commander
 
 // The hurricane season: Normandy from July to September.
@@ -83,8 +81,8 @@ void opeu_partisan_event(uint8_t ds[65536], HostEvent event) {
   bool const season{ HurricaneSeason(data) };
   auto const partisans{ season ? data.partisan_words[0] : data.partisan_words[1] };
   Call(ds, event, DAILY_SHOW, HURRICANE_ITEM, data.current_side, PRESENTER_OFFSET, PRESENTER_SEGMENT);
-  for (std::uint8_t y{ 0 }; y < MAP_SIZE; ++y)
-    for (std::uint8_t x{ 0 }; x < MAP_SIZE; ++x) {
+  for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
+    for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
       if (opeu_map_code(ds, x, y) != PARTISAN_TERRAIN || opeu_cell_side(ds, x, y) != NO_SIDE || RandomBelow(ds, season ? 70 : 100) != 8) continue;
       Call(ds, event, FORMAT, TEXT, Call(ds, event, LOOKUP, CELL_RISING_MESSAGE), partisans);
       for (std::uint8_t side{ 0 }; side < 2; ++side) {

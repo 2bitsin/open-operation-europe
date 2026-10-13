@@ -8,13 +8,13 @@
 #include "common/table-rows.hpp"
 #include "core/personfl.hpp"
 #include "core/sideutil.hpp"
+#include "core/tblgroup.hpp"
 #include "types.hpp"
 #include "units/table.hpp"
 
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "units/rqarmtbl.hpp"
 
 using namespace opeu::game;
 
@@ -50,9 +50,9 @@ void opeu_tbl_draw_types(uint8_t ds[65536], HostEvent event, uint8_t column, uin
 
 // The table's calls are the row-draw services.
 uint16_t svc_tbltype(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_unit_table(ds, "tbltype", id, args, count);
+  return svc_table(ds, "tbltype", id, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_types(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunUnitTable(ds, svc_tbltype, opeu_tbl_draw_types, args, count);
+  return RunTableRows(ds, svc_tbltype, opeu_tbl_draw_types, args, count);
 }

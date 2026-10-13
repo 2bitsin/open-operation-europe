@@ -7,9 +7,7 @@
 
 using namespace opeu::game;
 
-namespace {
-constexpr uint8_t NO_SIDE{ 255 };
-}
+namespace { }
 
 // Only a unit with elements is placed: it becomes ready and its side's bit is set in its cell.
 void opeu_place_unit(uint8_t* ds, uint16_t unit) {

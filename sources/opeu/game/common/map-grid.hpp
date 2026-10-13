@@ -8,6 +8,9 @@
 
 namespace opeu::game::detail::map_grid {
 
+// The eight neighbours of a cell of the map or the battle field (map/neighbor's direction table).
+inline constexpr std::uint8_t GRID_DIRECTIONS{ 8 };
+
 // The map_cells byte of the cell (x, y).
 [[nodiscard]] inline auto MapCellAt(DataSegment& data, std::uint8_t x, std::uint8_t y) noexcept -> std::uint8_t& {
   return data.map_cells[y * MAP_WIDTH + x];
@@ -31,6 +34,7 @@ namespace opeu::game::detail::map_grid {
 } // namespace opeu::game::detail::map_grid
 
 namespace opeu::game {
+using detail::map_grid::GRID_DIRECTIONS;
 using detail::map_grid::InfluenceAt;
 using detail::map_grid::MapCellAt;
 using detail::map_grid::OnMap;

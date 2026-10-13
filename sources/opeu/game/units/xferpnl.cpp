@@ -4,6 +4,8 @@
 #include "units/xferpnl.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
+#include "common/exchange-panel.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/strings.hpp"
 #include "types.hpp"
@@ -44,28 +46,13 @@ namespace {
 
 using enum TransferService;
 
-// The keypad: three key columns and three key rows, in pixels from the panel's left edge and top.
-constexpr std::array<std::uint16_t, 4> KEY_COLUMNS{ 0x48, 0x68, 0x98, 0xb8 };
-constexpr std::array<std::uint16_t, 4> KEY_ROWS{ 0x23, 0x3f, 0x5b, 0x77 };
-constexpr std::uint8_t                 KEYS[3][3]{
+// The keys of the keypad's columns, top to bottom.
+constexpr std::uint8_t KEYS[3][3]{
   { '7', '4', '1' },
   { '8', '5', '2' },
   { '9', '6', '3' }
 };
-constexpr std::uint8_t NO_KEY{ 0xff };
-constexpr std::uint8_t ENTER{ 13 };
 
-// The panel's background, saved in the number dialog's image segment.
-constexpr std::uint16_t PANEL_WIDTH{ 0x20 }; // in 8-pixel columns
-constexpr std::uint16_t PANEL_HEIGHT{ 0x78 };
-constexpr std::uint16_t PANEL_IMAGE_AT{ 0x1f00 };
-
-constexpr std::int16_t  NAME_LIMIT{ 10 }; // characters of a name in the title
-constexpr std::uint16_t ROW_HEIGHT{ 28 };
-
-constexpr std::uint16_t GLYPH_SIZE{ 6 }; // digit glyphs are 6 x 6 pixels, 6 bytes each
-constexpr std::uint16_t BLANK_GLYPH{ 10 };
-constexpr std::uint16_t GLYPH_COLOUR{ 7 };
 constexpr std::uint16_t BOX_WIDTH{ 3 }; // the percentage's background, in 8-pixel columns
 constexpr std::uint16_t BOX_HEIGHT{ 6 };
 
@@ -73,10 +60,6 @@ constexpr std::uint16_t BOX_HEIGHT{ 6 };
 constexpr std::uint8_t TOWARD_LEFT{ '<' };
 constexpr std::uint8_t TOWARD_RIGHT{ '>' };
 constexpr std::uint8_t UNMOVED{ '-' };
-
-auto Played(DataSegment const& data) -> bool {
-  return data.side_status[data.current_side] == SIDE_PLAYED;
-}
 
 auto MousePosition(std::uint8_t* ds, HostWordsEvent event) -> std::array<std::uint16_t, 2> {
   std::array<std::uint16_t, 2> position{};
@@ -110,7 +93,7 @@ uint8_t opeu_transfer_input(uint8_t ds[65536], HostWordsEvent event, uint16_t ro
   for (;;) {
     auto const [x, y]{ MousePosition(ds, event) };
     if (Call(ds, event, RIGHT_DOWN)) {
-      key = ENTER;
+      key = KEY_ENTER;
       break;
     }
     if (Call(ds, event, LEFT_DOWN)) {
@@ -139,7 +122,7 @@ uint16_t opeu_transfer_get(const uint8_t ds[65536], uint8_t side, uint8_t row, u
 // each.
 void opeu_transfer_draw(uint8_t ds[65536], HostWordsEvent event, uint16_t first, uint16_t second) {
   auto const& data{ Data(ds) };
-  if (!Played(data)) return;
+  if (!SidePlayed(data, data.current_side)) return;
   Call(ds, event, TITLE, offsetof(DataSegment, transfer_title));
   Call(ds, event, MAP_DIALOG);
   Call(ds, event, RESTORE, data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
@@ -155,12 +138,7 @@ void opeu_transfer_draw(uint8_t ds[65536], HostWordsEvent event, uint16_t first,
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
 void opeu_transfer_digits(uint8_t ds[65536], HostWordsEvent event, uint16_t x, uint16_t y, uint16_t value) {
-  auto const glyphs{ Near(Data(ds), Data(ds).digit_glyphs) };
-  for (;; x -= GLYPH_SIZE) {
-    Call(ds, event, GLYPH, x, y, GLYPH_SIZE, GLYPH_SIZE, 0, glyphs + GLYPH_SIZE * BLANK_GLYPH);
-    Call(ds, event, GLYPH, x, y, GLYPH_SIZE, GLYPH_SIZE, GLYPH_COLOUR, glyphs + GLYPH_SIZE * (value % 10));
-    if (!(value /= 10)) break;
-  }
+  DrawDigits(ds, event, GLYPH, x, y, value);
 }
 
 // For a player's side, redraws a resource row: both amounts and both fill percentages. column (the column just
@@ -168,7 +146,7 @@ void opeu_transfer_digits(uint8_t ds[65536], HostWordsEvent event, uint16_t x, u
 void opeu_transfer_draw_row(uint8_t ds[65536], HostWordsEvent event, uint8_t row, uint8_t column) {
   (void)column;
   auto const& data{ Data(ds) };
-  if (!Played(data)) return;
+  if (!SidePlayed(data, data.current_side)) return;
   auto const& left{ data.transfer_table[0][row] };
   auto const& right{ data.transfer_table[1][row] };
   auto const  left_amount{ left[AMOUNT] };
@@ -176,8 +154,8 @@ void opeu_transfer_draw_row(uint8_t ds[65536], HostWordsEvent event, uint8_t row
   auto const  left_percent{ opeu_resource_percent(left_amount, left[CAPACITY]) };
   auto const  right_percent{ opeu_resource_percent(right_amount, right[CAPACITY]) };
   auto const  x{ data.transfer_panel_x };
-  auto const  text_y{ row * ROW_HEIGHT + data.transfer_panel_y + 0x24 };
-  auto const  box_y{ static_cast<std::uint16_t>(row * ROW_HEIGHT + data.transfer_panel_y + 0x37) };
+  auto const  text_y{ row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x24 };
+  auto const  box_y{ static_cast<std::uint16_t>(row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x37) };
   Call(ds, event, POSITION, x + 2, text_y);
   Call(ds, event, PRINT, offsetof(DataSegment, transfer_amount_format), left_amount);
   Call(ds, event, POSITION, x + 0x19, text_y);
@@ -213,7 +191,7 @@ uint8_t opeu_transfer_auto_key(uint8_t ds[65536], uint8_t row) {
     auto const step{ static_cast<std::uint16_t>(left_target - left_amount) };
     return step >= 100 ? '9' : step >= 10 ? '6' : '3';
   }
-  if (row == RESOURCES - 1) return ENTER;
+  if (row == RESOURCES - 1) return KEY_ENTER;
   latch = UNMOVED;
   return '2';
 }

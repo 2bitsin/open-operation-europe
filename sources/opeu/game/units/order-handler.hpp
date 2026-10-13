@@ -12,17 +12,8 @@
 
 namespace opeu::game::detail::order_handler {
 
-// side_control of a player-controlled side.
-inline constexpr std::uint16_t PLAYER{ 1 };
-// cell_side of a cell no side holds.
-inline constexpr std::uint8_t NO_SIDE{ 0xff };
 // pending_finish's value when a show ends.
 inline constexpr std::uint16_t SHOW_DONE{ 3 };
-
-// Calls an order service through the handler's event.
-inline auto Serve(std::uint8_t* ds, HostEvent event, OrderService service, auto... words) -> std::uint16_t {
-  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
-}
 
 // The regiment whose order runs.
 [[nodiscard]] inline auto CurrentUnit(DataSegment& data) noexcept -> Unit& {
@@ -36,7 +27,7 @@ inline auto Serve(std::uint8_t* ds, HostEvent event, OrderService service, auto.
 
 // The random bound of a handler's roll: the delivery level + 1 for a player's regiment, 3 for the computer's.
 [[nodiscard]] inline auto RollBound(DataSegment const& data) noexcept -> std::uint16_t {
-  return data.side_control[data.current_side] == PLAYER ? static_cast<std::uint16_t>(data.delivery_level + 1) : 3;
+  return data.side_control[data.current_side] == SIDE_PLAYED ? static_cast<std::uint16_t>(data.delivery_level + 1) : 3;
 }
 
 // A cell a service writes into the data segment as two bytes (an order's destination or target): the handler hands
@@ -64,10 +55,7 @@ private:
 namespace opeu::game {
 using detail::order_handler::CurrentOrder;
 using detail::order_handler::CurrentUnit;
-using detail::order_handler::NO_SIDE;
-using detail::order_handler::PLAYER;
 using detail::order_handler::RollBound;
-using detail::order_handler::Serve;
 using detail::order_handler::ServiceCell;
 using detail::order_handler::SHOW_DONE;
 using detail::order_handler::StandsOn;

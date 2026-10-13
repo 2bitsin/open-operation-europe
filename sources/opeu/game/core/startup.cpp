@@ -81,7 +81,7 @@ uint8_t opeu_rank_side_people(uint8_t ds[65536], uint8_t side, uint8_t* order) {
 void opeu_assign_side_staff(uint8_t ds[65536]) {
   auto& data{ Data(ds) };
   for (uint8_t side = 0; side < SIDE_COUNT; side++) {
-    if (data.side_control[side] != 0) continue;
+    if (data.side_control[side] != SIDE_COMPUTER) continue;
     uint8_t ranked[PEOPLE_PER_SIDE];
     opeu_rank_side_people(ds, side, ranked);
     auto const generals{ SideGenerals(data, side) };

@@ -22,7 +22,6 @@ enum Service : std::uint16_t {
 };
 
 constexpr std::uint8_t NO_ORDER{ 0xff };
-constexpr std::uint8_t ENTRIES_PER_SIDE{ 21 };
 
 auto CurrentGroup(DataSegment& data) -> Group& {
   return Record<Group>(data, data.current_group_ptr);
@@ -47,8 +46,8 @@ void opeu_clean_group_tasks(uint8_t ds[65536]) {
 // Whether any of the current side's entry values is set.
 uint16_t opeu_side_has_entries(uint8_t ds[65536]) {
   auto const& data{ Data(ds) };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE; ++i)
-    if (data.side_entry_values[data.current_side * ENTRIES_PER_SIDE + i]) return 1;
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i)
+    if (data.side_entry_values[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i]) return 1;
   return 0;
 }
 
@@ -66,7 +65,7 @@ uint16_t opeu_group_has_tasks(uint8_t ds[65536]) {
 void opeu_turn_group_action(uint8_t ds[65536], uint16_t (*event)(uint8_t*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
   auto& data{ Data(ds) };
   opeu_clean_group_tasks(ds);
-  if (data.side_control[data.current_side] == 0)
+  if (data.side_control[data.current_side] == SIDE_COMPUTER)
     if (opeu_unit_selection_eligible(ds, opeu_find_group_selected_unit(ds, data.current_group_ptr)) && opeu_side_has_entries(ds) && !opeu_group_has_tasks(ds)) event(ds, GROUP_TASKS, 0, 0, 0, 0);
 }
 

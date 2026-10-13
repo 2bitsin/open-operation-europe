@@ -64,50 +64,47 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t LABEL_FORMAT{ offsetof(DataSegment, turn_label_format) };
 
-auto Send(std::uint8_t* ds, Event event, Service service, std::uint16_t a0 = 0, std::uint16_t a1 = 0, std::uint16_t a2 = 0, std::uint16_t a3 = 0) -> std::uint16_t {
-  return event(ds, service, a0, a1, a2, a3);
-}
 } // namespace
 
 void opeu_process_selected_turn(uint8_t ds[65536], Event event) {
   auto& data{ Data(ds) };
-  Send(ds, event, NORMALIZE);
+  CallWords(ds, event, NORMALIZE);
   if (!(data.side_flags[data.current_side] & Bits(SideFlag::TURN_STARTED))) {
-    Send(ds, event, INITIALIZE_SIDE);
+    CallWords(ds, event, INITIALIZE_SIDE);
     data.side_flags[data.current_side] |= Bits(SideFlag::TURN_STARTED);
   }
   auto& schedule{ data.schedule_flags[0] };
-  if (schedule & Bits(ScheduleFlag::MONTHLY)) Send(ds, event, DAILY);
-  if (schedule & Bits(ScheduleFlag::HALF_DAY)) Send(ds, event, HALF_DAY);
+  if (schedule & Bits(ScheduleFlag::MONTHLY)) CallWords(ds, event, DAILY);
+  if (schedule & Bits(ScheduleFlag::HALF_DAY)) CallWords(ds, event, HALF_DAY);
   if (schedule & Bits(ScheduleFlag::HOURLY)) {
-    Send(ds, event, HOURLY_A);
-    Send(ds, event, HOURLY_B);
-    Send(ds, event, HOURLY_C);
+    CallWords(ds, event, HOURLY_A);
+    CallWords(ds, event, HOURLY_B);
+    CallWords(ds, event, HOURLY_C);
   }
-  Send(ds, event, PRE_CONTEXT);
+  CallWords(ds, event, PRE_CONTEXT);
   schedule                  = 0;
   data.turn_notification    = 0;
-  data.context_record1      = Send(ds, event, FIND_SIDE, data.current_side, 1);
-  data.context_record2      = Send(ds, event, FIND_SIDE, data.current_side, 2);
-  data.context_record3      = Send(ds, event, FIND_SIDE, data.current_side, 3);
-  data.context_group_record = Send(ds, event, FIND_GROUP, data.current_side, data.current_group);
+  data.context_record1      = CallWords(ds, event, FIND_SIDE, data.current_side, 1);
+  data.context_record2      = CallWords(ds, event, FIND_SIDE, data.current_side, 2);
+  data.context_record3      = CallWords(ds, event, FIND_SIDE, data.current_side, 3);
+  data.context_group_record = CallWords(ds, event, FIND_GROUP, data.current_side, data.current_group);
   if (!(Record<Unit>(data, data.current_unit_ptr).flags & Bits(UnitFlag::READY))) return;
   if (data.side_status[data.current_side] == SIDE_PLAYED) {
-    Send(ds, event, ACTIVE_BEGIN);
-    Send(ds, event, LABEL, LABEL_FORMAT, data.side_names[data.current_side], static_cast<std::uint16_t>(data.current_group * 10 + data.current_entry + 11), data.entry_names[data.current_entry]);
-    if (Send(ds, event, SIDE_SELECTED, data.current_side) == data.current_unit_ptr && data.side_control[data.current_side] == SIDE_PLAYED) {
-      if (data.input_mode ? Send(ds, event, INPUT_A) : Send(ds, event, INPUT_B)) data.side_delays[data.current_side] = 0;
+    CallWords(ds, event, ACTIVE_BEGIN);
+    CallWords(ds, event, LABEL, LABEL_FORMAT, data.side_names[data.current_side], static_cast<std::uint16_t>(data.current_group * 10 + data.current_entry + 11), data.entry_names[data.current_entry]);
+    if (CallWords(ds, event, SIDE_SELECTED, data.current_side) == data.current_unit_ptr && data.side_control[data.current_side] == SIDE_PLAYED) {
+      if (data.input_mode ? CallWords(ds, event, INPUT_A) : CallWords(ds, event, INPUT_B)) data.side_delays[data.current_side] = 0;
     }
   }
-  if (Send(ds, event, SIDE_SELECTED, data.current_side) == data.current_unit_ptr) {
-    Send(ds, event, SELECTED_BEGIN);
+  if (CallWords(ds, event, SIDE_SELECTED, data.current_side) == data.current_unit_ptr) {
+    CallWords(ds, event, SELECTED_BEGIN);
     if (data.side_control[data.current_side] == SIDE_PLAYED) {
-      if (data.side_delays[data.current_side] == 0) Send(ds, event, CONTROL_ONE);
+      if (data.side_delays[data.current_side] == 0) CallWords(ds, event, CONTROL_ONE);
     } else
-      Send(ds, event, CONTROL_OTHER);
+      CallWords(ds, event, CONTROL_OTHER);
   }
-  if (Send(ds, event, GROUP_SELECTED, data.current_group_ptr) == data.current_unit_ptr) Send(ds, event, GROUP_ACTION);
-  if (Send(ds, event, FINAL_PREDICATE)) Send(ds, event, FINAL_ACTION);
+  if (CallWords(ds, event, GROUP_SELECTED, data.current_group_ptr) == data.current_unit_ptr) CallWords(ds, event, GROUP_ACTION);
+  if (CallWords(ds, event, FINAL_PREDICATE)) CallWords(ds, event, FINAL_ACTION);
 }
 
 uint16_t svc_dispatch(uint8_t* ds, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {

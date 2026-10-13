@@ -3,6 +3,7 @@
 // while it can pay the cells' costs, has fuel and meets no enemy, setting off minefields and spotting on the way.
 #include "map/moveunit.hpp"
 #include "common/data-segment.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -13,9 +14,7 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t  NONE{ 255 };
-constexpr uint8_t  IMPASSABLE_COST{ 255 };
 constexpr uint8_t  POINTS_LIMIT{ 99 };
-constexpr uint8_t  DIRECTIONS{ 8 };
 constexpr uint8_t  NEAR_DESTINATION{ 3 }; // cells: replan the route from closer than this
 constexpr uint8_t  ROUTE_STEPS{ 10 };     // the farthest a planned waypoint lies
 constexpr uint16_t STUCK{ 0xffff };       // the step toward found no cell
@@ -61,12 +60,12 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t repeat) {
 
   // Nothing to do unless some neighbouring cell is affordable.
   bool affordable{ false };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS && !affordable; direction++) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS && !affordable; direction++) {
     uint8_t x{ next_x };
     uint8_t y{ next_y };
     if (step(x, y, direction)) {
       auto const cost{ cost_at(x, y) };
-      affordable = cost != IMPASSABLE_COST && cost <= unit.moved;
+      affordable = cost != IMPASSABLE && cost <= unit.moved;
     }
   }
   if (!affordable) return;

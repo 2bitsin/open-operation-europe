@@ -1,6 +1,7 @@
 // The Delay command: the side's commander picks how many hours the side's turn waits, and confirms it.
 #include "core/delay.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/strings.hpp"
 #include "types.hpp"
 
@@ -26,7 +27,6 @@ enum Service : std::uint16_t {
 constexpr std::uint16_t KEYBOARD_PROMPT{ 117 }; // the delay prompt for keyboard input
 constexpr std::uint16_t MOUSE_PROMPT{ 118 };    // the delay prompt for mouse input
 constexpr std::uint16_t DIALOG_X{ 24 };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 
 constexpr std::uint16_t PROMPT_BYTES{ 36 }; // the prompt the dialog service shows
 } // namespace
@@ -39,7 +39,7 @@ void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event) {
   auto&               data{ Data(ds) };
   opeu_string_copy(ds, scratch, Call(ds, event, TEXT, data.input_mode == 0 ? KEYBOARD_PROMPT : MOUSE_PROMPT));
   auto const hours{ Call(ds, event, DIALOG, scratch, DIALOG_X, data.context_record2, 0) };
-  if (hours != CANCELLED && Call(ds, event, CONFIRM, hours, data.context_record2)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
+  if (hours != MENU_CANCELLED && Call(ds, event, CONFIRM, hours, data.context_record2)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);
 }
 
 // The dialog takes the person before the hours.

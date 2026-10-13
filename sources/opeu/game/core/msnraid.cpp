@@ -35,10 +35,6 @@ auto Target(uint8_t* ds, uint8_t side) -> uint16_t {
   return Data(ds).sides[side].order.target;
 }
 
-auto Played(uint8_t* ds, uint8_t side) -> bool {
-  return Data(ds).side_status[side] == SIDE_PLAYED;
-}
-
 // Whether the roll succeeds: the officer's rating divided by divisor against 0..99.
 auto Succeeds(uint8_t* ds, HostEvent event, uint8_t side, uint16_t divisor) -> bool {
   return opeu_officer_rating(ds, side, OFFICER) / divisor > Call(ds, event, MISSION_RANDOM, 100);
@@ -61,7 +57,7 @@ void opeu_mission_raid_objective(uint8_t ds[65536], HostEvent event, uint8_t sid
     opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (Played(ds, side))
+  if (SidePlayed(Data(ds), side))
     opeu_mission_report_success(ds, event, side, text, city.x, city.y);
   else {
     opeu_string_append(ds, opeu_string_copy(ds, text, target), At(offsetof(DataSegment, raid_attempt_tail)));
@@ -83,7 +79,7 @@ void opeu_mission_raid_unit(uint8_t ds[65536], HostEvent event, uint8_t side) {
     opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (Played(ds, side))
+  if (SidePlayed(Data(ds), side))
     opeu_mission_report_success(ds, event, side, text, unit.x, unit.y);
   else {
     opeu_string_append(ds, opeu_mission_target_name(ds, event, side, target, text), At(offsetof(DataSegment, raid_unit_tail)));
@@ -104,7 +100,7 @@ void opeu_mission_sabotage(uint8_t ds[65536], HostEvent event, uint8_t side) {
     opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (Played(ds, side))
+  if (SidePlayed(Data(ds), side))
     opeu_mission_report_success(ds, event, side, text, city.x, city.y);
   else {
     opeu_string_append(ds, opeu_string_copy(ds, text, target), At(offsetof(DataSegment, sabotage_tail)));
@@ -127,7 +123,7 @@ void opeu_mission_objective_3(uint8_t ds[65536], HostEvent event, uint8_t side) 
     opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (Played(ds, side))
+  if (SidePlayed(Data(ds), side))
     opeu_mission_report_success(ds, event, side, text, city.x, city.y);
   else {
     opeu_string_copy(ds, text, target);
@@ -153,7 +149,7 @@ void opeu_mission_unit_4(uint8_t ds[65536], HostEvent event, uint8_t side) {
     opeu_mission_report_failure(ds, event, side, text);
     return;
   }
-  if (Played(ds, side))
+  if (SidePlayed(Data(ds), side))
     opeu_mission_report_success(ds, event, side, text, unit.x, unit.y);
   else {
     auto const tail{ Text(ds, event, LINES_CUT_TAIL) };

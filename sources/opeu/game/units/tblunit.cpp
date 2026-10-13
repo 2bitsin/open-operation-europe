@@ -7,6 +7,7 @@
 #include "common/table-rows.hpp"
 #include "core/recindex.hpp"
 #include "core/strings.hpp"
+#include "core/tblgroup.hpp"
 #include "map/support.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
@@ -18,7 +19,6 @@
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "units/rqarmtbl.hpp"
 
 using namespace opeu::game;
 
@@ -108,13 +108,13 @@ void opeu_tbl_draw_orders(uint8_t ds[65536], HostEvent event, uint8_t column, ui
 
 // The tables' calls are the row-draw services; unit_name and location_name format through this event as well.
 uint16_t svc_tblunit(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_unit_table(ds, "tblunit", id, args, count);
+  return svc_table(ds, "tblunit", id, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_orders(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunUnitTable(ds, svc_tblunit, opeu_tbl_draw_orders, args, count);
+  return RunTableRows(ds, svc_tblunit, opeu_tbl_draw_orders, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_units(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunUnitTable(ds, svc_tblunit, opeu_tbl_draw_units, args, count);
+  return RunTableRows(ds, svc_tblunit, opeu_tbl_draw_units, args, count);
 }

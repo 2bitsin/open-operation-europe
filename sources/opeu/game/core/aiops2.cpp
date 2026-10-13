@@ -19,7 +19,6 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t  ENTRIES_PER_SIDE{ 21 };
 constexpr std::uint16_t NO_NEED{ 999 };      // above any percentage
 constexpr std::uint16_t NEEDY_PERCENT{ 20 }; // supplies below this share of capacity call for an airlift
 constexpr std::uint16_t OBJECTIVE_FULL{ 60000 };
@@ -45,8 +44,8 @@ uint16_t opeu_ai_neediest_objective(uint8_t ds[65536]) {
   auto&         data{ Data(ds) };
   std::uint16_t neediest{ 0 };
   std::uint16_t lowest{ NO_NEED };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE; ++i) {
-    auto const near{ data.objective_links[data.current_side * ENTRIES_PER_SIDE + i] };
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
+    auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near || !Record<Objective>(data, near).active || !AiObjectiveEligible(ds, near) || opeu_objective_side(ds, near) != data.current_side) continue;
     auto const&   objective{ Record<Objective>(data, near) };
     std::uint16_t stock[3]{ objective.resources[0], objective.resources[1], objective.resources[2] };

@@ -27,10 +27,10 @@ uint16_t opeu_order_arrive(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
   auto const        y{ destination.YAt() };
-  Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
+  Call(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
   if (!StandsOn(ds, x, y)) return 0;
-  Serve(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.arrived_text));
-  Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
+  Call(ds, event, OrderService::UNIT_REPORT, data.current_unit_ptr, Near(data, data.arrived_text));
+  Call(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
   return 1;
 }
 
@@ -39,15 +39,15 @@ uint16_t opeu_order_reach_unit(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
   auto const        y{ destination.YAt() };
-  if (Serve(ds, event, OrderService::MOVE_UNIT_TARGET, x, y)) return Serve(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x), Byte(ds, y)) ? 1 : 0;
-  Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, Data(ds).current_unit_ptr);
+  if (Call(ds, event, OrderService::MOVE_UNIT_TARGET, x, y)) return Call(ds, event, OrderService::MOVE_ADJACENT, Byte(ds, x), Byte(ds, y)) ? 1 : 0;
+  Call(ds, event, OrderService::RESTORE_UNIT_ORDER, Data(ds).current_unit_ptr);
   return 1;
 }
 
 // The hold delay: (99 - the general's charm) / 30 + 1, in unsigned 16 bits.
 uint8_t opeu_order_hold_delay(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
-  auto const person{ Serve(ds, event, OrderService::UNIT_PERSON, data.current_unit_ptr) };
+  auto const person{ Call(ds, event, OrderService::UNIT_PERSON, data.current_unit_ptr) };
   return static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - Record<Person>(data, person).charm) / 30 + 1);
 }
 
@@ -58,15 +58,15 @@ uint16_t opeu_order_hold(uint8_t ds[65536], HostEvent event) {
   ServiceCell const destination;
   auto const        x{ destination.XAt() };
   auto const        y{ destination.YAt() };
-  Serve(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
+  Call(ds, event, OrderService::UNIT_ORDER_DESTINATION, data.current_unit_ptr, x, y);
   if (!StandsOn(ds, x, y)) return 0;
   // The delay is taken before the current regiment is read again.
   auto const delay{ opeu_order_hold_delay(ds, event) };
-  if (Serve(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), delay) && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)
+  if (Call(ds, event, OrderService::MOVE_LEVEL_LOWER, CurrentOrder(data), delay) && CurrentUnit(data).orders[1].kind != ORDER_UNUSED)
     for (auto const& element : Elements(data, CurrentUnit(data)))
       // The draw comes before the element is read.
-      if (auto const draw{ Serve(ds, event, OrderService::RAND_BOUNDED, RESUME_DRAW) }; element.experience < draw) {
-        Serve(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
+      if (auto const draw{ Call(ds, event, OrderService::RAND_BOUNDED, RESUME_DRAW) }; element.experience < draw) {
+        Call(ds, event, OrderService::RESTORE_UNIT_ORDER, data.current_unit_ptr);
         break;
       }
   return 1;

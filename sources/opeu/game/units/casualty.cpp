@@ -91,15 +91,11 @@ enum Locals : std::uint16_t {
   PERCENT_FUEL        = 0x66,
 };
 
-auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
-  return Call(ds, event, service, words...);
-}
-
 // The morale an element loses: the square root of its losses, times one more than a twentieth of its experience, plus
 // up to four. The random draw comes before the root, as in the game.
 auto MoraleLoss(std::uint8_t* ds, HostEvent event, std::uint16_t losses, Element const& element) -> std::uint16_t {
-  auto const extra{ Send(ds, event, Service::RANDOM, 5) };
-  auto const root{ Send(ds, event, Service::SQUARE_ROOT, losses) };
+  auto const extra{ Call(ds, event, Service::RANDOM, 5) };
+  auto const root{ Call(ds, event, Service::SQUARE_ROOT, losses) };
   return static_cast<std::uint16_t>(root * (element.experience / 20 + 1) + extra);
 }
 } // namespace
@@ -123,77 +119,77 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
   };
   std::uint8_t const x{ regiment.x };
   std::uint8_t const y{ regiment.y };
-  auto const         side{ static_cast<std::uint8_t>(Send(ds, event, Service::UNIT_SIDE, unit)) };
-  auto const         group{ static_cast<std::uint8_t>(Send(ds, event, Service::UNIT_GROUP_INDEX, unit)) };
+  auto const         side{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_SIDE, unit)) };
+  auto const         group{ static_cast<std::uint8_t>(Call(ds, event, Service::UNIT_GROUP_INDEX, unit)) };
   auto const         division{ Near(data, data.groups[side * GROUPS_PER_SIDE + group]) };
-  bool const         side_selected{ Send(ds, event, Service::SIDE_SELECTED_UNIT, side) == unit };
-  bool const         group_selected{ Send(ds, event, Service::GROUP_SELECTED_UNIT, division) == unit };
-  Send(ds, event, Service::UNIT_NAME, unit, name);
+  bool const         side_selected{ Call(ds, event, Service::SIDE_SELECTED_UNIT, side) == unit };
+  bool const         group_selected{ Call(ds, event, Service::GROUP_SELECTED_UNIT, division) == unit };
+  Call(ds, event, Service::UNIT_NAME, unit, name);
   // The side that watches: the enemy when a player commands it and may see the regiment, else its own side when a
   // player commands it and the regiment may be selected.
   std::uint8_t viewer{ opeu_opposite_side(side) };
-  bool         visible{ data.side_status[viewer] == SIDE_PLAYED && Send(ds, event, Service::UNIT_SPECIAL, unit) };
+  bool         visible{ data.side_status[viewer] == SIDE_PLAYED && Call(ds, event, Service::UNIT_SPECIAL, unit) };
   if (!visible) {
     viewer  = side;
-    visible = data.side_status[viewer] == SIDE_PLAYED && Send(ds, event, Service::UNIT_ELIGIBLE, unit);
+    visible = data.side_status[viewer] == SIDE_PLAYED && Call(ds, event, Service::UNIT_ELIGIBLE, unit);
   }
-  if (visible && e) Send(ds, event, Service::LOCATION_BLAST, x, y, viewer);
-  Send(ds, event, Service::RESOURCE_PERCENTAGES, unit, percents[0], percents[1], percents[2]);
+  if (visible && e) Call(ds, event, Service::LOCATION_BLAST, x, y, viewer);
+  Call(ds, event, Service::RESOURCE_PERCENTAGES, unit, percents[0], percents[1], percents[2]);
   bool report{ true };
   for (auto near{ regiment.first }; near; near = Record<Element>(data, near).next) {
     auto& element{ Record<Element>(data, near) };
-    Send(ds, event, Service::ELEMENT_NAME, near, element_name);
+    Call(ds, event, Service::ELEMENT_NAME, near, element_name);
     auto const    category{ data.element_types[element.type].category };
     bool const    infantry{ category == 0 };
-    std::uint16_t losses{ Send(ds, event, Service::RANDOM, 100) >= percent ? Send(ds, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Send(ds, event, Service::RANDOM, c) + kind) };
-    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Send(ds, event, Service::RANDOM, 10) + 6));
+    std::uint16_t losses{ Call(ds, event, Service::RANDOM, 100) >= percent ? Call(ds, event, Service::RANDOM, c >> 1) : static_cast<std::uint16_t>(Call(ds, event, Service::RANDOM, c) + kind) };
+    if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(Call(ds, event, Service::RANDOM, 10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    Send(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), side == 0 ? '6' : '5', data.side_names[side], name, element_name);
+    Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_heading), side == 0 ? '6' : '5', data.side_names[side], name, element_name);
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;
       if (element.flags & Bits(ElementFlag::SELECTED)) {
         if (side_selected)
-          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::SIDE_RECORD, side, person));
-        if (group_selected) Send(ds, event, Service::GENERAL_CASUALTY, Send(ds, event, Service::GROUP_RECORD, side, group));
+          for (std::uint8_t person{ 1 }; person <= SIDE_PEOPLE; ++person) Call(ds, event, Service::GENERAL_CASUALTY, Call(ds, event, Service::SIDE_RECORD, side, person));
+        if (group_selected) Call(ds, event, Service::GENERAL_CASUALTY, Call(ds, event, Service::GROUP_RECORD, side, group));
         // One time in a hundred the regiment's communications are cut.
-        if (Send(ds, event, Service::RANDOM, 100) == 0 && Send(ds, event, Service::UNIT_ELIGIBLE, unit)) {
+        if (Call(ds, event, Service::RANDOM, 100) == 0 && Call(ds, event, Service::UNIT_ELIGIBLE, unit)) {
           if (data.side_status[side] == SIDE_PLAYED) {
             if (group_selected)
               opeu_string_copy(ds, text, Near(data, data.casualty_cut_selected));
             else if (!side_selected)
-              Send(ds, event, Service::FORMAT, text, Near(data, data.casualty_cut), name);
-            Send(ds, event, Service::SIDE_REPORT, unit, text);
+              Call(ds, event, Service::FORMAT, text, Near(data, data.casualty_cut), name);
+            Call(ds, event, Service::SIDE_REPORT, unit, text);
             report = false;
           }
           regiment.flags &= static_cast<std::uint8_t>(~Bits(UnitFlag::COMMUNICATIONS));
           data.view_side = data.overview_side = NO_VIEW;
-          Send(ds, event, Service::ARRIVAL_LOCATION, x, y, side);
+          Call(ds, event, Service::ARRIVAL_LOCATION, x, y, side);
         }
       }
       if (element.quantity) {
-        opeu_add_byte(static_cast<std::uint16_t>(Send(ds, event, Service::SQUARE_ROOT, kind) * 2), EXPERIENCE_LIMIT, &element.experience);
+        opeu_add_byte(static_cast<std::uint16_t>(Call(ds, event, Service::SQUARE_ROOT, kind) * 2), EXPERIENCE_LIMIT, &element.experience);
         opeu_sub_byte(MoraleLoss(ds, event, infantry ? losses / 10 : losses, element), &element.morale);
         if (!infantry) {
           std::uint16_t damage{ element.damage };
-          opeu_add_word(Send(ds, event, Service::RANDOM, losses / 3), data.request_capacities[category], &damage);
+          opeu_add_word(Call(ds, event, Service::RANDOM, losses / 3), data.request_capacities[category], &damage);
           element.damage = damage;
         }
-        Send(ds, event, Service::FORMAT, loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
+        Call(ds, event, Service::FORMAT, loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses);
         opeu_string_append(ds, text, loss_text);
       } else {
-        switch (static_cast<std::uint8_t>(Send(ds, event, Service::REMOVE_ELEMENT, unit, near))) {
+        switch (static_cast<std::uint8_t>(Call(ds, event, Service::REMOVE_ELEMENT, unit, near))) {
         case UNIT_EMPTIED:
-          if (group_selected) Send(ds, event, Service::SELECT_UNIT, division);
+          if (group_selected) Call(ds, event, Service::SELECT_UNIT, division);
           wiped = true;
           break;
         case GROUP_EMPTIED:
-          Send(ds, event, Service::SET_COUNTER, Send(ds, event, Service::GROUP_RECORD, side, group), 0);
-          if (side_selected) Send(ds, event, Service::SELECT_GROUP, side);
+          Call(ds, event, Service::SET_COUNTER, Call(ds, event, Service::GROUP_RECORD, side, group), 0);
+          if (side_selected) Call(ds, event, Service::SELECT_GROUP, side);
           wiped = true;
           break;
         default:
-          if (element.flags & Bits(ElementFlag::SELECTED)) Send(ds, event, Service::SELECT_ELEMENT, unit);
+          if (element.flags & Bits(ElementFlag::SELECTED)) Call(ds, event, Service::SELECT_ELEMENT, unit);
           break;
         }
         opeu_string_append(ds, text, Near(data, data.casualty_wiped));
@@ -201,21 +197,21 @@ void opeu_unit_casualties(uint8_t ds[65536], HostEvent event, uint16_t unit, uin
     } else
       opeu_string_append(ds, text, Near(data, data.casualty_no_damage));
     if (report) {
-      if (visible) Send(ds, event, Service::REPORT_ELEMENT, near);
+      if (visible) Call(ds, event, Service::REPORT_ELEMENT, near);
       if (wiped) {
         if (visible) {
-          auto const person{ side == viewer ? Send(ds, event, Service::GROUP_RECORD, viewer, group) : Send(ds, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
-          Send(ds, event, Service::ARRIVAL_LOCATION, regiment.x, regiment.y, viewer);
-          Send(ds, event, Service::CONTROL_MESSAGE, text, person);
+          auto const person{ side == viewer ? Call(ds, event, Service::GROUP_RECORD, viewer, group) : Call(ds, event, Service::SIDE_RECORD, viewer, SIDE_PEOPLE) };
+          Call(ds, event, Service::ARRIVAL_LOCATION, regiment.x, regiment.y, viewer);
+          Call(ds, event, Service::CONTROL_MESSAGE, text, person);
         }
       } else
-        Send(ds, event, Service::SIDE_REPORT, unit, text);
+        Call(ds, event, Service::SIDE_REPORT, unit, text);
     }
   }
   regiment.moved = 0;
-  Send(ds, event, Service::CAPACITIES, unit, capacities[0], capacities[1], capacities[2]);
+  Call(ds, event, Service::CAPACITIES, unit, capacities[0], capacities[1], capacities[2]);
   for (std::size_t resource{ 0 }; resource < 3; ++resource) regiment.resources[resource] = opeu_percent(Word(ds, capacities[resource]), Word(ds, percents[resource]));
-  if (visible && e) Send(ds, event, Service::BLAST_ERASE, x, y);
+  if (visible && e) Call(ds, event, Service::BLAST_ERASE, x, y);
 }
 
 // The casualty routine's services.

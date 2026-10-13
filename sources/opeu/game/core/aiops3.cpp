@@ -19,7 +19,6 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t ENTRIES_PER_SIDE{ 21 };
 constexpr std::uint8_t NO_TARGET{ 0xff };
 constexpr std::uint8_t TARGET_ORDERED{ 6 }; // the progress of a freshly chosen target
 constexpr std::uint8_t FIT_HEALTH{ 30 };    // the least health a general keeps a post with
@@ -50,8 +49,8 @@ uint16_t opeu_ai_refresh_capacities(uint8_t ds[65536]) {
 uint16_t opeu_ai_pick_enemy_objective(uint8_t ds[65536]) {
   auto&         data{ Data(ds) };
   std::uint16_t pick{ 0 };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE; ++i) {
-    auto const near{ data.objective_links[data.current_side * ENTRIES_PER_SIDE + i] };
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
+    auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (near && opeu_objective_side(ds, near) != data.current_side)
       if (!pick || !opeu_rand_bounded(3)) pick = near;
   }

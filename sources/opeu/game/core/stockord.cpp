@@ -3,6 +3,7 @@
 // the final confirmation restores the orders the city had.
 #include "core/stockord.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "types.hpp"
 
 #include "common/battle-routine.hpp"
@@ -20,7 +21,6 @@ namespace {
 
 using enum BattleRoutine;
 
-constexpr std::uint16_t CANCELLED{ 0xffff };           // a refused question
 constexpr std::uint16_t STOCK_LIMIT{ 60000 };          // the largest stockpile order
 constexpr std::uint16_t CITY_ENABLED_AT{ 0x4e };       // opeu_stock_city_enabled in this module's code segment
 constexpr std::uint16_t STOCK_ORDER_SEGMENT{ 0x1d1e }; // this module's code segment
@@ -76,7 +76,7 @@ void opeu_stock_show_titled(uint8_t* ds, BattleEvent event, uint16_t objective) 
   opeu_stock_show(ds, event, objective);
 }
 
-// Asks how much of one resource to store (0..60000); CANCELLED when refused.
+// Asks how much of one resource to store (0..60000); MENU_CANCELLED when refused.
 uint16_t opeu_stock_ask(uint8_t* ds, BattleEvent event, uint16_t what) {
   ServiceLocals const locals{ 0x64 }; // the question the format service writes
   auto const&         data{ Data(ds) };
@@ -90,7 +90,7 @@ void opeu_stock_edit(uint8_t* ds, BattleEvent event, uint16_t objective) {
   auto&               data{ Data(ds) };
   auto&               city{ Record<Objective>(data, objective) };
   std::uint16_t const before[]{ city.reserves[AMMUNITION], city.reserves[FUEL], city.reserves[FOOD] };
-  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(ds, event, what)) != CANCELLED; } };
+  auto const          ask{ [&](Resource resource, std::uint16_t what) { return (city.reserves[resource] = opeu_stock_ask(ds, event, what)) != MENU_CANCELLED; } };
   opeu_stock_show(ds, event, objective);
   if (ask(FUEL, offsetof(DataSegment, stock_fuel))) {
     opeu_stock_show_titled(ds, event, objective);

@@ -52,9 +52,6 @@ constexpr std::uint16_t ORDER_DELAY{ 0xf };
 // The value of the cached control cell that forces a redraw.
 constexpr std::uint8_t NO_CELL{ 0xff };
 
-auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... words) -> std::uint16_t {
-  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
-}
 } // namespace
 
 // unit: the regiment under the cursor.
@@ -70,7 +67,7 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_
   if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(ds, unit)) return;
   auto const person{ opeu_find_group_record(ds, data.current_side, opeu_unit_group_index(unit)) };
   data.list_row = opeu_unit_index(unit);
-  Send(ds, event, ORDERS_CONTROL_PANEL);
+  Call(ds, event, ORDERS_CONTROL_PANEL);
   auto const&  prompts{ data.action_prompts };
   std::uint8_t kind{};
   auto const   done{ [&] {
@@ -78,14 +75,14 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_
     data.view_side     = NO_CELL;
   } };
   for (;;) {
-    Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.awaiting_orders), person);
-    Send(ds, event, ORDERS_SPEAKER_PANEL, person, 1);
+    Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.awaiting_orders), person);
+    Call(ds, event, ORDERS_SPEAKER_PANEL, person, 1);
     auto const menu{ OrderMenuKind(data.list_row) };
     auto const count{ OrderCount(data.action_order_codes[menu]) };
     opeu_order_layout(ds, menu);
-    Send(ds, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
-    auto const choice{ Send(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
-    Send(ds, event, ORDERS_SPEAKER_PANEL, person, 0);
+    Call(ds, event, ORDERS_ARMY_POSITION, MENU_X, MENU_Y);
+    auto const choice{ Call(ds, event, ORDERS_PROMPT, Near(data, prompts.your_orders), count, Near(data, data.order_menus[menu])) };
+    Call(ds, event, ORDERS_SPEAKER_PANEL, person, 0);
     if (choice == MENU_CANCEL) {
       opeu_cancel_unit_orders(ds, event, unit, person);
       done();
@@ -93,7 +90,7 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_
     }
     kind = data.action_order_codes[menu][choice - 1];
     if (kind == Kind(UnitOrder::REPAIR_CITY) && !opeu_unit_quantity(ds, unit, REPAIR_CREWS, &crews)) {
-      Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
+      Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.no_repair_unit), person);
       continue;
     }
     break;
@@ -102,20 +99,20 @@ void opeu_unit_action(uint8_t ds[65536], HostEvent event, uint16_t unit, uint16_
   for (;;) {
     Byte(ds, x_at) = regiment.x;
     Byte(ds, y_at) = regiment.y;
-    Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target), person);
-    if (!Send(ds, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
+    Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, prompts.select_target), person);
+    if (!Call(ds, event, ORDERS_PICK_LOCATION, x_at, y_at)) {
       opeu_cancel_unit_orders(ds, event, unit, person);
       return;
     }
     if (CheckOrderTarget(ds, event, prompts, buffer, person, unit, Byte(ds, x_at), Byte(ds, y_at), kind, target)) break;
-    Send(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
-    Send(ds, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
-    Send(ds, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, data.current_side);
+    Call(ds, event, ORDERS_CONTROL_MESSAGE, buffer, person);
+    Call(ds, event, ORDERS_CONTROL_POSITION, regiment.x, regiment.y);
+    Call(ds, event, ORDERS_ARRIVAL_LOCATION, regiment.x, regiment.y, data.current_side);
   }
   AnnounceOrder(ds, event, prompts, buffer, person, kind);
   opeu_set_unit_order(ds, unit, target, Byte(ds, x_at), 0, kind, Byte(ds, y_at));
-  Send(ds, event, ORDERS_DAILY_CONTEXT, data.current_side);
-  Send(ds, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
+  Call(ds, event, ORDERS_DAILY_CONTEXT, data.current_side);
+  Call(ds, event, ORDERS_DELAY_UNITS, ORDER_DELAY);
   done();
 }
 

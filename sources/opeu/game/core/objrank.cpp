@@ -110,7 +110,7 @@ void opeu_turn_selected_begin(uint8_t ds[65536]) {
   std::array<uint16_t, OBJECTIVE_COUNT> before{};
   std::ranges::copy(Entries(data, side), before.begin());
   opeu_rank_side_entries(ds);
-  if (data.side_control[side] == 0 && data.side_stance[side] == Bits(Stance::OFFENSIVE) && !std::ranges::equal(Entries(data, side), before)) opeu_side_groups_retarget(ds, side);
+  if (data.side_control[side] == SIDE_COMPUTER && data.side_stance[side] == Bits(Stance::OFFENSIVE) && !std::ranges::equal(Entries(data, side), before)) opeu_side_groups_retarget(ds, side);
 }
 
 auto port_routine_opeu_side_groups_retarget(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {

@@ -146,7 +146,7 @@ void opeu_bomb_event(uint8_t ds[65536], HostEvent event, uint16_t load) {
   auto const          report{ locals.At(REPORT_AT) };
   auto const          intro{ locals.At(INTRO_AT) };
   auto const          name{ locals.At(NAME_AT) };
-  auto const          level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == 1 ? data.delivery_level : 2) };
+  auto const          level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == SIDE_PLAYED ? data.delivery_level : 2) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };

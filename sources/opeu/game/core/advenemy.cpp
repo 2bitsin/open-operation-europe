@@ -2,6 +2,7 @@
 // writes its advice into the enemy topic's buffer and shows it in the person of the staff officer.
 #include "core/advenemy.hpp"
 #include "common/events.hpp"
+#include "common/map-grid.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
 
@@ -26,8 +27,7 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint16_t PLENTY{ 10000 }; // a stock an objective has plenty of
-constexpr std::uint8_t  DIRECTIONS{ 8 };
+constexpr std::uint16_t PLENTY{ 10000 };     // a stock an objective has plenty of
 constexpr std::uint8_t  ALERT_OFFICER{ 90 }; // the staff officer's rating that finds the enemy commander
 
 auto Enemy(std::uint8_t* ds, HostEvent event, std::uint8_t const* far_text) -> Advisor {
@@ -104,7 +104,7 @@ uint16_t opeu_advice_enemy_attack_plans(uint8_t ds[65536], const uint8_t* far_te
   std::uint8_t threats{ 0 };
   ForEnemySpecialUnits(ds, [&](std::uint8_t, Unit const& unit) {
     if (IsAssault(unit.orders[0].kind))
-      for (std::uint8_t d{ 0 }; d < DIRECTIONS; ++d) {
+      for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
         std::uint8_t x{ unit.x };
         std::uint8_t y{ unit.y };
         if (opeu_grid_step(&x, &y, d) && opeu_cell_side(ds, x, y) == data.current_side) {

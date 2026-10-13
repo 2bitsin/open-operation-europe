@@ -1,5 +1,6 @@
 // The start of a side's turn: the scenario's side initializer runs for a side a player commands.
 #include "core/sideinit.hpp"
+#include "common/scenario.hpp"
 #include "types.hpp"
 
 #include "core/people.hpp"
@@ -9,6 +10,8 @@
 #include "io/sound.hpp"
 #include "port.hpp"
 #include "services.hpp"
+
+#include <utility>
 
 using namespace opeu::game;
 
@@ -36,7 +39,7 @@ void opeu_initialize_turn_side(uint8_t ds[65536], uint16_t (*event)(uint8_t*, ui
     data.initial_template4 = event(ds, FIND_TEMPLATE, mask, 4, 0, 0);
     data.initial_template5 = event(ds, FIND_TEMPLATE, mask, 5, 0, 0);
     event(ds, SET_CONTEXT, 15, 0, 0, 0);
-    auto const& initializer{ data.side_initializers[data.scenario & 0x7f] };
+    auto const& initializer{ data.side_initializers[std::to_underlying(CurrentScenario(data))] };
     event(ds, RUN_INITIALIZER, initializer.offset, initializer.segment, 0, 0);
     event(ds, FINISH, 1, 0, 0, 0);
   }

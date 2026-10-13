@@ -83,7 +83,7 @@ uint8_t opeu_move_rating(uint8_t* ds, HostEvent event) {
   auto const  experience{ Call(ds, event, MineService::EXPERIENCE, current) };
   auto const  leadership{ Record<Person>(data, data.context_group_record).leadership };
   auto        rating{ static_cast<uint16_t>(static_cast<uint16_t>(leadership + morale + training) / 3) };
-  auto const  bonus{ data.side_control[data.current_side] == 0 ? data.delivery_level : 0 };
+  auto const  bonus{ data.side_control[data.current_side] == SIDE_COMPUTER ? data.delivery_level : 0 };
   return static_cast<uint8_t>(Call(ds, event, MineService::ISQRT, opeu_sub_word(experience, &rating)) + bonus);
 }
 

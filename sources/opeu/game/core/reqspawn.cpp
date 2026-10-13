@@ -3,6 +3,7 @@
 #include "types.hpp"
 
 #include "common/arrival.hpp"
+#include "common/memory.hpp"
 #include "core/requnit.hpp"
 #include "data-segment.hpp"
 
@@ -31,25 +32,21 @@ enum class SpawnService : uint16_t {
   FINISH   = 6, // opeu_finish_side_initialization(value)
 };
 
-auto Send(uint8_t* ds, PendingEvent event, SpawnService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) -> uint16_t {
-  return event(ds, std::to_underlying(service), a, b, c, d);
-}
-
 } // namespace
 
 // Builds the requested regiment (arrival_unit) and readies it on the map; a person playing the side sees it arrive.
 void opeu_request_action2(uint8_t ds[65536], PendingEvent event, uint8_t side, uint16_t) {
   auto& data{ Data(ds) };
   data.arrival_unit = opeu_build_request_unit(ds, side);
-  Send(ds, event, SpawnService::PREPARE, data.arrival_unit);
+  CallWords(ds, event, SpawnService::PREPARE, data.arrival_unit);
   if (data.side_status[side] != SIDE_PLAYED) return;
-  Send(ds, event, SpawnService::CONTEXT, ARRIVAL_CONTEXT);
+  CallWords(ds, event, SpawnService::CONTEXT, ARRIVAL_CONTEXT);
   auto const& unit{ Record<Unit>(data, data.arrival_unit) };
-  Send(ds, event, SpawnService::LOCATION, unit.x, unit.y, side);
-  Send(ds, event, SpawnService::VIEW, data.arrival_unit);
+  CallWords(ds, event, SpawnService::LOCATION, unit.x, unit.y, side);
+  CallWords(ds, event, SpawnService::VIEW, data.arrival_unit);
   data.arrival_side = side;
-  Send(ds, event, SpawnService::SHOW, 0, side, ARRIVAL_PRESENT_OFFSET, ARRIVAL_PRESENT_SEGMENT);
-  Send(ds, event, SpawnService::FINISH, 0);
+  CallWords(ds, event, SpawnService::SHOW, 0, side, ARRIVAL_PRESENT_OFFSET, ARRIVAL_PRESENT_SEGMENT);
+  CallWords(ds, event, SpawnService::FINISH, 0);
 }
 
 uint16_t svc_reqspawn(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d) {

@@ -62,7 +62,6 @@ constexpr uint8_t NO_LANDING_CODES[]{ 0, 5, 6, 8, 10 };
 
 constexpr uint8_t ALL_CATEGORIES{ 0xff };
 constexpr uint8_t ANY_SIDE{ 0xff };
-constexpr uint8_t NO_SIDE{ 0xff };
 constexpr uint8_t NEIGHBOURS{ 8 };
 constexpr uint8_t LANDING_PERCENT{ 90 };
 constexpr uint8_t ORDER_SLOTS{ 3 };

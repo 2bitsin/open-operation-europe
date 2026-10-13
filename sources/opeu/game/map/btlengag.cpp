@@ -37,7 +37,6 @@ constexpr uint16_t SIDE_0_COLOR{ 0x36 };
 constexpr uint16_t SIDE_1_COLOR{ 0x35 };
 constexpr uint16_t COMMANDER_REPORT{ 2 };
 constexpr uint8_t  NO_FACING{ 0xff };
-constexpr uint8_t  IMPASSABLE{ 0xff };
 constexpr uint8_t  STEP_DIRECTIONS{ 4 };
 constexpr uint16_t PATH_TO_CELL{ 1 };
 constexpr uint16_t PATH_TO_GOAL{ 3 };

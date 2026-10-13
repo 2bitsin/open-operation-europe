@@ -18,18 +18,14 @@
 
 using namespace opeu::game;
 
-namespace {
-auto Send(std::uint8_t* ds, HostEvent event, ViewService service, auto... words) -> std::uint16_t {
-  return Call(ds, event, service, words...);
-}
-} // namespace
+namespace { } // namespace
 
 // Lists the named objectives `side` holds in view_objectives; returns their count.
 uint8_t opeu_list_side_objectives(uint8_t ds[65536], HostEvent event, uint8_t side) {
   auto&        data{ Data(ds) };
   std::uint8_t count{ 0 };
   for (auto const& objective : data.objectives)
-    if (objective.active && static_cast<std::uint8_t>(Send(ds, event, ViewService::OBJECTIVE_SIDE, Near(data, objective))) == side) data.view_objectives[count++] = Near(data, objective);
+    if (objective.active && static_cast<std::uint8_t>(Call(ds, event, ViewService::OBJECTIVE_SIDE, Near(data, objective))) == side) data.view_objectives[count++] = Near(data, objective);
   return count;
 }
 
@@ -72,8 +68,8 @@ uint16_t opeu_element_kind_total(uint8_t ds[65536], HostEvent event, uint16_t un
 uint8_t opeu_view_objective_ok(uint8_t ds[65536], HostEvent event) {
   auto&      data{ Data(ds) };
   auto const near{ data.view_objectives[data.list_row] };
-  auto const side{ static_cast<std::uint8_t>(Send(ds, event, ViewService::OBJECTIVE_SIDE, near)) };
-  return (side == data.current_side && Send(ds, event, ViewService::OBJECTIVE_ELIGIBLE, near)) || (side != data.current_side && (Record<Objective>(data, near).flags & Bits(ObjectiveFlag::MARKED)));
+  auto const side{ static_cast<std::uint8_t>(Call(ds, event, ViewService::OBJECTIVE_SIDE, near)) };
+  return (side == data.current_side && Call(ds, event, ViewService::OBJECTIVE_ELIGIBLE, near)) || (side != data.current_side && (Record<Objective>(data, near).flags & Bits(ObjectiveFlag::MARKED)));
 }
 
 // Row check that rejects every row.
@@ -87,7 +83,7 @@ uint8_t opeu_view_false(uint8_t ds[65536], HostEvent event) {
 uint8_t opeu_view_group_ok(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
   auto const& division{ data.groups[data.current_side * GROUPS_PER_SIDE + data.list_row] };
-  return (division.flags & Bits(GroupFlag::READY)) && Send(ds, event, ViewService::UNIT_ELIGIBLE, Send(ds, event, ViewService::GROUP_SELECTED_UNIT, Near(data, division)));
+  return (division.flags & Bits(GroupFlag::READY)) && Call(ds, event, ViewService::UNIT_ELIGIBLE, Call(ds, event, ViewService::GROUP_SELECTED_UNIT, Near(data, division)));
 }
 
 // Row check: a ready regiment, selectable if it is ours, spotted if it is the enemy's.
@@ -95,9 +91,9 @@ uint8_t opeu_view_unit_ok(uint8_t ds[65536], HostEvent event) {
   auto&       data{ Data(ds) };
   auto const  unit{ data.row_units[data.list_row] };
   auto const& regiment{ Record<Unit>(data, unit) };
-  auto const  side{ static_cast<std::uint8_t>(Send(ds, event, ViewService::UNIT_SIDE, unit)) };
+  auto const  side{ static_cast<std::uint8_t>(Call(ds, event, ViewService::UNIT_SIDE, unit)) };
   return (regiment.flags & Bits(UnitFlag::READY))
-         && ((side == data.current_side && Send(ds, event, ViewService::UNIT_ELIGIBLE, unit)) || (side != data.current_side && (regiment.flags & Bits(UnitFlag::SPOTTED))));
+         && ((side == data.current_side && Call(ds, event, ViewService::UNIT_ELIGIBLE, unit)) || (side != data.current_side && (regiment.flags & Bits(UnitFlag::SPOTTED))));
 }
 
 // Further row checks that reject every row.

@@ -1,13 +1,11 @@
 // What the regiment, element, type, supply and strength tables (units/tbl*) share: the heading, the printed part of a
-// row, and running a row-draw callback as a linked routine.
+// row and the start of a row's name.
 #pragma once
 
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
-
-#include "port.hpp"
 
 #include <cstdint>
 
@@ -51,14 +49,6 @@ inline auto StartRowName(std::uint8_t* ds, HostEvent event, ListWindow const& wi
   Call(ds, event, TableService::SIDE_COLOR, side);
 }
 
-// Runs a row-draw callback as a linked routine: its five byte arguments (column, first, row, last, flags) from the
-// argument words.
-template <typename Draw>
-inline auto RunUnitTable(std::uint8_t* ds, HostEvent event, Draw draw, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  auto const byte{ [&](unsigned i) { return static_cast<std::uint8_t>(Arg(args, count, i)); } };
-  draw(ds, event, byte(0), byte(1), byte(2), byte(3), byte(4));
-  return 0;
-}
 } // namespace opeu::game::detail::unit_table
 
 namespace opeu::game {
@@ -67,7 +57,6 @@ using detail::unit_table::DRAW_NAMES;
 using detail::unit_table::DrawHeading;
 using detail::unit_table::DrawRowText;
 using detail::unit_table::ROW_TEXT;
-using detail::unit_table::RunUnitTable;
 using detail::unit_table::StartRowName;
 using detail::unit_table::TABLE_SCRATCH;
 } // namespace opeu::game

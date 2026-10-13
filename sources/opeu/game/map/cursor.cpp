@@ -25,7 +25,6 @@ enum class CursorService : uint16_t {
   FORMAT = 2, // buffer, format, name, number (raised by opeu_unit_name)
   PRINT  = 3, // format and its two argument words
 };
-constexpr uint8_t  NO_SIDE{ 255 };
 constexpr uint16_t NAME_BUFFER_BYTES{ 38 }; // the DS reserve the unit's name is formatted into
 } // namespace
 

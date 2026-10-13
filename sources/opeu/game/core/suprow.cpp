@@ -7,6 +7,7 @@
 #include "units/ratio.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/exchange-panel.hpp"
 #include "common/memory.hpp"
 #include "core/textout.hpp"
 #include "glue.hpp"
@@ -21,9 +22,8 @@ namespace {
 
 using enum SupplyService;
 
-constexpr std::uint16_t ROW_HEIGHT{ 28 };
-constexpr std::uint8_t  CURRENT{ 0 };  // supply_table column: the amount
-constexpr std::uint8_t  CAPACITY{ 1 }; // and the capacity
+constexpr std::uint8_t CURRENT{ 0 };  // supply_table column: the amount
+constexpr std::uint8_t CAPACITY{ 1 }; // and the capacity
 } // namespace
 
 void opeu_supply_draw_row(uint8_t ds[65536], HostEvent event, uint8_t row, uint8_t column) {
@@ -37,7 +37,7 @@ void opeu_supply_draw_row(uint8_t ds[65536], HostEvent event, uint8_t row, uint8
   auto const left_percent{ opeu_resource_percent(left, left_capacity) };
   auto const right_percent{ opeu_resource_percent(right, right_capacity) };
   auto const x{ data.supply_panel_x };
-  auto const top{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(row) * ROW_HEIGHT + data.supply_panel_y) };
+  auto const top{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(row) * PANEL_ROW_HEIGHT + data.supply_panel_y) };
   auto const text_y{ static_cast<std::uint16_t>(top + 0x24) };
   auto const digits_y{ static_cast<std::uint16_t>(top + 0x37) };
   auto const fill{ [&](std::uint16_t fill_x) { Call(ds, event, FILL, fill_x, digits_y, 3, 6, 0); } };

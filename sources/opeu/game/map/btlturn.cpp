@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -34,8 +35,6 @@ constexpr uint8_t NO_WINNER{ 0xff };
 constexpr uint8_t MOUSE_EVENT{ 0x80 };
 constexpr uint8_t LEFT_BUTTON{ 1 };
 constexpr uint8_t RIGHT_BUTTON{ 2 };
-constexpr uint8_t KEY_ENTER{ 0x0d };
-constexpr uint8_t KEY_ESCAPE{ 0x1b };
 constexpr uint8_t BRIDGE_TERRAIN{ 10 };
 constexpr uint8_t CONDITION_LIMIT{ 99 };
 

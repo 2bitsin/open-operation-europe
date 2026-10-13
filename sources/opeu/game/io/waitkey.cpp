@@ -4,6 +4,7 @@
 #include "io/waitkey.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "core/settings.hpp"
 #include "core/textout.hpp"
@@ -23,7 +24,6 @@ enum Service : std::uint16_t {
   QUIT        = 4, // quit to DOS
 };
 
-constexpr std::uint8_t  ESCAPE{ 0x1b };
 constexpr std::uint16_t TICKS_PER_UNIT{ 6 };
 constexpr std::uint8_t  UNITS_PER_SPEED_STEP{ 3 };
 } // namespace
@@ -32,7 +32,7 @@ void opeu_delay_ticks(std::uint8_t* ds, HostEvent event, std::uint16_t ticks) {
   auto const& data{ Data(ds) };
   Call(ds, event, TIMER_START, ticks);
   while (Call(ds, event, TIMER_BUSY)) {
-    if (Call(ds, event, KEY_READY) && static_cast<std::uint8_t>(Call(ds, event, KEY_READ)) == ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) Call(ds, event, QUIT);
+    if (Call(ds, event, KEY_READY) && static_cast<std::uint8_t>(Call(ds, event, KEY_READ)) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0) Call(ds, event, QUIT);
   }
 }
 

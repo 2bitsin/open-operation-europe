@@ -3,6 +3,7 @@
 // until Intelligence reports a result of 1.
 #include "core/advmenu.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -31,7 +32,6 @@ constexpr std::uint16_t ADVICE_PROMPT{ offsetof(DataSegment, advice_prompt) };
 constexpr std::uint16_t ADVICE_MENU{ offsetof(DataSegment, advice_menu) };
 constexpr std::uint16_t STAFF_PROMPT{ offsetof(DataSegment, staff_prompt) };
 constexpr std::uint16_t STAFF_MENU{ offsetof(DataSegment, staff_menu) };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint16_t INTELLIGENCE{ 2 }; // the staff menu's second item
 
 // Calls an action through the far pointer the table holds.
@@ -50,7 +50,7 @@ void opeu_staff_advice_menu(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
   for (;;) {
     std::uint16_t topic{ Call(ds, event, DELAY_DIALOG, ADVICE_PROMPT, 5, data.context_record2, ADVICE_MENU) };
-    if (topic == CANCELLED) break;
+    if (topic == MENU_CANCELLED) break;
     topic--;
     if (data.advice_messages[topic][0])
       Call(ds, event, CONTROL_MESSAGE, Near(data, data.advice_messages[topic]), data.context_record2);
@@ -65,7 +65,7 @@ void opeu_turn_action_5(uint8_t ds[65536], HostEvent event) {
   std::uint16_t officer;
   std::uint16_t result;
   do {
-    if ((officer = Call(ds, event, DELAY_DIALOG, STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == CANCELLED) return;
+    if ((officer = Call(ds, event, DELAY_DIALOG, STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == MENU_CANCELLED) return;
     result = CallAction(ds, event, data.staff_actions[officer]);
   } while (officer != INTELLIGENCE || result != 1);
 }

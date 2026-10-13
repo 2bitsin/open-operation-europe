@@ -26,8 +26,7 @@ namespace {
 constexpr uint8_t  NONE{ 0xff };
 constexpr uint16_t NO_DISTANCE{ 0xffff };
 constexpr uint8_t  BATTLE_EDGE{ BATTLE_WIDTH - 1 };
-constexpr uint8_t  IMPASSABLE{ 0xff }; // a move_costs entry
-constexpr uint8_t  MOVE_CLASSES{ 5 };  // move_costs entries per terrain
+constexpr uint8_t  MOVE_CLASSES{ 5 }; // move_costs entries per terrain
 
 // The strategic direction + 1 the field is entered from at an edge cell; 0 elsewhere.
 [[nodiscard]] auto EntrySide(DataSegment& data, uint8_t x, uint8_t y) -> uint8_t {

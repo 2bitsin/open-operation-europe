@@ -9,6 +9,7 @@
 #include "common/element-chain.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/scenario.hpp"
 #include "core/recindex.hpp"
 #include "core/selunit.hpp"
 #include "core/textout.hpp"
@@ -60,10 +61,6 @@ constexpr std::uint16_t SHOW_DONE{ 3 };
 // The confirmation message buffer the services format and show.
 constexpr std::uint16_t MESSAGE_BYTES{ 0x6c };
 
-auto Send(std::uint8_t* ds, HostEvent event, Service service, auto... words) -> std::uint16_t {
-  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
-}
-
 auto Division(DataSegment& data, unsigned side, unsigned group) -> Group& {
   return data.groups[side * GROUPS_PER_SIDE + group];
 }
@@ -92,7 +89,7 @@ uint16_t opeu_transfer_hours(uint8_t ds[65536], uint16_t from, uint16_t to, uint
   auto const          side{ opeu_unit_side(to) };
   std::uint16_t const distance{ opeu_grid_distance(source.x, source.y, target.x, target.y) };
   std::uint16_t const supported{ opeu_cell_influence_side(ds, target.x, target.y) == side ? 10u : 0u };
-  std::uint16_t const scale{ (data.scenario & 0x7f) == 1 ? 3u : 5u };
+  std::uint16_t const scale{ CurrentScenario(data) == Scenario::AFRICA ? 3u : 5u };
   return static_cast<std::uint16_t>(distance / scale * (80 - supported) / (data.sides[side].strength + Record<Person>(data, person).bravery) + 1);
 }
 
@@ -133,7 +130,7 @@ uint8_t opeu_transfer_elements_fill(uint8_t ds[65536]) {
 }
 
 void opeu_transfer_present(uint8_t ds[65536], HostEvent event) {
-  Send(ds, event, PENDING_FINISH, SHOW_DONE);
+  Call(ds, event, PENDING_FINISH, SHOW_DONE);
 }
 
 // The transfer dialog; segment: the transfer's code segment.
@@ -149,37 +146,37 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   for (;;) {
     switch (step) {
     case Step::DIVISION:
-      Send(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_division), data.context_record2);
-      Send(ds, event, CONTROL_PANEL);
+      Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_division), data.context_record2);
+      Call(ds, event, CONTROL_PANEL);
       SetPredicate(data.division_dialog, GROUP_ENABLED, segment);
-      if (!Send(ds, event, LIST_DIALOG, Near(data, data.division_dialog), LIST_LIMIT, LIST_FLAGS)) return;
+      if (!Call(ds, event, LIST_DIALOG, Near(data, data.division_dialog), LIST_LIMIT, LIST_FLAGS)) return;
       data.transfer_group = data.list_row;
-      Send(ds, event, GROUP_SHOW, Near(data, Division(data, data.current_side, data.transfer_group)), data.transfer_group);
+      Call(ds, event, GROUP_SHOW, Near(data, Division(data, data.current_side, data.transfer_group)), data.transfer_group);
       [[fallthrough]];
     case Step::REGIMENT:
-      Send(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_regiment), data.context_record2);
-      Send(ds, event, CONTROL_PANEL);
+      Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_regiment), data.context_record2);
+      Call(ds, event, CONTROL_PANEL);
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_transfer_units_fill(ds) + 1);
       SetPredicate(data.organize_list, UNIT_ENABLED, segment);
-      if (!Send(ds, event, LIST_DIALOG, Near(data, data.organize_list), LIST_LIMIT, LIST_FLAGS)) {
+      if (!Call(ds, event, LIST_DIALOG, Near(data, data.organize_list), LIST_LIMIT, LIST_FLAGS)) {
         step = Step::DIVISION;
         continue;
       }
       data.transfer_unit = data.list_row;
-      Send(ds, event, UNIT_ANNOUNCE, data.transfer_group, Near(data, PickedRegiment(data)));
+      Call(ds, event, UNIT_ANNOUNCE, data.transfer_group, Near(data, PickedRegiment(data)));
       [[fallthrough]];
     case Step::ELEMENT: {
       data.choice_dialog.rows = static_cast<std::uint8_t>(opeu_transfer_elements_fill(ds) + 1);
       SetPredicate(data.choice_dialog, ELEMENT_ENABLED, segment);
-      Send(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_group), data.context_record2);
-      Send(ds, event, CONTROL_PANEL);
-      if (!Send(ds, event, LIST_DIALOG, Near(data, data.choice_dialog), LIST_LIMIT, LIST_FLAGS)) {
+      Call(ds, event, CONTROL_MESSAGE, Near(data, data.transfer_which_group), data.context_record2);
+      Call(ds, event, CONTROL_PANEL);
+      if (!Call(ds, event, LIST_DIALOG, Near(data, data.choice_dialog), LIST_LIMIT, LIST_FLAGS)) {
         step = Step::REGIMENT;
         continue;
       }
       auto const hours{ opeu_transfer_hours(ds, data.current_unit_ptr, Near(data, PickedRegiment(data)), data.context_record1) };
-      Send(ds, event, REQUEST_FORMAT, buffer, Near(data, data.transfer_confirm), hours, hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text));
-      if (!Send(ds, event, CONFIRM_MESSAGE, buffer, data.context_record2)) {
+      Call(ds, event, REQUEST_FORMAT, buffer, Near(data, data.transfer_confirm), hours, hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text));
+      if (!Call(ds, event, CONFIRM_MESSAGE, buffer, data.context_record2)) {
         step = Step::ELEMENT;
         continue;
       }
@@ -193,7 +190,7 @@ void opeu_turn_action_3(uint8_t ds[65536], HostEvent event, uint16_t segment) {
       Record<Element>(data, opeu_unit_selected_element(ds, Near(data, regiment))).flags &= static_cast<std::uint8_t>(~Bits(ElementFlag::SELECTED));
       Record<Element>(data, data.row_elements[data.list_row]).flags                     |= Bits(ElementFlag::SELECTED);
       data.side_delays[side]                                                             = static_cast<std::uint8_t>(hours);
-      Send(ds, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, PRESENT, segment);
+      Call(ds, event, DAILY_SHOW, TRANSFER_PICTURE, data.current_side, PRESENT, segment);
       return;
     }
     }

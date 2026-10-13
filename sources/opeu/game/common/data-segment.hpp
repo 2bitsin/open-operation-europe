@@ -397,8 +397,15 @@ enum class Assignment : std::uint8_t {
 // Person::status of an unused record (otherwise the general's nation bits, matched against side_masks).
 inline constexpr std::uint8_t PERSON_VACANT{ 0xff };
 
-// DataSegment::side_control (and side_status) of a side a player commands; 0 when the computer commands it.
+// DataSegment::side_control (and side_status) of a side a player commands, and of a side the computer commands.
 inline constexpr std::uint16_t SIDE_PLAYED{ 1 };
+inline constexpr std::uint16_t SIDE_COMPUTER{ 0 };
+
+// A side byte that names no side (a cell no side holds, no side in context).
+inline constexpr std::uint8_t NO_SIDE{ 0xff };
+
+// A movement cost (move_costs, battle_terrain_costs, opeu_move_cost) that bars the terrain.
+inline constexpr std::uint8_t IMPASSABLE{ 0xff };
 
 // DataSegment::side_stance: whether the side's scenario has it attack or defend.
 enum class Stance : std::uint8_t {
@@ -4774,6 +4781,7 @@ inline constexpr auto UNITS_PER_SIDE{ 32u };
 inline constexpr auto ELEMENTS_PER_SIDE{ 128u };
 inline constexpr auto PEOPLE_PER_SIDE{ 20u };
 inline constexpr auto OBJECTIVE_COUNT{ 21u };
+inline constexpr auto OBJECTIVE_LINKS_PER_SIDE{ OBJECTIVE_COUNT }; // objective_links: each side's objectives in its order
 inline constexpr auto ELEMENT_TYPE_COUNT{ 158u };
 inline constexpr auto PERSON_TEMPLATE_COUNT{ 12u };
 inline constexpr auto SAVE_SLOT_COUNT{ 20u };
@@ -4802,6 +4810,11 @@ inline constexpr std::uint16_t SAVE_SLOTS_AT{ offsetof(DataSegment, save_slots) 
 }
 [[nodiscard]] inline auto Data(std::uint8_t const* ds) noexcept -> DataSegment const& {
   return *reinterpret_cast<DataSegment const*>(ds);
+}
+
+// Whether a player commands the side (side_status).
+[[nodiscard]] inline auto SidePlayed(DataSegment const& data, std::uint8_t side) noexcept -> bool {
+  return data.side_status[side] == SIDE_PLAYED;
 }
 
 // The record a 16-bit near pointer (a DS offset) addresses, and back.
@@ -4857,6 +4870,7 @@ using detail::data_segment::MAP_WIDTH;
 using detail::data_segment::Near;
 using detail::data_segment::Objective;
 using detail::data_segment::OBJECTIVE_COUNT;
+using detail::data_segment::OBJECTIVE_LINKS_PER_SIDE;
 using detail::data_segment::ObjectiveFlag;
 using detail::data_segment::OBJECTIVES_AT;
 using detail::data_segment::NoonEvent;
@@ -4883,7 +4897,11 @@ using detail::data_segment::Side;
 using detail::data_segment::ScheduleFlag;
 using detail::data_segment::SideFlag;
 using detail::data_segment::Stance;
+using detail::data_segment::IMPASSABLE;
+using detail::data_segment::NO_SIDE;
+using detail::data_segment::SIDE_COMPUTER;
 using detail::data_segment::SIDE_PLAYED;
+using detail::data_segment::SidePlayed;
 using detail::data_segment::SIDE_COUNT;
 using detail::data_segment::SIDES_AT;
 using detail::data_segment::SPECIAL_AT;

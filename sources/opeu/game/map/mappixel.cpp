@@ -10,9 +10,7 @@
 
 using namespace opeu::game;
 
-namespace {
-constexpr uint8_t NO_SIDE{ 255 };
-}
+namespace { }
 
 // The overview's pixel position of a cell.
 auto OverviewPixel(Pixel cell) -> Pixel {

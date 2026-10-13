@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/host.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 #include "core/emsmap.hpp"
 #include "core/numeric.hpp"
 #include "core/uiprim.hpp"
@@ -29,7 +30,6 @@ constexpr std::uint8_t  CANCEL_BUTTON{ 1 };
 constexpr std::uint8_t  OK_BUTTON{ 2 };
 constexpr std::uint8_t  FIRST_DIGIT{ 3 }; // hit codes 3..7 are the digits
 constexpr std::uint8_t  LAST_DIGIT{ 7 };
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint16_t INVERT_MODE{ 0x107 };
 constexpr std::uint16_t OUTLINE_COLOUR{ 0x17 };
 
@@ -339,7 +339,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
           left = Column(data);
         } else if (hit == CANCEL_BUTTON) {
           if (cancel) {
-            value   = CANCELLED;
+            value   = MENU_CANCELLED;
             running = false;
           }
         } else if (hit == OK_BUTTON) {
@@ -360,7 +360,7 @@ auto opeu_numdlg_track(std::uint8_t* ds, HostService service, std::uint16_t lo, 
       if (opeu_mouse_left(ds, service)) {
         if (lo <= value && hi >= value) running = false;
       } else if (opeu_mouse_right(ds, service) && cancel) {
-        value   = CANCELLED;
+        value   = MENU_CANCELLED;
         running = false;
       }
     }

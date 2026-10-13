@@ -3,6 +3,7 @@
 // buffer at out and return how many they wrote.
 #include "map/neighbor.hpp"
 #include "common/data-segment.hpp"
+#include "common/map-grid.hpp"
 #include "common/memory.hpp"
 #include "core/recindex.hpp"
 #include "map/query.hpp"
@@ -14,7 +15,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t DIRECTIONS{ 8 };
 constexpr uint8_t CENTER{ 8 }; // the direction that stays on the cell
 
 void Store(uint8_t* ds, uint16_t& out, uint16_t unit) {
@@ -57,7 +57,7 @@ uint8_t opeu_neighbor_units(uint8_t* ds, uint16_t unit, uint16_t out) {
   auto const& record{ Record<Unit>(Data(ds), unit) };
   auto const  side{ opeu_unit_side(unit) };
   uint8_t     found{ 0 };
-  for (uint8_t direction{ 0 }; direction < DIRECTIONS; ++direction) {
+  for (uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
     uint8_t x{ record.x };
     uint8_t y{ record.y };
     if (!opeu_grid_step(&x, &y, direction)) continue;

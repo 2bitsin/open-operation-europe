@@ -4,6 +4,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 #include "core/counter.hpp"
 #include "core/people.hpp"
 #include "core/personfl.hpp"
@@ -35,13 +36,11 @@ enum class PersonnelService : uint16_t {
   DAILY_SHOW      = 3, // (id, side, presenter offset, presenter segment)
   PENDING_FINISH  = 4, // (value)
   LIST            = 5, // (list, limit, flags) -> 0 when cancelled
-  ASK             = 6, // (text, last, person, menu) -> the choice, NO_CHOICE when cancelled
+  ASK             = 6, // (text, last, person, menu) -> the choice, MENU_CANCELLED when cancelled
   GROUP_SELECTED  = 7, // (group) -> the division's selected regiment
   UNIT_SELECTABLE = 8, // (unit)
   RUN             = 9, // (segment, offset): a far action
 };
-
-constexpr uint16_t NO_CHOICE{ 0xffff };
 
 // Offsets of the personnel routines in their code segment, which the list and show callbacks are given as.
 constexpr uint16_t FINISH_OFFSET{ 0x0004 };
@@ -176,7 +175,7 @@ void opeu_commander_assign(uint8_t ds[65536], HostEvent event, uint16_t segment)
     Call(ds, event, PersonnelService::FORMAT, prompt, Near(data, data.assign_where_prompt), general);
     for (;;) {
       uint16_t choice{ Call(ds, event, PersonnelService::ASK, prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
-      if (choice == NO_CHOICE) break;
+      if (choice == MENU_CANCELLED) break;
       if (choice <= GROUPS_PER_SIDE) {
         --choice;
         // The division by its index from the side's first, as the menu's choice gives it.
@@ -218,7 +217,7 @@ void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t segment) {
     auto const general{ data.general_list[data.list_row] };
     Call(ds, event, PersonnelService::FORMAT, prompt, Near(data, data.rest_days_prompt), general);
     auto const days{ Call(ds, event, PersonnelService::ASK, prompt, REST_LAST, data.context_record2, 0) };
-    if (days != NO_CHOICE) {
+    if (days != MENU_CANCELLED) {
       opeu_rest_thanks(ds, event, segment, general);
       opeu_set_record_counter(ds + general, static_cast<uint8_t>(days + 1));
     }
@@ -229,7 +228,7 @@ void opeu_commander_rest(uint8_t ds[65536], HostEvent event, uint16_t segment) {
 // Turn action 4: the personnel orders menu, until it is cancelled.
 void opeu_turn_action_4(uint8_t ds[65536], HostEvent event, uint16_t) {
   auto& data{ Data(ds) };
-  for (uint16_t choice; (choice = Call(ds, event, PersonnelService::ASK, Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu))) != NO_CHOICE;) {
+  for (uint16_t choice; (choice = Call(ds, event, PersonnelService::ASK, Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu))) != MENU_CANCELLED;) {
     auto const& action{ data.personnel_actions[choice - 1] };
     Call(ds, event, PersonnelService::RUN, action.segment, action.offset);
   }

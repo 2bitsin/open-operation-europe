@@ -5,13 +5,13 @@
 #include "common/memory.hpp"
 #include "common/table-rows.hpp"
 #include "core/sideutil.hpp"
+#include "core/tblgroup.hpp"
 #include "types.hpp"
 #include "units/table.hpp"
 
 #include "glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
-#include "units/rqarmtbl.hpp"
 
 using namespace opeu::game;
 
@@ -44,9 +44,9 @@ void opeu_tbl_draw_strength(uint8_t ds[65536], HostEvent event, uint8_t column, 
 
 // The table's calls are the row-draw services.
 uint16_t svc_tblstr(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_unit_table(ds, "tblstr", id, args, count);
+  return svc_table(ds, "tblstr", id, args, count);
 }
 
 auto port_routine_opeu_tbl_draw_strength(std::uint8_t* ds, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return RunUnitTable(ds, svc_tblstr, opeu_tbl_draw_strength, args, count);
+  return RunTableRows(ds, svc_tblstr, opeu_tbl_draw_strength, args, count);
 }

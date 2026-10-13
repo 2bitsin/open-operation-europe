@@ -63,7 +63,6 @@ constexpr uint16_t TITLE_FRAME_WIDTH{ 0x1b };
 constexpr uint16_t PLACE_FRAME_Y{ 0x20 };
 constexpr uint16_t YEAR_BASE{ 40 };
 constexpr uint8_t  NO_DIRECTION{ 0xff };
-constexpr uint8_t  NO_SIDE{ 0xff };
 
 uint16_t Service(uint8_t* ds, HostEvent event, MapSetupService service, auto... words) {
   return Call(ds, event, service, words...);

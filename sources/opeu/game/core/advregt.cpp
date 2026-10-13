@@ -71,10 +71,10 @@ uint16_t opeu_advice_regiment_order_finishing(uint8_t ds[65536], const uint8_t* 
     if (kind == Bits(UnitOrder::OCCUPY) || kind == Bits(UnitOrder::ATTACK)) {
       if (order.progress != 1 || advisor.Random(chance) != 1) return false;
       text = AdviceText::UNIT_READY_SOON;
-    } else if (kind >= Bits(UnitOrder::LAY_MINES) && kind <= 7) {
+    } else if (kind >= Bits(UnitOrder::LAY_MINES) && kind <= Bits(UnitOrder::DESTROY_BRIDGE)) {
       if (!opeu_category_6(k) || order.progress != 1 || advisor.Random(chance) != 1) return false;
       text = AdviceText::OPERATION_FINISHING;
-    } else if (kind >= Bits(UnitOrder::RESUPPLY) && kind <= 11) {
+    } else if (kind >= Bits(UnitOrder::RESUPPLY) && kind <= Bits(UnitOrder::REPAIR_UNIT)) {
       if (!opeu_category_7(k) || order.progress != 1 || advisor.Random(chance) != 1) return false;
       text = AdviceText::OPERATION_FINISHING;
     } else {

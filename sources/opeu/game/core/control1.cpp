@@ -2,6 +2,7 @@
 // mode the menu's cancel toggles to, until the side's delay ends the turn.
 #include "core/control1.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/context.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
@@ -42,8 +43,6 @@ enum Service : std::uint16_t {
 constexpr std::uint16_t PROMPT_FORMAT{ offsetof(DataSegment, control_prompt) };
 constexpr std::uint16_t READY_TEXT{ offsetof(DataSegment, control_ready) };
 constexpr std::uint16_t COMMAND_MENU{ offsetof(DataSegment, control_menu) };
-constexpr std::uint16_t CANCELED{ 0xffff };
-constexpr std::uint8_t  NO_SIDE{ 0xff };
 // The command prompt the format service writes, and the inspected cell's x and y words the coordinates dialog moves.
 constexpr std::uint16_t PROMPT_BYTES{ 50 };
 constexpr std::uint16_t CELL_X_AT{ 0 };
@@ -75,7 +74,7 @@ void opeu_turn_control_one(uint8_t ds[65536], HostEvent event, HostEvent context
         ServiceLocals const prompt{ PROMPT_BYTES };
         Call(ds, event, FORMAT, prompt.At(0), PROMPT_FORMAT, data.context_record1);
         auto const choice{ Call(ds, event, MENU, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
-        if (choice != CANCELED) {
+        if (choice != MENU_CANCELLED) {
           auto const action{ data.control_actions[choice] };
           Call(ds, event, ACTION, action.offset, action.segment);
           break;

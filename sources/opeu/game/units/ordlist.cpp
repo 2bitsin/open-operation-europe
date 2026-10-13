@@ -31,17 +31,13 @@ constexpr std::uint16_t ORDERS_SEGMENT{ 0x1c23 };
 constexpr std::uint16_t LIST_LIMIT{ 1 };
 constexpr std::uint16_t LIST_FLAGS{ 7 };
 
-auto Send(std::uint8_t* ds, HostEvent event, OrdersService service, auto... words) -> std::uint16_t {
-  return Call(ds, event, static_cast<std::uint16_t>(service), words...);
-}
-
 auto SetPredicate(ListWindow& list, Routine routine, std::uint16_t segment) -> void {
   list.select.offset  = routine;
   list.select.segment = segment;
 }
 
 auto RunList(std::uint8_t* ds, HostEvent event, ListWindow& list) -> std::uint16_t {
-  return Send(ds, event, ORDERS_LIST_DIALOG, Near(Data(ds), list), LIST_LIMIT, LIST_FLAGS);
+  return Call(ds, event, ORDERS_LIST_DIALOG, Near(Data(ds), list), LIST_LIMIT, LIST_FLAGS);
 }
 } // namespace
 
@@ -55,38 +51,38 @@ uint8_t opeu_order_units_fill(uint8_t ds[65536], uint8_t group) {
 // The Orders command; segment is its code segment.
 void opeu_turn_action_1(uint8_t ds[65536], HostEvent event, uint16_t segment) {
   auto& data{ Data(ds) };
-  Send(ds, event, ORDERS_CONTROL_PANEL);
+  Call(ds, event, ORDERS_CONTROL_PANEL);
   data.unit_order_active = 0;
   for (;;) {
     SetPredicate(data.division_dialog, GROUP_TARGET_ENABLED, segment);
-    Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_division), data.context_record2);
+    Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_division), data.context_record2);
     if (!RunList(ds, event, data.division_dialog)) return;
     auto const group{ data.list_row };
     auto&      division{ data.groups[group + data.current_side * GROUPS_PER_SIDE] };
     auto const person{ opeu_find_group_record(ds, data.current_side, group) };
-    Send(ds, event, ORDERS_GROUP_SHOW, Near(data, division), group);
+    Call(ds, event, ORDERS_GROUP_SHOW, Near(data, division), group);
     if (division.flags & Bits(GroupFlag::AI_MARK)) {
       // The computer runs the division: edit its objective tasks, with the division current meanwhile.
       auto const saved{ data.current_group };
       data.current_group = group;
       SetPredicate(data.order_target_list, MENU_ALWAYS, segment);
       for (;;) {
-        Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_order), person);
+        Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_order), person);
         if (!RunList(ds, event, data.order_target_list)) break;
         opeu_group_set_target(ds, event, group);
       }
       data.current_group = saved;
-    } else if (Send(ds, event, ORDERS_CONFIRM_MESSAGE, Near(data, data.order_whole_division), person)) {
+    } else if (Call(ds, event, ORDERS_CONFIRM_MESSAGE, Near(data, data.order_whole_division), person)) {
       data.unit_order_active = 1;
-      Send(ds, event, ORDERS_UNIT_ORDER_MENU, group);
+      Call(ds, event, ORDERS_UNIT_ORDER_MENU, group);
       data.unit_order_active = 0;
     } else {
       data.organize_list.rows = static_cast<std::uint8_t>(opeu_order_units_fill(ds, group) + 1);
       SetPredicate(data.organize_list, SUPPLY_UNIT_ENABLED, segment);
       for (;;) {
-        Send(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_regiment), person);
+        Call(ds, event, ORDERS_CONTROL_MESSAGE, Near(data, data.select_regiment), person);
         if (!RunList(ds, event, data.organize_list)) break;
-        Send(ds, event, ORDERS_UNIT_ORDER_MENU, group);
+        Call(ds, event, ORDERS_UNIT_ORDER_MENU, group);
       }
     }
   }

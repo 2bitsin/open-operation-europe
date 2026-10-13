@@ -49,7 +49,6 @@ enum class Outcome : std::uint8_t {
 constexpr std::uint8_t  KILLED_FLAG{ 0x80 }; // Person::flags: the general is dead
 constexpr std::uint8_t  IN_BATTLE{ 0x04 };   // Person::assignment: the general is fighting
 constexpr std::uint16_t DEATH_SHOW{ 300 };   // the daily show that announces a death
-constexpr std::uint16_t HUMAN{ 1 };          // side_status / side_control of a player side
 // The far address by which the dialogs service finds the presenter opeu_blast_pause.
 constexpr std::uint16_t BLAST_PAUSE_OFFSET{ 0x0866 };
 constexpr std::uint16_t BLAST_PAUSE_SEGMENT{ 0x17c4 };
@@ -89,7 +88,7 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t person) 
     else if (RandomBelow(ds, 50) == 4)
       outcome = Outcome::KILLED;
   }
-  if (posting() == 1 && data.side_control[side] == HUMAN) {
+  if (posting() == 1 && data.side_control[side] == SIDE_PLAYED) {
     if (!wounded() && RandomBelow(ds, 40) == 2) {
       wound();
       return;
@@ -100,7 +99,7 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t person) 
     }
   }
   if (outcome == Outcome::WOUNDED) {
-    if (data.side_status[side] == HUMAN) {
+    if (data.side_status[side] == SIDE_PLAYED) {
       auto const saved{ general };
       Call(ds, event, REQUEST_FORMAT, buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT);
       Call(ds, event, INITIALIZE_DEPUTY, person);
@@ -112,7 +111,7 @@ void opeu_general_casualty(uint8_t ds[65536], HostEvent event, uint16_t person) 
   } else if (outcome == Outcome::KILLED) {
     Call(ds, event, REQUEST_FORMAT, buffer, CASUALTY_FORMAT, person, KILLED_TEXT);
     Call(ds, event, INITIALIZE_DEPUTY, person);
-    if (data.side_status[side] == HUMAN) {
+    if (data.side_status[side] == SIDE_PLAYED) {
       Call(ds, event, SET_TURN_CONTEXT, 0x10);
       Call(ds, event, FINISH_SIDE_INITIALIZATION, 0);
       Call(ds, event, DAILY_SHOW, DEATH_SHOW, side, BLAST_PAUSE_OFFSET, BLAST_PAUSE_SEGMENT);

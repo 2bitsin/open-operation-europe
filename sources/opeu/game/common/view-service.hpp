@@ -6,6 +6,7 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
+#include "common/menu.hpp"
 
 #include <array>
 #include <cstddef>
@@ -69,9 +70,6 @@ enum class RowCheck : std::uint16_t {
   ANY       = 0x0208, // every row
 };
 
-// What a menu dialog answers when it is cancelled.
-inline constexpr std::uint16_t MENU_CANCELLED{ 0xffff };
-
 // The DS stack size of the list window state a view saves around a nested list dialog.
 inline constexpr std::uint16_t LIST_WINDOW_STATE{ 7 };
 
@@ -92,7 +90,6 @@ inline auto RunAction(std::uint8_t* ds, HostEvent event, std::array<FarPointer, 
 
 namespace opeu::game {
 using detail::view_service::LIST_WINDOW_STATE;
-using detail::view_service::MENU_CANCELLED;
 using detail::view_service::RowCheck;
 using detail::view_service::RunAction;
 using detail::view_service::SetRowCheck;

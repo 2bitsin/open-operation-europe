@@ -32,10 +32,7 @@ enum OrderCode : std::uint8_t {
   ATTACK_UNIT      = 2,
   FALL_BACK        = 13,
 };
-constexpr std::uint8_t  NO_SAVED_ORDER{ 0xff }; // Unit::orders[1].kind when no order is saved
-constexpr std::uint8_t  NO_SIDE{ 0xff };        // opeu_cell_side of a cell no side holds
-constexpr std::uint8_t  IMPASSABLE{ 0xff };     // opeu_move_cost of a cell the regiment cannot enter
-constexpr std::uint16_t PLAYER{ 1 };            // side_control of a player-controlled side
+constexpr std::uint8_t NO_SAVED_ORDER{ 0xff }; // Unit::orders[1].kind when no order is saved
 } // namespace
 
 void opeu_unit_fall_back(uint8_t ds[65536], uint16_t unit, uint8_t x, uint8_t y) {
@@ -53,7 +50,7 @@ void opeu_unit_morale_check(uint8_t ds[65536], uint8_t side, uint8_t group, uint
   std::uint8_t  y;
   std::uint8_t  dir;
   std::uint16_t site;
-  if (data.side_control[side] == PLAYER && !(data.groups[side * GROUPS_PER_SIDE + group].flags & Bits(GroupFlag::AI_MARK))) return;
+  if (data.side_control[side] == SIDE_PLAYED && !(data.groups[side * GROUPS_PER_SIDE + group].flags & Bits(GroupFlag::AI_MARK))) return;
   bool calm{ true };
   for (dir = 0; dir < 8; dir++) {
     x = regiment.x;

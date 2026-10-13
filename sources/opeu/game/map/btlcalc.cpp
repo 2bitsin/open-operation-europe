@@ -34,7 +34,6 @@ enum class CalcService : uint16_t {
   ELEMENT_UNIT = 3, // element
 };
 
-constexpr uint8_t IMPASSABLE{ 255 }; // a battle_terrain_costs entry
 constexpr uint8_t COST_CLASSES{ 8 }; // battle_terrain_costs entries per terrain class
 constexpr uint8_t NO_ELEMENT_RANGE{ 20 };
 constexpr uint8_t SKILL_CLASS_INFANTRY{ 0 }; // btlcalc_skill_class values

@@ -1,6 +1,7 @@
 // A side's request reaching headquarters: accepted and booked with its delay, or turned down.
 #include "core/reqpend.hpp"
 #include "common/events.hpp"
+#include "common/memory.hpp"
 #include "common/random.hpp"
 #include "core/reqcheck.hpp"
 #include "core/textout.hpp"
@@ -42,30 +43,26 @@ constexpr uint16_t ACCEPTED_MESSAGE{ 64 };
 constexpr uint16_t REFUSED_MESSAGE{ 65 };
 constexpr uint16_t REFUSAL_COUNT{ 7 };
 
-auto Send(uint8_t* ds, PendingEvent event, PendingService service, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) -> uint16_t {
-  return event(ds, std::to_underlying(service), a, b, c, d);
-}
-
 // Formats message `id` with the name of the pending request's kind into the request buffer.
 void FormatPending(uint8_t* ds, PendingEvent event, uint16_t id) {
   auto&      data{ Data(ds) };
   auto const name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const text{ Send(ds, event, PendingService::MESSAGE_TEXT, id) };
-  Send(ds, event, PendingService::FORMAT, offsetof(DataSegment, request_buffer), text, name);
+  auto const text{ CallWords(ds, event, PendingService::MESSAGE_TEXT, id) };
+  CallWords(ds, event, PendingService::FORMAT, offsetof(DataSegment, request_buffer), text, name);
 }
 
 // Shows the request buffer from the side's chief of staff; it closes by itself when no side is played by a person.
 void ShowPending(uint8_t* ds, PendingEvent event) {
   auto& data{ Data(ds) };
-  Send(ds, event, PendingService::MESSAGE, offsetof(DataSegment, request_buffer), data.request_template);
-  if (data.side_control[1] == 0 && data.side_control[0] == 0) Send(ds, event, PendingService::FINISH, 3);
+  CallWords(ds, event, PendingService::MESSAGE, offsetof(DataSegment, request_buffer), data.request_template);
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) CallWords(ds, event, PendingService::FINISH, 3);
 }
 
 } // namespace
 
 // The daily dialog's report that the pending request was accepted.
 void opeu_pending_start_present(uint8_t ds[65536], PendingEvent event) {
-  Send(ds, event, PendingService::PREPARE);
+  CallWords(ds, event, PendingService::PREPARE);
   FormatPending(ds, event, ACCEPTED_MESSAGE);
   ShowPending(ds, event);
 }
@@ -76,7 +73,7 @@ void opeu_request_start(uint8_t ds[65536], PendingEvent event, uint8_t side, uin
   auto& data{ Data(ds) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  Send(ds, event, PendingService::SHOW, REQUEST_SHOW, side, START_PRESENT_OFFSET, PRESENT_SEGMENT);
+  CallWords(ds, event, PendingService::SHOW, REQUEST_SHOW, side, START_PRESENT_OFFSET, PRESENT_SEGMENT);
   auto& config{ data.request_configs[side] };
   config.target   = slot.target;
   config.argument = slot.argument;
@@ -89,7 +86,7 @@ void opeu_request_start(uint8_t ds[65536], PendingEvent event, uint8_t side, uin
 // The daily dialog's report that the pending request was turned down, in one of seven wordings.
 void opeu_pending_fallback_present(uint8_t ds[65536], PendingEvent event) {
   FormatPending(ds, event, REFUSED_MESSAGE + RandomBelow(ds, REFUSAL_COUNT));
-  Send(ds, event, PendingService::PREPARE);
+  CallWords(ds, event, PendingService::PREPARE);
   ShowPending(ds, event);
 }
 
@@ -98,7 +95,7 @@ void opeu_request_fallback(uint8_t ds[65536], PendingEvent event, uint8_t side, 
   auto& data{ Data(ds) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  Send(ds, event, PendingService::SHOW, REQUEST_SHOW, side, FALLBACK_PRESENT_OFFSET, PRESENT_SEGMENT);
+  CallWords(ds, event, PendingService::SHOW, REQUEST_SHOW, side, FALLBACK_PRESENT_OFFSET, PRESENT_SEGMENT);
   if (slot.kind == std::to_underlying(RequestKind::REGIMENT)) opeu_request_complete(ds, side);
   slot.kind = std::to_underlying(RequestKind::NONE);
 }

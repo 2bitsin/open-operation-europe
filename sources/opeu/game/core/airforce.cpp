@@ -2,6 +2,7 @@
 // drop and airlift, asks which mission to plan and runs it, until the side's turn is used up.
 #include "core/airforce.hpp"
 #include "common/events.hpp"
+#include "common/menu.hpp"
 #include "core/template.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
@@ -20,8 +21,7 @@ namespace {
 
 using enum AirService;
 
-constexpr std::uint8_t  OFFICER_KIND{ 6 }; // the person template of the air-force officer
-constexpr std::uint16_t CANCELLED{ 0xffff };
+constexpr std::uint8_t  OFFICER_KIND{ 6 };      // the person template of the air-force officer
 constexpr std::uint16_t LOCATION_BYTES{ 0x28 }; // the location name buffer of the command, which a format service writes
 constexpr std::uint16_t TABLE_X{ 0x2d };
 constexpr std::uint16_t TABLE_Y{ 0xb5 };
@@ -90,7 +90,7 @@ void opeu_turn_action_8(uint8_t ds[65536], HostEvent event) {
       Call(ds, event, PRINT, Near(data, data.air_lift_format), Location(ds, event, side.lift.x, side.lift.y, buffer), side.lift.planes, side.lift.hours);
     }
     auto const choice{ Call(ds, event, DIALOG, Near(data, data.air_mission_question), 3, data.context_record2, Near(data, data.air_mission_menu)) };
-    if (choice == CANCELLED) break;
+    if (choice == MENU_CANCELLED) break;
     auto const mission{ data.air_missions[choice - 1] };
     Call(ds, event, FAR_ACTION, mission.segment, mission.offset);
     Call(ds, event, CONTEXT, data.current_side);

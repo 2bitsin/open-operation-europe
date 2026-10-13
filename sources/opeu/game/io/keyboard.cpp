@@ -4,6 +4,7 @@
 #include "io/keyboard.hpp"
 
 #include "common/data-segment.hpp"
+#include "common/keys.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
 #include "common/random.hpp"
@@ -28,13 +29,10 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t ENTER{ '\r' };
-constexpr std::uint8_t ESCAPE{ 0x1b };
 constexpr std::uint8_t DELETE{ 0x7f };
 constexpr std::uint8_t BACKSPACE{ 8 };
 constexpr std::uint8_t LEFT_ARROW{ 0x1d };
 
-constexpr std::uint16_t CANCELLED{ 0xffff };
 constexpr std::uint16_t INVERT_MODE{ 0x107 };
 constexpr std::size_t   MAX_DIGITS{ 16 }; // the typed digits a decimal entry keeps
 
@@ -144,7 +142,7 @@ auto opeu_mouse_wait_buttons(std::uint8_t* ds, HostService service) -> std::uint
   return opeu_mouse_buttons(ds, service);
 }
 
-// Without human sides just delays; else waits for a button or ENTER with the blinking cursor.
+// Without human sides just delays; else waits for a button or Enter with the blinking cursor.
 void opeu_wait_confirm(std::uint8_t* ds, HostService service, int pause) {
   auto& data{ Data(ds) };
   if (!data.side_control[0] && !data.side_control[1]) {
@@ -156,11 +154,11 @@ void opeu_wait_confirm(std::uint8_t* ds, HostService service, int pause) {
     return;
   }
   HookCursor(data);
-  while (!(HasMouse(ds) ? opeu_mouse_wait_buttons(ds, service) : opeu_keyboard_key(ds, service) == ENTER));
+  while (!(HasMouse(ds) ? opeu_mouse_wait_buttons(ds, service) : opeu_keyboard_key(ds, service) == KEY_ENTER));
   HookClear(data);
 }
 
-// Reads up to `digits` digits with echo; DEL, BS and left erase, ENTER or ESC ends. Returns the value, or -1 when
+// Reads up to `digits` digits with echo; DEL, BS and left erase, Enter or ESC ends. Returns the value, or -1 when
 // nothing was typed.
 auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digits) -> std::int32_t {
   auto&                                data{ Data(ds) };
@@ -186,8 +184,8 @@ auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digi
           digit(--typed) = ' ';
         }
         break;
-      case ENTER:
-      case ESCAPE:
+      case KEY_ENTER:
+      case KEY_ESCAPE:
         if (typed) return static_cast<std::int32_t>(DecimalValue(std::span{ typed_digits }.first(typed)));
         return -1;
       }
@@ -195,7 +193,7 @@ auto opeu_read_decimal(std::uint8_t* ds, HostService service, std::uint16_t digi
 }
 
 // Chooses a value in min..max. With a mouse: the menu `items`, else the numeric dialog. From the keyboard with a menu
-// (unless max is 24): keypad 2/6 next (wrapping to min), 8/4 previous (wrapping to max), ENTER accepts, ESC or 0
+// (unless max is 24): keypad 2/6 next (wrapping to min), 8/4 previous (wrapping to max), Enter accepts, ESC or 0
 // cancel (0xffff). Otherwise decimal entry in a field max's digits wide, repeated until in range; an empty entry
 // cancels only when allowed.
 auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min, std::uint16_t max, int cancel, std::uint16_t items) -> std::uint16_t {
@@ -239,13 +237,13 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
           }
         value = chosen;
         break;
-      case ENTER:  break;
-      case ESCAPE:
-      case '0':    opeu_menu_restore(ds, service, items); return CANCELLED;
-      default:     continue;
+      case KEY_ENTER:  break;
+      case KEY_ESCAPE:
+      case '0':        opeu_menu_restore(ds, service, items); return MENU_CANCELLED;
+      default:         continue;
       }
       opeu_menu_draw_item(ds, service, item, 1);
-      if (key == ENTER || key == ESCAPE) break;
+      if (key == KEY_ENTER || key == KEY_ESCAPE) break;
     }
   } else {
     auto const start{ TextX(ds) };
@@ -260,7 +258,7 @@ auto opeu_choose_value(std::uint8_t* ds, HostService service, std::uint16_t min,
     while ((value = opeu_read_decimal(ds, service, width)) < min || value > max) {
       if (value == -1 && cancel) {
         if (items) opeu_menu_restore(ds, service, items);
-        return CANCELLED;
+        return MENU_CANCELLED;
       }
       while (start < TextX(ds)) Input(ds, service, InputCall::TEXT_BACKSPACE);
     }
@@ -330,18 +328,18 @@ auto opeu_mouse_yes_no(std::uint8_t* ds, HostService service) -> std::uint8_t {
   return answer;
 }
 
-// y, Y and ENTER answer 1; n, N, ESC and 0 answer 0; other keys are ignored.
+// y, Y and Enter answer 1; n, N, ESC and 0 answer 0; other keys are ignored.
 auto opeu_yes_no(std::uint8_t* ds, HostService service) -> int {
   auto& data{ Data(ds) };
   HookCursor(data);
   for (;;) switch (HasMouse(ds) ? opeu_mouse_yes_no(ds, service) : opeu_keyboard_key(ds, service)) {
     case 'y':
-    case ENTER:
-    case 'Y':    HookClear(data); return 1;
+    case KEY_ENTER:
+    case 'Y':        HookClear(data); return 1;
     case '0':
-    case ESCAPE:
+    case KEY_ESCAPE:
     case 'N':
-    case 'n':    HookClear(data); return 0;
+    case 'n':        HookClear(data); return 0;
     }
 }
 

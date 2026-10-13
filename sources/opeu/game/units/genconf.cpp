@@ -42,9 +42,6 @@ enum Service : std::uint16_t {
   DIVISION_STRENGTH = 14, // (division)
 };
 
-// side_control: the side a human plays.
-constexpr std::uint16_t HUMAN{ 1 };
-
 // The first of the side's general records.
 [[nodiscard]] auto SidePeople(DataSegment& data) -> Person* {
   return &data.people[data.current_side * PEOPLE_PER_SIDE];
@@ -122,7 +119,7 @@ void opeu_confirm_generals(uint8_t ds[65536], HostEvent event) {
       Call(ds, event, REROLL_PERSON, slot);
       Call(ds, event, ROLL_FLAG, Near(data, *person));
     }
-    if (data.side_control[data.current_side] == HUMAN) {
+    if (data.side_control[data.current_side] == SIDE_PLAYED) {
       Call(ds, event, ATTRIBUTE, 4);
       do {
         opeu_general_screen(ds, event);

@@ -44,7 +44,6 @@ constexpr std::uint16_t ROW4{ offsetof(DataSegment, army_row4) };
 constexpr std::uint16_t ROW5{ offsetof(DataSegment, army_row5) };
 constexpr std::uint16_t HQ_FORMAT{ offsetof(DataSegment, army_hq) };
 constexpr std::uint8_t  CATEGORIES{ 8 };
-constexpr std::uint8_t  MAP_SIZE{ 40 };
 constexpr std::uint16_t ROW_X{ 45 };
 
 constexpr auto Low(std::uint32_t value) -> std::uint16_t {
@@ -62,7 +61,7 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event) {
   ServiceLocals const locals{ NAME_BYTES };
   auto&               data{ Data(ds) };
   auto const          side{ data.current_side };
-  if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != 1) return;
+  if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != SIDE_PLAYED) return;
   Call(ds, event, TITLE, data.side_names[side]);
   if (!opeu_unit_support_condition(ds, opeu_find_side_selected_unit(ds, side))) {
     Call(ds, event, TEXT, OUT_OF_SUPPLY);
@@ -76,8 +75,8 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event) {
   std::uint16_t food{};
   opeu_side_resource_percentages(ds, side, &ammunition, &fuel, &food, 1);
   std::uint16_t influence{ 0 };
-  for (std::uint8_t y{ 0 }; y < MAP_SIZE; y += 4)
-    for (std::uint8_t x{ 0 }; x < MAP_SIZE; x += 4)
+  for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; y += 4)
+    for (std::uint8_t x{ 0 }; x < MAP_WIDTH; x += 4)
       if (opeu_cell_influence_side(ds, x, y) == side) ++influence;
   auto const cities{ opeu_count_active_objectives(ds, side) };
   auto const row{ [&](std::uint16_t y) { Call(ds, event, POSITION, ROW_X, y); } };

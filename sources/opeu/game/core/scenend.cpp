@@ -165,7 +165,7 @@ void opeu_scenario_end(uint8_t ds[65536], HostEvent event) {
   auto const format_caption{ [&](uint8_t record_side) { Call(ds, event, FORMAT, caption, pattern, data.month, data.day, Call(ds, event, SIDE_RECORD, record_side, COMMANDER)); } };
   auto const opposite{ [&] { return static_cast<uint8_t>(Call(ds, event, OPPOSITE_SIDE, side)); } };
 
-  if (data.side_status[side] == 1) {
+  if (data.side_status[side] == SIDE_PLAYED) {
     Call(ds, event, SET_TURN_CONTEXT, CONTEXT_VICTORY);
     picture = VICTORY_PICTURE[side ? 1 : 0];
     if (reason == 0) {
@@ -198,7 +198,7 @@ void opeu_scenario_end(uint8_t ds[65536], HostEvent event) {
   Call(ds, event, PRINT, offsetof(DataSegment, end_text_format), caption);
   Call(ds, event, FINISH_INIT, 1);
   Call(ds, event, DELAY, 0x93);
-  if (data.side_control[side] == 1) {
+  if (data.side_control[side] == SIDE_PLAYED) {
     // The epilogue of endgrp.npk for a human winner: four pages of text over pictures, then the last two pictures.
     auto const picture_at{ [&](uint16_t x, uint16_t y, uint32_t at) { Call(ds, event, PICTURE_AT, x, y, handle, static_cast<uint16_t>(at), static_cast<uint16_t>(at >> 16)); } };
     Call(ds, event, SET_TURN_CONTEXT, CONTEXT_EPILOGUE);

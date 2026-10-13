@@ -15,7 +15,6 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr std::uint8_t  ENTRIES_PER_SIDE{ 21 };
 constexpr std::uint8_t  FREE_SLOT{ 0xff };
 constexpr std::uint8_t  NO_CATEGORY{ 0xff };
 constexpr std::uint8_t  NO_ITEM{ 0xff };
@@ -87,10 +86,10 @@ uint16_t opeu_ai_request_resources(uint8_t ds[65536]) {
 // with the objective's level (and falls with it for the support categories); 0 when none is drawn.
 uint16_t opeu_ai_destination_for_type(uint8_t ds[65536], uint8_t type) {
   auto&         data{ Data(ds) };
-  std::uint16_t room[ENTRIES_PER_SIDE];
+  std::uint16_t room[OBJECTIVE_LINKS_PER_SIDE];
   std::uint8_t  count{ 0 };
-  for (std::uint8_t i{ 0 }; i < ENTRIES_PER_SIDE; ++i) {
-    auto const near{ data.objective_links[data.current_side * ENTRIES_PER_SIDE + i] };
+  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE; ++i) {
+    auto const near{ data.objective_links[data.current_side * OBJECTIVE_LINKS_PER_SIDE + i] };
     if (!near || !Record<Objective>(data, near).active || opeu_objective_side(ds, near) != data.current_side) continue;
     for (auto const& item : Record<Objective>(data, near).items)
       if (!item.quantity || item.type == type) {

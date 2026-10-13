@@ -7,6 +7,7 @@
 #include "common/data-segment.hpp"
 #include "common/memory.hpp"
 #include "common/saved-game.hpp"
+#include "common/scenario.hpp"
 #include "core/textout.hpp"
 #include "glue.hpp"
 #include "io/listui.hpp"
@@ -25,7 +26,6 @@ enum Service : std::uint16_t {
   PUT_RANGE = 7, // (text, start, count)
 };
 
-constexpr std::uint8_t  SCENARIO_MASK{ 0x7f };
 constexpr std::uint8_t  DRAW_HEADER{ 3 }; // flags bits that draw the header
 constexpr std::uint8_t  DRAW_NUMBER{ 5 }; // flags bits that draw the slot numbers
 constexpr std::uint16_t ROW_HEIGHT{ 17 };

@@ -1,6 +1,7 @@
 // The Settings command: the battle, delay, map, music and picture options, saving the game, a new game and leaving
 // to DOS.
 #include "core/settings.hpp"
+#include "common/dos-file.hpp"
 #include "common/events.hpp"
 #include "common/host.hpp"
 #include "core/strings.hpp"
@@ -118,18 +119,6 @@ constexpr uint16_t QUIT_EXIT_CODE{ 100 };
 // SEEK with a 32-bit file offset.
 auto Seek(uint8_t* ds, HostEvent event, uint16_t handle, int32_t offset, uint16_t whence) -> uint16_t {
   return Call(ds, event, SEEK, handle, static_cast<uint16_t>(offset), static_cast<uint16_t>(static_cast<uint32_t>(offset) >> 16), whence);
-}
-
-// A stored record index (0xffff for none) from a near pointer to the table of T at `base` (0 for none). The pointer
-// difference is divided as a signed word.
-template <typename T>
-auto StoredIndex(uint16_t near, uint16_t base) -> uint16_t {
-  if (near == 0) return 0xffff;
-  return static_cast<uint16_t>(static_cast<int16_t>(static_cast<uint16_t>(near - base)) / static_cast<int16_t>(sizeof(T)));
-}
-
-auto StoredTarget(uint16_t near, OrderTarget target) -> uint16_t {
-  return target == OrderTarget::OBJECTIVE ? StoredIndex<Objective>(near, OBJECTIVES_AT) : StoredIndex<Unit>(near, UNITS_AT);
 }
 
 // Runs the save/quit menu's entry `index`.
@@ -348,9 +337,9 @@ void opeu_save_game(uint8_t ds[65536], HostEvent event) {
       auto& slot{ data.save_slots[data.save_slot] };
       FillSlot(data, slot);
       opeu_save_checksum(ds, data.save_slot);
-      Seek(ds, event, file, static_cast<int32_t>(data.save_slot) * SLOT_BYTES, 0);
+      Seek(ds, event, file, static_cast<int32_t>(data.save_slot) * SLOT_BYTES, SEEK_FROM_START);
       Call(ds, event, WRITE, file, Near(data, slot), SLOT_BYTES);
-      Seek(ds, event, file, static_cast<int32_t>(SAVED_BYTES) * data.save_slot + SAVED_BLOCKS_AT, 0);
+      Seek(ds, event, file, static_cast<int32_t>(SAVED_BYTES) * data.save_slot + SAVED_BLOCKS_AT, SEEK_FROM_START);
       opeu_save_unrebase(ds);
       Call(ds, event, WRITE, file, SAVED_FIRST, SAVED_BYTES);
       opeu_save_rebase(ds);
@@ -371,9 +360,9 @@ void opeu_save_game(uint8_t ds[65536], HostEvent event) {
 void opeu_quit_to_dos(uint8_t ds[65536], HostEvent event) {
   auto const& data{ Data(ds) };
   auto const  file{ Call(ds, event, OPEN, Near(data, data.logo_file_name)) };
-  Seek(ds, event, file, 0, 0);
+  Seek(ds, event, file, 0, SEEK_FROM_START);
   Call(ds, event, READ_FAR, file, data.bitmap_buffer, LOGO_AT, LOGO_BYTES);
-  Seek(ds, event, file, CAPTION_IN_FILE, 0);
+  Seek(ds, event, file, CAPTION_IN_FILE, SEEK_FROM_START);
   Call(ds, event, READ_FAR, file, data.bitmap_buffer, CAPTION_AT, CAPTION_BYTES);
   Call(ds, event, CLOSE, file);
   Call(ds, event, VGA_CLEAR);
@@ -402,7 +391,7 @@ void opeu_settings_leave(uint8_t ds[65536], HostEvent event) {
 // Starts a new game; the question is skipped when both sides are computer controlled.
 void opeu_settings_new_game(uint8_t ds[65536], HostEvent event) {
   auto& data{ Data(ds) };
-  if ((data.side_control[0] == 0 && data.side_control[1] == 0) || Call(ds, event, ASK, Near(data, data.new_game_question), data.context_record2)) {
+  if ((data.side_control[0] == SIDE_COMPUTER && data.side_control[1] == SIDE_COMPUTER) || Call(ds, event, ASK, Near(data, data.new_game_question), data.context_record2)) {
     Call(ds, event, TURN_CONTEXT, 0);
     Call(ds, event, MUSIC_STOP);
     Call(ds, event, SOUND_CLOSE, 0, 0);

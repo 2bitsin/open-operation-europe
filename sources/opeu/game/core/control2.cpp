@@ -23,7 +23,6 @@ enum Service : std::uint16_t {
   FINISH   = 1, // ()
 };
 
-constexpr std::uint8_t NO_SIDE{ 0xff };
 } // namespace
 
 void opeu_turn_control_other(uint8_t ds[65536], HostEvent event, HostEvent context_event) {

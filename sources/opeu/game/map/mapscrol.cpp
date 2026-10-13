@@ -14,7 +14,6 @@
 using namespace opeu::game;
 
 namespace {
-constexpr uint8_t NO_SIDE{ 255 };
 constexpr int16_t VIEW_LAST{ 11 }; // the view shows 12 x 12 cells
 constexpr int16_t NO_EDGE{ 255 };  // no exposed column or row on an axis that did not move
 constexpr int16_t ORIGIN_MIN{ -4 };
@@ -138,7 +137,7 @@ void opeu_view_scroll_to(uint8_t* ds, HostEvent event, int16_t x, int16_t y) {
 // scrolls it to the origin, then draws the rulers.
 void opeu_map_scroll_to(uint8_t* ds, HostEvent event, int16_t x, int16_t y, uint8_t side) {
   auto& data{ Data(ds) };
-  if (data.side_status[side] == 0 || x < ORIGIN_MIN || x > ORIGIN_MAX || y < ORIGIN_MIN || y > ORIGIN_MAX) return;
+  if (data.side_status[side] == SIDE_COMPUTER || x < ORIGIN_MIN || x > ORIGIN_MAX || y < ORIGIN_MIN || y > ORIGIN_MAX) return;
   data.overview_side = NO_SIDE;
   Call(ds, event, MapService::STATUS_MODE, 1);
   if (side != data.view_side) {
