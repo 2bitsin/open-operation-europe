@@ -6,7 +6,7 @@
 #include <cstdint>
 
 void opeu_text_cursor_clear(Game& game, HostService service);
-void opeu_text_cursor_draw(Game& game, HostService service);
+void opeu_text_cursor_draw(Game& game);
 auto opeu_key_wait_tick(Game& game, HostService service) -> int;
 auto opeu_keyboard_key(Game& game, HostService service) -> std::uint8_t;
 auto opeu_mouse_wait_buttons(Game& game, HostService service) -> std::uint8_t;

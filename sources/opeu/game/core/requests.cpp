@@ -92,10 +92,10 @@ uint16_t svc_requests(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t,
   case RequestService::VALID:     r = opeu_request_valid(game, svc_reqvalid, (uint8_t)a, b); break;
   case RequestService::SUPPLIES:  opeu_request_action0(game, (uint8_t)a, b); break;
   case RequestService::BATTALION: opeu_request_action1(game, (uint8_t)a, b); break;
-  case RequestService::REGIMENT:  opeu_request_action2(game, svc_reqspawn, (uint8_t)a, b); break;
+  case RequestService::REGIMENT:  opeu_request_action2(game, (uint8_t)a, b); break;
   case RequestService::COMPLETE:  opeu_request_complete(game, (uint8_t)a); break;
-  case RequestService::START:     opeu_request_start(game, svc_reqpend, (uint8_t)a, b); break;
-  case RequestService::FALLBACK:  opeu_request_fallback(game, svc_reqpend, (uint8_t)a, b); break;
+  case RequestService::START:     opeu_request_start(game, (uint8_t)a, b); break;
+  case RequestService::FALLBACK:  opeu_request_fallback(game, (uint8_t)a, b); break;
   default:                        port_unhandled("requests", id, 4);
   }
   return r;

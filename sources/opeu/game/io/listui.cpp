@@ -66,19 +66,20 @@ auto DrawRows(Game& game, HostWordsEvent event, ListWindow const& window, std::u
 
 // Draws the up arrow (lit when lit is UP_LIT) and the down arrow (lit when DOWN_LIT) of the scroll strip at pixel
 // column x.
-void opeu_list_arrows(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
+void opeu_list_arrows(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   auto& data{ Data(game) };
   SetStream(data, ARROW_SEGMENT, lit == UP_LIT ? ARROW_UP_LIT : ARROW_UP);
-  List(game, event, ListCall::DRAW_FAR, x >> 3, top, 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
+  opeu_draw_far(static_cast<std::uint16_t>(x >> 3), top, 2, 0x20, 7, port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
   SetStream(data, ARROW_SEGMENT, lit == DOWN_LIT ? ARROW_DOWN_LIT : ARROW_DOWN);
-  List(game, event, ListCall::DRAW_FAR, x >> 3, static_cast<std::uint16_t>(bottom - 0x1f), 2, 0x20, 7, data.stream_ptr[1], data.stream_ptr[0]);
+  opeu_draw_far(static_cast<std::uint16_t>(x >> 3), static_cast<std::uint16_t>(bottom - 0x1f), 2, 0x20, 7,
+                port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
 }
 
 // Outlines the scroll strip and draws both arrows unlit.
-void opeu_list_scrollbar(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom) {
+void opeu_list_scrollbar(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom) {
   if (Data(game).list_mouse) {
-    List(game, event, ListCall::OUTLINE, x, top, static_cast<std::uint16_t>(x + 15), bottom, COLOUR);
-    opeu_list_arrows(game, event, x, top, bottom, NONE_LIT);
+    opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), x, top, static_cast<std::uint16_t>(x + 15), bottom, COLOUR);
+    opeu_list_arrows(game, x, top, bottom, NONE_LIT);
   }
 }
 
@@ -103,11 +104,11 @@ void opeu_table_columns(Game& game, std::uint8_t column, std::uint8_t rows, std:
 }
 
 // Redraws the arrows with the mouse cursor hidden.
-void opeu_list_arrows_lit(Game& game, HostWordsEvent event, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
+void opeu_list_arrows_lit(Game& game, std::uint16_t x, std::uint16_t top, std::uint16_t bottom, std::uint8_t lit) {
   if (Data(game).list_mouse) {
-    List(game, event, ListCall::MOUSE_HIDE);
-    opeu_list_arrows(game, event, x, top, bottom, lit);
-    List(game, event, ListCall::MOUSE_SHOW);
+    opeu_mouse_hide(game, svc_mouse);
+    opeu_list_arrows(game, x, top, bottom, lit);
+    opeu_mouse_show(game, svc_mouse);
   }
 }
 
@@ -122,7 +123,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
   std::uint16_t const bottom{ window.bottom };
   std::uint8_t        state{ NONE_LIT };
   std::uint8_t        key;
-  List(game, event, ListCall::MOUSE_SHOW);
+  opeu_mouse_show(game, svc_mouse);
   for (;;) {
     std::uint16_t position[2]{};
     event(game, std::to_underlying(ListCall::MOUSE_POSITION), position, 2);
@@ -131,16 +132,16 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
     bool const on_strip{ data.list_mouse && x >= left && static_cast<std::uint16_t>(left + 15) >= x };
     if (on_strip && y >= top && static_cast<std::uint16_t>(top + 0x1f) >= y) {
       if (state != UP_LIT) {
-        opeu_list_arrows_lit(game, event, left, top, bottom, UP_LIT);
+        opeu_list_arrows_lit(game, left, top, bottom, UP_LIT);
         state = UP_LIT;
       }
     } else if (on_strip && static_cast<std::uint16_t>(bottom - 0x1f) <= y && y <= bottom) {
       if (state != DOWN_LIT) {
-        opeu_list_arrows_lit(game, event, left, top, bottom, DOWN_LIT);
+        opeu_list_arrows_lit(game, left, top, bottom, DOWN_LIT);
         state = DOWN_LIT;
       }
     } else {
-      if (state == UP_LIT || state == DOWN_LIT) opeu_list_arrows_lit(game, event, left, top, bottom, NONE_LIT);
+      if (state == UP_LIT || state == DOWN_LIT) opeu_list_arrows_lit(game, left, top, bottom, NONE_LIT);
       state = NONE_LIT;
       auto const rows_bottom{ opeu_min16(static_cast<std::uint16_t>(window.rows * ROW_HEIGHT + top), bottom) };
       if (static_cast<std::uint16_t>(left + 16) <= x && static_cast<std::uint16_t>((WidthByte(game, window, 0) << 3) + left - 0xf1) >= x && static_cast<std::uint16_t>(top + ROW_HEIGHT) <= y
@@ -157,7 +158,7 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
         state = ON_ROWS;
       }
     }
-    key = static_cast<std::uint8_t>(List(game, event, ListCall::MOUSE_BUTTONS));
+    key = static_cast<std::uint8_t>(opeu_mouse_buttons(game, svc_mouse));
     if (key != 0) {
       if (key & 1) {
         switch (state) {
@@ -173,21 +174,21 @@ auto opeu_list_mouse_key(Game& game, HostWordsEvent event) -> std::uint8_t {
       }
     }
   }
-  List(game, event, ListCall::MOUSE_HIDE);
+  opeu_mouse_hide(game, svc_mouse);
   return key;
 }
 
 // Inverts the selected row.
-void opeu_list_invert(Game& game, HostWordsEvent event) {
+void opeu_list_invert(Game& game) {
   auto&       data{ Data(game) };
   auto const& window{ ListWindowAt(data, data.list_window) };
-  List(game, event, ListCall::HIGHLIGHT, static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y),
-       WidthByte(game, window, 0) - WIDTH_BIAS, 0x12, INVERT_MODE);
+  opeu_ui_highlight(static_cast<std::uint16_t>(window.x + 2), static_cast<std::uint16_t>((data.list_row - data.list_top + 1) * 17 + window.y),
+                    static_cast<std::uint16_t>(WidthByte(game, window, 0) - WIDTH_BIAS), 0x12, INVERT_MODE);
 }
 
 // Draws the window grid from first_column: the scroll strip, the outline, a line under each row that fits (setting
 // list_rows) and the column separators (setting list_columns). Returns the previous visible column count.
-auto opeu_list_frame(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t first_column) -> std::uint8_t {
+auto opeu_list_frame(Game& game, std::uint16_t near, std::uint8_t first_column) -> std::uint8_t {
   auto&               data{ Data(game) };
   auto const&         window{ ListWindowAt(data, near) };
   auto const          saved{ data.list_columns };
@@ -196,21 +197,21 @@ auto opeu_list_frame(Game& game, HostWordsEvent event, std::uint16_t near, std::
   std::uint16_t const right = window.right << 3;
   std::uint16_t const top{ window.y };
   std::uint16_t const bottom{ window.bottom };
-  opeu_list_scrollbar(game, event, left, top, bottom);
+  opeu_list_scrollbar(game, left, top, bottom);
   left                   += 0x10;
   std::uint16_t column_x  = ((Byte(game, width++) - WIDTH_BIAS) << 3) + left;
   std::uint16_t line_y    = top + ROW_HEIGHT;
-  List(game, event, ListCall::OUTLINE, left, top, right, bottom, COLOUR);
+  opeu_ui_outline(game, static_cast<UiHost const*>(port_uiprim_host()), left, top, right, bottom, COLOUR);
   for (data.list_rows = 0; line_y <= bottom; data.list_rows++, line_y += ROW_HEIGHT) {
     if (window.rows > data.list_rows)
-      List(game, event, ListCall::LINE, left, line_y, right, line_y, COLOUR);
+      opeu_ui_line(left, line_y, right, line_y, COLOUR);
     else
       break;
   }
   data.list_rows--;
   width += first_column;
   for (data.list_columns = 0; column_x <= right; column_x += (Byte(game, width++) - WIDTH_BIAS) << 3) {
-    List(game, event, ListCall::LINE, column_x, top, column_x, bottom, COLOUR);
+    opeu_ui_line(column_x, top, column_x, bottom, COLOUR);
     data.list_columns++;
     if (Byte(game, width) == 0) break;
   }
@@ -239,39 +240,39 @@ void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t near, std:
     }
     area = ALL;
     if (data.list_mouse)
-      List(game, event, ListCall::BOX, x - 2, y, x1 - x + 2, y1 - y, 0);
+      opeu_ui_box(static_cast<std::uint16_t>(x - 2), y, static_cast<std::uint16_t>(x1 - x + 2), static_cast<std::uint16_t>(y1 - y), 0);
     else
-      List(game, event, ListCall::BOX, x, y, x1 - x, y1 - y, 0);
+      opeu_ui_box(x, y, static_cast<std::uint16_t>(x1 - x), static_cast<std::uint16_t>(y1 - y), 0);
   } else if (data.list_column < column) {
     area                     = SCROLL_LEFT;
     std::uint16_t const to   = Byte(game, width) + x - WIDTH_BIAS;
     std::uint16_t const from = to + Byte(game, static_cast<std::uint16_t>(width + column)) - WIDTH_BIAS;
     std::uint16_t const kept = x1 - from;
-    List(game, event, ListCall::SCREEN_COPY, from, y, kept, y1 - y, to, y);
-    List(game, event, ListCall::BOX, kept + to, y, x1 - kept - to, y1 - y, 0);
+    opeu_screen_copy(from, y, kept, static_cast<std::uint16_t>(y1 - y), to, y);
+    opeu_ui_box(static_cast<std::uint16_t>(kept + to), y, static_cast<std::uint16_t>(x1 - kept - to), static_cast<std::uint16_t>(y1 - y), 0);
   } else if (data.list_column > column) {
     area                     = SCROLL_RIGHT;
     std::uint16_t const from = Byte(game, width) + x - WIDTH_BIAS;
     std::uint16_t const to   = from + Byte(game, static_cast<std::uint16_t>(width + column + 1)) - WIDTH_BIAS;
     std::uint16_t const kept = x1 - to;
-    List(game, event, ListCall::SCREEN_COPY, from, y, kept, y1 - y, to, y);
-    List(game, event, ListCall::BOX, from, y, Byte(game, static_cast<std::uint16_t>(width + column + 1)) - WIDTH_BIAS, y1 - y, 0);
+    opeu_screen_copy(from, y, kept, static_cast<std::uint16_t>(y1 - y), to, y);
+    opeu_ui_box(from, y, static_cast<std::uint16_t>(Byte(game, static_cast<std::uint16_t>(width + column + 1)) - WIDTH_BIAS), static_cast<std::uint16_t>(y1 - y), 0);
   } else if (data.list_top < row) {
     area = SCROLL_UP;
-    List(game, event, ListCall::SCREEN_COPY, x, y + 0x23, x1 - x, y1 - y - 0x23, x, y + 0x12);
-    List(game, event, ListCall::BOX, x, y1 - 0x10, x1 - x, 0x10, 0);
+    opeu_screen_copy(x, static_cast<std::uint16_t>(y + 0x23), static_cast<std::uint16_t>(x1 - x), static_cast<std::uint16_t>(y1 - y - 0x23), x, static_cast<std::uint16_t>(y + 0x12));
+    opeu_ui_box(x, static_cast<std::uint16_t>(y1 - 0x10), static_cast<std::uint16_t>(x1 - x), 0x10, 0);
   } else if (data.list_top > row) {
     area = SCROLL_DOWN;
-    List(game, event, ListCall::SCREEN_COPY, x, y + 0x12, x1 - x, y1 - y - 0x23, x, y + 0x23);
-    List(game, event, ListCall::BOX, x, y + 0x12, x1 - x, 0x10, 0);
+    opeu_screen_copy(x, static_cast<std::uint16_t>(y + 0x12), static_cast<std::uint16_t>(x1 - x), static_cast<std::uint16_t>(y1 - y - 0x23), x, static_cast<std::uint16_t>(y + 0x23));
+    opeu_ui_box(x, static_cast<std::uint16_t>(y + 0x12), static_cast<std::uint16_t>(x1 - x), 0x10, 0);
   } else {
     DrawRows(game, event, window, column, data.list_row, data.list_columns + column - 1, data.list_row, SELECTED_ROW);
-    opeu_list_frame(game, event, near, column);
+    opeu_list_frame(game, near, column);
     return;
   }
   data.list_column = column;
   data.list_top    = row;
-  auto const   saved{ opeu_list_frame(game, event, near, column) };
+  auto const   saved{ opeu_list_frame(game, near, column) };
   std::uint8_t last_column = data.list_columns + column - 1;
   std::uint8_t last_row    = data.list_rows + row - 1;
   switch (area) {
@@ -293,9 +294,9 @@ void opeu_list_scroll(Game& game, HostWordsEvent event, std::uint16_t near, std:
     last_row = row;
     break;
   }
-  List(game, event, ListCall::PAPER, 4);
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
   DrawRows(game, event, window, column, row, last_column, last_row, area);
-  List(game, event, ListCall::PAPER, 0);
+  opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
 }
 
 auto svc_listui(Game& game, std::uint16_t kind, std::uint16_t* args, std::uint16_t count) -> std::uint16_t {

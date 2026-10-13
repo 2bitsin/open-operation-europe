@@ -15,38 +15,17 @@
 using namespace opeu::game;
 
 namespace {
-enum Service : std::uint16_t {
-  PREPARE     = 0,
-  NOON_EVENTS = 1,
-};
 constexpr std::uint16_t FAR_TEXT_SEGMENT{ 0x3895 };  // the far text the noon events read
 constexpr std::uint16_t NOON_CODE_SEGMENT{ 0x0e57 }; // the records' far actions in this code segment are noon events
 } // namespace
 
-void opeu_turn_half_day(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_turn_half_day(Game& game) {
   auto const& data{ Data(game) };
-  event(game, PREPARE, 0, 0, 0, 0);
+  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
   if (data.hour == 0)
     opeu_apply_daily_side_resources(game);
   else if (data.hour == 12) {
     opeu_decrement_record_counters(game);
-    event(game, NOON_EVENTS, 0, 0, 0, 0);
-  }
-}
-
-// The services of the half-day dispatch as direct calls.
-uint16_t svc_halfday(Game& game, uint16_t id, uint16_t a0, uint16_t a1, uint16_t a2, uint16_t a3) {
-  (void)a0;
-  (void)a1;
-  (void)a2;
-  (void)a3;
-  switch (id) {
-  case PREPARE:     opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case NOON_EVENTS: {
     opeu_turn_noon_events(game, port_far(FAR_TEXT_SEGMENT, 0), svc_noonevt, NOON_CODE_SEGMENT);
-    break;
   }
-  default: port_unhandled("halfday", id, 4);
-  }
-  return 0;
 }

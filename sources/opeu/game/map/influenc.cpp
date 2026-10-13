@@ -82,7 +82,7 @@ uint16_t svc_influenc(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t 
     opeu_hourly_c_stage_b(game, svc_requests, Word(game, locals.At(0)));
     break;
   }
-  case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(game, svc_arrivals); break;
+  case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(game); break;
   default:                      port_unhandled("influenc", id, 0);
   }
   return 0;

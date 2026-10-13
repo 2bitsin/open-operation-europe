@@ -49,16 +49,17 @@ auto SavedBytes(MenuItem const& item) -> std::uint16_t {
 } // namespace
 
 // Prints a label at (x, y) in colour attribute (its low byte), keeping the text context.
-void opeu_menu_text(Game& game, HostService service, std::uint16_t x, std::uint16_t y, std::uint16_t attribute, std::uint16_t label) {
+void opeu_menu_text(Game& game, std::uint16_t x, std::uint16_t y, std::uint16_t attribute, std::uint16_t label) {
   auto& data{ Data(game) };
-  Input(game, service, InputCall::TEXT_SAVE);
-  Input(game, service, InputCall::TEXT_POSITION, x, y);
-  Input(game, service, InputCall::TEXT_PRINT, Near(data, data.menu_format), static_cast<std::uint8_t>(attribute) + '0', label);
-  Input(game, service, InputCall::TEXT_RESTORE);
+  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(x), static_cast<std::int16_t>(y));
+  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.menu_format)), static_cast<std::uint16_t>(static_cast<std::uint8_t>(attribute) + '0'),
+                                                        static_cast<std::uint16_t>(label) });
+  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
 }
 
 // Tiles columns x..x+width at pixel column*8-4, then the label 3 (plain) or 4 (lit) pixels lower.
-void opeu_menu_draw_item(Game& game, HostService service, std::uint16_t near, int lit) {
+void opeu_menu_draw_item(Game& game, std::uint16_t near, int lit) {
   auto&         data{ Data(game) };
   auto const&   item{ ItemAt(game, near) };
   std::uint16_t column{ item.x };
@@ -72,35 +73,35 @@ void opeu_menu_draw_item(Game& game, HostService service, std::uint16_t near, in
     if (lit) tile = static_cast<Tile>(tile + LEFT_LIT);
     data.stream_ptr[0] = static_cast<std::uint16_t>(tile * TILE_BYTES);
     data.stream_ptr[1] = TILES_SEGMENT;
-    Input(game, service, InputCall::TILE_BLIT, static_cast<std::uint16_t>((column << 3) - 4), item.y, 1, BUTTON_HEIGHT, data.stream_ptr[1], data.stream_ptr[0]);
+    koei_2e57(static_cast<std::uint16_t>((column << 3) - 4), item.y, 1, BUTTON_HEIGHT, port_far(data.stream_ptr[1], data.stream_ptr[0]));
     column++;
   }
-  opeu_menu_text(game, service, item.x, static_cast<std::uint16_t>((lit ? 4 : 3) + item.y), item.attribute, item.label);
+  opeu_menu_text(game, item.x, static_cast<std::uint16_t>((lit ? 4 : 3) + item.y), item.attribute, item.label);
 }
 
 // Draws every item, saving the graphics under the SAVE_BEHIND items first.
-void opeu_menu_draw(Game& game, HostService service, std::uint16_t near) {
+void opeu_menu_draw(Game& game, std::uint16_t near) {
   auto& data{ Data(game) };
   data.menu_save_offset = 0;
   for (; ItemAt(game, near).label; near = NextMenuItem(near)) {
     auto const& item{ ItemAt(game, near) };
     if (item.selection & SAVE_BEHIND) {
-      Input(game, service, InputCall::BITMAP_SAVE, item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, data.bitmap_buffer, data.menu_save_offset);
+      opeu_bitmap_save(item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, port_far(data.bitmap_buffer, data.menu_save_offset));
       data.menu_save_offset += SavedBytes(item);
     }
-    opeu_menu_draw_item(game, service, near, 0);
+    opeu_menu_draw_item(game, near, 0);
   }
 }
 
 // Recurses through the terminator first, so the saved graphics (the terminator's included, when its selection asks
 // for it) are restored in reverse order.
-void opeu_menu_restore(Game& game, HostService service, std::uint16_t near) {
+void opeu_menu_restore(Game& game, std::uint16_t near) {
   auto& data{ Data(game) };
-  if (ItemAt(game, near).label) opeu_menu_restore(game, service, NextMenuItem(near));
+  if (ItemAt(game, near).label) opeu_menu_restore(game, NextMenuItem(near));
   auto const& item{ ItemAt(game, near) };
   if (item.selection & SAVE_BEHIND) {
     data.menu_save_offset -= SavedBytes(item);
-    Input(game, service, InputCall::BITMAP_RESTORE, item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, 0, data.bitmap_buffer, data.menu_save_offset);
+    opeu_bitmap_restore(item.x - 1, item.y, item.width + 2, BUTTON_HEIGHT, 0, port_far(data.bitmap_buffer, data.menu_save_offset));
   }
 }
 
@@ -110,7 +111,7 @@ auto opeu_menu_track(Game& game, HostService service, std::uint16_t items, int c
   std::array<int, MAX_ITEMS> lit{};
   opeu_input_reset(game, service);
   std::uint16_t chosen{ NOT_CHOSEN };
-  Input(game, service, InputCall::DELAY_UNITS, 1);
+  opeu_delay_units(game, static_cast<std::uint8_t>(1));
   opeu_mouse_show(game, service);
   std::uint16_t passes{ 0 };
   do {
@@ -125,13 +126,13 @@ auto opeu_menu_track(Game& game, HostService service, std::uint16_t items, int c
       if (!passes && left <= x && right >= x && top <= y && bottom >= y) {
         if (!lit[index]) {
           opeu_mouse_hide(game, service);
-          opeu_menu_draw_item(game, service, near, lit[index] = 1);
+          opeu_menu_draw_item(game, near, lit[index] = 1);
           opeu_mouse_show(game, service);
         }
         if (opeu_mouse_left(game, service)) chosen = item.selection & SELECTION_MASK;
       } else if (lit[index]) {
         opeu_mouse_hide(game, service);
-        opeu_menu_draw_item(game, service, near, lit[index] = 0);
+        opeu_menu_draw_item(game, near, lit[index] = 0);
         opeu_mouse_show(game, service);
       }
       if (cancel && opeu_mouse_right(game, service)) chosen = MENU_CANCELLED;
@@ -143,9 +144,9 @@ auto opeu_menu_track(Game& game, HostService service, std::uint16_t items, int c
 }
 
 auto opeu_menu_select(Game& game, HostService service, std::uint16_t items, int cancel) -> std::uint16_t {
-  opeu_menu_draw(game, service, items);
+  opeu_menu_draw(game, items);
   auto const chosen{ opeu_menu_track(game, service, items, cancel) };
-  opeu_menu_restore(game, service, items);
+  opeu_menu_restore(game, items);
   return chosen;
 }
 

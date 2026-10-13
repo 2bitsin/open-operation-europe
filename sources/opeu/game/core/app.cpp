@@ -137,7 +137,7 @@ uint16_t svc_app(Game& game, uint16_t id) {
   switch (id) {
   case INITIALIZE:   opeu_app_initialize(game); break;
   case STARTUP:      opeu_app_startup(game); break;
-  case TURN:         opeu_process_selected_turn(game, svc_dispatch); break;
+  case TURN:         opeu_process_selected_turn(game); break;
   case NOTICE_BEGIN: opeu_notice_begin(game); break;
   case NOTICE_ONE:   opeu_notice_one(game); break;
   case NOTICE_OTHER: opeu_notice_other(game); break;

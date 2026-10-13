@@ -3,12 +3,18 @@
 // hides the mouse scroll arrows. The window's select routine receives the running choice count (or count+10 to
 // withdraw the last choice in the commander dialog) and returns how many were added.
 #include "io/listdlg.hpp"
+#include "core/textout.hpp"
+#include "io/keyboard.hpp"
+#include "io/mouse.hpp"
+#include "link/glue.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "io/list-keys.hpp"
 #include "io/listui.hpp"
 #include "port.hpp"
+#include "vgalib.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -25,14 +31,14 @@ constexpr std::uint8_t  WITHDRAW{ 10 };
 constexpr std::uint8_t  COMMANDERS{ 7 };
 constexpr std::uint16_t ROW_HEIGHT{ 0x11 };
 
-auto SaveScreen(Game& game, HostWordsEvent event, ListWindow const& window) -> void {
-  List(game, event, ListCall::BITMAP_SAVE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1),
-       Data(game).bitmap_buffer, 0);
+auto SaveScreen(Game& game, ListWindow const& window) -> void {
+  opeu_bitmap_save(static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1),
+                   static_cast<std::uint16_t>(window.bottom - window.y + 1), port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
 }
 
-auto RestoreScreen(Game& game, HostWordsEvent event, ListWindow const& window) -> void {
-  List(game, event, ListCall::BITMAP_RESTORE, window.x, window.y, static_cast<std::uint16_t>(window.right - window.x + 1), static_cast<std::uint16_t>(window.bottom - window.y + 1), 0,
-       Data(game).bitmap_buffer, 0);
+auto RestoreScreen(Game& game, ListWindow const& window) -> void {
+  opeu_bitmap_restore(static_cast<std::uint16_t>(window.x), static_cast<std::uint16_t>(window.y), static_cast<std::uint16_t>(window.right - window.x + 1),
+                      static_cast<std::uint16_t>(window.bottom - window.y + 1), 0, port_far(static_cast<std::uint16_t>(Data(game).bitmap_buffer), 0));
 }
 
 auto Select(Game& game, HostWordsEvent event, ListWindow const& window, std::uint8_t count) -> std::uint8_t {
@@ -40,7 +46,7 @@ auto Select(Game& game, HostWordsEvent event, ListWindow const& window, std::uin
 }
 
 auto NextKey(Game& game, HostWordsEvent event) -> std::uint8_t {
-  return Data(game).input_mode ? opeu_list_mouse_key(game, event) : static_cast<std::uint8_t>(List(game, event, ListCall::KEYBOARD_KEY));
+  return Data(game).input_mode ? opeu_list_mouse_key(game, event) : static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard));
 }
 
 // Opens the dialog on the window: saves the screen when asked, draws the window (from the origin on the first
@@ -49,7 +55,7 @@ auto Open(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t fla
   auto&       data{ Data(game) };
   auto const& window{ ListWindowAt(data, near) };
   data.list_mouse = !(flags & KEYBOARD_ONLY);
-  if (flags & SAVE_SCREEN) SaveScreen(game, event, window);
+  if (flags & SAVE_SCREEN) SaveScreen(game, window);
   std::uint8_t column;
   if (flags & FIRST_ACTIVATION) {
     data.list_window = near;
@@ -58,7 +64,7 @@ auto Open(Game& game, HostWordsEvent event, std::uint16_t near, std::uint8_t fla
   } else
     column = REDRAW_HERE;
   opeu_list_scroll(game, event, near, column, 0);
-  opeu_list_invert(game, event);
+  opeu_list_invert(game);
 }
 } // namespace
 
@@ -76,7 +82,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
   bool               refresh{ true };
   for (;;) {
     if (refresh) {
-      List(game, event, ListCall::INPUT_RESET);
+      opeu_input_reset(game, svc_mouse);
       refresh = false;
     }
     bool         scroll{ true };
@@ -85,20 +91,20 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
     switch (key) {
     case KEY_SCROLL_UP:
       if (data.list_top == 0) continue;
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       start--;
       data.list_row--;
       break;
     case KEY_SCROLL_DOWN:
       if (data.list_top + data.list_rows + 1 >= window.rows) continue;
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       start++;
       data.list_row++;
       break;
     case KEY_UP:
     case KEY_UP_5:
       if (data.list_row == 0) continue;
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       if (data.list_row-- != data.list_top)
         scroll = false;
       else
@@ -106,7 +112,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
       break;
     case KEY_DOWN:
       if (window.rows <= data.list_row + 2) continue;
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       data.list_row++;
       if (data.list_row - data.list_top + 1 <= data.list_rows)
         scroll = false;
@@ -117,7 +123,7 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
       auto const added{ Select(game, event, window, used) };
       used += added;
       if ((flags & FIRST_ACTIVATION) && added) picked[used] = data.general_list[data.list_row];
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       refresh = true;
       break;
     }
@@ -135,32 +141,35 @@ auto opeu_commander_list_dialog(Game& game, HostWordsEvent event, std::uint16_t 
         std::uint16_t const screen_y = (i - data.list_top) * ROW_HEIGHT + window.y + 1;
         if (screen_y > 0xe8 && screen_y < 0x140) {
           auto const& person{ Record<Person>(data, general) };
-          List(game, event, ListCall::TEXT_COLOUR, 7);
-          List(game, event, ListCall::TEXT_POSITION, Byte(game, window.widths) + window.x - 0x1c, (i - data.list_top) * ROW_HEIGHT + window.y + 0x12);
-          List(game, event, ListCall::PRINT, Near(data, data.general_stats_line), person.leadership, person.charm, person.bravery, person.health, person.infantry, person.artillery, person.armor);
+          opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), 7);
+          opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
+                             static_cast<std::int16_t>(static_cast<std::uint16_t>((i - data.list_top) * ROW_HEIGHT + window.y + 0x12)));
+          opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(Near(data, data.general_stats_line)), static_cast<std::uint16_t>(person.leadership),
+                                                                static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health),
+                                                                static_cast<std::uint16_t>(person.infantry), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor) });
         }
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         refresh = true;
         if (used > 6) used = 6;
         withdraw = false;
         scroll   = true;
       }
       if (scroll) opeu_list_scroll(game, event, near, column, start);
-      opeu_list_invert(game, event);
+      opeu_list_invert(game);
       if (used > COMMANDERS) used = COMMANDERS;
       if (used == COMMANDERS) {
-        List(game, event, ListCall::PAPER, 4);
+        opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(4));
         for (std::uint16_t y{ 0x170 }; y < 0x188; y += 0x10)
-          for (std::uint16_t x{ 0 }; x < 0x50; x += 2) List(game, event, ListCall::SCREEN_COPY, 0, 0, 2, 0x10, x, y);
-        List(game, event, ListCall::TEXT_POSITION, 0x15, 0x170);
-        if (!List(game, event, ListCall::YES_NO, Near(data, data.div_commander_prompt))) {
+          for (std::uint16_t x{ 0 }; x < 0x50; x += 2) opeu_screen_copy(0, 0, 2, 0x10, x, y);
+        opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(0x15), static_cast<std::int16_t>(0x170));
+        if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, svc_keyboard, static_cast<std::uint16_t>(Near(data, data.div_commander_prompt))))) {
           used     = COMMANDERS;
           withdraw = true;
           continue;
         }
-        List(game, event, ListCall::PAPER, 0);
+        opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::uint8_t>(0));
         result = 1;
-        if (flags & SAVE_SCREEN) RestoreScreen(game, event, window);
+        if (flags & SAVE_SCREEN) RestoreScreen(game, window);
         return result;
       }
       if (used > 6) used = 6;
@@ -186,7 +195,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
     bool               finished{ false };
     for (;;) {
       if (fresh) {
-        List(game, event, ListCall::INPUT_RESET);
+        opeu_input_reset(game, svc_mouse);
         fresh = false;
       }
       // what the key leads to
@@ -200,14 +209,14 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       switch (NextKey(game, event)) {
       case KEY_SCROLL_UP:
         if (data.list_top == 0) continue;
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         first--;
         data.list_row--;
         step = Step::SCROLL;
         break;
       case KEY_SCROLL_DOWN:
         if (data.list_top + data.list_rows + 1 >= window.rows) continue;
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         first++;
         data.list_row++;
         step = Step::SCROLL;
@@ -215,7 +224,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       case KEY_UP:
       case KEY_UP_5:
         if (data.list_row == 0) continue;
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         if (data.list_row-- != data.list_top)
           step = Step::MOVED;
         else {
@@ -225,7 +234,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
         break;
       case KEY_DOWN:
         if (window.rows <= data.list_row + 2) continue;
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         data.list_row++;
         if (data.list_row - data.list_top + 1 <= data.list_rows)
           step = Step::MOVED;
@@ -240,7 +249,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
       }
       if (step == Step::SELECT) {
         count += Select(game, event, window, count);
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         fresh = true;
         step  = Step::SCROLL;
       }
@@ -249,7 +258,7 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
         step = Step::MOVED;
       }
       if (step == Step::MOVED) {
-        opeu_list_invert(game, event);
+        opeu_list_invert(game);
         if (count >= limit) {
           done     = 1;
           finished = true;
@@ -263,13 +272,13 @@ auto opeu_list_dialog(Game& game, HostWordsEvent event, std::uint16_t near, std:
         break;
       }
       if (window.x == 0xf || window.x == 9) {
-        RestoreScreen(game, event, window);
-        List(game, event, ListCall::INPUT_RESET);
+        RestoreScreen(game, window);
+        opeu_input_reset(game, svc_mouse);
         break; // start over
       }
     }
     if (finished) {
-      if (flags & SAVE_SCREEN) RestoreScreen(game, event, window);
+      if (flags & SAVE_SCREEN) RestoreScreen(game, window);
       return done;
     }
   }

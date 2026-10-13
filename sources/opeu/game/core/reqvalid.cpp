@@ -51,10 +51,10 @@ uint16_t opeu_request_valid(Game& game, PendingEvent event, uint8_t side, uint16
   auto const fail{ [&](RequestError reason) {
     data.request_error   = std::to_underlying(reason);
     data.invalid_request = request;
-    event(game, std::to_underlying(ValidService::SHOW), REQUEST_SHOW, side, ERROR_PRESENT_OFFSET, ERROR_PRESENT_SEGMENT);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(ERROR_PRESENT_SEGMENT) << 16 | ERROR_PRESENT_OFFSET);
     return uint16_t{ 0 };
   } };
-  auto const count_cells{ [&] { return event(game, std::to_underlying(ValidService::COUNT_CELLS), side, CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT, 0); } };
+  auto const count_cells{ [&] { return opeu_request_cells(game, static_cast<uint8_t>(side), c2_cell_predicate(CELL_ALLOWED_OFFSET, CELL_ALLOWED_SEGMENT)); } };
   switch (static_cast<RequestKind>(slot.kind)) {
   case RequestKind::SUPPLIES:
     if (opeu_objective_side(game, slot.target) != side) return fail(RequestError::LOST);

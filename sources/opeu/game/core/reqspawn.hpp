@@ -4,7 +4,4 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_request_action2(Game& game, PendingEvent event, uint8_t side, uint16_t request);
-
-// The services opeu_request_action2 calls.
-uint16_t svc_reqspawn(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t c, uint16_t d);
+void opeu_request_action2(Game& game, uint8_t side, uint16_t request);

@@ -48,33 +48,33 @@ constexpr uint16_t REFUSAL_COUNT{ 7 };
 void FormatPending(Game& game, PendingEvent event, uint16_t id) {
   auto&      data{ Data(game) };
   auto const name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const text{ CallWords(game, event, PendingService::MESSAGE_TEXT, id) };
+  auto const text{ opeu_message_lookup(game, svc_msglook, static_cast<short>(id)) };
   CallWords(game, event, PendingService::FORMAT, offsetof(DataSegment, request_buffer), text, name);
 }
 
 // Shows the request buffer from the side's chief of staff; it closes by itself when no side is played by a person.
-void ShowPending(Game& game, PendingEvent event) {
+void ShowPending(Game& game) {
   auto& data{ Data(game) };
-  CallWords(game, event, PendingService::MESSAGE, offsetof(DataSegment, request_buffer), data.request_template);
-  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) CallWords(game, event, PendingService::FINISH, 3);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, request_buffer), data.request_template);
+  if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, static_cast<uint8_t>(3));
 }
 
 } // namespace
 
 // The daily dialog's report that the pending request was accepted.
 void opeu_pending_start_present(Game& game, PendingEvent event) {
-  CallWords(game, event, PendingService::PREPARE);
+  opeu_pending_prepare(game, svc_soundcue);
   FormatPending(game, event, ACCEPTED_MESSAGE);
-  ShowPending(game, event);
+  ShowPending(game);
 }
 
 // Accepts the side's request: reports it, books it in the side's request configuration with a delay of one to three
 // times its kind's base in days, and empties the request slot.
-void opeu_request_start(Game& game, PendingEvent event, uint8_t side, uint16_t request) {
+void opeu_request_start(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  CallWords(game, event, PendingService::SHOW, REQUEST_SHOW, side, START_PRESENT_OFFSET, PRESENT_SEGMENT);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(PRESENT_SEGMENT) << 16 | START_PRESENT_OFFSET);
   auto& config{ data.request_configs[side] };
   config.target   = slot.target;
   config.argument = slot.argument;
@@ -87,16 +87,16 @@ void opeu_request_start(Game& game, PendingEvent event, uint8_t side, uint16_t r
 // The daily dialog's report that the pending request was turned down, in one of seven wordings.
 void opeu_pending_fallback_present(Game& game, PendingEvent event) {
   FormatPending(game, event, REFUSED_MESSAGE + RandomBelow(game, REFUSAL_COUNT));
-  CallWords(game, event, PendingService::PREPARE);
-  ShowPending(game, event);
+  opeu_pending_prepare(game, svc_soundcue);
+  ShowPending(game);
 }
 
 // Turns the side's request down: reports it, drops the marks of a requested regiment and empties the request slot.
-void opeu_request_fallback(Game& game, PendingEvent event, uint8_t side, uint16_t request) {
+void opeu_request_fallback(Game& game, uint8_t side, uint16_t request) {
   auto& data{ Data(game) };
   auto& slot{ Record<RequestSlot>(data, request) };
   data.pending_request = request;
-  CallWords(game, event, PendingService::SHOW, REQUEST_SHOW, side, FALLBACK_PRESENT_OFFSET, PRESENT_SEGMENT);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(PRESENT_SEGMENT) << 16 | FALLBACK_PRESENT_OFFSET);
   if (slot.kind == std::to_underlying(RequestKind::REGIMENT)) opeu_request_complete(game, side);
   slot.kind = std::to_underlying(RequestKind::NONE);
 }

@@ -2,6 +2,7 @@
 // and a pixel row), numdlg_digits holds its five decimal digits (the first may exceed 9). Its pictures are in the
 // message picture segment; the graphics it covers are saved in numdlg_save_segment.
 #include "io/numdlg.hpp"
+#include "core/textout.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
@@ -16,6 +17,7 @@
 #include "link/glue.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -82,7 +84,7 @@ auto Clamped(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi
 void opeu_numdlg_button(Game& game, HostService service, std::uint8_t n, std::uint16_t tile) {
   auto const& data{ Data(game) };
   opeu_mouse_hide(game, service);
-  Input(game, service, InputCall::BITMAP_RESTORE, n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, data.message_picture_segment, tile);
+  opeu_bitmap_restore(n * 5 + data.numdlg_x + 7, data.numdlg_y + 40, 4, 16, 0, port_far(data.message_picture_segment, tile));
   opeu_mouse_show(game, service);
 }
 
@@ -98,23 +100,23 @@ void opeu_numdlg_release(Game& game, HostService service, std::uint8_t n) {
 // Saves the covered area, draws the dialog and both buttons.
 void opeu_numdlg_open(Game& game, HostService service) {
   auto const& data{ Data(game) };
-  Input(game, service, InputCall::BITMAP_SAVE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, data.numdlg_save_segment, 0);
-  Input(game, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.message_picture_segment, 0);
+  opeu_bitmap_save(data.numdlg_x, data.numdlg_y, 0x12, 0x60, port_far(data.numdlg_save_segment, 0));
+  opeu_bitmap_restore(data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, port_far(data.message_picture_segment, 0));
   opeu_numdlg_release(game, service, CANCEL_BUTTON);
   opeu_numdlg_release(game, service, OK_BUTTON);
 }
 
-void opeu_numdlg_close(Game& game, HostService service) {
+void opeu_numdlg_close(Game& game) {
   auto const& data{ Data(game) };
-  Input(game, service, InputCall::BITMAP_RESTORE, data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, data.numdlg_save_segment, 0);
+  opeu_bitmap_restore(data.numdlg_x, data.numdlg_y, 0x12, 0x60, 0, port_far(data.numdlg_save_segment, 0));
 }
 
-void opeu_numdlg_digit(Game& game, HostService service, std::uint8_t i, std::uint8_t digit) {
+void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit) {
   auto const& data{ Data(game) };
-  Input(game, service, InputCall::TEXT_SAVE);
-  Input(game, service, InputCall::TEXT_POSITION, i * 3 + data.numdlg_x + 2, data.numdlg_y + 0x40);
-  Input(game, service, InputCall::TEXT_PRINT, Near(data, data.numdlg_format), digit);
-  Input(game, service, InputCall::TEXT_RESTORE);
+  opeu_context_save(game, static_cast<TextHost*>(port_textout_host()));
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<std::int16_t>(i * 3 + data.numdlg_x + 2), static_cast<std::int16_t>(data.numdlg_y + 0x40));
+  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.numdlg_format)), static_cast<std::uint16_t>(digit), 0 });
+  opeu_context_restore(game, static_cast<TextHost*>(port_textout_host()));
 }
 
 // Splits a value into the five digits (the first takes everything above 9999).
@@ -143,7 +145,7 @@ auto opeu_numdlg_value(Game& game) -> std::int32_t {
 void opeu_numdlg_show(Game& game, HostService service, std::int32_t value) {
   opeu_numdlg_split(game, value);
   opeu_mouse_hide(game, service);
-  for (auto c{ 0 }; c < DIGIT_COUNT; c++) opeu_numdlg_digit(game, service, c, Data(game).numdlg_digits[c]);
+  for (auto c{ 0 }; c < DIGIT_COUNT; c++) opeu_numdlg_digit(game, c, Data(game).numdlg_digits[c]);
   opeu_mouse_show(game, service);
 }
 
@@ -161,8 +163,8 @@ void opeu_numdlg_bar(Game& game, HostService service, std::uint16_t lo, std::uin
   else
     filled = opeu_mul_div(static_cast<std::uint16_t>(value) - lo, BAR_WIDTH, range);
   opeu_mouse_hide(game, service);
-  if (filled) Input(game, service, InputCall::UI_FILL, x + 0x10, y + 0x14, x + filled + 0xf, y + 0x1b, 2);
-  if (filled != BAR_WIDTH) Input(game, service, InputCall::UI_FILL, x + filled + 0x10, y + 0x14, x + 0x7f, y + 0x1b, 0);
+  if (filled) opeu_ui_fill(x + 0x10, y + 0x14, x + filled + 0xf, y + 0x1b, 2);
+  if (filled != BAR_WIDTH) opeu_ui_fill(x + filled + 0x10, y + 0x14, x + 0x7f, y + 0x1b, 0);
   opeu_mouse_show(game, service);
 }
 
@@ -209,7 +211,7 @@ void opeu_numdlg_highlight(Game& game, HostService service, std::uint8_t n) {
   }
   auto const& data{ Data(game) };
   opeu_mouse_hide(game, service);
-  Input(game, service, InputCall::UI_INVERT, data.numdlg_x + x, data.numdlg_y + y, width, 0x10, INVERT_MODE);
+  opeu_ui_highlight(data.numdlg_x + x, data.numdlg_y + y, width, 0x10, INVERT_MODE);
   opeu_mouse_show(game, service);
 }
 
@@ -217,7 +219,7 @@ void opeu_numdlg_highlight(Game& game, HostService service, std::uint8_t n) {
 void opeu_numdlg_drag(Game& game, HostService service) {
   auto& data{ Data(game) };
   opeu_mouse_hide(game, service);
-  opeu_numdlg_close(game, service);
+  opeu_numdlg_close(game);
   opeu_mouse_show(game, service);
   auto const grab{ MousePosition(game, service) };
   // the grab point within the dialog; the mouse stays where the dialog stays on the screen
@@ -257,7 +259,7 @@ void opeu_numdlg_drag(Game& game, HostService service) {
 
 void opeu_numdlg_refresh(Game& game, HostService service, std::uint8_t n) {
   opeu_mouse_hide(game, service);
-  opeu_numdlg_digit(game, service, n, Data(game).numdlg_digits[n]);
+  opeu_numdlg_digit(game, n, Data(game).numdlg_digits[n]);
   opeu_numdlg_highlight(game, service, n + FIRST_DIGIT);
   opeu_mouse_show(game, service);
 }
@@ -370,7 +372,7 @@ auto opeu_numdlg_track(Game& game, HostService service, std::uint16_t lo, std::u
 auto opeu_numdlg_run(Game& game, HostService service, std::uint16_t lo, std::uint16_t hi, int cancel) -> std::uint16_t {
   opeu_numdlg_open(game, service);
   auto const value{ opeu_numdlg_track(game, service, lo, hi, cancel) };
-  opeu_numdlg_close(game, service);
+  opeu_numdlg_close(game);
   opeu_input_reset(game, service);
   return value;
 }

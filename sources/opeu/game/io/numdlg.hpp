@@ -9,8 +9,8 @@ void opeu_numdlg_button(Game& game, HostService service, std::uint8_t n, std::ui
 void opeu_numdlg_press(Game& game, HostService service, std::uint8_t n);
 void opeu_numdlg_release(Game& game, HostService service, std::uint8_t n);
 void opeu_numdlg_open(Game& game, HostService service);
-void opeu_numdlg_close(Game& game, HostService service);
-void opeu_numdlg_digit(Game& game, HostService service, std::uint8_t i, std::uint8_t digit);
+void opeu_numdlg_close(Game& game);
+void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit);
 void opeu_numdlg_split(Game& game, std::int32_t value);
 auto opeu_numdlg_value(Game& game) -> std::int32_t;
 void opeu_numdlg_show(Game& game, HostService service, std::int32_t value);

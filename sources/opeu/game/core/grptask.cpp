@@ -16,12 +16,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the turn predicates call through their event.
-enum Service : std::uint16_t {
-  GROUP_TASKS = 0, // plan the division's tasks
-  UNIT_TASKS  = 1, // give the current unit an order from its division's tasks
-};
-
 constexpr std::uint8_t NO_ORDER{ 0xff };
 
 auto CurrentGroup(DataSegment& data) -> Group& {
@@ -63,17 +57,16 @@ uint16_t opeu_group_has_tasks(Game& game) {
 
 // On a computer-controlled side: plans the division's tasks when its selected unit can act, the side has entries and
 // the division has no task yet.
-void opeu_turn_group_action(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+void opeu_turn_group_action(Game& game) {
   auto& data{ Data(game) };
   opeu_clean_group_tasks(game);
   if (data.side_control[data.current_side] == SIDE_COMPUTER)
-    if (opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, data.current_group_ptr)) && opeu_side_has_entries(game) && !opeu_group_has_tasks(game))
-      event(game, GROUP_TASKS, 0, 0, 0, 0);
+    if (opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, data.current_group_ptr)) && opeu_side_has_entries(game) && !opeu_group_has_tasks(game)) opeu_group_task_service(game);
 }
 
 // Whether the current unit already has an order; if not and its division is marked by the computer side and holds a
 // task, the unit is given one from the tasks (and the predicate still answers 0).
-uint16_t opeu_turn_final_predicate(Game& game, uint16_t (*event)(Game&, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t)) {
+uint16_t opeu_turn_final_predicate(Game& game) {
   auto& data{ Data(game) };
   if (opeu_unit_selection_eligible(game, data.current_unit_ptr)) {
     if (Record<Unit>(data, data.current_unit_ptr).orders[0].kind != NO_ORDER) return 1;
@@ -81,18 +74,9 @@ uint16_t opeu_turn_final_predicate(Game& game, uint16_t (*event)(Game&, uint16_t
     if (group.flags & Bits(GroupFlag::AI_MARK))
       for (auto const& task : group.tasks)
         if (task.kind != Bits(TaskKind::NONE)) {
-          event(game, UNIT_TASKS, 0, 0, 0, 0);
+          opeu_unit_task_service(game);
           break;
         }
-  }
-  return 0;
-}
-
-uint16_t svc_grptask(Game& game, uint16_t id, uint16_t, uint16_t, uint16_t, uint16_t) {
-  switch (id) {
-  case GROUP_TASKS: opeu_group_task_service(game); break;
-  case UNIT_TASKS:  opeu_unit_task_service(game); break;
-  default:          port_unhandled("grptask", id, 4);
   }
   return 0;
 }
