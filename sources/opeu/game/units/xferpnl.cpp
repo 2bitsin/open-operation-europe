@@ -140,9 +140,9 @@ void opeu_transfer_draw_row(Game& game, uint8_t row) {
   opeu_army_position(game, static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_text), right_amount });
   game.Machine().Display().Box({ static_cast<uint16_t>(x + 2), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
-  DrawDigits(game, static_cast<std::uint16_t>((x + 4) << 3), box_y, left_percent);
+  DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 4) << 3), box_y }, left_percent);
   game.Machine().Display().Box({ static_cast<uint16_t>(x + 0x19), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
-  DrawDigits(game, static_cast<std::uint16_t>((x + 0x1b) << 3), box_y, right_percent);
+  DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 0x1b) << 3), box_y }, right_percent);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ offsetof(DataSegment, transfer_colour) });
 }
 

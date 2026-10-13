@@ -5029,7 +5029,6 @@ inline constexpr auto PEOPLE_PER_SIDE{ 20u };
 inline constexpr auto OBJECTIVE_COUNT{ 21u };
 inline constexpr auto OBJECTIVE_LINKS_PER_SIDE{ OBJECTIVE_COUNT }; // objective_links: each side's objectives in its order
 inline constexpr auto ELEMENT_TYPE_COUNT{ 158u };
-inline constexpr auto PERSON_TEMPLATE_COUNT{ 12u };
 inline constexpr auto SAVE_SLOT_COUNT{ 20u };
 inline constexpr auto MAP_WIDTH{ 40u }; // map_cells is MAP_WIDTH x MAP_HEIGHT bytes
 inline constexpr auto MAP_HEIGHT{ 40u };
@@ -5037,15 +5036,11 @@ inline constexpr auto INFLUENCE_WIDTH{ 10u }; // influence_map is 10 x 10 signed
 inline constexpr auto BATTLE_WIDTH{ 14u };    // battle_cells is 14 x 14 bytes
 
 // Near offsets of the record tables (what the original code adds an index times a stride to).
-inline constexpr std::uint16_t SIDES_AT{ offsetof(DataSegment, sides) };
-inline constexpr std::uint16_t PEOPLE_AT{ offsetof(DataSegment, people) };
 inline constexpr std::uint16_t GROUPS_AT{ offsetof(DataSegment, groups) };
 inline constexpr std::uint16_t ELEMENTS_AT{ offsetof(DataSegment, elements) };
 inline constexpr std::uint16_t UNITS_AT{ offsetof(DataSegment, units) };
 inline constexpr std::uint16_t OBJECTIVES_AT{ offsetof(DataSegment, objectives) };
 inline constexpr std::uint16_t ELEMENT_TYPES_AT{ offsetof(DataSegment, element_types) };
-inline constexpr std::uint16_t REQUEST_CONFIGS_AT{ offsetof(DataSegment, request_configs) };
-inline constexpr std::uint16_t SPECIAL_AT{ offsetof(DataSegment, special) };
 inline constexpr std::uint16_t PERSON_TEMPLATES_AT{ offsetof(DataSegment, person_templates) };
 inline constexpr std::uint16_t GARRISON_AT{ offsetof(DataSegment, garrison) };
 inline constexpr std::uint16_t SAVE_SLOTS_AT{ offsetof(DataSegment, save_slots) };
@@ -5200,10 +5195,8 @@ using detail::data_segment::ObjectiveFlag;
 using detail::data_segment::OBJECTIVES_AT;
 using detail::data_segment::NoonEvent;
 using detail::data_segment::Order;
-using detail::data_segment::PEOPLE_AT;
 using detail::data_segment::PEOPLE_PER_SIDE;
 using detail::data_segment::Person;
-using detail::data_segment::PERSON_TEMPLATE_COUNT;
 using detail::data_segment::PERSON_TEMPLATES_AT;
 using detail::data_segment::PersonRole;
 using detail::data_segment::StaffRole;
@@ -5217,7 +5210,6 @@ using detail::data_segment::ListWindowAt;
 using detail::data_segment::Record;
 using detail::data_segment::SetListPredicate;
 using detail::data_segment::SetStream;
-using detail::data_segment::REQUEST_CONFIGS_AT;
 using detail::data_segment::RequestConfig;
 using detail::data_segment::RequestSlot;
 using detail::data_segment::SAVE_SLOT_COUNT;
@@ -5236,8 +5228,6 @@ using detail::data_segment::SIDE_COMPUTER;
 using detail::data_segment::SIDE_PLAYED;
 using detail::data_segment::SidePlayed;
 using detail::data_segment::SIDE_COUNT;
-using detail::data_segment::SIDES_AT;
-using detail::data_segment::SPECIAL_AT;
 using detail::data_segment::Task;
 using detail::data_segment::TaskKind;
 using detail::data_segment::Unit;

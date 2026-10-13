@@ -6,6 +6,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <numeric>
+#include <span>
 
 namespace opeu::game::detail::saved_game {
 
@@ -83,10 +85,8 @@ template <typename T>
 
 // The byte sum of the saved block, as the slot's checksum keeps it.
 [[nodiscard]] inline auto SavedChecksum(DataSegment const& data) noexcept -> std::uint16_t {
-  auto const* const bytes{ reinterpret_cast<std::uint8_t const*>(&data) };
-  std::uint16_t     sum{ 0 };
-  for (auto at{ SAVED_FIRST }; at <= SAVED_LAST; at++) sum = static_cast<std::uint16_t>(sum + bytes[at]);
-  return sum;
+  auto const saved{ std::as_bytes(std::span{ &data, 1 }).subspan(SAVED_FIRST, SAVED_BYTES) };
+  return std::accumulate(saved.begin(), saved.end(), std::uint16_t{ 0 }, [](std::uint16_t sum, std::byte byte) { return static_cast<std::uint16_t>(sum + std::to_integer<std::uint8_t>(byte)); });
 }
 
 } // namespace opeu::game::detail::saved_game

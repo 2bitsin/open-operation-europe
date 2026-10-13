@@ -96,8 +96,3 @@ void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
   opeu_army_position(game, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), second });
 }
-
-// Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.
-void opeu_supply_digits(Game& game, uint16_t x, uint16_t y, uint16_t value) {
-  DrawDigits(game, x, y, value);
-}

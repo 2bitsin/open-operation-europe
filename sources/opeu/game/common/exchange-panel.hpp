@@ -5,9 +5,12 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
+#include "common/screen-point.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -46,26 +49,36 @@ inline constexpr std::uint16_t GLYPH_COLOUR{ 7 };
   }
 }
 
-// Draws `value` right-aligned with its last digit at x, blanking each cell first.
-inline auto DrawDigits(Game& game, std::uint16_t x, std::uint16_t y, std::uint16_t value) -> void {
-  auto const glyph{ [&](auto colour, unsigned digit) {
-    game.Machine().Display().DrawShiftedBits({ x, y, GLYPH_SIZE, GLYPH_SIZE }, { static_cast<uint16_t>(colour), std::span{ Data(game).digit_glyphs }.subspan(GLYPH_SIZE * digit) });
-  } };
-  for (;; x -= GLYPH_SIZE) {
-    glyph(0, BLANK_GLYPH);
-    glyph(GLYPH_COLOUR, value % 10);
-    if (!(value /= 10)) break;
-  }
+// The decimal places a 16-bit value can have, units first.
+inline constexpr std::array<std::uint16_t, 5> DECIMAL_PLACES{ 1, 10, 100, 1000, 10000 };
+
+// The number of decimal digits of the value; zero has one.
+[[nodiscard]] constexpr auto DigitCount(std::uint16_t value) noexcept -> std::size_t {
+  return std::max<std::size_t>(1, std::ranges::count_if(DECIMAL_PLACES, [value](std::uint16_t place) { return place <= value; }));
 }
 
-// Toggles the highlight of a row's name on the panel at (panel_x, panel_y).
-inline auto HighlightRow(Game& game, std::array<std::uint16_t, 2> panel, std::uint8_t row) -> void {
-  game.Machine().Display().Highlight({ static_cast<uint16_t>(panel[0] + 0xd), static_cast<uint16_t>(row * PANEL_ROW_HEIGHT + panel[1] + 0x23), 6, 0x1b }, HIGHLIGHT_COLOUR);
+// Draws `value` right-aligned with its last digit at `last`, blanking each cell first.
+inline auto DrawDigits(Game& game, ScreenPoint last, std::uint16_t value) -> void {
+  auto const glyph{ [&](std::uint16_t x, std::uint16_t colour, unsigned digit) {
+    game.Machine().Display().DrawShiftedBits({ x, last.y, GLYPH_SIZE, GLYPH_SIZE }, { colour, std::span{ Data(game).digit_glyphs }.subspan(GLYPH_SIZE * digit) });
+  } };
+  std::ranges::for_each(std::span{ DECIMAL_PLACES }.first(DigitCount(value)), [&, x = last.x](std::uint16_t place) mutable {
+    glyph(x, 0, BLANK_GLYPH);
+    glyph(x, GLYPH_COLOUR, value / place % 10);
+    x = static_cast<std::uint16_t>(x - GLYPH_SIZE);
+  });
+}
+
+// Toggles the highlight of a row's name on the panel whose top left is `panel`.
+inline auto HighlightRow(Game& game, ScreenPoint panel, std::uint8_t row) -> void {
+  game.Machine().Display().Highlight({ static_cast<uint16_t>(panel.x + 0xd), static_cast<uint16_t>(row * PANEL_ROW_HEIGHT + panel.y + 0x23), 6, 0x1b }, HIGHLIGHT_COLOUR);
 }
 } // namespace opeu::game::detail::exchange_panel
 
 namespace opeu::game {
 using detail::exchange_panel::BLANK_GLYPH;
+using detail::exchange_panel::DECIMAL_PLACES;
+using detail::exchange_panel::DigitCount;
 using detail::exchange_panel::DrawDigits;
 using detail::exchange_panel::GLYPH_COLOUR;
 using detail::exchange_panel::GLYPH_SIZE;

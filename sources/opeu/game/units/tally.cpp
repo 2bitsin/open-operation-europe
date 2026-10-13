@@ -24,42 +24,60 @@
 using namespace opeu::game;
 
 namespace {
-// Adds quantity, second amount and weighted values to the tally row `row`, or starts a new row at `count`.
-auto TallyInto(DataSegment& data, std::uint8_t& count, std::uint8_t type, std::uint16_t quantity, std::uint16_t second, std::uint32_t sum_a, std::uint32_t sum_b, std::uint32_t sum_c,
-               bool accumulate_new) -> void {
-  std::uint8_t row{ 0 };
-  while (row < count && data.supply_types[row] != type) ++row;
-  data.supply_total += quantity;
-  if (row != count) {
-    data.supply_amounts[row]         += quantity;
-    data.supply_others[row]          += second;
-    data.supply_morale_sums[row]     += sum_a;
-    data.supply_training_sums[row]   += sum_b;
-    data.supply_experience_sums[row] += sum_c;
-    return;
-  }
-  data.supply_types[count]   = type;
-  data.supply_amounts[count] = quantity;
-  data.supply_others[count]  = second;
-  if (accumulate_new) {
-    data.supply_morale_sums[count]     += sum_a;
-    data.supply_training_sums[count]   += sum_b;
-    data.supply_experience_sums[count] += sum_c;
-  } else {
-    data.supply_morale_sums[count]     = sum_a;
-    data.supply_training_sums[count]   = sum_b;
-    data.supply_experience_sums[count] = sum_c;
-  }
-  ++count;
+// One tally contribution: a type's quantity, its second amount and its three quantity-weighted values.
+struct TallyEntry {
+  std::uint8_t  type;
+  std::uint16_t quantity;
+  std::uint16_t second;
+  std::uint32_t morale;
+  std::uint32_t training;
+  std::uint32_t experience;
+};
+
+// The row of the first `count` tally rows holding the type, or `count` when none does.
+auto RowOf(DataSegment const& data, std::uint8_t count, std::uint8_t type) -> std::uint8_t {
+  auto const first{ data.supply_types.begin() };
+  return static_cast<std::uint8_t>(std::ranges::find(first, first + count, type) - first);
 }
 
+// Starts the row for a type with no quantity and no second amount; its sums keep what they held.
+auto OpenRow(DataSegment& data, std::uint8_t row, std::uint8_t type) -> void {
+  data.supply_types[row]   = type;
+  data.supply_amounts[row] = 0;
+  data.supply_others[row]  = 0;
+}
+
+// Empties the row's weighted sums.
+auto ClearSums(DataSegment& data, std::uint8_t row) -> void {
+  data.supply_morale_sums[row]     = 0;
+  data.supply_training_sums[row]   = 0;
+  data.supply_experience_sums[row] = 0;
+}
+
+// Adds the entry to the row and its quantity to the total.
+auto AddToRow(DataSegment& data, std::uint8_t row, TallyEntry const& entry) -> void {
+  data.supply_total                += entry.quantity;
+  data.supply_amounts[row]         += entry.quantity;
+  data.supply_others[row]          += entry.second;
+  data.supply_morale_sums[row]     += entry.morale;
+  data.supply_training_sums[row]   += entry.training;
+  data.supply_experience_sums[row] += entry.experience;
+}
+
+// The records a tally compares: a unit against another unit or against an objective's stock.
+struct Comparison {
+  std::uint16_t unit;
+  std::uint16_t other;
+  std::uint16_t source;
+};
+
 // Records the compared records and names the unit in the first heading.
-auto StartTally(Game& game, std::uint16_t unit, std::uint16_t other, std::uint16_t source) -> void {
+auto StartTally(Game& game, Comparison const& comparison) -> void {
   auto& data{ Data(game) };
-  data.tally_unit       = unit;
-  data.tally_other_unit = other;
-  data.tally_source     = source;
-  opeu_unit_name(game, unit, Near(data, data.tally_first_name));
+  data.tally_unit       = comparison.unit;
+  data.tally_other_unit = comparison.other;
+  data.tally_source     = comparison.source;
+  opeu_unit_name(game, comparison.unit, Near(data, data.tally_first_name));
 }
 } // namespace
 
@@ -75,8 +93,20 @@ uint8_t opeu_tally_elements(Game& game, uint16_t unit, uint8_t count) {
   auto& data{ Data(game) };
   for (auto& element : Elements(data, Record<Unit>(data, unit))) {
     auto const quantity{ element.quantity };
-    TallyInto(data, count, element.type, quantity, element.damage, std::uint32_t{ element.morale } * quantity, std::uint32_t{ element.training } * quantity,
-              std::uint32_t{ element.experience } * quantity, true);
+    auto const row{ RowOf(data, count, element.type) };
+    if (row == count) {
+      OpenRow(data, row, element.type); // a new row adds to the sums a former tally left
+      ++count;
+    }
+    AddToRow(data, row,
+             TallyEntry{
+                 .type       = element.type,
+                 .quantity   = quantity,
+                 .second     = element.damage,
+                 .morale     = std::uint32_t{ element.morale } * quantity,
+                 .training   = std::uint32_t{ element.training } * quantity,
+                 .experience = std::uint32_t{ element.experience } * quantity,
+             });
   }
   return count;
 }
@@ -94,7 +124,13 @@ uint8_t opeu_tally_stock(Game& game, uint16_t source_offset, uint8_t count, uint
       std::uint32_t const fill{ static_cast<std::uint32_t>(opeu_min16(99, opeu_mul_div(item.quantity, 100, data.request_capacities[category] * 3))) * item.quantity };
       std::uint32_t const strength{ source.strength * static_cast<std::uint32_t>(item.quantity) };
       std::uint32_t const condition{ opeu_min16(99, 100 - opeu_mul_div(source.strength, 100, source.strength_limit)) * static_cast<std::uint32_t>(item.quantity) };
-      TallyInto(data, count, item.type, item.quantity, item.extra, fill, strength, condition, false);
+      auto const          row{ RowOf(data, count, item.type) };
+      if (row == count) {
+        OpenRow(data, row, item.type);
+        ClearSums(data, row);
+        ++count;
+      }
+      AddToRow(data, row, TallyEntry{ .type = item.type, .quantity = item.quantity, .second = item.extra, .morale = fill, .training = strength, .experience = condition });
     } else {
       auto& reject{ data.supply_spare[data.tally_reject_count] };
       reject.type     = item.type;
@@ -120,7 +156,7 @@ void opeu_tally_average(Game& game, uint8_t count) {
 
 // A unit against an objective's stock; the unit's slot selects the stock kind.
 uint8_t opeu_tally_unit_stock(Game& game, uint16_t unit, uint16_t source_offset) {
-  StartTally(game, unit, 0, source_offset);
+  StartTally(game, Comparison{ .unit = unit, .other = 0, .source = source_offset });
   opeu_string_copy(game, Near(Data(game), Data(game).tally_second_name), source_offset);
   uint8_t kind;
   if (opeu_category_6(opeu_unit_index(unit)))
@@ -136,7 +172,7 @@ uint8_t opeu_tally_unit_stock(Game& game, uint16_t unit, uint16_t source_offset)
 
 // Two units' elements merged into one tally.
 uint8_t opeu_tally_units(Game& game, uint16_t unit, uint16_t other) {
-  StartTally(game, unit, other, 0);
+  StartTally(game, Comparison{ .unit = unit, .other = other, .source = 0 });
   opeu_unit_name(game, other, Near(Data(game), Data(game).tally_second_name));
   auto const count{ opeu_tally_elements(game, other, opeu_tally_elements(game, unit, 0)) };
   opeu_tally_average(game, count);

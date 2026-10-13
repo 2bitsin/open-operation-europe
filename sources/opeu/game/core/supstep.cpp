@@ -36,7 +36,7 @@ constexpr auto TableAt(unsigned side, unsigned row, unsigned column) -> std::uin
 // Toggles the highlight of a row's name.
 void Highlight(Game& game, std::uint8_t row) {
   auto const& data{ Data(game) };
-  HighlightRow(game, { data.supply_panel_x, data.supply_panel_y }, row);
+  HighlightRow(game, ScreenPoint{ data.supply_panel_x, data.supply_panel_y }, row);
 }
 } // namespace
 

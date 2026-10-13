@@ -45,8 +45,8 @@ void opeu_supply_draw_row(Game& game, uint8_t row, uint8_t column) {
   opeu_army_position(game, x + 25, text_y);
   opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_right)), right });
   fill(x + 2);
-  opeu_supply_digits(game, (x + 4) << 3, digits_y, left_percent);
+  DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 4) << 3), digits_y }, left_percent);
   fill(x + 25);
-  opeu_supply_digits(game, (x + 27) << 3, digits_y, right_percent);
+  DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 27) << 3), digits_y }, right_percent);
   opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_end)) });
 }
