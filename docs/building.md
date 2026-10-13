@@ -93,7 +93,7 @@ WARNINGS = ["-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion", "-Wshadow",
 
 (`bc.declare(source, options=WARNINGS + ...)`), so the ordinary `./buildutil
 build` is the warnings build and any new warning stops it. glue, platform,
-intro and opeu have it; turning it on for another module is the same list
+intro, opeu and render have it; turning it on for another module is the same list
 in that module's `configure.py` and the fixes it asks for. The conversions
 the gate asks for are explicit casts that keep the value the implicit
 conversion gave. Proven with Apple clang; gcc reports some conversions
