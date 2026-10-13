@@ -35,7 +35,7 @@ constexpr uint16_t CELL_HEIGHT{ 26 };
 }
 
 // Saves the screen at the pixel position into the VRAM buffer.
-void SaveVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) {
+auto SaveVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) -> void {
   auto const buffer{ VramBuffer(ds) };
   if (OddColumn(x))
     Call(ds, event, BattleRoutine::VRAM_SAVE_ODD, x >> 3, y, buffer);
@@ -44,7 +44,7 @@ void SaveVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) {
 }
 
 // Restores the screen at the pixel position from the VRAM buffer.
-void RestoreVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) {
+auto RestoreVram(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y) -> void {
   auto const buffer{ VramBuffer(ds) };
   if (OddColumn(x))
     Call(ds, event, BattleRoutine::VRAM_RESTORE_ODD, x >> 3, y, buffer);

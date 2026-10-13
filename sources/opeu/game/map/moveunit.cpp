@@ -43,12 +43,12 @@ struct Goal {
   uint8_t y;
 };
 
-void Stage(uint8_t* ds, ReservedCell const& cell) {
+auto Stage(uint8_t* ds, ReservedCell const& cell) -> void {
   Byte(ds, cell.x_at) = cell.x;
   Byte(ds, cell.y_at) = cell.y;
 }
 
-void Fetch(uint8_t* ds, ReservedCell const& cell) {
+auto Fetch(uint8_t* ds, ReservedCell const& cell) -> void {
   cell.x = Byte(ds, cell.x_at);
   cell.y = Byte(ds, cell.y_at);
 }
