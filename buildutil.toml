@@ -37,3 +37,7 @@ options_linux = [
 # consumer, with no package_id, export or test_package.
 [package]
 kind = "none"
+
+[venv]
+# tools/rename/rename.py: clang's Python bindings; the wheel bundles a libclang, a system LLVM's is preferred.
+extra_deps = ["libclang==18.1.1"]
