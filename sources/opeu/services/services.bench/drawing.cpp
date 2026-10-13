@@ -13,8 +13,13 @@
 
 namespace opeu::services::bench {
 
+// The benchmarks' buffers start on a cache line, as the canvas's pixel store does: an address that varies modulo 64
+// between builds or processes (stack randomisation) would make the same copy straddle cache lines in one run and not
+// in the next.
+constexpr std::size_t CACHE_LINE{ 64 };
+
 // 40 columns x 100 lines of a 4-byte-column image with every colour.
-auto const IMAGE{ [] {
+alignas(CACHE_LINE) auto const IMAGE{ [] {
   std::array<std::uint8_t, 40 * 100 * 4> image{};
   std::iota(image.begin(), image.end(), std::uint8_t{ 0 });
   return image;
@@ -43,7 +48,7 @@ BENCHMARK(BlitThreeByteColumns);
 
 auto ShiftedGlyph(benchmark::State& state) -> void {
   Ready();
-  std::array<std::uint8_t, 32> glyph{};
+  alignas(CACHE_LINE) std::array<std::uint8_t, 32> glyph{};
   std::iota(glyph.begin(), glyph.end(), std::uint8_t{ 0x55 });
   for (auto _ : state) benchmark::DoNotOptimize(opeu_vga_glyph(101, 30, 16, 16, 0x000E, glyph.data()));
 }
@@ -51,7 +56,7 @@ BENCHMARK(ShiftedGlyph);
 
 auto AlignedGlyph(benchmark::State& state) -> void {
   Ready();
-  std::array<std::uint8_t, 32> glyph{};
+  alignas(CACHE_LINE) std::array<std::uint8_t, 32> glyph{};
   std::iota(glyph.begin(), glyph.end(), std::uint8_t{ 0x55 });
   for (auto _ : state) benchmark::DoNotOptimize(opeu_draw_far(12, 30, 2, 16, 0x0409, glyph.data()));
 }
@@ -65,7 +70,7 @@ BENCHMARK(ShiftedTransparentImage);
 
 auto BattleCell(benchmark::State& state) -> void {
   Ready();
-  std::array<std::uint8_t, SYSLIB_CELL_BYTES> cell{};
+  alignas(CACHE_LINE) std::array<std::uint8_t, SYSLIB_CELL_BYTES> cell{};
   for (auto _ : state) {
     opeu_vram_save_odd(20, 100, cell.data());
     opeu_vram_restore_odd(20, 100, cell.data());
@@ -83,7 +88,7 @@ BENCHMARK(CellBlockCopy);
 
 auto SpriteCompose(benchmark::State& state) -> void {
   Ready();
-  std::array<std::uint8_t, 6 * 26 * 4> buffer{};
+  alignas(CACHE_LINE) std::array<std::uint8_t, 6 * 26 * 4> buffer{};
   for (auto _ : state) {
     opeu_sprite_compose(20, 100, 5, 26, IMAGE.data(), IMAGE.data() + 1024, buffer.data(), 1);
     koei_3f26(203, 100, 40, 26, IMAGE.data(), IMAGE.data() + 1024, buffer.data(), 1);
@@ -98,7 +103,7 @@ auto ScreenCopy(benchmark::State& state) -> void {
 BENCHMARK(ScreenCopy);
 
 // A full-screen plain picture: one literal and long copies per row.
-auto const PICTURE{ [] {
+alignas(CACHE_LINE) auto const PICTURE{ [] {
   std::array<std::uint8_t, 4 + 400 * 12> stream{ 0x80, 0x02, 0x90, 0x01 };
   for (auto const row : std::views::iota(0, 400)) {
     auto const commands{ std::span{ stream }.subspan(4 + row * 12uz, 12) };
@@ -126,8 +131,8 @@ BENCHMARK(DecodePicture);
 auto Present(benchmark::State& state) -> void {
   Ready();
   opeu_bitmap_restore(10, 50, 40, 100, 0, IMAGE.data());
-  static std::array<std::uint8_t, 640 * 480> frame{};
-  std::array<std::uint8_t, 768>              palette{};
+  alignas(CACHE_LINE) static std::array<std::uint8_t, 640 * 480> frame{};
+  alignas(CACHE_LINE) std::array<std::uint8_t, 768>              palette{};
   for (auto _ : state) {
     opeu_ui_box(0, 0, 1, 1, 3);
     benchmark::DoNotOptimize(VgalibRender(frame, palette));

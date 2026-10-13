@@ -167,7 +167,9 @@ private:
   auto               PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void;
   [[nodiscard]] auto MaskedLiteral(std::uint8_t command, ByteReader const& read) const noexcept -> std::uint16_t;
 
-  std::array<canvas::Pixel, STORED>       _pixels{};
+  // On a cache line: the block routines move 8 and 16 pixels at fixed offsets from a line start (lines are 640 apart, a
+  // multiple of 64), so a store placed anywhere mod 64 would make some of them straddle two lines on every line.
+  alignas(64) std::array<canvas::Pixel, STORED> _pixels{};
   std::array<std::uint8_t, PALETTE_BYTES> _palette{};
   std::array<std::uint8_t, COLOURS>       _colour_map{};
   bool                                    _shown{};

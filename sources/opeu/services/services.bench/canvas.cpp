@@ -18,6 +18,8 @@ namespace {
 inline constexpr auto COLUMNS{ 40 }; // a 320 x 100 image
 inline constexpr auto LINES{ 100 };
 inline constexpr auto GLYPH_BYTES{ 32 }; // 16 x 16 pixels, 1 bit each
+// The benchmarks' buffers start on a cache line, as the canvas's pixel store does (drawing.cpp says why).
+inline constexpr std::size_t CACHE_LINE{ 64 };
 
 // Bytes counting up through every value, so every colour and every bit pattern occurs.
 template <std::size_t SIZE>
@@ -27,7 +29,7 @@ template <std::size_t SIZE>
   return bytes;
 }
 
-inline constexpr auto IMAGE{ Counting<COLUMNS * LINES * 4>(0) };
+alignas(CACHE_LINE) inline constexpr auto IMAGE{ Counting<COLUMNS * LINES * 4>(0) };
 inline constexpr auto GLYPH{ Counting<GLYPH_BYTES>(0x55) };
 
 inline constexpr auto PIXELS{ detail::canvas::PIXELS };
@@ -58,8 +60,8 @@ auto DrawColumns(benchmark::State& state) -> void {
 BENCHMARK(DrawColumns)->Args({ 0, 4 })->Args({ 1, 4 })->Args({ 4, 4 })->Args({ 0, 3 })->ArgNames({ "mode", "planes" });
 
 auto SaveColumns(benchmark::State& state) -> void {
-  auto const                                    board{ StartedCanvas() };
-  std::array<std::uint8_t, COLUMNS * LINES * 4> saved{};
+  auto const                                                        board{ StartedCanvas() };
+  alignas(CACHE_LINE) std::array<std::uint8_t, COLUMNS * LINES * 4> saved{};
   for (auto _ : state) {
     board->SaveColumns(10, 50, COLUMNS, LINES, saved);
     benchmark::ClobberMemory();
@@ -132,13 +134,18 @@ auto CopyColumns(benchmark::State& state) -> void {
 }
 BENCHMARK(CopyColumns);
 
+// A rendered frame on a cache line.
+struct alignas(CACHE_LINE) Frame {
+  std::array<std::uint8_t, PIXELS> pixels{};
+};
+
 auto Render(benchmark::State& state) -> void {
   auto const board{ StartedCanvas() };
   benchmark::DoNotOptimize(board->DrawColumns(10, 50, COLUMNS, LINES, 0, IMAGE, 4));
-  auto                                    frame{ std::make_unique<std::array<std::uint8_t, PIXELS>>() };
-  std::array<std::uint8_t, PALETTE_BYTES> palette{};
+  auto const                                                  frame{ std::make_unique<Frame>() };
+  alignas(CACHE_LINE) std::array<std::uint8_t, PALETTE_BYTES> palette{};
   for (auto _ : state) {
-    board->Render(*frame, palette);
+    board->Render(frame->pixels, palette);
     benchmark::ClobberMemory();
   }
   state.SetItemsProcessed(state.iterations() * PIXELS);
