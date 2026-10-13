@@ -5,6 +5,8 @@
 #include "core/app.hpp"
 #include "intro.hpp"
 #include "link/glue.hpp"
+#include "machine.hpp"
+#include "native-machine.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -102,14 +104,15 @@ auto DumpArena(char const* path) -> void {
   file.write(reinterpret_cast<char const*>(port_arena), PORT_ARENA_SIZE); // NOLINT(*-reinterpret-cast): bytes out
   if (!file) port_fatal("cannot write %s", path);                         // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
-// The game's application entry on the data segment the arena holds and the machine it runs on; it returns after the
-// scenario's end.
+// The game's application entry on the data segment the arena holds and the machine it runs on, the native devices
+// (adapters over the services) wired in here; it returns after the scenario's end.
 auto RunGame() -> void {
   opeu::game::GameState state{
     opeu::game::SegmentBytes{ port_ds, opeu::game::SEGMENT_SIZE }
   };
-  opeu::services::Machine machine;
-  opeu::game::Game        game{ state, machine };
+  opeu::services::NativeDevices devices;
+  opeu::services::Machine       machine{ devices.Devices() };
+  opeu::game::Game              game{ state, machine };
   opeu_application_entry(game);
 }
 } // namespace
