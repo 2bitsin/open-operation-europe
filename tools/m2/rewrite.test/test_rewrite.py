@@ -1,5 +1,5 @@
 """The M2 rewriter on its fixture tree: the dispatch model, each substitution rule, the review listings, the scratch
-apply and the B1/B4 models."""
+apply, the B1 pass (the game for the data segment) and the B4 model."""
 import json
 import shutil
 import sys
@@ -18,7 +18,9 @@ from rewriter.calls import ValueUsed  # noqa: E402
 from rewriter.dispatch import LINKING, MULTI, RAW, SINGLE  # noqa: E402
 from rewriter.model import Model  # noqa: E402
 from rewriter.source import ROOT, SourceFile  # noqa: E402
-from rewriter.stubs import B1Model, B4Model  # noqa: E402
+from rewriter.b1 import B1Pass, RewriteFile, WriteB1  # noqa: E402
+from rewriter.source import SourceTree  # noqa: E402
+from rewriter.stubs import B4Model  # noqa: E402
 from rewriter.syntax import Compact, Span, Statements  # noqa: E402
 
 FIXTURE = HERE / "fixtures" / "tree"
@@ -172,10 +174,60 @@ def test_the_dry_run_writes_the_model_plans_and_listings(tmp_path):
   assert {path.name for path in tmp_path.iterdir()} >= {"model.json", "plan-b2.txt", "plan-b3.json", "review-past-end.txt", "review-order.txt"}
 
 
-def test_b1_counts_the_data_segment_parameters_and_raw_views(model):
-  b1 = B1Model(model)
-  assert [line.split(":")[:2] for line in b1["raw"]] == [["game/data/actions.cpp", "12"]]
-  assert b1["counts"]["data"] == 1
+def B1(code: str, path: str = "game/core/snippet") -> str:
+  """The B1 rewrite of code in a file at path (a snippet without a C++ suffix asks for no include)."""
+  return RewriteFile(SourceFile(PurePosixPath(path), code))[0]
+
+
+@pytest.mark.parametrize("code, rewritten", [
+  ("void f(uint8_t* ds, int x);",                    "void f(Game& game, int x);"),
+  ("void f(std::uint8_t* ds);",                      "void f(Game& game);"),
+  ("int f(const uint8_t* ds);",                      "int f(Game const& game);"),
+  ("int f(std::uint8_t const* ds);",                 "int f(Game const& game);"),
+  ("int f(uint8_t ds[65536], int x);",               "int f(Game& game, int x);"),
+  ("int f(const uint8_t ds[65537]);",                "int f(Game const& game);"),
+  ("using E = int (*)(std::uint8_t* ds, int id);",   "using E = int (*)(Game& game, int id);"),
+  ("using E = int (*)(uint8_t*, int);",              "using E = int (*)(Game&, int);"),
+  ("void f(int (*event)(uint8_t*, int));",           "void f(int (*event)(Game&, int));"),
+  ("int opeu_x(uint8_t*, int) { return 0; }",        "int opeu_x(Game&, int) { return 0; }"),
+  ("int g(uint8_t*, int);",                          "int g(uint8_t*, int);"),
+  ("struct A { std::uint8_t* ds; };",                "struct A { Game& game; };"),
+])
+def test_b1_turns_every_segment_parameter_into_the_game(code, rewritten):
+  assert B1(code) == rewritten
+
+
+@pytest.mark.parametrize("code, rewritten", [
+  ("x = Data(ds).month; f(ds, 1); (void)ds;",         "x = Data(game).month; f(game, 1); (void)game;"),
+  ("auto l{ [ds] { return 1; } };",                   "auto l{ [game] { return 1; } };"),
+  ("ds[a + 1] = ds[ds[b]];",                          "Byte(game, a + 1) = Byte(game, Byte(game, b));"),
+  ("f(ds + Arg(args, count, 0), 2);",                 "f(game.State().Bytes(Arg(args, count, 0)).data(), 2);"),
+  ("f(PORT_DS(w(1)));",                               "f(game.State().Bytes(w(1)).data());"),
+  ("struct R { int es, ss, ds; }; y = r.ds + s->ds;", "struct R { int es, ss, ds; }; y = r.ds + s->ds;"),
+])
+def test_b1_hands_on_the_game_and_views_its_bytes(code, rewritten):
+  assert B1(code) == rewritten
+
+
+def test_b1_includes_what_the_rewritten_file_names():
+  assert B1('#include "x.hpp"\nint f(uint8_t* ds) { return Data(ds).month; }\n', "game/core/x.cpp") == \
+    '#include "x.hpp"\n#include "common/game.hpp"\nint f(Game& game) { return Data(game).month; }\n'
+  assert B1('#pragma once\n#include "x.hpp"\nint f(uint8_t* ds);\n', "game/core/x.hpp") == '#pragma once\n#include "x.hpp"\n#include "common/events.hpp"\nint f(Game& game);\n'
+  assert '#include "link/link.hpp"' in B1('#include "x.hpp"\nint f() { return port_call(0, 0, 0, 0); }\n', "game/core/x.cpp")
+  assert '#include "link/glue.hpp"' in B1('#include "glue.hpp"\n')
+
+
+def test_b1_rewrites_the_game_of_a_scratch_copy_and_lists_its_views(tmp_path):
+  tree = tmp_path / "tree"
+  shutil.copytree(FIXTURE, tree)
+  result = B1Pass(SourceTree(tree))
+  WriteB1(tree, result)
+  assert [line.split(":")[:2] for line in result.Listing("view")] == [["game/map/plan.cpp", "13"]]
+  assert [line.split(":")[:2] for line in result.Listing("byte")] == [["game/data/actions.cpp", "12"]]
+  assert result.Counts()["parameter"] > 0
+  gamma = tree.joinpath("sources", "opeu", "game", "core", "gamma.cpp").read_text()
+  assert "void opeu_same(Game& game, HostEvent event) {\n  Call(game, event, SHOW, 1, 2);" in gamma
+  assert "Data(std::uint8_t* ds)" in tree.joinpath("sources", "opeu", "game", "common", "data-segment.hpp").read_text()  # HAND: the patch
 
 
 def test_b4_names_the_routine_behind_each_initial_code_pointer(model):

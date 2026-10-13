@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field, replace
 
 from .calls import CallSite
-from .dispatch import STATEMENT
+from .dispatch import SEGMENT_NAMES, STATEMENT
 from .functions import Function
 from .program import Program
 from .resolve import Target, TernaryParts
@@ -186,9 +186,9 @@ class Substituter:
     return text
 
   def _Renames(self, site: CallSite, target: Target, owner: SourceFile, span: Span) -> list[tuple[Span, str]]:
-    """`ds` and the dispatcher's id where the target names them: the site's own expressions."""
+    """The game (`ds` before B1) and the dispatcher's id where the target names them: the site's own expressions."""
     source = self.program.Source(site.file)
-    names = {"ds": Text(source.tokens, site.ds, source.text)}
+    names = dict.fromkeys(SEGMENT_NAMES, Text(source.tokens, site.ds, source.text))
     if target.owner.id_name:
       names[target.owner.id_name] = Text(source.tokens, site.service, source.text) if target.service is None else f"0x{target.service:x}"
     tokens = owner.tokens

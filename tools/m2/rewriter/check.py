@@ -41,7 +41,7 @@ def _Command(entry: dict, checkout: str, scratch: str) -> list[str]:
   if "-o" in words:
     at = words.index("-o")
     del words[at:at + 2]
-  return words + ["-fsyntax-only"]
+  return [word for word in words if word != "-c"] + ["-fsyntax-only"]  # -c beside -fsyntax-only is unused: -Werror
 
 
 def _Run(command: list[str], tree: Path) -> list[str]:

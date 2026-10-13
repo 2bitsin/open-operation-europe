@@ -20,6 +20,8 @@ STACK_CALLS = {"WithStack", "WithBattleStack", "port_stack_enter", "port_frame_e
 # Case kinds; only SINGLE is substituted by B2/B3, B0.3 rewrites the others into SINGLE.
 SINGLE = "single"
 MULTI = "multi-statement"
+# The name of the parameter every routine and dispatcher receives the game by: `ds` before B1, `game` after it.
+SEGMENT_NAMES = ("ds", "game")
 FORWARDING = "svc-forwarding"
 RAW = "raw-word"
 LINKING = "link-calling"
@@ -501,8 +503,9 @@ def _Single(source: SourceFile, dispatcher: Dispatcher, case: Case, statement: S
 
 
 def _DispatcherLocals(source: SourceFile, dispatcher: Dispatcher, span: Span, case_locals: dict[str, Span]) -> set[str]:
-  """Names of the dispatcher's own parameters and locals (other than ds, the words and the id) an expression uses."""
-  parameters = {p.name for p in dispatcher.function.parameters} - {"ds", dispatcher.id_name}
+  """Names of the dispatcher's own parameters and locals (other than the game or ds, the words and the id) an expression
+  uses."""
+  parameters = {p.name for p in dispatcher.function.parameters} - {*SEGMENT_NAMES, dispatcher.id_name}
   if dispatcher.context is not None:
     parameters -= {dispatcher.context.args, dispatcher.context.count}
   tokens = source.tokens

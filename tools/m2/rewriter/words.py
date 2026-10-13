@@ -12,7 +12,7 @@ from .tokens import IDENTIFIER
 WIDE_READS = {"Arg32"}
 
 
-NEAR_MARKS = {"PORT_DS"}
+NEAR_MARKS = {"PORT_DS", "Bytes", "port_ds_word_ptr"}  # PORT_DS before B1; the game's byte views and word helper after it
 
 
 @dataclass(frozen=True)
