@@ -5,7 +5,6 @@
 #include "units/finalact.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/order-service.hpp"
 #include "map/moveunit.hpp"
 #include "types.hpp"
 #include "units/stats.hpp"
@@ -23,23 +22,13 @@
 using namespace opeu::game;
 
 namespace {
-// The calls the action makes through its event (served by svc_finalact).
-enum Service : std::uint16_t {
-  DESTINATION  = 0,  // (unit, &x, &y): the target cell of the unit's order, 0 when there is none
-  LEVEL_LOWER  = 6,  // (slot, 0)
-  CLEAR_ORDERS = 8,  // (unit, slots)
-  HANDLER      = 9,  // (offset, segment) of the order's handler
-  LEVEL_RAISE  = 10, // (slot, value)
-  AVERAGE9     = 11, // (unit)
-  MOVE         = 12, // (repeat)
-};
 
 // The progress an order is given when its hold level runs out.
 constexpr std::uint8_t PROGRESS_HELD_OUT{ 200 };
 } // namespace
 
 // The order slot and its code are taken before the destination.
-void opeu_turn_final_action(Game& game, HostEvent event) {
+void opeu_turn_final_action(Game& game) {
   auto&             data{ Data(game) };
   ServiceCell const destination_cell;
   auto const        x{ destination_cell.XAt() };
@@ -50,29 +39,13 @@ void opeu_turn_final_action(Game& game, HostEvent event) {
     opeu_clear_unit_orders(game, data.current_unit_ptr, static_cast<std::uint8_t>(3));
     return;
   }
-  std::uint16_t const handler[2]{ data.order_handlers[code].offset, data.order_handlers[code].segment };
-  if (event(game, HANDLER, handler, 2)) return;
+  if (static_cast<std::uint16_t>(
+          port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(data.order_handlers[code].segment)) * 16u + static_cast<std::uint16_t>(data.order_handlers[code].offset), 0, 0)))
+    return;
   if (opeu_move_level_lower(game, slot, static_cast<uint8_t>(0))) Record<Order>(data, slot).progress = PROGRESS_HELD_OUT;
   std::uint16_t const unit[1]{ data.current_unit_ptr };
   std::uint16_t const raise[2]{ slot, static_cast<std::uint8_t>(static_cast<std::uint16_t>(99 - opeu_unit_average9(game, unit[0])) / 35 + 1) };
   if (opeu_move_level_raise(game, raise[0], static_cast<std::uint8_t>(raise[1]))) {
     opeu_move_unit(game, data.order_moves[code]);
   }
-}
-
-// The routines behind the action's calls: the unit order destination, the movement levels, clearing orders, the
-// order handler (run through the routine link table), the unit's average value9 and the move itself.
-uint16_t svc_finalact(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case DESTINATION:  svc_order_handler(game, OrderService::UNIT_ORDER_DESTINATION, args, count, &r); break;
-  case LEVEL_LOWER:  svc_order_handler(game, OrderService::MOVE_LEVEL_LOWER, args, count, &r); break;
-  case CLEAR_ORDERS: opeu_clear_unit_orders(game, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case HANDLER:      r = static_cast<std::uint16_t>(port_call(game, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), 0, 0)); break;
-  case LEVEL_RAISE:  r = opeu_move_level_raise(game, Arg(args, count, 0), static_cast<std::uint8_t>(Arg(args, count, 1))); break;
-  case AVERAGE9:     svc_order_handler(game, OrderService::UNIT_AVERAGE9, args, count, &r); break;
-  case MOVE:         svc_order_handler(game, OrderService::MOVE_UNIT, args, count, &r); break;
-  default:           port_unhandled("finalact", id, count);
-  }
-  return r;
 }

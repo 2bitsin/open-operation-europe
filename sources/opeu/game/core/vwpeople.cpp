@@ -67,15 +67,11 @@ void opeu_view_enemy_generals(Game& game) {
 }
 
 // The generals menu (own, enemy) until cancelled.
-void opeu_view_generals_menu(Game& game, HostEvent event) {
+void opeu_view_generals_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), PEOPLE_MENU)) != MENU_CANCELLED;)
-    RunAction(game, event, data.people_actions, item);
-}
-
-uint16_t svc_vwpeople(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_view(game, "vwpeople", id, args, count);
+    RunAction(game, data.people_actions, item);
 }
 
 auto port_routine_opeu_view_enemy_generals(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
@@ -84,7 +80,7 @@ auto port_routine_opeu_view_enemy_generals(Game& game, std::uint16_t const*, uns
 }
 
 auto port_routine_opeu_view_generals_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_generals_menu(game, svc_vwpeople);
+  opeu_view_generals_menu(game);
   return 0;
 }
 

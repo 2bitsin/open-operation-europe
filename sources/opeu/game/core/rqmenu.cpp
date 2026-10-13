@@ -7,6 +7,7 @@
 #include "core/rqcommon.hpp"
 #include "core/textout.hpp"
 #include "data-segment.hpp"
+#include "link/link.hpp"
 #include "types.hpp"
 
 #include "common/game.hpp"
@@ -100,7 +101,7 @@ void opeu_turn_action_7(Game& game, HostEvent event) {
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_no_city_text), data.context_record3);
     } else {
       auto const& handler{ data.request_handlers[choice] };
-      Call(game, event, RequestMenuService::FAR_CALL, handler.offset, handler.segment);
+      port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(handler.segment)) * 16u + static_cast<std::uint16_t>(handler.offset), 0, 0);
     }
   } while (data.side_delays[data.current_side] == 0);
 }

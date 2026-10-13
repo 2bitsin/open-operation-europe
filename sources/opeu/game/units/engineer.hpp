@@ -16,5 +16,3 @@ uint16_t opeu_arms_repair(Game& game, uint16_t& budget, uint16_t body);
 void     opeu_arms_repaired_finish(Game& game);
 uint16_t opeu_engineer_repair_objective(Game& game);
 uint16_t opeu_engineer_repair_unit(Game& game);
-
-int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result);

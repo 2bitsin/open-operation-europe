@@ -74,10 +74,10 @@ void opeu_process_selected_turn(Game& game) {
   if (opeu_find_side_selected_unit(game, static_cast<uint8_t>(data.current_side)) == data.current_unit_ptr) {
     opeu_turn_selected_begin(game);
     if (data.side_control[data.current_side] == SIDE_PLAYED) {
-      if (data.side_delays[data.current_side] == 0) opeu_turn_control_one(game, svc_control1);
+      if (data.side_delays[data.current_side] == 0) opeu_turn_control_one(game);
     } else
       opeu_turn_control_other(game);
   }
   if (opeu_find_group_selected_unit(game, data.current_group_ptr) == data.current_unit_ptr) opeu_turn_group_action(game);
-  if (opeu_turn_final_predicate(game)) opeu_turn_final_action(game, svc_finalact);
+  if (opeu_turn_final_predicate(game)) opeu_turn_final_action(game);
 }

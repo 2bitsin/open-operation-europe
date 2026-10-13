@@ -7,6 +7,7 @@
 #include "common/events.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
+#include "link/link.hpp"
 
 #include <array>
 #include <cstddef>
@@ -14,49 +15,6 @@
 #include <utility>
 
 namespace opeu::game::detail::view_service {
-
-enum class ViewService : std::uint16_t {
-  OBJECTIVE_SIDE = 1,  // (objective) -> side
-  OBJECTIVE_ELIGIBLE,  // (objective) -> nonzero when it may be listed
-  GROUP_SELECTED_UNIT, // (group) -> unit
-  UNIT_ELIGIBLE,       // (unit) -> nonzero when it may be selected
-  UNIT_SIDE,           // (unit) -> side
-  ARMY_TITLE,          // (text)
-  OBJECTIVE_PERCENTS,  // (objective, &ammunition, &fuel, &food)
-  ARMY_POSITION,       // (x, y)
-  ARMY_PRINT,          // (format, ...)
-  UNIT_NAME,           // (unit, buffer) -> text
-  UNIT_CAPACITIES,     // (unit, &ammunition, &fuel, &food)
-  RESOURCE_PERCENT,    // (current low, high, capacity low, high) -> percent
-  ORDER_DESTINATION,   // (unit, &x, &y) -> nonzero when the order has a destination
-  LOCATION_NAME,       // (x, y, buffer) -> text
-  GROUP_SHOW,          // (group, index)
-  BACKDROP_COLOR,      // (color)
-  SIDE_RECORD,         // (side, kind) -> person
-  GROUP_RECORD,        // (side, group) -> person
-  ARMY_HEADING,        // (person)
-  DIVISION_HEADING,    // (person)
-  DIVISION_UNITS,      // (units, person)
-  DIVISION_FINISH,     // ()
-  CONTROL_RESET,       // ()
-  DAILY_CONTEXT,       // (side)
-  CONTROL_POSITION,    // (x, y)
-  ARRIVAL_LOCATION,    // (x, y, side)
-  CONTROL_MESSAGE,     // (text, person)
-  TURN_ACTIVE_BEGIN,   // ()
-  DELAY_DIALOG,        // (text, last item, person, menu) -> item, 0xffff when cancelled
-  CONTROL_PANEL,       // ()
-  LIST_DIALOG,         // (dialog, mode, height) -> nonzero while a row is picked
-  OPPOSITE_SIDE,       // (side) -> side
-  UNIT_FLASH,          // (record, ticks)
-  REQUEST_FORMAT,      // (destination, format, ...)
-  COPY_BYTES,          // (source, destination, size)
-  UNIT_ANNOUNCE,       // (unit, mode)
-  UNIT_SPECIAL,        // (unit) -> nonzero when the enemy regiment is sighted
-  TYPE_PANEL,          // (element type)
-  FAR_CALL,            // (offset, segment): a menu action from a far pointer table
-  CODE_SEGMENT,        // () -> the code segment of the view routines
-};
 
 // The row checks of the views' list dialogs (units/vwlist), by their offset in the views' code segment: a list
 // dialog offers only the rows its check accepts.
@@ -84,9 +42,9 @@ inline auto SetRowCheck(Game& game, ListWindow& dialog, RowCheck check) -> void 
 
 // Runs the menu action `item` (1 first) of a far pointer table.
 template <std::size_t N>
-inline auto RunAction(Game& game, HostEvent event, std::array<FarPointer, N> const& actions, std::uint16_t item) -> std::uint16_t {
+inline auto RunAction(Game& game, std::array<FarPointer, N> const& actions, std::uint16_t item) -> std::uint16_t {
   auto const& action{ actions[item - 1u] };
-  return Call(game, event, ViewService::FAR_CALL, action.offset, action.segment);
+  return static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), nullptr, 0));
 }
 
 } // namespace opeu::game::detail::view_service
@@ -97,5 +55,4 @@ using detail::view_service::RowCheck;
 using detail::view_service::RunAction;
 using detail::view_service::SetRowCheck;
 using detail::view_service::VIEW_CODE_SEGMENT;
-using detail::view_service::ViewService;
 } // namespace opeu::game

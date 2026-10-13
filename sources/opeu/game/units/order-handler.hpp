@@ -6,7 +6,6 @@
 #include "common/events.hpp"
 #include "common/game.hpp"
 #include "common/memory.hpp"
-#include "common/order-service.hpp"
 
 #include <cstdint>
 #include <utility>

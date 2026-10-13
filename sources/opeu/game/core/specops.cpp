@@ -265,35 +265,6 @@ void opeu_special_recon(Game& game) {
   Plan(game, Recon());
 }
 
-uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r{ 0 };
-  switch (static_cast<SpecialService>(id)) {
-  case REQUEST_FORMAT:       opeu_request_format(game, { args, count }); break;
-  case CONTROL_MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CONFIRM_MESSAGE:      r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case MESSAGE_LOOKUP:       r = opeu_message_lookup(game, (int16_t)Arg(args, count, 0)); break;
-  case ARMY_PRINT:           opeu_cursor_print(game, { args, count }); break;
-  case PENDING_FINISH:       opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case DAILY_SHOW:           port_daily_show(game, Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case FIND_OBJECTIVE_AT:    r = opeu_find_objective_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case DELAY_DIALOG:         r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case ARMY_TITLE:           opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case MAP_PICK_LOCATION:    r = opeu_map_pick_location(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OBJECTIVE_SIDE:       r = opeu_objective_side(game, Arg(args, count, 0)); break;
-  case ARMY_POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case DAILY_CONTEXT:        opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
-  case FAR_ACTION:           port_call(game, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
-  case FIND_UNIT_AT:         r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case UNIT_SIDE:            r = opeu_unit_side(Arg(args, count, 0)); break;
-  case UNIT_SPECIAL:         r = opeu_unit_special(game, Arg(args, count, 0)); break;
-  case UNIT_NAME:            r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case CELL_INFLUENCE_SIDE:  r = opeu_cell_influence_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case FIND_PERSON_TEMPLATE: r = opeu_find_person_template(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  default:                   port_unhandled("specops", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_special_assassinate(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
   opeu_special_assassinate(game);
   return 0;

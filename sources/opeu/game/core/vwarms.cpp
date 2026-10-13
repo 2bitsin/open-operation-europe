@@ -71,11 +71,11 @@ void ViewWeapons(Game& game, std::uint8_t mask) {
 } // namespace
 
 // The information menu until cancelled.
-void opeu_view_info_menu(Game& game, HostEvent event) {
+void opeu_view_info_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), INFO_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), INFO_MENU)) != MENU_CANCELLED;)
-    RunAction(game, event, data.info_actions, item);
+    RunAction(game, data.info_actions, item);
 }
 
 // Picks a type from the weapon list, which ends at `end`, and shows its panel.
@@ -106,11 +106,11 @@ void opeu_view_enemy_weapons(Game& game) {
 }
 
 // The weapons menu (own, enemy) until cancelled.
-void opeu_view_arms_menu(Game& game, HostEvent event) {
+void opeu_view_arms_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), ARMS_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), ARMS_MENU)) != MENU_CANCELLED;)
-    RunAction(game, event, data.arms_actions, item);
+    RunAction(game, data.arms_actions, item);
 }
 
 // The current side's victory conditions: side 0's are the scenario brief, side 1's begin the notes.
@@ -123,75 +123,19 @@ void opeu_view_victory(Game& game) {
 }
 
 // The view menu: runs the picked action until action 1 has run (returns 1) or the menu is cancelled (returns 0).
-uint16_t opeu_view_menu_loop(Game& game, HostEvent event) {
+uint16_t opeu_view_menu_loop(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t item;
   do {
     item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), VIEW_PROMPT, VIEW_MENU_ITEMS, static_cast<std::uint16_t>(data.context_record3), VIEW_MENU);
     if (item == MENU_CANCELLED) return 0;
-    RunAction(game, event, data.view_main_actions, item);
+    RunAction(game, data.view_main_actions, item);
   } while (item != 1);
   return 1;
 }
 
-// The services of the information views as direct calls. Words are the callee's arguments, bytes zero-extended.
-uint16_t svc_view(Game& game, const char* module, uint16_t id, const uint16_t* args, uint16_t count) {
-  auto const arg{ [&](unsigned n) { return Arg(args, count, n); } };
-  auto const byte{ [&](unsigned n) { return static_cast<std::uint8_t>(Arg(args, count, n)); } };
-  auto const dialogs{ static_cast<DialogHost const*>(port_dialogs_host()) };
-  uint16_t   r{ 0 };
-  switch (static_cast<ViewService>(id)) {
-  case ViewService::OBJECTIVE_SIDE:      r = opeu_objective_side(game, arg(0)); break;
-  case ViewService::OBJECTIVE_ELIGIBLE:  r = opeu_objective_eligible(game, arg(0)); break;
-  case ViewService::GROUP_SELECTED_UNIT: r = opeu_find_group_selected_unit(game, arg(0)); break;
-  case ViewService::UNIT_ELIGIBLE:       r = opeu_unit_selection_eligible(game, arg(0)); break;
-  case ViewService::UNIT_SIDE:           r = opeu_unit_side(arg(0)); break;
-  case ViewService::ARMY_TITLE:          opeu_army_title(game, dialogs, arg(0)); break;
-  case ViewService::OBJECTIVE_PERCENTS:  opeu_objective_resource_percentages(game, arg(0), port_ds_word_ptr(game, arg(1)), port_ds_word_ptr(game, arg(2)), port_ds_word_ptr(game, arg(3))); break;
-  case ViewService::ARMY_POSITION:       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(arg(0)), static_cast<int16_t>(arg(1))); break;
-  case ViewService::ARMY_PRINT:          opeu_cursor_print(game, { args, count }); break;
-  case ViewService::UNIT_NAME:           r = opeu_unit_name(game, arg(0), arg(1)); break;
-  case ViewService::UNIT_CAPACITIES:     opeu_unit_capacities(game, arg(0), port_ds_word_ptr(game, arg(1)), port_ds_word_ptr(game, arg(2)), port_ds_word_ptr(game, arg(3))); break;
-  case ViewService::RESOURCE_PERCENT:    r = opeu_resource_percent(arg(0), arg(2)); break;
-  case ViewService::ORDER_DESTINATION:   r = opeu_unit_order_destination(game, arg(0), &Record<std::uint8_t>(Data(game), arg(1)), &Record<std::uint8_t>(Data(game), arg(2))); break;
-  case ViewService::LOCATION_NAME:       r = opeu_location_name(game, byte(0), byte(1), arg(2)); break;
-  case ViewService::GROUP_SHOW:          opeu_group_show(game, arg(0), byte(1)); break;
-  case ViewService::BACKDROP_COLOR:      opeu_backdrop_fill_color(game, static_cast<UiHost const*>(port_uiprim_host()), byte(0)); break;
-  case ViewService::SIDE_RECORD:         r = opeu_find_side_record(game, byte(0), byte(1)); break;
-  case ViewService::GROUP_RECORD:        r = opeu_find_group_record(game, byte(0), byte(1)); break;
-  case ViewService::ARMY_HEADING:        opeu_army_heading(game, svc_sideutil, arg(0)); break;
-  case ViewService::DIVISION_HEADING:    opeu_division_heading(game, arg(0)); break;
-  case ViewService::DIVISION_UNITS:      opeu_division_regiments(game, arg(0), arg(1)); break;
-  case ViewService::DIVISION_FINISH:     opeu_division_credits(game); break;
-  case ViewService::CONTROL_RESET:       opeu_screen_reset(game, dialogs); break;
-  case ViewService::DAILY_CONTEXT:       opeu_daily_context(game, byte(0)); break;
-  case ViewService::CONTROL_POSITION:    opeu_control_position(game, arg(0), arg(1)); break;
-  case ViewService::ARRIVAL_LOCATION:    opeu_arrival_location(game, byte(0), byte(1), byte(2)); break;
-  case ViewService::CONTROL_MESSAGE:     opeu_control_message(game, dialogs, arg(0), arg(1)); break;
-  case ViewService::TURN_ACTIVE_BEGIN:   opeu_turn_active_begin(game, dialogs); break;
-  case ViewService::DELAY_DIALOG:        r = opeu_delay_dialog(game, dialogs, arg(0), arg(1), arg(2), arg(3)); break;
-  case ViewService::CONTROL_PANEL:       opeu_title_panel_begin(game, dialogs); break;
-  case ViewService::LIST_DIALOG:         r = opeu_list_dialog(game, svc_listdlg, arg(0), byte(1), byte(2)); break;
-  case ViewService::OPPOSITE_SIDE:       r = opeu_opposite_side(byte(0)); break;
-  case ViewService::UNIT_FLASH:          opeu_unit_flash(game, arg(0), byte(1)); break;
-  case ViewService::REQUEST_FORMAT:      opeu_request_format(game, { args, count }); break;
-  case ViewService::COPY_BYTES:          opeu_copy_bytes(game, arg(0), arg(1), arg(2)); break;
-  case ViewService::UNIT_ANNOUNCE:       opeu_unit_announce(game, arg(0)); break;
-  case ViewService::UNIT_SPECIAL:        r = opeu_unit_special(game, arg(0)); break;
-  case ViewService::TYPE_PANEL:          opeu_element_type_panel(game, dialogs, arg(0)); break;
-  case ViewService::FAR_CALL:            r = static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(arg(1)) * 16u + arg(0), nullptr, 0)); break;
-  case ViewService::CODE_SEGMENT:        r = VIEW_CODE_SEGMENT; break;
-  default:                               port_unhandled(module, id, count);
-  }
-  return r;
-}
-
-uint16_t svc_vwarms(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_view(game, "vwarms", id, args, count);
-}
-
 auto port_routine_opeu_view_arms_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_arms_menu(game, svc_vwarms);
+  opeu_view_arms_menu(game);
   return 0;
 }
 
@@ -201,12 +145,12 @@ auto port_routine_opeu_view_enemy_weapons(Game& game, std::uint16_t const*, unsi
 }
 
 auto port_routine_opeu_view_info_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_info_menu(game, svc_vwarms);
+  opeu_view_info_menu(game);
   return 0;
 }
 
 auto port_routine_opeu_view_menu_loop(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  return opeu_view_menu_loop(game, svc_vwarms);
+  return opeu_view_menu_loop(game);
 }
 
 auto port_routine_opeu_view_own_weapons(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {

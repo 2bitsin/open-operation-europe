@@ -91,19 +91,15 @@ void opeu_view_enemy_cities(Game& game) {
 }
 
 // The cities menu (own, enemy) until cancelled.
-void opeu_view_cities_menu(Game& game, HostEvent event) {
+void opeu_view_cities_menu(Game& game) {
   auto& data{ Data(game) };
   for (std::uint16_t item;
        (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), CITY_SIDE_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), CITY_SIDE_MENU)) != MENU_CANCELLED;)
-    RunAction(game, event, data.city_actions, item);
-}
-
-uint16_t svc_vwcity(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_view(game, "vwcity", id, args, count);
+    RunAction(game, data.city_actions, item);
 }
 
 auto port_routine_opeu_view_cities_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_cities_menu(game, svc_vwcity);
+  opeu_view_cities_menu(game);
   return 0;
 }
 

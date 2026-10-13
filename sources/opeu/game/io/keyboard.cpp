@@ -63,13 +63,13 @@ auto DecimalValue(std::span<std::uint8_t const> digits) -> std::uint32_t {
 }
 
 // The idle hook: the cursor routine, another far routine, or nothing.
-auto CallHook(Game& game, HostService service) -> void {
+auto CallHook(Game& game) -> void {
   auto const hook{ Data(game).idle_hook };
   if (!hook.offset && !hook.segment) return;
   if (hook.offset == CURSOR_HOOK_OFFSET && hook.segment == CURSOR_HOOK_SEGMENT)
     opeu_text_cursor_draw(game);
   else
-    Input(game, service, InputCall::IDLE_HOOK, hook.offset, hook.segment);
+    port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(hook.segment)) * 16u + static_cast<std::uint16_t>(hook.offset), nullptr, 0);
 }
 
 auto TextX(Game const& game) -> std::uint16_t {
@@ -114,9 +114,9 @@ auto opeu_key_wait_tick(Game& game, HostService service) -> int {
 auto opeu_keyboard_key(Game& game, HostService service) -> std::uint8_t {
   opeu_input_flush(game, static_cast<TextHost*>(port_textout_host()));
   do {
-    CallHook(game, service);
+    CallHook(game);
     opeu_key_wait_tick(game, service);
-    CallHook(game, service);
+    CallHook(game);
   } while (!opeu_key_wait_tick(game, service));
   return static_cast<std::uint8_t>(opeu_key_read(game, static_cast<TextHost*>(port_textout_host())));
 }
@@ -125,9 +125,9 @@ auto opeu_keyboard_key(Game& game, HostService service) -> std::uint8_t {
 auto opeu_mouse_wait_buttons(Game& game, HostService service) -> std::uint8_t {
   opeu_input_reset(game, service);
   do {
-    CallHook(game, service);
+    CallHook(game);
     opeu_key_wait_tick(game, service);
-    CallHook(game, service);
+    CallHook(game);
   } while (!opeu_key_wait_tick(game, service));
   return opeu_mouse_buttons(game, service);
 }

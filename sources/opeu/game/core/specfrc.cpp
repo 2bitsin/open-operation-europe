@@ -9,6 +9,7 @@
 #include "core/dialogs.hpp"
 #include "core/template.hpp"
 #include "core/textout.hpp"
+#include "link/link.hpp"
 #include "types.hpp"
 #include "units/unitname.hpp"
 
@@ -74,7 +75,7 @@ uint16_t opeu_special_unit_target(Game& game) {
   return mission;
 }
 
-void opeu_turn_action_9(Game& game, HostEvent event) {
+void opeu_turn_action_9(Game& game) {
   ServiceLocals const locals{ NAME_BYTES };
   auto&               data{ Data(game) };
   auto const          name{ locals.At(0) };
@@ -98,16 +99,12 @@ void opeu_turn_action_9(Game& game, HostEvent event) {
                                          offsetof(DataSegment, special_menu)) };
     if (choice == MENU_CANCELLED) return;
     auto const& mission{ data.special_missions[choice - 1] };
-    Call(game, event, FAR_ACTION, mission.segment, mission.offset);
+    port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(mission.segment)) * 16u + static_cast<std::uint16_t>(mission.offset), nullptr, 0);
   } while (!data.side_delays[data.current_side]);
   opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
 }
 
-uint16_t svc_specfrc(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_specops(game, id, args, count);
-}
-
 auto port_routine_opeu_turn_action_9(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_9(game, svc_specfrc);
+  opeu_turn_action_9(game);
   return 0;
 }

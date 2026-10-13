@@ -28,21 +28,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the loop calls through its event; the context panel runs through context_event.
-enum Service : std::uint16_t {
-  PREPARE     = 0,  // ()
-  BEGIN       = 1,  // ()
-  POSITION    = 2,  // (x, y) the map view
-  LOCATION    = 3,  // (x, y, side)
-  SUMMARY     = 4,  // () the army summary
-  ACTIVE      = 5,  // ()
-  FORMAT      = 6,  // (buffer, format, general)
-  MENU        = 7,  // (prompt, x, y, columns, general, menu) -> the entry chosen, 0xffff on cancel
-  MESSAGE     = 8,  // (text, general)
-  COORDINATES = 9,  // (&x, &y) -> nonzero while the player keeps inspecting
-  ACTION      = 10, // (offset, segment) the far routine of a menu entry
-};
-
 constexpr std::uint16_t PROMPT_FORMAT{ offsetof(DataSegment, control_prompt) };
 constexpr std::uint16_t READY_TEXT{ offsetof(DataSegment, control_ready) };
 constexpr std::uint16_t COMMAND_MENU{ offsetof(DataSegment, control_menu) };
@@ -53,7 +38,7 @@ constexpr std::uint16_t CELL_Y_AT{ 2 };
 constexpr std::uint16_t CELL_BYTES{ 4 };
 } // namespace
 
-void opeu_turn_control_one(Game& game, HostEvent event) {
+void opeu_turn_control_one(Game& game) {
   auto& data{ Data(game) };
   bool  inspecting{ false };
   data.context_side  = NO_SIDE;
@@ -80,7 +65,7 @@ void opeu_turn_control_one(Game& game, HostEvent event) {
         auto const choice{ opeu_control_choose(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
           auto const action{ data.control_actions[choice] };
-          Call(game, event, ACTION, action.offset, action.segment);
+          port_call(game, static_cast<std::uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), nullptr, 0);
           break;
         }
         inspecting             = true;
@@ -100,26 +85,4 @@ void opeu_turn_control_one(Game& game, HostEvent event) {
     }
   }
   data.control_selection = 0;
-}
-
-uint16_t svc_control1(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t result{ 0 };
-  switch (id) {
-  case PREPARE:  opeu_control_prepare(game); break;
-  case BEGIN:    opeu_control_begin(game, svc_soundcue); break;
-  case POSITION: opeu_control_position(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOCATION: opeu_arrival_location(game, static_cast<std::uint8_t>(Arg(args, count, 0)), static_cast<std::uint8_t>(Arg(args, count, 1)), static_cast<std::uint8_t>(Arg(args, count, 2))); break;
-  case SUMMARY:  opeu_army_summary(game); break;
-  case ACTIVE:   opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case FORMAT:   opeu_request_format(game, { args, count }); break;
-  case MENU:
-    result = opeu_control_choose(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4),
-                                 Arg(args, count, 5));
-    break;
-  case MESSAGE:     opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COORDINATES: result = opeu_control_coordinates(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ACTION:      result = static_cast<uint16_t>(port_call(game, static_cast<std::uint32_t>(Arg(args, count, 1)) * 16u + Arg(args, count, 0), nullptr, 0)); break;
-  default:          port_unhandled("control1", id, count);
-  }
-  return result;
 }

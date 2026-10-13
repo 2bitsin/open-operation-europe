@@ -19,8 +19,5 @@ void     opeu_save_game(Game& game);
 void     opeu_quit_to_dos(Game& game);
 void     opeu_settings_leave(Game& game);
 void     opeu_settings_new_game(Game& game);
-uint16_t opeu_settings_save_menu(Game& game, HostEvent event);
-void     opeu_turn_action_10(Game& game, HostEvent event);
-
-// The services the Settings routines call.
-uint16_t svc_settings(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+uint16_t opeu_settings_save_menu(Game& game);
+void     opeu_turn_action_10(Game& game);

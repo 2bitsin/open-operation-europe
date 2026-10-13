@@ -50,6 +50,3 @@ void opeu_special_sabotage(Game& game);
 void opeu_special_cut_comm(Game& game);
 void opeu_special_assassinate(Game& game);
 void opeu_special_recon(Game& game);
-
-// The services of the Special Forces command and its missions as direct calls.
-uint16_t svc_specops(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

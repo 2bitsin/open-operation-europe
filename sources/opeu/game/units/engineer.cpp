@@ -8,7 +8,6 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/memory.hpp"
-#include "common/order-service.hpp"
 #include "core/limits.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
@@ -266,53 +265,6 @@ uint16_t opeu_engineer_repair_unit(Game& game) {
     Show(game, ARMS_PICTURE, ARMS_REPAIRED_FINISH);
     RestoreOrder(game);
   }
-  return 1;
-}
-
-// The services the order handlers share (OrderService); 0 when the id is not one of them. Pointer arguments are DS
-// offsets; byte arguments narrow.
-int svc_order_handler(Game& game, uint16_t id, const uint16_t* args, uint16_t count, uint16_t* result) {
-  uint16_t r = 0;
-  switch (id) {
-  case OrderService::UNIT_AVERAGE11:     r = opeu_unit_average11(game, Arg(args, count, 0)); break;
-  case OrderService::RAND_BOUNDED:       r = port_rand_bounded(game, Arg(args, count, 0)); break;
-  case OrderService::RESTORE_UNIT_ORDER: opeu_restore_unit_order(game, Arg(args, count, 0)); break;
-  case OrderService::GRID_STEP:          r = opeu_grid_step(game.State().Bytes(Arg(args, count, 0), 1).data(), game.State().Bytes(Arg(args, count, 1), 1).data(), (uint8_t)Arg(args, count, 2)); break;
-  case OrderService::FIND_UNIT_AT:       r = opeu_find_unit_at(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::UNIT_SIDE:          r = opeu_unit_side(Arg(args, count, 0)); break;
-  case OrderService::UNIT_VALUE:         r = opeu_unit_value(game, Arg(args, count, 0)); break;
-  case OrderService::MOVE_SUPPLIED:      r = opeu_move_supplied(game); break;
-  case OrderService::UNIT_REPORT:        opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::UNIT_SELECTION_ELIGIBLE: r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case OrderService::REQUEST_FORMAT:          opeu_request_format(game, { args, count }); break;
-  case OrderService::CONFIRM_MESSAGE:         r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::DAILY_SHOW:              opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), Arg32(args, count, 2)); break;
-  case OrderService::OPPOSITE_SIDE:           r = opeu_opposite_side((uint8_t)Arg(args, count, 0)); break;
-  case OrderService::MOVE_OBJECTIVE_TARGET:   r = opeu_move_objective_target(game, Arg(args, count, 0), Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case OrderService::MOVE_ADJACENT:           r = opeu_move_adjacent(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::MOVE_LEVEL_LOWER:        r = opeu_move_level_lower(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::CELL_SIDE:               r = opeu_cell_side(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::OBJECTIVE_QUANTITY:      r = opeu_objective_quantity(game, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), game.State().Bytes(Arg(args, count, 2), 1).data()); break;
-  case OrderService::MOVE_UNIT:               opeu_move_unit(game, Arg(args, count, 0)); break;
-  case OrderService::SIDE_GROUPS_RETARGET:    opeu_side_groups_retarget(game, (uint8_t)Arg(args, count, 0)); break;
-  case OrderService::MOVE_UNIT_TARGET:        r = opeu_move_unit_target(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::UNIT_NAME:               r = opeu_unit_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case OrderService::ABS16_BITS:              r = opeu_abs16_bits(Arg(args, count, 0)); break;
-  case OrderService::UNIT_PERSON:             r = opeu_unit_person(game, Arg(args, count, 0)); break;
-  case OrderService::UNIT_AVERAGE10:          r = opeu_unit_average10(game, Arg(args, count, 0)); break;
-  case OrderService::UNIT_AVERAGE9:           r = opeu_unit_average9(game, Arg(args, count, 0)); break;
-  case OrderService::UNIT_ORDER_DESTINATION:
-    r = opeu_unit_order_destination(game, Arg(args, count, 0), game.State().Bytes(Arg(args, count, 1), 1).data(), game.State().Bytes(Arg(args, count, 2), 1).data());
-    break;
-  case OrderService::MAP_CODE:       r = opeu_map_code(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::MAP_MARK5:      opeu_map_mark_5(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::MAP_ERASE:      opeu_map_erase(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1)); break;
-  case OrderService::PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case OrderService::WAIT_UNITS:     opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case OrderService::SOUND_CUE5:     opeu_sound_cue5(game, svc_soundcue); break;
-  default:                           return 0;
-  }
-  *result = r;
   return 1;
 }
 

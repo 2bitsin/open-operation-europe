@@ -24,12 +24,6 @@ using namespace opeu::game;
 // returned.
 namespace {
 
-enum Service : std::uint16_t {
-  CONTROL_MESSAGE = 1,
-  DELAY_DIALOG    = 2,
-  FAR_CALL        = 3,
-};
-
 constexpr std::uint16_t ADVICE_PROMPT{ offsetof(DataSegment, advice_prompt) };
 constexpr std::uint16_t ADVICE_MENU{ offsetof(DataSegment, advice_menu) };
 constexpr std::uint16_t STAFF_PROMPT{ offsetof(DataSegment, staff_prompt) };
@@ -37,8 +31,8 @@ constexpr std::uint16_t STAFF_MENU{ offsetof(DataSegment, staff_menu) };
 constexpr std::uint16_t INTELLIGENCE{ 2 }; // the staff menu's second item
 
 // Calls an action through the far pointer the table holds.
-auto CallAction(Game& game, HostEvent event, FarPointer const& action) -> std::uint16_t {
-  return Call(game, event, FAR_CALL, action.offset, action.segment);
+auto CallAction(Game& game, FarPointer const& action) -> std::uint16_t {
+  return static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), 0, 0));
 }
 } // namespace
 
@@ -47,7 +41,7 @@ void opeu_control_prepare(Game& game) {
 }
 
 // The advice menu: topics 1-5 until cancelled.
-void opeu_staff_advice_menu(Game& game, HostEvent event) {
+void opeu_staff_advice_menu(Game& game) {
   auto& data{ Data(game) };
   for (;;) {
     std::uint16_t topic{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), ADVICE_PROMPT, 5, data.context_record2, ADVICE_MENU) };
@@ -56,39 +50,27 @@ void opeu_staff_advice_menu(Game& game, HostEvent event) {
     if (data.advice_messages[topic][0])
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.advice_messages[topic]), data.context_record2);
     else
-      CallAction(game, event, data.advice_actions[topic]);
+      CallAction(game, data.advice_actions[topic]);
   }
 }
 
 // Command action 5: Operations or Intelligence, until Intelligence reports a result of 1.
-void opeu_turn_action_5(Game& game, HostEvent event) {
+void opeu_turn_action_5(Game& game) {
   auto&         data{ Data(game) };
   std::uint16_t officer;
   std::uint16_t result;
   do {
     if ((officer = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), STAFF_PROMPT, 2, data.context_record2, STAFF_MENU)) == MENU_CANCELLED) return;
-    result = CallAction(game, event, data.staff_actions[officer]);
+    result = CallAction(game, data.staff_actions[officer]);
   } while (officer != INTELLIGENCE || result != 1);
 }
 
-// The services of the staff advice menus as direct calls.
-uint16_t svc_advmenu(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DELAY_DIALOG:    r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case FAR_CALL:        r = (uint16_t)port_call(game, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:              port_unhandled("advmenu", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_staff_advice_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_staff_advice_menu(game, svc_advmenu);
+  opeu_staff_advice_menu(game);
   return 0;
 }
 
 auto port_routine_opeu_turn_action_5(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_5(game, svc_advmenu);
+  opeu_turn_action_5(game);
   return 0;
 }

@@ -7,6 +7,7 @@
 #include "core/dialogs.hpp"
 #include "core/template.hpp"
 #include "core/textout.hpp"
+#include "link/link.hpp"
 #include "types.hpp"
 #include "units/labels.hpp"
 
@@ -100,7 +101,7 @@ void opeu_turn_action_8(Game& game, HostEvent event) {
                                          Near(data, data.air_mission_menu)) };
     if (choice == MENU_CANCELLED) break;
     auto const mission{ data.air_missions[choice - 1] };
-    Call(game, event, FAR_ACTION, mission.segment, mission.offset);
+    port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(mission.segment)) * 16u + static_cast<std::uint16_t>(mission.offset), nullptr, 0);
     opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
   } while (!data.side_delays[data.current_side]);
 }

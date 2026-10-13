@@ -31,20 +31,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the personnel routines call through their event.
-enum class PersonnelService : uint16_t {
-  FORMAT          = 0, // (buffer, format, words...)
-  MESSAGE         = 1, // (text, person): a general's message
-  PANEL           = 2, // redraw the control panel
-  DAILY_SHOW      = 3, // (id, side, presenter offset, presenter segment)
-  PENDING_FINISH  = 4, // (value)
-  LIST            = 5, // (list, limit, flags) -> 0 when cancelled
-  ASK             = 6, // (text, last, person, menu) -> the choice, MENU_CANCELLED when cancelled
-  GROUP_SELECTED  = 7, // (group) -> the division's selected regiment
-  UNIT_SELECTABLE = 8, // (unit)
-  RUN             = 9, // (segment, offset): a far action
-};
-
 // Offsets of the personnel routines in their code segment, which the list and show callbacks are given as.
 constexpr uint16_t FINISH_OFFSET{ 0x0004 };
 constexpr uint16_t ALWAYS_OFFSET{ 0x000c };
@@ -225,34 +211,14 @@ void opeu_commander_rest(Game& game, uint16_t segment) {
 }
 
 // Turn action 4: the personnel orders menu, until it is cancelled.
-void opeu_turn_action_4(Game& game, HostEvent event, uint16_t) {
+void opeu_turn_action_4(Game& game, uint16_t) {
   auto& data{ Data(game) };
   for (uint16_t choice;
        (choice = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu)))
        != MENU_CANCELLED;) {
     auto const& action{ data.personnel_actions[choice - 1] };
-    Call(game, event, PersonnelService::RUN, action.segment, action.offset);
+    port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(action.segment)) * 16u + static_cast<std::uint16_t>(action.offset), nullptr, 0);
   }
-}
-
-uint16_t svc_persmenu(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r{ 0 };
-  switch (static_cast<PersonnelService>(id)) {
-  case PersonnelService::FORMAT:  opeu_request_format(game, { args, count }); break;
-  case PersonnelService::MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case PersonnelService::PANEL:   opeu_title_panel_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case PersonnelService::DAILY_SHOW:
-    opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2));
-    break;
-  case PersonnelService::PENDING_FINISH: opeu_pending_finish(game, (uint8_t)Arg(args, count, 0)); break;
-  case PersonnelService::LIST:           r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case PersonnelService::ASK:            r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case PersonnelService::GROUP_SELECTED: r = opeu_find_group_selected_unit(game, Arg(args, count, 0)); break;
-  case PersonnelService::UNIT_SELECTABLE: r = opeu_unit_selection_eligible(game, Arg(args, count, 0)); break;
-  case PersonnelService::RUN:             r = (uint16_t)port_call(game, (uint32_t)Arg(args, count, 0) * 16u + Arg(args, count, 1), nullptr, 0); break;
-  default:                                port_unhandled("persmenu", id, count);
-  }
-  return r;
 }
 
 auto port_routine_opeu_commander_always(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
@@ -284,6 +250,6 @@ auto port_routine_opeu_personnel_finish(Game& game, std::uint16_t const*, unsign
 }
 
 auto port_routine_opeu_turn_action_4(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_turn_action_4(game, svc_persmenu, PERSONNEL_SEGMENT);
+  opeu_turn_action_4(game, PERSONNEL_SEGMENT);
   return 0;
 }

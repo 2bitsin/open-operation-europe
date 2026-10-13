@@ -126,18 +126,18 @@ auto Seek(Game& game, uint16_t handle, int32_t offset, uint16_t whence) -> uint1
 }
 
 // Runs the save/quit menu's entry `index`.
-void SaveMenuAction(Game& game, HostEvent event, uint16_t index) {
+void SaveMenuAction(Game& game, uint16_t index) {
   auto const& entry{ Data(game).save_quit_actions[index] };
   switch (static_cast<Action>(entry.offset)) {
   case Action::SAVE_GAME: opeu_save_game(game); break;
   case Action::NEW_GAME:  opeu_settings_new_game(game); break;
   case Action::LEAVE:     opeu_settings_leave(game); break;
-  default:                Call(game, event, FAR_ACTION, entry.offset, entry.segment);
+  default:                port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(entry.segment)) * 16u + static_cast<std::uint16_t>(entry.offset), 0, 0);
   }
 }
 
 // Runs the Settings menu's entry `index`; only the save/quit menu's result is examined.
-auto SettingsAction(Game& game, HostEvent event, uint16_t index) -> uint16_t {
+auto SettingsAction(Game& game, uint16_t index) -> uint16_t {
   auto const& entry{ Data(game).settings_actions[index] };
   switch (static_cast<Action>(entry.offset)) {
   case Action::BATTLES:   opeu_settings_battles(game); break;
@@ -145,8 +145,8 @@ auto SettingsAction(Game& game, HostEvent event, uint16_t index) -> uint16_t {
   case Action::MAP:       opeu_settings_map(game); break;
   case Action::SOUND:     opeu_settings_sound(game); break;
   case Action::PICTURES:  opeu_settings_pictures(game); break;
-  case Action::SAVE_MENU: return opeu_settings_save_menu(game, event);
-  default:                return Call(game, event, FAR_ACTION, entry.offset, entry.segment);
+  case Action::SAVE_MENU: return opeu_settings_save_menu(game);
+  default:                return static_cast<uint16_t>(port_call(game, static_cast<uint32_t>(static_cast<std::uint16_t>(entry.segment)) * 16u + static_cast<std::uint16_t>(entry.offset), 0, 0));
   }
   return 0;
 }
@@ -423,89 +423,30 @@ void opeu_settings_new_game(Game& game) {
 }
 
 // The save/quit menu; returns the choice, 0xffff when cancelled.
-uint16_t opeu_settings_save_menu(Game& game, HostEvent event) {
+uint16_t opeu_settings_save_menu(Game& game) {
   auto const& data{ Data(game) };
   auto const  choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.save_quit_question), 3, data.context_record2, Near(data, data.save_quit_menu)) };
   if (choice == 0xffff) return choice;
-  SaveMenuAction(game, event, choice - 1);
+  SaveMenuAction(game, choice - 1);
   return choice;
 }
 
 // The Settings command: the options menu until it is cancelled or the save/quit entry returns 1.
-void opeu_turn_action_10(Game& game, HostEvent event) {
+void opeu_turn_action_10(Game& game) {
   auto const& data{ Data(game) };
   for (;;) {
     opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.settings_title));
     opeu_settings_print(game);
     auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.settings_question), 6, data.context_record2, Near(data, data.settings_menu)) };
     if (choice == 0xffff) return;
-    auto const result{ SettingsAction(game, event, choice - 1) };
+    auto const result{ SettingsAction(game, choice - 1) };
     if (choice == 6 && result == 1) return;
   }
-}
-
-// Each service of the Settings routines is the direct call of the routine that provides it.
-uint16_t svc_settings(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<SettingsService>(id)) {
-  case PRINT:           opeu_cursor_print(game, { args, count }); break;
-  case FORMAT:          opeu_request_format(game, { args, count }); break;
-  case DIALOG:          r = opeu_delay_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case NUMBER:          r = (uint8_t)opeu_choose_dialog(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case MESSAGE:         opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ASK:             r = opeu_confirm_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case LOCATION:        opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case MUSIC_STOP:      opeu_music_stop(game, svc_sound); break;
-  case PRE_CONTEXT:     opeu_turn_pre_context(game); break;
-  case SCREEN_RESET:    opeu_screen_reset(game, (const DialogHost*)port_dialogs_host()); break;
-  case ATTRIBUTE:       opeu_text_paper_set(game, (TextHost*)port_textout_host(), (uint8_t)Arg(args, count, 0)); break;
-  case DISK_RESET:      opeu_disk_reset(game); break;
-  case FRAMED:          r = opeu_title_box(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  case UI_TEXT:         opeu_ui_text(game, (TextHost*)port_textout_host(), Arg(args, count, 0)); break;
-  case UI_WAIT:         opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case OPEN:            r = (uint16_t)opeu_open_resource(game, Arg(args, count, 0)); break;
-  case MENU_CHOOSE:     r = opeu_list_dialog(game, svc_listdlg, Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case OUTLINE:         opeu_ui_outline(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case POSITION:        opeu_army_position(game, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;
-  case TITLE:           opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case YES_NO:          r = (uint16_t)opeu_prompt_yes_no(game, svc_keyboard, Arg(args, count, 0)); break;
-  case ACTIVE_BEGIN:    opeu_turn_active_begin(game, (const DialogHost*)port_dialogs_host()); break;
-  case PALETTE_TITLE:   opeu_palette_title_screen(game, (const UiHost*)port_uiprim_host()); break;
-  case PALETTE_DEFAULT: opeu_palette_daylight(game, (const UiHost*)port_uiprim_host()); break;
-  case FINISH_SIDE:     opeu_finish_side_initialization(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case TURN_CONTEXT:    opeu_set_turn_context(game, svc_sound, (uint8_t)Arg(args, count, 0)); break;
-  case FREE_SEGMENTS:   opeu_free_segments(game); break;
-  case CLOSE_FILES:     opeu_close_data_files(game); break;
-  case APPLICATION:     opeu_application_entry(game, svc_app); break;
-  case CREATE:          r = (uint16_t)opeu_dos_create((const char*)game.State().Bytes(Arg(args, count, 0)).data()); break;
-  case EXISTS:          r = (uint16_t)opeu_dos_exists((const char*)game.State().Bytes(Arg(args, count, 0)).data()); break;
-  case WRITE:           r = (uint16_t)opeu_dos_write((int16_t)Arg(args, count, 0), game.State().Bytes(Arg(args, count, 1), Arg(args, count, 2)).data(), Arg(args, count, 2)); break;
-  case READ:            r = (uint16_t)opeu_dos_read((int16_t)Arg(args, count, 0), game.State().Bytes(Arg(args, count, 1), Arg(args, count, 2)).data(), Arg(args, count, 2)); break;
-  case READ_FAR:        r = (uint16_t)opeu_dos_read_far((int16_t)Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3)); break;
-  case CLOSE:           r = (uint16_t)opeu_dos_close((int16_t)Arg(args, count, 0)); break;
-  case SEEK:            r = (uint16_t)opeu_dos_seek((int16_t)Arg(args, count, 0), (int32_t)Arg32(args, count, 1), (int16_t)Arg(args, count, 3)); break;
-  case BOX:             r = (uint16_t)opeu_ui_box(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4)); break;
-  case VGA_COPY:        opeu_screen_copy(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), Arg(args, count, 5)); break;
-  case DRAW:
-    r = (uint16_t)opeu_gfx_blit(Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2), Arg(args, count, 3), Arg(args, count, 4), port_far(Arg(args, count, 5), Arg(args, count, 6)));
-    break;
-  case FM_WAIT: opeu_fm_wait_start(Arg(args, count, 0)); break;
-  case FM_BUSY: r = opeu_fm_busy(); break;
-  // sound_open(0L): one null far pointer; the effects pointer words the routine also reads are passed as 0
-  case SOUND_CLOSE: r = (uint16_t)opeu_sound_open(Arg(args, count, 0), Arg(args, count, 1), 0, 0); break;
-  case FM_NOOP:     opeu_fm_noop(); break;
-  case TEXT_MODE:   opeu_text_mode(); break;
-  case EXIT:        port_exit((int16_t)Arg(args, count, 0)); break;
-  case VGA_CLEAR:   r = (uint16_t)opeu_vga_clear(); break;
-  case FAR_ACTION:  r = (uint16_t)port_call(game, (uint32_t)Arg(args, count, 1) * 16u + Arg(args, count, 0), 0, 0); break;
-  default:          port_unhandled("settings", id, count);
-  }
-  return r;
 }
 
 auto port_routine_opeu_turn_action_10(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_turn_action_10(game, svc_settings);
+  opeu_turn_action_10(game);
   return 0;
 }
