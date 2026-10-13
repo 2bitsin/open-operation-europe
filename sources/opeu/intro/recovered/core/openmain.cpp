@@ -25,8 +25,7 @@
  * DS:028e..02d6 tables with a muzzle flash flicker (DS:02e2 on/off, DS:02e4
  * phase). Title: the colour-cycled title (short form after an abort,
  * DS:01ac), then the wait for the music to end. Init/shutdown allocate and
- * free the far buffers (DS:1c22..1c32; EMS page frame as the fallback for
- * 1c2c), read MOPENGRP.DAT, open and close OPENGRP.NPK/KOEILOGO.FNT, and wait
+ * free the far buffers (DS:1c22..1c32), read MOPENGRP.DAT, open and close OPENGRP.NPK/KOEILOGO.FNT, and wait
  * for SCESEL.DAT before leaving. opeu_open_main is the program's main(): it
  * repeats the opening until a scene is aborted (then shows the short title)
  * or the title is skipped.
@@ -210,7 +209,6 @@ void opeu_open_scene_koei(uint8_t* ds, OpenEvent event) {
 auto opeu_open_prologue_pictures(uint8_t* ds, OpenEvent event) -> int {
   opeu_open_clear_screen(ds, event);
   PictureAt(ds, event, 0, 0, 0x2955fL);
-  Call(ds, event, GFX_WAIT);
   Call(ds, event, BITMAP_SAVE, 0, 0, 0x50, 0x8c, Data(ds).buffer_e, 0);
   Call(ds, event, BITMAP_SAVE, 0, 0x8c, 0x50, 0x8c, Data(ds).buffer_f, 0);
   opeu_open_clear_screen(ds, event);
@@ -308,7 +306,6 @@ auto opeu_open_scene_flicker(uint8_t* ds, OpenEvent event) -> int {
   int i   = 0;
   int off = 0;
   opeu_open_clear_screen(ds, event);
-  Call(ds, event, GFX_WAIT);
   Call(ds, event, BLIT_FAR, 0, 0x3c, 0x50, 0x8c, 0, Data(ds).buffer_e, 0);
   Call(ds, event, BLIT_FAR, 0, 0xc8, 0x50, 0x8c, 0, Data(ds).buffer_f, 0);
   if (opeu_open_fade_to_palette(ds, event, 31, 2) != 0) return 1;
@@ -562,7 +559,6 @@ auto opeu_open_bomber_approach(uint8_t* ds, OpenEvent event) -> int {
   Call(ds, event, BITMAP_SAVE, 0, 0, 0x1a, 0xb0, Data(ds).buffer_e, 0);
   Call(ds, event, BITMAP_SAVE, 0x1a, 0, 0x1a, 0xb0, Data(ds).buffer_e, 0x4780);
   Call(ds, event, BITMAP_SAVE, 0x34, 0, 0x1a, 0xb0, Data(ds).buffer_e, 0x8f00);
-  Call(ds, event, GFX_WAIT);
   Call(ds, event, BITMAP_SAVE, 0, 0xb0, 0x1a, 0xb0, Data(ds).buffer_f, 0);
   Call(ds, event, BITMAP_SAVE, 0x1a, 0xb0, 0x1a, 0xb0, Data(ds).buffer_f, 0x4780);
   Call(ds, event, BITMAP_SAVE, 0x34, 0xb0, 0x1a, 0xb0, Data(ds).buffer_f, 0x8f00);
@@ -632,7 +628,6 @@ auto opeu_open_bomb_explosions(uint8_t* ds, OpenEvent event) -> int {
     for (pos = 0, j = 3; j < 6; j++, pos += 0x4780) {
       Call(ds, event, FAR_COPY, Data(ds).buffer_a, 0xb800, Data(ds).buffer_c, pos, 0x4780);
       Call(ds, event, BUF_AND_MASK, Data(ds).buffer_c, pos, 0x1a, 0xb0, Data(ds).buffer_h, Data(ds).blast_masks[j]);
-      Call(ds, event, GFX_WAIT);
       Call(ds, event, BUF_OR, Data(ds).buffer_c, pos, 0x1a, 0xb0, Data(ds).buffer_f, Data(ds).blast_sprites[j]);
     }
     for (pos = 0, j = 0; j < 6; j++) {
@@ -952,7 +947,6 @@ auto opeu_open_title(uint8_t* ds, OpenEvent event) -> int {
 }
 
 void opeu_open_init(uint8_t* ds, OpenEvent event) {
-  int ems    = 0;
   int handle = 0;
   if ((Data(ds).buffer_g = Call(ds, event, DOS_ALLOC, 0x501)) == 0) {
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).alloc_err1));
@@ -982,8 +976,7 @@ void opeu_open_init(uint8_t* ds, OpenEvent event) {
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).alloc_err7));
     Hang(ds, event);
   }
-  ems = Call(ds, event, EMS_DETECT);
-  if ((Data(ds).buffer_f = Call(ds, event, DOS_ALLOC, 0x1000)) == 0 && ((ems == 0) || (Call(ds, event, EMS_ALLOC_SPRITE) == 0u))) {
+  if ((Data(ds).buffer_f = Call(ds, event, DOS_ALLOC, 0x1000)) == 0) {
     Call(ds, event, CURSOR_PRINT, Near(ds, Data(ds).alloc_err9));
     Hang(ds, event);
   }
@@ -1007,8 +1000,7 @@ void opeu_open_free_buffers(uint8_t* ds, OpenEvent event) {
   Call(ds, event, DOS_FREE, Data(ds).buffer_c);
   Call(ds, event, DOS_FREE, Data(ds).buffer_d);
   Call(ds, event, DOS_FREE, Data(ds).buffer_e);
-  if (Data(ds).sprite_mapped == 0) Call(ds, event, DOS_FREE, Data(ds).buffer_f);
-  Call(ds, event, MEMORY_RELEASE);
+  Call(ds, event, DOS_FREE, Data(ds).buffer_f);
 }
 
 /* Music driver (int 66h): AH=1 AL=5, then AH=2 AL=20. */

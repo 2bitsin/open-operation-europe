@@ -8,7 +8,7 @@
  *
  *   OPEN_LOAD_SEGMENT        load image (its code is native; nothing there)
  *   OPEN_BANK_SEGMENT:0002   the FM song bank (recovered/data/ofmusic.cpp)
- *   OPEN_DS_SEGMENT          DGROUP (the six recovered/data modules)
+ *   OPEN_DS_SEGMENT          DGROUP (the five recovered/data modules)
  *   OPEN_HEAP_SEGMENT ..     the DOS blocks OPEN allocates (443 KiB)
  *
  * The load segment is the port's choice (a DOS machine gives a different
@@ -20,7 +20,7 @@
  * Stack. MS C's start-up runs OPEN with SS = DS and SP = 3040h (stack
  * segment 0AFE:1400 of the EXE header: 0AFE - 093A = 1C4h paragraphs). The
  * routines that keep stack buffers at DS addresses (the text engine's
- * conversion buffer, the EMS detection's locals, the variadic print
+ * conversion buffer, the variadic print
  * arguments) get them below open_sp, like MAIN's port_sp.
  */
 #pragma once
@@ -75,7 +75,6 @@ inline auto Arg32(uint16_t const* args, uint16_t count, int i) -> uint32_t {
 auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
 auto link_outil(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count) -> uint32_t;
 auto link_otext(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
-auto link_oemsmap(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t count) -> uint16_t;
 auto link_osound(uint8_t* ds, SoundServiceId call, uint16_t* words) -> uint16_t;
 /* OTEXT's host structure (its event and the modeled stack pointer). */
 auto link_otext_host() -> TextHost*;

@@ -35,7 +35,6 @@ enum class OpenEventId : uint16_t {
   FADE_OUT,             /* () -> AX 062d:0304, abortable fade to black */
   FADE_OUT_WAIT,        /* () -> AX 062d:0310, uninterruptible */
   PICTURE_AT,           /* (x, y, position lo, hi) 062d:018e */
-  GFX_WAIT,             /* () 032a:0048 */
   MUSIC_START,          /* (track) 0349:00a4 */
   MUSIC_COMMAND4,       /* (value) 0349:0020, MAIN's finish_side_initialization */
   DOS_SEEK,             /* (handle, lo, hi, origin) 0000:009b */
@@ -60,9 +59,6 @@ enum class OpenEventId : uint16_t {
   INT86,                /* (number, AX of the REGS block) 0000:1f40 */
   UI_TEXT,              /* (text) 02a0:071e */
   CURSOR_PRINT,         /* (format) 02a0:073e */
-  MEMORY_RELEASE,       /* () 032a:005c */
-  EMS_ALLOC_SPRITE,     /* () -> AX 032a:00d0 */
-  EMS_DETECT,           /* () -> AX 032a:00f8 */
   SOUND_INITIALIZE,     /* () 0349:0002 */
   MUSIC_PLAYING,        /* () -> AX 0349:006e */
   MOUSE_RESET,          /* () 062d:0094 */
@@ -109,20 +105,6 @@ enum class TextEventId : uint16_t {
   STUB_C,      /* (value) 062d:041a */
 };
 
-/* OEMSMAP (032a) calls of the EMM routines (segment 031c); pointer
- * arguments are DS offsets. */
-enum class EmsEventId : uint16_t {
-  PRESENT,    /* () */
-  STATUS,     /* () */
-  PAGE_COUNT, /* (&count) */
-  FREE_PAGES, /* (&total, &unallocated) */
-  FRAME,      /* (&segment) */
-  ALLOCATE,   /* (pages, &handle) */
-  PAGE_ARRAY, /* (pages) */
-  MAP,        /* (handle, physical, logical) */
-  RELEASE,    /* (handle) */
-};
-
 /* OSOUND (0349) calls at the INT 66h boundary. */
 enum class SoundServiceId : uint16_t {
   DRIVER_OPEN, /* (bank offset, bank frame) 0000:13e0 */
@@ -138,7 +120,6 @@ inline constexpr uint16_t BANK_OFFSET{ 0x0002 };
 using OpenEvent    = uint16_t (*)(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t count);
 using UtilService  = uint32_t (*)(uint8_t* ds, UtilServiceId id, uint16_t* words, uint16_t count);
 using TextEvent    = uint16_t (*)(uint8_t* ds, TextEventId id, uint16_t const* args, uint16_t count);
-using EmsEvent     = uint16_t (*)(uint8_t* ds, EmsEventId id, uint16_t const* args, uint16_t count);
 using SoundService = uint16_t (*)(uint8_t* ds, SoundServiceId call, uint16_t* words);
 
 /* OTEXT's host: its event and the modeled stack pointer below which it
@@ -178,13 +159,6 @@ void opeu_ui_text(uint8_t* ds, TextHost* host, uint16_t s);
 void opeu_cursor_print(uint8_t* ds, TextHost* host, uint16_t frame);
 }
 
-namespace detail::oemsmap {
-void opeu_gfx_wait(uint8_t* ds, EmsEvent event);
-auto opeu_memory_release(uint8_t* ds, EmsEvent event) -> int16_t;
-auto opeu_ems_alloc_sprite(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t;
-auto opeu_ems_detect(uint8_t* ds, EmsEvent event, uint16_t sp) -> int16_t;
-}
-
 namespace detail::osound {
 void opeu_sound_initialize(uint8_t* ds, SoundService service);
 void opeu_finish_side_initialization(uint8_t* ds, SoundService service, uint8_t value);
@@ -192,7 +166,7 @@ auto opeu_music_playing(uint8_t* ds, SoundService service) -> int;
 void opeu_music_start(uint8_t* ds, SoundService service, uint8_t track);
 }
 
-/* The initialized data of the six DGROUP modules and of the song bank,
+/* The initialized data of the five DGROUP modules and of the song bank,
  * which image.cpp places. */
 namespace detail::odtext {
 extern uint8_t   opeu_open_digit_font[10][16];
@@ -214,11 +188,6 @@ extern int16_t   opeu_text_state;
 extern uint16_t  opeu_format_output;
 }
 
-namespace detail::odems {
-extern char    opeu_ems_device_name[8];
-extern int16_t opeu_sprite_mapped;
-}
-
 namespace detail::odsound {
 extern uint8_t opeu_music_current;
 extern uint8_t opeu_effect_current;
@@ -227,6 +196,8 @@ extern char    opeu_music_path[14];
 }
 
 namespace detail::odopen {
+extern char     opeu_reserved_ems_name[8];
+extern int16_t  opeu_reserved_sprite_mapped;
 extern int16_t  opeu_open_aborted;
 extern int16_t  opeu_open_frame_y[11];
 extern int16_t  opeu_open_frame_h[11];
@@ -294,10 +265,6 @@ extern uint8_t  opeu_music_voices[447];
 extern uint8_t  opeu_music_events[8379];
 }
 
-using detail::oemsmap::opeu_ems_alloc_sprite;
-using detail::oemsmap::opeu_ems_detect;
-using detail::oemsmap::opeu_gfx_wait;
-using detail::oemsmap::opeu_memory_release;
 using detail::openmain::opeu_open_delay;
 using detail::openmain::opeu_open_main;
 using detail::osound::opeu_finish_side_initialization;

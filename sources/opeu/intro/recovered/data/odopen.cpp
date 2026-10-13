@@ -1,5 +1,5 @@
-/* OPEN file-backed DGROUP DS:01ac..0355 (426 bytes): data of the opening
- * program (code segment 03ac, core/openmain.cpp).
+/* OPEN file-backed DGROUP DS:0178..0181 and DS:01ac..0355: data of the
+ * opening program (code segment 03ac, core/openmain.cpp).
  *
  * Scene tables (frame rows/heights/capture offsets, the two bobbing curves of
  * the aircraft, explosion, flak and shell animation tables), the flash state
@@ -11,6 +11,11 @@
 #include "recovered.hpp"
 
 namespace opeu::intro::detail::odopen {
+
+/* DS:0178..0181: reserved bytes (the expanded-memory device name and a zero
+ * word), kept for the layout until M4. */
+char    opeu_reserved_ems_name[8]   = { 'E', 'M', 'M', 'X', 'X', 'X', 'X', '0' };
+int16_t opeu_reserved_sprite_mapped = 0;
 
 int16_t opeu_open_aborted = 0; /* DS:01ac input abort flag */
 

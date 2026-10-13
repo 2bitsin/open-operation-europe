@@ -74,7 +74,6 @@ auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t c
   case FADE_OUT:             return static_cast<uint16_t>(opeu_open_fade_in(ds, link_outil));
   case FADE_OUT_WAIT:        return static_cast<uint16_t>(opeu_open_fade_in_wait(ds, link_outil));
   case PICTURE_AT:           opeu_picture_file_at(ds, link_outil, arg(0), arg(1), static_cast<int32_t>(Arg32(args, count, 2))); return 0;
-  case GFX_WAIT:             opeu_gfx_wait(ds, link_oemsmap); return 0;
   case MUSIC_START:          opeu_music_start(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
   case MUSIC_COMMAND4:       opeu_finish_side_initialization(ds, link_osound, static_cast<uint8_t>(arg(0))); return 0;
   case DOS_SEEK:             return static_cast<uint16_t>(opeu_dos_seek(static_cast<int16_t>(arg(0)), static_cast<int32_t>(Arg32(args, count, 1)), static_cast<int16_t>(arg(3))));
@@ -105,19 +104,6 @@ auto link_openmain(uint8_t* ds, OpenEventId id, uint16_t const* args, uint16_t c
   case INT86:            return openmain_int86(arg(0), arg(1));
   case UI_TEXT:          opeu_ui_text(ds, link_otext_host(), arg(0)); return 0;
   case CURSOR_PRINT:     link_otext_print(ds, args, 1); return 0;
-  case MEMORY_RELEASE:   return static_cast<uint16_t>(opeu_memory_release(ds, link_oemsmap));
-  case EMS_ALLOC_SPRITE: {
-    uint16_t sp = open_stack_enter(0x10);
-    auto     r  = static_cast<uint16_t>(opeu_ems_alloc_sprite(ds, link_oemsmap, sp));
-    open_stack_leave(0x10);
-    return r;
-  }
-  case EMS_DETECT: {
-    uint16_t sp = open_stack_enter(0x110); /* 00f8: 106h bytes of locals */
-    auto     r  = static_cast<uint16_t>(opeu_ems_detect(ds, link_oemsmap, sp));
-    open_stack_leave(0x110);
-    return r;
-  }
   case SOUND_INITIALIZE: opeu_sound_initialize(ds, link_osound); return 0;
   case MUSIC_PLAYING:    return static_cast<uint16_t>(opeu_music_playing(ds, link_osound));
   case MOUSE_RESET:      return opeu_mouse_reset(ds, link_outil);

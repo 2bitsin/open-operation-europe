@@ -1,5 +1,5 @@
 /* OPEN.EXE's data segment (DGROUP, paragraph 093A of its load image) as the
- * opening's code sees it: the initialized objects of the six data modules
+ * opening's code sees it: the initialized objects of the five data modules
  * (recovered/data, placed by image.cpp), then the KOEI library's and C
  * runtime's data and the BSS up to _end (DS:1C40). The stack (SS = DS)
  * follows above _end. */
@@ -20,12 +20,6 @@ struct TextSaved {
   uint8_t background;
   uint8_t z_016f;
   int16_t z_0170;
-};
-
-/* DS:1BF8, one mappable physical page of the EMS page frame. */
-struct EmsPage {
-  uint16_t segment;
-  uint16_t number;
 };
 
 #pragma pack(push, 1)
@@ -49,9 +43,9 @@ struct OpenDataSegment {
   uint8_t   text_z_0173;
   int16_t   text_state;    /* escape-sequence state */
   uint16_t  format_output; /* request_format's destination */
-  /* ODEMS */
-  char    ems_device_name[8];
-  int16_t sprite_mapped; /* the sprite buffer lives in EMS pages */
+  /* Reserved: kept for the layout until M4 */
+  char    reserved_ems_name[8];
+  int16_t reserved_sprite_mapped;
   /* ODSOUND */
   uint8_t music_current;
   uint8_t effect_current;
@@ -114,8 +108,8 @@ struct OpenDataSegment {
   uint8_t fade_target[48];          /* palette 112 */
   uint8_t library_data_1974[0x284]; /* KOEI library and C runtime data */
   /* BSS */
-  EmsPage  ems_pages[4];  /* the EMS page frame */
-  uint16_t sprite_handle; /* EMS handle of the sprite buffer */
+  uint8_t  reserved_ems_pages[16]; /* kept for the layout until M4 */
+  uint16_t reserved_sprite_handle; /* kept for the layout until M4 */
   uint8_t  library_bss_1c0a[4];
   uint16_t stream_offset; /* the picture stream's far pointer */
   uint16_t stream_segment;
@@ -126,7 +120,7 @@ struct OpenDataSegment {
   uint16_t buffer_c;
   uint16_t buffer_d;
   uint16_t buffer_e;
-  uint16_t buffer_f; /* or the EMS page frame */
+  uint16_t buffer_f;
   uint16_t sound_enabled;
   uint16_t buffer_g; /* the picture stream's buffer */
   uint16_t buffer_h; /* MOPENGRP.DAT: masks and shell sprites */
@@ -151,8 +145,8 @@ static_assert(offsetof(OpenDataSegment, text_lead) == 0x0172);
 static_assert(offsetof(OpenDataSegment, text_z_0173) == 0x0173);
 static_assert(offsetof(OpenDataSegment, text_state) == 0x0174);
 static_assert(offsetof(OpenDataSegment, format_output) == 0x0176);
-static_assert(offsetof(OpenDataSegment, ems_device_name) == 0x0178);
-static_assert(offsetof(OpenDataSegment, sprite_mapped) == 0x0180);
+static_assert(offsetof(OpenDataSegment, reserved_ems_name) == 0x0178);
+static_assert(offsetof(OpenDataSegment, reserved_sprite_mapped) == 0x0180);
 static_assert(offsetof(OpenDataSegment, music_current) == 0x0182);
 static_assert(offsetof(OpenDataSegment, effect_current) == 0x0183);
 static_assert(offsetof(OpenDataSegment, music_bank) == 0x0184);
@@ -210,8 +204,8 @@ static_assert(offsetof(OpenDataSegment, logo_file) == 0x0442);
 static_assert(offsetof(OpenDataSegment, palettes) == 0x0444);
 static_assert(offsetof(OpenDataSegment, fade_target) == 0x1944);
 static_assert(offsetof(OpenDataSegment, library_data_1974) == 0x1974);
-static_assert(offsetof(OpenDataSegment, ems_pages) == 0x1bf8);
-static_assert(offsetof(OpenDataSegment, sprite_handle) == 0x1c08);
+static_assert(offsetof(OpenDataSegment, reserved_ems_pages) == 0x1bf8);
+static_assert(offsetof(OpenDataSegment, reserved_sprite_handle) == 0x1c08);
 static_assert(offsetof(OpenDataSegment, library_bss_1c0a) == 0x1c0a);
 static_assert(offsetof(OpenDataSegment, stream_offset) == 0x1c0e);
 static_assert(offsetof(OpenDataSegment, stream_segment) == 0x1c10);
@@ -228,7 +222,6 @@ static_assert(offsetof(OpenDataSegment, buffer_g) == 0x1c30);
 static_assert(offsetof(OpenDataSegment, buffer_h) == 0x1c32);
 static_assert(offsetof(OpenDataSegment, library_bss_1c34) == 0x1c34);
 static_assert(sizeof(TextSaved) == 12);
-static_assert(sizeof(EmsPage) == 4);
 static_assert(sizeof(OpenDataSegment) == 0x1c40); /* _end */
 
 /* DGROUP at ds. */
