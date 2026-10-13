@@ -1,6 +1,7 @@
 // The computer side's passes after its turn: staff rotation, division leaders, restocking units from objectives,
 // supply and equipment requests, raising a new regiment, air plans and the attack target.
 #include "core/aiops5.hpp"
+#include "core/grid-neighbours.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -142,11 +143,8 @@ uint16_t opeu_ai_restock_from_objectives(Game& game) {
   for (auto& objective : data.objectives) {
     auto const near{ Near(data, objective) };
     if (!objective.active || opeu_objective_side(game, near) != data.current_side || !AiObjectiveEligible(game, near)) continue;
-    for (std::uint8_t direction{ 0 }; direction <= 8; ++direction) {
-      std::uint8_t x{ objective.x };
-      std::uint8_t y{ objective.y };
-      if (opeu_grid_step(&x, &y, direction) && opeu_cell_side(game, x, y) == data.current_side && opeu_ai_restock_unit(game, near, opeu_find_unit_at(game, x, y))) moved = 1;
-    }
+    for (auto const [x, y] : CellsAround({ objective.x, objective.y }, GRID_DIRECTIONS_AND_CENTER))
+      if (opeu_cell_side(game, x, y) == data.current_side && opeu_ai_restock_unit(game, near, opeu_find_unit_at(game, x, y))) moved = 1;
   }
   return moved;
 }

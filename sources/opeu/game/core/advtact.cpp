@@ -3,6 +3,7 @@
 #include "core/advtact.hpp"
 #include "common/events.hpp"
 #include "common/map-grid.hpp"
+#include "core/grid-neighbours.hpp"
 #include "types.hpp"
 
 #include "common/advice.hpp"
@@ -75,10 +76,7 @@ uint16_t opeu_advice_tactical_objective_threat(Game& game, const uint8_t* far_te
     bool const ours{ opeu_objective_side(game, near) == side };
     if (ours ? data.side_stance[side] != 0 : data.side_stance[side] != Bits(Stance::OFFENSIVE)) continue;
     if (!ours && opeu_cell_influence_side(game, objective.x, objective.y) != side) continue;
-    for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
-      std::uint8_t x{ objective.x };
-      std::uint8_t y{ objective.y };
-      if (!opeu_grid_step(&x, &y, d)) continue;
+    for (auto const [x, y] : CellsAround({ objective.x, objective.y })) {
       if (opeu_cell_side(game, x, y) != (ours ? opeu_opposite_side(side) : side)) continue;
       auto const unit{ opeu_find_unit_at(game, x, y) };
       if (!(ours ? opeu_unit_special(game, unit) : opeu_unit_selection_eligible(game, unit))) continue;
@@ -105,10 +103,7 @@ uint16_t opeu_advice_tactical_command(Game& game, const uint8_t* far_text) {
   auto const&  selected{ Record<Unit>(data, opeu_find_side_selected_unit(game, side)) };
   std::uint8_t own{ 1 };
   std::uint8_t enemy{ 0 };
-  for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
-    std::uint8_t x{ selected.x };
-    std::uint8_t y{ selected.y };
-    if (!opeu_grid_step(&x, &y, d)) continue;
+  for (auto const [x, y] : CellsAround({ selected.x, selected.y })) {
     auto const unit{ opeu_find_unit_at(game, x, y) };
     if (!unit || !opeu_category_0_to_5(opeu_unit_index(unit))) continue;
     if (opeu_cell_side(game, x, y) == side)
@@ -153,10 +148,7 @@ uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_tex
       auto const   near{ Near(data, unit) };
       std::uint8_t own{ 1 };
       std::uint8_t enemy{ 0 };
-      for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
-        std::uint8_t x{ unit.x };
-        std::uint8_t y{ unit.y };
-        if (!opeu_grid_step(&x, &y, d)) continue;
+      for (auto const [x, y] : CellsAround({ unit.x, unit.y })) {
         auto const other{ opeu_find_unit_at(game, x, y) };
         if (!other || !opeu_unit_special(game, other) || !opeu_category_0_to_5(opeu_unit_index(other))) continue;
         if (opeu_cell_side(game, x, y) == side)

@@ -4,6 +4,7 @@
 // report at its end (core/notend).
 #include "core/notice.hpp"
 #include "common/events.hpp"
+#include "core/grid-neighbours.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/sideutil.hpp"
@@ -131,12 +132,7 @@ uint16_t opeu_notice_garrison(Game& game) {
 // Gathers the engaged units: the attacker and his side's units around the battle cell, the garrison, the defender
 // and the other side's units around it.
 void opeu_notice_collect(Game& game) {
-  ServiceLocals const locals{ 0xe };
-  auto&               data{ Data(game) };
-  uint16_t const      x_at{ locals.At(4) };
-  uint16_t const      y_at{ locals.At(0) };
-  auto&               x{ Byte(game, x_at) };
-  auto&               y{ Byte(game, y_at) };
+  auto& data{ Data(game) };
   for (uint8_t n = 0; n < 2 * UNITS_PER_LIST; n++) data.battle_units[n] = 0;
   uint8_t  defenders{ static_cast<uint8_t>(opeu_notice_garrison(game) ? 1 : 0) };
   uint16_t unit{ opeu_find_unit_at(game, data.battle_x, data.battle_y) };
@@ -145,10 +141,7 @@ void opeu_notice_collect(Game& game) {
   unit                                    = opeu_find_unit_at(game, data.battle_attacker_x, data.battle_attacker_y);
   data.battle_units[UnitAt(ATTACKERS, 0)] = unit;
   auto const side{ opeu_unit_side(unit) };
-  for (uint8_t direction = 0; direction < 8; direction++) {
-    x = data.battle_x;
-    y = data.battle_y;
-    if (!opeu_grid_step(game.State().Bytes(x_at, 1).data(), game.State().Bytes(y_at, 1).data(), direction)) continue;
+  for (auto const [x, y] : CellsAround({ data.battle_x, data.battle_y })) {
     if (!(unit = opeu_find_unit_at(game, x, y))) continue;
     if (opeu_unit_side(unit) == side) {
       if (x != data.battle_attacker_x || y != data.battle_attacker_y) data.battle_units[UnitAt(ATTACKERS, attackers++)] = unit;

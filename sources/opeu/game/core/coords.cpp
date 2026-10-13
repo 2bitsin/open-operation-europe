@@ -265,8 +265,10 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
       if (cell_y > MAP_HEIGHT - 1) cell_y = MAP_HEIGHT - 1;
       if (tactical())
         opeu_grid_step_viewport(game, x, y, direction);
-      else
-        opeu_grid_step(&cell_x, &cell_y, direction);
+      else if (auto const next{ StepOnMap({ cell_x, cell_y }, direction) }) {
+        cell_x = next->x;
+        cell_y = next->y;
+      }
     }
     previous_x = display_x;
   }

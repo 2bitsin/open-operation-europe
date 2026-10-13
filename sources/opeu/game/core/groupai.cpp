@@ -5,6 +5,7 @@
 #include "core/groupai.hpp"
 #include "core/random.hpp"
 #include "map/distance.hpp"
+#include "map/grid-cell.hpp"
 #include "map/grid.hpp"
 #include "map/query.hpp"
 #include "map/support.hpp"
@@ -17,122 +18,109 @@
 #include "common/game.hpp"
 #include "common/random.hpp"
 
+#include <algorithm>
 #include <array>
+#include <optional>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
 namespace {
 constexpr std::uint8_t NO_DISTANCE{ 255 };
-constexpr std::uint8_t QUARTER{ 20 };         // the map's quarters are 20 x 20 cells
-constexpr std::uint8_t WEIGHT_MASK{ 0x0e };   // Objective::flags bits 1-3: how many units an objective takes, less one
-constexpr std::uint8_t LAST_COMBAT_SLOT{ 5 }; // unit slots 0-5 of a division count as its combat units
-constexpr std::uint8_t ORDER_12{ 12 };        // a unit order a replanned division also clears
+constexpr std::uint8_t QUARTER{ 20 }; // the map's quarters are 20 x 20 cells
+constexpr GridCell     MAP_CENTRE{ 20, 20 };
+constexpr auto         GROUPS{ std::views::iota(std::uint8_t{ 0 }, std::uint8_t{ GROUPS_PER_SIDE }) }; // a side's divisions
+constexpr std::uint8_t WEIGHT_MASK{ 0x0e };                                                            // Objective::flags bits 1-3: how many units an objective takes, less one
+constexpr std::uint8_t LAST_COMBAT_SLOT{ 5 };                                                          // unit slots 0-5 of a division count as its combat units
+constexpr std::uint8_t ORDER_12{ 12 };                                                                 // a unit order a replanned division also clears
 
 [[nodiscard]] auto None(Task const& task) -> bool {
   return task.kind == Bits(TaskKind::NONE);
 }
 
-[[nodiscard]] auto SideUnit(DataSegment& data, std::uint8_t group, std::uint8_t slot) -> Unit& {
-  return data.units[data.current_side * UNITS_PER_SIDE + group * UNITS_PER_GROUP + slot];
-}
-
 [[nodiscard]] auto Ready(Unit const& unit) -> bool {
   return unit.flags & Bits(UnitFlag::READY);
 }
-} // namespace
 
-uint16_t opeu_objective_tasked(Game& game, uint16_t objective);
-uint8_t  opeu_objective_weight(Objective const& objective);
-uint16_t opeu_group_can_cover(Game& game, uint8_t group, uint16_t objective);
+[[nodiscard]] auto ReadyGroup(DataSegment const& data, std::uint8_t group) -> bool {
+  return GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY);
+}
+
+[[nodiscard]] auto SameCell(Task const& task, Task const& other) -> bool {
+  return task.x == other.x && task.y == other.y;
+}
 
 // The mean cell of a division's ready units; the map's centre when none is ready.
-void opeu_group_center(Game& game, uint8_t* x, uint8_t* y, uint8_t group) {
-  auto&         data{ Data(game) };
+[[nodiscard]] auto GroupCenter(DataSegment& data, std::uint8_t group) -> GridCell {
   std::uint16_t sum_x{ 0 };
   std::uint16_t sum_y{ 0 };
   std::uint16_t ready{ 0 };
-  for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot) {
-    auto const& unit{ SideUnit(data, group, slot) };
-    if (Ready(unit)) {
-      sum_x += unit.x;
-      sum_y += unit.y;
-      ++ready;
-    }
+  for (auto const& unit : GroupUnits(data, data.current_side, group) | std::views::filter(Ready)) {
+    sum_x += unit.x;
+    sum_y += unit.y;
+    ++ready;
   }
-  if (ready == 0)
-    *y = *x = 20;
-  else {
-    *x = static_cast<std::uint8_t>(sum_x / ready);
-    *y = static_cast<std::uint8_t>(sum_y / ready);
-  }
+  if (ready == 0) return MAP_CENTRE;
+  return { static_cast<std::uint8_t>(sum_x / ready), static_cast<std::uint8_t>(sum_y / ready) };
 }
 
 // Whether a division of the current side already has a task at the objective.
-uint16_t opeu_objective_tasked(Game& game, uint16_t objective) {
+[[nodiscard]] auto ObjectiveTasked(Game& game, std::uint16_t objective) -> bool {
   auto& data{ Data(game) };
-  for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-    for (auto const& task : GroupOf(data, data.current_side, group).tasks)
-      if (!None(task) && opeu_find_objective_at(game, task.x, task.y) == objective) return 1;
-  return 0;
+  return std::ranges::any_of(GROUPS, [&](std::uint8_t group) {
+    return std::ranges::any_of(GroupOf(data, data.current_side, group).tasks, [&](Task const& task) { return !None(task) && opeu_find_objective_at(game, task.x, task.y) == objective; });
+  });
 }
 
 // The number of units an objective takes.
-uint8_t opeu_objective_weight(Objective const& objective) {
+[[nodiscard]] auto ObjectiveWeight(Objective const& objective) -> std::uint8_t {
   return static_cast<std::uint8_t>(((objective.flags & WEIGHT_MASK) >> 1) + 1);
 }
 
 // Whether a division's ready combat units suffice for its present tasks and the objective.
-uint16_t opeu_group_can_cover(Game& game, uint8_t group, uint16_t objective) {
+[[nodiscard]] auto GroupCanCover(Game& game, std::uint8_t group, std::uint16_t objective) -> bool {
   auto&        data{ Data(game) };
-  std::uint8_t units{ 0 };
-  for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot)
-    if (Ready(SideUnit(data, group, slot)) && slot <= LAST_COMBAT_SLOT) ++units;
-  std::uint8_t needed{ opeu_objective_weight(Record<Objective>(data, objective)) };
+  auto const   units{ std::ranges::count_if(GroupUnits(data, data.current_side, group).first<LAST_COMBAT_SLOT + 1>(), Ready) };
+  std::uint8_t needed{ ObjectiveWeight(Record<Objective>(data, objective)) };
   for (auto const& task : GroupOf(data, data.current_side, group).tasks)
-    if (!None(task) && (objective = opeu_find_objective_at(game, task.x, task.y)) != 0) needed += opeu_objective_weight(Record<Objective>(data, objective));
+    if (auto const at{ None(task) ? std::uint16_t{ 0 } : opeu_find_objective_at(game, task.x, task.y) }; at != 0) needed += ObjectiveWeight(Record<Objective>(data, at));
   return needed <= units;
 }
 
 // Whether every task of current is also among saved (the same cell).
-uint16_t opeu_tasks_retained(Task const* current, Task const* saved) {
-  for (std::uint8_t i = 0; i < 4; ++i, ++current) {
-    if (None(*current)) continue;
-    std::uint8_t j{ 0 };
-    for (; j < 4; ++j) {
-      auto const& task{ saved[j] };
-      if (None(task)) continue;
-      if (current->x == task.x && task.y == current->y) break;
+[[nodiscard]] auto TasksRetained(std::span<Task const, 4> current, std::span<Task const, 4> saved) -> bool {
+  auto const kept{ [saved](Task const& task) { return std::ranges::any_of(saved, [&task](Task const& other) { return !None(other) && SameCell(task, other); }); } };
+  return std::ranges::all_of(current, [&kept](Task const& task) { return None(task) || kept(task); });
+}
+
+// The able division nearest to the objective, if any.
+[[nodiscard]] auto NearestGroup(Game& game, std::uint16_t objective) -> std::optional<std::uint8_t> {
+  auto&                       data{ Data(game) };
+  auto const&                 target{ Record<Objective>(data, objective) };
+  std::optional<std::uint8_t> nearest_group;
+  std::uint8_t                nearest{ NO_DISTANCE };
+  for (auto const group : GROUPS | std::views::filter([&](std::uint8_t group) { return ReadyGroup(data, group) && GroupCanCover(game, group, objective); })) {
+    auto const distance{ GridDistance({ target.x, target.y }, GroupCenter(data, group)) };
+    if (distance < nearest) {
+      nearest_group = group;
+      nearest       = distance;
     }
-    if (j == 4) return 0;
   }
-  return 1;
+  return nearest_group;
 }
 
 // Gives the current division a task for each linked objective it is the nearest able division to; returns the
 // number of task slots now filled.
-uint8_t opeu_assign_objective_tasks(Game& game, uint8_t count) {
-  auto& data{ Data(game) };
-  for (std::uint8_t link = 0; link < OBJECTIVE_COUNT && count < 4; ++link) {
-    std::uint16_t const objective{ data.objective_links[data.current_side * OBJECTIVE_COUNT + link] };
-    if (!objective) continue;
-    if (opeu_objective_tasked(game, objective)) continue;
-    auto const&  target{ Record<Objective>(data, objective) };
-    std::uint8_t nearest_group;
-    std::uint8_t nearest{ NO_DISTANCE };
-    for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-      if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && opeu_group_can_cover(game, group, objective)) {
-        std::uint8_t x;
-        std::uint8_t y;
-        opeu_group_center(game, &x, &y, group);
-        auto const distance{ opeu_grid_distance(target.x, target.y, x, y) };
-        if (distance < nearest) {
-          nearest_group = group;
-          nearest       = distance;
-        }
-      }
-    if (nearest == NO_DISTANCE) continue;
-    if (data.current_group != nearest_group) continue;
-    auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
+[[nodiscard]] auto AssignObjectiveTasks(Game& game) -> std::uint8_t {
+  auto&        data{ Data(game) };
+  std::uint8_t count{ 0 };
+  auto const   links{ std::span{ data.objective_links }.subspan(data.current_side * OBJECTIVE_COUNT, OBJECTIVE_COUNT) };
+  for (auto const objective : links | std::views::filter([&](std::uint16_t objective) { return objective != 0 && !ObjectiveTasked(game, objective); })) {
+    if (count >= 4) break;
+    if (NearestGroup(game, objective) != data.current_group) continue;
+    auto const& target{ Record<Objective>(data, objective) };
+    auto&       task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
     task.x    = target.x;
     task.y    = target.y;
     task.kind = Bits(opeu_objective_side(game, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD);
@@ -140,45 +128,48 @@ uint8_t opeu_assign_objective_tasks(Game& game, uint8_t count) {
   return count;
 }
 
-// Sends the current division to a random passable cell of a map quarter beside or across from its own that no other
-// ready division stands in; returns the number of task slots now filled.
-uint8_t opeu_assign_quadrant_task(Game& game, uint8_t count) {
-  auto&                                       data{ Data(game) };
-  std::array<std::array<std::uint16_t, 2>, 2> taken{};
-  std::uint8_t                                x;
-  std::uint8_t                                y;
-  for (std::uint8_t group = 0; group < GROUPS_PER_SIDE; ++group)
-    if ((GroupOf(data, data.current_side, group).flags & Bits(GroupFlag::READY)) && group != data.current_group) {
-      opeu_group_center(game, &x, &y, group);
-      taken[y / QUARTER][x / QUARTER] = 1;
-    }
-  opeu_group_center(game, &x, &y, data.current_group);
-  x /= QUARTER;
-  y /= QUARTER;
-  x ^= 1;
-  if (taken[y][x] != 0) {
-    y ^= 1;
-    x ^= 1;
-    if (taken[y][x] != 0) return count;
+// The map quarter (in quarter coordinates) beside or across from the current division's own that no other ready
+// division stands in.
+[[nodiscard]] auto FreeQuarter(DataSegment& data) -> std::optional<GridCell> {
+  std::array<std::array<bool, 2>, 2> taken{};
+  for (auto const group : GROUPS | std::views::filter([&](std::uint8_t group) { return ReadyGroup(data, group) && group != data.current_group; })) {
+    auto const center{ GroupCenter(data, group) };
+    taken[center.y / QUARTER][center.x / QUARTER] = true;
   }
-  x = static_cast<std::uint8_t>((x & 1) * QUARTER);
-  y = static_cast<std::uint8_t>((y & 1) * QUARTER);
-  for (std::uint8_t attempt = 0; attempt < 100; ++attempt) {
-    auto const cell_x{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + x) };
-    auto const cell_y{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + y) };
+  auto const own{ GroupCenter(data, data.current_group) };
+  GridCell   quarter{ static_cast<std::uint8_t>(own.x / QUARTER ^ 1), static_cast<std::uint8_t>(own.y / QUARTER) };
+  if (taken[quarter.y][quarter.x]) {
+    quarter = { static_cast<std::uint8_t>(quarter.x ^ 1), static_cast<std::uint8_t>(quarter.y ^ 1) };
+    if (taken[quarter.y][quarter.x]) return std::nullopt;
+  }
+  return quarter;
+}
+
+// Sends the current division to a random passable cell of a free map quarter; returns the number of task slots now
+// filled.
+[[nodiscard]] auto AssignQuadrantTask(Game& game) -> std::uint8_t {
+  auto&      data{ Data(game) };
+  auto const quarter{ FreeQuarter(data) };
+  if (!quarter) return 0;
+  auto const corner_x{ static_cast<std::uint8_t>((quarter->x & 1) * QUARTER) };
+  auto const corner_y{ static_cast<std::uint8_t>((quarter->y & 1) * QUARTER) };
+  for ([[maybe_unused]] auto const attempt : std::views::iota(0, 100)) {
+    auto const cell_x{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + corner_x) };
+    auto const cell_y{ static_cast<std::uint8_t>(RandomBelow(game, QUARTER) + corner_y) };
     switch (opeu_map_code(game, cell_x, cell_y)) {
     case 0:
     case 1:
     case 5: continue; // cells a division is not sent to
     }
-    auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[count++] };
+    auto& task{ GroupOf(data, data.current_side, data.current_group).tasks[0] };
     task.x    = cell_x;
     task.y    = cell_y;
     task.kind = Bits(TaskKind::MOVE);
-    break;
+    return 1;
   }
-  return count;
+  return 0;
 }
+} // namespace
 
 // Replans the current division's tasks; when they change, its combat units drop their orders.
 void opeu_group_task_service(Game& game) {
@@ -186,14 +177,12 @@ void opeu_group_task_service(Game& game) {
   auto&                     current{ Record<Group>(data, data.current_group_ptr) };
   std::array<Task, 4> const saved{ current.tasks };
   for (auto& task : current.tasks) task.kind = Bits(TaskKind::NONE);
-  auto count{ opeu_assign_objective_tasks(game, 0) };
-  if (count == 0) count = opeu_assign_quadrant_task(game, count);
-  while (count < 4) GroupOf(data, data.current_side, data.current_group).tasks[count++].kind = Bits(TaskKind::NONE);
-  if (!opeu_tasks_retained(current.tasks.data(), saved.data())) {
-    for (std::uint8_t slot = 0; slot < UNITS_PER_GROUP; ++slot) {
-      auto& unit{ SideUnit(data, data.current_group, slot) };
-      if (opeu_unit_selection_eligible(game, Near(data, unit)) && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12)) opeu_clear_unit_orders(game, Near(data, unit), 3);
-    }
-    current.flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::RETARGET));
-  }
+  auto count{ AssignObjectiveTasks(game) };
+  if (count == 0) count = AssignQuadrantTask(game);
+  auto& tasks{ GroupOf(data, data.current_side, data.current_group).tasks };
+  for (auto& task : tasks | std::views::drop(count)) task.kind = Bits(TaskKind::NONE);
+  if (TasksRetained(current.tasks, saved)) return;
+  for (auto const [slot, unit] : std::views::zip(std::views::iota(0u), GroupUnits(data, data.current_side, data.current_group)))
+    if (opeu_unit_selection_eligible(game, Near(data, unit)) && (slot <= LAST_COMBAT_SLOT || unit.orders[0].kind == ORDER_12)) opeu_clear_unit_orders(game, Near(data, unit), 3);
+  current.flags &= static_cast<std::uint8_t>(~Bits(GroupFlag::RETARGET));
 }

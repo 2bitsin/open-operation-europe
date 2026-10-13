@@ -113,7 +113,10 @@ void opeu_end_occupy(Game& game) {
   if (data.battle_direction != NONE && (unit = opeu_find_unit_at(game, data.battle_x, data.battle_y)) != 0) {
     auto& defender{ Record<Unit>(data, unit) };
     opeu_unit_remove_draw(game, unit);
-    opeu_grid_step(&defender.x, &defender.y, data.battle_direction);
+    if (auto const retreat{ StepOnMap({ defender.x, defender.y }, data.battle_direction) }) {
+      defender.x = retreat->x;
+      defender.y = retreat->y;
+    }
     opeu_arrival_prepare(game, unit);
     defender.moved = 0;
   }
@@ -197,10 +200,9 @@ void opeu_end_orders(Game& game) {
   auto& data{ Data(game) };
   if (data.battle_direction == NONE) return;
   ResumeOrder(game, opeu_find_unit_at(game, data.battle_x, data.battle_y));
-  uint8_t x{ data.battle_x };
-  uint8_t y{ data.battle_y };
-  opeu_grid_step(&x, &y, data.battle_direction);
-  ResumeOrder(game, opeu_find_unit_at(game, x, y));
+  GridCell const battle{ data.battle_x, data.battle_y };
+  auto const     retreat{ StepOnMap(battle, data.battle_direction).value_or(battle) };
+  ResumeOrder(game, opeu_find_unit_at(game, retreat.x, retreat.y));
 }
 
 void opeu_end_nothing(void) { }

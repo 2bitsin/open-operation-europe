@@ -5,6 +5,7 @@
 #include "common/memory.hpp"
 #include "common/order.hpp"
 #include "common/random.hpp"
+#include "core/grid-neighbours.hpp"
 #include "core/limits.hpp"
 #include "types.hpp"
 
@@ -40,7 +41,6 @@ constexpr uint8_t OBJECTIVE_CODE{ 1 };
 constexpr uint8_t NO_LANDING_CODES[]{ 0, 5, 6, 8, 10 };
 
 constexpr uint8_t ANY_SIDE{ 0xff };
-constexpr uint8_t NEIGHBOURS{ 8 };
 constexpr uint8_t LANDING_PERCENT{ 90 };
 constexpr auto    INTELLIGENCE{ std::to_underlying(StaffRole::INTELLIGENCE_CHIEF) };
 constexpr uint8_t STRONG_SIDE{ 50 };
@@ -57,11 +57,6 @@ auto Troops(Game& game, uint16_t unit) -> uint16_t {
 // The unit's capacity for ammunition, fuel and food.
 auto Capacities(Game const& game, uint16_t unit) -> std::array<uint16_t, 3> {
   return Figures(UnitCapacities(Data(game), unit));
-}
-
-// Steps from (x, y) to the neighbour in direction; 0 when it is off the map.
-auto GridStep(uint8_t& x, uint8_t& y, uint8_t direction) -> uint16_t {
-  return opeu_grid_step(&x, &y, direction);
 }
 
 // The unit takes landing casualties; the cell's byte is kept across them.
@@ -154,7 +149,10 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
   uint8_t    x{ unit.x };
   uint8_t    y{ unit.y };
   if (opeu_para_scatter_check(game)) {
-    GridStep(x, y, static_cast<uint8_t>(RandomBelow(game, 8)));
+    if (auto const scattered{ StepOnMap({ x, y }, static_cast<uint8_t>(RandomBelow(game, 8))) }) {
+      x = scattered->x;
+      y = scattered->y;
+    }
     if (opeu_para_cell_ok(game, x, y)) {
       unit.x = x;
       unit.y = y;
@@ -191,10 +189,7 @@ uint16_t opeu_para_land(Game& game, uint16_t near, uint16_t losses) {
     return unit.flags & ready;
   }
   if (!unit.first) return unit.flags & ready;
-  for (uint8_t direction = 0; direction < NEIGHBOURS; ++direction) {
-    uint8_t to_x{ x };
-    uint8_t to_y{ y };
-    if (!GridStep(to_x, to_y, direction)) continue;
+  for (auto const [to_x, to_y] : CellsAround({ x, y })) {
     if (opeu_cell_side(game, to_x, to_y) != NO_SIDE) continue;
     if (opeu_cell_marked(game, to_x, to_y, ANY_SIDE)) continue;
     if (!opeu_para_cell_ok(game, to_x, to_y)) continue;

@@ -4,6 +4,7 @@
 // costs over the map.
 #include "core/unitai.hpp"
 #include "core/aiterr.hpp"
+#include "core/grid-neighbours.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/recindex.hpp"
@@ -11,10 +12,10 @@
 #include "core/sideutil.hpp"
 #include "map/cellflag.hpp"
 #include "map/distance.hpp"
+#include "map/grid-cell.hpp"
 #include "map/grid.hpp"
 #include "map/objeleg.hpp"
 #include "map/query.hpp"
-#include "map/stepmap.hpp"
 #include "map/support.hpp"
 #include "types.hpp"
 #include "units/aggpct.hpp"
@@ -29,8 +30,13 @@
 #include "common/map-grid.hpp"
 #include "common/random.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <ranges>
+#include <vector>
 
 using namespace opeu::game;
 
@@ -43,13 +49,11 @@ constexpr std::uint8_t  ENGINEER_SLOT{ 6 };     // the engineer unit of a divisi
 constexpr std::uint8_t  SUPPLY_SLOT{ 7 };       // the supply unit of a division
 
 // The first six unit slots of a division are its combat units.
-constexpr auto IsCombatSlot(std::uint8_t slot) -> bool {
-  return slot <= 5;
-}
+constexpr std::size_t COMBAT_SLOTS{ 6 };
 
-// The flood fill's queue of cell indices, kept sorted by path cost, and the path cost of every cell.
-std::array<std::uint16_t, MAP_WIDTH * MAP_HEIGHT> path_queue;
-std::array<std::uint16_t, MAP_WIDTH * MAP_HEIGHT> path_cost;
+constexpr auto IsCombatSlot(std::uint8_t slot) -> bool {
+  return slot < COMBAT_SLOTS;
+}
 
 auto Distance1D(int difference) -> int {
   return static_cast<int16_t>(opeu_abs16_bits(difference));
@@ -75,67 +79,93 @@ void IssueOrder(Game& game, UnitOrder kind, std::uint8_t x, std::uint8_t y, std:
   opeu_set_unit_order(game, Data(game).current_unit_ptr, target, x, 0, Bits(kind), y);
 }
 
-// Fills path_cost outward from (x, y) in order of cost, each step costing the unit's terrain rating of the cell
-// entered. Returns 1 as soon as a step reaches (tx, ty), 0 when every reachable cell is costed.
-auto PathFill(Game& game, std::uint8_t x, std::uint8_t y, std::uint8_t tx, std::uint8_t ty, Unit const& unit) -> std::uint16_t {
-  auto const&   data{ Data(game) };
-  std::uint16_t head{ 0 };
-  std::uint16_t tail{ 1 };
-  path_queue[head] = static_cast<std::uint16_t>(x + y * MAP_WIDTH);
-  path_cost.fill(UNVISITED);
-  path_cost[path_queue[head]] = 0;
-  while (tail != head) {
-    std::uint8_t const  cx{ static_cast<std::uint8_t>(path_queue[head] % MAP_WIDTH) };
-    std::uint8_t const  cy{ static_cast<std::uint8_t>(path_queue[head] / MAP_WIDTH) };
-    std::uint16_t const cost{ path_cost[cy * MAP_WIDTH + cx] };
-    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; direction++) {
-      auto nx{ cx };
-      auto ny{ cy };
-      if (!opeu_grid_step(&nx, &ny, direction)) continue;
-      if (!opeu_map_code(game, nx, ny)) continue;
-      if (nx == tx && ny == ty) return 1;
-      auto const cell{ static_cast<std::uint16_t>(ny * MAP_WIDTH + nx) };
-      auto&      entered{ path_cost[cell] };
-      if (entered == UNVISITED) {
-        auto const step{ opeu_best_terrain(game, nx, ny, Near(data, unit)) };
-        if (step == IMPASSABLE_STEP) continue;
-        entered = static_cast<std::uint16_t>(step + cost);
-        // Insert from the tail: cells of equal cost stay in arrival order.
-        std::uint16_t slot{ tail };
-        std::uint16_t before{ static_cast<std::uint16_t>(tail - 1) };
-        for (;;) {
-          path_queue[slot] = path_queue[before];
-          if (path_cost[path_queue[before]] <= entered) {
-            path_queue[slot] = cell;
-            tail++;
-            break;
-          }
-          slot = before--;
-        }
+// The path cost of every map cell from a flood fill outward from a start cell, each step costing the unit's terrain
+// rating of the cell entered, and the walk back down those costs.
+class PathCosts {
+public:
+  // Fills the costs in order of cost from move.from, stopping as soon as a step reaches move.to.
+  void Fill(Game& game, CellMove move, Unit const& unit) {
+    auto const& data{ Data(game) };
+    _cost.fill(UNVISITED);
+    _queue.clear();
+    _queue.push_back(Index(move.from));
+    _cost[_queue.front()] = 0;
+    for (std::size_t head{ 0 }; head != _queue.size(); ++head) {
+      auto const cell{ CellOf(_queue[head]) };
+      auto const cost{ _cost[_queue[head]] };
+      for (auto const step : CellsAround(cell)) {
+        if (!opeu_map_code(game, step.x, step.y)) continue;
+        if (step == move.to) return;
+        auto& entered{ _cost[Index(step)] };
+        if (entered != UNVISITED) continue;
+        auto const terrain{ opeu_best_terrain(game, step.x, step.y, Near(data, unit)) };
+        if (terrain == IMPASSABLE_STEP) continue;
+        entered = static_cast<std::uint16_t>(terrain + cost);
+        Enqueue(Index(step));
       }
     }
-    head++;
   }
-  return 0;
-}
+
+  // Walks from move.from down the costs to move.to, each step to the cheapest neighbour (on a tie, one no farther from
+  // the target than the start was); the cell the walk stops on when it is one the side has marked or a river.
+  [[nodiscard]] auto Descend(Game& game, CellMove move) const -> std::optional<GridCell> {
+    auto const& data{ Data(game) };
+    auto const  start_dx{ Distance1D(move.from.x - move.to.x) };
+    auto const  start_dy{ Distance1D(move.from.y - move.to.y) };
+    for (auto cell{ move.from }; cell != move.to;) {
+      std::uint16_t best{ UNVISITED };
+      auto          next{ cell };
+      for (auto const step : CellsAround(cell)) {
+        auto const cost{ _cost[Index(step)] };
+        if (cost < best || (cost == best && Distance1D(step.x - move.to.x) <= start_dx && Distance1D(step.y - move.to.y) <= start_dy)) {
+          next = step;
+          best = cost;
+        }
+      }
+      cell = next;
+      if (opeu_cell_marked(game, cell.x, cell.y, data.current_side) || opeu_map_code(game, cell.x, cell.y) == Bits(Terrain::RIVER)) return cell;
+    }
+    return std::nullopt;
+  }
+
+private:
+  [[nodiscard]] static auto Index(GridCell cell) -> std::uint16_t {
+    return static_cast<std::uint16_t>(cell.x + cell.y * MAP_WIDTH);
+  }
+
+  [[nodiscard]] static auto CellOf(std::uint16_t index) -> GridCell {
+    return { static_cast<std::uint8_t>(index % MAP_WIDTH), static_cast<std::uint8_t>(index / MAP_WIDTH) };
+  }
+
+  // Queues the cell after every queued cell of no greater cost: cells of equal cost stay in arrival order.
+  void Enqueue(std::uint16_t cell) {
+    auto const cost_of{ [this](std::uint16_t queued) { return _cost[queued]; } };
+    _queue.insert(std::ranges::upper_bound(_queue, _cost[cell], std::ranges::less{}, cost_of), cell);
+  }
+
+  std::array<std::uint16_t, MAP_WIDTH * MAP_HEIGHT> _cost{};
+  std::vector<std::uint16_t>                        _queue;
+};
 
 // Routes the unit towards its order's destination: when the path down the cost grid runs into a cell marked by the
 // side, the unit clears the mines there; into a river, it bridges it.
-auto PathOrderStep(Game& game, Unit& unit) -> std::uint16_t {
+auto PathOrderStep(Game& game, Unit& unit) -> bool {
   auto& data{ Data(game) };
-  if (!(unit.flags & Bits(UnitFlag::READY))) return 0;
+  if (!(unit.flags & Bits(UnitFlag::READY))) return false;
   auto const destination{ UnitOrderDestination(game, Near(data, unit)) };
-  if (!destination.valid || !destination.cell) return 0;
-  auto const [tx, ty]{ *destination.cell };
-  auto x{ unit.x };
-  auto y{ unit.y };
-  PathFill(game, tx, ty, x, y, unit);
-  if (!opeu_path_descend(game, &x, &y, tx, ty)) return 0;
+  if (!destination.valid || !destination.cell) return false;
+  GridCell const goal{ destination.cell->x, destination.cell->y };
+  GridCell const start{ unit.x, unit.y };
+  PathCosts      costs;
+  costs.Fill(game, { goal, start }, unit);
+  auto const stop{ costs.Descend(game, { start, goal }) };
+  if (!stop) return false;
+  auto const [x, y]{ *stop };
   if (opeu_cell_marked(game, x, y, data.current_side))
     IssueOrder(game, UnitOrder::CLEAR_MINES, x, y);
   else if (opeu_map_code(game, x, y) == Bits(Terrain::RIVER))
     IssueOrder(game, UnitOrder::BUILD_BRIDGE, x, y);
-  return 1;
+  return true;
 }
 
 // Whether the objective holds more (Overstocked) or less (Understocked) of any supply than its reserve.
@@ -156,7 +186,7 @@ auto NearestObjective(Game& game, Predicate predicate) -> Objective* {
   std::uint8_t best{ UNREACHED };
   for (auto& objective : data.objectives)
     if (objective.active && opeu_objective_side(game, Near(data, objective)) == data.current_side && opeu_objective_eligible(game, Near(data, objective))) {
-      auto const distance{ opeu_grid_distance(current.x, current.y, objective.x, objective.y) };
+      auto const distance{ GridDistance({ current.x, current.y }, { objective.x, objective.y }) };
       if (predicate(objective) && distance < best) {
         nearest = &objective;
         best    = distance;
@@ -180,7 +210,7 @@ auto NearestUnitInNeed(Game& game, Resources const& floor) -> Unit* {
   std::uint8_t best{ UNREACHED };
   for (auto& unit : GroupUnits(data, data.current_side, data.current_group))
     if ((unit.flags & Bits(UnitFlag::READY)) && &unit != &current && opeu_unit_support_condition(game, Near(data, unit))) {
-      auto const distance{ opeu_grid_distance(current.x, current.y, unit.x, unit.y) };
+      auto const distance{ GridDistance({ current.x, current.y }, { unit.x, unit.y }) };
       if (BelowPercent(game, unit, floor) && distance < best) {
         nearest = &unit;
         best    = distance;
@@ -222,16 +252,11 @@ auto RequiredUnits(Objective const& objective) -> std::uint8_t {
 
 // Whether enough combat units of the current division already have an order at the objective.
 auto FullyAssigned(Game& game, Objective const* objective) -> bool {
-  auto&        data{ Data(game) };
-  std::uint8_t assigned{ 0 };
-  std::uint8_t slot{ 0 };
-  for (auto const& unit : GroupUnits(data, data.current_side, data.current_group)) {
-    if (IsCombatSlot(slot)) {
-      auto const& order{ unit.orders[0] };
-      if ((unit.flags & Bits(UnitFlag::READY)) && order.kind != Bits(UnitOrder::NONE) && ObjectiveAt(game, order.cell.x, order.cell.y) == objective) ++assigned;
-    }
-    ++slot;
-  }
+  auto&      data{ Data(game) };
+  auto const assigned{ std::ranges::count_if(GroupUnits(data, data.current_side, data.current_group).first<COMBAT_SLOTS>(), [&](Unit const& unit) {
+    auto const& order{ unit.orders[0] };
+    return (unit.flags & Bits(UnitFlag::READY)) && order.kind != Bits(UnitOrder::NONE) && ObjectiveAt(game, order.cell.x, order.cell.y) == objective;
+  }) };
   return RequiredUnits(*objective) <= assigned;
 }
 
@@ -242,48 +267,17 @@ auto WorthAttacking(Game& game, Unit const& enemy) -> bool {
   return opeu_unit_special(game, Near(data, enemy)) || (data.side_control[data.current_side] == SIDE_COMPUTER && data.delivery_level > 2);
 }
 
-} // namespace
-
-// Walks from (x, y) down the path cost grid to (tx, ty), each step to the cheapest neighbour (on a tie, one no
-// farther from the target than the start was). Stops and returns 1 on a cell the side has marked or on a river.
-uint16_t opeu_path_descend(Game& game, uint8_t* x, uint8_t* y, uint8_t tx, uint8_t ty) {
-  auto const& data{ Data(game) };
-  auto const  start_dx{ Distance1D(*x - tx) };
-  auto const  start_dy{ Distance1D(*y - ty) };
-  while (*x != tx || *y != ty) {
-    std::uint16_t best{ UNVISITED };
-    auto          bx{ *x };
-    auto          by{ *y };
-    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; ++direction) {
-      auto nx{ *x };
-      auto ny{ *y };
-      if (opeu_grid_step(&nx, &ny, direction)) {
-        auto const cost{ path_cost[ny * MAP_WIDTH + nx] };
-        if (cost < best || (cost == best && Distance1D(nx - tx) <= start_dx && Distance1D(ny - ty) <= start_dy)) {
-          bx   = nx;
-          by   = ny;
-          best = cost;
-        }
-      }
-    }
-    *x = bx;
-    *y = by;
-    if (opeu_cell_marked(game, bx, by, data.current_side) || opeu_map_code(game, bx, by) == Bits(Terrain::RIVER)) return 1;
-  }
-  return 0;
-}
-
 // The engineer's order: route the unit the division last linked, else a random unit of the division; else mine a
 // random free cell within three of an objective the division holds.
-uint16_t opeu_unit_route_order(Game& game) {
+[[nodiscard]] auto RouteOrder(Game& game) -> bool {
   auto& data{ Data(game) };
   auto& link{ data.unit_links[data.current_side * GROUPS_PER_SIDE + data.current_group] };
   if (auto* linked{ UnitAt(data, link) }) {
     link = 0;
-    if (PathOrderStep(game, *linked)) return 1;
+    if (PathOrderStep(game, *linked)) return true;
   }
   auto group_units{ GroupUnits(data, data.current_side, data.current_group) };
-  if (PathOrderStep(game, group_units[RandomBelow(game, UNITS_PER_GROUP)])) return 1;
+  if (PathOrderStep(game, group_units[RandomBelow(game, UNITS_PER_GROUP)])) return true;
   for (auto const& task : GroupOf(data, data.current_side, data.current_group).tasks) {
     if (task.kind == Bits(TaskKind::NONE)) continue;
     if (task.kind != Bits(TaskKind::HOLD)) continue;
@@ -306,44 +300,44 @@ uint16_t opeu_unit_route_order(Game& game) {
       auto const& current{ CurrentUnit(data) };
       if (x == current.x && y == current.y) continue;
       IssueOrder(game, UnitOrder::LAY_MINES, x, y);
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 // The supply unit's order: when itself below 10% of any supply, load at the nearest overstocked city; else supply the
 // nearest unit below the side's average percentages, else load at the nearest understocked or overstocked city.
-uint16_t opeu_plan_supply(Game& game) {
+[[nodiscard]] auto PlanSupply(Game& game) -> bool {
   auto&       data{ Data(game) };
   auto*       overstocked{ NearestObjective(game, Overstocked) };
   auto const& current{ CurrentUnit(data) };
   if (BelowPercent(game, current, { 10, 10, 10 })) {
     if (overstocked) {
       IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
-      return 1;
+      return true;
     }
   } else {
     auto const* needy{ NearestUnitInNeed(game, SideResourcePercentages(game, data.current_side)) };
     if (needy && needy != &current) {
       IssueOrder(game, UnitOrder::SUPPLY_UNIT, 0, 0, NearOrNull(data, needy));
-      return 1;
+      return true;
     }
     if (auto const* understocked{ NearestObjective(game, Understocked) }) {
       IssueOrder(game, UnitOrder::RESUPPLY, understocked->x, understocked->y);
-      return 1;
+      return true;
     }
     if (overstocked) {
       IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 // A combat unit below 20% of any supply loads at the nearest overstocked city among its division's tasks, else takes
 // an enemy city of the division's tasks that has supplies left.
-uint16_t opeu_unit_resupply_order(Game& game) {
+[[nodiscard]] auto ResupplyOrder(Game& game) -> bool {
   auto&       data{ Data(game) };
   auto const& current{ CurrentUnit(data) };
   auto const  capacity{ UnitCapacities(data, data.current_unit_ptr) };
@@ -351,20 +345,20 @@ uint16_t opeu_unit_resupply_order(Game& game) {
     auto const* overstocked{ NearestObjective(game, Overstocked) };
     if (overstocked && GroupTargets(game, overstocked)) {
       IssueOrder(game, UnitOrder::RESUPPLY, overstocked->x, overstocked->y);
-      return 1;
+      return true;
     }
     for (auto const& objective : data.objectives)
       if (opeu_objective_side(game, Near(data, objective)) != data.current_side && HasRemaining(game, objective) && GroupTargets(game, &objective)) {
         IssueOrder(game, UnitOrder::OCCUPY, objective.x, objective.y);
-        return 1;
+        return true;
       }
   }
-  return 0;
+  return false;
 }
 
 // A combat unit takes the division's capture or hold task at an objective that still needs units when it is the
 // division's nearest free combat unit to it; else it moves to the division's move task.
-uint16_t opeu_unit_task_order(Game& game) {
+[[nodiscard]] auto TaskOrder(Game& game) -> bool {
   auto&        data{ Data(game) };
   Task const*  move_task{ nullptr };
   std::uint8_t nearest_slot{ 0 };
@@ -377,16 +371,14 @@ uint16_t opeu_unit_task_order(Game& game) {
     auto const* objective{ ObjectiveAt(game, task.x, task.y) };
     if (FullyAssigned(game, objective)) continue;
     std::uint8_t best{ UNREACHED };
-    std::uint8_t slot{ 0 };
-    for (auto const& unit : GroupUnits(data, data.current_side, data.current_group)) {
+    for (auto const [slot, unit] : std::views::zip(std::views::iota(std::uint8_t{ 0 }), GroupUnits(data, data.current_side, data.current_group))) {
       if (IsCombatSlot(slot) && (unit.flags & Bits(UnitFlag::READY)) && unit.orders[0].kind == Bits(UnitOrder::NONE)) {
-        auto const distance{ opeu_grid_distance(objective->x, objective->y, unit.x, unit.y) };
+        auto const distance{ GridDistance({ objective->x, objective->y }, { unit.x, unit.y }) };
         if (distance < best) {
           nearest_slot = slot;
           best         = distance;
         }
       }
-      ++slot;
     }
     if (best != UNREACHED && nearest_slot == data.current_entry) {
       UnitOrder order;
@@ -396,29 +388,29 @@ uint16_t opeu_unit_task_order(Game& game) {
       default:                order = UnitOrder::NONE; break;
       }
       IssueOrder(game, order, objective->x, objective->y);
-      return 1;
+      return true;
     }
   }
   if (move_task) {
     auto const& current{ CurrentUnit(data) };
     if (current.x != move_task->x || current.y != move_task->y) {
       IssueOrder(game, UnitOrder::MOVE, move_task->x, move_task->y);
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 // The side's free combat unit nearest the nearest enemy unit worth attacking inside the side's influence attacks it;
 // so does the current unit when such an enemy stands next to one of the division's task cells.
-uint16_t opeu_unit_attack_order(Game& game) {
+[[nodiscard]] auto AttackOrder(Game& game) -> bool {
   auto&        data{ Data(game) };
   auto const   side{ data.current_side };
   std::uint8_t best{ UNREACHED };
   Unit*        target{ nullptr };
   for (auto& enemy : SideUnits(data, opeu_opposite_side(side)))
     if ((enemy.flags & Bits(UnitFlag::READY)) && WorthAttacking(game, enemy) && opeu_cell_influence_side(game, enemy.x, enemy.y) == side) {
-      auto const distance{ opeu_grid_distance(CurrentUnit(data).x, CurrentUnit(data).y, enemy.x, enemy.y) };
+      auto const distance{ GridDistance({ CurrentUnit(data).x, CurrentUnit(data).y }, { enemy.x, enemy.y }) };
       if (distance < best) {
         target = &enemy;
         best   = distance;
@@ -429,7 +421,7 @@ uint16_t opeu_unit_attack_order(Game& game) {
     Unit const* attacker{ nullptr };
     for (auto const& unit : SideUnits(data, side))
       if ((unit.flags & Bits(UnitFlag::READY)) && unit.orders[0].kind == Bits(UnitOrder::NONE)) {
-        auto const distance{ opeu_grid_distance(target->x, target->y, unit.x, unit.y) };
+        auto const distance{ GridDistance({ target->x, target->y }, { unit.x, unit.y }) };
         if (distance < best) {
           attacker = &unit;
           best     = distance;
@@ -437,29 +429,27 @@ uint16_t opeu_unit_attack_order(Game& game) {
       }
     if (best != UNREACHED && &CurrentUnit(data) == attacker) {
       IssueOrder(game, UnitOrder::ATTACK, 0, 0, NearOrNull(data, target));
-      return 1;
+      return true;
     }
   }
   for (auto const& task : GroupOf(data, side, data.current_group).tasks) {
     if (task.kind == Bits(TaskKind::NONE)) continue;
-    for (std::uint8_t direction = 0; direction < GRID_DIRECTIONS; ++direction) {
-      auto x{ task.x };
-      auto y{ task.y };
-      if (!opeu_grid_step(&x, &y, direction)) continue;
+    for (auto const [x, y] : CellsAround({ task.x, task.y })) {
       auto* enemy{ UnitAt(data, opeu_find_unit_at(game, x, y)) };
       if (enemy && opeu_unit_side(Near(data, *enemy)) != side && WorthAttacking(game, *enemy)) {
         IssueOrder(game, UnitOrder::ATTACK, 0, 0, Near(data, *enemy));
-        return 1;
+        return true;
       }
     }
   }
-  return 0;
+  return false;
 }
 
-uint16_t opeu_unit_combat_order(Game& game) {
-  if (opeu_unit_resupply_order(game) || opeu_unit_task_order(game) || opeu_unit_attack_order(game)) return 1;
-  return 0;
+[[nodiscard]] auto CombatOrder(Game& game) -> bool {
+  return ResupplyOrder(game) || TaskOrder(game) || AttackOrder(game);
 }
+
+} // namespace
 
 // The computer side's turn for its current unit, unless its average rating beats a roll of 80..89: the engineer
 // routes, the supply unit supplies, a combat unit takes a combat order; a unit given none follows the division's
@@ -468,10 +458,10 @@ void opeu_unit_task_service(Game& game) {
   auto& data{ Data(game) };
   if (RandomBelow(game, 10) + 80 > opeu_unit_average11(game, data.current_unit_ptr)) {
     if (data.current_entry == ENGINEER_SLOT) {
-      if (opeu_unit_route_order(game)) return;
+      if (RouteOrder(game)) return;
     } else if (data.current_entry == SUPPLY_SLOT) {
-      if (opeu_plan_supply(game)) return;
-    } else if (opeu_unit_combat_order(game))
+      if (PlanSupply(game)) return;
+    } else if (CombatOrder(game))
       return;
     auto const selected{ opeu_find_group_selected_unit(game, data.current_group_ptr) };
     if (selected != data.current_unit_ptr) IssueOrder(game, UnitOrder::PURSUE, 0, 0, selected);

@@ -1,6 +1,7 @@
 // The computer side's air planning: an air strike next to a contested objective or unit, and an airborne drop near an
 // exposed enemy objective, with the cells and element types they use.
 #include "core/aiops1.hpp"
+#include "core/grid-neighbours.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -25,6 +26,9 @@
 #include "units/stats.hpp"
 
 #include <cstddef>
+#include <optional>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -49,15 +53,79 @@ constexpr auto IsDropTerrain(std::uint8_t code) -> bool {
   }
 }
 
-// The strike's target: the first of the eight cells around (x, y) that `accept` takes; false when none does.
-template <typename Accept>
-auto StepAround(std::uint8_t x, std::uint8_t y, std::uint8_t& to_x, std::uint8_t& to_y, Accept&& accept) -> bool {
-  for (std::uint8_t direction{ 0 }; direction < GRID_DIRECTIONS; ++direction) {
-    to_x = x;
-    to_y = y;
-    if (opeu_grid_step(&to_x, &to_y, direction) && accept(to_x, to_y)) return true;
+// The last cell a search tried, and whether it was what the search looked for.
+struct CellSearch {
+  GridCell cell;
+  bool     found;
+};
+
+// Whether airborne troops can land on the cell: on the map, of drop terrain, not marked by the side and held by no side.
+auto FreeForDrop(Game& game, GridCell cell) -> bool {
+  return cell.x < MAP_WIDTH && cell.y < MAP_HEIGHT && IsDropTerrain(opeu_map_code(game, cell.x, cell.y)) && !opeu_cell_marked(game, cell.x, cell.y, Data(game).current_side)
+         && opeu_cell_side(game, cell.x, cell.y) == NO_SIDE;
+}
+
+// A random cell within 3 of the objective (clamped at the top and left edges).
+auto RandomCellNear(Objective const& objective) -> GridCell {
+  auto x{ static_cast<std::uint8_t>(opeu_rand_bounded(7) + objective.x) };
+  auto y{ static_cast<std::uint8_t>(opeu_rand_bounded(7) + objective.y) };
+  opeu_sub_byte(3, &x);
+  opeu_sub_byte(3, &y);
+  return { x, y };
+}
+
+// Tries up to five random cells within 3 of the objective until one is free for a drop.
+auto FreeCellNear(Game& game, Objective const& objective) -> CellSearch {
+  CellSearch search{};
+  for ([[maybe_unused]] auto const attempt : std::views::iota(0, 5)) {
+    search.cell = RandomCellNear(objective);
+    if (FreeForDrop(game, search.cell)) return { search.cell, true };
   }
-  return false;
+  return search;
+}
+
+// The first of the eight cells around `cell` that `accept` takes.
+template <typename Accept>
+auto StepAround(GridCell cell, Accept&& accept) -> std::optional<GridCell> {
+  for (auto const around : CellsAround(cell))
+    if (accept(around)) return around;
+  return std::nullopt;
+}
+
+// Whether an enemy special unit of the side stands on the cell.
+auto EnemySpecialAt(Game& game, std::uint8_t side, GridCell cell) -> bool {
+  return opeu_cell_side(game, cell.x, cell.y) == opeu_opposite_side(side) && opeu_unit_special(game, opeu_find_unit_at(game, cell.x, cell.y));
+}
+
+// A strike target at the side's linked objectives: next to a held one, a cell where an enemy special unit stands (each
+// such cell one time in two); an enemy one itself, when one of the side's units that can act stands next to it (each
+// one time in four).
+auto TargetAtObjectives(Game& game, std::uint8_t side) -> std::optional<GridCell> {
+  auto& data{ Data(game) };
+  for (auto const near : std::span{ data.objective_links }.subspan(side * OBJECTIVE_LINKS_PER_SIDE, OBJECTIVE_LINKS_PER_SIDE)) {
+    if (!near) continue;
+    auto const& objective{ Record<Objective>(data, near) };
+    if (!objective.active) continue;
+    GridCell const cell{ objective.x, objective.y };
+    if (opeu_objective_side(game, near) == side) {
+      if (auto const target{ StepAround(cell, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !opeu_rand_bounded(2); }) }) return target;
+    } else if (StepAround(cell, [&](GridCell around) {
+                 return opeu_cell_side(game, around.x, around.y) == side && opeu_unit_selection_eligible(game, opeu_find_unit_at(game, around.x, around.y)) && !opeu_rand_bounded(4);
+               }))
+      return cell;
+  }
+  return std::nullopt;
+}
+
+// A strike target next to one of the side's ready units: a cell where an enemy special unit stands (each such cell
+// one time in eight).
+auto TargetAtUnits(Game& game, std::uint8_t side) -> std::optional<GridCell> {
+  auto& data{ Data(game) };
+  for (auto const& unit : std::span{ data.units }.subspan(side * UNITS_PER_SIDE, UNITS_PER_SIDE)) {
+    if (!(unit.flags & Bits(UnitFlag::READY))) continue;
+    if (auto const target{ StepAround({ unit.x, unit.y }, [&](GridCell around) { return EnemySpecialAt(game, side, around) && !opeu_rand_bounded(8); }) }) return target;
+  }
+  return std::nullopt;
 }
 } // namespace
 
@@ -78,35 +146,12 @@ uint16_t opeu_ai_002a(Game& game) {
   auto const side_index{ data.current_side };
   auto&      side{ data.sides[side_index] };
   if (!side.bombers) return 0;
-  std::uint8_t x{};
-  std::uint8_t y{};
-  auto const   enemy_special{ [&](std::uint8_t cx, std::uint8_t cy) {
-    return opeu_cell_side(game, cx, cy) == opeu_opposite_side(side_index) && opeu_unit_special(game, opeu_find_unit_at(game, cx, cy));
-  } };
-  bool found{ false };
-  for (std::uint8_t i{ 0 }; i < OBJECTIVE_LINKS_PER_SIDE && !found; ++i) {
-    auto const near{ data.objective_links[side_index * OBJECTIVE_LINKS_PER_SIDE + i] };
-    if (!near) continue;
-    auto const& objective{ Record<Objective>(data, near) };
-    if (!objective.active) continue;
-    if (opeu_objective_side(game, near) == side_index) {
-      found = StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) { return enemy_special(cx, cy) && !opeu_rand_bounded(2); });
-    } else if (StepAround(objective.x, objective.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) {
-                 return opeu_cell_side(game, cx, cy) == side_index && opeu_unit_selection_eligible(game, opeu_find_unit_at(game, cx, cy)) && !opeu_rand_bounded(4);
-               })) {
-      x     = objective.x;
-      y     = objective.y;
-      found = true;
-    }
-  }
-  for (unsigned i{ 0 }; i < UNITS_PER_SIDE && !found; ++i) {
-    auto const& unit{ data.units[side_index * UNITS_PER_SIDE + i] };
-    if (unit.flags & Bits(UnitFlag::READY)) found = StepAround(unit.x, unit.y, x, y, [&](std::uint8_t cx, std::uint8_t cy) { return enemy_special(cx, cy) && !opeu_rand_bounded(8); });
-  }
-  if (!found) return 0;
+  auto target{ TargetAtObjectives(game, side_index) };
+  if (!target) target = TargetAtUnits(game, side_index);
+  if (!target) return 0;
   auto& strike{ side.strike };
-  strike.x      = x;
-  strike.y      = y;
+  strike.x      = target->x;
+  strike.y      = target->y;
   strike.planes = opeu_min16(side.bombers, opeu_rand_bounded(11) + 10);
   strike.hours  = 1;
   strike.turns  = 7;
@@ -136,20 +181,6 @@ uint16_t opeu_ai_exposed_enemy_objective(Game& game) {
   return 0;
 }
 
-// Tries up to five random cells within 3 of the objective; accepts an unmarked, unowned cell of drop terrain.
-uint16_t opeu_ai_free_cell_near(Game& game, uint16_t objective, uint8_t* x, uint8_t* y) {
-  auto& data{ Data(game) };
-  for (std::uint8_t attempt{ 0 }; attempt < 5; ++attempt) {
-    auto const& target{ Record<Objective>(data, objective) };
-    *x = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.x);
-    *y = static_cast<std::uint8_t>(opeu_rand_bounded(7) + target.y);
-    opeu_sub_byte(3, x);
-    opeu_sub_byte(3, y);
-    if (*x < MAP_WIDTH && *y < MAP_HEIGHT && IsDropTerrain(opeu_map_code(game, *x, *y)) && !opeu_cell_marked(game, *x, *y, data.current_side) && opeu_cell_side(game, *x, *y) == NO_SIDE) return 1;
-  }
-  return 0;
-}
-
 // Unless the influence map mostly favours the side (and one time in twelve regardless), plans an airborne drop: a
 // random free unit is filled with free elements of the first airborne type, up to the side's paratroops and spare
 // transports, and the drop is aimed at a free cell near an exposed enemy objective. Returns 1 when a drop was planned.
@@ -168,7 +199,11 @@ uint16_t opeu_ai_03e2(Game& game) {
   auto const planes{ opeu_ai_spare_cargo(game) };
   if (!planes) return 0;
   auto const target{ opeu_ai_exposed_enemy_objective(game) };
-  if (!target || !opeu_ai_free_cell_near(game, target, &drop.x, &drop.y)) return 0;
+  if (!target) return 0;
+  auto const drop_cell{ FreeCellNear(game, Record<Objective>(data, target)) };
+  drop.x = drop_cell.cell.x;
+  drop.y = drop_cell.cell.y;
+  if (!drop_cell.found) return 0;
   auto const units{ AiFreeUnits(game, UNIT_LIST, Bits(UnitFlag::AIRBORNE)) };
   if (!units) return 0;
   auto const elements{ AiFreeElements(game, ELEMENT_LIST, Bits(ElementFlag::AIRBORNE)) };

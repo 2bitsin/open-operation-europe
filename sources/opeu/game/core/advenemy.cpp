@@ -3,6 +3,7 @@
 #include "core/advenemy.hpp"
 #include "common/events.hpp"
 #include "common/map-grid.hpp"
+#include "core/grid-neighbours.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
 
@@ -104,15 +105,8 @@ uint16_t opeu_advice_enemy_attack_plans(Game& game, const uint8_t* far_text) {
   auto const   advisor{ Enemy(game, far_text) };
   std::uint8_t threats{ 0 };
   ForEnemySpecialUnits(game, [&](std::uint8_t, Unit const& unit) {
-    if (IsAssault(unit.orders[0].kind))
-      for (std::uint8_t d{ 0 }; d < GRID_DIRECTIONS; ++d) {
-        std::uint8_t x{ unit.x };
-        std::uint8_t y{ unit.y };
-        if (opeu_grid_step(&x, &y, d) && opeu_cell_side(game, x, y) == data.current_side) {
-          ++threats;
-          break;
-        }
-      }
+    auto const ours{ [&](GridCell cell) { return opeu_cell_side(game, cell.x, cell.y) == data.current_side; } };
+    if (IsAssault(unit.orders[0].kind) && std::ranges::any_of(CellsAround({ unit.x, unit.y }), ours)) ++threats;
     return false;
   });
   if (threats == 0 && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_NO_ATTACK_PLANS);

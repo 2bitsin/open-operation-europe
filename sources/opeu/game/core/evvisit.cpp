@@ -4,6 +4,7 @@
 #include "core/evvisit.hpp"
 #include "common/events.hpp"
 #include "common/map-grid.hpp"
+#include "core/grid-neighbours.hpp"
 #include "core/numeric.hpp"
 #include "core/people.hpp"
 #include "core/perssel.hpp"
@@ -57,12 +58,8 @@ auto Raise(Game& game, std::uint8_t& rating) -> void {
 
 // Whether an enemy special unit stands next to the unit.
 auto Threatened(Game& game, Unit const& unit, std::uint8_t enemy) -> bool {
-  auto const special_enemy_beside{ [&game, &unit, enemy](std::uint8_t direction) {
-    std::uint8_t x{ unit.x };
-    std::uint8_t y{ unit.y };
-    return opeu_grid_step(&x, &y, direction) && opeu_cell_side(game, x, y) == enemy && opeu_unit_special(game, opeu_find_unit_at(game, x, y));
-  } };
-  return std::ranges::any_of(std::views::iota(std::uint8_t{ 0 }, GRID_DIRECTIONS), special_enemy_beside);
+  auto const special_enemy{ [&game, enemy](GridCell cell) { return opeu_cell_side(game, cell.x, cell.y) == enemy && opeu_unit_special(game, opeu_find_unit_at(game, cell.x, cell.y)); } };
+  return std::ranges::any_of(CellsAround({ unit.x, unit.y }), special_enemy);
 }
 
 // Raises leadership, charm, bravery, infantry, artillery and armor by 0..9 each, up to 99.

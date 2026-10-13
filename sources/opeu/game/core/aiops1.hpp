@@ -15,7 +15,6 @@ uint16_t opeu_ai_spare_cargo(Game& game);
 uint16_t opeu_ai_002a(Game& game);
 uint8_t  opeu_ai_first_allowed_type(Game& game);
 uint16_t opeu_ai_exposed_enemy_objective(Game& game);
-uint16_t opeu_ai_free_cell_near(Game& game, uint16_t objective, uint8_t* x, uint8_t* y);
 uint16_t opeu_ai_03e2(Game& game);
 
 namespace opeu::game::detail::ai_service {
