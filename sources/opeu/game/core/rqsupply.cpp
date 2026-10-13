@@ -16,10 +16,12 @@ using namespace opeu::game;
 
 namespace {
 
-constexpr uint16_t SCRATCH_BYTES{ 0x40 }; // the DS scratch of the supplies choice: the picked cell and the text
-constexpr uint16_t BUFFER_OFFSET{ 4 };    // where in the scratch the text goes
+constexpr uint16_t SCRATCH_BYTES{ 0x40 }; // the DS scratch the caller reserves for the supplies choice
+// The supplies choice's reserve: the picked cell, then the confirmation text.
+constexpr uint16_t CELL_AT{ 0 };
+constexpr uint16_t BUFFER_OFFSET{ 4 };
 
-// The map cell the player picks, kept in the scratch because the pick service writes it through its address.
+// The map cell the player picks, kept in the reserve because the pick service writes it through its address.
 struct PickedCell {
   uint8_t x;
   uint8_t y;
@@ -29,11 +31,13 @@ struct PickedCell {
 
 // "Which city would you like to receive the supplies?": a filed supplies request may be cancelled first; then the
 // player picks one of the side's own cities on the map, confirms, and the request is filed and the side's turn ends.
-void opeu_request_supplies(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
-  auto&      data{ Data(ds) };
-  auto&      cell{ Record<PickedCell>(data, scratch) };
-  auto const buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
-  auto const kind{ std::to_underlying(RequestKind::SUPPLIES) };
+void opeu_request_supplies(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+  ServiceLocals const locals{ SCRATCH_BYTES };
+  auto const          scratch{ locals.At(CELL_AT) };
+  auto&               data{ Data(ds) };
+  auto&               cell{ Record<PickedCell>(data, scratch) };
+  auto const          buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
+  auto const          kind{ std::to_underlying(RequestKind::SUPPLIES) };
   if (Call(ds, event, RequestMenuService::PENDING, kind)) {
     if (!Call(ds, event, RequestMenuService::CANCEL_PROMPT, offsetof(DataSegment, rq_supplies_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[kind].kind = std::to_underlying(RequestKind::NONE);

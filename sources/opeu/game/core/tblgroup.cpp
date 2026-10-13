@@ -31,16 +31,20 @@ using enum TableService;
 constexpr std::uint8_t DRAW_HEADER{ 3 }; // flags that draw the header line
 constexpr std::uint8_t DRAW_LABELS{ 5 }; // flags that draw the row labels
 
+// The row texts the format service writes: the row (and in the mission table the target's place behind it).
+constexpr std::uint16_t ROW_TEXT_BYTES{ 0x6c };
+constexpr std::uint16_t PLACE_AT{ 60 };
 } // namespace
 
 // The division table: each division's label and, for a division with an eligible selected unit, its commander and
 // its fuel, ammunition and food percentages.
 void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto&       data{ Data(ds) };
-  auto const  buffer{ static_cast<std::uint16_t>(scratch + 4) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  columns{ Columns(ds, event, scratch, column, row) };
-  auto const  side{ data.current_side };
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ ROW_TEXT_BYTES };
+  auto const          buffer{ locals.At(0) };
+  auto const&         window{ ActiveWindow(data) };
+  auto const          columns{ Columns(ds, event, scratch, column, row) };
+  auto const          side{ data.current_side };
   if (flags & DRAW_HEADER) {
     Call(ds, event, FORMAT, buffer, Near(data, data.tbl_group_header));
     Call(ds, event, POSITION, ColumnX(data, window, columns, -0x20), window.y + 1);
@@ -79,12 +83,13 @@ void opeu_tbl_draw_groups(uint8_t ds[65536], HostEvent event, uint16_t scratch, 
 // The mission table of the current division: each of its four tasks shows its order and the objective at the task's
 // cell, or the cell in map coordinates.
 void opeu_tbl_draw_missions(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto&       data{ Data(ds) };
-  auto const  buffer{ static_cast<std::uint16_t>(scratch + 4) };
-  auto const  place{ static_cast<std::uint16_t>(scratch + 64) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  columns{ Columns(ds, event, scratch, column, row) };
-  auto const  side{ data.current_side };
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ ROW_TEXT_BYTES };
+  auto const          buffer{ locals.At(0) };
+  auto const          place{ locals.At(PLACE_AT) };
+  auto const&         window{ ActiveWindow(data) };
+  auto const          columns{ Columns(ds, event, scratch, column, row) };
+  auto const          side{ data.current_side };
   if (flags & DRAW_HEADER) {
     Call(ds, event, POSITION, 0x26, 0x81);
     Call(ds, event, SIDE_COLOR, side);

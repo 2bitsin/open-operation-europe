@@ -28,14 +28,17 @@ constexpr std::uint16_t MOUSE_PROMPT{ 118 };    // the delay prompt for mouse in
 constexpr std::uint16_t DIALOG_X{ 24 };
 constexpr std::uint16_t CANCELLED{ 0xffff };
 
-// The routine's DS stack: the 36-byte prompt text and the result word.
+// The DS stack the routine's caller reserves: the 36-byte prompt text and the result word.
 constexpr std::uint16_t DELAY_FRAME{ 38 };
+constexpr std::uint16_t PROMPT_BYTES{ 36 }; // the prompt the dialog service shows
 } // namespace
 
-// Copies the prompt into the scratch text at `scratch`, asks the context person for the hours and stores them as the
-// current side's delay once confirmed.
-void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
-  auto& data{ Data(ds) };
+// Copies the prompt into the routine's reserve, asks the context person for the hours and stores them as the current
+// side's delay once confirmed.
+void opeu_choose_turn_delay(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+  ServiceLocals const locals{ PROMPT_BYTES };
+  auto const          scratch{ locals.At(0) };
+  auto&               data{ Data(ds) };
   opeu_string_copy(ds, scratch, Call(ds, event, TEXT, data.input_mode == 0 ? KEYBOARD_PROMPT : MOUSE_PROMPT));
   auto const hours{ Call(ds, event, DIALOG, scratch, DIALOG_X, data.context_record2, 0) };
   if (hours != CANCELLED && Call(ds, event, CONFIRM, hours, data.context_record2)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);

@@ -32,16 +32,17 @@ enum Service : std::uint16_t {
 
 constexpr std::uint16_t RESTORED_FORMAT{ offsetof(DataSegment, comms_restored_format) };
 constexpr std::uint16_t CAPTURED_FORMAT{ offsetof(DataSegment, spy_captured_format) };
-constexpr std::uint16_t COMPUTER_LEVEL{ 2 };       // the level of a computer side
-constexpr std::uint8_t  ADVISER{ 3 };              // the side record kind of the adviser
-constexpr std::uint16_t NEWS_BELOW_SP{ 2 + 0x6c }; // the report text's place in the caller's frame
+constexpr std::uint16_t COMPUTER_LEVEL{ 2 }; // the level of a computer side
+constexpr std::uint8_t  ADVISER{ 3 };        // the side record kind of the adviser
+constexpr std::uint16_t NEWS_BYTES{ 0x6c };  // the report text the format service writes
 } // namespace
 
 // The level is the delivery level for a side the player commands, else 2: a higher level grows strength more slowly
 // and makes both events rarer.
-void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const news{ static_cast<std::uint16_t>(sp - NEWS_BELOW_SP) };
+void opeu_objective_comms_event(uint8_t ds[65536], HostEvent event, uint16_t /*sp*/) {
+  ServiceLocals const locals{ NEWS_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          news{ locals.At(0) };
   for (auto& objective : data.objectives) {
     if (!objective.active) continue;
     auto const    camp{ Near(data, objective) };

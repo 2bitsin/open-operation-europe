@@ -41,7 +41,7 @@ constexpr std::uint16_t STRING_FORMAT{ offsetof(DataSegment, panel_string_format
 constexpr std::uint16_t ICONS{ 0x660 }; // eleven 64-byte element icons in the frame segment
 constexpr std::uint16_t ICON_BYTES{ 64 };
 constexpr std::uint16_t WHITE{ 7 };
-constexpr std::uint16_t NAME_BUFFER{ 0x2a };    // the element name buffer, below the entry SP
+constexpr std::uint16_t NAME_BUFFER{ 0x2a };    // the element name buffer the name service writes
 constexpr std::uint16_t ELEMENTS_CALL_SP{ 16 }; // the entry SP of the element rows, below the regiments' own
 
 // The text color of the current side's names: 5 for side 1, 6 for side 0.
@@ -82,10 +82,11 @@ uint32_t opeu_element_icon(const uint8_t ds[65536], uint16_t element) {
 }
 
 // Icon, name and count of each element of the unit with a nonzero count, two per row from y.
-void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int y, uint16_t sp) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ static_cast<std::uint16_t>(sp - NAME_BUFFER) };
-  int        shown{ 0 };
+void opeu_panel_elements(uint8_t ds[65536], HostEvent event, uint16_t unit, int y, uint16_t /*sp*/) {
+  ServiceLocals const locals{ NAME_BUFFER };
+  auto&               data{ Data(ds) };
+  auto const          buffer{ locals.At(0) };
+  int                 shown{ 0 };
   // The walk starts at the unit's first element and stops after the element whose next link is 0.
   for (auto near{ Record<Unit>(data, unit).first };;) {
     auto const& element{ Record<Element>(data, near) };

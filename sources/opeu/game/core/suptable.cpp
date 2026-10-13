@@ -81,10 +81,12 @@ uint8_t opeu_supply_true(void) {
   return 1;
 }
 
-// Draws the type rows first..last (last below 255); scratch holds the nation's buffer.
-void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto const& data{ Data(ds) };
-  auto const& window{ Window(data) };
+// Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
+void opeu_supply_draw_types(uint8_t ds[65536], HostNotify event, uint16_t /*scratch*/, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+  ServiceLocals const locals{ 2 * NAME_BUFFER };
+  auto const          scratch{ locals.At(0) };
+  auto const&         data{ Data(ds) };
+  auto const&         window{ Window(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);
@@ -121,10 +123,12 @@ uint8_t opeu_supply_return_slot(uint8_t ds[65536], HostNotify event) {
   return 1;
 }
 
-// Draws the slot rows first..last; scratch holds the type name's and, above it, the nation's buffer.
-void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratch, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
-  auto const& data{ Data(ds) };
-  auto const& window{ Window(data) };
+// Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
+void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t /*scratch*/, uint8_t column, uint8_t first, uint8_t row, uint8_t last, uint8_t flags) {
+  ServiceLocals const locals{ 2 * NAME_BUFFER };
+  auto const          scratch{ locals.At(0) };
+  auto const&         data{ Data(ds) };
+  auto const&         window{ Window(data) };
   Call(ds, event, LAYOUT, column, row);
   if (flags & 3) {
     Call(ds, event, POSITION, window.x + 2, window.y + 1);
@@ -149,10 +153,10 @@ void opeu_supply_draw_slots(uint8_t ds[65536], HostNotify event, uint16_t scratc
 void svc_suptable(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SupplyTableService>(id)) {
   case LAYOUT: {
-    // The layout's three byte outputs go to the DS stack and are not used.
-    auto const out{ static_cast<std::uint16_t>(port_stack_enter(4) - 4) };
+    // The layout's three byte outputs go to a reserve and are not used.
+    ServiceLocals const locals{ 4 };
+    auto const          out{ locals.At(0) };
     opeu_table_columns(ds, svc_listui, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), out, (uint16_t)(out + 1), (uint16_t)(out + 2));
-    port_stack_leave(4);
     break;
   }
   case POSITION:  opeu_army_position(ds, (TextHost*)port_textout_host(), (int16_t)Arg(args, count, 0), (int16_t)Arg(args, count, 1)); break;

@@ -53,13 +53,15 @@ constexpr auto Low(std::uint32_t value) -> std::uint16_t {
 constexpr auto High(std::uint32_t value) -> std::uint16_t {
   return static_cast<std::uint16_t>(value >> 16);
 }
+constexpr std::uint16_t NAME_BYTES{ 0x50 }; // the headquarters regiment's name
 } // namespace
 
 // Shown on a side the player controls (or when neither side is player-controlled). The headquarters regiment's name
-// is formatted into the caller's buffer at `scratch`.
-void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
-  auto&      data{ Data(ds) };
-  auto const side{ data.current_side };
+// is written into the routine's reserve for the print service.
+void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t /*scratch*/) {
+  ServiceLocals const locals{ NAME_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          side{ data.current_side };
   if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != 1) return;
   Call(ds, event, TITLE, data.side_names[side]);
   if (!opeu_unit_support_condition(ds, opeu_find_side_selected_unit(ds, side))) {
@@ -93,7 +95,7 @@ void opeu_army_summary(uint8_t ds[65537], HostEvent event, uint16_t scratch) {
   row(263);
   Call(ds, event, PRINT, ROW5, own.planes, own.paratroops, own.strength);
   Call(ds, event, POSITION, 54, 138);
-  Call(ds, event, PRINT, HQ_FORMAT, opeu_unit_name(ds, event, opeu_find_side_selected_unit(ds, side), scratch));
+  Call(ds, event, PRINT, HQ_FORMAT, opeu_unit_name(ds, event, opeu_find_side_selected_unit(ds, side), locals.At(0)));
 }
 
 uint16_t svc_armysum(uint8_t* ds, uint16_t id, const uint16_t* args, uint16_t count) {

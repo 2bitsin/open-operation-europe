@@ -20,7 +20,7 @@ using namespace opeu::game;
 namespace {
 
 constexpr uint16_t SCRATCH_BYTES{ 0x80 }; // the DS scratch the prompts format their text in
-constexpr uint16_t BUFFER_OFFSET{ 4 };    // where in the scratch the text goes
+constexpr uint16_t TEXT_BYTES{ 0x7c };    // the prompt text the format service writes
 // The far address of opeu_request_finish, which SHOW calls back.
 constexpr uint16_t FINISH_PRESENT_OFFSET{ 0x009a };
 constexpr uint16_t FINISH_PRESENT_SEGMENT{ 0x22f9 };
@@ -37,9 +37,10 @@ auto FiledRequests(DataSegment const& data) -> auto const& {
 } // namespace
 
 // "You cannot increase your %s any more.", spoken by the context's third person.
-void opeu_request_no_more(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint16_t what) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
+void opeu_request_no_more(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/, uint16_t what) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          buffer{ locals.At(0) };
   Call(ds, event, RequestMenuService::FORMAT, buffer, offsetof(DataSegment, rq_no_more_text), what);
   Call(ds, event, RequestMenuService::MESSAGE, buffer, data.context_record3);
 }
@@ -56,9 +57,10 @@ uint16_t opeu_request_mode_is(const uint8_t ds[65536], uint8_t mode) {
 }
 
 // "Your %s request has been sent. Cancel the request?"; returns the context's second person's answer.
-uint16_t opeu_request_cancel_prompt(uint8_t ds[65536], HostEvent event, uint16_t scratch, uint16_t what) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
+uint16_t opeu_request_cancel_prompt(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/, uint16_t what) {
+  ServiceLocals const locals{ TEXT_BYTES };
+  auto&               data{ Data(ds) };
+  auto const          buffer{ locals.At(0) };
   Call(ds, event, RequestMenuService::FORMAT, buffer, offsetof(DataSegment, rq_cancel_text), what);
   return Call(ds, event, RequestMenuService::CONFIRM, buffer, data.context_record2);
 }
@@ -98,13 +100,13 @@ uint16_t svc_request(const char* module, uint8_t* ds, uint16_t id, const uint16_
     break;
   case RequestMenuService::FILE: {
     // The request is handed over as a 4-byte local: target word, argument byte, kind byte.
-    auto const at{ port_scratch_enter(sizeof(RequestSlot)) };
-    auto&      request{ Record<RequestSlot>(Data(ds), at) };
+    ServiceLocals const locals{ sizeof(RequestSlot) };
+    auto const          at{ locals.At(0) };
+    auto&               request{ Record<RequestSlot>(Data(ds), at) };
     request.target   = Arg(args, count, 0);
     request.argument = (uint8_t)Arg(args, count, 1);
     request.kind     = (uint8_t)Arg(args, count, 2);
     opeu_request_file(ds, svc_rqcommon, at);
-    port_scratch_leave(sizeof(RequestSlot));
     break;
   }
   case RequestMenuService::MESSAGE:      opeu_control_message(ds, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;

@@ -36,12 +36,13 @@ constexpr std::uint16_t FIRST_SIDE_TOKEN{ 54 };
 constexpr std::uint16_t SECOND_SIDE_TOKEN{ 53 };
 } // namespace
 
-// scratch is the DS offset of the caller's 32-byte name buffer.
-void opeu_arrival_present(uint8_t ds[65536], HostEvent event, uint16_t scratch) {
-  auto& data{ Data(ds) };
+// The arriving unit's name goes into a 32-byte buffer of the routine's reserve for the format service.
+void opeu_arrival_present(uint8_t ds[65536], HostEvent event, uint16_t /*scratch*/) {
+  ServiceLocals const locals{ 0x20 };
+  auto&               data{ Data(ds) };
   Call(ds, event, REQUEST_WAIT);
   Call(ds, event, DAILY_CONTEXT, data.current_side);
-  auto const          name{ opeu_unit_name(ds, event, data.arrival_unit, scratch) };
+  auto const          name{ opeu_unit_name(ds, event, data.arrival_unit, locals.At(0)) };
   auto const          side{ data.arrival_side };
   std::uint16_t const token{ side == 0 ? FIRST_SIDE_TOKEN : SECOND_SIDE_TOKEN };
   auto const          format{ Call(ds, event, MESSAGE_LOOKUP, ARRIVAL_FORMAT) };
