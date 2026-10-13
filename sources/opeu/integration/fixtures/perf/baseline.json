@@ -6,492 +6,492 @@
     "debug": {
      "benches": {
       "opeu-game-benches/Calibration": {
-       "cpu_median_ns": 875833.3,
-       "cpu_min_ns": 638227.3,
+       "cpu_median_ns": 637318.2,
+       "cpu_min_ns": 622244.4,
        "samples": 35
       },
       "opeu-game-benches/ElementRatings": {
-       "cpu_median_ns": 509.2,
-       "cpu_min_ns": 498.2,
+       "cpu_median_ns": 498.1,
+       "cpu_min_ns": 470.1,
        "samples": 35
       },
       "opeu-game-benches/ElementsAt": {
-       "cpu_median_ns": 11121.9,
-       "cpu_min_ns": 10876.5,
+       "cpu_median_ns": 10604.0,
+       "cpu_min_ns": 10305.3,
        "samples": 35
       },
       "opeu-game-benches/MarkExits": {
-       "cpu_median_ns": 2250000.0,
-       "cpu_min_ns": 2207200.0,
+       "cpu_median_ns": 2145700.0,
+       "cpu_min_ns": 2069800.0,
        "samples": 35
       },
       "opeu-game-benches/MoveCosts": {
-       "cpu_median_ns": 106127.3,
-       "cpu_min_ns": 104049.1,
+       "cpu_median_ns": 104853.9,
+       "cpu_min_ns": 99060.9,
        "samples": 35
       },
       "opeu-game-benches/PathFloodThroughOccupants": {
-       "cpu_median_ns": 105513.6,
-       "cpu_min_ns": 94246.4,
+       "cpu_median_ns": 91869.6,
+       "cpu_min_ns": 88053.8,
        "samples": 35
       },
       "opeu-game-benches/PathFloodToCell": {
-       "cpu_median_ns": 122419.7,
-       "cpu_min_ns": 103605.9,
+       "cpu_median_ns": 105992.4,
+       "cpu_min_ns": 100326.2,
        "samples": 35
       },
       "opeu-game-benches/PathFloodWholeField": {
-       "cpu_median_ns": 121340.0,
-       "cpu_min_ns": 111090.0,
+       "cpu_median_ns": 109494.1,
+       "cpu_min_ns": 103660.4,
        "samples": 35
       },
       "opeu-game-benches/PathWalk": {
-       "cpu_median_ns": 107073.4,
-       "cpu_min_ns": 106034.2,
+       "cpu_median_ns": 104485.0,
+       "cpu_min_ns": 98673.7,
        "samples": 35
       },
       "opeu-services-benches/AlignedGlyph": {
-       "cpu_median_ns": 28406.6,
-       "cpu_min_ns": 25931.8,
+       "cpu_median_ns": 26425.7,
+       "cpu_min_ns": 25359.0,
        "samples": 70
       },
       "opeu-services-benches/BattleCell": {
-       "cpu_median_ns": 418350.0,
-       "cpu_min_ns": 320954.0,
+       "cpu_median_ns": 320904.8,
+       "cpu_min_ns": 311944.4,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:0": {
-       "cpu_median_ns": 2287750.0,
-       "cpu_min_ns": 2233833.3,
+       "cpu_median_ns": 2192153.8,
+       "cpu_min_ns": 2110000.0,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:1": {
-       "cpu_median_ns": 2268692.3,
-       "cpu_min_ns": 2230333.3,
+       "cpu_median_ns": 2186083.3,
+       "cpu_min_ns": 2109750.0,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:4": {
-       "cpu_median_ns": 2290916.7,
-       "cpu_min_ns": 2247000.0,
+       "cpu_median_ns": 2178923.1,
+       "cpu_min_ns": 2114769.2,
        "samples": 35
       },
       "opeu-services-benches/BlitThreeByteColumns": {
-       "cpu_median_ns": 2289916.7,
-       "cpu_min_ns": 2237333.3,
+       "cpu_median_ns": 2178538.5,
+       "cpu_min_ns": 2111307.7,
        "samples": 35
       },
       "opeu-services-benches/BoxAndHighlight": {
-       "cpu_median_ns": 2054100.0,
-       "cpu_min_ns": 1891800.0,
+       "cpu_median_ns": 1894266.7,
+       "cpu_min_ns": 1827400.0,
        "samples": 35
       },
       "opeu-services-benches/Calibration": {
-       "cpu_median_ns": 691487.8,
-       "cpu_min_ns": 660071.4,
+       "cpu_median_ns": 661833.3,
+       "cpu_min_ns": 624644.4,
        "samples": 35
       },
       "opeu-services-benches/CellBlockCopy": {
-       "cpu_median_ns": 15587.0,
-       "cpu_min_ns": 11243.0,
+       "cpu_median_ns": 15279.0,
+       "cpu_min_ns": 14774.4,
        "samples": 35
       },
       "opeu-services-benches/CopyColumns": {
-       "cpu_median_ns": 12938.1,
-       "cpu_min_ns": 12655.1,
+       "cpu_median_ns": 12393.2,
+       "cpu_min_ns": 12146.2,
        "samples": 35
       },
       "opeu-services-benches/DecodePicture": {
-       "cpu_median_ns": 3633714.3,
-       "cpu_min_ns": 2488363.6,
+       "cpu_median_ns": 2442727.3,
+       "cpu_min_ns": 2370727.3,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:0/planes:3": {
-       "cpu_median_ns": 2387615.4,
-       "cpu_min_ns": 2215083.3,
+       "cpu_median_ns": 2188461.5,
+       "cpu_min_ns": 2106923.1,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:0/planes:4": {
-       "cpu_median_ns": 2336500.0,
-       "cpu_min_ns": 2232307.7,
+       "cpu_median_ns": 2225923.1,
+       "cpu_min_ns": 2109307.7,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:1/planes:4": {
-       "cpu_median_ns": 2497916.7,
-       "cpu_min_ns": 2217666.7,
+       "cpu_median_ns": 2191692.3,
+       "cpu_min_ns": 2120923.1,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:4/planes:4": {
-       "cpu_median_ns": 2360083.3,
-       "cpu_min_ns": 2250416.7,
+       "cpu_median_ns": 2219615.4,
+       "cpu_min_ns": 2118461.5,
        "samples": 35
       },
       "opeu-services-benches/DrawShiftedColumns": {
-       "cpu_median_ns": 96801.7,
-       "cpu_min_ns": 81017.6,
+       "cpu_median_ns": 79768.6,
+       "cpu_min_ns": 76739.6,
        "samples": 35
       },
       "opeu-services-benches/Fill": {
-       "cpu_median_ns": 16022000.0,
-       "cpu_min_ns": 15803000.0,
+       "cpu_median_ns": 15863500.0,
+       "cpu_min_ns": 15269500.0,
        "samples": 35
       },
       "opeu-services-benches/Lines": {
-       "cpu_median_ns": 23061.7,
-       "cpu_min_ns": 22715.2,
+       "cpu_median_ns": 22365.2,
+       "cpu_min_ns": 21709.3,
        "samples": 35
       },
       "opeu-services-benches/Present": {
-       "cpu_median_ns": 4150500.0,
-       "cpu_min_ns": 2953555.6,
+       "cpu_median_ns": 2859200.0,
+       "cpu_min_ns": 2753100.0,
        "samples": 35
       },
       "opeu-services-benches/Render": {
-       "cpu_median_ns": 3053777.8,
-       "cpu_min_ns": 3013111.1,
+       "cpu_median_ns": 2834700.0,
+       "cpu_min_ns": 2748000.0,
        "samples": 35
       },
       "opeu-services-benches/SaveColumns": {
-       "cpu_median_ns": 2190384.6,
-       "cpu_min_ns": 2003000.0,
+       "cpu_median_ns": 1974636.4,
+       "cpu_min_ns": 1902133.3,
        "samples": 35
       },
       "opeu-services-benches/ScreenCopy": {
-       "cpu_median_ns": 17407.6,
-       "cpu_min_ns": 12628.9,
+       "cpu_median_ns": 12457.9,
+       "cpu_min_ns": 12013.9,
        "samples": 35
       },
       "opeu-services-benches/ShiftedGlyph": {
-       "cpu_median_ns": 40501.5,
-       "cpu_min_ns": 38608.0,
+       "cpu_median_ns": 37572.8,
+       "cpu_min_ns": 36462.6,
        "samples": 70
       },
       "opeu-services-benches/ShiftedTransparentImage": {
-       "cpu_median_ns": 83269.0,
-       "cpu_min_ns": 78490.2,
+       "cpu_median_ns": 79453.5,
+       "cpu_min_ns": 76565.6,
        "samples": 35
       },
       "opeu-services-benches/SpriteCompose": {
-       "cpu_median_ns": 472062.5,
-       "cpu_min_ns": 342341.5,
+       "cpu_median_ns": 348101.3,
+       "cpu_min_ns": 333619.0,
        "samples": 35
       }
      },
-     "calibration_cpu_s": 0.5455,
+     "calibration_cpu_s": 0.4673,
      "measured": "2026-10-13",
      "os_version": "macOS 26.5",
-     "revision": "2e57d779",
+     "revision": "23249d74",
      "runs": {
       "load-play-save": {
-       "cpu_median_s": 1.1933,
-       "cpu_min_s": 1.1319,
+       "cpu_median_s": 1.1096,
+       "cpu_min_s": 0.9761,
        "samples": 7,
-       "wall_median_s": 1.459
+       "wall_median_s": 1.1915
       },
       "load-save": {
-       "cpu_median_s": 0.6356,
-       "cpu_min_s": 0.5666,
+       "cpu_median_s": 0.5922,
+       "cpu_min_s": 0.5104,
        "samples": 7,
-       "wall_median_s": 0.7343
+       "wall_median_s": 0.631
       },
       "save-new": {
-       "cpu_median_s": 2.3695,
-       "cpu_min_s": 2.1693,
+       "cpu_median_s": 2.1496,
+       "cpu_min_s": 1.9842,
        "samples": 7,
-       "wall_median_s": 3.0061
+       "wall_median_s": 2.3189
       },
       "smoke-input": {
-       "cpu_median_s": 1.1052,
-       "cpu_min_s": 0.9042,
+       "cpu_median_s": 0.9194,
+       "cpu_min_s": 0.8192,
        "samples": 7,
-       "wall_median_s": 1.7649
+       "wall_median_s": 0.9431
       }
      }
     },
     "release": {
      "benches": {
       "opeu-game-benches/Calibration": {
-       "cpu_median_ns": 17396.8,
-       "cpu_min_ns": 11518.6,
+       "cpu_median_ns": 11535.0,
+       "cpu_min_ns": 10877.0,
        "samples": 35
       },
       "opeu-game-benches/ElementRatings": {
-       "cpu_median_ns": 48.9,
-       "cpu_min_ns": 40.3,
+       "cpu_median_ns": 39.8,
+       "cpu_min_ns": 38.8,
        "samples": 35
       },
       "opeu-game-benches/ElementsAt": {
-       "cpu_median_ns": 1777.1,
-       "cpu_min_ns": 1536.8,
+       "cpu_median_ns": 1534.0,
+       "cpu_min_ns": 1479.0,
        "samples": 35
       },
       "opeu-game-benches/MarkExits": {
-       "cpu_median_ns": 28134.4,
-       "cpu_min_ns": 18949.0,
+       "cpu_median_ns": 19060.8,
+       "cpu_min_ns": 17854.2,
        "samples": 35
       },
       "opeu-game-benches/MoveCosts": {
-       "cpu_median_ns": 9553.5,
-       "cpu_min_ns": 7327.9,
+       "cpu_median_ns": 7185.5,
+       "cpu_min_ns": 6887.1,
        "samples": 35
       },
       "opeu-game-benches/PathFloodThroughOccupants": {
-       "cpu_median_ns": 33879.4,
-       "cpu_min_ns": 21339.0,
+       "cpu_median_ns": 21183.6,
+       "cpu_min_ns": 19945.0,
        "samples": 35
       },
       "opeu-game-benches/PathFloodToCell": {
-       "cpu_median_ns": 38376.2,
-       "cpu_min_ns": 24251.9,
+       "cpu_median_ns": 23884.0,
+       "cpu_min_ns": 22676.5,
        "samples": 35
       },
       "opeu-game-benches/PathFloodWholeField": {
-       "cpu_median_ns": 39821.4,
-       "cpu_min_ns": 25107.8,
+       "cpu_median_ns": 24768.6,
+       "cpu_min_ns": 23534.7,
        "samples": 35
       },
       "opeu-game-benches/PathWalk": {
-       "cpu_median_ns": 36902.7,
-       "cpu_min_ns": 23527.2,
+       "cpu_median_ns": 23357.8,
+       "cpu_min_ns": 22160.8,
        "samples": 35
       },
       "opeu-services-benches/AlignedGlyph": {
-       "cpu_median_ns": 77.2,
-       "cpu_min_ns": 57.4,
+       "cpu_median_ns": 56.8,
+       "cpu_min_ns": 54.0,
        "samples": 70
       },
       "opeu-services-benches/BattleCell": {
-       "cpu_median_ns": 2247.5,
-       "cpu_min_ns": 1481.2,
+       "cpu_median_ns": 1426.9,
+       "cpu_min_ns": 1344.9,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:0": {
-       "cpu_median_ns": 5494.3,
-       "cpu_min_ns": 3544.2,
+       "cpu_median_ns": 3547.9,
+       "cpu_min_ns": 3338.4,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:1": {
-       "cpu_median_ns": 6680.9,
-       "cpu_min_ns": 4013.7,
+       "cpu_median_ns": 3925.7,
+       "cpu_min_ns": 3749.6,
        "samples": 35
       },
       "opeu-services-benches/BlitColumns/mode:4": {
-       "cpu_median_ns": 8742.5,
-       "cpu_min_ns": 5728.0,
+       "cpu_median_ns": 5735.4,
+       "cpu_min_ns": 5417.0,
        "samples": 35
       },
       "opeu-services-benches/BlitThreeByteColumns": {
-       "cpu_median_ns": 7482.4,
-       "cpu_min_ns": 5022.4,
+       "cpu_median_ns": 4856.3,
+       "cpu_min_ns": 4736.7,
        "samples": 35
       },
       "opeu-services-benches/BoxAndHighlight": {
-       "cpu_median_ns": 4649.0,
-       "cpu_min_ns": 3458.5,
+       "cpu_median_ns": 3468.3,
+       "cpu_min_ns": 3305.5,
        "samples": 35
       },
       "opeu-services-benches/Calibration": {
-       "cpu_median_ns": 16129.3,
-       "cpu_min_ns": 11517.1,
+       "cpu_median_ns": 11538.3,
+       "cpu_min_ns": 10940.7,
        "samples": 35
       },
       "opeu-services-benches/CellBlockCopy": {
-       "cpu_median_ns": 286.1,
-       "cpu_min_ns": 229.6,
+       "cpu_median_ns": 20.7,
+       "cpu_min_ns": 19.5,
        "samples": 35
       },
       "opeu-services-benches/CopyColumns": {
-       "cpu_median_ns": 616.5,
-       "cpu_min_ns": 426.8,
+       "cpu_median_ns": 419.8,
+       "cpu_min_ns": 401.0,
        "samples": 35
       },
       "opeu-services-benches/DecodePicture": {
-       "cpu_median_ns": 230053.1,
-       "cpu_min_ns": 174793.1,
+       "cpu_median_ns": 173378.0,
+       "cpu_min_ns": 168212.1,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:0/planes:3": {
-       "cpu_median_ns": 3831.6,
-       "cpu_min_ns": 2722.5,
+       "cpu_median_ns": 2601.3,
+       "cpu_min_ns": 2523.9,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:0/planes:4": {
-       "cpu_median_ns": 5509.3,
-       "cpu_min_ns": 3603.8,
+       "cpu_median_ns": 3511.3,
+       "cpu_min_ns": 3352.2,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:1/planes:4": {
-       "cpu_median_ns": 6158.2,
-       "cpu_min_ns": 3978.1,
+       "cpu_median_ns": 3981.2,
+       "cpu_min_ns": 3751.3,
        "samples": 35
       },
       "opeu-services-benches/DrawColumns/mode:4/planes:4": {
-       "cpu_median_ns": 8669.0,
-       "cpu_min_ns": 5785.6,
+       "cpu_median_ns": 5565.8,
+       "cpu_min_ns": 5388.1,
        "samples": 35
       },
       "opeu-services-benches/DrawShiftedColumns": {
-       "cpu_median_ns": 531.4,
-       "cpu_min_ns": 331.5,
+       "cpu_median_ns": 329.1,
+       "cpu_min_ns": 310.1,
        "samples": 35
       },
       "opeu-services-benches/Fill": {
-       "cpu_median_ns": 10144.2,
-       "cpu_min_ns": 8739.3,
+       "cpu_median_ns": 8555.2,
+       "cpu_min_ns": 8137.6,
        "samples": 35
       },
       "opeu-services-benches/Lines": {
-       "cpu_median_ns": 5621.5,
-       "cpu_min_ns": 4383.6,
+       "cpu_median_ns": 4232.3,
+       "cpu_min_ns": 4202.3,
        "samples": 35
       },
       "opeu-services-benches/Present": {
-       "cpu_median_ns": 137259.7,
-       "cpu_min_ns": 98805.7,
+       "cpu_median_ns": 96130.6,
+       "cpu_min_ns": 90528.2,
        "samples": 35
       },
       "opeu-services-benches/Render": {
-       "cpu_median_ns": 134296.4,
-       "cpu_min_ns": 97494.7,
+       "cpu_median_ns": 96439.4,
+       "cpu_min_ns": 90343.0,
        "samples": 35
       },
       "opeu-services-benches/SaveColumns": {
-       "cpu_median_ns": 9379.1,
-       "cpu_min_ns": 6384.1,
+       "cpu_median_ns": 6209.5,
+       "cpu_min_ns": 6014.1,
        "samples": 35
       },
       "opeu-services-benches/ScreenCopy": {
-       "cpu_median_ns": 674.6,
-       "cpu_min_ns": 445.8,
+       "cpu_median_ns": 424.2,
+       "cpu_min_ns": 405.3,
        "samples": 35
       },
       "opeu-services-benches/ShiftedGlyph": {
-       "cpu_median_ns": 293.4,
-       "cpu_min_ns": 214.9,
+       "cpu_median_ns": 210.4,
+       "cpu_min_ns": 201.8,
        "samples": 70
       },
       "opeu-services-benches/ShiftedTransparentImage": {
-       "cpu_median_ns": 561.8,
-       "cpu_min_ns": 333.1,
+       "cpu_median_ns": 328.9,
+       "cpu_min_ns": 310.7,
        "samples": 35
       },
       "opeu-services-benches/SpriteCompose": {
-       "cpu_median_ns": 3358.9,
-       "cpu_min_ns": 2431.2,
+       "cpu_median_ns": 2348.7,
+       "cpu_min_ns": 2208.1,
        "samples": 35
       }
      },
-     "calibration_cpu_s": 0.5956,
+     "calibration_cpu_s": 0.4732,
      "measured": "2026-10-13",
      "os_version": "macOS 26.5",
-     "revision": "2e57d779",
+     "revision": "23249d74",
      "runs": {
       "air-special-forces": {
-       "cpu_median_s": 0.1567,
-       "cpu_min_s": 0.1484,
+       "cpu_median_s": 0.1468,
+       "cpu_min_s": 0.1341,
        "samples": 7,
-       "wall_median_s": 0.1698
+       "wall_median_s": 0.1533
       },
       "demo-africa": {
-       "cpu_median_s": 0.8418,
-       "cpu_min_s": 0.8004,
+       "cpu_median_s": 0.4845,
+       "cpu_min_s": 0.4625,
        "samples": 7,
-       "wall_median_s": 1.5145
+       "wall_median_s": 0.5246
       },
       "demo-berlin": {
-       "cpu_median_s": 1.059,
-       "cpu_min_s": 1.0375,
+       "cpu_median_s": 0.5521,
+       "cpu_min_s": 0.4942,
        "samples": 7,
-       "wall_median_s": 1.9754
+       "wall_median_s": 0.5999
       },
       "demo-bulge": {
-       "cpu_median_s": 0.932,
-       "cpu_min_s": 0.9238,
+       "cpu_median_s": 0.4953,
+       "cpu_min_s": 0.4641,
        "samples": 7,
-       "wall_median_s": 1.7245
+       "wall_median_s": 0.5355
       },
       "demo-france": {
-       "cpu_median_s": 0.797,
-       "cpu_min_s": 0.7838,
+       "cpu_median_s": 0.4559,
+       "cpu_min_s": 0.4164,
        "samples": 7,
-       "wall_median_s": 1.4074
+       "wall_median_s": 0.4911
       },
       "demo-france-battles": {
-       "cpu_median_s": 0.5344,
-       "cpu_min_s": 0.5013,
+       "cpu_median_s": 0.378,
+       "cpu_min_s": 0.3441,
        "samples": 7,
-       "wall_median_s": 0.875
+       "wall_median_s": 0.3929
       },
       "demo-kursk": {
-       "cpu_median_s": 1.2793,
-       "cpu_min_s": 1.2302,
+       "cpu_median_s": 0.5631,
+       "cpu_min_s": 0.5376,
        "samples": 7,
-       "wall_median_s": 2.4142
+       "wall_median_s": 0.5993
       },
       "demo-normandy": {
-       "cpu_median_s": 0.9271,
-       "cpu_min_s": 0.9041,
+       "cpu_median_s": 0.5207,
+       "cpu_min_s": 0.4919,
        "samples": 7,
-       "wall_median_s": 1.7568
+       "wall_median_s": 0.5565
       },
       "load-play-save": {
-       "cpu_median_s": 0.0801,
-       "cpu_min_s": 0.0762,
+       "cpu_median_s": 0.0788,
+       "cpu_min_s": 0.0713,
+       "samples": 7,
+       "wall_median_s": 0.0849
+      },
+      "load-save": {
+       "cpu_median_s": 0.0426,
+       "cpu_min_s": 0.0397,
+       "samples": 7,
+       "wall_median_s": 0.0478
+      },
+      "officers-advice": {
+       "cpu_median_s": 0.1783,
+       "cpu_min_s": 0.1667,
+       "samples": 7,
+       "wall_median_s": 0.1906
+      },
+      "orders": {
+       "cpu_median_s": 0.1678,
+       "cpu_min_s": 0.1556,
+       "samples": 7,
+       "wall_median_s": 0.1766
+      },
+      "organize-request": {
+       "cpu_median_s": 0.1492,
+       "cpu_min_s": 0.1413,
+       "samples": 7,
+       "wall_median_s": 0.1593
+      },
+      "save-new": {
+       "cpu_median_s": 0.1246,
+       "cpu_min_s": 0.1167,
+       "samples": 7,
+       "wall_median_s": 0.1296
+      },
+      "settings-quit": {
+       "cpu_median_s": 0.1391,
+       "cpu_min_s": 0.1299,
+       "samples": 7,
+       "wall_median_s": 0.1483
+      },
+      "smoke-input": {
+       "cpu_median_s": 0.0836,
+       "cpu_min_s": 0.078,
        "samples": 7,
        "wall_median_s": 0.0894
       },
-      "load-save": {
-       "cpu_median_s": 0.0493,
-       "cpu_min_s": 0.0403,
-       "samples": 7,
-       "wall_median_s": 0.0603
-      },
-      "officers-advice": {
-       "cpu_median_s": 0.186,
-       "cpu_min_s": 0.1772,
-       "samples": 7,
-       "wall_median_s": 0.234
-      },
-      "orders": {
-       "cpu_median_s": 0.1718,
-       "cpu_min_s": 0.161,
-       "samples": 7,
-       "wall_median_s": 0.2003
-      },
-      "organize-request": {
-       "cpu_median_s": 0.1619,
-       "cpu_min_s": 0.1557,
-       "samples": 7,
-       "wall_median_s": 0.1854
-      },
-      "save-new": {
-       "cpu_median_s": 0.129,
-       "cpu_min_s": 0.1268,
-       "samples": 7,
-       "wall_median_s": 0.1426
-      },
-      "settings-quit": {
-       "cpu_median_s": 0.136,
-       "cpu_min_s": 0.1259,
-       "samples": 7,
-       "wall_median_s": 0.1467
-      },
-      "smoke-input": {
-       "cpu_median_s": 0.0884,
-       "cpu_min_s": 0.085,
-       "samples": 7,
-       "wall_median_s": 0.0985
-      },
       "smoke-intro": {
-       "cpu_median_s": 0.3461,
-       "cpu_min_s": 0.3091,
+       "cpu_median_s": 0.2996,
+       "cpu_min_s": 0.2773,
        "samples": 7,
-       "wall_median_s": 0.5497
+       "wall_median_s": 0.315
       },
       "smoke-turn": {
-       "cpu_median_s": 0.6771,
-       "cpu_min_s": 0.6378,
+       "cpu_median_s": 0.5501,
+       "cpu_min_s": 0.5204,
        "samples": 7,
-       "wall_median_s": 1.2481
+       "wall_median_s": 0.5749
       }
      }
     }
@@ -505,118 +505,118 @@
    },
    "reference": {
     "v1.0.1": {
-     "calibration_cpu_s": 0.5976,
+     "calibration_cpu_s": 0.4574,
      "measured": "2026-10-13",
      "os_version": "macOS 26.5",
      "revision": "a524a29c",
      "runs": {
       "air-special-forces": {
-       "cpu_median_s": 0.1403,
-       "cpu_min_s": 0.122,
+       "cpu_median_s": 0.1337,
+       "cpu_min_s": 0.1258,
        "samples": 7,
-       "wall_median_s": 0.1502
+       "wall_median_s": 0.1387
       },
       "demo-africa": {
-       "cpu_median_s": 0.6464,
-       "cpu_min_s": 0.6298,
+       "cpu_median_s": 0.5679,
+       "cpu_min_s": 0.5088,
        "samples": 7,
-       "wall_median_s": 1.133
+       "wall_median_s": 0.5909
       },
       "demo-berlin": {
-       "cpu_median_s": 0.7722,
-       "cpu_min_s": 0.7487,
+       "cpu_median_s": 0.6314,
+       "cpu_min_s": 0.5754,
        "samples": 7,
-       "wall_median_s": 1.3769
+       "wall_median_s": 0.6432
       },
       "demo-bulge": {
-       "cpu_median_s": 0.6722,
-       "cpu_min_s": 0.6566,
+       "cpu_median_s": 0.5399,
+       "cpu_min_s": 0.5123,
        "samples": 7,
-       "wall_median_s": 1.2188
+       "wall_median_s": 0.5628
       },
       "demo-france": {
-       "cpu_median_s": 0.5769,
-       "cpu_min_s": 0.5546,
+       "cpu_median_s": 0.5135,
+       "cpu_min_s": 0.4573,
        "samples": 7,
-       "wall_median_s": 0.9843
+       "wall_median_s": 0.5317
       },
       "demo-france-battles": {
-       "cpu_median_s": 0.4411,
-       "cpu_min_s": 0.3946,
+       "cpu_median_s": 0.3687,
+       "cpu_min_s": 0.3381,
        "samples": 7,
-       "wall_median_s": 0.7168
+       "wall_median_s": 0.375
       },
       "demo-kursk": {
-       "cpu_median_s": 0.7994,
-       "cpu_min_s": 0.7892,
+       "cpu_median_s": 0.7163,
+       "cpu_min_s": 0.628,
        "samples": 7,
-       "wall_median_s": 1.4949
+       "wall_median_s": 0.74
       },
       "demo-normandy": {
-       "cpu_median_s": 0.6745,
-       "cpu_min_s": 0.6447,
+       "cpu_median_s": 0.5851,
+       "cpu_min_s": 0.5095,
        "samples": 7,
-       "wall_median_s": 1.2059
+       "wall_median_s": 0.6191
       },
       "load-play-save": {
-       "cpu_median_s": 0.0796,
-       "cpu_min_s": 0.0742,
+       "cpu_median_s": 0.0732,
+       "cpu_min_s": 0.0652,
        "samples": 7,
-       "wall_median_s": 0.0866
+       "wall_median_s": 0.0785
       },
       "load-save": {
-       "cpu_median_s": 0.0454,
-       "cpu_min_s": 0.0427,
+       "cpu_median_s": 0.0423,
+       "cpu_min_s": 0.038,
        "samples": 7,
-       "wall_median_s": 0.0535
+       "wall_median_s": 0.0462
       },
       "officers-advice": {
-       "cpu_median_s": 0.1704,
-       "cpu_min_s": 0.1592,
+       "cpu_median_s": 0.1616,
+       "cpu_min_s": 0.1564,
        "samples": 7,
-       "wall_median_s": 0.1953
+       "wall_median_s": 0.1657
       },
       "orders": {
-       "cpu_median_s": 0.1605,
-       "cpu_min_s": 0.1491,
+       "cpu_median_s": 0.1503,
+       "cpu_min_s": 0.1449,
        "samples": 7,
-       "wall_median_s": 0.1814
+       "wall_median_s": 0.158
       },
       "organize-request": {
-       "cpu_median_s": 0.1438,
-       "cpu_min_s": 0.1321,
+       "cpu_median_s": 0.1379,
+       "cpu_min_s": 0.1299,
        "samples": 7,
-       "wall_median_s": 0.1509
+       "wall_median_s": 0.1425
       },
       "save-new": {
-       "cpu_median_s": 0.1239,
-       "cpu_min_s": 0.1183,
+       "cpu_median_s": 0.1174,
+       "cpu_min_s": 0.1075,
        "samples": 7,
-       "wall_median_s": 0.1326
+       "wall_median_s": 0.1214
       },
       "settings-quit": {
-       "cpu_median_s": 0.1229,
-       "cpu_min_s": 0.1181,
+       "cpu_median_s": 0.1201,
+       "cpu_min_s": 0.1136,
        "samples": 7,
-       "wall_median_s": 0.1306
+       "wall_median_s": 0.1266
       },
       "smoke-input": {
-       "cpu_median_s": 0.084,
-       "cpu_min_s": 0.0806,
+       "cpu_median_s": 0.0849,
+       "cpu_min_s": 0.0741,
        "samples": 7,
-       "wall_median_s": 0.0913
+       "wall_median_s": 0.0914
       },
       "smoke-intro": {
-       "cpu_median_s": 0.3179,
-       "cpu_min_s": 0.3118,
+       "cpu_median_s": 0.2869,
+       "cpu_min_s": 0.2733,
        "samples": 7,
-       "wall_median_s": 0.4919
+       "wall_median_s": 0.305
       },
       "smoke-turn": {
-       "cpu_median_s": 0.6565,
-       "cpu_min_s": 0.6278,
+       "cpu_median_s": 0.5438,
+       "cpu_min_s": 0.5235,
        "samples": 7,
-       "wall_median_s": 1.176
+       "wall_median_s": 0.5851
       }
      }
     }
