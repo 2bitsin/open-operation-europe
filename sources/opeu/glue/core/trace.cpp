@@ -30,7 +30,7 @@ auto port_trace_enabled(const char* category) -> int {
 }
 
 void port_trace(const char* category, const char* fmt, ...) {
-  va_list ap = nullptr;
+  va_list ap{};
   if (port_trace_enabled(category) == 0) return;
   log_open();
   if (log_file == nullptr) return;
@@ -43,7 +43,7 @@ void port_trace(const char* category, const char* fmt, ...) {
 }
 
 void port_fatal(const char* fmt, ...) {
-  va_list ap = nullptr;
+  va_list ap{};
   log_open();
   fputs("opeu: fatal: ", stderr);
   va_start(ap, fmt);
