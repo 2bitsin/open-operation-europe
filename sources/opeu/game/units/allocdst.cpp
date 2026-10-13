@@ -155,13 +155,12 @@ void opeu_alloc_choose_hq(Game& game) {
     for (auto it{ Elements(data, Record<Unit>(data, unit_near)).begin() }; it != std::default_sentinel; ++it) data.alloc_elements[listed++] = it.Near();
     data.choice_dialog.rows = static_cast<std::uint8_t>(listed + 1);
     SetListPredicate(data.choice_dialog, ListSelect::TALLY_MARK);
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.regiment_hq_prompt)),
-                                                            static_cast<std::uint16_t>(opeu_unit_name(game, unit_near, name)) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.regiment_hq_prompt), opeu_unit_name(game, unit_near, name) });
     opeu_ops_chief_text(game, text);
-    opeu_list_dialog(game, Near(data, data.choice_dialog), static_cast<uint8_t>(1), static_cast<uint8_t>(9));
+    opeu_list_dialog(game, Near(data, data.choice_dialog), 1, 9);
   }
 }
 
 void opeu_alloc_finish(Game& game) {
-  opeu_pending_finish(game, static_cast<uint8_t>(3));
+  opeu_pending_finish(game, 3);
 }

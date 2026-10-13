@@ -91,12 +91,11 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
     return true;
   } };
   auto const refuse{ [&](auto const& text) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, text)) });
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, Near(data, text) });
     return false;
   } };
   auto const cannot{ [&] {
-    opeu_request_format(
-        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, prompts.cannot_order)), static_cast<std::uint16_t>(data.order_names[kind + 3]) });
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, Near(data, prompts.cannot_order), data.order_names[kind + 3] });
     return false;
   } };
   auto const terrain{ [&] { return static_cast<Terrain>(opeu_map_code(game, x, y)); } };
@@ -125,10 +124,8 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
     case Terrain::CITY:
     case Terrain::RIVER:
     case Terrain::BRIDGE:
-    case Terrain::IMPASSABLE:
-      opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(NO_MINES_THERE))) });
-      return false;
-    default: return place();
+    case Terrain::IMPASSABLE: opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, opeu_message_lookup(game, static_cast<int16_t>(NO_MINES_THERE)) }); return false;
+    default:                  return place();
     }
   }
   case UnitOrder::BUILD_BRIDGE:   return terrain() == Terrain::RIVER ? place() : refuse(prompts.cannot_bridge);
@@ -141,11 +138,8 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
 
 auto AnnounceOrder(Game& game, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
   auto& data{ Data(game) };
-  opeu_request_format(
-      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, prompts.understood)), static_cast<std::uint16_t>(data.order_names[kind + 3]) });
-  auto const engineering{ [&](OrderMessage message) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, static_cast<int16_t>(message))) });
-  } };
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, Near(data, prompts.understood), data.order_names[kind + 3] });
+  auto const engineering{ [&](OrderMessage message) { opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, opeu_message_lookup(game, static_cast<int16_t>(message)) }); } };
   if (kind == Kind(UnitOrder::BUILD_BRIDGE)) engineering(BRIDGE_ORDERED);
   if (kind == Kind(UnitOrder::CLEAR_MINES)) engineering(CLEAR_ORDERED);
   if (kind == Kind(UnitOrder::DESTROY_BRIDGE)) engineering(DESTROY_ORDERED);

@@ -130,6 +130,6 @@ void opeu_request_regiment(Game& game) {
     element.flags      = Bits(ElementFlag::REQUESTED);
     --elements;
   }
-  FileRequest(game, { 0, static_cast<uint8_t>(static_cast<std::uint8_t>(kind)), static_cast<uint8_t>(regiment) });
+  FileRequest(game, { 0, static_cast<std::uint8_t>(kind), static_cast<uint8_t>(regiment) });
   data.side_delays[data.current_side] = 1;
 }

@@ -61,7 +61,7 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
       StartRowName(game, window, entry, NAME_INDENT, side);
       if (ready) {
         if (own && (regiment.flags & Bits(UnitFlag::SELECTED))) opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_mark));
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_unit_label)), static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_unit_label), opeu_unit_name(game, unit, name) });
       } else
         opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.tbl_unit_empty));
     }
@@ -75,8 +75,7 @@ void opeu_tbl_draw_units(Game& game, uint8_t column, uint8_t first, uint8_t row,
       auto const order{ destination.valid ? data.order_names[regiment.orders[0].kind + 3] : Near(data, data.tbl_unit_wait) };
       opeu_request_format(game, std::array<std::uint16_t, 8>{ text, Near(data, data.tbl_unit_row), here, target, order, percentages.fuel, percentages.ammunition, percentages.food });
     } else if (!own && !spotted)
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.tbl_unit_hidden)),
-                                                              static_cast<std::uint16_t>(opeu_location_name(game, regiment.x, regiment.y, name)) });
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.tbl_unit_hidden), opeu_location_name(game, regiment.x, regiment.y, name) });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);
@@ -98,7 +97,7 @@ void opeu_tbl_draw_orders(Game& game, uint8_t column, uint8_t first, uint8_t row
     auto const side{ opeu_unit_side(unit) };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_order_label)), static_cast<std::uint16_t>(opeu_unit_name(game, unit, name)) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_order_label), opeu_unit_name(game, unit, name) });
     }
     opeu_string_copy(game, text, opeu_message_lookup(game, static_cast<int16_t>(ORDERS_ROW_TEXT)));
     DrawRowText(game, window, layout, entry, text);

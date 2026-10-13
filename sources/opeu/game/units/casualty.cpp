@@ -105,9 +105,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
     std::uint16_t losses{ port_rand_bounded(game, 100) >= percent ? port_rand_bounded(game, c >> 1) : static_cast<std::uint16_t>(port_rand_bounded(game, c) + kind) };
     if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(port_rand_bounded(game, 10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    opeu_request_format(game,
-                        std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.casualty_heading)), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                      static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(element_name) });
+    opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name });
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;
@@ -121,7 +119,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
             if (group_selected)
               opeu_string_copy(game, text, Near(data, data.casualty_cut_selected));
             else if (!side_selected)
-              opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.casualty_cut)), static_cast<std::uint16_t>(name) });
+              opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.casualty_cut), name });
             opeu_unit_side_report(game, static_cast<const DialogHost*>(port_dialogs_host()), unit, text);
             report = false;
           }
@@ -138,9 +136,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
           opeu_add_word(port_rand_bounded(game, losses / 3), data.request_capacities[category], &damage);
           element.damage = damage;
         }
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(loss_text),
-                                                                static_cast<std::uint16_t>(losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format)),
-                                                                static_cast<std::uint16_t>(losses) });
+        opeu_request_format(game, std::array<std::uint16_t, 3>{ loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses });
         opeu_string_append(game, text, loss_text);
       } else {
         switch (static_cast<std::uint8_t>(opeu_remove_element(game, unit, near))) {
@@ -149,8 +145,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, uint16_t percent, uint16_t 
           wiped = true;
           break;
         case GROUP_EMPTIED:
-          opeu_set_record_counter(Record<Person>(Data(game), static_cast<std::uint16_t>(opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group)))),
-                                  static_cast<uint8_t>(0));
+          opeu_set_record_counter(Record<Person>(Data(game), static_cast<std::uint16_t>(opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group)))), 0);
           if (side_selected) opeu_select_first_group(game, static_cast<uint8_t>(side));
           wiped = true;
           break;

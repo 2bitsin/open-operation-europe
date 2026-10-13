@@ -42,7 +42,7 @@ void opeu_tbl_draw_supplies(Game& game, uint8_t column, uint8_t first, uint8_t r
     auto const  side{ opeu_objective_side(game, near) };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.tbl_supply_name)), static_cast<std::uint16_t>(near) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_supply_name), near });
     }
     if ((side == data.current_side && opeu_objective_eligible(game, near)) || (side != data.current_side && (city.flags & Bits(ObjectiveFlag::MARKED)))) {
       auto const percentages{ ObjectiveResourcePercentages(data, near) };

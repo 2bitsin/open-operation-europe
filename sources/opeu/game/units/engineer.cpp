@@ -131,8 +131,8 @@ uint16_t opeu_engineer_remove_mines(Game& game) {
     if (!opeu_move_adjacent(game, x, y)) return 0;
     if (LowerProgress(game, opeu_mine_skill(game))) {
       Report(game, data.mines_removed_text);
-      opeu_unmark_cell(game, x, y, static_cast<uint8_t>(0));
-      opeu_unmark_cell(game, x, y, static_cast<uint8_t>(1));
+      opeu_unmark_cell(game, x, y, 0);
+      opeu_unmark_cell(game, x, y, 1);
       opeu_map_erase(game, x, y);
       Show(game, MINES_REMOVED_PICTURE, Presenter::MINES_REMOVED);
       RestoreOrder(game);

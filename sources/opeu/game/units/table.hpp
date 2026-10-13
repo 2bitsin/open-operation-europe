@@ -40,7 +40,7 @@ inline constexpr std::uint16_t ROW_TEXT{ 4 };
 // Formats the heading `format` into `text` and prints the column's part of it above the rows.
 inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
   auto const& data{ Data(game) };
-  opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format) });
+  opeu_request_format(game, std::array<std::uint16_t, 2>{ text, format });
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(window.y + 1));
   opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
   opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));

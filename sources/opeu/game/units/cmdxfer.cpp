@@ -150,8 +150,7 @@ void opeu_turn_action_3(Game& game) {
         continue;
       }
       auto const hours{ opeu_transfer_hours(game, data.current_unit_ptr, Near(data, PickedRegiment(data)), data.context_record1) };
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.transfer_confirm)), static_cast<std::uint16_t>(hours),
-                                                              static_cast<std::uint16_t>(hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text)) });
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, Near(data, data.transfer_confirm), hours, hours == 1 ? Near(data, data.transfer_hour) : Near(data, data.transfer_hours_text) });
       if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) {
         step = Step::ELEMENT;
         continue;

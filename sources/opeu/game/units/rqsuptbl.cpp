@@ -33,7 +33,7 @@ void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, 
   auto const& window{ ActiveWindow(data) };
   auto const  layout{ TableColumnLayout(game, column, row) };
   if (flags & DRAW_HEADING) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.rq_type_header)) });
+    opeu_request_format(game, std::array<std::uint16_t, 2>{ text, Near(data, data.rq_type_header) });
     opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(ColumnX(data, window, layout, -0x20)), static_cast<int16_t>(window.y + 1));
     opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(data.current_side));
     opeu_text_put_range(game, static_cast<TextHost*>(port_textout_host()), text, static_cast<uint8_t>(layout.start), static_cast<uint8_t>(layout.count));
@@ -44,15 +44,12 @@ void opeu_rq_draw_types(Game& game, uint8_t column, uint8_t first, uint8_t row, 
     if (flags & DRAW_NAMES) {
       opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(window.x + 3), static_cast<int16_t>(y));
       opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), SideTextColor(data.current_side));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.rq_type_name)), static_cast<std::uint16_t>(type.name) });
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.rq_type_name), type.name });
     }
     auto const          general{ Record<Person>(data, data.context_record1).status };
     std::uint16_t const nations{ !(type.sides & general) ? type.sides : general };
-    opeu_request_format(game,
-                        std::array<std::uint16_t, 9>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.rq_type_row)),
-                                                      static_cast<std::uint16_t>(opeu_first_mask_name(game, nations)), static_cast<std::uint16_t>(type.anti_personnel),
-                                                      static_cast<std::uint16_t>(type.anti_tank), static_cast<std::uint16_t>(type.defense), static_cast<std::uint16_t>(type.speed),
-                                                      static_cast<std::uint16_t>(static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10), static_cast<std::uint16_t>(type.gun_range) });
+    opeu_request_format(game, std::array<std::uint16_t, 9>{ text, Near(data, data.rq_type_row), opeu_first_mask_name(game, nations), type.anti_personnel, type.anti_tank, type.defense, type.speed,
+                                                            static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10, type.gun_range });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, static_cast<TextHost*>(port_textout_host()), TABLE_TEXT_COLOR);

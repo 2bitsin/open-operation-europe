@@ -88,24 +88,22 @@ void opeu_general_casualty(Game& game, uint16_t person) {
   if (outcome == Outcome::WOUNDED) {
     if (data.side_status[side] == SIDE_PLAYED) {
       auto const saved{ general };
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(CASUALTY_FORMAT), static_cast<std::uint16_t>(person),
-                                                              static_cast<std::uint16_t>(WOUNDED_TEXT) });
+      opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT });
       opeu_initialize_deputy(game, person);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
-      opeu_wait_confirm(game, static_cast<int16_t>(1));
+      opeu_wait_confirm(game, 1);
       general = saved;
     }
     wound();
   } else if (outcome == Outcome::KILLED) {
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(CASUALTY_FORMAT), static_cast<std::uint16_t>(person),
-                                                            static_cast<std::uint16_t>(KILLED_TEXT) });
+    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, CASUALTY_FORMAT, person, KILLED_TEXT });
     opeu_initialize_deputy(game, person);
     if (data.side_status[side] == SIDE_PLAYED) {
-      opeu_set_turn_context(game, static_cast<uint8_t>(0x10));
-      opeu_finish_side_initialization(game, static_cast<uint8_t>(0));
+      opeu_set_turn_context(game, 0x10);
+      opeu_finish_side_initialization(game, 0);
       opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), DEATH_SHOW, static_cast<uint8_t>(side), Presenter::BLAST_PAUSE);
       opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, person);
-      opeu_wait_confirm(game, static_cast<int16_t>(1));
+      opeu_wait_confirm(game, 1);
     }
   }
 }
