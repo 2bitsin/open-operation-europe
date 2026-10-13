@@ -39,9 +39,6 @@ enum class BlastService : uint16_t {
   MAP_ERASE        = 7, // x, y
 };
 
-// Below the frame: the pixel position, converted in place.
-constexpr uint16_t PIXEL_X_AT{ 2 };
-constexpr uint16_t PIXEL_Y_AT{ 4 };
 // The animation in the sprite segment: overview frames, tactical images and their masks.
 constexpr uint16_t OVERVIEW_FRAMES{ 0x0260 };
 constexpr uint16_t OVERVIEW_FRAME_BYTES{ 24 };
@@ -61,30 +58,25 @@ void SetStream(DataSegment& data, uint16_t offset) {
 }
 } // namespace
 
-// frame: the routine's frame on the DS stack; the pixel position is converted in place there.
-void opeu_location_blast(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y, uint8_t side) {
+void opeu_location_blast(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y, uint8_t side) {
   auto&      data{ Data(ds) };
-  auto const pixel_x_at{ Local(frame, PIXEL_X_AT) };
-  auto const pixel_y_at{ Local(frame, PIXEL_Y_AT) };
-  SetWord(ds, pixel_x_at, x);
-  SetWord(ds, pixel_y_at, y);
   auto const shown{ static_cast<uint8_t>(Call(ds, event, BlastService::SIDE_FOR_STATUS, side)) };
   Call(ds, event, BlastService::ARRIVAL_LOCATION, x, y, shown);
   Call(ds, event, BlastService::SOUND);
   Call(ds, event, BlastService::WAIT, FRAME_WAIT);
   if (data.overview_side != NONE) {
-    opeu_overview_pixel(ds, pixel_x_at, pixel_y_at);
+    auto const pixel{ OverviewPixel({ x, y }) };
     for (uint8_t i{ 0 }; i < OVERVIEW_FRAME_COUNT; ++i) {
       SetStream(data, static_cast<uint16_t>(OVERVIEW_FRAMES + OVERVIEW_FRAME_BYTES * i));
-      Call(ds, event, BlastService::BLIT_FAR, Word(ds, pixel_x_at), Word(ds, pixel_y_at), 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
+      Call(ds, event, BlastService::BLIT_FAR, pixel.x, pixel.y, 1, 8, 4, data.stream_ptr[1], data.stream_ptr[0]);
       Call(ds, event, BlastService::WAIT, FRAME_WAIT);
     }
   } else {
-    opeu_view_pixel(ds, pixel_x_at, pixel_y_at);
+    auto const pixel{ ViewPixel(data, { x, y }) };
     for (uint8_t i{ 0 }; i < VIEW_FRAME_COUNT; ++i) {
       SetStream(data, static_cast<uint16_t>(VIEW_IMAGES + VIEW_IMAGE_BYTES * i));
-      Call(ds, event, BlastService::SPRITE_COMPOSE, Word(ds, pixel_x_at), Word(ds, pixel_y_at), 3, 24, data.stream_ptr[0], data.stream_ptr[1], static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i),
-           SPRITE_SEGMENT, 0, data.bitmap_buffer, 0);
+      Call(ds, event, BlastService::SPRITE_COMPOSE, pixel.x, pixel.y, 3, 24, data.stream_ptr[0], data.stream_ptr[1], static_cast<uint16_t>(VIEW_MASKS + VIEW_MASK_BYTES * i), SPRITE_SEGMENT, 0,
+           data.bitmap_buffer, 0);
       Call(ds, event, BlastService::WAIT, FRAME_WAIT);
     }
   }

@@ -30,8 +30,7 @@ constexpr uint8_t SIDE_0_DECIDES{ 1 };
 constexpr uint8_t SIDE_1_WINS{ 2 };
 constexpr uint8_t TURN_STEPS{ 50 };
 constexpr uint8_t NO_WINNER{ 0xff };
-// Below the input loop's frame: the key byte it may read before storing it; the frames it passes on.
-constexpr uint16_t KEY_AT{ 6 };
+// Below the input loop's frame: the frames it passes on.
 constexpr uint16_t NUMBERS_FRAME{ 0x0c };
 constexpr uint16_t REFRESH_FRAME{ 0x0a };
 // MOUSE_BUTTONS: a pending event, the left and the right button.
@@ -101,11 +100,11 @@ void opeu_battle_toggle_numbers(uint8_t* ds, BattleEvent event, uint16_t frame) 
         opeu_battle_refresh_cell(ds, event, x, y, Local(frame, REFRESH_FRAME));
 }
 
-// frame: the routine's frame on the DS stack. The key starts from the byte there: one path (a mouse event with the
-// keyboard in use) reads it before any key is stored.
+// frame: the routine's frame; its callees run below it. One path (a mouse event with the keyboard in use) reads the
+// key before any key is stored: it starts as 0.
 uint16_t opeu_battle_turn_loop(uint8_t* ds, BattleEvent event, uint16_t frame) {
   auto&   data{ Data(ds) };
-  uint8_t key{ Byte(ds, Local(frame, KEY_AT)) };
+  uint8_t key{ 0 };
   for (uint8_t step{ 0 }; step < TURN_STEPS; ++step) {
     if (!data.battle_level_limit && !step) {
       Call(ds, event, BattleRoutine::BATTLE_PLAYER_TURN);

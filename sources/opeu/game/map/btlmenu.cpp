@@ -22,9 +22,10 @@ using namespace opeu::game;
 namespace {
 constexpr unsigned BUTTONS{ 5 };
 constexpr uint16_t BUTTON_HEIGHT{ 24 };
-// Below the placement's frame: the mouse position words the mouse service writes.
-constexpr uint16_t MOUSE_X_AT{ 4 };
-constexpr uint16_t MOUSE_Y_AT{ 6 };
+// The placement's DS reserve for the mouse position words the mouse service writes.
+constexpr uint16_t MOUSE_RESERVE{ 6 };
+constexpr uint16_t MOUSE_X_AT{ 2 };
+constexpr uint16_t MOUSE_Y_AT{ 0 };
 // The menu opens below and right of the pointer, kept on the screen.
 constexpr uint16_t POINTER_DX{ 40 };
 constexpr uint16_t POINTER_DY{ 26 };
@@ -54,18 +55,17 @@ void Panels(uint8_t* ds, BattleEvent event) {
 } // namespace
 
 // With the mouse the buttons stack at the pointer; with the keyboard they take their places on the active side.
-void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t frame) {
+void opeu_battle_menu_place(uint8_t* ds, BattleEvent event, uint16_t /*frame*/) {
   auto& data{ Data(ds) };
   if (data.input_mode) {
-    auto const mouse_x_at{ Local(frame, MOUSE_X_AT) };
-    auto const mouse_y_at{ Local(frame, MOUSE_Y_AT) };
+    ServiceLocals const locals{ MOUSE_RESERVE };
+    auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
+    auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
     Call(ds, event, BattleRoutine::MOUSE_POSITION, mouse_y_at, mouse_x_at);
     auto y{ static_cast<uint16_t>(Word(ds, mouse_y_at) + POINTER_DY) };
     auto x{ static_cast<uint16_t>(Word(ds, mouse_x_at) + POINTER_DX) };
     x = Call(ds, event, BattleRoutine::MAX16, Call(ds, event, BattleRoutine::MIN16, x >> 3, LAST_COLUMN), 1);
     y = Call(ds, event, BattleRoutine::MIN16, y, LAST_ROW);
-    SetWord(ds, mouse_x_at, x);
-    SetWord(ds, mouse_y_at, y);
     for (unsigned i{ 0 }; i < BUTTONS; ++i) {
       data.battle_menu_items[i].x = x;
       data.battle_menu_items[i].y = static_cast<uint16_t>(BUTTON_HEIGHT * i + y);

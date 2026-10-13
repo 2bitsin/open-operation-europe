@@ -19,9 +19,8 @@
 using namespace opeu::game;
 
 namespace {
-// Below the frame: the unit name buffer, and the one-byte copy of " " the original initializes and never reads.
-constexpr uint16_t NAME_AT{ 0x2c };
-constexpr uint16_t BLANK_AT{ 0x2e };
+// The DS reserve of the unit name buffer the name service writes.
+constexpr uint16_t NAME_BYTES{ 0x2c };
 // The text columns of the two sides' name panels and the rows of the two lines.
 constexpr uint16_t SIDE_0_COLUMN{ 1 };
 constexpr uint16_t SIDE_1_COLUMN{ 0x38 };
@@ -32,11 +31,10 @@ constexpr uint16_t SIDE_1_COLOR{ '5' };
 constexpr uint16_t PAUSE{ 3 };
 } // namespace
 
-// frame: the routine's frame on the DS stack; the unit name buffer lives there.
-uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event, uint16_t frame) {
-  auto& data{ Data(ds) };
-  Byte(ds, Local(frame, BLANK_AT)) = data.battle_ready_blank;
-  bool announced{ false };
+uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ NAME_BYTES };
+  bool                announced{ false };
   for (uint8_t list{ 0 }; list < SIDE_COUNT; ++list)
     for (uint8_t slot{ 0 }; slot < BATTLE_LIST_LENGTH; ++slot) {
       auto const unit{ BattleList(data, list, slot) };
@@ -53,7 +51,7 @@ uint16_t opeu_battle_announce_ready(uint8_t* ds, BattleEvent event, uint16_t fra
         column = SIDE_1_COLUMN;
       }
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, NAME_ROW);
-      auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, Local(frame, NAME_AT), unit) };
+      auto const name{ Call(ds, event, BattleRoutine::UNIT_NAME, locals.At(0), unit) };
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_name_format), side ? SIDE_1_COLOR : SIDE_0_COLOR, name);
       Call(ds, event, BattleRoutine::ARMY_POSITION, column, READY_ROW);
       Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, data.battle_ready_text));

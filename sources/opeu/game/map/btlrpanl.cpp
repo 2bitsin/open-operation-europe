@@ -21,10 +21,11 @@
 using namespace opeu::game;
 
 namespace {
-// Below the frames: the notice's message buffer, and the panel's shooter and target names.
-constexpr uint16_t MESSAGE_AT{ 0x66 };
-constexpr uint16_t SHOOTER_AT{ 0x42 };
-constexpr uint16_t TARGET_AT{ 0x20 };
+// The DS reserves the services fill: the notice's message buffer, and the panel's shooter and target names.
+constexpr uint16_t MESSAGE_BYTES{ 0x66 };
+constexpr uint16_t NAMES_RESERVE{ 0x42 };
+constexpr uint16_t SHOOTER_AT{ 0 };
+constexpr uint16_t TARGET_AT{ 0x22 };
 // Text colours and the colour escape characters of the two sides.
 constexpr uint16_t SIDE_0_COLOR{ 6 };
 constexpr uint16_t SIDE_1_COLOR{ 5 };
@@ -41,21 +42,21 @@ constexpr uint16_t TARGET_ROW{ 0x30 };
 constexpr uint16_t BUNKER_ROW{ 0x40 };
 } // namespace
 
-// frame: the routine's frame on the DS stack; the message is formatted there.
-void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const message{ Local(frame, MESSAGE_AT) };
-  auto const side{ opeu_battle_element_side(ds, event, element) };
+void opeu_battle_wiped_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ MESSAGE_BYTES };
+  auto const          message{ locals.At(0) };
+  auto const          side{ opeu_battle_element_side(ds, event, element) };
   Call(ds, event, BattleRoutine::REQUEST_FORMAT, message, Near(data, data.battle_fmt_wiped), side == 0 ? SIDE_0_ESCAPE : SIDE_1_ESCAPE, data.element_types[Record<Element>(data, element).type].name);
   Call(ds, event, BattleRoutine::BATTLE_COMMANDER_WAIT, side, 2, message);
 }
 
-// frame: the routine's frame on the DS stack; the names are copied there.
-void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const target_name{ Local(frame, TARGET_AT) };
-  auto const shooter_name{ Local(frame, SHOOTER_AT) };
-  auto const side{ opeu_battle_element_side(ds, event, shooter) };
+void opeu_battle_ranged_panel(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ NAMES_RESERVE };
+  auto const          target_name{ locals.At(TARGET_AT) };
+  auto const          shooter_name{ locals.At(SHOOTER_AT) };
+  auto const          side{ opeu_battle_element_side(ds, event, shooter) };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   Call(ds, event, BattleRoutine::TEXT_PAPER_SET, PANEL_PAPER);
   Call(ds, event, BattleRoutine::ARMY_POSITION, NAME_COLUMN, SHOOTER_ROW);

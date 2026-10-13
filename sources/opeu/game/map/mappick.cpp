@@ -54,9 +54,10 @@ constexpr uint8_t  RIGHT_BUTTON{ 2 };
 constexpr uint8_t  KEY_ENTER{ 13 };
 constexpr uint8_t  KEY_ESCAPE{ 27 };
 constexpr uint16_t STATUS_OFFSET{ 0x120 }; // where the status line's background is saved in the bitmap buffer
-// Below the frame: the mouse position words the mouse service writes.
-constexpr uint16_t MOUSE_X_AT{ 10 };
-constexpr uint16_t MOUSE_Y_AT{ 14 };
+// The DS reserve of the mouse position words the mouse service writes.
+constexpr uint16_t MOUSE_RESERVE{ 14 };
+constexpr uint16_t MOUSE_X_AT{ 4 };
+constexpr uint16_t MOUSE_Y_AT{ 0 };
 
 // Screen areas in pixels (x in pixels here, not byte columns).
 struct Area {
@@ -80,13 +81,14 @@ constexpr uint8_t STEP_RIGHT{ 4 };
 constexpr uint8_t STEP_UP{ 6 };
 } // namespace
 
-// frame: this routine's frame. x and y: DS offsets of the cell bytes.
-uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y) {
-  auto&      data{ Data(ds) };
-  auto const mouse_x_at{ Local(frame, MOUSE_X_AT) };
-  auto const mouse_y_at{ Local(frame, MOUSE_Y_AT) };
-  auto const view_up{ [&] { return data.view_side != NONE; } };
-  auto const overview_up{ [&] { return data.overview_side != NONE; } };
+// x and y: DS offsets of the cell bytes.
+uint16_t opeu_map_pick_location(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t x, uint16_t y) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ MOUSE_RESERVE };
+  auto const          mouse_x_at{ locals.At(MOUSE_X_AT) };
+  auto const          mouse_y_at{ locals.At(MOUSE_Y_AT) };
+  auto const          view_up{ [&] { return data.view_side != NONE; } };
+  auto const          overview_up{ [&] { return data.overview_side != NONE; } };
   if (Byte(ds, y) >= MAP_HEIGHT) Byte(ds, y) += 5;
   if (Byte(ds, x) >= MAP_WIDTH) Byte(ds, x) += 5;
   Byte(ds, x) %= MAP_WIDTH;

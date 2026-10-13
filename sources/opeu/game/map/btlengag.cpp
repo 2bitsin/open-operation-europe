@@ -21,17 +21,21 @@
 using namespace opeu::game;
 
 namespace {
-// Below the notice's frame: the message buffer and the unit name buffer.
-constexpr uint16_t NOTICE_TEXT{ 0x68 };
-constexpr uint16_t NOTICE_NAME{ 0x88 };
-// Below the step routines' frames: their callees' frames, and the cell bytes the step and path services write.
+// The supply notice's DS reserve: the unit name buffer and the message buffer, which the services fill.
+constexpr uint16_t NOTICE_RESERVE{ 0x88 };
+constexpr uint16_t NOTICE_NAME{ 0 };
+constexpr uint16_t NOTICE_TEXT{ 0x20 };
+// Below the step routines' frames: their callees' frames.
 constexpr uint16_t FACING_REDRAW_FRAME{ 0x14 };
 constexpr uint16_t STEP_NOTICE_FRAME{ 0x1a };
 constexpr uint16_t STEP_MOVE_FRAME{ 0x20 };
-constexpr uint16_t NEXT_X_AT{ 0x0a };
-constexpr uint16_t NEXT_Y_AT{ 0x10 };
-constexpr uint16_t PATH_X_AT{ 6 };
-constexpr uint16_t PATH_Y_AT{ 8 };
+// The DS reserves of the cell bytes the step and path services write, and their offsets in them.
+constexpr uint16_t NEXT_RESERVE{ 0x10 };
+constexpr uint16_t NEXT_X_AT{ 6 };
+constexpr uint16_t NEXT_Y_AT{ 0 };
+constexpr uint16_t PATH_RESERVE{ 8 };
+constexpr uint16_t PATH_X_AT{ 2 };
+constexpr uint16_t PATH_Y_AT{ 0 };
 constexpr uint8_t  SUPPLY_FUEL{ 1 };
 constexpr uint16_t SIDE_0_COLOR{ 0x36 };
 constexpr uint16_t SIDE_1_COLOR{ 0x35 };
@@ -74,11 +78,12 @@ void Pause(uint8_t* ds, BattleEvent event) {
 } // namespace
 
 // "<unit> is out of <supply>! They cannot move/fight!", for a side a player commands.
-void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t supply, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const text{ Local(frame, NOTICE_TEXT) };
-  auto const name_buffer{ Local(frame, NOTICE_NAME) };
-  auto const side{ opeu_battle_element_side(ds, event, element) };
+void opeu_battle_supply_notice(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t supply, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ NOTICE_RESERVE };
+  auto const          text{ locals.At(NOTICE_TEXT) };
+  auto const          name_buffer{ locals.At(NOTICE_NAME) };
+  auto const          side{ opeu_battle_element_side(ds, event, element) };
   if (!data.side_status[side]) return;
   auto const unit{ opeu_battle_element_unit(ds, event, element) };
   auto const name{ unit == Near(data, data.battle_garrison) ? Near(data, data.text_defenders) : Call(ds, event, BattleRoutine::UNIT_NAME, name_buffer, unit) };
@@ -168,11 +173,12 @@ uint8_t opeu_battle_step_into(uint8_t* ds, BattleEvent event, uint16_t element, 
 
 // x, y: DS offsets of the destination cell bytes; on a path found they receive its next step. The element waits
 // while its order counter is below the cheapest free neighbour's cost.
-uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const next_x{ Local(frame, NEXT_X_AT) };
-  auto const next_y{ Local(frame, NEXT_Y_AT) };
-  auto const from_here{ [&] {
+uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ NEXT_RESERVE };
+  auto const          next_x{ locals.At(NEXT_X_AT) };
+  auto const          next_y{ locals.At(NEXT_Y_AT) };
+  auto const          from_here{ [&] {
     ds[next_x] = PositionOf(data, element).x;
     ds[next_y] = PositionOf(data, element).y;
   } };
@@ -197,10 +203,11 @@ uint8_t opeu_battle_next_step(uint8_t* ds, BattleEvent event, uint16_t element, 
 }
 
 // x, y: DS offsets of the goal cell bytes; on a path found they receive its next step.
-uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const step_x{ Local(frame, PATH_X_AT) };
-  auto const step_y{ Local(frame, PATH_Y_AT) };
+uint16_t opeu_battle_element_path_step(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t x, uint16_t y, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ PATH_RESERVE };
+  auto const          step_x{ locals.At(PATH_X_AT) };
+  auto const          step_y{ locals.At(PATH_Y_AT) };
   ds[step_x] = PositionOf(data, element).x;
   ds[step_y] = PositionOf(data, element).y;
   auto const to_x{ ds[x] };

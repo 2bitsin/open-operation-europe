@@ -130,8 +130,8 @@ uint16_t opeu_battle_ai_pick_target(uint8_t* ds, BattleEvent event, uint16_t ele
 }
 
 // A random cell the element can enter: on the unit's side of the field, or near the middle when the unit is not next
-// to the battle; x and y are the DS offsets of the result bytes.
-void opeu_battle_ai_random_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint16_t y, uint16_t element, uint16_t unit) {
+// to the battle.
+auto opeu_battle_ai_random_cell(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit) -> FieldCell {
   auto&      data{ Data(ds) };
   auto const direction{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_UNIT_DIRECTION, unit)) };
   auto const pick{ [&](uint8_t column, uint8_t row, uint16_t percent) {
@@ -153,8 +153,7 @@ void opeu_battle_ai_random_cell(uint8_t* ds, BattleEvent event, uint16_t x, uint
   uint8_t row;
   while (!search(column, row)) {
   }
-  Byte(ds, x) = column;
-  Byte(ds, y) = row;
+  return { column, row };
 }
 
 uint16_t svc_btlaiunt(uint8_t* ds, uint32_t service, const uint16_t* args, unsigned int count) {

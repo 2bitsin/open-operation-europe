@@ -26,12 +26,12 @@ void opeu_view_cell_paint(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, 
 }
 
 // Overview: alternately draws the cursor marker over the saved 1 x 8 background and restores the background. Tactical
-// view: repaints the cell highlighted. frame: this routine's frame; the pixel position is computed in its locals.
-void opeu_map_cell_flash(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
+// view: repaints the cell highlighted.
+void opeu_map_cell_flash(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
   auto const buffer{ Near(data, data.flash_buffers) };
   if (data.overview_side != NO_SIDE) {
-    auto const pixel{ CellPixel(ds, Local(frame, 2), Local(frame, 4), x, y, opeu_overview_pixel) };
+    auto const pixel{ OverviewPixel({ x, y }) };
     if (data.flash_state) {
       Call(ds, event, MapService::RESTORE_NEAR, pixel.x, pixel.y, 1, 8, 0, buffer);
       data.flash_state = 0;
@@ -41,7 +41,7 @@ void opeu_map_cell_flash(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x
       data.flash_state = 1;
     }
   } else if (data.view_side != NO_SIDE) {
-    auto const pixel{ CellPixel(ds, Local(frame, 2), Local(frame, 4), x, y, opeu_view_pixel) };
+    auto const pixel{ ViewPixel(data, { x, y }) };
     opeu_view_cell_paint(ds, event, pixel.x, pixel.y, HIGHLIGHT_MODE);
   }
 }

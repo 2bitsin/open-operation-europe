@@ -42,8 +42,6 @@ constexpr uint8_t  OFFSETS_PER_DIRECTION{ 5 };
 constexpr uint8_t RANGED_MODE{ 1 };
 // Below the callers' sp: the frames of the callees.
 constexpr uint16_t ATTACK_FRAME{ 12 };
-constexpr uint16_t RANDOM_X_AT{ 6 };
-constexpr uint16_t RANDOM_Y_AT{ 8 };
 constexpr uint16_t ACT_FRAME{ 4 };
 constexpr uint16_t THINK_FRAME{ 16 };
 
@@ -180,16 +178,14 @@ void opeu_battle_ai_advance(uint8_t* ds, BattleEvent event, uint16_t element) {
   opeu_battle_ai_hold(ds, event, element);
 }
 
-void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t sp) {
+void opeu_battle_ai_engage_best(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t /*sp*/) {
   if (opeu_battle_best_target(ds, event, element)) {
     opeu_battle_ai_hold(ds, event, element);
     return;
   }
   if (auto const unit{ opeu_battle_ai_unit_target(ds, event, element) }) {
-    auto const x_at{ Local(sp, RANDOM_X_AT) };
-    auto const y_at{ Local(sp, RANDOM_Y_AT) };
-    opeu_battle_ai_random_cell(ds, event, x_at, y_at, element, unit);
-    opeu_battle_ai_move_to(ds, event, Byte(ds, x_at), Byte(ds, y_at), element);
+    auto const cell{ opeu_battle_ai_random_cell(ds, event, element, unit) };
+    opeu_battle_ai_move_to(ds, event, cell.x, cell.y, element);
     return;
   }
   opeu_battle_ai_hold(ds, event, element);

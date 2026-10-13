@@ -27,8 +27,7 @@
 using namespace opeu::game;
 
 namespace {
-// Below opeu_battle_ranged_fire's frame: the bunker flag; the frames its callees run on.
-constexpr uint16_t BUNKER_AT{ 6 };
+// Below opeu_battle_ranged_fire's frame: the frames its callees run on.
 constexpr uint16_t PANEL_FRAME{ 0x20 };
 constexpr uint16_t REDRAW_FRAME{ 0x22 };
 constexpr uint16_t ANIMATE_FRAME{ 0x26 };
@@ -141,16 +140,16 @@ void opeu_battle_ranged_tracers(uint8_t* ds, BattleEvent event, uint16_t shooter
   Call(ds, event, BattleRoutine::MUSIC_COMMAND7);
 }
 
-// frame: the routine's frame on the DS stack; the bunker flag lives there and the callees run below it.
+// frame: the routine's frame; the callees run below it.
 void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const bunker{ Local(frame, BUNKER_AT) };
-  uint8_t    x;
-  uint8_t    y;
+  auto&   data{ Data(ds) };
+  uint8_t x;
+  uint8_t y;
   TargetCell(data, shooter, target, x, y);
   opeu_battle_ranged_panel(ds, event, shooter, target, Local(frame, PANEL_FRAME));
   opeu_battle_ranged_tracers(ds, event, shooter, target);
-  auto const  losses{ opeu_battle_ranged_damage(ds, event, shooter, target, bunker) };
+  auto const  shot{ opeu_battle_ranged_damage(ds, event, shooter, target) };
+  auto const  losses{ shot.losses };
   auto const  animation{ losses ? HIT_ANIMATION : MISS_ANIMATION };
   auto const& type{ TypeOf(data, shooter) };
   if (FiresShells(type)) {
@@ -164,7 +163,7 @@ void opeu_battle_ranged_fire(uint8_t* ds, BattleEvent event, uint16_t shooter, u
   data.battle_element_destroyed = 0;
   if (!losses) {
     opeu_battle_refresh_cell(ds, event, x, y, Local(frame, PANEL_FRAME));
-  } else if (!Word(ds, bunker)) {
+  } else if (!shot.into_bunker) {
     auto&      hit{ Record<Element>(data, target) };
     auto const before{ hit.quantity };
     uint16_t   quantity{ before };

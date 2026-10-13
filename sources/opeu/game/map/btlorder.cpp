@@ -17,9 +17,6 @@
 using namespace opeu::game;
 
 namespace {
-// Below opeu_battle_execute_order's frame: the cell it heads for, whose bytes the path steps receive by address.
-constexpr uint16_t CELL_X_AT{ 6 };
-constexpr uint16_t CELL_Y_AT{ 8 };
 // The frames below its callers' that opeu_battle_execute_order runs on.
 constexpr uint16_t CONTINUE_FRAME{ 0x12 };
 constexpr uint16_t ADVANCE_FRAME{ 0x0c };
@@ -71,14 +68,15 @@ void FaceCell(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t x, uint8
 }
 } // namespace
 
-// Moves the element a step toward its goal or its target. order counts the element's waits this round. frame: the
-// routine's frame on the DS stack; the cell it heads for lives there.
-uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t order, uint16_t frame) {
-  auto const x_at{ Local(frame, CELL_X_AT) };
-  auto const y_at{ Local(frame, CELL_Y_AT) };
-  auto&      x{ Byte(ds, x_at) };
-  auto&      y{ Byte(ds, y_at) };
-  auto const update{ [&] {
+// Moves the element a step toward its goal or its target. order counts the element's waits this round. The cell it
+// heads for is two DS words: the path step services receive their addresses.
+uint8_t opeu_battle_execute_order(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t order, uint16_t /*frame*/) {
+  ServiceLocals const locals{ 4 };
+  auto const          x_at{ locals.At(0) };
+  auto const          y_at{ locals.At(2) };
+  auto&               x{ Byte(ds, x_at) };
+  auto&               y{ Byte(ds, y_at) };
+  auto const          update{ [&] {
     opeu_battle_update_element(ds, event, element);
     return UPDATED;
   } };

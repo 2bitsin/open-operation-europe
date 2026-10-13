@@ -21,9 +21,10 @@
 using namespace opeu::game;
 
 namespace {
-// Below the frame: the unit name and the element name buffers.
-constexpr uint16_t UNIT_NAME_AT{ 0x2c };
-constexpr uint16_t ELEMENT_NAME_AT{ 0x4c };
+// The DS reserve of the element name and the unit name buffers the naming routines fill and the print service reads.
+constexpr uint16_t NAMES_RESERVE{ 0x4c };
+constexpr uint16_t ELEMENT_NAME_AT{ 0 };
+constexpr uint16_t UNIT_NAME_AT{ 0x20 };
 // Colour escape characters of the two sides.
 constexpr uint16_t SIDE_0_ESCAPE{ '6' };
 constexpr uint16_t SIDE_1_ESCAPE{ '5' };
@@ -52,17 +53,17 @@ uint16_t    NameForward(uint8_t* ds, uint16_t, const uint16_t* args, uint16_t co
 }
 } // namespace
 
-// orders_hidden: the enemy's element, whose order the panel does not show. frame: the routine's frame on the DS
-// stack; the names are formatted there.
-void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden, uint16_t frame) {
-  auto&       data{ Data(ds) };
-  auto const& record{ Record<Element>(data, element) };
-  auto const  unit_name{ Local(frame, UNIT_NAME_AT) };
-  auto const  element_name{ Local(frame, ELEMENT_NAME_AT) };
-  auto        side{ opeu_battle_element_side(ds, event, element) };
-  auto const  unit{ opeu_battle_element_unit(ds, event, element) };
-  auto const  at{ [&](uint16_t column, uint16_t row) { Call(ds, event, BattleRoutine::ARMY_POSITION, column, row); } };
-  auto const  print{ [&](auto const& format, auto... words) { Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...); } };
+// orders_hidden: the enemy's element, whose order the panel does not show.
+void opeu_battle_element_panel(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t orders_hidden, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  auto const&         record{ Record<Element>(data, element) };
+  ServiceLocals const locals{ NAMES_RESERVE };
+  auto const          unit_name{ locals.At(UNIT_NAME_AT) };
+  auto const          element_name{ locals.At(ELEMENT_NAME_AT) };
+  auto                side{ opeu_battle_element_side(ds, event, element) };
+  auto const          unit{ opeu_battle_element_unit(ds, event, element) };
+  auto const          at{ [&](uint16_t column, uint16_t row) { Call(ds, event, BattleRoutine::ARMY_POSITION, column, row); } };
+  auto const          print{ [&](auto const& format, auto... words) { Call(ds, event, BattleRoutine::CURSOR_PRINT, Near(data, format), words...); } };
   Call(ds, event, BattleRoutine::BATTLE_PANEL_BEGIN);
   at(TITLE_COLUMN, 0);
   uint16_t name;

@@ -35,12 +35,14 @@ using namespace opeu::game;
 namespace {
 constexpr uint16_t PATH_SEGMENT{ 0x4582 }; // the far path-cost grid and queue
 constexpr uint8_t  DIRECTIONS_AND_CENTER{ 9 };
-// Below opeu_move_adjacent's frame: the step coordinates.
+// opeu_move_adjacent's DS reserve for the step coordinates the grid step service moves.
+constexpr uint16_t STEP_RESERVE{ 4 };
 constexpr uint16_t STEP_X_AT{ 2 };
-constexpr uint16_t STEP_Y_AT{ 4 };
-// Below opeu_move_unit_target's frame: the report and the unit name.
-constexpr uint16_t REPORT_AT{ 0x68 };
-constexpr uint16_t NAME_AT{ 0x74 };
+constexpr uint16_t STEP_Y_AT{ 0 };
+// opeu_move_unit_target's DS reserve for the unit name and the report the services write.
+constexpr uint16_t REPORT_RESERVE{ 0x74 };
+constexpr uint16_t NAME_AT{ 0 };
+constexpr uint16_t REPORT_AT{ 0x0c };
 // The message numbers naming the side that lost sight.
 constexpr uint16_t SIDE_1_LOST{ 53 };
 constexpr uint16_t SIDE_0_LOST{ 54 };
@@ -50,12 +52,13 @@ constexpr uint8_t PROGRESS_DONE_UP{ 200 };
 constexpr uint8_t PROGRESS_UNSET{ 255 };
 } // namespace
 
-// Whether (x, y) is the current unit's cell or one next to it. frame: this routine's frame.
-uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
-  auto const& data{ Data(ds) };
-  auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
-  auto const  x_at{ Local(frame, STEP_X_AT) };
-  auto const  y_at{ Local(frame, STEP_Y_AT) };
+// Whether (x, y) is the current unit's cell or one next to it.
+uint16_t opeu_move_adjacent(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
+  auto const&         data{ Data(ds) };
+  auto const&         unit{ Record<Unit>(data, data.current_unit_ptr) };
+  ServiceLocals const locals{ STEP_RESERVE };
+  auto const          x_at{ locals.At(STEP_X_AT) };
+  auto const          y_at{ locals.At(STEP_Y_AT) };
   for (uint8_t direction{ 0 }; direction < DIRECTIONS_AND_CENTER; direction++) {
     Byte(ds, x_at) = unit.x;
     Byte(ds, y_at) = unit.y;
@@ -78,8 +81,8 @@ uint16_t opeu_move_objective_target(uint8_t* ds, HostEvent event, uint16_t x, ui
 
 // The unit at the current unit's order destination. A player's side (or a computer side below delivery level 2) must
 // still see it: a friendly unit must be selectable, an enemy one spotted; otherwise the loss of sight is reported, the
-// order restored and 0 returned. frame: this routine's frame.
-uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y) {
+// order restored and 0 returned.
+uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t x, uint16_t y) {
   auto const& data{ Data(ds) };
   auto const  current{ data.current_unit_ptr };
   if (Call(ds, event, MoveService::DESTINATION, current, x, y)) {
@@ -88,9 +91,10 @@ uint16_t opeu_move_unit_target(uint8_t* ds, HostEvent event, uint16_t frame, uin
     auto const side{ static_cast<uint8_t>(Call(ds, event, MoveService::UNIT_SIDE, target)) };
     auto const seen{ side == data.current_side ? Call(ds, event, MoveService::UNIT_ELIGIBLE, target) : Call(ds, event, MoveService::UNIT_SPOTTED, target) };
     if (seen) return target;
-    auto const report{ Local(frame, REPORT_AT) };
+    ServiceLocals const locals{ REPORT_RESERVE };
+    auto const          report{ locals.At(REPORT_AT) };
     Call(ds, event, MoveService::FORMAT, report, Near(data, data.lost_sight_format), side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side],
-         Call(ds, event, MoveService::UNIT_NAME, target, Local(frame, NAME_AT)));
+         Call(ds, event, MoveService::UNIT_NAME, target, locals.At(NAME_AT)));
     Call(ds, event, MoveService::UNIT_MESSAGE, current, report);
   }
   Call(ds, event, MoveService::RESTORE_ORDER, current);

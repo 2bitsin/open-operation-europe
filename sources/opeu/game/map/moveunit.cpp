@@ -19,13 +19,15 @@ constexpr uint8_t  DIRECTIONS{ 8 };
 constexpr uint8_t  NEAR_DESTINATION{ 3 }; // cells: replan the route from closer than this
 constexpr uint8_t  ROUTE_STEPS{ 10 };     // the farthest a planned waypoint lies
 constexpr uint16_t STUCK{ 0xffff };       // the step toward found no cell
-// The cell pairs below the frame that the services move through: a probe, the unit's next cell and its destination.
-constexpr uint16_t PROBE_X_AT{ 4 };
-constexpr uint16_t PROBE_Y_AT{ 6 };
-constexpr uint16_t NEXT_X_AT{ 0x14 };
-constexpr uint16_t NEXT_Y_AT{ 0x16 };
-constexpr uint16_t GOAL_X_AT{ 0x18 };
-constexpr uint16_t GOAL_Y_AT{ 0x1a };
+// The DS reserve of the cell pairs the services move through, and their offsets in it: a probe, the unit's next cell
+// and its destination.
+constexpr uint16_t CELLS_RESERVE{ 0x1a };
+constexpr uint16_t PROBE_X_AT{ 0x16 };
+constexpr uint16_t PROBE_Y_AT{ 0x14 };
+constexpr uint16_t NEXT_X_AT{ 6 };
+constexpr uint16_t NEXT_Y_AT{ 4 };
+constexpr uint16_t GOAL_X_AT{ 2 };
+constexpr uint16_t GOAL_Y_AT{ 0 };
 
 // Raises a service that updates a cell through the DS bytes at x_at and y_at: the cell is copied there before the
 // call and read back after it.
@@ -40,15 +42,16 @@ auto ThroughCell(uint8_t* ds, HostEvent event, MoveService service, uint8_t& x, 
 }
 } // namespace
 
-// frame: this routine's frame. repeat: keep stepping while the steps cost nothing.
-void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repeat) {
-  auto&      data{ Data(ds) };
-  auto const current{ data.current_unit_ptr };
-  auto&      unit{ Record<Unit>(data, current) };
-  auto const probe_x_at{ Local(frame, PROBE_X_AT) };
-  auto const probe_y_at{ Local(frame, PROBE_Y_AT) };
-  auto const next_x_at{ Local(frame, NEXT_X_AT) };
-  auto const next_y_at{ Local(frame, NEXT_Y_AT) };
+// repeat: keep stepping while the steps cost nothing.
+void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t repeat) {
+  auto&               data{ Data(ds) };
+  auto const          current{ data.current_unit_ptr };
+  auto&               unit{ Record<Unit>(data, current) };
+  ServiceLocals const locals{ CELLS_RESERVE };
+  auto const          probe_x_at{ locals.At(PROBE_X_AT) };
+  auto const          probe_y_at{ locals.At(PROBE_Y_AT) };
+  auto const          next_x_at{ locals.At(NEXT_X_AT) };
+  auto const          next_y_at{ locals.At(NEXT_Y_AT) };
   auto const step{ [&](uint8_t& x, uint8_t& y, uint8_t direction) { return ThroughCell(ds, event, MoveService::GRID_STEP, x, probe_x_at, y, probe_y_at, probe_x_at, probe_y_at, direction); } };
   auto const cost_at{ [&](uint8_t x, uint8_t y) { return static_cast<uint8_t>(Call(ds, event, MoveService::COST, x, y, current)); } };
   uint8_t    next_x{ unit.x };
@@ -80,9 +83,9 @@ void opeu_move_unit(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t repea
     }
     if (unit.target_x == NONE || (!committed && static_cast<uint8_t>(Call(ds, event, MoveService::DISTANCE, next_x, next_y, unit.target_x, unit.target_y)) < NEAR_DESTINATION)) {
       // The destination lands in its DS bytes; where the unit has none they keep what they held.
-      Call(ds, event, MoveService::DESTINATION, current, Local(frame, GOAL_X_AT), Local(frame, GOAL_Y_AT));
-      uint8_t const goal_x{ Byte(ds, Local(frame, GOAL_X_AT)) };
-      uint8_t const goal_y{ Byte(ds, Local(frame, GOAL_Y_AT)) };
+      Call(ds, event, MoveService::DESTINATION, current, locals.At(GOAL_X_AT), locals.At(GOAL_Y_AT));
+      uint8_t const goal_x{ Byte(ds, locals.At(GOAL_X_AT)) };
+      uint8_t const goal_y{ Byte(ds, locals.At(GOAL_Y_AT)) };
       if (!Call(ds, event, MoveService::REACHABLE, goal_x, goal_y, next_x, next_y, current)) {
         auto& link{ data.unit_links[data.current_side * GROUPS_PER_SIDE + data.current_group] };
         if (!link || Call(ds, event, MoveService::IS_ENGINEER, data.current_entry)) link = current;

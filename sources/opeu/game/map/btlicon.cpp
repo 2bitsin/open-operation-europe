@@ -38,8 +38,8 @@ constexpr uint16_t ICON_STRIDE{ 650 }; // a bitmap and its mask
 constexpr uint16_t ICON_ROW{ 20 };
 constexpr uint16_t HALF_ROW{ 5 };
 constexpr uint8_t  MODES_PER_ICON{ 4 };
-// Below the frame: the bitmap buffer the far read fills and the draw reads.
-constexpr uint16_t ICON_BUFFER{ 0x214 };
+// The DS reserve of the bitmap buffer the far read fills and the draw reads.
+constexpr uint16_t ICON_BUFFER_BYTES{ 0x214 };
 // The count's digits from the right: the outline offsets around each digit and the digit's colours.
 constexpr uint16_t COUNT_RIGHT{ 23 };
 constexpr uint16_t DIGIT_WIDTH{ 6 };
@@ -92,14 +92,14 @@ uint16_t opeu_battle_code_low(uint8_t*, BattleEvent, uint8_t code) {
   return (code & BATTLE_TERRAIN_MASK) <= LAST_PLAIN_CODE;
 }
 
-// frame: the routine's frame on the DS stack; the icon's bitmap buffer lives there. Side 0's icons face the other
-// way: each row's two halves are swapped.
-void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ Local(frame, ICON_BUFFER) };
-  auto const icon{ opeu_battle_element_icon(ds, event, element) };
-  auto const offset{ static_cast<uint16_t>((icon * MODES_PER_ICON + mode) * ICON_STRIDE) };
-  auto const segment{ data.icon_segment };
+// Side 0's icons face the other way: each row's two halves are swapped.
+void opeu_battle_draw_icon(uint8_t* ds, BattleEvent event, uint16_t element, uint8_t side, uint8_t mode, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ ICON_BUFFER_BYTES };
+  auto const          buffer{ locals.At(0) };
+  auto const          icon{ opeu_battle_element_icon(ds, event, element) };
+  auto const          offset{ static_cast<uint16_t>((icon * MODES_PER_ICON + mode) * ICON_STRIDE) };
+  auto const          segment{ data.icon_segment };
   data.stream_ptr[1] = segment;
   data.stream_ptr[0] = offset;
   Call(ds, event, BattleRoutine::READ_FAR_BYTES, ICON_BYTES, buffer, offset, segment);

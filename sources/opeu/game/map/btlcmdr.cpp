@@ -17,7 +17,7 @@ using namespace opeu::game;
 
 namespace {
 constexpr uint8_t  LAST_COLUMN{ 39 };
-constexpr uint16_t NAME_AT{ 0x0c };    // below the panel's frame: the 10-byte name buffer the services write
+constexpr uint16_t NAME_BYTES{ 0x0c }; // the panel's DS reserve for the 10-byte name buffer the services write
 constexpr uint16_t CALLER_FRAME{ 10 }; // the panel's frame below its callers' frames
 constexpr uint8_t  NAME_COLOR[2]{ 6, 5 };
 constexpr uint8_t  TEXT_WHITE{ 7 };
@@ -81,10 +81,10 @@ void opeu_battle_name_clear_right(uint8_t* ds, BattleEvent event) {
   Call(ds, event, BattleRoutine::UI_TEXT, Near(data, data.battle_right_mark));
 }
 
-// frame: the routine's frame on the DS stack; the name buffer lives there.
-void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const name{ Local(frame, NAME_AT) };
+void opeu_battle_commander_panel(uint8_t* ds, BattleEvent event, uint8_t side, uint16_t refresh, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ NAME_BYTES };
+  auto const          name{ locals.At(0) };
   if (refresh) {
     if (side == 0)
       opeu_battle_name_clear_right(ds, event);

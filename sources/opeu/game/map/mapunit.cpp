@@ -22,11 +22,6 @@ namespace {
 constexpr uint8_t  NO_SIDE{ 255 };
 constexpr uint16_t MARKER_MODE{ 7 };
 constexpr uint16_t FLASH_BUFFER_BYTES{ 32 }; // the background saved under each unit's marker
-// The locals of opeu_group_show below its frame: the marker's pixel position and the division's selected unit, which
-// stays as it was when no unit of the division is selected.
-constexpr uint16_t PIXEL_X_AT{ 6 };
-constexpr uint16_t PIXEL_Y_AT{ 10 };
-constexpr uint16_t SELECTED_AT{ 14 };
 
 [[nodiscard]] auto OverviewUp(DataSegment const& data) -> bool {
   return data.overview_side != NO_SIDE;
@@ -64,17 +59,18 @@ void opeu_group_show(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t grou
   auto const first{ (opeu_group_side(group) * GROUPS_PER_SIDE + opeu_group_index(group)) * UNITS_PER_GROUP };
   auto const buffer{ [&](unsigned i) { return static_cast<uint16_t>(Near(data, data.flash_buffers) + i * FLASH_BUFFER_BYTES); } };
   auto const shown{ [&](Unit const& unit) { return OverviewUp(data) && (unit.flags & Bits(UnitFlag::READY)) && opeu_unit_visible(ds, Near(data, unit)); } };
-  auto const pixel_of{ [&](Unit const& unit) { return CellPixel(ds, Local(frame, PIXEL_X_AT), Local(frame, PIXEL_Y_AT), unit.x, unit.y, opeu_overview_pixel); } };
+  auto const pixel_of{ [](Unit const& unit) { return OverviewPixel({ unit.x, unit.y }); } };
+  uint16_t   selected_unit{ 0 }; // stays 0 when no shown unit of the division is selected
   for (unsigned i{ 0 }; i < UNITS_PER_GROUP; i++) {
     auto const& unit{ data.units[first + i] };
     if (!shown(unit)) continue;
-    if (unit.flags & Bits(UnitFlag::SELECTED)) SetWord(ds, Local(frame, SELECTED_AT), Near(data, unit));
+    if (unit.flags & Bits(UnitFlag::SELECTED)) selected_unit = Near(data, unit);
     auto const pixel{ pixel_of(unit) };
     Call(ds, event, MapService::SAVE_NEAR, pixel.x, pixel.y, 1, 8, buffer(i));
     Call(ds, event, MapService::DRAW_NEAR, pixel.x, pixel.y, 1, 8, MARKER_MODE, Near(data, data.flash_marker));
   }
   if (OverviewUp(data) && (Record<Group>(data, group).flags & Bits(GroupFlag::READY))) {
-    auto const& selected{ Record<Unit>(data, Word(ds, Local(frame, SELECTED_AT))) };
+    auto const& selected{ Record<Unit>(data, selected_unit) };
     opeu_arrival_location(ds, event, Local(frame, 0x1c), selected.x, selected.y, data.current_side);
     auto const commander{ opeu_find_group_record(ds, data.current_side, person) };
     Call(ds, event, MapService::CONTROL_MESSAGE, Near(data, data.division_position_text), commander);

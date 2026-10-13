@@ -14,17 +14,27 @@ namespace {
 constexpr uint8_t NO_SIDE{ 255 };
 }
 
-// x and y: DS offsets of the cell's coordinate words, converted in place to the overview's pixel position.
-void opeu_overview_pixel(uint8_t* ds, uint16_t x, uint16_t y) {
-  SetWord(ds, x, static_cast<uint16_t>(static_cast<int16_t>(Word(ds, x)) + 2));
-  SetWord(ds, y, static_cast<uint16_t>(static_cast<int16_t>(Word(ds, y)) * 8 + 68));
+// The overview's pixel position of a cell.
+auto OverviewPixel(Pixel cell) -> Pixel {
+  return { static_cast<uint16_t>(static_cast<int16_t>(cell.x) + 2), static_cast<uint16_t>(static_cast<int16_t>(cell.y) * 8 + 68) };
 }
 
-// x and y: DS offsets of the cell's coordinate words, converted in place to the tactical view's pixel position.
+// The tactical view's pixel position of a cell.
+auto ViewPixel(DataSegment const& data, Pixel cell) -> Pixel {
+  return { static_cast<uint16_t>((cell.x - static_cast<int16_t>(data.viewport_x)) * 3 + 4), static_cast<uint16_t>((cell.y - static_cast<int16_t>(data.viewport_y)) * 24 + 84) };
+}
+
+// The service boundary (#13 removes it): x and y are DS offsets of the cell's coordinate words, converted in place.
+void opeu_overview_pixel(uint8_t* ds, uint16_t x, uint16_t y) {
+  auto const pixel{ OverviewPixel({ Word(ds, x), Word(ds, y) }) };
+  SetWord(ds, x, pixel.x);
+  SetWord(ds, y, pixel.y);
+}
+
 void opeu_view_pixel(uint8_t* ds, uint16_t x, uint16_t y) {
-  auto const& data{ Data(ds) };
-  SetWord(ds, x, static_cast<uint16_t>((Word(ds, x) - static_cast<int16_t>(data.viewport_x)) * 3 + 4));
-  SetWord(ds, y, static_cast<uint16_t>((Word(ds, y) - static_cast<int16_t>(data.viewport_y)) * 24 + 84));
+  auto const pixel{ ViewPixel(Data(ds), { Word(ds, x), Word(ds, y) }) };
+  SetWord(ds, x, pixel.x);
+  SetWord(ds, y, pixel.y);
 }
 
 // Side 0's sprites swap the first two bytes of every 3-byte group of the DS buffer at sprite.

@@ -31,10 +31,11 @@ enum class TargetService : uint16_t {
   ARRIVAL_LOCATION = 3, // x, y, side
   PICK_LOCATION    = 4, // DS offsets of x and y
 };
-// Below the frame (entry SP - 2): the picked cell and the question text.
-constexpr uint16_t PICKED_X_AT{ 0x0c };
-constexpr uint16_t PICKED_Y_AT{ 0x0e };
-constexpr uint16_t TEXT_AT{ 0x76 };
+// The DS reserve of the picked cell and the question text the services write, and their offsets in it.
+constexpr uint16_t TARGET_RESERVE{ 0x76 };
+constexpr uint16_t TEXT_AT{ 0 };
+constexpr uint16_t PICKED_X_AT{ 0x6a };
+constexpr uint16_t PICKED_Y_AT{ 0x68 };
 constexpr uint16_t ONE_LINE_NAME{ 13 }; // longer objective names take two lines
 constexpr uint8_t  ORDER_SLOTS{ 3 };    // the order slots cleared per unit
 
@@ -55,16 +56,15 @@ uint8_t opeu_menu_always(void) {
   return 1;
 }
 
-// sp: the entry SP; the routine's locals lie below sp - 2.
-void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t sp, uint8_t group) {
-  auto&      data{ Data(ds) };
-  auto const frame{ static_cast<uint16_t>(sp - 2) };
-  auto const x_at{ Local(frame, PICKED_X_AT) };
-  auto const y_at{ Local(frame, PICKED_Y_AT) };
-  auto const text{ Local(frame, TEXT_AT) };
-  auto const person{ opeu_find_group_record(ds, data.current_side, group) };
-  auto&      division{ DivisionOf(data, group) };
-  auto&      task{ division.tasks[data.supply_row] };
+void opeu_group_set_target(uint8_t* ds, HostEvent event, uint16_t /*sp*/, uint8_t group) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ TARGET_RESERVE };
+  auto const          x_at{ locals.At(PICKED_X_AT) };
+  auto const          y_at{ locals.At(PICKED_Y_AT) };
+  auto const          text{ locals.At(TEXT_AT) };
+  auto const          person{ opeu_find_group_record(ds, data.current_side, group) };
+  auto&               division{ DivisionOf(data, group) };
+  auto&               task{ division.tasks[data.supply_row] };
   if (task.kind != Bits(TaskKind::NONE)) {
     Byte(ds, x_at) = task.x;
     Byte(ds, y_at) = task.y;

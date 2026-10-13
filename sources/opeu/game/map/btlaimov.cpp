@@ -27,8 +27,6 @@ constexpr uint8_t RANGED_MODE{ 1 };
 constexpr uint8_t FAST_SPEED{ 60 };
 // The attack's frame below the callers' sp.
 constexpr uint16_t ATTACK_FRAME{ 10 };
-constexpr uint16_t X_AT{ 2 };
-constexpr uint16_t Y_AT{ 4 };
 
 // The original's counters frame: the six kind counters, then the loop index, the element cursor and, at 10, the
 // element count, which battle_ai_kind reaches for category 6.
@@ -76,8 +74,7 @@ void opeu_battle_ai_move_to(uint8_t* ds, BattleEvent event, uint8_t x, uint8_t y
   opeu_battle_set_facing(ds, event, element, NONE);
 }
 
-// frame: the routine's frame on the DS stack; the random cell is written there.
-void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target, uint16_t frame) {
+void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t target, uint16_t /*frame*/) {
   if (target) {
     auto& position{ PositionOf(Data(ds), element) };
     position.target = target;
@@ -86,10 +83,8 @@ void opeu_battle_ai_attack(uint8_t* ds, BattleEvent event, uint16_t element, uin
     opeu_battle_set_facing(ds, event, element, NONE);
     return;
   }
-  auto const x_at{ Local(frame, X_AT) };
-  auto const y_at{ Local(frame, Y_AT) };
-  opeu_battle_ai_random_cell(ds, event, x_at, y_at, element, unit);
-  opeu_battle_ai_move_to(ds, event, Byte(ds, x_at), Byte(ds, y_at), element);
+  auto const cell{ opeu_battle_ai_random_cell(ds, event, element, unit) };
+  opeu_battle_ai_move_to(ds, event, cell.x, cell.y, element);
 }
 
 void opeu_battle_ai_attack_near(uint8_t* ds, BattleEvent event, uint16_t element, uint16_t unit, uint16_t sp) {

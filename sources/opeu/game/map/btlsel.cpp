@@ -20,9 +20,10 @@
 using namespace opeu::game;
 
 namespace {
-// Below the mouse loop's frame: the pointer position the mouse service writes, converted in place to a cell.
-constexpr uint16_t MOUSE_X_AT{ 6 };
-constexpr uint16_t MOUSE_Y_AT{ 8 };
+// The mouse loop's DS reserve for the pointer position the mouse service writes, converted in place to a cell.
+constexpr uint16_t MOUSE_RESERVE{ 8 };
+constexpr uint16_t MOUSE_X_AT{ 2 };
+constexpr uint16_t MOUSE_Y_AT{ 0 };
 // The mouse loop's frame below select_cell's entry SP.
 constexpr uint16_t MOUSE_FRAME{ 6 };
 // The column of a pointer outside the battle map.
@@ -31,11 +32,11 @@ constexpr uint8_t KEY_ENTER{ 0x0d };
 constexpr uint8_t KEY_ESCAPE{ 0x1b };
 } // namespace
 
-// frame: the routine's frame on the DS stack; the pointer position lives there.
-uint16_t opeu_battle_mouse_select(uint8_t* ds, BattleEvent event, uint16_t show_info, uint16_t frame) {
-  auto&      data{ Data(ds) };
-  auto const x_at{ Local(frame, MOUSE_X_AT) };
-  auto const y_at{ Local(frame, MOUSE_Y_AT) };
+uint16_t opeu_battle_mouse_select(uint8_t* ds, BattleEvent event, uint16_t show_info, uint16_t /*frame*/) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ MOUSE_RESERVE };
+  auto const          x_at{ locals.At(MOUSE_X_AT) };
+  auto const          y_at{ locals.At(MOUSE_Y_AT) };
   opeu_battle_cursor_draw(ds, event);
   Call(ds, event, BattleRoutine::INPUT_RESET);
   int16_t shown_x{ OFF_MAP };

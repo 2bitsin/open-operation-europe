@@ -59,15 +59,16 @@ void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t spri
 }
 } // namespace
 
-// frame: the routine's frame on the DS stack; its sprite buffer lives there.
-void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t unit, uint16_t x, uint16_t y) {
-  auto&      data{ Data(ds) };
-  auto const sprite_buffer{ Local(frame, 0xe8) };
-  auto const side{ opeu_unit_side(unit) };
-  auto const recolor{ [&] { opeu_sprite_recolor(ds, sprite_buffer, SPRITE_BYTES, side); } };
-  bool       order_shown{ false };
-  uint8_t    destination_x;
-  uint8_t    destination_y;
+// The sprite is read into a DS buffer the far read, the recolouring and the compose service work on.
+void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t unit, uint16_t x, uint16_t y) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ SPRITE_BYTES };
+  auto const          sprite_buffer{ locals.At(0) };
+  auto const          side{ opeu_unit_side(unit) };
+  auto const          recolor{ [&] { opeu_sprite_recolor(ds, sprite_buffer, SPRITE_BYTES, side); } };
+  bool                order_shown{ false };
+  uint8_t             destination_x;
+  uint8_t             destination_y;
   if (opeu_unit_order_destination(ds, unit, &destination_x, &destination_y) && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
@@ -92,19 +93,14 @@ void opeu_view_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t 
   opeu_view_number(ds, event, static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18), static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
 
-// frame: the routine's frame on the DS stack; the pixel position is converted in place there, and the unit drawing
-// runs on the frame below.
+// frame: the routine's frame; the unit drawing runs on the frame below.
 void opeu_view_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t x, uint16_t y) {
   auto&      data{ Data(ds) };
-  auto const pixel_x_at{ Local(frame, 2) };
-  auto const pixel_y_at{ Local(frame, 6) };
   auto const cell_x{ static_cast<uint8_t>(x) };
   auto const cell_y{ static_cast<uint8_t>(y) };
-  SetWord(ds, pixel_x_at, cell_x);
-  SetWord(ds, pixel_y_at, cell_y);
-  opeu_view_pixel(ds, pixel_x_at, pixel_y_at);
-  auto const pixel_x{ Word(ds, pixel_x_at) };
-  auto const pixel_y{ Word(ds, pixel_y_at) };
+  auto const pixel{ ViewPixel(data, { cell_x, cell_y }) };
+  auto const pixel_x{ pixel.x };
+  auto const pixel_y{ pixel.y };
   Call(ds, event, MapService::VIEW_PREPARE);
   auto const tile{ data.map_tiles[MAP_WIDTH * cell_y + cell_x] };
   Call(ds, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 3, 24, 0, data.tile_segment, tile * TILE_BYTES);

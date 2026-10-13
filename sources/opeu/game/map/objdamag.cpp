@@ -33,11 +33,14 @@ enum class DamageService : uint16_t {
   OBJECTIVE_SIDE = 7, // objective
   OPPOSITE_SIDE  = 8, // side
 };
-// Below the frames: the report buffers, and the slot an unknown supply kind reads.
-constexpr uint16_t LINE_TEXT_AT{ 0x68 };
-constexpr uint16_t STALE_SLOT_AT{ 2 };
-constexpr uint16_t REPORT_AT{ 0x6e };
-constexpr uint16_t LOSS_TEXT_AT{ 0x8e };
+// The DS reserves of the report buffers the services format, and their offsets in them; the loss line's holds the
+// never-written slot an unknown supply kind reads.
+constexpr uint16_t LINE_RESERVE{ 0x68 };
+constexpr uint16_t LINE_TEXT_AT{ 0 };
+constexpr uint16_t STALE_SLOT_AT{ 0x66 };
+constexpr uint16_t REPORT_RESERVE{ 0x8e };
+constexpr uint16_t LOSS_TEXT_AT{ 0 };
+constexpr uint16_t REPORT_AT{ 0x20 };
 constexpr uint16_t LOSS_LINE_FRAME{ 0x9e }; // the loss line's frame below this one's
 
 // The side letter of the report's colour code: '5' for side 1, '6' for side 0.
@@ -46,14 +49,14 @@ constexpr uint16_t LOSS_LINE_FRAME{ 0x9e }; // the loss line's frame below this 
 }
 } // namespace
 
-// Removes amount..2 * amount - 1 of one of the objective's supply stocks (kind 0..2) and reports it. bp: this routine's
-// frame.
-void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t bp, uint16_t objective, uint8_t kind, uint16_t amount) {
-  auto&      data{ Data(ds) };
-  auto&      record{ Record<Objective>(data, objective) };
-  auto const text{ Local(bp, LINE_TEXT_AT) };
+// Removes amount..2 * amount - 1 of one of the objective's supply stocks (kind 0..2) and reports it.
+void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t /*bp*/, uint16_t objective, uint8_t kind, uint16_t amount) {
+  auto&               data{ Data(ds) };
+  auto&               record{ Record<Objective>(data, objective) };
+  ServiceLocals const locals{ LINE_RESERVE };
+  auto const          text{ locals.At(LINE_TEXT_AT) };
   // An unknown kind takes the stale word in its slot as the stock's address.
-  auto const stock{ kind < 3 ? Near(data, record.resources[kind]) : Word(ds, Local(bp, STALE_SLOT_AT)) };
+  auto const stock{ kind < 3 ? Near(data, record.resources[kind]) : Word(ds, locals.At(STALE_SLOT_AT)) };
   auto const before{ Word(ds, stock) };
   uint16_t   value{ before };
   opeu_sub_word(RandomBelow(ds, amount) + amount, &value);
@@ -69,12 +72,13 @@ void opeu_objective_loss_line(uint8_t* ds, HostEvent event, uint16_t bp, uint16_
 // spread: the random part of it; heavy: infantry loses 6 to 15 times as much; supply and endurance: the supply and
 // strength losses.
 void opeu_objective_damage(uint8_t* ds, HostEvent event, uint16_t bp, uint16_t objective, uint16_t chance, uint16_t base, uint16_t supply, uint16_t endurance, uint16_t spread, uint16_t heavy) {
-  auto&      data{ Data(ds) };
-  auto&      record{ Record<Objective>(data, objective) };
-  auto const report{ Local(bp, REPORT_AT) };
-  auto const loss_text{ Local(bp, LOSS_TEXT_AT) };
-  auto const side{ static_cast<uint8_t>(Call(ds, event, DamageService::OBJECTIVE_SIDE, objective)) };
-  auto const enemy{ static_cast<uint8_t>(Call(ds, event, DamageService::OPPOSITE_SIDE, side)) };
+  auto&               data{ Data(ds) };
+  auto&               record{ Record<Objective>(data, objective) };
+  ServiceLocals const locals{ REPORT_RESERVE };
+  auto const          report{ locals.At(REPORT_AT) };
+  auto const          loss_text{ locals.At(LOSS_TEXT_AT) };
+  auto const          side{ static_cast<uint8_t>(Call(ds, event, DamageService::OBJECTIVE_SIDE, objective)) };
+  auto const          enemy{ static_cast<uint8_t>(Call(ds, event, DamageService::OPPOSITE_SIDE, side)) };
   Call(ds, event, DamageService::LOCATION_BLAST, record.x, record.y, enemy);
   if (base) {
     Call(ds, event, DamageService::FORMAT, report, Near(data, data.damage_title));

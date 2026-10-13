@@ -15,8 +15,8 @@
 using namespace opeu::game;
 
 namespace {
-// Below the report's stack pointer: its message buffer; the hit runs the report below its own.
-constexpr uint16_t REPORT_TEXT{ 0x68 };
+// The report's DS reserve for its message buffer; the hit runs the report below its own stack pointer.
+constexpr uint16_t REPORT_TEXT_BYTES{ 0x68 };
 constexpr uint16_t HIT_REPORT_STACK{ 22 };
 constexpr uint16_t SIDE_0_COLOR{ '6' };
 constexpr uint16_t SIDE_1_COLOR{ '5' };
@@ -33,10 +33,11 @@ void Append(uint8_t* ds, uint16_t destination, uint16_t source) {
 } // namespace
 
 // "<side> <type>: We discovered mines when we retreated!" for a side a player commands.
-void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t sp, uint16_t element) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ Local(sp, REPORT_TEXT) };
-  auto const side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
+void opeu_battle_mine_report(uint8_t* ds, BattleEvent event, uint16_t /*sp*/, uint16_t element) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ REPORT_TEXT_BYTES };
+  auto const          buffer{ locals.At(0) };
+  auto const          side{ static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SIDE, element)) };
   if (data.side_status[side] == 0) return;
   Call(ds, event, BattleRoutine::REQUEST_FORMAT, buffer, Near(data, data.mine_text), side ? SIDE_1_COLOR : SIDE_0_COLOR, data.side_names[side],
        data.element_types[Record<Element>(data, element).type].name);

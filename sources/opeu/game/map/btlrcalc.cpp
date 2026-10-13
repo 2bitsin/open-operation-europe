@@ -142,25 +142,23 @@ uint16_t opeu_battle_ranged_defense(uint8_t* ds, BattleEvent event, uint16_t ele
   return static_cast<uint16_t>(Mul16(leadership, value) + bonus + 1);
 }
 
-// The casualties of one ranged shot. bunker: the DS offset of a word set when there is no target or it stands in a
-// bunker (a garrisoned city cell); such a shot is a fixed barrage. Otherwise a hit scales by power, defence, cover,
-// weather and night. The shooter's unit spends a third of its shots in ammunition.
-uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, uint16_t bunker) {
-  auto& data{ Data(ds) };
-  if (!target) {
-    SetWord(ds, bunker, 1);
-  } else {
-    SetWord(ds, bunker, 0);
-    auto const& position{ PositionOf(data, target) };
-    for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
-      auto const& extra{ BattleExtraAt(data, i) };
-      if (extra.x == BATTLE_UNPLACED) break;
-      if (position.x == extra.x && position.y == extra.y && extra.count) {
-        SetWord(ds, bunker, 1);
-        break;
-      }
-    }
+namespace {
+// Whether a shot goes into a bunker (a garrisoned city cell), or at no target.
+[[nodiscard]] auto IntoBunker(DataSegment& data, uint16_t target) -> bool {
+  if (!target) return true;
+  auto const& position{ PositionOf(data, target) };
+  for (unsigned i{ 0 }; i < BATTLE_EXTRA_COUNT; ++i) {
+    auto const& extra{ BattleExtraAt(data, i) };
+    if (extra.x == BATTLE_UNPLACED) break;
+    if (position.x == extra.x && position.y == extra.y && extra.count) return true;
   }
+  return false;
+}
+
+// The casualties of one ranged shot: into a bunker a fixed barrage, otherwise a hit scaled by power, defence, cover,
+// weather and night. The shooter's unit spends a third of its shots in ammunition.
+[[nodiscard]] auto Casualties(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target, bool into_bunker) -> uint16_t {
+  auto&      data{ Data(ds) };
   auto&      unit{ Record<Unit>(data, opeu_battle_element_unit(ds, event, shooter)) };
   auto const shots{ static_cast<uint16_t>(static_cast<uint8_t>(Call(ds, event, BattleRoutine::BATTLE_ELEMENT_SHOTS, target, shooter)) / 3u) };
   auto const ammunition{ unit.resources[0] };
@@ -168,7 +166,7 @@ uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shoo
   auto const& type{ TypeOf(data, shooter) };
   uint16_t    count{ Record<Element>(data, shooter).quantity };
   if (Is(type, Category::INFANTRY)) count /= 10;
-  if (Word(ds, bunker)) return static_cast<uint16_t>(Mul16(Call(ds, event, BattleRoutine::ISQRT, type.anti_tank), count) / 100);
+  if (into_bunker) return static_cast<uint16_t>(Mul16(Call(ds, event, BattleRoutine::ISQRT, type.anti_tank), count) / 100);
   if (!opeu_battle_ranged_hits(ds, event, shooter, target)) return 0;
   auto const power{ opeu_battle_ranged_power(ds, event, shooter, target) };
   auto const defence{ opeu_battle_ranged_defense(ds, event, target) };
@@ -190,6 +188,13 @@ uint16_t opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shoo
   auto const base{ Mul16(static_cast<uint16_t>(Mul16(grade, count) / night / spread), size) };
   auto const roll{ opeu_rand_bounded(2) };
   return static_cast<uint16_t>(roll + Mul16(static_cast<uint16_t>(base / (Is(target_type, Category::INFANTRY) ? 7 : 70)), opeu_rand_bounded(6) == 0 ? 2 : 1));
+}
+
+} // namespace
+
+auto opeu_battle_ranged_damage(uint8_t* ds, BattleEvent event, uint16_t shooter, uint16_t target) -> RangedShot {
+  auto const into_bunker{ IntoBunker(Data(ds), target) };
+  return { Casualties(ds, event, shooter, target, into_bunker), into_bunker };
 }
 
 uint16_t svc_btlrcalc(uint8_t* ds, uint32_t address, const uint16_t* args, unsigned int count) {

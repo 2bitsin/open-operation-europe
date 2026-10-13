@@ -18,18 +18,17 @@ constexpr uint16_t IMAGE_MODE{ 0x307 };
 constexpr uint16_t MARKER_MODE{ 7 };
 } // namespace
 
-// frame: this routine's frame; the pixel position is computed in its locals.
-void opeu_map_highlight_view(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
+void opeu_map_highlight_view(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
-  auto const pixel{ CellPixel(ds, Local(frame, 2), Local(frame, 4), x, y, opeu_view_pixel) };
+  auto const pixel{ ViewPixel(data, { x, y }) };
   auto       tile{ StreamFrameTile(data, 3) };
   Call(ds, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, MASK_MODE, tile.segment, tile.offset);
   tile = StreamFrameTile(data, 2);
   Call(ds, event, MapService::DRAW_FAR, pixel.x, pixel.y, 3, 24, IMAGE_MODE, tile.segment, tile.offset);
 }
 
-void opeu_map_highlight_overview(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
-  auto const pixel{ CellPixel(ds, Local(frame, 2), Local(frame, 4), x, y, opeu_overview_pixel) };
+void opeu_map_highlight_overview(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint8_t x, uint8_t y) {
+  auto const pixel{ OverviewPixel({ x, y }) };
   Call(ds, event, MapService::DRAW_NEAR, pixel.x, pixel.y, 1, 8, MARKER_MODE, Near(Data(ds), Data(ds).flash_marker));
 }
 

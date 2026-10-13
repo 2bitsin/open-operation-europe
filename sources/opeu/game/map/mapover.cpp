@@ -39,11 +39,6 @@ constexpr uint16_t TILE_BYTES{ 32 };  // an overview tile in the overview tile s
 constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 // The frame below a cell drawing that its unit drawing runs on.
 constexpr uint16_t UNIT_FRAME{ 0x20 };
-// Below the unit drawing's frame: the glyph buffer.
-constexpr uint16_t GLYPH_BUFFER{ 0x56 };
-// Below the cell drawing's frame: the pixel position, converted in place.
-constexpr uint16_t PIXEL_X_AT{ 2 };
-constexpr uint16_t PIXEL_Y_AT{ 6 };
 // Draw modes of the objective marker, by its side: in the Ardennes, and elsewhere.
 constexpr uint16_t BULGE_MARKER[2]{ 2, 4 };
 constexpr uint16_t MARKER[2]{ 0x702, 0x701 };
@@ -70,11 +65,12 @@ void Compose(uint8_t* ds, HostEvent event, uint16_t x, uint16_t y, uint16_t offs
 }
 } // namespace
 
-// frame: the routine's frame on the DS stack; its glyph buffer lives there.
-void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint16_t unit, uint16_t x, uint16_t y) {
-  auto&      data{ Data(ds) };
-  auto const buffer{ Local(frame, GLYPH_BUFFER) };
-  auto const draw{ [&](uint16_t glyphs, uint16_t mask) {
+// The glyph is read into a DS buffer the far read, the recolouring and the compose service work on.
+void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t /*frame*/, uint16_t unit, uint16_t x, uint16_t y) {
+  auto&               data{ Data(ds) };
+  ServiceLocals const locals{ GLYPH_BYTES };
+  auto const          buffer{ locals.At(0) };
+  auto const          draw{ [&](uint16_t glyphs, uint16_t mask) {
     Call(ds, event, MapService::READ_FAR_BYTES, glyphs, SPRITE_SEGMENT, buffer, GLYPH_BYTES);
     opeu_sprite_recolor(ds, buffer, GLYPH_BYTES, opeu_unit_side(unit));
     SetStream(data, mask);
@@ -100,17 +96,12 @@ void opeu_overview_unit_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint1
   draw(static_cast<uint16_t>(TYPE_GLYPHS + glyph * GLYPH_BYTES), static_cast<uint16_t>(TYPE_MASKS + glyph * MASK_BYTES));
 }
 
-// frame: the routine's frame on the DS stack; the pixel position is converted in place there, and the unit drawing
-// runs on the frame below.
+// frame: the routine's frame; the unit drawing runs on the frame below.
 void opeu_overview_cell_draw(uint8_t* ds, HostEvent event, uint16_t frame, uint8_t x, uint8_t y) {
   auto&      data{ Data(ds) };
-  auto const pixel_x_at{ Local(frame, PIXEL_X_AT) };
-  auto const pixel_y_at{ Local(frame, PIXEL_Y_AT) };
-  SetWord(ds, pixel_x_at, x);
-  SetWord(ds, pixel_y_at, y);
-  opeu_overview_pixel(ds, pixel_x_at, pixel_y_at);
-  auto const pixel_x{ Word(ds, pixel_x_at) };
-  auto const pixel_y{ Word(ds, pixel_y_at) };
+  auto const pixel{ OverviewPixel({ x, y }) };
+  auto const pixel_x{ pixel.x };
+  auto const pixel_y{ pixel.y };
   auto const tile{ data.map_tiles[MAP_WIDTH * y + x] };
   Call(ds, event, MapService::RESTORE_FAR, pixel_x, pixel_y, 1, 8, 0, data.overview_tile_segment, tile * TILE_BYTES);
   if (auto const objective{ opeu_find_objective_at(ds, x, y) }) {

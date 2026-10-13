@@ -21,8 +21,9 @@ enum class HourlyService : uint16_t {
   REQUESTS = 0,
   ARRIVALS = 1,
 };
-// The request stage reads its stale-request threshold from this word below the entry SP, never set by its caller.
-constexpr uint16_t STALE_THRESHOLD_AT{ 0x10 };
+// The request stage's stale-request threshold is a DS stack word its caller never sets: the bottom word of a reserve
+// this size, as the stack held it.
+constexpr uint16_t STALE_THRESHOLD_RESERVE{ 0x10 };
 constexpr unsigned UNIT_COUNT{ 2 * UNITS_PER_SIDE };
 constexpr uint8_t  BLOCK{ 4 }; // cells per influence square
 } // namespace
@@ -76,9 +77,8 @@ uint16_t svc_influenc(uint8_t* ds, uint16_t id, uint16_t a, uint16_t b, uint16_t
   (void)d;
   switch (static_cast<HourlyService>(id)) {
   case HourlyService::REQUESTS: {
-    auto const sp{ port_stack_enter(PORT_FRAME) };
-    opeu_hourly_c_stage_b(ds, svc_requests, Word(ds, Local(sp, STALE_THRESHOLD_AT)));
-    port_stack_leave(PORT_FRAME);
+    ServiceLocals const locals{ STALE_THRESHOLD_RESERVE };
+    opeu_hourly_c_stage_b(ds, svc_requests, Word(ds, locals.At(0)));
     break;
   }
   case HourlyService::ARRIVALS: opeu_hourly_c_stage_c(ds, svc_arrivals); break;

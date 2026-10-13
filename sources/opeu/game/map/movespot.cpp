@@ -35,11 +35,13 @@ enum class SpotService : uint16_t {
   FIND_UNIT      = 11, // x, y
   PENDING_FINISH = 12, // request
 };
-constexpr uint8_t  NONE{ 255 };
-constexpr uint8_t  DIRECTIONS{ 8 };
-constexpr uint8_t  MINES_REQUEST{ 3 }; // the pending request the minefield report finishes
-constexpr uint16_t STEP_X_AT{ 2 };     // the step coordinates live below the frame
-constexpr uint16_t STEP_Y_AT{ 4 };
+constexpr uint8_t NONE{ 255 };
+constexpr uint8_t DIRECTIONS{ 8 };
+constexpr uint8_t MINES_REQUEST{ 3 }; // the pending request the minefield report finishes
+// The DS reserve of the step coordinates the grid step service moves.
+constexpr uint16_t STEP_RESERVE{ 4 };
+constexpr uint16_t STEP_X_AT{ 2 };
+constexpr uint16_t STEP_Y_AT{ 0 };
 } // namespace
 
 void opeu_move_spot(uint8_t* ds, HostEvent event) {
@@ -79,14 +81,14 @@ void opeu_move_spot(uint8_t* ds, HostEvent event) {
   if (!was_spotted && Call(ds, event, SpotService::UNIT_SPOTTED, current) != was_spotted && data.side_status[enemy] == SIDE_PLAYED) opeu_move_sighted(ds, spotter, current);
 }
 
-// bp: this routine's frame; the step coordinates handed to the grid step live below it.
-uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t bp) {
-  auto const& data{ Data(ds) };
-  auto const& mover{ Record<Unit>(data, data.current_unit_ptr) };
-  auto const  x_at{ Local(bp, STEP_X_AT) };
-  auto const  y_at{ Local(bp, STEP_Y_AT) };
-  auto const  x{ mover.x };
-  auto const  y{ mover.y };
+uint16_t opeu_move_enemy_adjacent(uint8_t* ds, HostEvent event, uint16_t /*bp*/) {
+  auto const&         data{ Data(ds) };
+  auto const&         mover{ Record<Unit>(data, data.current_unit_ptr) };
+  ServiceLocals const locals{ STEP_RESERVE };
+  auto const          x_at{ locals.At(STEP_X_AT) };
+  auto const          y_at{ locals.At(STEP_Y_AT) };
+  auto const          x{ mover.x };
+  auto const          y{ mover.y };
   for (uint8_t direction{ 0 }; direction < DIRECTIONS; direction++) {
     Byte(ds, x_at) = x;
     Byte(ds, y_at) = y;
