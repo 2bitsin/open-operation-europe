@@ -70,6 +70,9 @@ and unclipped WAV). After ctest, `./buildutil test` runs every
 idiom count above `tools/census/baseline.json`, finished modules at zero;
 its `link` row counts the routine link table and its `callback` row the
 event-typed parameters and `Call(` sites, the two that M2 takes to zero;
+its `fixed_ptr` row counts every fixed-width integer pointer
+(`u?intN_t*`, `uintptr_t*`, `const` included; matches, not lines), the
+user's metric, which only falls;
 `python3 tools/census/census.py` prints the table of `HEAD`, counted from a
 `git archive` export, never the working tree, and
 starts from the baseline committed at `HEAD`, not the working file, and
