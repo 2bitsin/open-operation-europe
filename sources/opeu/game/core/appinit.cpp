@@ -24,7 +24,7 @@ constexpr std::uint16_t INPUT_PROMPT{ offsetof(DataSegment, input_prompt) };
 } // namespace
 
 void opeu_app_startup(Game& game) {
-  opeu_app_startup_service(game, svc_startup);
+  opeu_app_startup_service(game);
 }
 
 // Two empty routines nothing calls.

@@ -31,12 +31,12 @@ enum class RequestMenuService : uint16_t {
   FAR_CALL      = 30, // calls the far routine (offset, segment)
 };
 
-void     opeu_request_no_more(Game& game, HostEvent event, uint16_t what);
+void     opeu_request_no_more(Game& game, uint16_t what);
 uint16_t opeu_request_pending(Game const& game, uint8_t kind);
 uint16_t opeu_request_mode_is(Game const& game, uint8_t mode);
-uint16_t opeu_request_cancel_prompt(Game& game, HostEvent event, uint16_t what);
-void     opeu_request_finish(Game& game, HostEvent event);
-void     opeu_request_file(Game& game, HostEvent event, uint16_t request);
+uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what);
+void     opeu_request_finish(Game& game);
+void     opeu_request_file(Game& game, uint16_t request);
 uint16_t opeu_side_has_city(Game const& game);
 
 namespace opeu::game::detail::rqcommon {
@@ -50,4 +50,3 @@ using detail::rqcommon::FileRequest;
 
 // The request menu's services; module names the caller in diagnostics.
 uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count);
-uint16_t svc_rqcommon(Game& game, uint16_t id, const uint16_t* args, uint16_t count);

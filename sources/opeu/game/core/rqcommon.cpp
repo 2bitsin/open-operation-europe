@@ -15,6 +15,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <utility>
 
 using namespace opeu::game;
@@ -38,12 +39,12 @@ auto FiledRequests(DataSegment const& data) -> auto const& {
 } // namespace
 
 // "You cannot increase your %s any more.", spoken by the context's third person.
-void opeu_request_no_more(Game& game, HostEvent event, uint16_t what) {
+void opeu_request_no_more(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  Call(game, event, RequestMenuService::FORMAT, buffer, offsetof(DataSegment, rq_no_more_text), what);
-  Call(game, event, RequestMenuService::MESSAGE, buffer, data.context_record3);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_no_more_text)), static_cast<std::uint16_t>(what) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record3);
 }
 
 // Whether the current side has filed a request of this kind (supplies, battalion or regiment).
@@ -58,29 +59,30 @@ uint16_t opeu_request_mode_is(Game const& game, uint8_t mode) {
 }
 
 // "Your %s request has been sent. Cancel the request?"; returns the context's second person's answer.
-uint16_t opeu_request_cancel_prompt(Game& game, HostEvent event, uint16_t what) {
+uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  Call(game, event, RequestMenuService::FORMAT, buffer, offsetof(DataSegment, rq_cancel_text), what);
-  return Call(game, event, RequestMenuService::CONFIRM, buffer, data.context_record2);
+  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_cancel_text)), static_cast<std::uint16_t>(what) });
+  return opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2);
 }
 
 // The daily dialog's closing of a filed request.
-void opeu_request_finish(Game& game, HostEvent event) {
-  Call(game, event, RequestMenuService::FINISH, 3);
+void opeu_request_finish(Game& game) {
+  opeu_pending_finish(game, static_cast<uint8_t>(3));
 }
 
 // Files the request in the current side's slot for its kind: "I will file the request immediately."
-void opeu_request_file(Game& game, HostEvent event, uint16_t request) {
+void opeu_request_file(Game& game, uint16_t request) {
   auto&       data{ Data(game) };
   auto const& filed{ Record<RequestSlot>(data, request) };
   auto&       slot{ FiledRequests(data)[filed.kind] };
   slot.target   = filed.target;
   slot.argument = filed.argument;
   slot.kind     = filed.kind;
-  Call(game, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_filed_text), data.context_record2);
-  Call(game, event, RequestMenuService::SHOW, REQUEST_SHOW, data.current_side, FINISH_PRESENT_OFFSET, FINISH_PRESENT_SEGMENT);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_filed_text), data.context_record2);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), REQUEST_SHOW, static_cast<uint8_t>(data.current_side),
+                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(FINISH_PRESENT_OFFSET)) | static_cast<std::uint32_t>(static_cast<std::uint16_t>(FINISH_PRESENT_SEGMENT)) << 16));
 }
 
 namespace opeu::game::detail::rqcommon {
@@ -88,7 +90,7 @@ auto FileRequest(Game& game, RequestSlot request) -> void {
   ServiceLocals const locals{ sizeof(RequestSlot) };
   auto const          at{ locals.At(0) };
   Record<RequestSlot>(Data(game), at) = request;
-  opeu_request_file(game, svc_rqcommon, at);
+  opeu_request_file(game, at);
 }
 } // namespace opeu::game::detail::rqcommon
 
@@ -104,7 +106,7 @@ uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t
   uint16_t r = 0;
   switch (static_cast<RequestMenuService>(id)) {
   case RequestMenuService::PENDING:       r = opeu_request_pending(game, (uint8_t)Arg(args, count, 0)); break;
-  case RequestMenuService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(game, svc_rqcommon, Arg(args, count, 0)); break;
+  case RequestMenuService::CANCEL_PROMPT: r = opeu_request_cancel_prompt(game, Arg(args, count, 0)); break;
   case RequestMenuService::FILE:          FileRequest(game, { Arg(args, count, 0), static_cast<uint8_t>(Arg(args, count, 1)), static_cast<uint8_t>(Arg(args, count, 2)) }); break;
   case RequestMenuService::MESSAGE:       opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
   case RequestMenuService::TITLE:         opeu_army_title(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
@@ -124,11 +126,7 @@ uint16_t svc_request(const char* module, Game& game, uint16_t id, const uint16_t
   return r;
 }
 
-uint16_t svc_rqcommon(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_request("rqcommon", game, id, args, count);
-}
-
 auto port_routine_opeu_request_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_request_finish(game, svc_rqcommon);
+  opeu_request_finish(game);
   return 0;
 }

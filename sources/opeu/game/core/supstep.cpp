@@ -51,11 +51,11 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
   auto&               selected{ Record<std::uint8_t>(data, selection) };
   std::uint8_t        highlighted{ NO_ROW };
   selected = 0;
-  Call(game, event, ROW, 1, 0);
-  Call(game, event, ROW, 0, 0);
-  Call(game, event, ROW, 2, 0);
-  Call(game, event, CHIEF_TEXT, offsetof(DataSegment, supply_prompt));
-  Call(game, event, INPUT_RESET);
+  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(1), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(0), static_cast<uint8_t>(0));
+  opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(2), static_cast<uint8_t>(0));
+  opeu_ops_chief_text(game, offsetof(DataSegment, supply_prompt));
+  opeu_input_reset(game, svc_mouse);
   for (;;) {
     std::uint8_t redraw{ 0 }; // the column the row redraw marks: 1 left, 2 right
     auto const   left{ TableAt(0, selected, CURRENT) };
@@ -95,11 +95,11 @@ uint16_t opeu_supply_step(Game& game, HostEvent event) {
       break;
     }
     case KEY_ENTER:
-      Call(game, event, ROW, selected, redraw);
+      opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
       Highlight(game, event, highlighted);
-      return Call(game, event, CHIEF_WAIT, offsetof(DataSegment, supply_continue));
+      return opeu_ops_chief_wait(game, offsetof(DataSegment, supply_continue));
     }
-    Call(game, event, ROW, selected, redraw);
+    opeu_supply_draw_row(game, svc_suprow, static_cast<uint8_t>(selected), static_cast<uint8_t>(redraw));
   }
 }
 

@@ -26,7 +26,7 @@ void opeu_delay_ticks(Game& game, std::uint16_t ticks) {
   opeu_fm_wait_start(ticks);
   while (opeu_fm_busy()) {
     if (opeu_turn_input_b() && static_cast<std::uint8_t>(opeu_key_read(game, static_cast<TextHost*>(port_textout_host()))) == KEY_ESCAPE && (data.side_control[0] | data.side_control[1]) == 0)
-      opeu_quit_to_dos(game, svc_settings);
+      opeu_quit_to_dos(game);
   }
 }
 

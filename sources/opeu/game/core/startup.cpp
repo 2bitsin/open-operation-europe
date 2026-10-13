@@ -24,15 +24,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services opeu_app_startup_service calls through its event.
-enum class StartupService : uint16_t {
-  CLOCK_TICKS = 0, // the low word of the clock's tick count
-  PREPARE     = 1, // opeu_app_prepare
-  NEW_GAME    = 2, // set up a new game; nonzero when one was started
-  VGA_CLEAR   = 3,
-  FINISH      = 4, // finish the sides' initialisation (value)
-};
-
 // The staff roles of a computer side's three ablest generals, best first; the next four lead the divisions.
 constexpr StaffRole STAFF_ROLES[]{ StaffRole::ARMY_COMMANDER, StaffRole::OPERATIONS_CHIEF, StaffRole::INTELLIGENCE_CHIEF };
 
@@ -101,27 +92,15 @@ void opeu_assign_side_staff(Game& game) {
 }
 
 // Seeds the random numbers from the clock, prepares the machine and, when a new game is set up, staffs the sides.
-void opeu_app_startup_service(Game& game, HostEvent event) {
-  opeu_rand_seed(Call(game, event, StartupService::CLOCK_TICKS));
-  Call(game, event, StartupService::PREPARE);
+void opeu_app_startup_service(Game& game) {
+  opeu_rand_seed(port_clock_ticks_low());
+  opeu_app_prepare(game, svc_segsetup);
   auto& data{ Data(game) };
-  if (Call(game, event, StartupService::NEW_GAME)) {
+  if (static_cast<uint16_t>(opeu_new_game_setup(game))) {
     opeu_assign_side_staff(game);
     data.startup_mode += STARTUP_STEP;
   }
   data.startup_mode += STARTUP_STEP;
-  Call(game, event, StartupService::VGA_CLEAR);
-  Call(game, event, StartupService::FINISH, 1);
-}
-
-uint16_t svc_startup(Game& game, uint16_t service, const uint16_t* args, uint16_t count) {
-  switch (static_cast<StartupService>(service)) {
-  case StartupService::CLOCK_TICKS: return port_clock_ticks_low();
-  case StartupService::PREPARE:     opeu_app_prepare(game, svc_segsetup); break;
-  case StartupService::NEW_GAME:    return static_cast<uint16_t>(opeu_new_game_setup(game, svc_scensel));
-  case StartupService::VGA_CLEAR:   opeu_vga_clear(); break;
-  case StartupService::FINISH:      opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(Arg(args, count, 0))); break;
-  default:                          port_unhandled("startup", service, count);
-  }
-  return 0;
+  opeu_vga_clear();
+  opeu_finish_side_initialization(game, svc_sound, static_cast<uint8_t>(1));
 }

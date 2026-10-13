@@ -37,14 +37,14 @@ enum class SetupService : uint16_t {
 };
 
 // Allocates a memory block and stores its segment; returns the segment (0 when memory is short).
-auto Allocate(Game& game, HostEvent event, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
-  return segment = Call(game, event, SetupService::ALLOCATE, paragraphs);
+auto Allocate(Game& game, uint16_t& segment, uint16_t paragraphs) -> uint16_t {
+  return segment = opeu_dos_alloc(paragraphs);
 }
 
 // Opens a data file and stores its handle.
 template <typename Name>
-void Open(Game& game, HostEvent event, uint16_t& handle, Name const& name) {
-  handle = Call(game, event, SetupService::OPEN_RESOURCE, Near(Data(game), name));
+void Open(Game& game, uint16_t& handle, Name const& name) {
+  handle = static_cast<uint16_t>(opeu_open_resource(game, Near(Data(game), name)));
 }
 
 } // namespace
@@ -56,15 +56,15 @@ void opeu_memory_fail(Game& game, HostEvent event, uint16_t) {
   Call(game, event, SetupService::PRINT, Near(data, data.memory_message));
   Call(game, event, SetupService::PRINT, Near(data, data.memory_advice));
   Call(game, event, SetupService::PRINT, Near(data, data.memory_exit));
-  while (!Call(game, event, SetupService::WAIT_KEY));
-  Call(game, event, SetupService::QUIT);
+  while (!opeu_turn_input_b());
+  opeu_quit_to_dos(game);
 }
 
 // Allocates the twelve memory blocks. A block that cannot be had ends the game with the out-of-memory notice.
 void opeu_alloc_segments(Game& game, HostEvent event) {
   auto&      data{ Data(game) };
   auto const need{ [&](uint16_t& segment, uint16_t paragraphs, auto const& name) {
-    if (Allocate(game, event, segment, paragraphs) == 0) opeu_memory_fail(game, event, Near(Data(game), name));
+    if (Allocate(game, segment, paragraphs) == 0) opeu_memory_fail(game, event, Near(Data(game), name));
   } };
   need(data.overview_tile_segment, 0xc1, data.setup_name_bmapseg);
   need(data.icon_segment, 0x867, data.setup_name_hunitseg);
@@ -81,31 +81,31 @@ void opeu_alloc_segments(Game& game, HostEvent event) {
 }
 
 // Opens the portrait, arms and event data files.
-void opeu_open_data_files(Game& game, HostEvent event) {
+void opeu_open_data_files(Game& game) {
   auto& data{ Data(game) };
-  Open(game, event, data.portrait_handle, data.face_file_name);
-  Open(game, event, data.face_handle, data.arms_file_name);
-  Open(game, event, data.message_picture_handle, data.event_file_name);
+  Open(game, data.portrait_handle, data.face_file_name);
+  Open(game, data.face_handle, data.arms_file_name);
+  Open(game, data.message_picture_handle, data.event_file_name);
 }
 
 // Prepares the machine: system handlers, the screen and title palette, sound, memory, and the data files.
 void opeu_app_prepare(Game& game, HostEvent event) {
-  Call(game, event, SetupService::DOS_HANDLERS);
-  Call(game, event, SetupService::VGA_SETUP);
-  Call(game, event, SetupService::IDENTITY_PALETTE);
-  Call(game, event, SetupService::VGA_CLEAR);
-  Call(game, event, SetupService::PALETTE_TITLE);
-  Call(game, event, SetupService::SOUND_INITIALIZE);
+  koei_install_dos_handlers();
+  koei_2fea();
+  koei_vga_identity_palette();
+  opeu_vga_clear();
+  opeu_palette_title_screen(game, static_cast<const UiHost*>(port_uiprim_host()));
+  opeu_sound_initialize(game, svc_sound);
   opeu_alloc_segments(game, event);
   Data(game).startup_mode++;
-  opeu_open_data_files(game, event);
+  opeu_open_data_files(game);
 }
 
 uint16_t svc_segsetup(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
   switch (static_cast<SetupService>(id)) {
   case SetupService::PRINT:            opeu_cursor_print(game, { args, 1 }); break;
   case SetupService::WAIT_KEY:         return opeu_turn_input_b();
-  case SetupService::QUIT:             opeu_quit_to_dos(game, svc_settings); break;
+  case SetupService::QUIT:             opeu_quit_to_dos(game); break;
   case SetupService::ALLOCATE:         return opeu_dos_alloc(Arg(args, count, 0));
   case SetupService::OPEN_RESOURCE:    return static_cast<uint16_t>(opeu_open_resource(game, Arg(args, count, 0)));
   case SetupService::DOS_HANDLERS:     koei_install_dos_handlers(); break;

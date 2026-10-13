@@ -78,8 +78,8 @@ void opeu_reinforce_screen(Game& game) {
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), data.input_mode ? Near(data, data.reinforce_mouse_help) : Near(data, data.reinforce_key_help));
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
   opeu_list_dialog(game, svc_listdlg, Near(data, data.reinforce_dialog), static_cast<uint8_t>(1), static_cast<uint8_t>(3));
-  opeu_staff_restore_bottom(game, svc_staffpnl);
-  opeu_staff_restore_left(game, svc_staffpnl);
+  opeu_staff_restore_bottom(game);
+  opeu_staff_restore_left(game);
 }
 
 // The list of the generals who take the field.
@@ -90,7 +90,7 @@ void opeu_play_screen(Game& game) {
   opeu_ui_text(game, static_cast<TextHost*>(port_textout_host()), Near(data, data.play_prompt));
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
   opeu_commander_list_dialog(game, svc_listdlg, Near(data, data.play_dialog), static_cast<uint8_t>(7), static_cast<uint8_t>(1));
-  opeu_staff_restore_bottom(game, svc_staffpnl);
+  opeu_staff_restore_bottom(game);
 }
 
 // For each side: backs up its records, registers every listed general and, for a human side, repeats the screens

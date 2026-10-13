@@ -1,8 +1,11 @@
 // The request menu's supplies choice, and the row predicate of the battalion type list.
 #include "core/rqsupply.hpp"
 #include "common/memory.hpp"
+#include "core/dialogs.hpp"
 #include "core/rqcommon.hpp"
+#include "core/textout.hpp"
 #include "data-segment.hpp"
+#include "map/mappick.hpp"
 #include "map/query.hpp"
 #include "types.hpp"
 
@@ -11,6 +14,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <utility>
 
 using namespace opeu::game;
@@ -32,30 +36,31 @@ struct PickedCell {
 
 // "Which city would you like to receive the supplies?": a filed supplies request may be cancelled first; then the
 // player picks one of the side's own cities on the map, confirms, and the request is filed and the side's turn ends.
-void opeu_request_supplies(Game& game, HostEvent event) {
+void opeu_request_supplies(Game& game) {
   ServiceLocals const locals{ SCRATCH_BYTES };
   auto const          scratch{ locals.At(CELL_AT) };
   auto&               data{ Data(game) };
   auto&               cell{ Record<PickedCell>(data, scratch) };
   auto const          buffer{ static_cast<uint16_t>(scratch + BUFFER_OFFSET) };
   auto const          kind{ std::to_underlying(RequestKind::SUPPLIES) };
-  if (Call(game, event, RequestMenuService::PENDING, kind)) {
-    if (!Call(game, event, RequestMenuService::CANCEL_PROMPT, offsetof(DataSegment, rq_supplies_text))) return;
+  if (opeu_request_pending(game, static_cast<uint8_t>(kind))) {
+    if (!opeu_request_cancel_prompt(game, offsetof(DataSegment, rq_supplies_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[kind].kind = std::to_underlying(RequestKind::NONE);
   }
-  Call(game, event, RequestMenuService::TITLE, offsetof(DataSegment, rq_supplies_title));
+  opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_supplies_title));
   cell.x = data.viewport_x_bytes[0];
   cell.y = data.viewport_y_bytes[0];
-  Call(game, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_supplies_where), data.context_record2);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_supplies_where), data.context_record2);
   uint16_t city;
   for (;;) {
-    if (!Call(game, event, RequestMenuService::PICK, scratch, scratch + 1)) return;
+    if (!opeu_map_pick_location(game, scratch, scratch + 1)) return;
     city = opeu_find_objective_at(game, cell.x, cell.y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
-  Call(game, event, RequestMenuService::FORMAT, buffer, offsetof(DataSegment, rq_supplies_confirm), city);
-  if (!Call(game, event, RequestMenuService::CONFIRM, buffer, data.context_record2)) return;
-  Call(game, event, RequestMenuService::FILE, city, 0xff, kind);
+  opeu_request_format(game,
+                      std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(offsetof(DataSegment, rq_supplies_confirm)), static_cast<std::uint16_t>(city) });
+  if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.context_record2)) return;
+  FileRequest(game, { city, static_cast<uint8_t>(0xff), static_cast<uint8_t>(kind) });
   data.side_delays[data.current_side] = 1;
 }
 
@@ -64,12 +69,8 @@ uint8_t opeu_rq_type_selectable() {
   return 1;
 }
 
-uint16_t svc_rqsupply(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_request("rqsupply", game, id, args, count);
-}
-
 auto port_routine_opeu_request_supplies(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_request_supplies(game, svc_rqsupply);
+  opeu_request_supplies(game);
   return 0;
 }
 

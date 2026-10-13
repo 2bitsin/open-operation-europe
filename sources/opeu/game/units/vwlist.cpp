@@ -23,11 +23,11 @@ using namespace opeu::game;
 namespace { } // namespace
 
 // Lists the named objectives `side` holds in view_objectives; returns their count.
-uint8_t opeu_list_side_objectives(Game& game, HostEvent event, uint8_t side) {
+uint8_t opeu_list_side_objectives(Game& game, uint8_t side) {
   auto&        data{ Data(game) };
   std::uint8_t count{ 0 };
   for (auto const& objective : data.objectives)
-    if (objective.active && static_cast<std::uint8_t>(Call(game, event, ViewService::OBJECTIVE_SIDE, Near(data, objective))) == side) data.view_objectives[count++] = Near(data, objective);
+    if (objective.active && static_cast<std::uint8_t>(opeu_objective_side(game, static_cast<std::uint16_t>(Near(data, objective)))) == side) data.view_objectives[count++] = Near(data, objective);
   return count;
 }
 

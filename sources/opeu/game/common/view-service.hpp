@@ -70,13 +70,16 @@ enum class RowCheck : std::uint16_t {
   ANY       = 0x0208, // every row
 };
 
+// The views' code segment, as the far call table numbers it: the segment of a row check's far pointer.
+inline constexpr std::uint16_t VIEW_CODE_SEGMENT{ 0x1fe6 };
+
 // The DS stack size of the list window state a view saves around a nested list dialog.
 inline constexpr std::uint16_t LIST_WINDOW_STATE{ 7 };
 
 // Gives a list dialog its row check.
-inline auto SetRowCheck(Game& game, HostEvent event, ListWindow& dialog, RowCheck check) -> void {
+inline auto SetRowCheck(Game& game, ListWindow& dialog, RowCheck check) -> void {
   dialog.select.offset  = std::to_underlying(check);
-  dialog.select.segment = Call(game, event, ViewService::CODE_SEGMENT);
+  dialog.select.segment = static_cast<std::uint16_t>(VIEW_CODE_SEGMENT);
 }
 
 // Runs the menu action `item` (1 first) of a far pointer table.
@@ -93,5 +96,6 @@ using detail::view_service::LIST_WINDOW_STATE;
 using detail::view_service::RowCheck;
 using detail::view_service::RunAction;
 using detail::view_service::SetRowCheck;
+using detail::view_service::VIEW_CODE_SEGMENT;
 using detail::view_service::ViewService;
 } // namespace opeu::game

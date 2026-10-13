@@ -3,7 +3,9 @@
 #include "core/rqmenu.hpp"
 #include "common/memory.hpp"
 #include "common/menu.hpp"
+#include "core/dialogs.hpp"
 #include "core/rqcommon.hpp"
+#include "core/textout.hpp"
 #include "data-segment.hpp"
 #include "types.hpp"
 
@@ -12,6 +14,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <utility>
 
 using namespace opeu::game;
@@ -29,9 +32,9 @@ constexpr uint16_t TYPE_RECORD_WORDS{ 7 }; // the words of an equipment type rec
 } // namespace
 
 // "Request   Dest     Type      Wait" at the top of the request table.
-void opeu_request_header(Game& game, HostEvent event) {
-  Call(game, event, RequestMenuService::POSITION, TABLE_X, HEADER_Y);
-  Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_header_text));
+void opeu_request_header(Game& game) {
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(HEADER_Y));
+  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_header_text)) });
 }
 
 // The request menu. Each kind the side may request now (its booked request is of that kind: the request under
@@ -42,26 +45,29 @@ void opeu_turn_action_7(Game& game, HostEvent event) {
   auto&       data{ Data(game) };
   auto const& config{ data.request_configs[data.current_side] };
   uint16_t    preparing[CHOICES];
-  for (uint16_t kind = 0; kind < CHOICES; ++kind) preparing[kind] = Call(game, event, RequestMenuService::MODE_IS, kind);
+  for (uint16_t kind = 0; kind < CHOICES; ++kind) preparing[kind] = opeu_request_mode_is(game, static_cast<uint8_t>(kind));
   auto const filed{ [&](RequestKind kind) -> RequestSlot const& { return Record<Side>(data, data.current_side_ptr).requests[std::to_underlying(kind)]; } };
-  auto const shown{ [&](RequestKind kind) { return Call(game, event, RequestMenuService::PENDING, std::to_underlying(kind)) || preparing[std::to_underlying(kind)]; } };
+  auto const shown{ [&](RequestKind kind) { return opeu_request_pending(game, static_cast<uint8_t>(std::to_underlying(kind))) || preparing[std::to_underlying(kind)]; } };
   do {
     uint16_t rows = 0;
-    Call(game, event, RequestMenuService::TITLE, offsetof(DataSegment, rq_title_text));
+    opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_title_text));
     if (shown(RequestKind::SUPPLIES)) {
-      opeu_request_header(game, event);
-      Call(game, event, RequestMenuService::POSITION, TABLE_X, FIRST_ROW_Y);
+      opeu_request_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(FIRST_ROW_Y));
       if (preparing[0])
-        Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_row_text), config.target, config.delay);
+        opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_supply_row_text)), static_cast<std::uint16_t>(config.target),
+                                                              static_cast<std::uint16_t>(config.delay) });
       else
-        Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_supply_filed_text), filed(RequestKind::SUPPLIES).target);
+        opeu_cursor_print(game,
+                          std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_supply_filed_text)), static_cast<std::uint16_t>(filed(RequestKind::SUPPLIES).target) });
       rows++;
     }
     if (shown(RequestKind::BATTALION)) {
-      opeu_request_header(game, event);
-      Call(game, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
+      opeu_request_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(rows * ROW_HEIGHT + FIRST_ROW_Y));
       if (preparing[1]) {
-        Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_battalion_row_text), config.target, data.element_types[config.argument].name, config.delay);
+        opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_battalion_row_text)), static_cast<std::uint16_t>(config.target),
+                                                              static_cast<std::uint16_t>(data.element_types[config.argument].name), static_cast<std::uint16_t>(config.delay) });
       } else {
         // The row prints the type's name; the whole type record is passed by value, as seven words.
         auto const& request{ filed(RequestKind::BATTALION) };
@@ -73,23 +79,25 @@ void opeu_turn_action_7(Game& game, HostEvent event) {
       rows++;
     }
     if (shown(RequestKind::REGIMENT)) {
-      opeu_request_header(game, event);
-      Call(game, event, RequestMenuService::POSITION, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
+      opeu_request_header(game);
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<short>(TABLE_X), static_cast<short>(rows * ROW_HEIGHT + FIRST_ROW_Y));
       if (preparing[2])
-        Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_row_text), data.rq_regiment_kind_names[config.argument], config.delay);
+        opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_regiment_row_text)),
+                                                              static_cast<std::uint16_t>(data.rq_regiment_kind_names[config.argument]), static_cast<std::uint16_t>(config.delay) });
       else
-        Call(game, event, RequestMenuService::PRINT, offsetof(DataSegment, rq_regiment_filed_text), data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]);
+        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_regiment_filed_text)),
+                                                              static_cast<std::uint16_t>(data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument]) });
     }
     uint16_t choice;
     for (;;) {
-      choice = Call(game, event, RequestMenuService::DELAY_DIALOG, offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
+      choice = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_menu_prompt_text), CHOICES, data.context_record2, offsetof(DataSegment, rq_menu));
       if (choice == MENU_CANCELLED) return;
       choice--;
       if (!preparing[choice]) break;
-      Call(game, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_busy_text), data.context_record3);
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_busy_text), data.context_record3);
     }
-    if (choice != std::to_underlying(RequestKind::REGIMENT) && !Call(game, event, RequestMenuService::HAS_CITY)) {
-      Call(game, event, RequestMenuService::MESSAGE, offsetof(DataSegment, rq_no_city_text), data.context_record3);
+    if (choice != std::to_underlying(RequestKind::REGIMENT) && !opeu_side_has_city(game)) {
+      opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, rq_no_city_text), data.context_record3);
     } else {
       auto const& handler{ data.request_handlers[choice] };
       Call(game, event, RequestMenuService::FAR_CALL, handler.offset, handler.segment);

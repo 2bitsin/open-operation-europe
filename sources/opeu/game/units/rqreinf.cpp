@@ -83,19 +83,19 @@ void opeu_request_regiment(Game& game) {
   auto const regiment{ std::to_underlying(RequestKind::REGIMENT) };
   auto const requested{ Bits(UnitFlag::REQUESTED) };
   if (opeu_request_pending(game, static_cast<uint8_t>(regiment))) {
-    if (!opeu_request_cancel_prompt(game, svc_rqcommon, Near(data, data.rq_reinforcements_text))) return;
+    if (!opeu_request_cancel_prompt(game, Near(data, data.rq_reinforcements_text))) return;
     opeu_release_side_units(game, 0, static_cast<uint8_t>(requested));
     opeu_release_side_elements(game, 0, static_cast<uint8_t>(requested));
     Record<Side>(data, data.current_side_ptr).requests[regiment].kind = std::to_underlying(RequestKind::NONE);
   }
   auto const units{ static_cast<std::uint8_t>(opeu_release_side_units(game, Near(data, data.ai_unit_list), static_cast<uint8_t>(requested))) };
   if (!units) {
-    opeu_request_no_more(game, svc_rqcommon, Near(data, data.rq_regiment_text));
+    opeu_request_no_more(game, Near(data, data.rq_regiment_text));
     return;
   }
   auto elements{ static_cast<std::uint8_t>(opeu_release_side_elements(game, Near(data, data.ai_element_list), static_cast<uint8_t>(requested))) };
   if (!elements) {
-    opeu_request_no_more(game, svc_rqcommon, Near(data, data.rq_battalion_text));
+    opeu_request_no_more(game, Near(data, data.rq_battalion_text));
     return;
   }
   opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));

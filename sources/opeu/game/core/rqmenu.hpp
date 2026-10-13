@@ -5,7 +5,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_request_header(Game& game, HostEvent event);
+void opeu_request_header(Game& game);
 void opeu_turn_action_7(Game& game, HostEvent event);
 
 // The services of opeu_turn_action_7 (the request menu's, core/rqcommon).

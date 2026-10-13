@@ -96,13 +96,13 @@ auto GridStep(Game& game, HostWordsEvent event, uint8_t& x, uint8_t& y, uint8_t 
 }
 
 // The unit takes landing casualties; the cell's byte is kept across them.
-void Casualties(Game& game, HostWordsEvent event, Unit& unit, uint16_t losses, uint16_t c, uint16_t e) {
+void Casualties(Game& game, Unit& unit, uint16_t losses, uint16_t c, uint16_t e) {
   auto&      data{ Data(game) };
   auto const near{ Near(data, unit) };
   auto&      cell{ CellAt(data, unit.x, unit.y) };
   auto const kept{ cell };
-  Call(game, event, ParaService::ARRIVAL_PREPARE, near);
-  Call(game, event, ParaService::CASUALTIES, near, LANDING_PERCENT, losses, c, 0, e);
+  opeu_arrival_prepare(game, near);
+  opeu_unit_casualties(game, near, LANDING_PERCENT, losses, c, 0, e);
   cell = kept;
 }
 
@@ -124,13 +124,13 @@ uint16_t opeu_para_unit_create(Game& game, HostWordsEvent event, uint8_t side, u
     unit.y     = y;
     unit.moved = 0;
     unit.flags = Bits(UnitFlag::READY) | Bits(UnitFlag::COMMUNICATIONS);
-    Call(game, event, ParaService::CLEAR_ORDERS, near, ALL_ORDER_SLOTS, 0);
+    opeu_clear_unit_orders(game, near, static_cast<uint8_t>(ALL_ORDER_SLOTS));
   }
   auto const kept{ CellAt(data, x, y) };
   for (uint8_t i = 0; i < ELEMENTS_PER_SIDE; ++i) {
     auto& element{ data.elements[side * ELEMENTS_PER_SIDE + i] };
     if (element.flags & Bits(ElementFlag::AIRBORNE)) {
-      Call(game, event, ParaService::INSERT_ELEMENT, near, Near(data, element), 0);
+      opeu_insert_element(game, near, Near(data, element));
       element.morale     = 75 - RandomBelow(game, 21);
       element.training   = 60 - RandomBelow(game, 21);
       element.experience = 25 - RandomBelow(game, 21);
@@ -150,11 +150,11 @@ uint16_t opeu_para_unit_create(Game& game, HostWordsEvent event, uint8_t side, u
 
 // 1 when paratroops may land on (x, y): not on the excluded terrain, and on an objective only when the dropping side
 // holds it.
-uint16_t opeu_para_cell_ok(Game& game, HostWordsEvent event, uint8_t x, uint8_t y) {
-  auto const code{ static_cast<uint8_t>(Call(game, event, ParaService::MAP_CODE, x, y, 0)) };
+uint16_t opeu_para_cell_ok(Game& game, uint8_t x, uint8_t y) {
+  auto const code{ static_cast<uint8_t>(opeu_map_code(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y))) };
   if (code == OBJECTIVE_CODE) {
-    auto const objective{ Call(game, event, ParaService::OBJECTIVE_AT, x, y, 0) };
-    return static_cast<uint8_t>(Call(game, event, ParaService::OBJECTIVE_SIDE, objective, 0, 0)) == Data(game).air_side;
+    auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
+    return static_cast<uint8_t>(opeu_objective_side(game, objective)) == Data(game).air_side;
   }
   for (auto const excluded : NO_LANDING_CODES)
     if (code == excluded) return 0;
@@ -163,11 +163,11 @@ uint16_t opeu_para_cell_ok(Game& game, HostWordsEvent event, uint8_t x, uint8_t 
 
 // Whether the drop scatters: a scatter value is worked out from the intelligence chief, the weather, the night and the
 // side's strength, but it is never used and the drop never scatters.
-uint16_t opeu_para_scatter_check(Game& game, HostWordsEvent event) {
+uint16_t opeu_para_scatter_check(Game& game) {
   auto const& data{ Data(game) };
-  auto        value{ Call(game, event, ParaService::OFFICER_RATING, data.air_side, INTELLIGENCE, 0) };
+  auto        value{ opeu_officer_rating(game, static_cast<uint8_t>(data.air_side), static_cast<uint8_t>(INTELLIGENCE)) };
   value /= data.weather ? 2 : 1;
-  value /= Call(game, event, ParaService::IS_NIGHT, data.hour, 0, 0) ? 2 : 1;
+  value /= opeu_hour_is_night(static_cast<uint8_t>(data.hour)) ? 2 : 1;
   value /= data.sides[data.air_side].strength > STRONG_SIDE ? 1 : 2;
   (void)value;
   return 0;
@@ -181,12 +181,12 @@ uint16_t opeu_para_land(Game& game, HostWordsEvent event, uint16_t near, uint16_
   auto&      data{ Data(game) };
   auto&      unit{ Record<Unit>(data, near) };
   auto const ready{ Bits(UnitFlag::READY) };
-  auto const side{ static_cast<uint8_t>(Call(game, event, ParaService::UNIT_SIDE, near, 0, 0)) };
+  auto const side{ static_cast<uint8_t>(opeu_unit_side(near)) };
   uint8_t    x{ unit.x };
   uint8_t    y{ unit.y };
-  if (opeu_para_scatter_check(game, event)) {
+  if (opeu_para_scatter_check(game)) {
     GridStep(game, event, x, y, static_cast<uint8_t>(RandomBelow(game, 8)));
-    if (opeu_para_cell_ok(game, event, x, y)) {
+    if (opeu_para_cell_ok(game, x, y)) {
       unit.x = x;
       unit.y = y;
     } else {
@@ -197,13 +197,13 @@ uint16_t opeu_para_land(Game& game, HostWordsEvent event, uint16_t near, uint16_
   // Looked for with the regiment itself stood down, so that it does not find itself.
   auto flags{ unit.flags };
   unit.flags &= ~ready;
-  auto const other{ Call(game, event, ParaService::UNIT_AT, x, y, 0) };
+  auto const other{ opeu_find_unit_at(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
   unit.flags = flags;
   auto const troops{ Troops(game, event, near) };
   if (other) {
     auto& enemy{ Record<Unit>(data, other) };
-    if (static_cast<uint8_t>(Call(game, event, ParaService::UNIT_SIDE, other, 0, 0)) != side) {
-      Casualties(game, event, unit, troops / 3 + losses, troops / 40, 1);
+    if (static_cast<uint8_t>(opeu_unit_side(other)) != side) {
+      Casualties(game, unit, troops / 3 + losses, troops / 40, 1);
       if (unit.first) {
         Record<Element>(data, unit.first).flags  |= Bits(ElementFlag::SPOTTED);
         Record<Element>(data, enemy.first).flags |= Bits(ElementFlag::SPOTTED);
@@ -211,14 +211,14 @@ uint16_t opeu_para_land(Game& game, HostWordsEvent event, uint16_t near, uint16_
     }
     flags       = unit.flags;
     unit.flags &= ~ready;
-    Call(game, event, ParaService::ARRIVAL_PREPARE, other);
+    opeu_arrival_prepare(game, other);
     unit.flags = flags;
-  } else if (Call(game, event, ParaService::CELL_MARKED, x, y, ANY_SIDE)) {
-    Casualties(game, event, unit, troops / 10 + losses, troops / 40, 1);
-    Call(game, event, ParaService::MARK_CELL, x, y, side);
-    Call(game, event, ParaService::MAP_ERASE, x, y, 0);
+  } else if (opeu_cell_marked(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(ANY_SIDE))) {
+    Casualties(game, unit, troops / 10 + losses, troops / 40, 1);
+    opeu_mark_cell(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(side));
+    opeu_map_erase(game, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
   } else {
-    Casualties(game, event, unit, losses >> 1, troops / 100, 0);
+    Casualties(game, unit, losses >> 1, troops / 100, 0);
     return unit.flags & ready;
   }
   if (!unit.first) return unit.flags & ready;
@@ -226,9 +226,9 @@ uint16_t opeu_para_land(Game& game, HostWordsEvent event, uint16_t near, uint16_
     uint8_t to_x{ x };
     uint8_t to_y{ y };
     if (!GridStep(game, event, to_x, to_y, direction)) continue;
-    if (static_cast<uint8_t>(Call(game, event, ParaService::CELL_SIDE, to_x, to_y, 0)) != NO_SIDE) continue;
-    if (Call(game, event, ParaService::CELL_MARKED, to_x, to_y, ANY_SIDE)) continue;
-    if (!opeu_para_cell_ok(game, event, to_x, to_y)) continue;
+    if (static_cast<uint8_t>(opeu_cell_side(game, static_cast<uint8_t>(to_x), static_cast<uint8_t>(to_y))) != NO_SIDE) continue;
+    if (opeu_cell_marked(game, static_cast<uint8_t>(to_x), static_cast<uint8_t>(to_y), static_cast<uint8_t>(ANY_SIDE))) continue;
+    if (!opeu_para_cell_ok(game, to_x, to_y)) continue;
     unit.x = to_x;
     unit.y = to_y;
     return unit.flags & ready;

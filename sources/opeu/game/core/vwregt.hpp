@@ -4,10 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void    opeu_view_regiment_list(Game& game, HostEvent event);
+void    opeu_view_regiment_list(Game& game);
 uint8_t opeu_list_group_units(Game& game, uint8_t group);
-void    opeu_view_own_divisions(Game& game, HostEvent event);
-void    opeu_view_enemy_units(Game& game, HostEvent event);
-
-// The services of the regiments views (the information views' shared services).
-uint16_t svc_vwregt(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+void    opeu_view_own_divisions(Game& game);
+void    opeu_view_enemy_units(Game& game);

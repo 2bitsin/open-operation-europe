@@ -68,8 +68,8 @@ constexpr uint16_t ASSIGN_PROMPT_BYTES{ 0x6c };
 constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
 
 // Shows the list window; 0 when it is cancelled.
-auto ShowList(Game& game, HostEvent event, ListWindow const& list) -> uint16_t {
-  return Call(game, event, PersonnelService::LIST, Near(Data(game), list), LIST_LIMIT, LIST_FLAGS);
+auto ShowList(Game& game, ListWindow const& list) -> uint16_t {
+  return opeu_list_dialog(game, svc_listdlg, Near(Data(game), list), static_cast<uint8_t>(LIST_LIMIT), static_cast<uint8_t>(LIST_FLAGS));
 }
 
 // Lists the side's free generals and sizes the generals' list to them (one row more for the title).
@@ -82,8 +82,8 @@ auto FillGenerals(Game& game, uint16_t segment) -> uint8_t {
 } // namespace
 
 // The picture callback of the assignment's confirmation.
-void opeu_personnel_finish(Game& game, HostEvent event, uint16_t) {
-  Call(game, event, PersonnelService::PENDING_FINISH, ASSIGN_FINISH);
+void opeu_personnel_finish(Game& game, uint16_t) {
+  opeu_pending_finish(game, static_cast<uint8_t>(ASSIGN_FINISH));
 }
 
 // The select callback of the generals' list: every row may be chosen.
@@ -92,33 +92,33 @@ uint8_t opeu_commander_always(Game&, uint16_t, uint8_t) {
 }
 
 // The general sent on leave thanks the commander.
-void opeu_rest_thanks(Game& game, HostEvent event, uint16_t, uint16_t person) {
-  Call(game, event, PersonnelService::MESSAGE, Near(Data(game), Data(game).rest_thanks_text), person);
+void opeu_rest_thanks(Game& game, uint16_t, uint16_t person) {
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(Data(game), Data(game).rest_thanks_text), person);
 }
 
 // The appointed general accepts, and the appointment is shown.
-void opeu_assign_confirm(Game& game, HostEvent event, uint16_t segment, uint16_t person) {
+void opeu_assign_confirm(Game& game, uint16_t segment, uint16_t person) {
   auto const& data{ Data(game) };
-  Call(game, event, PersonnelService::MESSAGE, Near(data, data.assign_thanks_text), person);
-  Call(game, event, PersonnelService::DAILY_SHOW, ASSIGN_SHOW, data.current_side, FINISH_OFFSET, segment);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.assign_thanks_text), person);
+  opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), ASSIGN_SHOW, static_cast<uint8_t>(data.current_side), static_cast<uint32_t>(segment) << 16 | FINISH_OFFSET);
 }
 
 // The select callback of the divisions' list: marks or unmarks the listed division for its commander to be put in
 // charge, when it is in the field and its selected regiment may be selected.
-uint8_t opeu_division_toggle(Game& game, HostEvent event, uint16_t, uint8_t) {
+uint8_t opeu_division_toggle(Game& game, uint16_t, uint8_t) {
   auto& data{ Data(game) };
   auto& group{ GroupOf(data, data.current_side, data.list_row) };
   if (group.flags & Bits(GroupFlag::READY))
-    if (Call(game, event, PersonnelService::UNIT_SELECTABLE, Call(game, event, PersonnelService::GROUP_SELECTED, Near(data, group)))) group.flags ^= Bits(GroupFlag::AI_MARK);
+    if (opeu_unit_selection_eligible(game, opeu_find_group_selected_unit(game, Near(data, group)))) group.flags ^= Bits(GroupFlag::AI_MARK);
   return 0;
 }
 
 // Asks which division commander to put in charge.
-void opeu_division_commander_menu(Game& game, HostEvent event, uint16_t segment) {
+void opeu_division_commander_menu(Game& game, uint16_t segment) {
   auto& data{ Data(game) };
   SetListPredicate(data.division_dialog, TOGGLE_OFFSET, segment);
-  Call(game, event, PersonnelService::MESSAGE, Near(data, data.division_charge_prompt), data.context_record2);
-  ShowList(game, event, data.division_dialog);
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.division_charge_prompt), data.context_record2);
+  ShowList(game, data.division_dialog);
 }
 
 // Fills general_list with the side's generals who are present, hold no staff post, lead no division and are not on
@@ -135,14 +135,14 @@ uint8_t opeu_idle_commanders_fill(Game& game, uint16_t) {
 // Assigns free generals while there are any: one is chosen from the list, then the post, from a menu of the four
 // divisions (with their commanders; a division not in the field cannot be chosen) and the operations and
 // intelligence posts. A division's old commander leaves it; a staff post's old holder steps down.
-void opeu_commander_assign(Game& game, HostEvent event, uint16_t segment) {
+void opeu_commander_assign(Game& game, uint16_t segment) {
   auto& data{ Data(game) };
   bool  assigned{ false };
   while (FillGenerals(game, segment) != 1) {
     SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
-    Call(game, event, PersonnelService::MESSAGE, Near(data, data.assign_who_prompt), data.context_record2);
-    if (!ShowList(game, event, data.people_dialog)) {
-      Call(game, event, PersonnelService::PANEL);
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.assign_who_prompt), data.context_record2);
+    if (!ShowList(game, data.people_dialog)) {
+      opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
       return;
     }
     auto const general{ data.general_list[data.list_row] };
@@ -159,17 +159,21 @@ void opeu_commander_assign(Game& game, HostEvent event, uint16_t segment) {
       auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
       if (post < GROUPS_PER_SIDE) {
         auto const fielded{ GroupOf(data, data.current_side, post).flags & Bits(GroupFlag::READY) };
-        Call(game, event, PersonnelService::FORMAT, text, formats[post], fielded ? data.post_labels[post] : Near(data, data.inactive_division_label), holders[post] ? holders[post] : no_holder[post]);
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(formats[post]),
+                                                                static_cast<std::uint16_t>(fielded ? data.post_labels[post] : Near(data, data.inactive_division_label)),
+                                                                static_cast<std::uint16_t>(holders[post] ? holders[post] : no_holder[post]) });
       } else {
-        Call(game, event, PersonnelService::FORMAT, text, formats[post], data.post_labels[post], holders[post]);
+        opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(formats[post]), static_cast<std::uint16_t>(data.post_labels[post]),
+                                                                static_cast<std::uint16_t>(holders[post]) });
       }
       data.assign_menu[post].label = text;
     }
-    Call(game, event, PersonnelService::PANEL);
+    opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
     auto const prompt{ texts.At(POSTS * POST_TEXT_BYTES) };
-    Call(game, event, PersonnelService::FORMAT, prompt, Near(data, data.assign_where_prompt), general);
+    opeu_request_format(game,
+                        std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt), static_cast<std::uint16_t>(Near(data, data.assign_where_prompt)), static_cast<std::uint16_t>(general) });
     for (;;) {
-      uint16_t choice{ Call(game, event, PersonnelService::ASK, prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
+      uint16_t choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
       if (choice == MENU_CANCELLED) break;
       if (choice <= GROUPS_PER_SIDE) {
         --choice;
@@ -188,42 +192,44 @@ void opeu_commander_assign(Game& game, HostEvent event, uint16_t segment) {
         data.context_record2 = opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::OPERATIONS_CHIEF));
         data.context_record3 = opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
       }
-      opeu_assign_confirm(game, event, segment, general);
+      opeu_assign_confirm(game, segment, general);
       break;
     }
     assigned = true;
   }
-  if (!assigned) Call(game, event, PersonnelService::MESSAGE, Near(data, data.none_available_text), data.context_record3);
-  Call(game, event, PersonnelService::PANEL);
+  if (!assigned) opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.none_available_text), data.context_record3);
+  opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
 }
 
 // Sends free generals on leave while there are any: one is chosen from the list and asked for how many days (the
 // answer plus one).
-void opeu_commander_rest(Game& game, HostEvent event, uint16_t segment) {
+void opeu_commander_rest(Game& game, uint16_t segment) {
   ServiceLocals const locals{ REST_PROMPT_BYTES };
   auto&               data{ Data(game) };
   auto const          prompt{ locals.At(0) };
   bool                rested{ false };
   for (; FillGenerals(game, segment) != 1; rested = true) {
     SetListPredicate(data.people_dialog, ALWAYS_OFFSET, segment);
-    Call(game, event, PersonnelService::PANEL);
-    Call(game, event, PersonnelService::MESSAGE, Near(data, data.rest_who_prompt), data.context_record2);
-    if (!ShowList(game, event, data.people_dialog)) return;
+    opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.rest_who_prompt), data.context_record2);
+    if (!ShowList(game, data.people_dialog)) return;
     auto const general{ data.general_list[data.list_row] };
-    Call(game, event, PersonnelService::FORMAT, prompt, Near(data, data.rest_days_prompt), general);
-    auto const days{ Call(game, event, PersonnelService::ASK, prompt, REST_LAST, data.context_record2, 0) };
+    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(prompt), static_cast<std::uint16_t>(Near(data, data.rest_days_prompt)), static_cast<std::uint16_t>(general) });
+    auto const days{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), prompt, REST_LAST, data.context_record2, 0) };
     if (days != MENU_CANCELLED) {
-      opeu_rest_thanks(game, event, segment, general);
+      opeu_rest_thanks(game, segment, general);
       opeu_set_record_counter(Record<Person>(Data(game), general), static_cast<uint8_t>(days + 1));
     }
   }
-  if (!rested) Call(game, event, PersonnelService::MESSAGE, Near(data, data.none_to_rest_text), data.context_record3);
+  if (!rested) opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.none_to_rest_text), data.context_record3);
 }
 
 // Turn action 4: the personnel orders menu, until it is cancelled.
 void opeu_turn_action_4(Game& game, HostEvent event, uint16_t) {
   auto& data{ Data(game) };
-  for (uint16_t choice; (choice = Call(game, event, PersonnelService::ASK, Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu))) != MENU_CANCELLED;) {
+  for (uint16_t choice;
+       (choice = opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), Near(data, data.personnel_prompt), ORDERS_LAST, data.context_record2, Near(data, data.personnel_menu)))
+       != MENU_CANCELLED;) {
     auto const& action{ data.personnel_actions[choice - 1] };
     Call(game, event, PersonnelService::RUN, action.segment, action.offset);
   }
@@ -254,26 +260,26 @@ auto port_routine_opeu_commander_always(Game& game, std::uint16_t const* args, u
 }
 
 auto port_routine_opeu_commander_assign(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_commander_assign(game, svc_persmenu, PERSONNEL_SEGMENT);
+  opeu_commander_assign(game, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_commander_rest(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_commander_rest(game, svc_persmenu, PERSONNEL_SEGMENT);
+  opeu_commander_rest(game, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_division_commander_menu(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_division_commander_menu(game, svc_persmenu, PERSONNEL_SEGMENT);
+  opeu_division_commander_menu(game, PERSONNEL_SEGMENT);
   return 0;
 }
 
 auto port_routine_opeu_division_toggle(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
-  return opeu_division_toggle(game, svc_persmenu, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
+  return opeu_division_toggle(game, PERSONNEL_SEGMENT, (uint8_t)Arg(args, count, 0));
 }
 
 auto port_routine_opeu_personnel_finish(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_personnel_finish(game, svc_persmenu, PERSONNEL_SEGMENT);
+  opeu_personnel_finish(game, PERSONNEL_SEGMENT);
   return 0;
 }
 

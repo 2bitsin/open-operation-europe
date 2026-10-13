@@ -54,7 +54,7 @@ constexpr std::uint16_t GREY{ 7 };      // text colour of a general without a po
 // Restores the bottom panel and prints a prompt with one argument.
 template <typename... _Arguments>
 auto Prompt(Game& game, std::uint16_t text, _Arguments... arguments) -> void {
-  opeu_staff_restore_bottom(game, svc_staffpnl);
+  opeu_staff_restore_bottom(game);
   opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(PROMPT_X), static_cast<int16_t>(PROMPT_Y));
   opeu_cursor_print(game, std::array<std::uint16_t, 1 + sizeof...(_Arguments)>{ text, static_cast<std::uint16_t>(arguments)... });
   opeu_text_paper_set(game, static_cast<TextHost*>(port_textout_host()), static_cast<uint8_t>(0));
@@ -125,8 +125,8 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
       opeu_clear_staff_role(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(staff_kinds[slot])));
     else
       opeu_clear_division_command(game, static_cast<uint8_t>(data.current_side), static_cast<uint8_t>(static_cast<std::uint8_t>(dismissal - 4)));
-    opeu_staff_frame_option(game, svc_staffpnl, static_cast<int16_t>(slot));
-    opeu_staff_mark_option(game, svc_staffpnl, static_cast<int16_t>(slot));
+    opeu_staff_frame_option(game, static_cast<int16_t>(slot));
+    opeu_staff_mark_option(game, static_cast<int16_t>(slot));
     if (dismissal <= 3)
       Prompt(game, ROLE_PROMPT, data.role_names[slot]);
     else

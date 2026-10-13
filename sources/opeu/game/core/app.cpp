@@ -138,12 +138,12 @@ uint16_t svc_app(Game& game, uint16_t id) {
   case INITIALIZE:   opeu_app_initialize(game); break;
   case STARTUP:      opeu_app_startup(game); break;
   case TURN:         opeu_process_selected_turn(game, svc_dispatch); break;
-  case NOTICE_BEGIN: opeu_notice_begin(game, svc_notice); break;
+  case NOTICE_BEGIN: opeu_notice_begin(game); break;
   case NOTICE_ONE:   opeu_notice_one(game); break;
   case NOTICE_OTHER: opeu_notice_other(game); break;
-  case NOTICE_END:   opeu_notice_end(game, svc_notend); break;
+  case NOTICE_END:   opeu_notice_end(game); break;
   case VICTORY:      result = opeu_check_victory(game); break;
-  case FINISH:       opeu_app_finish(game, svc_scenend); break;
+  case FINISH:       opeu_app_finish(game); break;
   default:           port_unhandled("app", id, 0);
   }
   return result;

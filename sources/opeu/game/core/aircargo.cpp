@@ -211,8 +211,8 @@ void opeu_air_operations(Game& game) {
   auto& data{ Data(game) };
   for (data.air_side = 0; data.air_side < 2; ++data.air_side) {
     if (opeu_air_strike_due(game)) opeu_air_strike_event(game);
-    if (opeu_para_drop_due(game, svc_paradrop)) {
-      opeu_para_drop_event(game, svc_paradrop, 0);
+    if (opeu_para_drop_due(game)) {
+      opeu_para_drop_event(game, 0);
       data.side_flags[data.air_side] &= static_cast<std::uint8_t>(~Bits(SideFlag::AIR_DROP_READY));
     }
     if (opeu_cargo_drop_due(game)) {

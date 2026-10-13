@@ -46,7 +46,7 @@ void opeu_request_arms(Game& game) {
   auto const          buffer{ static_cast<std::uint16_t>(scratch + CONFIRM_BUFFER) };
   auto const          battalion{ std::to_underlying(RequestKind::BATTALION) };
   if (opeu_request_pending(game, static_cast<uint8_t>(battalion))) {
-    if (!opeu_request_cancel_prompt(game, svc_rqcommon, Near(data, data.rq_arms_text))) return;
+    if (!opeu_request_cancel_prompt(game, Near(data, data.rq_arms_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[battalion].kind = std::to_underlying(RequestKind::NONE);
   }
   opeu_title_panel_begin(game, static_cast<const DialogHost*>(port_dialogs_host()));

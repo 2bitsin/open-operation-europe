@@ -60,17 +60,17 @@ uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 // the near pointer row, NO_KEY returned). With the keyboard: the key.
 uint8_t opeu_supply_input(Game& game, HostEvent event, uint16_t row) {
   auto& data{ Data(game) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(Call(game, event, KEY));
-  Call(game, event, MOUSE_SHOW);
-  Call(game, event, INPUT_DELAY, 3);
+  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game, svc_keyboard));
+  opeu_mouse_show(game, svc_mouse);
+  opeu_delay_ticks(game, 3);
   std::uint8_t key;
   for (;;) {
     auto const [x, y]{ MousePosition(game, event) };
-    if (Call(game, event, RIGHT_DOWN)) {
+    if (static_cast<std::uint16_t>(opeu_mouse_right(game, svc_mouse))) {
       key = KEY_ENTER;
       break;
     }
-    if (Call(game, event, LEFT_DOWN)) {
+    if (static_cast<std::uint16_t>(opeu_mouse_left(game, svc_mouse))) {
       key = opeu_supply_keypad_hit(game, x, y);
       for (std::uint8_t selected = 0; selected < 3; ++selected)
         if (key == KEYS[1][selected]) {
@@ -80,7 +80,7 @@ uint8_t opeu_supply_input(Game& game, HostEvent event, uint16_t row) {
       break;
     }
   }
-  Call(game, event, MOUSE_HIDE);
+  opeu_mouse_hide(game, svc_mouse);
   return key;
 }
 
@@ -93,17 +93,17 @@ uint16_t opeu_supply_get(Game const& game, uint8_t side, uint8_t row, uint8_t co
 }
 
 // Restores the panel's background and centres the two names, at most ten characters each, in its title.
-void opeu_supply_draw(Game& game, HostEvent event, uint16_t first, uint16_t second) {
+void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
   auto const& data{ Data(game) };
-  Call(game, event, RESTORE, data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, data.numdlg_image_segment, PANEL_IMAGE_AT);
+  opeu_bitmap_restore(data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT, 0, port_far(data.numdlg_image_segment, PANEL_IMAGE_AT));
   auto const indent{ [&](std::uint16_t name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
-  Call(game, event, POSITION, indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
-  Call(game, event, PRINT, offsetof(DataSegment, supply_name_format), first);
-  Call(game, event, POSITION, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
-  Call(game, event, PRINT, offsetof(DataSegment, supply_name_text), second);
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(first) + data.supply_panel_x + 2), static_cast<int16_t>(data.supply_panel_y + 14));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_format)), static_cast<std::uint16_t>(first) });
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(indent(second) + data.supply_panel_x + 20), static_cast<int16_t>(data.supply_panel_y + 14));
+  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), static_cast<std::uint16_t>(second) });
 }
 
 // Draws value right-aligned leftwards from x as digit glyphs over blanks; zero draws one digit.

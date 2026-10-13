@@ -2,7 +2,14 @@
 // (orders, target, supplies, fatigue and battalions).
 #include "core/vwpanel.hpp"
 #include "common/events.hpp"
+#include "core/dialogs.hpp"
 #include "types.hpp"
+#include "units/capacity.hpp"
+#include "units/labels.hpp"
+#include "units/objpct.hpp"
+#include "units/orders.hpp"
+#include "units/ratio.hpp"
+#include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
@@ -42,8 +49,8 @@ constexpr ScreenPoint THIRD_ROW{ 0x2d, 0xc5 };
 constexpr ScreenPoint GARRISON_ROW{ 0x32, 0xcc };
 constexpr ScreenPoint NO_STOCK_ROW{ 0x2d, 0xdd };
 
-void Position(Game& game, HostEvent event, ScreenPoint at) {
-  Call(game, event, ViewService::ARMY_POSITION, at.x, at.y);
+void Position(Game& game, ScreenPoint at) {
+  opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(static_cast<std::uint16_t>(at.x)), static_cast<int16_t>(static_cast<std::uint16_t>(at.y)));
 }
 
 // Prints the format with its words at the text cursor.
@@ -55,37 +62,38 @@ void Print(Game& game, std::uint16_t format, _Words... words) {
 } // namespace
 
 // The objective's name, supplies with their percentages, endurance and the stocks of its garrison.
-void opeu_objective_panel(Game& game, HostEvent event, uint16_t objective) {
+void opeu_objective_panel(Game& game, uint16_t objective) {
   ServiceLocals const locals{ 0xa }; // the supply percentages the service writes
   auto&               data{ Data(game) };
   auto const&         city{ Record<Objective>(data, objective) };
   auto const          ammunition{ locals.At(8) };
   auto const          food{ locals.At(2) };
   auto const          fuel{ locals.At(0) };
-  Call(game, event, ViewService::ARMY_TITLE, objective);
-  Call(game, event, ViewService::OBJECTIVE_PERCENTS, objective, ammunition, fuel, food);
-  Position(game, event, FIRST_ROW);
+  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), objective);
+  opeu_objective_resource_percentages(game, objective, port_ds_word_ptr(game, static_cast<std::uint16_t>(ammunition)), port_ds_word_ptr(game, static_cast<std::uint16_t>(fuel)),
+                                      port_ds_word_ptr(game, static_cast<std::uint16_t>(food)));
+  Position(game, FIRST_ROW);
   Print(game, FUEL_AMMO, city.resources[1], Word(game, fuel), city.resources[0], Word(game, ammunition));
-  Position(game, event, SECOND_ROW);
+  Position(game, SECOND_ROW);
   Print(game, FOOD_END, city.resources[2], Word(game, food), city.strength, city.strength_limit);
-  Position(game, event, GARRISON_ROW);
+  Position(game, GARRISON_ROW);
   Print(game, GARRISON);
   std::uint8_t shown{ 0 };
   for (auto const& item : city.items)
     if (item.quantity) {
-      Position(game, event, data.stock_rows[shown]);
+      Position(game, data.stock_rows[shown]);
       Print(game, STOCK_ROW, data.element_types[item.type].name, item.quantity);
       shown++;
     }
   if (shown == 0) {
-    Position(game, event, NO_STOCK_ROW);
+    Position(game, NO_STOCK_ROW);
     Print(game, NO_STOCK);
   }
 }
 
 // The regiment's name, its order and target (or "waiting" and its own place), supplies with their percentages, the
 // fatigue of its first battalion and its battalions.
-void opeu_unit_panel(Game& game, HostEvent event, uint16_t unit) {
+void opeu_unit_panel(Game& game, uint16_t unit) {
   ServiceLocals const locals{ 0x28 }; // the supply percentages, the destination cell and two names services write
   auto&               data{ Data(game) };
   auto const&         regiment{ Record<Unit>(data, unit) };
@@ -95,33 +103,32 @@ void opeu_unit_panel(Game& game, HostEvent event, uint16_t unit) {
   auto const          destination_x{ locals.At(0x1a) };
   auto const          destination_y{ locals.At(0) };
   auto const          location_name{ locals.At(2) };
-  Call(game, event, ViewService::ARMY_TITLE, Call(game, event, ViewService::UNIT_NAME, unit, locals.At(0xe)));
-  Call(game, event, ViewService::UNIT_CAPACITIES, unit, ammunition, fuel, food);
+  opeu_army_title(game, static_cast<DialogHost const*>(port_dialogs_host()), static_cast<std::uint16_t>(opeu_unit_name(game, svc_unitname, unit, static_cast<std::uint16_t>(locals.At(0xe)))));
+  opeu_unit_capacities(game, unit, port_ds_word_ptr(game, static_cast<std::uint16_t>(ammunition)), port_ds_word_ptr(game, static_cast<std::uint16_t>(fuel)),
+                       port_ds_word_ptr(game, static_cast<std::uint16_t>(food)));
   // each capacity becomes the percentage of it the regiment holds
   for (auto const& [kind, local] : {
            std::pair{ 0, ammunition },
            std::pair{ 1, fuel       },
            std::pair{ 2, food       }
   })
-    SetWord(game, local, Call(game, event, ViewService::RESOURCE_PERCENT, regiment.resources[kind], 0, Word(game, local), 0));
-  auto const has_destination{ Call(game, event, ViewService::ORDER_DESTINATION, unit, destination_x, destination_y) };
-  Position(game, event, FIRST_ROW);
+    SetWord(game, local, opeu_resource_percent(static_cast<std::uint16_t>(regiment.resources[kind]), static_cast<std::uint16_t>(Word(game, local))));
+  auto const has_destination{ opeu_unit_order_destination(game, unit, &Record<std::uint8_t>(Data(game), static_cast<std::uint16_t>(destination_x)),
+                                                          &Record<std::uint8_t>(Data(game), static_cast<std::uint16_t>(destination_y))) };
+  Position(game, FIRST_ROW);
   auto const order{ has_destination ? data.order_names[regiment.orders[0].kind + ORDER_NAME_BASE] : WAITING };
   Print(game, ORDERS, order, regiment.resources[1], Word(game, fuel));
-  Position(game, event, SECOND_ROW);
-  auto const target{ has_destination ? Call(game, event, ViewService::LOCATION_NAME, Record<std::uint8_t>(data, destination_x), Record<std::uint8_t>(data, destination_y), location_name)
-                                     : Call(game, event, ViewService::LOCATION_NAME, regiment.x, regiment.y, location_name) };
+  Position(game, SECOND_ROW);
+  auto const target{ has_destination ? opeu_location_name(game, svc_labels, static_cast<std::uint8_t>(Record<std::uint8_t>(data, destination_x)),
+                                                          static_cast<std::uint8_t>(Record<std::uint8_t>(data, destination_y)), static_cast<std::uint16_t>(location_name))
+                                     : opeu_location_name(game, svc_labels, static_cast<std::uint8_t>(regiment.x), static_cast<std::uint8_t>(regiment.y), static_cast<std::uint16_t>(location_name)) };
   Print(game, TARGET, target, regiment.resources[0], Word(game, ammunition));
-  Position(game, event, THIRD_ROW);
+  Position(game, THIRD_ROW);
   Print(game, FATIGUE_ROW, Record<Element>(data, regiment.first).experience, regiment.resources[2], Word(game, food));
   std::uint8_t row{ 0 };
   for (auto element{ regiment.first }; element; element = Record<Element>(data, element).next, row++) {
     auto const& battalion{ Record<Element>(data, element) };
-    Position(game, event, data.element_rows[row]);
+    Position(game, data.element_rows[row]);
     Print(game, ELEMENT_ROW, data.element_types[battalion.type].name, battalion.quantity);
   }
-}
-
-uint16_t svc_vwpanel(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_view(game, "vwpanel", id, args, count);
 }

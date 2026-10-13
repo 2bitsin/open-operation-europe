@@ -4,10 +4,7 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_staff_restore_bottom(Game& game, HostNotify event);
-void opeu_staff_restore_left(Game& game, HostNotify event);
-void opeu_staff_mark_option(Game& game, HostNotify event, int16_t option);
-void opeu_staff_frame_option(Game& game, HostNotify event, int16_t option);
-
-// The services the module calls through its event.
-void svc_staffpnl(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+void opeu_staff_restore_bottom(Game& game);
+void opeu_staff_restore_left(Game& game);
+void opeu_staff_mark_option(Game& game, int16_t option);
+void opeu_staff_frame_option(Game& game, int16_t option);

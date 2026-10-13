@@ -110,7 +110,7 @@ uint16_t svc_supply(Game& game, uint16_t id, const uint16_t* args, uint16_t coun
   uint16_t r = 0;
   switch (id) {
   case 2:           opeu_request_format(game, { args, count }); break;
-  case SUPPLY_DRAW: opeu_supply_draw(game, svc_suppanel, Arg(args, count, 0), Arg(args, count, 1)); break;
+  case SUPPLY_DRAW: opeu_supply_draw(game, Arg(args, count, 0), Arg(args, count, 1)); break;
   case SUPPLY_STEP: r = opeu_supply_step(game, svc_supstep); break;
   default:          port_unhandled("supply", id, count);
   }

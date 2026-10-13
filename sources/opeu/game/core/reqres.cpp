@@ -15,6 +15,7 @@
 #include "map/mappos.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include <array>
 
 using namespace opeu::game;
 
@@ -36,7 +37,7 @@ void Deliver(Game& game, uint16_t* stock) {
 
 // Delivers ammunition, fuel and food to the requested objective and reports the new stocks and what was added when a
 // person plays the side.
-void opeu_request_action0(Game& game, HostEvent event, uint8_t side, uint16_t request) {
+void opeu_request_action0(Game& game, uint8_t side, uint16_t request) {
   auto&          data{ Data(game) };
   auto&          objective{ Record<Objective>(data, Record<RequestSlot>(data, request).target) };
   uint16_t const before[]{ objective.resources[0], objective.resources[1], objective.resources[2] };
@@ -44,34 +45,16 @@ void opeu_request_action0(Game& game, HostEvent event, uint8_t side, uint16_t re
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const  buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   auto const* now{ objective.resources };
-  Call(game, event, DeliveryService::LOCATION, objective.x, objective.y, side);
+  opeu_arrival_location(game, static_cast<uint8_t>(objective.x), static_cast<uint8_t>(objective.y), static_cast<uint8_t>(side));
   // The words are taken before the text is looked up.
   uint16_t const header_words[]{ HEADER_SIDE_WORD[side == 0 ? 0 : 1], Near(data, objective) };
-  Call(game, event, DeliveryService::FORMAT, buffer, Call(game, event, DeliveryService::MESSAGE_TEXT, HEADER_MESSAGE), header_words[0], header_words[1]);
-  Call(game, event, DeliveryService::MESSAGE, buffer, data.request_person);
-  Call(game, event, DeliveryService::WAIT);
+  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(HEADER_MESSAGE))),
+                                                          static_cast<std::uint16_t>(header_words[0]), static_cast<std::uint16_t>(header_words[1]) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
+  opeu_request_wait(game, svc_soundcue);
   uint16_t const detail_words[]{ now[1], static_cast<uint16_t>(now[1] - before[1]), now[0], static_cast<uint16_t>(now[0] - before[0]), now[2], static_cast<uint16_t>(now[2] - before[2]) };
-  Call(game, event, DeliveryService::FORMAT, buffer, Call(game, event, DeliveryService::MESSAGE_TEXT, DETAIL_MESSAGE), detail_words[0], detail_words[1], detail_words[2], detail_words[3],
-       detail_words[4], detail_words[5]);
-  Call(game, event, DeliveryService::MESSAGE, buffer, data.request_person);
-}
-
-uint16_t svc_delivery(const char* module, Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (static_cast<DeliveryService>(id)) {
-  case DeliveryService::LOCATION: {
-    opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2));
-    break;
-  }
-  case DeliveryService::MESSAGE_TEXT: r = opeu_message_lookup(game, svc_msglook, (short)Arg(args, count, 0)); break;
-  case DeliveryService::FORMAT:       opeu_request_format(game, { args, count }); break;
-  case DeliveryService::MESSAGE:      opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DeliveryService::WAIT:         opeu_request_wait(game, svc_soundcue); break;
-  default:                            port_unhandled(module, id, count);
-  }
-  return r;
-}
-
-uint16_t svc_reqres(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  return svc_delivery("reqres", game, id, args, count);
+  opeu_request_format(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(opeu_message_lookup(game, svc_msglook, static_cast<short>(DETAIL_MESSAGE))),
+                                                          static_cast<std::uint16_t>(detail_words[0]), static_cast<std::uint16_t>(detail_words[1]), static_cast<std::uint16_t>(detail_words[2]),
+                                                          static_cast<std::uint16_t>(detail_words[3]), static_cast<std::uint16_t>(detail_words[4]), static_cast<std::uint16_t>(detail_words[5]) });
+  opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), buffer, data.request_person);
 }

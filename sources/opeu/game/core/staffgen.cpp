@@ -16,14 +16,7 @@
 
 using namespace opeu::game;
 
-namespace {
-
-// The services the candidate screen calls through its event.
-enum StaffService : uint16_t {
-  SHOW_PORTRAIT = 0, // opeu_context_portrait(x, y, person)
-};
-
-} // namespace
+namespace { } // namespace
 
 // A rating drawn around a base: base plus 0..40 capped at 119, then usually 20 less; one time in ten instead capped
 // at 99.
@@ -63,26 +56,19 @@ void opeu_staff_reroll_person(Game& game, uint8_t index) {
 
 // Shows the selected candidate's portrait if another one is on screen, then draws that candidate's ratings again.
 // Returns 0.
-uint8_t opeu_staff_reroll_selected(Game& game, HostNotify event) {
+uint8_t opeu_staff_reroll_selected(Game& game) {
   auto&          data{ Data(game) };
   uint16_t const person{ data.general_list[data.list_row] };
   if (person != data.shown_portrait) {
-    Call(game, event, SHOW_PORTRAIT, 8, 0x100, person);
+    opeu_context_portrait(game, static_cast<const UiHost*>(port_uiprim_host()), 8, 0x100, person);
     data.shown_portrait = person;
   }
   opeu_staff_reroll_person(game, data.list_row);
   return 0;
 }
 
-void svc_staffgen(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  switch (id) {
-  case SHOW_PORTRAIT: opeu_context_portrait(game, (const UiHost*)port_uiprim_host(), Arg(args, count, 0), Arg(args, count, 1), Arg(args, count, 2)); break;
-  default:            port_unhandled("staffgen", id, count);
-  }
-}
-
 auto port_routine_opeu_staff_reroll_selected(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  return opeu_staff_reroll_selected(game, svc_staffgen);
+  return opeu_staff_reroll_selected(game);
 }

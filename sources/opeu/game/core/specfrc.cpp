@@ -5,7 +5,12 @@
 #include "core/specfrc.hpp"
 #include "common/events.hpp"
 #include "common/menu.hpp"
+#include "core/context.hpp"
+#include "core/dialogs.hpp"
+#include "core/template.hpp"
+#include "core/textout.hpp"
 #include "types.hpp"
+#include "units/unitname.hpp"
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
@@ -15,6 +20,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
@@ -39,10 +45,10 @@ auto Average(Person const& deputy, Person const& commander, Ability ability) -> 
 } // namespace
 
 // Points special_order at the side's order, picks the officer and averages the four abilities the missions test.
-void opeu_special_officer(Game& game, HostEvent event) {
+void opeu_special_officer(Game& game) {
   auto& data{ Data(game) };
   data.special_order  = Near(data, Record<Side>(data, data.current_side_ptr).order);
-  data.special_person = Call(game, event, FIND_PERSON_TEMPLATE, Record<Person>(data, data.context_record1).status, OFFICER_KIND);
+  data.special_person = opeu_find_person_template(game, static_cast<uint8_t>(Record<Person>(data, data.context_record1).status), static_cast<uint8_t>(OFFICER_KIND));
   auto const& deputy{ Record<Person>(data, data.context_record2) };
   auto const& commander{ Record<Person>(data, data.context_record1) };
   data.special_leadership = Average(deputy, commander, &Person::leadership);
@@ -72,26 +78,29 @@ void opeu_turn_action_9(Game& game, HostEvent event) {
   ServiceLocals const locals{ NAME_BYTES };
   auto&               data{ Data(game) };
   auto const          name{ locals.At(0) };
-  opeu_special_officer(game, event);
+  opeu_special_officer(game);
   do {
     auto& order{ Record<Order>(data, data.special_order) };
     if (order.kind != Bits(SpecialMission::NONE)) {
-      Call(game, event, ARMY_TITLE, offsetof(DataSegment, special_forces_title));
-      Call(game, event, ARMY_POSITION, INFO_X, ORDERS_Y);
-      Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_orders_line), data.special_mission_names[order.kind]);
-      Call(game, event, ARMY_POSITION, INFO_X, TARGET_Y);
-      Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_target_line), opeu_special_unit_target(game) ? Call(game, event, UNIT_NAME, order.target, name) : order.target);
-      Call(game, event, ARMY_POSITION, INFO_X, TIME_Y);
-      Call(game, event, ARMY_PRINT, offsetof(DataSegment, special_time_line), order.progress);
-      if (!Call(game, event, CONFIRM_MESSAGE, offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
+      opeu_army_title(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_forces_title));
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(ORDERS_Y));
+      opeu_cursor_print(game,
+                        std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), static_cast<std::uint16_t>(data.special_mission_names[order.kind]) });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TARGET_Y));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_target_line)),
+                                                            static_cast<std::uint16_t>(opeu_special_unit_target(game) ? opeu_unit_name(game, svc_unitname, order.target, name) : order.target) });
+      opeu_army_position(game, static_cast<TextHost*>(port_textout_host()), static_cast<int16_t>(INFO_X), static_cast<int16_t>(TIME_Y));
+      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_time_line)), static_cast<std::uint16_t>(order.progress) });
+      if (!opeu_confirm_message(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
       order.kind = Bits(SpecialMission::NONE);
     }
-    auto const choice{ Call(game, event, DELAY_DIALOG, offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2, offsetof(DataSegment, special_menu)) };
+    auto const choice{ opeu_delay_dialog(game, static_cast<const DialogHost*>(port_dialogs_host()), offsetof(DataSegment, special_select_question), MISSION_COUNT, data.context_record2,
+                                         offsetof(DataSegment, special_menu)) };
     if (choice == MENU_CANCELLED) return;
     auto const& mission{ data.special_missions[choice - 1] };
     Call(game, event, FAR_ACTION, mission.segment, mission.offset);
   } while (!data.side_delays[data.current_side]);
-  Call(game, event, DAILY_CONTEXT, data.current_side);
+  opeu_daily_context(game, static_cast<uint8_t>(data.current_side));
 }
 
 uint16_t svc_specfrc(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {

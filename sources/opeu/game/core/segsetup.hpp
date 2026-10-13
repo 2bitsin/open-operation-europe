@@ -6,7 +6,7 @@
 
 void opeu_memory_fail(Game& game, HostEvent event, uint16_t name);
 void opeu_alloc_segments(Game& game, HostEvent event);
-void opeu_open_data_files(Game& game, HostEvent event);
+void opeu_open_data_files(Game& game);
 void opeu_app_prepare(Game& game, HostEvent event);
 
 // The services the start-up routines are called with.

@@ -4,7 +4,4 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_request_action1(Game& game, HostEvent event, uint8_t side, uint16_t request);
-
-// The services of opeu_request_action1 (the delivery services of core/reqres).
-uint16_t svc_reqequip(Game& game, uint16_t id, const uint16_t* args, uint16_t count);
+void opeu_request_action1(Game& game, uint8_t side, uint16_t request);

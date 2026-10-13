@@ -134,14 +134,14 @@ uint16_t opeu_control_coordinates(Game& game, uint16_t x, uint16_t y) {
     if (objective) {
       auto const owner{ opeu_objective_side(game, objective) };
       if ((owner == side && opeu_objective_eligible(game, objective)) || (owner != side && (Record<Objective>(data, objective).flags & Bits(ObjectiveFlag::MARKED)))) {
-        opeu_objective_panel(game, svc_vwpanel, objective);
+        opeu_objective_panel(game, objective);
         panel = 1;
       }
     }
     if (unit) {
       auto const owner{ opeu_unit_side(unit) };
       if ((owner == side && opeu_unit_selection_eligible(game, unit)) || (owner != side && (Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED)))) {
-        opeu_unit_panel(game, svc_vwpanel, unit);
+        opeu_unit_panel(game, unit);
         panel = 1;
       }
     }

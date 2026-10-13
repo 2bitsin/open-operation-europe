@@ -6,11 +6,11 @@
 #include "types.hpp"
 
 void     opeu_view_info_menu(Game& game, HostEvent event);
-void     opeu_view_weapon_list(Game& game, HostEvent event, uint16_t end);
-void     opeu_view_own_weapons(Game& game, HostEvent event);
-void     opeu_view_enemy_weapons(Game& game, HostEvent event);
+void     opeu_view_weapon_list(Game& game, uint16_t end);
+void     opeu_view_own_weapons(Game& game);
+void     opeu_view_enemy_weapons(Game& game);
 void     opeu_view_arms_menu(Game& game, HostEvent event);
-void     opeu_view_victory(Game& game, HostEvent event);
+void     opeu_view_victory(Game& game);
 uint16_t opeu_view_menu_loop(Game& game, HostEvent event);
 
 // The services every information view calls (common/view-service.hpp), as direct calls; module names the caller in

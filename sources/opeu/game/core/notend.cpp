@@ -45,29 +45,6 @@ using namespace opeu::game;
 
 namespace {
 
-// The services the end of a battle calls through its event (pointers are DS offsets).
-enum EndService : uint16_t {
-  SOUND_CUE       = 0,  // sound cue 10
-  WAIT            = 1,  // wait(units)
-  SHOW_LOCATION   = 2,  // arrival_location(x, y, side)
-  ERASE_UNIT      = 3,  // unit_erase(unit)
-  PREPARE_UNIT    = 4,  // arrival_prepare(unit)
-  FORMAT          = 5,  // request_format(destination, format, arguments...)
-  UNIT_MESSAGE    = 6,  // unit_message(unit, text)
-  DAILY_SHOW      = 7,  // daily_show(id, side, callback offset, callback segment)
-  ELEMENT_SIDE    = 8,  // element_flag_side(element) -> side
-  UNIT_NAME       = 9,  // unit_name(unit, buffer)
-  ITEM_NAME       = 10, // item_name(item, buffer)
-  TYPE_NAME       = 11, // type_name(type, buffer)
-  COPY_STRING     = 12, // string_copy(destination, source)
-  APPEND_STRING   = 13, // string_append(destination, source)
-  REPORT_ELEMENT  = 14, // the panel of an element of a unit
-  REPORT_ITEM     = 15, // the panel of a garrison element's equipment
-  CONTROL_MESSAGE = 16, // control_message(text, person)
-  TURN_PREPARE    = 17, // turn_prepare()
-  DAILY_CONTEXT   = 18, // daily_context(side)
-};
-
 // battle_direction and battle_side when the battle has no retreat and no winner.
 constexpr uint8_t NONE{ 255 };
 
@@ -120,27 +97,27 @@ uint16_t opeu_end_can_occupy(Game& game, uint8_t x, uint8_t y, uint16_t unit) {
 }
 
 // The call-back of the occupied objective's show: a sound and a pause.
-void opeu_end_occupy_present(Game& game, HostEvent event) {
-  Call(game, event, SOUND_CUE);
-  Call(game, event, WAIT, 30);
+void opeu_end_occupy_present(Game& game) {
+  opeu_sound_cue10(game, svc_soundcue);
+  opeu_delay_units(game, static_cast<uint8_t>(30));
 }
 
 // The defender retreats in battle_direction; when the battle cell is then empty and the attacker may enter it (an
 // objective there must be his own side's), the attacker moves in, and an objective taken is reported and shown.
-void opeu_end_occupy(Game& game, HostEvent event) {
+void opeu_end_occupy(Game& game) {
   ServiceLocals const locals{ 0x6c };
   auto&               data{ Data(game) };
   uint16_t const      text{ locals.At(0) };
   data.view_side     = 255;
   data.overview_side = 255;
-  Call(game, event, SHOW_LOCATION, data.battle_x, data.battle_y, (uint8_t)(data.side_status[0] == SIDE_PLAYED ? 0 : 1));
+  opeu_arrival_location(game, static_cast<uint8_t>(data.battle_x), static_cast<uint8_t>(data.battle_y), (uint8_t)(uint8_t)(data.side_status[0] == SIDE_PLAYED ? 0 : 1));
   uint16_t const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   uint16_t       unit;
   if (data.battle_direction != NONE && (unit = opeu_find_unit_at(game, data.battle_x, data.battle_y)) != 0) {
     auto& defender{ Record<Unit>(data, unit) };
-    Call(game, event, ERASE_UNIT, unit);
+    opeu_unit_remove_draw(game, unit);
     opeu_grid_step(&defender.x, &defender.y, data.battle_direction);
-    Call(game, event, PREPARE_UNIT, unit);
+    opeu_arrival_prepare(game, unit);
     defender.moved = 0;
   }
   if ((unit = data.battle_units[0]) == 0) return;
@@ -149,15 +126,16 @@ void opeu_end_occupy(Game& game, HostEvent event) {
   if (objective && opeu_objective_side(game, objective) != side) return;
   if (!opeu_end_can_occupy(game, data.battle_x, data.battle_y, unit)) return;
   auto& attacker{ Record<Unit>(data, unit) };
-  Call(game, event, ERASE_UNIT, unit);
+  opeu_unit_remove_draw(game, unit);
   attacker.x = data.battle_x;
   attacker.y = data.battle_y;
-  Call(game, event, PREPARE_UNIT, unit);
+  opeu_arrival_prepare(game, unit);
   attacker.moved = 0;
   if (objective) {
-    Call(game, event, FORMAT, text, offsetof(DataSegment, end_occupied_format), objective);
-    Call(game, event, UNIT_MESSAGE, data.current_unit_ptr, text);
-    Call(game, event, DAILY_SHOW, OCCUPIED_SHOW, side, OCCUPY_PRESENT_OFFSET, OCCUPY_PRESENT_SEGMENT);
+    opeu_request_format(
+        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), static_cast<std::uint16_t>(objective) });
+    opeu_unit_report(game, static_cast<const DialogHost*>(port_dialogs_host()), data.current_unit_ptr, text);
+    opeu_daily_show(game, static_cast<const DialogHost*>(port_dialogs_host()), OCCUPIED_SHOW, static_cast<uint8_t>(side), static_cast<uint32_t>(OCCUPY_PRESENT_SEGMENT) << 16 | OCCUPY_PRESENT_OFFSET);
   }
 }
 
@@ -233,7 +211,7 @@ void opeu_end_nothing(void) { }
 
 // Reports, when the battle is reported and not only presented, every engaged element's losses to its side's
 // commander: wiped out, not damaged, or how many it lost.
-void opeu_end_losses(Game& game, HostEvent event) {
+void opeu_end_losses(Game& game) {
   ServiceLocals const locals{ 0xb2 };
   auto&               data{ Data(game) };
   uint16_t const      report{ locals.At(0x42) };
@@ -245,51 +223,55 @@ void opeu_end_losses(Game& game, HostEvent event) {
   for (auto const& loss : data.battle_losses) {
     uint16_t const element{ loss.element };
     if (!element) continue;
-    auto const side{ static_cast<uint8_t>(Call(game, event, ELEMENT_SIDE, element)) };
+    auto const side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
     uint16_t   unit;
     if (!loss.unit) {
       unit = GARRISON_AT;
-      Call(game, event, COPY_STRING, unit_name, offsetof(DataSegment, end_garrison_name));
-      Call(game, event, TYPE_NAME, Near(data, data.element_types[loss.item.type]), item_name);
-      Call(game, event, REPORT_ITEM, element + offsetof(Element, type));
+      opeu_string_copy(game, unit_name, offsetof(DataSegment, end_garrison_name));
+      opeu_type_name(game, Near(data, data.element_types[loss.item.type]), item_name);
+      opeu_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element + offsetof(Element, type));
     } else {
       unit = opeu_find_element_unit(game, element);
-      Call(game, event, UNIT_NAME, loss.unit, unit_name);
-      Call(game, event, ITEM_NAME, Near(data, loss.item), item_name);
-      Call(game, event, REPORT_ELEMENT, element);
+      opeu_unit_name(game, svc_unitname, loss.unit, unit_name);
+      opeu_item_name(game, Near(data, loss.item), item_name);
+      opeu_group_element_panel(game, static_cast<const DialogHost*>(port_dialogs_host()), element);
     }
     uint16_t const remaining{ Record<Element>(data, element).quantity };
     uint16_t const lost{ static_cast<uint16_t>(loss.item.quantity - remaining) };
-    Call(game, event, FORMAT, report, offsetof(DataSegment, end_loss_format), SIDE_COLOUR[side == 0 ? 0 : 1], data.side_names[side], unit_name, item_name);
+    opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(offsetof(DataSegment, end_loss_format)),
+                                                            static_cast<std::uint16_t>(SIDE_COLOUR[side == 0 ? 0 : 1]), static_cast<std::uint16_t>(data.side_names[side]),
+                                                            static_cast<std::uint16_t>(unit_name), static_cast<std::uint16_t>(item_name) });
     if (!unit || !Record<Element>(data, element).quantity)
-      Call(game, event, APPEND_STRING, report, offsetof(DataSegment, end_wiped_out_text));
+      opeu_string_append(game, report, offsetof(DataSegment, end_wiped_out_text));
     else if (!lost)
-      Call(game, event, APPEND_STRING, report, offsetof(DataSegment, end_undamaged_text));
+      opeu_string_append(game, report, offsetof(DataSegment, end_undamaged_text));
     else {
-      Call(game, event, FORMAT, loss_text, lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format), lost);
-      Call(game, event, APPEND_STRING, report, loss_text);
+      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(loss_text),
+                                                              static_cast<std::uint16_t>(lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format)),
+                                                              static_cast<std::uint16_t>(lost) });
+      opeu_string_append(game, report, loss_text);
     }
-    Call(game, event, CONTROL_MESSAGE, report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));
+    opeu_control_message(game, static_cast<const DialogHost*>(port_dialogs_host()), report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));
   }
 }
 
 // The end of a battle. Afterwards the daily context of the side a player
 // commands is shown again (side_control 1: a player; 0: the computer); with two computer sides, side 1's when a
 // player plays it, else side 0's.
-void opeu_notice_end(Game& game, HostEvent event) {
+void opeu_notice_end(Game& game) {
   auto& data{ Data(game) };
-  Call(game, event, TURN_PREPARE);
-  opeu_end_losses(game, event);
+  opeu_turn_prepare(game, static_cast<const DialogHost*>(port_dialogs_host()));
+  opeu_end_losses(game);
   opeu_end_select(game, 0);
   opeu_end_select(game, 1);
-  opeu_end_occupy(game, event);
+  opeu_end_occupy(game);
   opeu_end_leaders(game);
   opeu_end_morale(game);
   opeu_end_orders(game);
   opeu_end_nothing();
   auto const show_context{ [&](uint8_t side) {
     data.daily_active = 1;
-    Call(game, event, DAILY_CONTEXT, side);
+    opeu_daily_context(game, static_cast<uint8_t>(side));
     data.daily_active = 0;
   } };
   if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_PLAYED) show_context(0);
@@ -300,36 +282,9 @@ void opeu_notice_end(Game& game, HostEvent event) {
   }
 }
 
-uint16_t svc_notend(Game& game, uint16_t id, const uint16_t* args, uint16_t count) {
-  uint16_t r = 0;
-  switch (id) {
-  case SOUND_CUE:     opeu_sound_cue10(game, svc_soundcue); break;
-  case WAIT:          opeu_delay_units(game, (uint8_t)Arg(args, count, 0)); break;
-  case SHOW_LOCATION: opeu_arrival_location(game, (uint8_t)Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint8_t)Arg(args, count, 2)); break;
-  case ERASE_UNIT:    opeu_unit_remove_draw(game, Arg(args, count, 0)); break;
-  case PREPARE_UNIT:  opeu_arrival_prepare(game, Arg(args, count, 0)); break;
-  case FORMAT:        opeu_request_format(game, { args, count }); break;
-  case UNIT_MESSAGE:  opeu_unit_report(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case DAILY_SHOW:   opeu_daily_show(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), (uint8_t)Arg(args, count, 1), (uint32_t)Arg(args, count, 3) << 16 | Arg(args, count, 2)); break;
-  case ELEMENT_SIDE: r = opeu_battle_element_side(game, Arg(args, count, 0)); break;
-  case UNIT_NAME:    r = opeu_unit_name(game, svc_unitname, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case ITEM_NAME:    r = opeu_item_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case TYPE_NAME:    r = opeu_type_name(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case COPY_STRING:  r = opeu_string_copy(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case APPEND_STRING:   r = opeu_string_append(game, Arg(args, count, 0), Arg(args, count, 1)); break;
-  case REPORT_ELEMENT:  opeu_group_element_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case REPORT_ITEM:     opeu_element_panel(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0)); break;
-  case CONTROL_MESSAGE: opeu_control_message(game, (const DialogHost*)port_dialogs_host(), Arg(args, count, 0), Arg(args, count, 1)); break;
-  case TURN_PREPARE:    opeu_turn_prepare(game, (const DialogHost*)port_dialogs_host()); break;
-  case DAILY_CONTEXT:   opeu_daily_context(game, (uint8_t)Arg(args, count, 0)); break;
-  default:              port_unhandled("notend", id, count);
-  }
-  return r;
-}
-
 auto port_routine_opeu_end_occupy_present(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_end_occupy_present(game, svc_notend);
+  opeu_end_occupy_present(game);
   return 0;
 }

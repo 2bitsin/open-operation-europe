@@ -1,6 +1,9 @@
 // The generals views: lists of the own and the enemy side's generals and the menu that picks one of them.
 #include "core/vwpeople.hpp"
 #include "common/events.hpp"
+#include "core/dialogs.hpp"
+#include "core/sideutil.hpp"
+#include "io/listdlg.hpp"
 #include "types.hpp"
 
 #include "common/data-segment.hpp"
@@ -35,38 +38,39 @@ auto ListGenerals(DataSegment& data, std::uint8_t side) -> std::uint8_t {
 } // namespace
 
 // Shows the listed generals.
-void opeu_view_people_list(Game& game, HostEvent event, uint8_t count) {
+void opeu_view_people_list(Game& game, uint8_t count) {
   auto& data{ Data(game) };
   data.people_dialog.rows = static_cast<uint8_t>(count + 1);
-  SetRowCheck(game, event, data.people_dialog, RowCheck::NONE);
-  Call(game, event, ViewService::CONTROL_PANEL);
-  Call(game, event, ViewService::CONTROL_MESSAGE, PEOPLE_HERE, data.context_record3);
-  Call(game, event, ViewService::LIST_DIALOG, Near(data, data.people_dialog), LIST_LIMIT, LIST_FLAGS);
+  SetRowCheck(game, data.people_dialog, RowCheck::NONE);
+  opeu_title_panel_begin(game, static_cast<DialogHost const*>(port_dialogs_host()));
+  opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_HERE, static_cast<std::uint16_t>(data.context_record3));
+  opeu_list_dialog(game, svc_listdlg, static_cast<std::uint16_t>(Near(data, data.people_dialog)), static_cast<std::uint8_t>(LIST_LIMIT), static_cast<std::uint8_t>(LIST_FLAGS));
 }
 
 // The own side's generals.
-void opeu_view_own_generals(Game& game, HostEvent event) {
+void opeu_view_own_generals(Game& game) {
   auto&      data{ Data(game) };
   auto const count{ ListGenerals(data, data.current_side) };
-  opeu_view_people_list(game, event, count);
+  opeu_view_people_list(game, count);
 }
 
 // The enemy side's generals.
-void opeu_view_enemy_generals(Game& game, HostEvent event) {
+void opeu_view_enemy_generals(Game& game) {
   auto&      data{ Data(game) };
-  auto const enemy{ static_cast<std::uint8_t>(Call(game, event, ViewService::OPPOSITE_SIDE, data.current_side)) };
+  auto const enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<std::uint8_t>(data.current_side))) };
   auto const count{ ListGenerals(data, enemy) };
   if (count == 0) {
-    Call(game, event, ViewService::CONTROL_MESSAGE, PEOPLE_NONE, data.context_record3);
+    opeu_control_message(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_NONE, static_cast<std::uint16_t>(data.context_record3));
     return;
   }
-  opeu_view_people_list(game, event, count);
+  opeu_view_people_list(game, count);
 }
 
 // The generals menu (own, enemy) until cancelled.
 void opeu_view_generals_menu(Game& game, HostEvent event) {
   auto& data{ Data(game) };
-  for (std::uint16_t item; (item = Call(game, event, ViewService::DELAY_DIALOG, PEOPLE_PROMPT, 2, data.context_record2, PEOPLE_MENU)) != MENU_CANCELLED;)
+  for (std::uint16_t item;
+       (item = opeu_delay_dialog(game, static_cast<DialogHost const*>(port_dialogs_host()), PEOPLE_PROMPT, 2, static_cast<std::uint16_t>(data.context_record2), PEOPLE_MENU)) != MENU_CANCELLED;)
     RunAction(game, event, data.people_actions, item);
 }
 
@@ -75,7 +79,7 @@ uint16_t svc_vwpeople(Game& game, uint16_t id, const uint16_t* args, uint16_t co
 }
 
 auto port_routine_opeu_view_enemy_generals(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_enemy_generals(game, svc_vwpeople);
+  opeu_view_enemy_generals(game);
   return 0;
 }
 
@@ -85,6 +89,6 @@ auto port_routine_opeu_view_generals_menu(Game& game, std::uint16_t const*, unsi
 }
 
 auto port_routine_opeu_view_own_generals(Game& game, std::uint16_t const*, unsigned) -> std::uint32_t {
-  opeu_view_own_generals(game, svc_vwpeople);
+  opeu_view_own_generals(game);
   return 0;
 }

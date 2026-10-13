@@ -90,9 +90,9 @@ private:
 } // namespace
 
 // The message hook: inverts a 1x8 marker at the marked overview cell.
-void opeu_brief_blink(Game& game, HostEvent event) {
+void opeu_brief_blink(Game& game) {
   auto const& data{ Data(game) };
-  Call(game, event, INVERT, data.brief_mark_x, data.brief_mark_y, 1, 8, 0x107);
+  opeu_ui_highlight(data.brief_mark_x, data.brief_mark_y, 1, 8, 0x107);
 }
 
 // Marks an overview-map cell for the blinking hook.
@@ -402,7 +402,7 @@ auto port_routine_opeu_brief_berlin(Game& game, std::uint16_t const* args, unsig
 auto port_routine_opeu_brief_blink(Game& game, std::uint16_t const* args, unsigned count) -> std::uint32_t {
   (void)args;
   (void)count;
-  opeu_brief_blink(game, svc_scenbrf);
+  opeu_brief_blink(game);
   return 0;
 }
 

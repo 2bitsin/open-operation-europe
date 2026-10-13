@@ -90,8 +90,8 @@ uint16_t svc_requests(Game& game, uint16_t id, uint16_t a, uint16_t b, uint16_t,
   uint16_t r = 0;
   switch (static_cast<RequestService>(id)) {
   case RequestService::VALID:     r = opeu_request_valid(game, svc_reqvalid, (uint8_t)a, b); break;
-  case RequestService::SUPPLIES:  opeu_request_action0(game, svc_reqres, (uint8_t)a, b); break;
-  case RequestService::BATTALION: opeu_request_action1(game, svc_reqequip, (uint8_t)a, b); break;
+  case RequestService::SUPPLIES:  opeu_request_action0(game, (uint8_t)a, b); break;
+  case RequestService::BATTALION: opeu_request_action1(game, (uint8_t)a, b); break;
   case RequestService::REGIMENT:  opeu_request_action2(game, svc_reqspawn, (uint8_t)a, b); break;
   case RequestService::COMPLETE:  opeu_request_complete(game, (uint8_t)a); break;
   case RequestService::START:     opeu_request_start(game, svc_reqpend, (uint8_t)a, b); break;
