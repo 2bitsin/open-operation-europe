@@ -375,11 +375,13 @@ EMPTY_NAMESPACE = re.compile(r"^namespace[ \t]+[\w:]+[ \t]*\{\s*\}[ \t]*(//[^\n]
 
 
 def DeleteEmptyHeaders(tree: SourceTree, result: B3Result) -> dict:
-  """A game header left with nothing but comments, `#pragma once`, includes and empty namespaces is deleted, and every
-  `#include` of it; a header that still declares something loses its empty namespace blocks."""
+  """A game header this pass deleted an enumeration or a constant from, left with nothing but comments, `#pragma once`,
+  includes and empty namespaces, is deleted, and every `#include` of it; one that still declares something loses its
+  empty namespace blocks."""
+  touched = {line.split()[0] for line in result.enums + result.constants}
   edits: dict = {}
   for path, source in tree.files.items():
-    if not str(path).startswith("game/") or path.suffix != ".hpp":
+    if str(path) not in touched or path.suffix != ".hpp":
       continue
     empties = list(EMPTY_NAMESPACE.finditer(source.text))
     rest = EMPTY_NAMESPACE.sub("", source.text)
