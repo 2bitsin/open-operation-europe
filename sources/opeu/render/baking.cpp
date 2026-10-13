@@ -1,10 +1,38 @@
 #include "opeu/render/baking.hpp"
 
+#include "opeu/render/rows.hpp"
+
+#include <array>
+#include <ranges>
+#include <vector>
+
 namespace opeu::render::detail::baking {
 
 auto Bake(assets::LoadedAsset const& asset, assets::PaletteColours const& colours) -> assets::Texture {
-  if (asset.indexed) return assets::ToTexture(*asset.indexed, colours);
-  return asset.texture;
+  return Bake(asset, Painting{ .colours = colours, .keying = Keying::OPAQUE, .background = std::nullopt });
+}
+
+auto Bake(assets::LoadedAsset const& asset, Painting const& painting) -> assets::Texture {
+  if (asset.indexed) return assets::ToTexture(KeyedImage(*asset.indexed, painting.keying), painting.colours);
+  return KeyedImage(asset.texture, painting.keying, painting.background);
+}
+
+auto KeyedImage(assets::Image const& image, Keying const keying) -> assets::Image {
+  if (keying == Keying::OPAQUE) return image;
+  auto opaque{ assets::Indices(image.Pixels().size())
+               | std::views::transform([&image](std::size_t const n) { return static_cast<std::uint8_t>(image.Pixels()[n] != 0 && (!image.HasMask() || image.Opaque()[n] != 0)); })
+               | std::ranges::to<std::vector>() };
+  return assets::Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
+}
+
+auto KeyedImage(assets::Texture const& image, Keying const keying, std::optional<assets::Colour> const background) -> assets::Texture {
+  if (keying == Keying::OPAQUE || !background) return image;
+  auto const keyed{ [colour = *background](auto const pixel) {
+    auto const shows{ pixel[0] == std::byte{ colour.r } && pixel[1] == std::byte{ colour.g } && pixel[2] == std::byte{ colour.b } };
+    return std::array{ pixel[0], pixel[1], pixel[2], shows ? std::byte{ 0 } : pixel[3] };
+  } };
+  auto const pixels{ Rows(image.Pixels(), RowLayout{ .pitch = 4, .width = 4, .count = image.Width() * image.Height() }) };
+  return assets::Texture{ image.Width(), image.Height(), pixels | std::views::transform(keyed) | std::views::join | std::ranges::to<std::vector>() };
 }
 
 auto Pen(assets::PaletteColours const& colours, std::size_t const index) -> Rgba {

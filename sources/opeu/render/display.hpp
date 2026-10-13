@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <span>
 
 namespace opeu::render::detail::display {
 
@@ -51,6 +52,8 @@ public:
 
   // Starts a frame: the frame becomes the target, cleared to black.
   auto Begin() -> void;
+  // Makes the frame the target again as it was (after a Present): a screen the game keeps drawing on.
+  auto Resume() -> void;
   // Shows the frame, every pixel multiplied by `tint` (a fade, an hour's tint).
   auto Present(Rgba tint = WHITE) -> void;
   // The frame as Present shows it, at 640x480: the headless PNG capture.
@@ -60,6 +63,7 @@ public:
   auto Fill(Rect area, Rgba colour) -> void;
   auto Line(Point from, Point to, Rgba colour) -> void;
   auto Plot(Point at, Rgba colour) -> void;
+  auto Plot(std::span<Point const> points, Rgba colour) -> void;
   auto Draw(Texture const& texture, Blit const& blit) -> void;
   // Carries out the drawing SDL has queued so far (Present, Read and a change of target do it anyway).
   auto Flush() -> void;

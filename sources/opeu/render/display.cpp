@@ -77,6 +77,10 @@ auto Display::Begin() -> void {
   Clear(BLACK);
 }
 
+auto Display::Resume() -> void {
+  SDL_SetRenderTarget(&Renderer(), &_frame.Handle());
+}
+
 auto Display::Present(Rgba const tint) -> void {
   SDL_SetRenderTarget(&Renderer(), nullptr);
   Clear(BLACK);
@@ -112,6 +116,12 @@ auto Display::Line(Point const from, Point const to, Rgba const colour) -> void 
 auto Display::Plot(Point const at, Rgba const colour) -> void {
   SetColour(colour);
   SDL_RenderPoint(&Renderer(), static_cast<float>(at.x), static_cast<float>(at.y));
+}
+
+auto Display::Plot(std::span<Point const> const points, Rgba const colour) -> void {
+  SetColour(colour);
+  auto const placed{ points | std::views::transform([](Point const at) { return SDL_FPoint{ .x = static_cast<float>(at.x), .y = static_cast<float>(at.y) }; }) | std::ranges::to<std::vector>() };
+  SDL_RenderPoints(&Renderer(), placed.data(), static_cast<int>(placed.size()));
 }
 
 auto Display::Draw(Texture const& texture, Blit const& blit) -> void {

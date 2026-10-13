@@ -1,8 +1,5 @@
 #include "opeu/render/texture-cache.hpp"
 
-#include "opeu/contract.hpp"
-#include "opeu/render/baking.hpp"
-
 #include <format>
 #include <utility>
 
@@ -15,47 +12,43 @@ namespace {
 
 }
 
-TextureCache::TextureCache(SDL_Renderer& renderer, assets::AssetPack const& pack, std::size_t const capacity) : _renderer{ renderer }, _pack{ pack }, _capacity{ capacity } {
-  Expects(capacity > 0, "a texture cache holds at least one texture");
-}
+TextureCache::TextureCache(SDL_Renderer& renderer, assets::AssetPack const& pack, std::size_t const capacity) : _renderer{ renderer }, _pack{ pack }, _baked{ capacity } { }
 
 auto TextureCache::Fetch(TextureKey const& key) -> Rendered<SharedBaked> {
-  if (auto const found{ _slots.find(key) }; found != _slots.end()) {
-    ++_statistics.hits;
-    _recent.splice(_recent.begin(), _recent, found->second);
-    return found->second->baked;
-  }
-  ++_statistics.misses;
+  if (auto found{ _baked.Find(key) }) return *std::move(found);
   auto baked{ Bake(key) };
   if (!baked) return std::unexpected{ baked.error() };
-  Remember(key, std::make_shared<Baked const>(*std::move(baked)));
-  return _recent.front().baked;
+  auto shared{ std::make_shared<Baked const>(*std::move(baked)) };
+  _baked.Remember(key, shared);
+  return shared;
 }
 
 auto TextureCache::Bake(TextureKey const& key) const -> Rendered<Baked> {
   auto const asset{ _pack.get().Load(key.asset) };
   if (!asset) return PackFailed(asset.error());
-  auto const pixels{ Pixels(*asset, key.palette) };
+  auto const pixels{ Pixels(*asset, key) };
   if (!pixels) return std::unexpected{ pixels.error() };
   auto texture{ Texture::Upload(_renderer.get(), *pixels) };
   if (!texture) return std::unexpected{ texture.error() };
   return Baked{ .texture = *std::move(texture), .size = GameSize(asset->entry) };
 }
 
-auto TextureCache::Pixels(assets::LoadedAsset const& asset, std::string_view const palette) const -> Rendered<assets::Texture> {
-  if (palette.empty()) return asset.texture;
-  auto const colours{ _pack.get().Palette(palette) };
-  if (!colours) return Failed(std::format("no palette {}", palette));
-  return render::Bake(asset, *colours);
+auto TextureCache::Pixels(assets::LoadedAsset const& asset, TextureKey const& key) const -> Rendered<assets::Texture> {
+  auto const colours{ ColoursOf(key) };
+  if (!colours) return std::unexpected{ colours.error() };
+  auto const own{ _pack.get().Palette(asset.entry.palette) };
+  auto const background{ own.transform([](assets::PaletteColours const& palette) { return palette.front(); }) };
+  if (!*colours) return KeyedImage(asset.texture, key.keying, background);
+  return render::Bake(asset, Painting{ .colours = **colours, .keying = key.keying, .background = background });
 }
 
-auto TextureCache::Remember(TextureKey const& key, SharedBaked baked) -> void {
-  _recent.push_front(Slot{ .key = key, .baked = std::move(baked) });
-  _slots.insert_or_assign(key, _recent.begin());
-  if (_recent.size() <= _capacity) return;
-  _slots.erase(_recent.back().key);
-  _recent.pop_back();
-  ++_statistics.evictions;
+// The colours a key bakes in: its own, its named palette's, or none (the asset's own image).
+auto TextureCache::ColoursOf(TextureKey const& key) const -> Rendered<std::optional<assets::PaletteColours>> {
+  if (key.colours) return key.colours;
+  if (key.palette.empty()) return std::optional<assets::PaletteColours>{};
+  auto const colours{ _pack.get().Palette(key.palette) };
+  if (!colours) return Failed(std::format("no palette {}", key.palette));
+  return colours;
 }
 
 }

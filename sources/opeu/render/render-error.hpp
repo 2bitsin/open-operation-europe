@@ -7,8 +7,11 @@
 
 #include <expected>
 #include <format>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace opeu::render::detail::render_error {
 
@@ -34,12 +37,28 @@ using Rendered = std::expected<_Value, RenderError>;
   return Failed(assets::Describe(error));
 }
 
+// What a caller that cannot report a failure throws when the renderer fails it (SDL refused a call): the game's
+// drawing interface has no error to return, and a renderer that stops drawing ends the run.
+class RenderFailure : public std::runtime_error {
+public:
+  using std::runtime_error::runtime_error;
+};
+
+// The value, or RenderFailure with the error's detail.
+template <class _Value>
+[[nodiscard]] auto Required(Rendered<_Value> rendered) -> _Value {
+  if (!rendered) throw RenderFailure{ rendered.error().detail };
+  if constexpr (!std::is_void_v<_Value>) return *std::move(rendered);
+}
+
 }
 
 namespace opeu::render {
 using detail::render_error::Failed;
 using detail::render_error::PackFailed;
 using detail::render_error::Rendered;
+using detail::render_error::RenderFailure;
+using detail::render_error::Required;
 using detail::render_error::RenderError;
 using detail::render_error::SdlFailed;
 }
