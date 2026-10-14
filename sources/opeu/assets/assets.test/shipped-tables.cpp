@@ -49,7 +49,7 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   EXPECT_TRUE(std::ranges::contains(france.objectives, std::string{ "San Michel" }, &detail::scenario::Objective::name));
   EXPECT_EQ(france.sides[0].stock, (std::array<unsigned, 3>{ 60000, 60000, 60000 }));
   EXPECT_EQ(france.sides[0].income, (std::array<unsigned, 3>{ 2000, 2000, 2000 }));
-  EXPECT_FALSE(DecodeScenarioFile(Shipped("SCEDATA").first(100)));
+  EXPECT_FALSE(DecodeScenarioFile(Bytes{ Shipped("SCEDATA") }.first(100)));
 }
 
 TEST(ShippedMapCells, HoldSixFortyByFortyMaps) {

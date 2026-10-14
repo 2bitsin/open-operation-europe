@@ -4,7 +4,7 @@
     python3 tools/remaster/contact.py [--pack DIR] [--compare DIR] [--out DIR] [--class NAME ...] [--per-page N]
 
 Every asset is drawn nearest-neighbour at a readable scale (4x for the small ones, less for the large pictures) over
-a dark checkerboard where it is transparent (the pen-coloured shapes are light grey), on a grid labelled with its id, game size, palette, recolouring and the
+a dark checkerboard where it is transparent (the pen-coloured shapes are light grey), on a grid labelled with its file name, game size, palette, recolouring and the
 scale shown. `--compare DIR` puts a remaster beside the pack (the classic pack by default) asset by asset, for the
 ids the remaster holds: classic upscaled on the left, the remaster brought to the same size on the right.
 
@@ -79,21 +79,22 @@ def resized(image, size):
     return image.resize(size, filter_)
 
 
-def wrapped_id(asset_id, width_in_chars):
+def wrapped(name, width_in_chars, separator):
     lines, line = [], ''
-    for part in asset_id.split('/'):
-        piece = part if not line else '/' + part
+    for part in name.split(separator):
+        piece = part if not line else separator + part
         if line and len(line) + len(piece) > width_in_chars:
             lines.append(line)
-            piece = '/' + part
+            piece = separator + part
             line = ''
         line += piece
     return lines + [line]
 
 
 def label(entry, scale):
+    """The image's file name (what a remaster saves under the same name), its size, palette and recolouring."""
     flags = [flag for flag in ('mask' if entry['mask'] else '', entry.get('recolour', ''), entry.get('variant', '')) if flag]
-    return (*wrapped_id(entry['id'], 30), f"{entry['width']}x{entry['height']} {entry['palette']} at {scale}x",
+    return (*wrapped(Path(entry['image']).stem, 30, '-'), f"{entry['width']}x{entry['height']} {entry['palette']} at {scale}x",
             ' '.join(flags))
 
 

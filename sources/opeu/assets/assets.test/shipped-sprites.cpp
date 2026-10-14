@@ -18,12 +18,12 @@ namespace opeu::assets {
 
 namespace {
 
-using test::Embedded;
 using test::Shipped;
 
 // Every asset of a file decoded; each must decode.
 auto ImagesOf(std::string_view const file) -> std::vector<Image> {
-  auto const catalogue{ Catalogue{ Embedded() } };
+  auto const  shipped{ test::ShippedCatalogue{} };
+  auto const& catalogue{ shipped.catalogue };
   return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::views::transform([&catalogue](Asset const& asset) {
            auto image{ catalogue.Decode(asset) };
            EXPECT_TRUE(image) << asset.id;
@@ -99,10 +99,12 @@ TEST(ShippedPortraits, HoldOneHundredTwentyEightColourFaces) {
 }
 
 TEST(ShippedSilhouettes, HoldOneHundredFiftyNineRunPackedRecords) {
-  auto const catalogue{ Catalogue{ Embedded() } };
-  auto const records{ catalogue.Assets() | std::views::filter([](Asset const& a) { return a.file == "ARMS.SIL"; }) | std::ranges::to<std::vector>() };
+  auto const  shipped{ test::ShippedCatalogue{} };
+  auto const& catalogue{ shipped.catalogue };
+  auto const  records{ catalogue.Assets() | std::views::filter([](Asset const& a) { return a.file == "ARMS.SIL"; }) | std::ranges::to<std::vector>() };
   ASSERT_EQ(records.size(), 159U);
-  auto const bytes{ Shipped("ARMS.SIL") };
+  auto const contents{ Shipped("ARMS.SIL") };
+  auto const bytes{ Bytes{ contents } };
   auto const ends{ std::views::zip(records, records | std::views::drop(1)) };
   EXPECT_TRUE(std::ranges::all_of(ends, [bytes](auto const& pair) {
     auto const& [record, next]{ pair };
@@ -170,7 +172,8 @@ TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
 }
 
 TEST(ShippedCatalogue, DecodesEveryAssetOfEveryFile) {
-  auto const catalogue{ Catalogue{ Embedded() } };
+  auto const  shipped{ test::ShippedCatalogue{} };
+  auto const& catalogue{ shipped.catalogue };
   EXPECT_EQ(catalogue.Assets().size(), 3'218U); // 3,098 from the shipped files, 120 from the program's glyph tables
   EXPECT_TRUE(std::ranges::all_of(catalogue.Assets(), [&](Asset const& asset) { return catalogue.Decode(asset).has_value(); }));
   auto ids{ catalogue.Assets() | std::views::transform(&Asset::id) | std::ranges::to<std::vector>() };

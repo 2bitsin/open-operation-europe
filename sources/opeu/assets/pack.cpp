@@ -66,7 +66,7 @@ auto Pack::Scale() const -> std::uint32_t {
 
 auto Pack::LoadTexture(PackedAsset const& entry) const -> Packed<Texture> {
   auto texture{ _files->Read(entry.image).and_then([](std::vector<std::byte> const& png) { return ReadTexture(png); }) };
-  if (texture && (texture->Width() != entry.width * _manifest.Scale() || texture->Height() != entry.height * _manifest.Scale())) return WrongSize(entry, entry.image);
+  if (texture && (texture->Width() != entry.width * entry.scale || texture->Height() != entry.height * entry.scale)) return WrongSize(entry, entry.image);
   return texture;
 }
 

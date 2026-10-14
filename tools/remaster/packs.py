@@ -9,7 +9,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCAL = ROOT / '_local'
-CLASSIC = LOCAL / 'packs' / 'classic'
+CLASSIC = ROOT / 'sources' / 'opeu' / 'assets' / 'packs.embed' / 'classic'
 REMASTER = LOCAL / 'remaster'
 MANIFEST = 'pack.json'
 FORMAT = 'opeu-pack/1'

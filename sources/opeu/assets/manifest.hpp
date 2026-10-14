@@ -24,25 +24,27 @@ inline constexpr auto MANIFEST_PATH{ std::string_view{ "pack.json" } };
 using PaletteColours = std::array<Colour, 16>;
 
 // One image of the pack. Geometry is the game's (the classic pixels); an image file holds width x height times the
-// pack's scale.
+// entry's scale (the pack's, unless the entry states its own).
 struct PackedAsset {
   std::string                id;          // "portrait/118", "battle-unit/class-03/facing-1/side-0"
   std::string                asset_class; // the class it is grouped and remastered by ("portraits", "tiles", ...)
   std::string                role;        // picture, tile, sprite, portrait, silhouette, mask, caption, glyph
   std::size_t                width{};
   std::size_t                height{};
-  std::string                palette;   // the palette the image is drawn in
-  std::vector<std::string>   palettes;  // every palette the game shows it in
-  bool                       mask{};    // some pixels let the background show
-  std::vector<std::uint8_t>  colours;   // the palette indices it draws
-  std::string                image;     // RGBA PNG, relative to the pack
-  std::optional<std::string> recolour;  // why the game shows it in other colours: hour, ink or scene
-  std::optional<std::string> indexed;   // the index map (8-bit grey, 255 transparent) of a recoloured asset
-  std::string                animation; // the sequence it is a frame of, or empty
+  std::uint32_t              scale{ 1 }; // image pixels per game pixel, each way
+  std::string                palette;    // the palette the image is drawn in
+  std::vector<std::string>   palettes;   // every palette the game shows it in
+  bool                       mask{};     // some pixels let the background show
+  std::vector<std::uint8_t>  colours;    // the palette indices it draws
+  std::string                image;      // RGBA PNG, relative to the pack
+  std::optional<std::string> recolour;   // why the game shows it in other colours: hour, ink or scene
+  std::optional<std::string> indexed;    // the index map (8-bit grey, 255 transparent) of a recoloured asset
+  std::string                animation;  // the sequence it is a frame of, or empty
   unsigned                   frame{};
-  std::string                variant_of; // the asset this image is a variant of, or empty
-  std::string                variant;    // "side-0", or empty
-  std::string                use;        // where the game draws it
+  std::string                variant_of;  // the asset this image is a variant of, or empty
+  std::string                variant;     // "side-0", or empty
+  std::string                use;         // where the game draws it
+  std::string                description; // what the picture shows, in a line
 
   auto operator==(PackedAsset const&) const -> bool = default;
 };

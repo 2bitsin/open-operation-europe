@@ -61,6 +61,7 @@ auto Entry(std::string id, Asset const& asset, Image const& image) -> PackedAsse
     .role        = std::string{ Spelling(asset.role) },
     .width       = image.Width(),
     .height      = image.Height(),
+    .scale       = 1,
     .palette     = std::string{ asset.palette },
     .palettes    = Palettes(asset),
     .mask        = image.HasMask(),
@@ -68,11 +69,12 @@ auto Entry(std::string id, Asset const& asset, Image const& image) -> PackedAsse
     .image       = std::format("{}/{}.png", asset.group, id),
     .recolour    = recolour,
     .indexed     = recolour.transform([&](std::string const&) { return std::format("{}/{}.index.png", asset.group, id); }),
-    .animation  = asset.animation,
-    .frame      = asset.frame,
-    .variant_of = {},
-    .variant    = {},
-    .use        = asset.use,
+    .animation   = asset.animation,
+    .frame       = asset.frame,
+    .variant_of  = {},
+    .variant     = {},
+    .use         = asset.use,
+    .description = {},
   };
 }
 

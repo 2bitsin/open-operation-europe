@@ -13,7 +13,7 @@ TEMPLATES = Templates.load()
 
 
 def sample(root):
-    return ClassicPack.open(root / 'sources' / 'opeu' / 'assets' / 'assets.test' / 'packs' / 'classic-sample')
+    return ClassicPack.open(root / 'sources' / 'opeu' / 'assets' / 'packs.embed' / 'classic')
 
 
 def test_every_template_has_its_front_matter():
@@ -29,7 +29,7 @@ def test_the_counts_add_up_to_the_classic_pack():
     assert sum(template.meta['count'] for template in TEMPLATES.templates) == CLASSIC_TOTAL
 
 
-def test_every_sample_asset_has_exactly_one_template(root):
+def test_every_classic_asset_has_exactly_one_template(root):
     assert TEMPLATES.coverage_faults(sorted(sample(root).entries)) == []
 
 

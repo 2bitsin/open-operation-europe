@@ -2,12 +2,20 @@
 """Build the classic asset pack from the shipped data files.
 
     python3 tools/assets/pack.py [--out DIR] [--archive FILE] [--assets DIR] [--probe PATH] [--only ID ...]
+    python3 tools/assets/pack.py --check [--assets DIR] [--probe PATH]
+    python3 tools/assets/pack.py --check-remaster [DIR]
 
 Decodes the shipped files (sources/opeu/opeu/assets.embed) through the extract-assets probe, the assets module's
 decoders, and writes the pack twice:
 
-    DIR (default _local/packs/classic)             the directory form: pack.json and <class>/<id>.png
-    FILE (default _local/packs/classic.opeupack)   the archive form: the same files in one file
+    DIR (default sources/opeu/assets/packs.embed/classic)   the directory form, checked in and compiled into the game:
+                                                           pack.json and <class>/<readable name>.png (naming.py)
+    FILE (default _local/packs/classic.opeupack)            the archive form: the same files in one file
+
+`--check` writes nothing: it decodes the pack into a scratch directory and exits non-zero, naming the files, when the
+checked-in pack differs from it. `--check-remaster [DIR]` checks a remaster drop-in directory (default
+sources/opeu/assets/packs.embed/remaster) against the classic pack, lists what is still missing and, when nothing is
+wrong, writes its pack.json (remaster.py).
 
 A pack is a manifest (pack.json: every asset's stable id, class, geometry, palettes, recolouring, animation frames
 and fonts, and the palettes) and PNG images: RGBA in the asset's palette, and an 8-bit index map for the assets the
@@ -25,6 +33,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extraction import ROOT, SHIPPED, find_probe, run_probe  # noqa: E402
+from naming import Naming  # noqa: E402
+
+PACKS = ROOT / 'sources' / 'opeu' / 'assets' / 'packs.embed'
+CLASSIC = PACKS / 'classic'
+REMASTER = PACKS / 'remaster'
+ARCHIVE = ROOT / '_local' / 'packs' / 'classic.opeupack'
 
 FORMAT = 'opeu-pack/1'
 ARCHIVE_FORMAT = 'opeu-archive/1'
@@ -47,42 +61,46 @@ def recolour(record):
     return None
 
 
-def entry(record, asset_id, image):
+def entry(record, asset_id, image, description):
     """The manifest entry of one image of a probe record (the asset itself or a variant)."""
     out = {
         'id': asset_id,
+        'image': image,
         'class': record['group'],
         'role': record['role'],
         'width': record['width'],
         'height': record['height'],
+        'scale': 1,
         'palette': record['palette'],
         'palettes': HOURS if record.get('hour_coloured') else [record['palette']],
         'mask': record['mask'],
         'colours': record['colours'],
-        'image': image,
     }
     if 'animation' in record:
         out['animation'] = record['animation']
         out['frame'] = record['frame']
     out['use'] = record['use']
+    out['description'] = description
     return out
 
 
-def entries(record):
-    """(manifest entry, {pack path: extracted image}) for an asset and its side-0 variant."""
+def entries(record, naming):
+    """(manifest entry, {pack path: extracted image}) for an asset and its side-0 variant. The image is
+    <class>/<readable name>.png (naming.py); its index map and its variant sit beside it under the same name."""
     asset_id, group = record['id'], record['group']
-    image = f'{group}/{asset_id}.png'
-    main = entry(record, asset_id, image)
-    files = {image: record['image']}
+    stem = f'{group}/{naming.stem(asset_id)}'
+    description = naming.describe(record)
+    main = entry(record, asset_id, f'{stem}.png', description + (", in side 1's colours" if record.get('side_coloured') else ''))
+    files = {main['image']: record['image']}
     reason = recolour(record)
     if reason:
         main['recolour'] = reason
-        main['indexed'] = f'{group}/{asset_id}.index.png'
+        main['indexed'] = f'{stem}.index.png'
         files[main['indexed']] = record['indices']
     yield main, files
     if record.get('side_coloured'):
         variant_id = f'{asset_id}/{SIDE_ZERO}'
-        variant = entry(record, variant_id, f'{group}/{variant_id}.png')
+        variant = entry(record, variant_id, f'{stem}-{SIDE_ZERO}.png', f"{description}, in side 0's colours")
         variant['colours'] = sorted({c & 0xFC | (c & 1) << 1 | c >> 1 & 1 for c in record['colours']})
         variant['variant_of'] = asset_id
         variant['variant'] = SIDE_ZERO
@@ -181,7 +199,8 @@ def build(out, archive, assets=SHIPPED, probe=None, only=None):
         if out.exists():
             shutil.rmtree(out)
         listed = []
-        for main, files in (pair for record in graphics for pair in entries(record)):
+        naming = Naming(records)
+        for main, files in (pair for record in graphics for pair in entries(record, naming)):
             listed.append(main)
             for target, source in files.items():
                 (out / target).parent.mkdir(parents=True, exist_ok=True)
@@ -195,18 +214,56 @@ def build(out, archive, assets=SHIPPED, probe=None, only=None):
     return dict(sorted(counts.items()))
 
 
+def tree(root):
+    """{path: bytes} of every file under `root`, paths '/'-separated and relative to it."""
+    return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(Path(root).rglob('*'))
+            if p.is_file() and not p.name.startswith('.')}  # a desktop's .DS_Store is no file of the pack
+
+
+def differences(expected, found):
+    """The paths whose bytes differ between two trees, or that only one holds."""
+    return sorted(path for path in expected.keys() | found.keys() if expected.get(path) != found.get(path))
+
+
+def check(pack=CLASSIC, assets=SHIPPED, probe=None):
+    """The files in which the pack at `pack` differs from what the decoders make of `assets` (empty when current)."""
+    scratch = ROOT / '_local' / 'packs'
+    scratch.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=scratch, prefix='.check-') as staging:
+        staging = Path(staging)
+        build(staging / 'classic', staging / 'classic.opeupack', assets, probe)
+        return differences(tree(staging / 'classic'), tree(pack))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--out', type=Path, default=ROOT / '_local' / 'packs' / 'classic')
-    parser.add_argument('--archive', type=Path)
+    parser.add_argument('--out', type=Path, default=CLASSIC)
+    parser.add_argument('--archive', type=Path, default=ARCHIVE)
     parser.add_argument('--assets', type=Path, default=SHIPPED)
     parser.add_argument('--probe')
     parser.add_argument('--only', nargs='+', metavar='ID')
+    parser.add_argument('--check', action='store_true', help='compare the checked-in pack with the decoders\' output')
+    parser.add_argument('--check-remaster', type=Path, nargs='?', const=REMASTER, metavar='DIR',
+                        help='check a remaster directory against the classic pack and write its pack.json')
     args = parser.parse_args()
-    archive = args.archive or args.out.with_name(args.out.name + '.opeupack')
-    counts = build(args.out, archive, args.assets, args.probe, set(args.only or ()))
-    print(f'pack.py: {sum(counts.values())} assets in {args.out} and {archive} '
-          f'({archive.stat().st_size:,} bytes): ' + ', '.join(f'{c} {n}' for c, n in counts.items()))
+    if args.check_remaster:
+        from remaster import check_remaster, write_manifest  # Pillow: only this command needs it
+        checked = check_remaster(args.check_remaster, args.out)
+        print(checked.summary())
+        if checked.findings:
+            sys.exit(1)
+        print(f'pack.py: wrote {write_manifest(args.check_remaster, args.out, checked)}')
+        return
+    if args.check:
+        stale = check(args.out, args.assets, args.probe)
+        if stale:
+            sys.exit(f'pack.py: {args.out} is not what the decoders make ({len(stale)} files differ: '
+                     f'{", ".join(stale[:10])}); rebuild it with tools/assets/pack.py')
+        print(f'pack.py: {args.out} is current')
+        return
+    counts = build(args.out, args.archive, args.assets, args.probe, set(args.only or ()))
+    print(f'pack.py: {sum(counts.values())} assets in {args.out} and {args.archive} '
+          f'({args.archive.stat().st_size:,} bytes): ' + ', '.join(f'{c} {n}' for c, n in counts.items()))
 
 
 if __name__ == '__main__':

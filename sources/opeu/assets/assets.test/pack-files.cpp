@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <array>
-#include <filesystem>
 #include <iterator>
 #include <ranges>
 #include <string>
@@ -17,9 +16,11 @@ namespace opeu::assets {
 
 namespace {
 
-using test::SAMPLE_ARCHIVE;
-using test::SAMPLE_DIRECTORY;
-using test::SampleFile;
+using test::ArchiveOf;
+using test::CLASSIC_DIRECTORY;
+using test::ClassicFile;
+using test::SampleArchive;
+using test::SamplePaths;
 using test::ToBytes;
 
 auto Fault(Packed<ArchivePackFiles> const& archive) -> PackFault {
@@ -28,17 +29,10 @@ auto Fault(Packed<ArchivePackFiles> const& archive) -> PackFault {
 
 // An archive of the given directory text and body.
 auto Archive(std::string_view const directory, std::string_view const body) -> std::vector<std::byte> {
-  auto       bytes{ ToBytes("OPEUPACK") };
-  auto const length{ directory.size() };
-  std::ranges::transform(std::array{ 0, 8, 16, 24 }, std::back_inserter(bytes), [length](int const shift) { return static_cast<std::byte>(length >> shift & 0xFF); });
-  std::ranges::copy(ToBytes(directory), std::back_inserter(bytes));
-  std::ranges::copy(ToBytes(body), std::back_inserter(bytes));
-  return bytes;
+  return ArchiveOf(directory, ToBytes(body));
 }
 
-auto SampleDirectoryPaths() -> std::vector<std::string> {
-  auto paths{ std::filesystem::recursive_directory_iterator{ SAMPLE_DIRECTORY } | std::views::filter([](auto const& entry) { return entry.is_regular_file(); })
-              | std::views::transform([](auto const& entry) { return entry.path().lexically_relative(SAMPLE_DIRECTORY).generic_string(); }) | std::ranges::to<std::vector>() };
+auto Sorted(std::vector<std::string> paths) -> std::vector<std::string> {
   std::ranges::sort(paths);
   return paths;
 }
@@ -46,10 +40,10 @@ auto SampleDirectoryPaths() -> std::vector<std::string> {
 }
 
 TEST(ArchivePackFiles, HoldTheDirectoryFormsFiles) {
-  auto const archive{ ArchivePackFiles::Open(SAMPLE_ARCHIVE) };
+  auto const archive{ ArchivePackFiles::FromBytes(SampleArchive()) };
   ASSERT_TRUE(archive) << Describe(archive.error());
-  EXPECT_EQ(archive->Paths(), SampleDirectoryPaths());
-  EXPECT_TRUE(std::ranges::all_of(archive->Paths(), [&](std::string const& path) { return archive->Read(path) == SampleFile(path); }));
+  EXPECT_EQ(archive->Paths(), Sorted(SamplePaths()));
+  EXPECT_TRUE(std::ranges::all_of(archive->Paths(), [&](std::string const& path) { return archive->Read(path) == ClassicFile(path); }));
 }
 
 TEST(ArchivePackFiles, ReadAWellFormedArchive) {
@@ -81,18 +75,18 @@ TEST(ArchivePackFiles, RefuseADirectoryOfAnotherFormat) {
 }
 
 TEST(ArchivePackFiles, SayAMissingArchiveIsMissing) {
-  EXPECT_EQ(Fault(ArchivePackFiles::Open("assets.test/packs/no-such.opeupack")), PackFault::MISSING_FILE);
+  EXPECT_EQ(Fault(ArchivePackFiles::Open("assets.test/no-such.opeupack")), PackFault::MISSING_FILE);
 }
 
 TEST(DirectoryPackFiles, ReadFilesUnderTheRoot) {
-  auto const files{ DirectoryPackFiles{ SAMPLE_DIRECTORY } };
+  auto const files{ DirectoryPackFiles{ CLASSIC_DIRECTORY } };
   EXPECT_TRUE(files.Read("pack.json"));
   EXPECT_EQ(files.Read("no-such.png").error().fault, PackFault::MISSING_FILE);
 }
 
 TEST(DirectoryPackFiles, RefusePathsThatLeaveThePack) {
-  auto const files{ DirectoryPackFiles{ SAMPLE_DIRECTORY } };
-  EXPECT_EQ(files.Read("../classic-sample.opeupack").error().fault, PackFault::BAD_MANIFEST);
+  auto const files{ DirectoryPackFiles{ CLASSIC_DIRECTORY } };
+  EXPECT_EQ(files.Read("../../CMakeLists.txt").error().fault, PackFault::BAD_MANIFEST);
   EXPECT_EQ(files.Read("/etc/hosts").error().fault, PackFault::BAD_MANIFEST);
 }
 

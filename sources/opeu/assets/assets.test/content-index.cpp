@@ -18,8 +18,6 @@ namespace opeu::assets {
 
 namespace {
 
-using test::Embedded;
-
 [[nodiscard]] auto Noise(std::size_t const count) -> std::vector<std::byte> {
   auto state{ std::uint32_t{ 11 } };
   return std::views::iota(0uz, count) | std::views::transform([&state](std::size_t) {
@@ -58,15 +56,16 @@ TEST(Fingerprints, AreFnv1a) {
 
 class ShippedContent : public ::testing::Test {
 protected:
-  static auto Index() -> ContentIndex const& {
-    static auto const catalogue{ Catalogue{ Embedded() } };
-    static auto const index{ ContentIndex{ catalogue } };
-    return index;
+  [[nodiscard]] auto Index() const -> ContentIndex const& {
+    return _index;
   }
-  static auto Catalogued() -> Catalogue const& {
-    static auto const catalogue{ Catalogue{ Embedded() } };
-    return catalogue;
+  [[nodiscard]] auto Catalogued() const -> Catalogue const& {
+    return _shipped.catalogue;
   }
+
+private:
+  test::ShippedCatalogue _shipped;
+  ContentIndex           _index{ _shipped.catalogue };
 };
 
 TEST_F(ShippedContent, RecognisesATileFromItsBytes) {

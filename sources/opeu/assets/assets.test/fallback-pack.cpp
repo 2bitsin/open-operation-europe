@@ -15,11 +15,14 @@ namespace opeu::assets {
 
 namespace {
 
+using test::ClassicEmbedded;
+using test::ClassicFile;
 using test::OpenMemoryPack;
-using test::OpenSample;
-using test::SAMPLE_ARCHIVE;
-using test::SampleFile;
 using test::ToBytes;
+
+auto YesImage() -> std::vector<std::byte> {
+  return ClassicFile(ClassicEmbedded().Find("dialog/yes")->image);
+}
 
 // portrait/118 replaced by a 32x16 picture, an asset the classic pack lacks, a palette of its own, and opening/00
 // listed with an image the pack does not hold.
@@ -38,11 +41,11 @@ constexpr auto REMASTER{ std::string_view{ R"({
 
 auto Remastered() -> FallbackPack {
   auto remaster{
-    OpenMemoryPack({ { "pack.json", ToBytes(REMASTER) }, { "a.png", SampleFile("dialogs/dialog/yes.png") } }
+    OpenMemoryPack({ { "pack.json", ToBytes(REMASTER) }, { "a.png", YesImage() } }
     )
   };
   EXPECT_TRUE(remaster);
-  return FallbackPack{ std::make_unique<Pack const>(*std::move(remaster)), std::make_unique<Pack const>(OpenSample(SAMPLE_ARCHIVE)) };
+  return FallbackPack{ std::make_unique<Pack const>(*std::move(remaster)), std::make_unique<Pack const>(ClassicEmbedded()) };
 }
 
 }
@@ -51,15 +54,15 @@ TEST(FallbackPack, TakesAnAssetFromThePreferredPackWhenItHasIt) {
   auto const portrait{ Remastered().Load("portrait/118") };
   ASSERT_TRUE(portrait) << Describe(portrait.error());
   EXPECT_EQ(portrait->entry.palette, "sepia");
-  EXPECT_EQ(portrait->texture, OpenSample(SAMPLE_ARCHIVE).Load("dialog/yes")->texture);
+  EXPECT_EQ(portrait->texture, ClassicEmbedded().Load("dialog/yes")->texture);
 }
 
 TEST(FallbackPack, FallsBackForEveryOtherAsset) {
   auto const pack{ Remastered() };
-  auto const classic{ OpenSample(SAMPLE_ARCHIVE) };
+  auto const classic{ ClassicEmbedded() };
   EXPECT_EQ(pack.Load("dialog/yes"), classic.Load("dialog/yes"));
   EXPECT_EQ(pack.Find("silhouette/012"), classic.Find("silhouette/012"));
-  EXPECT_EQ(pack.Load("portrait/117").error().fault, PackFault::UNKNOWN_ASSET);
+  EXPECT_EQ(pack.Load("portrait/120").error().fault, PackFault::UNKNOWN_ASSET);
 }
 
 TEST(FallbackPack, ReportsABrokenReplacementRatherThanHidingIt) {
@@ -68,7 +71,7 @@ TEST(FallbackPack, ReportsABrokenReplacementRatherThanHidingIt) {
 
 TEST(FallbackPack, ListsTheIdsOfBothPacks) {
   auto const ids{ Remastered().Ids() };
-  EXPECT_EQ(ids.size(), 23U);
+  EXPECT_EQ(ids.size(), 3'263U);
   EXPECT_TRUE(std::ranges::is_sorted(ids));
   EXPECT_TRUE(std::ranges::contains(ids, "portrait/200"));
   EXPECT_TRUE(std::ranges::contains(ids, "dialog/yes"));
@@ -78,9 +81,10 @@ TEST(FallbackPack, TakesAnimationsAndFontsByNameFromThePreferredPackFirst) {
   auto const pack{ Remastered() };
   EXPECT_EQ(pack.Frames("battle-blast/large"), std::vector<std::string>{ "portrait/118" });
   EXPECT_EQ(pack.Frames("blink"), std::vector<std::string>{ "portrait/200" });
-  EXPECT_EQ(pack.Frames("battle-blast/small"), std::nullopt);
+  EXPECT_EQ(pack.Frames("battle-blast/small"), ClassicEmbedded().Frames("battle-blast/small"));
+  EXPECT_EQ(pack.Frames("battle-blast/huge"), std::nullopt);
   EXPECT_EQ(pack.FontNamed("text-glyph")->first_code, 32U);
-  EXPECT_EQ(pack.FontNamed("ending-glyph"), OpenSample(SAMPLE_ARCHIVE).FontNamed("ending-glyph"));
+  EXPECT_EQ(pack.FontNamed("ending-glyph"), ClassicEmbedded().FontNamed("ending-glyph"));
   EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "runes", "sideways-digit-glyph", "text-glyph" }));
 }
 
@@ -92,7 +96,7 @@ TEST(FallbackPack, HasThePreferredPacksScale) {
   };
   ASSERT_TRUE(big);
   auto const pack{
-    FallbackPack{ std::make_unique<Pack const>(*std::move(big)), std::make_unique<Pack const>(OpenSample(SAMPLE_ARCHIVE)) }
+    FallbackPack{ std::make_unique<Pack const>(*std::move(big)), std::make_unique<Pack const>(ClassicEmbedded()) }
   };
   EXPECT_EQ(pack.Scale(), 4U);
   EXPECT_EQ(Remastered().Scale(), 1U);

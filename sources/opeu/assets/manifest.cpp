@@ -24,13 +24,14 @@ auto Text(Json const& entry, std::string_view const key) -> std::string {
   return Optional(entry, key).value_or(std::string{});
 }
 
-auto ToAsset(Json const& entry) -> PackedAsset {
+auto ToAsset(Json const& entry, std::uint32_t const pack_scale) -> PackedAsset {
   return PackedAsset{
     .id          = entry.at("id").get<std::string>(),
     .asset_class = entry.at("class").get<std::string>(),
     .role        = entry.at("role").get<std::string>(),
     .width       = entry.at("width").get<std::size_t>(),
     .height      = entry.at("height").get<std::size_t>(),
+    .scale       = entry.value("scale", pack_scale),
     .palette     = entry.at("palette").get<std::string>(),
     .palettes    = entry.at("palettes").get<std::vector<std::string>>(),
     .mask        = entry.at("mask").get<bool>(),
@@ -43,6 +44,7 @@ auto ToAsset(Json const& entry) -> PackedAsset {
     .variant_of  = Text(entry, "variant_of"),
     .variant     = Text(entry, "variant"),
     .use         = Text(entry, "use"),
+    .description = Text(entry, "description"),
   };
 }
 
@@ -62,8 +64,8 @@ auto ToIds(Json const& ids) -> std::vector<std::string> {
   return ids.get<std::vector<std::string>>();
 }
 
-auto ToAssets(Json const& entries) -> Manifest::Assets {
-  return entries | std::views::transform([](Json const& entry) -> std::pair<std::string, PackedAsset> { return { entry.at("id").get<std::string>(), ToAsset(entry) }; })
+auto ToAssets(Json const& entries, std::uint32_t const pack_scale) -> Manifest::Assets {
+  return entries | std::views::transform([pack_scale](Json const& entry) -> std::pair<std::string, PackedAsset> { return { entry.at("id").get<std::string>(), ToAsset(entry, pack_scale) }; })
          | std::ranges::to<Manifest::Assets>();
 }
 
@@ -75,10 +77,11 @@ auto ByName(Json const& object, _Convert convert) -> std::map<std::string, _Valu
 }
 
 auto ToContents(Json const& pack) -> Manifest::Contents {
+  auto const scale{ pack.at("scale").get<std::uint32_t>() };
   return Manifest::Contents{
     .name       = pack.at("name").get<std::string>(),
-    .scale      = pack.at("scale").get<std::uint32_t>(),
-    .assets     = ToAssets(pack.at("assets")),
+    .scale      = scale,
+    .assets     = ToAssets(pack.at("assets"), scale),
     .palettes   = ByName<PaletteColours>(pack.at("palettes"), ToColours),
     .animations = ByName<std::vector<std::string>>(pack.value("animations", Json::object()), ToIds),
     .fonts      = ByName<Font>(pack.value("fonts", Json::object()), ToFont),
@@ -103,6 +106,7 @@ auto Manifest::Parse(Bytes const json) -> Packed<Manifest> {
     if (pack.at("format").get<std::string>() != PACK_FORMAT) return Fail(PackFault::BAD_MANIFEST, std::format("not {}", PACK_FORMAT));
     auto contents{ ToContents(pack) };
     if (contents.scale == 0) return Fail(PackFault::BAD_MANIFEST, "scale 0");
+    if (std::ranges::any_of(contents.assets | std::views::values, [](PackedAsset const& asset) { return asset.scale == 0; })) return Fail(PackFault::BAD_MANIFEST, "an entry of scale 0");
     return Manifest{ std::move(contents) };
   } catch (Json::exception const& error) {
     return Fail(PackFault::BAD_MANIFEST, error.what());

@@ -18,7 +18,6 @@ namespace opeu::assets {
 
 namespace {
 
-using test::Embedded;
 using test::Shipped;
 
 struct Size {
@@ -29,13 +28,15 @@ struct Size {
 
 // The assets of one file in catalogue order.
 auto AssetsOf(std::string_view const file) -> std::vector<Asset> {
-  auto const catalogue{ Catalogue{ Embedded() } };
+  auto const  shipped{ test::ShippedCatalogue{} };
+  auto const& catalogue{ shipped.catalogue };
   return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::ranges::to<std::vector>();
 }
 
 // Each picture of a file decoded, with its offset and stream length.
 auto PicturesOf(std::string_view const file) -> std::vector<std::pair<Asset, Picture>> {
-  auto const bytes{ Shipped(file) };
+  auto const contents{ Shipped(file) };
+  auto const bytes{ Bytes{ contents } };
   return AssetsOf(file) | std::views::transform([bytes](Asset const& asset) {
            auto const colours{ asset.layout == Layout::STREAM_8 ? Colours::EIGHT : Colours::SIXTEEN };
            auto       picture{ DecodePicture(bytes.subspan(asset.at), colours) };
@@ -115,7 +116,8 @@ TEST(ShippedEpilogue, HoldsSevenPicturesBackToBackAndABlankToken) {
     EXPECT_EQ(current.first.at + current.second.length, next.first.at) << current.first.id;
   }
   EXPECT_EQ(pictures.back().first.at + pictures.back().second.length, 0x145F5U);
-  auto const bytes{ Shipped("ENDGRP.NPK") };
+  auto const contents{ Shipped("ENDGRP.NPK") };
+  auto const bytes{ Bytes{ contents } };
   ASSERT_EQ(bytes.size(), EPILOGUE_TOKEN_AT + EPILOGUE_TOKEN_BYTES);
   EXPECT_TRUE(std::ranges::all_of(bytes.subspan(EPILOGUE_TOKEN_AT), [](std::byte const b) { return b == std::byte{ ' ' }; }));
 }

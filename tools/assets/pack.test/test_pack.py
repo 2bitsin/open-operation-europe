@@ -1,24 +1,31 @@
-"""tools/assets/pack.py: the classic pack is complete, byte-stable in both forms, the sample in the assets module's
-tests is current, the C++ loader reads every image of the whole pack as the decoders draw it, and the renderer bakes
-every texture of it exactly as from the decoders."""
+"""tools/assets/pack.py: the classic pack is complete, byte-stable in both forms, the checked-in pack the game embeds
+is what the decoders make (pack.py --check), every image has a readable name and a description, the C++ loader reads
+every image of the whole pack as the decoders draw it, the renderer bakes every texture of it exactly as from the
+decoders, and --check-remaster checks a drop-in directory and writes its manifest."""
 import hashlib
 import importlib.util
 import json
 import os
+import re
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 HERE = Path(__file__).resolve().parents[1]
 ROOT = HERE.parents[1]
 SPEC = importlib.util.spec_from_file_location('pack', HERE / 'pack.py')
 pack = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(pack)
+REMASTER_SPEC = importlib.util.spec_from_file_location('remaster', HERE / 'remaster.py')
+remaster_tool = importlib.util.module_from_spec(REMASTER_SPEC)
+REMASTER_SPEC.loader.exec_module(remaster_tool)
 
 MODULE = ROOT / 'sources' / 'opeu' / 'assets'
 RENDER = ROOT / 'sources' / 'opeu' / 'render'
-SAMPLE = MODULE / 'assets.test' / 'packs' / 'classic-sample'
+REMASTER_SAMPLE = MODULE / 'assets.test' / 'remaster-sample'
 PROGRAM_GLYPHS = 96 + 11 + 11 + 2  # the program's text font, digits, sideways digits and markers
 COUNTS = {'battle': 244 + 44, 'dialogs': 6, 'glyphs': 1298 + PROGRAM_GLYPHS, 'logos': 4, 'masks': 20, 'pictures': 95,
           'portraits': 120, 'silhouettes': 159, 'tiles': 1152}
@@ -97,11 +104,45 @@ def test_the_archive_holds_the_directory(classic):
     assert digests(files) == tree(directory)
 
 
-def test_the_modules_sample_is_current(tmp_path):
-    ids = {a['id'] for a in json.loads((SAMPLE / 'pack.json').read_text(encoding='utf-8'))['assets'] if 'variant_of' not in a}
-    pack.build(tmp_path / 'sample', tmp_path / 'sample.opeupack', only=ids)
-    assert tree(tmp_path / 'sample') == tree(SAMPLE), 'regenerate it: see docs/asset-pack.md "Tests"'
-    assert (tmp_path / 'sample.opeupack').read_bytes() == SAMPLE.with_name(SAMPLE.name + '.opeupack').read_bytes()
+def test_the_checked_in_pack_is_what_the_decoders_make(classic):
+    directory, _, _ = classic
+    stale = pack.differences(pack.tree(directory), pack.tree(pack.CLASSIC))
+    assert not stale, f'{len(stale)} files differ ({stale[:5]}); rebuild with python3 tools/assets/pack.py'
+
+
+def test_every_image_has_a_readable_unique_name_and_a_description(classic):
+    directory, _, _ = classic
+    manifest = json.loads((directory / 'pack.json').read_text(encoding='utf-8'))
+    images = [a['image'] for a in manifest['assets']]
+    assert len({i.lower() for i in images}) == len(images)  # unique on a case-blind file system too
+    assert all(re.fullmatch(r'[a-z]+/[a-z0-9-]+\.png', i) for i in images)
+    assert all(a['description'] and a['scale'] == 1 for a in manifest['assets'])
+    by_id = {a['id']: a for a in manifest['assets']}
+    assert by_id['portrait/010']['image'] == 'portraits/portrait-010-rommel.png'
+    assert by_id['silhouette/028']['image'] == 'silhouettes/silhouette-028-tiger-i.png'
+    assert by_id['text-glyph/065']['image'] == 'glyphs/text-glyph-065-capital-a.png'
+    assert by_id['view-tile/map-4/17']['image'].startswith('tiles/view-tile-map-4-17-ardennes-1944-')
+
+
+def test_a_remaster_is_checked_and_listed(tmp_path):
+    remaster = tmp_path / 'remaster'
+    shutil.copytree(REMASTER_SAMPLE, remaster)
+    (remaster / 'pack.json').unlink()
+    checked = remaster_tool.check_remaster(remaster, pack.CLASSIC)
+    assert not checked.findings and checked.replaced == {'portrait/118': 4, 'dialog/yes': 2}
+    assert checked.missing['portraits'] == 119 and checked.total['portraits'] == 120
+    remaster_tool.write_manifest(remaster, pack.CLASSIC, checked)
+    assert (remaster / 'pack.json').read_bytes() == (REMASTER_SAMPLE / 'pack.json').read_bytes()
+
+
+def test_a_remaster_image_of_the_wrong_size_or_name_is_refused(tmp_path):
+    remaster = tmp_path / 'remaster'
+    (remaster / 'portraits').mkdir(parents=True)
+    Image.new('RGBA', (100, 100)).save(remaster / 'portraits' / 'portrait-010-rommel.png')
+    Image.new('RGBA', (64, 80)).save(remaster / 'portraits' / 'rommel.png')
+    Image.new('RGB', (128, 160)).save(remaster / 'portraits' / 'portrait-005-busch.png')
+    checks = sorted(f.check for f in remaster_tool.check_remaster(remaster, pack.CLASSIC).findings)
+    assert checks == ['not-rgba', 'unknown-image', 'wrong-size']
 
 
 def test_the_renderers_sample_is_current(tmp_path):

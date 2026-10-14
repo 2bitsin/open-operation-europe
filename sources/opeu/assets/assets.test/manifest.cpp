@@ -12,7 +12,7 @@ namespace opeu::assets {
 
 namespace {
 
-using test::SampleFile;
+using test::ClassicFile;
 using test::ToBytes;
 
 constexpr auto TINY{ std::string_view{ R"({
@@ -87,14 +87,15 @@ TEST(Manifest, ListsItsFontsWithTheirFirstCode) {
   EXPECT_EQ(manifest->FontNamed("plain")->first_code, 0U); // no "first": the glyph numbers are the codes
 }
 
-TEST(Manifest, KeepsTheSamplesFonts) {
-  auto const manifest{ Manifest::Parse(SampleFile("pack.json")) };
+TEST(Manifest, KeepsTheClassicPacksFonts) {
+  auto const manifest{ Manifest::Parse(ClassicFile("pack.json")) };
   ASSERT_TRUE(manifest);
   auto const font{ manifest->FontNamed("game-glyph") };
   ASSERT_TRUE(font);
   EXPECT_EQ(font->cell_width, 16U);
   EXPECT_EQ(font->cell_height, 14U);
-  EXPECT_EQ(font->glyphs, std::vector<std::string>{ "game-glyph/0042" });
+  EXPECT_EQ(font->glyphs.size(), 1'080U);
+  EXPECT_EQ(font->glyphs[42], "game-glyph/0042");
   EXPECT_EQ(manifest->Frames("battle-blast/large")->size(), 4U);
 }
 
