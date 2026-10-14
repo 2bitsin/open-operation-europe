@@ -566,6 +566,25 @@
     "os": "Darwin",
     "python": "3.14"
    },
+   "memory": {
+    "measured": "2026-10-14",
+    "os_version": "macOS 26.5",
+    "revision": "0e6f467c",
+    "runs": {
+     "smoke-input": {
+      "budget_mb": 150,
+      "peak_mb": 29.7
+     },
+     "smoke-intro": {
+      "budget_mb": 150,
+      "peak_mb": 14.6
+     },
+     "smoke-turn": {
+      "budget_mb": 150,
+      "peak_mb": 51.3
+     }
+    }
+   },
    "reference": {
     "v1.0.1": {
      "calibration_cpu_s": 0.4574,
