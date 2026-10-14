@@ -45,7 +45,7 @@ constexpr auto HANDLE_BYTES{ HANDLE_MARK.size() + 4 };
 auto WriteHandle(std::span<std::uint8_t> const into, std::uint32_t const id) -> void {
   Expects(into.size() >= HANDLE_BYTES, "the game's buffer holds a handle");
   std::ranges::copy(HANDLE_MARK, into.begin());
-  std::ranges::transform(std::views::iota(0U, 4U), into.begin() + HANDLE_MARK.size(), [id](unsigned const n) { return static_cast<std::uint8_t>(id >> (8 * n)); });
+  std::ranges::transform(std::views::iota(0U, 4U), into.begin() + HANDLE_MARK.size(), [id](std::uint32_t const n) { return static_cast<std::uint8_t>(id >> (8 * n)); });
 }
 
 [[nodiscard]] auto ReadHandle(std::span<std::uint8_t const> const bytes) -> std::optional<std::uint32_t> {
@@ -234,9 +234,9 @@ struct Dashes {
 
 // The smallest rectangle holding every point.
 [[nodiscard]] auto PointBounds(std::span<Point const> const points) -> Rect {
-  auto const [left, right]{ std::ranges::minmax(points | std::views::transform(&Point::x)) };
-  auto const [top, bottom]{ std::ranges::minmax(points | std::views::transform(&Point::y)) };
-  return Rect{ .x = left, .y = top, .width = right - left + 1, .height = bottom - top + 1 };
+  auto const across{ std::ranges::minmax(points | std::views::transform(&Point::x)) };
+  auto const down{ std::ranges::minmax(points | std::views::transform(&Point::y)) };
+  return Rect{ .x = across.min, .y = down.min, .width = across.max - across.min + 1, .height = down.max - down.min + 1 };
 }
 
 // The points as a shape over their bounds.

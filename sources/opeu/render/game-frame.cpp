@@ -5,6 +5,8 @@
 #include "opeu/render/render-error.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -216,7 +218,7 @@ auto GameFrame::PaintPoints(PointsStep const& step, Lens const& lens) -> void {
 
 auto GameFrame::PaintInk(InkStep const& step, Lens const& lens) -> void {
   auto const shape{ Required(_textures.Fetch(step.shape->Image(), ShapePaint())) };
-  _display.Draw(shape->texture, Blit{ .destination = Moved(step.destination, lens.offset), .modulation = ColourOf(step.number, lens.map) });
+  _display.Draw(shape->texture, Blit{ .destination = At(Origin(Moved(step.destination, lens.offset)), step.shape->Stored()), .modulation = ColourOf(step.number, lens.map) });
 }
 
 auto GameFrame::PaintImage(ImageStep const& step, Lens const& lens) -> void {
@@ -247,7 +249,7 @@ auto GameFrame::PaintRemap(std::span<Placed const> const before, Remap const& re
   auto const area{ Moved(remap.area, lens.offset) };
   if (Constant(map) && remap.mask) {
     auto const shape{ Required(_textures.Fetch((*remap.mask)->Image(), ShapePaint())) };
-    _display.Draw(shape->texture, Blit{ .destination = area, .modulation = Pen(_colours, map.front()) });
+    _display.Draw(shape->texture, Blit{ .destination = At(Origin(area), (*remap.mask)->Stored()), .modulation = Pen(_colours, map.front()) });
   } else if (Constant(map)) {
     _display.Fill(area, Pen(_colours, map.front()));
   } else if (remap.mask) {
@@ -287,7 +289,7 @@ auto GameFrame::PaintThroughMask(std::span<Placed const> const before, Remap con
     auto const into{ _display.Into(layers.shape) };
     _display.Unclip();
     _display.Clear(CLEAR);
-    _display.Draw(shape->texture, Blit{ .destination = Moved(Moved(remap.area, lens.offset), toward) });
+    _display.Draw(shape->texture, Blit{ .destination = At(Origin(Moved(Moved(remap.area, lens.offset), toward)), (*remap.mask)->Stored()) });
     _display.Draw(layers.under, Blit{ .destination = room, .source = room, .blending = Blending::MULTIPLY });
   }
   _display.Clip(lens.clip);
@@ -295,8 +297,9 @@ auto GameFrame::PaintThroughMask(std::span<Placed const> const before, Remap con
 }
 
 auto GameFrame::LayersAt(std::size_t const depth) -> Layers& {
-  while (_layers.size() <= depth) { // one pair per depth, made the first time it is reached
-    _layers.push_back(Layers{ .under = Required(_display.CreateLayer(LOGICAL_SIZE)), .shape = Required(_display.CreateLayer(LOGICAL_SIZE)) });
+  if (_layers.size() <= depth) { // one pair per depth, made the first time it is reached
+    std::ranges::generate_n(std::back_inserter(_layers), static_cast<std::ptrdiff_t>(depth + 1 - _layers.size()),
+                            [this] { return Layers{ .under = Required(_display.CreateLayer(LOGICAL_SIZE)), .shape = Required(_display.CreateLayer(LOGICAL_SIZE)) }; });
   }
   return _layers.at(depth);
 }

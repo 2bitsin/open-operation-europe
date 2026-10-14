@@ -35,7 +35,8 @@ public:
     auto const width_bytes{ static_cast<std::size_t>(size.width + 7) / 8 };
     auto       bytes{ std::vector<std::byte>(width_bytes * static_cast<std::size_t>(size.height)) };
     std::ranges::for_each(assets::Grid(static_cast<std::size_t>(size.height), static_cast<std::size_t>(size.width)), [&](auto const place) {
-      auto const [y, x]{ place };
+      auto const y{ place.first };
+      auto const x{ place.second };
       if (inside(static_cast<int>(x), static_cast<int>(y))) bytes.at(y * width_bytes + x / 8) |= std::byte{ static_cast<std::uint8_t>(0x80U >> (x % 8)) };
     });
     return Bits{ std::move(bytes), size };
@@ -50,6 +51,10 @@ public:
   [[nodiscard]] auto Image() const -> GameImage;
   [[nodiscard]] auto Dimensions() const noexcept -> Size {
     return _size;
+  }
+  // The size its texture has and is drawn at: whole bytes of pixels across, the bits past the width clear.
+  [[nodiscard]] auto Stored() const noexcept -> Size {
+    return Size{ .width = static_cast<int>(WidthBytes() * 8), .height = _size.height };
   }
 
 private:

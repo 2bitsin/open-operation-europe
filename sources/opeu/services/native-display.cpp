@@ -14,13 +14,16 @@
 namespace opeu::services::detail::native_machine {
 namespace {
 
+// The drawing library's 16-bit argument word (a coordinate, a count, a colour or pen word).
+using Word = decltype(Area::x);
+
 // The drawing library's result word: 0 drawn, -1 not.
 [[nodiscard]] auto Drawn(std::int16_t const status) noexcept -> bool {
   return status == 0;
 }
 
 // A loop count of 0 runs 65536 times, as the library's.
-[[nodiscard]] auto Lines(std::uint16_t const count) noexcept -> std::size_t {
+[[nodiscard]] auto Lines(Word const count) noexcept -> std::size_t {
   return count != 0 ? count : 0x10000uz;
 }
 
@@ -38,11 +41,11 @@ namespace {
 }
 
 // The overlay's XOR: the library's pen 1 with the exchanged bits.
-constexpr std::uint16_t XOR_PEN{ 0x0100 };
-constexpr std::uint16_t XOR_LINE{ 0x0010 };
+constexpr Word XOR_PEN{ 0x0100 };
+constexpr Word XOR_LINE{ 0x0010 };
 // A stamp's cut and ink: the library's AND pen with every colour bit, and its OR pen.
-constexpr std::uint16_t AND_ALL{ 0x020F };
-constexpr std::uint16_t OR_PEN{ 0x0300 };
+constexpr Word AND_ALL{ 0x020F };
+constexpr Word OR_PEN{ 0x0300 };
 
 }
 
@@ -110,12 +113,12 @@ auto NativeDisplay::DrawShiftedSprite(Area const area, SpriteImage const& sprite
 // The library's AND pen with every colour bit clears under the cut's 0 bits; its OR pen sets the ink's colour there.
 auto NativeDisplay::DrawStamp(Area const area, Stamp const& stamp) -> void {
   std::ignore = opeu_draw_far(area.x, area.y, area.width, area.height, AND_ALL, stamp.cut.data());
-  if (!stamp.ink.empty()) std::ignore = opeu_draw_far(area.x, area.y, area.width, area.height, static_cast<std::uint16_t>(OR_PEN | (stamp.colour & 0x0F)), stamp.ink.data());
+  if (!stamp.ink.empty()) std::ignore = opeu_draw_far(area.x, area.y, area.width, area.height, static_cast<Word>(OR_PEN | (stamp.colour & 0x0F)), stamp.ink.data());
 }
 
 auto NativeDisplay::DrawShiftedStamp(Area const area, Stamp const& stamp) -> void {
   std::ignore = opeu_gfx_blit(area.x, area.y, area.width, area.height, AND_ALL, stamp.cut.data());
-  if (!stamp.ink.empty()) std::ignore = opeu_gfx_blit(area.x, area.y, area.width, area.height, static_cast<std::uint16_t>(OR_PEN | (stamp.colour & 0x0F)), stamp.ink.data());
+  if (!stamp.ink.empty()) std::ignore = opeu_gfx_blit(area.x, area.y, area.width, area.height, static_cast<Word>(OR_PEN | (stamp.colour & 0x0F)), stamp.ink.data());
 }
 
 auto NativeDisplay::ShowOverlay(Overlay const& overlay) -> OverlayId {
@@ -137,7 +140,7 @@ auto NativeDisplay::HideOverlay(OverlayId const overlay) -> void {
 
 // The overlay's XOR, which a second time puts the pixels back.
 auto NativeDisplay::Toggle(Shown const& shown) -> void {
-  auto const exchange{ static_cast<std::uint16_t>(shown.overlay.exchange & 0x0F) };
+  auto const exchange{ static_cast<Word>(shown.overlay.exchange & 0x0F) };
   std::visit(
       [exchange](auto const& shape) {
         using Shape = std::remove_cvref_t<decltype(shape)>;
@@ -146,7 +149,7 @@ auto NativeDisplay::Toggle(Shown const& shown) -> void {
         } else if constexpr (std::is_same_v<Shape, Mark>) {
           std::ignore = opeu_gfx_blit(shape.pixels.x, shape.pixels.y, shape.pixels.width, shape.pixels.height, XOR_PEN | exchange, shape.bits.data());
         } else {
-          opeu_ui_line(shape.ends.from.x, shape.ends.from.y, shape.ends.to.x, shape.ends.to.y, static_cast<std::uint16_t>(shape.dashes << 8 | XOR_LINE | exchange));
+          opeu_ui_line(shape.ends.from.x, shape.ends.from.y, shape.ends.to.x, shape.ends.to.y, static_cast<Word>(shape.dashes << 8 | XOR_LINE | exchange));
         }
       },
       shown.overlay.shape);

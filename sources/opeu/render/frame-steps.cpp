@@ -1,6 +1,8 @@
 #include "opeu/render/frame-steps.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -46,7 +48,7 @@ auto Bits::Inverted() const -> Bits {
 auto Bits::Set(int const x, int const y) const -> bool {
   if (x < 0 || y < 0 || x >= _size.width || y >= _size.height) return false;
   auto const byte{ _bytes.at(static_cast<std::size_t>(y) * WidthBytes() + static_cast<std::size_t>(x) / 8) };
-  return (std::to_integer<unsigned>(byte) & (0x80U >> (x % 8))) != 0;
+  return (std::to_integer<std::uint32_t>(byte) & (0x80U >> (x % 8))) != 0;
 }
 
 auto Bits::Holds(Bits const& other, Point const offset) const -> bool {

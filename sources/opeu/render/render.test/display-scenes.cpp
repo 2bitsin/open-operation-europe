@@ -156,7 +156,6 @@ auto BattleCell(services::Display& display, int const tracers) -> Outcome {
   auto const unit{ Shipped().Record("battle-unit/class-03/facing-1", CELL_RECORD) };
   auto       cell{ std::array<std::uint8_t, SYSLIB_CELL_BYTES>{} };
   display.SaveCell({ .x = 20, .y = 150 }, cell);
-  auto const saved{ cell };
   display.MaskCell(cell, std::span{ unit }.subspan<SYSLIB_CELL_BYTES, services::CELL_MASK_BYTES>());
   display.OverlayCell(cell, std::span{ unit }.first<SYSLIB_CELL_BYTES>());
   display.RestoreShiftedCell({ .x = 20, .y = 150 }, cell);
@@ -168,7 +167,7 @@ auto BattleCell(services::Display& display, int const tracers) -> Outcome {
     },
         0x001C);
   });
-  return Outcome(saved.begin(), saved.end());
+  return Outcome{};
 }
 
 TEST(DisplayScenes, ABattleCellWithAUnitAndATracer) {

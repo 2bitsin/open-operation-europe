@@ -18,6 +18,7 @@
 #include "opeu/render/texture-cache.hpp"
 
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <span>
 #include <vector>
@@ -115,7 +116,7 @@ private:
   ByteTextures           _textures;
   assets::PaletteColours _colours;
   Recipe                 _recipe;
-  std::vector<Layers>    _layers; // one pair per depth of masks within masks
+  std::deque<Layers>     _layers; // one pair per depth of masks within masks; a deque, so a deeper pair leaves the outer ones in place
   std::size_t            _depth{};
   assets::Image          _numbers;         // the last Numbers()
   bool                   _changed{ true }; // drawn on since Numbers() was last painted

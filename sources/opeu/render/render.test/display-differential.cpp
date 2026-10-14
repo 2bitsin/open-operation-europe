@@ -183,12 +183,28 @@ TEST(DisplayDifferential, DrawsShiftedColumnsWithColourZeroTransparent) {
   });
 }
 
-TEST(DisplayDifferential, SavesColumnsIntoTheGamesMemory) {
+// What SaveColumns leaves in the game's memory is the Display's own (the native adapter's bytes, the renderer's
+// handle): the game only hands it back to DrawColumns mode 0, which puts the rectangle back, here and elsewhere.
+TEST(DisplayDifferential, SavesColumnsAndPutsThemBack) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto saved{ std::vector<std::uint8_t>(4uz * 4 * 6) };
     display.SaveColumns({ .x = 9, .y = 33, .width = 4, .height = 6 }, saved);
-    return saved;
+    std::ignore = display.Box({ .x = 8, .y = 30, .width = 8, .height = 12 }, 0x0B);
+    std::ignore = display.DrawColumns({ .x = 9, .y = 33, .width = 4, .height = 6 }, { .mode = 0, .bytes = saved });
+    std::ignore = display.DrawColumns({ .x = 50, .y = 200, .width = 4, .height = 6 }, { .mode = 0, .bytes = saved });
+    return Outcome{};
+  });
+}
+
+TEST(DisplayDifferential, SavesAndRestoresRectanglesByHandle) {
+  ExpectSame([](services::Display& display) {
+    BusyScreen(display);
+    auto const kept{ display.Save({ .x = 9, .y = 33, .width = 4, .height = 6 }) };
+    std::ignore = display.Box({ .x = 8, .y = 30, .width = 8, .height = 12 }, 0x0B);
+    display.Restore(kept, { .x = 9, .y = 33 });
+    display.Restore(kept, { .x = 50, .y = 200 });
+    return Outcome{};
   });
 }
 
@@ -349,15 +365,15 @@ TEST(DisplayDifferential, SavesAndRestoresBattleCells) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto cell{ std::array<std::uint8_t, SYSLIB_CELL_BYTES>{} };
-    auto outcome{ Outcome{} };
+    auto shifted{ std::array<std::uint8_t, SYSLIB_CELL_BYTES>{} };
     display.SaveCell({ .x = 7, .y = 90 }, cell);
-    Push(outcome, cell);
-    display.SaveShiftedCell({ .x = 7, .y = 90 }, cell);
-    Push(outcome, cell);
+    display.SaveShiftedCell({ .x = 7, .y = 90 }, shifted);
     display.RestoreCell({ .x = 10, .y = 100 }, services::CellImage{ std::span{ IMAGE }.first<SYSLIB_CELL_BYTES>() });
     display.RestoreShiftedCell({ .x = 20, .y = 50 }, services::CellImage{ std::span{ IMAGE }.subspan<100, SYSLIB_CELL_BYTES>() });
     display.CopyCellBlock({ .x = 10, .y = 100 }, { .x = 20, .y = 140 });
-    return outcome;
+    display.RestoreCell({ .x = 40, .y = 200 }, cell); // the saved cells, as the game only uses them: put back
+    display.RestoreShiftedCell({ .x = 50, .y = 260 }, shifted);
+    return Outcome{};
   });
 }
 
@@ -382,19 +398,14 @@ TEST(DisplayDifferential, ComposesSpritesOverTheScreen) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto       buffer{ std::vector<std::uint8_t>(6uz * 26 * 4) };
-    auto       outcome{ Outcome{} };
     auto const sprite{ [&](Word const flags) {
       return services::Sprite{ .and_mask = std::span{ IMAGE }.first(1024), .or_image = std::span{ IMAGE }.subspan(1024), .buffer = buffer, .flags = flags };
     } };
-    display.ComposeSprite({ .x = 20, .y = 100, .width = 5, .height = 26 }, sprite(1));
-    Push(outcome, buffer);
+    display.ComposeSprite({ .x = 20, .y = 100, .width = 5, .height = 26 }, sprite(1)); // the buffer is scratch, never read
     display.ComposeSprite({ .x = 40, .y = 100, .width = 5, .height = 26 }, sprite(0));
-    Push(outcome, buffer);
     display.ComposeShiftedSprite({ .x = 203, .y = 150, .width = 40, .height = 26 }, sprite(1));
-    Push(outcome, buffer);
-    display.ComposeShiftedSprite({ .x = 403, .y = 150, .width = 40, .height = 26 }, sprite(0)); // the buffer only
-    Push(outcome, buffer);
-    return outcome;
+    display.ComposeShiftedSprite({ .x = 403, .y = 150, .width = 40, .height = 26 }, sprite(0));
+    return Outcome{};
   });
 }
 

@@ -2,7 +2,8 @@
 // The differential proof of RenderDisplay: the same script of services::Display calls through the native adapter
 // (the indexed Canvas, observed as VgalibRender's frame in its palette, as the services tests observe it) and through
 // RenderDisplay (its frame read back from the render target), the frames compared pixel by pixel in RGBA and the
-// scripts' outcomes (return values, bytes saved into the game's memory) compared byte by byte.
+// scripts' outcomes (return values, bytes composed in the game's memory) compared byte by byte. What a save leaves in
+// the game's memory is the Display's own (bytes or a handle); the scripts prove it by putting it back.
 
 #include "headless.hpp"
 

@@ -56,7 +56,7 @@ inline constexpr auto CELL_GLYPH_LINES{ 6uz };
 struct SpriteImage {
   std::span<std::uint8_t const> and_mask;
   std::span<std::uint8_t const> or_image;
-  std::uint16_t                 flags{};
+  decltype(Sprite::flags)       flags{};
 };
 
 // How many saved rectangles, battle cells and overlays a Display keeps at least (the game holds a handful at once).
