@@ -11,6 +11,7 @@
 
 namespace {
 
+using opeu::services::Canvas;
 using opeu::services::GameAt;
 using opeu::services::Offset;
 using opeu::services::Screen;
@@ -48,13 +49,12 @@ constexpr auto LINE_PIXELS{ Offset{ 640 } };
 
 // The screen position of the cell's column `column` on line `line`, the cell starting at `at`.
 [[nodiscard]] auto CellColumnAt(Offset const at, std::size_t const line, std::size_t const column) noexcept -> Offset {
-  return at + (Offset(line) * LINE_PIXELS) + (Offset(column) * 8);
+  return at + (static_cast<Offset>(line) * LINE_PIXELS) + (static_cast<Offset>(column) * 8);
 }
 
 // The cells and rectangles are walked with nested range-for loops: gcc does not flatten the algorithm-and-lambda form
 // of these per-column loops (2.5 times slower in the services benches).
-auto SaveCell(Offset const at, Cell const cell) noexcept -> void {
-  auto const& screen{ Screen() };
+auto SaveCell(Canvas const& screen, Offset const at, Cell const cell) noexcept -> void {
   for (auto const line : std::views::iota(0uz, CELL_LINES)) {
     for (auto const column : std::views::iota(0uz, CELL_COLUMNS)) {
       auto const bits{ screen.Column(CellColumnAt(at, line, column)) };
@@ -63,8 +63,7 @@ auto SaveCell(Offset const at, Cell const cell) noexcept -> void {
   }
 }
 
-auto RestoreCell(Offset const at, ConstCell const cell) noexcept -> void {
-  auto& screen{ Screen() };
+auto RestoreCell(Canvas& screen, Offset const at, ConstCell const cell) noexcept -> void {
   for (auto const line : std::views::iota(0uz, CELL_LINES)) {
     for (auto const column : std::views::iota(0uz, CELL_COLUMNS)) {
       screen.SetColumn(CellColumnAt(at, line, column), { cell[CellIndex(line, 0, column)], cell[CellIndex(line, 1, column)], cell[CellIndex(line, 2, column)], cell[CellIndex(line, 3, column)] });
@@ -88,9 +87,8 @@ struct Rect {
   }
 };
 
-auto SaveRect(Rect const& rect, std::span<std::uint8_t> const buffer) noexcept -> void {
-  auto const& screen{ Screen() };
-  auto const  plane_bytes{ rect.PlaneBytes() };
+auto SaveRect(Canvas const& screen, Rect const& rect, std::span<std::uint8_t> const buffer) noexcept -> void {
+  auto const plane_bytes{ rect.PlaneBytes() };
   for (auto const line : std::views::iota(0uz, rect.lines)) {
     for (auto const column : std::views::iota(0uz, rect.columns)) {
       auto const bits{ screen.Column(rect.ScreenAt(line, column)) };
@@ -100,14 +98,38 @@ auto SaveRect(Rect const& rect, std::span<std::uint8_t> const buffer) noexcept -
   }
 }
 
-auto RestoreRect(Rect const& rect, std::span<std::uint8_t const> const buffer) noexcept -> void {
-  auto&      screen{ Screen() };
+auto RestoreRect(Canvas& screen, Rect const& rect, std::span<std::uint8_t const> const buffer) noexcept -> void {
   auto const plane_bytes{ rect.PlaneBytes() };
   for (auto const line : std::views::iota(0uz, rect.lines)) {
     for (auto const column : std::views::iota(0uz, rect.columns)) {
       auto const i{ (line * rect.columns) + column };
       screen.SetColumn(rect.ScreenAt(line, column), { buffer[i], buffer[plane_bytes + i], buffer[(2 * plane_bytes) + i], buffer[(3 * plane_bytes) + i] });
     }
+  }
+}
+
+// A w-column x h-line rectangle at column x, game line y, by its corner in the game's units; columns past 80 wrap
+// within the 16-bit column number.
+struct ColumnRect {
+  std::uint32_t x;
+  std::uint32_t y;
+  std::size_t   columns;
+  std::size_t   lines;
+};
+
+// Bit 3 of the colours of `rect` from the bits of `bits`; bits 0-2 keep.
+auto SetHighBits(Canvas& screen, ColumnRect const& rect, std::uint8_t const bits) noexcept -> void {
+  for (auto const line : std::views::iota(0uz, rect.lines)) {
+    for (auto const column : std::views::iota(0uz, rect.columns)) screen.SetPlaneBits(ColumnAt((rect.x + column) & 0xFFFF, rect.y) + (static_cast<Offset>(line) * LINE_PIXELS), 3, bits);
+  }
+}
+
+// The 3-column x 24-line block copy, inlined into its one caller below so the loop keeps that routine's cache-line
+// alignment.
+[[gnu::always_inline]] inline auto CopyCellBlock(Canvas& screen, Offset const from, Offset const to) noexcept -> void {
+  for (auto const line : std::views::iota(Offset{ 0 }, Offset{ 24 }) | std::views::transform([](Offset const row) { return row * LINE_PIXELS; })) {
+    screen.Move<16>(to + line, from + line);
+    screen.Move<8>(to + line + 16, from + line + 16);
   }
 }
 
@@ -216,20 +238,20 @@ auto OrInterleaved(std::span<std::uint8_t> const bytes, std::span<std::uint8_t c
 // ---- battle cells (26 lines x 5 columns) -------------------------------------------------------------------------
 
 auto opeu_vram_restore(std::uint16_t const x, std::uint16_t const y, std::uint8_t const* const vram) -> void {
-  RestoreCell(ColumnAt(x, y), ConstCell{ vram, SYSLIB_CELL_BYTES });
+  RestoreCell(Screen(), ColumnAt(x, y), ConstCell{ vram, SYSLIB_CELL_BYTES });
 }
 
 // The cell starts half a column right (pixel x * 8 + 4); the pixels around it keep their colours.
 auto opeu_vram_restore_odd(std::uint16_t const x, std::uint16_t const y, std::uint8_t const* const vram) -> void {
-  RestoreCell(ColumnAt(x, y) + 4, ConstCell{ vram, SYSLIB_CELL_BYTES });
+  RestoreCell(Screen(), ColumnAt(x, y) + 4, ConstCell{ vram, SYSLIB_CELL_BYTES });
 }
 
 auto opeu_vram_save(std::uint16_t const x, std::uint16_t const y, std::uint8_t* const vram) -> void {
-  SaveCell(ColumnAt(x, y), Cell{ vram, SYSLIB_CELL_BYTES });
+  SaveCell(Screen(), ColumnAt(x, y), Cell{ vram, SYSLIB_CELL_BYTES });
 }
 
 auto opeu_vram_save_odd(std::uint16_t const x, std::uint16_t const y, std::uint8_t* const vram) -> void {
-  SaveCell(ColumnAt(x, y) + 4, Cell{ vram, SYSLIB_CELL_BYTES });
+  SaveCell(Screen(), ColumnAt(x, y) + 4, Cell{ vram, SYSLIB_CELL_BYTES });
 }
 
 // ---- cell-buffer composition (memory only) -------------------------------------------------------------------
@@ -285,23 +307,14 @@ auto opeu_vram_load(std::uint8_t* const vram, std::uint8_t const* const mask) ->
 // Bit 3 of the colours of a w-column x h-line rectangle from the bits of the low byte of `color` (h = 0: 65536 lines);
 // bits 0-2 keep. Unclipped.
 auto Koei3b77(std::uint16_t const x, std::uint16_t const y, std::uint16_t const w, std::uint16_t const h, std::uint16_t const color) -> void {
-  auto& screen{ Screen() };
-  for (auto const line : std::views::iota(0uz, LoopCount(h))) {
-    for (auto const column : std::views::iota(0uz, std::size_t{ w })) screen.SetPlaneBits(ColumnAt((x + column) & 0xFFFF, y) + (Offset(line) * LINE_PIXELS), 3, Low8(color));
-  }
+  SetHighBits(Screen(), { .x = x, .y = y, .columns = w, .lines = LoopCount(h) }, Low8(color));
 }
 
 // Copies the 3-column x 24-line block at (x1, y1) to (x2, y2), line by line from the top; within a line the first two
 // columns are read before either is written. Its code starts on a cache line, so its copy loop sits at the same
 // place relative to the fetch blocks in every build (services.bench's CellBlockCopy reports where it landed).
 [[gnu::aligned(64)]] auto koei_3bc5(std::uint16_t const x1, std::uint16_t const y1, std::uint16_t const x2, std::uint16_t const y2) -> void {
-  auto&      screen{ Screen() };
-  auto const from{ ColumnAt(x1, y1) };
-  auto const to{ ColumnAt(x2, y2) };
-  for (auto const line : std::views::iota(Offset{ 0 }, Offset{ 24 }) | std::views::transform([](Offset const row) { return row * LINE_PIXELS; })) {
-    screen.Move<16>(to + line, from + line);
-    screen.Move<8>(to + line + 16, from + line + 16);
-  }
+  CopyCellBlock(Screen(), ColumnAt(x1, y1), ColumnAt(x2, y2));
 }
 
 // n = w * h in 16 bits; a product of 0 runs the AND and OR passes 65536 times. The image interleaves bits 0-2 (and 3
@@ -315,7 +328,7 @@ auto opeu_sprite_compose(std::uint16_t const x, std::uint16_t const y, std::uint
   std::span const bytes{ buffer, std::max(4 * rect.PlaneBytes(), (3 * block) + count) };
   std::span const mask{ and_mask, count };
   std::span const image{ or_image, planes * count };
-  SaveRect(rect, bytes);
+  SaveRect(Screen(), rect, bytes);
   for (auto const plane : std::views::iota(0uz, 4uz)) {
     auto const bits{ bytes.subspan(plane * block, count) };
     for (auto const i : std::views::iota(0uz, count)) bits[i] &= mask[i];
@@ -325,7 +338,7 @@ auto opeu_sprite_compose(std::uint16_t const x, std::uint16_t const y, std::uint
   } else {
     OrInterleaved<3>(bytes, image, block);
   }
-  RestoreRect(rect, bytes);
+  RestoreRect(Screen(), rect, bytes);
 }
 
 // W = (w >> 3) + 1 columns from column x >> 3: save, AND the same mask into each colour-bit block, OR image bits 0-2
@@ -344,9 +357,9 @@ auto koei_3f26(std::uint16_t const x, std::uint16_t const y, std::uint16_t const
   std::span const   bytes{ buffer, 4 * masked.Bytes() };
   std::span const   mask{ and_mask, masked.SourceBytes() };
   std::span const   image{ or_image, ((drawn.SourceBytes() - 1) * stride) + 4 };
-  SaveRect(rect, bytes);
+  SaveRect(Screen(), rect, bytes);
   for (auto const plane : std::views::iota(0uz, 4uz)) AndShifted(bytes.subspan(plane * masked.Bytes(), masked.Bytes()), masked, mask);
   for (auto const plane : std::views::iota(0uz, planes)) OrShifted(bytes.subspan(plane * drawn.Bytes(), drawn.Bytes()), drawn, image.subspan(plane), stride);
   if ((flags & 1) == 0) return;
-  RestoreRect(rect, bytes);
+  RestoreRect(Screen(), rect, bytes);
 }

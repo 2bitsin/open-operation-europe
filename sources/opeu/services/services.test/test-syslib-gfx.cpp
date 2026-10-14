@@ -62,7 +62,7 @@ TEST_F(SyslibGfx, SavesAndRestoresCells) { // 3882, 37E4, 34B8
   EXPECT_EQ(cell[5], 0);
   std::ranges::transform(std::views::iota(0uz, cell.size()), cell.begin(), [](std::size_t const i) { return static_cast<std::uint8_t>((i * 7) + 3); });
   opeu_vram_restore(10, 100, cell.data());
-  EXPECT_EQ(Plane(2, (100 + 40) * 80 + 10 + 80 + 3), cell[20 + 10 + 3]);
+  EXPECT_EQ(Plane(2, ((100 + 40) * 80) + 10 + 80 + 3), cell[20 + 10 + 3]);
   opeu_vram_save(10, 100, again.data());
   EXPECT_EQ(cell, again);
   opeu_vram_restore_odd(20, 50, cell.data());
@@ -134,9 +134,9 @@ TEST_F(SyslibGfx, CopiesBlocksAndFillsColourBitThree) { // 3BC5 overlap, 3B77
   EXPECT_TRUE(Plane(0, 3201) == 1 && Plane(0, 3202) == 2 && Plane(0, 3203) == 2);
   Screen().Clear();
   Koei3b77(5, 2, 3, 2, 0x1A5);
-  EXPECT_TRUE(Plane(3, 42 * 80 + 5) == 0xA5 && Plane(3, 43 * 80 + 7) == 0xA5);
-  EXPECT_TRUE(Plane(3, 43 * 80 + 8) == 0 && Plane(3, 44 * 80 + 5) == 0);
-  EXPECT_EQ(Plane(0, 42 * 80 + 5), 0);
+  EXPECT_TRUE(Plane(3, (42 * 80) + 5) == 0xA5 && Plane(3, (43 * 80) + 7) == 0xA5);
+  EXPECT_TRUE(Plane(3, (43 * 80) + 8) == 0 && Plane(3, (44 * 80) + 5) == 0);
+  EXPECT_EQ(Plane(0, (42 * 80) + 5), 0);
 }
 
 TEST_F(SyslibGfx, MasksAndDrawsCells) { // 3B1E, 3A04

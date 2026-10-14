@@ -47,20 +47,51 @@ auto ScreenColumn(Point at) -> std::uint16_t {
 auto ColumnOffset(std::uint16_t column) -> Offset {
   return Offset{ column } * 8;
 }
-} // namespace
 
-auto SaveScreenRectangle(Area const area, FarBytes const destination) -> void {
+auto SaveRectangleOf(Canvas const& canvas, Area const area, FarBytes const destination) -> void {
   auto const    start{ ScreenColumn({ .x = area.x, .y = area.y }) };
   std::uint16_t near{ destination.offset };
   std::ranges::for_each(Steps(area.height), [&](std::uint32_t const row) {
     std::ranges::for_each(Steps(area.width), [&](std::uint32_t const column) {
-      auto const screen{ Wrap(start + (row * LINE_COLUMNS) + column) };
+      auto const column_at{ Wrap(start + (row * LINE_COLUMNS) + column) };
       std::ranges::for_each(PLANES, [&](int const plane) {
-        destination.segment[near] = Screen().PlaneBits(ColumnOffset(screen), plane);
+        destination.segment[near] = canvas.PlaneBits(ColumnOffset(column_at), plane);
         near                      = Wrap(near + 1u);
       });
     });
   });
+}
+
+// One step of the dissolve: where it lands, the saved picture and the step's 16-bit mask.
+struct Dissolve {
+  Point         at;
+  FarBytes      source;
+  std::uint16_t pattern{};
+};
+
+auto DissolveOn(Canvas& canvas, Dissolve const& step) -> void {
+  auto const start{ ScreenColumn(step.at) };
+  auto const source{ step.source };
+  std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, DISSOLVE_ROWS), [&](std::uint32_t const row) {
+    auto const shown{ std::rotl(step.pattern, static_cast<int>(row % 16)) }; // the mask rotates left by one per row
+    std::ranges::for_each(PLANES, [&](int const plane) {
+      std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, DISSOLVE_PAIRS), [&](std::uint32_t const pair) {
+        auto const screen{ Wrap(start + (row * LINE_COLUMNS) + (pair * 2)) };
+        auto const near{ Wrap(source.offset + (row * DISSOLVE_STRIDE) + static_cast<std::uint32_t>(plane) + (pair * 8)) };
+        auto const picture{ static_cast<std::uint16_t>((source.segment[near] << 8) | source.segment[Wrap(near + 4u)]) };
+        auto const kept{ static_cast<std::uint16_t>((canvas.PlaneBits(ColumnOffset(screen), DISSOLVE_BIT) << 8) | canvas.PlaneBits(ColumnOffset(Wrap(screen + 1u)), DISSOLVE_BIT)) };
+        auto const bits{ static_cast<std::uint16_t>((picture & shown) | (kept & static_cast<std::uint16_t>(~shown))) };
+        canvas.SetPlaneBits(ColumnOffset(screen), plane, static_cast<std::uint8_t>(bits >> 8));
+        canvas.SetPlaneBits(ColumnOffset(Wrap(screen + 1u)), plane, static_cast<std::uint8_t>(bits));
+      });
+    });
+  });
+}
+
+} // namespace
+
+auto SaveScreenRectangle(Area const area, FarBytes const destination) -> void {
+  SaveRectangleOf(Screen(), area, destination);
 }
 
 auto CopyFarWords(FarBytes const source, FarBytes const destination, std::uint16_t const count) -> void {
@@ -87,20 +118,6 @@ auto AndWithMask(SavedRectangle const target, FarBytes const mask) -> void {
 }
 
 auto DissolveStep(Point const at, FarBytes const source, std::uint16_t const pattern) -> void {
-  auto const start{ ScreenColumn(at) };
-  std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, DISSOLVE_ROWS), [&](std::uint32_t const row) {
-    auto const shown{ std::rotl(pattern, static_cast<int>(row % 16)) }; // the mask rotates left by one per row
-    std::ranges::for_each(PLANES, [&](int const plane) {
-      std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, DISSOLVE_PAIRS), [&](std::uint32_t const pair) {
-        auto const screen{ Wrap(start + (row * LINE_COLUMNS) + (pair * 2)) };
-        auto const near{ Wrap(source.offset + (row * DISSOLVE_STRIDE) + static_cast<std::uint32_t>(plane) + (pair * 8)) };
-        auto const picture{ static_cast<std::uint16_t>(source.segment[near] << 8 | source.segment[Wrap(near + 4u)]) };
-        auto const kept{ static_cast<std::uint16_t>(Screen().PlaneBits(ColumnOffset(screen), DISSOLVE_BIT) << 8 | Screen().PlaneBits(ColumnOffset(Wrap(screen + 1u)), DISSOLVE_BIT)) };
-        auto const bits{ static_cast<std::uint16_t>((picture & shown) | (kept & static_cast<std::uint16_t>(~shown))) };
-        Screen().SetPlaneBits(ColumnOffset(screen), plane, static_cast<std::uint8_t>(bits >> 8));
-        Screen().SetPlaneBits(ColumnOffset(Wrap(screen + 1u)), plane, static_cast<std::uint8_t>(bits));
-      });
-    });
-  });
+  DissolveOn(Screen(), { .at = at, .source = source, .pattern = pattern });
 }
 } // namespace opeu::services::detail::open_services
