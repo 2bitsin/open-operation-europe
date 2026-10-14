@@ -16,7 +16,7 @@ struct RootRound {
 };
 
 // One round: bring down two bits, try root * 2 + 1; on a borrow the remainder is restored and the root bit stays 0.
-[[nodiscard]] auto NextRound(RootRound const round, int /*index*/) noexcept -> RootRound {
+[[nodiscard]] auto NextRound(RootRound const round, [[maybe_unused]] int const index) noexcept -> RootRound {
   auto const remainder{ ((round.remainder << 2) | (round.rest >> 14)) & 0xFFFF };
   auto const trial{ ((round.trial << 1) | 1) & 0xFFFF };
   auto const fits{ remainder >= trial };

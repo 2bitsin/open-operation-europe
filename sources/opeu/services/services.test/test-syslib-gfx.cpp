@@ -38,7 +38,7 @@ protected:
 };
 
 TEST_F(SyslibGfx, RestoresACellHalfAColumnRight) { // 354F
-  constexpr auto COLUMN{ 40 * 80 + 2 };
+  constexpr auto COLUMN{ (40 * 80) + 2 };
   CellBuffer     cell{ 0x12, 0x34, 0x56, 0x78, 0x9A };
   SetAllPlanes(COLUMN, 6, 0xAA);
   opeu_vram_restore_odd(2, 0, cell.data());
@@ -60,7 +60,7 @@ TEST_F(SyslibGfx, SavesAndRestoresCells) { // 3882, 37E4, 34B8
   opeu_vram_save_odd(0, 0, cell.data());
   EXPECT_TRUE(cell[0] == 0x23 && cell[1] == 0x45 && cell[2] == 0x67 && cell[3] == 0x89 && cell[4] == 0xAB);
   EXPECT_EQ(cell[5], 0);
-  std::ranges::transform(std::views::iota(0uz, cell.size()), cell.begin(), [](std::size_t const i) { return static_cast<std::uint8_t>(i * 7 + 3); });
+  std::ranges::transform(std::views::iota(0uz, cell.size()), cell.begin(), [](std::size_t const i) { return static_cast<std::uint8_t>((i * 7) + 3); });
   opeu_vram_restore(10, 100, cell.data());
   EXPECT_EQ(Plane(2, (100 + 40) * 80 + 10 + 80 + 3), cell[20 + 10 + 3]);
   opeu_vram_save(10, 100, again.data());

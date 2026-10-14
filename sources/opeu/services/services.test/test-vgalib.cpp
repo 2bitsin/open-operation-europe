@@ -241,7 +241,7 @@ TEST_F(Vgalib, KeepsTheShiftedColumnsLatchQuirk) {
 }
 
 TEST_F(Vgalib, CopiesColumnsAsMemmove) {
-  auto const three_bytes{ [] { std::ranges::for_each(std::views::iota(0, 24), [](int const x) { SetPx(x, 0, x / 8 + 1); }); } };
+  auto const three_bytes{ [] { std::ranges::for_each(std::views::iota(0, 24), [](int const x) { SetPx(x, 0, (x / 8) + 1); }); } };
   FillPx(0);
   three_bytes();
   opeu_screen_copy(0, 0, 2, 1, 1, 0); // overlapping, destination right

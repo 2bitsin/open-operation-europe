@@ -83,10 +83,10 @@ public:
   auto CopyColumns(Area const from, Point const to) -> void override {
     Record("CopyColumns", from.x, from.y, from.width, from.height, to.x, to.y);
   }
-  auto DecodePicture(Point const at, PictureByteReader const&) -> bool override {
+  auto DecodePicture(Point const at, [[maybe_unused]] PictureByteReader const& reader) -> bool override {
     return Answer("DecodePicture", at.x, at.y);
   }
-  auto DecodeMaskedPicture(Point const at, PictureByteReader const&) -> bool override {
+  auto DecodeMaskedPicture(Point const at, [[maybe_unused]] PictureByteReader const& reader) -> bool override {
     return Answer("DecodeMaskedPicture", at.x, at.y);
   }
   auto Box(Area const area, std::uint16_t const colour) -> bool override {
@@ -101,31 +101,31 @@ public:
   auto Fill(Corners const corners, std::uint16_t const colour) -> void override {
     Record("Fill", corners.from.x, corners.from.y, corners.to.x, corners.to.y, colour);
   }
-  auto SaveCell(Point const at, Cell) -> void override {
+  auto SaveCell(Point const at, [[maybe_unused]] Cell into) -> void override {
     Record("SaveCell", at.x, at.y);
   }
-  auto SaveShiftedCell(Point const at, Cell) -> void override {
+  auto SaveShiftedCell(Point const at, [[maybe_unused]] Cell into) -> void override {
     Record("SaveShiftedCell", at.x, at.y);
   }
-  auto RestoreCell(Point const at, CellImage) -> void override {
+  auto RestoreCell(Point const at, [[maybe_unused]] CellImage cell) -> void override {
     Record("RestoreCell", at.x, at.y);
   }
-  auto RestoreShiftedCell(Point const at, CellImage) -> void override {
+  auto RestoreShiftedCell(Point const at, [[maybe_unused]] CellImage cell) -> void override {
     Record("RestoreShiftedCell", at.x, at.y);
   }
   auto CopyCellBlock(Point const from, Point const to) -> void override {
     Record("CopyCellBlock", from.x, from.y, to.x, to.y);
   }
-  auto OverlayCell(Cell, CellImage) -> void override {
+  auto OverlayCell([[maybe_unused]] Cell cell, [[maybe_unused]] CellImage image) -> void override {
     Record("OverlayCell");
   }
-  auto MaskCell(Cell, CellMask) -> void override {
+  auto MaskCell([[maybe_unused]] Cell cell, [[maybe_unused]] CellMask mask) -> void override {
     Record("MaskCell");
   }
-  auto DrawCellGlyph(Cell, CellGlyph, Point const at) -> void override {
+  auto DrawCellGlyph([[maybe_unused]] Cell cell, [[maybe_unused]] CellGlyph glyph, Point const at) -> void override {
     Record("DrawCellGlyph", at.x, at.y);
   }
-  auto DrawColouredCellGlyph(Cell, CellGlyph, ColouredPlace const place) -> void override {
+  auto DrawColouredCellGlyph([[maybe_unused]] Cell cell, [[maybe_unused]] CellGlyph glyph, ColouredPlace const place) -> void override {
     Record("DrawColouredCellGlyph", place.at.x, place.at.y, place.colour);
   }
   auto ComposeSprite(Area const area, Sprite const& sprite) -> void override {
@@ -149,16 +149,16 @@ public:
     Record("TakeShiftedCell", at.x, at.y);
     return static_cast<CellId>(++_handles);
   }
-  auto MaskInCell(CellId const cell, CellMask) -> void override {
+  auto MaskInCell(CellId const cell, [[maybe_unused]] CellMask mask) -> void override {
     Record("MaskInCell", std::to_underlying(cell));
   }
-  auto OverlayInCell(CellId const cell, CellImage) -> void override {
+  auto OverlayInCell(CellId const cell, [[maybe_unused]] CellImage image) -> void override {
     Record("OverlayInCell", std::to_underlying(cell));
   }
-  auto GlyphInCell(CellId const cell, CellGlyph, Point const at) -> void override {
+  auto GlyphInCell(CellId const cell, [[maybe_unused]] CellGlyph glyph, Point const at) -> void override {
     Record("GlyphInCell", std::to_underlying(cell), at.x, at.y);
   }
-  auto ColouredGlyphInCell(CellId const cell, CellGlyph, ColouredPlace const place) -> void override {
+  auto ColouredGlyphInCell(CellId const cell, [[maybe_unused]] CellGlyph glyph, ColouredPlace const place) -> void override {
     Record("ColouredGlyphInCell", std::to_underlying(cell), place.at.x, place.at.y, place.colour);
   }
   auto PutCell(Point const at, CellId const cell) -> void override {
@@ -216,7 +216,7 @@ public:
     return found->second;
   }
 
-  auto Open(std::string_view const name, OpenMode) -> std::optional<FileHandle> override {
+  auto Open(std::string_view const name, [[maybe_unused]] OpenMode mode) -> std::optional<FileHandle> override {
     Record("Open", name);
     if (!_contents.contains(std::string{ name })) return std::nullopt;
     return Opened(name);

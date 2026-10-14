@@ -43,18 +43,18 @@ constexpr auto LINE_PIXELS{ Offset{ 640 } };
 
 // The cell byte of colour bit `plane` at column `column` of line `line`.
 [[nodiscard]] constexpr auto CellIndex(std::size_t const line, std::size_t const plane, std::size_t const column) noexcept -> std::size_t {
-  return line * LINE_BYTES + plane * CELL_COLUMNS + column;
+  return (line * LINE_BYTES) + (plane * CELL_COLUMNS) + column;
 }
 
 // The screen position of the cell's column `column` on line `line`, the cell starting at `at`.
 [[nodiscard]] auto CellColumnAt(Offset const at, std::size_t const line, std::size_t const column) noexcept -> Offset {
-  return at + Offset(line) * LINE_PIXELS + Offset(column) * 8;
+  return at + (Offset(line) * LINE_PIXELS) + (Offset(column) * 8);
 }
 
 // The cells and rectangles are walked with nested range-for loops: gcc does not flatten the algorithm-and-lambda form
 // of these per-column loops (2.5 times slower in the services benches).
 auto SaveCell(Offset const at, Cell const cell) noexcept -> void {
-  auto& screen{ Screen() };
+  auto const& screen{ Screen() };
   for (auto const line : std::views::iota(0uz, CELL_LINES)) {
     for (auto const column : std::views::iota(0uz, CELL_COLUMNS)) {
       auto const bits{ screen.Column(CellColumnAt(at, line, column)) };
@@ -89,13 +89,13 @@ struct Rect {
 };
 
 auto SaveRect(Rect const& rect, std::span<std::uint8_t> const buffer) noexcept -> void {
-  auto&      screen{ Screen() };
+  auto const& screen{ Screen() };
   auto const plane_bytes{ rect.PlaneBytes() };
   for (auto const line : std::views::iota(0uz, rect.lines)) {
     for (auto const column : std::views::iota(0uz, rect.columns)) {
       auto const bits{ screen.Column(rect.ScreenAt(line, column)) };
-      auto const at{ line * rect.columns + column };
-      for (auto const plane : std::views::iota(0uz, bits.size())) buffer[plane * plane_bytes + at] = bits[plane];
+      auto const at{ (line * rect.columns) + column };
+      for (auto const plane : std::views::iota(0uz, bits.size())) buffer[(plane * plane_bytes) + at] = bits[plane];
     }
   }
 }
@@ -105,8 +105,8 @@ auto RestoreRect(Rect const& rect, std::span<std::uint8_t const> const buffer) n
   auto const plane_bytes{ rect.PlaneBytes() };
   for (auto const line : std::views::iota(0uz, rect.lines)) {
     for (auto const column : std::views::iota(0uz, rect.columns)) {
-      auto const i{ line * rect.columns + column };
-      screen.SetColumn(rect.ScreenAt(line, column), { buffer[i], buffer[plane_bytes + i], buffer[2 * plane_bytes + i], buffer[3 * plane_bytes + i] });
+      auto const i{ (line * rect.columns) + column };
+      screen.SetColumn(rect.ScreenAt(line, column), { buffer[i], buffer[plane_bytes + i], buffer[(2 * plane_bytes) + i], buffer[(3 * plane_bytes) + i] });
     }
   }
 }
@@ -132,7 +132,7 @@ struct GlyphPlace {
 };
 
 [[nodiscard]] auto PlaceOf(std::uint32_t const x, std::uint32_t const y) noexcept -> GlyphPlace {
-  return { .start = (y * LINE_BYTES + (x >> 3)) & 0xFFFF, .pixels = x & 7 };
+  return { .start = ((y * LINE_BYTES) + (x >> 3)) & 0xFFFF, .pixels = x & 7 };
 }
 
 [[nodiscard]] auto Shifted(std::uint8_t const line, std::uint32_t const pixels) noexcept -> GlyphBits {
@@ -144,7 +144,7 @@ struct GlyphPlace {
 [[nodiscard]] auto Lines(std::span<std::uint8_t const, GLYPH_LINES> const glyph, GlyphPlace const place) noexcept {
   return std::views::zip(std::views::iota(0uz, GLYPH_LINES), glyph) | std::views::transform([place](auto const entry) {
            auto const [line, bits]{ entry };
-           return GlyphLine{ .at = place.start + line * LINE_BYTES, .bits = Shifted(bits, place.pixels) };
+           return GlyphLine{ .at = place.start + (line * LINE_BYTES), .bits = Shifted(bits, place.pixels) };
          });
 }
 
@@ -207,7 +207,7 @@ auto OrShifted(std::span<std::uint8_t> const block, ShiftedRows const& rows, std
 template <std::size_t PLANES>
 auto OrInterleaved(std::span<std::uint8_t> const bytes, std::span<std::uint8_t const> const image, std::size_t const block) noexcept -> void {
   for (auto const i : std::views::iota(0uz, image.size() / PLANES)) {
-    for (auto const plane : std::views::iota(0uz, PLANES)) bytes[plane * block + i] |= image[i * PLANES + plane];
+    for (auto const plane : std::views::iota(0uz, PLANES)) bytes[(plane * block) + i] |= image[(i * PLANES) + plane];
   }
 }
 
@@ -277,7 +277,7 @@ auto opeu_vram_load(std::uint8_t* const vram, std::uint8_t const* const mask) ->
   Cell const                                      cell{ vram, SYSLIB_CELL_BYTES };
   std::span<std::uint8_t const, MASK_BYTES> const masks{ mask, MASK_BYTES };
   std::ranges::transform(cell, std::views::iota(0uz, cell.size()), cell.begin(),
-                         [masks](std::uint8_t const bits, std::size_t const i) { return Low8(bits & masks[i / LINE_BYTES * CELL_COLUMNS + i % CELL_COLUMNS]); });
+                         [masks](std::uint8_t const bits, std::size_t const i) { return Low8(bits & masks[(i / LINE_BYTES * CELL_COLUMNS) + (i % CELL_COLUMNS)]); });
 }
 
 // ---- screen fills and copies ------------------------------------------------------------------------------------
@@ -287,7 +287,7 @@ auto opeu_vram_load(std::uint8_t* const vram, std::uint8_t const* const mask) ->
 auto Koei3b77(std::uint16_t const x, std::uint16_t const y, std::uint16_t const w, std::uint16_t const h, std::uint16_t const color) -> void {
   auto& screen{ Screen() };
   for (auto const line : std::views::iota(0uz, LoopCount(h))) {
-    for (auto const column : std::views::iota(0uz, std::size_t{ w })) screen.SetPlaneBits(ColumnAt((x + column) & 0xFFFF, y) + Offset(line) * LINE_PIXELS, 3, Low8(color));
+    for (auto const column : std::views::iota(0uz, std::size_t{ w })) screen.SetPlaneBits(ColumnAt((x + column) & 0xFFFF, y) + (Offset(line) * LINE_PIXELS), 3, Low8(color));
   }
 }
 
@@ -312,7 +312,7 @@ auto opeu_sprite_compose(std::uint16_t const x, std::uint16_t const y, std::uint
   auto const      block{ (std::size_t{ w } * h) & 0xFFFF };
   auto const      count{ LoopCount(static_cast<std::uint32_t>(block)) };
   auto const      planes{ (flags & 1) != 0 ? 4uz : 3uz };
-  std::span const bytes{ buffer, std::max(4 * rect.PlaneBytes(), 3 * block + count) };
+  std::span const bytes{ buffer, std::max(4 * rect.PlaneBytes(), (3 * block) + count) };
   std::span const mask{ and_mask, count };
   std::span const image{ or_image, planes * count };
   SaveRect(rect, bytes);
@@ -343,7 +343,7 @@ auto koei_3f26(std::uint16_t const x, std::uint16_t const y, std::uint16_t const
   auto const        planes{ (flags & 1) != 0 ? 4uz : 3uz };
   std::span const   bytes{ buffer, 4 * masked.Bytes() };
   std::span const   mask{ and_mask, masked.SourceBytes() };
-  std::span const   image{ or_image, (drawn.SourceBytes() - 1) * stride + 4 };
+  std::span const   image{ or_image, ((drawn.SourceBytes() - 1) * stride) + 4 };
   SaveRect(rect, bytes);
   for (auto const plane : std::views::iota(0uz, 4uz)) AndShifted(bytes.subspan(plane * masked.Bytes(), masked.Bytes()), masked, mask);
   for (auto const plane : std::views::iota(0uz, planes)) OrShifted(bytes.subspan(plane * drawn.Bytes(), drawn.Bytes()), drawn, image.subspan(plane), stride);

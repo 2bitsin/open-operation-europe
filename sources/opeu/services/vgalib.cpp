@@ -34,7 +34,7 @@ auto opeu_set_palette(std::uint8_t first, std::uint8_t count, std::uint8_t const
   auto const      entries{ count > 16 ? 16 - index : int{ count } };
   std::span const levels{ rgb, static_cast<std::size_t>(entries) * 3 };
   std::ranges::for_each(std::views::iota(0, entries), [index, levels](int const entry) {
-    auto const level{ [&](int const part) { return static_cast<std::uint8_t>(levels[static_cast<std::size_t>(entry * 3 + part)] << 2); } };
+    auto const level{ [&](int const part) { return static_cast<std::uint8_t>(levels[static_cast<std::size_t>((entry * 3) + part)] << 2); } };
     Screen().SetPaletteEntry(static_cast<std::uint8_t>(index + entry), level(1), level(2), level(0));
   });
   return 0;
@@ -98,11 +98,11 @@ auto opeu_ui_line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
 }
 
 auto Koei2e49(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint8_t const* data) -> void {
-  Screen().DrawShiftedColumns(x, y, w, h, Image(data, (((w + 0xFFFFuz) & 0xFFFF) + 1) * 4, h ? h : 0x10000uz));
+  Screen().DrawShiftedColumns(x, y, w, h, Image(data, (((w + 0xFFFFuz) & 0xFFFF) + 1) * 4, (h != 0u) ? h : 0x10000uz));
 }
 
 auto koei_2e57(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint8_t const* data) -> void {
-  Screen().DrawShiftedColumns(x, y, w, h, Image(data, (((w + 0xFFFFuz) & 0xFFFF) + 1) * 4, h ? h : 0x10000uz));
+  Screen().DrawShiftedColumns(x, y, w, h, Image(data, (((w + 0xFFFFuz) & 0xFFFF) + 1) * 4, (h != 0u) ? h : 0x10000uz));
 }
 
 auto koei_2e72(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint8_t* dest) -> void {
