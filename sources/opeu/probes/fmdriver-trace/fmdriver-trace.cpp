@@ -25,6 +25,7 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <sstream>
@@ -36,7 +37,6 @@ namespace {
 
 using services::FarAddress;
 using services::FmDriver;
-using services::Reply;
 using services::Request;
 using services::SongQueue;
 
@@ -78,7 +78,7 @@ public:
 
   // Blocks may overlap (banks 800h paragraphs apart): the nearest one starting at or below the address holds it.
   [[nodiscard]] auto Peek(FarAddress const at) -> std::uint8_t override {
-    auto const linear{ std::uint32_t{ at.segment } * 16 + at.offset };
+    auto const linear{ (std::uint32_t{ at.segment } * 16) + at.offset };
     auto       holders{ _banks | std::views::filter([linear](Bank const& bank) { return bank.Holds(linear); }) };
     auto const best{ std::ranges::max_element(holders, {}, &Bank::segment) };
     return best == holders.end() ? std::uint8_t{ 0 } : best->bytes[linear - best->Base()];
@@ -120,9 +120,10 @@ auto operator>>(std::istream& in, Line& line) -> std::istream& {
 
 // A hex number, if the text starts with one.
 auto Hex(std::string_view const text) -> std::optional<std::uint32_t> {
-  std::uint32_t value{};
-  auto const [end, error]{ std::from_chars(text.data(), text.data() + text.size(), value, 16) };
-  if (error != std::errc{} || end == text.data()) return std::nullopt;
+  std::uint32_t     value{};
+  auto const* const begin{ std::to_address(text.begin()) };
+  auto const [end, error]{ std::from_chars(begin, std::to_address(text.end()), value, 16) };
+  if (error != std::errc{} || end == begin) return std::nullopt;
   return value;
 }
 
@@ -131,6 +132,23 @@ auto Numbers(std::istringstream& arguments) -> std::vector<std::uint32_t> {
   return std::views::istream<std::string>(arguments) | std::views::transform(Hex) | std::views::take_while([](auto const& n) { return n.has_value(); })
          | std::views::transform([](auto const& n) { return *n; }) | std::ranges::to<std::vector>();
 }
+
+// A chip model and the driver that talks to it; the driver keeps a reference to the host, so the pair never moves.
+class Machine {
+public:
+  Machine(std::string& out, bool const opl_present) : _host{ out, opl_present }, _driver{ _host } { }
+
+  [[nodiscard]] auto Host() -> TraceHost& {
+    return _host;
+  }
+  [[nodiscard]] auto Driver() -> FmDriver& {
+    return _driver;
+  }
+
+private:
+  TraceHost _host;
+  FmDriver  _driver;
+};
 
 class Trace {
 public:
@@ -147,24 +165,23 @@ private:
   auto               NewMachine(std::istringstream& arguments) -> void;
 
   std::string              _out; // the trace, written at the end (stdout one line at a time is slow)
-  std::optional<TraceHost> _host{ std::in_place, _out, false };
-  std::optional<FmDriver>  _driver{ std::in_place, *_host };
+  std::unique_ptr<Machine> _machine{ std::make_unique<Machine>(_out, false) };
 };
 
 auto Trace::NewMachine(std::istringstream& arguments) -> void {
   auto const numbers{ Numbers(arguments) };
-  _driver.reset();
-  _host.emplace(_out, !numbers.empty() && numbers.front() != 0);
-  _driver.emplace(*_host);
+  _machine = std::make_unique<Machine>(_out, !numbers.empty() && numbers.front() != 0);
 }
 
 auto Trace::Store(std::istringstream& arguments) -> bool {
-  std::string segment, offset, bytes;
+  std::string segment;
+  std::string offset;
+  std::string bytes;
   arguments >> segment >> offset >> bytes;
   auto const at{ Hex(segment) };
   auto const from{ Hex(offset) };
   if (!at || !from || bytes.empty()) return false;
-  auto const bank{ _host->BankOf(static_cast<std::uint16_t>(*at)) };
+  auto const bank{ _machine->Host().BankOf(static_cast<std::uint16_t>(*at)) };
   if (!bank) return false;
   auto const text{ std::string_view{ bytes } };
   return std::ranges::all_of(std::views::iota(0uz, text.size() / 2), [&](std::size_t const i) {
@@ -183,7 +200,7 @@ auto Trace::Invoke(std::string const& verb, std::istringstream& arguments) -> bo
             .ticks    = static_cast<std::uint16_t>(numbers[1]),
             .address  = { .segment = static_cast<std::uint16_t>(numbers[3]), .offset = static_cast<std::uint16_t>(numbers[2]) } }
   };
-  auto const reply{ verb == "int" ? _driver->Interrupt(request) : _driver->FarCall(request) };
+  auto const reply{ verb == "int" ? _machine->Driver().Interrupt(request) : _machine->Driver().FarCall(request) };
   std::format_to(std::back_inserter(_out), "ret {:04x} {:04x} {:04x} {:04x}\n", reply.status, reply.ticks, reply.address.offset, reply.address.segment);
   return true;
 }
@@ -193,7 +210,7 @@ auto Trace::Tick(std::istringstream& arguments) -> void {
   auto const ticks{ numbers.empty() ? 0u : numbers.front() };
   std::ranges::for_each(std::views::iota(0u, ticks), [&](std::uint32_t) {
     _out += "> tick\n";
-    _driver->TimerTick();
+    _machine->Driver().TimerTick();
   });
 }
 
@@ -202,21 +219,19 @@ auto Trace::Execute(std::string const& line) -> bool {
   std::string        verb;
   if (!(arguments >> verb)) return true;
   if (verb != "mem" && verb != "tick") std::format_to(std::back_inserter(_out), "> {}\n", verb);
-  if (verb == "machine")
+  if (verb == "mem") return Store(arguments);
+  if (verb == "int" || verb == "far") return Invoke(verb, arguments);
+  if (verb == "machine") {
     NewMachine(arguments);
-  else if (verb == "mem")
-    return Store(arguments);
-  else if (verb == "install")
-    _driver->InstallDetecting();
-  else if (verb == "uninstall")
-    _driver->Uninstall();
-  else if (verb == "int" || verb == "far")
-    return Invoke(verb, arguments);
-  else if (verb == "tick")
+  } else if (verb == "install") {
+    _machine->Driver().InstallDetecting();
+  } else if (verb == "uninstall") {
+    _machine->Driver().Uninstall();
+  } else if (verb == "tick") {
     Tick(arguments);
-  else if (verb == "callbacks")
-    std::format_to(std::back_inserter(_out), "callbacks {:x}\n", _host->Callbacks());
-  else if (verb != "none") {
+  } else if (verb == "callbacks") {
+    std::format_to(std::back_inserter(_out), "callbacks {:x}\n", _machine->Host().Callbacks());
+  } else if (verb != "none") {
     std::cerr << std::format("fmdriver_trace: unknown command {}\n", verb);
     return false;
   }
