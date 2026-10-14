@@ -1,4 +1,4 @@
-// BIOS clock (INT 1Ah AH=00h) and the C runtime getch(). (INT 21h AH=0Dh disk reset lives in fileio.cpp next to the
+// BIOS clock (INT 1Ah AH=00h) and the C runtime's console read (getch). (INT 21h AH=0Dh disk reset lives in fileio.cpp next to the
 // handle table.)
 #include "hostinput.hpp"
 #include "port.hpp"
@@ -24,7 +24,7 @@ constexpr auto PIT_HZ{ std::uint64_t{ 1'193'182 } };
   return static_cast<std::uint64_t>(local->tm_hour * 3600 + local->tm_min * 60 + local->tm_sec);
 }
 
-// MS C getch() over the BIOS keyboard: a key with ASCII 0 returns 0 now and its scan code on the next call.
+// MS C's console read (getch) over the BIOS keyboard: a key with ASCII 0 returns 0 now and its scan code on the next call.
 class Getch {
 public:
   [[nodiscard]] auto Next() -> int {
@@ -60,7 +60,7 @@ auto port_clock_ticks_low() -> uint16_t {
   return static_cast<std::uint16_t>(ticks);
 }
 
-// MS C getch(): INT 21h AH=08h, the ASCII of the next key; a key with ASCII 0 returns 0 and its scan code on the next
+// MS C's console read (getch): INT 21h AH=08h, the ASCII of the next key; a key with ASCII 0 returns 0 and its scan code on the next
 // call.
 auto port_getch() -> int {
   return opeu::services::detail::clock::TheGetch().Next();

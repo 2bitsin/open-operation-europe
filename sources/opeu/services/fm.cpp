@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <bit>
 #include <cinttypes>
-#include <cstdlib>
 #include <format>
 #include <fstream>
 #include <optional>
