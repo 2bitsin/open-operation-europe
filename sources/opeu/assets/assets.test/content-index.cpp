@@ -60,12 +60,12 @@ protected:
     return _index;
   }
   [[nodiscard]] auto Catalogued() const -> Catalogue const& {
-    return _shipped.catalogue;
+    return _shipped.Catalogued();
   }
 
 private:
   test::ShippedCatalogue _shipped;
-  ContentIndex           _index{ _shipped.catalogue };
+  ContentIndex           _index{ _shipped.Catalogued() };
 };
 
 TEST_F(ShippedContent, RecognisesATileFromItsBytes) {

@@ -29,7 +29,7 @@ struct Size {
 // The assets of one file in catalogue order.
 auto AssetsOf(std::string_view const file) -> std::vector<Asset> {
   auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.catalogue };
+  auto const& catalogue{ shipped.Catalogued() };
   return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::ranges::to<std::vector>();
 }
 

@@ -76,7 +76,7 @@ auto WithoutNaming(LoadedAsset loaded) -> LoadedAsset {
 
 TEST(ClassicPack, HoldsEveryImageAsTheDecodersDrawIt) {
   auto const  shipped{ test::ShippedPack{} };
-  auto const& decoders{ shipped.pack };
+  auto const& decoders{ shipped.Decoders() };
   std::ranges::for_each(PacksUnderTest(), [&](Pack const& pack) {
     std::ranges::for_each(IdsUnderTest(pack), [&](std::string const& id) {
       auto const loaded{ pack.Load(id) };

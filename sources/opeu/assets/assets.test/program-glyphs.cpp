@@ -22,7 +22,7 @@ namespace {
 
 auto GlyphImage(std::string_view const id) -> Image {
   auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.catalogue };
+  auto const& catalogue{ shipped.Catalogued() };
   auto const  asset{ catalogue.Find(id) };
   if (!asset) {
     ADD_FAILURE() << "no asset " << id;
@@ -83,7 +83,7 @@ TEST(ProgramGlyphs, DrawTheTwoMarkersEightByEight) {
 
 TEST(ProgramGlyphs, AreCataloguedAsGlyphsInInk) {
   auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.catalogue };
+  auto const& catalogue{ shipped.Catalogued() };
   auto const  program{ catalogue.Assets() | std::views::filter([](Asset const& asset) { return asset.file.starts_with("program/"); }) | std::ranges::to<std::vector>() };
   EXPECT_EQ(program.size(), TEXT_GLYPHS + DIGIT_GLYPHS + DIGIT_GLYPHS + MARKERS);
   EXPECT_TRUE(std::ranges::all_of(program, [](Asset const& asset) { return asset.role == Role::GLYPH && asset.layout == Layout::BITMAP && asset.group == "glyphs"; }));

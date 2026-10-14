@@ -25,24 +25,36 @@ inline constexpr auto SHIPPED_DIRECTORY{ std::string_view{ "../opeu/assets.embed
   return ReadFile(std::filesystem::path{ SHIPPED_DIRECTORY } / name).value_or(std::vector<std::byte>{});
 }
 
-// The shipped files and the catalogue over them, which reads them through a reference: one object, never moved.
-struct ShippedCatalogue {
+// The shipped files and the catalogue over them, which reads them through a reference: one object, never copied.
+class ShippedCatalogue {
+public:
   ShippedCatalogue()                                           = default;
   ShippedCatalogue(ShippedCatalogue const&)                    = delete;
   auto operator=(ShippedCatalogue const&) -> ShippedCatalogue& = delete;
 
-  DirectorySource source{ Embedded() };
-  Catalogue       catalogue{ source };
+  [[nodiscard]] auto Catalogued() const -> Catalogue const& {
+    return _catalogue;
+  }
+
+private:
+  DirectorySource _source{ Embedded() };
+  Catalogue       _catalogue{ _source };
 };
 
 // The decoders' pack over the shipped files.
-struct ShippedPack {
+class ShippedPack {
+public:
   ShippedPack()                                      = default;
   ShippedPack(ShippedPack const&)                    = delete;
   auto operator=(ShippedPack const&) -> ShippedPack& = delete;
 
-  DirectorySource source{ Embedded() };
-  CataloguePack   pack{ Catalogue{ source } };
+  [[nodiscard]] auto Decoders() const -> CataloguePack const& {
+    return _pack;
+  }
+
+private:
+  DirectorySource _source{ Embedded() };
+  CataloguePack   _pack{ Catalogue{ _source } };
 };
 
 }
