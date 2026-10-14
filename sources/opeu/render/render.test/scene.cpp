@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace opeu::render::detail::scene_test {
+namespace {
 
 using test::ExpectGolden;
 using test::OpenHeadless;
@@ -20,15 +21,15 @@ using test::OpenSample;
 using test::PackUnderTest;
 
 class Scenes : public testing::TestWithParam<PackUnderTest> {
-protected:
-  test::Headless    _headless{ OpenHeadless() };
-  assets::Pack      _pack{ OpenSample(GetParam()) };
-  TextureCache      _textures{ _headless.display.Renderer(), _pack, 16 };
-  AtlasTextRenderer _text{ AtlasTextRenderer::Build(_headless.display.Renderer(), _pack).value() };
-  SceneRenderer     _scenes{ _headless.display, _textures, _text };
+public:
+  test::Headless    headless{ OpenHeadless() };
+  assets::Pack      pack{ OpenSample(GetParam()) };
+  TextureCache      textures{ headless.display.Renderer(), pack, 16 };
+  AtlasTextRenderer text{ AtlasTextRenderer::Build(headless.display.Renderer(), pack).value() };
+  SceneRenderer     scenes{ headless.display, textures, text };
 
   [[nodiscard]] auto Pen(std::size_t const index) const -> Rgba {
-    return render::Pen(*_pack.Palette("main/day"), index);
+    return render::Pen(test::Needed(pack.Palette("main/day"), "the day palette"), index);
   }
 
   // A battle corner: terrain at night, a unit, a blast's frames, a frame line and a caption.
@@ -73,34 +74,34 @@ protected:
   }
 
   [[nodiscard]] auto Corner() const -> assets::Texture {
-    return _headless.display.Read(Rect{ .x = 0, .y = 0, .width = 160, .height = 112 }).value();
+    return headless.display.Read(Rect{ .x = 0, .y = 0, .width = 160, .height = 112 }).value();
   }
 };
 
 TEST_P(Scenes, DrawsEveryCommandInOrder) {
-  _headless.display.Begin();
-  ASSERT_TRUE(_scenes.Compose(Battle()));
+  headless.display.Begin();
+  ASSERT_TRUE(scenes.Compose(Battle()));
   ExpectGolden(Corner(), GetParam(), "scene");
 }
 
 TEST_P(Scenes, FadesByTheScenesTint) {
   auto scene{ Battle() };
   scene.Tint(Dimmed(WHITE, 0x60));
-  ASSERT_TRUE(_scenes.Show(scene));
-  auto const shown{ _headless.display.Capture(scene.Tinted()).value() };
-  _headless.display.Begin();
-  ASSERT_TRUE(_scenes.Compose(scene));
-  auto const faded{ _headless.display.Capture(Dimmed(WHITE, 0x60)).value() };
+  ASSERT_TRUE(scenes.Show(scene));
+  auto const shown{ headless.display.Capture(scene.Tinted()).value() };
+  headless.display.Begin();
+  ASSERT_TRUE(scenes.Compose(scene));
+  auto const faded{ headless.display.Capture(Dimmed(WHITE, 0x60)).value() };
   EXPECT_EQ(shown, faded);
   ExpectGolden(test::Crop(shown, Size{ .width = 160, .height = 112 }), GetParam(), "scene-faded");
 }
 
 TEST_P(Scenes, BakesTexturesOncePerAssetAndPalette) {
-  _headless.display.Begin();
-  ASSERT_TRUE(_scenes.Compose(Battle()));
-  ASSERT_TRUE(_scenes.Compose(Battle()));
-  EXPECT_EQ(_textures.Statistics().misses, 9u); // two tile palettes, two units, four blast frames, the portrait
-  EXPECT_EQ(_textures.Statistics().hits, (2u * 11u) - 9u);
+  headless.display.Begin();
+  ASSERT_TRUE(scenes.Compose(Battle()));
+  ASSERT_TRUE(scenes.Compose(Battle()));
+  EXPECT_EQ(textures.Statistics().misses, 9u); // two tile palettes, two units, four blast frames, the portrait
+  EXPECT_EQ(textures.Statistics().hits, (2u * 11u) - 9u);
 }
 
 TEST_P(Scenes, LaysTilesOutInRows) {
@@ -114,17 +115,17 @@ TEST_P(Scenes, LaysTilesOutInRows) {
       .assets = ids, .columns = 9, .cell = Size{ .width = 24, .height = 24 },
               .palette = "main/night", .at = Point{ .x = 4,      .y = 80      }
   });
-  _headless.display.Begin();
-  ASSERT_TRUE(_scenes.Compose(scene));
-  EXPECT_EQ(_textures.Statistics().misses, 2u * 9u);
-  ExpectGolden(_headless.display.Read(Rect{ .x = 0, .y = 0, .width = 224, .height = 108 }).value(), GetParam(), "tiles");
+  headless.display.Begin();
+  ASSERT_TRUE(scenes.Compose(scene));
+  EXPECT_EQ(textures.Statistics().misses, 2u * 9u);
+  ExpectGolden(headless.display.Read(Rect{ .x = 0, .y = 0, .width = 224, .height = 108 }).value(), GetParam(), "tiles");
 }
 
 TEST_P(Scenes, StopsAtACommandItCannotDraw) {
   auto scene{ Scene{} };
   scene.Add(Sprite{ .asset = "battle-blast/large", .frame = 9 });
-  EXPECT_FALSE(_scenes.Compose(scene).has_value());
-  EXPECT_FALSE(_scenes
+  EXPECT_FALSE(scenes.Compose(scene).has_value());
+  EXPECT_FALSE(scenes
                    .Compose(Scene{
   }
                                 .Add(Tiles{ .assets = { "view-tile/map-2/17", "view-tile/map-9/00" }, .columns = 2 }))
@@ -132,5 +133,7 @@ TEST_P(Scenes, StopsAtACommandItCannotDraw) {
 }
 
 INSTANTIATE_TEST_SUITE_P(Packs, Scenes, testing::ValuesIn(test::PACKS), test::PackName);
+
+}
 
 }

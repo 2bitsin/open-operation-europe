@@ -1,5 +1,6 @@
 // One frame of the game's calls through services::Display, natively (the indexed Canvas, then VgalibRender for the
-// pump) and through RenderDisplay on SDL's software renderer (then its present): the map view's 196 tiles, a dialog's
+// pump) and through RenderDisplay (the same, with the source layer beside it), each then taken as the pump takes it,
+// and RenderDisplay's present (the frame coloured on the CPU and uploaded): the map view's 196 tiles, a dialog's
 // box and two lines of text, a unit composed in a cell buffer, a cursor XORed on and off and a tracer drawn twice. At
 // 60 Hz a frame has 16.7 ms; docs/rendering.md records both numbers.
 #include "opeu/assets/catalogue.hpp"
@@ -8,7 +9,6 @@
 #include "opeu/assets/palette.hpp"
 #include "opeu/assets/source.hpp"
 #include "opeu/platform/sdl3/renderer-host.hpp"
-#include "opeu/render/line-points.hpp"
 #include "opeu/render/render-display.hpp"
 #include "opeu/services/native-machine.hpp"
 #include "opeu/services/vgalib.hpp"
@@ -140,15 +140,37 @@ auto RenderedFrame(benchmark::State& state) -> void {
   auto display{
     RenderDisplay{ Display::Open(host.Renderer()).value(), *pack, shipped.Index() }
   };
+  vgalib_init();
   Start(display);
+  auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
+  auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
   for (auto _ : state) {
     Frame(display, bytes);
-    display.Present();
+    benchmark::DoNotOptimize(display.RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette));
   }
   state.counters["recognised"] = static_cast<double>(display.Statistics().recognised);
   state.counters["unpacked"]   = static_cast<double>(display.Statistics().unpacked);
 }
 BENCHMARK(RenderedFrame)->Unit(benchmark::kMicrosecond);
+
+// The same frame shown through RenderDisplay's own present.
+auto PresentedFrame(benchmark::State& state) -> void {
+  auto const shipped{ Shipped{} };
+  auto const bytes{ BytesOf(shipped) };
+  auto       pack{ assets::OpenPack(Here().parent_path() / "render.test/packs/classic.opeupack") };
+  if (!pack) throw std::runtime_error{ assets::Describe(pack.error()) };
+  auto host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() };
+  auto display{
+    RenderDisplay{ Display::Open(host.Renderer()).value(), *pack, shipped.Index() }
+  };
+  vgalib_init();
+  Start(display);
+  for (auto _ : state) {
+    Frame(display, bytes);
+    display.Present();
+  }
+}
+BENCHMARK(PresentedFrame)->Unit(benchmark::kMicrosecond);
 
 // What the entry pays once: the content index over the shipped catalogue.
 auto IndexShippedContent(benchmark::State& state) -> void {

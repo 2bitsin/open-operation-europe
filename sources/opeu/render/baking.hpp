@@ -32,7 +32,7 @@ enum class Keying : std::uint8_t {
 struct Painting {
   assets::PaletteColours        colours{};
   Keying                        keying{ Keying::OPAQUE };
-  std::optional<assets::Colour> background{};
+  std::optional<assets::Colour> background;
 };
 
 [[nodiscard]] auto Bake(assets::LoadedAsset const& asset, assets::PaletteColours const& colours) -> assets::Texture;

@@ -1,38 +1,48 @@
 #pragma once
-// The game's screen on SDL_Renderer: services::Display (what the game draws with) as steps on the render module's
-// frame (game-frame.hpp), each painted with blits, fills and points in the colours the screen shows. The images the
-// game hands over as bytes become textures once (byte-textures.hpp): from the pack by id when the bytes are a shipped
-// asset, else decoded by the assets module's decoders. Nothing models the VGA planes and nothing reads the frame back
-// while the game draws: an XOR, AND or OR with the screen is what is under it drawn again through a colour lookup, a
-// saved rectangle, a battle cell and a copy are what was drawn there, drawn again. Where the game still passes the
-// screen through its own memory (SaveColumns, SaveCell, the cell buffers), the bytes it gets are a handle's mark, which
-// it only ever hands back (docs/rendering.md has the proof per call site and the design).
+// The game's screen: services::Display (what the game draws with) on the frame of colour numbers the services' native
+// display draws (services::NativeDisplay over the Canvas: byte copies, the game's own routines), with the source layer
+// beside it (source-layer.hpp): which cells show an image of the pack, recognised from the bytes the game hands over
+// (assets::ContentIndex), and which are raw numbers. The pump takes the frame as palette entries (RenderIndexed);
+// Present and Capture turn the numbers into colours on the CPU and upload them: nothing is ever read back from the
+// renderer. docs/rendering.md is the design, the source layer's rule and the remaster present it prepares.
 
 #include "opeu/assets/content-index.hpp"
 #include "opeu/assets/pack.hpp"
+#include "opeu/assets/texture.hpp"
 #include "opeu/render/display.hpp"
-#include "opeu/render/frame-steps.hpp"
-#include "opeu/render/game-frame.hpp"
-#include "opeu/render/line-points.hpp"
-#include "opeu/render/pen.hpp"
-#include "opeu/render/screen-palette.hpp"
+#include "opeu/render/source-layer.hpp"
 #include "opeu/services/kept-handles.hpp"
 #include "opeu/services/machine-display.hpp"
+#include "opeu/services/native-machine.hpp"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <map>
+#include <optional>
 #include <span>
-#include <vector>
+#include <string_view>
 
 namespace opeu::render::detail::render_display {
 
 inline constexpr auto FRAME_PIXELS{ 640uz * 480uz };
+inline constexpr auto PALETTE_LEVELS{ 768uz }; // three 8-bit levels per palette entry, what the pump presents
+
+// The drawing library's 16-bit argument word (a coordinate, a count, a colour or pen word).
+using Word = decltype(services::Point::x);
+
+// How the images the game handed over were found in the pack.
+struct ByteStatistics {
+  std::size_t recognised{}; // known by their bytes and in the pack: their cells name it
+  std::size_t unpacked{};   // known by their bytes, but the pack lacks the id: their cells are raw
+
+  auto operator==(ByteStatistics const&) const -> bool = default;
+};
 
 class RenderDisplay final : public services::Display {
 public:
-  // The game's screen on `display`'s frame, shown and black in the start colours. The images whose bytes `index`
-  // recognises come from `pack`; both outlive the display.
+  // The game's screen, shown on `display`'s renderer. The images whose bytes `index` recognises name their id in the
+  // source layer when `pack` holds it; both outlive the display.
   RenderDisplay(render::Display display, assets::AssetPack const& pack, assets::ContentIndex const& index);
 
   // ---- the screen
@@ -57,7 +67,7 @@ public:
   auto Highlight(services::Area area, Word colour) -> bool override;
   auto Line(services::Corners ends, Word colour) -> void override;
   auto Fill(services::Corners corners, Word colour) -> void override;
-  // ---- battle cells through the game's memory: the bytes are a cell's handle
+  // ---- battle cells through the game's memory
   auto SaveCell(services::Point at, services::Cell into) -> void override;
   auto SaveShiftedCell(services::Point at, services::Cell into) -> void override;
   auto RestoreCell(services::Point at, services::CellImage cell) -> void override;
@@ -67,7 +77,7 @@ public:
   auto MaskCell(services::Cell cell, services::CellMask mask) -> void override;
   auto DrawCellGlyph(services::Cell cell, services::CellGlyph glyph, services::Point at) -> void override;
   auto DrawColouredCellGlyph(services::Cell cell, services::CellGlyph glyph, services::ColouredPlace place) -> void override;
-  // ---- sprites: the composing buffer is left alone (the game never reads it)
+  // ---- sprites composed in the game's buffer
   auto ComposeSprite(services::Area area, services::Sprite const& sprite) -> void override;
   auto ComposeShiftedSprite(services::Area area, services::Sprite const& sprite) -> void override;
   // ---- handles
@@ -87,74 +97,64 @@ public:
   auto DrawShiftedStamp(services::Area area, services::Stamp const& stamp) -> void override;
   auto ShowOverlay(services::Overlay const& overlay) -> services::OverlayId override;
   auto HideOverlay(services::OverlayId overlay) -> void override;
-  // The frame to the renderer's output (black while the screen shows text).
+  // The frame to the renderer's output: its numbers in their colours, uploaded.
   auto Present() -> void override;
 
   // ---- the platform's side
   // The frame as Present shows it, 640x480 RGBA.
-  [[nodiscard]] auto Capture() -> assets::Texture;
-  // The frame as palette entries and every entry's 8-bit levels: what the services' indexed present takes, until the
-  // pump presents through Present (the only call that reads the frame back, and only after a change).
-  // Whether the frame or its colours changed since the previous call (the frame is painted and read only then).
+  [[nodiscard]] auto Capture() const -> assets::Texture;
+  // The frame as palette entries and every entry's 8-bit levels, what the pump presents; whether either changed since
+  // the previous call.
   auto               RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> frame, std::span<std::uint8_t, PALETTE_LEVELS> palette) -> bool;
   [[nodiscard]] auto Statistics() const noexcept -> ByteStatistics {
-    return _frame.Statistics();
+    return _statistics;
   }
-  // How many steps the frame's recipe holds: what a palette change paints again.
-  [[nodiscard]] auto RecipeSize() const noexcept -> std::size_t {
-    return _frame.Steps().Steps().size();
+  // Where the frame's cells came from.
+  [[nodiscard]] auto Sources() const noexcept -> SourceLayer const& {
+    return _sources;
   }
+  // The memory the display holds besides its fixed frames: the kept sources and the layer's names.
+  [[nodiscard]] auto Footprint() const noexcept -> std::size_t;
 
 private:
-  enum class Mode : std::uint8_t {
-    TEXT,
-    GRAPHICS,
+  // An image the game handed over as bytes, laid at `area` (frame pixels).
+  struct Handed {
+    assets::ContentKey key;
+    Rect               area;
+    std::uint8_t       colours{};
   };
-  // A rectangle kept: what was drawn over it (frame pixels).
-  struct Kept {
-    Recipe recipe;
-    Rect   area;
-  };
-  // What RenderIndexed last gave.
-  struct Shown {
-    std::array<std::uint8_t, PALETTE_LEVELS> levels{};
-    Mode                                     mode{ Mode::TEXT };
-  };
-  // A battle cell being composed: what was under it, then what is drawn over that, at its place when taken.
-  struct Composed {
-    Recipe recipe;
-    Rect   area;
+  // The last XOR highlight: drawn again over the same place, it puts its cells back.
+  struct Highlighted {
+    services::Area area;
+    Word           colour{};
+    Toggled        toggled;
   };
 
-  auto               Reset(Mode mode) -> void;
-  auto               ChangeColours() -> void;
-  [[nodiscard]] auto DrawColumnImage(services::Area area, services::Image image, std::size_t planes) -> bool;
-  auto               DrawPen(SharedBits const& bits, Rect destination) -> void;
-  auto               Exchange(RemapStep step) -> void;
-  auto               DrawPicture(services::Point at, PictureByteReader const& reader, assets::Layout stream) -> bool;
-  auto               DrawLine(services::Corners ends, Word colour) -> void;
-  auto               DrawStampAt(Rect destination, services::Stamp const& stamp) -> void;
-  auto               DrawSpriteAt(Rect cut, SharedImage const& image, services::SpriteImage const& sprite) -> void;
-  auto               AddAll(std::vector<Step> steps) -> void;
-  [[nodiscard]] auto TakeCellAt(Rect area) -> services::CellId;
-  auto               PutCellAt(Point at, services::CellId cell) -> void;
-  auto               AddToCell(services::CellId cell, std::vector<Step> steps) -> void;
-  [[nodiscard]] auto NextOverlay() -> std::uint32_t;
+  // The source of `handed`'s cells: its pack image when recognised and packed, else none (the cells it touches raw).
+  auto               Lay(Handed const& handed) -> void;
+  [[nodiscard]] auto Recognised(assets::ContentKey const& key) -> std::optional<ImageNumber>;
+  auto               LayCut(Handed const& handed, std::span<std::uint8_t const> cut) -> void;
+  auto               ToggleHighlight(services::Area area, Word colour) -> void;
+  auto               LayPicture(services::Point at, std::span<std::uint8_t const> stream, assets::Layout layout) -> void;
 
-  ScreenPalette                                     _palette;
-  GameFrame                                         _frame;
-  BitPen                                            _pen;
-  Mode                                              _mode{ Mode::GRAPHICS };
-  Mode                                              _mode_before{ Mode::TEXT }; // the mode EnterGraphics left
-  services::KeptHandles<services::SnapshotId, Kept> _kept{ services::KEPT_SNAPSHOTS };
-  services::KeptHandles<services::CellId, Composed> _cells{ services::KEPT_CELLS };
-  std::uint32_t                                     _last_overlay{};
-  Shown                                             _shown;
+  render::Display                                          _display;
+  std::reference_wrapper<assets::AssetPack const>          _pack;
+  std::reference_wrapper<assets::ContentIndex const>       _index;
+  services::NativeDisplay                                  _native;
+  SourceLayer                                              _sources;
+  services::KeptHandles<services::SnapshotId, KeptSources> _kept{ services::KEPT_SNAPSHOTS };
+  services::KeptHandles<services::OverlayId, Toggled>      _overlays{ services::KEPT_OVERLAYS };
+  std::map<std::string_view, bool, std::less<>>            _packed; // whether the pack holds each recognised id
+  std::optional<Highlighted>                               _highlighted;
+  ByteStatistics                                           _statistics;
 };
 
 }
 
 namespace opeu::render {
+using detail::render_display::ByteStatistics;
 using detail::render_display::FRAME_PIXELS;
+using detail::render_display::PALETTE_LEVELS;
 using detail::render_display::RenderDisplay;
+using detail::render_display::Word;
 }

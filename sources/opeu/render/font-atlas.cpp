@@ -47,8 +47,16 @@ namespace {
   return Size{ .width = static_cast<int>(FontAtlas::COLUMNS) * slot.width, .height = rows * slot.height };
 }
 
+// The glyphs an atlas holds, each in a slot of one size.
+struct Slotted {
+  std::span<assets::Texture const> glyphs;
+  Size                             slot;
+};
+
 // Blits every glyph into its slot of the atlas, scaled to fill it.
-[[nodiscard]] auto Compose(SDL_Renderer& renderer, Texture& atlas, std::span<assets::Texture const> const glyphs, Size const slot) -> Rendered<void> {
+[[nodiscard]] auto Compose(SDL_Renderer& renderer, Texture& atlas, Slotted const slotted) -> Rendered<void> {
+  auto const glyphs{ slotted.glyphs };
+  auto const slot{ slotted.slot };
   auto const into{
     Target{ renderer, atlas }
   };
@@ -77,7 +85,7 @@ auto FontAtlas::Build(SDL_Renderer& renderer, assets::AssetPack const& pack, std
   auto const metrics{ MetricsOf(*font, pack.Scale()) };
   auto       atlas{ Texture::Target(renderer, AtlasSize(metrics.count, metrics.slot)) };
   if (!atlas) return std::unexpected{ atlas.error() };
-  if (auto const composed{ Compose(renderer, *atlas, *glyphs, metrics.slot) }; !composed) return std::unexpected{ composed.error() };
+  if (auto const composed{ Compose(renderer, *atlas, Slotted{ .glyphs = *glyphs, .slot = metrics.slot }) }; !composed) return std::unexpected{ composed.error() };
   return FontAtlas{ *std::move(atlas), metrics };
 }
 

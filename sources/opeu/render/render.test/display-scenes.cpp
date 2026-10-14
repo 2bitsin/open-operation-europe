@@ -1,7 +1,7 @@
 // RenderDisplay against the native adapter in the screens the game composes: a map view with an hour change, a dialog
 // with a portrait and text, a battle cell with a unit and a tracer. Each frame is also a golden of the classic pack
-// (render.test/goldens/classic/display-*.png), and the shipped images in them must come from the pack: the bytes the
-// game hands over are recognised and the classic sample holds every one (nothing is decoded for want of an id).
+// (render.test/goldens/classic/display-*.png), and the shipped images drawn opaque in them must name their pack image in
+// the source layer: the bytes the game hands over are recognised and the classic sample holds every one.
 #include "display-differential.hpp"
 
 #include "opeu/assets/palette.hpp"
@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace opeu::render::detail::display_scenes_test {
+namespace {
 
 using test::CLASSIC;
 using test::ExpectGolden;
@@ -27,7 +28,7 @@ using test::RenderedRun;
 using test::Shipped;
 
 [[nodiscard]] auto Levels(std::string_view const palette) -> std::vector<std::uint8_t> {
-  return assets::FindPalette(palette).value().levels | std::ranges::to<std::vector>();
+  return test::Needed(assets::FindPalette(palette), palette).levels | std::ranges::to<std::vector>();
 }
 
 auto GameColours(services::Display& display) -> void {
@@ -36,7 +37,7 @@ auto GameColours(services::Display& display) -> void {
   display.LoadPalette(0, Levels("main/day"));
 }
 
-// The pack drew `at_least` shipped images and never lacked one.
+// `at_least` shipped images named their pack image, and the pack lacked none.
 auto ExpectFromThePack(RenderedRun const& run, std::size_t const at_least) -> void {
   EXPECT_GE(run.statistics.recognised, at_least);
   EXPECT_EQ(run.statistics.unpacked, 0U);
@@ -52,9 +53,9 @@ auto MapView(services::Display& display) -> void {
   GameColours(display);
   auto const tiles{ std::views::iota(10, 19) | std::views::transform([](int const n) { return Shipped().Record(std::format("view-tile/map-2/{}", n), TILE_BYTES); }) | std::ranges::to<std::vector>() };
   std::ranges::for_each(assets::Grid(14, 14), [&](auto const cell) {
-    auto const& tile{ tiles.at((cell.first * 5 + cell.second * 3) % tiles.size()) };
+    auto const& tile{ tiles.at(((cell.first * 5) + (cell.second * 3)) % tiles.size()) };
     auto const  at{
-      services::Area{ .x = static_cast<Word>(1 + cell.second * 3), .y = static_cast<Word>(16 + cell.first * 24), .width = 3, .height = 24 }
+      services::Area{ .x = static_cast<Word>(1 + (cell.second * 3)), .y = static_cast<Word>(16 + (cell.first * 24)), .width = 3, .height = 24 }
     };
     std::ignore = display.DrawColumns(at, { .mode = 0, .bytes = tile });
   });
@@ -73,7 +74,7 @@ TEST(DisplayScenes, AMapViewByDayAndAfterNightfall) {
     MapView(display);
     return Outcome{};
   }) };
-  ExpectFromThePack(day, 14 * 14);
+  ExpectFromThePack(day, 14uz * 14);
   ExpectGolden(day.frame, CLASSIC, "display-map-day");
   auto const night{ ExpectSame([](services::Display& display) {
     MapView(display);
@@ -94,10 +95,16 @@ constexpr auto GLYPH_BYTES{ 16uz };
   return text | std::views::transform([](char const c) { return Shipped().Record(std::format("text-glyph/{:03}", static_cast<int>(c)), GLYPH_BYTES); }) | std::ranges::to<std::vector>();
 }
 
-auto Write(services::Display& display, std::string_view const text, services::Point const at, Word const mode) -> void {
-  std::ranges::for_each(std::views::zip(Glyphs(text), std::views::iota(Word{ 0 })), [&](auto const entry) {
+// A line of text in the mode it is drawn in.
+struct Written {
+  std::string_view text;
+  Word             mode{};
+};
+
+auto Write(services::Display& display, Written const written, services::Point const at) -> void {
+  std::ranges::for_each(std::views::zip(Glyphs(written.text), std::views::iota(Word{ 0 })), [&](auto const entry) {
     auto const& [glyph, n]{ entry };
-    display.DrawBitsOnPaper({ .x = static_cast<Word>(at.x + n), .y = at.y, .width = 1, .height = 16 }, { .mode = mode, .bytes = glyph });
+    display.DrawBitsOnPaper({ .x = static_cast<Word>(at.x + n), .y = at.y, .width = 1, .height = 16 }, { .mode = written.mode, .bytes = glyph });
   });
 }
 
@@ -117,10 +124,10 @@ auto Dialog(services::Display& display) -> void {
   },
       0x0007);
   std::ignore = display.DrawThreeByteColumns({ .x = 11, .y = 80, .width = 8, .height = 80 }, { .mode = 0, .bytes = Shipped().Record("portrait/118", PORTRAIT_BYTES) });
-  Write(display, "General, the bridge", { .x = 21, .y = 80 }, 0x000F);
-  Write(display, "at Arnhem is held.", { .x = 21, .y = 96 }, 0x000F);
-  Write(display, "Attack", { .x = 21, .y = 128 }, 0x000E);
-  Write(display, "Wait", { .x = 21, .y = 144 }, 0x000E);
+  Write(display, Written{ .text = "General, the bridge", .mode = 0x000F }, { .x = 21, .y = 80 });
+  Write(display, Written{ .text = "at Arnhem is held.", .mode = 0x000F }, { .x = 21, .y = 96 });
+  Write(display, Written{ .text = "Attack", .mode = 0x000E }, { .x = 21, .y = 128 });
+  Write(display, Written{ .text = "Wait", .mode = 0x000E }, { .x = 21, .y = 144 });
   auto const title{ Glyphs("REPORT") };
   std::ranges::for_each(std::views::zip(title, std::views::iota(Word{ 0 })), [&](auto const entry) {
     auto const& [glyph, n]{ entry };
@@ -134,7 +141,7 @@ TEST(DisplayScenes, ADialogWithAPortraitAndText) {
     Dialog(display);
     return Outcome{};
   }) };
-  ExpectFromThePack(run, 1 + 19 + 18 + 6 + 4 + 6);
+  ExpectFromThePack(run, 1 + 19 + 18 + 6 + 4); // the title's set-pen glyphs keep the box under their clear bits: raw
   ExpectGolden(run.frame, CLASSIC, "display-dialog");
 }
 
@@ -204,6 +211,8 @@ TEST(DisplayScenes, FillThePumpsIndexedFrameAsTheCanvas) {
   rendered_display.Screen().RenderIndexed(rendered.Frame(), rendered.palette);
   EXPECT_EQ(native.frame, rendered.frame);
   EXPECT_EQ(native.palette, rendered.palette);
+}
+
 }
 
 }

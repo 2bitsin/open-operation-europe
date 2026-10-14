@@ -60,10 +60,17 @@ inline auto operator<<(std::ostream& out, PackUnderTest const& under_test) -> st
   return out << under_test.name;
 }
 
-// The environment variable `name`, when set.
+// The environment variable `name`, when set (SDL's copy of the environment, safe from any thread).
 inline auto Environment(std::string const& name) -> std::optional<std::string> {
-  auto const value{ std::getenv(name.c_str()) };
+  auto const* const value{ SDL_getenv(name.c_str()) };
   return value != nullptr ? std::optional<std::string>{ value } : std::nullopt;
+}
+
+// What a test needs to go on: the value, or the test stops, saying what was missing.
+template <class _Value>
+[[nodiscard]] auto Needed(std::optional<_Value> found, std::string_view const what) -> _Value {
+  if (!found) throw std::logic_error{ std::format("the test needs {}", what) };
+  return *std::move(found);
 }
 
 // The parameter's name in a test's name: Scenes/DrawsEveryCommandInOrder/classic.

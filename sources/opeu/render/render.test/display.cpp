@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace opeu::render::detail::display_test {
+namespace {
 
 using test::ExpectGolden;
 using test::OpenHeadless;
@@ -56,7 +57,7 @@ constexpr auto MIDDLE{
   Rect{ .x = 1, .y = 0, .width = 2, .height = 2 }
 };
 // clang-format off
-auto const SWATCH_BLITS{ std::array{
+constexpr auto SWATCH_BLITS{ std::array{
   Blit{ .destination = Rect{ .x =  0, .y =  0, .width =  4, .height =  2 }, .source = std::nullopt, .flip = Flip::NONE, .modulation = WHITE       },
   Blit{ .destination = Rect{ .x =  8, .y =  0, .width = 32, .height = 16 }, .source = std::nullopt, .flip = Flip::NONE, .modulation = WHITE       },
   Blit{ .destination = Rect{ .x =  8, .y = 16, .width = 32, .height = 16 }, .source = std::nullopt, .flip = Flip::BOTH, .modulation = WHITE       },
@@ -156,8 +157,8 @@ TEST(Display, CopiesARectangleAsItWasEvenOverlapping) {
 
 TEST(Display, ShowsAnIndexedImageInAPalette) {
   auto       headless{ OpenHeadless() };
-  auto const day{ assets::Colours(assets::FindPalette("main/day")->levels) };
-  auto const night{ assets::Colours(assets::FindPalette("main/night")->levels) };
+  auto const day{ assets::Colours(test::Needed(assets::FindPalette("main/day"), "main/day").levels) };
+  auto const night{ assets::Colours(test::Needed(assets::FindPalette("main/night"), "main/night").levels) };
   // A 16x4 image of every colour index, and its lower half masked out.
   auto const indices{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n % 16); }) | std::ranges::to<std::vector>() };
   auto const opaque{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n < 32 ? 1 : 0); }) | std::ranges::to<std::vector>() };
@@ -217,6 +218,8 @@ TEST(Display, CapturesTheFrameTintedAsPresented) {
   ExpectGolden(test::Crop(half, Size{ .width = 64, .height = 48 }), "fade-half");
   ExpectGolden(test::Crop(evening, Size{ .width = 64, .height = 48 }), "tint-evening");
   display.Present(Dimmed(WHITE, 0x80));
+}
+
 }
 
 }

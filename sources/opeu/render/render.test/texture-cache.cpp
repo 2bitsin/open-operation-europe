@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 namespace opeu::render::detail::texture_cache_test {
+namespace {
 
 using test::ExpectGolden;
 using test::OpenHeadless;
@@ -27,30 +28,30 @@ constexpr auto UNIT{ std::string_view{ "battle-unit/class-03/facing-1" } };
 }
 
 class TextureCaches : public testing::TestWithParam<PackUnderTest> {
-protected:
+public:
   [[nodiscard]] auto Cache(std::size_t const capacity) -> TextureCache {
-    return TextureCache{ _headless.display.Renderer(), _pack, capacity };
+    return TextureCache{ headless.display.Renderer(), pack, capacity };
   }
 
-  test::Headless _headless{ OpenHeadless() };
-  assets::Pack   _pack{ OpenSample(GetParam()) };
+  test::Headless headless{ OpenHeadless() };
+  assets::Pack   pack{ OpenSample(GetParam()) };
 };
 
 TEST_P(TextureCaches, BakeAnHourColouredTileInEachPalette) {
   auto       cache{ Cache(8) };
-  auto const day{ Shown(_headless.display, *cache.Fetch(Key(TILE, "main/day")).value()) };
-  auto const night{ Shown(_headless.display, *cache.Fetch(Key(TILE, "main/night")).value()) };
+  auto const day{ Shown(headless.display, *cache.Fetch(Key(TILE, "main/day")).value()) };
+  auto const night{ Shown(headless.display, *cache.Fetch(Key(TILE, "main/night")).value()) };
   EXPECT_NE(day, night);
-  EXPECT_EQ(day, Shown(_headless.display, *cache.Fetch(Key(TILE)).value())); // the pack's own image is the day's
+  EXPECT_EQ(day, Shown(headless.display, *cache.Fetch(Key(TILE)).value())); // the pack's own image is the day's
   ExpectGolden(day, GetParam(), "tile-day");
   ExpectGolden(night, GetParam(), "tile-night");
 }
 
 TEST_P(TextureCaches, ShowAnImageOnlyAssetAsThePackHoldsIt) {
   auto       cache{ Cache(8) };
-  auto const own{ Shown(_headless.display, *cache.Fetch(Key(PORTRAIT)).value()) };
-  EXPECT_EQ(own, Shown(_headless.display, *cache.Fetch(Key(PORTRAIT, "main/night")).value()));
-  EXPECT_EQ(own, _pack.Load(PORTRAIT)->texture);
+  auto const own{ Shown(headless.display, *cache.Fetch(Key(PORTRAIT)).value()) };
+  EXPECT_EQ(own, Shown(headless.display, *cache.Fetch(Key(PORTRAIT, "main/night")).value()));
+  EXPECT_EQ(own, pack.Load(PORTRAIT)->texture);
 }
 
 TEST_P(TextureCaches, CountHitsAndMisses) {
@@ -85,5 +86,7 @@ TEST_P(TextureCaches, ReportAnUnknownAssetOrPalette) {
 }
 
 INSTANTIATE_TEST_SUITE_P(Packs, TextureCaches, testing::ValuesIn(test::PACKS), test::PackName);
+
+}
 
 }

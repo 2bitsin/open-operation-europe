@@ -17,11 +17,11 @@
 namespace opeu::render::detail::scene {
 
 struct Sprite {
-  std::string                asset{};   // an asset id, or an animation's name when `frame` is given
-  std::optional<std::size_t> frame{};   //
-  std::string                palette{}; // the palette to bake it in; empty: the image as the pack holds it
+  std::string                asset;   // an asset id, or an animation's name when `frame` is given
+  std::optional<std::size_t> frame;   //
+  std::string                palette; // the palette to bake it in; empty: the image as the pack holds it
   Point                      at{};
-  std::optional<Size>        size{}; // stretched to it; empty: the asset's own size
+  std::optional<Size>        size; // stretched to it; empty: the asset's own size
   Flip                       flip{ Flip::NONE };
   Rgba                       modulation{ WHITE };
 
@@ -30,10 +30,10 @@ struct Sprite {
 
 // A grid of tiles drawn row by row from `at`: the map view's 24x24 cells, the overview's 8x8 ones.
 struct Tiles {
-  std::vector<std::string> assets{}; // row-major
+  std::vector<std::string> assets; // row-major
   std::size_t              columns{ 1 };
   Size                     cell{};
-  std::string              palette{}; // the hour's, for the maps
+  std::string              palette; // the hour's, for the maps
   Point                    at{};
 
   auto operator==(Tiles const&) const -> bool = default;

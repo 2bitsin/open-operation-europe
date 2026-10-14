@@ -17,10 +17,9 @@
 #include <vector>
 
 namespace opeu::render::detail::display_differential_test {
+namespace {
 
-using services::Area;
 using services::Corners;
-using services::Image;
 using test::ExpectSame;
 using test::Noise;
 using test::Outcome;
@@ -30,24 +29,20 @@ using test::StreamBytes;
 // ---- helpers ------------------------------------------------------------------------------------------------------
 
 [[nodiscard]] auto Levels(std::string_view const palette) -> std::vector<std::uint8_t> {
-  return assets::FindPalette(palette).value().levels | std::ranges::to<std::vector>();
+  return test::Needed(assets::FindPalette(palette), palette).levels | std::ranges::to<std::vector>();
 }
 
 auto Push(Outcome& outcome, bool const drawn) -> void {
   outcome.push_back(drawn ? 1 : 0);
 }
 
-auto Push(Outcome& outcome, std::span<std::uint8_t const> const bytes) -> void {
-  outcome.insert(outcome.end(), bytes.begin(), bytes.end());
-}
-
 // Graphics in the day colours over the whole game area painted with noise in every colour.
 auto BusyScreen(services::Display& display) -> void {
-  static auto const noise{ Noise(80uz * 400 * 4, 1) };
+  static auto const NOISE{ Noise<80uz * 400 * 4>(1) };
   display.EnterGraphics();
   display.ShowIdentityPalette();
   display.LoadPalette(0, Levels("main/day"));
-  std::ignore = display.DrawColumns({ .x = 0, .y = 0, .width = 80, .height = 400 }, { .mode = 0, .bytes = noise });
+  std::ignore = display.DrawColumns({ .x = 0, .y = 0, .width = 80, .height = 400 }, { .mode = 0, .bytes = NOISE });
 }
 
 // The same over a black screen.
@@ -57,7 +52,7 @@ auto QuietScreen(services::Display& display) -> void {
   display.LoadPalette(0, Levels("main/day"));
 }
 
-auto const IMAGE{ Noise(2048, 7) };
+constexpr auto IMAGE{ Noise<2048>(7) };
 
 // ---- the screen ---------------------------------------------------------------------------------------------------
 
@@ -96,7 +91,7 @@ TEST(DisplayDifferential, RecoloursWhatIsDrawnWhenThePaletteChanges) {
     return Outcome{};
   });
   ExpectSame([](services::Display& display) { // the start colours, then the identity map over a drawn screen
-    std::ignore = display.DrawColumns({ .x = 0, .y = 0, .width = 80, .height = 400 }, { .mode = 0, .bytes = Noise(80uz * 400 * 4, 3) });
+    std::ignore = display.DrawColumns({ .x = 0, .y = 0, .width = 80, .height = 400 }, { .mode = 0, .bytes = Noise<80uz * 400 * 4>(3) });
     display.ShowIdentityPalette();
     return Outcome{};
   });
@@ -109,7 +104,7 @@ TEST(DisplayDifferential, DrawsColumnImagesInEveryMode) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
     std::ranges::for_each(std::array<Word, 6>{ 0, 1, 2, 3, 4, 0x8000 }, [&](Word const mode) {
-      Push(outcome, display.DrawColumns({ .x = static_cast<Word>(3 + mode % 7 * 10), .y = 20, .width = 4, .height = 9 }, { .mode = mode, .bytes = IMAGE }));
+      Push(outcome, display.DrawColumns({ .x = static_cast<Word>(3 + (mode % 7 * 10)), .y = 20, .width = 4, .height = 9 }, { .mode = mode, .bytes = IMAGE }));
     });
     Push(outcome, display.DrawColumns({ .x = 79, .y = 0, .width = 2, .height = 1 }, { .mode = 0, .bytes = IMAGE }));  // past the right edge
     Push(outcome, display.DrawColumns({ .x = 0, .y = 395, .width = 2, .height = 6 }, { .mode = 0, .bytes = IMAGE })); // past the bottom
@@ -123,7 +118,7 @@ TEST(DisplayDifferential, DrawsThreeByteColumnImagesInEveryMode) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
     std::ranges::for_each(std::array<Word, 7>{ 0, 0x4000, 1, 2, 3, 4, 0x8000 }, [&](Word const mode) {
-      Push(outcome, display.DrawThreeByteColumns({ .x = static_cast<Word>(5 + (mode & 7) * 9 + (mode >> 14) * 3), .y = 30, .width = 3, .height = 8 }, { .mode = mode, .bytes = IMAGE }));
+      Push(outcome, display.DrawThreeByteColumns({ .x = static_cast<Word>(5 + ((mode & 7) * 9) + ((mode >> 14) * 3)), .y = 30, .width = 3, .height = 8 }, { .mode = mode, .bytes = IMAGE }));
     });
     Push(outcome, display.DrawThreeByteColumns({ .x = 0, .y = 0, .width = 3, .height = 8 }, { .mode = 0x4005, .bytes = IMAGE }));
     return outcome;
@@ -407,6 +402,8 @@ TEST(DisplayDifferential, ComposesSpritesOverTheScreen) {
     display.ComposeShiftedSprite({ .x = 403, .y = 150, .width = 40, .height = 26 }, sprite(0));
     return Outcome{};
   });
+}
+
 }
 
 }

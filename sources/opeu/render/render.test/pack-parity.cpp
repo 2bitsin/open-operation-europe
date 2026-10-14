@@ -15,6 +15,7 @@
 #include <vector>
 
 namespace opeu::render::detail::pack_parity_test {
+namespace {
 
 using test::OpenHeadless;
 
@@ -31,10 +32,15 @@ constexpr auto SHIPPED{ std::string_view{ "../opeu/assets.embed" } };
   return keys;
 }
 
+// The pack under test and the packs decoding the shipped files, compared.
+struct Compared {
+  assets::AssetPack const& built;
+  assets::AssetPack const& decoders;
+};
+
 class Parity {
 public:
-  Parity(Display& display, assets::AssetPack const& pack, assets::AssetPack const& decoders)
-      : _display{ display }, _built{ display.Renderer(), pack, 1 }, _decoded{ display.Renderer(), decoders, 1 } { }
+  Parity(Display& display, Compared const packs) : _display{ display }, _built{ display.Renderer(), packs.built, 1 }, _decoded{ display.Renderer(), packs.decoders, 1 } { }
 
   auto ExpectSame(TextureKey const& key) -> void {
     auto const built{ Shown(_built, key) };
@@ -68,13 +74,15 @@ TEST(PackParity, BakesEveryTextureOfThePackAsFromTheDecoders) {
   auto headless{ OpenHeadless() };
   headless.display.Begin();
   auto parity{
-    Parity{ headless.display, *pack, decoders }
+    Parity{ headless.display, Compared{ .built = *pack, .decoders = decoders } }
   };
   std::ranges::for_each(pack->Ids(), [&](std::string const& id) {
     auto const entry{ pack->Find(id) };
     ASSERT_TRUE(entry) << id;
     std::ranges::for_each(KeysOf(*entry), [&parity](TextureKey const& key) { parity.ExpectSame(key); });
   });
+}
+
 }
 
 }

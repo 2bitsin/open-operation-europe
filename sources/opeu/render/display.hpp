@@ -41,7 +41,7 @@ enum class Blending : std::uint8_t {
 // How a texture lands on the target.
 struct Blit {
   Rect                destination{};              // scaled to fit when its size is not the source's
-  std::optional<Rect> source{};                   // the whole texture when empty
+  std::optional<Rect> source;                     // the whole texture when empty
   Flip                flip{ Flip::NONE };         //
   Rgba                modulation{ WHITE };        // every pixel's colour and alpha are multiplied by it
   Blending            blending{ Blending::OVER }; //
@@ -67,27 +67,27 @@ public:
   // The frame as Present shows it, at 640x480: the headless PNG capture.
   [[nodiscard]] auto Capture(Rgba tint = WHITE) -> Rendered<assets::Texture>;
 
-  auto Clear(Rgba colour) -> void;
-  auto Fill(Rect area, Rgba colour) -> void;
-  auto Line(Point from, Point to, Rgba colour) -> void;
-  auto Plot(Point at, Rgba colour) -> void;
-  auto Plot(std::span<Point const> points, Rgba colour) -> void;
-  auto Draw(Texture const& texture, Blit const& blit) -> void;
+  auto Clear(Rgba colour) const -> void;
+  auto Fill(Rect area, Rgba colour) const -> void;
+  auto Line(Point from, Point to, Rgba colour) const -> void;
+  auto Plot(Point at, Rgba colour) const -> void;
+  auto Plot(std::span<Point const> points, Rgba colour) const -> void;
+  auto Draw(Texture const& texture, Blit const& blit) const -> void;
   // Drawing from now on changes only the pixels in `area` of the target, or any of them.
-  auto Clip(Rect area) -> void;
-  auto Unclip() -> void;
+  auto Clip(Rect area) const -> void;
+  auto Unclip() const -> void;
   // Carries out the drawing SDL has queued so far (Present, Read and a change of target do it anyway).
-  auto Flush() -> void;
+  auto Flush() const -> void;
 
   // A transparent texture to compose into, and the scope during which drawing goes into it.
   [[nodiscard]] auto CreateLayer(Size size) const -> Rendered<Texture>;
   [[nodiscard]] auto Into(Texture& layer) const -> Target;
 
-  [[nodiscard]] auto Take(Rect area) -> Rendered<Snapshot>;
-  auto               Restore(Snapshot const& snapshot) -> void;
+  [[nodiscard]] auto Take(Rect area) const -> Rendered<Snapshot>;
+  auto               Restore(Snapshot const& snapshot) const -> void;
   // The target's `source` rectangle drawn again with its top left corner at `destination`, as it was before the copy
   // even where the two overlap: a scroll, a block moved or repeated across the screen.
-  auto Copy(Rect source, Point destination) -> Rendered<void>;
+  auto Copy(Rect source, Point destination) const -> Rendered<void>;
   // The target's pixels in `area`, RGBA.
   [[nodiscard]] auto Read(Rect area) const -> Rendered<assets::Texture>;
 
@@ -100,7 +100,7 @@ private:
   Display(SDL_Renderer& renderer, Texture frame);
 
   auto ShowFrame(Rgba tint) -> void;
-  auto SetColour(Rgba colour) -> void;
+  auto SetColour(Rgba colour) const -> void;
 
   std::reference_wrapper<SDL_Renderer> _renderer;
   Texture                              _frame;

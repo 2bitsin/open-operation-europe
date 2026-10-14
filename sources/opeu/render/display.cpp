@@ -62,10 +62,10 @@ auto Modulate(Texture const& texture, Blit const& blit) -> void {
   return pixels;
 }
 
-}
-
 [[nodiscard]] auto ImageOf(SDL_Surface const& surface) -> assets::Texture {
   return assets::Texture{ static_cast<std::size_t>(surface.w), static_cast<std::size_t>(surface.h), PixelsOf(surface) };
+}
+
 }
 
 Display::Display(SDL_Renderer& renderer, Texture frame) : _renderer{ renderer }, _frame{ std::move(frame) } { }
@@ -102,50 +102,50 @@ auto Display::Capture(Rgba const tint) -> Rendered<assets::Texture> {
   return Read(LOGICAL_SCREEN);
 }
 
-auto Display::Clear(Rgba const colour) -> void {
+auto Display::Clear(Rgba const colour) const -> void {
   SetColour(colour);
   SDL_RenderClear(&Renderer());
 }
 
-auto Display::Fill(Rect const area, Rgba const colour) -> void {
+auto Display::Fill(Rect const area, Rgba const colour) const -> void {
   SetColour(colour);
   auto const rect{ ToSdl(area) };
   SDL_RenderFillRect(&Renderer(), &rect);
 }
 
-auto Display::Line(Point const from, Point const to, Rgba const colour) -> void {
+auto Display::Line(Point const from, Point const to, Rgba const colour) const -> void {
   SetColour(colour);
   SDL_RenderLine(&Renderer(), static_cast<float>(from.x), static_cast<float>(from.y), static_cast<float>(to.x), static_cast<float>(to.y));
 }
 
-auto Display::Plot(Point const at, Rgba const colour) -> void {
+auto Display::Plot(Point const at, Rgba const colour) const -> void {
   SetColour(colour);
   SDL_RenderPoint(&Renderer(), static_cast<float>(at.x), static_cast<float>(at.y));
 }
 
-auto Display::Plot(std::span<Point const> const points, Rgba const colour) -> void {
+auto Display::Plot(std::span<Point const> const points, Rgba const colour) const -> void {
   SetColour(colour);
   auto const placed{ points | std::views::transform([](Point const at) { return SDL_FPoint{ .x = static_cast<float>(at.x), .y = static_cast<float>(at.y) }; }) | std::ranges::to<std::vector>() };
   SDL_RenderPoints(&Renderer(), placed.data(), static_cast<int>(placed.size()));
 }
 
-auto Display::Draw(Texture const& texture, Blit const& blit) -> void {
+auto Display::Draw(Texture const& texture, Blit const& blit) const -> void {
   Modulate(texture, blit);
   auto const destination{ ToSdl(blit.destination) };
   auto const source{ ToSdl(blit.source.value_or(texture.Whole())) };
   SDL_RenderTextureRotated(&Renderer(), &texture.Handle(), &source, &destination, 0.0, nullptr, ToSdl(blit.flip));
 }
 
-auto Display::Clip(Rect const area) -> void {
+auto Display::Clip(Rect const area) const -> void {
   auto const rect{ ToSdlPixels(area) };
   SDL_SetRenderClipRect(&Renderer(), &rect);
 }
 
-auto Display::Unclip() -> void {
+auto Display::Unclip() const -> void {
   SDL_SetRenderClipRect(&Renderer(), nullptr);
 }
 
-auto Display::Flush() -> void {
+auto Display::Flush() const -> void {
   SDL_FlushRenderer(&Renderer());
 }
 
@@ -157,7 +157,7 @@ auto Display::Into(Texture& layer) const -> Target {
   return Target{ Renderer(), layer };
 }
 
-auto Display::Take(Rect const area) -> Rendered<Snapshot> {
+auto Display::Take(Rect const area) const -> Rendered<Snapshot> {
   auto* const source{ SDL_GetRenderTarget(&Renderer()) };
   if (source == nullptr) return Failed("a snapshot is taken of the frame or a layer, not of the window");
   auto pixels{ Texture::Target(Renderer(), Dimensions(area)) };
@@ -175,11 +175,11 @@ auto Display::Take(Rect const area) -> Rendered<Snapshot> {
   return Snapshot{ .pixels = *std::move(pixels), .area = area };
 }
 
-auto Display::Restore(Snapshot const& snapshot) -> void {
+auto Display::Restore(Snapshot const& snapshot) const -> void {
   Draw(snapshot.pixels, Blit{ .destination = snapshot.area });
 }
 
-auto Display::Copy(Rect const source, Point const destination) -> Rendered<void> {
+auto Display::Copy(Rect const source, Point const destination) const -> Rendered<void> {
   auto const taken{ Take(source) };
   if (!taken) return std::unexpected{ taken.error() };
   Draw(taken->pixels, Blit{ .destination = At(destination, Dimensions(source)) });
@@ -205,7 +205,7 @@ auto Display::ShowFrame(Rgba const tint) -> void {
 }
 
 // An opaque colour replaces what is there, which is what blending it gives too, only faster.
-auto Display::SetColour(Rgba const colour) -> void {
+auto Display::SetColour(Rgba const colour) const -> void {
   SDL_SetRenderDrawColor(&Renderer(), colour.r, colour.g, colour.b, colour.a);
   SDL_SetRenderDrawBlendMode(&Renderer(), colour.a == 0xFF ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
 }

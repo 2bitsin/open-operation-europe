@@ -1,9 +1,10 @@
 #pragma once
 // The differential proof of RenderDisplay: the same script of services::Display calls through the native adapter
 // (the indexed Canvas, observed as VgalibRender's frame in its palette, as the services tests observe it) and through
-// RenderDisplay (its frame read back from the render target), the frames compared pixel by pixel in RGBA and the
-// scripts' outcomes (return values, bytes composed in the game's memory) compared byte by byte. What a save leaves in
-// the game's memory is the Display's own (bytes or a handle); the scripts prove it by putting it back.
+// RenderDisplay (its frame as Capture colours it on the CPU), the frames compared pixel by pixel in RGBA and the
+// scripts' outcomes (return values, bytes composed in the game's memory) compared byte by byte. RenderDisplay draws
+// through the native display it composes, so the proof is that it forwards every call unchanged and colours the frame
+// as the pump does; what it adds, the source layer, has its own tests (source-layer.cpp).
 
 #include "headless.hpp"
 
@@ -45,7 +46,7 @@ public:
   }
   // The bytes the game draws an asset from: its record in its file, `count` bytes of it.
   [[nodiscard]] auto Record(std::string_view const id, std::size_t const count) const -> std::vector<std::uint8_t> {
-    auto const asset{ _catalogue.Find(id).value() };
+    auto const asset{ Needed(_catalogue.Find(id), id) };
     auto const file{ _catalogue.File(asset.file).value() };
     return file.subspan(asset.at, count) | std::views::transform([](std::byte const byte) { return std::to_integer<std::uint8_t>(byte); }) | std::ranges::to<std::vector>();
   }
@@ -62,13 +63,13 @@ private:
 };
 
 [[nodiscard]] inline auto Shipped() -> ShippedAssets const& {
-  static auto const shipped{ std::make_unique<ShippedAssets const>() };
-  return *shipped;
+  static auto const SHIPPED{ std::make_unique<ShippedAssets const>() };
+  return *SHIPPED;
 }
 
 [[nodiscard]] inline auto ClassicSample() -> assets::Pack const& {
-  static auto const pack{ std::make_unique<assets::Pack const>(OpenSample(CLASSIC)) };
-  return *pack;
+  static auto const PACK{ std::make_unique<assets::Pack const>(OpenSample(CLASSIC)) };
+  return *PACK;
 }
 
 // What a script leaves besides the frame: the calls' results and the bytes it saved, in order.
@@ -100,10 +101,11 @@ struct Run {
   return Run{ .frame = NativeFrame(), .outcome = std::move(outcome) };
 }
 
-// The script through a fresh RenderDisplay on the software renderer over the classic sample.
+// The script through a fresh RenderDisplay over the classic sample, the Canvas in its start state.
 class Rendered {
 public:
   Rendered() : _host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() } {
+    vgalib_init(); // the Canvas both adapters draw on, from its start state
     _display = std::make_unique<RenderDisplay>(Display::Open(_host.Renderer()).value(), ClassicSample(), Shipped().Index());
   }
 
@@ -123,7 +125,7 @@ private:
 // The pixels that differ, and the first of them said.
 struct Difference {
   std::size_t pixels{};
-  std::string first{};
+  std::string first;
 };
 
 [[nodiscard]] inline auto Compare(assets::Texture const& native, assets::Texture const& rendered) -> Difference {
@@ -157,14 +159,16 @@ inline auto ExpectSame(Script const& script) -> RenderedRun {
   return RenderedRun{ .frame = std::move(run.frame), .statistics = rendered.Screen().Statistics() };
 }
 
-// Bytes of every value, from a seed: images in any format.
-[[nodiscard]] inline auto Noise(std::size_t const count, std::uint32_t const seed) -> std::vector<std::uint8_t> {
+// `_Count` bytes of every value, from a seed: images in any format.
+template <std::size_t _Count>
+[[nodiscard]] constexpr auto Noise(std::uint32_t const seed) -> std::array<std::uint8_t, _Count> {
+  auto bytes{ std::array<std::uint8_t, _Count>{} };
   auto state{ seed };
-  return std::views::iota(0uz, count) | std::views::transform([&state](std::size_t) {
-           state = state * 1664525U + 1013904223U;
-           return static_cast<std::uint8_t>(state >> 24);
-         })
-         | std::ranges::to<std::vector>();
+  std::ranges::generate(bytes, [&state] {
+    state = (state * 1664525U) + 1013904223U;
+    return static_cast<std::uint8_t>(state >> 24);
+  });
+  return bytes;
 }
 
 // A picture stream as the game hands it over: a reader of its bytes, which counts what it was asked for (0 past the

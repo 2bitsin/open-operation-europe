@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdlib>
 #include <format>
 #include <ranges>
 #include <string>
@@ -93,7 +92,8 @@ auto AddText(Scene& scene, assets::PaletteColours const& day) -> void {
 // Full brightness at frame 0, a quarter halfway through the period, full again at its end.
 [[nodiscard]] auto FadeLevel(std::size_t const frame) -> std::uint8_t {
   auto const half{ static_cast<int>(FADE_PERIOD / 2) };
-  auto const distance{ std::abs(static_cast<int>(frame % FADE_PERIOD) - half) };
+  auto const offset{ static_cast<int>(frame % FADE_PERIOD) - half };
+  auto const distance{ std::max(offset, -offset) };
   return static_cast<std::uint8_t>(0x40 + (distance * 0xBF / half));
 }
 

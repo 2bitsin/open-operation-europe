@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <utility>
 
 namespace opeu::services::detail::kept_handles {
@@ -36,6 +37,10 @@ public:
     auto const found{ _kept.find(id) };
     if (found == _kept.end()) return std::nullopt;
     return std::cref(found->second);
+  }
+  // Every value kept, oldest first.
+  [[nodiscard]] auto Values() const {
+    return _kept | std::views::values;
   }
   // The value of `id`, no longer kept; none when it was not.
   [[nodiscard]] auto Release(_Id const id) -> std::optional<_Value> {
