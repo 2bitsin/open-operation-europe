@@ -142,7 +142,7 @@ auto Sound::Peek(FarAddress const at) -> std::uint8_t {
   auto const arena{
     std::span{ port_arena, PORT_ARENA_SIZE }
   };
-  auto const linear{ std::uint32_t{ at.segment } * 16u + at.offset };
+  auto const linear{ (std::uint32_t{ at.segment } * 16u) + at.offset };
   return linear < arena.size() ? arena[linear] : std::uint8_t{ 0xFF };
 }
 

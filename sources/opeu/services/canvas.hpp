@@ -31,7 +31,7 @@ using Offset = std::int64_t;
 inline constexpr Offset STORED{ Offset{ 1 } << 19 };
 
 [[nodiscard]] constexpr auto At(std::int64_t x, std::int64_t line) noexcept -> Offset {
-  return line * WIDTH + x;
+  return (line * WIDTH) + x;
 }
 
 // The offset of pixel x on the game's line y.

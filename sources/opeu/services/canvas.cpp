@@ -111,7 +111,7 @@ constexpr std::array<std::uint8_t, COLOURS> START_COLOUR_MAP{ 0x00, 0x01, 0x02, 
 
 // The first pixel of picture unit `unit` (4 pixels, 160 per line from game line 0).
 [[nodiscard]] constexpr auto UnitAt(std::uint16_t unit) noexcept -> Offset {
-  return GameAt(0, 0) + Offset{ unit } * 4;
+  return GameAt(0, 0) + (Offset{ unit } * 4);
 }
 
 [[nodiscard]] auto ReadWord(ByteReader const& read) -> std::uint16_t {
@@ -138,7 +138,7 @@ auto Canvas::Reset(bool shown) noexcept -> void {
   _colour_map = START_COLOUR_MAP;
   _palette.fill(0);
   for (auto const entry : std::views::iota(0, 64)) {
-    auto const level{ [entry](int high, int low) { return static_cast<std::uint8_t>(((entry >> high) & 1) * 0x2A + ((entry >> low) & 1) * 0x15); } };
+    auto const level{ [entry](int high, int low) { return static_cast<std::uint8_t>((((entry >> high) & 1) * 0x2A) + (((entry >> low) & 1) * 0x15)); } };
     SetPaletteEntry(static_cast<std::uint8_t>(entry), level(2, 5), level(1, 4), level(0, 3));
   }
   _shown   = shown;
@@ -194,7 +194,7 @@ auto Canvas::EachOctet(Offset at, std::size_t count, _Next next) noexcept -> voi
   if (auto const run{ Run(at, static_cast<std::int64_t>(count * 8)) }; run.size() == count * 8)
     for (auto const [i, octet] : std::views::zip(std::views::iota(0uz), Octets(run))) Set(octet, next(i, Get(octet)));
   else
-    for (auto const i : std::views::iota(0uz, count)) Store(at + Offset(i) * 8, next(i, Load(at + Offset(i) * 8)));
+    for (auto const i : std::views::iota(0uz, count)) Store(at + (Offset(i) * 8), next(i, Load(at + (Offset(i) * 8))));
   _changed = true;
 }
 
@@ -288,9 +288,9 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
   auto const op{ mode & (planes == 4 ? 0x7FFF : 0x3FFF) };
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op > 4) return std::unexpected{ DrawError::BAD_MODE };
-  auto const passes{ (op == 0 && (mode & 0x8000)) ? 2 : 1 };
+  auto const passes{ (op == 0 && ((mode & 0x8000) != 0)) ? 2 : 1 };
   auto const unstored{ planes == 3 ? Solid(0x08) : 0 }; // colour bit 3 when the image does not hold it
-  auto const fill{ (op == 0 && (mode & 0x4000) && planes == 3) ? Solid(0x08) : 0 };
+  auto const fill{ (op == 0 && ((mode & 0x4000) != 0) && planes == 3) ? Solid(0x08) : 0 };
   // One pass over the image per mode, so the mode is chosen once per call.
   auto const rows{ [&]<std::size_t PLANES>(auto apply) {
     auto line{ y + GAME_TOP };
@@ -323,7 +323,7 @@ auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::ui
   auto const op{ static_cast<std::uint8_t>((mode & 0x7FFF) >> 8) };
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op != 0) SelectPen(op == 4 ? 0 : op, static_cast<std::uint8_t>(mode));
-  auto const passes{ (mode & 0x8000) ? 2 : 1 };
+  auto const passes{ ((mode & 0x8000) != 0) ? 2 : 1 };
   auto       line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w))
     for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
@@ -357,7 +357,7 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
   SelectPen(op, static_cast<std::uint8_t>(mode));
   auto const bytes{ ((w - 1uz) >> 3) + 1 };
   auto const shift{ x & 7 };
-  auto const columns{ bytes + (shift ? 1 : 0) };
+  auto const columns{ bytes + ((shift != 0) ? 1 : 0) };
   auto       line{ y };
   for (auto const source : Chunks(bits.first(bytes * h), bytes)) {
     // The row framed by the outside bits; each drawn byte straddles two neighbours.
@@ -367,7 +367,7 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
     framed[bytes + 1] = outside;
     auto const base{ GameAt(x & ~7, line) };
     for (auto const [column, left, right] : std::views::zip(std::views::iota(0), framed, framed | std::views::drop(1)) | std::views::take(columns))
-      PenBits(base + column * 8, static_cast<std::uint8_t>((left << 8 | right) >> shift));
+      PenBits(base + (column * 8), static_cast<std::uint8_t>((left << 8 | right) >> shift));
     line++;
   }
   return {};
@@ -380,7 +380,7 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
 auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t const> image) noexcept -> void {
   auto const shift{ x & 7 };
   auto const columns{ static_cast<std::uint16_t>(w - 1) + 1uz };
-  auto const rows{ h ? std::size_t{ h } : 0x10000uz };
+  auto const rows{ (h != 0u) ? std::size_t{ h } : 0x10000uz };
   auto const shifted{ [shift](std::uint64_t previous, std::uint64_t current) { return shift ? current << (8 * shift) | previous >> (8 * (8 - shift)) : current; } };
   auto       line{ y };
   for (auto const source : Chunks(image.first(columns * rows * 4), columns * 4)) {
@@ -389,11 +389,11 @@ auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t 
     std::uint64_t previous{};
     for (auto const [column, bits] : std::views::zip(std::views::iota(0), FixedChunks<4>(source))) {
       auto const pixels{ shifted(previous, Colours(bits)) };
-      Store(base + column * 8, Select(NonZero(pixels), pixels, first));
+      Store(base + (column * 8), Select(NonZero(pixels), pixels, first));
       previous = Colours(bits);
     }
-    if (shift) {
-      auto const at{ base + static_cast<Offset>(columns) * 8 };
+    if (shift != 0) {
+      auto const at{ base + (static_cast<Offset>(columns) * 8) };
       auto const pixels{ shifted(previous, 0) };
       Store(at, Select(NonZero(pixels), pixels, Load(at)));
     }
@@ -403,7 +403,7 @@ auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t 
 
 // The column rectangle in the 4-byte-column format, unclipped; w = 0 or h = 0 saves nothing.
 auto Canvas::SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::span<std::uint8_t> image) const noexcept -> void {
-  if (!w || !h) return;
+  if ((w == 0u) || (h == 0u)) return;
   auto line{ y };
   for (auto const target : Chunks(image.first(std::size_t{ w } * h * 4), std::size_t{ w } * 4)) {
     for (auto const [column, bits] : std::views::zip(std::views::iota(int{ x }), Chunks(target, 4))) std::ranges::copy(Column(GameAt(column * 8, line)), bits.begin());
@@ -450,7 +450,7 @@ auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
     auto const at{ At((x1 >> 3) * 8, line) };
     masked(at, left);
     EachOctet(at + 8, middle, [colour](std::size_t, std::uint64_t) { return Solid(colour); });
-    masked(at + 8 + middle * 8, right);
+    masked(at + 8 + (middle * 8), right);
     line++;
   }
 }
@@ -465,10 +465,10 @@ auto Canvas::PlotPatterned(std::uint16_t x, std::uint16_t y, std::uint16_t word,
   auto const pattern{ static_cast<std::uint8_t>(word >> 8) };
   if (y >= GAME_LINES || x >= WIDTH) return;
   auto on{ true };
-  if (pattern) {
+  if (pattern != 0u) {
     auto const bit{ 0x80 >> pattern_bit };
     pattern_bit = static_cast<std::uint8_t>((pattern_bit + 1) & 7);
-    if (!(bit & pattern)) {
+    if ((bit & pattern) == 0) {
       colour &= 0xF0;
       on      = false;
     }
@@ -496,13 +496,17 @@ auto Canvas::Plot(std::uint16_t x, std::uint16_t y, std::uint16_t colour) noexce
 auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uint16_t y2, std::uint16_t colour) noexcept -> void {
   auto const   dx{ Abs16(static_cast<std::uint16_t>(x2 - x1)) };
   auto const   dy{ Abs16(static_cast<std::uint16_t>(y2 - y1)) };
-  auto const   sx1{ static_cast<std::int16_t>(x1) }, sx2{ static_cast<std::int16_t>(x2) };
-  auto const   sy1{ static_cast<std::int16_t>(y1) }, sy2{ static_cast<std::int16_t>(y2) };
+  auto const   sx1{ static_cast<std::int16_t>(x1) };
+  auto const   sx2{ static_cast<std::int16_t>(x2) };
+  auto const   sy1{ static_cast<std::int16_t>(y1) };
+  auto const   sy2{ static_cast<std::int16_t>(y2) };
   auto const   step{ ((sx1 < sx2 && sy2 > sy1) || (sx1 > sx2 && sy2 < sy1)) ? 1 : -1 };
   auto const   x_major{ dx >= dy };
-  auto const   major{ x_major ? dx : dy }, minor{ x_major ? dy : dx };
+  auto const   major{ x_major ? dx : dy };
+  auto const   minor{ x_major ? dy : dx };
   auto const   from_first{ x_major ? x1 < x2 : y1 < y2 };
-  auto         x{ from_first ? x1 : x2 }, y{ from_first ? y1 : y2 };
+  auto         x{ from_first ? x1 : x2 };
+  auto         y{ from_first ? y1 : y2 };
   auto         error{ static_cast<std::uint16_t>(major >> 1) };
   auto&        along{ x_major ? x : y };
   auto&        across{ x_major ? y : x };
@@ -524,14 +528,14 @@ auto Canvas::Line(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
 // Column by column (80 per screen line); when the destination is not before the source, from the last column
 // backwards, so an overlapping copy moves the block intact. Unclipped; h = 0 copies 65536 rows.
 auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, std::uint16_t h, std::uint16_t x2, std::uint16_t y2) noexcept -> void {
-  auto const from{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y1 + GAME_TOP) * 80u + x1) };
-  auto const to{ static_cast<std::uint16_t>(static_cast<std::uint16_t>(y2 + GAME_TOP) * 80u + x2) };
+  auto const from{ static_cast<std::uint16_t>((static_cast<std::uint16_t>(y1 + GAME_TOP) * 80u) + x1) };
+  auto const to{ static_cast<std::uint16_t>((static_cast<std::uint16_t>(y2 + GAME_TOP) * 80u) + x2) };
   // Column by column in one direction at a constant distance: memmove of each row, the rows in the same direction.
   auto const row{ [&](int r) {
-    auto const at{ [r](std::uint16_t start) { return Offset{ static_cast<std::uint16_t>(start + r * 80) } * 8; } };
+    auto const at{ [r](std::uint16_t start) { return Offset{ static_cast<std::uint16_t>(start + (r * 80)) } * 8; } };
     Move(at(to), at(from), w * 8);
   } };
-  auto const rows{ std::views::iota(0, h ? int{ h } : 0x10000) };
+  auto const rows{ std::views::iota(0, (h != 0u) ? int{ h } : 0x10000) };
   if (to < from)
     std::ranges::for_each(rows, row);
   else
@@ -550,7 +554,7 @@ auto Canvas::PutUnit(std::uint16_t unit, std::uint16_t value) noexcept -> void {
 auto Canvas::MaskedLiteral(std::uint8_t command, ByteReader const& read) const noexcept -> std::uint16_t {
   auto const kind{ static_cast<std::uint8_t>(command & 0x78) };
   if (kind == 0) return 0;
-  if (kind & 0x40) return _picture_runs[(kind >> 3) & 7];
+  if ((kind & 0x40) != 0) return _picture_runs[(kind >> 3) & 7];
   if (kind == 0x38) {
     std::uint16_t const high{ read() };
     return static_cast<std::uint16_t>(high << 8 | read());
@@ -588,18 +592,18 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader const& r
   auto const units{ static_cast<std::uint16_t>((width + 3) >> 2) };
   if (masked) std::ranges::generate(_picture_runs, [&read] { return ReadWord(read); });
   for (auto const row : std::views::iota(0, int{ height })) {
-    auto unit{ static_cast<std::uint16_t>((x >> 2) + (y + row) * 160u) };
+    auto unit{ static_cast<std::uint16_t>((x >> 2) + ((y + row) * 160u)) };
     // Commands until the row's units are covered; the decoder cannot know a command's length before reading it.
     for (auto left{ int{ units } }; left > 0;) {
       auto const    command{ read() };
       std::uint16_t n{};
-      if (!(command & 0x80)) {
+      if ((command & 0x80) == 0) {
         n = static_cast<std::uint16_t>(masked ? (command & 7) + 1 : ((command >> 4) & 7) + 1);
         auto const value{ masked ? MaskedLiteral(command, read) : static_cast<std::uint16_t>((command & 0x0F) << 8 | read()) };
         for (auto const i : std::views::iota(0, int{ n })) PutUnit(static_cast<std::uint16_t>(unit + i), value);
       } else {
         auto back{ static_cast<std::uint16_t>(((command & 0x30) >> 4) + 1) };
-        if (command & 0x40) back = static_cast<std::uint16_t>(back * 160u);
+        if ((command & 0x40) != 0) back = static_cast<std::uint16_t>(back * 160u);
         n = static_cast<std::uint16_t>((command & 0x0F) + 1);
         // Unit by unit from the start, so a copy that overlaps its source repeats it.
         auto const from{ UnitAt(static_cast<std::uint16_t>(unit - back)) };

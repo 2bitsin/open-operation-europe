@@ -234,7 +234,7 @@ auto BendUp(std::uint16_t const frequency, std::uint16_t const bend, std::uint16
   auto const shifts{ std::max(0, std::bit_width(value) - 10) };
   auto const room{ (0x1C00 - block) / 0x400 };
   if (shifts > room) return 0x1C00 | 0x3FF;
-  return Low16((value >> shifts) | (block + shifts * 0x400));
+  return Low16((value >> shifts) | (block + (shifts * 0x400)));
 }
 
 // [11d5] downwards: f * 7FFFh / (7FFFh + |bend| * depth / 7FFFh); numerator and divisor halved when the divisor
@@ -353,7 +353,7 @@ auto FmDriver::WriteOperatorLevel(Voice& v, std::size_t const which, std::uint8_
   auto const value{ Low8((~remaining & 0x3F) | (old & 0xC0)) };
   if (value == old) return;
   v.ksl_tl[which] = value;
-  Opl(Low8(0x40 + v.opl_operator + 3 * which), value);
+  Opl(Low8(0x40 + v.opl_operator + (3 * which)), value);
 }
 
 // [08c2] WriteFrequency: A0h/B0h+channel when the block/F-number changed; the KEY-ON bit is kept.

@@ -41,7 +41,7 @@ constexpr auto Steps(std::uint16_t count) {
 
 // Column x (8 pixels) of game line y as a 16-bit column number, 80 per line.
 auto ScreenColumn(Point at) -> std::uint16_t {
-  return Wrap(Wrap(at.y + std::uint32_t{ canvas::GAME_TOP }) * LINE_COLUMNS + at.x);
+  return Wrap((Wrap(at.y + std::uint32_t{ canvas::GAME_TOP }) * LINE_COLUMNS) + at.x);
 }
 
 auto ColumnOffset(std::uint16_t column) -> Offset {
@@ -54,7 +54,7 @@ auto SaveScreenRectangle(Area const area, FarBytes const destination) -> void {
   std::uint16_t near{ destination.offset };
   std::ranges::for_each(Steps(area.height), [&](std::uint32_t const row) {
     std::ranges::for_each(Steps(area.width), [&](std::uint32_t const column) {
-      auto const screen{ Wrap(start + row * LINE_COLUMNS + column) };
+      auto const screen{ Wrap(start + (row * LINE_COLUMNS) + column) };
       std::ranges::for_each(PLANES, [&](int const plane) {
         destination.segment[near] = Screen().PlaneBits(ColumnOffset(screen), plane);
         near                      = Wrap(near + 1u);
@@ -78,10 +78,10 @@ auto OrIntoBuffer(SavedRectangle const target, FarBytes const sprite) -> void {
 auto AndWithMask(SavedRectangle const target, FarBytes const mask) -> void {
   auto const pairs{ std::uint64_t{ LoopCount(target.height) } * LoopCount(static_cast<std::uint16_t>(target.width >> 1)) };
   std::ranges::for_each(std::views::iota(std::uint64_t{ 0 }, pairs), [&](std::uint64_t const pair) {
-    auto const mask_near{ Wrap(static_cast<std::uint32_t>(mask.offset + pair * 2)) };
+    auto const mask_near{ Wrap(static_cast<std::uint32_t>(mask.offset + (pair * 2))) };
     auto const even{ mask.segment[mask_near] };
     auto const odd{ mask.segment[Wrap(mask_near + 1u)] };
-    auto const first{ Wrap(static_cast<std::uint32_t>(target.bytes.offset + pair * 8)) };
+    auto const first{ Wrap(static_cast<std::uint32_t>(target.bytes.offset + (pair * 8))) };
     std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, std::uint32_t{ 8 }), [&](std::uint32_t const byte) { target.bytes.segment[Wrap(first + byte)] &= (byte & 1u) != 0 ? odd : even; });
   });
 }
@@ -92,8 +92,8 @@ auto DissolveStep(Point const at, FarBytes const source, std::uint16_t const pat
     auto const shown{ std::rotl(pattern, static_cast<int>(row % 16)) }; // the mask rotates left by one per row
     std::ranges::for_each(PLANES, [&](int const plane) {
       std::ranges::for_each(std::views::iota(std::uint32_t{ 0 }, DISSOLVE_PAIRS), [&](std::uint32_t const pair) {
-        auto const screen{ Wrap(start + row * LINE_COLUMNS + pair * 2) };
-        auto const near{ Wrap(source.offset + row * DISSOLVE_STRIDE + static_cast<std::uint32_t>(plane) + pair * 8) };
+        auto const screen{ Wrap(start + (row * LINE_COLUMNS) + (pair * 2)) };
+        auto const near{ Wrap(source.offset + (row * DISSOLVE_STRIDE) + static_cast<std::uint32_t>(plane) + (pair * 8)) };
         auto const picture{ static_cast<std::uint16_t>(source.segment[near] << 8 | source.segment[Wrap(near + 4u)]) };
         auto const kept{ static_cast<std::uint16_t>(Screen().PlaneBits(ColumnOffset(screen), DISSOLVE_BIT) << 8 | Screen().PlaneBits(ColumnOffset(Wrap(screen + 1u)), DISSOLVE_BIT)) };
         auto const bits{ static_cast<std::uint16_t>((picture & shown) | (kept & static_cast<std::uint16_t>(~shown))) };

@@ -21,7 +21,7 @@ constexpr auto PIT_HZ{ std::uint64_t{ 1'193'182 } };
   auto const        now{ std::time(nullptr) };
   auto const* const local{ std::localtime(&now) };
   if (local == nullptr) return std::nullopt;
-  return static_cast<std::uint64_t>(local->tm_hour * 3600 + local->tm_min * 60 + local->tm_sec);
+  return static_cast<std::uint64_t>((local->tm_hour * 3600) + (local->tm_min * 60) + local->tm_sec);
 }
 
 // MS C's console read (getch) over the BIOS keyboard: a key with ASCII 0 returns 0 now and its scan code on the next call.
@@ -53,9 +53,9 @@ auto TheGetch() -> Getch& {
 auto port_clock_ticks_low() -> uint16_t {
   using namespace opeu::services::detail::clock;
   auto       us{ port_time_us() };
-  auto const seconds{ port_options.headless ? std::nullopt : LocalSecondsOfDay() };
-  if (seconds) us = *seconds * US_PER_SECOND + us % US_PER_SECOND;
-  auto const ticks{ static_cast<std::uint32_t>(us * PIT_HZ / 65536 / US_PER_SECOND & 0xFFFF) };
+  auto const seconds{ (port_options.headless != 0) ? std::nullopt : LocalSecondsOfDay() };
+  if (seconds) us = (*seconds * US_PER_SECOND) + (us % US_PER_SECOND);
+  auto const ticks{ static_cast<std::uint32_t>((us * PIT_HZ / 65536 / US_PER_SECOND) & 0xFFFF) };
   port_trace("svc", "int1a ticks -> %04" PRIx32, ticks);
   return static_cast<std::uint16_t>(ticks);
 }

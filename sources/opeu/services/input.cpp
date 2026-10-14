@@ -175,7 +175,7 @@ private:
       auto const x{ _x + column };
       auto const mark{ line[static_cast<std::size_t>(column)] };
       if (x < 0 || x >= 640 || mark == ' ') return;
-      frame[static_cast<std::size_t>(y * 640 + x)] = mark == '#' ? POINTER_BLACK : POINTER_WHITE;
+      frame[static_cast<std::size_t>((y * 640) + x)] = mark == '#' ? POINTER_BLACK : POINTER_WHITE;
     });
   }
 
