@@ -9,8 +9,8 @@
 //
 // In the browser (docs/port.md "The browser build") the game's waits are polling loops that never return to a main
 // loop, so the build uses ASYNCIFY (or JSPI) and this backend hands control back to the browser at exactly two places,
-// both marked __EMSCRIPTEN__: after each presented frame (so the canvas is shown and input events are delivered) and
-// in SleepMs (the pump's idle sleep). SDL's own automatic emscripten_sleep() calls are switched off, so these are the
+// both in target.emscripten.cpp: after each presented frame (so the canvas is shown and input events are delivered)
+// and in SleepMs (the pump's idle sleep). SDL's own automatic emscripten_sleep() calls are switched off, so these are the
 // only yields. The page's CSS sizes the canvas to an integer multiple of the frame in device pixels (shell.html); SDL
 // follows that size on window resize events and, with SDL_WINDOW_HIGH_PIXEL_DENSITY, gives the canvas that many
 // device pixels, so the renderer's integer scaling applies there too. The browser blanks a canvas whose size changes,
@@ -19,14 +19,12 @@
 #include "opeu/platform/platform.hpp"
 
 #include "opeu/platform/sdl3/handles.hpp"
+#include "opeu/platform/sdl3/target.hpp"
 
 #include <SDL3/SDL.h>
 // The headless --png writer: stb_image_write (conan stb), implemented here, its only user (platform/configure.py
 // defines STB_IMAGE_WRITE_IMPLEMENTATION for this file).
 #include <stb_image_write.h>
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
 
 #include <algorithm>
 #include <array>
@@ -367,12 +365,7 @@ auto Backend::Init(PlatConfig const& config) -> int {
 auto Backend::OpenWindow(PlatConfig const& config, int const width, int const height, int const scale) -> int {
   auto const title{ std::string{ config.title.empty() ? DEFAULT_TITLE : config.title } };
   SDL_SetAppMetadata(title.c_str(), nullptr, nullptr);
-#ifdef __EMSCRIPTEN__
-  // Keys go to the canvas (focused by the page's click-to-start), and only this backend yields to the browser (see the
-  // file comment).
-  SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
-  SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
-#endif
+  target::PrepareHints();
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
     std::println(stderr, "plat_init: SDL_Init(video): {}", SDL_GetError());
     return -1;
@@ -384,16 +377,8 @@ auto Backend::OpenWindow(PlatConfig const& config, int const width, int const he
   else
     std::println(stderr, "plat_init: no audio: {}", SDL_GetError());
 
-  SDL_WindowFlags window_flags{ SDL_WINDOW_RESIZABLE };
+  SDL_WindowFlags window_flags{ SDL_WINDOW_RESIZABLE | target::ExtraWindowFlags() };
   if (config.fullscreen != 0) window_flags |= SDL_WINDOW_FULLSCREEN;
-#ifdef __EMSCRIPTEN__
-  // The canvas gets CSS size x devicePixelRatio pixels. Without this the backing store is CSS pixels: on a 2x or 3x
-  // display the page's integer multiple of 640x480 device pixels is then a fraction of the frame, and the integer-scale
-  // presentation crops it. The WebGL renderer needs an OpenGL window; given the flag up front, it does not recreate the
-  // window, which would leave the canvas's CSS size at 1px (SDL's destroy) and make the new window ignore the page's
-  // size.
-  window_flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
-#endif
   SDL_Window*   window{ nullptr };
   SDL_Renderer* renderer{ nullptr };
   auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), width * scale, height * scale, window_flags, &window, &renderer) };
@@ -406,9 +391,7 @@ auto Backend::OpenWindow(PlatConfig const& config, int const width, int const he
     SDL_Quit();
     return -1;
   }
-#ifndef __EMSCRIPTEN__
-  SDL_SetRenderVSync(_renderer.get(), 1);
-#endif
+  target::PaceFrames(*_renderer);
   SDL_SetRenderLogicalPresentation(_renderer.get(), width, height, PRESENTATION);
   if constexpr (HIDE_CURSOR) SDL_HideCursor();
   // Never deliver text-input events; the backend derives ASCII itself.
@@ -477,10 +460,7 @@ auto Backend::Present(Frame const& frame) -> void {
   if (!_texture) return;
   Convert(frame);
   Redraw();
-#ifdef __EMSCRIPTEN__
-  // Return to the browser so it shows the frame and queues input.
-  emscripten_sleep(0);
-#endif
+  target::AfterFrame();
 }
 
 auto Backend::WritePng(std::string const& path) const -> bool {
@@ -569,19 +549,12 @@ auto Backend::SetSaveDir(std::string_view dir) -> void {
   if (dir.empty()) dir = ".";
   _save_dir = dir.substr(0, PATH_MAX_LENGTH - 1);
   while (_save_dir.size() > 1 && IsSeparator(_save_dir.back())) _save_dir.pop_back();
-#ifndef __EMSCRIPTEN__
-  SDL_CreateDirectory(_save_dir.c_str()); // a first run's --saves DIR
-#endif
+  target::PrepareSaveDir(_save_dir);
 }
 
 auto Backend::SaveDir() -> std::string const& {
   if (_save_dir.empty()) {
-#ifdef __EMSCRIPTEN__
-    SetSaveDir("/saves"); // web/pre.js mounts IDBFS there
-#else
-    auto const pref{ std::unique_ptr<char, Destroy<SDL_free>>{ SDL_GetPrefPath("opeu", "Operation Europe") } };
-    SetSaveDir(pref ? std::string_view{ pref.get() } : std::string_view{ "." });
-#endif
+    SetSaveDir(target::DefaultSaveDir());
   }
   return _save_dir;
 }
@@ -718,12 +691,7 @@ auto TicksUs() -> std::uint64_t {
 }
 
 auto SleepMs(int const ms) -> void {
-#ifdef __EMSCRIPTEN__
-  // Yield to the browser event loop (ASYNCIFY/JSPI unwinds the stack and resumes here from a timer).
-  if (ms >= 0 && !TheBackend().Headless()) emscripten_sleep(static_cast<unsigned>(ms));
-#else
-  if (ms > 0) SDL_Delay(static_cast<Uint32>(ms));
-#endif
+  target::Sleep(ms, sdl3::TheBackend().Headless());
 }
 
 SaveFile::SaveFile(std::fstream stream) : _stream{ std::move(stream) } { }

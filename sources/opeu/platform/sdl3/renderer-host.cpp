@@ -1,6 +1,8 @@
 // census: raii — SDL's creation calls hand back raw handles, which go straight into their owners.
 #include "opeu/platform/sdl3/renderer-host.hpp"
 
+#include "opeu/platform/sdl3/target.hpp"
+
 #include <format>
 #include <string_view>
 #include <utility>
@@ -13,12 +15,8 @@ namespace {
 }
 
 [[nodiscard]] auto CreateWindow(WindowSpec const& spec) -> std::expected<UniqueWindow, std::string> {
-  auto flags{ SDL_WindowFlags{ SDL_WINDOW_RESIZABLE } };
-#ifdef __EMSCRIPTEN__
-  // The browser's WebGL renderer needs an OpenGL window, and the canvas its device pixels.
-  flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
-#endif
-  auto window{ UniqueWindow{ SDL_CreateWindow(spec.title.c_str(), spec.width, spec.height, flags) } };
+  auto const flags{ SDL_WindowFlags{ SDL_WINDOW_RESIZABLE | target::ExtraWindowFlags() } };
+  auto       window{ UniqueWindow{ SDL_CreateWindow(spec.title.c_str(), spec.width, spec.height, flags) } };
   if (!window) return Failure("SDL_CreateWindow");
   return window;
 }
@@ -43,9 +41,7 @@ auto WindowRenderer::Open(WindowSpec const& spec) -> std::expected<WindowRendere
   if (!window) return std::unexpected{ window.error() };
   auto renderer{ UniqueRenderer{ SDL_CreateRenderer(window->get(), nullptr) } };
   if (!renderer) return Failure("SDL_CreateRenderer");
-#ifndef __EMSCRIPTEN__
-  SDL_SetRenderVSync(renderer.get(), 1); // the browser paces frames itself
-#endif
+  target::PaceFrames(*renderer);
   return WindowRenderer{ *std::move(video), *std::move(window), std::move(renderer) };
 }
 
