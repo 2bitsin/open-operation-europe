@@ -7,7 +7,11 @@
   test_workers_are_capped              the suites play min(cores, MAX_WORKERS) runs at once
   test_workers_follow_the_variable     OPEU_TEST_WORKERS overrides the cap
   test_rss_units                       ru_maxrss is bytes on macOS, kilobytes on Linux
+  test_children_report_their_own_peaks two children of different sizes, measured one after the other by a parent
+                                       holding more memory than either, report their own peaks (on Linux a child's
+                                       ru_maxrss inherits the parent's at fork; play.waited must not)
 """
+import subprocess
 import sys
 
 import pytest
@@ -58,3 +62,18 @@ def test_workers_follow_the_variable(monkeypatch):
 def test_rss_units(monkeypatch, platform, maxrss, mb):
     monkeypatch.setattr(sys, 'platform', platform)
     assert play.rss_mb(maxrss) == mb
+
+
+BALLAST_MB = 300
+CHILD = 'import time; block = b"x" * ({mb} * 2**20); time.sleep(0.3)'
+
+
+def child_peak(mb: int) -> float:
+    return play.waited(subprocess.Popen([sys.executable, '-c', CHILD.format(mb=mb)]))[1]
+
+
+def test_children_report_their_own_peaks():
+    ballast = b'x' * (BALLAST_MB * 2**20)
+    small, large = child_peak(0), child_peak(150)
+    assert len(ballast) and small < BALLAST_MB / 3, f'a bare Python child peaked at {small:.1f} MB: the parent leaked in'
+    assert large - small > 120, f'a child holding 150 MB more peaked at {large:.1f} MB against {small:.1f} MB'

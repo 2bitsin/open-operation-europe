@@ -58,8 +58,9 @@ The runs (RUNS below):
 Each run records the exit code, the SHA-1 of every `--shots` frame and of
 the final `--png` frame, of the WAV and OPL log where recorded, and of every
 file the game left in its save directory. `play_measured` also returns the
-run's peak resident memory (the `opeu` process's own `ru_maxrss`, from
-`os.wait4`), which the memory gates judge.
+run's peak resident memory, which the memory gates judge: the `opeu`
+process's own `ru_maxrss` from `os.wait4` on macOS, its VmHWM polled from
+/proc on Linux (where a child's ru_maxrss inherits the forking parent's).
 
 The suites play the runs `default_workers()` at a time: min(cores, 4), or
 OPEU_TEST_WORKERS when it is set. A game that leaks takes the machine down
@@ -638,16 +639,51 @@ def play_measured(opeu: str | Path, name: str, out: str | Path) -> Played:
 
 
 def waited(proc: subprocess.Popen) -> tuple[int, float]:
-  """(exit code, peak RSS in MB) of a process, reaped with os.wait4 so the rusage is its own whatever else runs in
-  parallel; killed after RUN_TIMEOUT_S."""
+  """(exit code, peak RSS in MB) of a process, its own whatever else runs in parallel; killed after RUN_TIMEOUT_S."""
   timer = threading.Timer(RUN_TIMEOUT_S, proc.kill)
+  high_water = HighWater(proc.pid) if HighWater.AVAILABLE else None
   timer.start()
   try:
     _, status, usage = os.wait4(proc.pid, 0)
   finally:
     timer.cancel()
   proc.returncode = os.waitstatus_to_exitcode(status)
-  return proc.returncode, rss_mb(usage.ru_maxrss)
+  return proc.returncode, high_water.stop() if high_water else rss_mb(usage.ru_maxrss)
+
+
+class HighWater:
+  """The peak RSS of a running Linux process, polled from VmHWM in /proc/<pid>/status. Its ru_maxrss will not do: at
+  execve the kernel folds the forking parent's high-water mark into the child's, so every game a large pytest process
+  starts reports at least that process's RSS. VmHWM belongs to the game's own address space and only rises, so polling
+  it misses at most the growth of the last POLL_S before exit."""
+
+  AVAILABLE = Path('/proc/self/status').exists()
+  POLL_S = 0.02
+
+  def __init__(self, pid: int) -> None:
+    self._status = Path(f'/proc/{pid}/status')
+    self._peak_kb = 0
+    self._done = threading.Event()
+    self._thread = threading.Thread(target=self._poll, daemon=True)
+    self._thread.start()
+
+  def stop(self) -> float:
+    """The peak in MB, once the process has exited."""
+    self._done.set()
+    self._thread.join()
+    return self._peak_kb / 2**10
+
+  def _poll(self) -> None:
+    while not self._done.is_set():
+      self._peak_kb = max(self._peak_kb, self._read_kb())
+      self._done.wait(self.POLL_S)
+
+  def _read_kb(self) -> int:
+    try:
+      lines = self._status.read_text().splitlines()
+    except OSError:
+      return 0  # exited (or a zombie being reaped)
+    return next((int(line.split()[1]) for line in lines if line.startswith('VmHWM:')), 0)
 
 
 def rss_mb(maxrss: int) -> float:
